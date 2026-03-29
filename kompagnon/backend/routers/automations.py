@@ -1,0 +1,208 @@
+"""
+Automation and Dashboard API routes.
+GET /api/dashboard/kpis - Dashboard KPIs
+GET /api/dashboard/alerts - Active alerts
+POST /api/automations/trigger - Manual trigger
+"""
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
+from pydantic import BaseModel
+from database import Project, Lead, Communication, get_db
+from services.margin_calculator import MarginCalculator
+
+router = APIRouter(prefix="/api", tags=["dashboard", "automations"])
+
+
+class KPIData(BaseModel):
+    active_projects: int
+    average_margin_percent: float
+    projects_in_target: int
+    projects_at_risk: int
+    projects_going_live_this_week: int
+    pending_reviews: int
+
+
+class Alert(BaseModel):
+    alert_type: str  # overdue_phase, scope_creep, margin_risk, missing_material
+    severity: str  # info, warning, critical
+    project_id: int
+    message: str
+    timestamp: datetime
+
+
+@router.get("/dashboard/kpis", response_model=KPIData)
+def get_dashboard_kpis(db: Session = Depends(get_db)):
+    """Get KPI data for dashboard."""
+    margin_summary = MarginCalculator.get_margin_summary(db)
+
+    # Count projects going live this week
+    week_from_now = datetime.utcnow() + timedelta(days=7)
+    golive_this_week = (
+        db.query(Project)
+        .filter(
+            Project.status == "phase_6",
+            Project.actual_go_live.isnot(None),
+            Project.actual_go_live <= week_from_now,
+        )
+        .count()
+    )
+
+    # Count projects pending reviews
+    pending_reviews = (
+        db.query(Project)
+        .filter(
+            Project.status.in_(["phase_7", "completed"]),
+            Project.review_received == False,
+        )
+        .count()
+    )
+
+    return {
+        "active_projects": margin_summary.get("active_projects", 0),
+        "average_margin_percent": margin_summary.get("average_margin_percent", 0),
+        "projects_in_target": margin_summary.get("projects_in_target", 0),
+        "projects_at_risk": margin_summary.get("projects_at_risk", 0),
+        "projects_going_live_this_week": golive_this_week,
+        "pending_reviews": pending_reviews,
+    }
+
+
+@router.get("/dashboard/alerts", response_model=list[Alert])
+def get_dashboard_alerts(db: Session = Depends(get_db)):
+    """Get all active alerts for dashboard."""
+    alerts = []
+
+    # Check for overdue phases (>3 days in phase)
+    all_projects = db.query(Project).filter(
+        Project.status.in_(
+            ["phase_1", "phase_2", "phase_3", "phase_4", "phase_5", "phase_6"]
+        )
+    ).all()
+
+    for project in all_projects:
+        if project.start_date:
+            days_in_phase = (datetime.utcnow() - project.start_date).days
+            if days_in_phase > 3:
+                alerts.append(
+                    Alert(
+                        alert_type="overdue_phase",
+                        severity="warning" if days_in_phase < 5 else "critical",
+                        project_id=project.id,
+                        message=f"Projekt {project.id} seit {days_in_phase} Tagen in Phase {project.status}",
+                        timestamp=datetime.utcnow(),
+                    )
+                )
+
+        # Check margin status
+        margin = MarginCalculator.calculate_margin(db, project.id)
+        if margin.get("status") == "red":
+            alerts.append(
+                Alert(
+                    alert_type="margin_risk",
+                    severity="critical",
+                    project_id=project.id,
+                    message=f"Projekt {project.id}: Marge kritisch ({margin.get('margin_percent', 0):.1f}%)",
+                    timestamp=datetime.utcnow(),
+                )
+            )
+
+        # Check for scope creep
+        if project.scope_creep_flags > 0:
+            alerts.append(
+                Alert(
+                    alert_type="scope_creep",
+                    severity="warning",
+                    project_id=project.id,
+                    message=f"Projekt {project.id}: {project.scope_creep_flags} Scope-Creep-Vorfälle",
+                    timestamp=datetime.utcnow(),
+                )
+            )
+
+    return alerts
+
+
+@router.get("/dashboard/projects-by-phase")
+def get_projects_by_phase(db: Session = Depends(get_db)):
+    """Get projects grouped by phase (for kanban view)."""
+    phases = {
+        "phase_1": [],
+        "phase_2": [],
+        "phase_3": [],
+        "phase_4": [],
+        "phase_5": [],
+        "phase_6": [],
+        "phase_7": [],
+        "completed": [],
+    }
+
+    all_projects = db.query(Project).all()
+    for project in all_projects:
+        if project.status in phases:
+            lead = project.lead
+            phases[project.status].append(
+                {
+                    "id": project.id,
+                    "company_name": lead.company_name if lead else "N/A",
+                    "margin_percent": project.margin_percent,
+                    "margin_status": MarginCalculator.calculate_margin(db, project.id).get("status"),
+                    "started": project.start_date,
+                }
+            )
+
+    return {
+        "phase_1_akquisition": phases["phase_1"],
+        "phase_2_briefing": phases["phase_2"],
+        "phase_3_content": phases["phase_3"],
+        "phase_4_technik": phases["phase_4"],
+        "phase_5_qa": phases["phase_5"],
+        "phase_6_golive": phases["phase_6"],
+        "phase_7_postlaunch": phases["phase_7"],
+        "completed": phases["completed"],
+    }
+
+
+@router.get("/automations/jobs")
+def get_active_jobs():
+    """Get list of active scheduled jobs."""
+    from automations.scheduler import get_scheduler
+
+    scheduler = get_scheduler()
+    jobs = []
+
+    for job in scheduler.scheduler.get_jobs():
+        jobs.append(
+            {
+                "job_id": job.id,
+                "name": job.name,
+                "next_run": job.next_run_time,
+                "trigger": str(job.trigger),
+            }
+        )
+
+    return {
+        "active_jobs": len(jobs),
+        "jobs": jobs,
+    }
+
+
+@router.post("/automations/test-email")
+def test_email_send(
+    recipient: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    """Send a test email to verify SMTP configuration."""
+    from services.email_service import EmailService
+
+    email_service = EmailService()
+    subject = "KOMPAGNON Test Email"
+    body = "Dies ist eine Test-E-Mail. Wenn Sie diese lesen, funktioniert der E-Mail-Service! ✓"
+
+    success = email_service.send_email(to=recipient, subject=subject, body=body)
+
+    return {
+        "recipient": recipient,
+        "subject": subject,
+        "success": success,
+        "message": "Test-E-Mail versendet" if success else "E-Mail-Versand fehlgeschlagen",
+    }

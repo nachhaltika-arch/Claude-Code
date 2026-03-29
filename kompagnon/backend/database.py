@@ -1,0 +1,180 @@
+"""
+SQLAlchemy database setup and models for KOMPAGNON system.
+"""
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship
+from decimal import Decimal
+
+DATABASE_URL = "sqlite:///./kompagnon.db"
+
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+
+class Lead(Base):
+    """Lead model for sales pipeline."""
+    __tablename__ = "leads"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_name = Column(String(255), nullable=False)
+    contact_name = Column(String(255), nullable=False)
+    phone = Column(String(20))
+    email = Column(String(255), nullable=False)
+    website_url = Column(String(500))
+    city = Column(String(100), nullable=False)
+    trade = Column(String(100), nullable=False)  # Gewerk (e.g., "Klempner", "Elektrik")
+    lead_source = Column(String(100))  # e.g., "Google", "Empfehlung", "Kaltakquise"
+    status = Column(String(50), default="new")  # new, contacted, qualified, proposal_sent, won, lost
+    analysis_score = Column(Integer, default=0)  # 0-100
+    geo_score = Column(Integer, default=0)  # 0-100
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    projects = relationship("Project", back_populates="lead", cascade="all, delete-orphan")
+
+
+class Project(Base):
+    """Project model for WordPress website builds."""
+    __tablename__ = "projects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False)
+    status = Column(String(50), default="phase_1")  # phase_1 to phase_7, completed
+    start_date = Column(DateTime)
+    target_go_live = Column(DateTime)
+    actual_go_live = Column(DateTime)
+    fixed_price = Column(Float, default=2000.0)  # €2000 default
+    actual_hours = Column(Float, default=0.0)  # Updated by TimeTracking
+    hourly_rate = Column(Float, default=45.0)  # €45/h default
+    ai_tool_costs = Column(Float, default=50.0)  # €50 default
+    margin_percent = Column(Float, default=0.0)  # Computed
+    scope_creep_flags = Column(Integer, default=0)  # Count of scope creep incidents
+    customer_approved_at = Column(DateTime)  # When customer approved Phase 5
+    review_received = Column(Boolean, default=False)
+    review_platform = Column(String(50))  # google, provenexpert
+    review_rating = Column(Float)  # 1-5 stars
+    review_text = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    lead = relationship("Lead", back_populates="projects")
+    checklists = relationship("ProjectChecklist", back_populates="project", cascade="all, delete-orphan")
+    communications = relationship("Communication", back_populates="project", cascade="all, delete-orphan")
+    automations = relationship("AutomationLog", back_populates="project", cascade="all, delete-orphan")
+    customer = relationship("Customer", back_populates="project", uselist=False, cascade="all, delete-orphan")
+    time_trackings = relationship("TimeTracking", back_populates="project", cascade="all, delete-orphan")
+
+
+class ProjectChecklist(Base):
+    """Checklists for each project phase."""
+    __tablename__ = "project_checklists"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    phase = Column(Integer, nullable=False)  # 1-7
+    item_key = Column(String(50), nullable=False)  # e.g., "AKQ-01"
+    item_label = Column(String(255), nullable=False)  # German label
+    responsible = Column(String(50), default="both")  # 'ki', 'human', 'both'
+    is_critical = Column(Boolean, default=False)  # PFLICHT items
+    is_completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime)
+    completed_by = Column(String(100))  # Username or "KI"
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    project = relationship("Project", back_populates="checklists")
+
+
+class Communication(Base):
+    """Track all communications (emails, calls, meetings)."""
+    __tablename__ = "communications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    type = Column(String(50), nullable=False)  # email, call, meeting
+    direction = Column(String(50), nullable=False)  # inbound, outbound
+    channel = Column(String(100))  # e.g., "email", "phone", "whatsapp"
+    subject = Column(String(255))
+    body = Column(Text)
+    sent_at = Column(DateTime, default=datetime.utcnow)
+    is_automated = Column(Boolean, default=False)  # KI-generated
+    template_key = Column(String(100))  # e.g., "welcome", "day_5_followup"
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    project = relationship("Project", back_populates="communications")
+
+
+class AutomationLog(Base):
+    """Log of automation triggers and execution."""
+    __tablename__ = "automation_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    automation_id = Column(String(100), nullable=False)  # e.g., "on_payment_received"
+    trigger_event = Column(String(100), nullable=False)  # The event that triggered it
+    executed_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(String(50))  # success, failed, skipped
+    output_summary = Column(Text)  # Brief description of what happened
+    error_message = Column(Text)  # If failed
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    project = relationship("Project", back_populates="automations")
+
+
+class Customer(Base):
+    """Post-project customer management and upsells."""
+    __tablename__ = "customers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    next_touchpoint_date = Column(DateTime)  # When to contact next
+    next_touchpoint_type = Column(String(100))  # e.g., "maintenance_offer", "feature_request"
+    upsell_status = Column(String(50), default="none")  # none, offered, accepted
+    upsell_package = Column(String(255))  # e.g., "SEO-Paket", "Blog-Verwaltung"
+    recurring_revenue = Column(Float, default=0.0)  # € / month
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    project = relationship("Project", back_populates="customer")
+
+
+class TimeTracking(Base):
+    """Track hours spent on each project phase."""
+    __tablename__ = "time_tracking"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    phase = Column(Integer)  # 1-7, or NULL for general project work
+    logged_by = Column(String(100), nullable=False)  # Username or "KI"
+    hours = Column(Float, nullable=False)
+    activity_description = Column(String(255))
+    logged_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    project = relationship("Project", back_populates="time_trackings")
+
+
+def init_db():
+    """Create all tables."""
+    Base.metadata.create_all(bind=engine)
+
+
+def get_db():
+    """Dependency for getting DB session in FastAPI."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

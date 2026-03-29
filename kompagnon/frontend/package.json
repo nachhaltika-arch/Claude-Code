@@ -1,0 +1,54 @@
+{
+  "name": "kompagnon-frontend",
+  "version": "1.0.0",
+  "description": "KOMPAGNON Automation System - React Frontend",
+  "private": true,
+  "homepage": "/",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "axios": "^1.6.2",
+    "tailwindcss": "^3.3.6",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "@heroicons/react": "^2.0.18",
+    "clsx": "^2.0.0",
+    "zustand": "^4.4.1",
+    "react-hot-toast": "^2.4.1",
+    "date-fns": "^2.30.0",
+    "react-scripts": "5.0.1",
+    "web-vitals": "^2.1.4"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.37",
+    "@types/node": "^20.10.5",
+    "prettier": "^3.1.1",
+    "tailwind-merge": "^2.2.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "dev": "REACT_APP_API_URL=http://localhost:8000 npm start"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "proxy": "http://localhost:8000"
+}

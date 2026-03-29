@@ -4,16 +4,16 @@ import {
   HomeIcon,
   UserGroupIcon,
   FolderIcon,
-  ChecklistIcon,
-  UsersIcon,
+  ClipboardDocumentListIcon,
+  UserIcon,
 } from '@heroicons/react/24/outline';
 
 const menuItems = [
   { name: 'Dashboard', path: '/', icon: HomeIcon },
   { name: 'Lead Pipeline', path: '/leads', icon: UserGroupIcon },
   { name: 'Projects', path: '/projects', icon: FolderIcon },
-  { name: 'Checklists', path: '/checklists', icon: ChecklistIcon },
-  { name: 'Customers', path: '/customers', icon: UsersIcon },
+  { name: 'Checklists', path: '/checklists', icon: ClipboardDocumentListIcon },
+  { name: 'Customers', path: '/customers', icon: UserIcon },
 ];
 
 export default function Sidebar() {

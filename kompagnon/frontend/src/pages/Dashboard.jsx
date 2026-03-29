@@ -3,7 +3,7 @@ import {
   FolderIcon,
   BanknotesIcon,
   CheckCircleIcon,
-  ExclamationIcon,
+  ExclamationTriangleIcon,
   UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import MarginBadge from '../components/MarginBadge';
@@ -100,7 +100,7 @@ export default function Dashboard() {
 
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="flex items-center gap-2">
-              <ExclamationIcon className="w-5 h-5 text-danger" />
+              <ExclamationTriangleIcon className="w-5 h-5 text-danger" />
               <span className="text-gray-600 text-sm">Risiko (&lt;60%)</span>
             </div>
             <div className="text-3xl font-bold mt-2 text-danger">
@@ -124,7 +124,7 @@ export default function Dashboard() {
       {alerts.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <h2 className="font-bold text-red-900 mb-3 flex items-center gap-2">
-            <ExclamationIcon className="w-5 h-5" />
+            <ExclamationTriangleIcon className="w-5 h-5" />
             Aktive Warnungen ({alerts.length})
           </h2>
           <div className="space-y-2">

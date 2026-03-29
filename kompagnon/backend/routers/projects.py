@@ -14,7 +14,14 @@ from datetime import datetime
 from pydantic import BaseModel
 from database import Project, ProjectChecklist, TimeTracking, Lead, get_db
 from services.margin_calculator import MarginCalculator
-from automations.scheduler import get_scheduler
+from automations.scheduler import (
+    get_scheduler,
+    job_tag_5_followup,
+    job_tag_14_funktionscheck,
+    job_tag_21_bewertungsanfrage,
+    job_tag_30_geo_check,
+    job_tag_30_upsell,
+)
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -276,15 +283,13 @@ def trigger_automation(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Map automation IDs to scheduler methods
-    scheduler = get_scheduler()
-
+    # Map automation IDs to standalone job functions
     automation_map = {
-        "tag_5_followup": scheduler._tag_5_followup,
-        "tag_14_check": scheduler._tag_14_funktionscheck,
-        "tag_21_review": scheduler._tag_21_bewertungsanfrage,
-        "tag_30_geo": scheduler._tag_30_geo_check,
-        "tag_30_upsell": scheduler._tag_30_upsell,
+        "tag_5_followup": job_tag_5_followup,
+        "tag_14_check": job_tag_14_funktionscheck,
+        "tag_21_review": job_tag_21_bewertungsanfrage,
+        "tag_30_geo": job_tag_30_geo_check,
+        "tag_30_upsell": job_tag_30_upsell,
     }
 
     if automation_id not in automation_map:

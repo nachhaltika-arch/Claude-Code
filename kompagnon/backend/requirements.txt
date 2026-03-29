@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy
+apscheduler
+anthropic
+python-dotenv
+httpx
+requests
+python-multipart

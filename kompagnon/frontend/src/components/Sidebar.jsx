@@ -11,17 +11,25 @@ import {
 const menuItems = [
   { name: 'Dashboard', path: '/', icon: HomeIcon },
   { name: 'Lead Pipeline', path: '/leads', icon: UserGroupIcon },
-  { name: 'Projects', path: '/projects', icon: FolderIcon },
-  { name: 'Checklists', path: '/checklists', icon: ClipboardDocumentListIcon },
-  { name: 'Customers', path: '/customers', icon: UserIcon },
+  { name: 'Projekte', path: '/projects', icon: FolderIcon },
+  { name: 'Checklisten', path: '/checklists', icon: ClipboardDocumentListIcon },
+  { name: 'Kunden', path: '/customers', icon: UserIcon },
 ];
 
 export default function Sidebar() {
   const location = useLocation();
 
   return (
-    <aside className="w-48 flex-shrink-0">
-      <nav className="space-y-1 bg-white rounded-lg p-4 shadow">
+    <aside style={{ width: '200px', flexShrink: 0 }}>
+      <nav className="kc-card" style={{ padding: 'var(--kc-space-3)' }}>
+        <div
+          style={{
+            marginBottom: 'var(--kc-space-3)',
+            padding: '0 var(--kc-space-3)',
+          }}
+        >
+          <span className="kc-eyebrow" style={{ marginBottom: 0 }}>Navigation</span>
+        </div>
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
@@ -30,13 +38,22 @@ export default function Sidebar() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
-                isActive
-                  ? 'bg-kompagnon-100 text-kompagnon-700'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--kc-space-3)',
+                padding: 'var(--kc-space-2) var(--kc-space-3)',
+                borderRadius: 'var(--kc-radius-md)',
+                fontWeight: isActive ? 700 : 500,
+                fontSize: 'var(--kc-text-sm)',
+                textDecoration: 'none',
+                color: isActive ? 'var(--kc-rot)' : 'var(--kc-text-sekundaer)',
+                background: isActive ? 'var(--kc-rot-subtle)' : 'transparent',
+                transition: 'all var(--kc-transition-fast)',
+                borderLeft: isActive ? '3px solid var(--kc-rot)' : '3px solid transparent',
+              }}
             >
-              <Icon className="w-5 h-5" />
+              <Icon style={{ width: '18px', height: '18px' }} />
               {item.name}
             </Link>
           );

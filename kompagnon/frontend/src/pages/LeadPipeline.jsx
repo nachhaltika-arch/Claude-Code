@@ -4,6 +4,15 @@ import toast from 'react-hot-toast';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
+const statusConfig = {
+  new:           { label: 'Neu',           className: 'kc-badge kc-badge--info' },
+  contacted:     { label: 'Kontaktiert',   className: 'kc-badge kc-badge--neutral' },
+  qualified:     { label: 'Qualifiziert',  className: 'kc-badge kc-badge--success' },
+  proposal_sent: { label: 'Angebot',       className: 'kc-badge kc-badge--warning' },
+  won:           { label: 'Gewonnen',      className: 'kc-badge kc-badge--success' },
+  lost:          { label: 'Verloren',      className: 'kc-badge kc-badge--danger' },
+};
+
 export default function LeadPipeline() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,61 +27,80 @@ export default function LeadPipeline() {
       const res = await axios.get(`${API_URL}/api/leads/`);
       setLeads(res.data);
     } catch (error) {
-      toast.error('Failed to load leads');
+      toast.error('Leads konnten nicht geladen werden.');
     } finally {
       setLoading(false);
     }
   };
 
-  const statusColors = {
-    new: 'bg-blue-100 text-blue-800',
-    contacted: 'bg-yellow-100 text-yellow-800',
-    qualified: 'bg-green-100 text-green-800',
-    proposal_sent: 'bg-purple-100 text-purple-800',
-    won: 'bg-green-500 text-white',
-    lost: 'bg-red-100 text-red-800',
-  };
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
+        <div className="kc-skeleton" style={{ height: '40px', width: '200px' }} />
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="kc-skeleton" style={{ height: '48px' }} />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-3xl font-bold text-gray-900">Lead Pipeline</h1>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
+      <div className="kc-section-header">
+        <span className="kc-eyebrow">Vertrieb</span>
+        <h1>Lead Pipeline</h1>
+      </div>
 
-      {loading ? (
-        <div className="text-gray-500">Loading...</div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-100 border-b">
+      <div className="kc-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <table className="kc-table">
+          <thead>
+            <tr>
+              <th>Unternehmen</th>
+              <th>Kontakt</th>
+              <th>Stadt</th>
+              <th>Gewerk</th>
+              <th>Status</th>
+              <th style={{ textAlign: 'right' }}>Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {leads.length === 0 ? (
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Unternehmen</th>
-                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Kontakt</th>
-                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Stadt</th>
-                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Status</th>
-                <th className="px-4 py-3 text-left text-sm font-bold text-gray-700">Score</th>
+                <td colSpan={6} style={{ textAlign: 'center', color: 'var(--kc-mittel)', padding: 'var(--kc-space-8)' }}>
+                  Keine Leads vorhanden.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {leads.map((lead) => (
-                <tr key={lead.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{lead.company_name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{lead.contact_name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{lead.city}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-block px-2 py-1 rounded text-xs font-bold ${
-                        statusColors[lead.status] || 'bg-gray-100'
-                      }`}
-                    >
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm font-bold text-gray-900">{lead.analysis_score}/100</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            ) : (
+              leads.map((lead) => {
+                const cfg = statusConfig[lead.status] || statusConfig.new;
+                return (
+                  <tr key={lead.id}>
+                    <td style={{ fontWeight: 600 }}>{lead.company_name}</td>
+                    <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.contact_name}</td>
+                    <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.city}</td>
+                    <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.trade}</td>
+                    <td><span className={cfg.className}>{cfg.label}</span></td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span
+                        style={{
+                          fontFamily: 'var(--kc-font-mono)',
+                          fontWeight: 700,
+                          fontSize: 'var(--kc-text-sm)',
+                          color: lead.analysis_score >= 70 ? 'var(--kc-success)' :
+                                 lead.analysis_score >= 40 ? 'var(--kc-warning)' :
+                                 'var(--kc-text-subtil)',
+                        }}
+                      >
+                        {lead.analysis_score}/100
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

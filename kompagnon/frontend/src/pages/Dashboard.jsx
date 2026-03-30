@@ -4,13 +4,25 @@ import {
   BanknotesIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  UserGroupIcon,
+  StarIcon,
 } from '@heroicons/react/24/outline';
 import MarginBadge from '../components/MarginBadge';
+import AlertBanner from '../components/AlertBanner';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+const phaseNames = {
+  phase_1_akquisition: 'Phase 1 — Akquisition',
+  phase_2_briefing: 'Phase 2 — Briefing',
+  phase_3_content: 'Phase 3 — Content',
+  phase_4_technik: 'Phase 4 — Technik',
+  phase_5_qa: 'Phase 5 — QA',
+  phase_6_golive: 'Phase 6 — Go-Live',
+  phase_7_postlaunch: 'Phase 7 — Post-Launch',
+  completed: 'Abgeschlossen',
+};
 
 export default function Dashboard() {
   const [kpis, setKpis] = useState(null);
@@ -20,7 +32,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadDashboardData();
-    // Refresh every 30 seconds
     const interval = setInterval(loadDashboardData, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -28,21 +39,16 @@ export default function Dashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-
-      // Fetch KPIs
-      const kpiRes = await axios.get(`${API_URL}/api/dashboard/kpis`);
+      const [kpiRes, alertRes, projectRes] = await Promise.all([
+        axios.get(`${API_URL}/api/dashboard/kpis`),
+        axios.get(`${API_URL}/api/dashboard/alerts`),
+        axios.get(`${API_URL}/api/dashboard/projects-by-phase`),
+      ]);
       setKpis(kpiRes.data);
-
-      // Fetch Alerts
-      const alertRes = await axios.get(`${API_URL}/api/dashboard/alerts`);
       setAlerts(alertRes.data);
-
-      // Fetch Projects by Phase
-      const projectRes = await axios.get(`${API_URL}/api/dashboard/projects-by-phase`);
       setProjectsByPhase(projectRes.data);
     } catch (error) {
-      toast.error('Failed to load dashboard data');
-      console.error(error);
+      toast.error('Dashboard-Daten konnten nicht geladen werden.');
     } finally {
       setLoading(false);
     }
@@ -50,111 +56,148 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="bg-gray-200 h-24 rounded-lg animate-pulse" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="kc-skeleton" style={{ height: '80px' }} />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-8)' }}>
+      {/* Header */}
+      <div className="kc-section-header">
+        <span className="kc-eyebrow">Automation System</span>
+        <h1>Dashboard</h1>
+      </div>
 
       {/* KPI Cards */}
       {kpis && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="flex items-center gap-2">
-              <FolderIcon className="w-5 h-5 text-kompagnon-600" />
-              <span className="text-gray-600 text-sm">Aktive Projekte</span>
-            </div>
-            <div className="text-3xl font-bold mt-2 text-gray-900">
-              {kpis.active_projects}
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="flex items-center gap-2">
-              <BanknotesIcon className="w-5 h-5 text-success" />
-              <span className="text-gray-600 text-sm">Ø Marge</span>
-            </div>
-            <div className="text-3xl font-bold mt-2">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--kc-space-4)' }}>
+          <KpiCard
+            icon={FolderIcon}
+            label="Aktive Projekte"
+            value={kpis.active_projects}
+          />
+          <KpiCard
+            icon={BanknotesIcon}
+            label="Durchschn. Marge"
+            value={
               <MarginBadge
                 marginPercent={kpis.average_margin_percent}
-                status={kpis.average_margin_percent >= 70 ? 'green' : 'yellow'}
+                status={kpis.average_margin_percent >= 70 ? 'green' : kpis.average_margin_percent >= 60 ? 'yellow' : 'red'}
               />
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="flex items-center gap-2">
-              <CheckCircleIcon className="w-5 h-5 text-success" />
-              <span className="text-gray-600 text-sm">Target (≥70%)</span>
-            </div>
-            <div className="text-3xl font-bold mt-2 text-success">
-              {kpis.projects_in_target}
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="flex items-center gap-2">
-              <ExclamationTriangleIcon className="w-5 h-5 text-danger" />
-              <span className="text-gray-600 text-sm">Risiko (&lt;60%)</span>
-            </div>
-            <div className="text-3xl font-bold mt-2 text-danger">
-              {kpis.projects_at_risk}
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="flex items-center gap-2">
-              <UserGroupIcon className="w-5 h-5 text-warning" />
-              <span className="text-gray-600 text-sm">Ausstehende Reviews</span>
-            </div>
-            <div className="text-3xl font-bold mt-2 text-warning">
-              {kpis.pending_reviews}
-            </div>
-          </div>
+            }
+            raw
+          />
+          <KpiCard
+            icon={CheckCircleIcon}
+            label="Im Ziel (>70%)"
+            value={kpis.projects_in_target}
+            valueColor="var(--kc-success)"
+          />
+          <KpiCard
+            icon={ExclamationTriangleIcon}
+            label="Risiko (<60%)"
+            value={kpis.projects_at_risk}
+            valueColor={kpis.projects_at_risk > 0 ? 'var(--kc-rot)' : 'var(--kc-text-primaer)'}
+          />
+          <KpiCard
+            icon={StarIcon}
+            label="Offene Reviews"
+            value={kpis.pending_reviews}
+            valueColor={kpis.pending_reviews > 0 ? 'var(--kc-warning)' : 'var(--kc-text-primaer)'}
+          />
         </div>
       )}
 
       {/* Alerts */}
-      {alerts.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="font-bold text-red-900 mb-3 flex items-center gap-2">
-            <ExclamationTriangleIcon className="w-5 h-5" />
-            Aktive Warnungen ({alerts.length})
-          </h2>
-          <div className="space-y-2">
-            {alerts.slice(0, 5).map((alert, idx) => (
-              <div key={idx} className="text-sm text-red-800 bg-white p-2 rounded border border-red-200">
-                <strong>Projekt #{alert.project_id}</strong> — {alert.message}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <AlertBanner alerts={alerts} />
 
       {/* Kanban View */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold mb-4">Projekte nach Phase</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {Object.entries(projectsByPhase).slice(0, 4).map(([phase, projects]) => (
-            <div key={phase} className="bg-gray-50 rounded p-3">
-              <h3 className="font-bold text-sm text-gray-700 mb-2">
-                {phase.replace('phase_1_akquisition', 'Phase 1: Akquisition')
-                  .replace(/_/g, ' ')
-                  .toUpperCase()}
-              </h3>
-              <div className="space-y-2">
+      <div>
+        <div className="kc-section-header" style={{ marginBottom: 'var(--kc-space-4)' }}>
+          <span className="kc-eyebrow">Pipeline</span>
+          <h2>Projekte nach Phase</h2>
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gap: 'var(--kc-space-4)',
+          }}
+        >
+          {Object.entries(projectsByPhase).map(([phaseKey, projects]) => (
+            <div
+              key={phaseKey}
+              style={{
+                background: 'var(--kc-weiss)',
+                border: '1px solid var(--kc-rand)',
+                borderRadius: 'var(--kc-radius-lg)',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Phase Header */}
+              <div
+                style={{
+                  padding: 'var(--kc-space-3) var(--kc-space-4)',
+                  borderBottom: '1px solid var(--kc-rand)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 'var(--kc-text-xs)',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: 'var(--kc-tracking-wide)',
+                    color: 'var(--kc-text-subtil)',
+                  }}
+                >
+                  {phaseNames[phaseKey] || phaseKey}
+                </span>
+                <span
+                  className="kc-badge kc-badge--neutral"
+                  style={{ fontSize: '0.65rem' }}
+                >
+                  {projects.length}
+                </span>
+              </div>
+
+              {/* Phase Cards */}
+              <div style={{ padding: 'var(--kc-space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-2)', minHeight: '60px' }}>
                 {projects.length === 0 ? (
-                  <p className="text-xs text-gray-500">Keine Projekte</p>
+                  <p style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-mittel)', textAlign: 'center', padding: 'var(--kc-space-2)' }}>
+                    Keine Projekte
+                  </p>
                 ) : (
                   projects.map((p) => (
-                    <div key={p.id} className="bg-white p-2 rounded border border-gray-200 text-xs">
-                      <div className="font-semibold text-gray-900">{p.company_name}</div>
+                    <div
+                      key={p.id}
+                      style={{
+                        padding: 'var(--kc-space-2) var(--kc-space-3)',
+                        background: 'var(--kc-hell)',
+                        borderRadius: 'var(--kc-radius-md)',
+                        borderLeft: `3px solid ${
+                          p.margin_status === 'green' ? 'var(--kc-success)' :
+                          p.margin_status === 'yellow' ? 'var(--kc-warning)' :
+                          p.margin_status === 'red' ? 'var(--kc-rot)' : 'var(--kc-rand)'
+                        }`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          fontSize: 'var(--kc-text-sm)',
+                          color: 'var(--kc-text-primaer)',
+                          marginBottom: 'var(--kc-space-1)',
+                        }}
+                      >
+                        {p.company_name}
+                      </div>
                       <MarginBadge marginPercent={p.margin_percent} status={p.margin_status} />
                     </div>
                   ))
@@ -163,6 +206,23 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function KpiCard({ icon: Icon, label, value, valueColor, raw = false }) {
+  return (
+    <div className="kc-kpi">
+      <div className="kc-kpi__label">
+        <Icon style={{ width: '16px', height: '16px' }} />
+        {label}
+      </div>
+      <div
+        className={raw ? '' : 'kc-kpi__value'}
+        style={valueColor ? { color: valueColor } : undefined}
+      >
+        {value}
       </div>
     </div>
   );

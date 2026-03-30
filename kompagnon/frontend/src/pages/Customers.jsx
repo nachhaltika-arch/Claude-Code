@@ -4,6 +4,12 @@ import toast from 'react-hot-toast';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
+const upsellConfig = {
+  none:     { label: 'Kein Upsell',  className: 'kc-badge kc-badge--neutral' },
+  offered:  { label: 'Angeboten',    className: 'kc-badge kc-badge--warning' },
+  accepted: { label: 'Akzeptiert',   className: 'kc-badge kc-badge--success' },
+};
+
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,58 +24,76 @@ export default function Customers() {
       const res = await axios.get(`${API_URL}/api/customers/`);
       setCustomers(res.data);
     } catch (error) {
-      toast.error('Failed to load customers');
+      toast.error('Kunden konnten nicht geladen werden.');
     } finally {
       setLoading(false);
     }
   };
 
-  const upsellStatusColors = {
-    none: 'bg-gray-100 text-gray-800',
-    offered: 'bg-yellow-100 text-yellow-800',
-    accepted: 'bg-green-100 text-green-800',
-  };
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
+        <div className="kc-skeleton" style={{ height: '40px', width: '200px' }} />
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="kc-skeleton" style={{ height: '48px' }} />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-3xl font-bold text-gray-900">Customers</h1>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
+      <div className="kc-section-header">
+        <span className="kc-eyebrow">After Sales</span>
+        <h1>Bestandskunden</h1>
+      </div>
 
-      {loading ? (
-        <div className="text-gray-500">Loading...</div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-100 border-b">
+      <div className="kc-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <table className="kc-table">
+          <thead>
+            <tr>
+              <th>Projekt</th>
+              <th>Upsell Status</th>
+              <th>Paket</th>
+              <th style={{ textAlign: 'right' }}>Monatlich</th>
+            </tr>
+          </thead>
+          <tbody>
+            {customers.length === 0 ? (
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-bold">Projekt ID</th>
-                <th className="px-4 py-3 text-left text-sm font-bold">Upsell Status</th>
-                <th className="px-4 py-3 text-left text-sm font-bold">Paket</th>
-                <th className="px-4 py-3 text-left text-sm font-bold">Monatlich</th>
+                <td colSpan={4} style={{ textAlign: 'center', color: 'var(--kc-mittel)', padding: 'var(--kc-space-8)' }}>
+                  Keine Kunden vorhanden.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {customers.map((customer) => (
-                <tr key={customer.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium">#{customer.project_id}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-bold ${
-                        upsellStatusColors[customer.upsell_status]
-                      }`}
+            ) : (
+              customers.map((customer) => {
+                const cfg = upsellConfig[customer.upsell_status] || upsellConfig.none;
+                return (
+                  <tr key={customer.id}>
+                    <td style={{ fontWeight: 600, fontFamily: 'var(--kc-font-mono)' }}>
+                      #{customer.project_id}
+                    </td>
+                    <td><span className={cfg.className}>{cfg.label}</span></td>
+                    <td style={{ color: 'var(--kc-text-sekundaer)' }}>
+                      {customer.upsell_package || '\u2014'}
+                    </td>
+                    <td
+                      style={{
+                        textAlign: 'right',
+                        fontFamily: 'var(--kc-font-mono)',
+                        fontWeight: 700,
+                        color: customer.recurring_revenue > 0 ? 'var(--kc-success)' : 'var(--kc-text-subtil)',
+                      }}
                     >
-                      {customer.upsell_status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm">{customer.upsell_package || '—'}</td>
-                  <td className="px-4 py-3 text-sm font-bold">
-                    €{customer.recurring_revenue.toFixed(2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                      {'\u20AC'}{customer.recurring_revenue.toFixed(2)}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

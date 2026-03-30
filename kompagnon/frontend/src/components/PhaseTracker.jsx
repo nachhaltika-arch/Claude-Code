@@ -17,38 +17,74 @@ export default function PhaseTracker({ currentPhase = 'phase_1' }) {
   const currentIndex = phases.indexOf(currentPhase);
 
   return (
-    <div className="flex items-center gap-2">
-      {phases.map((phase, index) => (
-        <React.Fragment key={phase}>
-          {index > 0 && (
-            <div
-              className={`flex-1 h-1 ${
-                index <= currentIndex ? 'bg-kompagnon-600' : 'bg-gray-200'
-              }`}
-            />
-          )}
-          <div className="flex flex-col items-center gap-1">
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
-                index < currentIndex
-                  ? 'bg-success text-white'
-                  : index === currentIndex
-                  ? 'bg-kompagnon-600 text-white ring-2 ring-kompagnon-300'
-                  : 'bg-gray-200 text-gray-500'
-              }`}
-            >
-              {index < currentIndex ? (
-                <CheckIcon className="w-6 h-6" />
-              ) : (
-                index + 1
-              )}
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0 }}>
+      {phases.map((phase, index) => {
+        const isDone = index < currentIndex;
+        const isCurrent = index === currentIndex;
+
+        return (
+          <React.Fragment key={phase}>
+            {index > 0 && (
+              <div
+                style={{
+                  flex: 1,
+                  height: '2px',
+                  marginTop: '16px',
+                  background: isDone || isCurrent ? 'var(--kc-rot)' : 'var(--kc-rand)',
+                  transition: 'background var(--kc-transition-base)',
+                }}
+              />
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--kc-space-2)' }}>
+              <div
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: 'var(--kc-radius-full)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: 'var(--kc-font-display)',
+                  fontWeight: 700,
+                  fontSize: 'var(--kc-text-sm)',
+                  transition: 'all var(--kc-transition-base)',
+                  ...(isDone
+                    ? {
+                        background: 'var(--kc-success)',
+                        color: 'var(--kc-weiss)',
+                      }
+                    : isCurrent
+                    ? {
+                        background: 'var(--kc-rot)',
+                        color: 'var(--kc-weiss)',
+                        boxShadow: '0 0 0 3px var(--kc-rot-subtle)',
+                      }
+                    : {
+                        background: 'var(--kc-hell)',
+                        color: 'var(--kc-mittel)',
+                        border: '1.5px solid var(--kc-rand)',
+                      }),
+                }}
+              >
+                {isDone ? <CheckIcon style={{ width: '18px', height: '18px' }} /> : index + 1}
+              </div>
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  fontWeight: isCurrent ? 700 : 500,
+                  color: isCurrent ? 'var(--kc-rot)' : 'var(--kc-text-subtil)',
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap',
+                  letterSpacing: 'var(--kc-tracking-wide)',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {phaseLabels[phase]}
+              </span>
             </div>
-            <span className="text-xs font-medium text-center text-gray-600 whitespace-nowrap">
-              {phaseLabels[phase]}
-            </span>
-          </div>
-        </React.Fragment>
-      ))}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 }

@@ -17,9 +17,14 @@ export default function Landing() {
       <section style={{ background: `linear-gradient(135deg, ${N} 0%, #1a3050 100%)`, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: isMobile ? '16px 20px' : '20px 60px' }}>
           <div style={{ color: '#fff', fontWeight: 900, fontSize: isMobile ? 20 : 24, letterSpacing: '-0.5px' }}>KOMPAGNON</div>
-          <button onClick={() => go('kompagnon')} style={{ background: A, color: N, border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-            Jetzt starten
-          </button>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button onClick={() => nav('/login')} style={{ background: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.4)', borderRadius: 8, padding: '9px 20px', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+              Anmelden
+            </button>
+            <button onClick={() => nav('/register')} style={{ background: A, color: N, border: 'none', borderRadius: 8, padding: '9px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+              Kostenlos starten
+            </button>
+          </div>
         </nav>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: isMobile ? '40px 20px' : '60px', textAlign: 'center' }}>
           <h1 style={{ color: '#fff', fontSize: isMobile ? 36 : 56, fontWeight: 900, lineHeight: 1.1, marginBottom: 20, maxWidth: 700 }}>

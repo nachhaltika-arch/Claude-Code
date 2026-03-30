@@ -1,109 +1,175 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
 const NAVY = '#0F1E3A';
-const ACCENT = '#C8102E';
+const AMBER = '#D4A017';
 
 export default function Register() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', password: '', password2: '' });
-  const [agreed, setAgreed] = useState(false);
-  const [error, setError] = useState('');
+  const { isMobile } = useScreenSize();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [agb, setAgb] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-
-  const handleSubmit = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
-    if (form.password !== form.password2) { setError('Passwoerter stimmen nicht ueberein'); return; }
-    if (form.password.length < 8) { setError('Passwort muss mindestens 8 Zeichen haben'); return; }
-    if (!agreed) { setError('Bitte AGB akzeptieren'); return; }
+    if (password !== passwordConfirm) { setError('Passwoerter stimmen nicht ueberein'); return; }
+    if (password.length < 8) { setError('Passwort muss mindestens 8 Zeichen haben'); return; }
+    if (!agb) { setError('Bitte akzeptieren Sie die AGB'); return; }
 
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: form.email, password: form.password, first_name: form.first_name, last_name: form.last_name }),
+        body: JSON.stringify({ email, password, first_name: firstName, last_name: lastName }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Registrierung fehlgeschlagen');
+      if (!res.ok) { setError(data.detail || 'Registrierung fehlgeschlagen'); return; }
       setSuccess(true);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError('Verbindungsfehler. Bitte erneut versuchen.'); }
+    finally { setLoading(false); }
   };
 
-  const inputStyle = {
-    width: '100%', padding: '12px 14px', border: '1.5px solid #d4d8e8',
-    borderRadius: 8, fontSize: 16, boxSizing: 'border-box', outline: 'none',
+  const inp = {
+    width: '100%', padding: '11px 14px', border: '1.5px solid #d4d8e8', borderRadius: 8,
+    fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
   };
-  const btnStyle = {
-    width: '100%', padding: '13px', background: NAVY, color: '#fff',
-    border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 700,
-    cursor: 'pointer', opacity: loading ? 0.6 : 1, minHeight: 48,
+  const lbl = {
+    display: 'block', fontSize: 12, fontWeight: 700, color: '#6a7a9a',
+    marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em',
   };
+
+  // Success screen
+  if (success) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f0f2f8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'system-ui, sans-serif' }}>
+        <div style={{ width: '100%', maxWidth: 420 }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <div onClick={() => navigate('/')} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ color: AMBER, fontWeight: 900, fontSize: 14 }}>HS</span>
+              </div>
+              <span style={{ fontSize: 22, fontWeight: 800, color: NAVY }}>KOMPAGNON</span>
+            </div>
+          </div>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 32, boxShadow: '0 4px 24px rgba(15,30,58,0.10)', textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+            <h2 style={{ color: NAVY, marginBottom: 8, fontSize: 22, fontWeight: 800 }}>Konto erstellt!</h2>
+            <p style={{ color: '#6a7a9a', marginBottom: 24, fontSize: 14 }}>
+              Ihr Konto wurde erfolgreich angelegt. Sie koennen sich jetzt anmelden.
+            </p>
+            <button onClick={() => navigate('/login')} style={{
+              width: '100%', background: NAVY, color: '#fff', border: 'none', borderRadius: 8,
+              padding: '13px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer', minHeight: 48,
+            }}>
+              Jetzt anmelden
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: `linear-gradient(135deg, ${NAVY} 0%, #1a3050 100%)`, padding: 20,
-    }}>
-      <div style={{ background: '#fff', borderRadius: 16, padding: '40px 36px', maxWidth: 420, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.08)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: NAVY }}>KOMPAGNON</div>
-          <h2 style={{ fontSize: 20, color: NAVY, marginTop: 12, fontWeight: 600 }}>Konto erstellen</h2>
+    <div style={{ minHeight: '100vh', background: '#f0f2f8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ width: '100%', maxWidth: 420 }}>
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div onClick={() => navigate('/')} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ color: AMBER, fontWeight: 900, fontSize: 14 }}>HS</span>
+            </div>
+            <span style={{ fontSize: 22, fontWeight: 800, color: NAVY }}>KOMPAGNON</span>
+          </div>
         </div>
 
-        {success ? (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-            <p style={{ fontSize: 15, color: '#2a9a5a', fontWeight: 600 }}>Konto erfolgreich erstellt!</p>
-            <p style={{ fontSize: 13, color: '#6a7a9a', marginTop: 8 }}>Sie koennen sich jetzt anmelden.</p>
-            <button onClick={() => navigate('/login')} style={{ ...btnStyle, marginTop: 20 }}>Zum Login</button>
+        {/* Card */}
+        <div style={{ background: '#fff', borderRadius: 16, padding: 32, boxShadow: '0 4px 24px rgba(15,30,58,0.10)' }}>
+          <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 800, color: NAVY }}>Konto erstellen</h2>
+          <p style={{ margin: '0 0 24px', color: '#6a7a9a', fontSize: 14 }}>Starten Sie mit KOMPAGNON</p>
+
+          {/* OAuth */}
+          {[
+            { icon: 'G', label: 'Mit Google registrieren', bg: '#fff', border: '#d0d8e8', color: NAVY },
+            { icon: '\uD83C\uDF4E', label: 'Mit Apple registrieren', bg: '#000', border: '#000', color: '#fff' },
+            { icon: 'f', label: 'Mit Facebook registrieren', bg: '#1877F2', border: '#1877F2', color: '#fff' },
+          ].map((btn) => (
+            <button key={btn.label} style={{
+              width: '100%', padding: '11px 16px', marginBottom: 10, background: btn.bg, color: btn.color,
+              border: `1.5px solid ${btn.border}`, borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontFamily: 'inherit',
+            }}>
+              <span style={{ fontWeight: 800 }}>{btn.icon}</span> {btn.label}
+            </button>
+          ))}
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
+            <div style={{ flex: 1, height: 1, background: '#e8eaf2' }} />
+            <span style={{ fontSize: 13, color: '#9aa8c0' }}>oder mit E-Mail</span>
+            <div style={{ flex: 1, height: 1, background: '#e8eaf2' }} />
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+
+          {error && <div style={{ background: '#fee2e2', color: '#c0392b', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>{error}</div>}
+
+          <form onSubmit={handleRegister}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 14 }}>
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#4a5a74', display: 'block', marginBottom: 4 }}>Vorname</label>
-                <input style={inputStyle} value={form.first_name} onChange={set('first_name')} placeholder="Max" />
+                <label style={lbl}>Vorname</label>
+                <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Max" style={inp} />
               </div>
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#4a5a74', display: 'block', marginBottom: 4 }}>Nachname</label>
-                <input style={inputStyle} value={form.last_name} onChange={set('last_name')} placeholder="Mustermann" />
+                <label style={lbl}>Nachname</label>
+                <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Mustermann" style={inp} />
               </div>
             </div>
-            <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#4a5a74', display: 'block', marginBottom: 4 }}>E-Mail-Adresse</label>
-              <input style={inputStyle} type="email" value={form.email} onChange={set('email')} required placeholder="name@firma.de" />
+            <div style={{ marginBottom: 14 }}>
+              <label style={lbl}>E-Mail-Adresse</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ihre@email.de" required style={inp} />
             </div>
-            <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#4a5a74', display: 'block', marginBottom: 4 }}>Passwort (min. 8 Zeichen)</label>
-              <input style={inputStyle} type="password" value={form.password} onChange={set('password')} required placeholder="Sicheres Passwort" />
+            <div style={{ marginBottom: 14 }}>
+              <label style={lbl}>Passwort (min. 8 Zeichen)</label>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sicheres Passwort" required style={inp} />
             </div>
-            <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#4a5a74', display: 'block', marginBottom: 4 }}>Passwort wiederholen</label>
-              <input style={inputStyle} type="password" value={form.password2} onChange={set('password2')} required placeholder="Passwort bestaetigen" />
+            <div style={{ marginBottom: 14 }}>
+              <label style={lbl}>Passwort wiederholen</label>
+              <input type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} placeholder="Passwort bestaetigen" required style={inp} />
             </div>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#4a5a74', cursor: 'pointer' }}>
-              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 2 }} />
+
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#4a5a74', cursor: 'pointer', marginBottom: 20 }}>
+              <input type="checkbox" checked={agb} onChange={(e) => setAgb(e.target.checked)} style={{ marginTop: 2 }} />
               <span>Ich akzeptiere die AGB und Datenschutzrichtlinie</span>
             </label>
-            {error && <div style={{ color: ACCENT, fontSize: 13, fontWeight: 600 }}>{error}</div>}
-            <button type="submit" disabled={loading} style={btnStyle}>
+
+            <button type="submit" disabled={loading} style={{
+              width: '100%', padding: '13px', background: loading ? '#9aa8c0' : NAVY, color: '#fff',
+              border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', minHeight: 48,
+            }}>
               {loading ? 'Wird erstellt...' : 'Konto erstellen'}
             </button>
-            <div style={{ textAlign: 'center', fontSize: 13, color: '#6a7a9a' }}>
-              Bereits ein Konto? <Link to="/login" style={{ color: '#2a5aa0', fontWeight: 600, textDecoration: 'none' }}>Anmelden</Link>
-            </div>
           </form>
-        )}
+
+          <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#6a7a9a' }}>
+            Bereits ein Konto?{' '}
+            <Link to="/login" style={{ color: NAVY, fontWeight: 700, textDecoration: 'none' }}>Anmelden</Link>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: '#9aa8c0' }}>
+          2025 KOMPAGNON · <Link to="/" style={{ color: '#9aa8c0' }}>Startseite</Link>
+        </div>
       </div>
     </div>
   );

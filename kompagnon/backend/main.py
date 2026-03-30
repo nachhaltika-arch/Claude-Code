@@ -56,6 +56,14 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 KOMPAGNON Backend Starting...")
     try:
+        # Run database migrations first (adds missing columns)
+        try:
+            from migrate import run_migrations
+            run_migrations()
+            logger.info("✓ Migrations executed")
+        except Exception as e:
+            logger.warning(f"⚠ Migration: {e}")
+
         init_db()
         logger.info("✓ Database initialized")
 

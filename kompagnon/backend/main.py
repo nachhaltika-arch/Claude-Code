@@ -41,6 +41,7 @@ from routers import (
     auth_router,
     admin_router,
     scraper_router,
+    settings_router,
 )
 
 # Import scheduler
@@ -210,6 +211,7 @@ app.include_router(audit_router)
 app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(scraper_router)
+app.include_router(settings_router)
 
 
 # Health check endpoint

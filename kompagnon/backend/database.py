@@ -321,6 +321,27 @@ class UserSession(Base):
     is_valid = Column(Boolean, default=True)
 
 
+class SystemSettings(Base):
+    """Key-value system settings."""
+    __tablename__ = "system_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(100), unique=True, nullable=False)
+    value = Column(Text, default="")
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = Column(Integer, nullable=True)
+
+
+class RolePermission(Base):
+    """Permission assignments per role."""
+    __tablename__ = "role_permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    role = Column(String(20), nullable=False)
+    permission = Column(String(50), nullable=False)
+    is_allowed = Column(Boolean, default=True)
+
+
 def init_db():
     """Create all tables."""
     Base.metadata.create_all(bind=engine)

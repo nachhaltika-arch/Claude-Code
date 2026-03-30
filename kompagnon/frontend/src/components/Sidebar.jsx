@@ -8,6 +8,7 @@ import {
   UserIcon,
   ArrowUpTrayIcon,
   MagnifyingGlassCircleIcon,
+  Cog6ToothIcon,
 } from '@heroicons/react/24/outline';
 
 const menuItems = [
@@ -18,6 +19,7 @@ const menuItems = [
   { name: 'Website Audit', path: '/app/audit', icon: MagnifyingGlassCircleIcon },
   { name: 'Kontakt-Import', path: '/app/import', icon: ArrowUpTrayIcon },
   { name: 'Kunden', path: '/app/customers', icon: UserIcon },
+  { name: 'Einstellungen', path: '/app/settings', icon: Cog6ToothIcon },
 ];
 
 export default function Sidebar() {

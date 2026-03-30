@@ -19,6 +19,9 @@ import AdminUsers from './pages/AdminUsers';
 import TwoFactorSetup from './pages/TwoFactorSetup';
 import Landing from './pages/Landing';
 import Checkout from './pages/Checkout';
+import Settings from './pages/Settings';
+import RoleManagement from './pages/RoleManagement';
+import SettingsLayout from './components/SettingsLayout';
 
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -144,6 +147,18 @@ function App() {
             <Route path="profile" element={<Profile />} />
             <Route path="2fa-setup" element={<TwoFactorSetup />} />
             <Route path="admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
+
+            {/* Settings with sub-navigation */}
+            <Route path="settings" element={<SettingsLayout />}>
+              <Route index element={<Navigate to="/app/settings/profile" replace />} />
+              <Route path="profile" element={<Settings tab="profile" />} />
+              <Route path="security" element={<Settings tab="security" />} />
+              <Route path="roles" element={<PrivateRoute roles={['admin']}><RoleManagement /></PrivateRoute>} />
+              <Route path="users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
+              <Route path="system" element={<PrivateRoute roles={['admin']}><Settings tab="system" /></PrivateRoute>} />
+              <Route path="notifications" element={<Settings tab="notifications" />} />
+              <Route path="subscription" element={<PrivateRoute roles={['admin']}><Settings tab="subscription" /></PrivateRoute>} />
+            </Route>
           </Route>
 
           {/* Fallback */}

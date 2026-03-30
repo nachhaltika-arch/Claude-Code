@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import API_BASE_URL from '../config';
+import AuditReport from './AuditReport';
 
 const LEVEL_STYLES = {
   'Homepage Standard Platin': { color: '#283593', icon: '\uD83C\uDFC6' },
@@ -15,6 +16,20 @@ export default function AuditHistory({ leadId }) {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [openAudit, setOpenAudit] = useState(null);
+  const [loadingAuditId, setLoadingAuditId] = useState(null);
+
+  const openFullReport = async (auditId) => {
+    setLoadingAuditId(auditId);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/audit/${auditId}`);
+      setOpenAudit(res.data);
+    } catch (e) {
+      alert('Audit konnte nicht geladen werden.');
+    } finally {
+      setLoadingAuditId(null);
+    }
+  };
 
   useEffect(() => {
     if (!leadId) return;
@@ -106,7 +121,15 @@ export default function AuditHistory({ leadId }) {
                   style={{ fontSize: 'var(--kc-text-xs)', padding: '2px var(--kc-space-2)' }}
                   onClick={() => setExpanded(isOpen ? null : audit.id)}
                 >
-                  {isOpen ? 'Zuklappen' : 'Details'}
+                  {isOpen ? 'Zuklappen' : 'Kurzinfo'}
+                </button>
+                <button
+                  className="kc-btn-ghost"
+                  style={{ fontSize: 'var(--kc-text-xs)', padding: '2px var(--kc-space-2)', color: 'var(--kc-info, #2196f3)' }}
+                  onClick={() => openFullReport(audit.id)}
+                  disabled={loadingAuditId === audit.id}
+                >
+                  {loadingAuditId === audit.id ? '...' : 'Details anzeigen'}
                 </button>
                 <button
                   onClick={() => {
@@ -184,6 +207,25 @@ export default function AuditHistory({ leadId }) {
           </div>
         );
       })}
+
+      {/* Full Audit Report Modal */}
+      {openAudit && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.7)', zIndex: 1000,
+            overflowY: 'auto', padding: '20px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setOpenAudit(null); }}
+        >
+          <div style={{ maxWidth: 900, margin: '0 auto', borderRadius: 12, overflow: 'hidden', background: 'var(--kc-weiss, #fff)' }}>
+            <AuditReport
+              auditData={openAudit}
+              onClose={() => setOpenAudit(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

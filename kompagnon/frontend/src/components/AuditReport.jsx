@@ -129,27 +129,82 @@ function scoreIcon(score, max) {
 // Main Component
 // ═══════════════════════════════════════════════════════════
 
-export default function AuditReport({ auditData }) {
+export default function AuditReport({ auditData, onClose }) {
   if (!auditData) return null;
 
   const r = auditData;
   const ls = LEVEL_STYLES[r.level] || LEVEL_STYLES['Nicht konform'];
-  const items = r.items || {};
-  const checks = r.checks || {};
+
+  // Support both r.items.key (from _format_audit) and r.key (direct DB object)
+  const itemsRaw = r.items || {};
+  const items = {};
+  for (const cat of CATEGORIES) {
+    for (const item of cat.items) {
+      items[item.key] = itemsRaw[item.key] ?? r[item.key] ?? 0;
+    }
+  }
+  for (const hi of HOSTING_ITEMS) {
+    items[hi.key] = itemsRaw[hi.key] ?? r[hi.key] ?? 0;
+  }
+
+  const checks = r.checks || {
+    ssl_ok: r.ssl_ok,
+    impressum_ok: r.impressum_ok,
+    datenschutz_ok: r.datenschutz_ok,
+    lcp_value: r.lcp_value,
+    cls_value: r.cls_value,
+    inp_value: r.inp_value,
+    mobile_score: r.mobile_score,
+    performance_score: r.performance_score,
+  };
+
+  // Parse JSON fields if needed
+  let topIssues = r.top_issues || [];
+  let recommendations = r.recommendations || [];
+  try {
+    if (typeof topIssues === 'string') topIssues = JSON.parse(topIssues);
+    if (typeof recommendations === 'string') recommendations = JSON.parse(recommendations);
+  } catch (e) { /* ignore */ }
 
   const radarData = CATEGORIES.map((cat) => {
-    const catData = r.categories?.[cat.key] || { score: 0, max: cat.max };
+    const catData = r.categories?.[cat.key] || { score: r[cat.key.replace(/^(.*)$/, (m) => {
+      // fallback: compute from items
+      return m;
+    })] || 0, max: cat.max };
+    const score = catData.score ?? cat.items.reduce((sum, item) => sum + (items[item.key] || 0), 0);
     return {
       subject: cat.shortLabel,
-      score: cat.max > 0 ? Math.round((catData.score / cat.max) * 100) : 0,
+      score: cat.max > 0 ? Math.round((Math.min(score, cat.max) / cat.max) * 100) : 0,
       fullMark: 100,
     };
   });
 
-  const hasHostingData = HOSTING_ITEMS.some((hi) => items[hi.key] !== undefined);
+  const hasHostingData = HOSTING_ITEMS.some((hi) => items[hi.key] !== undefined && items[hi.key] !== 0);
+
+  // Build category scores from items if categories not provided
+  const getCatScore = (catKey, catMax) => {
+    if (r.categories?.[catKey]) return r.categories[catKey].score;
+    const cat = CATEGORIES.find(c => c.key === catKey);
+    if (!cat) return 0;
+    return Math.min(cat.items.reduce((sum, item) => sum + (items[item.key] || 0), 0), catMax);
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)', position: 'relative' }}>
+      {/* Close button */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute', top: 16, right: 16, zIndex: 200,
+            background: 'rgba(0,0,0,0.15)', border: 'none', borderRadius: '50%',
+            width: 36, height: 36, fontSize: 18, cursor: 'pointer', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          ×
+        </button>
+      )}
       {/* Score Hero */}
       <div
         className="kc-card"
@@ -222,9 +277,9 @@ export default function AuditReport({ auditData }) {
           <h3 style={{ marginBottom: 'var(--kc-space-4)', fontSize: 'var(--kc-text-base)' }}>Kategorie-Scores</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-3)' }}>
             {CATEGORIES.map((cat) => {
-              const catData = r.categories?.[cat.key] || { score: 0, max: cat.max };
-              const pct = cat.max > 0 ? (catData.score / cat.max) * 100 : 0;
-              const color = scoreColor(catData.score, cat.max);
+              const catScore = getCatScore(cat.key, cat.max);
+              const pct = cat.max > 0 ? (catScore / cat.max) * 100 : 0;
+              const color = scoreColor(catScore, cat.max);
               return (
                 <div key={cat.key}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--kc-space-1)' }}>
@@ -232,7 +287,7 @@ export default function AuditReport({ auditData }) {
                       {cat.label}
                     </span>
                     <span style={{ fontSize: 'var(--kc-text-xs)', fontFamily: 'var(--kc-font-mono)', fontWeight: 700, color }}>
-                      {catData.score}/{cat.max}
+                      {catScore}/{cat.max}
                     </span>
                   </div>
                   <div style={{ height: '6px', background: 'var(--kc-rand)', borderRadius: 'var(--kc-radius-full)', overflow: 'hidden' }}>
@@ -255,17 +310,14 @@ export default function AuditReport({ auditData }) {
           <h2>Einzelkriterien</h2>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-3)' }}>
-          {CATEGORIES.map((cat) => {
-            const catData = r.categories?.[cat.key] || { score: 0, max: cat.max };
-            return (
+          {CATEGORIES.map((cat) => (
               <CategorySection
                 key={cat.key}
                 category={cat}
-                catScore={catData.score}
+                catScore={getCatScore(cat.key, cat.max)}
                 items={items}
               />
-            );
-          })}
+          ))}
         </div>
       </div>
 
@@ -360,31 +412,51 @@ export default function AuditReport({ auditData }) {
 
       {/* Issues + Recommendations */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--kc-space-4)' }}>
-        {r.top_issues && r.top_issues.length > 0 && (
+        {topIssues.length > 0 && (
           <div className="kc-alert kc-alert--danger">
             <strong style={{ display: 'block', marginBottom: 'var(--kc-space-3)', fontFamily: 'var(--kc-font-display)' }}>
               Top-Probleme
             </strong>
             <ul style={{ margin: 0, paddingLeft: 'var(--kc-space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-2)' }}>
-              {r.top_issues.map((issue, i) => (
-                <li key={i} style={{ fontSize: 'var(--kc-text-sm)' }}>{issue}</li>
+              {topIssues.map((issue, i) => (
+                <li key={i} style={{ fontSize: 'var(--kc-text-sm)' }}>{typeof issue === 'string' ? issue : issue?.title || issue?.issue || ''}</li>
               ))}
             </ul>
           </div>
         )}
-        {r.recommendations && r.recommendations.length > 0 && (
+        {recommendations.length > 0 && (
           <div className="kc-alert kc-alert--info" style={{ borderColor: 'var(--kc-success)', background: '#e8f5e9', color: '#1b5e20' }}>
             <strong style={{ display: 'block', marginBottom: 'var(--kc-space-3)', fontFamily: 'var(--kc-font-display)' }}>
               Empfehlungen
             </strong>
             <ol style={{ margin: 0, paddingLeft: 'var(--kc-space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-2)' }}>
-              {r.recommendations.map((rec, i) => (
-                <li key={i} style={{ fontSize: 'var(--kc-text-sm)' }}>{rec}</li>
+              {recommendations.map((rec, i) => (
+                <li key={i} style={{ fontSize: 'var(--kc-text-sm)' }}>{typeof rec === 'string' ? rec : rec?.title || ''}</li>
               ))}
             </ol>
           </div>
         )}
       </div>
+
+      {/* Certification */}
+      {r.level && r.total_score != null && (
+        <div className="kc-card" style={{
+          textAlign: 'center', padding: 'var(--kc-space-8)',
+          borderTop: `3px solid ${ls.color}`,
+        }}>
+          <h3 style={{ fontFamily: 'var(--kc-font-display)', fontSize: 'var(--kc-text-lg)', marginBottom: 'var(--kc-space-4)' }}>
+            Zertifizierungsaussage
+          </h3>
+          <p style={{ color: 'var(--kc-text-sekundaer)', fontSize: 'var(--kc-text-sm)', lineHeight: 'var(--kc-leading-normal)', maxWidth: '600px', margin: '0 auto' }}>
+            Hiermit wird bestätigt, dass die geprüfte Website <strong>{r.website_url}</strong> zum Zeitpunkt des Audits
+            den Anforderungen des <strong>{r.level}</strong> entspricht
+            und eine Gesamtbewertung von <strong>{r.total_score} / 100 Punkten</strong> erzielt hat.
+          </p>
+          <p style={{ color: 'var(--kc-mittel)', fontSize: 'var(--kc-text-xs)', marginTop: 'var(--kc-space-4)' }}>
+            Auditor: KOMPAGNON Communications
+          </p>
+        </div>
+      )}
     </div>
   );
 }

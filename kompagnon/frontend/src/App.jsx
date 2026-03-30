@@ -23,6 +23,7 @@ import Settings from './pages/Settings';
 import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
 import Impressum from './pages/Impressum';
+import Datenschutz from './pages/Datenschutz';
 
 import Sidebar from './components/Sidebar';
 
@@ -121,6 +122,7 @@ function App() {
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/impressum" element={<Impressum />} />
+          <Route path="/datenschutz" element={<Datenschutz />} />
           <Route path="/checkout/:package" element={<Checkout />} />
 
           {/* App — authenticated, with Navbar/Sidebar */}

@@ -3,6 +3,8 @@ PDF Audit Report Generator — Homepage Standard 2025
 Generates a professional multi-page PDF using ReportLab.
 """
 import json
+import os
+import unicodedata
 from io import BytesIO
 from datetime import datetime
 
@@ -16,6 +18,34 @@ from reportlab.platypus import (
     PageBreak, KeepTogether,
 )
 from reportlab.platypus.flowables import HRFlowable
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+
+# ═══════════════════════════════════════════════════════════
+# Font Registration (DejaVu for full Unicode/Umlaut support)
+# ═══════════════════════════════════════════════════════════
+
+def _register_fonts():
+    try:
+        import reportlab
+        font_path = os.path.join(os.path.dirname(reportlab.__file__), "fonts")
+        pdfmetrics.registerFont(TTFont("DejaVu", os.path.join(font_path, "DejaVuSans.ttf")))
+        pdfmetrics.registerFont(TTFont("DejaVu-Bold", os.path.join(font_path, "DejaVuSans-Bold.ttf")))
+        return "DejaVu", "DejaVu-Bold"
+    except Exception:
+        return FONT_NORMAL, FONT_BOLD
+
+FONT_NORMAL, FONT_BOLD = _register_fonts()
+
+
+def _clean_text(text):
+    """Normalize Unicode text for PDF rendering."""
+    if not text:
+        return ""
+    if not isinstance(text, str):
+        text = str(text)
+    return unicodedata.normalize("NFC", text)
 
 # ═══════════════════════════════════════════════════════════
 # Colors
@@ -46,37 +76,37 @@ def _get_styles():
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle(
         "KCTitle", parent=styles["Title"],
-        fontName="Helvetica-Bold", fontSize=28, leading=34,
+        fontName=FONT_BOLD, fontSize=28, leading=34,
         textColor=KC_DARK, alignment=TA_CENTER, spaceAfter=6*mm,
     ))
     styles.add(ParagraphStyle(
         "KCSubtitle", parent=styles["Normal"],
-        fontName="Helvetica", fontSize=14, leading=18,
+        fontName=FONT_NORMAL, fontSize=14, leading=18,
         textColor=colors.HexColor("#7f8c8d"), alignment=TA_CENTER, spaceAfter=10*mm,
     ))
     styles.add(ParagraphStyle(
         "KCHeading", parent=styles["Heading2"],
-        fontName="Helvetica-Bold", fontSize=16, leading=20,
+        fontName=FONT_BOLD, fontSize=16, leading=20,
         textColor=KC_DARK, spaceBefore=8*mm, spaceAfter=4*mm,
     ))
     styles.add(ParagraphStyle(
         "KCBody", parent=styles["Normal"],
-        fontName="Helvetica", fontSize=10, leading=14,
+        fontName=FONT_NORMAL, fontSize=10, leading=14,
         textColor=KC_DARK, spaceAfter=3*mm,
     ))
     styles.add(ParagraphStyle(
         "KCSmall", parent=styles["Normal"],
-        fontName="Helvetica", fontSize=8, leading=10,
+        fontName=FONT_NORMAL, fontSize=8, leading=10,
         textColor=colors.HexColor("#95a5a6"),
     ))
     styles.add(ParagraphStyle(
         "KCCenter", parent=styles["Normal"],
-        fontName="Helvetica", fontSize=10, leading=14,
+        fontName=FONT_NORMAL, fontSize=10, leading=14,
         textColor=KC_DARK, alignment=TA_CENTER,
     ))
     styles.add(ParagraphStyle(
         "KCBold", parent=styles["Normal"],
-        fontName="Helvetica-Bold", fontSize=10, leading=14,
+        fontName=FONT_BOLD, fontSize=10, leading=14,
         textColor=KC_DARK,
     ))
     return styles
@@ -86,10 +116,10 @@ def _get_styles():
 # Helper
 # ═══════════════════════════════════════════════════════════
 
-def _safe(val, default="—"):
+def _safe(val, default="-"):
     if val is None:
-        return str(default)
-    return str(val)
+        return _clean_text(str(default))
+    return _clean_text(str(val))
 
 
 def _score_status(score, max_pts):
@@ -127,10 +157,10 @@ def _parse_json_field(val):
 # ═══════════════════════════════════════════════════════════
 
 BASE_TABLE_STYLE = [
-    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+    ("FONTNAME", (0, 0), (-1, 0), FONT_BOLD),
     ("FONTSIZE", (0, 0), (-1, 0), 9),
     ("FONTSIZE", (0, 1), (-1, -1), 9),
-    ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+    ("FONTNAME", (0, 1), (-1, -1), FONT_NORMAL),
     ("BACKGROUND", (0, 0), (-1, 0), KC_DARK),
     ("TEXTCOLOR", (0, 0), (-1, 0), KC_WHITE),
     ("ALIGN", (0, 0), (-1, 0), "LEFT"),
@@ -157,13 +187,13 @@ def _category_table_style(n_rows):
 
 def _footer(canvas_obj, doc):
     canvas_obj.saveState()
-    canvas_obj.setFont("Helvetica", 7)
+    canvas_obj.setFont(FONT_NORMAL, 7)
     canvas_obj.setFillColor(colors.HexColor("#95a5a6"))
     w, h = A4
     canvas_obj.drawString(20*mm, 10*mm,
-        f"Homepage Standard — Audit 2025 | KOMPAGNON | Seite {doc.page}")
+        _clean_text(f"Homepage Standard - Audit 2025 | KOMPAGNON | Seite {doc.page}"))
     canvas_obj.drawRightString(w - 20*mm, 10*mm,
-        "Dieses Audit ersetzt keine Rechtsberatung.")
+        _clean_text("Dieses Audit ersetzt keine Rechtsberatung."))
     canvas_obj.restoreState()
 
 
@@ -183,11 +213,11 @@ def generate_audit_report(audit_data: dict) -> bytes:
     story = []
 
     total = audit_data.get("total_score", 0) or 0
-    level = audit_data.get("level", "Nicht konform") or "Nicht konform"
-    company = audit_data.get("company_name", "Unbekannt") or "Unbekannt"
-    url = audit_data.get("website_url", "") or ""
-    trade = audit_data.get("trade", "") or ""
-    city = audit_data.get("city", "") or ""
+    level = _clean_text(audit_data.get("level", "Nicht konform") or "Nicht konform")
+    company = _clean_text(audit_data.get("company_name", "Unbekannt") or "Unbekannt")
+    url = _clean_text(audit_data.get("website_url", "") or "")
+    trade = _clean_text(audit_data.get("trade", "") or "")
+    city = _clean_text(audit_data.get("city", "") or "")
     created = audit_data.get("created_at", None)
     if isinstance(created, str):
         try:
@@ -206,9 +236,9 @@ def generate_audit_report(audit_data: dict) -> bytes:
     se = audit_data.get("se_score", 0) or 0
     ux = audit_data.get("ux_score", 0) or 0
 
-    top_issues = _parse_json_field(audit_data.get("top_issues"))
-    recommendations = _parse_json_field(audit_data.get("recommendations"))
-    ai_summary = audit_data.get("ai_summary", "") or ""
+    top_issues = [_clean_text(i) for i in _parse_json_field(audit_data.get("top_issues"))]
+    recommendations = [_clean_text(r) for r in _parse_json_field(audit_data.get("recommendations"))]
+    ai_summary = _clean_text(audit_data.get("ai_summary", "") or "")
 
     # ── PAGE 1: COVER ──────────────────────────────────────
     story.append(Spacer(1, 30*mm))
@@ -224,7 +254,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
 
     # Level badge
     badge_data = [[Paragraph(f'<font color="white"><b>{level}</b></font>',
-                   ParagraphStyle("badge", fontName="Helvetica-Bold", fontSize=14,
+                   ParagraphStyle("badge", fontName=FONT_BOLD, fontSize=14,
                                   alignment=TA_CENTER, textColor=KC_WHITE))]]
     badge = Table(badge_data, colWidths=[120*mm])
     badge.setStyle(TableStyle([
@@ -378,7 +408,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
         # Color the status column
         if isinstance(row_data[-1], str) and row_data[-1] in ("O", "+", "-"):
             sc_style.append(("TEXTCOLOR", (-1, i), (-1, i), _status_color(row_data[-1])))
-            sc_style.append(("FONTNAME", (-1, i), (-1, i), "Helvetica-Bold"))
+            sc_style.append(("FONTNAME", (-1, i), (-1, i), FONT_BOLD))
             sc_style.append(("ALIGN", (-1, i), (-1, i), "CENTER"))
     # Last row (total)
     sc_style.append(("BACKGROUND", (0, n), (-1, n), KC_DARK))
@@ -408,7 +438,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
     proto_table = Table(proto_data, colWidths=[50*mm, 110*mm])
     proto_style = list(BASE_TABLE_STYLE)
     proto_style[2] = ("FONTSIZE", (0, 0), (-1, -1), 10)  # override header font
-    proto_style[0] = ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold")
+    proto_style[0] = ("FONTNAME", (0, 0), (0, -1), FONT_BOLD)
     for i in range(len(proto_data)):
         if i % 2 == 0:
             proto_style.append(("BACKGROUND", (0, i), (-1, i), KC_LIGHT))
@@ -515,7 +545,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
     # Badge again
     badge2_data = [[Paragraph(
         f'<font color="white"><b>{level}</b></font>',
-        ParagraphStyle("badge2", fontName="Helvetica-Bold", fontSize=16,
+        ParagraphStyle("badge2", fontName=FONT_BOLD, fontSize=16,
                        alignment=TA_CENTER, textColor=KC_WHITE),
     )]]
     badge2 = Table(badge2_data, colWidths=[120*mm])
@@ -543,7 +573,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
     sig_table = Table(sig_data, colWidths=[53*mm, 54*mm, 53*mm])
     sig_table.setStyle(TableStyle([
         ("LINEABOVE", (0, 0), (-1, 0), 1, KC_DARK),
-        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+        ("FONTNAME", (0, 0), (-1, -1), FONT_NORMAL),
         ("FONTSIZE", (0, 0), (-1, -1), 9),
         ("TOPPADDING", (0, 0), (-1, -1), 6),
         ("ALIGN", (1, 0), (1, 0), "CENTER"),

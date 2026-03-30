@@ -228,11 +228,6 @@ def convert_lead(
 
 # ===== IMPORT ENDPOINTS =====
 
-REQUIRED_CSV_COLUMNS = {"company_name", "contact_name", "email", "city", "trade"}
-OPTIONAL_CSV_COLUMNS = {"phone", "website_url"}
-ALL_CSV_COLUMNS = REQUIRED_CSV_COLUMNS | OPTIONAL_CSV_COLUMNS
-
-
 class ManualLeadImport(BaseModel):
     company_name: str
     contact_name: str = ""
@@ -260,50 +255,54 @@ async def import_leads_csv(
         except UnicodeDecodeError:
             text = content.decode("latin-1")
 
-        reader = csv.DictReader(io.StringIO(text), delimiter=None)
-
         # Auto-detect delimiter
-        sample = text[:2048]
-        sniffer = csv.Sniffer()
         try:
-            dialect = sniffer.sniff(sample, delimiters=",;\t")
+            dialect = csv.Sniffer().sniff(text[:2048], delimiters=",;\t")
+            delimiter = dialect.delimiter
         except csv.Error:
-            dialect = csv.excel
-        reader = csv.DictReader(io.StringIO(text), dialect=dialect)
+            delimiter = ";"
+
+        # Fallback if sniffer returns something invalid
+        if not delimiter or not isinstance(delimiter, str):
+            delimiter = ";"
+
+        reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
 
         # Validate columns
         if reader.fieldnames is None:
             raise HTTPException(status_code=400, detail="CSV-Datei ist leer.")
 
-        headers = {h.strip().lower() for h in reader.fieldnames}
-        missing = REQUIRED_CSV_COLUMNS - headers
-        if missing:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Fehlende Pflicht-Spalten: {', '.join(sorted(missing))}",
-            )
+        headers = {h.strip().lstrip('\ufeff').lower() for h in reader.fieldnames if h}
 
         imported = 0
         errors = []
 
         for row_num, row in enumerate(reader, start=2):
-            # Normalize keys
-            row = {k.strip().lower(): (v.strip() if v else "") for k, v in row.items()}
-
-            company_name = row.get("company_name", "")
-            if not company_name:
-                errors.append({"row": row_num, "error": "company_name ist leer"})
-                continue
-
             try:
+                # Normalize keys: strip whitespace, BOM, lowercase
+                clean_row = {
+                    k.strip().lstrip('\ufeff').lower(): (v.strip() if v else "")
+                    for k, v in row.items()
+                    if k
+                }
+
+                company_name = (
+                    clean_row.get("company_name")
+                    or clean_row.get("firmenname")
+                    or clean_row.get("firma", "")
+                )
+                if not company_name:
+                    errors.append({"row": row_num, "error": "company_name/firmenname ist leer"})
+                    continue
+
                 lead = Lead(
                     company_name=company_name,
-                    contact_name=row.get("contact_name", ""),
-                    phone=row.get("phone", ""),
-                    email=row.get("email", ""),
-                    website_url=row.get("website_url", ""),
-                    city=row.get("city", ""),
-                    trade=row.get("trade", ""),
+                    contact_name=clean_row.get("contact_name") or clean_row.get("ansprechpartner", ""),
+                    phone=clean_row.get("phone") or clean_row.get("telefon", ""),
+                    email=clean_row.get("email") or clean_row.get("e-mail", ""),
+                    website_url=clean_row.get("website_url") or clean_row.get("website", ""),
+                    city=clean_row.get("city") or clean_row.get("stadt", ""),
+                    trade=clean_row.get("trade") or clean_row.get("gewerk", "Sonstiges"),
                     lead_source="CSV-Import",
                     status="new",
                 )

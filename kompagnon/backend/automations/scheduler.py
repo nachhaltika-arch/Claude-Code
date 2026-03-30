@@ -1,6 +1,7 @@
 """
 APScheduler setup for KOMPAGNON automation jobs.
-Runs background jobs: daily checks, post-go-live follow-ups, triggers.
+Runs background jobs: daily checks, post-go-live follow-ups, triggers,
+and weekly HWK lead scraping.
 
 All job functions are module-level (standalone) to avoid serialization
 issues with SQLAlchemyJobStore. APScheduler cannot serialize class
@@ -87,6 +88,33 @@ def _send_phase_email(project_id: int, template_key: str):
         logger.error(f"✗ Error sending email: {str(e)}")
     finally:
         db.close()
+
+
+# ----- HWK SCRAPER JOB -----
+
+def job_hwk_scrape_weekly():
+    """
+    Weekly HWK lead scraping job.
+    Scrapes top 5 München trades with default city list.
+    Runs every Monday at 02:00 Europe/Berlin.
+    Set env HWK_SCRAPER_ENABLED=true to activate.
+    """
+    import os
+    if os.getenv("HWK_SCRAPER_ENABLED", "false").lower() != "true":
+        logger.info("⏭  HWK scraper job skipped (HWK_SCRAPER_ENABLED != true)")
+        return
+
+    logger.info("🔍 Weekly HWK scraper job starting...")
+    try:
+        from services.hwk_scraper import HwkScraperService
+        service = HwkScraperService()
+        result = service.run_default_batch()
+        logger.info(
+            f"✅ HWK scraper complete: "
+            f"{result['leads_found']} found | {result['leads_saved']} saved"
+        )
+    except Exception as e:
+        logger.error(f"❌ HWK scraper job failed: {e}", exc_info=True)
 
 
 # ----- DAILY JOBS -----
@@ -239,7 +267,17 @@ class CompagnonScheduler:
             replace_existing=True,
             timezone="Europe/Berlin",
         )
-        logger.info("✓ Daily jobs registered")
+        # Weekly HWK lead scraping — Mondays at 02:00
+        self.scheduler.add_job(
+            job_hwk_scrape_weekly,
+            "cron",
+            day_of_week="mon",
+            hour=2, minute=0,
+            id="weekly_hwk_scraper",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+        )
+        logger.info("✓ Daily jobs registered (incl. weekly HWK scraper)")
 
     def trigger_phase_change(self, project_id: int, new_status: str):
         """Called when project phase changes. Schedules follow-up jobs."""

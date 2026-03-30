@@ -35,5 +35,9 @@ mypy==1.7.1
 # PDF Generation
 reportlab==4.1.0
 
+# Web Scraping (HWK Lead System)
+beautifulsoup4==4.12.3
+lxml==5.1.0
+
 # Production
 gunicorn==21.2.0

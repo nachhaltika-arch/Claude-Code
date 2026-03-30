@@ -8,6 +8,7 @@ from .automations import router as automations_router
 from .audit import router as audit_router
 from .auth_router import router as auth_router
 from .auth_router import admin_router
+from .scraper import router as scraper_router
 
 __all__ = [
     "leads_router",
@@ -18,4 +19,5 @@ __all__ = [
     "audit_router",
     "auth_router",
     "admin_router",
+    "scraper_router",
 ]

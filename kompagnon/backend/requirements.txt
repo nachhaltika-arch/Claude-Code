@@ -16,3 +16,5 @@ passlib[bcrypt]
 pyotp
 qrcode[pil]
 pillow
+# HWK Scraper (no browser needed — uses requests + BeautifulSoup)
+# playwright  # Uncomment if JS-rendered pages are needed in future

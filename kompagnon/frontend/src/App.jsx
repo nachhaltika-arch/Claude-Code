@@ -23,7 +23,6 @@ import Settings from './pages/Settings';
 import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
 
-import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 
 // ── Route Guards ──
@@ -56,23 +55,13 @@ function AppLayout() {
   const { user } = useAuth();
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--kc-hell)' }}>
-      <Navbar />
-      <div
-        style={{
-          display: 'flex',
-          gap: isMobile ? 0 : 'var(--kc-space-8)',
-          maxWidth: 'var(--kc-container-xl)',
-          margin: '0 auto',
-          padding: isMobile ? 'var(--kc-space-4)' : 'var(--kc-space-8) var(--kc-space-6)',
-          paddingBottom: isMobile ? 80 : undefined,
-        }}
-      >
-        {!isMobile && user && <Sidebar />}
-        <main style={{ flex: 1, minWidth: 0 }}>
+    <div className="flex h-screen bg-slate-50">
+      {!isMobile && user && <Sidebar />}
+      <main className={`flex-1 overflow-y-auto ${!isMobile && user ? 'ml-64' : ''}`} style={{ paddingBottom: isMobile ? 80 : undefined }}>
+        <div className="max-w-7xl mx-auto p-4 lg:p-8">
           <Outlet />
-        </main>
-      </div>
+        </div>
+      </main>
       {isMobile && user && <BottomNav />}
     </div>
   );

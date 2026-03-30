@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
@@ -15,6 +16,7 @@ const statusConfig = {
 export default function LeadPipeline() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadLeads();
@@ -60,12 +62,13 @@ export default function LeadPipeline() {
               <th>Gewerk</th>
               <th>Status</th>
               <th style={{ textAlign: 'right' }}>Score</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {leads.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', color: 'var(--kc-mittel)', padding: 'var(--kc-space-8)' }}>
+                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--kc-mittel)', padding: 'var(--kc-space-8)' }}>
                   Keine Leads vorhanden.
                 </td>
               </tr>
@@ -92,6 +95,15 @@ export default function LeadPipeline() {
                       >
                         {lead.analysis_score}/100
                       </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        className="kc-btn-ghost"
+                        style={{ fontSize: 'var(--kc-text-xs)', padding: 'var(--kc-space-1) var(--kc-space-3)' }}
+                        onClick={() => navigate(`/audit?url=${encodeURIComponent(lead.website_url || '')}&company=${encodeURIComponent(lead.company_name)}&contact=${encodeURIComponent(lead.contact_name)}&city=${encodeURIComponent(lead.city)}&trade=${encodeURIComponent(lead.trade)}&lead_id=${lead.id}`)}
+                      >
+                        Audit
+                      </button>
                     </td>
                   </tr>
                 );

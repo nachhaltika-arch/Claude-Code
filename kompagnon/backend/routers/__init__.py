@@ -5,6 +5,7 @@ from .projects import router as projects_router
 from .agents import router as agents_router
 from .customers import router as customers_router
 from .automations import router as automations_router
+from .audit import router as audit_router
 
 __all__ = [
     "leads_router",
@@ -12,4 +13,5 @@ __all__ = [
     "agents_router",
     "customers_router",
     "automations_router",
+    "audit_router",
 ]

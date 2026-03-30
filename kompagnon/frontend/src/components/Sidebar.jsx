@@ -7,6 +7,7 @@ import {
   ClipboardDocumentListIcon,
   UserIcon,
   ArrowUpTrayIcon,
+  MagnifyingGlassCircleIcon,
 } from '@heroicons/react/24/outline';
 
 const menuItems = [
@@ -14,6 +15,7 @@ const menuItems = [
   { name: 'Lead Pipeline', path: '/leads', icon: UserGroupIcon },
   { name: 'Projekte', path: '/projects', icon: FolderIcon },
   { name: 'Checklisten', path: '/checklists', icon: ClipboardDocumentListIcon },
+  { name: 'Website Audit', path: '/audit', icon: MagnifyingGlassCircleIcon },
   { name: 'Kontakt-Import', path: '/import', icon: ArrowUpTrayIcon },
   { name: 'Kunden', path: '/customers', icon: UserIcon },
 ];

@@ -166,6 +166,49 @@ class TimeTracking(Base):
     project = relationship("Project", back_populates="time_trackings")
 
 
+class AuditResult(Base):
+    """Website audit results based on Homepage Standard framework."""
+    __tablename__ = "audit_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True)
+    website_url = Column(String(500), nullable=False)
+    company_name = Column(String(255), nullable=False)
+    contact_name = Column(String(255))
+    city = Column(String(100))
+    trade = Column(String(100))
+
+    # Scores (6 categories)
+    total_score = Column(Integer, default=0)  # 0-100
+    level = Column(String(50))  # Nicht konform, Bronze, Silber, Gold, Platin
+    rc_score = Column(Integer, default=0)  # Rechtliche Compliance (max 30)
+    tp_score = Column(Integer, default=0)  # Technische Performance (max 20)
+    bf_score = Column(Integer, default=0)  # Barrierefreiheit (max 20)
+    si_score = Column(Integer, default=0)  # Sicherheit & Datenschutz (max 15)
+    se_score = Column(Integer, default=0)  # SEO & Sichtbarkeit (max 10)
+    ux_score = Column(Integer, default=0)  # Inhalt & Nutzererfahrung (max 5)
+
+    # Raw check results
+    ssl_ok = Column(Boolean, default=False)
+    impressum_ok = Column(Boolean, default=False)
+    datenschutz_ok = Column(Boolean, default=False)
+    lcp_value = Column(Float)  # seconds
+    cls_value = Column(Float)
+    inp_value = Column(Float)  # ms
+    mobile_score = Column(Integer)  # 0-100
+    performance_score = Column(Integer)  # 0-100
+
+    # AI analysis
+    ai_summary = Column(Text)  # 3-5 sentences plain language
+    top_issues = Column(Text)  # JSON array of top issues
+    recommendations = Column(Text)  # JSON array of recommendations
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    lead = relationship("Lead", backref="audits")
+
+
 def init_db():
     """Create all tables."""
     Base.metadata.create_all(bind=engine)

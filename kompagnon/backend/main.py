@@ -23,6 +23,7 @@ from routers import (
     agents_router,
     customers_router,
     automations_router,
+    audit_router,
 )
 
 # Import scheduler
@@ -90,6 +91,7 @@ app.include_router(projects_router)
 app.include_router(agents_router)
 app.include_router(customers_router)
 app.include_router(automations_router)
+app.include_router(audit_router)
 
 
 # Health check endpoint

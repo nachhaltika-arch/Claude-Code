@@ -8,6 +8,7 @@ import ProjectDetail from './pages/ProjectDetail';
 import Checklists from './pages/Checklists';
 import Customers from './pages/Customers';
 import ContactImport from './pages/ContactImport';
+import AuditTool from './pages/AuditTool';
 
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -36,6 +37,7 @@ function App() {
               <Route path="/checklists/:projectId" element={<Checklists />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/import" element={<ContactImport />} />
+              <Route path="/audit" element={<AuditTool />} />
             </Routes>
           </main>
         </div>

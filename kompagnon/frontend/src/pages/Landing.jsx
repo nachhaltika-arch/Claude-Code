@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 
 const N = '#0F1E3A';
@@ -196,7 +196,7 @@ export default function Landing() {
           </div>
         </div>
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 32, paddingTop: 20, textAlign: 'center', fontSize: 12 }}>
-          2026 KOMPAGNON Communications · Impressum · Datenschutz · AGB
+          2026 KOMPAGNON Communications · <Link to="/impressum" style={{ color: 'inherit' }}>Impressum</Link> · <Link to="/datenschutz" style={{ color: 'inherit' }}>Datenschutz</Link> · AGB
         </div>
       </footer>
 

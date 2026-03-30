@@ -332,13 +332,13 @@ export default function LeadProfile() {
       }}>
         <button
           onClick={() => navigate(`/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
-          style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: isMobile ? '100%' : 'auto' }}
         >
           🔍 Neuen Audit starten
         </button>
         <button
           onClick={() => setEditMode(true)}
-          style={{ background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          style={{ background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: isMobile ? '100%' : 'auto' }}
         >
           ✏️ Lead bearbeiten
         </button>

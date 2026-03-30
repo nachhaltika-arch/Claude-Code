@@ -8,7 +8,7 @@ const N = '#0F1E3A';
 const ROLE_META = {
   admin: { icon: '👑', label: 'Admin', desc: 'Vollstaendige Systemrechte', locked: true, bg: '#0F1E3A', fg: '#fff' },
   auditor: { icon: '🔍', label: 'Auditor', desc: 'Zugriff auf Audit-Funktionen', locked: false, bg: '#2a5aa0', fg: '#fff' },
-  nutzer: { icon: '👤', label: 'Nutzer', desc: 'Eingeschraenkter Zugriff', locked: false, bg: '#6a7a9a', fg: '#fff' },
+  nutzer: { icon: '👤', label: 'Nutzer', desc: 'Eingeschraenkter Zugriff', locked: false, bg: '#4a5a7a', fg: '#fff' },
   kunde: { icon: '🏢', label: 'Kunde', desc: 'Nur eigene Daten & Leistungen', locked: false, bg: '#2a7a3a', fg: '#fff' },
 };
 
@@ -67,13 +67,13 @@ export default function RoleManagement() {
     } finally { setSaving(false); }
   };
 
-  if (loading) return <div style={{ padding: 20, color: '#8a9ab8' }}>Laden...</div>;
+  if (loading) return <div style={{ padding: 20, color: '#5a6878' }}>Laden...</div>;
 
   return (
     <div>
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: 18, fontWeight: 800, color: N, margin: '0 0 4px' }}>Rollenverwaltung</h2>
-        <p style={{ fontSize: 13, color: '#6a7a9a', margin: 0 }}>Definieren Sie Berechtigungen pro Rolle</p>
+        <p style={{ fontSize: 13, color: '#4a5a7a', margin: 0 }}>Definieren Sie Berechtigungen pro Rolle</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
@@ -108,7 +108,7 @@ export default function RoleManagement() {
                   );
                 })}
                 {meta.locked && (
-                  <div style={{ fontSize: 12, color: '#8a9ab8', marginTop: 8, fontStyle: 'italic' }}>Systemrolle — nicht editierbar</div>
+                  <div style={{ fontSize: 12, color: '#5a6878', marginTop: 8, fontStyle: 'italic' }}>Systemrolle — nicht editierbar</div>
                 )}
               </div>
             </div>
@@ -124,7 +124,7 @@ export default function RoleManagement() {
             <h3 style={{ margin: '0 0 4px', fontSize: 18, color: N }}>
               {ROLE_META[editing]?.icon} {ROLE_META[editing]?.label} — Berechtigungen
             </h3>
-            <p style={{ fontSize: 13, color: '#6a7a9a', margin: '0 0 20px' }}>Aktivieren oder deaktivieren Sie einzelne Berechtigungen</p>
+            <p style={{ fontSize: 13, color: '#4a5a7a', margin: '0 0 20px' }}>Aktivieren oder deaktivieren Sie einzelne Berechtigungen</p>
 
             {Object.entries(PERM_LABELS).map(([perm, label]) => (
               <label key={perm} style={{

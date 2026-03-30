@@ -90,7 +90,7 @@ export default function Login() {
     fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
   };
   const lbl = {
-    display: 'block', fontSize: 12, fontWeight: 700, color: '#6a7a9a',
+    display: 'block', fontSize: 12, fontWeight: 700, color: '#4a5a7a',
     marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em',
   };
 
@@ -114,7 +114,7 @@ export default function Login() {
           {step === 'login' && (
             <>
               <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 800, color: NAVY }}>Willkommen zurueck</h2>
-              <p style={{ margin: '0 0 24px', color: '#6a7a9a', fontSize: 14 }}>Melden Sie sich in Ihrem Konto an</p>
+              <p style={{ margin: '0 0 24px', color: '#4a5a7a', fontSize: 14 }}>Melden Sie sich in Ihrem Konto an</p>
 
               {/* OAuth */}
               {[
@@ -135,7 +135,7 @@ export default function Login() {
               {/* Divider */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
                 <div style={{ flex: 1, height: 1, background: '#e8eaf2' }} />
-                <span style={{ fontSize: 13, color: '#9aa8c0' }}>oder mit E-Mail</span>
+                <span style={{ fontSize: 13, color: '#64748b' }}>oder mit E-Mail</span>
                 <div style={{ flex: 1, height: 1, background: '#e8eaf2' }} />
               </div>
 
@@ -152,7 +152,7 @@ export default function Login() {
                     <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="........" required style={{ ...inp, paddingRight: 44 }} />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} style={{
                       position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                      background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#9aa8c0', padding: 0,
+                      background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#64748b', padding: 0,
                     }}>
                       {showPassword ? '\uD83D\uDE48' : '\uD83D\uDC41\uFE0F'}
                     </button>
@@ -164,14 +164,14 @@ export default function Login() {
                   </button>
                 </div>
                 <button type="submit" disabled={loading} style={{
-                  width: '100%', padding: '13px', background: loading ? '#9aa8c0' : NAVY, color: '#fff',
+                  width: '100%', padding: '13px', background: loading ? '#64748b' : NAVY, color: '#fff',
                   border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', minHeight: 48,
                 }}>
                   {loading ? 'Anmelden...' : 'Anmelden'}
                 </button>
               </form>
 
-              <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#6a7a9a' }}>
+              <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#4a5a7a' }}>
                 Noch kein Konto?{' '}
                 <Link to="/register" style={{ color: NAVY, fontWeight: 700, textDecoration: 'none' }}>Jetzt registrieren</Link>
               </div>
@@ -183,7 +183,7 @@ export default function Login() {
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🔐</div>
               <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 800, color: NAVY }}>Zwei-Faktor-Authentifizierung</h2>
-              <p style={{ margin: '0 0 28px', color: '#6a7a9a', fontSize: 14 }}>Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein</p>
+              <p style={{ margin: '0 0 28px', color: '#4a5a7a', fontSize: 14 }}>Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein</p>
 
               {error && <div style={{ background: '#fee2e2', color: '#c0392b', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>{error}</div>}
 
@@ -208,7 +208,7 @@ export default function Login() {
                 {loading ? 'Pruefen...' : 'Bestaetigen'}
               </button>
               <button onClick={() => { setStep('login'); setError(''); setTotpCode(['', '', '', '', '', '']); }} style={{
-                background: 'none', border: 'none', color: '#6a7a9a', fontSize: 13, cursor: 'pointer', textDecoration: 'underline',
+                background: 'none', border: 'none', color: '#4a5a7a', fontSize: 13, cursor: 'pointer', textDecoration: 'underline',
               }}>
                 Zurueck zum Login
               </button>
@@ -219,7 +219,7 @@ export default function Login() {
           {step === 'forgot' && (
             <>
               <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 800, color: NAVY }}>Passwort zuruecksetzen</h2>
-              <p style={{ margin: '0 0 24px', color: '#6a7a9a', fontSize: 14 }}>Wir senden Ihnen einen Reset-Link</p>
+              <p style={{ margin: '0 0 24px', color: '#4a5a7a', fontSize: 14 }}>Wir senden Ihnen einen Reset-Link</p>
 
               {success ? (
                 <div style={{ background: '#f0fff4', color: '#2a7a3a', borderRadius: 8, padding: 14, fontSize: 14, textAlign: 'center' }}>
@@ -240,7 +240,7 @@ export default function Login() {
                 </form>
               )}
               <button onClick={() => { setStep('login'); setSuccess(''); }} style={{
-                background: 'none', border: 'none', color: '#6a7a9a', fontSize: 13, cursor: 'pointer',
+                background: 'none', border: 'none', color: '#4a5a7a', fontSize: 13, cursor: 'pointer',
                 textDecoration: 'underline', display: 'block', margin: '12px auto 0',
               }}>
                 Zurueck zum Login
@@ -250,8 +250,8 @@ export default function Login() {
         </div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: '#9aa8c0' }}>
-          2025 KOMPAGNON · <Link to="/" style={{ color: '#9aa8c0' }}>Startseite</Link>
+        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: '#64748b' }}>
+          2025 KOMPAGNON · <Link to="/" style={{ color: '#64748b' }}>Startseite</Link>
         </div>
       </div>
     </div>

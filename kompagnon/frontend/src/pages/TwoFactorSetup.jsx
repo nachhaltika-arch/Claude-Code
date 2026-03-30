@@ -65,13 +65,13 @@ export default function TwoFactorSetup() {
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔐</div>
           <h2 style={{ fontSize: 20, color: NAVY, marginBottom: 12 }}>Zwei-Faktor-Authentifizierung einrichten</h2>
-          <p style={{ fontSize: 14, color: '#6a7a9a', marginBottom: 24 }}>
+          <p style={{ fontSize: 14, color: '#4a5a7a', marginBottom: 24 }}>
             Schuetzen Sie Ihr Konto mit einem zweiten Faktor. Sie benoetigen eine Authenticator-App wie Google Authenticator oder Authy.
           </p>
           <button onClick={startSetup} disabled={loading} style={btnStyle}>
             {loading ? 'Wird vorbereitet...' : '2FA einrichten'}
           </button>
-          <button onClick={() => navigate('/app/profile')} style={{ background: 'none', border: 'none', color: '#6a7a9a', marginTop: 16, cursor: 'pointer', fontSize: 13 }}>
+          <button onClick={() => navigate('/app/profile')} style={{ background: 'none', border: 'none', color: '#4a5a7a', marginTop: 16, cursor: 'pointer', fontSize: 13 }}>
             Zurueck zum Profil
           </button>
         </div>
@@ -80,7 +80,7 @@ export default function TwoFactorSetup() {
       {step === 'scan' && (
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ fontSize: 18, color: NAVY, marginBottom: 16 }}>QR-Code scannen</h2>
-          <p style={{ fontSize: 13, color: '#6a7a9a', marginBottom: 16 }}>
+          <p style={{ fontSize: 13, color: '#4a5a7a', marginBottom: 16 }}>
             Scannen Sie diesen QR-Code mit Ihrer Authenticator-App:
           </p>
           {qrCode && (
@@ -89,7 +89,7 @@ export default function TwoFactorSetup() {
             </div>
           )}
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, color: '#8a9ab8', marginBottom: 4 }}>Oder manuell eingeben:</div>
+            <div style={{ fontSize: 12, color: '#5a6878', marginBottom: 4 }}>Oder manuell eingeben:</div>
             <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: NAVY, background: '#f0f2f8', padding: '8px 16px', borderRadius: 8, display: 'inline-block', wordBreak: 'break-all' }}>
               {secret}
             </div>
@@ -112,7 +112,7 @@ export default function TwoFactorSetup() {
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
           <h2 style={{ fontSize: 18, color: NAVY, marginBottom: 8 }}>2FA erfolgreich aktiviert!</h2>
-          <p style={{ fontSize: 13, color: '#6a7a9a', marginBottom: 16 }}>
+          <p style={{ fontSize: 13, color: '#4a5a7a', marginBottom: 16 }}>
             Bewahren Sie diese Backup-Codes sicher auf. Jeder Code ist einmalig nutzbar.
           </p>
           <div style={{ background: '#f8f9fc', borderRadius: 10, padding: '16px 20px', marginBottom: 16, textAlign: 'left' }}>

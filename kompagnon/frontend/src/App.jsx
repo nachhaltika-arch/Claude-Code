@@ -97,7 +97,7 @@ function BottomNav() {
           onClick={() => navigate(item.path)}
           style={{
             background: 'none', border: 'none',
-            color: location.pathname === item.path ? '#D4A017' : 'rgba(255,255,255,0.6)',
+            color: location.pathname === item.path ? '#D4A017' : 'rgba(255,255,255,0.8)',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
             cursor: 'pointer', padding: '4px 12px', minWidth: 44, minHeight: 44,
           }}

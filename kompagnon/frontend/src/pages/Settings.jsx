@@ -156,7 +156,7 @@ function SystemTab() {
       <Field label="Auditor-Name im PDF" value={settings.pdf_auditor_name || ''} onChange={set('pdf_auditor_name')} placeholder="KOMPAGNON Communications" />
       <Field label="PDF-Footer-Text" value={settings.pdf_footer_text || ''} onChange={set('pdf_footer_text')} placeholder="Dieses Audit ersetzt keine Rechtsberatung." />
       <div style={{ marginTop: 8 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#8a9ab8', marginBottom: 6 }}>Freie Registrierung</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#5a6878', marginBottom: 6 }}>Freie Registrierung</div>
         <div style={{ display: 'flex', gap: 16 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, cursor: 'pointer' }}>
             <input type="radio" checked={settings.registration_mode !== 'invite_only'} onChange={() => set('registration_mode')('open')} /> Erlaubt
@@ -221,11 +221,11 @@ function SubscriptionTab() {
     <>
       <Card title="Aktueller Plan" icon="💳">
         <div style={{ background: '#f0f4ff', borderRadius: 10, padding: 20, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: '#6a7a9a', textTransform: 'uppercase', marginBottom: 4 }}>Aktueller Plan</div>
+          <div style={{ fontSize: 11, color: '#4a5a7a', textTransform: 'uppercase', marginBottom: 4 }}>Aktueller Plan</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: N }}>Professional</div>
-          <div style={{ fontSize: 14, color: '#6a7a9a', marginTop: 4 }}>99 Euro / Monat</div>
+          <div style={{ fontSize: 14, color: '#4a5a7a', marginTop: 4 }}>99 Euro / Monat</div>
         </div>
-        <div style={{ fontSize: 13, color: '#6a7a9a', marginBottom: 4 }}>Nutzung diesen Monat:</div>
+        <div style={{ fontSize: 13, color: '#4a5a7a', marginBottom: 4 }}>Nutzung diesen Monat:</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14 }}>
           <div>Audits: 12 / unbegrenzt</div>
           <div>Nutzer: 3 / 10</div>
@@ -257,7 +257,7 @@ function Card({ title, icon, children }) {
 function Field({ label, value, onChange, disabled, type = 'text', placeholder = '' }) {
   return (
     <div>
-      <label style={{ fontSize: 12, fontWeight: 700, color: '#8a9ab8', display: 'block', marginBottom: 4 }}>{label}</label>
+      <label style={{ fontSize: 12, fontWeight: 700, color: '#5a6878', display: 'block', marginBottom: 4 }}>{label}</label>
       <input type={type} value={value} placeholder={placeholder} onChange={onChange ? (e) => onChange(e.target.value) : undefined} disabled={disabled}
         style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #d4d8e8', borderRadius: 8, fontSize: 16, boxSizing: 'border-box', opacity: disabled ? 0.5 : 1 }} />
     </div>

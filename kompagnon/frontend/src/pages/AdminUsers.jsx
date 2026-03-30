@@ -8,7 +8,7 @@ const NAVY = '#0F1E3A';
 const ROLE_BADGES = {
   admin: { bg: '#0F1E3A', color: '#fff', label: 'Admin' },
   auditor: { bg: '#2a5aa0', color: '#fff', label: 'Auditor' },
-  nutzer: { bg: '#6a7a9a', color: '#fff', label: 'Nutzer' },
+  nutzer: { bg: '#4a5a7a', color: '#fff', label: 'Nutzer' },
   kunde: { bg: '#2a7a3a', color: '#fff', label: 'Kunde' },
 };
 
@@ -85,7 +85,7 @@ export default function AdminUsers() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#8a9ab8' }}>Laden...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: '#5a6878' }}>Laden...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {users.map((u) => {
@@ -100,7 +100,7 @@ export default function AdminUsers() {
                     {u.first_name} {u.last_name}
                     {!u.is_active && <span style={{ color: '#c03030', fontSize: 11, marginLeft: 8 }}>(deaktiviert)</span>}
                   </div>
-                  <div style={{ fontSize: 12, color: '#8a9ab8', marginTop: 2 }}>{u.email}</div>
+                  <div style={{ fontSize: 12, color: '#5a6878', marginTop: 2 }}>{u.email}</div>
                 </div>
                 <span style={{ background: badge.bg, color: badge.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>
                   {badge.label}

@@ -24,7 +24,7 @@ export default function CheckoutSuccess() {
       <div style={{ background: '#fff', borderRadius: 20, padding: 48, maxWidth: 520, width: '100%', textAlign: 'center', boxShadow: '0 4px 32px rgba(0,0,0,0.10)' }}>
         <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
         <h1 style={{ fontSize: 28, fontWeight: 900, color: N, marginBottom: 12 }}>Zahlung erfolgreich!</h1>
-        <p style={{ color: '#6a7a9a', fontSize: 16, lineHeight: 1.6, marginBottom: 24 }}>
+        <p style={{ color: '#4a5a7a', fontSize: 16, lineHeight: 1.6, marginBottom: 24 }}>
           Vielen Dank fuer Ihren Auftrag. Wir melden uns innerhalb von 24 Stunden bei Ihnen.
         </p>
 
@@ -43,7 +43,7 @@ export default function CheckoutSuccess() {
           <button onClick={() => nav('/login')} style={{ background: N, color: '#fff', border: 'none', borderRadius: 8, padding: 13, fontSize: 15, fontWeight: 700, cursor: 'pointer', minHeight: 48 }}>
             Zum Kundenbereich
           </button>
-          <button onClick={() => nav('/')} style={{ background: 'transparent', color: '#6a7a9a', border: 'none', fontSize: 14, cursor: 'pointer' }}>
+          <button onClick={() => nav('/')} style={{ background: 'transparent', color: '#4a5a7a', border: 'none', fontSize: 14, cursor: 'pointer' }}>
             Zurueck zur Startseite
           </button>
         </div>

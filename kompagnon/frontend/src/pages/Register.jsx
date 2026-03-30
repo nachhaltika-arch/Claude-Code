@@ -45,7 +45,7 @@ export default function Register() {
     fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
   };
   const lbl = {
-    display: 'block', fontSize: 12, fontWeight: 700, color: '#6a7a9a',
+    display: 'block', fontSize: 12, fontWeight: 700, color: '#4a5a7a',
     marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em',
   };
 
@@ -65,7 +65,7 @@ export default function Register() {
           <div style={{ background: '#fff', borderRadius: 16, padding: 32, boxShadow: '0 4px 24px rgba(15,30,58,0.10)', textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
             <h2 style={{ color: NAVY, marginBottom: 8, fontSize: 22, fontWeight: 800 }}>Konto erstellt!</h2>
-            <p style={{ color: '#6a7a9a', marginBottom: 24, fontSize: 14 }}>
+            <p style={{ color: '#4a5a7a', marginBottom: 24, fontSize: 14 }}>
               Ihr Konto wurde erfolgreich angelegt. Sie koennen sich jetzt anmelden.
             </p>
             <button onClick={() => navigate('/login')} style={{
@@ -96,7 +96,7 @@ export default function Register() {
         {/* Card */}
         <div style={{ background: '#fff', borderRadius: 16, padding: 32, boxShadow: '0 4px 24px rgba(15,30,58,0.10)' }}>
           <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 800, color: NAVY }}>Konto erstellen</h2>
-          <p style={{ margin: '0 0 24px', color: '#6a7a9a', fontSize: 14 }}>Starten Sie mit KOMPAGNON</p>
+          <p style={{ margin: '0 0 24px', color: '#4a5a7a', fontSize: 14 }}>Starten Sie mit KOMPAGNON</p>
 
           {/* OAuth */}
           {[
@@ -116,7 +116,7 @@ export default function Register() {
           {/* Divider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
             <div style={{ flex: 1, height: 1, background: '#e8eaf2' }} />
-            <span style={{ fontSize: 13, color: '#9aa8c0' }}>oder mit E-Mail</span>
+            <span style={{ fontSize: 13, color: '#64748b' }}>oder mit E-Mail</span>
             <div style={{ flex: 1, height: 1, background: '#e8eaf2' }} />
           </div>
 
@@ -152,7 +152,7 @@ export default function Register() {
             </label>
 
             <button type="submit" disabled={loading} style={{
-              width: '100%', padding: '13px', background: loading ? '#9aa8c0' : NAVY, color: '#fff',
+              width: '100%', padding: '13px', background: loading ? '#64748b' : NAVY, color: '#fff',
               border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit', minHeight: 48,
             }}>
@@ -160,15 +160,15 @@ export default function Register() {
             </button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#6a7a9a' }}>
+          <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#4a5a7a' }}>
             Bereits ein Konto?{' '}
             <Link to="/login" style={{ color: NAVY, fontWeight: 700, textDecoration: 'none' }}>Anmelden</Link>
           </div>
         </div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: '#9aa8c0' }}>
-          2025 KOMPAGNON · <Link to="/" style={{ color: '#9aa8c0' }}>Startseite</Link>
+        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: '#64748b' }}>
+          2025 KOMPAGNON · <Link to="/" style={{ color: '#64748b' }}>Startseite</Link>
         </div>
       </div>
     </div>

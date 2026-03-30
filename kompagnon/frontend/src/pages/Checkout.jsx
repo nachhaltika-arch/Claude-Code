@@ -49,7 +49,7 @@ export default function Checkout() {
   };
 
   const inp = { width: '100%', padding: '11px 14px', border: '1.5px solid #d4d8e8', borderRadius: 8, fontSize: 15, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' };
-  const lbl = { display: 'block', fontSize: 12, fontWeight: 700, color: '#6a7a9a', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' };
+  const lbl = { display: 'block', fontSize: 12, fontWeight: 700, color: '#4a5a7a', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' };
 
   return (
     <div style={{ minHeight: '100vh', background: '#f0f2f8', fontFamily: 'system-ui, sans-serif' }}>
@@ -73,7 +73,7 @@ export default function Checkout() {
                 }}>
                   {step > i + 1 ? '✓' : i + 1}
                 </div>
-                {!isMobile && <span style={{ color: step === i + 1 ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: step === i + 1 ? 600 : 400 }}>{s}</span>}
+                {!isMobile && <span style={{ color: step === i + 1 ? '#fff' : 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: step === i + 1 ? 600 : 400 }}>{s}</span>}
               </div>
             </React.Fragment>
           ))}
@@ -91,7 +91,7 @@ export default function Checkout() {
         {step === 1 && (
           <div>
             <h2 style={{ fontSize: 24, fontWeight: 800, color: N, marginBottom: 8, textAlign: 'center' }}>Waehlen Sie Ihr Paket</h2>
-            <p style={{ textAlign: 'center', color: '#6a7a9a', marginBottom: 32, fontSize: 15 }}>Alle Preise zzgl. 19% MwSt. · Einmaliger Festpreis</p>
+            <p style={{ textAlign: 'center', color: '#4a5a7a', marginBottom: 32, fontSize: 15 }}>Alle Preise zzgl. 19% MwSt. · Einmaliger Festpreis</p>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 16, marginBottom: 32 }}>
               {PACKAGES.map((p) => (
                 <div key={p.id} onClick={() => setSelected(p.id)} style={{
@@ -105,7 +105,7 @@ export default function Checkout() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                     <div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: N }}>{p.name}</div>
-                      <div style={{ fontSize: 13, color: '#6a7a9a', marginTop: 2 }}>{p.desc}</div>
+                      <div style={{ fontSize: 13, color: '#4a5a7a', marginTop: 2 }}>{p.desc}</div>
                     </div>
                     <div style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${selected === p.id ? N : '#d0d8e8'}`, background: selected === p.id ? N : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {selected === p.id && <span style={{ color: '#fff', fontSize: 12 }}>✓</span>}
@@ -124,7 +124,7 @@ export default function Checkout() {
               <button onClick={() => setStep(2)} style={{ background: N, color: '#fff', border: 'none', borderRadius: 10, padding: '14px 40px', fontSize: 16, fontWeight: 700, cursor: 'pointer', minHeight: 48 }}>
                 Weiter mit {pkg.name}
               </button>
-              <p style={{ fontSize: 12, color: '#9aa8c0', marginTop: 12 }}>Sichere Zahlung via Stripe · DSGVO-konform</p>
+              <p style={{ fontSize: 12, color: '#64748b', marginTop: 12 }}>Sichere Zahlung via Stripe · DSGVO-konform</p>
             </div>
           </div>
         )}
@@ -133,7 +133,7 @@ export default function Checkout() {
         {step === 2 && (
           <div style={{ maxWidth: 560, margin: '0 auto' }}>
             <h2 style={{ fontSize: 24, fontWeight: 800, color: N, marginBottom: 8 }}>Ihre Kontaktdaten</h2>
-            <p style={{ color: '#6a7a9a', marginBottom: 28, fontSize: 14 }}>Wir brauchen diese Angaben um Ihr Projekt zu starten.</p>
+            <p style={{ color: '#4a5a7a', marginBottom: 28, fontSize: 14 }}>Wir brauchen diese Angaben um Ihr Projekt zu starten.</p>
 
             {error && <div style={{ background: '#fee2e2', color: '#c0392b', borderRadius: 8, padding: '12px 16px', fontSize: 14, marginBottom: 20 }}>{error}</div>}
 
@@ -151,20 +151,20 @@ export default function Checkout() {
 
               {/* Package summary */}
               <div style={{ background: '#f8f9fc', borderRadius: 10, padding: '14px 18px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div><div style={{ fontSize: 14, fontWeight: 700, color: N }}>{pkg.name}-Paket</div><div style={{ fontSize: 12, color: '#6a7a9a' }}>Einmaliger Festpreis zzgl. MwSt.</div></div>
+                <div><div style={{ fontSize: 14, fontWeight: 700, color: N }}>{pkg.name}-Paket</div><div style={{ fontSize: 12, color: '#4a5a7a' }}>Einmaliger Festpreis zzgl. MwSt.</div></div>
                 <div style={{ fontSize: 22, fontWeight: 900, color: N }}>{pkg.price} Euro</div>
               </div>
 
               <div style={{ display: 'flex', gap: 12 }}>
                 <button onClick={() => setStep(1)} style={{ background: '#f0f2f8', color: N, border: 'none', borderRadius: 8, padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 48 }}>Zurueck</button>
                 <button onClick={handleCheckout} disabled={loading} style={{
-                  flex: 1, background: loading ? '#9aa8c0' : N, color: '#fff', border: 'none', borderRadius: 8,
+                  flex: 1, background: loading ? '#64748b' : N, color: '#fff', border: 'none', borderRadius: 8,
                   padding: '12px', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', minHeight: 48,
                 }}>
                   {loading ? 'Wird vorbereitet...' : 'Weiter zur Zahlung'}
                 </button>
               </div>
-              <p style={{ fontSize: 11, color: '#9aa8c0', textAlign: 'center', marginTop: 12 }}>Sie werden zu Stripe weitergeleitet. Kreditkarte und SEPA-Lastschrift moeglich.</p>
+              <p style={{ fontSize: 11, color: '#64748b', textAlign: 'center', marginTop: 12 }}>Sie werden zu Stripe weitergeleitet. Kreditkarte und SEPA-Lastschrift moeglich.</p>
             </div>
           </div>
         )}

@@ -4,7 +4,7 @@ import { useScreenSize } from '../utils/responsive';
 
 const N = '#0F1E3A';
 const A = '#D4A017';
-const G = '#6a7a9a';
+const G = '#4a5a7a';
 
 export default function Landing() {
   const nav = useNavigate();
@@ -30,10 +30,10 @@ export default function Landing() {
           <h1 style={{ color: '#fff', fontSize: isMobile ? 36 : 56, fontWeight: 900, lineHeight: 1.1, marginBottom: 20, maxWidth: 700 }}>
             Ihre neue Webseite.<br />Fertig in 14 Tagen.
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: isMobile ? 16 : 20, maxWidth: 540, marginBottom: 28, lineHeight: 1.5 }}>
+          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: isMobile ? 16 : 20, maxWidth: 540, marginBottom: 28, lineHeight: 1.5 }}>
             Individuell fuer Handwerksbetriebe. KI-optimiert. Festpreis 2.000 Euro.
           </p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
             {['Trustpilot 4.9/5', 'Trusted Shops', 'DSGVO-konform', 'Festpreis'].map((t, i) => (
               <span key={i} style={{ padding: '4px 12px', background: 'rgba(255,255,255,0.08)', borderRadius: 20 }}>{t}</span>
             ))}
@@ -155,7 +155,7 @@ export default function Landing() {
         <h2 style={{ color: '#fff', fontSize: isMobile ? 28 : 40, fontWeight: 900, marginBottom: 16 }}>
           Bereit fuer Ihren neuen Webauftritt?
         </h2>
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16, marginBottom: 32, maxWidth: 480, margin: '0 auto 32px' }}>
+        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 16, marginBottom: 32, maxWidth: 480, margin: '0 auto 32px' }}>
           Keine Verpflichtung. Kein Risiko. Nur ein gutes Gespraech.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center' }}>
@@ -170,7 +170,7 @@ export default function Landing() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ background: '#111827', padding: isMobile ? '40px 20px' : '48px 60px', color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
+      <footer style={{ background: '#111827', padding: isMobile ? '40px 20px' : '48px 60px', color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 32, maxWidth: 900, margin: '0 auto' }}>
           <div>
             <div style={{ color: '#fff', fontWeight: 900, fontSize: 18, marginBottom: 12 }}>KOMPAGNON</div>
@@ -239,7 +239,7 @@ function SectionHead({ title, sub }) {
   return (
     <div style={{ textAlign: 'center', marginBottom: 40 }}>
       <h2 style={{ fontSize: 32, fontWeight: 900, color: '#0F1E3A', marginBottom: sub ? 8 : 0 }}>{title}</h2>
-      {sub && <p style={{ fontSize: 16, color: '#6a7a9a' }}>{sub}</p>}
+      {sub && <p style={{ fontSize: 16, color: '#4a5a7a' }}>{sub}</p>}
     </div>
   );
 }
@@ -249,7 +249,7 @@ function TrustBadge({ title, rating, sub }) {
     <div style={{ textAlign: 'center' }}>
       <div style={{ fontWeight: 700, fontSize: 14, color: '#0F1E3A', marginBottom: 4 }}>{title}</div>
       <div style={{ color: '#D4A017', fontSize: 18, marginBottom: 4 }}>★★★★★ {rating}</div>
-      <div style={{ fontSize: 12, color: '#6a7a9a' }}>{sub}</div>
+      <div style={{ fontSize: 12, color: '#4a5a7a' }}>{sub}</div>
     </div>
   );
 }
@@ -257,7 +257,7 @@ function TrustBadge({ title, rating, sub }) {
 function PriceCard({ name, price, features = [], missing = [], recommended, onClick }) {
   const bg = recommended ? '#0F1E3A' : '#fff';
   const fg = recommended ? '#fff' : '#0F1E3A';
-  const sub = recommended ? 'rgba(255,255,255,0.6)' : '#6a7a9a';
+  const sub = recommended ? 'rgba(255,255,255,0.8)' : '#4a5a7a';
   return (
     <div style={{
       background: bg, borderRadius: 16, padding: 28, border: recommended ? 'none' : '1px solid #eef0f8',
@@ -288,9 +288,9 @@ function FAQItem({ question, answer }) {
         background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0,
       }}>
         <span style={{ fontWeight: 700, fontSize: 15, color: '#0F1E3A' }}>{question}</span>
-        <span style={{ fontSize: 20, color: '#6a7a9a', flexShrink: 0, marginLeft: 12 }}>{open ? '−' : '+'}</span>
+        <span style={{ fontSize: 20, color: '#4a5a7a', flexShrink: 0, marginLeft: 12 }}>{open ? '−' : '+'}</span>
       </button>
-      {open && <p style={{ fontSize: 14, color: '#6a7a9a', lineHeight: 1.6, marginTop: 10, marginBottom: 0 }}>{answer}</p>}
+      {open && <p style={{ fontSize: 14, color: '#4a5a7a', lineHeight: 1.6, marginTop: 10, marginBottom: 0 }}>{answer}</p>}
     </div>
   );
 }

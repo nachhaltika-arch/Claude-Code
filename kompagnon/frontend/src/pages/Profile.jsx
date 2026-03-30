@@ -57,7 +57,7 @@ export default function Profile() {
         {tabs.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             padding: '10px 20px', background: 'none', border: 'none', borderBottom: tab === t.key ? `3px solid ${NAVY}` : '3px solid transparent',
-            color: tab === t.key ? NAVY : '#8a9ab8', fontWeight: 700, fontSize: 14, cursor: 'pointer', marginBottom: -2,
+            color: tab === t.key ? NAVY : '#5a6878', fontWeight: 700, fontSize: 14, cursor: 'pointer', marginBottom: -2,
           }}>
             {t.label}
           </button>
@@ -81,7 +81,7 @@ export default function Profile() {
             </button>
           </div>
           <div style={{ background: '#f8f9fc', borderRadius: 8, padding: 16, marginTop: 16 }}>
-            <div style={{ fontSize: 12, color: '#8a9ab8', marginBottom: 4 }}>Rolle</div>
+            <div style={{ fontSize: 12, color: '#5a6878', marginBottom: 4 }}>Rolle</div>
             <div style={{ fontSize: 14, fontWeight: 700, color: NAVY, textTransform: 'capitalize' }}>{user?.role}</div>
           </div>
         </div>
@@ -125,7 +125,7 @@ export default function Profile() {
 function Field({ label, value, onChange, disabled, type = 'text', placeholder = '' }) {
   return (
     <div>
-      <label style={{ fontSize: 12, fontWeight: 600, color: '#8a9ab8', display: 'block', marginBottom: 4 }}>{label}</label>
+      <label style={{ fontSize: 12, fontWeight: 600, color: '#5a6878', display: 'block', marginBottom: 4 }}>{label}</label>
       <input
         type={type} value={value} placeholder={placeholder}
         onChange={onChange ? (e) => onChange(e.target.value) : undefined}
@@ -200,7 +200,7 @@ function SignatureTab() {
   return (
     <div>
       <h3 style={{ fontSize: 16, color: '#0F1E3A', marginBottom: 12 }}>Digitale Unterschrift</h3>
-      <p style={{ fontSize: 13, color: '#6a7a9a', marginBottom: 16 }}>
+      <p style={{ fontSize: 13, color: '#4a5a7a', marginBottom: 16 }}>
         Zeichnen Sie Ihre Unterschrift fuer Audit-Berichte:
       </p>
       <canvas

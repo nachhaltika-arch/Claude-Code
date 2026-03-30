@@ -31,7 +31,7 @@ export default function SettingsLayout() {
             <button key={item.path} onClick={() => navigate(item.path)} style={{
               padding: '8px 14px', background: 'none', border: 'none', whiteSpace: 'nowrap',
               borderBottom: location.pathname === item.path ? `3px solid ${N}` : '3px solid transparent',
-              color: location.pathname === item.path ? N : '#8a9ab8', fontWeight: 700, fontSize: 13, cursor: 'pointer', marginBottom: -2,
+              color: location.pathname === item.path ? N : '#5a6878', fontWeight: 700, fontSize: 13, cursor: 'pointer', marginBottom: -2,
             }}>
               {item.icon} {item.label}
             </button>
@@ -54,7 +54,7 @@ export default function SettingsLayout() {
                 <button key={item.path} onClick={() => navigate(item.path)} style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
                   background: active ? '#f0f4ff' : 'transparent', border: 'none', borderLeft: active ? `3px solid ${N}` : '3px solid transparent',
-                  color: active ? N : '#6a7a9a', fontWeight: active ? 700 : 500, fontSize: 14, cursor: 'pointer', textAlign: 'left',
+                  color: active ? N : '#4a5a7a', fontWeight: active ? 700 : 500, fontSize: 14, cursor: 'pointer', textAlign: 'left',
                 }}>
                   <span style={{ fontSize: 16 }}>{item.icon}</span> {item.label}
                 </button>

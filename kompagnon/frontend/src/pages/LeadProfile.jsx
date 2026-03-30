@@ -18,7 +18,7 @@ const LEVEL_COLORS = {
 };
 
 const STATUS_LABELS = {
-  new: { label: 'Neu', color: '#6a7a9a' },
+  new: { label: 'Neu', color: '#4a5a7a' },
   contacted: { label: 'Kontaktiert', color: '#2a7a9a' },
   qualified: { label: 'Qualifiziert', color: '#2a9a5a' },
   proposal_sent: { label: 'Angebot gesendet', color: '#c07820' },
@@ -130,8 +130,8 @@ export default function LeadProfile() {
   if (!profile) return null;
 
   const { lead, current_score, current_level, score_history, audits, projects } = profile;
-  const levelColor = LEVEL_COLORS[current_level] || '#6a7a9a';
-  const statusInfo = STATUS_LABELS[lead.status] || { label: lead.status, color: '#6a7a9a' };
+  const levelColor = LEVEL_COLORS[current_level] || '#4a5a7a';
+  const statusInfo = STATUS_LABELS[lead.status] || { label: lead.status, color: '#4a5a7a' };
   const latestAudit = audits[0] || null;
 
   const scoreImprovement = score_history.length >= 2
@@ -161,7 +161,7 @@ export default function LeadProfile() {
             Kundenkartei
           </div>
           <div style={{ fontSize: 26, fontWeight: 800, marginBottom: 8 }}>{lead.company_name}</div>
-          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <span>{lead.trade}</span>
             {lead.city && <span>📍 {lead.city}</span>}
             <span style={{
@@ -175,7 +175,7 @@ export default function LeadProfile() {
         {current_score !== null && (
           <div style={{ textAlign: 'center', flexShrink: 0 }}>
             <div style={{ fontSize: 42, fontWeight: 900, color: levelColor, lineHeight: 1 }}>{current_score}</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>/ 100</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>/ 100</div>
             <div style={{ fontSize: 11, color: levelColor, fontWeight: 700, marginTop: 4 }}>{current_level}</div>
           </div>
         )}
@@ -193,7 +193,7 @@ export default function LeadProfile() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[['Ansprechpartner', 'contact_name'], ['Telefon', 'phone'], ['E-Mail', 'email'], ['Website', 'website_url'], ['Stadt', 'city'], ['Notiz', 'notes']].map(([label, field]) => (
                 <div key={field}>
-                  <div style={{ fontSize: 11, color: '#8a9ab8', marginBottom: 3 }}>{label}</div>
+                  <div style={{ fontSize: 11, color: '#5a6878', marginBottom: 3 }}>{label}</div>
                   {field === 'notes' ? (
                     <textarea
                       value={editData[field] || ''}
@@ -259,7 +259,7 @@ export default function LeadProfile() {
               })}
             </div>
           ) : (
-            <div style={{ fontSize: 13, color: '#8a9ab8' }}>Noch kein Audit durchgeführt.</div>
+            <div style={{ fontSize: 13, color: '#5a6878' }}>Noch kein Audit durchgeführt.</div>
           )}
         </div>
       </div>
@@ -271,7 +271,7 @@ export default function LeadProfile() {
           {scoreImprovement !== null && (
             <div style={{
               fontSize: 13, fontWeight: 700, marginBottom: 12,
-              color: scoreImprovement > 0 ? '#2a9a5a' : scoreImprovement < 0 ? '#c03030' : '#6a7a9a',
+              color: scoreImprovement > 0 ? '#2a9a5a' : scoreImprovement < 0 ? '#c03030' : '#4a5a7a',
             }}>
               {score_history[0].score} → {score_history[score_history.length - 1].score} Punkte
               ({scoreImprovement > 0 ? '+' : ''}{scoreImprovement})
@@ -281,8 +281,8 @@ export default function LeadProfile() {
           <ResponsiveContainer width="100%" height={160}>
             <LineChart data={score_history} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef0f8" />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#8a9ab8' }} />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#8a9ab8' }} width={30} />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#5a6878' }} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#5a6878' }} width={30} />
               <ReTooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(v) => [`${v}/100`, 'Score']} />
               <Line type="monotone" dataKey="score" stroke={NAVY} strokeWidth={2} dot={{ r: 4, fill: NAVY }} />
             </LineChart>
@@ -294,17 +294,17 @@ export default function LeadProfile() {
       <div style={{ background: '#fff', border: '1px solid #eef0f8', borderTop: 'none', padding: isMobile ? '16px' : '24px 28px' }}>
         <SectionLabel>Audit-Historie ({audits.length})</SectionLabel>
         {audits.length === 0 ? (
-          <div style={{ fontSize: 13, color: '#8a9ab8' }}>Keine Audits vorhanden.</div>
+          <div style={{ fontSize: 13, color: '#5a6878' }}>Keine Audits vorhanden.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {audits.map((audit) => {
-              const lc = LEVEL_COLORS[audit.level] || '#6a7a9a';
+              const lc = LEVEL_COLORS[audit.level] || '#4a5a7a';
               return (
                 <div key={audit.id} style={{
                   display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 12, padding: '10px 14px',
                   background: '#f8f9fc', borderRadius: 8, flexWrap: 'wrap',
                 }}>
-                  <span style={{ fontSize: 12, color: '#8a9ab8', fontFamily: 'monospace', minWidth: 100 }}>
+                  <span style={{ fontSize: 12, color: '#5a6878', fontFamily: 'monospace', minWidth: 100 }}>
                     {audit.created_at}
                   </span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: lc }}>
@@ -389,7 +389,7 @@ function SectionLabel({ children }) {
   return (
     <div style={{
       fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-      letterSpacing: '0.1em', color: '#8a9ab8', marginBottom: 16,
+      letterSpacing: '0.1em', color: '#5a6878', marginBottom: 16,
     }}>
       {children}
     </div>

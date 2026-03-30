@@ -99,6 +99,11 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     font-family: 'Inter', system-ui, sans-serif;
     color: #0f172a;
@@ -107,6 +112,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -115,6 +121,11 @@
     letter-spacing: -0.02em;
     line-height: 1.2;
     color: #0f172a;
+  }
+
+  /* Touch targets minimum 44px */
+  button, [role="button"] {
+    min-height: 44px;
   }
 
   input, select, textarea, button {

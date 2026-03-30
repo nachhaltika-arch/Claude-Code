@@ -5,7 +5,7 @@ GET /api/leads/ - List all leads
 POST /api/leads/{id}/analyze - Run lead analyst agent
 POST /api/leads/{id}/convert - Convert to project
 """
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime
 from pydantic import BaseModel
@@ -67,7 +67,7 @@ class LeadConvertRequest(BaseModel):
 
 
 @router.post("/", response_model=LeadResponse)
-def create_lead(lead: LeadCreate, db: Session = Depends(get_db)):
+def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Create a new lead in the pipeline."""
     db_lead = Lead(
         company_name=lead.company_name,
@@ -84,6 +84,12 @@ def create_lead(lead: LeadCreate, db: Session = Depends(get_db)):
     db.add(db_lead)
     db.commit()
     db.refresh(db_lead)
+
+    # Auto-enrich in background
+    if db_lead.website_url:
+        from services.lead_enrichment import enrich_lead_sync
+        background_tasks.add_task(enrich_lead_sync, db_lead.id)
+
     return db_lead
 
 
@@ -241,6 +247,7 @@ class ManualLeadImport(BaseModel):
 @router.post("/import/csv")
 async def import_leads_csv(
     file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
 ):
     """Import leads from a CSV file."""
@@ -349,6 +356,13 @@ async def import_leads_csv(
 
         db.commit()
 
+        # Background-enrich all imported leads with websites
+        if background_tasks and imported > 0:
+            from services.lead_enrichment import enrich_lead_sync
+            new_leads = db.query(Lead).filter(Lead.lead_source == "csv_import", Lead.analysis_score == 0, Lead.website_url != "").limit(imported).all()
+            for nl in new_leads:
+                background_tasks.add_task(enrich_lead_sync, nl.id)
+
         return {
             "success": True,
             "imported": imported,
@@ -373,6 +387,7 @@ async def import_leads_csv(
 @router.post("/import/manual", response_model=LeadResponse)
 def import_lead_manual(
     lead_data: ManualLeadImport,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     """Import a single lead manually."""
@@ -393,7 +408,38 @@ def import_lead_manual(
     db.add(lead)
     db.commit()
     db.refresh(lead)
+
+    if lead.website_url:
+        from services.lead_enrichment import enrich_lead_sync
+        background_tasks.add_task(enrich_lead_sync, lead.id)
+
     return lead
+
+
+@router.post("/{lead_id}/enrich")
+async def enrich_single_lead(lead_id: int, db: Session = Depends(get_db)):
+    """Manually trigger enrichment for a single lead."""
+    from services.lead_enrichment import enrich_lead
+    result = await enrich_lead(lead_id, db)
+    return result
+
+
+@router.post("/enrich/all")
+async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """Batch-enrich all leads with score=0. Runs in background."""
+    from services.lead_enrichment import enrich_all_pending
+    import asyncio
+
+    def _run():
+        from database import SessionLocal
+        _db = SessionLocal()
+        try:
+            asyncio.run(enrich_all_pending(_db))
+        finally:
+            _db.close()
+
+    background_tasks.add_task(_run)
+    return {"message": "Anreicherung gestartet", "status": "processing"}
 
 
 @router.get("/{lead_id}/profile")

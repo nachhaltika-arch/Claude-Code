@@ -46,6 +46,7 @@ export default function LeadProfile() {
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
   const [downloadingId, setDownloadingId] = useState(null);
+  const [enriching, setEnriching] = useState(false);
   const { isMobile } = useScreenSize();
 
   useEffect(() => {
@@ -101,6 +102,20 @@ export default function LeadProfile() {
     } finally {
       setDownloadingId(null);
     }
+  };
+
+  const enrichLead = async () => {
+    setEnriching(true);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/leads/${leadId}/enrich`);
+      if (res.data.status === 'success') {
+        toast.success(`Angereichert: ${res.data.enriched_fields.length} Felder aktualisiert`);
+        loadProfile();
+      } else {
+        toast.error(res.data.reason || 'Anreicherung fehlgeschlagen');
+      }
+    } catch (e) { toast.error('Fehler bei Anreicherung'); }
+    finally { setEnriching(false); }
   };
 
   if (loading) {
@@ -341,6 +356,13 @@ export default function LeadProfile() {
           style={{ background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: isMobile ? '100%' : 'auto' }}
         >
           ✏️ Lead bearbeiten
+        </button>
+        <button
+          onClick={enrichLead}
+          disabled={enriching}
+          style={{ background: '#f0f2f8', color: '#0F1E3A', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: enriching ? 0.6 : 1, width: isMobile ? '100%' : 'auto' }}
+        >
+          {enriching ? 'Wird analysiert...' : 'Daten aktualisieren'}
         </button>
       </div>
 

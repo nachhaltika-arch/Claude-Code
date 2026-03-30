@@ -19,6 +19,7 @@ export default function LeadPipeline() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedLead, setExpandedLead] = useState(null);
+  const [enriching, setEnriching] = useState(null);
   const navigate = useNavigate();
   const { isMobile } = useScreenSize();
 
@@ -36,6 +37,21 @@ export default function LeadPipeline() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const enrichLead = async (leadId) => {
+    setEnriching(leadId);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/enrich`, { method: 'POST' });
+      const data = await res.json();
+      if (data.status === 'success') {
+        toast.success(`Angereichert: ${data.enriched_fields.length} Felder`);
+        loadLeads();
+      } else {
+        toast.error(data.reason || 'Anreicherung fehlgeschlagen');
+      }
+    } catch (e) { toast.error('Fehler bei Anreicherung'); }
+    finally { setEnriching(null); }
   };
 
   if (loading) {
@@ -126,6 +142,15 @@ export default function LeadPipeline() {
                           onClick={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&company=${encodeURIComponent(lead.company_name)}&contact=${encodeURIComponent(lead.contact_name)}&city=${encodeURIComponent(lead.city)}&trade=${encodeURIComponent(lead.trade)}&lead_id=${lead.id}`)}
                         >
                           Audit
+                        </button>
+                        <button
+                          className="kc-btn-ghost"
+                          style={{ fontSize: 'var(--kc-text-xs)', padding: 'var(--kc-space-1) var(--kc-space-3)' }}
+                          onClick={(e) => { e.stopPropagation(); enrichLead(lead.id); }}
+                          disabled={enriching === lead.id}
+                          title="Daten anreichern"
+                        >
+                          {enriching === lead.id ? '...' : 'Anreichern'}
                         </button>
                       </td>
                     </tr>

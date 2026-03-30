@@ -92,6 +92,29 @@ def _send_phase_email(project_id: int, template_key: str):
 
 # ----- HWK SCRAPER JOB -----
 
+def job_enrich_pending_leads():
+    """
+    Daily lead enrichment job at 06:00 Europe/Berlin.
+    Enriches up to 50 leads with analysis_score=0 and a website URL.
+    """
+    import asyncio
+    logger.info("🔍 Daily lead enrichment job starting...")
+    try:
+        from database import SessionLocal
+        from services.lead_enrichment import enrich_all_pending
+        db = SessionLocal()
+        try:
+            results = asyncio.run(enrich_all_pending(db))
+            logger.info(
+                f"✓ Lead enrichment done: {results['success']} enriched, "
+                f"{results['failed']} failed, {results['skipped']} skipped"
+            )
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"✗ Lead enrichment job failed: {e}")
+
+
 def job_hwk_scrape_weekly():
     """
     Weekly HWK lead scraping job.
@@ -264,6 +287,15 @@ class CompagnonScheduler:
             "cron",
             hour=10, minute=0,
             id="daily_update_margins",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+        )
+        # Daily lead enrichment — 06:00
+        self.scheduler.add_job(
+            job_enrich_pending_leads,
+            "cron",
+            hour=6, minute=0,
+            id="daily_enrich_leads",
             replace_existing=True,
             timezone="Europe/Berlin",
         )

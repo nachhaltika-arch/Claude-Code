@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 
 
 def _run_migrations():
-    """Add missing columns to existing PostgreSQL/SQLite tables."""
+    """Führt alle fehlenden Spalten-Migrationen aus."""
     from database import engine
     migrations = [
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS scraped_phone VARCHAR DEFAULT ''",
@@ -92,13 +92,17 @@ def _run_migrations():
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_content INTEGER DEFAULT 0",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_kontakt INTEGER DEFAULT 0",
     ]
-    with engine.connect() as conn:
-        for sql in migrations:
-            try:
-                conn.execute(text(sql))
-            except Exception:
-                pass  # Column already exists or SQLite — skip silently
-        conn.commit()
+    try:
+        with engine.connect() as conn:
+            for sql in migrations:
+                try:
+                    conn.execute(text(sql))
+                except Exception:
+                    pass  # Spalte existiert bereits
+            conn.commit()
+        logger.info("✓ Migrationen abgeschlossen")
+    except Exception as e:
+        logger.warning(f"Migration Warnung: {e}")
 
 
 @asynccontextmanager
@@ -107,13 +111,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 KOMPAGNON Backend Starting...")
     try:
-        # Run database migrations (adds missing columns to existing tables)
-        try:
-            _run_migrations()
-            logger.info("✓ Migrations executed")
-        except Exception as e:
-            logger.warning(f"⚠ Migration: {e}")
-
+        _run_migrations()
         init_db()
         logger.info("✓ Database initialized")
 

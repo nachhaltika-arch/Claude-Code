@@ -6,6 +6,7 @@ import {
   FolderIcon,
   ClipboardDocumentListIcon,
   UserIcon,
+  ArrowUpTrayIcon,
 } from '@heroicons/react/24/outline';
 
 const menuItems = [
@@ -13,6 +14,7 @@ const menuItems = [
   { name: 'Lead Pipeline', path: '/leads', icon: UserGroupIcon },
   { name: 'Projekte', path: '/projects', icon: FolderIcon },
   { name: 'Checklisten', path: '/checklists', icon: ClipboardDocumentListIcon },
+  { name: 'Kontakt-Import', path: '/import', icon: ArrowUpTrayIcon },
   { name: 'Kunden', path: '/customers', icon: UserIcon },
 ];
 

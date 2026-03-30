@@ -5,13 +5,15 @@ GET /api/leads/ - List all leads
 POST /api/leads/{id}/analyze - Run lead analyst agent
 POST /api/leads/{id}/convert - Convert to project
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, get_db
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
+import csv
+import io
 import os
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
@@ -221,3 +223,131 @@ def convert_lead(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Conversion failed: {str(e)}")
+
+
+# ===== IMPORT ENDPOINTS =====
+
+REQUIRED_CSV_COLUMNS = {"company_name", "contact_name", "email", "city", "trade"}
+OPTIONAL_CSV_COLUMNS = {"phone", "website_url"}
+ALL_CSV_COLUMNS = REQUIRED_CSV_COLUMNS | OPTIONAL_CSV_COLUMNS
+
+
+class ManualLeadImport(BaseModel):
+    company_name: str
+    contact_name: str = ""
+    phone: str = ""
+    email: str = ""
+    website_url: str = ""
+    city: str = ""
+    trade: str = ""
+
+
+@router.post("/import/csv")
+async def import_leads_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """Import leads from a CSV file."""
+    if not file.filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Nur CSV-Dateien erlaubt.")
+
+    try:
+        content = await file.read()
+        # Try UTF-8 first, fall back to latin-1 for German umlauts
+        try:
+            text = content.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            text = content.decode("latin-1")
+
+        reader = csv.DictReader(io.StringIO(text), delimiter=None)
+
+        # Auto-detect delimiter
+        sample = text[:2048]
+        sniffer = csv.Sniffer()
+        try:
+            dialect = sniffer.sniff(sample, delimiters=",;\t")
+        except csv.Error:
+            dialect = csv.excel
+        reader = csv.DictReader(io.StringIO(text), dialect=dialect)
+
+        # Validate columns
+        if reader.fieldnames is None:
+            raise HTTPException(status_code=400, detail="CSV-Datei ist leer.")
+
+        headers = {h.strip().lower() for h in reader.fieldnames}
+        missing = REQUIRED_CSV_COLUMNS - headers
+        if missing:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Fehlende Pflicht-Spalten: {', '.join(sorted(missing))}",
+            )
+
+        imported = 0
+        errors = []
+
+        for row_num, row in enumerate(reader, start=2):
+            # Normalize keys
+            row = {k.strip().lower(): (v.strip() if v else "") for k, v in row.items()}
+
+            company_name = row.get("company_name", "")
+            if not company_name:
+                errors.append({"row": row_num, "error": "company_name ist leer"})
+                continue
+
+            try:
+                lead = Lead(
+                    company_name=company_name,
+                    contact_name=row.get("contact_name", ""),
+                    phone=row.get("phone", ""),
+                    email=row.get("email", ""),
+                    website_url=row.get("website_url", ""),
+                    city=row.get("city", ""),
+                    trade=row.get("trade", ""),
+                    lead_source="CSV-Import",
+                    status="new",
+                )
+                db.add(lead)
+                imported += 1
+            except Exception as e:
+                errors.append({"row": row_num, "error": str(e)})
+
+        db.commit()
+
+        return {
+            "imported": imported,
+            "errors": len(errors),
+            "error_details": errors[:20],
+            "message": f"{imported} Kontakt{'e' if imported != 1 else ''} importiert"
+            + (f", {len(errors)} fehlerhaft" if errors else ""),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Import fehlgeschlagen: {str(e)}")
+
+
+@router.post("/import/manual", response_model=LeadResponse)
+def import_lead_manual(
+    lead_data: ManualLeadImport,
+    db: Session = Depends(get_db),
+):
+    """Import a single lead manually."""
+    if not lead_data.company_name.strip():
+        raise HTTPException(status_code=400, detail="Firmenname ist Pflichtfeld.")
+
+    lead = Lead(
+        company_name=lead_data.company_name.strip(),
+        contact_name=lead_data.contact_name.strip(),
+        phone=lead_data.phone.strip(),
+        email=lead_data.email.strip(),
+        website_url=lead_data.website_url.strip(),
+        city=lead_data.city.strip(),
+        trade=lead_data.trade.strip(),
+        lead_source="Manuell",
+        status="new",
+    )
+    db.add(lead)
+    db.commit()
+    db.refresh(lead)
+    return lead

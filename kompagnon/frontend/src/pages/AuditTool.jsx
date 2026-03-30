@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -6,7 +6,7 @@ import API_BASE_URL from '../config';
 
 const TRADE_OPTIONS = [
   'Elektriker', 'Klempner', 'Maler', 'Schreiner',
-  'Dachdecker', 'Heizung', 'Sanitär', 'Fliesenleger', 'Sonstiges',
+  'Dachdecker', 'Heizung', 'Sanit\u00E4r', 'Fliesenleger', 'Sonstiges',
 ];
 
 const LEVEL_STYLES = {
@@ -37,7 +37,11 @@ export default function AuditTool() {
   const [searchParams] = useSearchParams();
   const [step, setStep] = useState('form'); // form | loading | result
   const [result, setResult] = useState(null);
+  const [auditId, setAuditId] = useState(null);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const pollRef = useRef(null);
+  const stepRef = useRef(null);
 
   const [form, setForm] = useState({
     website_url: searchParams.get('url') || '',
@@ -50,6 +54,14 @@ export default function AuditTool() {
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (stepRef.current) clearInterval(stepRef.current);
+    };
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.website_url.trim() || !form.company_name.trim()) {
@@ -59,34 +71,77 @@ export default function AuditTool() {
 
     setStep('loading');
     setLoadingStep(0);
+    setResult(null);
+    setAuditId(null);
 
-    // Animate loading steps
-    const interval = setInterval(() => {
-      setLoadingStep((s) => {
-        if (s >= LOADING_STEPS.length - 1) {
-          clearInterval(interval);
-          return s;
-        }
-        return s + 1;
-      });
-    }, 2000);
+    // Animate loading steps (cycle through every 3s)
+    stepRef.current = setInterval(() => {
+      setLoadingStep((s) => (s + 1) % LOADING_STEPS.length);
+    }, 3000);
 
     try {
       const payload = {
         ...form,
         lead_id: form.lead_id ? parseInt(form.lead_id, 10) : null,
       };
-      const res = await axios.post(`${API_BASE_URL}/api/audit/start`, payload, {
-        timeout: 60000,
-      });
-      clearInterval(interval);
-      setResult(res.data);
-      setStep('result');
+      const res = await axios.post(`${API_BASE_URL}/api/audit/start`, payload);
+      const id = res.data.id;
+      setAuditId(id);
+
+      // Start polling every 4 seconds
+      pollRef.current = setInterval(async () => {
+        try {
+          const poll = await axios.get(`${API_BASE_URL}/api/audit/${id}`);
+          const data = poll.data;
+
+          if (data.status === 'completed') {
+            clearInterval(pollRef.current);
+            clearInterval(stepRef.current);
+            pollRef.current = null;
+            stepRef.current = null;
+            setResult(data);
+            setStep('result');
+          } else if (data.status === 'failed') {
+            clearInterval(pollRef.current);
+            clearInterval(stepRef.current);
+            pollRef.current = null;
+            stepRef.current = null;
+            toast.error(data.error_message || data.message || 'Audit fehlgeschlagen');
+            setStep('form');
+          }
+          // pending / running -> keep polling
+        } catch (err) {
+          // Network blip — keep polling, don't abort
+        }
+      }, 4000);
     } catch (error) {
-      clearInterval(interval);
-      const msg = error.response?.data?.detail || 'Audit fehlgeschlagen';
+      clearInterval(stepRef.current);
+      stepRef.current = null;
+      const msg = error.response?.data?.detail || 'Audit konnte nicht gestartet werden';
       toast.error(msg);
       setStep('form');
+    }
+  };
+
+  const downloadPDF = async () => {
+    if (!auditId) return;
+    setPdfLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/audit/${auditId}/pdf`);
+      if (!response.ok) throw new Error('PDF-Generierung fehlgeschlagen');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Homepage-Standard-Audit-${(result?.company_name || 'Audit').replace(/\s+/g, '-')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error('PDF konnte nicht heruntergeladen werden.');
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -150,7 +205,7 @@ export default function AuditTool() {
   }
 
   // ═════════════════════════════════════════════════════════
-  // STEP 2: Loading
+  // STEP 2: Loading (polls backend every 4s)
   // ═════════════════════════════════════════════════════════
   if (step === 'loading') {
     return (
@@ -186,6 +241,9 @@ export default function AuditTool() {
             </div>
           ))}
           <div className="kc-skeleton" style={{ height: '4px', marginTop: 'var(--kc-space-4)' }} />
+          <p style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-mittel)', textAlign: 'center' }}>
+            Die Analyse kann bis zu 30 Sekunden dauern.
+          </p>
         </div>
       </div>
     );
@@ -257,7 +315,6 @@ export default function AuditTool() {
               <div style={{ fontFamily: 'var(--kc-font-mono)', fontSize: 'var(--kc-text-2xl)', fontWeight: 700, color: 'var(--kc-text-primaer)', marginBottom: 'var(--kc-space-2)' }}>
                 {data.score}<span style={{ fontSize: 'var(--kc-text-sm)', color: 'var(--kc-mittel)', fontWeight: 400 }}> / {data.max}</span>
               </div>
-              {/* Progress bar */}
               <div style={{ height: '4px', borderRadius: 'var(--kc-radius-full)', background: 'var(--kc-rand)', overflow: 'hidden' }}>
                 <div style={{
                   height: '100%', width: `${pct}%`, borderRadius: 'var(--kc-radius-full)',
@@ -312,12 +369,17 @@ export default function AuditTool() {
       )}
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 'var(--kc-space-4)' }}>
-        <button className="kc-btn-primary" onClick={() => { setStep('form'); setResult(null); }}>
+      <div style={{ display: 'flex', gap: 'var(--kc-space-4)', flexWrap: 'wrap' }}>
+        <button className="kc-btn-primary" onClick={() => { setStep('form'); setResult(null); setAuditId(null); }}>
           Neues Audit starten
         </button>
-        <button className="kc-btn-secondary" onClick={() => window.print()}>
-          Bericht drucken
+        <button
+          className="kc-btn-secondary"
+          onClick={downloadPDF}
+          disabled={pdfLoading}
+          style={{ opacity: pdfLoading ? 0.6 : 1 }}
+        >
+          {pdfLoading ? 'PDF wird erstellt...' : '\u2713 PDF herunterladen'}
         </button>
       </div>
     </div>

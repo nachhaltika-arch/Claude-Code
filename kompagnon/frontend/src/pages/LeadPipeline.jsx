@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import AuditHistory from '../components/AuditHistory';
 
 const statusConfig = {
   new:           { label: 'Neu',           className: 'kc-badge kc-badge--info' },
@@ -16,6 +17,7 @@ const statusConfig = {
 export default function LeadPipeline() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedLead, setExpandedLead] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -56,6 +58,7 @@ export default function LeadPipeline() {
         <table className="kc-table">
           <thead>
             <tr>
+              <th></th>
               <th>Unternehmen</th>
               <th>Kontakt</th>
               <th>Stadt</th>
@@ -68,44 +71,60 @@ export default function LeadPipeline() {
           <tbody>
             {leads.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--kc-mittel)', padding: 'var(--kc-space-8)' }}>
+                <td colSpan={8} style={{ textAlign: 'center', color: 'var(--kc-mittel)', padding: 'var(--kc-space-8)' }}>
                   Keine Leads vorhanden.
                 </td>
               </tr>
             ) : (
               leads.map((lead) => {
                 const cfg = statusConfig[lead.status] || statusConfig.new;
+                const isExpanded = expandedLead === lead.id;
                 return (
-                  <tr key={lead.id}>
-                    <td style={{ fontWeight: 600 }}>{lead.company_name}</td>
-                    <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.contact_name}</td>
-                    <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.city}</td>
-                    <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.trade}</td>
-                    <td><span className={cfg.className}>{cfg.label}</span></td>
-                    <td style={{ textAlign: 'right' }}>
-                      <span
-                        style={{
-                          fontFamily: 'var(--kc-font-mono)',
-                          fontWeight: 700,
-                          fontSize: 'var(--kc-text-sm)',
-                          color: lead.analysis_score >= 70 ? 'var(--kc-success)' :
-                                 lead.analysis_score >= 40 ? 'var(--kc-warning)' :
-                                 'var(--kc-text-subtil)',
-                        }}
-                      >
-                        {lead.analysis_score}/100
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <button
-                        className="kc-btn-ghost"
-                        style={{ fontSize: 'var(--kc-text-xs)', padding: 'var(--kc-space-1) var(--kc-space-3)' }}
-                        onClick={() => navigate(`/audit?url=${encodeURIComponent(lead.website_url || '')}&company=${encodeURIComponent(lead.company_name)}&contact=${encodeURIComponent(lead.contact_name)}&city=${encodeURIComponent(lead.city)}&trade=${encodeURIComponent(lead.trade)}&lead_id=${lead.id}`)}
-                      >
-                        Audit
-                      </button>
-                    </td>
-                  </tr>
+                  <React.Fragment key={lead.id}>
+                    <tr
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setExpandedLead(isExpanded ? null : lead.id)}
+                    >
+                      <td style={{ width: '24px', textAlign: 'center', color: 'var(--kc-mittel)', fontSize: 'var(--kc-text-xs)' }}>
+                        {isExpanded ? '\u25BC' : '\u25B6'}
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{lead.company_name}</td>
+                      <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.contact_name}</td>
+                      <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.city}</td>
+                      <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.trade}</td>
+                      <td><span className={cfg.className}>{cfg.label}</span></td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span
+                          style={{
+                            fontFamily: 'var(--kc-font-mono)',
+                            fontWeight: 700,
+                            fontSize: 'var(--kc-text-sm)',
+                            color: lead.analysis_score >= 70 ? 'var(--kc-success)' :
+                                   lead.analysis_score >= 40 ? 'var(--kc-warning)' :
+                                   'var(--kc-text-subtil)',
+                          }}
+                        >
+                          {lead.analysis_score}/100
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className="kc-btn-ghost"
+                          style={{ fontSize: 'var(--kc-text-xs)', padding: 'var(--kc-space-1) var(--kc-space-3)' }}
+                          onClick={() => navigate(`/audit?url=${encodeURIComponent(lead.website_url || '')}&company=${encodeURIComponent(lead.company_name)}&contact=${encodeURIComponent(lead.contact_name)}&city=${encodeURIComponent(lead.city)}&trade=${encodeURIComponent(lead.trade)}&lead_id=${lead.id}`)}
+                        >
+                          Audit
+                        </button>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={8} style={{ padding: 'var(--kc-space-4) var(--kc-space-6)', background: 'var(--kc-hell)' }}>
+                          <AuditHistory leadId={lead.id} />
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })
             )}

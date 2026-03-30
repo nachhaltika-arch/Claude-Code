@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from pydantic import BaseModel
-from database import Project, Lead, Communication, get_db
+from sqlalchemy import func
+from database import Project, Lead, Communication, AuditResult, get_db
 from services.margin_calculator import MarginCalculator
 
 router = APIRouter(prefix="/api", tags=["dashboard", "automations"])
@@ -21,6 +22,9 @@ class KPIData(BaseModel):
     projects_at_risk: int
     projects_going_live_this_week: int
     pending_reviews: int
+    audits_today: int = 0
+    audits_avg_score: float = 0
+    audits_improved: int = 0
 
 
 class Alert(BaseModel):
@@ -58,6 +62,39 @@ def get_dashboard_kpis(db: Session = Depends(get_db)):
         .count()
     )
 
+    # Audit KPIs
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    audits_today = (
+        db.query(AuditResult)
+        .filter(AuditResult.status == "completed", AuditResult.created_at >= today_start)
+        .count()
+    )
+    avg_row = (
+        db.query(func.avg(AuditResult.total_score))
+        .filter(AuditResult.status == "completed")
+        .scalar()
+    )
+    audits_avg_score = round(float(avg_row), 1) if avg_row else 0
+
+    # Count leads that improved (have 2+ audits where latest > earliest)
+    audits_improved = 0
+    lead_ids_with_audits = (
+        db.query(AuditResult.lead_id)
+        .filter(AuditResult.lead_id.isnot(None), AuditResult.status == "completed")
+        .group_by(AuditResult.lead_id)
+        .having(func.count(AuditResult.id) >= 2)
+        .all()
+    )
+    for (lid,) in lead_ids_with_audits:
+        scores = (
+            db.query(AuditResult.total_score)
+            .filter(AuditResult.lead_id == lid, AuditResult.status == "completed")
+            .order_by(AuditResult.created_at.asc())
+            .all()
+        )
+        if len(scores) >= 2 and scores[-1][0] > scores[0][0]:
+            audits_improved += 1
+
     return {
         "active_projects": margin_summary.get("active_projects", 0),
         "average_margin_percent": margin_summary.get("average_margin_percent", 0),
@@ -65,6 +102,9 @@ def get_dashboard_kpis(db: Session = Depends(get_db)):
         "projects_at_risk": margin_summary.get("projects_at_risk", 0),
         "projects_going_live_this_week": golive_this_week,
         "pending_reviews": pending_reviews,
+        "audits_today": audits_today,
+        "audits_avg_score": audits_avg_score,
+        "audits_improved": audits_improved,
     }
 
 

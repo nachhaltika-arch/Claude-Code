@@ -9,11 +9,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from datetime import datetime
 from pydantic import BaseModel
-from database import Lead, Project, get_db
+from database import Lead, Project, AuditResult, get_db
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 import csv
 import io
+import json
 import os
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
@@ -351,3 +352,35 @@ def import_lead_manual(
     db.commit()
     db.refresh(lead)
     return lead
+
+
+@router.get("/{lead_id}/audits")
+def get_lead_audits(lead_id: int, db: Session = Depends(get_db)):
+    """Get all audits linked to a lead, newest first."""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    audits = (
+        db.query(AuditResult)
+        .filter(AuditResult.lead_id == lead_id, AuditResult.status == "completed")
+        .order_by(AuditResult.created_at.desc())
+        .all()
+    )
+
+    results = []
+    for a in audits:
+        try:
+            top_issues = json.loads(a.top_issues) if a.top_issues else []
+        except (json.JSONDecodeError, TypeError):
+            top_issues = []
+        results.append({
+            "id": a.id,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+            "total_score": a.total_score,
+            "level": a.level,
+            "website_url": a.website_url,
+            "top_issues": top_issues,
+            "ai_summary": a.ai_summary,
+        })
+    return results

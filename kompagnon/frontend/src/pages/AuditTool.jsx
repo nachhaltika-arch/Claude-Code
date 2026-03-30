@@ -399,6 +399,7 @@ export default function AuditTool() {
       {showLeadModal && (
         <SaveLeadModal
           audit={r}
+          auditId={auditId}
           onClose={() => setShowLeadModal(false)}
           onSaved={(id) => { setSavedLeadId(id); setShowLeadModal(false); }}
         />
@@ -411,7 +412,7 @@ export default function AuditTool() {
 // Save Lead Modal
 // ═══════════════════════════════════════════════════════════
 
-function SaveLeadModal({ audit, onClose, onSaved }) {
+function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [leadForm, setLeadForm] = useState({
     company_name: audit.company_name || '',
@@ -436,8 +437,19 @@ function SaveLeadModal({ audit, onClose, onSaved }) {
     setSaving(true);
     try {
       const res = await axios.post(`${API_BASE_URL}/api/leads/`, leadForm);
+      const newLeadId = res.data.id;
+
+      // Link audit to the new lead
+      if (auditId) {
+        try {
+          await axios.patch(`${API_BASE_URL}/api/audit/${auditId}/link-lead`, { lead_id: newLeadId });
+        } catch (_) {
+          // non-critical — lead is saved even if linking fails
+        }
+      }
+
       toast.success(`\u2713 ${leadForm.company_name} wurde als Lead angelegt!`);
-      onSaved(res.data.id);
+      onSaved(newLeadId);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Lead konnte nicht angelegt werden.');
     } finally {

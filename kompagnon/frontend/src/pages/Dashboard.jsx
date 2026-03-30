@@ -5,6 +5,9 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
   StarIcon,
+  MagnifyingGlassCircleIcon,
+  ChartBarIcon,
+  ArrowTrendingUpIcon,
 } from '@heroicons/react/24/outline';
 import MarginBadge from '../components/MarginBadge';
 import AlertBanner from '../components/AlertBanner';
@@ -107,6 +110,25 @@ export default function Dashboard() {
             label="Offene Reviews"
             value={kpis.pending_reviews}
             valueColor={kpis.pending_reviews > 0 ? 'var(--kc-warning)' : 'var(--kc-text-primaer)'}
+          />
+        </div>
+      )}
+
+      {/* Audit KPIs */}
+      {kpis && (kpis.audits_today > 0 || kpis.audits_avg_score > 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--kc-space-4)' }}>
+          <KpiCard icon={MagnifyingGlassCircleIcon} label="Audits heute" value={kpis.audits_today} />
+          <KpiCard
+            icon={ChartBarIcon}
+            label="\u00D8 Audit-Score"
+            value={`${kpis.audits_avg_score}/100`}
+            valueColor={kpis.audits_avg_score >= 70 ? 'var(--kc-success)' : kpis.audits_avg_score >= 50 ? 'var(--kc-warning)' : 'var(--kc-rot)'}
+          />
+          <KpiCard
+            icon={ArrowTrendingUpIcon}
+            label="Verbesserungen"
+            value={kpis.audits_improved}
+            valueColor="var(--kc-success)"
           />
         </div>
       )}

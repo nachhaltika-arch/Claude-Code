@@ -53,6 +53,10 @@ class AuditRequest(BaseModel):
     lead_id: Optional[int] = None
 
 
+class LinkLeadRequest(BaseModel):
+    lead_id: int
+
+
 # ═══════════════════════════════════════════════════════════
 # Technical Checks
 # ═══════════════════════════════════════════════════════════
@@ -510,6 +514,20 @@ def get_audit(audit_id: int, db: Session = Depends(get_db)):
     if audit.status == "failed":
         raise HTTPException(status_code=500, detail=audit.error_message or "Audit fehlgeschlagen")
     return _format_audit(audit)
+
+
+@router.patch("/{audit_id}/link-lead")
+def link_audit_to_lead(audit_id: int, req: LinkLeadRequest, db: Session = Depends(get_db)):
+    """Link an existing audit to a lead."""
+    audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit nicht gefunden")
+    lead = db.query(Lead).filter(Lead.id == req.lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+    audit.lead_id = req.lead_id
+    db.commit()
+    return {"id": audit.id, "lead_id": req.lead_id, "message": "Audit mit Lead verknüpft"}
 
 
 @router.get("/lead/{lead_id}")

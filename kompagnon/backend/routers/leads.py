@@ -249,82 +249,125 @@ async def import_leads_csv(
 
     try:
         content = await file.read()
-        # Try UTF-8 first, fall back to latin-1 for German umlauts
+
+        # Encoding erkennen
         try:
-            text = content.decode("utf-8-sig")
+            text = content.decode("utf-8-sig")  # BOM entfernen
         except UnicodeDecodeError:
-            text = content.decode("latin-1")
+            try:
+                text = content.decode("utf-8")
+            except UnicodeDecodeError:
+                text = content.decode("latin-1")
 
-        # Auto-detect delimiter
-        try:
-            dialect = csv.Sniffer().sniff(text[:2048], delimiters=",;\t")
-            delimiter = dialect.delimiter
-        except csv.Error:
-            delimiter = ";"
+        # Delimiter manuell erkennen — KEIN Sniffer
+        first_line = text.split("\n")[0] if text else ""
 
-        # Fallback if sniffer returns something invalid
-        if not delimiter or not isinstance(delimiter, str):
+        if ";" in first_line:
             delimiter = ";"
+        elif "\t" in first_line:
+            delimiter = "\t"
+        else:
+            delimiter = ","
 
         reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
 
-        # Validate columns
-        if reader.fieldnames is None:
-            raise HTTPException(status_code=400, detail="CSV-Datei ist leer.")
-
-        headers = {h.strip().lstrip('\ufeff').lower() for h in reader.fieldnames if h}
-
         imported = 0
-        errors = []
+        errors = 0
+        skipped = 0
 
-        for row_num, row in enumerate(reader, start=2):
+        for row in reader:
             try:
-                # Normalize keys: strip whitespace, BOM, lowercase
-                clean_row = {
-                    k.strip().lstrip('\ufeff').lower(): (v.strip() if v else "")
-                    for k, v in row.items()
-                    if k
-                }
+                # Spaltennamen bereinigen
+                clean_row = {}
+                for k, v in row.items():
+                    if k:
+                        clean_key = k.strip().lower().lstrip('\ufeff')
+                        clean_row[clean_key] = v.strip() if v else ""
 
-                company_name = (
+                # Firmenname ist Pflicht
+                company = (
                     clean_row.get("company_name")
                     or clean_row.get("firmenname")
-                    or clean_row.get("firma", "")
+                    or clean_row.get("firma")
+                    or clean_row.get("unternehmen")
+                    or clean_row.get("name")
+                    or ""
                 )
-                if not company_name:
-                    errors.append({"row": row_num, "error": "company_name/firmenname ist leer"})
+
+                if not company:
+                    skipped += 1
                     continue
 
                 lead = Lead(
-                    company_name=company_name,
-                    contact_name=clean_row.get("contact_name") or clean_row.get("ansprechpartner", ""),
-                    phone=clean_row.get("phone") or clean_row.get("telefon", ""),
-                    email=clean_row.get("email") or clean_row.get("e-mail", ""),
-                    website_url=clean_row.get("website_url") or clean_row.get("website", ""),
-                    city=clean_row.get("city") or clean_row.get("stadt", ""),
-                    trade=clean_row.get("trade") or clean_row.get("gewerk", "Sonstiges"),
-                    lead_source="CSV-Import",
+                    company_name=company,
+                    contact_name=(
+                        clean_row.get("contact_name")
+                        or clean_row.get("ansprechpartner")
+                        or clean_row.get("kontakt")
+                        or ""
+                    ),
+                    phone=(
+                        clean_row.get("phone")
+                        or clean_row.get("telefon")
+                        or clean_row.get("tel")
+                        or ""
+                    ),
+                    email=(
+                        clean_row.get("email")
+                        or clean_row.get("e-mail")
+                        or clean_row.get("mail")
+                        or ""
+                    ),
+                    website_url=(
+                        clean_row.get("website_url")
+                        or clean_row.get("website")
+                        or clean_row.get("url")
+                        or clean_row.get("homepage")
+                        or ""
+                    ),
+                    city=(
+                        clean_row.get("city")
+                        or clean_row.get("stadt")
+                        or clean_row.get("ort")
+                        or ""
+                    ),
+                    trade=(
+                        clean_row.get("trade")
+                        or clean_row.get("gewerk")
+                        or clean_row.get("branche")
+                        or "Sonstiges"
+                    ),
+                    lead_source="csv_import",
                     status="new",
                 )
                 db.add(lead)
                 imported += 1
-            except Exception as e:
-                errors.append({"row": row_num, "error": str(e)})
+
+            except Exception:
+                errors += 1
+                continue
 
         db.commit()
 
         return {
+            "success": True,
             "imported": imported,
-            "errors": len(errors),
-            "error_details": errors[:20],
-            "message": f"{imported} Kontakt{'e' if imported != 1 else ''} importiert"
-            + (f", {len(errors)} fehlerhaft" if errors else ""),
+            "errors": errors,
+            "skipped": skipped,
+            "message": (
+                f"{imported} Kontakte erfolgreich importiert"
+                + (f", {skipped} übersprungen" if skipped > 0 else "")
+                + (f", {errors} Fehler" if errors > 0 else "")
+            ),
         }
 
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Import fehlgeschlagen: {str(e)}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Import fehlgeschlagen: {str(e)}",
+        )
 
 
 @router.post("/import/manual", response_model=LeadResponse)

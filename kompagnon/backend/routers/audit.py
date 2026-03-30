@@ -181,55 +181,64 @@ def _check_security_headers(url: str) -> dict:
 # ═══════════════════════════════════════════════════════════
 
 def _ai_score(check_data: dict, company_name: str, trade: str) -> dict:
-    """Use Claude to analyze checks and assign category scores."""
+    """Use Claude to analyze checks and assign granular item-level scores."""
 
     scoring_prompt = """Du bist ein Website-Auditor für den "Homepage Standard" Bewertungsrahmen.
-Analysiere die technischen Prüfergebnisse und vergib Punkte in 6 Kategorien.
+Analysiere die technischen Prüfergebnisse und vergib Punkte für alle Einzelkriterien.
 
-BEWERTUNGSSCHEMA (Gesamt: 100 Punkte):
+BEWERTUNGSSCHEMA — Einzelkriterien (Gesamt: 100 Punkte):
 
-1. Rechtliche Compliance (max 30):
-   - Impressum vorhanden: 7P
-   - Datenschutzerklärung: 7P
-   - Cookie Consent: 6P
-   - Barrierefreiheitserklärung: 4P
-   - Urheberrecht & Lizenzen: 3P
-   - E-Commerce Pflichten: 3P
+RECHTLICHE COMPLIANCE (Summe max 30):
+- rc_impressum: Impressum vorhanden (0-7)
+- rc_datenschutz: Datenschutzerklärung (0-7)
+- rc_cookie: Cookie Consent (TDDDG) (0-6)
+- rc_bfsg: Barrierefreiheitserklärung (BFSG) (0-4)
+- rc_urheberrecht: Urheberrecht & Lizenzen (0-3)
+- rc_ecommerce: E-Commerce Pflichten (0-3)
 
-2. Technische Performance (max 20):
-   - LCP unter 2.5s: 5P
-   - CLS unter 0.1: 4P
-   - INP unter 200ms: 3P
-   - Mobile-First: 4P
-   - Bildoptimierung: 4P
+TECHNISCHE PERFORMANCE (Summe max 20):
+- tp_lcp: LCP < 2.5s = 5P, < 4s = 2P, sonst 0 (0-5)
+- tp_cls: CLS < 0.1 = 4P, < 0.25 = 2P, sonst 0 (0-4)
+- tp_inp: INP < 200ms = 3P, < 500ms = 1P, sonst 0 (0-3)
+- tp_mobile: Mobile-First Bewertung (0-4)
+- tp_bilder: Bildoptimierung (0-4)
 
-3. Barrierefreiheit (max 20):
-   - Farbkontraste: 5P
-   - Tastaturzugänglichkeit: 5P
-   - Screenreader: 5P
-   - Lesbarkeit: 5P
+HOSTING & INFRASTRUKTUR (nicht im Score, je 0 oder 1):
+- ho_anbieter: Hosting-Anbieter identifizierbar (0-1)
+- ho_uptime: Website erreichbar/zuverlässig (0-1)
+- ho_http: HTTP leitet auf HTTPS weiter (0-1)
+- ho_backup: Backup-Hinweise erkennbar (0-1)
+- ho_cdn: CDN wird genutzt (0-1)
 
-4. Sicherheit & Datenschutz (max 15):
-   - HTTPS/SSL: 4P
-   - Security Header: 4P
-   - DSGVO Drittanbieter: 4P
-   - Formularsicherheit: 3P
+BARRIEREFREIHEIT (Summe max 20):
+- bf_kontrast: Farbkontraste WCAG AA (0-5)
+- bf_tastatur: Tastaturzugänglichkeit (0-5)
+- bf_screenreader: Screenreader-Kompatibilität (0-5)
+- bf_lesbarkeit: Lesbarkeit & Textgröße (0-5)
 
-5. SEO & Sichtbarkeit (max 10):
-   - Technische SEO: 4P
-   - Strukturierte Daten: 3P
-   - Lokale Auffindbarkeit: 3P
+SICHERHEIT & DATENSCHUTZ (Summe max 15):
+- si_ssl: HTTPS/SSL (0-4)
+- si_header: Security-Header HSTS/CSP/X-Frame (0-4)
+- si_drittanbieter: DSGVO Drittanbieter (0-4)
+- si_formulare: Formularsicherheit (0-3)
 
-6. Inhalt & Nutzererfahrung (max 5):
-   - Klare Botschaft & CTA: 2P
-   - Aktualität & Qualität: 2P
-   - Ladegeschwindigkeit UX: 1P
+SEO & SICHTBARKEIT (Summe max 10):
+- se_seo: Technische SEO Grundlagen (0-4)
+- se_schema: Strukturierte Daten Schema.org (0-3)
+- se_lokal: Lokale Auffindbarkeit (0-3)
+
+INHALT & NUTZERERFAHRUNG (Summe max 5, ux_kontakt zählt extra):
+- ux_erstindruck: Erster Eindruck (0-1)
+- ux_cta: Klare Call-to-Action (0-1)
+- ux_navigation: Navigation & Struktur (0-1)
+- ux_vertrauen: Vertrauenssignale (0-1)
+- ux_content: Content-Qualität (0-1)
+- ux_kontakt: Kontaktmöglichkeiten (0-1)
 
 REGELN:
 - Antworte NUR als valides JSON, KEIN Markdown
 - Sei streng aber fair — vergib nur Punkte wenn es Belege gibt
-- Für Kategorien die nicht automatisch geprüft werden können,
-  schätze konservativ basierend auf den verfügbaren Daten
+- Für nicht direkt prüfbare Kriterien: konservative Schätzung
 - ai_summary: 3-5 Sätze in einfacher Sprache für den Betriebsinhaber
 - top_issues: Die 3 größten konkreten Probleme
 - recommendations: 3-5 konkrete nächste Schritte"""
@@ -242,15 +251,16 @@ Gewerk: {trade}
 Technische Prüfungsergebnisse:
 {json.dumps(check_data, indent=2, ensure_ascii=False)}
 
-Antworte als JSON:
+Antworte als JSON mit allen Einzelkriterienpunkten:
 {{
-  "rc_score": <0-30>,
-  "tp_score": <0-20>,
-  "bf_score": <0-20>,
-  "si_score": <0-15>,
-  "se_score": <0-10>,
-  "ux_score": <0-5>,
-  "ai_summary": "<3-5 Sätze, einfache Sprache>",
+  "rc_impressum": 0, "rc_datenschutz": 0, "rc_cookie": 0, "rc_bfsg": 0, "rc_urheberrecht": 0, "rc_ecommerce": 0,
+  "tp_lcp": 0, "tp_cls": 0, "tp_inp": 0, "tp_mobile": 0, "tp_bilder": 0,
+  "ho_anbieter": 0, "ho_uptime": 0, "ho_http": 0, "ho_backup": 0, "ho_cdn": 0,
+  "bf_kontrast": 0, "bf_tastatur": 0, "bf_screenreader": 0, "bf_lesbarkeit": 0,
+  "si_ssl": 0, "si_header": 0, "si_drittanbieter": 0, "si_formulare": 0,
+  "se_seo": 0, "se_schema": 0, "se_lokal": 0,
+  "ux_erstindruck": 0, "ux_cta": 0, "ux_navigation": 0, "ux_vertrauen": 0, "ux_content": 0, "ux_kontakt": 0,
+  "ai_summary": "...",
   "top_issues": ["Problem 1", "Problem 2", "Problem 3"],
   "recommendations": ["Empfehlung 1", "Empfehlung 2", "Empfehlung 3"]
 }}"""
@@ -262,7 +272,7 @@ Antworte als JSON:
         client = Anthropic(api_key=ANTHROPIC_API_KEY)
         message = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=800,
+            max_tokens=1500,
             system=scoring_prompt,
             messages=[{"role": "user", "content": user_message}],
         )
@@ -273,51 +283,66 @@ Antworte als JSON:
 
 
 def _mock_ai_score(check_data: dict) -> dict:
-    """Deterministic fallback scoring when no API key."""
-    rc = 0
-    if check_data.get("impressum_ok"):
-        rc += 7
-    if check_data.get("datenschutz_ok"):
-        rc += 7
-    if check_data.get("cookie_banner"):
-        rc += 6
-    # conservative estimates for unchecked items
-    rc += 3  # partial Barrierefreiheit + Urheberrecht
-
-    tp = 0
+    """Deterministic fallback scoring returning all item-level scores."""
     lcp = check_data.get("lcp_value", 99)
-    if lcp < 2.5:
-        tp += 5
-    elif lcp < 4.0:
-        tp += 2
-    cls = check_data.get("cls_value", 1)
-    if cls < 0.1:
-        tp += 4
-    elif cls < 0.25:
-        tp += 2
+    cls_v = check_data.get("cls_value", 1)
     inp = check_data.get("inp_value", 999)
-    if inp < 200:
-        tp += 3
-    elif inp < 500:
-        tp += 1
     mobile = check_data.get("mobile_score", 0)
-    if mobile >= 80:
-        tp += 4
-    elif mobile >= 50:
-        tp += 2
-    tp += 1  # conservative Bildoptimierung
-
-    bf = 8  # conservative estimate without deep scan
-
-    si = 0
-    if check_data.get("ssl_ok"):
-        si += 4
     sec = check_data.get("security_headers", {})
-    si += sum(1 for v in sec.values() if v)
-    si += 2  # conservative DSGVO + Formular
 
-    se = 3  # conservative without deep crawl
-    ux = 2  # conservative
+    # RC items
+    rc_impressum = 7 if check_data.get("impressum_ok") else 0
+    rc_datenschutz = 7 if check_data.get("datenschutz_ok") else 0
+    rc_cookie = 6 if check_data.get("cookie_banner") else 0
+    rc_bfsg = 0
+    rc_urheberrecht = 2
+    rc_ecommerce = 2
+
+    # TP items
+    tp_lcp = 5 if lcp < 2.5 else (2 if lcp < 4.0 else 0)
+    tp_cls = 4 if cls_v < 0.1 else (2 if cls_v < 0.25 else 0)
+    tp_inp = 3 if inp < 200 else (1 if inp < 500 else 0)
+    tp_mobile = 4 if mobile >= 80 else (2 if mobile >= 50 else 0)
+    tp_bilder = 1
+
+    # HO items (hosting checks)
+    ho_anbieter = 1
+    ho_uptime = 1 if check_data.get("reachable") else 0
+    ho_http = 1 if check_data.get("ssl_ok") else 0
+    ho_backup = 0
+    ho_cdn = 0
+
+    # BF items — conservative without deep scan
+    bf_kontrast = 3
+    bf_tastatur = 2
+    bf_screenreader = 2
+    bf_lesbarkeit = 3
+
+    # SI items
+    si_ssl = 4 if check_data.get("ssl_ok") else 0
+    si_header = min(sum(1 for v in sec.values() if v), 4)
+    si_drittanbieter = 2
+    si_formulare = 1
+
+    # SE items — conservative without deep crawl
+    se_seo = 2
+    se_schema = 0
+    se_lokal = 1
+
+    # UX items — conservative
+    ux_erstindruck = 1
+    ux_cta = 1
+    ux_navigation = 1
+    ux_vertrauen = 0
+    ux_content = 1
+    ux_kontakt = 1
+
+    total = (rc_impressum + rc_datenschutz + rc_cookie + rc_bfsg + rc_urheberrecht + rc_ecommerce
+             + tp_lcp + tp_cls + tp_inp + tp_mobile + tp_bilder
+             + bf_kontrast + bf_tastatur + bf_screenreader + bf_lesbarkeit
+             + si_ssl + si_header + si_drittanbieter + si_formulare
+             + se_seo + se_schema + se_lokal
+             + min(ux_erstindruck + ux_cta + ux_navigation + ux_vertrauen + ux_content + ux_kontakt, 5))
 
     issues = []
     if not check_data.get("impressum_ok"):
@@ -340,17 +365,28 @@ def _mock_ai_score(check_data: dict) -> dict:
     ]
 
     return {
-        "rc_score": rc,
-        "tp_score": tp,
-        "bf_score": bf,
-        "si_score": si,
-        "se_score": se,
-        "ux_score": ux,
-        "ai_summary": f"Die Website von {check_data.get('company_name', 'Ihrem Betrieb')} "
-        f"erreicht {'gute' if (rc + tp + bf + si + se + ux) >= 70 else 'ausbaufähige'} Werte. "
-        f"{'Die rechtlichen Grundlagen sind vorhanden.' if check_data.get('impressum_ok') and check_data.get('datenschutz_ok') else 'Es fehlen wichtige rechtliche Seiten.'} "
-        f"Die technische Performance liegt {'im grünen Bereich' if mobile >= 70 else 'unter dem Optimum'}. "
-        f"Mit gezielten Optimierungen kann die Sichtbarkeit bei Google deutlich gesteigert werden.",
+        "rc_impressum": rc_impressum, "rc_datenschutz": rc_datenschutz,
+        "rc_cookie": rc_cookie, "rc_bfsg": rc_bfsg,
+        "rc_urheberrecht": rc_urheberrecht, "rc_ecommerce": rc_ecommerce,
+        "tp_lcp": tp_lcp, "tp_cls": tp_cls, "tp_inp": tp_inp,
+        "tp_mobile": tp_mobile, "tp_bilder": tp_bilder,
+        "ho_anbieter": ho_anbieter, "ho_uptime": ho_uptime, "ho_http": ho_http,
+        "ho_backup": ho_backup, "ho_cdn": ho_cdn,
+        "bf_kontrast": bf_kontrast, "bf_tastatur": bf_tastatur,
+        "bf_screenreader": bf_screenreader, "bf_lesbarkeit": bf_lesbarkeit,
+        "si_ssl": si_ssl, "si_header": si_header,
+        "si_drittanbieter": si_drittanbieter, "si_formulare": si_formulare,
+        "se_seo": se_seo, "se_schema": se_schema, "se_lokal": se_lokal,
+        "ux_erstindruck": ux_erstindruck, "ux_cta": ux_cta,
+        "ux_navigation": ux_navigation, "ux_vertrauen": ux_vertrauen,
+        "ux_content": ux_content, "ux_kontakt": ux_kontakt,
+        "ai_summary": (
+            f"Die Website von {check_data.get('company_name', 'Ihrem Betrieb')} "
+            f"erreicht {'gute' if total >= 70 else 'ausbaufähige'} Werte im Homepage Standard Audit. "
+            f"{'Die rechtlichen Grundlagen sind vorhanden.' if check_data.get('impressum_ok') and check_data.get('datenschutz_ok') else 'Es fehlen wichtige rechtliche Seiten wie Impressum oder Datenschutzerklärung.'} "
+            f"Die technische Performance liegt {'im grünen Bereich' if mobile >= 70 else 'unter dem Optimum'}. "
+            f"Mit gezielten Optimierungen kann die Sichtbarkeit bei Google deutlich gesteigert werden."
+        ),
         "top_issues": issues[:3] if issues else ["Keine kritischen Probleme gefunden"],
         "recommendations": recs[:5],
     }
@@ -409,17 +445,29 @@ def _run_audit_background(audit_id: int):
         # 6. AI scoring
         ai = _ai_score(check_data, audit.company_name, audit.trade or "")
 
-        # 7. Calculate totals
-        rc = min(ai.get("rc_score", 0), 30)
-        tp = min(ai.get("tp_score", 0), 20)
-        bf = min(ai.get("bf_score", 0), 20)
-        si = min(ai.get("si_score", 0), 15)
-        se = min(ai.get("se_score", 0), 10)
-        ux = min(ai.get("ux_score", 0), 5)
+        # 7. Calculate category totals from item scores
+        rc = min(sum(ai.get(k, 0) for k in [
+            "rc_impressum", "rc_datenschutz", "rc_cookie", "rc_bfsg", "rc_urheberrecht", "rc_ecommerce"
+        ]), 30)
+        tp = min(sum(ai.get(k, 0) for k in [
+            "tp_lcp", "tp_cls", "tp_inp", "tp_mobile", "tp_bilder"
+        ]), 20)
+        bf = min(sum(ai.get(k, 0) for k in [
+            "bf_kontrast", "bf_tastatur", "bf_screenreader", "bf_lesbarkeit"
+        ]), 20)
+        si = min(sum(ai.get(k, 0) for k in [
+            "si_ssl", "si_header", "si_drittanbieter", "si_formulare"
+        ]), 15)
+        se = min(sum(ai.get(k, 0) for k in [
+            "se_seo", "se_schema", "se_lokal"
+        ]), 10)
+        ux = min(sum(ai.get(k, 0) for k in [
+            "ux_erstindruck", "ux_cta", "ux_navigation", "ux_vertrauen", "ux_content", "ux_kontakt"
+        ]), 5)
         total = rc + tp + bf + si + se + ux
         level = next(lbl for threshold, lbl in LEVELS if total >= threshold)
 
-        # 8. Update record
+        # 8. Update category + aggregate fields
         audit.total_score = total
         audit.level = level
         audit.rc_score = rc
@@ -439,6 +487,20 @@ def _run_audit_background(audit_id: int):
         audit.ai_summary = ai.get("ai_summary", "")
         audit.top_issues = json.dumps(ai.get("top_issues", []), ensure_ascii=False)
         audit.recommendations = json.dumps(ai.get("recommendations", []), ensure_ascii=False)
+
+        # 8b. Save all item-level scores
+        _ITEM_KEYS = [
+            "rc_impressum", "rc_datenschutz", "rc_cookie", "rc_bfsg", "rc_urheberrecht", "rc_ecommerce",
+            "tp_lcp", "tp_cls", "tp_inp", "tp_mobile", "tp_bilder",
+            "ho_anbieter", "ho_uptime", "ho_http", "ho_backup", "ho_cdn",
+            "bf_kontrast", "bf_tastatur", "bf_screenreader", "bf_lesbarkeit",
+            "si_ssl", "si_header", "si_drittanbieter", "si_formulare",
+            "se_seo", "se_schema", "se_lokal",
+            "ux_erstindruck", "ux_cta", "ux_navigation", "ux_vertrauen", "ux_content", "ux_kontakt",
+        ]
+        for key in _ITEM_KEYS:
+            setattr(audit, key, int(ai.get(key, 0) or 0))
+
         audit.status = "completed"
         db.commit()
         logger.info(f"✓ Audit {audit_id} completed: {total}/100 ({level})")
@@ -573,6 +635,17 @@ def get_audits_for_lead(lead_id: int, db: Session = Depends(get_db)):
     return [_format_audit(a) for a in audits]
 
 
+_ITEM_KEYS = [
+    "rc_impressum", "rc_datenschutz", "rc_cookie", "rc_bfsg", "rc_urheberrecht", "rc_ecommerce",
+    "tp_lcp", "tp_cls", "tp_inp", "tp_mobile", "tp_bilder",
+    "ho_anbieter", "ho_uptime", "ho_http", "ho_backup", "ho_cdn",
+    "bf_kontrast", "bf_tastatur", "bf_screenreader", "bf_lesbarkeit",
+    "si_ssl", "si_header", "si_drittanbieter", "si_formulare",
+    "se_seo", "se_schema", "se_lokal",
+    "ux_erstindruck", "ux_cta", "ux_navigation", "ux_vertrauen", "ux_content", "ux_kontakt",
+]
+
+
 def _format_audit(audit: AuditResult) -> dict:
     """Format audit for JSON response."""
     try:
@@ -583,6 +656,8 @@ def _format_audit(audit: AuditResult) -> dict:
         recommendations = json.loads(audit.recommendations) if audit.recommendations else []
     except (json.JSONDecodeError, TypeError):
         recommendations = []
+
+    items = {k: int(getattr(audit, k, 0) or 0) for k in _ITEM_KEYS}
 
     return {
         "id": audit.id,
@@ -603,6 +678,7 @@ def _format_audit(audit: AuditResult) -> dict:
             "seo_sichtbarkeit": {"score": audit.se_score, "max": 10},
             "inhalt_nutzererfahrung": {"score": audit.ux_score, "max": 5},
         },
+        "items": items,
         "checks": {
             "ssl_ok": audit.ssl_ok,
             "impressum_ok": audit.impressum_ok,

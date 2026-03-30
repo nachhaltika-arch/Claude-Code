@@ -3,27 +3,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import AuditReport from '../components/AuditReport';
 
 const TRADE_OPTIONS = [
   'Elektriker', 'Klempner', 'Maler', 'Schreiner',
   'Dachdecker', 'Heizung', 'Sanit\u00E4r', 'Fliesenleger', 'Sonstiges',
-];
-
-const LEVEL_STYLES = {
-  'Homepage Standard Platin': { bg: '#e8eaf6', color: '#283593', icon: '\uD83C\uDFC6' },
-  'Homepage Standard Gold':   { bg: '#fff8e1', color: '#f57f17', icon: '\uD83E\uDD47' },
-  'Homepage Standard Silber': { bg: '#f5f5f5', color: '#616161', icon: '\uD83E\uDD48' },
-  'Homepage Standard Bronze': { bg: '#efebe9', color: '#4e342e', icon: '\uD83E\uDD49' },
-  'Nicht konform':            { bg: 'var(--kc-rot-subtle)', color: 'var(--kc-rot)', icon: '\u26D4' },
-};
-
-const CATEGORY_META = [
-  { key: 'rechtliche_compliance',  label: 'Rechtliche Compliance',    max: 30 },
-  { key: 'technische_performance', label: 'Technische Performance',   max: 20 },
-  { key: 'barrierefreiheit',       label: 'Barrierefreiheit',         max: 20 },
-  { key: 'sicherheit_datenschutz', label: 'Sicherheit & Datenschutz', max: 15 },
-  { key: 'seo_sichtbarkeit',       label: 'SEO & Sichtbarkeit',      max: 10 },
-  { key: 'inhalt_nutzererfahrung', label: 'Inhalt & UX',             max: 5 },
 ];
 
 const LOADING_STEPS = [
@@ -265,123 +249,20 @@ export default function AuditTool() {
   // STEP 3: Result
   // ═════════════════════════════════════════════════════════
   const r = result;
-  const ls = LEVEL_STYLES[r.level] || LEVEL_STYLES['Nicht konform'];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-8)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
       {/* Header */}
       <div className="kc-section-header">
         <span className="kc-eyebrow">Audit-Ergebnis</span>
         <h1>{r.company_name}</h1>
       </div>
 
-      {/* Score Hero */}
-      <div
-        className="kc-card"
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexDirection: 'column', gap: 'var(--kc-space-4)',
-          padding: 'var(--kc-space-12)',
-          background: ls.bg,
-          borderColor: ls.color,
-        }}
-      >
-        <div style={{
-          fontFamily: 'var(--kc-font-display)', fontSize: '4rem', fontWeight: 700,
-          color: ls.color, lineHeight: 1,
-        }}>
-          {r.total_score}
-          <span style={{ fontSize: 'var(--kc-text-2xl)', fontWeight: 400, color: 'var(--kc-mittel)' }}> / 100</span>
-        </div>
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 'var(--kc-space-2)',
-          padding: 'var(--kc-space-2) var(--kc-space-6)',
-          borderRadius: 'var(--kc-radius-md)',
-          background: 'var(--kc-weiss)',
-          border: `2px solid ${ls.color}`,
-          fontWeight: 700, fontSize: 'var(--kc-text-lg)', color: ls.color,
-        }}>
-          {ls.icon} {r.level}
-        </div>
-        <p style={{ color: 'var(--kc-text-subtil)', fontSize: 'var(--kc-text-sm)' }}>
-          {r.website_url} &middot; {new Date(r.created_at).toLocaleDateString('de-DE')}
-        </p>
-      </div>
-
-      {/* Category Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 'var(--kc-space-4)' }}>
-        {CATEGORY_META.map((cat) => {
-          const data = r.categories[cat.key] || { score: 0, max: cat.max };
-          const pct = data.max > 0 ? (data.score / data.max) * 100 : 0;
-          const icon = pct >= 80 ? '\u2713' : pct >= 50 ? '\u26A0' : '\u2717';
-          const iconColor = pct >= 80 ? 'var(--kc-success)' : pct >= 50 ? 'var(--kc-warning)' : 'var(--kc-rot)';
-
-          return (
-            <div key={cat.key} className="kc-card" style={{ padding: 'var(--kc-space-4)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--kc-space-2)' }}>
-                <span style={{ fontSize: 'var(--kc-text-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 'var(--kc-tracking-wide)', color: 'var(--kc-text-subtil)' }}>
-                  {cat.label}
-                </span>
-                <span style={{ color: iconColor, fontWeight: 700 }}>{icon}</span>
-              </div>
-              <div style={{ fontFamily: 'var(--kc-font-mono)', fontSize: 'var(--kc-text-2xl)', fontWeight: 700, color: 'var(--kc-text-primaer)', marginBottom: 'var(--kc-space-2)' }}>
-                {data.score}<span style={{ fontSize: 'var(--kc-text-sm)', color: 'var(--kc-mittel)', fontWeight: 400 }}> / {data.max}</span>
-              </div>
-              <div style={{ height: '4px', borderRadius: 'var(--kc-radius-full)', background: 'var(--kc-rand)', overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', width: `${pct}%`, borderRadius: 'var(--kc-radius-full)',
-                  background: pct >= 80 ? 'var(--kc-success)' : pct >= 50 ? 'var(--kc-warning)' : 'var(--kc-rot)',
-                  transition: 'width 0.8s ease',
-                }} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* AI Summary */}
-      {r.ai_summary && (
-        <div className="kc-card" style={{ borderLeft: '4px solid var(--kc-info)' }}>
-          <span className="kc-eyebrow" style={{ color: 'var(--kc-info)' }}>KI-Analyse</span>
-          <h2 style={{ fontSize: 'var(--kc-text-xl)', marginBottom: 'var(--kc-space-3)' }}>
-            Was bedeutet das f\u00FCr Ihren Betrieb?
-          </h2>
-          <p style={{ color: 'var(--kc-text-sekundaer)', lineHeight: 'var(--kc-leading-normal)', fontSize: 'var(--kc-text-base)' }}>
-            {r.ai_summary}
-          </p>
-        </div>
-      )}
-
-      {/* Top Issues */}
-      {r.top_issues && r.top_issues.length > 0 && (
-        <div className="kc-alert kc-alert--danger">
-          <strong style={{ display: 'block', marginBottom: 'var(--kc-space-3)', fontFamily: 'var(--kc-font-display)' }}>
-            Top-Probleme
-          </strong>
-          <ul style={{ margin: 0, paddingLeft: 'var(--kc-space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-2)' }}>
-            {r.top_issues.map((issue, i) => (
-              <li key={i} style={{ fontSize: 'var(--kc-text-sm)' }}>{issue}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Recommendations */}
-      {r.recommendations && r.recommendations.length > 0 && (
-        <div className="kc-alert kc-alert--info" style={{ borderColor: 'var(--kc-success)', background: '#e8f5e9', color: '#1b5e20' }}>
-          <strong style={{ display: 'block', marginBottom: 'var(--kc-space-3)', fontFamily: 'var(--kc-font-display)' }}>
-            Empfehlungen
-          </strong>
-          <ol style={{ margin: 0, paddingLeft: 'var(--kc-space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-2)' }}>
-            {r.recommendations.map((rec, i) => (
-              <li key={i} style={{ fontSize: 'var(--kc-text-sm)' }}>{rec}</li>
-            ))}
-          </ol>
-        </div>
-      )}
+      {/* Full Report */}
+      <AuditReport auditData={r} />
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 'var(--kc-space-4)', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 'var(--kc-space-4)', flexWrap: 'wrap', alignItems: 'center', paddingTop: 'var(--kc-space-2)' }}>
         <button className="kc-btn-primary" onClick={() => { setStep('form'); setResult(null); setAuditId(null); setSavedLeadId(null); }}>
           Neues Audit starten
         </button>
@@ -420,6 +301,14 @@ export default function AuditTool() {
 // ═══════════════════════════════════════════════════════════
 // Save Lead Modal
 // ═══════════════════════════════════════════════════════════
+
+const LEVEL_STYLES = {
+  'Homepage Standard Platin': { bg: '#e8eaf6', color: '#283593', icon: '\uD83C\uDFC6' },
+  'Homepage Standard Gold':   { bg: '#fff8e1', color: '#f57f17', icon: '\uD83E\uDD47' },
+  'Homepage Standard Silber': { bg: '#f5f5f5', color: '#616161', icon: '\uD83E\uDD48' },
+  'Homepage Standard Bronze': { bg: '#efebe9', color: '#4e342e', icon: '\uD83E\uDD49' },
+  'Nicht konform':            { bg: '#fdecea', color: '#C8102E', icon: '\u26D4' },
+};
 
 function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);

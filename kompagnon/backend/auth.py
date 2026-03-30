@@ -35,6 +35,7 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(plain: str, hashed: str) -> bool:
+    plain = plain.encode("utf-8")[:72].decode("utf-8", errors="ignore")
     return pwd_context.verify(plain, hashed)
 
 

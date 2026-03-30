@@ -94,45 +94,7 @@ def _run_migrations():
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_vertrauen INTEGER DEFAULT 0",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_content INTEGER DEFAULT 0",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_kontakt INTEGER DEFAULT 0",
-        # Users table
-        """CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            email VARCHAR UNIQUE NOT NULL,
-            password_hash VARCHAR,
-            first_name VARCHAR DEFAULT '',
-            last_name VARCHAR DEFAULT '',
-            phone VARCHAR DEFAULT '',
-            avatar_url VARCHAR DEFAULT '',
-            role VARCHAR DEFAULT 'nutzer',
-            position VARCHAR DEFAULT '',
-            signature_data TEXT DEFAULT '',
-            lead_id INTEGER,
-            totp_secret VARCHAR,
-            totp_enabled BOOLEAN DEFAULT FALSE,
-            backup_codes TEXT DEFAULT '',
-            google_id VARCHAR,
-            apple_id VARCHAR,
-            oauth_provider VARCHAR,
-            is_active BOOLEAN DEFAULT TRUE,
-            is_verified BOOLEAN DEFAULT FALSE,
-            email_verify_token VARCHAR,
-            password_reset_token VARCHAR,
-            password_reset_expires TIMESTAMP,
-            created_at TIMESTAMP DEFAULT NOW(),
-            last_login TIMESTAMP,
-            created_by INTEGER
-        )""",
-        # User sessions table
-        """CREATE TABLE IF NOT EXISTS user_sessions (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER REFERENCES users(id),
-            token VARCHAR UNIQUE,
-            ip_address VARCHAR DEFAULT '',
-            user_agent VARCHAR DEFAULT '',
-            created_at TIMESTAMP DEFAULT NOW(),
-            expires_at TIMESTAMP,
-            is_valid BOOLEAN DEFAULT TRUE
-        )""",
+        # Note: users + user_sessions tables are created by init_db() via SQLAlchemy
     ]
     try:
         with engine.connect() as conn:
@@ -148,28 +110,33 @@ def _run_migrations():
 
 
 def _create_default_admin():
-    """Create default admin user via raw SQL if no admin exists."""
-    from database import engine
+    """Create default admin user via ORM if no admin exists."""
+    from database import SessionLocal, User
     from auth import hash_password
+    db = SessionLocal()
     try:
-        with engine.connect() as conn:
-            existing = conn.execute(text("SELECT id FROM users WHERE role='admin' LIMIT 1")).fetchone()
-            if not existing:
-                admin_email = os.getenv("ADMIN_EMAIL", "admin@kompagnon.de")
-                admin_password = os.getenv("ADMIN_PASSWORD", "Kompagnon2025!")
-                if len(admin_password.encode("utf-8")) > 72:
-                    admin_password = admin_password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
-                admin_pw = hash_password(admin_password)
-                conn.execute(text(
-                    "INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, is_verified) "
-                    "VALUES (:email, :pw, 'Admin', 'KOMPAGNON', 'admin', TRUE, TRUE)"
-                ), {"email": admin_email, "pw": admin_pw})
-                conn.commit()
-                logger.info(f"✓ Standard-Admin angelegt: {admin_email}")
-            else:
-                logger.info("Admin bereits vorhanden")
+        existing = db.query(User).filter(User.role == "admin").first()
+        if not existing:
+            admin_email = os.getenv("ADMIN_EMAIL", "admin@kompagnon.de")
+            admin_password = os.getenv("ADMIN_PASSWORD", "Kompagnon2025!")
+            admin = User(
+                email=admin_email,
+                password_hash=hash_password(admin_password),
+                first_name="Admin",
+                last_name="KOMPAGNON",
+                role="admin",
+                is_active=True,
+                is_verified=True,
+            )
+            db.add(admin)
+            db.commit()
+            logger.info(f"✓ Standard-Admin angelegt: {admin_email}")
+        else:
+            logger.info("Admin bereits vorhanden")
     except Exception as e:
         logger.error(f"Admin-Anlage Fehler: {e}")
+    finally:
+        db.close()
 
 
 @asynccontextmanager

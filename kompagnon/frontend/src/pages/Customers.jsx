@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+import API_BASE_URL from '../config';
 
 const upsellConfig = {
   none:     { label: 'Kein Upsell',  className: 'kc-badge kc-badge--neutral' },
@@ -21,7 +21,7 @@ export default function Customers() {
   const loadCustomers = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_URL}/api/customers/`);
+      const res = await axios.get(`${API_BASE_URL}/api/customers/`);
       setCustomers(res.data);
     } catch (error) {
       toast.error('Kunden konnten nicht geladen werden.');

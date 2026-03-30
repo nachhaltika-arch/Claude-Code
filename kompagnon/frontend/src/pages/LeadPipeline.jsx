@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+import API_BASE_URL from '../config';
 
 const statusConfig = {
   new:           { label: 'Neu',           className: 'kc-badge kc-badge--info' },
@@ -24,7 +23,7 @@ export default function LeadPipeline() {
   const loadLeads = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_URL}/api/leads/`);
+      const res = await axios.get(`${API_BASE_URL}/api/leads/`);
       setLeads(res.data);
     } catch (error) {
       toast.error('Leads konnten nicht geladen werden.');

@@ -10,8 +10,7 @@ import MarginBadge from '../components/MarginBadge';
 import AlertBanner from '../components/AlertBanner';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+import API_BASE_URL from '../config';
 
 const phaseNames = {
   phase_1_akquisition: 'Phase 1 — Akquisition',
@@ -40,9 +39,9 @@ export default function Dashboard() {
     try {
       setLoading(true);
       const [kpiRes, alertRes, projectRes] = await Promise.all([
-        axios.get(`${API_URL}/api/dashboard/kpis`),
-        axios.get(`${API_URL}/api/dashboard/alerts`),
-        axios.get(`${API_URL}/api/dashboard/projects-by-phase`),
+        axios.get(`${API_BASE_URL}/api/dashboard/kpis`),
+        axios.get(`${API_BASE_URL}/api/dashboard/alerts`),
+        axios.get(`${API_BASE_URL}/api/dashboard/projects-by-phase`),
       ]);
       setKpis(kpiRes.data);
       setAlerts(alertRes.data);

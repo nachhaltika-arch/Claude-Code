@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import PhaseTracker from '../components/PhaseTracker';
 import MarginBadge from '../components/MarginBadge';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+import API_BASE_URL from '../config';
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -22,8 +22,8 @@ export default function ProjectDetail() {
     try {
       setLoading(true);
       const [projectRes, marginRes] = await Promise.all([
-        axios.get(`${API_URL}/api/projects/${id}`),
-        axios.get(`${API_URL}/api/projects/${id}/margin`),
+        axios.get(`${API_BASE_URL}/api/projects/${id}`),
+        axios.get(`${API_BASE_URL}/api/projects/${id}/margin`),
       ]);
       setProject(projectRes.data);
       setMargin(marginRes.data);

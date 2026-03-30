@@ -14,6 +14,7 @@ import AlertBanner from '../components/AlertBanner';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { useScreenSize } from '../utils/responsive';
 
 const phaseNames = {
   phase_1_akquisition: 'Phase 1 — Akquisition',
@@ -27,6 +28,7 @@ const phaseNames = {
 };
 
 export default function Dashboard() {
+  const { isMobile } = useScreenSize();
   const [kpis, setKpis] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [projectsByPhase, setProjectsByPhase] = useState({});
@@ -76,7 +78,7 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       {kpis && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--kc-space-4)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--kc-space-4)' }}>
           <KpiCard
             icon={FolderIcon}
             label="Aktive Projekte"
@@ -116,7 +118,7 @@ export default function Dashboard() {
 
       {/* Audit KPIs */}
       {kpis && (kpis.audits_today > 0 || kpis.audits_avg_score > 0) && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--kc-space-4)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--kc-space-4)' }}>
           <KpiCard icon={MagnifyingGlassCircleIcon} label="Audits heute" value={kpis.audits_today} />
           <KpiCard
             icon={ChartBarIcon}
@@ -145,7 +147,7 @@ export default function Dashboard() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(240px, 1fr))',
             gap: 'var(--kc-space-4)',
           }}
         >

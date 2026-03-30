@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { useScreenSize } from '../utils/responsive';
 
 const TRADE_OPTIONS = [
   'Elektriker',
@@ -230,6 +231,7 @@ const EMPTY_FORM = {
 };
 
 function ManualEntryTab() {
+  const { isMobile } = useScreenSize();
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
 
@@ -279,7 +281,7 @@ function ManualEntryTab() {
     <form
       onSubmit={handleSubmit}
       className="kc-card"
-      style={{ maxWidth: '640px', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}
+      style={{ maxWidth: isMobile ? '100%' : '640px', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}
     >
       <div>
         <label style={labelStyle}>
@@ -295,7 +297,7 @@ function ManualEntryTab() {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-4)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--kc-space-4)' }}>
         <div>
           <label style={labelStyle}>Ansprechpartner</label>
           <input type="text" value={form.contact_name} onChange={set('contact_name')} placeholder="Vor- und Nachname" style={inputStyle} />
@@ -306,7 +308,7 @@ function ManualEntryTab() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-4)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--kc-space-4)' }}>
         <div>
           <label style={labelStyle}>E-Mail</label>
           <input type="email" value={form.email} onChange={set('email')} placeholder="info@firma.de" style={inputStyle} />
@@ -317,7 +319,7 @@ function ManualEntryTab() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-4)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--kc-space-4)' }}>
         <div>
           <label style={labelStyle}>Stadt</label>
           <input type="text" value={form.city} onChange={set('city')} placeholder="z.B. Koblenz" style={inputStyle} />
@@ -352,8 +354,9 @@ function ManualEntryTab() {
 // ═══════════════════════════════════════════════════════════
 
 function TemplateTab() {
+  const { isMobile } = useScreenSize();
   return (
-    <div className="kc-card" style={{ maxWidth: '640px' }}>
+    <div className="kc-card" style={{ maxWidth: isMobile ? '100%' : '640px' }}>
       <span className="kc-eyebrow">Vorlage</span>
       <h2 style={{ fontSize: 'var(--kc-text-2xl)', marginBottom: 'var(--kc-space-4)' }}>
         CSV-Vorlage herunterladen

@@ -4,6 +4,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import AuditHistory from '../components/AuditHistory';
+import { useScreenSize } from '../utils/responsive';
 
 const statusConfig = {
   new:           { label: 'Neu',           className: 'kc-badge kc-badge--info' },
@@ -19,6 +20,7 @@ export default function LeadPipeline() {
   const [loading, setLoading] = useState(true);
   const [expandedLead, setExpandedLead] = useState(null);
   const navigate = useNavigate();
+  const { isMobile } = useScreenSize();
 
   useEffect(() => {
     loadLeads();
@@ -55,16 +57,17 @@ export default function LeadPipeline() {
       </div>
 
       <div className="kc-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ overflowX: isMobile ? 'auto' : undefined }}>
         <table className="kc-table">
           <thead>
             <tr>
               <th></th>
               <th>Unternehmen</th>
-              <th>Kontakt</th>
-              <th>Stadt</th>
+              <th style={{ display: isMobile ? 'none' : undefined }}>Kontakt</th>
+              <th style={{ display: isMobile ? 'none' : undefined }}>Stadt</th>
               <th>Gewerk</th>
               <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Score</th>
+              <th style={{ textAlign: 'right', display: isMobile ? 'none' : undefined }}>Score</th>
               <th></th>
             </tr>
           </thead>
@@ -98,11 +101,11 @@ export default function LeadPipeline() {
                           {lead.company_name}
                         </span>
                       </td>
-                      <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.contact_name}</td>
-                      <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.city}</td>
+                      <td style={{ color: 'var(--kc-text-sekundaer)', display: isMobile ? 'none' : undefined }}>{lead.contact_name}</td>
+                      <td style={{ color: 'var(--kc-text-sekundaer)', display: isMobile ? 'none' : undefined }}>{lead.city}</td>
                       <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.trade}</td>
                       <td><span className={cfg.className}>{cfg.label}</span></td>
-                      <td style={{ textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right', display: isMobile ? 'none' : undefined }}>
                         <span
                           style={{
                             fontFamily: 'var(--kc-font-mono)',
@@ -139,6 +142,7 @@ export default function LeadPipeline() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

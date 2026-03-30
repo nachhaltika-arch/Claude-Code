@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
   Tooltip as ReTooltip,
 } from 'recharts';
+import { useScreenSize } from '../utils/responsive';
 
 const LEVEL_STYLES = {
   'Homepage Standard Platin': { bg: '#e8eaf6', color: '#283593', icon: '\uD83C\uDFC6' },
@@ -130,6 +131,8 @@ function scoreIcon(score, max) {
 // ═══════════════════════════════════════════════════════════
 
 export default function AuditReport({ auditData, onClose }) {
+  const { isMobile } = useScreenSize();
+
   if (!auditData) return null;
 
   const r = auditData;
@@ -243,12 +246,12 @@ export default function AuditReport({ auditData, onClose }) {
       </div>
 
       {/* Overview: Radar + Category Bars */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--kc-space-4)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--kc-space-4)' }}>
         {/* Radar Chart */}
         <div className="kc-card">
           <span className="kc-eyebrow">Übersicht</span>
           <h3 style={{ marginBottom: 'var(--kc-space-3)', fontSize: 'var(--kc-text-base)' }}>Kategorien-Profil</h3>
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={isMobile ? 200 : 240}>
             <RadarChart data={radarData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
               <PolarGrid stroke="var(--kc-rand)" />
               <PolarAngleAxis
@@ -411,7 +414,7 @@ export default function AuditReport({ auditData, onClose }) {
       )}
 
       {/* Issues + Recommendations */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--kc-space-4)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--kc-space-4)' }}>
         {topIssues.length > 0 && (
           <div className="kc-alert kc-alert--danger">
             <strong style={{ display: 'block', marginBottom: 'var(--kc-space-3)', fontFamily: 'var(--kc-font-display)' }}>

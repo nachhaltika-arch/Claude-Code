@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import AuditReport from '../components/AuditReport';
 import API_BASE_URL from '../config';
+import { useScreenSize } from '../utils/responsive';
 
 const LEVEL_COLORS = {
   'Homepage Standard Platin': '#7bb8e8',
@@ -45,6 +46,7 @@ export default function LeadProfile() {
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
   const [downloadingId, setDownloadingId] = useState(null);
+  const { isMobile } = useScreenSize();
 
   useEffect(() => {
     loadProfile();
@@ -136,8 +138,8 @@ export default function LeadProfile() {
 
       {/* ── Header Card ── */}
       <div style={{
-        background: NAVY, borderRadius: '12px 12px 0 0', padding: '24px 28px', color: '#fff',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+        background: NAVY, borderRadius: '12px 12px 0 0', padding: isMobile ? '16px' : '24px 28px', color: '#fff',
+        display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start',
       }}>
         <div>
           <div style={{ fontSize: 11, color: '#D4A017', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 6 }}>
@@ -166,11 +168,11 @@ export default function LeadProfile() {
 
       {/* ── Two-column: Contact + Categories ── */}
       <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#fff',
+        display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', background: '#fff',
         border: '1px solid #eef0f8', borderTop: 'none',
       }}>
         {/* Contact */}
-        <div style={{ padding: '24px 28px', borderRight: '1px solid #eef0f8' }}>
+        <div style={{ padding: isMobile ? '16px' : '24px 28px', borderRight: isMobile ? 'none' : '1px solid #eef0f8' }}>
           <SectionLabel>Kontaktdaten</SectionLabel>
           {editMode ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -220,7 +222,7 @@ export default function LeadProfile() {
         </div>
 
         {/* Category Overview */}
-        <div style={{ padding: '24px 28px' }}>
+        <div style={{ padding: isMobile ? '16px' : '24px 28px' }}>
           <SectionLabel>Kategorie-Übersicht</SectionLabel>
           {latestAudit ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -249,7 +251,7 @@ export default function LeadProfile() {
 
       {/* ── Score History Chart ── */}
       {score_history.length >= 2 && (
-        <div style={{ background: '#fff', border: '1px solid #eef0f8', borderTop: 'none', padding: '24px 28px' }}>
+        <div style={{ background: '#fff', border: '1px solid #eef0f8', borderTop: 'none', padding: isMobile ? '16px' : '24px 28px' }}>
           <SectionLabel>Score-Verlauf</SectionLabel>
           {scoreImprovement !== null && (
             <div style={{
@@ -274,7 +276,7 @@ export default function LeadProfile() {
       )}
 
       {/* ── Audit History ── */}
-      <div style={{ background: '#fff', border: '1px solid #eef0f8', borderTop: 'none', padding: '24px 28px' }}>
+      <div style={{ background: '#fff', border: '1px solid #eef0f8', borderTop: 'none', padding: isMobile ? '16px' : '24px 28px' }}>
         <SectionLabel>Audit-Historie ({audits.length})</SectionLabel>
         {audits.length === 0 ? (
           <div style={{ fontSize: 13, color: '#8a9ab8' }}>Keine Audits vorhanden.</div>
@@ -284,7 +286,7 @@ export default function LeadProfile() {
               const lc = LEVEL_COLORS[audit.level] || '#6a7a9a';
               return (
                 <div key={audit.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
+                  display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 12, padding: '10px 14px',
                   background: '#f8f9fc', borderRadius: 8, flexWrap: 'wrap',
                 }}>
                   <span style={{ fontSize: 12, color: '#8a9ab8', fontFamily: 'monospace', minWidth: 100 }}>
@@ -296,7 +298,7 @@ export default function LeadProfile() {
                   <span style={{ fontSize: 14, fontWeight: 800, color: NAVY, fontFamily: 'monospace' }}>
                     {audit.total_score}/100
                   </span>
-                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <div style={{ marginLeft: isMobile ? 0 : 'auto', display: 'flex', gap: 6, flexShrink: 0, width: isMobile ? '100%' : 'auto' }}>
                     <button
                       onClick={() => setOpenAudit(audit)}
                       style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
@@ -325,8 +327,8 @@ export default function LeadProfile() {
       {/* ── Actions ── */}
       <div style={{
         background: '#fff', border: '1px solid #eef0f8', borderTop: 'none',
-        borderRadius: '0 0 12px 12px', padding: '20px 28px',
-        display: 'flex', gap: 10, flexWrap: 'wrap',
+        borderRadius: '0 0 12px 12px', padding: isMobile ? '16px' : '20px 28px',
+        display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 10, flexWrap: 'wrap',
       }}>
         <button
           onClick={() => navigate(`/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}

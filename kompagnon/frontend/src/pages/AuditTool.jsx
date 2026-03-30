@@ -4,6 +4,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import AuditReport from '../components/AuditReport';
+import { useScreenSize } from '../utils/responsive';
 
 const TRADE_OPTIONS = [
   'Elektriker', 'Klempner', 'Maler', 'Schreiner',
@@ -28,6 +29,7 @@ export default function AuditTool() {
   const [savedLeadId, setSavedLeadId] = useState(null);
   const [scrapedData, setScrapedData] = useState(null);
   const [url, setUrl] = useState(searchParams.get('url') || '');
+  const { isMobile } = useScreenSize();
   const pollRef = useRef(null);
   const stepRef = useRef(null);
   const navigate = useNavigate();
@@ -145,7 +147,7 @@ export default function AuditTool() {
           <h1>Website-Audit</h1>
         </div>
 
-        <div className="kc-card" style={{ maxWidth: '600px', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
+        <div className="kc-card" style={{ maxWidth: isMobile ? '100%' : '600px', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
           <p style={{ color: 'var(--kc-text-sekundaer)', fontSize: 'var(--kc-text-sm)', margin: 0 }}>
             Geben Sie die Domain ein — wir ermitteln alle weiteren Informationen automatisch.
           </p>
@@ -188,7 +190,7 @@ export default function AuditTool() {
           <span className="kc-eyebrow">Audit läuft</span>
           <h1>Analyse von {scrapedData?.company_name || url}</h1>
         </div>
-        <div className="kc-card" style={{ maxWidth: '500px', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
+        <div className="kc-card" style={{ maxWidth: isMobile ? '100%' : '500px', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
           {LOADING_STEPS.map((text, i) => (
             <div
               key={i}
@@ -234,7 +236,7 @@ export default function AuditTool() {
             }}>
               ✓ Automatisch erkannt
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-2)', fontSize: 'var(--kc-text-sm)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--kc-space-2)', fontSize: 'var(--kc-text-sm)' }}>
               {scrapedData.company_name && (
                 <div><span style={{ color: 'var(--kc-mittel)' }}>Firma:</span> <strong>{scrapedData.company_name}</strong></div>
               )}
@@ -274,24 +276,24 @@ export default function AuditTool() {
       <AuditReport auditData={r} />
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 'var(--kc-space-4)', flexWrap: 'wrap', alignItems: 'center', paddingTop: 'var(--kc-space-2)' }}>
-        <button className="kc-btn-primary" onClick={() => { setStep('form'); setResult(null); setAuditId(null); setSavedLeadId(null); setScrapedData(null); }}>
+      <div style={{ display: 'flex', gap: 'var(--kc-space-4)', flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', paddingTop: 'var(--kc-space-2)' }}>
+        <button className="kc-btn-primary" style={isMobile ? { width: '100%' } : undefined} onClick={() => { setStep('form'); setResult(null); setAuditId(null); setSavedLeadId(null); setScrapedData(null); }}>
           Neues Audit starten
         </button>
         <button
           className="kc-btn-secondary"
           onClick={downloadPDF}
           disabled={pdfLoading}
-          style={{ opacity: pdfLoading ? 0.6 : 1 }}
+          style={{ opacity: pdfLoading ? 0.6 : 1, ...(isMobile ? { width: '100%' } : {}) }}
         >
           {pdfLoading ? 'PDF wird erstellt...' : '✓ PDF herunterladen'}
         </button>
         {savedLeadId ? (
-          <button className="kc-btn-ghost" onClick={() => navigate('/leads')} style={{ color: 'var(--kc-success)' }}>
+          <button className="kc-btn-ghost" onClick={() => navigate('/leads')} style={{ color: 'var(--kc-success)', ...(isMobile ? { width: '100%' } : {}) }}>
             → Lead ansehen
           </button>
         ) : (
-          <button className="kc-btn-secondary" onClick={() => setShowLeadModal(true)}>
+          <button className="kc-btn-secondary" style={isMobile ? { width: '100%' } : undefined} onClick={() => setShowLeadModal(true)}>
             Als Lead speichern
           </button>
         )}

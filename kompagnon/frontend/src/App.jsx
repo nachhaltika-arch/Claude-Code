@@ -17,6 +17,8 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import AdminUsers from './pages/AdminUsers';
 import TwoFactorSetup from './pages/TwoFactorSetup';
+import Landing from './pages/Landing';
+import Checkout from './pages/Checkout';
 
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -56,12 +58,8 @@ function AppContent() {
         {!isMobile && user && <Sidebar />}
         <main style={{ flex: 1, minWidth: 0 }}>
           <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-
-            {/* Protected routes */}
-            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            {/* Protected app routes */}
+            <Route path="/app" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/leads" element={<ProtectedRoute roles={['admin', 'auditor']}><LeadPipeline /></ProtectedRoute>} />
             <Route path="/leads/:leadId" element={<ProtectedRoute roles={['admin', 'auditor']}><LeadProfile /></ProtectedRoute>} />
             <Route path="/projects/:id" element={<ProtectedRoute roles={['admin', 'auditor']}><ProjectDetail /></ProtectedRoute>} />
@@ -73,23 +71,10 @@ function AppContent() {
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/2fa-setup" element={<ProtectedRoute><TwoFactorSetup /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><AdminUsers /></ProtectedRoute>} />
-
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
       </div>
       {isMobile && user && <BottomNav />}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            fontFamily: 'var(--kc-font-body)',
-            fontSize: 'var(--kc-text-sm)',
-            borderRadius: 'var(--kc-radius-md)',
-          },
-        }}
-      />
     </div>
   );
 }
@@ -99,7 +84,7 @@ function BottomNav() {
   const location = useLocation();
   const { hasRole } = useAuth();
   const items = [
-    { icon: '🏠', label: 'Dashboard', path: '/' },
+    { icon: '🏠', label: 'Dashboard', path: '/app' },
     ...(hasRole('admin', 'auditor') ? [{ icon: '👥', label: 'Leads', path: '/leads' }] : []),
     { icon: '🔍', label: 'Audit', path: '/audit' },
     ...(hasRole('admin', 'auditor') ? [{ icon: '📥', label: 'Import', path: '/import' }] : []),
@@ -136,7 +121,27 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppContent />
+        <Routes>
+          {/* Public pages — no app chrome */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/checkout/:package" element={<Checkout />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* App pages — with Navbar, Sidebar, BottomNav */}
+          <Route path="/*" element={<AppContent />} />
+        </Routes>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              fontFamily: 'var(--kc-font-body)',
+              fontSize: 'var(--kc-text-sm)',
+              borderRadius: 'var(--kc-radius-md)',
+            },
+          }}
+        />
       </AuthProvider>
     </Router>
   );

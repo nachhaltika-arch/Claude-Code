@@ -38,6 +38,8 @@ from routers import (
     customers_router,
     automations_router,
     audit_router,
+    auth_router,
+    admin_router,
 )
 
 # Import scheduler
@@ -105,6 +107,29 @@ def _run_migrations():
         logger.warning(f"Migration Warnung: {e}")
 
 
+def _create_default_admin():
+    """Create default admin user if no users exist."""
+    from database import SessionLocal, User
+    from auth import hash_password
+    db = SessionLocal()
+    try:
+        if db.query(User).first() is None:
+            admin = User(
+                email=os.getenv("ADMIN_EMAIL", "admin@kompagnon.de"),
+                password_hash=hash_password(os.getenv("ADMIN_PASSWORD", "Kompagnon2025!")),
+                first_name="Admin",
+                last_name="KOMPAGNON",
+                role="admin",
+                is_active=True,
+                is_verified=True,
+            )
+            db.add(admin)
+            db.commit()
+            logger.info(f"✓ Standard-Admin angelegt: {admin.email}")
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown events."""
@@ -114,6 +139,12 @@ async def lifespan(app: FastAPI):
         _run_migrations()
         init_db()
         logger.info("✓ Database initialized")
+
+        # Create default admin if no users exist
+        try:
+            _create_default_admin()
+        except Exception as e:
+            logger.warning(f"⚠ Default admin: {e}")
 
         # Start scheduler (non-critical — don't block app start)
         try:
@@ -167,6 +198,8 @@ app.include_router(agents_router)
 app.include_router(customers_router)
 app.include_router(automations_router)
 app.include_router(audit_router)
+app.include_router(auth_router)
+app.include_router(admin_router)
 
 
 # Health check endpoint

@@ -260,6 +260,67 @@ class AuditResult(Base):
     lead = relationship("Lead", backref="audits")
 
 
+class User(Base):
+    """User accounts with roles and 2FA support."""
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=True)
+
+    # Profile
+    first_name = Column(String(100), default="")
+    last_name = Column(String(100), default="")
+    phone = Column(String(30), default="")
+    avatar_url = Column(String(500), default="")
+
+    # Role: admin | auditor | nutzer | kunde
+    role = Column(String(20), default="nutzer")
+
+    # Auditor-specific
+    position = Column(String(100), default="")
+    signature_data = Column(Text, default="")
+
+    # Customer link
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True)
+
+    # 2FA
+    totp_secret = Column(String(64), nullable=True)
+    totp_enabled = Column(Boolean, default=False)
+    backup_codes = Column(Text, default="")
+
+    # OAuth
+    google_id = Column(String(255), nullable=True)
+    apple_id = Column(String(255), nullable=True)
+    oauth_provider = Column(String(50), nullable=True)
+
+    # Status
+    is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
+    email_verify_token = Column(String(100), nullable=True)
+    password_reset_token = Column(String(100), nullable=True)
+    password_reset_expires = Column(DateTime, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_login = Column(DateTime, nullable=True)
+    created_by = Column(Integer, nullable=True)
+
+
+class UserSession(Base):
+    """Active login sessions."""
+    __tablename__ = "user_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token = Column(String(500), unique=True)
+    ip_address = Column(String(50), default="")
+    user_agent = Column(String(500), default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime)
+    is_valid = Column(Boolean, default=True)
+
+
 def init_db():
     """Create all tables."""
     Base.metadata.create_all(bind=engine)

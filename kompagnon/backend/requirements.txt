@@ -11,3 +11,8 @@ psycopg2-binary
 reportlab
 beautifulsoup4
 lxml
+python-jose[cryptography]
+passlib[bcrypt]
+pyotp
+qrcode[pil]
+pillow

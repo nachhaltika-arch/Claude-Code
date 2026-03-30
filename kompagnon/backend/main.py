@@ -6,11 +6,24 @@ Usage:
     uvicorn main:app --reload --host 0.0.0.0 --port 8000
 """
 import os
+import json
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+
+# Custom JSONResponse that does NOT escape Unicode (ä, ö, ü, ß, €)
+class UnicodeJSONResponse(JSONResponse):
+    def render(self, content) -> bytes:
+        return json.dumps(
+            content,
+            ensure_ascii=False,
+            allow_nan=False,
+            indent=None,
+            separators=(",", ":"),
+        ).encode("utf-8")
 
 # Initialize database and seeders
 from database import init_db, get_db
@@ -74,6 +87,7 @@ app = FastAPI(
     description="Complete WordPress website automation for German handcraft businesses",
     version="1.0.0",
     lifespan=lifespan,
+    default_response_class=UnicodeJSONResponse,
 )
 
 # CORS Middleware

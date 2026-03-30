@@ -10,7 +10,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from database import SessionLocal, Project
+from database import SessionLocal, Project, DATABASE_URL
 from services.margin_calculator import MarginCalculator
 from services.email_service import EmailService, MockEmailService
 from automations.email_templates import render_template
@@ -190,7 +190,8 @@ def job_tag_30_upsell(project_id: int):
 class CompagnonScheduler:
     """APScheduler wrapper for KOMPAGNON automation."""
 
-    def __init__(self, database_url: str = "sqlite:///./kompagnon.db", use_mock_email: bool = False):
+    def __init__(self, database_url: str = None, use_mock_email: bool = False):
+        database_url = database_url or DATABASE_URL
         global _use_mock_email
         _use_mock_email = use_mock_email
 
@@ -307,7 +308,7 @@ class CompagnonScheduler:
 _scheduler = None
 
 
-def get_scheduler(database_url: str = "sqlite:///./kompagnon.db", use_mock_email: bool = False):
+def get_scheduler(database_url: str = None, use_mock_email: bool = False):
     """Get or create scheduler instance."""
     global _scheduler
     if _scheduler is None:

@@ -46,9 +46,12 @@ async def lifespan(app: FastAPI):
         init_db()
         logger.info("✓ Database initialized")
 
-        # Start scheduler
-        start_scheduler()
-        logger.info("✓ Scheduler started")
+        # Start scheduler (non-critical — don't block app start)
+        try:
+            start_scheduler()
+            logger.info("✓ Scheduler started")
+        except Exception as e:
+            logger.warning(f"⚠ Scheduler failed to start (non-critical): {e}")
 
         yield
 
@@ -57,10 +60,12 @@ async def lifespan(app: FastAPI):
         raise
 
     finally:
-        # Shutdown
         logger.info("🛑 KOMPAGNON Backend Shutting Down...")
-        stop_scheduler()
-        logger.info("✓ Scheduler stopped")
+        try:
+            stop_scheduler()
+        except Exception:
+            pass
+        logger.info("✓ Shutdown complete")
 
 
 # Create FastAPI app with lifespan

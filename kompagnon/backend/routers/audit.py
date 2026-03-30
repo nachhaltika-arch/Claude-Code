@@ -47,7 +47,7 @@ LEVELS = [
 
 class AuditRequest(BaseModel):
     website_url: str
-    company_name: str
+    company_name: str = ""
     contact_name: str = ""
     city: str = ""
     trade: str = ""
@@ -520,23 +520,39 @@ def _run_audit_background(audit_id: int):
 
 
 @router.post("/start")
-def start_audit(
+async def start_audit(
     req: AuditRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    """Create audit record and run checks in background."""
+    """Create audit record, auto-scrape website, and run checks in background."""
     url = _normalise_url(req.website_url)
 
-    # Create pending record immediately (returns in <100ms)
+    # Auto-scrape website for company info (fast, < 5s)
+    scraped = {}
+    try:
+        from services.scraper import scrape_website
+        scraped = await scrape_website(url)
+    except Exception as e:
+        logger.warning(f"Scraping failed for {url}: {e}")
+
+    # Use scraped data as fallback when fields not provided
+    company_name = req.company_name or scraped.get("company_name", "") or url
+    city = req.city or scraped.get("city", "")
+    trade = req.trade or scraped.get("trade", "Sonstiges")
+
+    # Create pending record with scraped data
     audit = AuditResult(
         lead_id=req.lead_id,
         website_url=url,
-        company_name=req.company_name,
+        company_name=company_name,
         contact_name=req.contact_name,
-        city=req.city,
-        trade=req.trade,
+        city=city,
+        trade=trade,
         status="pending",
+        scraped_phone=scraped.get("phone", ""),
+        scraped_email=scraped.get("email", ""),
+        scraped_description=scraped.get("meta_description", ""),
     )
     db.add(audit)
     db.commit()
@@ -548,6 +564,13 @@ def start_audit(
     return {
         "id": audit.id,
         "status": "pending",
+        "scraped": {
+            "company_name": company_name,
+            "city": city,
+            "trade": trade,
+            "phone": scraped.get("phone", ""),
+            "email": scraped.get("email", ""),
+        },
         "message": "Audit gestartet. Ergebnis mit GET /api/audit/{id} abrufen.",
     }
 

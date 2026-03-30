@@ -244,6 +244,11 @@ class AuditResult(Base):
     mobile_score = Column(Integer)  # 0-100
     performance_score = Column(Integer)  # 0-100
 
+    # Scraped data (auto-detected from website)
+    scraped_phone = Column(String(50), default="")
+    scraped_email = Column(String(255), default="")
+    scraped_description = Column(Text, default="")
+
     # AI analysis
     ai_summary = Column(Text)  # 3-5 sentences plain language
     top_issues = Column(Text)  # JSON array of top issues

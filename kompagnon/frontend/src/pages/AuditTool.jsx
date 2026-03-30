@@ -26,20 +26,11 @@ export default function AuditTool() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [showLeadModal, setShowLeadModal] = useState(false);
   const [savedLeadId, setSavedLeadId] = useState(null);
+  const [scrapedData, setScrapedData] = useState(null);
+  const [url, setUrl] = useState(searchParams.get('url') || '');
   const pollRef = useRef(null);
   const stepRef = useRef(null);
   const navigate = useNavigate();
-
-  const [form, setForm] = useState({
-    website_url: searchParams.get('url') || '',
-    company_name: searchParams.get('company') || '',
-    contact_name: searchParams.get('contact') || '',
-    city: searchParams.get('city') || '',
-    trade: searchParams.get('trade') || '',
-    lead_id: searchParams.get('lead_id') || '',
-  });
-
-  const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -49,10 +40,9 @@ export default function AuditTool() {
     };
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.website_url.trim() || !form.company_name.trim()) {
-      toast.error('Website URL und Firmenname sind Pflichtfelder.');
+  const startAudit = async () => {
+    if (!url.trim()) {
+      toast.error('Bitte eine Website-URL eingeben.');
       return;
     }
 
@@ -60,6 +50,7 @@ export default function AuditTool() {
     setLoadingStep(0);
     setResult(null);
     setAuditId(null);
+    setScrapedData(null);
 
     // Animate loading steps (cycle through every 3s)
     stepRef.current = setInterval(() => {
@@ -67,13 +58,16 @@ export default function AuditTool() {
     }, 3000);
 
     try {
-      const payload = {
-        ...form,
-        lead_id: form.lead_id ? parseInt(form.lead_id, 10) : null,
-      };
-      const res = await axios.post(`${API_BASE_URL}/api/audit/start`, payload);
+      const res = await axios.post(`${API_BASE_URL}/api/audit/start`, {
+        website_url: url,
+      });
       const id = res.data.id;
       setAuditId(id);
+
+      // Store scraped data for display
+      if (res.data.scraped) {
+        setScrapedData(res.data.scraped);
+      }
 
       // Start polling every 4 seconds
       pollRef.current = setInterval(async () => {
@@ -96,9 +90,8 @@ export default function AuditTool() {
             toast.error(data.error_message || data.message || 'Audit fehlgeschlagen');
             setStep('form');
           }
-          // pending / running -> keep polling
         } catch (err) {
-          // Network blip — keep polling, don't abort
+          // Network blip — keep polling
         }
       }, 4000);
     } catch (error) {
@@ -142,7 +135,7 @@ export default function AuditTool() {
   };
 
   // ═════════════════════════════════════════════════════════
-  // STEP 1: Form
+  // STEP 1: Form (simplified — URL only)
   // ═════════════════════════════════════════════════════════
   if (step === 'form') {
     return (
@@ -152,50 +145,35 @@ export default function AuditTool() {
           <h1>Website-Audit</h1>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="kc-card"
-          style={{ maxWidth: '680px', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}
-        >
+        <div className="kc-card" style={{ maxWidth: '600px', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
+          <p style={{ color: 'var(--kc-text-sekundaer)', fontSize: 'var(--kc-text-sm)', margin: 0 }}>
+            Geben Sie die Domain ein — wir ermitteln alle weiteren Informationen automatisch.
+          </p>
           <div>
-            <Label required>Website URL</Label>
-            <Input value={form.website_url} onChange={set('website_url')} placeholder="https://www.firma.de" required />
-          </div>
-          <div>
-            <Label required>Firmenname</Label>
-            <Input value={form.company_name} onChange={set('company_name')} placeholder="z.B. Müller Sanitär GmbH" required />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-4)' }}>
-            <div>
-              <Label>Ansprechpartner</Label>
-              <Input value={form.contact_name} onChange={set('contact_name')} placeholder="Vor- und Nachname" />
+            <Label required>Website / Domain</Label>
+            <div style={{ display: 'flex', gap: 'var(--kc-space-3)' }}>
+              <Input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && startAudit()}
+                placeholder="z.B. elektro-mustermann.de"
+                style={{ ...inputStyle, flex: 1 }}
+                required
+              />
+              <button
+                onClick={startAudit}
+                disabled={!url.trim()}
+                className="kc-btn-primary"
+                style={{ fontSize: 'var(--kc-text-base)', whiteSpace: 'nowrap', opacity: url.trim() ? 1 : 0.6 }}
+              >
+                Audit starten
+              </button>
             </div>
-            <div>
-              <Label>Stadt</Label>
-              <Input value={form.city} onChange={set('city')} placeholder="z.B. Koblenz" />
-            </div>
+            <p style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-mittel)', marginTop: 'var(--kc-space-2)', marginBottom: 0 }}>
+              Wir analysieren automatisch: Firmenname, Kontaktdaten, Performance, Rechtliches &amp; SEO
+            </p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-4)' }}>
-            <div>
-              <Label>Gewerk</Label>
-              <select value={form.trade} onChange={set('trade')} style={inputStyle}>
-                <option value="">Bitte wählen...</option>
-                {TRADE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            {form.lead_id && (
-              <div>
-                <Label>Verknüpfter Lead</Label>
-                <Input value={form.lead_id} disabled style={{ opacity: 0.6 }} />
-              </div>
-            )}
-          </div>
-          <div style={{ paddingTop: 'var(--kc-space-2)' }}>
-            <button type="submit" className="kc-btn-primary" style={{ fontSize: 'var(--kc-text-base)' }}>
-              Audit starten
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     );
   }
@@ -208,7 +186,7 @@ export default function AuditTool() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
         <div className="kc-section-header">
           <span className="kc-eyebrow">Audit läuft</span>
-          <h1>Analyse von {form.company_name}</h1>
+          <h1>Analyse von {scrapedData?.company_name || url}</h1>
         </div>
         <div className="kc-card" style={{ maxWidth: '500px', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
           {LOADING_STEPS.map((text, i) => (
@@ -241,6 +219,40 @@ export default function AuditTool() {
             Die Analyse kann bis zu 30 Sekunden dauern.
           </p>
         </div>
+
+        {/* Scraped data preview */}
+        {scrapedData && (
+          <div style={{
+            maxWidth: '500px',
+            background: '#f0f7ff', borderRadius: 'var(--kc-radius-lg)',
+            padding: 'var(--kc-space-4) var(--kc-space-5)',
+            border: '1px solid #c0d8f0',
+          }}>
+            <div style={{
+              fontSize: 'var(--kc-text-xs)', fontWeight: 700, color: '#2a5aa0',
+              marginBottom: 'var(--kc-space-3)', textTransform: 'uppercase', letterSpacing: '0.05em',
+            }}>
+              ✓ Automatisch erkannt
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-2)', fontSize: 'var(--kc-text-sm)' }}>
+              {scrapedData.company_name && (
+                <div><span style={{ color: 'var(--kc-mittel)' }}>Firma:</span> <strong>{scrapedData.company_name}</strong></div>
+              )}
+              {scrapedData.city && (
+                <div><span style={{ color: 'var(--kc-mittel)' }}>Stadt:</span> <strong>{scrapedData.city}</strong></div>
+              )}
+              {scrapedData.phone && (
+                <div><span style={{ color: 'var(--kc-mittel)' }}>Telefon:</span> <strong>{scrapedData.phone}</strong></div>
+              )}
+              {scrapedData.email && (
+                <div><span style={{ color: 'var(--kc-mittel)' }}>E-Mail:</span> <strong>{scrapedData.email}</strong></div>
+              )}
+              {scrapedData.trade && scrapedData.trade !== 'Sonstiges' && (
+                <div><span style={{ color: 'var(--kc-mittel)' }}>Gewerk:</span> <strong>{scrapedData.trade}</strong></div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -263,7 +275,7 @@ export default function AuditTool() {
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 'var(--kc-space-4)', flexWrap: 'wrap', alignItems: 'center', paddingTop: 'var(--kc-space-2)' }}>
-        <button className="kc-btn-primary" onClick={() => { setStep('form'); setResult(null); setAuditId(null); setSavedLeadId(null); }}>
+        <button className="kc-btn-primary" onClick={() => { setStep('form'); setResult(null); setAuditId(null); setSavedLeadId(null); setScrapedData(null); }}>
           Neues Audit starten
         </button>
         <button

@@ -9,3 +9,5 @@ requests
 python-multipart
 psycopg2-binary
 reportlab
+beautifulsoup4
+lxml

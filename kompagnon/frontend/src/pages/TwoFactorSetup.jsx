@@ -71,7 +71,7 @@ export default function TwoFactorSetup() {
           <button onClick={startSetup} disabled={loading} style={btnStyle}>
             {loading ? 'Wird vorbereitet...' : '2FA einrichten'}
           </button>
-          <button onClick={() => navigate('/profile')} style={{ background: 'none', border: 'none', color: '#6a7a9a', marginTop: 16, cursor: 'pointer', fontSize: 13 }}>
+          <button onClick={() => navigate('/app/profile')} style={{ background: 'none', border: 'none', color: '#6a7a9a', marginTop: 16, cursor: 'pointer', fontSize: 13 }}>
             Zurueck zum Profil
           </button>
         </div>
@@ -133,7 +133,7 @@ export default function TwoFactorSetup() {
               Download
             </button>
           </div>
-          <button onClick={() => navigate('/profile')} style={btnStyle}>Fertig</button>
+          <button onClick={() => navigate('/app/profile')} style={btnStyle}>Fertig</button>
         </div>
       )}
     </div>

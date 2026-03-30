@@ -94,7 +94,7 @@ export default function LeadPipeline() {
                       <td style={{ fontWeight: 600 }}>
                         <span
                           style={{ cursor: 'pointer', color: 'var(--kc-text-primaer)', textDecoration: 'none' }}
-                          onClick={(e) => { e.stopPropagation(); navigate(`/leads/${lead.id}`); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/app/leads/${lead.id}`); }}
                           onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
                           onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
                         >
@@ -123,7 +123,7 @@ export default function LeadPipeline() {
                         <button
                           className="kc-btn-ghost"
                           style={{ fontSize: 'var(--kc-text-xs)', padding: 'var(--kc-space-1) var(--kc-space-3)' }}
-                          onClick={() => navigate(`/audit?url=${encodeURIComponent(lead.website_url || '')}&company=${encodeURIComponent(lead.company_name)}&contact=${encodeURIComponent(lead.contact_name)}&city=${encodeURIComponent(lead.city)}&trade=${encodeURIComponent(lead.trade)}&lead_id=${lead.id}`)}
+                          onClick={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&company=${encodeURIComponent(lead.company_name)}&contact=${encodeURIComponent(lead.contact_name)}&city=${encodeURIComponent(lead.city)}&trade=${encodeURIComponent(lead.trade)}&lead_id=${lead.id}`)}
                         >
                           Audit
                         </button>

@@ -127,7 +127,7 @@ export default function LeadProfile() {
     <div style={{ maxWidth: 900, margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
       {/* Back */}
       <button
-        onClick={() => navigate('/leads')}
+        onClick={() => navigate('/app/leads')}
         style={{
           background: 'none', border: 'none', color: NAVY, fontSize: 14,
           cursor: 'pointer', marginBottom: 16, padding: 0, display: 'flex', alignItems: 'center', gap: 6,
@@ -331,7 +331,7 @@ export default function LeadProfile() {
         display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 10, flexWrap: 'wrap',
       }}>
         <button
-          onClick={() => navigate(`/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
+          onClick={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
           style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: isMobile ? '100%' : 'auto' }}
         >
           🔍 Neuen Audit starten

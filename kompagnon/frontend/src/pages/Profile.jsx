@@ -107,12 +107,12 @@ export default function Profile() {
             <div style={{ fontSize: 14, color: user?.totp_enabled ? '#2a9a5a' : '#c03030', fontWeight: 600, marginBottom: 12 }}>
               {user?.totp_enabled ? '2FA ist aktiviert' : '2FA ist nicht aktiviert'}
             </div>
-            <button onClick={() => navigate('/2fa-setup')} style={{ background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+            <button onClick={() => navigate('/app/2fa-setup')} style={{ background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
               {user?.totp_enabled ? '2FA verwalten' : '2FA einrichten'}
             </button>
           </div>
           <div>
-            <button onClick={() => { logout(); navigate('/login'); }} style={{ background: '#fdecea', color: '#c03030', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+            <button onClick={() => { logout(); navigate('/'); }} style={{ background: '#fdecea', color: '#c03030', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
               Abmelden
             </button>
           </div>

@@ -289,7 +289,7 @@ export default function AuditTool() {
           {pdfLoading ? 'PDF wird erstellt...' : '✓ PDF herunterladen'}
         </button>
         {savedLeadId ? (
-          <button className="kc-btn-ghost" onClick={() => navigate('/leads')} style={{ color: 'var(--kc-success)', ...(isMobile ? { width: '100%' } : {}) }}>
+          <button className="kc-btn-ghost" onClick={() => navigate('/app/leads')} style={{ color: 'var(--kc-success)', ...(isMobile ? { width: '100%' } : {}) }}>
             → Lead ansehen
           </button>
         ) : (

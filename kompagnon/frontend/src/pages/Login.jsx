@@ -42,7 +42,7 @@ export default function Login() {
         setStep('2fa');
       } else {
         login(data.access_token, data.user);
-        navigate('/');
+        navigate('/app/dashboard');
       }
     } catch (err) {
       setError(err.message);
@@ -64,7 +64,7 @@ export default function Login() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || '2FA fehlgeschlagen');
       login(data.access_token, data.user);
-      navigate('/');
+      navigate('/app/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useScreenSize } from './utils/responsive';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -23,9 +23,17 @@ import Checkout from './pages/Checkout';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 
-function ProtectedRoute({ children, roles }) {
-  const { user, loading } = useAuth();
+// ── Route Guards ──
 
+function PublicRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user) return <Navigate to="/app/dashboard" replace />;
+  return children;
+}
+
+function PrivateRoute({ children, roles }) {
+  const { user, loading } = useAuth();
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'var(--kc-mittel)' }}>
@@ -34,13 +42,15 @@ function ProtectedRoute({ children, roles }) {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
-  if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
+  if (roles && !roles.includes(user.role)) return <Navigate to="/app/dashboard" replace />;
   return children;
 }
 
-function AppContent() {
+// ── App Layout (Navbar + Sidebar + Outlet) ──
+
+function AppLayout() {
   const { isMobile } = useScreenSize();
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--kc-hell)' }}>
@@ -57,21 +67,7 @@ function AppContent() {
       >
         {!isMobile && user && <Sidebar />}
         <main style={{ flex: 1, minWidth: 0 }}>
-          <Routes>
-            {/* Protected app routes */}
-            <Route path="/app" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/leads" element={<ProtectedRoute roles={['admin', 'auditor']}><LeadPipeline /></ProtectedRoute>} />
-            <Route path="/leads/:leadId" element={<ProtectedRoute roles={['admin', 'auditor']}><LeadProfile /></ProtectedRoute>} />
-            <Route path="/projects/:id" element={<ProtectedRoute roles={['admin', 'auditor']}><ProjectDetail /></ProtectedRoute>} />
-            <Route path="/checklists" element={<ProtectedRoute roles={['admin', 'auditor']}><Checklists /></ProtectedRoute>} />
-            <Route path="/checklists/:projectId" element={<ProtectedRoute roles={['admin', 'auditor']}><Checklists /></ProtectedRoute>} />
-            <Route path="/customers" element={<ProtectedRoute roles={['admin', 'auditor']}><Customers /></ProtectedRoute>} />
-            <Route path="/import" element={<ProtectedRoute roles={['admin', 'auditor']}><ContactImport /></ProtectedRoute>} />
-            <Route path="/audit" element={<ProtectedRoute><AuditTool /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/2fa-setup" element={<ProtectedRoute><TwoFactorSetup /></ProtectedRoute>} />
-            <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><AdminUsers /></ProtectedRoute>} />
-          </Routes>
+          <Outlet />
         </main>
       </div>
       {isMobile && user && <BottomNav />}
@@ -79,16 +75,18 @@ function AppContent() {
   );
 }
 
+// ── Bottom Nav (Mobile) ──
+
 function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const { hasRole } = useAuth();
   const items = [
-    { icon: '🏠', label: 'Dashboard', path: '/app' },
-    ...(hasRole('admin', 'auditor') ? [{ icon: '👥', label: 'Leads', path: '/leads' }] : []),
-    { icon: '🔍', label: 'Audit', path: '/audit' },
-    ...(hasRole('admin', 'auditor') ? [{ icon: '📥', label: 'Import', path: '/import' }] : []),
-    { icon: '👤', label: 'Profil', path: '/profile' },
+    { icon: '🏠', label: 'Dashboard', path: '/app/dashboard' },
+    ...(hasRole('admin', 'auditor') ? [{ icon: '👥', label: 'Leads', path: '/app/leads' }] : []),
+    { icon: '🔍', label: 'Audit', path: '/app/audit' },
+    ...(hasRole('admin', 'auditor') ? [{ icon: '📥', label: 'Import', path: '/app/import' }] : []),
+    { icon: '👤', label: 'Profil', path: '/app/profile' },
   ];
 
   return (
@@ -117,20 +115,39 @@ function BottomNav() {
   );
 }
 
+// ── Main App ──
+
 function App() {
   return (
     <Router>
       <AuthProvider>
         <Routes>
           {/* Public pages — no app chrome */}
-          <Route path="/" element={<Landing />} />
+          <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/checkout/:package" element={<Checkout />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
 
-          {/* App pages — with Navbar, Sidebar, BottomNav */}
-          <Route path="/*" element={<AppContent />} />
+          {/* App — authenticated, with Navbar/Sidebar */}
+          <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
+            <Route index element={<Navigate to="/app/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
+            <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
+            <Route path="projects/:id" element={<PrivateRoute roles={['admin', 'auditor']}><ProjectDetail /></PrivateRoute>} />
+            <Route path="checklists" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
+            <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
+            <Route path="customers" element={<PrivateRoute><Customers /></PrivateRoute>} />
+            <Route path="import" element={<PrivateRoute roles={['admin', 'auditor']}><ContactImport /></PrivateRoute>} />
+            <Route path="audit" element={<PrivateRoute><AuditTool /></PrivateRoute>} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="2fa-setup" element={<TwoFactorSetup />} />
+            <Route path="admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
+          </Route>
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <Toaster
           position="top-right"

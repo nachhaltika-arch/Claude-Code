@@ -34,7 +34,7 @@ def _register_fonts():
         pdfmetrics.registerFont(TTFont("DejaVu-Bold", os.path.join(font_path, "DejaVuSans-Bold.ttf")))
         return "DejaVu", "DejaVu-Bold"
     except Exception:
-        return FONT_NORMAL, FONT_BOLD
+        return "Helvetica", "Helvetica-Bold"
 
 FONT_NORMAL, FONT_BOLD = _register_fonts()
 

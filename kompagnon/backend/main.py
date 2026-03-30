@@ -156,7 +156,10 @@ def _create_default_admin():
             existing = conn.execute(text("SELECT id FROM users WHERE role='admin' LIMIT 1")).fetchone()
             if not existing:
                 admin_email = os.getenv("ADMIN_EMAIL", "admin@kompagnon.de")
-                admin_pw = hash_password(os.getenv("ADMIN_PASSWORD", "Kompagnon2025!"))
+                admin_password = os.getenv("ADMIN_PASSWORD", "Kompagnon2025!")
+                if len(admin_password.encode("utf-8")) > 72:
+                    admin_password = admin_password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
+                admin_pw = hash_password(admin_password)
                 conn.execute(text(
                     "INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, is_verified) "
                     "VALUES (:email, :pw, 'Admin', 'KOMPAGNON', 'admin', TRUE, TRUE)"

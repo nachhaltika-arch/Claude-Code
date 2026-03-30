@@ -131,8 +131,16 @@ export default function AuditTool() {
     setPdfLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/audit/${auditId}/pdf`);
-      if (!response.ok) throw new Error('PDF-Generierung fehlgeschlagen');
+      if (!response.ok) {
+        let detail = 'Unbekannter Fehler';
+        try {
+          const err = await response.json();
+          detail = err.detail || detail;
+        } catch (_) {}
+        throw new Error(detail);
+      }
       const blob = await response.blob();
+      if (blob.size === 0) throw new Error('PDF ist leer');
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -142,7 +150,8 @@ export default function AuditTool() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      toast.error('PDF konnte nicht heruntergeladen werden.');
+      console.error('PDF Fehler:', err);
+      toast.error(`PDF Fehler: ${err.message}`);
     } finally {
       setPdfLoading(false);
     }

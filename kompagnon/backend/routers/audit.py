@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -501,6 +502,36 @@ def get_audit_status(audit_id: int, db: Session = Depends(get_db)):
     if audit.status == "completed":
         result["data"] = _format_audit(audit)
     return result
+
+
+@router.get("/{audit_id}/pdf")
+def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
+    """Download audit result as PDF report."""
+    try:
+        audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+        if not audit:
+            raise HTTPException(status_code=404, detail="Audit nicht gefunden")
+        if audit.status != "completed":
+            raise HTTPException(status_code=400, detail=f"Audit noch nicht abgeschlossen: {audit.status}")
+
+        from services.pdf_generator import generate_audit_report
+        pdf_bytes = generate_audit_report(audit.__dict__)
+
+        safe_name = (audit.company_name or "Audit").replace(" ", "-").replace("/", "-")
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="Homepage-Standard-Audit-{safe_name}-{audit.id}.pdf"'
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        logger.error(f"PDF generation failed for audit {audit_id}: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"PDF-Generierung fehlgeschlagen: {str(e)}")
 
 
 @router.get("/{audit_id}")

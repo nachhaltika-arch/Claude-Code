@@ -39,7 +39,7 @@ async def scrape_website(url: str) -> dict:
         }
 
         async with httpx.AsyncClient(
-            timeout=15.0, follow_redirects=True
+            timeout=8.0, follow_redirects=True, verify=False
         ) as client:
             response = await client.get(url, headers=headers)
             html = response.text

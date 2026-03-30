@@ -75,7 +75,7 @@ def _check_ssl(url: str) -> bool:
 
 def _check_reachable(url: str) -> dict:
     try:
-        r = requests.get(url, timeout=5, allow_redirects=True)
+        r = requests.get(url, timeout=4, allow_redirects=True)
         return {"reachable": r.status_code == 200, "status_code": r.status_code, "html": r.text}
     except Exception as e:
         return {"reachable": False, "status_code": 0, "html": "", "error": str(e)}
@@ -133,7 +133,7 @@ def _check_pagespeed(url: str) -> dict:
             f"?url={url}&key={PAGESPEED_API_KEY}&strategy=mobile"
             "&category=performance&category=accessibility"
         )
-        r = requests.get(api_url, timeout=15)
+        r = requests.get(api_url, timeout=10)
         if r.status_code != 200:
             return defaults
         data = r.json()
@@ -272,7 +272,7 @@ Antworte als JSON mit allen Einzelkriterienpunkten:
         client = Anthropic(api_key=ANTHROPIC_API_KEY)
         message = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=1500,
+            max_tokens=800,
             system=scoring_prompt,
             messages=[{"role": "user", "content": user_message}],
         )
@@ -397,7 +397,12 @@ def _mock_ai_score(check_data: dict) -> dict:
 # ═══════════════════════════════════════════════════════════
 
 def _run_audit_background(audit_id: int):
-    """Background worker — runs all checks and updates the DB record."""
+    """Background worker — runs all checks and updates the DB record.
+    Designed to complete within 25s for Render free-plan compatibility.
+    """
+    import time
+    _start = time.monotonic()
+
     from database import SessionLocal
     db = SessionLocal()
     try:
@@ -422,14 +427,23 @@ def _run_audit_background(audit_id: int):
         # 2. Legal checks
         legal = _check_legal_pages(site["html"], url)
 
-        # 3+4. PageSpeed + Security headers IN PARALLEL
-        psi = {}
-        sec = {}
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            fut_psi = pool.submit(_check_pagespeed, url)
-            fut_sec = pool.submit(_check_security_headers, url)
-            psi = fut_psi.result(timeout=20)
-            sec = fut_sec.result(timeout=5)
+        # 3+4. PageSpeed + Security headers IN PARALLEL (12s max)
+        psi = {"performance_score": 0, "mobile_score": 0, "lcp_value": 99.0, "cls_value": 1.0, "inp_value": 999.0}
+        sec = {"has_hsts": False, "has_csp": False, "has_xframe": False, "has_xcontent": False}
+        try:
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                fut_psi = pool.submit(_check_pagespeed, url)
+                fut_sec = pool.submit(_check_security_headers, url)
+                try:
+                    sec = fut_sec.result(timeout=4)
+                except Exception:
+                    pass
+                try:
+                    psi = fut_psi.result(timeout=12)
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
         # 5. Build check data bundle
         check_data = {
@@ -442,8 +456,13 @@ def _run_audit_background(audit_id: int):
             "security_headers": sec,
         }
 
-        # 6. AI scoring
-        ai = _ai_score(check_data, audit.company_name, audit.trade or "")
+        # 6. AI scoring (skip if already past 20s)
+        elapsed = time.monotonic() - _start
+        if elapsed < 20:
+            ai = _ai_score(check_data, audit.company_name, audit.trade or "")
+        else:
+            logger.warning(f"Audit {audit_id}: skipping AI (elapsed {elapsed:.0f}s), using mock")
+            ai = _mock_ai_score(check_data)
 
         # 7. Calculate category totals from item scores
         rc = min(sum(ai.get(k, 0) for k in [

@@ -1,0 +1,373 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as ReTooltip, CartesianGrid,
+} from 'recharts';
+import AuditReport from '../components/AuditReport';
+import API_BASE_URL from '../config';
+
+const LEVEL_COLORS = {
+  'Homepage Standard Platin': '#7bb8e8',
+  'Homepage Standard Gold': '#f0c040',
+  'Homepage Standard Silber': '#c8c8c8',
+  'Homepage Standard Bronze': '#d4915a',
+  'Nicht konform': '#e04040',
+};
+
+const STATUS_LABELS = {
+  new: { label: 'Neu', color: '#6a7a9a' },
+  contacted: { label: 'Kontaktiert', color: '#2a7a9a' },
+  qualified: { label: 'Qualifiziert', color: '#2a9a5a' },
+  proposal_sent: { label: 'Angebot gesendet', color: '#c07820' },
+  won: { label: 'Gewonnen', color: '#2a7a3a' },
+  lost: { label: 'Verloren', color: '#c03030' },
+};
+
+const NAVY = '#0F1E3A';
+
+const CAT_DEFS = [
+  { label: 'Rechtliche Compliance', scoreKey: 'rc_score', max: 30 },
+  { label: 'Technische Performance', scoreKey: 'tp_score', max: 20 },
+  { label: 'Barrierefreiheit', scoreKey: 'bf_score', max: 20 },
+  { label: 'Sicherheit & Datenschutz', scoreKey: 'si_score', max: 15 },
+  { label: 'SEO & Sichtbarkeit', scoreKey: 'se_score', max: 10 },
+  { label: 'Inhalt & Nutzererfahrung', scoreKey: 'ux_score', max: 5 },
+];
+
+export default function LeadProfile() {
+  const { leadId } = useParams();
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [openAudit, setOpenAudit] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState({});
+  const [downloadingId, setDownloadingId] = useState(null);
+
+  useEffect(() => {
+    loadProfile();
+  }, [leadId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadProfile = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/leads/${leadId}/profile`);
+      setProfile(res.data);
+      setEditData(res.data.lead);
+    } catch (e) {
+      toast.error('Profil konnte nicht geladen werden.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveEdit = async () => {
+    try {
+      await axios.patch(`${API_BASE_URL}/api/leads/${leadId}`, {
+        notes: editData.notes,
+      });
+      toast.success('Gespeichert');
+      setEditMode(false);
+      loadProfile();
+    } catch (e) {
+      toast.error('Speichern fehlgeschlagen');
+    }
+  };
+
+  const downloadPDF = async (auditId, companyName) => {
+    setDownloadingId(auditId);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/audit/${auditId}/pdf`);
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || 'PDF Fehler');
+      }
+      const blob = await response.blob();
+      if (blob.size === 0) throw new Error('PDF ist leer');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Audit-${(companyName || 'Report').replace(/\s+/g, '-')}-${auditId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)', padding: 'var(--kc-space-6)' }}>
+        <div className="kc-skeleton" style={{ height: 120 }} />
+        <div className="kc-skeleton" style={{ height: 200 }} />
+      </div>
+    );
+  }
+
+  if (!profile) return null;
+
+  const { lead, current_score, current_level, score_history, audits, projects } = profile;
+  const levelColor = LEVEL_COLORS[current_level] || '#6a7a9a';
+  const statusInfo = STATUS_LABELS[lead.status] || { label: lead.status, color: '#6a7a9a' };
+  const latestAudit = audits[0] || null;
+
+  const scoreImprovement = score_history.length >= 2
+    ? score_history[score_history.length - 1].score - score_history[0].score
+    : null;
+
+  return (
+    <div style={{ maxWidth: 900, margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
+      {/* Back */}
+      <button
+        onClick={() => navigate('/leads')}
+        style={{
+          background: 'none', border: 'none', color: NAVY, fontSize: 14,
+          cursor: 'pointer', marginBottom: 16, padding: 0, display: 'flex', alignItems: 'center', gap: 6,
+        }}
+      >
+        ← Zurück zur Pipeline
+      </button>
+
+      {/* ── Header Card ── */}
+      <div style={{
+        background: NAVY, borderRadius: '12px 12px 0 0', padding: '24px 28px', color: '#fff',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+      }}>
+        <div>
+          <div style={{ fontSize: 11, color: '#D4A017', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 6 }}>
+            Kundenkartei
+          </div>
+          <div style={{ fontSize: 26, fontWeight: 800, marginBottom: 8 }}>{lead.company_name}</div>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <span>{lead.trade}</span>
+            {lead.city && <span>📍 {lead.city}</span>}
+            <span style={{
+              background: statusInfo.color + '30', color: statusInfo.color,
+              padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+            }}>
+              {statusInfo.label}
+            </span>
+          </div>
+        </div>
+        {current_score !== null && (
+          <div style={{ textAlign: 'center', flexShrink: 0 }}>
+            <div style={{ fontSize: 42, fontWeight: 900, color: levelColor, lineHeight: 1 }}>{current_score}</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>/ 100</div>
+            <div style={{ fontSize: 11, color: levelColor, fontWeight: 700, marginTop: 4 }}>{current_level}</div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Two-column: Contact + Categories ── */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#fff',
+        border: '1px solid #eef0f8', borderTop: 'none',
+      }}>
+        {/* Contact */}
+        <div style={{ padding: '24px 28px', borderRight: '1px solid #eef0f8' }}>
+          <SectionLabel>Kontaktdaten</SectionLabel>
+          {editMode ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[['Ansprechpartner', 'contact_name'], ['Telefon', 'phone'], ['E-Mail', 'email'], ['Website', 'website_url'], ['Stadt', 'city'], ['Notiz', 'notes']].map(([label, field]) => (
+                <div key={field}>
+                  <div style={{ fontSize: 11, color: '#8a9ab8', marginBottom: 3 }}>{label}</div>
+                  {field === 'notes' ? (
+                    <textarea
+                      value={editData[field] || ''}
+                      onChange={(e) => setEditData((p) => ({ ...p, [field]: e.target.value }))}
+                      rows={3}
+                      style={{ width: '100%', padding: '7px 10px', border: '1.5px solid #d4d8e8', borderRadius: 6, fontSize: 13, boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
+                    />
+                  ) : (
+                    <input
+                      value={editData[field] || ''}
+                      onChange={(e) => setEditData((p) => ({ ...p, [field]: e.target.value }))}
+                      style={{ width: '100%', padding: '7px 10px', border: '1.5px solid #d4d8e8', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
+                    />
+                  )}
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button onClick={saveEdit} style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', flex: 1 }}>
+                  Speichern
+                </button>
+                <button onClick={() => setEditMode(false)} style={{ background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}>
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[['👤', lead.contact_name], ['📞', lead.phone], ['✉️', lead.email], ['🌐', lead.website_url], ['📍', lead.city], ['🔧', lead.trade], ['📅', lead.created_at ? `Seit ${lead.created_at}` : '']].filter(([, v]) => v).map(([icon, value], i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 14, color: NAVY }}>
+                  <span style={{ fontSize: 16 }}>{icon}</span>
+                  <span>{value}</span>
+                </div>
+              ))}
+              {lead.notes && (
+                <div style={{ background: '#f8f9fc', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#4a5a74', marginTop: 8, fontStyle: 'italic' }}>
+                  {lead.notes}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Category Overview */}
+        <div style={{ padding: '24px 28px' }}>
+          <SectionLabel>Kategorie-Übersicht</SectionLabel>
+          {latestAudit ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {CAT_DEFS.map(({ label, scoreKey, max }) => {
+                const score = latestAudit[scoreKey] || 0;
+                const pct = max > 0 ? (score / max) * 100 : 0;
+                const color = pct >= 80 ? '#2a9a5a' : pct >= 50 ? '#c07820' : '#c03030';
+                return (
+                  <div key={scoreKey}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                      <span style={{ fontSize: 12, color: '#4a5a74' }}>{label}</span>
+                      <span style={{ fontSize: 12, fontFamily: 'monospace', fontWeight: 700, color }}>{score}/{max}</span>
+                    </div>
+                    <div style={{ height: 5, background: '#eef0f8', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 0.6s ease' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: '#8a9ab8' }}>Noch kein Audit durchgeführt.</div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Score History Chart ── */}
+      {score_history.length >= 2 && (
+        <div style={{ background: '#fff', border: '1px solid #eef0f8', borderTop: 'none', padding: '24px 28px' }}>
+          <SectionLabel>Score-Verlauf</SectionLabel>
+          {scoreImprovement !== null && (
+            <div style={{
+              fontSize: 13, fontWeight: 700, marginBottom: 12,
+              color: scoreImprovement > 0 ? '#2a9a5a' : scoreImprovement < 0 ? '#c03030' : '#6a7a9a',
+            }}>
+              {score_history[0].score} → {score_history[score_history.length - 1].score} Punkte
+              ({scoreImprovement > 0 ? '+' : ''}{scoreImprovement})
+              {scoreImprovement > 0 ? ' ↑ Verbesserung!' : scoreImprovement < 0 ? ' ↓' : ''}
+            </div>
+          )}
+          <ResponsiveContainer width="100%" height={160}>
+            <LineChart data={score_history} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#eef0f8" />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#8a9ab8' }} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#8a9ab8' }} width={30} />
+              <ReTooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(v) => [`${v}/100`, 'Score']} />
+              <Line type="monotone" dataKey="score" stroke={NAVY} strokeWidth={2} dot={{ r: 4, fill: NAVY }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* ── Audit History ── */}
+      <div style={{ background: '#fff', border: '1px solid #eef0f8', borderTop: 'none', padding: '24px 28px' }}>
+        <SectionLabel>Audit-Historie ({audits.length})</SectionLabel>
+        {audits.length === 0 ? (
+          <div style={{ fontSize: 13, color: '#8a9ab8' }}>Keine Audits vorhanden.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {audits.map((audit) => {
+              const lc = LEVEL_COLORS[audit.level] || '#6a7a9a';
+              return (
+                <div key={audit.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
+                  background: '#f8f9fc', borderRadius: 8, flexWrap: 'wrap',
+                }}>
+                  <span style={{ fontSize: 12, color: '#8a9ab8', fontFamily: 'monospace', minWidth: 100 }}>
+                    {audit.created_at}
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: lc }}>
+                    {audit.level?.replace('Homepage Standard ', '')}
+                  </span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: NAVY, fontFamily: 'monospace' }}>
+                    {audit.total_score}/100
+                  </span>
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button
+                      onClick={() => setOpenAudit(audit)}
+                      style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      Details
+                    </button>
+                    <button
+                      onClick={() => downloadPDF(audit.id, lead.company_name)}
+                      disabled={downloadingId === audit.id}
+                      style={{
+                        background: downloadingId === audit.id ? '#ccc' : '#f0f2f8',
+                        color: NAVY, border: 'none', borderRadius: 6, padding: '5px 12px',
+                        fontSize: 12, fontWeight: 700, cursor: downloadingId === audit.id ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {downloadingId === audit.id ? '...' : '📄 PDF'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Actions ── */}
+      <div style={{
+        background: '#fff', border: '1px solid #eef0f8', borderTop: 'none',
+        borderRadius: '0 0 12px 12px', padding: '20px 28px',
+        display: 'flex', gap: 10, flexWrap: 'wrap',
+      }}>
+        <button
+          onClick={() => navigate(`/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
+          style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+        >
+          🔍 Neuen Audit starten
+        </button>
+        <button
+          onClick={() => setEditMode(true)}
+          style={{ background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+        >
+          ✏️ Lead bearbeiten
+        </button>
+      </div>
+
+      {/* ── Audit Detail Modal ── */}
+      {openAudit && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.7)', zIndex: 1000,
+            overflowY: 'auto', padding: 20,
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setOpenAudit(null); }}
+        >
+          <div style={{ maxWidth: 900, margin: '0 auto', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
+            <AuditReport auditData={openAudit} onClose={() => setOpenAudit(null)} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div style={{
+      fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+      letterSpacing: '0.1em', color: '#8a9ab8', marginBottom: 16,
+    }}>
+      {children}
+    </div>
+  );
+}

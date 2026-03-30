@@ -9,6 +9,7 @@ import Checklists from './pages/Checklists';
 import Customers from './pages/Customers';
 import ContactImport from './pages/ContactImport';
 import AuditTool from './pages/AuditTool';
+import LeadProfile from './pages/LeadProfile';
 
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -32,6 +33,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/leads" element={<LeadPipeline />} />
+              <Route path="/leads/:leadId" element={<LeadProfile />} />
               <Route path="/projects/:id" element={<ProjectDetail />} />
               <Route path="/checklists" element={<Checklists />} />
               <Route path="/checklists/:projectId" element={<Checklists />} />

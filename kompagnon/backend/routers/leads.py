@@ -396,6 +396,109 @@ def import_lead_manual(
     return lead
 
 
+@router.get("/{lead_id}/profile")
+def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
+    """Full lead profile with audits, projects, and score history."""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+
+    audits = (
+        db.query(AuditResult)
+        .filter(AuditResult.lead_id == lead_id)
+        .order_by(AuditResult.created_at.desc())
+        .all()
+    )
+
+    projects = db.query(Project).filter(Project.lead_id == lead_id).all()
+
+    latest_audit = audits[0] if audits else None
+
+    score_history = [
+        {
+            "date": a.created_at.strftime("%d.%m.%Y") if a.created_at else "",
+            "score": a.total_score,
+            "level": a.level,
+        }
+        for a in reversed(audits)
+    ]
+
+    def _audit_dict(a):
+        d = {
+            "id": a.id,
+            "created_at": a.created_at.strftime("%d.%m.%Y %H:%M") if a.created_at else "",
+            "total_score": a.total_score,
+            "level": a.level,
+            "status": a.status,
+            "website_url": a.website_url,
+            "company_name": a.company_name,
+            "trade": a.trade,
+            "city": a.city,
+            "ai_summary": a.ai_summary,
+            "ssl_ok": a.ssl_ok,
+            "mobile_score": a.mobile_score,
+            "lcp_value": a.lcp_value,
+            "cls_value": a.cls_value,
+            "inp_value": a.inp_value,
+            "rc_score": a.rc_score, "tp_score": a.tp_score,
+            "bf_score": a.bf_score, "si_score": a.si_score,
+            "se_score": a.se_score, "ux_score": a.ux_score,
+        }
+        # Item-level scores
+        for key in [
+            "rc_impressum", "rc_datenschutz", "rc_cookie", "rc_bfsg", "rc_urheberrecht", "rc_ecommerce",
+            "tp_lcp", "tp_cls", "tp_inp", "tp_mobile", "tp_bilder",
+            "ho_anbieter", "ho_uptime", "ho_http", "ho_backup", "ho_cdn",
+            "bf_kontrast", "bf_tastatur", "bf_screenreader", "bf_lesbarkeit",
+            "si_ssl", "si_header", "si_drittanbieter", "si_formulare",
+            "se_seo", "se_schema", "se_lokal",
+            "ux_erstindruck", "ux_cta", "ux_navigation", "ux_vertrauen", "ux_content", "ux_kontakt",
+        ]:
+            d[key] = getattr(a, key, 0) or 0
+        # JSON fields
+        try:
+            d["top_issues"] = json.loads(a.top_issues) if a.top_issues else []
+        except (json.JSONDecodeError, TypeError):
+            d["top_issues"] = []
+        try:
+            d["recommendations"] = json.loads(a.recommendations) if a.recommendations else []
+        except (json.JSONDecodeError, TypeError):
+            d["recommendations"] = []
+        return d
+
+    return {
+        "lead": {
+            "id": lead.id,
+            "company_name": lead.company_name,
+            "contact_name": lead.contact_name,
+            "phone": lead.phone,
+            "email": lead.email,
+            "website_url": lead.website_url,
+            "city": lead.city,
+            "trade": lead.trade,
+            "status": lead.status,
+            "lead_source": lead.lead_source,
+            "notes": lead.notes,
+            "created_at": lead.created_at.strftime("%d.%m.%Y") if lead.created_at else "",
+        },
+        "current_score": latest_audit.total_score if latest_audit else None,
+        "current_level": latest_audit.level if latest_audit else None,
+        "score_history": score_history,
+        "total_audits": len(audits),
+        "audits": [_audit_dict(a) for a in audits],
+        "projects": [
+            {
+                "id": p.id,
+                "status": p.status,
+                "start_date": p.start_date.strftime("%d.%m.%Y") if p.start_date else "",
+                "target_go_live": p.target_go_live.strftime("%d.%m.%Y") if p.target_go_live else "",
+                "margin_percent": p.margin_percent,
+            }
+            for p in projects
+        ],
+    }
+
+
 @router.get("/{lead_id}/audits")
 def get_lead_audits(lead_id: int, db: Session = Depends(get_db)):
     """Get all audits linked to a lead, newest first."""

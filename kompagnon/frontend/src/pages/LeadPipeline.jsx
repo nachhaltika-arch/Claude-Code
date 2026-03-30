@@ -88,7 +88,16 @@ export default function LeadPipeline() {
                       <td style={{ width: '24px', textAlign: 'center', color: 'var(--kc-mittel)', fontSize: 'var(--kc-text-xs)' }}>
                         {isExpanded ? '▼' : '▶'}
                       </td>
-                      <td style={{ fontWeight: 600 }}>{lead.company_name}</td>
+                      <td style={{ fontWeight: 600 }}>
+                        <span
+                          style={{ cursor: 'pointer', color: 'var(--kc-text-primaer)', textDecoration: 'none' }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/leads/${lead.id}`); }}
+                          onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
+                          onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
+                        >
+                          {lead.company_name}
+                        </span>
+                      </td>
                       <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.contact_name}</td>
                       <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.city}</td>
                       <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.trade}</td>

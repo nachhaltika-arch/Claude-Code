@@ -21,12 +21,12 @@ router = APIRouter(prefix="/api/leads", tags=["leads"])
 
 class LeadCreate(BaseModel):
     company_name: str
-    contact_name: str
-    phone: str
-    email: str
+    contact_name: str = ""
+    phone: str = ""
+    email: str = ""
     website_url: str = None
-    city: str
-    trade: str
+    city: str = ""
+    trade: str = ""
     lead_source: str = None
     notes: str = None
 

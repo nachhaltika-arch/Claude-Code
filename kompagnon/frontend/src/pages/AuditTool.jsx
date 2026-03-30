@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
@@ -40,8 +40,11 @@ export default function AuditTool() {
   const [auditId, setAuditId] = useState(null);
   const [loadingStep, setLoadingStep] = useState(0);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [showLeadModal, setShowLeadModal] = useState(false);
+  const [savedLeadId, setSavedLeadId] = useState(null);
   const pollRef = useRef(null);
   const stepRef = useRef(null);
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     website_url: searchParams.get('url') || '',
@@ -369,8 +372,8 @@ export default function AuditTool() {
       )}
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 'var(--kc-space-4)', flexWrap: 'wrap' }}>
-        <button className="kc-btn-primary" onClick={() => { setStep('form'); setResult(null); setAuditId(null); }}>
+      <div style={{ display: 'flex', gap: 'var(--kc-space-4)', flexWrap: 'wrap', alignItems: 'center' }}>
+        <button className="kc-btn-primary" onClick={() => { setStep('form'); setResult(null); setAuditId(null); setSavedLeadId(null); }}>
           Neues Audit starten
         </button>
         <button
@@ -381,6 +384,200 @@ export default function AuditTool() {
         >
           {pdfLoading ? 'PDF wird erstellt...' : '\u2713 PDF herunterladen'}
         </button>
+        {savedLeadId ? (
+          <button className="kc-btn-ghost" onClick={() => navigate('/leads')} style={{ color: 'var(--kc-success)' }}>
+            \u2192 Lead ansehen
+          </button>
+        ) : (
+          <button className="kc-btn-secondary" onClick={() => setShowLeadModal(true)}>
+            Als Lead speichern
+          </button>
+        )}
+      </div>
+
+      {/* Lead Modal */}
+      {showLeadModal && (
+        <SaveLeadModal
+          audit={r}
+          onClose={() => setShowLeadModal(false)}
+          onSaved={(id) => { setSavedLeadId(id); setShowLeadModal(false); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Save Lead Modal
+// ═══════════════════════════════════════════════════════════
+
+function SaveLeadModal({ audit, onClose, onSaved }) {
+  const [saving, setSaving] = useState(false);
+  const [leadForm, setLeadForm] = useState({
+    company_name: audit.company_name || '',
+    contact_name: '',
+    phone: '',
+    email: '',
+    website_url: audit.website_url || '',
+    city: audit.city || '',
+    trade: audit.trade || '',
+    notes: `Audit-Ergebnis: ${audit.total_score}/100 Punkte - ${audit.level}`,
+    lead_source: 'Audit',
+  });
+
+  const setField = (field) => (e) => setLeadForm((f) => ({ ...f, [field]: e.target.value }));
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!leadForm.company_name.trim()) {
+      toast.error('Firmenname ist Pflichtfeld.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/leads/`, leadForm);
+      toast.success(`\u2713 ${leadForm.company_name} wurde als Lead angelegt!`);
+      onSaved(res.data.id);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Lead konnte nicht angelegt werden.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const ls = LEVEL_STYLES[audit.level] || LEVEL_STYLES['Nicht konform'];
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 'var(--kc-space-4)',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'var(--kc-weiss)',
+          borderRadius: 'var(--kc-radius-lg)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+          width: '100%', maxWidth: '560px',
+          maxHeight: '90vh', overflow: 'auto',
+        }}
+      >
+        {/* Modal Header */}
+        <div style={{
+          background: 'var(--kc-rot)', color: 'var(--kc-weiss)',
+          padding: 'var(--kc-space-4) var(--kc-space-6)',
+          borderRadius: 'var(--kc-radius-lg) var(--kc-radius-lg) 0 0',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 'var(--kc-text-lg)', fontFamily: 'var(--kc-font-display)' }}>
+              Lead anlegen
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none', border: 'none', color: 'var(--kc-weiss)',
+              fontSize: 'var(--kc-text-xl)', cursor: 'pointer', padding: 'var(--kc-space-1)',
+              lineHeight: 1,
+            }}
+            aria-label="Schlie\u00DFen"
+          >
+            \u2715
+          </button>
+        </div>
+
+        {/* Audit Score Badge */}
+        <div style={{
+          padding: 'var(--kc-space-4) var(--kc-space-6)',
+          borderBottom: '1px solid var(--kc-rand)',
+          display: 'flex', alignItems: 'center', gap: 'var(--kc-space-3)',
+        }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 'var(--kc-space-2)',
+            padding: 'var(--kc-space-1) var(--kc-space-4)',
+            borderRadius: 'var(--kc-radius-md)',
+            background: ls.bg, border: `1.5px solid ${ls.color}`,
+            fontWeight: 700, fontSize: 'var(--kc-text-sm)', color: ls.color,
+          }}>
+            {ls.icon} {audit.total_score}/100 \u2014 {audit.level}
+          </span>
+          <span style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-mittel)' }}>
+            {audit.website_url}
+          </span>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSave} style={{
+          padding: 'var(--kc-space-6)',
+          display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)',
+        }}>
+          <div>
+            <Label required>Firmenname</Label>
+            <Input value={leadForm.company_name} onChange={setField('company_name')} required />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-4)' }}>
+            <div>
+              <Label>Ansprechpartner</Label>
+              <Input value={leadForm.contact_name} onChange={setField('contact_name')} placeholder="Vor- und Nachname" />
+            </div>
+            <div>
+              <Label>Telefon</Label>
+              <Input type="tel" value={leadForm.phone} onChange={setField('phone')} placeholder="+49 ..." />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-4)' }}>
+            <div>
+              <Label>E-Mail</Label>
+              <Input type="email" value={leadForm.email} onChange={setField('email')} placeholder="info@firma.de" />
+            </div>
+            <div>
+              <Label>Website URL</Label>
+              <Input value={leadForm.website_url} onChange={setField('website_url')} />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-4)' }}>
+            <div>
+              <Label>Stadt</Label>
+              <Input value={leadForm.city} onChange={setField('city')} />
+            </div>
+            <div>
+              <Label>Gewerk</Label>
+              <select value={leadForm.trade} onChange={setField('trade')} style={inputStyle}>
+                <option value="">Bitte w\u00E4hlen...</option>
+                {TRADE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <Label>Notiz</Label>
+            <textarea
+              value={leadForm.notes}
+              onChange={setField('notes')}
+              rows={2}
+              style={{ ...inputStyle, resize: 'vertical', fontFamily: 'var(--kc-font-body)' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: 'var(--kc-space-3)', paddingTop: 'var(--kc-space-2)' }}>
+            <button
+              type="submit"
+              className="kc-btn-primary"
+              disabled={saving}
+              style={{ opacity: saving ? 0.6 : 1 }}
+            >
+              {saving ? 'Wird angelegt...' : 'Lead anlegen'}
+            </button>
+            <button type="button" className="kc-btn-ghost" onClick={onClose}>
+              Abbrechen
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

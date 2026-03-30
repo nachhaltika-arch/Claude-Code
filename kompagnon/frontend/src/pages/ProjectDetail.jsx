@@ -90,9 +90,9 @@ export default function ProjectDetail() {
             }}
           >
             <InfoBlock label="Status" value={project.status.replace('phase_', 'Phase ')} />
-            <InfoBlock label="Festpreis" value={`\u20AC${project.fixed_price.toFixed(2)}`} mono />
+            <InfoBlock label="Festpreis" value={`€${project.fixed_price.toFixed(2)}`} mono />
             <InfoBlock label="Stunden geloggt" value={`${project.actual_hours.toFixed(1)}h`} mono />
-            {margin && <InfoBlock label="Gesamtkosten" value={`\u20AC${margin.total_costs.toFixed(2)}`} mono />}
+            {margin && <InfoBlock label="Gesamtkosten" value={`€${margin.total_costs.toFixed(2)}`} mono />}
           </div>
 
           {/* Margin Detail */}
@@ -119,10 +119,10 @@ export default function ProjectDetail() {
               >
                 <InfoBlock
                   label="Personenstunden"
-                  value={`${margin.human_hours.toFixed(1)}h \u00D7 \u20AC${project.hourly_rate}/h`}
+                  value={`${margin.human_hours.toFixed(1)}h × €${project.hourly_rate}/h`}
                   mono
                 />
-                <InfoBlock label="KI-Kosten" value={`\u20AC${margin.ai_tool_costs.toFixed(2)}`} mono />
+                <InfoBlock label="KI-Kosten" value={`€${margin.ai_tool_costs.toFixed(2)}`} mono />
                 <InfoBlock
                   label="Verbleibend bis 70%"
                   value={`${margin.hours_remaining_at_target.toFixed(1)}h`}

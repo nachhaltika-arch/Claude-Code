@@ -143,13 +143,13 @@ function CsvUploadTab() {
           onChange={(e) => handleFile(e.target.files[0])}
         />
         <div style={{ fontSize: 'var(--kc-text-3xl)', marginBottom: 'var(--kc-space-2)' }}>
-          {file ? '\u2705' : '\u{1F4C4}'}
+          {file ? '✅' : '📄'}
         </div>
         <p style={{ fontWeight: 600, color: 'var(--kc-text-primaer)', fontSize: 'var(--kc-text-lg)' }}>
           {file ? file.name : 'CSV-Datei hierher ziehen'}
         </p>
         <p style={{ color: 'var(--kc-text-subtil)', fontSize: 'var(--kc-text-sm)' }}>
-          {file ? `${(file.size / 1024).toFixed(1)} KB` : 'oder klicken zum Ausw\u00E4hlen'}
+          {file ? `${(file.size / 1024).toFixed(1)} KB` : 'oder klicken zum Auswählen'}
         </p>
       </div>
 
@@ -289,7 +289,7 @@ function ManualEntryTab() {
           type="text"
           value={form.company_name}
           onChange={set('company_name')}
-          placeholder="z.B. M\u00FCller Sanit\u00E4r GmbH"
+          placeholder="z.B. Müller Sanitär GmbH"
           required
           style={inputStyle}
         />
@@ -325,7 +325,7 @@ function ManualEntryTab() {
         <div>
           <label style={labelStyle}>Gewerk</label>
           <select value={form.trade} onChange={set('trade')} style={inputStyle}>
-            <option value="">Bitte w\u00E4hlen...</option>
+            <option value="">Bitte wählen...</option>
             {TRADE_OPTIONS.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}

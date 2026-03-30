@@ -86,7 +86,7 @@ export default function LeadPipeline() {
                       onClick={() => setExpandedLead(isExpanded ? null : lead.id)}
                     >
                       <td style={{ width: '24px', textAlign: 'center', color: 'var(--kc-mittel)', fontSize: 'var(--kc-text-xs)' }}>
-                        {isExpanded ? '\u25BC' : '\u25B6'}
+                        {isExpanded ? '▼' : '▶'}
                       </td>
                       <td style={{ fontWeight: 600 }}>{lead.company_name}</td>
                       <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.contact_name}</td>

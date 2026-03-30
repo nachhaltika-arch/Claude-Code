@@ -5,17 +5,17 @@ export default function MarginBadge({ marginPercent, status = 'green' }) {
     green: {
       background: '#e8f5e9',
       color: 'var(--kc-success)',
-      icon: '\u2713',
+      icon: '✓',
     },
     yellow: {
       background: '#fff3e0',
       color: 'var(--kc-warning)',
-      icon: '\u26A0',
+      icon: '⚠',
     },
     red: {
       background: 'var(--kc-rot-subtle)',
       color: 'var(--kc-rot)',
-      icon: '\u2717',
+      icon: '✗',
     },
   };
 

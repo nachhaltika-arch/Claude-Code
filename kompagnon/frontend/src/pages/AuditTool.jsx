@@ -7,14 +7,14 @@ import AuditReport from '../components/AuditReport';
 
 const TRADE_OPTIONS = [
   'Elektriker', 'Klempner', 'Maler', 'Schreiner',
-  'Dachdecker', 'Heizung', 'Sanit\u00E4r', 'Fliesenleger', 'Sonstiges',
+  'Dachdecker', 'Heizung', 'Sanitär', 'Fliesenleger', 'Sonstiges',
 ];
 
 const LOADING_STEPS = [
-  'Website wird gepr\u00FCft...',
+  'Website wird geprüft...',
   'Performance wird analysiert...',
-  'Rechtliche Anforderungen werden gepr\u00FCft...',
-  'KI-Analyse l\u00E4uft...',
+  'Rechtliche Anforderungen werden geprüft...',
+  'KI-Analyse läuft...',
 ];
 
 export default function AuditTool() {
@@ -163,7 +163,7 @@ export default function AuditTool() {
           </div>
           <div>
             <Label required>Firmenname</Label>
-            <Input value={form.company_name} onChange={set('company_name')} placeholder="z.B. M\u00FCller Sanit\u00E4r GmbH" required />
+            <Input value={form.company_name} onChange={set('company_name')} placeholder="z.B. Müller Sanitär GmbH" required />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-4)' }}>
             <div>
@@ -179,13 +179,13 @@ export default function AuditTool() {
             <div>
               <Label>Gewerk</Label>
               <select value={form.trade} onChange={set('trade')} style={inputStyle}>
-                <option value="">Bitte w\u00E4hlen...</option>
+                <option value="">Bitte wählen...</option>
                 {TRADE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             {form.lead_id && (
               <div>
-                <Label>Verkn\u00FCpfter Lead</Label>
+                <Label>Verknüpfter Lead</Label>
                 <Input value={form.lead_id} disabled style={{ opacity: 0.6 }} />
               </div>
             )}
@@ -207,7 +207,7 @@ export default function AuditTool() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
         <div className="kc-section-header">
-          <span className="kc-eyebrow">Audit l\u00E4uft</span>
+          <span className="kc-eyebrow">Audit läuft</span>
           <h1>Analyse von {form.company_name}</h1>
         </div>
         <div className="kc-card" style={{ maxWidth: '500px', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
@@ -229,7 +229,7 @@ export default function AuditTool() {
                 background: i < loadingStep ? 'var(--kc-success)' : i === loadingStep ? 'var(--kc-rot)' : 'var(--kc-rand)',
                 color: i <= loadingStep ? 'var(--kc-weiss)' : 'var(--kc-mittel)',
               }}>
-                {i < loadingStep ? '\u2713' : i + 1}
+                {i < loadingStep ? '✓' : i + 1}
               </span>
               <span style={{ fontSize: 'var(--kc-text-sm)', fontWeight: i === loadingStep ? 700 : 400, color: 'var(--kc-text-primaer)' }}>
                 {text}
@@ -272,11 +272,11 @@ export default function AuditTool() {
           disabled={pdfLoading}
           style={{ opacity: pdfLoading ? 0.6 : 1 }}
         >
-          {pdfLoading ? 'PDF wird erstellt...' : '\u2713 PDF herunterladen'}
+          {pdfLoading ? 'PDF wird erstellt...' : '✓ PDF herunterladen'}
         </button>
         {savedLeadId ? (
           <button className="kc-btn-ghost" onClick={() => navigate('/leads')} style={{ color: 'var(--kc-success)' }}>
-            \u2192 Lead ansehen
+            → Lead ansehen
           </button>
         ) : (
           <button className="kc-btn-secondary" onClick={() => setShowLeadModal(true)}>
@@ -307,7 +307,7 @@ const LEVEL_STYLES = {
   'Homepage Standard Gold':   { bg: '#fff8e1', color: '#f57f17', icon: '\uD83E\uDD47' },
   'Homepage Standard Silber': { bg: '#f5f5f5', color: '#616161', icon: '\uD83E\uDD48' },
   'Homepage Standard Bronze': { bg: '#efebe9', color: '#4e342e', icon: '\uD83E\uDD49' },
-  'Nicht konform':            { bg: '#fdecea', color: '#C8102E', icon: '\u26D4' },
+  'Nicht konform':            { bg: '#fdecea', color: '#C8102E', icon: '⛔' },
 };
 
 function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
@@ -346,7 +346,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
         }
       }
 
-      toast.success(`\u2713 ${leadForm.company_name} wurde als Lead angelegt!`);
+      toast.success(`✓ ${leadForm.company_name} wurde als Lead angelegt!`);
       onSaved(newLeadId);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Lead konnte nicht angelegt werden.');
@@ -396,9 +396,9 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
               fontSize: 'var(--kc-text-xl)', cursor: 'pointer', padding: 'var(--kc-space-1)',
               lineHeight: 1,
             }}
-            aria-label="Schlie\u00DFen"
+            aria-label="Schließen"
           >
-            \u2715
+            ✕
           </button>
         </div>
 
@@ -415,7 +415,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
             background: ls.bg, border: `1.5px solid ${ls.color}`,
             fontWeight: 700, fontSize: 'var(--kc-text-sm)', color: ls.color,
           }}>
-            {ls.icon} {audit.total_score}/100 \u2014 {audit.level}
+            {ls.icon} {audit.total_score}/100 — {audit.level}
           </span>
           <span style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-mittel)' }}>
             {audit.website_url}
@@ -459,7 +459,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
             <div>
               <Label>Gewerk</Label>
               <select value={leadForm.trade} onChange={setField('trade')} style={inputStyle}>
-                <option value="">Bitte w\u00E4hlen...</option>
+                <option value="">Bitte wählen...</option>
                 {TRADE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>

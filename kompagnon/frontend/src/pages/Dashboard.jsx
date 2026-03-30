@@ -120,7 +120,7 @@ export default function Dashboard() {
           <KpiCard icon={MagnifyingGlassCircleIcon} label="Audits heute" value={kpis.audits_today} />
           <KpiCard
             icon={ChartBarIcon}
-            label="\u00D8 Audit-Score"
+            label="Ø Audit-Score"
             value={`${kpis.audits_avg_score}/100`}
             valueColor={kpis.audits_avg_score >= 70 ? 'var(--kc-success)' : kpis.audits_avg_score >= 50 ? 'var(--kc-warning)' : 'var(--kc-rot)'}
           />

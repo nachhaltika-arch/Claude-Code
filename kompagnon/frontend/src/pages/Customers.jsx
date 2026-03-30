@@ -75,7 +75,7 @@ export default function Customers() {
                     </td>
                     <td><span className={cfg.className}>{cfg.label}</span></td>
                     <td style={{ color: 'var(--kc-text-sekundaer)' }}>
-                      {customer.upsell_package || '\u2014'}
+                      {customer.upsell_package || '—'}
                     </td>
                     <td
                       style={{
@@ -85,7 +85,7 @@ export default function Customers() {
                         color: customer.recurring_revenue > 0 ? 'var(--kc-success)' : 'var(--kc-text-subtil)',
                       }}
                     >
-                      {'\u20AC'}{customer.recurring_revenue.toFixed(2)}
+                      {'€'}{customer.recurring_revenue.toFixed(2)}
                     </td>
                   </tr>
                 );

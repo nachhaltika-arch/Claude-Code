@@ -13,7 +13,7 @@ const LEVEL_STYLES = {
   'Homepage Standard Gold':   { bg: '#fff8e1', color: '#f57f17', icon: '\uD83E\uDD47' },
   'Homepage Standard Silber': { bg: '#f5f5f5', color: '#616161', icon: '\uD83E\uDD48' },
   'Homepage Standard Bronze': { bg: '#efebe9', color: '#4e342e', icon: '\uD83E\uDD49' },
-  'Nicht konform':            { bg: '#fdecea', color: '#C8102E', icon: '\u26D4' },
+  'Nicht konform':            { bg: '#fdecea', color: '#C8102E', icon: '⛔' },
 };
 
 const CATEGORIES = [
@@ -25,9 +25,9 @@ const CATEGORIES = [
     color: '#3f51b5',
     items: [
       { key: 'rc_impressum',    label: 'Impressum (TMG/DDG)',              max: 7 },
-      { key: 'rc_datenschutz',  label: 'Datenschutzerkl\u00E4rung (DSGVO)', max: 7 },
+      { key: 'rc_datenschutz',  label: 'Datenschutzerklärung (DSGVO)', max: 7 },
       { key: 'rc_cookie',       label: 'Cookie Consent (TDDDG)',            max: 6 },
-      { key: 'rc_bfsg',         label: 'Barrierefreiheitserkl\u00E4rung (BFSG)', max: 4 },
+      { key: 'rc_bfsg',         label: 'Barrierefreiheitserklärung (BFSG)', max: 4 },
       { key: 'rc_urheberrecht', label: 'Urheberrecht & Lizenzen',          max: 3 },
       { key: 'rc_ecommerce',    label: 'E-Commerce Pflichten',             max: 3 },
     ],
@@ -40,7 +40,7 @@ const CATEGORIES = [
     color: '#2196f3',
     items: [
       { key: 'tp_lcp',    label: 'LCP (Ladezeit Hauptinhalt)',  max: 5 },
-      { key: 'tp_cls',    label: 'CLS (Layout-Stabilit\u00E4t)', max: 4 },
+      { key: 'tp_cls',    label: 'CLS (Layout-Stabilität)', max: 4 },
       { key: 'tp_inp',    label: 'INP (Interaktionszeit)',      max: 3 },
       { key: 'tp_mobile', label: 'Mobile-First Design',         max: 4 },
       { key: 'tp_bilder', label: 'Bildoptimierung',             max: 4 },
@@ -54,9 +54,9 @@ const CATEGORIES = [
     color: '#9c27b0',
     items: [
       { key: 'bf_kontrast',     label: 'Farbkontraste (WCAG AA)',           max: 5 },
-      { key: 'bf_tastatur',     label: 'Tastaturzug\u00E4nglichkeit',       max: 5 },
-      { key: 'bf_screenreader', label: 'Screenreader-Kompatibilit\u00E4t', max: 5 },
-      { key: 'bf_lesbarkeit',   label: 'Lesbarkeit & Textgr\u00F6\u00DFe', max: 5 },
+      { key: 'bf_tastatur',     label: 'Tastaturzugänglichkeit',       max: 5 },
+      { key: 'bf_screenreader', label: 'Screenreader-Kompatibilität', max: 5 },
+      { key: 'bf_lesbarkeit',   label: 'Lesbarkeit & Textgröße', max: 5 },
     ],
   },
   {
@@ -95,8 +95,8 @@ const CATEGORIES = [
       { key: 'ux_cta',         label: 'Klare Call-to-Action',      max: 1 },
       { key: 'ux_navigation',  label: 'Navigation & Struktur',     max: 1 },
       { key: 'ux_vertrauen',   label: 'Vertrauenssignale',         max: 1 },
-      { key: 'ux_content',     label: 'Content-Qualit\u00E4t',     max: 1 },
-      { key: 'ux_kontakt',     label: 'Kontaktm\u00F6glichkeiten', max: 1 },
+      { key: 'ux_content',     label: 'Content-Qualität',     max: 1 },
+      { key: 'ux_kontakt',     label: 'Kontaktmöglichkeiten', max: 1 },
     ],
   },
 ];
@@ -104,7 +104,7 @@ const CATEGORIES = [
 const HOSTING_ITEMS = [
   { key: 'ho_anbieter', label: 'Anbieter identifizierbar' },
   { key: 'ho_uptime',   label: 'Erreichbarkeit' },
-  { key: 'ho_http',     label: 'HTTP\u2192HTTPS Weiterleitung' },
+  { key: 'ho_http',     label: 'HTTP→HTTPS Weiterleitung' },
   { key: 'ho_backup',   label: 'Backup-Hinweise' },
   { key: 'ho_cdn',      label: 'CDN aktiv' },
 ];
@@ -118,11 +118,11 @@ function scoreColor(score, max) {
 }
 
 function scoreIcon(score, max) {
-  if (max === 0) return '\u2014';
+  if (max === 0) return '—';
   const pct = score / max;
-  if (pct >= 1.0) return '\u2713';
-  if (pct >= 0.5) return '\u26A0';
-  return '\u2717';
+  if (pct >= 1.0) return '✓';
+  if (pct >= 0.5) return '⚠';
+  return '✗';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -191,7 +191,7 @@ export default function AuditReport({ auditData }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--kc-space-4)' }}>
         {/* Radar Chart */}
         <div className="kc-card">
-          <span className="kc-eyebrow">\u00DCbersicht</span>
+          <span className="kc-eyebrow">Übersicht</span>
           <h3 style={{ marginBottom: 'var(--kc-space-3)', fontSize: 'var(--kc-text-base)' }}>Kategorien-Profil</h3>
           <ResponsiveContainer width="100%" height={240}>
             <RadarChart data={radarData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
@@ -291,7 +291,7 @@ export default function AuditReport({ auditData }) {
                     color: ok ? 'var(--kc-success)' : 'var(--kc-rot)',
                   }}
                 >
-                  {ok ? '\u2713' : '\u2717'} {hi.label}
+                  {ok ? '✓' : '✗'} {hi.label}
                 </span>
               );
             })}
@@ -350,7 +350,7 @@ export default function AuditReport({ auditData }) {
         <div className="kc-card" style={{ borderLeft: '4px solid var(--kc-info, #2196f3)' }}>
           <span className="kc-eyebrow" style={{ color: 'var(--kc-info, #2196f3)' }}>KI-Analyse</span>
           <h3 style={{ marginBottom: 'var(--kc-space-3)', fontSize: 'var(--kc-text-base)' }}>
-            Was bedeutet das f\u00FCr Ihren Betrieb?
+            Was bedeutet das für Ihren Betrieb?
           </h3>
           <p style={{ color: 'var(--kc-text-sekundaer)', lineHeight: 'var(--kc-leading-normal)', fontSize: 'var(--kc-text-base)' }}>
             {r.ai_summary}
@@ -419,7 +419,7 @@ function CategorySection({ category, catScore, items }) {
             {catScore}/{category.max}
           </span>
           <span style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-mittel)' }}>
-            {expanded ? '\u25B2' : '\u25BC'}
+            {expanded ? '▲' : '▼'}
           </span>
         </div>
       </button>

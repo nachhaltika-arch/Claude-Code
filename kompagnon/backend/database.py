@@ -179,6 +179,10 @@ class AuditResult(Base):
     city = Column(String(100))
     trade = Column(String(100))
 
+    # Async status: pending -> running -> completed / failed
+    status = Column(String(50), default="pending")
+    error_message = Column(Text)
+
     # Scores (6 categories)
     total_score = Column(Integer, default=0)  # 0-100
     level = Column(String(50))  # Nicht konform, Bronze, Silber, Gold, Platin

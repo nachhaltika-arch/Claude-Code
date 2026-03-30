@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -355,59 +355,113 @@ def _mock_ai_score(check_data: dict) -> dict:
 # API Endpoints
 # ═══════════════════════════════════════════════════════════
 
+def _run_audit_background(audit_id: int):
+    """Background worker — runs all checks and updates the DB record."""
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+        if not audit:
+            return
+
+        audit.status = "running"
+        db.commit()
+
+        url = audit.website_url
+
+        # 1. Basic checks
+        ssl_ok = _check_ssl(url)
+        site = _check_reachable(url)
+        if not site["reachable"]:
+            audit.status = "failed"
+            audit.error_message = f"Website nicht erreichbar (Status {site.get('status_code', 'N/A')})"
+            db.commit()
+            return
+
+        # 2. Legal checks
+        legal = _check_legal_pages(site["html"], url)
+
+        # 3+4. PageSpeed + Security headers IN PARALLEL
+        psi = {}
+        sec = {}
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            fut_psi = pool.submit(_check_pagespeed, url)
+            fut_sec = pool.submit(_check_security_headers, url)
+            psi = fut_psi.result(timeout=20)
+            sec = fut_sec.result(timeout=5)
+
+        # 5. Build check data bundle
+        check_data = {
+            "company_name": audit.company_name,
+            "url": url,
+            "ssl_ok": ssl_ok,
+            "reachable": True,
+            **legal,
+            **psi,
+            "security_headers": sec,
+        }
+
+        # 6. AI scoring
+        ai = _ai_score(check_data, audit.company_name, audit.trade or "")
+
+        # 7. Calculate totals
+        rc = min(ai.get("rc_score", 0), 30)
+        tp = min(ai.get("tp_score", 0), 20)
+        bf = min(ai.get("bf_score", 0), 20)
+        si = min(ai.get("si_score", 0), 15)
+        se = min(ai.get("se_score", 0), 10)
+        ux = min(ai.get("ux_score", 0), 5)
+        total = rc + tp + bf + si + se + ux
+        level = next(lbl for threshold, lbl in LEVELS if total >= threshold)
+
+        # 8. Update record
+        audit.total_score = total
+        audit.level = level
+        audit.rc_score = rc
+        audit.tp_score = tp
+        audit.bf_score = bf
+        audit.si_score = si
+        audit.se_score = se
+        audit.ux_score = ux
+        audit.ssl_ok = ssl_ok
+        audit.impressum_ok = legal["impressum_ok"]
+        audit.datenschutz_ok = legal["datenschutz_ok"]
+        audit.lcp_value = psi.get("lcp_value")
+        audit.cls_value = psi.get("cls_value")
+        audit.inp_value = psi.get("inp_value")
+        audit.mobile_score = psi.get("mobile_score")
+        audit.performance_score = psi.get("performance_score")
+        audit.ai_summary = ai.get("ai_summary", "")
+        audit.top_issues = json.dumps(ai.get("top_issues", []), ensure_ascii=False)
+        audit.recommendations = json.dumps(ai.get("recommendations", []), ensure_ascii=False)
+        audit.status = "completed"
+        db.commit()
+        logger.info(f"✓ Audit {audit_id} completed: {total}/100 ({level})")
+
+    except Exception as e:
+        logger.error(f"✗ Audit {audit_id} failed: {e}")
+        try:
+            audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+            if audit:
+                audit.status = "failed"
+                audit.error_message = str(e)[:500]
+                db.commit()
+        except Exception:
+            pass
+    finally:
+        db.close()
+
+
 @router.post("/start")
-def start_audit(req: AuditRequest, db: Session = Depends(get_db)):
-    """Run a full website audit and return scored results."""
+def start_audit(
+    req: AuditRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """Create audit record and run checks in background."""
     url = _normalise_url(req.website_url)
 
-    # 1. Basic checks (must be first — need HTML for legal checks)
-    ssl_ok = _check_ssl(url)
-    site = _check_reachable(url)
-    if not site["reachable"]:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Website nicht erreichbar (Status {site.get('status_code', 'N/A')}). "
-            "Bitte URL prüfen.",
-        )
-
-    # 2. Legal checks (from already-fetched HTML — instant)
-    legal = _check_legal_pages(site["html"], url)
-
-    # 3+4. PageSpeed + Security headers IN PARALLEL to save time
-    psi = {}
-    sec = {}
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        fut_psi = pool.submit(_check_pagespeed, url)
-        fut_sec = pool.submit(_check_security_headers, url)
-        psi = fut_psi.result(timeout=20)
-        sec = fut_sec.result(timeout=5)
-
-    # 5. Build check data bundle
-    check_data = {
-        "company_name": req.company_name,
-        "url": url,
-        "ssl_ok": ssl_ok,
-        "reachable": True,
-        **legal,
-        **psi,
-        "security_headers": sec,
-    }
-
-    # 6. AI scoring (use mock if no API key — instant)
-    ai = _ai_score(check_data, req.company_name, req.trade)
-
-    # 7. Calculate totals
-    rc = min(ai.get("rc_score", 0), 30)
-    tp = min(ai.get("tp_score", 0), 20)
-    bf = min(ai.get("bf_score", 0), 20)
-    si = min(ai.get("si_score", 0), 15)
-    se = min(ai.get("se_score", 0), 10)
-    ux = min(ai.get("ux_score", 0), 5)
-    total = rc + tp + bf + si + se + ux
-
-    level = next(lbl for threshold, lbl in LEVELS if total >= threshold)
-
-    # 8. Persist
+    # Create pending record immediately (returns in <100ms)
     audit = AuditResult(
         lead_id=req.lead_id,
         website_url=url,
@@ -415,31 +469,34 @@ def start_audit(req: AuditRequest, db: Session = Depends(get_db)):
         contact_name=req.contact_name,
         city=req.city,
         trade=req.trade,
-        total_score=total,
-        level=level,
-        rc_score=rc,
-        tp_score=tp,
-        bf_score=bf,
-        si_score=si,
-        se_score=se,
-        ux_score=ux,
-        ssl_ok=ssl_ok,
-        impressum_ok=legal["impressum_ok"],
-        datenschutz_ok=legal["datenschutz_ok"],
-        lcp_value=psi.get("lcp_value"),
-        cls_value=psi.get("cls_value"),
-        inp_value=psi.get("inp_value"),
-        mobile_score=psi.get("mobile_score"),
-        performance_score=psi.get("performance_score"),
-        ai_summary=ai.get("ai_summary", ""),
-        top_issues=json.dumps(ai.get("top_issues", []), ensure_ascii=False),
-        recommendations=json.dumps(ai.get("recommendations", []), ensure_ascii=False),
+        status="pending",
     )
     db.add(audit)
     db.commit()
     db.refresh(audit)
 
-    return _format_audit(audit)
+    # Kick off background processing
+    background_tasks.add_task(_run_audit_background, audit.id)
+
+    return {
+        "id": audit.id,
+        "status": "pending",
+        "message": "Audit gestartet. Ergebnis mit GET /api/audit/{id} abrufen.",
+    }
+
+
+@router.get("/status/{audit_id}")
+def get_audit_status(audit_id: int, db: Session = Depends(get_db)):
+    """Poll audit status (pending / running / completed / failed)."""
+    audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit nicht gefunden")
+    result = {"id": audit.id, "status": audit.status}
+    if audit.status == "failed":
+        result["error"] = audit.error_message
+    if audit.status == "completed":
+        result["data"] = _format_audit(audit)
+    return result
 
 
 @router.get("/{audit_id}")
@@ -448,6 +505,10 @@ def get_audit(audit_id: int, db: Session = Depends(get_db)):
     audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
     if not audit:
         raise HTTPException(status_code=404, detail="Audit nicht gefunden")
+    if audit.status == "pending" or audit.status == "running":
+        return {"id": audit.id, "status": audit.status, "message": "Audit läuft noch..."}
+    if audit.status == "failed":
+        raise HTTPException(status_code=500, detail=audit.error_message or "Audit fehlgeschlagen")
     return _format_audit(audit)
 
 
@@ -476,6 +537,7 @@ def _format_audit(audit: AuditResult) -> dict:
 
     return {
         "id": audit.id,
+        "status": audit.status,
         "lead_id": audit.lead_id,
         "website_url": audit.website_url,
         "company_name": audit.company_name,

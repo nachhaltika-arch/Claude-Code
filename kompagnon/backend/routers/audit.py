@@ -9,6 +9,7 @@ import os
 import re
 import requests
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Optional
 
@@ -69,7 +70,7 @@ def _check_ssl(url: str) -> bool:
 
 def _check_reachable(url: str) -> dict:
     try:
-        r = requests.get(url, timeout=10, allow_redirects=True)
+        r = requests.get(url, timeout=5, allow_redirects=True)
         return {"reachable": r.status_code == 200, "status_code": r.status_code, "html": r.text}
     except Exception as e:
         return {"reachable": False, "status_code": 0, "html": "", "error": str(e)}
@@ -127,7 +128,7 @@ def _check_pagespeed(url: str) -> dict:
             f"?url={url}&key={PAGESPEED_API_KEY}&strategy=mobile"
             "&category=performance&category=accessibility"
         )
-        r = requests.get(api_url, timeout=30)
+        r = requests.get(api_url, timeout=15)
         if r.status_code != 200:
             return defaults
         data = r.json()
@@ -158,7 +159,7 @@ def _check_pagespeed(url: str) -> dict:
 
 def _check_security_headers(url: str) -> dict:
     try:
-        r = requests.head(url, timeout=5, allow_redirects=True)
+        r = requests.head(url, timeout=3, allow_redirects=True)
         headers = {k.lower(): v for k, v in r.headers.items()}
         return {
             "has_hsts": "strict-transport-security" in headers,
@@ -256,7 +257,7 @@ Antworte als JSON:
         client = Anthropic(api_key=ANTHROPIC_API_KEY)
         message = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=1500,
+            max_tokens=800,
             system=scoring_prompt,
             messages=[{"role": "user", "content": user_message}],
         )
@@ -359,7 +360,7 @@ def start_audit(req: AuditRequest, db: Session = Depends(get_db)):
     """Run a full website audit and return scored results."""
     url = _normalise_url(req.website_url)
 
-    # 1. Basic checks
+    # 1. Basic checks (must be first — need HTML for legal checks)
     ssl_ok = _check_ssl(url)
     site = _check_reachable(url)
     if not site["reachable"]:
@@ -369,14 +370,17 @@ def start_audit(req: AuditRequest, db: Session = Depends(get_db)):
             "Bitte URL prüfen.",
         )
 
-    # 2. Legal checks
+    # 2. Legal checks (from already-fetched HTML — instant)
     legal = _check_legal_pages(site["html"], url)
 
-    # 3. PageSpeed
-    psi = _check_pagespeed(url)
-
-    # 4. Security headers
-    sec = _check_security_headers(url)
+    # 3+4. PageSpeed + Security headers IN PARALLEL to save time
+    psi = {}
+    sec = {}
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        fut_psi = pool.submit(_check_pagespeed, url)
+        fut_sec = pool.submit(_check_security_headers, url)
+        psi = fut_psi.result(timeout=20)
+        sec = fut_sec.result(timeout=5)
 
     # 5. Build check data bundle
     check_data = {
@@ -389,7 +393,7 @@ def start_audit(req: AuditRequest, db: Session = Depends(get_db)):
         "security_headers": sec,
     }
 
-    # 6. AI scoring
+    # 6. AI scoring (use mock if no API key — instant)
     ai = _ai_score(check_data, req.company_name, req.trade)
 
     # 7. Calculate totals

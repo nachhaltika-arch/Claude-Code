@@ -76,7 +76,9 @@ export default function AuditTool() {
         ...form,
         lead_id: form.lead_id ? parseInt(form.lead_id, 10) : null,
       };
-      const res = await axios.post(`${API_BASE_URL}/api/audit/start`, payload);
+      const res = await axios.post(`${API_BASE_URL}/api/audit/start`, payload, {
+        timeout: 60000,
+      });
       clearInterval(interval);
       setResult(res.data);
       setStep('result');

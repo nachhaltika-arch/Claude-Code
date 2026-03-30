@@ -11,13 +11,13 @@ import {
 } from '@heroicons/react/24/outline';
 
 const menuItems = [
-  { name: 'Dashboard', path: '/', icon: HomeIcon },
-  { name: 'Lead Pipeline', path: '/leads', icon: UserGroupIcon },
-  { name: 'Projekte', path: '/projects', icon: FolderIcon },
-  { name: 'Checklisten', path: '/checklists', icon: ClipboardDocumentListIcon },
-  { name: 'Website Audit', path: '/audit', icon: MagnifyingGlassCircleIcon },
-  { name: 'Kontakt-Import', path: '/import', icon: ArrowUpTrayIcon },
-  { name: 'Kunden', path: '/customers', icon: UserIcon },
+  { name: 'Dashboard', path: '/app/dashboard', icon: HomeIcon },
+  { name: 'Lead Pipeline', path: '/app/leads', icon: UserGroupIcon },
+  { name: 'Projekte', path: '/app/projects', icon: FolderIcon },
+  { name: 'Checklisten', path: '/app/checklists', icon: ClipboardDocumentListIcon },
+  { name: 'Website Audit', path: '/app/audit', icon: MagnifyingGlassCircleIcon },
+  { name: 'Kontakt-Import', path: '/app/import', icon: ArrowUpTrayIcon },
+  { name: 'Kunden', path: '/app/customers', icon: UserIcon },
 ];
 
 export default function Sidebar() {
@@ -36,7 +36,7 @@ export default function Sidebar() {
         </div>
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.path;
+          const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
 
           return (
             <Link

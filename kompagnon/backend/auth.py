@@ -30,6 +30,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=Fals
 
 
 def hash_password(password: str) -> str:
+    password = password[:72]  # bcrypt max 72 bytes
     return pwd_context.hash(password)
 
 

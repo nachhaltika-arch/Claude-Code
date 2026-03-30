@@ -14,6 +14,7 @@ export default function AuditHistory({ leadId }) {
   const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
     if (!leadId) return;
@@ -108,23 +109,46 @@ export default function AuditHistory({ leadId }) {
                   {isOpen ? 'Zuklappen' : 'Details'}
                 </button>
                 <button
-                  className="kc-btn-ghost"
-                  style={{ fontSize: 'var(--kc-text-xs)', padding: '2px var(--kc-space-2)' }}
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(`${API_BASE_URL}/api/audit/${audit.id}/pdf`);
-                      if (!res.ok) throw new Error();
-                      const blob = await res.blob();
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `Audit-${audit.id}.pdf`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    } catch (_) {}
+                  onClick={() => {
+                    (async () => {
+                      try {
+                        setDownloadingId(audit.id);
+                        const response = await fetch(`${API_BASE_URL}/api/audit/${audit.id}/pdf`, { method: 'GET' });
+                        if (!response.ok) {
+                          const error = await response.json();
+                          throw new Error(error.detail || 'PDF konnte nicht erstellt werden');
+                        }
+                        const blob = await response.blob();
+                        if (blob.size === 0) throw new Error('PDF ist leer');
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Homepage-Standard-Audit-${(audit.company_name || 'Audit').replace(/\s+/g, '-')}-${audit.id}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      } catch (error) {
+                        console.error('PDF Fehler:', error);
+                        alert(`Fehler: ${error.message}`);
+                      } finally {
+                        setDownloadingId(null);
+                      }
+                    })();
+                  }}
+                  disabled={downloadingId === audit.id}
+                  style={{
+                    background: downloadingId === audit.id ? '#ccc' : '#0F1E3A',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '6px 12px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: downloadingId === audit.id ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  PDF
+                  {downloadingId === audit.id ? '\u23F3 Erstellt...' : '\uD83D\uDCC4 PDF'}
                 </button>
               </div>
             </div>

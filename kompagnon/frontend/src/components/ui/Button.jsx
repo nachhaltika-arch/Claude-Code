@@ -17,6 +17,12 @@ const VARIANTS = {
     border: 'none',
     hoverBg: 'var(--bg-hover)',
   },
+  danger: {
+    background: 'var(--status-danger-bg)',
+    color: 'var(--status-danger-text)',
+    border: '1px solid var(--status-danger-bg)',
+    hoverBg: '#fcd4d4',
+  },
 };
 
 const SIZES = {

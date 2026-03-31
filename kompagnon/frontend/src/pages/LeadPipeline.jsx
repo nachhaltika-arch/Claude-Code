@@ -6,12 +6,11 @@ import API_BASE_URL from '../config';
 import Badge from '../components/ui/Badge';
 
 const COLUMNS = [
-  { id: 'new', label: 'Neuer Lead', color: 'var(--brand-primary)' },
-  { id: 'contacted', label: 'Kontaktiert', color: '#7c3aed' },
-  { id: 'qualified', label: 'Qualifiziert', color: '#059669' },
-  { id: 'proposal_sent', label: 'Angebot', color: '#d97706' },
-  { id: 'won', label: 'In Umsetzung', color: '#16a34a' },
-  { id: 'lost', label: 'Abgeschlossen', color: 'var(--text-tertiary)' },
+  { id: 'won', label: 'Auftrag erhalten', icon: '✅', color: '#059669' },
+  { id: 'onboarding', label: 'Onboarding', icon: '🚀', color: '#008EAA' },
+  { id: 'in_progress', label: 'In Umsetzung', icon: '⚙️', color: '#d97706' },
+  { id: 'review', label: 'Abnahme', icon: '👁️', color: '#7c3aed' },
+  { id: 'live', label: 'Live', icon: '🌐', color: '#16a34a' },
 ];
 
 export default function LeadPipeline() {
@@ -33,7 +32,10 @@ export default function LeadPipeline() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/leads/`, { headers: headers() });
       const data = await res.json();
-      setLeads(Array.isArray(data) ? data : []);
+      const projectLeads = Array.isArray(data)
+        ? data.filter(l => l.status === 'won' || l.lead_source === 'stripe_checkout' || l.lead_source === 'llm_landing')
+        : [];
+      setLeads(projectLeads);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -72,7 +74,7 @@ export default function LeadPipeline() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 2 }}>
-            {leads.length} Leads · Drag & Drop zum Verschieben
+            {leads.length} aktive Kundenprojekte · Drag & Drop zum Verschieben
           </div>
         </div>
       </div>

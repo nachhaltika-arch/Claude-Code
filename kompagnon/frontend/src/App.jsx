@@ -31,6 +31,7 @@ import Impressum from './pages/Impressum';
 import Datenschutz from './pages/Datenschutz';
 import ResetPassword from './pages/ResetPassword';
 import Akademie from './pages/Akademie';
+import SalesPipeline from './pages/SalesPipeline';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -79,6 +80,7 @@ function App() {
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
             <Route index element={<Navigate to="/app/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="sales" element={<PrivateRoute roles={['admin', 'auditor']}><SalesPipeline /></PrivateRoute>} />
             <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
             <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
             <Route path="projects" element={<PrivateRoute roles={['admin', 'auditor']}><CustomerProjects /></PrivateRoute>} />

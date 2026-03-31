@@ -66,41 +66,51 @@ const NAV_SECTIONS = [
     title: 'ÜBERSICHT',
     items: [
       { label: 'Dashboard', path: '/app/dashboard', icon: 'grid' },
-      { label: 'Pipeline', path: '/app/leads', icon: 'chart', badgeKey: 'pipeline' },
     ],
   },
   {
-    title: 'VERWALTUNG',
+    title: 'SALES',
     items: [
-      { label: 'Kunden', path: '/app/customers', icon: 'users' },
-      { label: 'Audits', path: '/app/audit', icon: 'docCheck', badgeKey: 'audits' },
+      { label: 'Vertriebspipeline', path: '/app/sales', icon: 'chart' },
+      { label: 'Lead Import', path: '/app/import', icon: 'users' },
+      { label: 'Massen Export', path: '/app/export', icon: 'docCheck' },
+      { label: 'Website Audit', path: '/app/audit', icon: 'docCheck' },
     ],
   },
   {
-    title: 'AKADEMIE',
+    title: 'DELIVERY',
     items: [
-      { label: 'Akademie', path: '/app/akademie', icon: 'gradCap' },
+      { label: 'Projektpipeline', path: '/app/leads', icon: 'chart' },
+      { label: 'Kundenprojekte', path: '/app/projects', icon: 'users' },
+    ],
+  },
+  {
+    title: 'QUALITÄT',
+    items: [
+      { label: 'Support Tickets', path: '/app/tickets', icon: 'docCheck' },
+      { label: 'Produktentwicklung', path: '/app/product', icon: 'gear', adminOnly: true },
     ],
   },
   {
     title: 'EINSTELLUNGEN',
     items: [
       { label: 'Einstellungen', path: '/app/settings', icon: 'gear' },
-      { label: 'Rollenverwaltung', path: '/app/settings/roles', icon: 'key', adminOnly: true },
+      { label: 'Benutzerverwaltung', path: '/app/settings/users', icon: 'key', adminOnly: true },
     ],
   },
 ];
 
 const PAGE_NAMES = {
   '/app/dashboard': 'Dashboard',
-  '/app/leads': 'Pipeline',
+  '/app/sales': 'Vertriebspipeline',
+  '/app/leads': 'Projektpipeline',
   '/app/customers': 'Kunden',
-  '/app/audit': 'Audits',
+  '/app/audit': 'Website Audit',
   '/app/akademie': 'Akademie',
   '/app/settings': 'Einstellungen',
-  '/app/projects': 'Projekte',
-  '/app/import': 'Kontakt-Import',
-  '/app/export': 'Export',
+  '/app/projects': 'Kundenprojekte',
+  '/app/import': 'Lead Import',
+  '/app/export': 'Massen Export',
   '/app/tickets': 'Support Tickets',
   '/app/profile': 'Profil',
   '/app/checklists': 'Checklisten',
@@ -109,10 +119,10 @@ const PAGE_NAMES = {
 
 const MOBILE_TABS = [
   { label: 'Dashboard', path: '/app/dashboard', icon: 'grid' },
-  { label: 'Pipeline', path: '/app/leads', icon: 'chart' },
-  { label: 'Kunden', path: '/app/customers', icon: 'users' },
-  { label: 'Audits', path: '/app/audit', icon: 'docCheck' },
-  { label: 'Akademie', path: '/app/akademie', icon: 'gradCap' },
+  { label: 'Vertrieb', path: '/app/sales', icon: 'chart' },
+  { label: 'Projekte', path: '/app/leads', icon: 'users' },
+  { label: 'Audit', path: '/app/audit', icon: 'docCheck' },
+  { label: 'Tickets', path: '/app/tickets', icon: 'key' },
 ];
 
 // ── Sidebar ────────────────────────────────────────────────────

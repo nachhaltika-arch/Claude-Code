@@ -178,7 +178,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 KOMPAGNON Backend Starting...")
     try:
-        _install_playwright()
+        # Playwright installed at build time via render-build.sh
 
         _run_migrations()
         init_db()

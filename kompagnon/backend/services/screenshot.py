@@ -1,7 +1,7 @@
 """
 Website screenshot service using Playwright headless Chromium.
 Captures above-the-fold screenshot, resizes to 640x360, returns base64.
-Auto-installs Chromium if not found in cache.
+Playwright Chromium must be installed at build time (render-build.sh).
 """
 import asyncio
 import base64
@@ -17,17 +17,6 @@ async def capture_screenshot(url: str) -> str:
         url = "https://" + url
 
     try:
-        import subprocess, sys, os, glob
-
-        # Check if Chromium is installed
-        pw_path = os.path.expanduser("~/.cache/ms-playwright")
-        bins = glob.glob(pw_path + "/**/chrome*", recursive=True) if os.path.exists(pw_path) else []
-
-        if not bins:
-            logger.info("Chromium not found — installing now...")
-            subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], timeout=300, capture_output=True)
-            subprocess.run([sys.executable, "-m", "playwright", "install-deps", "chromium"], timeout=180, capture_output=True)
-
         from playwright.async_api import async_playwright
 
         async with async_playwright() as p:

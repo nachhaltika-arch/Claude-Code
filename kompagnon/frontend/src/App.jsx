@@ -13,6 +13,7 @@ import ContactImport from './pages/ContactImport';
 import MassExport from './pages/MassExport';
 import Tickets from './pages/Tickets';
 import CustomerProjects from './pages/CustomerProjects';
+import ProductDevelopment from './pages/ProductDevelopment';
 import FeedbackButton from './components/FeedbackButton';
 import AuditTool from './pages/AuditTool';
 import LeadProfile from './pages/LeadProfile';
@@ -222,6 +223,7 @@ function App() {
             <Route path="2fa-setup" element={<TwoFactorSetup />} />
             <Route path="admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
             <Route path="tickets" element={<PrivateRoute roles={['admin', 'auditor']}><Tickets /></PrivateRoute>} />
+            <Route path="product" element={<PrivateRoute roles={['admin']}><ProductDevelopment /></PrivateRoute>} />
 
             {/* Settings with sub-navigation */}
             <Route path="settings" element={<SettingsLayout />}>

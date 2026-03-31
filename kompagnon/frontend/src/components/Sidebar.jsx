@@ -36,6 +36,14 @@ const AREAS = {
       { label: 'Kunden', path: '/app/customers', icon: '👤' },
     ],
   },
+  product: {
+    label: 'Produkt', icon: '🛠️', color: '#0891b2', adminOnly: true,
+    items: [
+      { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
+      { label: 'Produktentwicklung', path: '/app/product', icon: '🛠️' },
+      { label: 'Support Tickets', path: '/app/tickets', icon: '🎫' },
+    ],
+  },
 };
 
 export default function Sidebar() {
@@ -90,7 +98,7 @@ export default function Sidebar() {
           </button>
           {areaOpen && (
             <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: '#1e3a5f', borderRadius: 10, overflow: 'hidden', zIndex: 100, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)' }}>
-              {Object.entries(AREAS).map(([id, area]) => (
+              {Object.entries(AREAS).filter(([, a]) => !a.adminOnly || hasRole('admin')).map(([id, area]) => (
                 <button key={id} onClick={() => switchArea(id)} style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px',
                   background: activeArea === id ? `${area.color}30` : 'transparent', border: 'none', cursor: 'pointer', color: '#fff', textAlign: 'left',

@@ -12,7 +12,7 @@ const SETTINGS_NAV = [
   { label: 'Benutzerverwaltung', path: '/app/settings/users', icon: '🧑‍💼', roles: ['admin'] },
   { label: 'System', path: '/app/settings/system', icon: '🏢', roles: ['admin'] },
   { label: 'Benachrichtigungen', path: '/app/settings/notifications', icon: '📧', roles: ['admin', 'auditor'] },
-  { label: 'Abonnement', path: '/app/settings/subscription', icon: '💳', roles: ['admin'] },
+  { label: 'Abonnement', path: '/app/settings/subscription', icon: '💳', roles: ['nutzer', 'kunde'] },
 ];
 
 export default function SettingsLayout() {

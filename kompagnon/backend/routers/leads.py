@@ -273,7 +273,14 @@ async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict
                 'audit_status': 'skipped', 'impressum_status': 'skipped'}
 
     # Create lead
-    lead = Lead(company_name=clean, website_url=url, status='new', lead_source='domain_import')
+    lead = Lead(
+        company_name=clean, website_url=url, contact_name=None, phone=None,
+        email=None, city=None, trade=None, notes=None, status='new',
+        lead_source='domain_import', analysis_score=0, geo_score=0,
+        street='', house_number='', postal_code='', legal_form='',
+        vat_id='', register_number='', register_court='',
+        ceo_first_name='', ceo_last_name='', display_name='',
+    )
     _db.add(lead)
     _db.commit()
     _db.refresh(lead)

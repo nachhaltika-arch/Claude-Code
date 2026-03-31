@@ -41,19 +41,19 @@ class Lead(Base):
     __tablename__ = "leads"
 
     id = Column(Integer, primary_key=True, index=True)
-    company_name = Column(String(255), nullable=False)
-    contact_name = Column(String(255), nullable=False)
-    phone = Column(String(20))
-    email = Column(String(255), nullable=False)
-    website_url = Column(String(500))
-    city = Column(String(100), nullable=False)
-    trade = Column(String(100), nullable=False)  # Gewerk (e.g., "Klempner", "Elektrik")
-    lead_source = Column(String(100))  # e.g., "Google", "Empfehlung", "Kaltakquise"
-    status = Column(String(50), default="new")  # new, contacted, qualified, proposal_sent, won, lost
-    analysis_score = Column(Integer, default=0)  # 0-100
-    geo_score = Column(Integer, default=0)  # 0-100
-    notes = Column(Text)
-    website_screenshot = Column(Text, default="")
+    company_name = Column(String(255), default="")
+    contact_name = Column(String(255), nullable=True, default=None)
+    phone = Column(String(20), nullable=True, default=None)
+    email = Column(String(255), nullable=True, default=None)
+    website_url = Column(String(500), default="")
+    city = Column(String(100), nullable=True, default=None)
+    trade = Column(String(100), nullable=True, default=None)
+    lead_source = Column(String(100), default="")
+    status = Column(String(50), default="new")
+    analysis_score = Column(Integer, default=0)
+    geo_score = Column(Integer, default=0)
+    notes = Column(Text, nullable=True, default=None)
+    website_screenshot = Column(Text, nullable=True, default=None)
 
     # Address
     street = Column(String(255), default="")

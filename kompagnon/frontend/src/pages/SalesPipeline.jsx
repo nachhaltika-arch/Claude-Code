@@ -28,9 +28,9 @@ export default function SalesPipeline() {
 
   const loadLeads = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/leads/`, { headers: h });
+      const res = await fetch(`${API_BASE_URL}/api/leads/?limit=500`, { headers: h });
       const data = await res.json();
-      setLeads(Array.isArray(data) ? data.filter(l => !(l.status === 'won' && l.lead_source === 'stripe_checkout')) : []);
+      setLeads(Array.isArray(data) ? data : []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };

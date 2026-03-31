@@ -502,29 +502,31 @@ def get_latest_screenshot(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{lead_id}/screenshot")
-async def refresh_screenshot(lead_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    """Capture a fresh website screenshot for a lead."""
+async def create_screenshot(lead_id: int, db: Session = Depends(get_db)):
+    """Capture website screenshot and return it immediately."""
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead or not lead.website_url:
-        raise HTTPException(404, "Lead oder Website nicht gefunden")
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+    if not lead.website_url:
+        raise HTTPException(400, "Keine Website-URL hinterlegt")
 
-    def _take(lid, url):
-        import asyncio
-        from database import SessionLocal
+    url = lead.website_url
+    if not url.startswith("http"):
+        url = "https://" + url
+
+    try:
         from services.screenshot import capture_screenshot
-        _db = SessionLocal()
-        try:
-            b64 = asyncio.run(capture_screenshot(url))
-            if b64:
-                l = _db.query(Lead).filter(Lead.id == lid).first()
-                if l:
-                    l.website_screenshot = b64
-                    _db.commit()
-        finally:
-            _db.close()
-
-    background_tasks.add_task(_take, lead_id, lead.website_url)
-    return {"message": "Screenshot wird erstellt...", "status": "processing"}
+        screenshot_b64 = await capture_screenshot(url)
+        if screenshot_b64:
+            lead.website_screenshot = screenshot_b64
+            db.commit()
+            return {"success": True, "screenshot_url": f"data:image/jpeg;base64,{screenshot_b64}"}
+        else:
+            raise HTTPException(500, "Screenshot konnte nicht erstellt werden")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Screenshot Fehler: {str(e)}")
 
 
 @router.get("/{lead_id}/profile")

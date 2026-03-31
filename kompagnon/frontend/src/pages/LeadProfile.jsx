@@ -50,6 +50,8 @@ export default function LeadProfile() {
   const [auditRunning, setAuditRunning] = useState(false);
   const [auditProgress, setAuditProgress] = useState('');
   const [auditError, setAuditError] = useState('');
+  const [screenshotLoading, setScreenshotLoading] = useState(false);
+  const [screenshotError, setScreenshotError] = useState('');
   const { isMobile } = useScreenSize();
 
   useEffect(() => {
@@ -65,15 +67,29 @@ export default function LeadProfile() {
     } catch { /* silent */ }
   };
 
+  const createScreenshot = async () => {
+    if (!profile?.lead?.website_url) { setScreenshotError('Keine Website-URL hinterlegt'); return; }
+    setScreenshotLoading(true);
+    setScreenshotError('');
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/leads/${leadId}/screenshot`);
+      if (res.data.success && res.data.screenshot_url) {
+        setProfile((prev) => prev ? { ...prev, lead: { ...prev.lead, website_screenshot: res.data.screenshot_url } } : prev);
+      } else {
+        setScreenshotError(res.data.detail || 'Screenshot konnte nicht erstellt werden');
+      }
+    } catch (e) {
+      setScreenshotError(e.response?.data?.detail || 'Verbindungsfehler');
+    } finally {
+      setScreenshotLoading(false);
+    }
+  };
+
   const refreshScreenshot = async () => {
     if (!profile?.lead?.website_url) return;
     await fetchLatestScreenshot();
     if (!profile?.lead?.website_screenshot) {
-      try {
-        await axios.post(`${API_BASE_URL}/api/leads/${leadId}/screenshot`);
-        toast.success('Screenshot wird erstellt...');
-        setTimeout(() => loadProfile(), 10000);
-      } catch { /* silent */ }
+      await createScreenshot();
     }
   };
 
@@ -243,13 +259,54 @@ export default function LeadProfile() {
             )}
           </div>
         </div>
-      ) : lead.website_url ? (
-        <div onClick={() => !auditRunning && startAuditFromProfile()} style={{ background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: 12, padding: 32, textAlign: 'center', marginBottom: 16, color: '#64748b', fontSize: 14, cursor: auditRunning ? 'default' : 'pointer', transition: 'border-color 0.2s' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🖥️</div>
-          <div style={{ fontWeight: 600, color: '#475569', marginBottom: 6 }}>Kein Screenshot vorhanden</div>
-          <div style={{ fontSize: 12 }}>{auditRunning ? 'Audit laeuft...' : 'Klicken um Audit zu starten'}</div>
+      ) : (
+        <div style={{ marginBottom: 16, borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+          {/* Browser chrome for placeholder too */}
+          {lead.website_url && (
+            <div style={{ background: '#f1f5f9', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid #e2e8f0' }}>
+              {['#ef4444', '#f59e0b', '#22c55e'].map((c) => <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />)}
+              <div style={{ flex: 1, background: '#fff', borderRadius: 6, padding: '3px 10px', fontSize: 11, color: '#64748b', marginLeft: 6, border: '1px solid #e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {lead.website_url || 'Keine Website'}
+              </div>
+            </div>
+          )}
+          <div
+            onClick={screenshotLoading ? undefined : lead.website_url ? createScreenshot : undefined}
+            style={{
+              background: screenshotLoading ? '#f0f7ff' : '#f8fafc', padding: '40px 24px', textAlign: 'center',
+              cursor: screenshotLoading ? 'default' : lead.website_url ? 'pointer' : 'default',
+              minHeight: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+              transition: 'background 0.2s',
+            }}
+          >
+            {screenshotLoading ? (
+              <>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid #bae6fd', borderTopColor: '#008EAA', animation: 'spin 0.9s linear infinite', marginBottom: 4 }} />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0F1E3A' }}>Screenshot wird erstellt...</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>{lead.website_url}</div>
+                <div style={{ fontSize: 11, color: '#64748b' }}>Dauert ca. 10-15 Sekunden</div>
+              </>
+            ) : lead.website_url ? (
+              <>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, marginBottom: 4 }}>📸</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0F1E3A' }}>Kein Screenshot vorhanden</div>
+                <div style={{ fontSize: 12, color: '#008EAA', fontWeight: 600 }}>Klicken um Screenshot zu erstellen</div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 32 }}>🌐</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#475569' }}>Keine Website hinterlegt</div>
+              </>
+            )}
+          </div>
+          {screenshotError && (
+            <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', padding: '10px 14px', fontSize: 12, color: '#c0392b', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>{screenshotError}</span>
+              <button onClick={() => setScreenshotError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#c0392b', fontSize: 14, padding: 0 }}>✕</button>
+            </div>
+          )}
         </div>
-      ) : null}
+      )}
 
       {/* ── Header Card ── */}
       <div style={{

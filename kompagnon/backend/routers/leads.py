@@ -17,8 +17,16 @@ import csv
 import io
 import json
 import os
+import uuid
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
+
+# In-memory job tracking for domain imports
+import_jobs = {}
+
+
+class DomainsTextInput(BaseModel):
+    domains_text: str
 
 
 class LeadCreate(BaseModel):
@@ -232,6 +240,180 @@ def check_domains(data: dict, db: Session = Depends(get_db)):
         'existing_count': sum(1 for r in results if r['exists']),
         'total': len(results),
     }
+
+
+def _extract_domains(text: str) -> list:
+    """Extract valid domains from text (one per line, comma or semicolon separated)."""
+    import re
+    domains = []
+    seen = set()
+    for line in re.split(r'[\n,;]', text):
+        cell = line.strip().strip('"').strip("'")
+        clean = re.sub(r'^https?://', '', cell).replace('www.', '').split('/')[0].lower()
+        if re.match(r'^[a-z0-9][a-z0-9\-\.]+\.[a-z]{2,}$', clean) and clean not in seen:
+            domains.append(f'https://{clean}')
+            seen.add(clean)
+    return domains
+
+
+@router.post("/import/domains/text")
+async def import_domains_text(
+    data: DomainsTextInput,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """Import domains from text input — runs audit + impressum extraction in background."""
+    domains = _extract_domains(data.domains_text)
+    if not domains:
+        raise HTTPException(400, "Keine gültigen Domains gefunden")
+    domains = domains[:50]
+    job_id = str(uuid.uuid4())[:8]
+    import_jobs[job_id] = {
+        'status': 'running', 'total': len(domains),
+        'processed': 0, 'results': [],
+        'started_at': str(datetime.utcnow())[:19],
+    }
+
+    async def run():
+        from database import SessionLocal
+        _db = SessionLocal()
+        try:
+            for i, url in enumerate(domains):
+                clean = url.replace('https://', '').replace('http://', '')
+                existing = _db.query(Lead).filter(Lead.website_url.ilike(f'%{clean}%')).first()
+                result = {'url': url, 'status': 'already_exists' if existing else 'created',
+                          'lead_id': existing.id if existing else None,
+                          'company_name': (existing.company_name if existing else None),
+                          'audit_status': 'skipped', 'impressum_status': 'skipped', 'score': None}
+                if not existing:
+                    lead = Lead(company_name=clean, website_url=url, status='new', lead_source='domain_import')
+                    _db.add(lead)
+                    _db.commit()
+                    _db.refresh(lead)
+                    result['lead_id'] = lead.id
+                    # Try audit
+                    try:
+                        import httpx
+                        async with httpx.AsyncClient(timeout=60) as client:
+                            audit_base = os.getenv('API_BASE_URL', 'http://localhost:8000')
+                            r = await client.post(f'{audit_base}/api/audit/start',
+                                json={'website_url': url, 'lead_id': lead.id, 'company_name': clean})
+                            if r.status_code == 200:
+                                aid = r.json().get('audit_id') or r.json().get('id')
+                                if aid:
+                                    import asyncio
+                                    for _ in range(30):
+                                        await asyncio.sleep(4)
+                                        pr = await client.get(f'{audit_base}/api/audit/{aid}')
+                                        if pr.status_code == 200:
+                                            pd = pr.json()
+                                            if pd.get('status') == 'completed':
+                                                result['audit_status'] = 'completed'
+                                                result['score'] = pd.get('total_score')
+                                                result['company_name'] = pd.get('company_name') or clean
+                                                break
+                                            elif pd.get('status') == 'failed':
+                                                result['audit_status'] = 'failed'
+                                                break
+                    except Exception:
+                        result['audit_status'] = 'failed'
+                    # Try impressum
+                    try:
+                        from services.impressum_scraper import extract_contact_from_impressum
+                        imp = await extract_contact_from_impressum(url)
+                        if imp.get('success'):
+                            data_imp = imp['data']
+                            _db.refresh(lead)
+                            for field, val in data_imp.items():
+                                if hasattr(lead, field) and not getattr(lead, field):
+                                    setattr(lead, field, val)
+                            _db.commit()
+                            result['impressum_status'] = 'completed'
+                            result['company_name'] = data_imp.get('company_name') or result['company_name']
+                    except Exception:
+                        result['impressum_status'] = 'failed'
+                import_jobs[job_id]['results'].append(result)
+                import_jobs[job_id]['processed'] = i + 1
+            import_jobs[job_id]['status'] = 'done'
+        except Exception as e:
+            import_jobs[job_id]['status'] = 'error'
+            import_jobs[job_id]['error'] = str(e)
+        finally:
+            _db.close()
+
+    import asyncio
+    asyncio.ensure_future(run())
+
+    return {
+        'job_id': job_id, 'total_domains': len(domains),
+        'domains_preview': domains[:5],
+        'message': f'{len(domains)} Domains werden verarbeitet',
+    }
+
+
+@router.post("/import/domains/file")
+async def import_domains_file(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """Import domains from CSV file upload."""
+    content = await file.read()
+    text = content.decode('utf-8', errors='ignore')
+    domains = _extract_domains(text)
+    if not domains:
+        raise HTTPException(400, "Keine gültigen Domains in der Datei gefunden")
+    domains = domains[:50]
+    job_id = str(uuid.uuid4())[:8]
+    import_jobs[job_id] = {
+        'status': 'running', 'total': len(domains),
+        'processed': 0, 'results': [],
+        'started_at': str(datetime.utcnow())[:19],
+    }
+    # Reuse the same background logic by creating a text input
+    async def run():
+        # Delegate to the text import logic
+        from database import SessionLocal
+        _db = SessionLocal()
+        try:
+            for i, url in enumerate(domains):
+                clean = url.replace('https://', '').replace('http://', '')
+                existing = _db.query(Lead).filter(Lead.website_url.ilike(f'%{clean}%')).first()
+                result = {'url': url, 'status': 'already_exists' if existing else 'created',
+                          'lead_id': existing.id if existing else None,
+                          'company_name': (existing.company_name if existing else None),
+                          'audit_status': 'skipped', 'impressum_status': 'skipped', 'score': None}
+                if not existing:
+                    lead = Lead(company_name=clean, website_url=url, status='new', lead_source='domain_import')
+                    _db.add(lead)
+                    _db.commit()
+                    _db.refresh(lead)
+                    result['lead_id'] = lead.id
+                import_jobs[job_id]['results'].append(result)
+                import_jobs[job_id]['processed'] = i + 1
+            import_jobs[job_id]['status'] = 'done'
+        except Exception as e:
+            import_jobs[job_id]['status'] = 'error'
+            import_jobs[job_id]['error'] = str(e)
+        finally:
+            _db.close()
+
+    import asyncio
+    asyncio.ensure_future(run())
+
+    return {
+        'job_id': job_id, 'total_domains': len(domains),
+        'domains_preview': domains[:5],
+        'message': f'{len(domains)} Domains werden verarbeitet',
+    }
+
+
+@router.get("/import/domains/{job_id}/status")
+def get_import_status(job_id: str):
+    """Get status of a domain import job."""
+    if job_id not in import_jobs:
+        raise HTTPException(404, "Job nicht gefunden")
+    return import_jobs[job_id]
 
 
 @router.post("/enrich/all")

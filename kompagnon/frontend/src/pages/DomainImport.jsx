@@ -95,9 +95,9 @@ export default function DomainImport() {
       if (mode === 'csv' && file && importFilter === 'all') {
         const form = new FormData();
         form.append('file', file);
-        res = await fetch(`${API_BASE_URL}/api/leads/import/domains`, { method: 'POST', headers: h, body: form });
+        res = await fetch(`${API_BASE_URL}/api/leads/import/domains/file`, { method: 'POST', headers: h, body: form });
       } else {
-        res = await fetch(`${API_BASE_URL}/api/leads/import/domains`, {
+        res = await fetch(`${API_BASE_URL}/api/leads/import/domains/text`, {
           method: 'POST', headers: { ...h, 'Content-Type': 'application/json' },
           body: JSON.stringify({ domains_text: domainsText }),
         });

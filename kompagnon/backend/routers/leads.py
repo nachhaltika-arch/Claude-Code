@@ -7,6 +7,7 @@ POST /api/leads/{id}/convert - Convert to project
 """
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, BackgroundTasks
 from sqlalchemy.orm import Session
+from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db
@@ -33,10 +34,28 @@ class LeadCreate(BaseModel):
 
 
 class LeadUpdate(BaseModel):
-    status: str = None
-    analysis_score: int = None
-    geo_score: int = None
-    notes: str = None
+    company_name: Optional[str] = None
+    contact_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    website_url: Optional[str] = None
+    city: Optional[str] = None
+    trade: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    lead_source: Optional[str] = None
+    analysis_score: Optional[int] = None
+    geo_score: Optional[int] = None
+    display_name: Optional[str] = None
+    street: Optional[str] = None
+    house_number: Optional[str] = None
+    postal_code: Optional[str] = None
+    legal_form: Optional[str] = None
+    vat_id: Optional[str] = None
+    register_number: Optional[str] = None
+    register_court: Optional[str] = None
+    ceo_first_name: Optional[str] = None
+    ceo_last_name: Optional[str] = None
 
 
 class LeadResponse(BaseModel):
@@ -188,26 +207,22 @@ def get_lead(lead_id: int, db: Session = Depends(get_db)):
     return lead
 
 
-@router.patch("/{lead_id}", response_model=LeadResponse)
-def update_lead(lead_id: int, lead: LeadUpdate, db: Session = Depends(get_db)):
-    """Update a lead."""
+@router.patch("/{lead_id}")
+def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db)):
+    """Update a lead — saves all provided fields."""
     db_lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not db_lead:
-        raise HTTPException(status_code=404, detail="Lead not found")
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
-    if lead.status:
-        db_lead.status = lead.status
-    if lead.analysis_score is not None:
-        db_lead.analysis_score = lead.analysis_score
-    if lead.geo_score is not None:
-        db_lead.geo_score = lead.geo_score
-    if lead.notes:
-        db_lead.notes = lead.notes
+    update_fields = data.dict(exclude_none=True)
+    for field, value in update_fields.items():
+        if hasattr(db_lead, field):
+            setattr(db_lead, field, value)
 
     db_lead.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_lead)
-    return db_lead
+    return {"success": True, "id": db_lead.id}
 
 
 @router.delete("/{lead_id}")

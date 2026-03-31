@@ -102,7 +102,15 @@ export default function LeadProfile() {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/leads/${leadId}/profile`);
       setProfile(res.data);
-      setEditData(res.data.lead);
+      const ld = res.data.lead;
+      setEditData({
+        company_name: ld.company_name || '', contact_name: ld.contact_name || '', phone: ld.phone || '',
+        email: ld.email || '', website_url: ld.website_url || '', city: ld.city || '', trade: ld.trade || '',
+        notes: ld.notes || '', display_name: ld.display_name || '', street: ld.street || '',
+        house_number: ld.house_number || '', postal_code: ld.postal_code || '', legal_form: ld.legal_form || '',
+        vat_id: ld.vat_id || '', register_number: ld.register_number || '', register_court: ld.register_court || '',
+        ceo_first_name: ld.ceo_first_name || '', ceo_last_name: ld.ceo_last_name || '',
+      });
       if (!res.data.lead.website_screenshot) fetchLatestScreenshot();
     } catch (e) {
       toast.error('Profil konnte nicht geladen werden.');

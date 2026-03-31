@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.exc import OperationalError
 from decimal import Decimal
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./kompagnon.db")
@@ -16,7 +17,21 @@ if DATABASE_URL.startswith("postgres://"):
 if "sqlite" in DATABASE_URL:
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 else:
-    engine = create_engine(DATABASE_URL)
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        pool_recycle=600,
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        connect_args={
+            "connect_timeout": 10,
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 5,
+            "keepalives_count": 3,
+        },
+    )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -368,9 +383,16 @@ def init_db():
 
 
 def get_db():
-    """Dependency for getting DB session in FastAPI."""
+    """Dependency for getting DB session with retry on connection errors."""
     db = SessionLocal()
     try:
         yield db
+    except OperationalError:
+        db.close()
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
     finally:
         db.close()

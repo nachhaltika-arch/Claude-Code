@@ -247,17 +247,28 @@ app.include_router(tickets_router)
 # Health check endpoint
 @app.get("/health")
 def health_check():
-    """Check if backend is running."""
+    """Check if backend and database are running."""
+    from database import SessionLocal
+    db_status = "unknown"
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"error: {str(e)[:80]}"
+
     try:
         scheduler = get_scheduler()
         return {
-            "status": "ok",
+            "status": "ok" if db_status == "connected" else "degraded",
             "service": "KOMPAGNON Backend",
+            "database": db_status,
             "scheduler_running": scheduler.scheduler.running,
             "timestamp": os.popen("date").read().strip(),
         }
     except Exception as e:
-        return {"status": "error", "detail": str(e)}
+        return {"status": "degraded", "database": db_status, "detail": str(e)}
 
 
 @app.get("/")

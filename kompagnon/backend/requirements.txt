@@ -18,4 +18,3 @@ pyotp
 qrcode[pil]
 pillow
 stripe
-# playwright removed — using external screenshot APIs instead

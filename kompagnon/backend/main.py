@@ -8,11 +8,14 @@ Usage:
 import os
 import json
 import logging
+import traceback
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+
+logger = logging.getLogger(__name__)
 
 
 # Custom JSONResponse that does NOT escape Unicode (ä, ö, ü, ß, €)
@@ -242,6 +245,18 @@ app.include_router(scraper_router)
 app.include_router(settings_router)
 app.include_router(payments_router)
 app.include_router(tickets_router)
+
+
+# Global exception handler — catches unhandled errors
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.error(
+        f'Unbehandelter Fehler: {type(exc).__name__}: {exc}\n{traceback.format_exc()}'
+    )
+    return JSONResponse(
+        status_code=500,
+        content={'detail': 'Interner Serverfehler', 'type': type(exc).__name__},
+    )
 
 
 # Health check endpoint

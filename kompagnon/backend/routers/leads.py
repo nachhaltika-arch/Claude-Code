@@ -256,6 +256,81 @@ def _extract_domains(text: str) -> list:
     return domains
 
 
+async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict:
+    """Process a single domain — never raises, always returns a result dict."""
+    import asyncio as _aio
+    import logging as _log
+    _logger = _log.getLogger('domain_import')
+
+    result = {'url': url, 'status': 'created', 'lead_id': None, 'company_name': clean,
+              'audit_status': 'skipped', 'impressum_status': 'skipped', 'score': None}
+
+    # Duplicate check
+    existing = _db.query(Lead).filter(Lead.website_url.ilike(f'%{clean}%')).first()
+    if existing:
+        return {'url': url, 'status': 'already_exists', 'lead_id': existing.id,
+                'company_name': existing.company_name, 'score': existing.analysis_score,
+                'audit_status': 'skipped', 'impressum_status': 'skipped'}
+
+    # Create lead
+    lead = Lead(company_name=clean, website_url=url, status='new', lead_source='domain_import')
+    _db.add(lead)
+    _db.commit()
+    _db.refresh(lead)
+    result['lead_id'] = lead.id
+
+    # Audit — isolated, max 90s
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=90) as client:
+            audit_base = os.getenv('API_BASE_URL', 'http://localhost:8000')
+            r = await client.post(f'{audit_base}/api/audit/start',
+                json={'website_url': url, 'lead_id': lead.id, 'company_name': clean})
+            if r.status_code == 200:
+                aid = r.json().get('audit_id') or r.json().get('id')
+                if aid:
+                    for _ in range(20):
+                        await _aio.sleep(4)
+                        pr = await client.get(f'{audit_base}/api/audit/{aid}')
+                        if pr.status_code == 200:
+                            pd = pr.json()
+                            if pd.get('status') == 'completed':
+                                result['audit_status'] = 'completed'
+                                result['score'] = pd.get('total_score')
+                                result['company_name'] = pd.get('company_name') or clean
+                                break
+                            elif pd.get('status') == 'failed':
+                                result['audit_status'] = 'failed'
+                                break
+    except Exception as e:
+        _logger.warning(f'Audit Fehler {clean}: {type(e).__name__}: {e}')
+        result['audit_status'] = 'failed'
+
+    # Impressum — isolated, max 30s
+    try:
+        from services.impressum_scraper import extract_contact_from_impressum
+        imp = await _aio.wait_for(extract_contact_from_impressum(url), timeout=30.0)
+        if imp.get('success'):
+            data_imp = imp['data']
+            _db.refresh(lead)
+            for field, val in data_imp.items():
+                if hasattr(lead, field) and not getattr(lead, field):
+                    setattr(lead, field, val)
+            _db.commit()
+            result['impressum_status'] = 'completed'
+            result['company_name'] = data_imp.get('company_name') or result['company_name']
+        else:
+            result['impressum_status'] = 'failed'
+    except _aio.TimeoutError:
+        _logger.warning(f'Impressum Timeout: {clean}')
+        result['impressum_status'] = 'timeout'
+    except Exception as e:
+        _logger.warning(f'Impressum Fehler {clean}: {type(e).__name__}: {e}')
+        result['impressum_status'] = 'failed'
+
+    return result
+
+
 @router.post("/import/domains/text")
 async def import_domains_text(
     data: DomainsTextInput,
@@ -274,72 +349,39 @@ async def import_domains_text(
         'started_at': str(datetime.utcnow())[:19],
     }
 
+    import logging as _log
+    _logger = _log.getLogger('domain_import')
+
     async def run():
+        import asyncio as _aio
+        import traceback as _tb
         from database import SessionLocal
         _db = SessionLocal()
         try:
+            _logger.info(f'Import {job_id}: Starte {len(domains)} Domains')
             for i, url in enumerate(domains):
                 clean = url.replace('https://', '').replace('http://', '')
-                existing = _db.query(Lead).filter(Lead.website_url.ilike(f'%{clean}%')).first()
-                result = {'url': url, 'status': 'already_exists' if existing else 'created',
-                          'lead_id': existing.id if existing else None,
-                          'company_name': (existing.company_name if existing else None),
-                          'audit_status': 'skipped', 'impressum_status': 'skipped', 'score': None}
-                if not existing:
-                    lead = Lead(company_name=clean, website_url=url, status='new', lead_source='domain_import')
-                    _db.add(lead)
-                    _db.commit()
-                    _db.refresh(lead)
-                    result['lead_id'] = lead.id
-                    # Try audit
-                    try:
-                        import httpx
-                        async with httpx.AsyncClient(timeout=60) as client:
-                            audit_base = os.getenv('API_BASE_URL', 'http://localhost:8000')
-                            r = await client.post(f'{audit_base}/api/audit/start',
-                                json={'website_url': url, 'lead_id': lead.id, 'company_name': clean})
-                            if r.status_code == 200:
-                                aid = r.json().get('audit_id') or r.json().get('id')
-                                if aid:
-                                    import asyncio
-                                    for _ in range(30):
-                                        await asyncio.sleep(4)
-                                        pr = await client.get(f'{audit_base}/api/audit/{aid}')
-                                        if pr.status_code == 200:
-                                            pd = pr.json()
-                                            if pd.get('status') == 'completed':
-                                                result['audit_status'] = 'completed'
-                                                result['score'] = pd.get('total_score')
-                                                result['company_name'] = pd.get('company_name') or clean
-                                                break
-                                            elif pd.get('status') == 'failed':
-                                                result['audit_status'] = 'failed'
-                                                break
-                    except Exception:
-                        result['audit_status'] = 'failed'
-                    # Try impressum
-                    try:
-                        from services.impressum_scraper import extract_contact_from_impressum
-                        imp = await extract_contact_from_impressum(url)
-                        if imp.get('success'):
-                            data_imp = imp['data']
-                            _db.refresh(lead)
-                            for field, val in data_imp.items():
-                                if hasattr(lead, field) and not getattr(lead, field):
-                                    setattr(lead, field, val)
-                            _db.commit()
-                            result['impressum_status'] = 'completed'
-                            result['company_name'] = data_imp.get('company_name') or result['company_name']
-                    except Exception:
-                        result['impressum_status'] = 'failed'
+                # Per-domain error isolation
+                try:
+                    result = await _process_single_domain(url, clean, _db, job_id)
+                except Exception as domain_err:
+                    _logger.error(f'Domain {clean} komplett fehlgeschlagen: {type(domain_err).__name__}: {domain_err}')
+                    result = {'url': url, 'status': 'error', 'error': str(domain_err),
+                              'audit_status': 'failed', 'impressum_status': 'failed', 'score': None}
                 import_jobs[job_id]['results'].append(result)
                 import_jobs[job_id]['processed'] = i + 1
+                await _aio.sleep(1)
             import_jobs[job_id]['status'] = 'done'
+            _logger.info(f'Import {job_id}: Fertig — {len(domains)} Domains verarbeitet')
         except Exception as e:
+            _logger.error(f'Import {job_id} Fehler: {type(e).__name__}: {e}\n{_tb.format_exc()}')
             import_jobs[job_id]['status'] = 'error'
-            import_jobs[job_id]['error'] = str(e)
+            import_jobs[job_id]['error'] = f'{type(e).__name__}: {str(e)}'
         finally:
-            _db.close()
+            try:
+                _db.close()
+            except Exception:
+                pass
 
     import asyncio
     asyncio.ensure_future(run())
@@ -370,33 +412,38 @@ async def import_domains_file(
         'processed': 0, 'results': [],
         'started_at': str(datetime.utcnow())[:19],
     }
-    # Reuse the same background logic by creating a text input
+    import logging as _log
+    _logger = _log.getLogger('domain_import')
+
     async def run():
-        # Delegate to the text import logic
+        import asyncio as _aio
+        import traceback as _tb
         from database import SessionLocal
         _db = SessionLocal()
         try:
+            _logger.info(f'File Import {job_id}: Starte {len(domains)} Domains')
             for i, url in enumerate(domains):
                 clean = url.replace('https://', '').replace('http://', '')
-                existing = _db.query(Lead).filter(Lead.website_url.ilike(f'%{clean}%')).first()
-                result = {'url': url, 'status': 'already_exists' if existing else 'created',
-                          'lead_id': existing.id if existing else None,
-                          'company_name': (existing.company_name if existing else None),
-                          'audit_status': 'skipped', 'impressum_status': 'skipped', 'score': None}
-                if not existing:
-                    lead = Lead(company_name=clean, website_url=url, status='new', lead_source='domain_import')
-                    _db.add(lead)
-                    _db.commit()
-                    _db.refresh(lead)
-                    result['lead_id'] = lead.id
+                try:
+                    result = await _process_single_domain(url, clean, _db, job_id)
+                except Exception as domain_err:
+                    _logger.error(f'Domain {clean} fehlgeschlagen: {domain_err}')
+                    result = {'url': url, 'status': 'error', 'error': str(domain_err),
+                              'audit_status': 'failed', 'impressum_status': 'failed', 'score': None}
                 import_jobs[job_id]['results'].append(result)
                 import_jobs[job_id]['processed'] = i + 1
+                await _aio.sleep(1)
             import_jobs[job_id]['status'] = 'done'
+            _logger.info(f'File Import {job_id}: Fertig')
         except Exception as e:
+            _logger.error(f'File Import {job_id} Fehler: {type(e).__name__}: {e}\n{_tb.format_exc()}')
             import_jobs[job_id]['status'] = 'error'
-            import_jobs[job_id]['error'] = str(e)
+            import_jobs[job_id]['error'] = f'{type(e).__name__}: {str(e)}'
         finally:
-            _db.close()
+            try:
+                _db.close()
+            except Exception:
+                pass
 
     import asyncio
     asyncio.ensure_future(run())

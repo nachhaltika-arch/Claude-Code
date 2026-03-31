@@ -145,33 +145,6 @@ def _create_default_admin():
         db.close()
 
 
-def _install_playwright():
-    """Install Playwright Chromium if not already present."""
-    import subprocess, sys, glob
-    try:
-        cache = os.path.expanduser("~/.cache/ms-playwright")
-        if os.path.exists(cache) and glob.glob(cache + "/**/chrome*", recursive=True):
-            logger.info("✓ Playwright Chromium already installed")
-            return
-        logger.info("Installing Playwright Chromium...")
-        result = subprocess.run(
-            [sys.executable, "-m", "playwright", "install", "chromium"],
-            capture_output=True, text=True, timeout=300,
-        )
-        if result.returncode == 0:
-            logger.info("✓ Playwright Chromium installed")
-        else:
-            logger.warning(f"⚠ Playwright install stderr: {result.stderr[:300]}")
-        subprocess.run(
-            [sys.executable, "-m", "playwright", "install-deps", "chromium"],
-            capture_output=True, text=True, timeout=180,
-        )
-    except subprocess.TimeoutExpired:
-        logger.warning("⚠ Playwright install timeout (300s)")
-    except Exception as e:
-        logger.warning(f"⚠ Playwright install skipped: {e}")
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown events."""

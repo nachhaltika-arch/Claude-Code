@@ -28,15 +28,12 @@ export default function SalesPipeline() {
 
   const loadLeads = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/leads/?limit=500`, { headers: h });
-      console.log('Leads API Response Status:', res.status);
+      const res = await fetch(`${API_BASE_URL}/api/leads/`, { headers: h });
       const data = await res.json();
-      console.log('Leads geladen:', data);
       const salesLeads = Array.isArray(data) ? data : [];
-      console.log('Sales Leads:', salesLeads.length);
       setLeads(salesLeads);
     } catch (e) {
-      console.error('Leads laden Fehler:', e);
+      console.error('loadLeads Fehler:', e);
     } finally {
       setLoading(false);
     }

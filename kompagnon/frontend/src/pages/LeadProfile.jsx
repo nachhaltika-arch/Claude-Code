@@ -7,6 +7,7 @@ import Button from '../components/ui/Button';
 import HomepageChecklist from '../components/HomepageChecklist';
 import SecurityChecklist from '../components/SecurityChecklist';
 import AuditReport from '../components/AuditReport';
+import OfferTab from '../components/OfferTab';
 import API_BASE_URL from '../config';
 
 function useScreenWidth() {
@@ -46,6 +47,7 @@ const TABS = [
   { id: 'contact', label: 'Kontakt', icon: '👤' },
   { id: 'audits', label: 'Audits', icon: '✓' },
   { id: 'checklists', label: 'Checklisten', icon: '📋' },
+  { id: 'offer', label: 'Angebot', icon: '📄' },
   { id: 'qrcode', label: 'Zugang', icon: '📲' },
 ];
 
@@ -880,6 +882,11 @@ export default function LeadProfile() {
           <HomepageChecklist auditData={latestAudit} />
           <SecurityChecklist auditData={latestAudit} />
         </div>
+      )}
+
+      {/* ANGEBOT TAB */}
+      {activeTab === 'offer' && (
+        <OfferTab lead={lead} currentScore={current_score} currentLevel={current_level} isMobile={isMobile} />
       )}
 
       {/* QR-CODE TAB */}

@@ -25,6 +25,7 @@ const AREAS = {
     label: 'Quality', icon: '✅', color: '#059669',
     items: [
       { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
+      { label: 'Support Tickets', path: '/app/tickets', icon: '🎫' },
       { label: 'Checklisten', path: '/app/checklists', icon: '📝' },
     ],
   },

@@ -113,9 +113,7 @@ export default function LeadProfile() {
 
   const saveEdit = async () => {
     try {
-      await axios.patch(`${API_BASE_URL}/api/leads/${leadId}`, {
-        notes: editData.notes,
-      });
+      await axios.patch(`${API_BASE_URL}/api/leads/${leadId}`, editData);
       toast.success('Gespeichert');
       setEditMode(false);
       loadProfile();
@@ -330,7 +328,8 @@ export default function LeadProfile() {
           <div style={{ fontSize: 11, color: '#D4A017', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 6 }}>
             Kundenkartei
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800, marginBottom: 8 }}>{lead.company_name}</div>
+          <div style={{ fontSize: 26, fontWeight: 800, marginBottom: 4 }}>{lead.display_name || lead.company_name}</div>
+          {lead.display_name && lead.display_name !== lead.company_name && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>{lead.company_name}{lead.legal_form ? ` ${lead.legal_form}` : ''}</div>}
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <span>{lead.trade}</span>
             {lead.city && <span>📍 {lead.city}</span>}
@@ -358,50 +357,59 @@ export default function LeadProfile() {
       }}>
         {/* Contact */}
         <div style={{ padding: isMobile ? '16px' : '24px 28px', borderRight: isMobile ? 'none' : '1px solid #eef0f8' }}>
-          <SectionLabel>Kontaktdaten</SectionLabel>
+          <SectionLabel>Stammdaten</SectionLabel>
           {editMode ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[['Ansprechpartner', 'contact_name'], ['Telefon', 'phone'], ['E-Mail', 'email'], ['Website', 'website_url'], ['Stadt', 'city'], ['Notiz', 'notes']].map(([label, field]) => (
-                <div key={field}>
-                  <div style={{ fontSize: 11, color: '#5a6878', marginBottom: 3 }}>{label}</div>
-                  {field === 'notes' ? (
-                    <textarea
-                      value={editData[field] || ''}
-                      onChange={(e) => setEditData((p) => ({ ...p, [field]: e.target.value }))}
-                      rows={3}
-                      style={{ width: '100%', padding: '7px 10px', border: '1.5px solid #d4d8e8', borderRadius: 6, fontSize: 13, boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
-                    />
-                  ) : (
-                    <input
-                      value={editData[field] || ''}
-                      onChange={(e) => setEditData((p) => ({ ...p, [field]: e.target.value }))}
-                      style={{ width: '100%', padding: '7px 10px', border: '1.5px solid #d4d8e8', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
-                    />
-                  )}
-                </div>
-              ))}
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                <button onClick={saveEdit} style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', flex: 1 }}>
-                  Speichern
-                </button>
-                <button onClick={() => setEditMode(false)} style={{ background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}>
-                  Abbrechen
-                </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <SubLbl>Unternehmen</SubLbl>
+              <EI l="Firmenname" f="company_name" d={editData} s={setEditData} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <EI l="Gesellschaftsform" f="legal_form" d={editData} s={setEditData} ph="GmbH" />
+                <EI l="Karteiname" f="display_name" d={editData} s={setEditData} ph="Anzeigename" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <EI l="GF Vorname" f="ceo_first_name" d={editData} s={setEditData} />
+                <EI l="GF Nachname" f="ceo_last_name" d={editData} s={setEditData} />
+              </div>
+              <SubLbl>Adresse</SubLbl>
+              <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 8 }}>
+                <EI l="Strasse" f="street" d={editData} s={setEditData} />
+                <EI l="Nr." f="house_number" d={editData} s={setEditData} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 8 }}>
+                <EI l="PLZ" f="postal_code" d={editData} s={setEditData} />
+                <EI l="Ort" f="city" d={editData} s={setEditData} />
+              </div>
+              <SubLbl>Kontakt</SubLbl>
+              {[['Ansprechpartner', 'contact_name'], ['Telefon', 'phone'], ['E-Mail', 'email'], ['Website', 'website_url'], ['Gewerk', 'trade']].map(([l, f]) => <EI key={f} l={l} f={f} d={editData} s={setEditData} />)}
+              <SubLbl>Rechtliches</SubLbl>
+              {[['USt-IdNr.', 'vat_id', 'DE123456789'], ['Handelsreg.-Nr.', 'register_number', 'HRB 12345'], ['Registergericht', 'register_court', 'AG Koblenz']].map(([l, f, p]) => <EI key={f} l={l} f={f} d={editData} s={setEditData} ph={p} />)}
+              <div><div style={{ fontSize: 11, color: '#5a6878', marginBottom: 3 }}>Notizen</div>
+                <textarea value={editData.notes || ''} onChange={(e) => setEditData((p) => ({ ...p, notes: e.target.value }))} rows={3} style={{ width: '100%', padding: '7px 10px', border: '1.5px solid #d4d8e8', borderRadius: 6, fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }} />
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <button onClick={saveEdit} style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', flex: 2, minHeight: 44 }}>Speichern</button>
+                <button onClick={() => setEditMode(false)} style={{ background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, cursor: 'pointer', flex: 1, minHeight: 44 }}>Abbrechen</button>
               </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[['👤', lead.contact_name], ['📞', lead.phone], ['✉️', lead.email], ['🌐', lead.website_url], ['📍', lead.city], ['🔧', lead.trade], ['📅', lead.created_at ? `Seit ${lead.created_at}` : '']].filter(([, v]) => v).map(([icon, value], i) => (
-                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 14, color: NAVY }}>
-                  <span style={{ fontSize: 16 }}>{icon}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {[['🏢', [lead.company_name, lead.legal_form].filter(Boolean).join(' ')], ['👔', [lead.ceo_first_name, lead.ceo_last_name].filter(Boolean).join(' ')], ['👤', lead.contact_name], ['📞', lead.phone], ['✉️', lead.email], ['🌐', lead.website_url],
+                ['📍', [lead.street, lead.house_number].filter(Boolean).join(' ') + (lead.street ? ', ' : '') + [lead.postal_code, lead.city].filter(Boolean).join(' ')],
+                ['🔧', lead.trade], ['📅', lead.created_at ? `Seit ${lead.created_at}` : '']
+              ].filter(([, v]) => v && v.trim()).map(([icon, value], i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: NAVY }}>
+                  <span style={{ fontSize: 15, flexShrink: 0 }}>{icon}</span>
                   <span>{value}</span>
                 </div>
               ))}
-              {lead.notes && (
-                <div style={{ background: '#f8f9fc', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#4a5a74', marginTop: 8, fontStyle: 'italic' }}>
-                  {lead.notes}
+              {(lead.vat_id || lead.register_number) && (
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 6, marginTop: 4 }}>
+                  {lead.vat_id && <div style={{ fontSize: 12, color: '#64748b' }}>USt-IdNr.: {lead.vat_id}</div>}
+                  {lead.register_number && <div style={{ fontSize: 12, color: '#64748b' }}>HR: {lead.register_number} {lead.register_court}</div>}
                 </div>
               )}
+              {lead.notes && <div style={{ background: '#f8f9fc', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#4a5a74', marginTop: 6, fontStyle: 'italic' }}>{lead.notes}</div>}
+              <button onClick={() => setEditMode(true)} style={{ marginTop: 8, width: '100%', padding: 8, background: '#f1f5f9', color: NAVY, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>Daten bearbeiten</button>
             </div>
           )}
         </div>
@@ -606,11 +614,21 @@ export default function LeadProfile() {
 
 function SectionLabel({ children }) {
   return (
-    <div style={{
-      fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-      letterSpacing: '0.1em', color: '#5a6878', marginBottom: 16,
-    }}>
+    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#5a6878', marginBottom: 16 }}>
       {children}
+    </div>
+  );
+}
+
+function SubLbl({ children }) {
+  return <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 6 }}>{children}</div>;
+}
+
+function EI({ l, f, d, s, ph = '' }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: '#5a6878', marginBottom: 3 }}>{l}</div>
+      <input value={d[f] || ''} onChange={(e) => s((p) => ({ ...p, [f]: e.target.value }))} placeholder={ph} style={{ width: '100%', padding: '7px 10px', border: '1.5px solid #d4d8e8', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }} />
     </div>
   );
 }

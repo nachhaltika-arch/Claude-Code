@@ -39,6 +39,21 @@ class Lead(Base):
     geo_score = Column(Integer, default=0)  # 0-100
     notes = Column(Text)
     website_screenshot = Column(Text, default="")
+
+    # Address
+    street = Column(String(255), default="")
+    house_number = Column(String(20), default="")
+    postal_code = Column(String(10), default="")
+
+    # Company details
+    legal_form = Column(String(50), default="")
+    vat_id = Column(String(30), default="")
+    register_number = Column(String(50), default="")
+    register_court = Column(String(100), default="")
+    ceo_first_name = Column(String(100), default="")
+    ceo_last_name = Column(String(100), default="")
+    display_name = Column(String(255), default="")
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

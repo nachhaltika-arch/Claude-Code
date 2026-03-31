@@ -24,7 +24,7 @@ const SIZES = {
   md: { padding: '7px 16px', fontSize: 13 },
 };
 
-export default function Button({ variant = 'primary', size = 'md', onClick, children, style, ...props }) {
+export default function Button({ variant = 'primary', size = 'md', fullWidth, onClick, children, style, ...props }) {
   const v = VARIANTS[variant] || VARIANTS.primary;
   const s = SIZES[size] || SIZES.md;
   return (
@@ -36,11 +36,13 @@ export default function Button({ variant = 'primary', size = 'md', onClick, chil
         borderRadius: 'var(--radius-md)', fontWeight: 500,
         cursor: 'pointer', fontFamily: 'var(--font-sans)',
         transition: 'background 0.15s, opacity 0.15s',
-        minHeight: size === 'sm' ? 32 : 36,
+        minHeight: size === 'sm' ? 32 : 44,
+        width: fullWidth ? '100%' : undefined,
+        opacity: props.disabled ? 0.6 : 1,
         ...s, ...style,
       }}
-      onMouseEnter={e => e.currentTarget.style.background = v.hoverBg}
-      onMouseLeave={e => e.currentTarget.style.background = v.background}
+      onMouseEnter={e => { if (!props.disabled) e.currentTarget.style.background = v.hoverBg; }}
+      onMouseLeave={e => { if (!props.disabled) e.currentTarget.style.background = v.background; }}
       {...props}
     >
       {children}

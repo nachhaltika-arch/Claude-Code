@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 import PricingSection from '../components/PricingSection';
+import AuditHook from '../components/AuditHook';
 
 
 const A = '#D4A017';
@@ -48,8 +49,8 @@ export default function Landing() {
             <Btn onClick={() => go('kompagnon')} primary>Jetzt Webseite anfragen</Btn>
             <Btn onClick={() => nav('/audit')} ghost>Kostenlose Analyse</Btn>
           </div>
-          <a href="#pakete" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 28px', background: '#008eaa', color: 'white', borderRadius: 10, fontSize: 14, fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit', marginTop: 8 }}>
-            Pakete & Preise ansehen ↓
+          <a href="#gratis-audit" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', background: '#008eaa', color: 'white', borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit', marginTop: 8 }}>
+            🔍 Gratis Website-Audit starten →
           </a>
         </div>
         <div style={{ textAlign: 'center', paddingBottom: 24, color: 'rgba(255,255,255,0.3)', fontSize: 24, animation: 'bounce 2s infinite' }}>v</div>
@@ -84,6 +85,10 @@ export default function Landing() {
           ))}
         </div>
       </section>
+
+      {/* ── PREISE ── */}
+      {/* ── GRATIS AUDIT ── */}
+      <AuditHook />
 
       {/* ── PREISE ── */}
       <PricingSection />

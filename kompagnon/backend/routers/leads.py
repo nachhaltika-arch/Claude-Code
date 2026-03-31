@@ -481,6 +481,35 @@ async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depe
     return {"message": "Anreicherung gestartet", "status": "processing"}
 
 
+# ── Public lead creation (no auth — used by landing page audit) ──
+
+@router.post("/public")
+async def create_public_lead(data: dict, db: Session = Depends(get_db)):
+    """Public endpoint for landing page audit — creates lead without login."""
+    website_url = data.get('website_url', '').strip()
+    email_addr = data.get('email', '').strip()
+    if not website_url:
+        raise HTTPException(400, "Website-URL fehlt")
+    if not website_url.startswith('http'):
+        website_url = 'https://' + website_url
+
+    domain = website_url.replace('https://', '').replace('http://', '').replace('www.', '').split('/')[0]
+    from sqlalchemy import or_
+    existing = db.query(Lead).filter(or_(Lead.website_url.ilike(f'%{domain}%'))).first()
+    if existing:
+        if email_addr and not existing.email:
+            existing.email = email_addr
+            db.commit()
+        return {'id': existing.id}
+
+    lead = Lead(website_url=website_url, email=email_addr, company_name=domain,
+                status='new', lead_source=data.get('lead_source', 'landing_audit'))
+    db.add(lead)
+    db.commit()
+    db.refresh(lead)
+    return {'id': lead.id}
+
+
 # ── Portal routes (public, no auth) ──────────────────────
 
 @router.get("/portal/{token}")

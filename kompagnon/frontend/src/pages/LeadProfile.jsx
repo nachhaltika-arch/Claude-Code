@@ -350,7 +350,7 @@ export default function LeadProfile() {
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: 12 }}>
       <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
-      <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Kundenkartei wird geladen...</span>
+      <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Kontaktkartei wird geladen...</span>
     </div>
   );
 
@@ -362,6 +362,8 @@ export default function LeadProfile() {
   const latestAudit = audits[0] || null;
   const levelColor = current_level ? LEVEL_COLORS[current_level] : 'var(--text-tertiary)';
   const [statusVariant, statusLabel] = STATUS_MAP[lead.status] || ['neutral', lead.status];
+  const isCustomer = lead.status === 'won' || lead.lead_source === 'stripe_checkout' || lead.lead_source === 'llm_landing';
+  const karteiLabel = isCustomer ? 'Kundenkartei' : 'Kontaktkartei';
   const improvement = score_history.length >= 2
     ? score_history[score_history.length - 1].score - score_history[0].score
     : null;
@@ -380,7 +382,7 @@ export default function LeadProfile() {
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
-              Kundenkartei
+              {karteiLabel}
             </div>
 
             {editingName ? (

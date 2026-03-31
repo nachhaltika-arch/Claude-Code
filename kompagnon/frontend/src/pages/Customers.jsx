@@ -46,7 +46,7 @@ export default function Customers() {
 
   return (
     <div>
-      <h2 className="mb-3"><i className="fas fa-address-book me-2"></i>Kundenkartei</h2>
+      <h2 className="mb-3"><i className="fas fa-address-book me-2"></i>Kontaktkartei</h2>
 
       {/* Filter Bar */}
       <div className="row g-2 mb-3">

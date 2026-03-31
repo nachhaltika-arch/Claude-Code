@@ -114,7 +114,7 @@ export default function SalesPipeline() {
                           <div className="dropdown">
                             <button className="btn btn-link btn-sm text-muted p-0" data-bs-toggle="dropdown"><i className="fas fa-ellipsis"></i></button>
                             <ul className="dropdown-menu dropdown-menu-end">
-                              <li><button className="dropdown-item small" onClick={() => navigate(`/app/leads/${lead.id}`)}><i className="fas fa-address-book me-2"></i>Kundenkartei</button></li>
+                              <li><button className="dropdown-item small" onClick={() => navigate(`/app/leads/${lead.id}`)}><i className="fas fa-address-book me-2"></i>Kontaktkartei</button></li>
                               <li><button className="dropdown-item small" onClick={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}><i className="fas fa-magnifying-glass me-2"></i>Audit</button></li>
                               <li><hr className="dropdown-divider" /></li>
                               <li><span className="dropdown-header">Status ändern</span></li>

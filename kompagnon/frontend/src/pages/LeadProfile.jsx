@@ -6,6 +6,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as ReTooltip, CartesianGrid,
 } from 'recharts';
 import AuditReport from '../components/AuditReport';
+import HomepageChecklist from '../components/HomepageChecklist';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
 
@@ -446,6 +447,9 @@ export default function LeadProfile() {
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* ── Homepage Checklist ── */}
+      <HomepageChecklist auditData={audits?.[0] || null} />
 
       {/* ── Audit Progress ── */}
       {auditRunning && (

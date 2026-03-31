@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { label: 'Vertriebspipeline', path: '/app/sales', icon: 'fas fa-bars-progress' },
   { label: 'Projektpipeline', path: '/app/leads', icon: 'fas fa-diagram-project' },
   { label: 'Domain Import', path: '/app/import', icon: 'fas fa-cloud-arrow-up' },
+  { label: 'Export', path: '/app/export', icon: 'fas fa-file-export' },
   { label: 'Website Audit', path: '/app/audit', icon: 'fas fa-magnifying-glass-chart' },
   { label: 'Kunden', path: '/app/customers', icon: 'fas fa-address-book' },
   { label: 'Kundenprojekte', path: '/app/projects', icon: 'fas fa-folder-open' },

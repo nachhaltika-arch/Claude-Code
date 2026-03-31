@@ -120,30 +120,57 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
     return db_lead
 
 
-@router.get("/", response_model=list[LeadResponse])
+@router.get("/")
 def list_leads(
     status: str = Query(None),
     skip: int = Query(0),
-    limit: int = Query(50),
+    limit: int = Query(200),
     db: Session = Depends(get_db),
 ):
     """List all leads with latest audit level, optionally filtered by status."""
+    import logging as _log
+    _logger = _log.getLogger('leads')
+
     query = db.query(Lead)
     if status:
         query = query.filter(Lead.status == status)
     leads = query.order_by(Lead.created_at.desc()).offset(skip).limit(limit).all()
 
-    # Enrich with latest audit level
     result = []
     for lead in leads:
-        d = {c.name: getattr(lead, c.name) for c in Lead.__table__.columns}
-        latest = db.query(AuditResult).filter(
-            AuditResult.lead_id == lead.id, AuditResult.status == "completed"
-        ).order_by(AuditResult.created_at.desc()).first()
-        d["current_level"] = latest.level if latest else None
-        if latest and latest.total_score and (not lead.analysis_score or latest.total_score > lead.analysis_score):
-            d["analysis_score"] = latest.total_score
-        result.append(d)
+        try:
+            result.append({
+                'id': lead.id,
+                'company_name': lead.company_name or '',
+                'display_name': lead.display_name or '',
+                'contact_name': lead.contact_name or '',
+                'phone': lead.phone or '',
+                'email': lead.email or '',
+                'website_url': lead.website_url or '',
+                'city': lead.city or '',
+                'trade': lead.trade or '',
+                'status': lead.status or 'new',
+                'lead_source': lead.lead_source or '',
+                'analysis_score': lead.analysis_score or 0,
+                'geo_score': lead.geo_score or 0,
+                'notes': lead.notes or '',
+                'website_screenshot': None,
+                'street': lead.street or '',
+                'house_number': lead.house_number or '',
+                'postal_code': lead.postal_code or '',
+                'legal_form': lead.legal_form or '',
+                'vat_id': lead.vat_id or '',
+                'register_number': lead.register_number or '',
+                'register_court': lead.register_court or '',
+                'ceo_first_name': lead.ceo_first_name or '',
+                'ceo_last_name': lead.ceo_last_name or '',
+                'created_at': str(lead.created_at)[:10] if lead.created_at else '',
+                'updated_at': str(lead.updated_at)[:10] if lead.updated_at else '',
+            })
+        except Exception as e:
+            _logger.error(f'Lead {lead.id} Fehler: {e}')
+            continue
+
     return result
 
 

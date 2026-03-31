@@ -72,7 +72,7 @@ const NAV_SECTIONS = [
     title: 'SALES',
     items: [
       { label: 'Vertriebspipeline', path: '/app/sales', icon: 'chart' },
-      { label: 'Lead Import', path: '/app/import', icon: 'users' },
+      { label: 'Domain Import', path: '/app/import', icon: 'users' },
       { label: 'Massen Export', path: '/app/export', icon: 'docCheck' },
       { label: 'Website Audit', path: '/app/audit', icon: 'docCheck' },
     ],
@@ -109,7 +109,7 @@ const PAGE_NAMES = {
   '/app/akademie': 'Akademie',
   '/app/settings': 'Einstellungen',
   '/app/projects': 'Kundenprojekte',
-  '/app/import': 'Lead Import',
+  '/app/import': 'Domain Import',
   '/app/export': 'Massen Export',
   '/app/tickets': 'Support Tickets',
   '/app/profile': 'Profil',

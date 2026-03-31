@@ -19,6 +19,11 @@ export default function Landing() {
         <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: isMobile ? '16px 20px' : '20px 60px' }}>
           <div style={{ color: '#fff', fontWeight: 900, fontSize: isMobile ? 20 : 24, letterSpacing: '-0.5px' }}>KOMPAGNON</div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <a href="#pakete" style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', textDecoration: 'none', fontWeight: 500, padding: '4px 0' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'white'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.75)'}>
+              Preise
+            </a>
             <button onClick={() => nav('/login')} style={{ background: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.4)', borderRadius: 8, padding: '9px 20px', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
               Anmelden
             </button>

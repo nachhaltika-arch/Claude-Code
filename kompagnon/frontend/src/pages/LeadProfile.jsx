@@ -70,6 +70,8 @@ export default function LeadProfile() {
   const [auditProgress, setAuditProgress] = useState('');
   const [screenshotLoading, setScreenshotLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extractResult, setExtractResult] = useState(null);
 
   const h = {
     'Content-Type': 'application/json',
@@ -253,6 +255,37 @@ export default function LeadProfile() {
       setDeleteAuditId(null);
       await loadProfile();
     } catch {}
+  };
+
+  const extractFromImpressum = async () => {
+    if (!profile?.lead?.website_url) return;
+    setExtracting(true);
+    setExtractResult(null);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/leads/${leadId}/extract-impressum`,
+        { method: 'POST', headers: h }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setExtractResult({ success: false, message: data.detail || 'Fehler' });
+        return;
+      }
+      const count = Object.keys(data.updated_fields || {}).length;
+      const skipped = (data.skipped_fields || []).length;
+      setExtractResult({
+        success: true,
+        message: count > 0
+          ? `${count} Felder importiert${skipped > 0 ? `, ${skipped} bereits vorhanden` : ''}`
+          : 'Alle Felder bereits befüllt',
+        updated: data.updated_fields,
+      });
+      if (count > 0) await loadProfile();
+    } catch {
+      setExtractResult({ success: false, message: 'Verbindungsfehler' });
+    } finally {
+      setExtracting(false);
+    }
   };
 
   const inputStyle = {
@@ -580,6 +613,41 @@ export default function LeadProfile() {
               <Button variant="secondary" size="sm" onClick={() => setEditMode(true)}>✏️ Bearbeiten</Button>
             )}
           </div>
+
+          {!editMode && lead.website_url && (
+            <div style={{ marginBottom: 16, padding: '12px 14px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>
+                Automatisch aus Impressum befüllen
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10 }}>
+                Liest Firmenname, Adresse, Handelsregister u.v.m. direkt aus dem Impressum von <strong>{lead.website_url.replace(/^https?:\/\//, '')}</strong>
+              </div>
+
+              {extractResult && (
+                <div style={{
+                  padding: '8px 10px', borderRadius: 'var(--radius-sm)',
+                  background: extractResult.success ? 'var(--status-success-bg)' : 'var(--status-danger-bg)',
+                  color: extractResult.success ? 'var(--status-success-text)' : 'var(--status-danger-text)',
+                  fontSize: 12, marginBottom: 8,
+                }}>
+                  {extractResult.success ? '✓' : '✕'} {extractResult.message}
+                </div>
+              )}
+
+              <button onClick={extractFromImpressum} disabled={extracting} style={{
+                padding: '7px 14px',
+                background: extracting ? 'var(--bg-surface)' : 'var(--brand-primary)',
+                color: extracting ? 'var(--text-tertiary)' : 'white',
+                border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
+                fontSize: 12, fontWeight: 500, cursor: extracting ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6,
+              }}>
+                {extracting ? (
+                  <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--border-medium)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Impressum wird gelesen...</>
+                ) : '🔍 Impressum auslesen'}
+              </button>
+            </div>
+          )}
 
           {editMode ? (
             <div>

@@ -734,3 +734,56 @@ def get_lead_audits(lead_id: int, db: Session = Depends(get_db)):
             "ai_summary": a.ai_summary,
         })
     return results
+
+
+@router.post("/{lead_id}/extract-impressum")
+async def extract_impressum(lead_id: int, db: Session = Depends(get_db)):
+    """Extract contact data from a lead's website impressum using AI."""
+    from services.impressum_scraper import extract_contact_from_impressum
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+    if not lead.website_url:
+        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
+
+    result = await extract_contact_from_impressum(lead.website_url)
+
+    if not result['success']:
+        raise HTTPException(status_code=422, detail=result['error'])
+
+    # Nur leere Felder befüllen — vorhandene Daten NICHT überschreiben
+    data = result['data']
+    updated = {}
+
+    field_map = {
+        'company_name': lead.company_name,
+        'legal_form': lead.legal_form,
+        'ceo_first_name': lead.ceo_first_name,
+        'ceo_last_name': lead.ceo_last_name,
+        'street': lead.street,
+        'house_number': lead.house_number,
+        'postal_code': lead.postal_code,
+        'city': lead.city,
+        'phone': lead.phone,
+        'email': lead.email,
+        'vat_id': lead.vat_id,
+        'register_number': lead.register_number,
+        'register_court': lead.register_court,
+        'trade': lead.trade,
+    }
+
+    for field, existing in field_map.items():
+        if field in data and not existing:
+            setattr(lead, field, data[field])
+            updated[field] = data[field]
+
+    if updated:
+        db.commit()
+
+    return {
+        'success': True,
+        'extracted': data,
+        'updated_fields': updated,
+        'skipped_fields': [f for f in data if f not in updated],
+    }

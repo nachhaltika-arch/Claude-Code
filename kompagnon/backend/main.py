@@ -227,18 +227,19 @@ app = FastAPI(
     default_response_class=UnicodeJSONResponse,
 )
 
-# CORS Middleware
-origins = [
-    "https://kompagnon-frontend.onrender.com",
-    "http://localhost:3000",
-]
-
+# CORS Middleware — must be before all routers
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://kompagnon-frontend.onrender.com",
+        "*",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include all routers

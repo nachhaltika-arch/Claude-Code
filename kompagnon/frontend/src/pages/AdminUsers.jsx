@@ -135,7 +135,7 @@ export default function AdminUsers() {
               </div>
             ) : (
               <form onSubmit={createUser} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
                   <input value={newUser.first_name} onChange={(e) => setNewUser((f) => ({ ...f, first_name: e.target.value }))} placeholder="Vorname" style={inpStyle} />
                   <input value={newUser.last_name} onChange={(e) => setNewUser((f) => ({ ...f, last_name: e.target.value }))} placeholder="Nachname" style={inpStyle} />
                 </div>

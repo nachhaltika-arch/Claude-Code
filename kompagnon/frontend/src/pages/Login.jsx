@@ -146,7 +146,7 @@ export default function Login() {
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, textAlign: 'center' }}>
                   Demo-Zugaenge
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
                   {[
                     { role: 'Admin', email: 'admin@kompagnon.de', password: 'Admin2025!', icon: '👑', color: '#0F1E3A', bg: '#f0f2f8', desc: 'Volle Rechte' },
                     { role: 'Auditor', email: 'auditor@kompagnon.de', password: 'Auditor2025!', icon: '🔍', color: '#1e40af', bg: '#eff6ff', desc: 'Audit-Zugang' },

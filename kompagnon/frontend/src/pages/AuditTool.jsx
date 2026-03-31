@@ -445,7 +445,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
             <Label required>Firmenname</Label>
             <Input value={leadForm.company_name} onChange={setField('company_name')} required />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-4)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--kc-space-4)' }}>
             <div>
               <Label>Ansprechpartner</Label>
               <Input value={leadForm.contact_name} onChange={setField('contact_name')} placeholder="Vor- und Nachname" />
@@ -455,7 +455,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
               <Input type="tel" value={leadForm.phone} onChange={setField('phone')} placeholder="+49 ..." />
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-4)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--kc-space-4)' }}>
             <div>
               <Label>E-Mail</Label>
               <Input type="email" value={leadForm.email} onChange={setField('email')} placeholder="info@firma.de" />
@@ -465,7 +465,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
               <Input value={leadForm.website_url} onChange={setField('website_url')} />
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--kc-space-4)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--kc-space-4)' }}>
             <div>
               <Label>Stadt</Label>
               <Input value={leadForm.city} onChange={setField('city')} />

@@ -354,4 +354,24 @@
 @media (max-width: 767px) {
   .kc-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .kc-hide-mobile { display: none !important; }
+
+  /* Force all fixed-width containers to be full-width on mobile */
+  .card-body, .modal-body { padding: 16px !important; }
+
+  /* Ensure modals are bottom-sheet style on mobile */
+  .modal {
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    margin-top: auto !important;
+  }
+
+  /* Stack all flex rows on mobile */
+  .kc-section-header { flex-direction: column; gap: 8px; }
+
+  /* Reduce heading sizes */
+  h1 { font-size: 1.5rem !important; }
+  h2 { font-size: 1.25rem !important; }
+
+  /* Full-width buttons on mobile */
+  .btn-lg { width: 100%; }
 }

@@ -32,6 +32,9 @@ import Datenschutz from './pages/Datenschutz';
 import ResetPassword from './pages/ResetPassword';
 import Akademie from './pages/Akademie';
 import SalesPipeline from './pages/SalesPipeline';
+import PackageStarter from './pages/PackageStarter';
+import PackageKompagnon from './pages/PackageKompagnon';
+import PackagePremium from './pages/PackagePremium';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -74,6 +77,9 @@ function App() {
           <Route path="/impressum" element={<Impressum />} />
           <Route path="/datenschutz" element={<Datenschutz />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/paket/starter" element={<PackageStarter />} />
+          <Route path="/paket/kompagnon" element={<PackageKompagnon />} />
+          <Route path="/paket/premium" element={<PackagePremium />} />
           <Route path="/checkout/:package" element={<Checkout />} />
 
           {/* App — authenticated, with Navbar/Sidebar */}

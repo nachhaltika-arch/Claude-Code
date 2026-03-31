@@ -151,6 +151,36 @@ export default function LeadProfile() {
         ← Zurück zur Pipeline
       </button>
 
+      {/* ── Website Screenshot ── */}
+      {lead.website_screenshot ? (
+        <div style={{ marginBottom: 16, borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+          <div style={{ background: '#f1f5f9', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid #e2e8f0' }}>
+            {['#ef4444', '#f59e0b', '#22c55e'].map((c) => (
+              <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />
+            ))}
+            <div style={{ flex: 1, background: '#fff', borderRadius: 6, padding: '3px 10px', fontSize: 11, color: '#64748b', marginLeft: 6, border: '1px solid #e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {lead.website_url}
+            </div>
+            <a href={lead.website_url?.startsWith('http') ? lead.website_url : `https://${lead.website_url}`} target="_blank" rel="noopener noreferrer" style={{ color: '#64748b', fontSize: 12, textDecoration: 'none', flexShrink: 0 }}>↗</a>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <img src={lead.website_screenshot} alt={`Website von ${lead.company_name}`} style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 280, objectFit: 'cover', objectPosition: 'top' }} />
+            {current_score != null && (
+              <div style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(15,30,58,0.9)', borderRadius: 20, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ color: '#D4A017', fontSize: 13, fontWeight: 800 }}>{current_score}/100</span>
+                <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11 }}>{current_level?.replace('Homepage Standard ', '')}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : lead.website_url ? (
+        <div style={{ background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: 12, padding: 32, textAlign: 'center', marginBottom: 16, color: '#64748b', fontSize: 14 }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🖥️</div>
+          <div>Noch kein Website-Screenshot</div>
+          <div style={{ fontSize: 12, marginTop: 4 }}>Fuehren Sie einen Audit durch um einen Screenshot zu erstellen</div>
+        </div>
+      ) : null}
+
       {/* ── Header Card ── */}
       <div style={{
         background: NAVY, borderRadius: '12px 12px 0 0', padding: isMobile ? '16px' : '24px 28px', color: '#fff',

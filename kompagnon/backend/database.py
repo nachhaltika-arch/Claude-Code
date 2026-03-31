@@ -38,6 +38,7 @@ class Lead(Base):
     analysis_score = Column(Integer, default=0)  # 0-100
     geo_score = Column(Integer, default=0)  # 0-100
     notes = Column(Text)
+    website_screenshot = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -248,6 +249,7 @@ class AuditResult(Base):
     scraped_phone = Column(String(50), default="")
     scraped_email = Column(String(255), default="")
     scraped_description = Column(Text, default="")
+    screenshot_base64 = Column(Text, default="")
 
     # AI analysis
     ai_summary = Column(Text)  # 3-5 sentences plain language

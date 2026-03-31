@@ -18,5 +18,6 @@ pyotp
 qrcode[pil]
 pillow
 stripe
+playwright
 # HWK Scraper (no browser needed — uses requests + BeautifulSoup)
 # playwright  # Uncomment if JS-rendered pages are needed in future

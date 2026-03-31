@@ -442,6 +442,32 @@ async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depe
     return {"message": "Anreicherung gestartet", "status": "processing"}
 
 
+@router.post("/{lead_id}/screenshot")
+async def refresh_screenshot(lead_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """Capture a fresh website screenshot for a lead."""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead or not lead.website_url:
+        raise HTTPException(404, "Lead oder Website nicht gefunden")
+
+    def _take(lid, url):
+        import asyncio
+        from database import SessionLocal
+        from services.screenshot import capture_screenshot
+        _db = SessionLocal()
+        try:
+            b64 = asyncio.run(capture_screenshot(url))
+            if b64:
+                l = _db.query(Lead).filter(Lead.id == lid).first()
+                if l:
+                    l.website_screenshot = b64
+                    _db.commit()
+        finally:
+            _db.close()
+
+    background_tasks.add_task(_take, lead_id, lead.website_url)
+    return {"message": "Screenshot wird erstellt...", "status": "processing"}
+
+
 @router.get("/{lead_id}/profile")
 def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
     """Full lead profile with audits, projects, and score history."""
@@ -526,6 +552,7 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
             "lead_source": lead.lead_source,
             "notes": lead.notes,
             "created_at": lead.created_at.strftime("%d.%m.%Y") if lead.created_at else "",
+            "website_screenshot": f"data:image/jpeg;base64,{lead.website_screenshot}" if getattr(lead, 'website_screenshot', None) else None,
         },
         "current_score": latest_audit.total_score if latest_audit else None,
         "current_level": latest_audit.level if latest_audit else None,

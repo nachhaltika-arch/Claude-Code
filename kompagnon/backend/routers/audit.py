@@ -520,6 +520,21 @@ def _run_audit_background(audit_id: int):
         for key in _ITEM_KEYS:
             setattr(audit, key, int(ai.get(key, 0) or 0))
 
+        # 9. Screenshot (optional, non-blocking)
+        try:
+            import asyncio
+            from services.screenshot import capture_screenshot
+            screenshot_b64 = asyncio.run(capture_screenshot(url))
+            if screenshot_b64:
+                audit.screenshot_base64 = screenshot_b64
+                if audit.lead_id:
+                    from database import Lead as LeadModel
+                    lead = db.query(LeadModel).filter(LeadModel.id == audit.lead_id).first()
+                    if lead:
+                        lead.website_screenshot = screenshot_b64
+        except Exception as e:
+            logger.warning(f"Screenshot skipped for audit {audit_id}: {e}")
+
         audit.status = "completed"
         db.commit()
         logger.info(f"✓ Audit {audit_id} completed: {total}/100 ({level})")
@@ -735,4 +750,5 @@ def _format_audit(audit: AuditResult) -> dict:
         "top_issues": top_issues,
         "recommendations": recommendations,
         "created_at": audit.created_at.isoformat() if audit.created_at else None,
+        "screenshot_url": f"data:image/jpeg;base64,{audit.screenshot_base64}" if getattr(audit, 'screenshot_base64', None) else None,
     }

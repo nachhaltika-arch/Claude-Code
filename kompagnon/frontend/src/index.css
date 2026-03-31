@@ -342,6 +342,7 @@
   border-radius: var(--kc-radius-md);
 }
 @keyframes kc-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .kc-reveal { opacity: 0; transform: translateY(24px); transition: opacity var(--kc-transition-slow), transform var(--kc-transition-slow); }
 .kc-reveal.is-visible { opacity: 1; transform: none; }

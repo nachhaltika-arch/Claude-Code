@@ -47,6 +47,9 @@ export default function LeadProfile() {
   const [editData, setEditData] = useState({});
   const [downloadingId, setDownloadingId] = useState(null);
   const [enriching, setEnriching] = useState(false);
+  const [auditRunning, setAuditRunning] = useState(false);
+  const [auditProgress, setAuditProgress] = useState('');
+  const [auditError, setAuditError] = useState('');
   const { isMobile } = useScreenSize();
 
   useEffect(() => {
@@ -116,6 +119,50 @@ export default function LeadProfile() {
       }
     } catch (e) { toast.error('Fehler bei Anreicherung'); }
     finally { setEnriching(false); }
+  };
+
+  const startAuditFromProfile = async () => {
+    if (!profile?.lead?.website_url) { setAuditError('Keine Website-URL hinterlegt'); return; }
+    setAuditRunning(true);
+    setAuditProgress('Audit wird gestartet...');
+    setAuditError('');
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/audit/start`, {
+        website_url: profile.lead.website_url,
+        lead_id: parseInt(leadId),
+        company_name: profile.lead.company_name,
+        city: profile.lead.city,
+        trade: profile.lead.trade,
+      });
+      if (!res.data.id) throw new Error('Audit konnte nicht gestartet werden');
+      pollAuditInProfile(res.data.id);
+    } catch (e) {
+      setAuditError(e.response?.data?.detail || e.message || 'Fehler');
+      setAuditRunning(false);
+    }
+  };
+
+  const pollAuditInProfile = (auditId) => {
+    const msgs = ['Website wird analysiert...', 'Performance wird gemessen...', 'Rechtliche Anforderungen pruefen...', 'Screenshot wird erstellt...', 'KI-Analyse laeuft...'];
+    let i = 0;
+    const interval = setInterval(async () => {
+      i = (i + 1) % msgs.length;
+      setAuditProgress(msgs[i]);
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/audit/${auditId}`);
+        if (res.data.status === 'completed') {
+          clearInterval(interval);
+          setAuditProgress('Audit abgeschlossen!');
+          toast.success('Audit abgeschlossen');
+          setTimeout(() => { setAuditRunning(false); setAuditProgress(''); loadProfile(); }, 1500);
+        } else if (res.data.status === 'failed') {
+          clearInterval(interval);
+          setAuditError(res.data.error_message || 'Audit fehlgeschlagen');
+          setAuditRunning(false); setAuditProgress('');
+        }
+      } catch { /* keep polling */ }
+    }, 4000);
+    setTimeout(() => { clearInterval(interval); setAuditRunning(false); }, 180000);
   };
 
   if (loading) {
@@ -320,6 +367,24 @@ export default function LeadProfile() {
         </div>
       )}
 
+      {/* ── Audit Progress ── */}
+      {auditRunning && (
+        <div style={{ background: '#f0f7ff', border: '2px solid #008EAA', borderRadius: 0, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16, borderLeft: '1px solid #eef0f8', borderRight: '1px solid #eef0f8' }}>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #e0f0f5', borderTopColor: '#008EAA', flexShrink: 0, animation: 'spin 1s linear infinite' }} />
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: NAVY, marginBottom: 2 }}>Audit laeuft...</div>
+            <div style={{ fontSize: 13, color: '#4a5a7a' }}>{auditProgress}</div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Ca. 30-60 Sekunden. Seite geoeffnet lassen.</div>
+          </div>
+        </div>
+      )}
+      {auditError && (
+        <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#c0392b', borderLeft: '1px solid #eef0f8', borderRight: '1px solid #eef0f8' }}>
+          <span>{auditError}</span>
+          <button onClick={() => setAuditError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#c0392b', fontSize: 16 }}>✕</button>
+        </div>
+      )}
+
       {/* ── Audit History ── */}
       <div style={{ background: '#fff', border: '1px solid #eef0f8', borderTop: 'none', padding: isMobile ? '16px' : '24px 28px' }}>
         <SectionLabel>Audit-Historie ({audits.length})</SectionLabel>
@@ -376,10 +441,11 @@ export default function LeadProfile() {
         display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 10, flexWrap: 'wrap',
       }}>
         <button
-          onClick={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
-          style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: isMobile ? '100%' : 'auto' }}
+          onClick={startAuditFromProfile}
+          disabled={auditRunning}
+          style={{ background: auditRunning ? '#64748b' : NAVY, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: auditRunning ? 'not-allowed' : 'pointer', width: isMobile ? '100%' : 'auto', opacity: auditRunning ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}
         >
-          🔍 Neuen Audit starten
+          {auditRunning ? 'Audit laeuft...' : 'Neuen Audit starten'}
         </button>
         <button
           onClick={() => setEditMode(true)}

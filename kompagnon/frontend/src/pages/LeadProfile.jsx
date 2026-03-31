@@ -53,6 +53,8 @@ export default function LeadProfile() {
   const [auditError, setAuditError] = useState('');
   const [screenshotLoading, setScreenshotLoading] = useState(false);
   const [screenshotError, setScreenshotError] = useState('');
+  const [deleteAuditId, setDeleteAuditId] = useState(null);
+  const [deletingAudit, setDeletingAudit] = useState(false);
   const { isMobile } = useScreenSize();
 
   useEffect(() => {
@@ -158,6 +160,15 @@ export default function LeadProfile() {
       }
     } catch (e) { toast.error('Fehler bei Anreicherung'); }
     finally { setEnriching(false); }
+  };
+
+  const deleteAudit = async (auditId) => {
+    setDeletingAudit(true);
+    try {
+      const res = await axios.delete(`${API_BASE_URL}/api/audit/${auditId}`);
+      if (res.data.success) { setDeleteAuditId(null); toast.success('Audit geloescht'); await loadProfile(); }
+    } catch (e) { toast.error(e.response?.data?.detail || 'Loeschen fehlgeschlagen'); }
+    finally { setDeletingAudit(false); }
   };
 
   const startAuditFromProfile = async () => {
@@ -510,6 +521,13 @@ export default function LeadProfile() {
                     >
                       {downloadingId === audit.id ? '...' : '📄 PDF'}
                     </button>
+                    <button onClick={() => setDeleteAuditId(audit.id)} title="Audit loeschen" style={{
+                      background: 'none', border: '1px solid #fca5a5', borderRadius: 6, padding: '5px 8px',
+                      fontSize: 14, cursor: 'pointer', color: '#ef4444', minWidth: 32, minHeight: 32,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      🗑️
+                    </button>
                   </div>
                 </div>
               );
@@ -545,6 +563,25 @@ export default function LeadProfile() {
           {enriching ? 'Wird analysiert...' : 'Daten aktualisieren'}
         </button>
       </div>
+
+      {/* ── Delete Audit Modal ── */}
+      {deleteAuditId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setDeleteAuditId(null)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 28, maxWidth: 380, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', textAlign: 'center' }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px' }}>🗑️</div>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: NAVY, marginBottom: 8 }}>Audit loeschen?</h3>
+            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 8, lineHeight: 1.5 }}>Dieser Audit-Eintrag wird dauerhaft geloescht.</p>
+            <p style={{ fontSize: 12, color: '#ef4444', marginBottom: 24 }}>Screenshot und alle Ergebnisse gehen verloren.</p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setDeleteAuditId(null)} disabled={deletingAudit} style={{ flex: 1, padding: 11, background: '#f1f5f9', color: NAVY, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>Abbrechen</button>
+              <button onClick={() => deleteAudit(deleteAuditId)} disabled={deletingAudit} style={{ flex: 1, padding: 11, background: deletingAudit ? '#64748b' : '#ef4444', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: deletingAudit ? 'not-allowed' : 'pointer', minHeight: 44 }}>
+                {deletingAudit ? 'Loeschen...' : 'Endgueltig loeschen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Audit Detail Modal ── */}
       {openAudit && (

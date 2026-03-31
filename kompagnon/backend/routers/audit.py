@@ -666,6 +666,27 @@ def get_audit(audit_id: int, db: Session = Depends(get_db)):
     return _format_audit(audit)
 
 
+@router.delete("/{audit_id}")
+def delete_audit(audit_id: int, db: Session = Depends(get_db)):
+    """Delete a single audit. Updates lead screenshot if needed."""
+    audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit nicht gefunden")
+    lead_id = audit.lead_id
+    db.delete(audit)
+    db.commit()
+    # Update lead screenshot from remaining audits
+    if lead_id:
+        remaining = db.query(AuditResult).filter(
+            AuditResult.lead_id == lead_id, AuditResult.status == "completed"
+        ).order_by(AuditResult.created_at.desc()).first()
+        lead = db.query(Lead).filter(Lead.id == lead_id).first()
+        if lead:
+            lead.website_screenshot = remaining.screenshot_base64 if remaining and getattr(remaining, 'screenshot_base64', None) else ""
+            db.commit()
+    return {"success": True, "message": "Audit geloescht"}
+
+
 @router.patch("/{audit_id}/link-lead")
 def link_audit_to_lead(audit_id: int, req: LinkLeadRequest, db: Session = Depends(get_db)):
     """Link an existing audit to a lead."""

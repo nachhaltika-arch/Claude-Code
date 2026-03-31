@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import AuditHistory from '../components/AuditHistory';
 import { useScreenSize } from '../utils/responsive';
+import { useAuth } from '../context/AuthContext';
 
 const statusConfig = {
   new:           { label: 'Neu',           className: 'kc-badge kc-badge--info' },
@@ -20,6 +21,8 @@ export default function LeadPipeline() {
   const [loading, setLoading] = useState(true);
   const [expandedLead, setExpandedLead] = useState(null);
   const [enriching, setEnriching] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { isMobile } = useScreenSize();
 
@@ -52,6 +55,19 @@ export default function LeadPipeline() {
       }
     } catch (e) { toast.error('Fehler bei Anreicherung'); }
     finally { setEnriching(null); }
+  };
+
+  const deleteLead = async (leadId) => {
+    try {
+      const res = await axios.delete(`${API_BASE_URL}/api/leads/${leadId}`);
+      if (res.data.success) {
+        setLeads((prev) => prev.filter((l) => l.id !== leadId));
+        setDeleteConfirm(null);
+        toast.success('Lead geloescht');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Loeschen fehlgeschlagen');
+    }
   };
 
   if (loading) {
@@ -152,6 +168,16 @@ export default function LeadPipeline() {
                         >
                           {enriching === lead.id ? '...' : 'Anreichern'}
                         </button>
+                        {user?.role === 'admin' && (
+                          <button
+                            className="kc-btn-ghost"
+                            style={{ fontSize: 'var(--kc-text-xs)', padding: 'var(--kc-space-1) var(--kc-space-2)', color: '#94a3b8' }}
+                            onClick={(e) => { e.stopPropagation(); setDeleteConfirm(lead.id); }}
+                            title="Lead loeschen"
+                          >
+                            🗑️
+                          </button>
+                        )}
                       </td>
                     </tr>
                     {isExpanded && (
@@ -169,6 +195,31 @@ export default function LeadPipeline() {
         </table>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setDeleteConfirm(null)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 28, maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px' }}>🗑️</div>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F1E3A', textAlign: 'center', marginBottom: 8 }}>Lead loeschen?</h3>
+            <p style={{ fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 8, lineHeight: 1.5 }}>
+              <strong>{leads.find((l) => l.id === deleteConfirm)?.company_name}</strong> wird dauerhaft geloescht.
+            </p>
+            <p style={{ fontSize: 12, color: '#ef4444', textAlign: 'center', marginBottom: 24 }}>
+              Alle zugehoerigen Audits werden ebenfalls geloescht. Diese Aktion kann nicht rueckgaengig gemacht werden.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: 11, background: '#f1f5f9', color: '#0F1E3A', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>
+                Abbrechen
+              </button>
+              <button onClick={() => deleteLead(deleteConfirm)} style={{ flex: 1, padding: 11, background: '#ef4444', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+                Endgueltig loeschen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

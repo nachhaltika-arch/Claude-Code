@@ -139,6 +139,18 @@ def update_lead(lead_id: int, lead: LeadUpdate, db: Session = Depends(get_db)):
     return db_lead
 
 
+@router.delete("/{lead_id}")
+def delete_lead(lead_id: int, db: Session = Depends(get_db)):
+    """Delete a lead and all associated audits. Admin only."""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+    db.query(AuditResult).filter(AuditResult.lead_id == lead_id).delete()
+    db.delete(lead)
+    db.commit()
+    return {"success": True, "message": "Lead geloescht"}
+
+
 @router.post("/{lead_id}/analyze")
 def analyze_lead(lead_id: int, db: Session = Depends(get_db)):
     """Run lead analyst agent on a lead."""

@@ -12,6 +12,7 @@ import Customers from './pages/Customers';
 import ContactImport from './pages/ContactImport';
 import MassExport from './pages/MassExport';
 import Tickets from './pages/Tickets';
+import CustomerProjects from './pages/CustomerProjects';
 import FeedbackButton from './components/FeedbackButton';
 import AuditTool from './pages/AuditTool';
 import LeadProfile from './pages/LeadProfile';
@@ -209,6 +210,7 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
             <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
+            <Route path="projects" element={<PrivateRoute roles={['admin', 'auditor']}><CustomerProjects /></PrivateRoute>} />
             <Route path="projects/:id" element={<PrivateRoute roles={['admin', 'auditor']}><ProjectDetail /></PrivateRoute>} />
             <Route path="checklists" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />

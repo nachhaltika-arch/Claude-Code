@@ -120,6 +120,40 @@ def list_leads(
     return result
 
 
+@router.get("/customers")
+def get_customers(db: Session = Depends(get_db)):
+    """Get all paying customers (won leads, stripe, etc.) with audit + project data."""
+    from sqlalchemy import or_
+    from database import User, Project
+
+    customers = db.query(Lead).filter(
+        or_(Lead.status == "won", Lead.lead_source == "stripe_checkout", Lead.lead_source == "llm_landing")
+    ).order_by(Lead.created_at.desc()).all()
+
+    result = []
+    for lead in customers:
+        latest_audit = db.query(AuditResult).filter(
+            AuditResult.lead_id == lead.id, AuditResult.status == "completed"
+        ).order_by(AuditResult.created_at.desc()).first()
+        project = db.query(Project).filter(Project.lead_id == lead.id).order_by(Project.created_at.desc()).first()
+        user = db.query(User).filter(User.lead_id == lead.id).first()
+        result.append({
+            "id": lead.id, "company_name": lead.company_name, "contact_name": lead.contact_name,
+            "email": lead.email, "phone": lead.phone, "website_url": lead.website_url,
+            "city": lead.city, "trade": lead.trade, "status": lead.status, "lead_source": lead.lead_source,
+            "created_at": str(lead.created_at)[:10] if lead.created_at else "",
+            "website_screenshot": f"data:image/jpeg;base64,{lead.website_screenshot}" if getattr(lead, 'website_screenshot', None) else None,
+            "notes": lead.notes,
+            "audit_score": latest_audit.total_score if latest_audit else None,
+            "audit_level": latest_audit.level if latest_audit else None,
+            "last_audit_date": str(latest_audit.created_at)[:10] if latest_audit else None,
+            "project_status": project.status if project else None,
+            "project_id": project.id if project else None,
+            "has_account": user is not None, "user_id": user.id if user else None,
+        })
+    return result
+
+
 @router.get("/export/csv")
 def export_leads_csv(db: Session = Depends(get_db)):
     """Export all leads as CSV file."""

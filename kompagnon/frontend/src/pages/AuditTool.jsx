@@ -513,22 +513,23 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
 
 const inputStyle = {
   width: '100%',
-  padding: 'var(--kc-space-3) var(--kc-space-4)',
-  border: '1.5px solid var(--kc-rand)',
-  borderRadius: 'var(--kc-radius-md)',
-  fontSize: 'var(--kc-text-base)',
-  fontFamily: 'var(--kc-font-body)',
-  background: 'var(--kc-weiss)',
+  padding: '10px 14px',
+  border: '1px solid var(--border-light)',
+  borderRadius: 'var(--radius-md)',
+  fontSize: 13,
+  fontFamily: 'var(--font-sans)',
+  background: 'var(--bg-surface)',
+  color: 'var(--text-primary)',
   outline: 'none',
 };
 
 function Label({ children, required }) {
   return (
     <label style={{
-      display: 'block', fontSize: 'var(--kc-text-sm)', fontWeight: 600,
-      color: 'var(--kc-text-sekundaer)', marginBottom: 'var(--kc-space-1)',
+      display: 'block', fontSize: 13, fontWeight: 500,
+      color: 'var(--text-secondary)', marginBottom: 4,
     }}>
-      {children}{required && <span style={{ color: 'var(--kc-rot)' }}> *</span>}
+      {children}{required && <span style={{ color: 'var(--brand-primary)' }}> *</span>}
     </label>
   );
 }

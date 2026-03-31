@@ -151,6 +151,17 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 KOMPAGNON Backend Starting...")
     try:
+        # Install Playwright Chromium (for screenshots)
+        try:
+            import subprocess
+            subprocess.run(
+                ["playwright", "install", "chromium", "--with-deps"],
+                check=True, capture_output=True, timeout=120,
+            )
+            logger.info("✓ Playwright Chromium installed")
+        except Exception as e:
+            logger.warning(f"⚠ Playwright install skipped: {e}")
+
         _run_migrations()
         init_db()
         logger.info("✓ Database initialized")

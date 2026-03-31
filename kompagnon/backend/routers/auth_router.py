@@ -291,12 +291,16 @@ def disable_2fa(req: TwoFADisable, user: User = Depends(get_current_user), db: S
 @router.post("/forgot-password")
 def forgot_password(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == req.email.lower().strip()).first()
-    if user:
+    if user and user.is_active:
         user.password_reset_token = generate_reset_token()
         user.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
         db.commit()
-        # TODO: Send email with reset link
-        logger.info(f"Password reset token generated for {user.email}")
+        try:
+            from services.email import send_password_reset_email
+            name = f"{user.first_name} {user.last_name}".strip() or user.email
+            send_password_reset_email(user.email, user.password_reset_token, name)
+        except Exception as e:
+            logger.warning(f"Reset email failed: {e}")
     return {"message": "Falls die E-Mail existiert, wurde ein Reset-Link gesendet"}
 
 

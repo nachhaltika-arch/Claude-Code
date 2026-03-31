@@ -30,6 +30,7 @@ import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
 import Impressum from './pages/Impressum';
 import Datenschutz from './pages/Datenschutz';
+import ResetPassword from './pages/ResetPassword';
 
 import Sidebar from './components/Sidebar';
 
@@ -203,6 +204,7 @@ function App() {
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/impressum" element={<Impressum />} />
           <Route path="/datenschutz" element={<Datenschutz />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/checkout/:package" element={<Checkout />} />
 
           {/* App — authenticated, with Navbar/Sidebar */}

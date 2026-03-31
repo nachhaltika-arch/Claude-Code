@@ -150,9 +150,10 @@ export default function DomainImport() {
                       {[
                         { label: 'Neu', val: checkResult.new_count, bg: 'success' },
                         { label: 'Vorhanden', val: checkResult.existing_count, bg: 'secondary' },
-                        { label: 'Gesamt', val: checkResult.total, bg: 'primary' },
+                        { label: 'Übersprungen', val: checkResult.skipped_count || 0, bg: 'danger' },
+                        { label: 'Redirects', val: checkResult.redirect_count || 0, bg: 'warning' },
                       ].map(k => (
-                        <div className="col-4" key={k.label}>
+                        <div className="col-3" key={k.label}>
                           <div className={`card bg-${k.bg} bg-opacity-10 text-center p-2`}>
                             <div className={`fs-4 fw-bold text-${k.bg}`}>{k.val}</div>
                             <small className="text-muted">{k.label}</small>
@@ -166,13 +167,22 @@ export default function DomainImport() {
                         <button className={`btn ${importFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setImportFilter('all')}>Alle ({checkResult.total})</button>
                       </div>
                     )}
-                    <div className="list-group list-group-flush border rounded" style={{ maxHeight: 180, overflowY: 'auto' }}>
-                      {checkResult.results.filter(r => importFilter === 'all' || !r.exists).map((r, i) => (
-                        <div key={i} className={`list-group-item d-flex align-items-center gap-2 py-1 px-2 small ${r.exists ? 'text-muted' : ''}`}>
-                          <i className={`fas ${r.exists ? 'fa-forward text-secondary' : 'fa-circle-plus text-success'}`}></i>
-                          <span className="font-monospace flex-grow-1 text-truncate">{r.domain}</span>
+                    <div className="list-group list-group-flush border rounded" style={{ maxHeight: 220, overflowY: 'auto' }}>
+                      {checkResult.results.filter(r => importFilter === 'all' || (!r.exists && !r.skip_import)).map((r, i) => (
+                        <div key={i} className={`list-group-item d-flex align-items-center gap-2 py-1 px-2 small ${r.skip_import ? 'list-group-item-danger' : r.exists ? 'text-muted' : ''}`} style={{ opacity: r.skip_import ? 0.7 : 1 }}>
+                          <i className={`fas ${r.skip_import ? 'fa-ban text-danger' : r.exists ? 'fa-forward text-secondary' : r.has_redirect ? 'fa-share text-warning' : 'fa-circle-plus text-success'}`}></i>
+                          <div className="flex-grow-1 min-w-0">
+                            <div className="font-monospace text-truncate">{r.domain}</div>
+                            {r.has_redirect && !r.skip_import && <div className="text-muted" style={{ fontSize: 10 }}>↪ {(r.final_url || '').replace(/^https?:\/\//, '')}</div>}
+                            {r.skip_import && <div className="text-danger" style={{ fontSize: 10 }}>{r.skip_reason}</div>}
+                            {r.exists && r.company_name && <div className="text-muted" style={{ fontSize: 10 }}>{r.company_name}</div>}
+                          </div>
                           {r.score > 0 && <span className="badge bg-secondary">{r.score}</span>}
-                          {r.exists && r.company_name && <small className="text-muted">{r.company_name}</small>}
+                          {!r.skip_import && !r.exists && (
+                            <span className={`badge ${r.final_is_https ? 'bg-success' : 'bg-warning'}`} style={{ fontSize: 9 }}>
+                              {r.final_is_https ? 'HTTPS' : 'HTTP'}
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>

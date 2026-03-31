@@ -234,37 +234,69 @@ def export_leads_csv(db: Session = Depends(get_db)):
 
 
 @router.post("/import/domains/check")
-def check_domains(data: dict, db: Session = Depends(get_db)):
-    """Check which domains already exist before import."""
+async def check_domains(data: dict, db: Session = Depends(get_db)):
+    """Check which domains already exist + reachability/redirect check."""
     from sqlalchemy import or_
+    from services.domain_checker import check_domains_batch
+    import logging as _log
+    _logger = _log.getLogger('domain_import')
 
     raw_domains = data.get("domains", [])
-    results = []
 
+    # Normalize
+    normalized = []
     for url in raw_domains:
         clean = url.replace('https://', '').replace('http://', '').replace('www.', '').split('/')[0].lower()
+        if clean:
+            normalized.append(f'https://{clean}')
 
-        existing = db.query(Lead).filter(
-            or_(
-                Lead.website_url.ilike(f'%{clean}%'),
-                Lead.website_url.ilike(f'%www.{clean}%'),
-            )
-        ).first()
+    # Domain reachability + redirect check
+    try:
+        domain_checks = await check_domains_batch(normalized)
+    except Exception as e:
+        _logger.error(f'Domain batch check Fehler: {e}')
+        domain_checks = [{'original_url': u, 'final_url': u, 'reachable': True, 'has_redirect': False,
+                          'skip_import': False, 'skip_reason': '', 'redirect_count': 0, 'final_is_https': True} for u in normalized]
+
+    # Combine with DB check
+    results = []
+    for check in domain_checks:
+        url = check['original_url']
+        clean = url.replace('https://', '').replace('www.', '').split('/')[0]
+
+        existing = db.query(Lead).filter(or_(
+            Lead.website_url.ilike(f'%{clean}%'),
+            Lead.website_url.ilike(f'%www.{clean}%'),
+        )).first()
 
         results.append({
             'url': url,
+            'final_url': check.get('final_url', url),
             'domain': clean,
             'exists': existing is not None,
             'lead_id': existing.id if existing else None,
             'company_name': (existing.display_name or existing.company_name) if existing else None,
             'status': existing.status if existing else None,
             'score': existing.analysis_score if existing else None,
+            'reachable': check.get('reachable', True),
+            'has_redirect': check.get('has_redirect', False),
+            'redirect_count': check.get('redirect_count', 0),
+            'final_is_https': check.get('final_is_https', True),
+            'skip_import': check.get('skip_import', False),
+            'skip_reason': check.get('skip_reason', ''),
         })
+
+    new_count = sum(1 for r in results if not r['exists'] and not r['skip_import'])
+    existing_count = sum(1 for r in results if r['exists'])
+    skipped_count = sum(1 for r in results if r['skip_import'] and not r['exists'])
+    redirect_count = sum(1 for r in results if r['has_redirect'] and not r['skip_import'])
 
     return {
         'results': results,
-        'new_count': sum(1 for r in results if not r['exists']),
-        'existing_count': sum(1 for r in results if r['exists']),
+        'new_count': new_count,
+        'existing_count': existing_count,
+        'skipped_count': skipped_count,
+        'redirect_count': redirect_count,
         'total': len(results),
     }
 

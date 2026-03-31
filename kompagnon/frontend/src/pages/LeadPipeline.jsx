@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
 const NAVY = '#0F1E3A';
@@ -25,6 +26,8 @@ const LEVEL_CFG = {
 export default function LeadPipeline() {
   const navigate = useNavigate();
   const { user, token } = useAuth();
+  const { isMobile } = useScreenSize();
+  const [activeTab, setActiveTab] = useState(0);
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -82,41 +85,70 @@ export default function LeadPipeline() {
       </div>
 
       {/* Kanban */}
-      <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 16, alignItems: 'flex-start' }}>
-        {COLUMNS.map((col) => {
-          const colLeads = getColumnLeads(col.id);
-          const over = dragOver === col.id;
-          return (
-            <div key={col.id} onDragOver={(e) => handleDragOver(e, col.id)} onDrop={(e) => handleDrop(e, col.id)} onDragLeave={() => setDragOver(null)}
-              style={{ flexShrink: 0, width: 260, background: over ? col.bg : '#f8fafc', borderRadius: 12, border: over ? `2px dashed ${col.color}` : '2px solid transparent', transition: 'all 0.15s', minHeight: 200 }}>
-              {/* Column header */}
-              <div style={{ padding: '12px 14px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ fontSize: 16 }}>{col.icon}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: NAVY }}>{col.label}</span>
+      {isMobile ? (
+        /* Mobile: Tab-based view */
+        <div style={{ width: '100%' }}>
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 16, scrollbarWidth: 'none' }}>
+            {COLUMNS.map((col, idx) => {
+              const count = leads.filter((l) => l.status === col.id).length;
+              return (
+                <button key={col.id} onClick={() => setActiveTab(idx)} style={{
+                  flexShrink: 0, padding: '8px 14px', borderRadius: 20, border: 'none',
+                  background: activeTab === idx ? col.color : '#f1f5f9', color: activeTab === idx ? '#fff' : '#475569',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, minHeight: 36, whiteSpace: 'nowrap',
+                }}>
+                  {col.icon} {col.label}
+                  <span style={{ background: activeTab === idx ? 'rgba(255,255,255,0.3)' : col.color + '20', color: activeTab === idx ? '#fff' : col.color, borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 700 }}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ width: '100%' }}>
+            {getColumnLeads(COLUMNS[activeTab].id).map((lead) => (
+              <div key={lead.id} style={{ marginBottom: 8 }}>
+                <LeadCard lead={lead} onDragStart={() => {}} onOpenProfile={() => navigate(`/app/leads/${lead.id}`)}
+                  onStartAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
+                  onDelete={() => setDeleteConfirm(lead.id)} isAdmin={user?.role === 'admin'} columns={COLUMNS} onStatusChange={updateStatus} />
+              </div>
+            ))}
+            {getColumnLeads(COLUMNS[activeTab].id).length === 0 && (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8', fontSize: 14, border: '2px dashed #e2e8f0', borderRadius: 12 }}>Keine Leads in dieser Spalte</div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Desktop: Flex columns */
+        <div style={{ display: 'flex', gap: 12, width: '100%', alignItems: 'flex-start' }}>
+          {COLUMNS.map((col) => {
+            const colLeads = getColumnLeads(col.id);
+            const over = dragOver === col.id;
+            return (
+              <div key={col.id} onDragOver={(e) => handleDragOver(e, col.id)} onDrop={(e) => handleDrop(e, col.id)} onDragLeave={() => setDragOver(null)}
+                style={{ flex: '1 1 0', minWidth: 160, background: over ? col.bg : '#f8fafc', borderRadius: 12, border: over ? `2px dashed ${col.color}` : '2px solid transparent', transition: 'all 0.15s', minHeight: 200 }}>
+                <div style={{ padding: '12px 14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                    <span style={{ fontSize: 14, flexShrink: 0 }}>{col.icon}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: NAVY, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{col.label}</span>
+                  </div>
+                  <div style={{ background: col.color + '20', color: col.color, borderRadius: 20, padding: '2px 7px', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{colLeads.length}</div>
                 </div>
-                <div style={{ background: col.color + '20', color: col.color, borderRadius: 20, padding: '2px 8px', fontSize: 12, fontWeight: 700, minWidth: 24, textAlign: 'center' }}>
-                  {colLeads.length}
+                <div style={{ height: 3, background: col.color, margin: '8px 14px', borderRadius: 2 }} />
+                <div style={{ padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {colLeads.map((lead) => (
+                    <LeadCard key={lead.id} lead={lead} onDragStart={handleDragStart}
+                      onOpenProfile={() => navigate(`/app/leads/${lead.id}`)}
+                      onStartAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
+                      onDelete={() => setDeleteConfirm(lead.id)} isAdmin={user?.role === 'admin'} columns={COLUMNS} onStatusChange={updateStatus} />
+                  ))}
+                  {colLeads.length === 0 && (
+                    <div style={{ padding: '16px 8px', textAlign: 'center', color: '#94a3b8', fontSize: 11, border: '1.5px dashed #e2e8f0', borderRadius: 8 }}>Keine Leads</div>
+                  )}
                 </div>
               </div>
-              <div style={{ height: 3, background: col.color, margin: '0 14px 10px', borderRadius: 2 }} />
-              {/* Cards */}
-              <div style={{ padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 60 }}>
-                {colLeads.map((lead) => (
-                  <LeadCard key={lead.id} lead={lead} onDragStart={handleDragStart}
-                    onOpenProfile={() => navigate(`/app/leads/${lead.id}`)}
-                    onStartAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
-                    onDelete={() => setDeleteConfirm(lead.id)} isAdmin={user?.role === 'admin'}
-                    columns={COLUMNS} onStatusChange={updateStatus} />
-                ))}
-                {colLeads.length === 0 && (
-                  <div style={{ padding: '20px 12px', textAlign: 'center', color: '#94a3b8', fontSize: 12, border: '1.5px dashed #e2e8f0', borderRadius: 8 }}>Keine Leads</div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Delete Modal */}
       {deleteConfirm && (

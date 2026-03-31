@@ -61,9 +61,9 @@ function AppLayout() {
   return (
     <div className="flex h-screen bg-slate-50">
       {!isMobile && user && <Sidebar />}
-      <main className={`flex-1 overflow-y-auto ${!isMobile && user ? 'ml-64' : ''}`} style={{ paddingBottom: isMobile ? 80 : undefined }}>
+      <main className={`flex-1 overflow-y-auto overflow-x-hidden ${!isMobile && user ? 'ml-64' : ''}`} style={{ paddingBottom: isMobile ? 80 : undefined, minWidth: 0 }}>
         {isMobile && user && <MobileHeader />}
-        <div className="max-w-7xl mx-auto p-4 lg:p-8">
+        <div style={{ padding: isMobile ? 16 : '24px 32px', width: '100%', maxWidth: '100%' }}>
           <Outlet />
         </div>
       </main>

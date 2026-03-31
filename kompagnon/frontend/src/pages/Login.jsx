@@ -141,6 +141,33 @@ export default function Login() {
 
               {error && <div style={{ background: '#fee2e2', color: '#c0392b', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>{error}</div>}
 
+              {/* Demo Accounts */}
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, textAlign: 'center' }}>
+                  Demo-Zugaenge
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {[
+                    { role: 'Admin', email: 'admin@kompagnon.de', password: 'Admin2025!', icon: '👑', color: '#0F1E3A', bg: '#f0f2f8', desc: 'Volle Rechte' },
+                    { role: 'Auditor', email: 'auditor@kompagnon.de', password: 'Auditor2025!', icon: '🔍', color: '#1e40af', bg: '#eff6ff', desc: 'Audit-Zugang' },
+                    { role: 'Nutzer', email: 'nutzer@kompagnon.de', password: 'Nutzer2025!', icon: '👤', color: '#0f766e', bg: '#f0fdfa', desc: 'Eingeschraenkt' },
+                    { role: 'Kunde', email: 'kunde@kompagnon.de', password: 'Kunde2025!', icon: '🏢', color: '#7c3aed', bg: '#faf5ff', desc: 'Nur eigene Daten' },
+                  ].map((d) => (
+                    <button key={d.role} type="button" onClick={() => { setEmail(d.email); setPassword(d.password); }} style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '10px 12px',
+                      background: d.bg, border: `1.5px solid ${d.color}20`, borderRadius: 10, cursor: 'pointer', textAlign: 'left', minHeight: 44,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                        <span style={{ fontSize: 14 }}>{d.icon}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: d.color }}>{d.role}</span>
+                      </div>
+                      <span style={{ fontSize: 11, color: '#64748b' }}>{d.desc}</span>
+                    </button>
+                  ))}
+                </div>
+                <div style={{ textAlign: 'center', marginTop: 8, fontSize: 11, color: '#64748b' }}>Klick befuellt die Felder automatisch</div>
+              </div>
+
               <form onSubmit={handleLogin}>
                 <div style={{ marginBottom: 14 }}>
                   <label style={lbl}>E-Mail-Adresse</label>

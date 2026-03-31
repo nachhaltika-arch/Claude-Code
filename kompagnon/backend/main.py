@@ -112,31 +112,33 @@ def _run_migrations():
 
 
 def _create_default_admin():
-    """Create default admin user via ORM if no admin exists."""
+    """Create demo users for all 4 roles if they don't exist."""
     from database import SessionLocal, User
     from auth import hash_password
     db = SessionLocal()
     try:
-        existing = db.query(User).filter(User.role == "admin").first()
-        if not existing:
-            admin_email = os.getenv("ADMIN_EMAIL", "admin@kompagnon.de")
-            admin_password = os.getenv("ADMIN_PASSWORD", "Kompagnon2025!")
-            admin = User(
-                email=admin_email,
-                password_hash=hash_password(admin_password),
-                first_name="Admin",
-                last_name="KOMPAGNON",
-                role="admin",
-                is_active=True,
-                is_verified=True,
-            )
-            db.add(admin)
+        demo_users = [
+            {"email": os.getenv("ADMIN_EMAIL", "admin@kompagnon.de"), "password": os.getenv("ADMIN_PASSWORD", "Admin2025!"), "first_name": "Admin", "last_name": "KOMPAGNON", "role": "admin"},
+            {"email": "auditor@kompagnon.de", "password": "Auditor2025!", "first_name": "Max", "last_name": "Auditor", "role": "auditor", "position": "Senior Auditor"},
+            {"email": "nutzer@kompagnon.de", "password": "Nutzer2025!", "first_name": "Lisa", "last_name": "Nutzer", "role": "nutzer"},
+            {"email": "kunde@kompagnon.de", "password": "Kunde2025!", "first_name": "Thomas", "last_name": "Mustermann", "role": "kunde"},
+        ]
+        created = 0
+        for ud in demo_users:
+            if not db.query(User).filter(User.email == ud["email"]).first():
+                pw = ud.pop("password")
+                pos = ud.pop("position", "")
+                user = User(**ud, password_hash=hash_password(pw), position=pos, is_active=True, is_verified=True)
+                db.add(user)
+                created += 1
+                logger.info(f"✓ Demo-User angelegt: {ud['email']} ({ud['role']})")
+        if created:
             db.commit()
-            logger.info(f"✓ Standard-Admin angelegt: {admin_email}")
         else:
-            logger.info("Admin bereits vorhanden")
+            logger.info("Alle Demo-User bereits vorhanden")
     except Exception as e:
-        logger.error(f"Admin-Anlage Fehler: {e}")
+        db.rollback()
+        logger.error(f"Demo-User Fehler: {e}")
     finally:
         db.close()
 

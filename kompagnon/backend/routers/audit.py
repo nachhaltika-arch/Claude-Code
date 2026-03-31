@@ -269,14 +269,27 @@ Antworte als JSON mit allen Einzelkriterienpunkten:
         return _mock_ai_score(check_data)
 
     try:
-        client = Anthropic(api_key=ANTHROPIC_API_KEY)
+        client = Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=0, timeout=25.0)
         message = client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=800,
             system=scoring_prompt,
             messages=[{"role": "user", "content": user_message}],
         )
-        return json.loads(message.content[0].text)
+        raw = message.content[0].text.strip()
+        if not raw:
+            logger.warning('AI scoring: Leere Antwort')
+            return _mock_ai_score(check_data)
+        import re as _re
+        match = _re.search(r'\{.*\}', raw, _re.DOTALL)
+        if match:
+            return json.loads(match.group())
+        else:
+            logger.warning(f'AI scoring: Kein JSON in Antwort: {raw[:100]}')
+            return _mock_ai_score(check_data)
+    except json.JSONDecodeError as e:
+        logger.warning(f'AI scoring JSON Fehler: {e}')
+        return _mock_ai_score(check_data)
     except Exception as e:
         logger.error(f"AI scoring failed: {e}")
         return _mock_ai_score(check_data)

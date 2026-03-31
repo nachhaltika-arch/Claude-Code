@@ -198,6 +198,63 @@ def export_leads_csv(db: Session = Depends(get_db)):
     )
 
 
+@router.post("/import/domains/check")
+def check_domains(data: dict, db: Session = Depends(get_db)):
+    """Check which domains already exist before import."""
+    from sqlalchemy import or_
+
+    raw_domains = data.get("domains", [])
+    results = []
+
+    for url in raw_domains:
+        clean = url.replace('https://', '').replace('http://', '').replace('www.', '').split('/')[0].lower()
+
+        existing = db.query(Lead).filter(
+            or_(
+                Lead.website_url.ilike(f'%{clean}%'),
+                Lead.website_url.ilike(f'%www.{clean}%'),
+            )
+        ).first()
+
+        results.append({
+            'url': url,
+            'domain': clean,
+            'exists': existing is not None,
+            'lead_id': existing.id if existing else None,
+            'company_name': (existing.display_name or existing.company_name) if existing else None,
+            'status': existing.status if existing else None,
+            'score': existing.analysis_score if existing else None,
+        })
+
+    return {
+        'results': results,
+        'new_count': sum(1 for r in results if not r['exists']),
+        'existing_count': sum(1 for r in results if r['exists']),
+        'total': len(results),
+    }
+
+
+@router.post("/enrich/all")
+async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """Batch-enrich all leads with score=0. Runs in background."""
+    from services.lead_enrichment import enrich_all_pending
+    import asyncio
+
+    def _run():
+        from database import SessionLocal
+        _db = SessionLocal()
+        try:
+            asyncio.run(enrich_all_pending(_db))
+        finally:
+            _db.close()
+
+    background_tasks.add_task(_run)
+    return {"message": "Anreicherung gestartet", "status": "processing"}
+
+
+# ── Routes with {lead_id} parameter below ──────────────────────
+
+
 @router.get("/{lead_id}", response_model=LeadResponse)
 def get_lead(lead_id: int, db: Session = Depends(get_db)):
     """Get a specific lead by ID."""
@@ -522,24 +579,6 @@ async def enrich_single_lead(lead_id: int, db: Session = Depends(get_db)):
     return result
 
 
-@router.post("/enrich/all")
-async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    """Batch-enrich all leads with score=0. Runs in background."""
-    from services.lead_enrichment import enrich_all_pending
-    import asyncio
-
-    def _run():
-        from database import SessionLocal
-        _db = SessionLocal()
-        try:
-            asyncio.run(enrich_all_pending(_db))
-        finally:
-            _db.close()
-
-    background_tasks.add_task(_run)
-    return {"message": "Anreicherung gestartet", "status": "processing"}
-
-
 @router.get("/{lead_id}/latest-screenshot")
 def get_latest_screenshot(lead_id: int, db: Session = Depends(get_db)):
     """Get the latest audit screenshot for a lead, saving it to the lead if found."""
@@ -734,42 +773,6 @@ def get_lead_audits(lead_id: int, db: Session = Depends(get_db)):
             "ai_summary": a.ai_summary,
         })
     return results
-
-
-@router.post("/import/domains/check")
-def check_domains(data: dict, db: Session = Depends(get_db)):
-    """Check which domains already exist before import."""
-    from sqlalchemy import or_
-
-    raw_domains = data.get("domains", [])
-    results = []
-
-    for url in raw_domains:
-        clean = url.replace('https://', '').replace('http://', '').replace('www.', '').split('/')[0].lower()
-
-        existing = db.query(Lead).filter(
-            or_(
-                Lead.website_url.ilike(f'%{clean}%'),
-                Lead.website_url.ilike(f'%www.{clean}%'),
-            )
-        ).first()
-
-        results.append({
-            'url': url,
-            'domain': clean,
-            'exists': existing is not None,
-            'lead_id': existing.id if existing else None,
-            'company_name': (existing.display_name or existing.company_name) if existing else None,
-            'status': existing.status if existing else None,
-            'score': existing.analysis_score if existing else None,
-        })
-
-    return {
-        'results': results,
-        'new_count': sum(1 for r in results if not r['exists']),
-        'existing_count': sum(1 for r in results if r['exists']),
-        'total': len(results),
-    }
 
 
 @router.post("/{lead_id}/extract-impressum")

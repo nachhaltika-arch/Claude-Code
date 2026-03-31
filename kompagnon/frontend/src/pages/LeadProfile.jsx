@@ -56,12 +56,34 @@ export default function LeadProfile() {
     loadProfile();
   }, [leadId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const fetchLatestScreenshot = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/leads/${leadId}/latest-screenshot`);
+      if (res.data.screenshot_url) {
+        setProfile((prev) => prev ? { ...prev, lead: { ...prev.lead, website_screenshot: res.data.screenshot_url } } : prev);
+      }
+    } catch { /* silent */ }
+  };
+
+  const refreshScreenshot = async () => {
+    if (!profile?.lead?.website_url) return;
+    await fetchLatestScreenshot();
+    if (!profile?.lead?.website_screenshot) {
+      try {
+        await axios.post(`${API_BASE_URL}/api/leads/${leadId}/screenshot`);
+        toast.success('Screenshot wird erstellt...');
+        setTimeout(() => loadProfile(), 10000);
+      } catch { /* silent */ }
+    }
+  };
+
   const loadProfile = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API_BASE_URL}/api/leads/${leadId}/profile`);
       setProfile(res.data);
       setEditData(res.data.lead);
+      if (!res.data.lead.website_screenshot) fetchLatestScreenshot();
     } catch (e) {
       toast.error('Profil konnte nicht geladen werden.');
     } finally {
@@ -208,7 +230,8 @@ export default function LeadProfile() {
             <div style={{ flex: 1, background: '#fff', borderRadius: 6, padding: '3px 10px', fontSize: 11, color: '#64748b', marginLeft: 6, border: '1px solid #e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {lead.website_url}
             </div>
-            <a href={lead.website_url?.startsWith('http') ? lead.website_url : `https://${lead.website_url}`} target="_blank" rel="noopener noreferrer" style={{ color: '#64748b', fontSize: 12, textDecoration: 'none', flexShrink: 0 }}>↗</a>
+            <a href={lead.website_url?.startsWith('http') ? lead.website_url : `https://${lead.website_url}`} target="_blank" rel="noopener noreferrer" style={{ color: '#64748b', fontSize: 12, textDecoration: 'none', flexShrink: 0 }} title="Website oeffnen">↗</a>
+            <button onClick={refreshScreenshot} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 14, padding: '2px 6px', borderRadius: 4, flexShrink: 0 }} title="Screenshot aktualisieren">🔄</button>
           </div>
           <div style={{ position: 'relative' }}>
             <img src={lead.website_screenshot} alt={`Website von ${lead.company_name}`} style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 280, objectFit: 'cover', objectPosition: 'top' }} />
@@ -221,10 +244,10 @@ export default function LeadProfile() {
           </div>
         </div>
       ) : lead.website_url ? (
-        <div style={{ background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: 12, padding: 32, textAlign: 'center', marginBottom: 16, color: '#64748b', fontSize: 14 }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>🖥️</div>
-          <div>Noch kein Website-Screenshot</div>
-          <div style={{ fontSize: 12, marginTop: 4 }}>Fuehren Sie einen Audit durch um einen Screenshot zu erstellen</div>
+        <div onClick={() => !auditRunning && startAuditFromProfile()} style={{ background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: 12, padding: 32, textAlign: 'center', marginBottom: 16, color: '#64748b', fontSize: 14, cursor: auditRunning ? 'default' : 'pointer', transition: 'border-color 0.2s' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🖥️</div>
+          <div style={{ fontWeight: 600, color: '#475569', marginBottom: 6 }}>Kein Screenshot vorhanden</div>
+          <div style={{ fontSize: 12 }}>{auditRunning ? 'Audit laeuft...' : 'Klicken um Audit zu starten'}</div>
         </div>
       ) : null}
 

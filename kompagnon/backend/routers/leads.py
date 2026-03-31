@@ -454,6 +454,28 @@ async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depe
     return {"message": "Anreicherung gestartet", "status": "processing"}
 
 
+@router.get("/{lead_id}/latest-screenshot")
+def get_latest_screenshot(lead_id: int, db: Session = Depends(get_db)):
+    """Get the latest audit screenshot for a lead, saving it to the lead if found."""
+    latest = (
+        db.query(AuditResult)
+        .filter(AuditResult.lead_id == lead_id, AuditResult.status == "completed", AuditResult.screenshot_base64 != "", AuditResult.screenshot_base64 != None)
+        .order_by(AuditResult.created_at.desc())
+        .first()
+    )
+    if not latest or not latest.screenshot_base64:
+        return {"screenshot_url": None}
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if lead and not lead.website_screenshot:
+        lead.website_screenshot = latest.screenshot_base64
+        db.commit()
+    return {
+        "screenshot_url": f"data:image/jpeg;base64,{latest.screenshot_base64}",
+        "audit_date": latest.created_at.strftime("%d.%m.%Y") if latest.created_at else "",
+        "audit_score": latest.total_score,
+    }
+
+
 @router.post("/{lead_id}/screenshot")
 async def refresh_screenshot(lead_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Capture a fresh website screenshot for a lead."""

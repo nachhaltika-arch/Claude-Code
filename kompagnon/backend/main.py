@@ -64,6 +64,15 @@ def _run_migrations():
     """Führt alle fehlenden Spalten-Migrationen aus."""
     from database import engine
     migrations = [
+        # NOT NULL Constraints entfernen
+        "ALTER TABLE leads ALTER COLUMN contact_name DROP NOT NULL",
+        "ALTER TABLE leads ALTER COLUMN phone DROP NOT NULL",
+        "ALTER TABLE leads ALTER COLUMN email DROP NOT NULL",
+        "ALTER TABLE leads ALTER COLUMN city DROP NOT NULL",
+        "ALTER TABLE leads ALTER COLUMN trade DROP NOT NULL",
+        "ALTER TABLE leads ALTER COLUMN notes DROP NOT NULL",
+        "ALTER TABLE leads ALTER COLUMN website_screenshot DROP NOT NULL",
+        # Bestehende Migrations
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS scraped_phone VARCHAR DEFAULT ''",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS scraped_email VARCHAR DEFAULT ''",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS scraped_description VARCHAR DEFAULT ''",
@@ -114,11 +123,6 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS display_name VARCHAR DEFAULT ''",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS customer_token VARCHAR UNIQUE",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS customer_token_created_at TIMESTAMP",
-        "ALTER TABLE leads ALTER COLUMN contact_name DROP NOT NULL",
-        "ALTER TABLE leads ALTER COLUMN phone DROP NOT NULL",
-        "ALTER TABLE leads ALTER COLUMN email DROP NOT NULL",
-        "ALTER TABLE leads ALTER COLUMN city DROP NOT NULL",
-        "ALTER TABLE leads ALTER COLUMN trade DROP NOT NULL",
         """CREATE TABLE IF NOT EXISTS support_tickets (
             id SERIAL PRIMARY KEY, ticket_number VARCHAR UNIQUE NOT NULL,
             user_id INTEGER, user_email VARCHAR DEFAULT '', user_name VARCHAR DEFAULT '',

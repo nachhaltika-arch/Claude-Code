@@ -348,7 +348,7 @@ async def import_domains_text(
     domains = _extract_domains(data.domains_text)
     if not domains:
         raise HTTPException(400, "Keine gültigen Domains gefunden")
-    domains = domains[:50]
+    domains = domains[:20]
     job_id = str(uuid.uuid4())[:8]
     import_jobs[job_id] = {
         'status': 'running', 'total': len(domains),
@@ -412,7 +412,7 @@ async def import_domains_file(
     domains = _extract_domains(text)
     if not domains:
         raise HTTPException(400, "Keine gültigen Domains in der Datei gefunden")
-    domains = domains[:50]
+    domains = domains[:20]
     job_id = str(uuid.uuid4())[:8]
     import_jobs[job_id] = {
         'status': 'running', 'total': len(domains),

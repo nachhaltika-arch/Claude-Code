@@ -20,12 +20,12 @@ else:
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,
-        pool_recycle=600,
+        pool_recycle=300,
         pool_size=5,
-        max_overflow=10,
-        pool_timeout=30,
+        max_overflow=5,
+        pool_timeout=10,
         connect_args={
-            "connect_timeout": 10,
+            "connect_timeout": 5,
             "keepalives": 1,
             "keepalives_idle": 30,
             "keepalives_interval": 5,

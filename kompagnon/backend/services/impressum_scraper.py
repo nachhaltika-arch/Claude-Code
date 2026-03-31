@@ -109,7 +109,8 @@ async def extract_contact_from_impressum(website_url: str) -> dict:
         }
 
     try:
-        client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+        import anthropic
+        client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'), max_retries=0)
 
         prompt = f"""Extrahiere alle Kontaktdaten aus diesem Impressum-Text.
 
@@ -137,11 +138,21 @@ Gib NUR ein JSON-Objekt zurück — keine Erklärung, kein Markdown:
 Felder die nicht gefunden wurden als leeren String "" lassen.
 Gib NUR das JSON zurück."""
 
-        response = client.messages.create(
-            model='claude-sonnet-4-6',
-            max_tokens=1000,
-            messages=[{'role': 'user', 'content': prompt}],
-        )
+        try:
+            response = client.messages.create(
+                model='claude-sonnet-4-6',
+                max_tokens=1000,
+                messages=[{'role': 'user', 'content': prompt}],
+                timeout=20.0,
+            )
+        except anthropic.APIStatusError as api_err:
+            if api_err.status_code == 529:
+                logger.warning('Anthropic überlastet — Impressum-Extraktion übersprungen')
+                return {'success': False, 'error': 'API überlastet'}
+            raise
+        except anthropic.APITimeoutError:
+            logger.warning('Anthropic Timeout — übersprungen')
+            return {'success': False, 'error': 'Timeout'}
 
         raw = response.content[0].text.strip()
 

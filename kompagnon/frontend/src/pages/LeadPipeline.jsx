@@ -1,221 +1,135 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import toast from 'react-hot-toast';
-import API_BASE_URL from '../config';
-import AuditHistory from '../components/AuditHistory';
-import { useScreenSize } from '../utils/responsive';
 import { useAuth } from '../context/AuthContext';
+import API_BASE_URL from '../config';
 
-const statusConfig = {
-  new:           { label: 'Neu',           className: 'kc-badge kc-badge--info' },
-  contacted:     { label: 'Kontaktiert',   className: 'kc-badge kc-badge--neutral' },
-  qualified:     { label: 'Qualifiziert',  className: 'kc-badge kc-badge--success' },
-  proposal_sent: { label: 'Angebot',       className: 'kc-badge kc-badge--warning' },
-  won:           { label: 'Gewonnen',      className: 'kc-badge kc-badge--success' },
-  lost:          { label: 'Verloren',      className: 'kc-badge kc-badge--danger' },
+const NAVY = '#0F1E3A';
+
+const COLUMNS = [
+  { id: 'new', label: 'Neu / Auditiert', icon: '🆕', color: '#008EAA', bg: '#f0fafa' },
+  { id: 'contacted', label: 'Kontaktiert', icon: '📞', color: '#7c3aed', bg: '#faf5ff' },
+  { id: 'qualified', label: 'Qualifiziert', icon: '✅', color: '#059669', bg: '#f0fdf4' },
+  { id: 'proposal_sent', label: 'Angebot', icon: '📄', color: '#d97706', bg: '#fffbeb' },
+  { id: 'won', label: 'Gewonnen', icon: '🏆', color: '#16a34a', bg: '#f0fdf4' },
+  { id: 'lost', label: 'Verloren', icon: '❌', color: '#dc2626', bg: '#fff5f5' },
+];
+
+const LEVEL_CFG = {
+  'Homepage Standard Platin': { label: 'Platin', icon: '💎', color: '#4a90d9', bg: '#e8f4fd' },
+  'Homepage Standard Gold': { label: 'Gold', icon: '🥇', color: '#b8860b', bg: '#fef9e7' },
+  'Homepage Standard Silber': { label: 'Silber', icon: '🥈', color: '#708090', bg: '#f4f6f7' },
+  'Homepage Standard Bronze': { label: 'Bronze', icon: '🥉', color: '#cd7f32', bg: '#fdf2e9' },
+  'Nicht konform': { label: 'Nicht konform', icon: '⚠️', color: '#dc2626', bg: '#fee2e2' },
 };
 
 export default function LeadPipeline() {
+  const navigate = useNavigate();
+  const { user, token } = useAuth();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedLead, setExpandedLead] = useState(null);
-  const [enriching, setEnriching] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { isMobile } = useScreenSize();
+  const [dragOver, setDragOver] = useState(null);
+  const [dragging, setDragging] = useState(null);
 
-  useEffect(() => {
-    loadLeads();
-  }, []);
+  const headers = () => ({ 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) });
+
+  useEffect(() => { loadLeads(); }, []); // eslint-disable-line
 
   const loadLeads = async () => {
     try {
-      setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/api/leads/`);
-      setLeads(res.data);
-    } catch (error) {
-      toast.error('Leads konnten nicht geladen werden.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const enrichLead = async (leadId) => {
-    setEnriching(leadId);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/enrich`, { method: 'POST' });
+      const res = await fetch(`${API_BASE_URL}/api/leads/`, { headers: headers() });
       const data = await res.json();
-      if (data.status === 'success') {
-        toast.success(`Angereichert: ${data.enriched_fields.length} Felder`);
-        loadLeads();
-      } else {
-        toast.error(data.reason || 'Anreicherung fehlgeschlagen');
-      }
-    } catch (e) { toast.error('Fehler bei Anreicherung'); }
-    finally { setEnriching(null); }
+      setLeads(Array.isArray(data) ? data : []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
-  const deleteLead = async (leadId) => {
+  const getColumnLeads = (colId) =>
+    leads.filter((l) => l.status === colId).sort((a, b) => (b.analysis_score || 0) - (a.analysis_score || 0));
+
+  const updateStatus = async (leadId, newStatus) => {
     try {
-      const res = await axios.delete(`${API_BASE_URL}/api/leads/${leadId}`);
-      if (res.data.success) {
-        setLeads((prev) => prev.filter((l) => l.id !== leadId));
-        setDeleteConfirm(null);
-        toast.success('Lead geloescht');
-      }
-    } catch (e) {
-      toast.error(e.response?.data?.detail || 'Loeschen fehlgeschlagen');
-    }
+      await fetch(`${API_BASE_URL}/api/leads/${leadId}`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ status: newStatus }) });
+      setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)));
+    } catch (e) { console.error(e); }
   };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
-        <div className="kc-skeleton" style={{ height: '40px', width: '200px' }} />
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="kc-skeleton" style={{ height: '48px' }} />
-        ))}
-      </div>
-    );
-  }
+  const handleDragStart = (e, lead) => { setDragging(lead); e.dataTransfer.effectAllowed = 'move'; };
+  const handleDragOver = (e, colId) => { e.preventDefault(); setDragOver(colId); };
+  const handleDrop = (e, colId) => { e.preventDefault(); if (dragging && dragging.status !== colId) updateStatus(dragging.id, colId); setDragging(null); setDragOver(null); };
+
+  const deleteLead = async (id) => {
+    try {
+      await fetch(`${API_BASE_URL}/api/leads/${id}`, { method: 'DELETE', headers: headers() });
+      setLeads((prev) => prev.filter((l) => l.id !== id));
+      setDeleteConfirm(null);
+    } catch (e) { console.error(e); }
+  };
+
+  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: '#64748b', fontSize: 14 }}>Leads werden geladen...</div>;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
-      <div className="kc-section-header">
-        <span className="kc-eyebrow">Vertrieb</span>
-        <h1>Lead Pipeline</h1>
-      </div>
-
-      <div className="kc-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ overflowX: isMobile ? 'auto' : undefined }}>
-        <table className="kc-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Unternehmen</th>
-              <th style={{ display: isMobile ? 'none' : undefined }}>Kontakt</th>
-              <th style={{ display: isMobile ? 'none' : undefined }}>Stadt</th>
-              <th>Gewerk</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right', display: isMobile ? 'none' : undefined }}>Score</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {leads.length === 0 ? (
-              <tr>
-                <td colSpan={8} style={{ textAlign: 'center', color: 'var(--kc-mittel)', padding: 'var(--kc-space-8)' }}>
-                  Keine Leads vorhanden.
-                </td>
-              </tr>
-            ) : (
-              leads.map((lead) => {
-                const cfg = statusConfig[lead.status] || statusConfig.new;
-                const isExpanded = expandedLead === lead.id;
-                return (
-                  <React.Fragment key={lead.id}>
-                    <tr
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => setExpandedLead(isExpanded ? null : lead.id)}
-                    >
-                      <td style={{ width: '24px', textAlign: 'center', color: 'var(--kc-mittel)', fontSize: 'var(--kc-text-xs)' }}>
-                        {isExpanded ? '▼' : '▶'}
-                      </td>
-                      <td style={{ fontWeight: 600 }}>
-                        <span
-                          style={{ cursor: 'pointer', color: 'var(--kc-text-primaer)', textDecoration: 'none' }}
-                          onClick={(e) => { e.stopPropagation(); navigate(`/app/leads/${lead.id}`); }}
-                          onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
-                          onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
-                        >
-                          {lead.company_name}
-                        </span>
-                      </td>
-                      <td style={{ color: 'var(--kc-text-sekundaer)', display: isMobile ? 'none' : undefined }}>{lead.contact_name}</td>
-                      <td style={{ color: 'var(--kc-text-sekundaer)', display: isMobile ? 'none' : undefined }}>{lead.city}</td>
-                      <td style={{ color: 'var(--kc-text-sekundaer)' }}>{lead.trade}</td>
-                      <td><span className={cfg.className}>{cfg.label}</span></td>
-                      <td style={{ textAlign: 'right', display: isMobile ? 'none' : undefined }}>
-                        <span
-                          style={{
-                            fontFamily: 'var(--kc-font-mono)',
-                            fontWeight: 700,
-                            fontSize: 'var(--kc-text-sm)',
-                            color: lead.analysis_score >= 70 ? 'var(--kc-success)' :
-                                   lead.analysis_score >= 40 ? 'var(--kc-warning)' :
-                                   'var(--kc-text-subtil)',
-                          }}
-                        >
-                          {lead.analysis_score}/100
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                        <button
-                          className="kc-btn-ghost"
-                          style={{ fontSize: 'var(--kc-text-xs)', padding: 'var(--kc-space-1) var(--kc-space-3)' }}
-                          onClick={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&company=${encodeURIComponent(lead.company_name)}&contact=${encodeURIComponent(lead.contact_name)}&city=${encodeURIComponent(lead.city)}&trade=${encodeURIComponent(lead.trade)}&lead_id=${lead.id}`)}
-                        >
-                          Audit
-                        </button>
-                        <button
-                          className="kc-btn-ghost"
-                          style={{ fontSize: 'var(--kc-text-xs)', padding: 'var(--kc-space-1) var(--kc-space-3)' }}
-                          onClick={(e) => { e.stopPropagation(); enrichLead(lead.id); }}
-                          disabled={enriching === lead.id}
-                          title="Daten anreichern"
-                        >
-                          {enriching === lead.id ? '...' : 'Anreichern'}
-                        </button>
-                        {user?.role === 'admin' && (
-                          <button
-                            className="kc-btn-ghost"
-                            style={{ fontSize: 'var(--kc-text-xs)', padding: 'var(--kc-space-1) var(--kc-space-2)', color: '#94a3b8' }}
-                            onClick={(e) => { e.stopPropagation(); setDeleteConfirm(lead.id); }}
-                            title="Lead loeschen"
-                          >
-                            🗑️
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                    {isExpanded && (
-                      <tr>
-                        <td colSpan={8} style={{ padding: 'var(--kc-space-4) var(--kc-space-6)', background: 'var(--kc-hell)' }}>
-                          <AuditHistory leadId={lead.id} />
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+    <div>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: NAVY, margin: 0 }}>Lead Pipeline</h1>
+          <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0' }}>{leads.length} Leads · Drag & Drop zum Verschieben</p>
         </div>
+        <button onClick={() => navigate('/app/import')} style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+          + Lead hinzufuegen
+        </button>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* Kanban */}
+      <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 16, alignItems: 'flex-start' }}>
+        {COLUMNS.map((col) => {
+          const colLeads = getColumnLeads(col.id);
+          const over = dragOver === col.id;
+          return (
+            <div key={col.id} onDragOver={(e) => handleDragOver(e, col.id)} onDrop={(e) => handleDrop(e, col.id)} onDragLeave={() => setDragOver(null)}
+              style={{ flexShrink: 0, width: 260, background: over ? col.bg : '#f8fafc', borderRadius: 12, border: over ? `2px dashed ${col.color}` : '2px solid transparent', transition: 'all 0.15s', minHeight: 200 }}>
+              {/* Column header */}
+              <div style={{ padding: '12px 14px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <span style={{ fontSize: 16 }}>{col.icon}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: NAVY }}>{col.label}</span>
+                </div>
+                <div style={{ background: col.color + '20', color: col.color, borderRadius: 20, padding: '2px 8px', fontSize: 12, fontWeight: 700, minWidth: 24, textAlign: 'center' }}>
+                  {colLeads.length}
+                </div>
+              </div>
+              <div style={{ height: 3, background: col.color, margin: '0 14px 10px', borderRadius: 2 }} />
+              {/* Cards */}
+              <div style={{ padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 60 }}>
+                {colLeads.map((lead) => (
+                  <LeadCard key={lead.id} lead={lead} onDragStart={handleDragStart}
+                    onOpenProfile={() => navigate(`/app/leads/${lead.id}`)}
+                    onStartAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
+                    onDelete={() => setDeleteConfirm(lead.id)} isAdmin={user?.role === 'admin'}
+                    columns={COLUMNS} onStatusChange={updateStatus} />
+                ))}
+                {colLeads.length === 0 && (
+                  <div style={{ padding: '20px 12px', textAlign: 'center', color: '#94a3b8', fontSize: 12, border: '1.5px dashed #e2e8f0', borderRadius: 8 }}>Keine Leads</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Delete Modal */}
       {deleteConfirm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-          onClick={() => setDeleteConfirm(null)}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 28, maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px' }}>🗑️</div>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F1E3A', textAlign: 'center', marginBottom: 8 }}>Lead loeschen?</h3>
-            <p style={{ fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 8, lineHeight: 1.5 }}>
-              <strong>{leads.find((l) => l.id === deleteConfirm)?.company_name}</strong> wird dauerhaft geloescht.
-            </p>
-            <p style={{ fontSize: 12, color: '#ef4444', textAlign: 'center', marginBottom: 24 }}>
-              Alle zugehoerigen Audits werden ebenfalls geloescht. Diese Aktion kann nicht rueckgaengig gemacht werden.
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setDeleteConfirm(null)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 28, maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🗑️</div>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: NAVY, marginBottom: 8 }}>Lead loeschen?</h3>
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>
+              <strong>{leads.find((l) => l.id === deleteConfirm)?.company_name}</strong> und alle Audits werden geloescht.
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: 11, background: '#f1f5f9', color: '#0F1E3A', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>
-                Abbrechen
-              </button>
-              <button onClick={() => deleteLead(deleteConfirm)} style={{ flex: 1, padding: 11, background: '#ef4444', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
-                Endgueltig loeschen
-              </button>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: 11, background: '#f1f5f9', color: NAVY, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>Abbrechen</button>
+              <button onClick={() => deleteLead(deleteConfirm)} style={{ flex: 1, padding: 11, background: '#ef4444', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>Loeschen</button>
             </div>
           </div>
         </div>
@@ -223,3 +137,90 @@ export default function LeadPipeline() {
     </div>
   );
 }
+
+// ── Lead Card ──
+
+function LeadCard({ lead, onDragStart, onOpenProfile, onStartAudit, onDelete, isAdmin, columns, onStatusChange }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const hasAudit = lead.analysis_score > 0;
+  const lcfg = LEVEL_CFG[lead.current_level] || null;
+  const scoreColor = (s) => s >= 85 ? '#16a34a' : s >= 70 ? '#2563eb' : s >= 50 ? '#d97706' : '#dc2626';
+
+  const domain = (url) => {
+    if (!url) return null;
+    try { return new URL(url.startsWith('http') ? url : 'https://' + url).hostname.replace('www.', ''); } catch { return url; }
+  };
+
+  return (
+    <div draggable onDragStart={(e) => onDragStart(e, lead)} style={{
+      background: '#fff', borderRadius: 10, border: '1px solid #e2e8f0', padding: 12, cursor: 'grab',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.15s', position: 'relative',
+    }}>
+      {/* Name + menu */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6, gap: 6 }}>
+        <div onClick={onOpenProfile} style={{ fontSize: 13, fontWeight: 700, color: NAVY, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={lead.company_name}>
+          {lead.company_name || 'Unbekannt'}
+        </div>
+        <div style={{ position: 'relative' }}>
+          <button onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 16, padding: '0 2px' }}>⋯</button>
+          {menuOpen && (
+            <div style={{ position: 'absolute', top: '100%', right: 0, background: '#fff', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', border: '1px solid #e2e8f0', zIndex: 50, minWidth: 160, overflow: 'hidden' }}
+              onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => { onOpenProfile(); setMenuOpen(false); }} style={MI}>👤 Kundenkartei</button>
+              <button onClick={() => { onStartAudit(); setMenuOpen(false); }} style={MI}>🔍 Audit starten</button>
+              <div style={{ borderTop: '1px solid #f1f5f9', padding: '4px 0' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', padding: '4px 12px', letterSpacing: '0.08em' }}>Status aendern</div>
+                {columns.filter((c) => c.id !== lead.status).map((col) => (
+                  <button key={col.id} onClick={() => { onStatusChange(lead.id, col.id); setMenuOpen(false); }} style={{ ...MI, color: col.color }}>{col.icon} {col.label}</button>
+                ))}
+              </div>
+              {isAdmin && (
+                <div style={{ borderTop: '1px solid #fee2e2' }}>
+                  <button onClick={() => { onDelete(); setMenuOpen(false); }} style={{ ...MI, color: '#ef4444' }}>🗑️ Loeschen</button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Domain */}
+      {lead.website_url && (
+        <div style={{ fontSize: 11, color: '#008EAA', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>🌐</span>
+          <a href={lead.website_url.startsWith('http') ? lead.website_url : 'https://' + lead.website_url} target="_blank" rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()} style={{ color: '#008EAA', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {domain(lead.website_url)}
+          </a>
+        </div>
+      )}
+
+      {/* Score */}
+      {hasAudit ? (
+        <div style={{ marginBottom: 8 }}>
+          {lcfg && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: lcfg.bg, color: lcfg.color, borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, marginBottom: 6 }}>
+              {lcfg.icon} {lcfg.label}
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ flex: 1, height: 5, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ width: `${lead.analysis_score}%`, height: '100%', background: scoreColor(lead.analysis_score), borderRadius: 3, transition: 'width 0.6s ease' }} />
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 700, color: scoreColor(lead.analysis_score), flexShrink: 0 }}>{lead.analysis_score}/100</span>
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>⚪ Noch kein Audit</div>
+      )}
+
+      {/* Tags */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {lead.city && <span style={{ fontSize: 10, color: '#64748b', background: '#f1f5f9', padding: '2px 7px', borderRadius: 4 }}>📍 {lead.city}</span>}
+        {lead.trade && <span style={{ fontSize: 10, color: '#64748b', background: '#f1f5f9', padding: '2px 7px', borderRadius: 4 }}>🔧 {lead.trade}</span>}
+      </div>
+    </div>
+  );
+}
+
+const MI = { width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: '#0F1E3A', textAlign: 'left', whiteSpace: 'nowrap' };

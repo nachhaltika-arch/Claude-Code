@@ -100,12 +100,24 @@ def list_leads(
     limit: int = Query(50),
     db: Session = Depends(get_db),
 ):
-    """List all leads, optionally filtered by status."""
+    """List all leads with latest audit level, optionally filtered by status."""
     query = db.query(Lead)
     if status:
         query = query.filter(Lead.status == status)
-    leads = query.offset(skip).limit(limit).all()
-    return leads
+    leads = query.order_by(Lead.created_at.desc()).offset(skip).limit(limit).all()
+
+    # Enrich with latest audit level
+    result = []
+    for lead in leads:
+        d = {c.name: getattr(lead, c.name) for c in Lead.__table__.columns}
+        latest = db.query(AuditResult).filter(
+            AuditResult.lead_id == lead.id, AuditResult.status == "completed"
+        ).order_by(AuditResult.created_at.desc()).first()
+        d["current_level"] = latest.level if latest else None
+        if latest and latest.total_score and (not lead.analysis_score or latest.total_score > lead.analysis_score):
+            d["analysis_score"] = latest.total_score
+        result.append(d)
+    return result
 
 
 @router.get("/export/csv")

@@ -11,6 +11,8 @@ import Checklists from './pages/Checklists';
 import Customers from './pages/Customers';
 import ContactImport from './pages/ContactImport';
 import MassExport from './pages/MassExport';
+import Tickets from './pages/Tickets';
+import FeedbackButton from './components/FeedbackButton';
 import AuditTool from './pages/AuditTool';
 import LeadProfile from './pages/LeadProfile';
 import Login from './pages/Login';
@@ -217,6 +219,7 @@ function App() {
             <Route path="profile" element={<Profile />} />
             <Route path="2fa-setup" element={<TwoFactorSetup />} />
             <Route path="admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
+            <Route path="tickets" element={<PrivateRoute roles={['admin', 'auditor']}><Tickets /></PrivateRoute>} />
 
             {/* Settings with sub-navigation */}
             <Route path="settings" element={<SettingsLayout />}>
@@ -234,6 +237,7 @@ function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <FeedbackButton />
         <Toaster
           position="top-right"
           toastOptions={{

@@ -43,6 +43,7 @@ from routers import (
     scraper_router,
     settings_router,
     payments_router,
+    tickets_router,
 )
 
 # Import scheduler
@@ -98,6 +99,14 @@ def _run_migrations():
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_kontakt INTEGER DEFAULT 0",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS screenshot_base64 TEXT DEFAULT ''",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS website_screenshot TEXT DEFAULT ''",
+        """CREATE TABLE IF NOT EXISTS support_tickets (
+            id SERIAL PRIMARY KEY, ticket_number VARCHAR UNIQUE NOT NULL,
+            user_id INTEGER, user_email VARCHAR DEFAULT '', user_name VARCHAR DEFAULT '',
+            type VARCHAR DEFAULT 'feedback', priority VARCHAR DEFAULT 'medium', status VARCHAR DEFAULT 'open',
+            title VARCHAR NOT NULL, description TEXT NOT NULL, page_url VARCHAR DEFAULT '',
+            browser_info VARCHAR DEFAULT '', screenshot_base64 TEXT DEFAULT '', admin_notes TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW(), resolved_at TIMESTAMP
+        )""",
         # Note: users + user_sessions tables are created by init_db() via SQLAlchemy
     ]
     try:
@@ -220,6 +229,7 @@ app.include_router(admin_router)
 app.include_router(scraper_router)
 app.include_router(settings_router)
 app.include_router(payments_router)
+app.include_router(tickets_router)
 
 
 # Health check endpoint

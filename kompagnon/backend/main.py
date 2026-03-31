@@ -109,6 +109,8 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ceo_first_name VARCHAR DEFAULT ''",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ceo_last_name VARCHAR DEFAULT ''",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS display_name VARCHAR DEFAULT ''",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS customer_token VARCHAR UNIQUE",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS customer_token_created_at TIMESTAMP",
         """CREATE TABLE IF NOT EXISTS support_tickets (
             id SERIAL PRIMARY KEY, ticket_number VARCHAR UNIQUE NOT NULL,
             user_id INTEGER, user_email VARCHAR DEFAULT '', user_name VARCHAR DEFAULT '',

@@ -33,6 +33,7 @@ import ResetPassword from './pages/ResetPassword';
 import Akademie from './pages/Akademie';
 import SalesPipeline from './pages/SalesPipeline';
 import DomainImport from './pages/DomainImport';
+import CustomerPortal from './pages/CustomerPortal';
 import PackageStarter from './pages/PackageStarter';
 import PackageKompagnon from './pages/PackageKompagnon';
 import PackagePremium from './pages/PackagePremium';
@@ -78,6 +79,7 @@ function App() {
           <Route path="/impressum" element={<Impressum />} />
           <Route path="/datenschutz" element={<Datenschutz />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/portal/:token" element={<CustomerPortal />} />
           <Route path="/paket/starter" element={<PackageStarter />} />
           <Route path="/paket/kompagnon" element={<PackageKompagnon />} />
           <Route path="/paket/premium" element={<PackagePremium />} />

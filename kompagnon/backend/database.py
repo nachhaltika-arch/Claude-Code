@@ -54,6 +54,9 @@ class Lead(Base):
     ceo_last_name = Column(String(100), default="")
     display_name = Column(String(255), default="")
 
+    customer_token = Column(String, unique=True, nullable=True)
+    customer_token_created_at = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

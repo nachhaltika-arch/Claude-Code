@@ -10,6 +10,7 @@ import ProjectDetail from './pages/ProjectDetail';
 import Checklists from './pages/Checklists';
 import Customers from './pages/Customers';
 import ContactImport from './pages/ContactImport';
+import MassExport from './pages/MassExport';
 import AuditTool from './pages/AuditTool';
 import LeadProfile from './pages/LeadProfile';
 import Login from './pages/Login';
@@ -211,6 +212,7 @@ function App() {
             <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             <Route path="customers" element={<PrivateRoute><Customers /></PrivateRoute>} />
             <Route path="import" element={<PrivateRoute roles={['admin', 'auditor']}><ContactImport /></PrivateRoute>} />
+            <Route path="export" element={<PrivateRoute roles={['admin', 'auditor']}><MassExport /></PrivateRoute>} />
             <Route path="audit" element={<PrivateRoute><AuditTool /></PrivateRoute>} />
             <Route path="profile" element={<Profile />} />
             <Route path="2fa-setup" element={<TwoFactorSetup />} />

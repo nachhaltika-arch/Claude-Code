@@ -108,6 +108,31 @@ def list_leads(
     return leads
 
 
+@router.get("/export/csv")
+def export_leads_csv(db: Session = Depends(get_db)):
+    """Export all leads as CSV file."""
+    import io as _io
+    from fastapi.responses import StreamingResponse
+
+    leads = db.query(Lead).order_by(Lead.created_at.desc()).all()
+    output = _io.StringIO()
+    writer = csv.writer(output, delimiter=";")
+    writer.writerow(["ID", "Firmenname", "Ansprechpartner", "Telefon", "E-Mail", "Website", "Stadt", "Gewerk", "Status", "Score", "Quelle", "Erstellt am"])
+    for lead in leads:
+        writer.writerow([
+            lead.id, lead.company_name or "", lead.contact_name or "", lead.phone or "",
+            lead.email or "", lead.website_url or "", lead.city or "", lead.trade or "",
+            lead.status or "", lead.analysis_score or 0, lead.lead_source or "",
+            str(lead.created_at)[:10] if lead.created_at else "",
+        ])
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue().encode("utf-8-sig")]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=leads-export.csv"},
+    )
+
+
 @router.get("/{lead_id}", response_model=LeadResponse)
 def get_lead(lead_id: int, db: Session = Depends(get_db)):
     """Get a specific lead by ID."""

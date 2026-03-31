@@ -203,8 +203,8 @@ export default function Customers() {
           {/* Table header — desktop only */}
           {!isMobile && (
             <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 120px 100px 100px 40px',
-              gap: 12, padding: '10px 16px', borderBottom: '1px solid var(--border-light)',
+              display: 'grid', gridTemplateColumns: '2fr 1fr 120px 120px 40px',
+              gap: 16, padding: '10px 20px', borderBottom: '1px solid var(--border-light)',
               background: 'var(--bg-app)',
             }}>
               {['Unternehmen', 'Ort', 'Status', 'Score', ''].map((h, i) => (
@@ -228,11 +228,11 @@ export default function Customers() {
                 onClick={() => navigate(`/app/leads/${lead.id}`)}
                 style={{
                   display: isMobile ? 'flex' : 'grid',
-                  gridTemplateColumns: isMobile ? undefined : '1fr 120px 100px 100px 40px',
+                  gridTemplateColumns: isMobile ? undefined : '2fr 1fr 120px 120px 40px',
                   flexDirection: isMobile ? 'column' : undefined,
-                  gap: isMobile ? 6 : 12,
+                  gap: isMobile ? 6 : 16,
                   alignItems: isMobile ? 'stretch' : 'center',
-                  padding: isMobile ? '12px 16px' : '10px 16px',
+                  padding: isMobile ? '12px 16px' : '10px 20px',
                   borderBottom: idx < filtered.length - 1 ? '1px solid var(--border-light)' : 'none',
                   cursor: 'pointer', transition: 'background 0.1s',
                 }}

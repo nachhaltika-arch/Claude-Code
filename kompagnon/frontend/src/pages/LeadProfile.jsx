@@ -571,20 +571,247 @@ export default function LeadProfile() {
         </div>
       )}
 
-      {/* KONTAKT TAB — Teil 4 folgt */}
+      {/* KONTAKT TAB */}
       {activeTab === 'contact' && (
-        <div style={{ padding: 20, background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)', fontSize: 13 }}>
-          Kontakt-Tab wird in Teil 4 hinzugefügt...
-        </div>
+        <Card padding="md">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>Kontakt & Unternehmen</h2>
+            {!editMode && (
+              <Button variant="secondary" size="sm" onClick={() => setEditMode(true)}>✏️ Bearbeiten</Button>
+            )}
+          </div>
+
+          {editMode ? (
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+
+                <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
+                  <div style={sectionLabel}>Unternehmen</div>
+                </div>
+
+                {[
+                  ['Firmenname', 'company_name', 'Mustermann GmbH'],
+                  ['Gesellschaftsform', 'legal_form', 'GmbH, UG, GmbH & Co. KG'],
+                  ['Vorname Geschäftsführer', 'ceo_first_name', 'Max'],
+                  ['Nachname Geschäftsführer', 'ceo_last_name', 'Mustermann'],
+                  ['Gewerk', 'trade', 'Elektriker'],
+                ].map(([label, field, ph]) => (
+                  <div key={field}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
+                    <input value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
+                  </div>
+                ))}
+
+                <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
+                  <div style={sectionLabel}>Adresse</div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Straße</div>
+                    <input value={editData.street || ''} onChange={e => setEditData(p => ({...p, street: e.target.value}))} placeholder="Musterstraße" style={inputStyle}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Nr.</div>
+                    <input value={editData.house_number || ''} onChange={e => setEditData(p => ({...p, house_number: e.target.value}))} placeholder="12a" style={inputStyle}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>PLZ</div>
+                    <input value={editData.postal_code || ''} onChange={e => setEditData(p => ({...p, postal_code: e.target.value}))} placeholder="56070" style={inputStyle}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Ort</div>
+                    <input value={editData.city || ''} onChange={e => setEditData(p => ({...p, city: e.target.value}))} placeholder="Koblenz" style={inputStyle}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
+                  </div>
+                </div>
+
+                <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
+                  <div style={sectionLabel}>Kontakt</div>
+                </div>
+
+                {[
+                  ['Ansprechpartner', 'contact_name', 'Max Mustermann'],
+                  ['Telefon', 'phone', '+49 261 123456'],
+                  ['E-Mail', 'email', 'info@firma.de'],
+                  ['Website', 'website_url', 'www.firma.de'],
+                ].map(([label, field, ph]) => (
+                  <div key={field}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
+                    <input value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
+                  </div>
+                ))}
+
+                <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
+                  <div style={sectionLabel}>Rechtliches</div>
+                </div>
+
+                {[
+                  ['USt-IdNr.', 'vat_id', 'DE123456789'],
+                  ['Handelsreg.-Nr.', 'register_number', 'HRB 12345'],
+                  ['Handelsregister', 'register_court', 'Amtsgericht Koblenz'],
+                ].map(([label, field, ph]) => (
+                  <div key={field}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
+                    <input value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
+                  </div>
+                ))}
+
+                <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, marginTop: 8 }}>Notizen</div>
+                  <textarea value={editData.notes || ''} onChange={e => setEditData(p => ({...p, notes: e.target.value}))} placeholder="Interne Notizen..." rows={3}
+                    style={{ ...inputStyle, resize: 'vertical', minHeight: 70 }}
+                    onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                    onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-light)' }}>
+                <Button variant="primary" onClick={saveEdit} disabled={saving}>
+                  {saving ? 'Wird gespeichert...' : '✓ Speichern'}
+                </Button>
+                <Button variant="secondary" onClick={() => setEditMode(false)}>Abbrechen</Button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? '1fr 1fr' : '1fr 1fr 1fr', gap: 24 }}>
+              <div>
+                <div style={sectionLabel}>Unternehmen</div>
+                {fieldRow('🏢', [lead.company_name, lead.legal_form].filter(Boolean).join(' '), 'Firma')}
+                {fieldRow('👔', [lead.ceo_first_name, lead.ceo_last_name].filter(Boolean).join(' '), 'Geschäftsführer')}
+                {fieldRow('🔧', lead.trade, 'Gewerk')}
+              </div>
+              <div>
+                <div style={sectionLabel}>Kontakt</div>
+                {fieldRow('👤', lead.contact_name, 'Ansprechpartner')}
+                {fieldRow('📞', lead.phone, 'Telefon')}
+                {fieldRow('✉️', lead.email, 'E-Mail')}
+                {fieldRow('🌐', lead.website_url?.replace(/^https?:\/\//, ''), 'Website')}
+              </div>
+              <div>
+                <div style={sectionLabel}>Adresse</div>
+                {fieldRow('📍', [lead.street && `${lead.street} ${lead.house_number || ''}`.trim(), [lead.postal_code, lead.city].filter(Boolean).join(' ')].filter(Boolean).join(', '), 'Anschrift')}
+                {(lead.vat_id || lead.register_number) && (
+                  <>
+                    <div style={{ ...sectionLabel, marginTop: 16 }}>Rechtliches</div>
+                    {fieldRow('🏛️', lead.vat_id, 'USt-IdNr.')}
+                    {fieldRow('📋', lead.register_number, 'Handelsreg.-Nr.')}
+                    {fieldRow('⚖️', lead.register_court, 'Handelsregister')}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </Card>
       )}
+
+      {/* AUDITS TAB */}
       {activeTab === 'audits' && (
-        <div style={{ padding: 20, background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)', fontSize: 13 }}>
-          Audits-Tab wird in Teil 4 hinzugefügt...
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {auditRunning && (
+            <div style={{ background: 'var(--status-info-bg)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Audit läuft...</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{auditProgress}</div>
+              </div>
+            </div>
+          )}
+
+          {audits.length === 0 && !auditRunning ? (
+            <div style={{ textAlign: 'center', padding: '48px 20px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)' }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
+              <div style={{ fontSize: 13 }}>Noch keine Audits vorhanden</div>
+              <button onClick={startAudit} style={{ marginTop: 14, padding: '8px 18px', background: 'var(--brand-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                Ersten Audit starten
+              </button>
+            </div>
+          ) : (
+            audits.map((audit, i) => {
+              const lc = audit.level ? LEVEL_COLORS[audit.level] : 'var(--text-tertiary)';
+              const score = audit.total_score || 0;
+              return (
+                <div key={audit.id} style={{ background: 'var(--bg-surface)', border: `1px solid ${i === 0 ? 'var(--border-medium)' : 'var(--border-light)'}`, borderLeft: i === 0 ? '3px solid var(--brand-primary)' : '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', background: `${lc}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: lc }}>{score}</span>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          {audit.level}
+                          {i === 0 && <Badge variant="info">Aktuell</Badge>}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                          {new Date(audit.created_at).toLocaleDateString('de-DE')}
+                          {audit.website_url && ` · ${audit.website_url.replace(/^https?:\/\//, '')}`}
+                        </div>
+                        {audit.ai_summary && (
+                          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 380 }}>
+                            {audit.ai_summary.substring(0, 100)}...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+                      <Button variant="secondary" size="sm" onClick={() => setOpenAudit(audit)}>Details</Button>
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteAuditId(audit.id)}>🗑️</Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       )}
+
+      {/* CHECKLISTEN TAB */}
       {activeTab === 'checklists' && (
-        <div style={{ padding: 20, background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)', fontSize: 13 }}>
-          Checklisten-Tab wird in Teil 4 hinzugefügt...
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <HomepageChecklist auditData={latestAudit} />
+          <SecurityChecklist auditData={latestAudit} />
+        </div>
+      )}
+
+      {/* AUDIT DETAIL MODAL */}
+      {openAudit && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, overflowY: 'auto', padding: '20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}
+          onClick={e => { if (e.target === e.currentTarget) setOpenAudit(null); }}>
+          <div style={{ maxWidth: 900, width: '100%', borderRadius: 'var(--radius-xl)', overflow: 'hidden', marginTop: 20 }}>
+            <AuditReport auditData={openAudit} onClose={() => setOpenAudit(null)} />
+          </div>
+        </div>
+      )}
+
+      {/* AUDIT LÖSCHEN MODAL */}
+      {deleteAuditId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setDeleteAuditId(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--status-danger-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, margin: '0 auto 14px' }}>🗑️</div>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Audit löschen?</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.5 }}>Dieser Audit-Eintrag wird dauerhaft gelöscht und kann nicht wiederhergestellt werden.</p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Button variant="secondary" fullWidth onClick={() => setDeleteAuditId(null)}>Abbrechen</Button>
+              <Button variant="danger" fullWidth onClick={() => deleteAudit(deleteAuditId)}>Löschen</Button>
+            </div>
+          </div>
         </div>
       )}
 

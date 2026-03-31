@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import AuditReport from '../components/AuditReport';
 import HomepageChecklist from '../components/HomepageChecklist';
+import SecurityChecklist from '../components/SecurityChecklist';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
 
@@ -461,6 +462,7 @@ export default function LeadProfile() {
 
       {/* ── Homepage Checklist ── */}
       <HomepageChecklist auditData={audits?.[0] || null} />
+      <SecurityChecklist auditData={audits?.[0] || null} />
 
       {/* ── Audit Progress ── */}
       {auditRunning && (

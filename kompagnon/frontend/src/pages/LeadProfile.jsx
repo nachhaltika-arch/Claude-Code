@@ -20,15 +20,15 @@ const LEVEL_COLORS = {
 };
 
 const STATUS_LABELS = {
-  new: { label: 'Neu', color: '#4a5a7a' },
+  new: { label: 'Neu', color: 'var(--text-secondary)' },
   contacted: { label: 'Kontaktiert', color: '#2a7a9a' },
-  qualified: { label: 'Qualifiziert', color: '#2a9a5a' },
+  qualified: { label: 'Qualifiziert', color: 'var(--status-success-text)' },
   proposal_sent: { label: 'Angebot gesendet', color: '#c07820' },
-  won: { label: 'Gewonnen', color: '#2a7a3a' },
+  won: { label: 'Gewonnen', color: 'var(--status-success-text)' },
   lost: { label: 'Verloren', color: '#c03030' },
 };
 
-const NAVY = '#0F1E3A';
+
 
 const CAT_DEFS = [
   { label: 'Rechtliche Compliance', scoreKey: 'rc_score', max: 30 },
@@ -224,9 +224,9 @@ export default function LeadProfile() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)', padding: 'var(--kc-space-6)' }}>
-        <div className="kc-skeleton" style={{ height: 120 }} />
-        <div className="kc-skeleton" style={{ height: 200 }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '24px' }}>
+        <div className="skeleton" style={{ height: 120 }} />
+        <div className="skeleton" style={{ height: 200 }} />
       </div>
     );
   }
@@ -235,7 +235,7 @@ export default function LeadProfile() {
 
   const { lead, current_score, current_level, score_history, audits, projects } = profile;
   const levelColor = LEVEL_COLORS[current_level] || '#4a5a7a';
-  const statusInfo = STATUS_LABELS[lead.status] || { label: lead.status, color: '#4a5a7a' };
+  const statusInfo = STATUS_LABELS[lead.status] || { label: lead.status, color: 'var(--text-secondary)' };
   const latestAudit = audits[0] || null;
 
   const scoreImprovement = score_history.length >= 2
@@ -243,12 +243,12 @@ export default function LeadProfile() {
     : null;
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', fontFamily: 'var(--font-sans)' }}>
       {/* Back */}
       <button
         onClick={() => navigate('/app/leads')}
         style={{
-          background: 'none', border: 'none', color: NAVY, fontSize: 14,
+          background: 'none', border: 'none', color: 'var(--text-primary)', fontSize: 14,
           cursor: 'pointer', marginBottom: 16, padding: 0, display: 'flex', alignItems: 'center', gap: 6,
         }}
       >
@@ -257,34 +257,34 @@ export default function LeadProfile() {
 
       {/* ── Website Screenshot ── */}
       {lead.website_screenshot ? (
-        <div style={{ marginBottom: 16, borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
-          <div style={{ background: '#f1f5f9', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid #e2e8f0' }}>
+        <div style={{ marginBottom: 16, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-light)', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+          <div style={{ background: 'var(--bg-app)', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid var(--border-light)' }}>
             {['#ef4444', '#f59e0b', '#22c55e'].map((c) => (
               <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />
             ))}
-            <div style={{ flex: 1, background: '#fff', borderRadius: 6, padding: '3px 10px', fontSize: 11, color: '#64748b', marginLeft: 6, border: '1px solid #e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: 6, padding: '3px 10px', fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 6, border: '1px solid var(--border-light)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {lead.website_url}
             </div>
-            <a href={lead.website_url?.startsWith('http') ? lead.website_url : `https://${lead.website_url}`} target="_blank" rel="noopener noreferrer" style={{ color: '#64748b', fontSize: 12, textDecoration: 'none', flexShrink: 0 }} title="Website oeffnen">↗</a>
-            <button onClick={refreshScreenshot} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 14, padding: '2px 6px', borderRadius: 4, flexShrink: 0 }} title="Screenshot aktualisieren">🔄</button>
+            <a href={lead.website_url?.startsWith('http') ? lead.website_url : `https://${lead.website_url}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-tertiary)', fontSize: 12, textDecoration: 'none', flexShrink: 0 }} title="Website oeffnen">↗</a>
+            <button onClick={refreshScreenshot} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 14, padding: '2px 6px', borderRadius: 4, flexShrink: 0 }} title="Screenshot aktualisieren">🔄</button>
           </div>
           <div style={{ position: 'relative' }}>
             <img src={lead.website_screenshot} alt={`Website von ${lead.company_name}`} style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 280, objectFit: 'cover', objectPosition: 'top' }} />
             {current_score != null && (
               <div style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(15,30,58,0.9)', borderRadius: 20, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ color: '#D4A017', fontSize: 13, fontWeight: 800 }}>{current_score}/100</span>
+                <span style={{ color: 'var(--brand-primary-light)', fontSize: 13, fontWeight: 800 }}>{current_score}/100</span>
                 <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11 }}>{current_level?.replace('Homepage Standard ', '')}</span>
               </div>
             )}
           </div>
         </div>
       ) : (
-        <div style={{ marginBottom: 16, borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+        <div style={{ marginBottom: 16, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-light)' }}>
           {/* Browser chrome for placeholder too */}
           {lead.website_url && (
-            <div style={{ background: '#f1f5f9', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid #e2e8f0' }}>
+            <div style={{ background: 'var(--bg-app)', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid var(--border-light)' }}>
               {['#ef4444', '#f59e0b', '#22c55e'].map((c) => <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />)}
-              <div style={{ flex: 1, background: '#fff', borderRadius: 6, padding: '3px 10px', fontSize: 11, color: '#64748b', marginLeft: 6, border: '1px solid #e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: 6, padding: '3px 10px', fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 6, border: '1px solid var(--border-light)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {lead.website_url || 'Keine Website'}
               </div>
             </div>
@@ -300,28 +300,28 @@ export default function LeadProfile() {
           >
             {screenshotLoading ? (
               <>
-                <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid #bae6fd', borderTopColor: '#008EAA', animation: 'spin 0.9s linear infinite', marginBottom: 4 }} />
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#0F1E3A' }}>Screenshot wird erstellt...</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>{lead.website_url}</div>
-                <div style={{ fontSize: 11, color: '#64748b' }}>Dauert ca. 10-15 Sekunden</div>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid #bae6fd', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.9s linear infinite', marginBottom: 4 }} />
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Screenshot wird erstellt...</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{lead.website_url}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Dauert ca. 10-15 Sekunden</div>
               </>
             ) : lead.website_url ? (
               <>
-                <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, marginBottom: 4 }}>📸</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#0F1E3A' }}>Kein Screenshot vorhanden</div>
-                <div style={{ fontSize: 12, color: '#008EAA', fontWeight: 600 }}>Klicken um Screenshot zu erstellen</div>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--status-info-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, marginBottom: 4 }}>📸</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Kein Screenshot vorhanden</div>
+                <div style={{ fontSize: 12, color: 'var(--brand-primary)', fontWeight: 600 }}>Klicken um Screenshot zu erstellen</div>
               </>
             ) : (
               <>
                 <div style={{ fontSize: 32 }}>🌐</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#475569' }}>Keine Website hinterlegt</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>Keine Website hinterlegt</div>
               </>
             )}
           </div>
           {screenshotError && (
-            <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', padding: '10px 14px', fontSize: 12, color: '#c0392b', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ background: 'var(--status-danger-bg)', border: '1px solid #fca5a5', padding: '10px 14px', fontSize: 12, color: 'var(--status-danger-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span>{screenshotError}</span>
-              <button onClick={() => setScreenshotError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#c0392b', fontSize: 14, padding: 0 }}>✕</button>
+              <button onClick={() => setScreenshotError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--status-danger-text)', fontSize: 14, padding: 0 }}>✕</button>
             </div>
           )}
         </div>
@@ -329,11 +329,11 @@ export default function LeadProfile() {
 
       {/* ── Header Card ── */}
       <div style={{
-        background: NAVY, borderRadius: '12px 12px 0 0', padding: isMobile ? '16px' : '24px 28px', color: '#fff',
+        background: 'var(--brand-primary)', borderRadius: '12px 12px 0 0', padding: isMobile ? '16px' : '24px 28px', color: '#fff',
         display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'center' : 'flex-start',
       }}>
         <div>
-          <div style={{ fontSize: 11, color: '#D4A017', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 6 }}>
+          <div style={{ fontSize: 11, color: 'var(--brand-primary-light)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 6 }}>
             Kundenkartei
           </div>
           <div style={{ fontSize: 26, fontWeight: 800, marginBottom: 4 }}>{lead.display_name || lead.company_name}</div>
@@ -360,11 +360,11 @@ export default function LeadProfile() {
 
       {/* ── Two-column: Contact + Categories ── */}
       <div style={{
-        display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', background: '#fff',
-        border: '1px solid #eef0f8', borderTop: 'none',
+        display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', background: 'var(--bg-surface)',
+        border: '1px solid var(--border-light)', borderTop: 'none',
       }}>
         {/* Contact */}
-        <div style={{ padding: isMobile ? '16px' : '24px 28px', borderRight: isMobile ? 'none' : '1px solid #eef0f8' }}>
+        <div style={{ padding: isMobile ? '16px' : '24px 28px', borderRight: isMobile ? 'none' : '1px solid var(--border-light)' }}>
           <SectionLabel>Stammdaten</SectionLabel>
           {editMode ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -391,12 +391,12 @@ export default function LeadProfile() {
               {[['Ansprechpartner', 'contact_name'], ['Telefon', 'phone'], ['E-Mail', 'email'], ['Website', 'website_url'], ['Gewerk', 'trade']].map(([l, f]) => <EI key={f} l={l} f={f} d={editData} s={setEditData} />)}
               <SubLbl>Rechtliches</SubLbl>
               {[['USt-IdNr.', 'vat_id', 'DE123456789'], ['Handelsreg.-Nr.', 'register_number', 'HRB 12345'], ['Registergericht', 'register_court', 'AG Koblenz']].map(([l, f, p]) => <EI key={f} l={l} f={f} d={editData} s={setEditData} ph={p} />)}
-              <div><div style={{ fontSize: 11, color: '#5a6878', marginBottom: 3 }}>Notizen</div>
-                <textarea value={editData.notes || ''} onChange={(e) => setEditData((p) => ({ ...p, notes: e.target.value }))} rows={3} style={{ width: '100%', padding: '7px 10px', border: '1.5px solid #d4d8e8', borderRadius: 6, fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }} />
+              <div><div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 3 }}>Notizen</div>
+                <textarea value={editData.notes || ''} onChange={(e) => setEditData((p) => ({ ...p, notes: e.target.value }))} rows={3} style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border-medium)', borderRadius: 6, fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }} />
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                <button onClick={saveEdit} style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', flex: 2, minHeight: 44 }}>Speichern</button>
-                <button onClick={() => setEditMode(false)} style={{ background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, cursor: 'pointer', flex: 1, minHeight: 44 }}>Abbrechen</button>
+                <button onClick={saveEdit} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', flex: 2, minHeight: 44 }}>Speichern</button>
+                <button onClick={() => setEditMode(false)} style={{ background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, cursor: 'pointer', flex: 1, minHeight: 44 }}>Abbrechen</button>
               </div>
             </div>
           ) : (
@@ -405,19 +405,19 @@ export default function LeadProfile() {
                 ['📍', [lead.street, lead.house_number].filter(Boolean).join(' ') + (lead.street ? ', ' : '') + [lead.postal_code, lead.city].filter(Boolean).join(' ')],
                 ['🔧', lead.trade], ['📅', lead.created_at ? `Seit ${lead.created_at}` : '']
               ].filter(([, v]) => v && v.trim()).map(([icon, value], i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: NAVY }}>
+                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: 'var(--text-primary)' }}>
                   <span style={{ fontSize: 15, flexShrink: 0 }}>{icon}</span>
                   <span>{value}</span>
                 </div>
               ))}
               {(lead.vat_id || lead.register_number) && (
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 6, marginTop: 4 }}>
-                  {lead.vat_id && <div style={{ fontSize: 12, color: '#64748b' }}>USt-IdNr.: {lead.vat_id}</div>}
-                  {lead.register_number && <div style={{ fontSize: 12, color: '#64748b' }}>HR: {lead.register_number} {lead.register_court}</div>}
+                  {lead.vat_id && <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>USt-IdNr.: {lead.vat_id}</div>}
+                  {lead.register_number && <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>HR: {lead.register_number} {lead.register_court}</div>}
                 </div>
               )}
-              {lead.notes && <div style={{ background: '#f8f9fc', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#4a5a74', marginTop: 6, fontStyle: 'italic' }}>{lead.notes}</div>}
-              <button onClick={() => setEditMode(true)} style={{ marginTop: 8, width: '100%', padding: 8, background: '#f1f5f9', color: NAVY, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>Daten bearbeiten</button>
+              {lead.notes && <div style={{ background: '#f8f9fc', borderRadius: 'var(--radius-md)', padding: '10px 12px', fontSize: 12, color: '#4a5a74', marginTop: 6, fontStyle: 'italic' }}>{lead.notes}</div>}
+              <button onClick={() => setEditMode(true)} style={{ marginTop: 8, width: '100%', padding: 8, background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>Daten bearbeiten</button>
             </div>
           )}
         </div>
@@ -437,7 +437,7 @@ export default function LeadProfile() {
                       <span style={{ fontSize: 12, color: '#4a5a74' }}>{label}</span>
                       <span style={{ fontSize: 12, fontFamily: 'monospace', fontWeight: 700, color }}>{score}/{max}</span>
                     </div>
-                    <div style={{ height: 5, background: '#eef0f8', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: 5, background: 'var(--bg-app)', borderRadius: 3, overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 0.6s ease' }} />
                     </div>
                   </div>
@@ -445,14 +445,14 @@ export default function LeadProfile() {
               })}
             </div>
           ) : (
-            <div style={{ fontSize: 13, color: '#5a6878' }}>Noch kein Audit durchgeführt.</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Noch kein Audit durchgeführt.</div>
           )}
         </div>
       </div>
 
       {/* ── Score History Chart ── */}
       {score_history.length >= 2 && (
-        <div style={{ background: '#fff', border: '1px solid #eef0f8', borderTop: 'none', padding: isMobile ? '16px' : '24px 28px' }}>
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderTop: 'none', padding: isMobile ? '16px' : '24px 28px' }}>
           <SectionLabel>Score-Verlauf</SectionLabel>
           {scoreImprovement !== null && (
             <div style={{
@@ -469,8 +469,8 @@ export default function LeadProfile() {
               <CartesianGrid strokeDasharray="3 3" stroke="#eef0f8" />
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#5a6878' }} />
               <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#5a6878' }} width={30} />
-              <ReTooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(v) => [`${v}/100`, 'Score']} />
-              <Line type="monotone" dataKey="score" stroke={NAVY} strokeWidth={2} dot={{ r: 4, fill: NAVY }} />
+              <ReTooltip contentStyle={{ fontSize: 12, borderRadius: 'var(--radius-md)' }} formatter={(v) => [`${v}/100`, 'Score']} />
+              <Line type="monotone" dataKey="score" stroke={'var(--brand-primary)'} strokeWidth={2} dot={{ r: 4, fill: 'var(--brand-primary)' }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -482,27 +482,27 @@ export default function LeadProfile() {
 
       {/* ── Audit Progress ── */}
       {auditRunning && (
-        <div style={{ background: '#f0f7ff', border: '2px solid #008EAA', borderRadius: 0, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16, borderLeft: '1px solid #eef0f8', borderRight: '1px solid #eef0f8' }}>
-          <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #e0f0f5', borderTopColor: '#008EAA', flexShrink: 0, animation: 'spin 1s linear infinite' }} />
+        <div style={{ background: '#f0f7ff', border: '2px solid #008EAA', borderRadius: 0, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16, borderLeft: '1px solid var(--border-light)', borderRight: '1px solid var(--border-light)' }}>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #e0f0f5', borderTopColor: 'var(--brand-primary)', flexShrink: 0, animation: 'spin 1s linear infinite' }} />
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: NAVY, marginBottom: 2 }}>Audit laeuft...</div>
-            <div style={{ fontSize: 13, color: '#4a5a7a' }}>{auditProgress}</div>
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Ca. 30-60 Sekunden. Seite geoeffnet lassen.</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>Audit laeuft...</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{auditProgress}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>Ca. 30-60 Sekunden. Seite geoeffnet lassen.</div>
           </div>
         </div>
       )}
       {auditError && (
-        <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#c0392b', borderLeft: '1px solid #eef0f8', borderRight: '1px solid #eef0f8' }}>
+        <div style={{ background: 'var(--status-danger-bg)', border: '1px solid #fca5a5', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--status-danger-text)', borderLeft: '1px solid var(--border-light)', borderRight: '1px solid var(--border-light)' }}>
           <span>{auditError}</span>
-          <button onClick={() => setAuditError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#c0392b', fontSize: 16 }}>✕</button>
+          <button onClick={() => setAuditError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--status-danger-text)', fontSize: 16 }}>✕</button>
         </div>
       )}
 
       {/* ── Audit History ── */}
-      <div style={{ background: '#fff', border: '1px solid #eef0f8', borderTop: 'none', padding: isMobile ? '16px' : '24px 28px' }}>
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderTop: 'none', padding: isMobile ? '16px' : '24px 28px' }}>
         <SectionLabel>Audit-Historie ({audits.length})</SectionLabel>
         {audits.length === 0 ? (
-          <div style={{ fontSize: 13, color: '#5a6878' }}>Keine Audits vorhanden.</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Keine Audits vorhanden.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {audits.map((audit) => {
@@ -510,21 +510,21 @@ export default function LeadProfile() {
               return (
                 <div key={audit.id} style={{
                   display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 12, padding: '10px 14px',
-                  background: '#f8f9fc', borderRadius: 8, flexWrap: 'wrap',
+                  background: '#f8f9fc', borderRadius: 'var(--radius-md)', flexWrap: 'wrap',
                 }}>
-                  <span style={{ fontSize: 12, color: '#5a6878', fontFamily: 'monospace', minWidth: 100 }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'monospace', minWidth: 100 }}>
                     {audit.created_at}
                   </span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: lc }}>
                     {audit.level?.replace('Homepage Standard ', '')}
                   </span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: NAVY, fontFamily: 'monospace' }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
                     {audit.total_score}/100
                   </span>
                   <div style={{ marginLeft: isMobile ? 0 : 'auto', display: 'flex', gap: 6, flexShrink: 0, width: isMobile ? '100%' : 'auto' }}>
                     <button
                       onClick={() => setOpenAudit(audit)}
-                      style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                      style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                     >
                       Details
                     </button>
@@ -533,7 +533,7 @@ export default function LeadProfile() {
                       disabled={downloadingId === audit.id}
                       style={{
                         background: downloadingId === audit.id ? '#ccc' : '#f0f2f8',
-                        color: NAVY, border: 'none', borderRadius: 6, padding: '5px 12px',
+                        color: 'var(--text-primary)', border: 'none', borderRadius: 6, padding: '5px 12px',
                         fontSize: 12, fontWeight: 700, cursor: downloadingId === audit.id ? 'not-allowed' : 'pointer',
                       }}
                     >
@@ -541,7 +541,7 @@ export default function LeadProfile() {
                     </button>
                     <button onClick={() => setDeleteAuditId(audit.id)} title="Audit loeschen" style={{
                       background: 'none', border: '1px solid #fca5a5', borderRadius: 6, padding: '5px 8px',
-                      fontSize: 14, cursor: 'pointer', color: '#ef4444', minWidth: 32, minHeight: 32,
+                      fontSize: 14, cursor: 'pointer', color: 'var(--status-danger-text)', minWidth: 32, minHeight: 32,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       🗑️
@@ -556,27 +556,27 @@ export default function LeadProfile() {
 
       {/* ── Actions ── */}
       <div style={{
-        background: '#fff', border: '1px solid #eef0f8', borderTop: 'none',
+        background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderTop: 'none',
         borderRadius: '0 0 12px 12px', padding: isMobile ? '16px' : '20px 28px',
         display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 10, flexWrap: 'wrap',
       }}>
         <button
           onClick={startAuditFromProfile}
           disabled={auditRunning}
-          style={{ background: auditRunning ? '#64748b' : NAVY, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: auditRunning ? 'not-allowed' : 'pointer', width: isMobile ? '100%' : 'auto', opacity: auditRunning ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}
+          style={{ background: auditRunning ? '#64748b' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: auditRunning ? 'not-allowed' : 'pointer', width: isMobile ? '100%' : 'auto', opacity: auditRunning ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}
         >
           {auditRunning ? 'Audit laeuft...' : 'Neuen Audit starten'}
         </button>
         <button
           onClick={() => setEditMode(true)}
-          style={{ background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: isMobile ? '100%' : 'auto' }}
+          style={{ background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: isMobile ? '100%' : 'auto' }}
         >
           ✏️ Lead bearbeiten
         </button>
         <button
           onClick={enrichLead}
           disabled={enriching}
-          style={{ background: '#f0f2f8', color: '#0F1E3A', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: enriching ? 0.6 : 1, width: isMobile ? '100%' : 'auto' }}
+          style={{ background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: enriching ? 0.6 : 1, width: isMobile ? '100%' : 'auto' }}
         >
           {enriching ? 'Wird analysiert...' : 'Daten aktualisieren'}
         </button>
@@ -586,14 +586,14 @@ export default function LeadProfile() {
       {deleteAuditId && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setDeleteAuditId(null)}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 28, maxWidth: 380, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', textAlign: 'center' }}>
-            <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px' }}>🗑️</div>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: NAVY, marginBottom: 8 }}>Audit loeschen?</h3>
-            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 8, lineHeight: 1.5 }}>Dieser Audit-Eintrag wird dauerhaft geloescht.</p>
-            <p style={{ fontSize: 12, color: '#ef4444', marginBottom: 24 }}>Screenshot und alle Ergebnisse gehen verloren.</p>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 380, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', textAlign: 'center' }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--status-danger-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px' }}>🗑️</div>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8 }}>Audit loeschen?</h3>
+            <p style={{ fontSize: 14, color: 'var(--text-tertiary)', marginBottom: 8, lineHeight: 1.5 }}>Dieser Audit-Eintrag wird dauerhaft geloescht.</p>
+            <p style={{ fontSize: 12, color: 'var(--status-danger-text)', marginBottom: 24 }}>Screenshot und alle Ergebnisse gehen verloren.</p>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setDeleteAuditId(null)} disabled={deletingAudit} style={{ flex: 1, padding: 11, background: '#f1f5f9', color: NAVY, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>Abbrechen</button>
-              <button onClick={() => deleteAudit(deleteAuditId)} disabled={deletingAudit} style={{ flex: 1, padding: 11, background: deletingAudit ? '#64748b' : '#ef4444', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: deletingAudit ? 'not-allowed' : 'pointer', minHeight: 44 }}>
+              <button onClick={() => setDeleteAuditId(null)} disabled={deletingAudit} style={{ flex: 1, padding: 11, background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>Abbrechen</button>
+              <button onClick={() => deleteAudit(deleteAuditId)} disabled={deletingAudit} style={{ flex: 1, padding: 11, background: deletingAudit ? '#64748b' : '#ef4444', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700, cursor: deletingAudit ? 'not-allowed' : 'pointer', minHeight: 44 }}>
                 {deletingAudit ? 'Loeschen...' : 'Endgueltig loeschen'}
               </button>
             </div>
@@ -611,7 +611,7 @@ export default function LeadProfile() {
           }}
           onClick={(e) => { if (e.target === e.currentTarget) setOpenAudit(null); }}
         >
-          <div style={{ maxWidth: 900, margin: '0 auto', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
+          <div style={{ maxWidth: 900, margin: '0 auto', borderRadius: 'var(--radius-lg)', overflow: 'hidden', background: 'var(--bg-surface)' }}>
             <AuditReport auditData={openAudit} onClose={() => setOpenAudit(null)} />
           </div>
         </div>
@@ -622,21 +622,21 @@ export default function LeadProfile() {
 
 function SectionLabel({ children }) {
   return (
-    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#5a6878', marginBottom: 16 }}>
+    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)', marginBottom: 16 }}>
       {children}
     </div>
   );
 }
 
 function SubLbl({ children }) {
-  return <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 6 }}>{children}</div>;
+  return <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 6 }}>{children}</div>;
 }
 
 function EI({ l, f, d, s, ph = '' }) {
   return (
     <div>
-      <div style={{ fontSize: 11, color: '#5a6878', marginBottom: 3 }}>{l}</div>
-      <input value={d[f] || ''} onChange={(e) => s((p) => ({ ...p, [f]: e.target.value }))} placeholder={ph} style={{ width: '100%', padding: '7px 10px', border: '1.5px solid #d4d8e8', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }} />
+      <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 3 }}>{l}</div>
+      <input value={d[f] || ''} onChange={(e) => s((p) => ({ ...p, [f]: e.target.value }))} placeholder={ph} style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border-medium)', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }} />
     </div>
   );
 }

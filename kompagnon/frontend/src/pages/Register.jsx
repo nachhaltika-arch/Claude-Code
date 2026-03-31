@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
-const NAVY = '#0F1E3A';
+
 const AMBER = '#D4A017';
 
 export default function Register() {
@@ -41,35 +41,35 @@ export default function Register() {
   };
 
   const inp = {
-    width: '100%', padding: '11px 14px', border: '1.5px solid #d4d8e8', borderRadius: 8,
-    fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
+    width: '100%', padding: '11px 14px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
+    fontSize: 15, fontFamily: 'var(--font-sans)', boxSizing: 'border-box', outline: 'none',
   };
   const lbl = {
-    display: 'block', fontSize: 12, fontWeight: 700, color: '#4a5a7a',
+    display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
     marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em',
   };
 
   // Success screen
   if (success) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f0f2f8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'var(--font-sans)' }}>
         <div style={{ width: '100%', maxWidth: 420 }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <div onClick={() => navigate('/')} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ color: AMBER, fontWeight: 900, fontSize: 14 }}>HS</span>
               </div>
-              <span style={{ fontSize: 22, fontWeight: 800, color: NAVY }}>KOMPAGNON</span>
+              <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>KOMPAGNON</span>
             </div>
           </div>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 32, boxShadow: '0 4px 24px rgba(15,30,58,0.10)', textAlign: 'center' }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 32, boxShadow: '0 4px 24px rgba(15,30,58,0.10)', textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
-            <h2 style={{ color: NAVY, marginBottom: 8, fontSize: 22, fontWeight: 800 }}>Konto erstellt!</h2>
-            <p style={{ color: '#4a5a7a', marginBottom: 24, fontSize: 14 }}>
+            <h2 style={{ color: 'var(--text-primary)', marginBottom: 8, fontSize: 22, fontWeight: 800 }}>Konto erstellt!</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 24, fontSize: 14 }}>
               Ihr Konto wurde erfolgreich angelegt. Sie koennen sich jetzt anmelden.
             </p>
             <button onClick={() => navigate('/login')} style={{
-              width: '100%', background: NAVY, color: '#fff', border: 'none', borderRadius: 8,
+              width: '100%', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)',
               padding: '13px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer', minHeight: 48,
             }}>
               Jetzt anmelden
@@ -81,33 +81,33 @@ export default function Register() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f2f8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'var(--font-sans)' }}>
       <div style={{ width: '100%', maxWidth: 420 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div onClick={() => navigate('/')} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ color: AMBER, fontWeight: 900, fontSize: 14 }}>HS</span>
             </div>
-            <span style={{ fontSize: 22, fontWeight: 800, color: NAVY }}>KOMPAGNON</span>
+            <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>KOMPAGNON</span>
           </div>
         </div>
 
         {/* Card */}
-        <div style={{ background: '#fff', borderRadius: 16, padding: 32, boxShadow: '0 4px 24px rgba(15,30,58,0.10)' }}>
-          <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 800, color: NAVY }}>Konto erstellen</h2>
-          <p style={{ margin: '0 0 24px', color: '#4a5a7a', fontSize: 14 }}>Starten Sie mit KOMPAGNON</p>
+        <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 32, boxShadow: '0 4px 24px rgba(15,30,58,0.10)' }}>
+          <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>Konto erstellen</h2>
+          <p style={{ margin: '0 0 24px', color: 'var(--text-secondary)', fontSize: 14 }}>Starten Sie mit KOMPAGNON</p>
 
           {/* OAuth */}
           {[
-            { icon: 'G', label: 'Mit Google registrieren', bg: '#fff', border: '#d0d8e8', color: NAVY },
+            { icon: 'G', label: 'Mit Google registrieren', bg: '#fff', border: '#d0d8e8', color: 'var(--text-primary)' },
             { icon: '\uD83C\uDF4E', label: 'Mit Apple registrieren', bg: '#000', border: '#000', color: '#fff' },
             { icon: 'f', label: 'Mit Facebook registrieren', bg: '#1877F2', border: '#1877F2', color: '#fff' },
           ].map((btn) => (
             <button key={btn.label} style={{
               width: '100%', padding: '11px 16px', marginBottom: 10, background: btn.bg, color: btn.color,
-              border: `1.5px solid ${btn.border}`, borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontFamily: 'inherit',
+              border: `1.5px solid ${btn.border}`, borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontFamily: 'var(--font-sans)',
             }}>
               <span style={{ fontWeight: 800 }}>{btn.icon}</span> {btn.label}
             </button>
@@ -116,11 +116,11 @@ export default function Register() {
           {/* Divider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
             <div style={{ flex: 1, height: 1, background: '#e8eaf2' }} />
-            <span style={{ fontSize: 13, color: '#64748b' }}>oder mit E-Mail</span>
+            <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>oder mit E-Mail</span>
             <div style={{ flex: 1, height: 1, background: '#e8eaf2' }} />
           </div>
 
-          {error && <div style={{ background: '#fee2e2', color: '#c0392b', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>{error}</div>}
+          {error && <div style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>{error}</div>}
 
           <form onSubmit={handleRegister}>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 14 }}>
@@ -152,23 +152,23 @@ export default function Register() {
             </label>
 
             <button type="submit" disabled={loading} style={{
-              width: '100%', padding: '13px', background: loading ? '#64748b' : NAVY, color: '#fff',
-              border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit', minHeight: 48,
+              width: '100%', padding: '13px', background: loading ? '#64748b' : 'var(--brand-primary)', color: '#fff',
+              border: 'none', borderRadius: 'var(--radius-md)', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+              fontFamily: 'var(--font-sans)', minHeight: 48,
             }}>
               {loading ? 'Wird erstellt...' : 'Konto erstellen'}
             </button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#4a5a7a' }}>
+          <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--text-secondary)' }}>
             Bereits ein Konto?{' '}
-            <Link to="/login" style={{ color: NAVY, fontWeight: 700, textDecoration: 'none' }}>Anmelden</Link>
+            <Link to="/login" style={{ color: 'var(--text-primary)', fontWeight: 700, textDecoration: 'none' }}>Anmelden</Link>
           </div>
         </div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: '#64748b' }}>
-          2025 KOMPAGNON · <Link to="/" style={{ color: '#64748b' }}>Startseite</Link>
+        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: 'var(--text-tertiary)' }}>
+          2025 KOMPAGNON · <Link to="/" style={{ color: 'var(--text-tertiary)' }}>Startseite</Link>
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { apiCall } from '../context/AuthContext';
 
-const NAVY = '#0F1E3A';
+
 
 export default function TwoFactorSetup() {
   const navigate = useNavigate();
@@ -56,22 +56,22 @@ export default function TwoFactorSetup() {
     URL.revokeObjectURL(url);
   };
 
-  const cardStyle = { background: '#fff', borderRadius: 16, padding: '36px 32px', maxWidth: 480, width: '100%', margin: '40px auto', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' };
-  const btnStyle = { width: '100%', padding: '12px', background: NAVY, color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer', minHeight: 48 };
+  const cardStyle = { background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: '36px 32px', maxWidth: 480, width: '100%', margin: '40px auto', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' };
+  const btnStyle = { width: '100%', padding: '12px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 15, fontWeight: 700, cursor: 'pointer', minHeight: 48 };
 
   return (
     <div style={cardStyle}>
       {step === 'start' && (
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔐</div>
-          <h2 style={{ fontSize: 20, color: NAVY, marginBottom: 12 }}>Zwei-Faktor-Authentifizierung einrichten</h2>
-          <p style={{ fontSize: 14, color: '#4a5a7a', marginBottom: 24 }}>
+          <h2 style={{ fontSize: 20, color: 'var(--text-primary)', marginBottom: 12 }}>Zwei-Faktor-Authentifizierung einrichten</h2>
+          <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24 }}>
             Schuetzen Sie Ihr Konto mit einem zweiten Faktor. Sie benoetigen eine Authenticator-App wie Google Authenticator oder Authy.
           </p>
           <button onClick={startSetup} disabled={loading} style={btnStyle}>
             {loading ? 'Wird vorbereitet...' : '2FA einrichten'}
           </button>
-          <button onClick={() => navigate('/app/profile')} style={{ background: 'none', border: 'none', color: '#4a5a7a', marginTop: 16, cursor: 'pointer', fontSize: 13 }}>
+          <button onClick={() => navigate('/app/profile')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', marginTop: 16, cursor: 'pointer', fontSize: 13 }}>
             Zurueck zum Profil
           </button>
         </div>
@@ -79,18 +79,18 @@ export default function TwoFactorSetup() {
 
       {step === 'scan' && (
         <div style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: 18, color: NAVY, marginBottom: 16 }}>QR-Code scannen</h2>
-          <p style={{ fontSize: 13, color: '#4a5a7a', marginBottom: 16 }}>
+          <h2 style={{ fontSize: 18, color: 'var(--text-primary)', marginBottom: 16 }}>QR-Code scannen</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
             Scannen Sie diesen QR-Code mit Ihrer Authenticator-App:
           </p>
           {qrCode && (
-            <div style={{ display: 'inline-block', padding: 12, background: '#fff', border: '1px solid #eef0f8', borderRadius: 12, marginBottom: 16 }}>
+            <div style={{ display: 'inline-block', padding: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', marginBottom: 16 }}>
               <img src={`data:image/png;base64,${qrCode}`} alt="2FA QR Code" style={{ width: 200, height: 200 }} />
             </div>
           )}
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, color: '#5a6878', marginBottom: 4 }}>Oder manuell eingeben:</div>
-            <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: NAVY, background: '#f0f2f8', padding: '8px 16px', borderRadius: 8, display: 'inline-block', wordBreak: 'break-all' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>Oder manuell eingeben:</div>
+            <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', background: 'var(--bg-app)', padding: '8px 16px', borderRadius: 'var(--radius-md)', display: 'inline-block', wordBreak: 'break-all' }}>
               {secret}
             </div>
           </div>
@@ -98,7 +98,7 @@ export default function TwoFactorSetup() {
             <label style={{ fontSize: 13, fontWeight: 600, color: '#4a5a74', display: 'block', marginBottom: 6 }}>6-stelliger Code</label>
             <input
               value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              style={{ width: '100%', padding: '12px', border: '2px solid #d4d8e8', borderRadius: 8, fontSize: 22, textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.3em', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '12px', border: '2px solid #d4d8e8', borderRadius: 'var(--radius-md)', fontSize: 22, textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.3em', boxSizing: 'border-box' }}
               placeholder="000000" inputMode="numeric" maxLength={6}
             />
           </div>
@@ -111,13 +111,13 @@ export default function TwoFactorSetup() {
       {step === 'backup' && (
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
-          <h2 style={{ fontSize: 18, color: NAVY, marginBottom: 8 }}>2FA erfolgreich aktiviert!</h2>
-          <p style={{ fontSize: 13, color: '#4a5a7a', marginBottom: 16 }}>
+          <h2 style={{ fontSize: 18, color: 'var(--text-primary)', marginBottom: 8 }}>2FA erfolgreich aktiviert!</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
             Bewahren Sie diese Backup-Codes sicher auf. Jeder Code ist einmalig nutzbar.
           </p>
           <div style={{ background: '#f8f9fc', borderRadius: 10, padding: '16px 20px', marginBottom: 16, textAlign: 'left' }}>
             {backupCodes.map((code, i) => (
-              <div key={i} style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: NAVY, padding: '4px 0' }}>
+              <div key={i} style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', padding: '4px 0' }}>
                 {code}
               </div>
             ))}
@@ -126,10 +126,10 @@ export default function TwoFactorSetup() {
             Diese Codes werden nur einmal angezeigt!
           </div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            <button onClick={copyBackupCodes} style={{ flex: 1, background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+            <button onClick={copyBackupCodes} style={{ flex: 1, background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
               Kopieren
             </button>
-            <button onClick={downloadBackupCodes} style={{ flex: 1, background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+            <button onClick={downloadBackupCodes} style={{ flex: 1, background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
               Download
             </button>
           </div>

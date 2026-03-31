@@ -6,12 +6,12 @@ import API_BASE_URL from '../config';
 import Badge from '../components/ui/Badge';
 
 const COLUMNS = [
-  { id: 'new', label: 'Neuer Lead', color: '#008eaa' },
+  { id: 'new', label: 'Neuer Lead', color: 'var(--brand-primary)' },
   { id: 'contacted', label: 'Kontaktiert', color: '#7c3aed' },
   { id: 'qualified', label: 'Qualifiziert', color: '#059669' },
   { id: 'proposal_sent', label: 'Angebot', color: '#d97706' },
   { id: 'won', label: 'In Umsetzung', color: '#16a34a' },
-  { id: 'lost', label: 'Abgeschlossen', color: '#94a3b8' },
+  { id: 'lost', label: 'Abgeschlossen', color: 'var(--text-tertiary)' },
 ];
 
 export default function LeadPipeline() {

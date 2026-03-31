@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
-const N = '#0F1E3A';
+
 const A = '#D4A017';
 
 const PACKAGES = [
@@ -48,16 +48,16 @@ export default function Checkout() {
     finally { setLoading(false); }
   };
 
-  const inp = { width: '100%', padding: '11px 14px', border: '1.5px solid #d4d8e8', borderRadius: 8, fontSize: 15, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' };
-  const lbl = { display: 'block', fontSize: 12, fontWeight: 700, color: '#4a5a7a', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' };
+  const inp = { width: '100%', padding: '11px 14px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 15, boxSizing: 'border-box', outline: 'none', fontFamily: 'var(--font-sans)' };
+  const lbl = { display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f2f8', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app)', fontFamily: 'var(--font-sans)' }}>
       {/* Header */}
-      <div style={{ background: N, padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: 'var(--brand-primary)', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div onClick={() => nav('/')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
           <div style={{ width: 36, height: 36, borderRadius: '50%', background: A, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ color: N, fontWeight: 900, fontSize: 13 }}>HS</span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 900, fontSize: 13 }}>HS</span>
           </div>
           <span style={{ color: '#fff', fontWeight: 800, fontSize: 18 }}>KOMPAGNON</span>
         </div>
@@ -90,28 +90,28 @@ export default function Checkout() {
         {/* Step 1 — Package */}
         {step === 1 && (
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: N, marginBottom: 8, textAlign: 'center' }}>Waehlen Sie Ihr Paket</h2>
-            <p style={{ textAlign: 'center', color: '#4a5a7a', marginBottom: 32, fontSize: 15 }}>Alle Preise zzgl. 19% MwSt. · Einmaliger Festpreis</p>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8, textAlign: 'center' }}>Waehlen Sie Ihr Paket</h2>
+            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>Alle Preise zzgl. 19% MwSt. · Einmaliger Festpreis</p>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 16, marginBottom: 32 }}>
               {PACKAGES.map((p) => (
                 <div key={p.id} onClick={() => setSelected(p.id)} style={{
-                  background: '#fff', borderRadius: 16, padding: 24, cursor: 'pointer', position: 'relative',
-                  border: `2px solid ${selected === p.id ? N : p.highlight ? A + '60' : '#e8eaf2'}`,
+                  background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 24, cursor: 'pointer', position: 'relative',
+                  border: `2px solid ${selected === p.id ? 'var(--brand-primary)' : p.highlight ? A + '60' : '#e8eaf2'}`,
                   transform: p.highlight ? 'scale(1.02)' : 'none',
                   boxShadow: selected === p.id ? '0 4px 20px rgba(15,30,58,0.15)' : '0 2px 8px rgba(0,0,0,0.06)',
                   transition: 'all 0.2s',
                 }}>
-                  {p.highlight && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: A, color: N, fontSize: 11, fontWeight: 800, padding: '4px 14px', borderRadius: 20, whiteSpace: 'nowrap' }}>EMPFOHLEN</div>}
+                  {p.highlight && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: A, color: 'var(--text-primary)', fontSize: 11, fontWeight: 800, padding: '4px 14px', borderRadius: 20, whiteSpace: 'nowrap' }}>EMPFOHLEN</div>}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                     <div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: N }}>{p.name}</div>
-                      <div style={{ fontSize: 13, color: '#4a5a7a', marginTop: 2 }}>{p.desc}</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>{p.name}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>{p.desc}</div>
                     </div>
-                    <div style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${selected === p.id ? N : '#d0d8e8'}`, background: selected === p.id ? N : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${selected === p.id ? 'var(--brand-primary)' : '#d0d8e8'}`, background: selected === p.id ? 'var(--brand-primary)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {selected === p.id && <span style={{ color: '#fff', fontSize: 12 }}>✓</span>}
                     </div>
                   </div>
-                  <div style={{ fontSize: 28, fontWeight: 900, color: N, marginBottom: 16 }}>{p.price} Euro</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 16 }}>{p.price} Euro</div>
                   {p.features.map((f) => (
                     <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#4a5a74', marginBottom: 6 }}>
                       <span style={{ color: '#27ae60', fontWeight: 700, flexShrink: 0 }}>✓</span> {f}
@@ -121,10 +121,10 @@ export default function Checkout() {
               ))}
             </div>
             <div style={{ textAlign: 'center' }}>
-              <button onClick={() => setStep(2)} style={{ background: N, color: '#fff', border: 'none', borderRadius: 10, padding: '14px 40px', fontSize: 16, fontWeight: 700, cursor: 'pointer', minHeight: 48 }}>
+              <button onClick={() => setStep(2)} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 10, padding: '14px 40px', fontSize: 16, fontWeight: 700, cursor: 'pointer', minHeight: 48 }}>
                 Weiter mit {pkg.name}
               </button>
-              <p style={{ fontSize: 12, color: '#64748b', marginTop: 12 }}>Sichere Zahlung via Stripe · DSGVO-konform</p>
+              <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 12 }}>Sichere Zahlung via Stripe · DSGVO-konform</p>
             </div>
           </div>
         )}
@@ -132,12 +132,12 @@ export default function Checkout() {
         {/* Step 2 — Contact + Stripe redirect */}
         {step === 2 && (
           <div style={{ maxWidth: 560, margin: '0 auto' }}>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: N, marginBottom: 8 }}>Ihre Kontaktdaten</h2>
-            <p style={{ color: '#4a5a7a', marginBottom: 28, fontSize: 14 }}>Wir brauchen diese Angaben um Ihr Projekt zu starten.</p>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8 }}>Ihre Kontaktdaten</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 28, fontSize: 14 }}>Wir brauchen diese Angaben um Ihr Projekt zu starten.</p>
 
-            {error && <div style={{ background: '#fee2e2', color: '#c0392b', borderRadius: 8, padding: '12px 16px', fontSize: 14, marginBottom: 20 }}>{error}</div>}
+            {error && <div style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 14, marginBottom: 20 }}>{error}</div>}
 
-            <div style={{ background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
+            <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
                 <div><label style={lbl}>Ihr Name *</label><input style={inp} value={form.name} onChange={set('name')} placeholder="Max Mustermann" /></div>
                 <div><label style={lbl}>Firma *</label><input style={inp} value={form.company} onChange={set('company')} placeholder="Mustermann GmbH" /></div>
@@ -151,20 +151,20 @@ export default function Checkout() {
 
               {/* Package summary */}
               <div style={{ background: '#f8f9fc', borderRadius: 10, padding: '14px 18px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div><div style={{ fontSize: 14, fontWeight: 700, color: N }}>{pkg.name}-Paket</div><div style={{ fontSize: 12, color: '#4a5a7a' }}>Einmaliger Festpreis zzgl. MwSt.</div></div>
-                <div style={{ fontSize: 22, fontWeight: 900, color: N }}>{pkg.price} Euro</div>
+                <div><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{pkg.name}-Paket</div><div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Einmaliger Festpreis zzgl. MwSt.</div></div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)' }}>{pkg.price} Euro</div>
               </div>
 
               <div style={{ display: 'flex', gap: 12 }}>
-                <button onClick={() => setStep(1)} style={{ background: '#f0f2f8', color: N, border: 'none', borderRadius: 8, padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 48 }}>Zurueck</button>
+                <button onClick={() => setStep(1)} style={{ background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 48 }}>Zurueck</button>
                 <button onClick={handleCheckout} disabled={loading} style={{
-                  flex: 1, background: loading ? '#64748b' : N, color: '#fff', border: 'none', borderRadius: 8,
+                  flex: 1, background: loading ? '#64748b' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)',
                   padding: '12px', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', minHeight: 48,
                 }}>
                   {loading ? 'Wird vorbereitet...' : 'Weiter zur Zahlung'}
                 </button>
               </div>
-              <p style={{ fontSize: 11, color: '#64748b', textAlign: 'center', marginTop: 12 }}>Sie werden zu Stripe weitergeleitet. Kreditkarte und SEPA-Lastschrift moeglich.</p>
+              <p style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 12 }}>Sie werden zu Stripe weitergeleitet. Kreditkarte und SEPA-Lastschrift moeglich.</p>
             </div>
           </div>
         )}

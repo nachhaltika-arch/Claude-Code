@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { useAuth, apiCall } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
-const NAVY = '#0F1E3A';
+
 
 export default function Profile() {
   const { user, logout } = useAuth();
@@ -44,20 +44,20 @@ export default function Profile() {
     finally { setSaving(false); }
   };
 
-  const inputStyle = { width: '100%', padding: '10px 12px', border: '1.5px solid #d4d8e8', borderRadius: 8, fontSize: 16, boxSizing: 'border-box' };
+  const inputStyle = { width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 16, boxSizing: 'border-box' };
   const tabs = [{ key: 'profil', label: 'Profil' }, { key: 'sicherheit', label: 'Sicherheit' }];
   if (user?.role === 'admin' || user?.role === 'auditor') tabs.splice(1, 0, { key: 'unterschrift', label: 'Unterschrift' });
 
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 800, color: NAVY, marginBottom: 20 }}>Mein Profil</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 20 }}>Mein Profil</h1>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '2px solid #eef0f8' }}>
         {tabs.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
-            padding: '10px 20px', background: 'none', border: 'none', borderBottom: tab === t.key ? `3px solid ${NAVY}` : '3px solid transparent',
-            color: tab === t.key ? NAVY : '#5a6878', fontWeight: 700, fontSize: 14, cursor: 'pointer', marginBottom: -2,
+            padding: '10px 20px', background: 'none', border: 'none', borderBottom: tab === t.key ? `3px solid ${'var(--brand-primary)'}` : '3px solid transparent',
+            color: tab === t.key ? 'var(--brand-primary)' : '#5a6878', fontWeight: 700, fontSize: 14, cursor: 'pointer', marginBottom: -2,
           }}>
             {t.label}
           </button>
@@ -76,13 +76,13 @@ export default function Profile() {
             <Field label="Position" value={form.position} onChange={(v) => setForm((f) => ({ ...f, position: v }))} placeholder="z.B. Senior Auditor" />
           )}
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button onClick={saveProfile} disabled={saving} style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+            <button onClick={saveProfile} disabled={saving} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
               {saving ? 'Speichern...' : 'Profil speichern'}
             </button>
           </div>
-          <div style={{ background: '#f8f9fc', borderRadius: 8, padding: 16, marginTop: 16 }}>
-            <div style={{ fontSize: 12, color: '#5a6878', marginBottom: 4 }}>Rolle</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: NAVY, textTransform: 'capitalize' }}>{user?.role}</div>
+          <div style={{ background: '#f8f9fc', borderRadius: 'var(--radius-md)', padding: 16, marginTop: 16 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>Rolle</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'capitalize' }}>{user?.role}</div>
           </div>
         </div>
       )}
@@ -92,27 +92,27 @@ export default function Profile() {
       {tab === 'sicherheit' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div>
-            <h3 style={{ fontSize: 16, color: NAVY, marginBottom: 12 }}>Passwort aendern</h3>
+            <h3 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Passwort aendern</h3>
             <form onSubmit={changePassword} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Field label="Aktuelles Passwort" type="password" value={pwForm.current_password} onChange={(v) => setPwForm((f) => ({ ...f, current_password: v }))} />
               <Field label="Neues Passwort" type="password" value={pwForm.new_password} onChange={(v) => setPwForm((f) => ({ ...f, new_password: v }))} />
               <Field label="Neues Passwort wiederholen" type="password" value={pwForm.new_password2} onChange={(v) => setPwForm((f) => ({ ...f, new_password2: v }))} />
-              <button type="submit" disabled={saving} style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start', minHeight: 44 }}>
+              <button type="submit" disabled={saving} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start', minHeight: 44 }}>
                 Passwort aendern
               </button>
             </form>
           </div>
           <div>
-            <h3 style={{ fontSize: 16, color: NAVY, marginBottom: 12 }}>Zwei-Faktor-Authentifizierung</h3>
+            <h3 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Zwei-Faktor-Authentifizierung</h3>
             <div style={{ fontSize: 14, color: user?.totp_enabled ? '#2a9a5a' : '#c03030', fontWeight: 600, marginBottom: 12 }}>
               {user?.totp_enabled ? '2FA ist aktiviert' : '2FA ist nicht aktiviert'}
             </div>
-            <button onClick={() => navigate('/app/2fa-setup')} style={{ background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+            <button onClick={() => navigate('/app/2fa-setup')} style={{ background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
               {user?.totp_enabled ? '2FA verwalten' : '2FA einrichten'}
             </button>
           </div>
           <div>
-            <button onClick={() => { logout(); navigate('/'); }} style={{ background: '#fdecea', color: '#c03030', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+            <button onClick={() => { logout(); navigate('/'); }} style={{ background: '#fdecea', color: '#c03030', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
               Abmelden
             </button>
           </div>
@@ -125,12 +125,12 @@ export default function Profile() {
 function Field({ label, value, onChange, disabled, type = 'text', placeholder = '' }) {
   return (
     <div>
-      <label style={{ fontSize: 12, fontWeight: 600, color: '#5a6878', display: 'block', marginBottom: 4 }}>{label}</label>
+      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{label}</label>
       <input
         type={type} value={value} placeholder={placeholder}
         onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         disabled={disabled}
-        style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #d4d8e8', borderRadius: 8, fontSize: 16, boxSizing: 'border-box', opacity: disabled ? 0.5 : 1 }}
+        style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 16, boxSizing: 'border-box', opacity: disabled ? 0.5 : 1 }}
       />
     </div>
   );
@@ -199,25 +199,25 @@ function SignatureTab() {
 
   return (
     <div>
-      <h3 style={{ fontSize: 16, color: '#0F1E3A', marginBottom: 12 }}>Digitale Unterschrift</h3>
-      <p style={{ fontSize: 13, color: '#4a5a7a', marginBottom: 16 }}>
+      <h3 style={{ fontSize: 16, color: 'var(--text-primary)', marginBottom: 12 }}>Digitale Unterschrift</h3>
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
         Zeichnen Sie Ihre Unterschrift fuer Audit-Berichte:
       </p>
       <canvas
         ref={canvasRef} width={400} height={150}
-        style={{ border: '1.5px solid #d4d8e8', borderRadius: 8, cursor: 'crosshair', touchAction: 'none', maxWidth: '100%' }}
+        style={{ border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', cursor: 'crosshair', touchAction: 'none', maxWidth: '100%' }}
         onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
         onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
       />
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-        <button onClick={clear} style={{ background: '#f0f2f8', color: '#0F1E3A', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+        <button onClick={clear} style={{ background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
           Loeschen
         </button>
-        <button onClick={save} style={{ background: '#0F1E3A', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+        <button onClick={save} style={{ background: 'var(--text-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
           Unterschrift speichern
         </button>
       </div>
-      {saved && <div style={{ color: '#2a9a5a', fontSize: 13, marginTop: 8, fontWeight: 600 }}>Gespeichert!</div>}
+      {saved && <div style={{ color: 'var(--status-success-text)', fontSize: 13, marginTop: 8, fontWeight: 600 }}>Gespeichert!</div>}
     </div>
   );
 }

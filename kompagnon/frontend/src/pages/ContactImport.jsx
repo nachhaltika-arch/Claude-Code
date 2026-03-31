@@ -25,9 +25,9 @@ export default function ContactImport() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
-      <div className="kc-section-header">
-        <span className="kc-eyebrow">Datenimport</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div >
+        <span >Datenimport</span>
         <h1>Kontakt-Import</h1>
       </div>
 
@@ -119,7 +119,7 @@ function CsvUploadTab() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Drop Zone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -127,12 +127,12 @@ function CsvUploadTab() {
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         style={{
-          border: `2px dashed ${dragOver ? 'var(--kc-rot)' : 'var(--kc-rand)'}`,
-          borderRadius: 'var(--kc-radius-lg)',
+          border: `2px dashed ${dragOver ? 'var(--brand-primary)' : 'var(--border-light)'}`,
+          borderRadius: 'var(--radius-lg)',
           padding: 'var(--kc-space-12)',
           textAlign: 'center',
           cursor: 'pointer',
-          background: dragOver ? 'var(--kc-rot-subtle)' : 'var(--kc-weiss)',
+          background: dragOver ? 'var(--kc-rot-subtle)' : 'var(--bg-surface)',
           transition: 'all var(--kc-transition-fast)',
         }}
       >
@@ -143,13 +143,13 @@ function CsvUploadTab() {
           style={{ display: 'none' }}
           onChange={(e) => handleFile(e.target.files[0])}
         />
-        <div style={{ fontSize: 'var(--kc-text-3xl)', marginBottom: 'var(--kc-space-2)' }}>
+        <div style={{ fontSize: 'var(--kc-text-3xl)', marginBottom: '8px' }}>
           {file ? '✅' : '📄'}
         </div>
-        <p style={{ fontWeight: 600, color: 'var(--kc-text-primaer)', fontSize: 'var(--kc-text-lg)' }}>
+        <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '16px' }}>
           {file ? file.name : 'CSV-Datei hierher ziehen'}
         </p>
-        <p style={{ color: 'var(--kc-text-subtil)', fontSize: 'var(--kc-text-sm)' }}>
+        <p style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>
           {file ? `${(file.size / 1024).toFixed(1)} KB` : 'oder klicken zum Auswählen'}
         </p>
       </div>
@@ -157,8 +157,8 @@ function CsvUploadTab() {
       {/* Preview Table */}
       {preview && (
         <div className="kc-card" style={{ padding: 0, overflow: 'auto' }}>
-          <div style={{ padding: 'var(--kc-space-3) var(--kc-space-4)', borderBottom: '1px solid var(--kc-rand)' }}>
-            <span className="kc-eyebrow" style={{ marginBottom: 0 }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-light)' }}>
+            <span  style={{ marginBottom: 0 }}>
               Vorschau ({preview.rows.length} von {preview.rows.length}+ Zeilen)
             </span>
           </div>
@@ -204,7 +204,7 @@ function CsvUploadTab() {
         >
           <strong>{result.message}</strong>
           {result.error_details && result.error_details.length > 0 && (
-            <ul style={{ marginTop: 'var(--kc-space-3)', paddingLeft: 'var(--kc-space-6)', fontSize: 'var(--kc-text-sm)' }}>
+            <ul style={{ marginTop: '12px', paddingLeft: '24px', fontSize: '13px' }}>
               {result.error_details.map((err, i) => (
                 <li key={i}>Zeile {err.row}: {err.error}</li>
               ))}
@@ -259,33 +259,33 @@ function ManualEntryTab() {
 
   const inputStyle = {
     width: '100%',
-    padding: 'var(--kc-space-3) var(--kc-space-4)',
-    border: '1.5px solid var(--kc-rand)',
-    borderRadius: 'var(--kc-radius-md)',
-    fontSize: 'var(--kc-text-base)',
-    fontFamily: 'var(--kc-font-body)',
+    padding: '12px 16px',
+    border: '1.5px solid var(--border-light)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: '14px',
+    fontFamily: 'var(--font-sans)',
     transition: 'border-color var(--kc-transition-fast)',
-    background: 'var(--kc-weiss)',
+    background: 'var(--bg-surface)',
     outline: 'none',
   };
 
   const labelStyle = {
     display: 'block',
-    fontSize: 'var(--kc-text-sm)',
+    fontSize: '13px',
     fontWeight: 600,
-    color: 'var(--kc-text-sekundaer)',
-    marginBottom: 'var(--kc-space-1)',
+    color: 'var(--text-secondary)',
+    marginBottom: '4px',
   };
 
   return (
     <form
       onSubmit={handleSubmit}
       className="kc-card"
-      style={{ maxWidth: isMobile ? '100%' : '640px', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}
+      style={{ maxWidth: isMobile ? '100%' : '640px', display: 'flex', flexDirection: 'column', gap: '16px' }}
     >
       <div>
         <label style={labelStyle}>
-          Firmenname <span style={{ color: 'var(--kc-rot)' }}>*</span>
+          Firmenname <span style={{ color: 'var(--brand-primary)' }}>*</span>
         </label>
         <input
           type="text"
@@ -297,7 +297,7 @@ function ManualEntryTab() {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--kc-space-4)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
         <div>
           <label style={labelStyle}>Ansprechpartner</label>
           <input type="text" value={form.contact_name} onChange={set('contact_name')} placeholder="Vor- und Nachname" style={inputStyle} />
@@ -308,7 +308,7 @@ function ManualEntryTab() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--kc-space-4)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
         <div>
           <label style={labelStyle}>E-Mail</label>
           <input type="email" value={form.email} onChange={set('email')} placeholder="info@firma.de" style={inputStyle} />
@@ -319,7 +319,7 @@ function ManualEntryTab() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--kc-space-4)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
         <div>
           <label style={labelStyle}>Stadt</label>
           <input type="text" value={form.city} onChange={set('city')} placeholder="z.B. Koblenz" style={inputStyle} />
@@ -335,7 +335,7 @@ function ManualEntryTab() {
         </div>
       </div>
 
-      <div style={{ paddingTop: 'var(--kc-space-2)' }}>
+      <div style={{ paddingTop: '8px' }}>
         <button
           type="submit"
           className="kc-btn-primary"
@@ -357,18 +357,18 @@ function TemplateTab() {
   const { isMobile } = useScreenSize();
   return (
     <div className="kc-card" style={{ maxWidth: isMobile ? '100%' : '640px' }}>
-      <span className="kc-eyebrow">Vorlage</span>
-      <h2 style={{ fontSize: 'var(--kc-text-2xl)', marginBottom: 'var(--kc-space-4)' }}>
+      <span >Vorlage</span>
+      <h2 style={{ fontSize: '22px', marginBottom: '16px' }}>
         CSV-Vorlage herunterladen
       </h2>
 
-      <p style={{ color: 'var(--kc-text-sekundaer)', fontSize: 'var(--kc-text-sm)', marginBottom: 'var(--kc-space-6)', lineHeight: 'var(--kc-leading-normal)' }}>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '24px', lineHeight: 'var(--kc-leading-normal)' }}>
         Laden Sie die Vorlage herunter, f&uuml;llen Sie sie mit Ihren Kontaktdaten
         und importieren Sie sie anschlie&szlig;end &uuml;ber den Tab &bdquo;CSV Upload&ldquo;.
         Die Datei enth&auml;lt 3 Beispiel-Eintr&auml;ge als Orientierung.
       </p>
 
-      <div style={{ background: 'var(--kc-hell)', borderRadius: 'var(--kc-radius-md)', padding: 'var(--kc-space-4)', marginBottom: 'var(--kc-space-6)', fontSize: 'var(--kc-text-sm)' }}>
+      <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: '16px', marginBottom: '24px', fontSize: '13px' }}>
         <strong>Pflicht-Spalten:</strong> company_name, contact_name, email, city, trade<br />
         <strong>Optionale Spalten:</strong> phone, website_url<br />
         <strong>Trennzeichen:</strong> Komma oder Semikolon<br />

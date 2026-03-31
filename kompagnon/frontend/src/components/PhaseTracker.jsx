@@ -30,39 +30,39 @@ export default function PhaseTracker({ currentPhase = 'phase_1' }) {
                   flex: 1,
                   height: '2px',
                   marginTop: '16px',
-                  background: isDone || isCurrent ? 'var(--kc-rot)' : 'var(--kc-rand)',
+                  background: isDone || isCurrent ? 'var(--brand-primary)' : 'var(--border-light)',
                   transition: 'background var(--kc-transition-base)',
                 }}
               />
             )}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--kc-space-2)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
               <div
                 style={{
                   width: '34px',
                   height: '34px',
-                  borderRadius: 'var(--kc-radius-full)',
+                  borderRadius: 'var(--radius-full)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontFamily: 'var(--kc-font-display)',
+                  fontFamily: 'var(--font-sans)',
                   fontWeight: 700,
-                  fontSize: 'var(--kc-text-sm)',
+                  fontSize: '13px',
                   transition: 'all var(--kc-transition-base)',
                   ...(isDone
                     ? {
-                        background: 'var(--kc-success)',
-                        color: 'var(--kc-weiss)',
+                        background: 'var(--status-success-text)',
+                        color: 'var(--bg-surface)',
                       }
                     : isCurrent
                     ? {
-                        background: 'var(--kc-rot)',
-                        color: 'var(--kc-weiss)',
+                        background: 'var(--brand-primary)',
+                        color: 'var(--bg-surface)',
                         boxShadow: '0 0 0 3px var(--kc-rot-subtle)',
                       }
                     : {
-                        background: 'var(--kc-hell)',
-                        color: 'var(--kc-mittel)',
-                        border: '1.5px solid var(--kc-rand)',
+                        background: 'var(--bg-app)',
+                        color: 'var(--text-tertiary)',
+                        border: '1.5px solid var(--border-light)',
                       }),
                 }}
               >
@@ -72,7 +72,7 @@ export default function PhaseTracker({ currentPhase = 'phase_1' }) {
                 style={{
                   fontSize: '0.65rem',
                   fontWeight: isCurrent ? 700 : 500,
-                  color: isCurrent ? 'var(--kc-rot)' : 'var(--kc-text-subtil)',
+                  color: isCurrent ? 'var(--brand-primary)' : 'var(--text-tertiary)',
                   textAlign: 'center',
                   whiteSpace: 'nowrap',
                   letterSpacing: 'var(--kc-tracking-wide)',

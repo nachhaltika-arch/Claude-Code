@@ -3,10 +3,10 @@ import toast from 'react-hot-toast';
 import { apiCall } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
-const N = '#0F1E3A';
+
 
 const ROLE_META = {
-  admin: { icon: '👑', label: 'Admin', desc: 'Vollstaendige Systemrechte', locked: true, bg: '#0F1E3A', fg: '#fff' },
+  admin: { icon: '👑', label: 'Admin', desc: 'Vollstaendige Systemrechte', locked: true, bg: 'var(--text-primary)', fg: '#fff' },
   auditor: { icon: '🔍', label: 'Auditor', desc: 'Zugriff auf Audit-Funktionen', locked: false, bg: '#2a5aa0', fg: '#fff' },
   nutzer: { icon: '👤', label: 'Nutzer', desc: 'Eingeschraenkter Zugriff', locked: false, bg: '#4a5a7a', fg: '#fff' },
   kunde: { icon: '🏢', label: 'Kunde', desc: 'Nur eigene Daten & Leistungen', locked: false, bg: '#2a7a3a', fg: '#fff' },
@@ -67,20 +67,20 @@ export default function RoleManagement() {
     } finally { setSaving(false); }
   };
 
-  if (loading) return <div style={{ padding: 20, color: '#5a6878' }}>Laden...</div>;
+  if (loading) return <div style={{ padding: 20, color: 'var(--text-secondary)' }}>Laden...</div>;
 
   return (
     <div>
       <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 800, color: N, margin: '0 0 4px' }}>Rollenverwaltung</h2>
-        <p style={{ fontSize: 13, color: '#4a5a7a', margin: 0 }}>Definieren Sie Berechtigungen pro Rolle</p>
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>Rollenverwaltung</h2>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>Definieren Sie Berechtigungen pro Rolle</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
         {Object.entries(ROLE_META).map(([key, meta]) => {
           const perms = roles[key] || {};
           return (
-            <div key={key} style={{ background: '#fff', borderRadius: 12, border: '1px solid #eef0f8', overflow: 'hidden' }}>
+            <div key={key} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden' }}>
               {/* Header */}
               <div style={{ background: meta.bg, color: meta.fg, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
@@ -103,12 +103,12 @@ export default function RoleManagement() {
                   return (
                     <div key={perm} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13 }}>
                       <span style={{ color: allowed ? '#2a9a5a' : '#c8c8c8', fontWeight: 700, width: 16 }}>{allowed ? '✓' : '—'}</span>
-                      <span style={{ color: allowed ? N : '#c8c8c8' }}>{label}</span>
+                      <span style={{ color: allowed ? 'var(--brand-primary)' : '#c8c8c8' }}>{label}</span>
                     </div>
                   );
                 })}
                 {meta.locked && (
-                  <div style={{ fontSize: 12, color: '#5a6878', marginTop: 8, fontStyle: 'italic' }}>Systemrolle — nicht editierbar</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, fontStyle: 'italic' }}>Systemrolle — nicht editierbar</div>
                 )}
               </div>
             </div>
@@ -120,18 +120,18 @@ export default function RoleManagement() {
       {editing && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={(e) => { if (e.target === e.currentTarget) setEditing(null); }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 28, maxWidth: 440, width: '100%', maxHeight: '80vh', overflowY: 'auto' }}>
-            <h3 style={{ margin: '0 0 4px', fontSize: 18, color: N }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 440, width: '100%', maxHeight: '80vh', overflowY: 'auto' }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 18, color: 'var(--text-primary)' }}>
               {ROLE_META[editing]?.icon} {ROLE_META[editing]?.label} — Berechtigungen
             </h3>
-            <p style={{ fontSize: 13, color: '#4a5a7a', margin: '0 0 20px' }}>Aktivieren oder deaktivieren Sie einzelne Berechtigungen</p>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px' }}>Aktivieren oder deaktivieren Sie einzelne Berechtigungen</p>
 
             {Object.entries(PERM_LABELS).map(([perm, label]) => (
               <label key={perm} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '10px 0', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', fontSize: 14,
               }}>
-                <span style={{ color: N }}>{label}</span>
+                <span style={{ color: 'var(--text-primary)' }}>{label}</span>
                 <input type="checkbox" checked={editPerms[perm] !== false}
                   onChange={(e) => setEditPerms((p) => ({ ...p, [perm]: e.target.checked }))}
                   style={{ width: 18, height: 18 }} />
@@ -140,14 +140,14 @@ export default function RoleManagement() {
 
             <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
               <button onClick={savePerms} disabled={saving} style={{
-                flex: 1, background: N, color: '#fff', border: 'none', borderRadius: 8,
+                flex: 1, background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)',
                 padding: '10px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44,
                 opacity: saving ? 0.6 : 1,
               }}>
                 {saving ? 'Speichern...' : 'Berechtigungen speichern'}
               </button>
               <button onClick={() => setEditing(null)} style={{
-                background: '#f0f2f8', color: N, border: 'none', borderRadius: 8,
+                background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)',
                 padding: '10px 16px', fontSize: 14, cursor: 'pointer', minHeight: 44,
               }}>
                 Abbrechen

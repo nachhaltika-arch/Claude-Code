@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const CHECKLIST = [
   {
-    area: 'Compliance', icon: '⚖️', color: '#c0392b', bg: '#fee2e2',
+    area: 'Compliance', icon: '⚖️', color: 'var(--status-danger-text)', bg: '#fee2e2',
     items: [
       { id: 'impressum', label: 'Impressum', desc: 'Name, Adresse, Telefon, E-Mail — max. 2 Klicks erreichbar', law: 'TMG §5', critical: true, auditField: 'rc_impressum', maxScore: 6 },
       { id: 'datenschutz', label: 'Datenschutzerklaerung', desc: 'Erklaert welche Daten gesammelt werden und warum', law: 'DSGVO', critical: true, auditField: 'rc_datenschutz', maxScore: 6 },
@@ -55,7 +55,7 @@ const S = {
   ok: { icon: '✓', color: '#059669', bg: '#d1fae5', label: 'Vorhanden' },
   partial: { icon: '~', color: '#d97706', bg: '#fef3c7', label: 'Unvollstaendig' },
   missing: { icon: '✗', color: '#dc2626', bg: '#fee2e2', label: 'Fehlt' },
-  unknown: { icon: '?', color: '#94a3b8', bg: '#f1f5f9', label: 'Nicht geprueft' },
+  unknown: { icon: '?', color: 'var(--text-tertiary)', bg: '#f1f5f9', label: 'Nicht geprueft' },
 };
 
 export default function HomepageChecklist({ auditData }) {
@@ -66,18 +66,18 @@ export default function HomepageChecklist({ auditData }) {
   const criticalMissing = CHECKLIST.reduce((s, a) => s + a.items.filter((i) => i.critical && getStatus(auditData?.[i.auditField], i.maxScore) === 'missing').length, 0);
 
   return (
-    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden', marginBottom: 20 }}>
+    <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden', marginBottom: 20 }}>
       {/* Header */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-app)', flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#0F1E3A' }}>Pflichtinhalte der Homepage</div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Pflichtinhalte der Homepage</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
             {auditData ? `${okItems} von ${totalItems} Punkten erfuellt` : 'Noch kein Audit durchgefuehrt'}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {auditData && criticalMissing > 0 && (
-            <span style={{ background: '#fee2e2', color: '#dc2626', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>
+            <span style={{ background: 'var(--status-danger-bg)', color: '#dc2626', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>
               {criticalMissing} Pflicht fehlt
             </span>
           )}
@@ -97,24 +97,24 @@ export default function HomepageChecklist({ auditData }) {
           <div key={area.area}>
             <button onClick={() => setOpenArea(isOpen ? null : area.area)} style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px',
-              background: isOpen ? area.bg : '#fff', border: 'none', borderBottom: '1px solid #e2e8f0', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s',
+              background: isOpen ? area.bg : '#fff', border: 'none', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 20 }}>{area.icon}</span>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: area.color }}>{area.area}</div>
-                  <div style={{ fontSize: 11, color: '#64748b' }}>{areaOk}/{area.items.length} Punkte erfuellt</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{areaOk}/{area.items.length} Punkte erfuellt</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 60, height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden' }}>
                   <div style={{ width: `${(areaOk / area.items.length) * 100}%`, height: '100%', background: area.color, borderRadius: 2, transition: 'width 0.6s ease' }} />
                 </div>
-                <span style={{ color: '#94a3b8', fontSize: 12, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 12, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
               </div>
             </button>
             {isOpen && (
-              <div style={{ borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ borderBottom: '1px solid var(--border-light)' }}>
                 {area.items.map((item, idx) => {
                   const score = auditData?.[item.auditField];
                   const status = getStatus(score, item.maxScore);
@@ -124,11 +124,11 @@ export default function HomepageChecklist({ auditData }) {
                       <div style={{ width: 28, height: 28, borderRadius: '50%', background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: cfg.color, flexShrink: 0, marginTop: 1 }}>{cfg.icon}</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#0F1E3A' }}>{item.label}</span>
-                          {item.critical && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '1px 6px', borderRadius: 4 }}>PFLICHT</span>}
-                          <span style={{ fontSize: 10, color: '#94a3b8', background: '#f1f5f9', padding: '1px 6px', borderRadius: 4 }}>{item.law}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{item.label}</span>
+                          {item.critical && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: 'var(--status-danger-bg)', padding: '1px 6px', borderRadius: 4 }}>PFLICHT</span>}
+                          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-app)', padding: '1px 6px', borderRadius: 4 }}>{item.law}</span>
                         </div>
-                        <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.4 }}>{item.desc}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>{item.desc}</div>
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 700, color: cfg.color, background: cfg.bg, padding: '3px 8px', borderRadius: 6, flexShrink: 0, whiteSpace: 'nowrap' }}>{cfg.label}</div>
                     </div>
@@ -145,7 +145,7 @@ export default function HomepageChecklist({ auditData }) {
         );
       })}
 
-      <div style={{ padding: '12px 20px', background: '#f8fafc', fontSize: 11, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ padding: '12px 20px', background: 'var(--bg-app)', fontSize: 11, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
         <span>ℹ️</span> Basierend auf TMG, DSGVO, WCAG 2.1 und Google Core Web Vitals. Stand: 2025.
       </div>
     </div>

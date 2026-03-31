@@ -10,27 +10,27 @@ export default function AlertBanner({ alerts = [] }) {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 'var(--kc-space-2)',
-          marginBottom: 'var(--kc-space-3)',
+          gap: '8px',
+          marginBottom: '12px',
         }}
       >
         <ExclamationTriangleIcon style={{ width: '20px', height: '20px' }} />
-        <strong style={{ fontFamily: 'var(--kc-font-display)', fontSize: 'var(--kc-text-sm)' }}>
+        <strong style={{ fontFamily: 'var(--font-sans)', fontSize: '13px' }}>
           {alerts.length} aktive Warnung{alerts.length > 1 ? 'en' : ''}
         </strong>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-2)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {alerts.slice(0, 5).map((alert, idx) => (
           <div
             key={idx}
             style={{
-              background: 'var(--kc-weiss)',
-              padding: 'var(--kc-space-2) var(--kc-space-3)',
-              borderRadius: 'var(--kc-radius-md)',
-              fontSize: 'var(--kc-text-sm)',
+              background: 'var(--bg-surface)',
+              padding: '8px 12px',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '13px',
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--kc-space-2)',
+              gap: '8px',
             }}
           >
             <span

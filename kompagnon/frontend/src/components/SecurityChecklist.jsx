@@ -48,7 +48,7 @@ const S = {
   ok: { icon: '✓', color: '#059669', bg: '#d1fae5', label: 'Umgesetzt' },
   partial: { icon: '~', color: '#d97706', bg: '#fef3c7', label: 'Teilweise' },
   missing: { icon: '✗', color: '#dc2626', bg: '#fee2e2', label: 'Fehlt' },
-  unknown: { icon: '?', color: '#94a3b8', bg: '#f1f5f9', label: 'Nicht geprueft' },
+  unknown: { icon: '?', color: 'var(--text-tertiary)', bg: '#f1f5f9', label: 'Nicht geprueft' },
 };
 
 export default function SecurityChecklist({ auditData }) {
@@ -59,15 +59,15 @@ export default function SecurityChecklist({ auditData }) {
   const criticalMissing = SECURITY_CHECKS.reduce((s, a) => s + a.items.filter((i) => i.critical && getStatus(i.auditField, auditData, i.maxScore) === 'missing').length, 0);
 
   return (
-    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden', marginBottom: 20 }}>
+    <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden', marginBottom: 20 }}>
       {/* Header */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#0F1E3A' }}>Website-Sicherheit</div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{auditData ? `${okItems} von ${totalItems} Massnahmen umgesetzt` : 'Noch kein Audit durchgefuehrt'}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Website-Sicherheit</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{auditData ? `${okItems} von ${totalItems} Massnahmen umgesetzt` : 'Noch kein Audit durchgefuehrt'}</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {criticalMissing > 0 && <span style={{ background: '#fee2e2', color: '#dc2626', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>{criticalMissing} kritisch</span>}
+          {criticalMissing > 0 && <span style={{ background: 'var(--status-danger-bg)', color: '#dc2626', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>{criticalMissing} kritisch</span>}
           {auditData && okItems > 0 && <span style={{ background: '#d1fae5', color: '#059669', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>{okItems} umgesetzt</span>}
         </div>
       </div>
@@ -80,24 +80,24 @@ export default function SecurityChecklist({ auditData }) {
           <div key={area.area}>
             <button onClick={() => setOpenArea(isOpen ? null : area.area)} style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 20px',
-              background: isOpen ? area.bg : '#fff', border: 'none', borderBottom: '1px solid #e2e8f0', cursor: 'pointer', textAlign: 'left',
+              background: isOpen ? area.bg : '#fff', border: 'none', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', textAlign: 'left',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 18 }}>{area.icon}</span>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: area.color }}>{area.area}</div>
-                  <div style={{ fontSize: 11, color: '#64748b' }}>{areaOk}/{area.items.length} umgesetzt</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{areaOk}/{area.items.length} umgesetzt</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 60, height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden' }}>
                   <div style={{ width: `${(areaOk / area.items.length) * 100}%`, height: '100%', background: area.color, borderRadius: 2 }} />
                 </div>
-                <span style={{ color: '#94a3b8', fontSize: 12, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>▼</span>
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 12, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>▼</span>
               </div>
             </button>
             {isOpen && (
-              <div style={{ borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ borderBottom: '1px solid var(--border-light)' }}>
                 {area.items.map((item, idx) => {
                   const status = getStatus(item.auditField, auditData, item.maxScore);
                   const cfg = S[status];
@@ -106,12 +106,12 @@ export default function SecurityChecklist({ auditData }) {
                       <div style={{ width: 28, height: 28, borderRadius: '50%', background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: cfg.color, flexShrink: 0 }}>{cfg.icon}</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#0F1E3A' }}>{item.label}</span>
-                          {item.critical && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '1px 6px', borderRadius: 4 }}>KRITISCH</span>}
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{item.label}</span>
+                          {item.critical && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: 'var(--status-danger-bg)', padding: '1px 6px', borderRadius: 4 }}>KRITISCH</span>}
                         </div>
-                        <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.4, marginBottom: 6 }}>{item.desc}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 6 }}>{item.desc}</div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, color: '#008EAA', background: '#f0fafa', padding: '2px 7px', borderRadius: 4, fontWeight: 600 }}>{item.tool}</span>
+                          <span style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'var(--bg-hover)', padding: '2px 7px', borderRadius: 4, fontWeight: 600 }}>{item.tool}</span>
                           <span style={{ fontSize: 11, color: '#059669', background: '#f0fdf4', padding: '2px 7px', borderRadius: 4 }}>{item.cost}</span>
                         </div>
                       </div>
@@ -125,7 +125,7 @@ export default function SecurityChecklist({ auditData }) {
         );
       })}
 
-      <div style={{ padding: '12px 20px', background: '#f8fafc', fontSize: 11, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ padding: '12px 20px', background: 'var(--bg-app)', fontSize: 11, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
         <span>ℹ️</span> Basierend auf BSI Grundschutz, DSGVO Art. 32 und OWASP Top 10. Stand: 2025.
       </div>
     </div>

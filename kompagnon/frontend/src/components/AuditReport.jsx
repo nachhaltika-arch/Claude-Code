@@ -111,11 +111,11 @@ const HOSTING_ITEMS = [
 ];
 
 function scoreColor(score, max) {
-  if (max === 0) return 'var(--kc-mittel)';
+  if (max === 0) return 'var(--text-tertiary)';
   const pct = score / max;
-  if (pct >= 1.0) return 'var(--kc-success)';
-  if (pct >= 0.5) return 'var(--kc-warning)';
-  return 'var(--kc-rot)';
+  if (pct >= 1.0) return 'var(--status-success-text)';
+  if (pct >= 0.5) return 'var(--status-warning-text)';
+  return 'var(--brand-primary)';
 }
 
 function scoreIcon(score, max) {
@@ -193,7 +193,7 @@ export default function AuditReport({ auditData, onClose }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)', position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative' }}>
       {/* Close button */}
       {onClose && (
         <button
@@ -213,28 +213,28 @@ export default function AuditReport({ auditData, onClose }) {
         className="kc-card"
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexDirection: 'column', gap: 'var(--kc-space-4)',
+          flexDirection: 'column', gap: '16px',
           padding: 'var(--kc-space-10)',
           background: ls.bg, borderColor: ls.color,
         }}
       >
         <div style={{
-          fontFamily: 'var(--kc-font-display)', fontSize: '4rem', fontWeight: 700,
+          fontFamily: 'var(--font-sans)', fontSize: '4rem', fontWeight: 700,
           color: ls.color, lineHeight: 1,
         }}>
           {r.total_score}
-          <span style={{ fontSize: 'var(--kc-text-2xl)', fontWeight: 400, color: 'var(--kc-mittel)' }}> / 100</span>
+          <span style={{ fontSize: '22px', fontWeight: 400, color: 'var(--text-tertiary)' }}> / 100</span>
         </div>
         <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 'var(--kc-space-2)',
-          padding: 'var(--kc-space-2) var(--kc-space-6)',
-          borderRadius: 'var(--kc-radius-md)',
-          background: 'var(--kc-weiss)', border: `2px solid ${ls.color}`,
-          fontWeight: 700, fontSize: 'var(--kc-text-lg)', color: ls.color,
+          display: 'inline-flex', alignItems: 'center', gap: '8px',
+          padding: '8px 24px',
+          borderRadius: 'var(--radius-md)',
+          background: 'var(--bg-surface)', border: `2px solid ${ls.color}`,
+          fontWeight: 700, fontSize: '16px', color: ls.color,
         }}>
           {ls.icon} {r.level}
         </div>
-        <p style={{ color: 'var(--kc-text-subtil)', fontSize: 'var(--kc-text-sm)', textAlign: 'center' }}>
+        <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', textAlign: 'center' }}>
           {r.website_url}
           {(r.city || r.trade) && (
             <span> &middot; {[r.city, r.trade].filter(Boolean).join(', ')}</span>
@@ -246,14 +246,14 @@ export default function AuditReport({ auditData, onClose }) {
       </div>
 
       {/* Overview: Radar + Category Bars */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--kc-space-4)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
         {/* Radar Chart */}
         <div className="kc-card">
-          <span className="kc-eyebrow">Übersicht</span>
-          <h3 style={{ marginBottom: 'var(--kc-space-3)', fontSize: 'var(--kc-text-base)' }}>Kategorien-Profil</h3>
+          <span >Übersicht</span>
+          <h3 style={{ marginBottom: '12px', fontSize: '14px' }}>Kategorien-Profil</h3>
           <ResponsiveContainer width="100%" height={isMobile ? 200 : 240}>
             <RadarChart data={radarData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
-              <PolarGrid stroke="var(--kc-rand)" />
+              <PolarGrid stroke="var(--border-light)" />
               <PolarAngleAxis
                 dataKey="subject"
                 tick={{ fontSize: 11, fill: '#555' }}
@@ -276,27 +276,27 @@ export default function AuditReport({ auditData, onClose }) {
 
         {/* Category Score Bars */}
         <div className="kc-card">
-          <span className="kc-eyebrow">Bewertung</span>
-          <h3 style={{ marginBottom: 'var(--kc-space-4)', fontSize: 'var(--kc-text-base)' }}>Kategorie-Scores</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-3)' }}>
+          <span >Bewertung</span>
+          <h3 style={{ marginBottom: '16px', fontSize: '14px' }}>Kategorie-Scores</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {CATEGORIES.map((cat) => {
               const catScore = getCatScore(cat.key, cat.max);
               const pct = cat.max > 0 ? (catScore / cat.max) * 100 : 0;
               const color = scoreColor(catScore, cat.max);
               return (
                 <div key={cat.key}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--kc-space-1)' }}>
-                    <span style={{ fontSize: 'var(--kc-text-xs)', fontWeight: 600, color: 'var(--kc-text-sekundaer)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                       {cat.label}
                     </span>
-                    <span style={{ fontSize: 'var(--kc-text-xs)', fontFamily: 'var(--kc-font-mono)', fontWeight: 700, color }}>
+                    <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color }}>
                       {catScore}/{cat.max}
                     </span>
                   </div>
-                  <div style={{ height: '6px', background: 'var(--kc-rand)', borderRadius: 'var(--kc-radius-full)', overflow: 'hidden' }}>
+                  <div style={{ height: '6px', background: 'var(--border-light)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
                     <div style={{
                       height: '100%', width: `${pct}%`, background: color,
-                      borderRadius: 'var(--kc-radius-full)', transition: 'width 0.8s ease',
+                      borderRadius: 'var(--radius-full)', transition: 'width 0.8s ease',
                     }} />
                   </div>
                 </div>
@@ -308,11 +308,11 @@ export default function AuditReport({ auditData, onClose }) {
 
       {/* Detailed Category Breakdown */}
       <div>
-        <div className="kc-section-header" style={{ marginBottom: 'var(--kc-space-4)' }}>
-          <span className="kc-eyebrow">Details</span>
+        <div  style={{ marginBottom: '16px' }}>
+          <span >Details</span>
           <h2>Einzelkriterien</h2>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-3)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {CATEGORIES.map((cat) => (
               <CategorySection
                 key={cat.key}
@@ -327,9 +327,9 @@ export default function AuditReport({ auditData, onClose }) {
       {/* Hosting & Infrastruktur */}
       {hasHostingData && (
         <div className="kc-card">
-          <span className="kc-eyebrow">Infrastruktur</span>
-          <h3 style={{ marginBottom: 'var(--kc-space-4)', fontSize: 'var(--kc-text-base)' }}>Hosting & Infrastruktur</h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--kc-space-2)' }}>
+          <span >Infrastruktur</span>
+          <h3 style={{ marginBottom: '16px', fontSize: '14px' }}>Hosting & Infrastruktur</h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {HOSTING_ITEMS.map((hi) => {
               const val = items[hi.key];
               const ok = val === 1 || val === true;
@@ -339,11 +339,11 @@ export default function AuditReport({ auditData, onClose }) {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '6px',
                     padding: '4px 12px',
-                    borderRadius: 'var(--kc-radius-md)',
+                    borderRadius: 'var(--radius-md)',
                     background: ok ? '#e8f5e9' : '#fdecea',
-                    border: `1px solid ${ok ? 'var(--kc-success)' : 'var(--kc-rot)'}`,
-                    fontSize: 'var(--kc-text-xs)', fontWeight: 600,
-                    color: ok ? 'var(--kc-success)' : 'var(--kc-rot)',
+                    border: `1px solid ${ok ? 'var(--status-success-text)' : 'var(--brand-primary)'}`,
+                    fontSize: '11px', fontWeight: 600,
+                    color: ok ? 'var(--status-success-text)' : 'var(--brand-primary)',
                   }}
                 >
                   {ok ? '✓' : '✗'} {hi.label}
@@ -357,9 +357,9 @@ export default function AuditReport({ auditData, onClose }) {
       {/* Core Web Vitals */}
       {(checks.lcp_value != null || checks.cls_value != null || checks.inp_value != null || checks.mobile_score != null) && (
         <div className="kc-card">
-          <span className="kc-eyebrow">Messwerte</span>
-          <h3 style={{ marginBottom: 'var(--kc-space-4)', fontSize: 'var(--kc-text-base)' }}>Core Web Vitals</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--kc-space-3)' }}>
+          <span >Messwerte</span>
+          <h3 style={{ marginBottom: '16px', fontSize: '14px' }}>Core Web Vitals</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
             {checks.lcp_value != null && (
               <MetricCard
                 label="LCP"
@@ -403,38 +403,38 @@ export default function AuditReport({ auditData, onClose }) {
       {/* AI Summary */}
       {r.ai_summary && (
         <div className="kc-card" style={{ borderLeft: '4px solid var(--kc-info, #2196f3)' }}>
-          <span className="kc-eyebrow" style={{ color: 'var(--kc-info, #2196f3)' }}>KI-Analyse</span>
-          <h3 style={{ marginBottom: 'var(--kc-space-3)', fontSize: 'var(--kc-text-base)' }}>
+          <span  style={{ color: 'var(--kc-info, #2196f3)' }}>KI-Analyse</span>
+          <h3 style={{ marginBottom: '12px', fontSize: '14px' }}>
             Was bedeutet das für Ihren Betrieb?
           </h3>
-          <p style={{ color: 'var(--kc-text-sekundaer)', lineHeight: 'var(--kc-leading-normal)', fontSize: 'var(--kc-text-base)' }}>
+          <p style={{ color: 'var(--text-secondary)', lineHeight: 'var(--kc-leading-normal)', fontSize: '14px' }}>
             {r.ai_summary}
           </p>
         </div>
       )}
 
       {/* Issues + Recommendations */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--kc-space-4)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
         {topIssues.length > 0 && (
           <div className="kc-alert kc-alert--danger">
-            <strong style={{ display: 'block', marginBottom: 'var(--kc-space-3)', fontFamily: 'var(--kc-font-display)' }}>
+            <strong style={{ display: 'block', marginBottom: '12px', fontFamily: 'var(--font-sans)' }}>
               Top-Probleme
             </strong>
-            <ul style={{ margin: 0, paddingLeft: 'var(--kc-space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-2)' }}>
+            <ul style={{ margin: 0, paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {topIssues.map((issue, i) => (
-                <li key={i} style={{ fontSize: 'var(--kc-text-sm)' }}>{typeof issue === 'string' ? issue : issue?.title || issue?.issue || ''}</li>
+                <li key={i} style={{ fontSize: '13px' }}>{typeof issue === 'string' ? issue : issue?.title || issue?.issue || ''}</li>
               ))}
             </ul>
           </div>
         )}
         {recommendations.length > 0 && (
-          <div className="kc-alert kc-alert--info" style={{ borderColor: 'var(--kc-success)', background: '#e8f5e9', color: '#1b5e20' }}>
-            <strong style={{ display: 'block', marginBottom: 'var(--kc-space-3)', fontFamily: 'var(--kc-font-display)' }}>
+          <div className="kc-alert kc-alert--info" style={{ borderColor: 'var(--status-success-text)', background: '#e8f5e9', color: '#1b5e20' }}>
+            <strong style={{ display: 'block', marginBottom: '12px', fontFamily: 'var(--font-sans)' }}>
               Empfehlungen
             </strong>
-            <ol style={{ margin: 0, paddingLeft: 'var(--kc-space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-2)' }}>
+            <ol style={{ margin: 0, paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {recommendations.map((rec, i) => (
-                <li key={i} style={{ fontSize: 'var(--kc-text-sm)' }}>{typeof rec === 'string' ? rec : rec?.title || ''}</li>
+                <li key={i} style={{ fontSize: '13px' }}>{typeof rec === 'string' ? rec : rec?.title || ''}</li>
               ))}
             </ol>
           </div>
@@ -444,18 +444,18 @@ export default function AuditReport({ auditData, onClose }) {
       {/* Certification */}
       {r.level && r.total_score != null && (
         <div className="kc-card" style={{
-          textAlign: 'center', padding: 'var(--kc-space-8)',
+          textAlign: 'center', padding: '32px',
           borderTop: `3px solid ${ls.color}`,
         }}>
-          <h3 style={{ fontFamily: 'var(--kc-font-display)', fontSize: 'var(--kc-text-lg)', marginBottom: 'var(--kc-space-4)' }}>
+          <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '16px', marginBottom: '16px' }}>
             Zertifizierungsaussage
           </h3>
-          <p style={{ color: 'var(--kc-text-sekundaer)', fontSize: 'var(--kc-text-sm)', lineHeight: 'var(--kc-leading-normal)', maxWidth: '600px', margin: '0 auto' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 'var(--kc-leading-normal)', maxWidth: '600px', margin: '0 auto' }}>
             Hiermit wird bestätigt, dass die geprüfte Website <strong>{r.website_url}</strong> zum Zeitpunkt des Audits
             den Anforderungen des <strong>{r.level}</strong> entspricht
             und eine Gesamtbewertung von <strong>{r.total_score} / 100 Punkten</strong> erzielt hat.
           </p>
-          <p style={{ color: 'var(--kc-mittel)', fontSize: 'var(--kc-text-xs)', marginTop: 'var(--kc-space-4)' }}>
+          <p style={{ color: 'var(--text-tertiary)', fontSize: '11px', marginTop: '16px' }}>
             Auditor: KOMPAGNON Communications
           </p>
         </div>
@@ -479,21 +479,21 @@ function CategorySection({ category, catScore, items }) {
         style={{
           width: '100%', display: 'flex', alignItems: 'center',
           justifyContent: 'space-between',
-          padding: 'var(--kc-space-3) var(--kc-space-4)',
+          padding: '12px 16px',
           background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--kc-space-3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '4px', height: '20px', borderRadius: '2px', background: category.color, flexShrink: 0 }} />
-          <span style={{ fontWeight: 700, fontSize: 'var(--kc-text-sm)', color: 'var(--kc-text-primaer)' }}>
+          <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
             {category.label}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--kc-space-3)' }}>
-          <span style={{ fontSize: 'var(--kc-text-sm)', fontFamily: 'var(--kc-font-mono)', fontWeight: 700, color }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 700, color }}>
             {catScore}/{category.max}
           </span>
-          <span style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-mittel)' }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
             {expanded ? '▲' : '▼'}
           </span>
         </div>
@@ -501,10 +501,10 @@ function CategorySection({ category, catScore, items }) {
 
       {expanded && (
         <div style={{
-          borderTop: '1px solid var(--kc-rand)',
-          padding: 'var(--kc-space-3) var(--kc-space-4)',
-          display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-2)',
-          background: 'var(--kc-hell)',
+          borderTop: '1px solid var(--border-light)',
+          padding: '12px 16px',
+          display: 'flex', flexDirection: 'column', gap: '8px',
+          background: 'var(--bg-app)',
         }}>
           {category.items.map((item) => {
             const score = items[item.key] ?? 0;
@@ -518,23 +518,23 @@ function CategorySection({ category, catScore, items }) {
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 100px 48px 20px',
-                  gap: 'var(--kc-space-3)',
+                  gap: '12px',
                   alignItems: 'center',
                 }}
               >
-                <span style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-text-sekundaer)' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                   {item.label}
                 </span>
-                <div style={{ height: '5px', background: 'var(--kc-rand)', borderRadius: 'var(--kc-radius-full)', overflow: 'hidden' }}>
+                <div style={{ height: '5px', background: 'var(--border-light)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
                   <div style={{
                     height: '100%', width: `${pct}%`, background: icolor,
-                    borderRadius: 'var(--kc-radius-full)', transition: 'width 0.5s ease',
+                    borderRadius: 'var(--radius-full)', transition: 'width 0.5s ease',
                   }} />
                 </div>
-                <span style={{ fontSize: 'var(--kc-text-xs)', fontFamily: 'var(--kc-font-mono)', color: icolor, textAlign: 'right', fontWeight: 600 }}>
+                <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: icolor, textAlign: 'right', fontWeight: 600 }}>
                   {score}/{item.max}
                 </span>
-                <span style={{ fontSize: 'var(--kc-text-xs)', color: icolor, fontWeight: 700, textAlign: 'center' }}>
+                <span style={{ fontSize: '11px', color: icolor, fontWeight: 700, textAlign: 'center' }}>
                   {iicon}
                 </span>
               </div>
@@ -551,22 +551,22 @@ function CategorySection({ category, catScore, items }) {
 // ═══════════════════════════════════════════════════════════
 
 function MetricCard({ label, value, hint, ok, warn }) {
-  const color = ok ? 'var(--kc-success)' : warn ? 'var(--kc-warning)' : 'var(--kc-rot)';
+  const color = ok ? 'var(--status-success-text)' : warn ? 'var(--status-warning-text)' : 'var(--brand-primary)';
   return (
     <div style={{
-      padding: 'var(--kc-space-4)',
-      background: 'var(--kc-hell)',
-      borderRadius: 'var(--kc-radius-md)',
-      border: '1px solid var(--kc-rand)',
+      padding: '16px',
+      background: 'var(--bg-app)',
+      borderRadius: 'var(--radius-md)',
+      border: '1px solid var(--border-light)',
       textAlign: 'center',
     }}>
-      <div style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-text-subtil)', marginBottom: 'var(--kc-space-1)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         {label}
       </div>
-      <div style={{ fontSize: 'var(--kc-text-xl)', fontFamily: 'var(--kc-font-mono)', fontWeight: 700, color }}>
+      <div style={{ fontSize: '18px', fontFamily: 'var(--font-mono)', fontWeight: 700, color }}>
         {value}
       </div>
-      <div style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-mittel)', marginTop: 'var(--kc-space-1)' }}>
+      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
         {hint}
       </div>
     </div>

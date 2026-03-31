@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 
-const N = '#0F1E3A';
+
 const A = '#D4A017';
 const G = '#4a5a7a';
 
@@ -12,16 +12,16 @@ export default function Landing() {
   const go = (pkg) => nav(`/checkout/${pkg}`);
 
   return (
-    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', color: N, overflowX: 'hidden' }}>
+    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', color: 'var(--text-primary)', overflowX: 'hidden' }}>
       {/* ── HERO ── */}
-      <section style={{ background: `linear-gradient(135deg, ${N} 0%, #1a3050 100%)`, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <section style={{ background: `linear-gradient(135deg, #008eaa 0%, #1a3050 100%)`, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: isMobile ? '16px 20px' : '20px 60px' }}>
           <div style={{ color: '#fff', fontWeight: 900, fontSize: isMobile ? 20 : 24, letterSpacing: '-0.5px' }}>KOMPAGNON</div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <button onClick={() => nav('/login')} style={{ background: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.4)', borderRadius: 8, padding: '9px 20px', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
               Anmelden
             </button>
-            <button onClick={() => nav('/register')} style={{ background: A, color: N, border: 'none', borderRadius: 8, padding: '9px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            <button onClick={() => nav('/register')} style={{ background: A, color: 'var(--text-primary)', border: 'none', borderRadius: 8, padding: '9px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
               Kostenlos starten
             </button>
           </div>
@@ -69,7 +69,7 @@ export default function Landing() {
           ].map(([icon, title, desc], i) => (
             <div key={i} style={{ background: '#fff', borderRadius: 12, padding: 24, border: '1px solid #eef0f8' }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>{icon}</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: N, marginBottom: 8 }}>{title}</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)', marginBottom: 8 }}>{title}</div>
               <div style={{ fontSize: 14, color: G, lineHeight: 1.5 }}>{desc}</div>
             </div>
           ))}
@@ -104,9 +104,9 @@ export default function Landing() {
             ['Nachbetreuung', 'Wir lassen Sie nicht allein.'],
           ].map(([title, desc], i) => (
             <div key={i} style={{ flex: 1, textAlign: 'center', position: 'relative', zIndex: 1, display: 'flex', flexDirection: isMobile ? 'row' : 'column', alignItems: 'center', gap: isMobile ? 12 : 8 }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: N, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, flexShrink: 0 }}>{i + 1}</div>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--brand-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, flexShrink: 0 }}>{i + 1}</div>
               <div style={{ textAlign: isMobile ? 'left' : 'center' }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: N }}>{title}</div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{title}</div>
                 <div style={{ fontSize: 12, color: G, marginTop: 2 }}>{desc}</div>
               </div>
             </div>
@@ -125,7 +125,7 @@ export default function Landing() {
           ].map(([text, author], i) => (
             <div key={i} style={{ background: '#f8f9fc', borderRadius: 12, padding: 24, border: '1px solid #eef0f8' }}>
               <div style={{ color: A, fontSize: 16, marginBottom: 12 }}>★★★★★</div>
-              <p style={{ fontSize: 14, color: N, lineHeight: 1.6, fontStyle: 'italic', marginBottom: 16 }}>{text}</p>
+              <p style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.6, fontStyle: 'italic', marginBottom: 16 }}>{text}</p>
               <div style={{ fontSize: 13, color: G }}>— {author}</div>
               <div style={{ fontSize: 11, color: '#2a9a5a', marginTop: 6, fontWeight: 600 }}>Verifizierter Kunde</div>
             </div>
@@ -151,7 +151,7 @@ export default function Landing() {
       </section>
 
       {/* ── FINALER CTA ── */}
-      <section style={{ background: `linear-gradient(135deg, ${N} 0%, #1a3050 100%)`, padding: isMobile ? '60px 20px' : '80px 60px', textAlign: 'center' }}>
+      <section style={{ background: `linear-gradient(135deg, #008eaa 0%, #1a3050 100%)`, padding: isMobile ? '60px 20px' : '80px 60px', textAlign: 'center' }}>
         <h2 style={{ color: '#fff', fontSize: isMobile ? 28 : 40, fontWeight: 900, marginBottom: 16 }}>
           Bereit fuer Ihren neuen Webauftritt?
         </h2>
@@ -204,11 +204,11 @@ export default function Landing() {
       {isMobile && (
         <div style={{
           position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-          background: N, padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          background: 'var(--brand-primary)', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
         }}>
           <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>Jetzt anfragen — 2.000 Euro</div>
-          <button onClick={() => go('kompagnon')} style={{ background: A, color: N, border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+          <button onClick={() => go('kompagnon')} style={{ background: A, color: 'var(--text-primary)', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
             Zum Angebot
           </button>
         </div>
@@ -227,7 +227,7 @@ function Btn({ children, onClick, primary, ghost }) {
   return (
     <button onClick={onClick} style={{
       padding: '14px 32px', borderRadius: 8, fontSize: 16, fontWeight: 700, cursor: 'pointer', minHeight: 48, border: 'none', width: '100%', maxWidth: 280,
-      ...(primary ? { background: '#D4A017', color: '#0F1E3A' } : {}),
+      ...(primary ? { background: '#D4A017', color: 'var(--text-primary)' } : {}),
       ...(ghost ? { background: 'transparent', color: '#fff', border: '2px solid rgba(255,255,255,0.3)' } : {}),
     }}>
       {children}
@@ -238,7 +238,7 @@ function Btn({ children, onClick, primary, ghost }) {
 function SectionHead({ title, sub }) {
   return (
     <div style={{ textAlign: 'center', marginBottom: 40 }}>
-      <h2 style={{ fontSize: 32, fontWeight: 900, color: '#0F1E3A', marginBottom: sub ? 8 : 0 }}>{title}</h2>
+      <h2 style={{ fontSize: 32, fontWeight: 900, color: 'var(--text-primary)', marginBottom: sub ? 8 : 0 }}>{title}</h2>
       {sub && <p style={{ fontSize: 16, color: '#4a5a7a' }}>{sub}</p>}
     </div>
   );
@@ -247,7 +247,7 @@ function SectionHead({ title, sub }) {
 function TrustBadge({ title, rating, sub }) {
   return (
     <div style={{ textAlign: 'center' }}>
-      <div style={{ fontWeight: 700, fontSize: 14, color: '#0F1E3A', marginBottom: 4 }}>{title}</div>
+      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', marginBottom: 4 }}>{title}</div>
       <div style={{ color: '#D4A017', fontSize: 18, marginBottom: 4 }}>★★★★★ {rating}</div>
       <div style={{ fontSize: 12, color: '#4a5a7a' }}>{sub}</div>
     </div>
@@ -255,23 +255,23 @@ function TrustBadge({ title, rating, sub }) {
 }
 
 function PriceCard({ name, price, features = [], missing = [], recommended, onClick }) {
-  const bg = recommended ? '#0F1E3A' : '#fff';
-  const fg = recommended ? '#fff' : '#0F1E3A';
+  const bg = recommended ? 'var(--text-primary)' : '#fff';
+  const fg = recommended ? '#fff' : 'var(--text-primary)';
   const sub = recommended ? 'rgba(255,255,255,0.8)' : '#4a5a7a';
   return (
     <div style={{
       background: bg, borderRadius: 16, padding: 28, border: recommended ? 'none' : '1px solid #eef0f8',
       width: '100%', maxWidth: 280, transform: recommended ? 'scale(1.05)' : 'none', position: 'relative',
     }}>
-      {recommended && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#D4A017', color: '#0F1E3A', fontSize: 11, fontWeight: 800, padding: '4px 16px', borderRadius: 20 }}>EMPFOHLEN</div>}
+      {recommended && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#D4A017', color: 'var(--text-primary)', fontSize: 11, fontWeight: 800, padding: '4px 16px', borderRadius: 20 }}>EMPFOHLEN</div>}
       <div style={{ fontSize: 18, fontWeight: 800, color: fg, marginBottom: 4 }}>{name}</div>
       <div style={{ fontSize: 36, fontWeight: 900, color: fg, marginBottom: 16 }}>{price} <span style={{ fontSize: 16, fontWeight: 400, color: sub }}>Euro</span></div>
       {features.map((f, i) => <div key={i} style={{ fontSize: 14, color: fg, marginBottom: 6, display: 'flex', gap: 8 }}><span style={{ color: '#27AE60' }}>✓</span> {f}</div>)}
       {missing.map((f, i) => <div key={i} style={{ fontSize: 14, color: sub, marginBottom: 6, display: 'flex', gap: 8 }}><span>—</span> {f}</div>)}
       <button onClick={onClick} style={{
         width: '100%', marginTop: 16, padding: '12px', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer', minHeight: 48,
-        background: recommended ? '#D4A017' : 'transparent', color: recommended ? '#0F1E3A' : '#0F1E3A',
-        border: recommended ? 'none' : '2px solid #0F1E3A',
+        background: recommended ? '#D4A017' : 'transparent', color: recommended ? 'var(--text-primary)' : 'var(--text-primary)',
+        border: recommended ? 'none' : '2px solid var(--text-primary)',
       }}>
         {recommended ? 'Jetzt starten' : 'Anfragen'}
       </button>
@@ -287,7 +287,7 @@ function FAQItem({ question, answer }) {
         width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0,
       }}>
-        <span style={{ fontWeight: 700, fontSize: 15, color: '#0F1E3A' }}>{question}</span>
+        <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{question}</span>
         <span style={{ fontSize: 20, color: '#4a5a7a', flexShrink: 0, marginLeft: 12 }}>{open ? '−' : '+'}</span>
       </button>
       {open && <p style={{ fontSize: 14, color: '#4a5a7a', lineHeight: 1.6, marginTop: 10, marginBottom: 0 }}>{answer}</p>}

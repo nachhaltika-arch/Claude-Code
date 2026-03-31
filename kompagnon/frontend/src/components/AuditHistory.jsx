@@ -8,7 +8,7 @@ const LEVEL_STYLES = {
   'Homepage Standard Gold':   { color: '#f57f17', icon: '\uD83E\uDD47' },
   'Homepage Standard Silber': { color: '#616161', icon: '\uD83E\uDD48' },
   'Homepage Standard Bronze': { color: '#4e342e', icon: '\uD83E\uDD49' },
-  'Nicht konform':            { color: 'var(--kc-rot)', icon: '⛔' },
+  'Nicht konform':            { color: 'var(--brand-primary)', icon: '⛔' },
 };
 
 export default function AuditHistory({ leadId }) {
@@ -42,12 +42,12 @@ export default function AuditHistory({ leadId }) {
   }, [leadId]);
 
   if (loading) {
-    return <div className="kc-skeleton" style={{ height: '60px' }} />;
+    return <div className="skeleton" style={{ height: '60px' }} />;
   }
 
   if (audits.length === 0) {
     return (
-      <div style={{ fontSize: 'var(--kc-text-sm)', color: 'var(--kc-mittel)', padding: 'var(--kc-space-3) 0' }}>
+      <div style={{ fontSize: '13px', color: 'var(--text-tertiary)', padding: '12px 0' }}>
         Keine Audits vorhanden.
       </div>
     );
@@ -59,13 +59,13 @@ export default function AuditHistory({ leadId }) {
     : null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-3)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span className="kc-eyebrow" style={{ marginBottom: 0 }}>Audit-Historie</span>
+        <span  style={{ marginBottom: 0 }}>Audit-Historie</span>
         {improvement !== null && improvement !== 0 && (
           <span style={{
-            fontSize: 'var(--kc-text-xs)', fontWeight: 700, fontFamily: 'var(--kc-font-mono)',
-            color: improvement > 0 ? 'var(--kc-success)' : 'var(--kc-rot)',
+            fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)',
+            color: improvement > 0 ? 'var(--status-success-text)' : 'var(--brand-primary)',
           }}>
             {audits[audits.length - 1].total_score} → {audits[0].total_score} Punkte
             ({improvement > 0 ? '+' : ''}{improvement})
@@ -87,45 +87,45 @@ export default function AuditHistory({ leadId }) {
           >
             {/* Row */}
             <div style={{
-              padding: 'var(--kc-space-3) var(--kc-space-4)',
-              display: 'flex', alignItems: 'center', gap: 'var(--kc-space-3)', flexWrap: 'wrap',
+              padding: '12px 16px',
+              display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
             }}>
               {/* Date */}
-              <span style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-mittel)', fontFamily: 'var(--kc-font-mono)', minWidth: '80px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', minWidth: '80px' }}>
                 {audit.created_at ? new Date(audit.created_at).toLocaleDateString('de-DE') : '—'}
               </span>
               {/* Level badge */}
               <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 'var(--kc-space-1)',
-                padding: '2px var(--kc-space-2)',
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                padding: '2px 8px',
                 borderRadius: 'var(--kc-radius-sm)',
-                fontSize: 'var(--kc-text-xs)', fontWeight: 700, color: ls.color,
+                fontSize: '11px', fontWeight: 700, color: ls.color,
                 background: `${ls.color}14`,
               }}>
                 {ls.icon} {audit.level?.replace('Homepage Standard ', '')}
               </span>
               {/* Score */}
-              <span style={{ fontFamily: 'var(--kc-font-mono)', fontWeight: 700, fontSize: 'var(--kc-text-sm)' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '13px' }}>
                 {audit.total_score}/100
               </span>
               {/* First issue preview */}
               {firstIssue && (
-                <span style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-text-subtil)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   &ldquo;{firstIssue}&rdquo;
                 </span>
               )}
               {/* Actions */}
-              <div style={{ display: 'flex', gap: 'var(--kc-space-2)', marginLeft: 'auto', flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexShrink: 0 }}>
                 <button
                   className="kc-btn-ghost"
-                  style={{ fontSize: 'var(--kc-text-xs)', padding: '2px var(--kc-space-2)' }}
+                  style={{ fontSize: '11px', padding: '2px 8px' }}
                   onClick={() => setExpanded(isOpen ? null : audit.id)}
                 >
                   {isOpen ? 'Zuklappen' : 'Kurzinfo'}
                 </button>
                 <button
                   className="kc-btn-ghost"
-                  style={{ fontSize: 'var(--kc-text-xs)', padding: '2px var(--kc-space-2)', color: 'var(--kc-info, #2196f3)' }}
+                  style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--kc-info, #2196f3)' }}
                   onClick={() => openFullReport(audit.id)}
                   disabled={loadingAuditId === audit.id}
                 >
@@ -161,7 +161,7 @@ export default function AuditHistory({ leadId }) {
                   }}
                   disabled={downloadingId === audit.id}
                   style={{
-                    background: downloadingId === audit.id ? '#ccc' : '#0F1E3A',
+                    background: downloadingId === audit.id ? '#ccc' : 'var(--text-primary)',
                     color: '#fff',
                     border: 'none',
                     borderRadius: 6,
@@ -179,25 +179,25 @@ export default function AuditHistory({ leadId }) {
             {/* Expanded detail */}
             {isOpen && (
               <div style={{
-                padding: 'var(--kc-space-4)',
-                borderTop: '1px solid var(--kc-rand)',
-                background: 'var(--kc-hell)',
-                fontSize: 'var(--kc-text-sm)',
-                display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-3)',
+                padding: '16px',
+                borderTop: '1px solid var(--border-light)',
+                background: 'var(--bg-app)',
+                fontSize: '13px',
+                display: 'flex', flexDirection: 'column', gap: '12px',
               }}>
                 {audit.ai_summary && (
-                  <p style={{ color: 'var(--kc-text-sekundaer)', lineHeight: 'var(--kc-leading-normal)', margin: 0 }}>
+                  <p style={{ color: 'var(--text-secondary)', lineHeight: 'var(--kc-leading-normal)', margin: 0 }}>
                     {audit.ai_summary}
                   </p>
                 )}
                 {audit.top_issues && audit.top_issues.length > 0 && (
                   <div>
-                    <strong style={{ fontSize: 'var(--kc-text-xs)', textTransform: 'uppercase', letterSpacing: 'var(--kc-tracking-wide)', color: 'var(--kc-rot)' }}>
+                    <strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: 'var(--kc-tracking-wide)', color: 'var(--brand-primary)' }}>
                       Probleme
                     </strong>
-                    <ul style={{ margin: 'var(--kc-space-1) 0 0', paddingLeft: 'var(--kc-space-4)' }}>
+                    <ul style={{ margin: '4px 0 0', paddingLeft: '16px' }}>
                       {audit.top_issues.map((issue, i) => (
-                        <li key={i} style={{ color: 'var(--kc-text-sekundaer)' }}>{issue}</li>
+                        <li key={i} style={{ color: 'var(--text-secondary)' }}>{issue}</li>
                       ))}
                     </ul>
                   </div>
@@ -218,7 +218,7 @@ export default function AuditHistory({ leadId }) {
           }}
           onClick={(e) => { if (e.target === e.currentTarget) setOpenAudit(null); }}
         >
-          <div style={{ maxWidth: 900, margin: '0 auto', borderRadius: 12, overflow: 'hidden', background: 'var(--kc-weiss, #fff)' }}>
+          <div style={{ maxWidth: 900, margin: '0 auto', borderRadius: 'var(--radius-lg)', overflow: 'hidden', background: 'var(--kc-weiss, #fff)' }}>
             <AuditReport
               auditData={openAudit}
               onClose={() => setOpenAudit(null)}

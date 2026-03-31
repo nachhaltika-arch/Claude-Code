@@ -3,8 +3,6 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
-const N = '#0F1E3A';
-
 const SETTINGS_NAV = [
   { label: 'Profil', path: '/app/settings/profile', icon: '👤', roles: ['admin', 'auditor', 'nutzer', 'kunde'] },
   { label: 'Sicherheit', path: '/app/settings/security', icon: '🔐', roles: ['admin', 'auditor', 'nutzer', 'kunde'] },
@@ -25,17 +23,21 @@ export default function SettingsLayout() {
   if (isMobile) {
     return (
       <div>
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: N, marginBottom: 16 }}>Einstellungen</h1>
-        <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 8, marginBottom: 20, borderBottom: '2px solid #eef0f8' }}>
-          {items.map((item) => (
-            <button key={item.path} onClick={() => navigate(item.path)} style={{
-              padding: '8px 14px', background: 'none', border: 'none', whiteSpace: 'nowrap',
-              borderBottom: location.pathname === item.path ? `3px solid ${N}` : '3px solid transparent',
-              color: location.pathname === item.path ? N : '#5a6878', fontWeight: 700, fontSize: 13, cursor: 'pointer', marginBottom: -2,
-            }}>
-              {item.icon} {item.label}
-            </button>
-          ))}
+        <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 8, marginBottom: 20, borderBottom: '1px solid var(--border-light)' }}>
+          {items.map((item) => {
+            const active = location.pathname === item.path;
+            return (
+              <button key={item.path} onClick={() => navigate(item.path)} style={{
+                padding: '7px 12px', background: 'none', border: 'none', whiteSpace: 'nowrap',
+                borderBottom: active ? '2px solid var(--brand-primary)' : '2px solid transparent',
+                color: active ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                fontWeight: active ? 500 : 400, fontSize: 13, cursor: 'pointer', marginBottom: -1,
+                fontFamily: 'var(--font-sans)',
+              }}>
+                {item.icon} {item.label}
+              </button>
+            );
+          })}
         </div>
         <Outlet />
       </div>
@@ -43,28 +45,36 @@ export default function SettingsLayout() {
   }
 
   return (
-    <div>
-      <h1 style={{ fontSize: 22, fontWeight: 800, color: N, marginBottom: 24 }}>Einstellungen</h1>
-      <div style={{ display: 'flex', gap: 24 }}>
-        <nav style={{ width: 220, flexShrink: 0 }}>
-          <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #eef0f8', overflow: 'hidden' }}>
-            {items.map((item) => {
-              const active = location.pathname === item.path;
-              return (
-                <button key={item.path} onClick={() => navigate(item.path)} style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
-                  background: active ? '#f0f4ff' : 'transparent', border: 'none', borderLeft: active ? `3px solid ${N}` : '3px solid transparent',
-                  color: active ? N : '#4a5a7a', fontWeight: active ? 700 : 500, fontSize: 14, cursor: 'pointer', textAlign: 'left',
-                }}>
-                  <span style={{ fontSize: 16 }}>{item.icon}</span> {item.label}
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Outlet />
+    <div style={{ display: 'flex', gap: 20 }}>
+      <nav style={{ width: 220, flexShrink: 0 }}>
+        <div style={{
+          background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-light)', overflow: 'hidden', padding: 4,
+        }}>
+          {items.map((item) => {
+            const active = location.pathname === item.path;
+            return (
+              <button key={item.path} onClick={() => navigate(item.path)} style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                padding: '7px 12px', borderRadius: 'var(--radius-md)',
+                background: active ? 'var(--bg-active)' : 'transparent',
+                border: 'none',
+                color: active ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                fontWeight: active ? 500 : 400, fontSize: 13, cursor: 'pointer',
+                textAlign: 'left', fontFamily: 'var(--font-sans)',
+                transition: 'background 0.1s, color 0.1s',
+              }}
+              onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}}
+              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}}
+              >
+                <span style={{ fontSize: 14 }}>{item.icon}</span> {item.label}
+              </button>
+            );
+          })}
         </div>
+      </nav>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Outlet />
       </div>
     </div>
   );

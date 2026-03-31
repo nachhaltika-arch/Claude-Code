@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { useAuth, apiCall } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
-const N = '#0F1E3A';
+
 
 export default function Settings({ tab }) {
   if (tab === 'security') return <SecurityTab />;
@@ -75,9 +75,9 @@ function SignatureSection() {
   useEffect(() => { if (canvasRef.current) { const ctx = canvasRef.current.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 400, 150); } }, []);
 
   return (
-    <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px solid #eef0f8' }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: N, marginBottom: 12 }}>Digitale Unterschrift</div>
-      <canvas ref={canvasRef} width={400} height={150} style={{ border: '1.5px solid #d4d8e8', borderRadius: 8, cursor: 'crosshair', touchAction: 'none', maxWidth: '100%' }}
+    <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px solid var(--border-light)' }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Digitale Unterschrift</div>
+      <canvas ref={canvasRef} width={400} height={150} style={{ border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', cursor: 'crosshair', touchAction: 'none', maxWidth: '100%' }}
         onMouseDown={start} onMouseMove={draw} onMouseUp={stop} onMouseLeave={stop}
         onTouchStart={start} onTouchMove={draw} onTouchEnd={stop} />
       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -156,7 +156,7 @@ function SystemTab() {
       <Field label="Auditor-Name im PDF" value={settings.pdf_auditor_name || ''} onChange={set('pdf_auditor_name')} placeholder="KOMPAGNON Communications" />
       <Field label="PDF-Footer-Text" value={settings.pdf_footer_text || ''} onChange={set('pdf_footer_text')} placeholder="Dieses Audit ersetzt keine Rechtsberatung." />
       <div style={{ marginTop: 8 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#5a6878', marginBottom: 6 }}>Freie Registrierung</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>Freie Registrierung</div>
         <div style={{ display: 'flex', gap: 16 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, cursor: 'pointer' }}>
             <input type="radio" checked={settings.registration_mode !== 'invite_only'} onChange={() => set('registration_mode')('open')} /> Erlaubt
@@ -221,11 +221,11 @@ function SubscriptionTab() {
     <>
       <Card title="Aktueller Plan" icon="💳">
         <div style={{ background: '#f0f4ff', borderRadius: 10, padding: 20, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: '#4a5a7a', textTransform: 'uppercase', marginBottom: 4 }}>Aktueller Plan</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: N }}>Professional</div>
-          <div style={{ fontSize: 14, color: '#4a5a7a', marginTop: 4 }}>99 Euro / Monat</div>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 4 }}>Aktueller Plan</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>Professional</div>
+          <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>99 Euro / Monat</div>
         </div>
-        <div style={{ fontSize: 13, color: '#4a5a7a', marginBottom: 4 }}>Nutzung diesen Monat:</div>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>Nutzung diesen Monat:</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14 }}>
           <div>Audits: 12 / unbegrenzt</div>
           <div>Nutzer: 3 / 10</div>
@@ -236,7 +236,7 @@ function SubscriptionTab() {
         {['Maerz 2026 — 99 Euro', 'Februar 2026 — 99 Euro', 'Januar 2026 — 99 Euro'].map((inv, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f2f8', fontSize: 14 }}>
             <span>{inv}</span>
-            <button style={{ background: 'none', border: 'none', color: N, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>PDF</button>
+            <button style={{ background: 'none', border: 'none', color: 'var(--text-primary)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>PDF</button>
           </div>
         ))}
       </Card>
@@ -247,8 +247,8 @@ function SubscriptionTab() {
 // ── Shared Components ──
 function Card({ title, icon, children }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #eef0f8', padding: 24, marginBottom: 16 }}>
-      {title && <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: N }}>{icon} {title}</h3>}
+    <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', padding: 24, marginBottom: 16 }}>
+      {title && <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{icon} {title}</h3>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{children}</div>
     </div>
   );
@@ -257,19 +257,19 @@ function Card({ title, icon, children }) {
 function Field({ label, value, onChange, disabled, type = 'text', placeholder = '' }) {
   return (
     <div>
-      <label style={{ fontSize: 12, fontWeight: 700, color: '#5a6878', display: 'block', marginBottom: 4 }}>{label}</label>
+      <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{label}</label>
       <input type={type} value={value} placeholder={placeholder} onChange={onChange ? (e) => onChange(e.target.value) : undefined} disabled={disabled}
-        style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #d4d8e8', borderRadius: 8, fontSize: 16, boxSizing: 'border-box', opacity: disabled ? 0.5 : 1 }} />
+        style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 16, boxSizing: 'border-box', opacity: disabled ? 0.5 : 1 }} />
     </div>
   );
 }
 
 function Btn({ children, onClick, type = 'button', loading, secondary, danger, style: extraStyle }) {
-  const bg = danger ? '#fdecea' : secondary ? '#f0f2f8' : N;
-  const fg = danger ? '#c03030' : secondary ? N : '#fff';
+  const bg = danger ? '#fdecea' : secondary ? '#f0f2f8' : 'var(--brand-primary)';
+  const fg = danger ? '#c03030' : secondary ? 'var(--brand-primary)' : '#fff';
   return (
     <button type={type} onClick={onClick} disabled={loading} style={{
-      background: bg, color: fg, border: 'none', borderRadius: 8, padding: '10px 20px',
+      background: bg, color: fg, border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px',
       fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', minHeight: 44,
       opacity: loading ? 0.6 : 1, ...extraStyle,
     }}>

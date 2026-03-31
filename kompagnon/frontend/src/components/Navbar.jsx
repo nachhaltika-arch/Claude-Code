@@ -16,7 +16,7 @@ export default function Navbar() {
         position: 'sticky',
         top: 0,
         zIndex: 50,
-        background: scrolled ? 'rgba(30,30,30,0.97)' : 'var(--kc-anthrazit)',
+        background: scrolled ? 'rgba(30,30,30,0.97)' : 'var(--text-primary)',
         backdropFilter: scrolled ? 'blur(12px)' : 'none',
         boxShadow: scrolled ? '0 2px 12px rgba(0,0,0,0.15)' : 'none',
         transition: 'box-shadow var(--kc-transition-base), background var(--kc-transition-base)',
@@ -26,7 +26,7 @@ export default function Navbar() {
         style={{
           maxWidth: 'var(--kc-container-xl)',
           margin: '0 auto',
-          padding: 'var(--kc-space-4) var(--kc-space-6)',
+          padding: '16px 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -37,9 +37,9 @@ export default function Navbar() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 'var(--kc-space-3)',
+            gap: '12px',
             textDecoration: 'none',
-            color: 'var(--kc-text-invers)',
+            color: 'var(--text-inverse)',
           }}
         >
           <span
@@ -47,14 +47,14 @@ export default function Navbar() {
               display: 'inline-block',
               width: '8px',
               height: '24px',
-              background: 'var(--kc-rot)',
+              background: 'var(--brand-primary)',
               borderRadius: 'var(--kc-radius-sm)',
             }}
           />
           <span
             style={{
-              fontFamily: 'var(--kc-font-display)',
-              fontSize: 'var(--kc-text-xl)',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '18px',
               fontWeight: 700,
               letterSpacing: 'var(--kc-tracking-wide)',
             }}
@@ -64,8 +64,8 @@ export default function Navbar() {
         </Link>
         <span
           style={{
-            fontSize: 'var(--kc-text-xs)',
-            color: 'var(--kc-mittel)',
+            fontSize: '11px',
+            color: 'var(--text-tertiary)',
             letterSpacing: 'var(--kc-tracking-wide)',
             textTransform: 'uppercase',
           }}

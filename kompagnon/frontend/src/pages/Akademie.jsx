@@ -6,7 +6,7 @@ const COURSES = [
   {
     title: 'Homepage Standard 2025',
     description: 'Erfahren Sie, wie eine professionelle Handwerker-Website aufgebaut sein muss — inkl. rechtlicher Anforderungen, SEO und Performance.',
-    icon: '🌐', iconBg: '#e0f4f8', iconColor: '#008eaa',
+    icon: '🌐', iconBg: '#e0f4f8', iconColor: 'var(--brand-primary)',
     lessons: 12, minutes: 45,
     status: 'Aktiv', variant: 'success',
   },

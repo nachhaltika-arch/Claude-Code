@@ -3,10 +3,10 @@ import toast from 'react-hot-toast';
 import { apiCall } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
-const NAVY = '#0F1E3A';
+
 
 const ROLE_BADGES = {
-  admin: { bg: '#0F1E3A', color: '#fff', label: 'Admin' },
+  admin: { bg: 'var(--text-primary)', color: '#fff', label: 'Admin' },
   auditor: { bg: '#2a5aa0', color: '#fff', label: 'Auditor' },
   nutzer: { bg: '#4a5a7a', color: '#fff', label: 'Nutzer' },
   kunde: { bg: '#2a7a3a', color: '#fff', label: 'Kunde' },
@@ -76,31 +76,31 @@ export default function AdminUsers() {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: NAVY }}>Benutzerverwaltung</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>Benutzerverwaltung</h1>
         <button onClick={() => { setShowCreate(true); setTempPw(''); setNewUser({ email: '', first_name: '', last_name: '', role: 'nutzer', position: '' }); }} style={{
-          background: NAVY, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44,
+          background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44,
         }}>
           + Neuer Benutzer
         </button>
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#5a6878' }}>Laden...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>Laden...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {users.map((u) => {
             const badge = ROLE_BADGES[u.role] || ROLE_BADGES.nutzer;
             return (
               <div key={u.id} style={{
-                background: '#fff', border: '1px solid #eef0f8', borderRadius: 10, padding: isMobile ? '12px 14px' : '14px 20px',
+                background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 10, padding: isMobile ? '12px 14px' : '14px 20px',
                 display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 12,
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: NAVY }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>
                     {u.first_name} {u.last_name}
                     {!u.is_active && <span style={{ color: '#c03030', fontSize: 11, marginLeft: 8 }}>(deaktiviert)</span>}
                   </div>
-                  <div style={{ fontSize: 12, color: '#5a6878', marginTop: 2 }}>{u.email}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{u.email}</div>
                 </div>
                 <span style={{ background: badge.bg, color: badge.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>
                   {badge.label}
@@ -120,16 +120,16 @@ export default function AdminUsers() {
       {showCreate && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowCreate(false); }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: '28px 32px', maxWidth: 440, width: '100%' }}>
-            <h3 style={{ fontSize: 18, color: NAVY, marginBottom: 20 }}>Neuen Benutzer anlegen</h3>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: '28px 32px', maxWidth: 440, width: '100%' }}>
+            <h3 style={{ fontSize: 18, color: 'var(--text-primary)', marginBottom: 20 }}>Neuen Benutzer anlegen</h3>
             {tempPw ? (
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 14, color: '#2a9a5a', fontWeight: 700, marginBottom: 12 }}>Benutzer angelegt!</div>
-                <div style={{ background: '#f0f2f8', borderRadius: 8, padding: 16, fontSize: 16, fontFamily: 'monospace', fontWeight: 700, color: NAVY, marginBottom: 16 }}>
+                <div style={{ fontSize: 14, color: 'var(--status-success-text)', fontWeight: 700, marginBottom: 12 }}>Benutzer angelegt!</div>
+                <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: 16, fontSize: 16, fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>
                   {tempPw}
                 </div>
                 <p style={{ fontSize: 12, color: '#c07820' }}>Bitte dieses temporaere Passwort sicher weitergeben.</p>
-                <button onClick={() => setShowCreate(false)} style={{ background: NAVY, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 12, minHeight: 44 }}>
+                <button onClick={() => setShowCreate(false)} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 12, minHeight: 44 }}>
                   Schliessen
                 </button>
               </div>
@@ -150,10 +150,10 @@ export default function AdminUsers() {
                   <input value={newUser.position} onChange={(e) => setNewUser((f) => ({ ...f, position: e.target.value }))} placeholder="Position (z.B. Senior Auditor)" style={inpStyle} />
                 )}
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <button type="submit" disabled={creating} style={{ flex: 1, background: NAVY, color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+                  <button type="submit" disabled={creating} style={{ flex: 1, background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
                     {creating ? 'Anlegen...' : 'Benutzer anlegen'}
                   </button>
-                  <button type="button" onClick={() => setShowCreate(false)} style={{ background: '#f0f2f8', color: NAVY, border: 'none', borderRadius: 8, padding: '10px 16px', fontSize: 14, cursor: 'pointer', minHeight: 44 }}>
+                  <button type="button" onClick={() => setShowCreate(false)} style={{ background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 16px', fontSize: 14, cursor: 'pointer', minHeight: 44 }}>
                     Abbrechen
                   </button>
                 </div>
@@ -166,12 +166,12 @@ export default function AdminUsers() {
   );
 }
 
-const inpStyle = { width: '100%', padding: '10px 12px', border: '1.5px solid #d4d8e8', borderRadius: 8, fontSize: 16, boxSizing: 'border-box' };
+const inpStyle = { width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 16, boxSizing: 'border-box' };
 
 function SmallBtn({ onClick, label, danger }) {
   return (
     <button onClick={onClick} style={{
-      background: danger ? '#fdecea' : '#f0f2f8', color: danger ? '#c03030' : '#0F1E3A',
+      background: danger ? '#fdecea' : '#f0f2f8', color: danger ? '#c03030' : 'var(--text-primary)',
       border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', minHeight: 30,
     }}>
       {label}

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 const AREAS = {
   sales: {
-    label: 'Sales', icon: '💼', color: '#008EAA',
+    label: 'Sales', icon: '💼', color: 'var(--brand-primary)',
     items: [
       { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
       { label: 'Lead Pipeline', path: '/app/leads', icon: '👥' },
@@ -124,7 +124,7 @@ export default function Sidebar() {
           return (
             <button key={item.path} onClick={() => navigate(item.path)} style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-              background: active ? `${currentArea.color}20` : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer',
+              background: active ? `${currentArea.color}20` : 'transparent', border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer',
               color: active ? '#fff' : 'rgba(255,255,255,0.65)', textAlign: 'left',
               borderLeft: active ? `3px solid ${currentArea.color}` : '3px solid transparent',
               fontWeight: active ? 600 : 400, fontSize: 14, transition: 'all 0.15s',
@@ -146,7 +146,7 @@ export default function Sidebar() {
               <button key={item.path} onClick={() => navigate(item.path)} style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
                 background: location.pathname.startsWith(item.path) ? 'rgba(255,255,255,0.08)' : 'transparent',
-                border: 'none', borderRadius: 8, cursor: 'pointer', color: 'rgba(255,255,255,0.55)', textAlign: 'left', fontSize: 13,
+                border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer', color: 'rgba(255,255,255,0.55)', textAlign: 'left', fontSize: 13,
               }}>
                 <span style={{ fontSize: 16 }}>{item.icon}</span>
                 {item.label}

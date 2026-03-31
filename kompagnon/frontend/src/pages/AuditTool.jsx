@@ -141,19 +141,19 @@ export default function AuditTool() {
   // ═════════════════════════════════════════════════════════
   if (step === 'form') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
-        <div className="kc-section-header">
-          <span className="kc-eyebrow">Homepage Standard</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div >
+          <span >Homepage Standard</span>
           <h1>Website-Audit</h1>
         </div>
 
-        <div className="kc-card" style={{ maxWidth: isMobile ? '100%' : '600px', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
-          <p style={{ color: 'var(--kc-text-sekundaer)', fontSize: 'var(--kc-text-sm)', margin: 0 }}>
+        <div className="kc-card" style={{ maxWidth: isMobile ? '100%' : '600px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0 }}>
             Geben Sie die Domain ein — wir ermitteln alle weiteren Informationen automatisch.
           </p>
           <div>
             <Label required>Website / Domain</Label>
-            <div style={{ display: 'flex', gap: 'var(--kc-space-3)' }}>
+            <div style={{ display: 'flex', gap: '12px' }}>
               <Input
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
@@ -166,12 +166,12 @@ export default function AuditTool() {
                 onClick={startAudit}
                 disabled={!url.trim()}
                 className="kc-btn-primary"
-                style={{ fontSize: 'var(--kc-text-base)', whiteSpace: 'nowrap', opacity: url.trim() ? 1 : 0.6 }}
+                style={{ fontSize: '14px', whiteSpace: 'nowrap', opacity: url.trim() ? 1 : 0.6 }}
               >
                 Audit starten
               </button>
             </div>
-            <p style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-mittel)', marginTop: 'var(--kc-space-2)', marginBottom: 0 }}>
+            <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '8px', marginBottom: 0 }}>
               Wir analysieren automatisch: Firmenname, Kontaktdaten, Performance, Rechtliches &amp; SEO
             </p>
           </div>
@@ -185,39 +185,39 @@ export default function AuditTool() {
   // ═════════════════════════════════════════════════════════
   if (step === 'loading') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
-        <div className="kc-section-header">
-          <span className="kc-eyebrow">Audit läuft</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div >
+          <span >Audit läuft</span>
           <h1>Analyse von {scrapedData?.company_name || url}</h1>
         </div>
-        <div className="kc-card" style={{ maxWidth: isMobile ? '100%' : '500px', display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
+        <div className="kc-card" style={{ maxWidth: isMobile ? '100%' : '500px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {LOADING_STEPS.map((text, i) => (
             <div
               key={i}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'var(--kc-space-3)',
+                gap: '12px',
                 opacity: i <= loadingStep ? 1 : 0.3,
                 transition: 'opacity 0.5s ease',
               }}
             >
               <span style={{
-                width: '24px', height: '24px', borderRadius: 'var(--kc-radius-full)',
+                width: '24px', height: '24px', borderRadius: 'var(--radius-full)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 'var(--kc-text-xs)', fontWeight: 700,
-                background: i < loadingStep ? 'var(--kc-success)' : i === loadingStep ? 'var(--kc-rot)' : 'var(--kc-rand)',
-                color: i <= loadingStep ? 'var(--kc-weiss)' : 'var(--kc-mittel)',
+                fontSize: '11px', fontWeight: 700,
+                background: i < loadingStep ? 'var(--status-success-text)' : i === loadingStep ? 'var(--brand-primary)' : 'var(--border-light)',
+                color: i <= loadingStep ? 'var(--bg-surface)' : 'var(--text-tertiary)',
               }}>
                 {i < loadingStep ? '✓' : i + 1}
               </span>
-              <span style={{ fontSize: 'var(--kc-text-sm)', fontWeight: i === loadingStep ? 700 : 400, color: 'var(--kc-text-primaer)' }}>
+              <span style={{ fontSize: '13px', fontWeight: i === loadingStep ? 700 : 400, color: 'var(--text-primary)' }}>
                 {text}
               </span>
             </div>
           ))}
-          <div className="kc-skeleton" style={{ height: '4px', marginTop: 'var(--kc-space-4)' }} />
-          <p style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-mittel)', textAlign: 'center' }}>
+          <div className="skeleton" style={{ height: '4px', marginTop: '16px' }} />
+          <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', textAlign: 'center' }}>
             Die Analyse kann bis zu 30 Sekunden dauern.
           </p>
         </div>
@@ -226,31 +226,31 @@ export default function AuditTool() {
         {scrapedData && (
           <div style={{
             maxWidth: '500px',
-            background: '#f0f7ff', borderRadius: 'var(--kc-radius-lg)',
-            padding: 'var(--kc-space-4) var(--kc-space-5)',
+            background: '#f0f7ff', borderRadius: 'var(--radius-lg)',
+            padding: '16px 20px',
             border: '1px solid #c0d8f0',
           }}>
             <div style={{
-              fontSize: 'var(--kc-text-xs)', fontWeight: 700, color: '#2a5aa0',
-              marginBottom: 'var(--kc-space-3)', textTransform: 'uppercase', letterSpacing: '0.05em',
+              fontSize: '11px', fontWeight: 700, color: '#2a5aa0',
+              marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em',
             }}>
               ✓ Automatisch erkannt
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--kc-space-2)', fontSize: 'var(--kc-text-sm)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '8px', fontSize: '13px' }}>
               {scrapedData.company_name && (
-                <div><span style={{ color: 'var(--kc-mittel)' }}>Firma:</span> <strong>{scrapedData.company_name}</strong></div>
+                <div><span style={{ color: 'var(--text-tertiary)' }}>Firma:</span> <strong>{scrapedData.company_name}</strong></div>
               )}
               {scrapedData.city && (
-                <div><span style={{ color: 'var(--kc-mittel)' }}>Stadt:</span> <strong>{scrapedData.city}</strong></div>
+                <div><span style={{ color: 'var(--text-tertiary)' }}>Stadt:</span> <strong>{scrapedData.city}</strong></div>
               )}
               {scrapedData.phone && (
-                <div><span style={{ color: 'var(--kc-mittel)' }}>Telefon:</span> <strong>{scrapedData.phone}</strong></div>
+                <div><span style={{ color: 'var(--text-tertiary)' }}>Telefon:</span> <strong>{scrapedData.phone}</strong></div>
               )}
               {scrapedData.email && (
-                <div><span style={{ color: 'var(--kc-mittel)' }}>E-Mail:</span> <strong>{scrapedData.email}</strong></div>
+                <div><span style={{ color: 'var(--text-tertiary)' }}>E-Mail:</span> <strong>{scrapedData.email}</strong></div>
               )}
               {scrapedData.trade && scrapedData.trade !== 'Sonstiges' && (
-                <div><span style={{ color: 'var(--kc-mittel)' }}>Gewerk:</span> <strong>{scrapedData.trade}</strong></div>
+                <div><span style={{ color: 'var(--text-tertiary)' }}>Gewerk:</span> <strong>{scrapedData.trade}</strong></div>
               )}
             </div>
           </div>
@@ -265,10 +265,10 @@ export default function AuditTool() {
   const r = result;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
-      <div className="kc-section-header">
-        <span className="kc-eyebrow">Audit-Ergebnis</span>
+      <div >
+        <span >Audit-Ergebnis</span>
         <h1>{r.company_name}</h1>
       </div>
 
@@ -276,7 +276,7 @@ export default function AuditTool() {
       <AuditReport auditData={r} />
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 'var(--kc-space-4)', flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', paddingTop: 'var(--kc-space-2)' }}>
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', paddingTop: '8px' }}>
         <button className="kc-btn-primary" style={isMobile ? { width: '100%' } : undefined} onClick={() => { setStep('form'); setResult(null); setAuditId(null); setSavedLeadId(null); setScrapedData(null); }}>
           Neues Audit starten
         </button>
@@ -289,7 +289,7 @@ export default function AuditTool() {
           {pdfLoading ? 'PDF wird erstellt...' : '✓ PDF herunterladen'}
         </button>
         {savedLeadId ? (
-          <button className="kc-btn-ghost" onClick={() => navigate('/app/leads')} style={{ color: 'var(--kc-success)', ...(isMobile ? { width: '100%' } : {}) }}>
+          <button className="kc-btn-ghost" onClick={() => navigate('/app/leads')} style={{ color: 'var(--status-success-text)', ...(isMobile ? { width: '100%' } : {}) }}>
             → Lead ansehen
           </button>
         ) : (
@@ -378,14 +378,14 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
         position: 'fixed', inset: 0, zIndex: 100,
         background: 'rgba(0,0,0,0.5)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 'var(--kc-space-4)',
+        padding: '16px',
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: 'var(--kc-weiss)',
-          borderRadius: 'var(--kc-radius-lg)',
+          background: 'var(--bg-surface)',
+          borderRadius: 'var(--radius-lg)',
           boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
           width: '100%', maxWidth: '560px',
           maxHeight: '90vh', overflow: 'auto',
@@ -393,21 +393,21 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
       >
         {/* Modal Header */}
         <div style={{
-          background: 'var(--kc-rot)', color: 'var(--kc-weiss)',
-          padding: 'var(--kc-space-4) var(--kc-space-6)',
-          borderRadius: 'var(--kc-radius-lg) var(--kc-radius-lg) 0 0',
+          background: 'var(--brand-primary)', color: 'var(--bg-surface)',
+          padding: '16px 24px',
+          borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: 'var(--kc-text-lg)', fontFamily: 'var(--kc-font-display)' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontFamily: 'var(--font-sans)' }}>
               Lead anlegen
             </h3>
           </div>
           <button
             onClick={onClose}
             style={{
-              background: 'none', border: 'none', color: 'var(--kc-weiss)',
-              fontSize: 'var(--kc-text-xl)', cursor: 'pointer', padding: 'var(--kc-space-1)',
+              background: 'none', border: 'none', color: 'var(--bg-surface)',
+              fontSize: '18px', cursor: 'pointer', padding: '4px',
               lineHeight: 1,
             }}
             aria-label="Schließen"
@@ -418,34 +418,34 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
 
         {/* Audit Score Badge */}
         <div style={{
-          padding: 'var(--kc-space-4) var(--kc-space-6)',
-          borderBottom: '1px solid var(--kc-rand)',
-          display: 'flex', alignItems: 'center', gap: 'var(--kc-space-3)',
+          padding: '16px 24px',
+          borderBottom: '1px solid var(--border-light)',
+          display: 'flex', alignItems: 'center', gap: '12px',
         }}>
           <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 'var(--kc-space-2)',
-            padding: 'var(--kc-space-1) var(--kc-space-4)',
-            borderRadius: 'var(--kc-radius-md)',
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            padding: '4px 16px',
+            borderRadius: 'var(--radius-md)',
             background: ls.bg, border: `1.5px solid ${ls.color}`,
-            fontWeight: 700, fontSize: 'var(--kc-text-sm)', color: ls.color,
+            fontWeight: 700, fontSize: '13px', color: ls.color,
           }}>
             {ls.icon} {audit.total_score}/100 — {audit.level}
           </span>
-          <span style={{ fontSize: 'var(--kc-text-xs)', color: 'var(--kc-mittel)' }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
             {audit.website_url}
           </span>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSave} style={{
-          padding: 'var(--kc-space-6)',
-          display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)',
+          padding: '24px',
+          display: 'flex', flexDirection: 'column', gap: '16px',
         }}>
           <div>
             <Label required>Firmenname</Label>
             <Input value={leadForm.company_name} onChange={setField('company_name')} required />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--kc-space-4)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
             <div>
               <Label>Ansprechpartner</Label>
               <Input value={leadForm.contact_name} onChange={setField('contact_name')} placeholder="Vor- und Nachname" />
@@ -455,7 +455,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
               <Input type="tel" value={leadForm.phone} onChange={setField('phone')} placeholder="+49 ..." />
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--kc-space-4)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
             <div>
               <Label>E-Mail</Label>
               <Input type="email" value={leadForm.email} onChange={setField('email')} placeholder="info@firma.de" />
@@ -465,7 +465,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
               <Input value={leadForm.website_url} onChange={setField('website_url')} />
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--kc-space-4)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
             <div>
               <Label>Stadt</Label>
               <Input value={leadForm.city} onChange={setField('city')} />
@@ -484,11 +484,11 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
               value={leadForm.notes}
               onChange={setField('notes')}
               rows={2}
-              style={{ ...inputStyle, resize: 'vertical', fontFamily: 'var(--kc-font-body)' }}
+              style={{ ...inputStyle, resize: 'vertical', fontFamily: 'var(--font-sans)' }}
             />
           </div>
 
-          <div style={{ display: 'flex', gap: 'var(--kc-space-3)', paddingTop: 'var(--kc-space-2)' }}>
+          <div style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
             <button
               type="submit"
               className="kc-btn-primary"

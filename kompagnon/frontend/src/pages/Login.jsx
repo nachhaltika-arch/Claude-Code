@@ -30,7 +30,7 @@ export default function Login() {
     width: '100%', padding: '10px 12px',
     border: '1px solid var(--border-medium)',
     borderRadius: 'var(--radius-md)',
-    fontSize: 14, fontFamily: 'inherit',
+    fontSize: 14, fontFamily: 'var(--font-sans)',
     color: 'var(--text-primary)', background: 'var(--bg-surface)',
     outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s',
   };
@@ -137,7 +137,7 @@ export default function Login() {
                       padding: '7px 10px', borderRadius: 'var(--radius-md)',
                       border: '1px solid var(--border-light)', background: 'var(--bg-app)',
                       color: d.color, fontSize: 11, fontWeight: 500, cursor: 'pointer',
-                      fontFamily: 'inherit', textAlign: 'left',
+                      fontFamily: 'var(--font-sans)', textAlign: 'left',
                       display: 'flex', alignItems: 'center', gap: 6, minHeight: 32, transition: 'all 0.1s',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-medium)'; e.currentTarget.style.background = 'var(--bg-hover)'; }}
@@ -189,7 +189,7 @@ export default function Login() {
                 <div style={{ textAlign: 'right', marginBottom: 18 }}>
                   <button type="button" onClick={() => setStep('forgot')} style={{
                     background: 'none', border: 'none', color: 'var(--brand-primary)',
-                    fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)',
                   }}>
                     Passwort vergessen?
                   </button>
@@ -251,7 +251,7 @@ export default function Login() {
 
               <button onClick={() => { setStep('login'); setError(''); setTotp(['','','','','','']); }} style={{
                 background: 'none', border: 'none', color: 'var(--text-tertiary)',
-                fontSize: 12, cursor: 'pointer', marginTop: 12, fontFamily: 'inherit',
+                fontSize: 12, cursor: 'pointer', marginTop: 12, fontFamily: 'var(--font-sans)',
               }}>
                 ← Zurück
               </button>
@@ -286,7 +286,7 @@ export default function Login() {
               <button onClick={() => { setStep('login'); setSuccess(''); }} style={{
                 background: 'none', border: 'none', color: 'var(--text-tertiary)',
                 fontSize: 12, cursor: 'pointer', marginTop: 12,
-                fontFamily: 'inherit', display: 'block', width: '100%', textAlign: 'center',
+                fontFamily: 'var(--font-sans)', display: 'block', width: '100%', textAlign: 'center',
               }}>
                 ← Zurück zum Login
               </button>

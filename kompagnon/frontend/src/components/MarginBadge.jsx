@@ -4,17 +4,17 @@ export default function MarginBadge({ marginPercent, status = 'green' }) {
   const styles = {
     green: {
       background: '#e8f5e9',
-      color: 'var(--kc-success)',
+      color: 'var(--status-success-text)',
       icon: '✓',
     },
     yellow: {
       background: '#fff3e0',
-      color: 'var(--kc-warning)',
+      color: 'var(--status-warning-text)',
       icon: '⚠',
     },
     red: {
       background: 'var(--kc-rot-subtle)',
-      color: 'var(--kc-rot)',
+      color: 'var(--brand-primary)',
       icon: '✗',
     },
   };
@@ -27,10 +27,10 @@ export default function MarginBadge({ marginPercent, status = 'green' }) {
       style={{
         background: s.background,
         color: s.color,
-        fontFamily: 'var(--kc-font-mono)',
-        fontSize: 'var(--kc-text-sm)',
+        fontFamily: 'var(--font-mono)',
+        fontSize: '13px',
         fontWeight: 700,
-        padding: 'var(--kc-space-1) var(--kc-space-3)',
+        padding: '4px 12px',
         borderRadius: 'var(--kc-radius-sm)',
       }}
     >
@@ -38,8 +38,8 @@ export default function MarginBadge({ marginPercent, status = 'green' }) {
       {status === 'red' && (
         <span
           style={{
-            marginLeft: 'var(--kc-space-2)',
-            fontSize: 'var(--kc-text-xs)',
+            marginLeft: '8px',
+            fontSize: '11px',
             textTransform: 'uppercase',
             letterSpacing: 'var(--kc-tracking-wide)',
           }}

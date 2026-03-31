@@ -36,10 +36,10 @@ export default function ProjectDetail() {
 
   if (loading || !project) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-4)' }}>
-        <div className="kc-skeleton" style={{ height: '40px', width: '300px' }} />
-        <div className="kc-skeleton" style={{ height: '60px' }} />
-        <div className="kc-skeleton" style={{ height: '200px' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="skeleton" style={{ height: '40px', width: '300px' }} />
+        <div className="skeleton" style={{ height: '60px' }} />
+        <div className="skeleton" style={{ height: '200px' }} />
       </div>
     );
   }
@@ -47,11 +47,11 @@ export default function ProjectDetail() {
   const tabs = ['overview', 'checklists', 'zeit', 'kommunikation'];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div className="kc-section-header" style={{ marginBottom: 0 }}>
-          <span className="kc-eyebrow">Projekt #{project.id}</span>
+        <div  style={{ marginBottom: 0 }}>
+          <span >Projekt #{project.id}</span>
           <h1 style={{ fontSize: 'var(--kc-text-3xl)' }}>{project.company_name}</h1>
         </div>
         {margin && <MarginBadge marginPercent={margin.margin_percent} status={margin.status} />}
@@ -79,14 +79,14 @@ export default function ProjectDetail() {
 
       {/* Overview Tab */}
       {activeTab === 'overview' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--kc-space-6)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Project Info Grid */}
           <div
             className="kc-card"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: 'var(--kc-space-6)',
+              gap: '24px',
             }}
           >
             <InfoBlock label="Status" value={project.status.replace('phase_', 'Phase ')} />
@@ -100,13 +100,13 @@ export default function ProjectDetail() {
             <div
               className="kc-card"
               style={{
-                background: margin.status === 'red' ? 'var(--kc-rot-subtle)' : 'var(--kc-hell)',
-                border: margin.status === 'red' ? '1px solid var(--kc-rot)' : '1px solid var(--kc-rand)',
+                background: margin.status === 'red' ? 'var(--kc-rot-subtle)' : 'var(--bg-app)',
+                border: margin.status === 'red' ? '1px solid var(--brand-primary)' : '1px solid var(--border-light)',
               }}
             >
-              <div style={{ marginBottom: 'var(--kc-space-4)' }}>
-                <span className="kc-eyebrow">Marge</span>
-                <h2 style={{ fontSize: 'var(--kc-text-2xl)', margin: 0 }}>
+              <div style={{ marginBottom: '16px' }}>
+                <span >Marge</span>
+                <h2 style={{ fontSize: '22px', margin: 0 }}>
                   Profitabilität
                 </h2>
               </div>
@@ -114,7 +114,7 @@ export default function ProjectDetail() {
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-                  gap: 'var(--kc-space-6)',
+                  gap: '24px',
                 }}
               >
                 <InfoBlock
@@ -145,13 +145,13 @@ export default function ProjectDetail() {
       {activeTab !== 'overview' && (
         <div
           className="kc-card"
-          style={{ textAlign: 'center', padding: 'var(--kc-space-16)', color: 'var(--kc-mittel)' }}
+          style={{ textAlign: 'center', padding: 'var(--kc-space-16)', color: 'var(--text-tertiary)' }}
         >
-          <p style={{ fontSize: 'var(--kc-text-lg)', fontWeight: 600 }}>
+          <p style={{ fontSize: '16px', fontWeight: 600 }}>
             {activeTab === 'checklists' ? 'Checklisten' :
              activeTab === 'zeit' ? 'Zeiterfassung' : 'Kommunikation'}
           </p>
-          <p style={{ fontSize: 'var(--kc-text-sm)' }}>In Entwicklung</p>
+          <p style={{ fontSize: '13px' }}>In Entwicklung</p>
         </div>
       )}
     </div>
@@ -163,12 +163,12 @@ function InfoBlock({ label, value, mono = false, raw = false }) {
     <div>
       <p
         style={{
-          fontSize: 'var(--kc-text-xs)',
+          fontSize: '11px',
           fontWeight: 600,
           textTransform: 'uppercase',
           letterSpacing: 'var(--kc-tracking-wide)',
-          color: 'var(--kc-text-subtil)',
-          marginBottom: 'var(--kc-space-1)',
+          color: 'var(--text-tertiary)',
+          marginBottom: '4px',
         }}
       >
         {label}
@@ -178,10 +178,10 @@ function InfoBlock({ label, value, mono = false, raw = false }) {
       ) : (
         <p
           style={{
-            fontSize: 'var(--kc-text-lg)',
+            fontSize: '16px',
             fontWeight: 700,
-            fontFamily: mono ? 'var(--kc-font-mono)' : 'var(--kc-font-display)',
-            color: 'var(--kc-text-primaer)',
+            fontFamily: mono ? 'var(--font-mono)' : 'var(--font-sans)',
+            color: 'var(--text-primary)',
             margin: 0,
           }}
         >

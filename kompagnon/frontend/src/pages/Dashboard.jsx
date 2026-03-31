@@ -134,7 +134,7 @@ export default function Dashboard() {
               onClick={() => navigate('/app/leads')}
               style={{
                 fontSize: 11, color: 'var(--brand-primary)', background: 'none',
-                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)',
               }}
             >
               Alle anzeigen →

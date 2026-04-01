@@ -277,6 +277,7 @@ Antworte als JSON mit allen Einzelkriterienpunkten:
             messages=[{"role": "user", "content": user_message}],
         )
         raw = message.content[0].text.strip()
+        raw = raw.replace('```json', '').replace('```', '').strip()
         if not raw:
             logger.warning('AI scoring: Leere Antwort')
             return _mock_ai_score(check_data)

@@ -123,6 +123,26 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS display_name VARCHAR DEFAULT ''",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS customer_token VARCHAR UNIQUE",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS customer_token_created_at TIMESTAMP",
+        """CREATE TABLE IF NOT EXISTS briefings (
+            id SERIAL PRIMARY KEY,
+            lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+            projektrahmen TEXT DEFAULT '{}',
+            positionierung TEXT DEFAULT '{}',
+            zielgruppe TEXT DEFAULT '{}',
+            wettbewerb TEXT DEFAULT '{}',
+            inhalte TEXT DEFAULT '{}',
+            funktionen TEXT DEFAULT '{}',
+            branding TEXT DEFAULT '{}',
+            struktur TEXT DEFAULT '{}',
+            hosting TEXT DEFAULT '{}',
+            seo TEXT DEFAULT '{}',
+            projektplan TEXT DEFAULT '{}',
+            freigaben TEXT DEFAULT '{}',
+            status VARCHAR DEFAULT 'offen',
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW(),
+            UNIQUE(lead_id)
+        )""",
         """CREATE TABLE IF NOT EXISTS support_tickets (
             id SERIAL PRIMARY KEY, ticket_number VARCHAR UNIQUE NOT NULL,
             user_id INTEGER, user_email VARCHAR DEFAULT '', user_name VARCHAR DEFAULT '',
@@ -255,6 +275,9 @@ app.include_router(scraper_router)
 app.include_router(settings_router)
 app.include_router(payments_router)
 app.include_router(tickets_router)
+
+from routers.briefing import router as briefing_router
+app.include_router(briefing_router)
 
 
 # Global exception handler — catches unhandled errors

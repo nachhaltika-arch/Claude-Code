@@ -7,6 +7,7 @@ import Button from '../components/ui/Button';
 import HomepageChecklist from '../components/HomepageChecklist';
 import SecurityChecklist from '../components/SecurityChecklist';
 import AuditReport from '../components/AuditReport';
+import BriefingTab from '../components/BriefingTab';
 import OfferTab from '../components/OfferTab';
 import API_BASE_URL from '../config';
 
@@ -44,6 +45,7 @@ const LEVEL_COLORS = {
 
 const TABS = [
   { id: 'overview', label: 'Übersicht', icon: '⊞' },
+  { id: 'briefing', label: 'Briefing', icon: '📋' },
   { id: 'contact', label: 'Kontakt', icon: '👤' },
   { id: 'audits', label: 'Audits', icon: '✓' },
   { id: 'checklists', label: 'Checklisten', icon: '📋' },
@@ -682,6 +684,11 @@ export default function LeadProfile() {
             </Card>
           </div>
         </div>
+      )}
+
+      {/* BRIEFING TAB */}
+      {activeTab === 'briefing' && (
+        <BriefingTab lead={lead} isMobile={isMobile} />
       )}
 
       {/* KONTAKT TAB */}

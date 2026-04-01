@@ -377,6 +377,29 @@ class RolePermission(Base):
     is_allowed = Column(Boolean, default=True)
 
 
+class Briefing(Base):
+    """Briefing questionnaire for web design projects."""
+    __tablename__ = "briefings"
+
+    id = Column(Integer, primary_key=True)
+    lead_id = Column(Integer, ForeignKey('leads.id', ondelete='CASCADE'), nullable=False, unique=True)
+    projektrahmen = Column(Text, default='{}')
+    positionierung = Column(Text, default='{}')
+    zielgruppe = Column(Text, default='{}')
+    wettbewerb = Column(Text, default='{}')
+    inhalte = Column(Text, default='{}')
+    funktionen = Column(Text, default='{}')
+    branding = Column(Text, default='{}')
+    struktur = Column(Text, default='{}')
+    hosting = Column(Text, default='{}')
+    seo = Column(Text, default='{}')
+    projektplan = Column(Text, default='{}')
+    freigaben = Column(Text, default='{}')
+    status = Column(String(50), default='offen')
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 def init_db():
     """Create all tables."""
     Base.metadata.create_all(bind=engine)

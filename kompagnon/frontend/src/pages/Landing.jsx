@@ -14,44 +14,43 @@ export default function Landing() {
   const go = (pkg) => nav(`/checkout/${pkg}`);
 
   return (
-    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', color: 'var(--text-primary)', overflowX: 'hidden' }}>
+    <div className="landing-page" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', color: '#0f1c20', overflowX: 'hidden' }}>
       {/* ── HERO ── */}
-      <section style={{ background: `linear-gradient(135deg, #008eaa 0%, #1a3050 100%)`, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: isMobile ? '16px 20px' : '20px 60px' }}>
-          <div style={{ color: '#fff', fontWeight: 900, fontSize: isMobile ? 20 : 24, letterSpacing: '-0.5px' }}>KOMPAGNON</div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <a href="#pakete" style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', textDecoration: 'none', fontWeight: 500, padding: '4px 0' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'white'}
-              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.75)'}>
-              Preise
-            </a>
-            <button onClick={() => nav('/login')} style={{ background: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.4)', borderRadius: 8, padding: '9px 20px', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+      <section style={{ background: 'linear-gradient(135deg, #008eaa 0%, #1a3050 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: isMobile ? '12px 16px' : '20px 60px', gap: 8 }}>
+          <div style={{ color: '#fff', fontWeight: 900, fontSize: isMobile ? 18 : 24, letterSpacing: '-0.5px', flexShrink: 0 }}>KOMPAGNON</div>
+          <div className="pkg-switcher" style={{ alignItems: 'center' }}>
+            <a href="#pakete" style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', textDecoration: 'none', fontWeight: 500, whiteSpace: 'nowrap' }}>Preise</a>
+            <button onClick={() => nav('/login')} style={{ background: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.4)', borderRadius: 8, padding: '8px 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}>
               Anmelden
             </button>
-            <button onClick={() => nav('/register')} style={{ background: A, color: 'var(--text-primary)', border: 'none', borderRadius: 8, padding: '9px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-              Kostenlos starten
-            </button>
+            {!isMobile && (
+              <button onClick={() => nav('/register')} style={{ background: A, color: '#0f1c20', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                Kostenlos starten
+              </button>
+            )}
           </div>
         </nav>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: isMobile ? '40px 20px' : '60px', textAlign: 'center' }}>
-          <h1 style={{ color: '#fff', fontSize: isMobile ? 36 : 56, fontWeight: 900, lineHeight: 1.1, marginBottom: 20, maxWidth: 700 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: isMobile ? '32px 20px' : '60px', textAlign: 'center' }}>
+          <h1 className="hero-title" style={{ color: '#fff', fontWeight: 900, marginBottom: 20, maxWidth: 700 }}>
             Ihre neue Webseite.<br />Fertig in 14 Tagen.
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: isMobile ? 16 : 20, maxWidth: 540, marginBottom: 28, lineHeight: 1.5 }}>
+          <p className="hero-subtitle" style={{ color: 'rgba(255,255,255,0.8)', maxWidth: 540, marginBottom: 24, lineHeight: 1.5 }}>
             Individuell fuer Handwerksbetriebe. KI-optimiert. Festpreis 2.000 Euro.
           </p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 28, fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>
             {['Trustpilot 4.9/5', 'Trusted Shops', 'DSGVO-konform', 'Festpreis'].map((t, i) => (
               <span key={i} style={{ padding: '4px 12px', background: 'rgba(255,255,255,0.08)', borderRadius: 20 }}>{t}</span>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 12, flexDirection: isMobile ? 'column' : 'row', width: isMobile ? '100%' : 'auto' }}>
-            <Btn onClick={() => go('kompagnon')} primary>Jetzt Webseite anfragen</Btn>
-            <Btn onClick={() => nav('/audit')} ghost>Kostenlose Analyse</Btn>
+          <div className="cta-stack" style={{ display: 'flex', gap: 10, flexDirection: isMobile ? 'column' : 'row', width: isMobile ? '100%' : 'auto', maxWidth: 400 }}>
+            <a href="#gratis-audit" className="landing-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px 24px', background: '#008eaa', color: 'white', borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: 'none', width: '100%', textAlign: 'center' }}>
+              🔍 Gratis Audit starten
+            </a>
+            <a href="#pakete" className="landing-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 24px', background: 'transparent', color: 'white', border: '1.5px solid rgba(255,255,255,0.4)', borderRadius: 10, fontSize: 14, fontWeight: 600, textDecoration: 'none', width: '100%', textAlign: 'center' }}>
+              Pakete & Preise ↓
+            </a>
           </div>
-          <a href="#gratis-audit" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', background: '#008eaa', color: 'white', borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit', marginTop: 8 }}>
-            🔍 Gratis Website-Audit starten →
-          </a>
         </div>
         <div style={{ textAlign: 'center', paddingBottom: 24, color: 'rgba(255,255,255,0.3)', fontSize: 24, animation: 'bounce 2s infinite' }}>v</div>
       </section>

@@ -3,40 +3,89 @@
 /* Navbar spacing */
 body {
   padding-top: 70px;
+  overflow-x: hidden;
 }
 
 /* Kanban columns */
-.kanban-col {
-  min-width: 280px;
-}
+.kanban-col { min-width: 280px; }
 
 /* Score colors */
 .score-danger { color: #dc3545; }
 .score-warning { color: #ffc107; }
 .score-success { color: #198754; }
 
-/* Smooth transitions */
-.card {
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
-}
-.card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
-}
+/* Card hover */
+.card { transition: box-shadow 0.15s ease, transform 0.15s ease; }
+.card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; }
 
 /* Kanban card grab cursor */
-.kanban-card {
-  cursor: grab;
-}
-.kanban-card:active {
-  cursor: grabbing;
-}
+.kanban-card { cursor: grab; }
+.kanban-card:active { cursor: grabbing; }
 
 /* QR code image */
-.qr-img {
-  image-rendering: pixelated;
-}
+.qr-img { image-rendering: pixelated; }
 
 /* Fix form-floating labels on autofill */
 .form-floating > .form-control:-webkit-autofill ~ label {
   transform: scale(.85) translateY(-.5rem) translateX(.15rem);
 }
+
+/* ══════════════════════════════════════════
+   MOBILE-FIRST LANDING PAGE STYLES
+   ══════════════════════════════════════════ */
+
+/* Prevent iOS zoom on input focus */
+.landing-input { font-size: 16px !important; }
+
+/* Touch-friendly buttons */
+.landing-btn { min-height: 44px; }
+
+/* Landing page sections — override body padding-top */
+.landing-page { margin-top: -70px; padding-top: 0; }
+
+/* Compare table: horizontal scroll on mobile */
+.compare-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -16px;
+  padding: 0 16px;
+}
+.compare-scroll > div { min-width: 600px; }
+
+/* Package cards: stack on mobile */
+.pkg-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 640px) {
+  .pkg-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 960px) {
+  .pkg-grid { grid-template-columns: 1fr 1fr 1fr; }
+}
+
+/* Hero responsive text */
+.hero-title { font-size: clamp(24px, 6vw, 56px); line-height: 1.15; }
+.hero-subtitle { font-size: clamp(14px, 3vw, 20px); }
+.hero-price { font-size: clamp(36px, 10vw, 52px); }
+
+/* Mobile package switcher */
+.pkg-switcher {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.pkg-switcher::-webkit-scrollbar { display: none; }
+
+/* Full-width CTA on mobile */
+@media (max-width: 640px) {
+  .cta-stack { flex-direction: column !important; align-items: stretch !important; }
+  .cta-stack > * { width: 100% !important; max-width: 100% !important; text-align: center !important; }
+}
+
+/* Navbar on landing pages - no padding needed */
+.no-nav-padding { padding-top: 0 !important; }

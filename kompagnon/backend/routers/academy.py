@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from database import get_db, AcademyCourse, AcademyChecklistItem
+from database import get_db, AcademyCourse, AcademyChecklistItem, AcademyModule, AcademyLesson, AcademyLessonProgress
 from datetime import datetime
 import json
 import logging
@@ -157,3 +157,158 @@ def seed_academy_courses(db: Session):
             db.add(AcademyChecklistItem(course_id=c.id, label=label, sort_order=j))
     db.commit()
     logger.info(f"✓ {len(courses)} Academy-Kurse angelegt")
+
+
+# ── Module CRUD ──────────────────────────────────────────
+
+@router.get('/courses/{course_id}/modules')
+def list_modules(course_id: int, db: Session = Depends(get_db)):
+    modules = db.query(AcademyModule).filter(AcademyModule.course_id == course_id).order_by(AcademyModule.sort_order, AcademyModule.id).all()
+    return [{'id': m.id, 'course_id': m.course_id, 'title': m.title or '', 'sort_order': m.sort_order or 0} for m in modules]
+
+
+@router.post('/courses/{course_id}/modules')
+def create_module(course_id: int, data: dict, db: Session = Depends(get_db)):
+    course = db.query(AcademyCourse).filter(AcademyCourse.id == course_id).first()
+    if not course:
+        raise HTTPException(404, "Kurs nicht gefunden")
+    m = AcademyModule(course_id=course_id, title=data.get('title', ''), sort_order=data.get('sort_order', 0))
+    db.add(m)
+    db.commit()
+    db.refresh(m)
+    return {'id': m.id, 'course_id': m.course_id, 'title': m.title, 'sort_order': m.sort_order}
+
+
+@router.put('/modules/{module_id}')
+def update_module(module_id: int, data: dict, db: Session = Depends(get_db)):
+    m = db.query(AcademyModule).filter(AcademyModule.id == module_id).first()
+    if not m:
+        raise HTTPException(404, "Modul nicht gefunden")
+    if 'title' in data:
+        m.title = data['title']
+    if 'sort_order' in data:
+        m.sort_order = data['sort_order']
+    db.commit()
+    db.refresh(m)
+    return {'id': m.id, 'course_id': m.course_id, 'title': m.title, 'sort_order': m.sort_order}
+
+
+@router.delete('/modules/{module_id}')
+def delete_module(module_id: int, db: Session = Depends(get_db)):
+    m = db.query(AcademyModule).filter(AcademyModule.id == module_id).first()
+    if not m:
+        raise HTTPException(404, "Modul nicht gefunden")
+    db.delete(m)
+    db.commit()
+    return {'success': True}
+
+
+@router.put('/courses/{course_id}/modules/reorder')
+def reorder_modules(course_id: int, data: dict, db: Session = Depends(get_db)):
+    for item in data.get('order', []):
+        m = db.query(AcademyModule).filter(AcademyModule.id == item['id'], AcademyModule.course_id == course_id).first()
+        if m:
+            m.sort_order = item['sort_order']
+    db.commit()
+    return {'success': True}
+
+
+# ── Lesson CRUD ──────────────────────────────────────────
+
+@router.get('/modules/{module_id}/lessons')
+def list_lessons(module_id: int, db: Session = Depends(get_db)):
+    lessons = db.query(AcademyLesson).filter(AcademyLesson.module_id == module_id).order_by(AcademyLesson.sort_order, AcademyLesson.id).all()
+    return [{'id': l.id, 'module_id': l.module_id, 'title': l.title or '', 'content_text': l.content_text or '', 'video_url': l.video_url or '', 'file_url': l.file_url or '', 'sort_order': l.sort_order or 0} for l in lessons]
+
+
+@router.post('/modules/{module_id}/lessons')
+def create_lesson(module_id: int, data: dict, db: Session = Depends(get_db)):
+    m = db.query(AcademyModule).filter(AcademyModule.id == module_id).first()
+    if not m:
+        raise HTTPException(404, "Modul nicht gefunden")
+    l = AcademyLesson(module_id=module_id, title=data.get('title', ''), content_text=data.get('content_text', ''),
+                       video_url=data.get('video_url', ''), file_url=data.get('file_url', ''), sort_order=data.get('sort_order', 0))
+    db.add(l)
+    db.commit()
+    db.refresh(l)
+    return {'id': l.id, 'module_id': l.module_id, 'title': l.title, 'content_text': l.content_text, 'video_url': l.video_url, 'file_url': l.file_url, 'sort_order': l.sort_order}
+
+
+@router.put('/lessons/{lesson_id}')
+def update_lesson(lesson_id: int, data: dict, db: Session = Depends(get_db)):
+    l = db.query(AcademyLesson).filter(AcademyLesson.id == lesson_id).first()
+    if not l:
+        raise HTTPException(404, "Lektion nicht gefunden")
+    for key in ['title', 'content_text', 'video_url', 'file_url', 'sort_order']:
+        if key in data:
+            setattr(l, key, data[key])
+    db.commit()
+    db.refresh(l)
+    return {'id': l.id, 'module_id': l.module_id, 'title': l.title, 'content_text': l.content_text, 'video_url': l.video_url, 'file_url': l.file_url, 'sort_order': l.sort_order}
+
+
+@router.delete('/lessons/{lesson_id}')
+def delete_lesson(lesson_id: int, db: Session = Depends(get_db)):
+    l = db.query(AcademyLesson).filter(AcademyLesson.id == lesson_id).first()
+    if not l:
+        raise HTTPException(404, "Lektion nicht gefunden")
+    db.delete(l)
+    db.commit()
+    return {'success': True}
+
+
+# ── Lesson Progress ──────────────────────────────────────
+
+@router.post('/lessons/{lesson_id}/complete')
+def complete_lesson(lesson_id: int, data: dict, db: Session = Depends(get_db)):
+    """Mark a lesson as completed for the current user."""
+    user_id = data.get('user_id')
+    if not user_id:
+        raise HTTPException(400, "user_id fehlt")
+    l = db.query(AcademyLesson).filter(AcademyLesson.id == lesson_id).first()
+    if not l:
+        raise HTTPException(404, "Lektion nicht gefunden")
+    existing = db.query(AcademyLessonProgress).filter(
+        AcademyLessonProgress.user_id == user_id, AcademyLessonProgress.lesson_id == lesson_id
+    ).first()
+    if existing:
+        existing.completed = not existing.completed
+        existing.completed_at = datetime.utcnow() if existing.completed else None
+    else:
+        existing = AcademyLessonProgress(user_id=user_id, lesson_id=lesson_id, completed=True, completed_at=datetime.utcnow())
+        db.add(existing)
+    db.commit()
+    return {'lesson_id': lesson_id, 'completed': existing.completed, 'completed_at': str(existing.completed_at)[:16] if existing.completed_at else None}
+
+
+@router.get('/courses/{course_id}/progress')
+def get_course_progress(course_id: int, db: Session = Depends(get_db)):
+    """Get lesson progress for all lessons in a course, optionally filtered by user_id query param."""
+    from fastapi import Query
+    # Get all modules for this course
+    modules = db.query(AcademyModule).filter(AcademyModule.course_id == course_id).all()
+    module_ids = [m.id for m in modules]
+    if not module_ids:
+        return {'total_lessons': 0, 'completed': 0, 'progress_pct': 0, 'lessons': []}
+    # Get all lessons
+    lessons = db.query(AcademyLesson).filter(AcademyLesson.module_id.in_(module_ids)).order_by(AcademyLesson.sort_order).all()
+    lesson_ids = [l.id for l in lessons]
+    # Get progress
+    progress = db.query(AcademyLessonProgress).filter(AcademyLessonProgress.lesson_id.in_(lesson_ids)).all()
+    progress_map = {p.lesson_id: p for p in progress}
+    result = []
+    for l in lessons:
+        p = progress_map.get(l.id)
+        result.append({
+            'lesson_id': l.id, 'lesson_title': l.title, 'module_id': l.module_id,
+            'completed': p.completed if p else False,
+            'completed_at': str(p.completed_at)[:16] if p and p.completed_at else None,
+        })
+    completed_count = sum(1 for r in result if r['completed'])
+    total = len(result)
+    return {
+        'total_lessons': total,
+        'completed': completed_count,
+        'progress_pct': round((completed_count / total) * 100) if total > 0 else 0,
+        'lessons': result,
+    }

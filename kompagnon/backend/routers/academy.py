@@ -318,6 +318,47 @@ def complete_lesson(lesson_id: int, data: dict, db: Session = Depends(get_db)):
     return {'lesson_id': lesson_id, 'completed': existing.completed, 'completed_at': str(existing.completed_at)[:16] if existing.completed_at else None}
 
 
+@router.get('/progress/all')
+def get_all_courses_progress(user_id: Optional[int] = None, db: Session = Depends(get_db)):
+    """Get progress summary for ALL courses in a single query. Returns {course_id: {total, completed, pct}}."""
+    if not user_id:
+        return {}
+    # One query: all lessons with module → course join
+    from sqlalchemy import func
+    rows = (
+        db.query(AcademyLesson.id, AcademyModule.course_id)
+        .join(AcademyModule, AcademyLesson.module_id == AcademyModule.id)
+        .all()
+    )
+    if not rows:
+        return {}
+    lesson_to_course = {r[0]: r[1] for r in rows}
+    lesson_ids = list(lesson_to_course.keys())
+    # One query: completed lessons for this user
+    completed = db.query(AcademyLessonProgress.lesson_id).filter(
+        AcademyLessonProgress.user_id == user_id,
+        AcademyLessonProgress.lesson_id.in_(lesson_ids),
+        AcademyLessonProgress.completed == True,
+    ).all()
+    completed_ids = {r[0] for r in completed}
+    # Aggregate per course
+    totals: dict = {}
+    dones: dict = {}
+    for lesson_id, course_id in lesson_to_course.items():
+        totals[course_id] = totals.get(course_id, 0) + 1
+        if lesson_id in completed_ids:
+            dones[course_id] = dones.get(course_id, 0) + 1
+    result = {}
+    for course_id, total in totals.items():
+        done = dones.get(course_id, 0)
+        result[course_id] = {
+            'total_lessons': total,
+            'completed': done,
+            'progress_pct': round((done / total) * 100) if total > 0 else 0,
+        }
+    return result
+
+
 @router.get('/courses/{course_id}/progress')
 def get_course_progress(course_id: int, user_id: Optional[int] = None, db: Session = Depends(get_db)):
     """Get lesson progress for all lessons in a course, optionally filtered by user_id query param."""

@@ -20,24 +20,16 @@ export default function Akademie() {
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/academy/courses`, { headers: h })
-      .then(r => r.json())
-      .then(async data => {
-        const courseList = Array.isArray(data) ? data : [];
-        setCourses(courseList);
-        if (user?.id && courseList.length > 0) {
-          const results = await Promise.all(
-            courseList.map(c =>
-              fetch(`${API_BASE_URL}/api/academy/courses/${c.id}/progress?user_id=${user.id}`, { headers: h })
-                .then(r => r.json())
-                .then(p => [c.id, p])
-                .catch(() => [c.id, null])
-            )
-          );
-          const pMap = {};
-          results.forEach(([id, p]) => { if (p) pMap[id] = p; });
-          setProgressMap(pMap);
-        }
+    const uid = user?.id;
+    Promise.all([
+      fetch(`${API_BASE_URL}/api/academy/courses`, { headers: h }).then(r => r.json()),
+      uid
+        ? fetch(`${API_BASE_URL}/api/academy/progress/all?user_id=${uid}`, { headers: h }).then(r => r.json())
+        : Promise.resolve({}),
+    ])
+      .then(([data, pMap]) => {
+        setCourses(Array.isArray(data) ? data : []);
+        setProgressMap(pMap || {});
       })
       .catch(e => console.error(e))
       .finally(() => setLoading(false));

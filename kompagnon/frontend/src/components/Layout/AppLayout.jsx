@@ -73,7 +73,7 @@ const NAV_SECTIONS = [
     items: [
       { label: 'Vertriebspipeline', path: '/app/sales', icon: 'chart' },
       { label: 'Domain Import', path: '/app/import', icon: 'users' },
-      { label: 'Massen Export', path: '/app/export', icon: 'docCheck' },
+      { label: 'Export', path: '/app/export', icon: 'docCheck' },
       { label: 'Website Audit', path: '/app/audit', icon: 'docCheck' },
     ],
   },
@@ -110,7 +110,7 @@ const PAGE_NAMES = {
   '/app/settings': 'Einstellungen',
   '/app/projects': 'Kundenprojekte',
   '/app/import': 'Domain Import',
-  '/app/export': 'Massen Export',
+  '/app/export': 'Export',
   '/app/tickets': 'Support Tickets',
   '/app/profile': 'Profil',
   '/app/checklists': 'Checklisten',

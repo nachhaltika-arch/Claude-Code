@@ -484,6 +484,40 @@ class AcademyCertificate(Base):
     certificate_code = Column(String(64), unique=True, nullable=False)
 
 
+class AcademyQuizQuestion(Base):
+    """Quiz question belonging to a lesson."""
+    __tablename__ = "academy_quiz_questions"
+    id = Column(Integer, primary_key=True)
+    lesson_id = Column(Integer, ForeignKey('academy_lessons.id', ondelete='CASCADE'), nullable=False)
+    question = Column(Text, nullable=False)
+    answers_json = Column(Text, default='[]')   # [{text, is_correct}]
+    sort_order = Column(Integer, default=0)
+
+
+class CrawlJob(Base):
+    """Background crawl job."""
+    __tablename__ = "crawl_jobs"
+    id = Column(Integer, primary_key=True)
+    customer_id = Column(Integer, nullable=True)
+    status = Column(String(20), default='pending')   # pending|running|completed|failed
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    total_urls = Column(Integer, default=0)
+
+
+class CrawlResult(Base):
+    """Single URL result from a crawl job."""
+    __tablename__ = "crawl_results"
+    id = Column(Integer, primary_key=True)
+    customer_id = Column(Integer, nullable=True)
+    job_id = Column(Integer, ForeignKey('crawl_jobs.id', ondelete='CASCADE'), nullable=True)
+    url = Column(String(2000), nullable=False)
+    status_code = Column(Integer, nullable=True)
+    depth = Column(Integer, default=0)
+    load_time = Column(Float, nullable=True)
+    crawled_at = Column(DateTime, default=datetime.utcnow)
+
+
 def init_db():
     """Create all tables."""
     Base.metadata.create_all(bind=engine)

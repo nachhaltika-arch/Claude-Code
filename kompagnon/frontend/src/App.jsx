@@ -31,11 +31,14 @@ import Impressum from './pages/Impressum';
 import Datenschutz from './pages/Datenschutz';
 import ResetPassword from './pages/ResetPassword';
 import Akademie from './pages/Akademie';
+import Academy from './pages/Academy';
 import AcademyCourse from './pages/AcademyCourse';
+import AcademyCourseNew from './pages/AcademyCourseNew';
 import AcademyLesson from './pages/AcademyLesson';
 import AcademyAdmin from './pages/AcademyAdmin';
 import AcademyEdit from './pages/AcademyEdit';
 import AcademyModuleEdit from './pages/AcademyModuleEdit';
+import AcademyCertificate from './pages/AcademyCertificate';
 import SalesPipeline from './pages/SalesPipeline';
 import DomainImport from './pages/DomainImport';
 import CustomerPortal from './pages/CustomerPortal';
@@ -89,6 +92,7 @@ function App() {
           <Route path="/paket/kompagnon" element={<PackageKompagnon />} />
           <Route path="/paket/premium" element={<PackagePremium />} />
           <Route path="/checkout/:package" element={<Checkout />} />
+          <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
 
           {/* App — authenticated, with Navbar/Sidebar */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
@@ -110,8 +114,8 @@ function App() {
             <Route path="admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
             <Route path="tickets" element={<PrivateRoute roles={['admin', 'auditor']}><Tickets /></PrivateRoute>} />
             <Route path="product" element={<PrivateRoute roles={['admin']}><ProductDevelopment /></PrivateRoute>} />
-            <Route path="akademie" element={<Akademie />} />
-            <Route path="akademie/kurs/:kursId" element={<AcademyCourse />} />
+            <Route path="akademie" element={<Academy />} />
+            <Route path="akademie/kurs/:kursId" element={<AcademyCourseNew />} />
             <Route path="akademie/lektion/:lessonId" element={<AcademyLesson />} />
             <Route path="akademie/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />
             <Route path="akademie/admin/neu" element={<PrivateRoute roles={['admin']}><AcademyEdit /></PrivateRoute>} />

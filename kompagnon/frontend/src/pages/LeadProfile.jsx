@@ -51,6 +51,7 @@ const TABS = [
   { id: 'checklists', label: 'Checklisten', icon: '📋' },
   { id: 'offer', label: 'Angebot', icon: '📄' },
   { id: 'qrcode', label: 'Zugang', icon: '📲' },
+  { id: 'crawler', label: 'Crawler', icon: '🕷️' },
 ];
 
 export default function LeadProfile() {
@@ -80,6 +81,11 @@ export default function LeadProfile() {
   const [qrData, setQrData] = useState(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrRefreshing, setQrRefreshing] = useState(false);
+  // Crawler
+  const [crawlJob, setCrawlJob] = useState(null);
+  const [crawlResults, setCrawlResults] = useState([]);
+  const [crawlLoading, setCrawlLoading] = useState(false);
+  const [crawlSort, setCrawlSort] = useState({ col: 'crawled_at', asc: true });
 
   const h = {
     'Content-Type': 'application/json',
@@ -1028,6 +1034,165 @@ export default function LeadProfile() {
                 )}
               </Card>
             </div>
+          </div>
+        );
+      })()}
+
+      {/* CRAWLER TAB */}
+      {activeTab === 'crawler' && (() => {
+        const loadCrawlStatus = () => {
+          fetch(`${API_BASE_URL}/api/crawler/status/${leadId}`, { headers: h })
+            .then(r => r.json()).then(d => {
+              setCrawlJob(d);
+              if (d.status === 'completed') {
+                fetch(`${API_BASE_URL}/api/crawler/results/${leadId}`, { headers: h })
+                  .then(r => r.json()).then(res => setCrawlResults(res.results || []));
+              }
+            }).catch(console.error);
+        };
+        const startCrawl = () => {
+          const url = lead?.website_url;
+          if (!url) return;
+          setCrawlLoading(true);
+          fetch(`${API_BASE_URL}/api/crawler/start/${leadId}`, {
+            method: 'POST', headers: h,
+            body: JSON.stringify({ url, max_pages: 50 }),
+          }).then(r => r.json()).then(d => {
+            setCrawlJob(d);
+            setCrawlResults([]);
+            // Poll while running
+            const interval = setInterval(() => {
+              fetch(`${API_BASE_URL}/api/crawler/status/${leadId}`, { headers: h })
+                .then(r => r.json()).then(status => {
+                  setCrawlJob(status);
+                  if (status.status === 'completed' || status.status === 'failed') {
+                    clearInterval(interval);
+                    setCrawlLoading(false);
+                    if (status.status === 'completed') {
+                      fetch(`${API_BASE_URL}/api/crawler/results/${leadId}`, { headers: h })
+                        .then(r => r.json()).then(res => setCrawlResults(res.results || []));
+                    }
+                  }
+                });
+            }, 3000);
+          }).catch(e => { console.error(e); setCrawlLoading(false); });
+        };
+
+        if (!crawlJob && !crawlLoading) loadCrawlStatus();
+
+        const statusColor = { running: '#f59e0b', completed: '#16a34a', failed: '#dc2626', pending: '#64748b', none: '#94a3b8' };
+        const statusLabel = { running: 'Läuft', completed: 'Abgeschlossen', failed: 'Fehler', pending: 'Wartend', none: 'Kein Job' };
+
+        const sorted = [...crawlResults].sort((a, b) => {
+          const va = a[crawlSort.col] ?? '';
+          const vb = b[crawlSort.col] ?? '';
+          return crawlSort.asc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+        });
+
+        const statusGroups = { '2xx': 0, '3xx': 0, '4xx+': 0 };
+        crawlResults.forEach(r => {
+          if (!r.status_code) return;
+          if (r.status_code < 300) statusGroups['2xx']++;
+          else if (r.status_code < 400) statusGroups['3xx']++;
+          else statusGroups['4xx+']++;
+        });
+        const totalForBar = Object.values(statusGroups).reduce((a, b) => a + b, 0) || 1;
+
+        const ThSort = ({ col, label }) => (
+          <th onClick={() => setCrawlSort(p => ({ col, asc: p.col === col ? !p.asc : true }))} style={{ padding: '8px 12px', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'left', cursor: 'pointer', borderBottom: '1px solid var(--border-light)', userSelect: 'none', whiteSpace: 'nowrap' }}>
+            {label} {crawlSort.col === col ? (crawlSort.asc ? '↑' : '↓') : ''}
+          </th>
+        );
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🕷️ Website-Crawler</div>
+              <button onClick={startCrawl} disabled={crawlLoading || crawlJob?.status === 'running'} style={{
+                padding: '8px 18px', background: '#16a34a', color: 'white',
+                border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 700,
+                cursor: crawlLoading || crawlJob?.status === 'running' ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)', opacity: crawlLoading || crawlJob?.status === 'running' ? 0.7 : 1,
+              }}>
+                {crawlJob?.status === 'running' ? '⏳ Läuft…' : '▶ Crawler starten'}
+              </button>
+            </div>
+
+            {/* Status cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              {[
+                { label: 'Status', value: statusLabel[crawlJob?.status || 'none'], color: statusColor[crawlJob?.status || 'none'] },
+                { label: 'Laufzeit', value: crawlJob?.duration_seconds != null ? `${Math.floor(crawlJob.duration_seconds / 60)}m ${crawlJob.duration_seconds % 60}s` : '—' },
+                { label: 'Gecrawlte URLs', value: crawlJob?.total_urls || crawlResults.length || 0 },
+                { label: 'URL-Limit', value: 50 },
+              ].map(c => (
+                <div key={c.label} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '14px 16px' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{c.label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: c.color || 'var(--text-primary)' }}>{c.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Status bar chart */}
+            {crawlResults.length > 0 && (
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>URLs nach Status-Code</div>
+                <div style={{ display: 'flex', height: 28, borderRadius: 6, overflow: 'hidden', marginBottom: 10 }}>
+                  {statusGroups['2xx'] > 0 && <div style={{ flex: statusGroups['2xx'], background: '#16a34a', minWidth: 2 }} title={`${statusGroups['2xx']} × 2xx`} />}
+                  {statusGroups['3xx'] > 0 && <div style={{ flex: statusGroups['3xx'], background: '#f59e0b', minWidth: 2 }} title={`${statusGroups['3xx']} × 3xx`} />}
+                  {statusGroups['4xx+'] > 0 && <div style={{ flex: statusGroups['4xx+'], background: '#dc2626', minWidth: 2 }} title={`${statusGroups['4xx+']} × 4xx+`} />}
+                </div>
+                <div style={{ display: 'flex', gap: 20, fontSize: 11, color: 'var(--text-secondary)' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#16a34a', display: 'inline-block' }} />{statusGroups['2xx']} OK</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#f59e0b', display: 'inline-block' }} />{statusGroups['3xx']} Redirect</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#dc2626', display: 'inline-block' }} />{statusGroups['4xx+']} Fehler</span>
+                </div>
+              </div>
+            )}
+
+            {/* Results table */}
+            {sorted.length > 0 ? (
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-app)' }}>
+                      <ThSort col="crawled_at" label="Zeitpunkt" />
+                      <ThSort col="status_code" label="Status" />
+                      <ThSort col="load_time" label="Ladezeit" />
+                      <ThSort col="url" label="URL" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sorted.map((r, i) => {
+                      const sc = r.status_code;
+                      const scColor = !sc ? '#94a3b8' : sc < 300 ? '#16a34a' : sc < 400 ? '#f59e0b' : '#dc2626';
+                      const scBg = !sc ? 'var(--bg-app)' : sc < 300 ? '#f0fdf4' : sc < 400 ? '#fffbeb' : '#fef2f2';
+                      return (
+                        <tr key={i} style={{ borderTop: '1px solid var(--border-light)' }}>
+                          <td style={{ padding: '7px 12px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{r.crawled_at || '—'}</td>
+                          <td style={{ padding: '7px 12px' }}>
+                            <span style={{ background: scBg, color: scColor, fontWeight: 700, borderRadius: 4, padding: '2px 7px' }}>{sc || '—'}</span>
+                          </td>
+                          <td style={{ padding: '7px 12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                            {r.load_time != null ? `${r.load_time}s` : '—'}
+                          </td>
+                          <td style={{ padding: '7px 12px', maxWidth: 400 }}>
+                            <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontSize: 11, wordBreak: 'break-all' }}>{r.url}</a>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : crawlJob?.status !== 'running' && (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-tertiary)', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
+                <div style={{ fontSize: 40, marginBottom: 10, opacity: 0.3 }}>🕷️</div>
+                <div style={{ fontSize: 13 }}>Noch kein Crawl durchgeführt</div>
+                <div style={{ fontSize: 11, marginTop: 4 }}>Klicke auf "Crawler starten" um die Website zu analysieren.</div>
+              </div>
+            )}
           </div>
         );
       })()}

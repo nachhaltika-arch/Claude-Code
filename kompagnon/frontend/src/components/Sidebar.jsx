@@ -11,6 +11,7 @@ const AREAS = {
       { label: 'Website Audit', path: '/app/audit', icon: '🔍' },
       { label: 'Kontakt Import', path: '/app/import', icon: '📥' },
       { label: 'Massen Export', path: '/app/export', icon: '📤' },
+      { label: 'Akademy', path: '/app/akademie', icon: '🎓' },
     ],
   },
   delivery: {
@@ -19,6 +20,7 @@ const AREAS = {
       { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
       { label: 'Kundenprojekte', path: '/app/projects', icon: '📋' },
       { label: 'Website Audit', path: '/app/audit', icon: '🔍' },
+      { label: 'Akademy', path: '/app/akademie', icon: '🎓' },
     ],
   },
   quality: {
@@ -27,6 +29,7 @@ const AREAS = {
       { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
       { label: 'Support Tickets', path: '/app/tickets', icon: '🎫' },
       { label: 'Checklisten', path: '/app/checklists', icon: '📝' },
+      { label: 'Akademy', path: '/app/akademie', icon: '🎓' },
     ],
   },
   upsales: {
@@ -34,6 +37,7 @@ const AREAS = {
     items: [
       { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
       { label: 'Kunden', path: '/app/customers', icon: '👤' },
+      { label: 'Akademy', path: '/app/akademie', icon: '🎓' },
     ],
   },
   product: {
@@ -42,6 +46,7 @@ const AREAS = {
       { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
       { label: 'Produktentwicklung', path: '/app/product', icon: '🛠️' },
       { label: 'Support Tickets', path: '/app/tickets', icon: '🎫' },
+      { label: 'Akademy', path: '/app/akademie', icon: '🎓' },
     ],
   },
 };

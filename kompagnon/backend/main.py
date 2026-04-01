@@ -336,6 +336,9 @@ app.include_router(briefing_router)
 from routers.academy import router as academy_router
 app.include_router(academy_router)
 
+from routers.crawler import router as crawler_router
+app.include_router(crawler_router)
+
 
 # Global exception handler — catches unhandled errors
 @app.exception_handler(Exception)

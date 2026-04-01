@@ -3,12 +3,14 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from database import (
     get_db, AcademyCourse, AcademyChecklistItem, AcademyModule, AcademyLesson,
-    AcademyLessonProgress, AcademyProgress, AcademyCertificate,
+    AcademyLessonProgress, AcademyProgress, AcademyCertificate, AcademyQuizQuestion,
 )
 from routers.auth_router import get_current_user, require_admin
 from datetime import datetime
 import json
 import logging
+import secrets
+import string
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/api/academy', tags=['academy'])
@@ -505,6 +507,246 @@ def get_all_courses_progress(user_id: Optional[int] = None, db: Session = Depend
             'progress_pct': round((dones.get(course_id, 0) / total) * 100) if total else 0,
         }
         for course_id, total in totals.items()
+    }
+
+
+# ── Quiz ──────────────────────────────────────────────────
+
+@router.get('/lessons/{lesson_id}/quiz')
+def get_quiz(lesson_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    """Quiz-Fragen für eine Lektion laden (ohne is_correct für Nutzer)."""
+    lesson = db.query(AcademyLesson).filter(AcademyLesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(404, 'Lektion nicht gefunden')
+    questions = (
+        db.query(AcademyQuizQuestion)
+        .filter(AcademyQuizQuestion.lesson_id == lesson_id)
+        .order_by(AcademyQuizQuestion.sort_order, AcademyQuizQuestion.id)
+        .all()
+    )
+    result = []
+    for q in questions:
+        try:
+            answers = json.loads(q.answers_json) if q.answers_json else []
+        except (json.JSONDecodeError, TypeError):
+            answers = []
+        result.append({
+            'id': q.id,
+            'question': q.question,
+            'answers': [{'text': a.get('text', ''), 'id': i} for i, a in enumerate(answers)],
+        })
+    return result
+
+
+@router.post('/lessons/{lesson_id}/quiz')
+def submit_quiz(lesson_id: int, data: dict, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Quiz-Antworten prüfen, Score speichern, Lektion abschließen wenn bestanden.
+    Body: {answers: {question_id: answer_index, ...}}
+    """
+    lesson = db.query(AcademyLesson).filter(AcademyLesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(404, 'Lektion nicht gefunden')
+    questions = (
+        db.query(AcademyQuizQuestion)
+        .filter(AcademyQuizQuestion.lesson_id == lesson_id)
+        .order_by(AcademyQuizQuestion.sort_order, AcademyQuizQuestion.id)
+        .all()
+    )
+    if not questions:
+        raise HTTPException(400, 'Keine Fragen für diese Lektion')
+
+    user_answers = data.get('answers', {})
+    correct = 0
+    details = []
+    for q in questions:
+        try:
+            answer_opts = json.loads(q.answers_json) if q.answers_json else []
+        except (json.JSONDecodeError, TypeError):
+            answer_opts = []
+        chosen_idx = user_answers.get(str(q.id))
+        is_correct = False
+        if chosen_idx is not None and 0 <= int(chosen_idx) < len(answer_opts):
+            is_correct = bool(answer_opts[int(chosen_idx)].get('is_correct', False))
+        if is_correct:
+            correct += 1
+        correct_idx = next((i for i, a in enumerate(answer_opts) if a.get('is_correct')), None)
+        details.append({
+            'question_id': q.id, 'chosen': chosen_idx,
+            'correct': is_correct, 'correct_answer_idx': correct_idx,
+        })
+
+    total = len(questions)
+    score = round((correct / total) * 100) if total else 0
+    passed = score >= 70  # 70% Mindestpunktzahl
+
+    if passed:
+        existing = db.query(AcademyProgress).filter(
+            AcademyProgress.user_id == current_user.id,
+            AcademyProgress.lesson_id == lesson_id,
+        ).first()
+        if existing:
+            existing.completed_at = datetime.utcnow()
+            existing.score = score
+        else:
+            db.add(AcademyProgress(
+                user_id=current_user.id, lesson_id=lesson_id,
+                completed_at=datetime.utcnow(), score=score,
+            ))
+        db.commit()
+
+    return {
+        'correct': correct, 'total': total, 'score': score,
+        'passed': passed, 'details': details,
+    }
+
+
+@router.post('/lessons/{lesson_id}/quiz/admin')
+def upsert_quiz_questions(lesson_id: int, data: dict, db: Session = Depends(get_db), _=Depends(require_admin)):
+    """Quiz-Fragen für Lektion setzen (Admin). Body: {questions: [{question, answers: [{text, is_correct}]}]}"""
+    if not db.query(AcademyLesson).filter(AcademyLesson.id == lesson_id).first():
+        raise HTTPException(404, 'Lektion nicht gefunden')
+    db.query(AcademyQuizQuestion).filter(AcademyQuizQuestion.lesson_id == lesson_id).delete()
+    for i, q in enumerate(data.get('questions', [])):
+        db.add(AcademyQuizQuestion(
+            lesson_id=lesson_id,
+            question=q.get('question', ''),
+            answers_json=json.dumps(q.get('answers', []), ensure_ascii=False),
+            sort_order=i,
+        ))
+    db.commit()
+    return {'success': True, 'count': len(data.get('questions', []))}
+
+
+# ── Progress (User) ────────────────────────────────────────
+
+@router.get('/progress')
+def get_my_progress(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Gesamtfortschritt des aktuellen Users über alle Kurse."""
+    rows = (
+        db.query(AcademyLesson.id, AcademyModule.course_id)
+        .join(AcademyModule, AcademyLesson.module_id == AcademyModule.id)
+        .all()
+    )
+    lesson_to_course = {r[0]: r[1] for r in rows}
+    lesson_ids = list(lesson_to_course.keys())
+    if not lesson_ids:
+        return {'total_lessons': 0, 'completed': 0, 'courses': []}
+    completed_rows = db.query(AcademyProgress).filter(
+        AcademyProgress.user_id == current_user.id,
+        AcademyProgress.lesson_id.in_(lesson_ids),
+        AcademyProgress.completed_at.isnot(None),
+    ).all()
+    completed_map = {r.lesson_id: r for r in completed_rows}
+    totals: dict = {}
+    dones: dict = {}
+    for lid, cid in lesson_to_course.items():
+        totals[cid] = totals.get(cid, 0) + 1
+        if lid in completed_map:
+            dones[cid] = dones.get(cid, 0) + 1
+    total_lessons = sum(totals.values())
+    total_completed = sum(dones.values())
+    courses_progress = [
+        {
+            'course_id': cid, 'total_lessons': total,
+            'completed': dones.get(cid, 0),
+            'progress_pct': round((dones.get(cid, 0) / total) * 100) if total else 0,
+        }
+        for cid, total in totals.items()
+    ]
+    return {
+        'total_lessons': total_lessons,
+        'completed': total_completed,
+        'progress_pct': round((total_completed / total_lessons) * 100) if total_lessons else 0,
+        'courses': courses_progress,
+    }
+
+
+# ── Certificates ───────────────────────────────────────────
+
+def _gen_cert_code() -> str:
+    alphabet = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(8))
+
+
+@router.get('/certificates')
+def list_certificates(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Alle Zertifikate des aktuellen Users."""
+    certs = db.query(AcademyCertificate).filter(AcademyCertificate.user_id == current_user.id).all()
+    result = []
+    for c in certs:
+        course = db.query(AcademyCourse).filter(AcademyCourse.id == c.course_id).first()
+        result.append({
+            'id': c.id,
+            'course_id': c.course_id,
+            'course_title': course.title if course else '',
+            'issued_at': str(c.issued_at)[:10] if c.issued_at else '',
+            'certificate_code': c.certificate_code,
+        })
+    return result
+
+
+@router.post('/courses/{course_id}/certificate')
+def issue_certificate(course_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Zertifikat ausstellen wenn Kurs zu 100% abgeschlossen."""
+    course = db.query(AcademyCourse).filter(AcademyCourse.id == course_id).first()
+    if not course:
+        raise HTTPException(404, 'Kurs nicht gefunden')
+    progress = _progress_summary(course_id, current_user.id, db)
+    if progress['progress_pct'] < 100:
+        raise HTTPException(400, f'Kurs noch nicht abgeschlossen ({progress["progress_pct"]}%)')
+    existing = db.query(AcademyCertificate).filter(
+        AcademyCertificate.user_id == current_user.id,
+        AcademyCertificate.course_id == course_id,
+    ).first()
+    if existing:
+        course_obj = db.query(AcademyCourse).filter(AcademyCourse.id == course_id).first()
+        return {
+            'id': existing.id,
+            'course_id': course_id,
+            'course_title': course_obj.title if course_obj else '',
+            'issued_at': str(existing.issued_at)[:10] if existing.issued_at else '',
+            'certificate_code': existing.certificate_code,
+            'already_exists': True,
+        }
+    code = _gen_cert_code()
+    while db.query(AcademyCertificate).filter(AcademyCertificate.certificate_code == code).first():
+        code = _gen_cert_code()
+    cert = AcademyCertificate(
+        user_id=current_user.id, course_id=course_id,
+        issued_at=datetime.utcnow(), certificate_code=code,
+    )
+    db.add(cert)
+    db.commit()
+    db.refresh(cert)
+    return {
+        'id': cert.id, 'course_id': course_id,
+        'course_title': course.title,
+        'issued_at': str(cert.issued_at)[:10],
+        'certificate_code': cert.certificate_code,
+        'already_exists': False,
+    }
+
+
+@router.get('/certificates/{code}/verify')
+def verify_certificate(code: str, db: Session = Depends(get_db)):
+    """Zertifikat öffentlich verifizieren (kein Login nötig)."""
+    cert = db.query(AcademyCertificate).filter(AcademyCertificate.certificate_code == code).first()
+    if not cert:
+        raise HTTPException(404, 'Zertifikat nicht gefunden')
+    course = db.query(AcademyCourse).filter(AcademyCourse.id == cert.course_id).first()
+    # Get user name from User table if possible
+    try:
+        from database import User
+        user = db.query(User).filter(User.id == cert.user_id).first()
+        user_name = f"{user.first_name} {user.last_name}".strip() if user else f"User #{cert.user_id}"
+    except Exception:
+        user_name = f"User #{cert.user_id}"
+    return {
+        'valid': True,
+        'certificate_code': cert.certificate_code,
+        'user_name': user_name,
+        'course_title': course.title if course else '',
+        'issued_at': str(cert.issued_at)[:10] if cert.issued_at else '',
     }
 
 

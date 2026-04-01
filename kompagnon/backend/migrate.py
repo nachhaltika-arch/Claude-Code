@@ -121,6 +121,34 @@ migrations = [
         issued_at TIMESTAMP DEFAULT NOW(),
         certificate_code VARCHAR(64) UNIQUE NOT NULL
     )""",
+    # Academy: Quiz-Fragen pro Lektion
+    """CREATE TABLE IF NOT EXISTS academy_quiz_questions (
+        id SERIAL PRIMARY KEY,
+        lesson_id INT REFERENCES academy_lessons(id) ON DELETE CASCADE,
+        question TEXT NOT NULL,
+        answers_json TEXT DEFAULT '[]',
+        sort_order INT DEFAULT 0
+    )""",
+    # Crawler: Jobs
+    """CREATE TABLE IF NOT EXISTS crawl_jobs (
+        id SERIAL PRIMARY KEY,
+        customer_id INT,
+        status VARCHAR(20) DEFAULT 'pending',
+        started_at TIMESTAMP,
+        completed_at TIMESTAMP,
+        total_urls INT DEFAULT 0
+    )""",
+    # Crawler: Ergebnisse
+    """CREATE TABLE IF NOT EXISTS crawl_results (
+        id SERIAL PRIMARY KEY,
+        customer_id INT,
+        job_id INT REFERENCES crawl_jobs(id) ON DELETE CASCADE,
+        url VARCHAR(2000) NOT NULL,
+        status_code INT,
+        depth INT DEFAULT 0,
+        load_time NUMERIC(8,3),
+        crawled_at TIMESTAMP DEFAULT NOW()
+    )""",
 ]
 
 

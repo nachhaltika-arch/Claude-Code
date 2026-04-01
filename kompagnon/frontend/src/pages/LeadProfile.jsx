@@ -86,6 +86,7 @@ export default function LeadProfile() {
   const [crawlResults, setCrawlResults] = useState([]);
   const [crawlLoading, setCrawlLoading] = useState(false);
   const [crawlSort, setCrawlSort] = useState({ col: 'crawled_at', asc: true });
+  const [crawlExpandedRow, setCrawlExpandedRow] = useState(null);
 
   const h = {
     'Content-Type': 'application/json',
@@ -1168,19 +1169,86 @@ export default function LeadProfile() {
                       const sc = r.status_code;
                       const scColor = !sc ? '#94a3b8' : sc < 300 ? '#16a34a' : sc < 400 ? '#f59e0b' : '#dc2626';
                       const scBg = !sc ? 'var(--bg-app)' : sc < 300 ? '#f0fdf4' : sc < 400 ? '#fffbeb' : '#fef2f2';
+                      const lt = r.load_time;
+                      const rowKey = r.url + '_' + i;
+                      const isExpanded = crawlExpandedRow === rowKey;
+
+                      // ── Build hints ──────────────────────────────
+                      const hints = [];
+                      if (sc === 301 || sc === 302) {
+                        hints.push({ bg: '#fffbeb', border: '#fde68a', text: '⚠️ Weiterleitung erkannt. Prüfe ob die Ziel-URL direkt verlinkt werden kann, um Ladezeit zu sparen.' });
+                      } else if (sc === 404) {
+                        hints.push({ bg: '#fef2f2', border: '#fecaca', text: '🔴 Seite nicht gefunden. Dieser Link sollte entfernt oder korrigiert werden.' });
+                      } else if (sc === 500) {
+                        hints.push({ bg: '#fef2f2', border: '#fecaca', text: '🔴 Serverfehler. Diese Seite hat ein technisches Problem und muss geprüft werden.' });
+                      } else if (!sc || sc === 0) {
+                        hints.push({ bg: '#fef2f2', border: '#fecaca', text: '🔴 Seite nicht erreichbar. Timeout nach 10 Sekunden.' });
+                      }
+                      if (lt != null && lt > 3.0) {
+                        hints.push({ bg: '#fff7ed', border: '#fed7aa', text: '🟠 Ladezeit über 3 Sekunden. Bilder komprimieren oder Caching aktivieren.' });
+                      } else if (lt != null && lt > 1.5) {
+                        hints.push({ bg: '#fffbeb', border: '#fde68a', text: '🟡 Ladezeit erhöht. Performance-Optimierung empfohlen.' });
+                      }
+                      if (hints.length === 0 && sc >= 200 && sc < 300 && lt != null && lt <= 1.5) {
+                        hints.push({ bg: '#f0fdf4', border: '#bbf7d0', text: '✅ Alles in Ordnung.' });
+                      }
+
                       return (
-                        <tr key={i} style={{ borderTop: '1px solid var(--border-light)' }}>
-                          <td style={{ padding: '7px 12px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{r.crawled_at || '—'}</td>
-                          <td style={{ padding: '7px 12px' }}>
-                            <span style={{ background: scBg, color: scColor, fontWeight: 700, borderRadius: 4, padding: '2px 7px' }}>{sc || '—'}</span>
-                          </td>
-                          <td style={{ padding: '7px 12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                            {r.load_time != null ? `${r.load_time}s` : '—'}
-                          </td>
-                          <td style={{ padding: '7px 12px', maxWidth: 400 }}>
-                            <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontSize: 11, wordBreak: 'break-all' }}>{r.url}</a>
-                          </td>
-                        </tr>
+                        <>
+                          <tr
+                            key={rowKey}
+                            onClick={() => setCrawlExpandedRow(isExpanded ? null : rowKey)}
+                            style={{
+                              borderTop: '1px solid var(--border-light)',
+                              cursor: 'pointer',
+                              background: isExpanded ? 'var(--bg-app)' : 'transparent',
+                              transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                            onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.background = 'transparent'; }}
+                          >
+                            <td style={{ padding: '7px 12px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{r.crawled_at || '—'}</td>
+                            <td style={{ padding: '7px 12px' }}>
+                              <span style={{ background: scBg, color: scColor, fontWeight: 700, borderRadius: 4, padding: '2px 7px' }}>{sc || '—'}</span>
+                            </td>
+                            <td style={{ padding: '7px 12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                              {lt != null ? `${lt}s` : '—'}
+                            </td>
+                            <td style={{ padding: '7px 12px', maxWidth: 400 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                                <a href={r.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontSize: 11, wordBreak: 'break-all' }}>{r.url}</a>
+                                <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-tertiary)', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+                              </div>
+                            </td>
+                          </tr>
+                          {isExpanded && (
+                            <tr key={rowKey + '_hint'} style={{ background: 'var(--bg-app)' }}>
+                              <td colSpan={4} style={{ padding: '0 12px 10px 12px' }}>
+                                <div style={{
+                                  display: 'flex', flexDirection: 'column', gap: 6,
+                                  animation: 'crawlHintIn 0.18s ease',
+                                }}>
+                                  {hints.length === 0 ? (
+                                    <div style={{ padding: '8px 12px', background: '#f8fafc', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)' }}>
+                                      Keine Empfehlung verfügbar.
+                                    </div>
+                                  ) : hints.map((hint, hi) => (
+                                    <div key={hi} style={{
+                                      padding: '9px 13px',
+                                      background: hint.bg,
+                                      border: `1px solid ${hint.border}`,
+                                      borderRadius: 'var(--radius-md)',
+                                      fontSize: 12, lineHeight: 1.5,
+                                      color: 'var(--text-primary)',
+                                    }}>
+                                      {hint.text}
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
                       );
                     })}
                   </tbody>

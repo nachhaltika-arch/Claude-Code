@@ -182,6 +182,7 @@ input, select, textarea { font-family: inherit; }
 .kc-skeleton { background: linear-gradient(90deg, var(--kc-rand) 25%, var(--kc-hell) 50%, var(--kc-rand) 75%); background-size: 200% 100%; animation: kc-shimmer 1.5s ease-in-out infinite; border-radius: var(--kc-radius-md); }
 @keyframes kc-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes crawlHintIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Academy card hover */
 .academy-card { transition: box-shadow 0.3s ease, transform 0.2s ease; cursor: pointer; }

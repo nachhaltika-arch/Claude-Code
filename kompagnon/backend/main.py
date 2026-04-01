@@ -333,7 +333,7 @@ app.include_router(tickets_router)
 from routers.briefing import router as briefing_router
 app.include_router(briefing_router)
 
-from routers.academy import router as academy_router
+from app.routers.academy import router as academy_router
 app.include_router(academy_router)
 
 from routers.crawler import router as crawler_router

@@ -11,7 +11,7 @@ const AREAS = {
       { label: 'Website Audit', path: '/app/audit', icon: '🔍' },
       { label: 'Kontakt Import', path: '/app/import', icon: '📥' },
       { label: 'Massen Export', path: '/app/export', icon: '📤' },
-      { label: 'Akademy', path: '/app/akademie', icon: '🎓' },
+      { label: 'Akademy', path: '/app/academy', icon: '🎓' },
     ],
   },
   delivery: {
@@ -20,7 +20,7 @@ const AREAS = {
       { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
       { label: 'Kundenprojekte', path: '/app/projects', icon: '📋' },
       { label: 'Website Audit', path: '/app/audit', icon: '🔍' },
-      { label: 'Akademy', path: '/app/akademie', icon: '🎓' },
+      { label: 'Akademy', path: '/app/academy', icon: '🎓' },
     ],
   },
   quality: {
@@ -29,7 +29,7 @@ const AREAS = {
       { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
       { label: 'Support Tickets', path: '/app/tickets', icon: '🎫' },
       { label: 'Checklisten', path: '/app/checklists', icon: '📝' },
-      { label: 'Akademy', path: '/app/akademie', icon: '🎓' },
+      { label: 'Akademy', path: '/app/academy', icon: '🎓' },
     ],
   },
   upsales: {
@@ -37,7 +37,7 @@ const AREAS = {
     items: [
       { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
       { label: 'Kunden', path: '/app/customers', icon: '👤' },
-      { label: 'Akademy', path: '/app/akademie', icon: '🎓' },
+      { label: 'Akademy', path: '/app/academy', icon: '🎓' },
     ],
   },
   product: {
@@ -46,7 +46,7 @@ const AREAS = {
       { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
       { label: 'Produktentwicklung', path: '/app/product', icon: '🛠️' },
       { label: 'Support Tickets', path: '/app/tickets', icon: '🎫' },
-      { label: 'Akademy', path: '/app/akademie', icon: '🎓' },
+      { label: 'Akademy', path: '/app/academy', icon: '🎓' },
     ],
   },
 };
@@ -145,7 +145,6 @@ export default function Sidebar() {
           <>
             <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '12px 8px' }} />
             {[
-              { label: 'Benutzerverwaltung', path: '/app/settings/users', icon: '🧑‍💼' },
               { label: 'Einstellungen', path: '/app/settings', icon: '⚙️' },
             ].map((item) => (
               <button key={item.path} onClick={() => navigate(item.path)} style={{

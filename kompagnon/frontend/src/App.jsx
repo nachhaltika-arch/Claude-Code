@@ -32,8 +32,7 @@ import Datenschutz from './pages/Datenschutz';
 import ResetPassword from './pages/ResetPassword';
 import Akademie from './pages/Akademie';
 import Academy from './pages/Academy';
-import AcademyCourse from './pages/AcademyCourse';
-import AcademyCourseNew from './pages/AcademyCourseNew';
+import AcademyCourseNew from './pages/AcademyCourse';   // neue 2-Spalten-Version (.js)
 import AcademyLesson from './pages/AcademyLesson';
 import AcademyAdmin from './pages/AcademyAdmin';
 import AcademyEdit from './pages/AcademyEdit';
@@ -114,6 +113,10 @@ function App() {
             <Route path="admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
             <Route path="tickets" element={<PrivateRoute roles={['admin', 'auditor']}><Tickets /></PrivateRoute>} />
             <Route path="product" element={<PrivateRoute roles={['admin']}><ProductDevelopment /></PrivateRoute>} />
+            {/* Academy — neue Routen */}
+            <Route path="academy" element={<Academy />} />
+            <Route path="academy/:id" element={<AcademyCourseNew />} />
+            {/* Legacy-Routen (Rückwärtskompatibilität) */}
             <Route path="akademie" element={<Academy />} />
             <Route path="akademie/kurs/:kursId" element={<AcademyCourseNew />} />
             <Route path="akademie/lektion/:lessonId" element={<AcademyLesson />} />

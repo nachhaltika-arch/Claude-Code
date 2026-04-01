@@ -1,0 +1,546 @@
+"""
+Academy Router — alle Endpunkte für Kurse, Module, Lektionen,
+Fortschritt, Quiz und Zertifikate.
+
+Vollständige Implementierung liegt in routers/academy.py.
+Dieser Einstiegspunkt re-exportiert den Router für die app/-Struktur.
+"""
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from typing import Optional
+from database import (
+    get_db, AcademyCourse, AcademyChecklistItem, AcademyModule, AcademyLesson,
+    AcademyLessonProgress, AcademyProgress, AcademyCertificate, AcademyQuizQuestion,
+)
+from routers.auth_router import get_current_user, require_admin
+from datetime import datetime
+import json
+import logging
+import secrets
+import string
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix='/api/academy', tags=['academy'])
+
+
+# ── Helpers ───────────────────────────────────────────────
+
+def _serialize_course(c):
+    try:
+        formats = json.loads(c.formats) if c.formats else ['text']
+    except (json.JSONDecodeError, TypeError):
+        formats = ['text']
+    return {
+        'id': c.id,
+        'title': c.title or '',
+        'description': c.description or '',
+        'thumbnail_url': c.thumbnail_url or '',
+        'is_published': bool(c.is_published),
+        'target_audience': c.target_audience or 'both',
+        'category': c.category or '',
+        'category_color': c.category_color or 'primary',
+        'audience': c.audience or 'employee',
+        'formats': formats,
+        'linear_progress': bool(c.linear_progress),
+        'sort_order': c.sort_order or 0,
+        'created_at': str(c.created_at)[:10] if c.created_at else '',
+    }
+
+
+def _serialize_module(m):
+    return {
+        'id': m.id,
+        'course_id': m.course_id,
+        'title': m.title or '',
+        'position': m.position or 0,
+        'is_locked': bool(m.is_locked),
+        'sort_order': m.sort_order or 0,
+    }
+
+
+def _serialize_lesson(l):
+    try:
+        checklist = json.loads(l.checklist_items_json) if getattr(l, 'checklist_items_json', None) else []
+    except (json.JSONDecodeError, TypeError):
+        checklist = []
+    return {
+        'id': l.id,
+        'module_id': l.module_id,
+        'title': l.title or '',
+        'position': l.position or 0,
+        'type': l.type or 'text',
+        'content_text': l.content_text or '',
+        'content_url': l.content_url or '',
+        'video_url': l.video_url or '',
+        'file_url': l.file_url or '',
+        'duration_minutes': l.duration_minutes or 0,
+        'sort_order': l.sort_order or 0,
+        'checklist_items': checklist,
+    }
+
+
+def _progress_summary(course_id: int, user_id: int, db: Session) -> dict:
+    rows = (
+        db.query(AcademyLesson.id)
+        .join(AcademyModule, AcademyLesson.module_id == AcademyModule.id)
+        .filter(AcademyModule.course_id == course_id)
+        .all()
+    )
+    lesson_ids = [r[0] for r in rows]
+    total = len(lesson_ids)
+    if total == 0:
+        return {'total_lessons': 0, 'completed': 0, 'progress_pct': 0}
+    completed = db.query(AcademyProgress).filter(
+        AcademyProgress.user_id == user_id,
+        AcademyProgress.lesson_id.in_(lesson_ids),
+        AcademyProgress.completed_at.isnot(None),
+    ).count()
+    return {
+        'total_lessons': total,
+        'completed': completed,
+        'progress_pct': round((completed / total) * 100) if total else 0,
+    }
+
+
+# ── Courses ───────────────────────────────────────────────
+
+@router.get('/courses')
+def list_courses(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Liste aller Kurse mit Fortschritt des eingeloggten Users."""
+    courses = db.query(AcademyCourse).order_by(AcademyCourse.sort_order, AcademyCourse.id).all()
+    result = []
+    for c in courses:
+        data = _serialize_course(c)
+        data['progress'] = _progress_summary(c.id, current_user.id, db)
+        result.append(data)
+    return result
+
+
+@router.get('/courses/{course_id}')
+def get_course(course_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Kursdetails mit Modulen und Lektionen."""
+    course = db.query(AcademyCourse).filter(AcademyCourse.id == course_id).first()
+    if not course:
+        raise HTTPException(404, 'Kurs nicht gefunden')
+    modules = (
+        db.query(AcademyModule)
+        .filter(AcademyModule.course_id == course_id)
+        .order_by(AcademyModule.position, AcademyModule.sort_order, AcademyModule.id)
+        .all()
+    )
+    modules_data = []
+    for m in modules:
+        lessons = (
+            db.query(AcademyLesson)
+            .filter(AcademyLesson.module_id == m.id)
+            .order_by(AcademyLesson.position, AcademyLesson.sort_order, AcademyLesson.id)
+            .all()
+        )
+        mod = _serialize_module(m)
+        mod['lessons'] = [_serialize_lesson(l) for l in lessons]
+        modules_data.append(mod)
+    result = _serialize_course(course)
+    result['modules'] = modules_data
+    result['progress'] = _progress_summary(course_id, current_user.id, db)
+    return result
+
+
+@router.post('/courses')
+def create_course(data: dict, db: Session = Depends(get_db), _=Depends(require_admin)):
+    """Kurs erstellen (nur Admin)."""
+    course = AcademyCourse(
+        title=data.get('title', ''),
+        description=data.get('description', ''),
+        thumbnail_url=data.get('thumbnail_url', ''),
+        is_published=data.get('is_published', False),
+        target_audience=data.get('target_audience', 'both'),
+        category=data.get('category', ''),
+        category_color=data.get('category_color', 'primary'),
+        audience=data.get('audience', 'employee'),
+        formats=json.dumps(data.get('formats', ['text']), ensure_ascii=False),
+        linear_progress=data.get('linear_progress', False),
+        sort_order=data.get('sort_order', 0),
+    )
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+    return _serialize_course(course)
+
+
+@router.put('/courses/{course_id}')
+def update_course(course_id: int, data: dict, db: Session = Depends(get_db), _=Depends(require_admin)):
+    """Kurs bearbeiten (nur Admin)."""
+    course = db.query(AcademyCourse).filter(AcademyCourse.id == course_id).first()
+    if not course:
+        raise HTTPException(404, 'Kurs nicht gefunden')
+    for key in ['title', 'description', 'thumbnail_url', 'is_published', 'target_audience',
+                'category', 'category_color', 'audience', 'linear_progress', 'sort_order']:
+        if key in data:
+            setattr(course, key, data[key])
+    if 'formats' in data:
+        course.formats = json.dumps(data['formats'], ensure_ascii=False) if isinstance(data['formats'], list) else data['formats']
+    db.commit()
+    db.refresh(course)
+    return _serialize_course(course)
+
+
+@router.delete('/courses/{course_id}')
+def delete_course(course_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
+    """Kurs löschen (nur Admin)."""
+    course = db.query(AcademyCourse).filter(AcademyCourse.id == course_id).first()
+    if not course:
+        raise HTTPException(404, 'Kurs nicht gefunden')
+    db.delete(course)
+    db.commit()
+    return {'success': True}
+
+
+# ── Modules ───────────────────────────────────────────────
+
+@router.post('/modules')
+def create_module(data: dict, db: Session = Depends(get_db), _=Depends(require_admin)):
+    """Modul erstellen (nur Admin). Body: {course_id, title, position?, is_locked?}"""
+    course_id = data.get('course_id')
+    if not course_id or not db.query(AcademyCourse).filter(AcademyCourse.id == course_id).first():
+        raise HTTPException(404, 'Kurs nicht gefunden')
+    m = AcademyModule(
+        course_id=course_id,
+        title=data.get('title', ''),
+        position=data.get('position', 0),
+        is_locked=data.get('is_locked', False),
+        sort_order=data.get('sort_order', data.get('position', 0)),
+    )
+    db.add(m)
+    db.commit()
+    db.refresh(m)
+    return _serialize_module(m)
+
+
+@router.put('/modules/{module_id}')
+def update_module(module_id: int, data: dict, db: Session = Depends(get_db), _=Depends(require_admin)):
+    """Modul bearbeiten (nur Admin)."""
+    m = db.query(AcademyModule).filter(AcademyModule.id == module_id).first()
+    if not m:
+        raise HTTPException(404, 'Modul nicht gefunden')
+    for key in ['title', 'position', 'is_locked', 'sort_order']:
+        if key in data:
+            setattr(m, key, data[key])
+    db.commit()
+    db.refresh(m)
+    return _serialize_module(m)
+
+
+# ── Lessons ───────────────────────────────────────────────
+
+@router.post('/lessons')
+def create_lesson(data: dict, db: Session = Depends(get_db), _=Depends(require_admin)):
+    """Lektion erstellen (nur Admin). Body: {module_id, title, type?, content_text?, ...}"""
+    module_id = data.get('module_id')
+    if not module_id or not db.query(AcademyModule).filter(AcademyModule.id == module_id).first():
+        raise HTTPException(404, 'Modul nicht gefunden')
+    checklist = data.get('checklist_items', [])
+    l = AcademyLesson(
+        module_id=module_id,
+        title=data.get('title', ''),
+        position=data.get('position', 0),
+        type=data.get('type', 'text'),
+        content_text=data.get('content_text', ''),
+        content_url=data.get('content_url', ''),
+        video_url=data.get('video_url', ''),
+        file_url=data.get('file_url', ''),
+        duration_minutes=data.get('duration_minutes', 0),
+        sort_order=data.get('sort_order', data.get('position', 0)),
+        checklist_items_json=json.dumps(checklist, ensure_ascii=False),
+    )
+    db.add(l)
+    db.commit()
+    db.refresh(l)
+    return _serialize_lesson(l)
+
+
+@router.put('/lessons/{lesson_id}')
+def update_lesson(lesson_id: int, data: dict, db: Session = Depends(get_db), _=Depends(require_admin)):
+    """Lektion bearbeiten (nur Admin)."""
+    l = db.query(AcademyLesson).filter(AcademyLesson.id == lesson_id).first()
+    if not l:
+        raise HTTPException(404, 'Lektion nicht gefunden')
+    for key in ['title', 'position', 'type', 'content_text', 'content_url',
+                'video_url', 'file_url', 'duration_minutes', 'sort_order']:
+        if key in data:
+            setattr(l, key, data[key])
+    if 'checklist_items' in data:
+        l.checklist_items_json = json.dumps(data['checklist_items'], ensure_ascii=False)
+    db.commit()
+    db.refresh(l)
+    return _serialize_lesson(l)
+
+
+# ── Fortschritt ────────────────────────────────────────────
+
+@router.post('/lessons/{lesson_id}/complete')
+def complete_lesson(lesson_id: int, data: dict, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Lektion als erledigt markieren (toggle). Speichert in academy_progress."""
+    if not db.query(AcademyLesson).filter(AcademyLesson.id == lesson_id).first():
+        raise HTTPException(404, 'Lektion nicht gefunden')
+    existing = db.query(AcademyProgress).filter(
+        AcademyProgress.user_id == current_user.id,
+        AcademyProgress.lesson_id == lesson_id,
+    ).first()
+    if existing:
+        existing.completed_at = None if existing.completed_at else datetime.utcnow()
+        if existing.completed_at:
+            existing.score = data.get('score')
+    else:
+        existing = AcademyProgress(
+            user_id=current_user.id,
+            lesson_id=lesson_id,
+            completed_at=datetime.utcnow(),
+            score=data.get('score'),
+        )
+        db.add(existing)
+    db.commit()
+    return {
+        'lesson_id': lesson_id,
+        'completed': existing.completed_at is not None,
+        'completed_at': str(existing.completed_at)[:16] if existing.completed_at else None,
+        'score': existing.score,
+    }
+
+
+@router.get('/progress')
+def get_my_progress(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Gesamtfortschritt des eingeloggten Users über alle Kurse."""
+    rows = (
+        db.query(AcademyLesson.id, AcademyModule.course_id)
+        .join(AcademyModule, AcademyLesson.module_id == AcademyModule.id)
+        .all()
+    )
+    lesson_to_course = {r[0]: r[1] for r in rows}
+    lesson_ids = list(lesson_to_course.keys())
+    if not lesson_ids:
+        return {'total_lessons': 0, 'completed': 0, 'courses': []}
+    completed_rows = db.query(AcademyProgress).filter(
+        AcademyProgress.user_id == current_user.id,
+        AcademyProgress.lesson_id.in_(lesson_ids),
+        AcademyProgress.completed_at.isnot(None),
+    ).all()
+    completed_set = {r.lesson_id for r in completed_rows}
+    totals: dict = {}
+    dones: dict = {}
+    for lid, cid in lesson_to_course.items():
+        totals[cid] = totals.get(cid, 0) + 1
+        if lid in completed_set:
+            dones[cid] = dones.get(cid, 0) + 1
+    total_lessons = sum(totals.values())
+    total_done = sum(dones.values())
+    return {
+        'total_lessons': total_lessons,
+        'completed': total_done,
+        'progress_pct': round((total_done / total_lessons) * 100) if total_lessons else 0,
+        'courses': [
+            {
+                'course_id': cid,
+                'total_lessons': total,
+                'completed': dones.get(cid, 0),
+                'progress_pct': round((dones.get(cid, 0) / total) * 100) if total else 0,
+            }
+            for cid, total in totals.items()
+        ],
+    }
+
+
+@router.get('/progress/all')
+def get_all_progress(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Bulk-Fortschritt für alle Kurse (2 Queries, kein N+1)."""
+    rows = (
+        db.query(AcademyLesson.id, AcademyModule.course_id)
+        .join(AcademyModule, AcademyLesson.module_id == AcademyModule.id)
+        .all()
+    )
+    if not rows:
+        return {}
+    lesson_to_course = {r[0]: r[1] for r in rows}
+    completed_ids = {
+        r[0] for r in db.query(AcademyProgress.lesson_id).filter(
+            AcademyProgress.user_id == current_user.id,
+            AcademyProgress.lesson_id.in_(list(lesson_to_course.keys())),
+            AcademyProgress.completed_at.isnot(None),
+        ).all()
+    }
+    totals: dict = {}
+    dones: dict = {}
+    for lid, cid in lesson_to_course.items():
+        totals[cid] = totals.get(cid, 0) + 1
+        if lid in completed_ids:
+            dones[cid] = dones.get(cid, 0) + 1
+    return {
+        cid: {
+            'total_lessons': total,
+            'completed': dones.get(cid, 0),
+            'progress_pct': round((dones.get(cid, 0) / total) * 100) if total else 0,
+        }
+        for cid, total in totals.items()
+    }
+
+
+# ── Quiz ───────────────────────────────────────────────────
+
+@router.get('/lessons/{lesson_id}/quiz')
+def get_quiz(lesson_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    """Quiz-Fragen aus academy_quiz_questions (ohne is_correct für User)."""
+    if not db.query(AcademyLesson).filter(AcademyLesson.id == lesson_id).first():
+        raise HTTPException(404, 'Lektion nicht gefunden')
+    questions = (
+        db.query(AcademyQuizQuestion)
+        .filter(AcademyQuizQuestion.lesson_id == lesson_id)
+        .order_by(AcademyQuizQuestion.sort_order, AcademyQuizQuestion.id)
+        .all()
+    )
+    result = []
+    for q in questions:
+        try:
+            answers = json.loads(q.answers_json) if q.answers_json else []
+        except (json.JSONDecodeError, TypeError):
+            answers = []
+        result.append({
+            'id': q.id,
+            'question': q.question,
+            'answers': [{'id': i, 'text': a.get('text', '')} for i, a in enumerate(answers)],
+        })
+    return result
+
+
+@router.post('/lessons/{lesson_id}/quiz')
+def submit_quiz(lesson_id: int, data: dict, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Antworten prüfen, Score speichern in academy_progress. Body: {answers: {question_id: answer_index}}"""
+    if not db.query(AcademyLesson).filter(AcademyLesson.id == lesson_id).first():
+        raise HTTPException(404, 'Lektion nicht gefunden')
+    questions = (
+        db.query(AcademyQuizQuestion)
+        .filter(AcademyQuizQuestion.lesson_id == lesson_id)
+        .order_by(AcademyQuizQuestion.sort_order, AcademyQuizQuestion.id)
+        .all()
+    )
+    if not questions:
+        raise HTTPException(400, 'Keine Quiz-Fragen für diese Lektion')
+    user_answers = data.get('answers', {})
+    correct = 0
+    details = []
+    for q in questions:
+        try:
+            opts = json.loads(q.answers_json) if q.answers_json else []
+        except (json.JSONDecodeError, TypeError):
+            opts = []
+        chosen = user_answers.get(str(q.id))
+        is_correct = (
+            chosen is not None
+            and 0 <= int(chosen) < len(opts)
+            and bool(opts[int(chosen)].get('is_correct', False))
+        )
+        if is_correct:
+            correct += 1
+        correct_idx = next((i for i, a in enumerate(opts) if a.get('is_correct')), None)
+        details.append({'question_id': q.id, 'chosen': chosen, 'correct': is_correct, 'correct_answer_idx': correct_idx})
+    total = len(questions)
+    score = round((correct / total) * 100) if total else 0
+    passed = score >= 70
+    if passed:
+        existing = db.query(AcademyProgress).filter(
+            AcademyProgress.user_id == current_user.id,
+            AcademyProgress.lesson_id == lesson_id,
+        ).first()
+        if existing:
+            existing.completed_at = datetime.utcnow()
+            existing.score = score
+        else:
+            db.add(AcademyProgress(
+                user_id=current_user.id, lesson_id=lesson_id,
+                completed_at=datetime.utcnow(), score=score,
+            ))
+        db.commit()
+    return {'correct': correct, 'total': total, 'score': score, 'passed': passed, 'details': details}
+
+
+# ── Zertifikate ────────────────────────────────────────────
+
+def _gen_cert_code() -> str:
+    return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+
+
+@router.get('/certificates')
+def list_certificates(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Alle Zertifikate des eingeloggten Users."""
+    certs = db.query(AcademyCertificate).filter(AcademyCertificate.user_id == current_user.id).all()
+    result = []
+    for c in certs:
+        course = db.query(AcademyCourse).filter(AcademyCourse.id == c.course_id).first()
+        result.append({
+            'id': c.id,
+            'course_id': c.course_id,
+            'course_title': course.title if course else '',
+            'issued_at': str(c.issued_at)[:10] if c.issued_at else '',
+            'certificate_code': c.certificate_code,
+        })
+    return result
+
+
+@router.post('/courses/{course_id}/certificate')
+def issue_certificate(course_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Zertifikat ausstellen wenn Kursfortschritt 100%. Code: 8-stellig alphanumerisch, unique."""
+    course = db.query(AcademyCourse).filter(AcademyCourse.id == course_id).first()
+    if not course:
+        raise HTTPException(404, 'Kurs nicht gefunden')
+    progress = _progress_summary(course_id, current_user.id, db)
+    if progress['progress_pct'] < 100:
+        raise HTTPException(400, f'Kurs noch nicht abgeschlossen ({progress["progress_pct"]}%)')
+    existing = db.query(AcademyCertificate).filter(
+        AcademyCertificate.user_id == current_user.id,
+        AcademyCertificate.course_id == course_id,
+    ).first()
+    if existing:
+        return {
+            'id': existing.id, 'course_id': course_id,
+            'course_title': course.title,
+            'issued_at': str(existing.issued_at)[:10] if existing.issued_at else '',
+            'certificate_code': existing.certificate_code,
+            'already_exists': True,
+        }
+    code = _gen_cert_code()
+    while db.query(AcademyCertificate).filter(AcademyCertificate.certificate_code == code).first():
+        code = _gen_cert_code()
+    cert = AcademyCertificate(
+        user_id=current_user.id, course_id=course_id,
+        issued_at=datetime.utcnow(), certificate_code=code,
+    )
+    db.add(cert)
+    db.commit()
+    db.refresh(cert)
+    return {
+        'id': cert.id, 'course_id': course_id,
+        'course_title': course.title,
+        'issued_at': str(cert.issued_at)[:10],
+        'certificate_code': cert.certificate_code,
+        'already_exists': False,
+    }
+
+
+@router.get('/certificates/{code}/verify')
+def verify_certificate(code: str, db: Session = Depends(get_db)):
+    """Öffentlicher Endpunkt — kein Login nötig. Gibt Zertifikat-Infos zurück."""
+    cert = db.query(AcademyCertificate).filter(AcademyCertificate.certificate_code == code).first()
+    if not cert:
+        raise HTTPException(404, 'Zertifikat nicht gefunden')
+    course = db.query(AcademyCourse).filter(AcademyCourse.id == cert.course_id).first()
+    try:
+        from database import User
+        user = db.query(User).filter(User.id == cert.user_id).first()
+        user_name = f"{user.first_name} {user.last_name}".strip() if user else f"User #{cert.user_id}"
+    except Exception:
+        user_name = f"User #{cert.user_id}"
+    return {
+        'valid': True,
+        'certificate_code': cert.certificate_code,
+        'user_name': user_name,
+        'course_title': course.title if course else '',
+        'issued_at': str(cert.issued_at)[:10] if cert.issued_at else '',
+    }

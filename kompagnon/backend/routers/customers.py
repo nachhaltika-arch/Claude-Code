@@ -3,7 +3,12 @@ Customer Management API routes (Post-Project).
 GET /api/customers/ - List all customers
 GET /api/customers/{id} - Customer detail
 PATCH /api/customers/{id} - Update customer/upsell status
+POST /api/customers/{id}/pagespeed - Run PageSpeed analysis and persist
+GET  /api/customers/{id}/pagespeed - Return persisted PageSpeed values
 """
+import os
+import asyncio
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -164,3 +169,73 @@ def customer_exists(project_id: int, db: Session = Depends(get_db)):
         "has_customer": customer is not None,
         "customer_id": customer.id if customer else None,
     }
+
+
+def _pagespeed_payload(customer: Customer) -> dict:
+    """Return the stored PageSpeed values as a dict."""
+    return {
+        "mobile_score":   customer.pagespeed_mobile_score,
+        "desktop_score":  customer.pagespeed_desktop_score,
+        "lcp_mobile":     customer.pagespeed_lcp_mobile,
+        "cls_mobile":     customer.pagespeed_cls_mobile,
+        "inp_mobile":     customer.pagespeed_inp_mobile,
+        "fcp_mobile":     customer.pagespeed_fcp_mobile,
+        "checked_at":     customer.pagespeed_checked_at.isoformat() if customer.pagespeed_checked_at else None,
+    }
+
+
+@router.post("/{customer_id}/pagespeed")
+async def run_pagespeed(customer_id: int, db: Session = Depends(get_db)):
+    """Call Google PageSpeed Insights for mobile + desktop, persist results."""
+    customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    # Resolve website_url via project → lead
+    project = customer.project
+    lead = project.lead if project else None
+    website_url = lead.website_url if lead else None
+    if not website_url:
+        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
+
+    api_key = os.getenv("PAGESPEED_API_KEY") or os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+    base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        mobile_resp, desktop_resp = await asyncio.gather(
+            client.get(base, params={"url": website_url, "strategy": "mobile",  "key": api_key}),
+            client.get(base, params={"url": website_url, "strategy": "desktop", "key": api_key}),
+        )
+
+    def _score(resp) -> int | None:
+        try:
+            return round((resp.json()["categories"]["performance"]["score"] or 0) * 100)
+        except Exception:
+            return None
+
+    def _audit(resp, key) -> float | None:
+        try:
+            return resp.json()["lighthouseResult"]["audits"][key]["numericValue"]
+        except Exception:
+            return None
+
+    customer.pagespeed_mobile_score  = _score(mobile_resp)
+    customer.pagespeed_desktop_score = _score(desktop_resp)
+    customer.pagespeed_lcp_mobile    = _audit(mobile_resp, "largest-contentful-paint")
+    customer.pagespeed_cls_mobile    = _audit(mobile_resp, "cumulative-layout-shift")
+    customer.pagespeed_inp_mobile    = _audit(mobile_resp, "interaction-to-next-paint")
+    customer.pagespeed_fcp_mobile    = _audit(mobile_resp, "first-contentful-paint")
+    customer.pagespeed_checked_at    = datetime.utcnow()
+
+    db.commit()
+    db.refresh(customer)
+    return _pagespeed_payload(customer)
+
+
+@router.get("/{customer_id}/pagespeed")
+def get_pagespeed(customer_id: int, db: Session = Depends(get_db)):
+    """Return the last stored PageSpeed values without a new API call."""
+    customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return _pagespeed_payload(customer)

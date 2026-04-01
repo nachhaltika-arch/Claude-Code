@@ -58,6 +58,12 @@ def require_any_auth(user: User = Depends(get_current_user)):
     return user
 
 
+def require_kunde(user: User = Depends(get_current_user)):
+    if user.role != "kunde":
+        raise HTTPException(403, "Nur Kunden können Freigaben erteilen")
+    return user
+
+
 def optional_auth(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """Returns user if authenticated, None otherwise."""
     if not token:

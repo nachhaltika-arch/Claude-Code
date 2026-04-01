@@ -60,7 +60,16 @@ export default function Akademie() {
       </div>
 
       {/* Section Heading */}
-      <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{heading}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{heading}</div>
+        {user?.role === 'admin' && (
+          <button onClick={() => navigate('/app/akademie/admin')} style={{
+            padding: '6px 14px', background: 'var(--bg-app)', color: 'var(--text-secondary)',
+            border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
+            fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+          }}>⚙️ Kurse verwalten</button>
+        )}
+      </div>
 
       {/* Course Grid */}
       {loading ? (

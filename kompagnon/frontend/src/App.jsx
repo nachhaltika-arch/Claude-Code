@@ -32,6 +32,7 @@ import Datenschutz from './pages/Datenschutz';
 import ResetPassword from './pages/ResetPassword';
 import Akademie from './pages/Akademie';
 import AcademyCourse from './pages/AcademyCourse';
+import AcademyAdmin from './pages/AcademyAdmin';
 import SalesPipeline from './pages/SalesPipeline';
 import DomainImport from './pages/DomainImport';
 import CustomerPortal from './pages/CustomerPortal';
@@ -108,6 +109,8 @@ function App() {
             <Route path="product" element={<PrivateRoute roles={['admin']}><ProductDevelopment /></PrivateRoute>} />
             <Route path="akademie" element={<Akademie />} />
             <Route path="akademie/kurs/:kursId" element={<AcademyCourse />} />
+            <Route path="akademie/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />
+            <Route path="akademie/admin/:courseId" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />
 
             {/* Settings with sub-navigation */}
             <Route path="settings" element={<SettingsLayout />}>

@@ -96,6 +96,8 @@ export default function BriefingTab({ lead, isMobile }) {
   const [activeSection, setActiveSection] = useState('projektrahmen');
   const [localData, setLocalData] = useState({});
   const [saved, setSaved] = useState(false);
+  const [loadingZielgruppe, setLoadingZielgruppe] = useState(false);
+  const [loadingWettbewerb, setLoadingWettbewerb] = useState(false);
 
   useEffect(() => { loadBriefing(); }, [lead.id]); // eslint-disable-line
 
@@ -103,7 +105,19 @@ export default function BriefingTab({ lead, isMobile }) {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/briefings/${lead.id}`, { headers: h });
-      if (res.ok) { const data = await res.json(); setLocalData(data); }
+      if (res.ok) {
+        const data = await res.json();
+        // Auto-fill from contact data
+        const autoFilled = { ...data };
+        if (!autoFilled.projektrahmen?.kunde) {
+          autoFilled.projektrahmen = {
+            ...(autoFilled.projektrahmen || {}),
+            kunde: lead.display_name || lead.company_name || '',
+            url_aktuell: lead.website_url || '',
+          };
+        }
+        setLocalData(autoFilled);
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -131,6 +145,30 @@ export default function BriefingTab({ lead, isMobile }) {
 
   const updateField = (sectionId, fieldKey, value) => {
     setLocalData(prev => ({ ...prev, [sectionId]: { ...(prev[sectionId] || {}), [fieldKey]: value } }));
+  };
+
+  const runZielgruppenanalyse = async () => {
+    setLoadingZielgruppe(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/briefings/${lead.id}/zielgruppenanalyse`, { method: 'POST', headers: h });
+      if (res.ok) {
+        const data = await res.json();
+        setLocalData(prev => ({ ...prev, zielgruppe: { ...(prev.zielgruppe || {}), analyse: data.analyse, analyse_datum: data.datum } }));
+      }
+    } catch (e) { console.error(e); }
+    finally { setLoadingZielgruppe(false); }
+  };
+
+  const runWettbewerbsanalyse = async () => {
+    setLoadingWettbewerb(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/briefings/${lead.id}/wettbewerbsanalyse`, { method: 'POST', headers: h });
+      if (res.ok) {
+        const data = await res.json();
+        setLocalData(prev => ({ ...prev, wettbewerb: { ...(prev.wettbewerb || {}), analyse: data.analyse, analyse_datum: data.datum, region: data.region } }));
+      }
+    } catch (e) { console.error(e); }
+    finally { setLoadingWettbewerb(false); }
   };
 
   const calcProgress = () => {
@@ -253,6 +291,59 @@ export default function BriefingTab({ lead, isMobile }) {
                   cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', transition: 'background 0.2s',
                 }}>{saved ? '✓ Gespeichert' : saving ? 'Speichert...' : 'Speichern'}</button>
               </div>
+
+              {/* AI Zielgruppenanalyse */}
+              {activeSection === 'zielgruppe' && (
+                <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                    KI-Analyse basierend auf Branche "{lead.trade || '—'}" und Standort "{lead.city || '—'}"
+                  </div>
+                  <button onClick={runZielgruppenanalyse} disabled={loadingZielgruppe} style={{
+                    padding: '9px 18px', background: loadingZielgruppe ? 'var(--bg-surface)' : '#008eaa',
+                    color: loadingZielgruppe ? 'var(--text-tertiary)' : 'white', border: '1px solid var(--border-medium)',
+                    borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,
+                    cursor: loadingZielgruppe ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                  }}>
+                    {loadingZielgruppe ? <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Analyse läuft...</> : '🤖 KI-Zielgruppenanalyse starten'}
+                  </button>
+                  {localData.zielgruppe?.analyse && (
+                    <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        KI-Analyse{localData.zielgruppe?.analyse_datum && ` · ${localData.zielgruppe.analyse_datum}`}
+                      </div>
+                      {localData.zielgruppe.analyse}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* AI Wettbewerbsanalyse */}
+              {activeSection === 'wettbewerb' && (
+                <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                    Wettbewerbsanalyse für Region "{lead.city || '—'}" + 50 km Umkreis
+                  </div>
+                  <button onClick={runWettbewerbsanalyse} disabled={loadingWettbewerb} style={{
+                    padding: '9px 18px', background: loadingWettbewerb ? 'var(--bg-surface)' : '#d4a017',
+                    color: loadingWettbewerb ? 'var(--text-tertiary)' : 'white', border: '1px solid var(--border-medium)',
+                    borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,
+                    cursor: loadingWettbewerb ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                  }}>
+                    {loadingWettbewerb ? <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: '#d4a017', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Analyse läuft...</> : '🔍 KI-Wettbewerbsanalyse starten'}
+                  </button>
+                  {localData.wettbewerb?.analyse && (
+                    <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        KI-Wettbewerbsanalyse{localData.wettbewerb?.region && ` · ${localData.wettbewerb.region}`}{localData.wettbewerb?.analyse_datum && ` · ${localData.wettbewerb.analyse_datum}`}
+                      </div>
+                      {localData.wettbewerb.analyse}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {currentSection.fields.map(field => {
                   const val = (localData[activeSection] || {})[field.key] || '';

@@ -113,7 +113,7 @@ export default function AcademyAdmin() {
             }}
           >← Zurück</button>
           <button
-            onClick={() => navigate('/app/akademie/admin/neu')}
+            onClick={() => navigate('/app/akademie/admin/course/new')}
             style={{
               padding: '7px 16px', background: 'var(--brand-primary)', color: 'white',
               border: 'none', borderRadius: 'var(--radius-md)',
@@ -244,7 +244,7 @@ export default function AcademyAdmin() {
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                   <button
-                    onClick={() => navigate(`/app/akademie/admin/${course.id}`)}
+                    onClick={() => navigate(`/app/akademie/admin/course/${course.id}`)}
                     style={{
                       padding: '5px 10px', background: 'var(--bg-app)', color: 'var(--text-secondary)',
                       border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',

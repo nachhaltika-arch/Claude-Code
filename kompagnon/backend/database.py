@@ -406,12 +406,13 @@ class AcademyCourse(Base):
     id = Column(Integer, primary_key=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, default='')
+    thumbnail_url = Column(String(500), default='')
+    is_published = Column(Boolean, default=False)
+    target_audience = Column(String(20), default='both')   # 'customer'|'employee'|'both'
     category = Column(String(100), default='')
     category_color = Column(String(50), default='primary')
-    audience = Column(String(20), nullable=False, default='employee')
+    audience = Column(String(20), default='employee')
     formats = Column(Text, default='["text"]')
-    content_text = Column(Text, default='')
-    video_url = Column(String(500), default='')
     linear_progress = Column(Boolean, default=False)
     sort_order = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -432,6 +433,8 @@ class AcademyModule(Base):
     id = Column(Integer, primary_key=True)
     course_id = Column(Integer, ForeignKey('academy_courses.id', ondelete='CASCADE'), nullable=False)
     title = Column(String(255), nullable=False)
+    position = Column(Integer, default=0)
+    is_locked = Column(Boolean, default=False)
     sort_order = Column(Integer, default=0)
 
 
@@ -441,20 +444,44 @@ class AcademyLesson(Base):
     id = Column(Integer, primary_key=True)
     module_id = Column(Integer, ForeignKey('academy_modules.id', ondelete='CASCADE'), nullable=False)
     title = Column(String(255), nullable=False)
+    position = Column(Integer, default=0)
+    type = Column(String(20), default='text')         # 'video'|'text'|'quiz'
     content_text = Column(Text, default='')
+    content_url = Column(String(500), default='')
     video_url = Column(String(500), default='')
     file_url = Column(String(500), default='')
+    duration_minutes = Column(Integer, default=0)
     sort_order = Column(Integer, default=0)
 
 
 class AcademyLessonProgress(Base):
-    """User progress on a lesson."""
+    """User progress on a lesson (legacy)."""
     __tablename__ = "academy_lesson_progress"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer)
     lesson_id = Column(Integer, ForeignKey('academy_lessons.id', ondelete='CASCADE'), nullable=False)
     completed = Column(Boolean, default=False)
     completed_at = Column(DateTime, nullable=True)
+
+
+class AcademyProgress(Base):
+    """User progress per lesson (with quiz score)."""
+    __tablename__ = "academy_progress"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False)
+    lesson_id = Column(Integer, ForeignKey('academy_lessons.id', ondelete='CASCADE'))
+    completed_at = Column(DateTime, nullable=True)
+    score = Column(Float, nullable=True)
+
+
+class AcademyCertificate(Base):
+    """Course completion certificate."""
+    __tablename__ = "academy_certificates"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False)
+    course_id = Column(Integer, ForeignKey('academy_courses.id', ondelete='CASCADE'))
+    issued_at = Column(DateTime, default=datetime.utcnow)
+    certificate_code = Column(String(64), unique=True, nullable=False)
 
 
 def init_db():

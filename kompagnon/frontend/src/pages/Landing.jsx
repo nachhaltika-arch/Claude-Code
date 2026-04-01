@@ -34,7 +34,7 @@ export default function Landing() {
           </div>
         </nav>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: isMobile ? '40px 20px' : '60px', textAlign: 'center' }}>
-          <h1 style={{ color: '#fff', fontSize: isMobile ? 36 : 56, fontWeight: 900, lineHeight: 1.1, marginBottom: 20, maxWidth: 700 }}>
+          <h1 style={{ color: '#fff', fontSize: 'clamp(24px, 6vw, 56px)', fontWeight: 900, lineHeight: 1.1, marginBottom: 20, maxWidth: 700 }}>
             Ihre neue Webseite.<br />Fertig in 14 Tagen.
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: isMobile ? 16 : 20, maxWidth: 540, marginBottom: 28, lineHeight: 1.5 }}>
@@ -45,11 +45,11 @@ export default function Landing() {
               <span key={i} style={{ padding: '4px 12px', background: 'rgba(255,255,255,0.08)', borderRadius: 20 }}>{t}</span>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 12, flexDirection: isMobile ? 'column' : 'row', width: isMobile ? '100%' : 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%', maxWidth: 360 }}>
             <Btn onClick={() => go('kompagnon')} primary>Jetzt Webseite anfragen</Btn>
             <Btn onClick={() => nav('/audit')} ghost>Kostenlose Analyse</Btn>
           </div>
-          <a href="#gratis-audit" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', background: '#008eaa', color: 'white', borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit', marginTop: 8 }}>
+          <a href="#gratis-audit" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', background: '#008eaa', color: 'white', borderRadius: 10, fontSize: 15, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit', marginTop: 8, width: '100%', maxWidth: 360, justifyContent: 'center' }}>
             🔍 Gratis Website-Audit starten →
           </a>
         </div>

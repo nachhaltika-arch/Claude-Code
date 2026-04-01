@@ -669,14 +669,31 @@ def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
 @router.get("/{audit_id}")
 def get_audit(audit_id: int, db: Session = Depends(get_db)):
     """Get a stored audit result."""
-    audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
-    if not audit:
-        raise HTTPException(status_code=404, detail="Audit nicht gefunden")
-    if audit.status == "pending" or audit.status == "running":
-        return {"id": audit.id, "status": audit.status, "message": "Audit läuft noch..."}
-    if audit.status == "failed":
-        raise HTTPException(status_code=500, detail=audit.error_message or "Audit fehlgeschlagen")
-    return _format_audit(audit)
+    try:
+        audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+        if not audit:
+            raise HTTPException(status_code=404, detail="Audit nicht gefunden")
+        if audit.status == "pending" or audit.status == "running":
+            return {"id": audit.id, "status": audit.status, "message": "Audit läuft noch..."}
+        if audit.status == "failed":
+            return {"id": audit.id, "status": "failed", "message": audit.error_message or "Audit fehlgeschlagen",
+                    "total_score": 0, "level": "", "website_url": audit.website_url or ""}
+        return {
+            'id': audit.id, 'status': audit.status or 'pending',
+            'total_score': audit.total_score or 0, 'level': audit.level or '',
+            'rc_score': audit.rc_score or 0, 'tp_score': audit.tp_score or 0,
+            'bf_score': audit.bf_score or 0, 'si_score': audit.si_score or 0,
+            'se_score': audit.se_score or 0, 'ux_score': audit.ux_score or 0,
+            'ai_summary': audit.ai_summary or '', 'website_url': audit.website_url or '',
+            'lead_id': audit.lead_id,
+            'company_name': audit.company_name if hasattr(audit, 'company_name') else '',
+            'created_at': str(audit.created_at)[:19] if audit.created_at else '',
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f'Audit {audit_id} Fehler: {e}')
+        raise HTTPException(status_code=500, detail=f'Audit konnte nicht geladen werden: {str(e)}')
 
 
 @router.delete("/{audit_id}")

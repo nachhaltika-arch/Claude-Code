@@ -99,7 +99,7 @@ export default function CustomerPortal() {
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={`name@${data?.email_domain}`} required
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d8e8', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', color: '#0f1c20' }}
+                style={{ width: '100%', padding: '14px 16px', border: '1px solid #d4d8e8', borderRadius: 8, fontSize: 16, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', color: '#0f1c20' }}
                 onFocus={e => e.target.style.borderColor = '#008eaa'} onBlur={e => e.target.style.borderColor = '#d4d8e8'} />
             </div>
             <button type="submit" disabled={verifying} style={{
@@ -133,7 +133,7 @@ export default function CustomerPortal() {
         {data?.current_score !== null && (
           <div style={{ maxWidth: 700, margin: '16px auto 0', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '12px 20px', textAlign: 'center', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.2)' }}>
-              <div style={{ fontSize: 36, fontWeight: 700, color: 'white', lineHeight: 1 }}>{data.current_score}</div>
+              <div style={{ fontSize: 'clamp(28px, 8vw, 36px)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{data.current_score}</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>von 100</div>
             </div>
             <div>
@@ -195,7 +195,7 @@ export default function CustomerPortal() {
             KOMPAGNON bringt Ihre Homepage auf Homepage Standard Gold oder Platin — in 14 Werktagen, zum Festpreis.
           </p>
           <a href="https://www.kompagnon.eu" target="_blank" rel="noopener noreferrer" style={{
-            display: 'inline-block', padding: '10px 24px', background: '#008eaa', color: 'white',
+            display: 'block', width: '100%', maxWidth: 320, margin: '0 auto', padding: '14px 24px', background: '#008eaa', color: 'white', textAlign: 'center',
             borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none',
           }}>Jetzt anfragen →</a>
         </div>

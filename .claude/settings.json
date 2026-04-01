@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command // \"\"' 2>/dev/null); if echo \"$cmd\" | grep -qE '^git (commit|merge|push)'; then branch=$(git -C /home/user/Claude-Code rev-parse --abbrev-ref HEAD 2>/dev/null); if [ \"$branch\" = \"claude/kompagnon-automation-system-FapM9\" ]; then git -C /home/user/Claude-Code push origin claude/kompagnon-automation-system-FapM9 2>&1 | tail -3; fi; fi",
+            "statusMessage": "Deploying to Render...",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

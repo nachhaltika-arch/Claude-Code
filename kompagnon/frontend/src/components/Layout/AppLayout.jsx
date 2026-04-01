@@ -102,7 +102,6 @@ const NAV_SECTIONS = [
     title: 'EINSTELLUNGEN',
     items: [
       { label: 'Einstellungen', path: '/app/settings', icon: 'gear' },
-      { label: 'Benutzerverwaltung', path: '/app/settings/users', icon: 'key', adminOnly: true },
     ],
   },
 ];

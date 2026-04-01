@@ -196,6 +196,14 @@ def _run_migrations():
             completed_at TIMESTAMP
         )""",
         # Note: users + user_sessions tables are created by init_db() via SQLAlchemy
+        """CREATE TABLE IF NOT EXISTS academy_customer_access (
+            id SERIAL PRIMARY KEY,
+            customer_id INTEGER NOT NULL,
+            course_id INTEGER REFERENCES academy_courses(id) ON DELETE CASCADE,
+            assigned_at TIMESTAMP DEFAULT NOW(),
+            assigned_by INTEGER
+        )""",
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_academy_customer_access ON academy_customer_access(customer_id, course_id)",
     ]
     try:
         with engine.connect() as conn:

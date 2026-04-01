@@ -494,6 +494,16 @@ class AcademyQuizQuestion(Base):
     sort_order = Column(Integer, default=0)
 
 
+class AcademyCustomerAccess(Base):
+    """Which courses a customer (lead) has been granted access to."""
+    __tablename__ = "academy_customer_access"
+    id = Column(Integer, primary_key=True)
+    customer_id = Column(Integer, nullable=False)
+    course_id = Column(Integer, ForeignKey('academy_courses.id', ondelete='CASCADE'), nullable=False)
+    assigned_at = Column(DateTime, default=datetime.utcnow)
+    assigned_by = Column(Integer, nullable=True)
+
+
 class CrawlJob(Base):
     """Background crawl job."""
     __tablename__ = "crawl_jobs"

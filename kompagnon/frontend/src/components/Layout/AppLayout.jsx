@@ -94,7 +94,7 @@ const NAV_SECTIONS = [
   {
     title: 'AKADEMIE',
     items: [
-      { label: 'Akademie', path: '/app/akademie', icon: 'gradCap' },
+      { label: 'Akademy', path: '/app/academy', icon: 'gradCap' },
     ],
   },
   {
@@ -112,7 +112,8 @@ const PAGE_NAMES = {
   '/app/leads': 'Projektpipeline',
   '/app/customers': 'Kunden',
   '/app/audit': 'Website Audit',
-  '/app/akademie': 'Akademie',
+  '/app/akademie': 'Akademy',
+  '/app/academy': 'Akademy',
   '/app/settings': 'Einstellungen',
   '/app/projects': 'Kundenprojekte',
   '/app/import': 'Domain Import',

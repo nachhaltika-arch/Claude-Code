@@ -41,6 +41,7 @@ import AcademyCertificate from './pages/AcademyCertificate';
 import SalesPipeline from './pages/SalesPipeline';
 import DomainImport from './pages/DomainImport';
 import CustomerPortal from './pages/CustomerPortal';
+import CustomerDetail from './pages/CustomerDetail';
 import PackageStarter from './pages/PackageStarter';
 import PackageKompagnon from './pages/PackageKompagnon';
 import PackagePremium from './pages/PackagePremium';
@@ -105,6 +106,7 @@ function App() {
             <Route path="checklists" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             <Route path="customers" element={<PrivateRoute><Customers /></PrivateRoute>} />
+            <Route path="customers/:customerId" element={<PrivateRoute roles={['admin']}><CustomerDetail /></PrivateRoute>} />
             <Route path="import" element={<PrivateRoute roles={['admin', 'auditor']}><DomainImport /></PrivateRoute>} />
             <Route path="export" element={<PrivateRoute roles={['admin', 'auditor']}><MassExport /></PrivateRoute>} />
             <Route path="audit" element={<PrivateRoute><AuditTool /></PrivateRoute>} />

@@ -96,6 +96,7 @@ const NAV_SECTIONS = [
     title: 'AKADEMIE',
     items: [
       { label: 'Akademy', path: '/app/academy', icon: 'gradCap' },
+      { label: '⚙️ Kurse verwalten', path: '/app/akademie/admin', icon: 'gear', adminOnly: true },
     ],
   },
   {
@@ -114,6 +115,8 @@ const PAGE_NAMES = {
   '/app/audit': 'Website Audit',
   '/app/akademie': 'Akademy',
   '/app/academy': 'Akademy',
+  '/app/akademie/admin': 'Kurse verwalten',
+  '/app/academy/admin': 'Kurse verwalten',
   '/app/settings': 'Einstellungen',
   '/app/projects': 'Kundenprojekte',
   '/app/import': 'Domain Import',

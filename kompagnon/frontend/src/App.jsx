@@ -120,6 +120,11 @@ function App() {
             {/* Academy — neue Routen */}
             <Route path="academy" element={<Academy />} />
             <Route path="academy/:id" element={<AcademyCourseNew />} />
+            <Route path="academy/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />
+            <Route path="academy/admin/course/new" element={<PrivateRoute roles={['admin']}><AcademyAdminCourse /></PrivateRoute>} />
+            <Route path="academy/admin/course/:courseId" element={<PrivateRoute roles={['admin']}><AcademyAdminCourse /></PrivateRoute>} />
+            <Route path="academy/admin/lesson/new" element={<PrivateRoute roles={['admin']}><AcademyAdminLesson /></PrivateRoute>} />
+            <Route path="academy/admin/lesson/:lessonId" element={<PrivateRoute roles={['admin']}><AcademyAdminLesson /></PrivateRoute>} />
             {/* Legacy-Routen (Rückwärtskompatibilität) */}
             <Route path="akademie" element={<Academy />} />
             <Route path="akademie/kurs/:kursId" element={<AcademyCourseNew />} />

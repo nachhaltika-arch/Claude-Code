@@ -14,6 +14,7 @@ export default function Akademie() {
   const isInternal = user?.role === 'admin' || user?.role === 'auditor';
   const [viewMode, setViewMode] = useState(isInternal ? 'employee' : 'customer');
   const [courses, setCourses] = useState([]);
+  const [progressMap, setProgressMap] = useState({});
   const [loading, setLoading] = useState(true);
 
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
@@ -21,7 +22,23 @@ export default function Akademie() {
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/academy/courses`, { headers: h })
       .then(r => r.json())
-      .then(data => setCourses(Array.isArray(data) ? data : []))
+      .then(async data => {
+        const courseList = Array.isArray(data) ? data : [];
+        setCourses(courseList);
+        if (user?.id && courseList.length > 0) {
+          const results = await Promise.all(
+            courseList.map(c =>
+              fetch(`${API_BASE_URL}/api/academy/courses/${c.id}/progress?user_id=${user.id}`, { headers: h })
+                .then(r => r.json())
+                .then(p => [c.id, p])
+                .catch(() => [c.id, null])
+            )
+          );
+          const pMap = {};
+          results.forEach(([id, p]) => { if (p) pMap[id] = p; });
+          setProgressMap(pMap);
+        }
+      })
       .catch(e => console.error(e))
       .finally(() => setLoading(false));
   }, []); // eslint-disable-line
@@ -101,13 +118,26 @@ export default function Akademie() {
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{course.title}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, flex: 1 }}>{course.description}</div>
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Noch nicht gestartet</span>
-                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>0%</span>
-                  </div>
-                  <div style={{ height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ width: '0%', height: '100%', background: 'var(--brand-primary)', borderRadius: 2 }} />
-                  </div>
+                  {(() => {
+                    const p = progressMap[course.id];
+                    const pct = p?.progress_pct || 0;
+                    const label = !p || p.total_lessons === 0
+                      ? 'Noch nicht gestartet'
+                      : pct === 100
+                        ? 'Abgeschlossen'
+                        : `${p.completed} von ${p.total_lessons} erledigt`;
+                    return (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{label}</span>
+                          <span style={{ fontSize: 10, color: pct === 100 ? 'var(--status-success-text, #16a34a)' : 'var(--text-tertiary)' }}>{pct}%</span>
+                        </div>
+                        <div style={{ height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: pct === 100 ? 'var(--status-success-text, #16a34a)' : 'var(--brand-primary)', borderRadius: 2, transition: 'width 0.3s' }} />
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
               <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-light)' }}>

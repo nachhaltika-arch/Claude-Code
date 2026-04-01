@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/ui/Badge';
 import academyCourses from '../data/academyCourses';
@@ -8,6 +9,7 @@ const BADGE_MAP = {
 };
 
 export default function Akademie() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const isInternal = user?.role === 'admin' || user?.role === 'auditor';
   const [viewMode, setViewMode] = useState(isInternal ? 'employee' : 'customer');
@@ -95,7 +97,7 @@ export default function Akademie() {
 
               {/* Footer */}
               <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-light)' }}>
-                <button style={{
+                <button onClick={() => navigate(`/app/akademie/kurs/${course.id}`)} style={{
                   width: '100%', padding: '8px 14px',
                   background: 'var(--brand-primary)', color: 'white', border: 'none',
                   borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,

@@ -31,6 +31,7 @@ import Impressum from './pages/Impressum';
 import Datenschutz from './pages/Datenschutz';
 import ResetPassword from './pages/ResetPassword';
 import Akademie from './pages/Akademie';
+import AcademyCourse from './pages/AcademyCourse';
 import SalesPipeline from './pages/SalesPipeline';
 import DomainImport from './pages/DomainImport';
 import CustomerPortal from './pages/CustomerPortal';
@@ -106,6 +107,7 @@ function App() {
             <Route path="tickets" element={<PrivateRoute roles={['admin', 'auditor']}><Tickets /></PrivateRoute>} />
             <Route path="product" element={<PrivateRoute roles={['admin']}><ProductDevelopment /></PrivateRoute>} />
             <Route path="akademie" element={<Akademie />} />
+            <Route path="akademie/kurs/:kursId" element={<AcademyCourse />} />
 
             {/* Settings with sub-navigation */}
             <Route path="settings" element={<SettingsLayout />}>

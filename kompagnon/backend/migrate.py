@@ -63,6 +63,22 @@ migrations = [
     "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_kontakt INTEGER DEFAULT 0",
     # Academy: linear_progress flag
     "ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS linear_progress BOOLEAN DEFAULT FALSE",
+    # Academy: Kurse-Tabelle (idempotent für neue DBs)
+    """CREATE TABLE IF NOT EXISTS academy_courses (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL DEFAULT '',
+        description TEXT DEFAULT '',
+        thumbnail_url TEXT DEFAULT '',
+        is_published BOOLEAN DEFAULT FALSE,
+        target_audience TEXT DEFAULT 'both',
+        category VARCHAR(100) DEFAULT '',
+        category_color VARCHAR(50) DEFAULT 'primary',
+        audience VARCHAR(50) DEFAULT 'employee',
+        formats TEXT DEFAULT '["text"]',
+        linear_progress BOOLEAN DEFAULT FALSE,
+        sort_order INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW()
+    )""",
     # Academy: Inhalt wandert in Lektionen — content_text und video_url entfernen
     "ALTER TABLE academy_courses DROP COLUMN IF EXISTS content_text",
     "ALTER TABLE academy_courses DROP COLUMN IF EXISTS video_url",
@@ -70,17 +86,23 @@ migrations = [
     """CREATE TABLE IF NOT EXISTS academy_modules (
         id SERIAL PRIMARY KEY,
         course_id INT REFERENCES academy_courses(id) ON DELETE CASCADE,
-        title VARCHAR(255) NOT NULL,
+        title TEXT NOT NULL DEFAULT '',
+        position INT DEFAULT 0,
+        is_locked BOOLEAN DEFAULT FALSE,
         sort_order INT DEFAULT 0
     )""",
     # Academy: Lektionen-Tabelle
     """CREATE TABLE IF NOT EXISTS academy_lessons (
         id SERIAL PRIMARY KEY,
         module_id INT REFERENCES academy_modules(id) ON DELETE CASCADE,
-        title VARCHAR(255) NOT NULL,
-        content_text TEXT,
-        video_url VARCHAR(500),
-        file_url VARCHAR(500),
+        title TEXT NOT NULL DEFAULT '',
+        position INT DEFAULT 0,
+        type TEXT DEFAULT 'text',
+        content_url TEXT DEFAULT '',
+        content_text TEXT DEFAULT '',
+        video_url TEXT DEFAULT '',
+        file_url TEXT DEFAULT '',
+        duration_minutes INT DEFAULT 0,
         sort_order INT DEFAULT 0
     )""",
     # Academy: Checklisten-Punkte pro Lektion (JSON)

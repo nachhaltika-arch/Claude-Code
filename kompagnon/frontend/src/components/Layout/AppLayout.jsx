@@ -92,6 +92,12 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    title: 'AKADEMIE',
+    items: [
+      { label: 'Akademie', path: '/app/akademie', icon: 'gradCap' },
+    ],
+  },
+  {
     title: 'EINSTELLUNGEN',
     items: [
       { label: 'Einstellungen', path: '/app/settings', icon: 'gear' },

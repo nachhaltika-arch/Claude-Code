@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import academyCourses from '../data/academyCourses';
+
+const BADGE_MAP = {
+  primary: 'info', warning: 'warning', success: 'success', danger: 'danger', info: 'info', secondary: 'neutral',
+};
 
 export default function Akademie() {
   const { user } = useAuth();
@@ -28,73 +31,84 @@ export default function Akademie() {
           Ihr Wissenshub für digitale Sichtbarkeit
         </p>
 
-        {/* Admin Toggle */}
         {isInternal && (
           <div style={{ marginTop: 20, display: 'flex', gap: 6, justifyContent: 'center' }}>
-            {[
-              { id: 'employee', label: 'Interne Schulungen' },
-              { id: 'customer', label: 'Kundenansicht' },
-            ].map(v => (
+            {[{ id: 'employee', label: 'Interne Schulungen' }, { id: 'customer', label: 'Kundenansicht' }].map(v => (
               <button key={v.id} onClick={() => setViewMode(v.id)} style={{
                 padding: '7px 16px', borderRadius: 'var(--radius-full)', border: 'none',
                 background: viewMode === v.id ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
                 color: 'white', fontSize: 12, fontWeight: viewMode === v.id ? 600 : 400,
                 cursor: 'pointer', fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
-              }}>
-                {v.label}
-              </button>
+              }}>{v.label}</button>
             ))}
           </div>
         )}
       </div>
 
       {/* Section Heading */}
-      <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
-        {heading}
-      </div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{heading}</div>
 
       {/* Course Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-        gap: 14,
-      }}>
-        {courses.map(course => (
-          <Card key={course.id} padding="md" style={{
-            display: 'flex', flexDirection: 'column', gap: 10,
-            cursor: 'pointer', transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-medium)'; e.currentTarget.style.boxShadow = 'var(--shadow-elevated)'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Badge variant={
-                course.categoryColor === 'primary' ? 'info'
-                : course.categoryColor === 'warning' ? 'warning'
-                : course.categoryColor === 'success' ? 'success'
-                : course.categoryColor === 'danger' ? 'danger'
-                : 'neutral'
-              }>
-                {course.category}
-              </Badge>
-              <div style={{ display: 'flex', gap: 4 }}>
-                {course.formats.includes('video') && <span title="Video" style={{ fontSize: 12 }}>🎬</span>}
-                {course.formats.includes('text') && <span title="Text" style={{ fontSize: 12 }}>📄</span>}
-                {course.formats.includes('checklist') && <span title="Checkliste" style={{ fontSize: 12 }}>✅</span>}
+      {courses.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-tertiary)' }}>
+          <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.4 }}>🔨</div>
+          <div style={{ fontSize: 14 }}>Inhalte werden vorbereitet</div>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+          {courses.map(course => (
+            <div key={course.id} className="academy-card" style={{
+              background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+              borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            }}>
+              {/* Header */}
+              <div style={{
+                padding: '12px 16px', borderBottom: '1px solid var(--border-light)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: 'var(--bg-app)',
+              }}>
+                <Badge variant={BADGE_MAP[course.categoryColor] || 'neutral'}>{course.category}</Badge>
+                <div style={{ display: 'flex', gap: 6, color: 'var(--text-tertiary)', fontSize: 13 }}>
+                  {course.formats.includes('text') && <span title="Text">📄</span>}
+                  {course.formats.includes('video') && <span title="Video">🎬</span>}
+                  {course.formats.includes('checklist') && <span title="Checkliste">✅</span>}
+                </div>
+              </div>
+
+              {/* Body */}
+              <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{course.title}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, flex: 1 }}>{course.description}</div>
+
+                {/* Progress */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Noch nicht gestartet</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>0%</span>
+                  </div>
+                  <div style={{ height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ width: '0%', height: '100%', background: 'var(--brand-primary)', borderRadius: 2 }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-light)' }}>
+                <button style={{
+                  width: '100%', padding: '8px 14px',
+                  background: 'var(--brand-primary)', color: 'white', border: 'none',
+                  borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}>
+                  Kurs starten →
+                </button>
               </div>
             </div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
-              {course.title}
-            </div>
-            <div style={{
-              fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5,
-              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-            }}>
-              {course.description}
-            </div>
-          </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

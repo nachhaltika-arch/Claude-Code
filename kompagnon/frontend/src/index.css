@@ -183,6 +183,10 @@ input, select, textarea { font-family: inherit; }
 @keyframes kc-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Academy card hover */
+.academy-card { transition: box-shadow 0.3s ease, transform 0.2s ease; cursor: pointer; }
+.academy-card:hover { box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.15) !important; transform: translateY(-3px); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

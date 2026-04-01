@@ -184,8 +184,10 @@ def _run_migrations():
             content_text TEXT DEFAULT '',
             video_url VARCHAR(500) DEFAULT '',
             file_url VARCHAR(500) DEFAULT '',
-            sort_order INTEGER DEFAULT 0
+            sort_order INTEGER DEFAULT 0,
+            checklist_items_json TEXT DEFAULT '[]'
         )""",
+        "ALTER TABLE academy_lessons ADD COLUMN IF NOT EXISTS checklist_items_json TEXT DEFAULT '[]'",
         """CREATE TABLE IF NOT EXISTS academy_lesson_progress (
             id SERIAL PRIMARY KEY,
             user_id INTEGER,

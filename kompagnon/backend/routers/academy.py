@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import Optional
 from database import get_db, AcademyCourse, AcademyChecklistItem, AcademyModule, AcademyLesson, AcademyLessonProgress
 from datetime import datetime
 import json
@@ -161,6 +162,14 @@ def seed_academy_courses(db: Session):
 
 # ── Module CRUD ──────────────────────────────────────────
 
+@router.get('/modules/{module_id}')
+def get_module(module_id: int, db: Session = Depends(get_db)):
+    m = db.query(AcademyModule).filter(AcademyModule.id == module_id).first()
+    if not m:
+        raise HTTPException(404, "Modul nicht gefunden")
+    return {'id': m.id, 'course_id': m.course_id, 'title': m.title or '', 'sort_order': m.sort_order or 0}
+
+
 @router.get('/courses/{course_id}/modules')
 def list_modules(course_id: int, db: Session = Depends(get_db)):
     modules = db.query(AcademyModule).filter(AcademyModule.course_id == course_id).order_by(AcademyModule.sort_order, AcademyModule.id).all()
@@ -215,10 +224,31 @@ def reorder_modules(course_id: int, data: dict, db: Session = Depends(get_db)):
 
 # ── Lesson CRUD ──────────────────────────────────────────
 
+@router.get('/lessons/{lesson_id}')
+def get_lesson(lesson_id: int, db: Session = Depends(get_db)):
+    l = db.query(AcademyLesson).filter(AcademyLesson.id == lesson_id).first()
+    if not l:
+        raise HTTPException(404, "Lektion nicht gefunden")
+    return _serialize_lesson(l)
+
+
+def _serialize_lesson(l):
+    try:
+        checklist = json.loads(l.checklist_items_json) if getattr(l, 'checklist_items_json', None) else []
+    except (json.JSONDecodeError, TypeError):
+        checklist = []
+    return {
+        'id': l.id, 'module_id': l.module_id, 'title': l.title or '',
+        'content_text': l.content_text or '', 'video_url': l.video_url or '',
+        'file_url': l.file_url or '', 'sort_order': l.sort_order or 0,
+        'checklist_items': checklist,
+    }
+
+
 @router.get('/modules/{module_id}/lessons')
 def list_lessons(module_id: int, db: Session = Depends(get_db)):
     lessons = db.query(AcademyLesson).filter(AcademyLesson.module_id == module_id).order_by(AcademyLesson.sort_order, AcademyLesson.id).all()
-    return [{'id': l.id, 'module_id': l.module_id, 'title': l.title or '', 'content_text': l.content_text or '', 'video_url': l.video_url or '', 'file_url': l.file_url or '', 'sort_order': l.sort_order or 0} for l in lessons]
+    return [_serialize_lesson(l) for l in lessons]
 
 
 @router.post('/modules/{module_id}/lessons')
@@ -226,12 +256,17 @@ def create_lesson(module_id: int, data: dict, db: Session = Depends(get_db)):
     m = db.query(AcademyModule).filter(AcademyModule.id == module_id).first()
     if not m:
         raise HTTPException(404, "Modul nicht gefunden")
-    l = AcademyLesson(module_id=module_id, title=data.get('title', ''), content_text=data.get('content_text', ''),
-                       video_url=data.get('video_url', ''), file_url=data.get('file_url', ''), sort_order=data.get('sort_order', 0))
+    checklist = data.get('checklist_items', [])
+    l = AcademyLesson(
+        module_id=module_id, title=data.get('title', ''), content_text=data.get('content_text', ''),
+        video_url=data.get('video_url', ''), file_url=data.get('file_url', ''),
+        sort_order=data.get('sort_order', 0),
+        checklist_items_json=json.dumps(checklist, ensure_ascii=False),
+    )
     db.add(l)
     db.commit()
     db.refresh(l)
-    return {'id': l.id, 'module_id': l.module_id, 'title': l.title, 'content_text': l.content_text, 'video_url': l.video_url, 'file_url': l.file_url, 'sort_order': l.sort_order}
+    return _serialize_lesson(l)
 
 
 @router.put('/lessons/{lesson_id}')
@@ -242,9 +277,11 @@ def update_lesson(lesson_id: int, data: dict, db: Session = Depends(get_db)):
     for key in ['title', 'content_text', 'video_url', 'file_url', 'sort_order']:
         if key in data:
             setattr(l, key, data[key])
+    if 'checklist_items' in data:
+        l.checklist_items_json = json.dumps(data['checklist_items'], ensure_ascii=False)
     db.commit()
     db.refresh(l)
-    return {'id': l.id, 'module_id': l.module_id, 'title': l.title, 'content_text': l.content_text, 'video_url': l.video_url, 'file_url': l.file_url, 'sort_order': l.sort_order}
+    return _serialize_lesson(l)
 
 
 @router.delete('/lessons/{lesson_id}')
@@ -282,9 +319,8 @@ def complete_lesson(lesson_id: int, data: dict, db: Session = Depends(get_db)):
 
 
 @router.get('/courses/{course_id}/progress')
-def get_course_progress(course_id: int, db: Session = Depends(get_db)):
+def get_course_progress(course_id: int, user_id: Optional[int] = None, db: Session = Depends(get_db)):
     """Get lesson progress for all lessons in a course, optionally filtered by user_id query param."""
-    from fastapi import Query
     # Get all modules for this course
     modules = db.query(AcademyModule).filter(AcademyModule.course_id == course_id).all()
     module_ids = [m.id for m in modules]
@@ -293,8 +329,11 @@ def get_course_progress(course_id: int, db: Session = Depends(get_db)):
     # Get all lessons
     lessons = db.query(AcademyLesson).filter(AcademyLesson.module_id.in_(module_ids)).order_by(AcademyLesson.sort_order).all()
     lesson_ids = [l.id for l in lessons]
-    # Get progress
-    progress = db.query(AcademyLessonProgress).filter(AcademyLessonProgress.lesson_id.in_(lesson_ids)).all()
+    # Get progress (filtered by user_id if provided)
+    q = db.query(AcademyLessonProgress).filter(AcademyLessonProgress.lesson_id.in_(lesson_ids))
+    if user_id is not None:
+        q = q.filter(AcademyLessonProgress.user_id == user_id)
+    progress = q.all()
     progress_map = {p.lesson_id: p for p in progress}
     result = []
     for l in lessons:

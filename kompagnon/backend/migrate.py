@@ -83,6 +83,8 @@ migrations = [
         file_url VARCHAR(500),
         sort_order INT DEFAULT 0
     )""",
+    # Academy: Checklisten-Punkte pro Lektion (JSON)
+    "ALTER TABLE academy_lessons ADD COLUMN IF NOT EXISTS checklist_items_json TEXT DEFAULT '[]'",
     # Academy: Lernfortschritt je Lektion
     """CREATE TABLE IF NOT EXISTS academy_lesson_progress (
         id SERIAL PRIMARY KEY,

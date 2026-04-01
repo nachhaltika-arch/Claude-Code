@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useScreenSize } from '../../utils/responsive';
+import { useTheme } from '../../context/ThemeContext';
 import Logo from '../Logo';
 
 // ── SVG Icons (16x16) ──────────────────────────────────────────
@@ -138,6 +139,7 @@ function SidebarNav({ badges }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, hasRole } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
@@ -226,6 +228,29 @@ function SidebarNav({ badges }) {
           marginTop: 'auto', borderTop: '1px solid var(--border-light)',
           padding: '12px 8px', position: 'relative',
         }}>
+          {/* Theme toggle */}
+          <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 8, marginBottom: 8 }}>
+            <button
+              onClick={toggleTheme}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                padding: '6px 8px', border: 'none', borderRadius: 'var(--radius-md)',
+                background: 'transparent', cursor: 'pointer',
+                color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+            >
+              <span style={{ fontSize: 16, display: 'flex', flexShrink: 0 }}>
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 400 }}>
+                {theme === 'dark' ? 'Hell' : 'Dunkel'}
+              </span>
+            </button>
+          </div>
+
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px',
             borderRadius: 'var(--radius-md)',

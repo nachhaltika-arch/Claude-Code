@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/ui/Badge';
-import academyCourses from '../data/academyCourses';
+import API_BASE_URL from '../config';
 
 const BADGE_MAP = {
   primary: 'info', warning: 'warning', success: 'success', danger: 'danger', info: 'info', secondary: 'neutral',
@@ -10,11 +10,23 @@ const BADGE_MAP = {
 
 export default function Akademie() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const isInternal = user?.role === 'admin' || user?.role === 'auditor';
   const [viewMode, setViewMode] = useState(isInternal ? 'employee' : 'customer');
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const courses = academyCourses.filter(c => c.audience === viewMode);
+  const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/academy/courses`, { headers: h })
+      .then(r => r.json())
+      .then(data => setCourses(Array.isArray(data) ? data : []))
+      .catch(e => console.error(e))
+      .finally(() => setLoading(false));
+  }, []); // eslint-disable-line
+
+  const filtered = courses.filter(c => c.audience === viewMode);
   const heading = viewMode === 'employee' ? 'Interne Schulungen' : 'Ihr Projekt verstehen';
 
   return (
@@ -51,39 +63,34 @@ export default function Akademie() {
       <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{heading}</div>
 
       {/* Course Grid */}
-      {courses.length === 0 ? (
+      {loading ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
+        </div>
+      ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-tertiary)' }}>
           <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.4 }}>🔨</div>
           <div style={{ fontSize: 14 }}>Inhalte werden vorbereitet</div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-          {courses.map(course => (
+          {filtered.map(course => (
             <div key={course.id} className="academy-card" style={{
               background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
               borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)',
               display: 'flex', flexDirection: 'column', overflow: 'hidden',
             }}>
-              {/* Header */}
-              <div style={{
-                padding: '12px 16px', borderBottom: '1px solid var(--border-light)',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                background: 'var(--bg-app)',
-              }}>
-                <Badge variant={BADGE_MAP[course.categoryColor] || 'neutral'}>{course.category}</Badge>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-app)' }}>
+                <Badge variant={BADGE_MAP[course.category_color] || 'neutral'}>{course.category}</Badge>
                 <div style={{ display: 'flex', gap: 6, color: 'var(--text-tertiary)', fontSize: 13 }}>
-                  {course.formats.includes('text') && <span title="Text">📄</span>}
-                  {course.formats.includes('video') && <span title="Video">🎬</span>}
-                  {course.formats.includes('checklist') && <span title="Checkliste">✅</span>}
+                  {(course.formats || []).includes('text') && <span title="Text">📄</span>}
+                  {(course.formats || []).includes('video') && <span title="Video">🎬</span>}
+                  {(course.formats || []).includes('checklist') && <span title="Checkliste">✅</span>}
                 </div>
               </div>
-
-              {/* Body */}
-              <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ padding: 16, flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{course.title}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, flex: 1 }}>{course.description}</div>
-
-                {/* Progress */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Noch nicht gestartet</span>
@@ -94,18 +101,12 @@ export default function Akademie() {
                   </div>
                 </div>
               </div>
-
-              {/* Footer */}
               <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-light)' }}>
                 <button onClick={() => navigate(`/app/akademie/kurs/${course.id}`)} style={{
-                  width: '100%', padding: '8px 14px',
-                  background: 'var(--brand-primary)', color: 'white', border: 'none',
-                  borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,
-                  cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                  width: '100%', padding: '8px 14px', background: 'var(--brand-primary)', color: 'white', border: 'none',
+                  borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}>
-                  Kurs starten →
-                </button>
+                }}>Kurs starten →</button>
               </div>
             </div>
           ))}

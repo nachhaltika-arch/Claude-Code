@@ -1,53 +1,57 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import Badge from '../components/ui/Badge';
-import academyCourses from '../data/academyCourses';
+import API_BASE_URL from '../config';
 
 const BADGE_MAP = {
   primary: 'info', warning: 'warning', success: 'success', danger: 'danger', info: 'info', secondary: 'neutral',
 };
 
-const CHECKLIST_ITEMS = {
-  'akquise-prozess': ['Lead-Quellen identifizieren', 'Erstkontakt vorbereiten', 'Audit als Türöffner nutzen', 'Angebot erstellen und nachfassen', 'Auftrag abschließen'],
-  'audit-durchfuehren': ['Audit-Tool öffnen und URL eingeben', 'Ergebnisse interpretieren', 'Schwachstellen priorisieren', 'Kundenpräsentation vorbereiten', 'Handlungsempfehlungen ableiten'],
-  '7-projektphasen': ['Phase 1: Akquisition verstehen', 'Phase 2-3: Briefing & Content planen', 'Phase 4-5: Technik & QA durchführen', 'Phase 6: Go-Live vorbereiten', 'Phase 7: Post-Launch betreuen'],
-  'system-bedienen': ['Dashboard und KPIs verstehen', 'Vertriebspipeline bedienen', 'Domain-Import durchführen', 'Kundenkartei pflegen', 'Audit-Tool nutzen'],
-  'kaltakquise': ['Zielgruppe definieren', 'Anschreiben-Vorlage erstellen', 'Telefonleitfaden vorbereiten', 'Follow-up Strategie planen', 'Erfolgsmessung einrichten'],
-  'qualitaetsstandards': ['QA-Checkliste durchgehen', 'Cross-Browser Testing', 'Mobile Responsiveness prüfen', 'Rechtliche Inhalte verifizieren', 'Kundenübergabe dokumentieren'],
-  'projekt-ablauf': ['Beauftragung und Zahlung', 'Briefing-Gespräch führen', 'Zwischenpräsentation prüfen', 'Feedback und Korrekturen', 'Go-Live und Einweisung'],
-  'vorbereitung': ['Logo in Vektorformat bereitstellen', 'Texte und Inhalte liefern', 'Fotos in hoher Auflösung', 'Zugangsdaten sammeln', 'Ansprechpartner benennen'],
-  'audit-verstehen': ['Gesamtscore einordnen', 'Kategorien verstehen', 'Kritische Punkte identifizieren', 'Verbesserungspotenzial erkennen', 'Nächste Schritte planen'],
-  'website-pflegen': ['WordPress-Login finden', 'Texte bearbeiten', 'Bilder austauschen', 'Neue Seite erstellen', 'Backup-Routine verstehen'],
-  'seo-google': ['Google Business Profil einrichten', 'Bewertungen sammeln', 'Keywords verstehen', 'Meta-Daten prüfen', 'Lokale Sichtbarkeit messen'],
-};
-
 export default function AcademyCourse() {
   const { kursId } = useParams();
   const navigate = useNavigate();
+  const { token } = useAuth();
+  const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
-  const course = useMemo(() => academyCourses.find(c => c.id === kursId), [kursId]);
+  const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [checked, setChecked] = useState({});
+  const [activeTab, setActiveTab] = useState('text');
 
-  const formats = course?.formats || [];
-  const firstTab = formats[0] || 'text';
-  const [activeTab, setActiveTab] = useState(firstTab);
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/academy/courses/${kursId}`, { headers: h })
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(data => {
+        setCourse(data);
+        const fmts = data.formats || [];
+        setActiveTab(fmts[0] || 'text');
+      })
+      .catch(() => setCourse(null))
+      .finally(() => setLoading(false));
+  }, [kursId]); // eslint-disable-line
 
-  const items = CHECKLIST_ITEMS[kursId] || ['Punkt 1', 'Punkt 2', 'Punkt 3', 'Punkt 4', 'Punkt 5'];
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '40vh' }}>
+      <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
+    </div>
+  );
+
+  if (!course) return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}>📚</div>
+      <h2 style={{ fontSize: 18, color: 'var(--text-primary)', marginBottom: 8 }}>Kurs nicht gefunden</h2>
+      <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 20 }}>Der angeforderte Kurs existiert nicht.</p>
+      <button onClick={() => navigate('/app/akademie')} style={{
+        padding: '9px 20px', background: 'var(--brand-primary)', color: 'white', border: 'none',
+        borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+      }}>← Zurück zur Akademie</button>
+    </div>
+  );
+
+  const formats = course.formats || [];
+  const items = course.checklist_items || [];
   const checkedCount = Object.values(checked).filter(Boolean).length;
-
-  if (!course) {
-    return (
-      <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-        <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}>📚</div>
-        <h2 style={{ fontSize: 18, color: 'var(--text-primary)', marginBottom: 8 }}>Kurs nicht gefunden</h2>
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 20 }}>Der angeforderte Kurs existiert nicht.</p>
-        <button onClick={() => navigate('/app/akademie')} style={{
-          padding: '9px 20px', background: 'var(--brand-primary)', color: 'white', border: 'none',
-          borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)',
-        }}>← Zurück zur Akademie</button>
-      </div>
-    );
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 900, margin: '0 auto', width: '100%' }}>
@@ -60,21 +64,16 @@ export default function AcademyCourse() {
       </div>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{course.title}</h2>
-            <Badge variant={BADGE_MAP[course.categoryColor] || 'neutral'}>{course.category}</Badge>
-          </div>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>{course.description}</p>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{course.title}</h2>
+          <Badge variant={BADGE_MAP[course.category_color] || 'neutral'}>{course.category}</Badge>
         </div>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>{course.description}</p>
       </div>
 
       {/* Tabs */}
-      <div style={{
-        display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
-        borderRadius: 'var(--radius-lg)', padding: 4,
-      }}>
+      <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4 }}>
         {formats.includes('text') && (
           <button onClick={() => setActiveTab('text')} style={{
             flex: 1, padding: '8px 12px', borderRadius: 'var(--radius-md)', border: 'none',
@@ -107,92 +106,89 @@ export default function AcademyCourse() {
       {/* Tab Content */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
 
-        {/* Anleitung */}
         {activeTab === 'text' && (
-          <div style={{ padding: '48px 24px', textAlign: 'center', maxWidth: 600, margin: '0 auto' }}>
-            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>🔨</div>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Dieser Inhalt wird gerade erstellt</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
-              Die Anleitung für „{course.title}" wird aktuell vorbereitet und in Kürze hier verfügbar sein.
-            </p>
-          </div>
+          course.content_text ? (
+            <div style={{ padding: '24px', fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.7 }}
+              dangerouslySetInnerHTML={{ __html: course.content_text }} />
+          ) : (
+            <div style={{ padding: '48px 24px', textAlign: 'center', maxWidth: 600, margin: '0 auto' }}>
+              <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>🔨</div>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Dieser Inhalt wird gerade erstellt</h3>
+              <p style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+                Die Anleitung für „{course.title}" wird aktuell vorbereitet und in Kürze hier verfügbar sein.
+              </p>
+            </div>
+          )
         )}
 
-        {/* Video */}
         {activeTab === 'video' && (
           <div style={{ padding: 16 }}>
-            <div style={{
-              position: 'relative', paddingBottom: '56.25%', height: 0,
-              background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', overflow: 'hidden',
-            }}>
-              <div style={{
-                position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center', gap: 12,
-              }}>
-                <div style={{ fontSize: 48, opacity: 0.3 }}>🎬</div>
-                <div style={{ fontSize: 14, color: 'var(--text-tertiary)' }}>Video folgt in Kürze</div>
+            {course.video_url ? (
+              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                <iframe src={course.video_url} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={course.title} />
               </div>
-            </div>
+            ) : (
+              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                  <div style={{ fontSize: 48, opacity: 0.3 }}>🎬</div>
+                  <div style={{ fontSize: 14, color: 'var(--text-tertiary)' }}>Video folgt in Kürze</div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Checkliste */}
         {activeTab === 'checklist' && (
           <div style={{ padding: 16 }}>
-            {/* Progress */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{checkedCount} von {items.length} erledigt</span>
                 <span style={{ fontSize: 12, color: checkedCount === items.length ? 'var(--status-success-text)' : 'var(--text-tertiary)' }}>
-                  {Math.round((checkedCount / items.length) * 100)}%
+                  {items.length > 0 ? Math.round((checkedCount / items.length) * 100) : 0}%
                 </span>
               </div>
               <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
                 <div style={{
-                  width: `${(checkedCount / items.length) * 100}%`, height: '100%',
+                  width: items.length > 0 ? `${(checkedCount / items.length) * 100}%` : '0%', height: '100%',
                   background: checkedCount === items.length ? 'var(--status-success-text)' : 'var(--brand-primary)',
                   borderRadius: 3, transition: 'width 0.3s ease',
                 }} />
               </div>
             </div>
-
-            {/* Items */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {items.map((item, i) => {
-                const isDone = checked[i];
+                const isDone = checked[item.id || i];
                 return (
-                  <label key={i} style={{
+                  <label key={item.id || i} style={{
                     display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
                     borderRadius: 'var(--radius-md)', cursor: 'pointer',
-                    background: isDone ? 'var(--status-success-bg)' : 'transparent',
-                    transition: 'background 0.15s',
+                    background: isDone ? 'var(--status-success-bg)' : 'transparent', transition: 'background 0.15s',
                   }}>
                     <input type="checkbox" checked={!!isDone}
-                      onChange={() => setChecked(prev => ({ ...prev, [i]: !prev[i] }))}
+                      onChange={() => setChecked(prev => ({ ...prev, [item.id || i]: !prev[item.id || i] }))}
                       style={{ width: 18, height: 18, accentColor: 'var(--brand-primary)', cursor: 'pointer', flexShrink: 0 }} />
                     <span style={{
                       fontSize: 13, color: isDone ? 'var(--text-tertiary)' : 'var(--text-primary)',
                       textDecoration: isDone ? 'line-through' : 'none', transition: 'all 0.15s',
-                    }}>
-                      {item}
-                    </span>
+                    }}>{item.label}</span>
                   </label>
                 );
               })}
+              {items.length === 0 && (
+                <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-tertiary)', fontSize: 13 }}>Keine Checklisten-Punkte vorhanden</div>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Back button */}
       <div>
         <button onClick={() => navigate('/app/akademie')} style={{
           padding: '9px 20px', background: 'transparent', color: 'var(--brand-primary)',
           border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
           fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)',
-        }}>
-          ← Zurück zur Übersicht
-        </button>
+        }}>← Zurück zur Übersicht</button>
       </div>
     </div>
   );

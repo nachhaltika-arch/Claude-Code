@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 
@@ -31,23 +31,30 @@ export default function AcademyEdit() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     title: '', description: '', category: '', category_color: 'primary',
-    audience: 'employee', formats: ['text'], content_text: '', video_url: '',
+    audience: 'employee', formats: ['text'], linear_progress: false,
   });
   const [checklistItems, setChecklistItems] = useState(['']);
+  const [modules, setModules] = useState([]);
+  const [moduleLoading, setModuleLoading] = useState(false);
+  const [newModuleTitle, setNewModuleTitle] = useState('');
+  const [addingModule, setAddingModule] = useState(false);
 
   useEffect(() => {
     if (!isNew) {
-      fetch(`${API_BASE_URL}/api/academy/courses/${courseId}`, { headers: h })
-        .then(r => r.json())
-        .then(data => {
+      Promise.all([
+        fetch(`${API_BASE_URL}/api/academy/courses/${courseId}`, { headers: h }).then(r => r.json()),
+        fetch(`${API_BASE_URL}/api/academy/courses/${courseId}/modules`, { headers: h }).then(r => r.json()),
+      ])
+        .then(([data, mods]) => {
           setForm({
             title: data.title || '', description: data.description || '',
             category: data.category || '', category_color: data.category_color || 'primary',
             audience: data.audience || 'employee', formats: data.formats || ['text'],
-            content_text: data.content_text || '', video_url: data.video_url || '',
+            linear_progress: data.linear_progress || false,
           });
           const items = (data.checklist_items || []).map(i => i.label);
           setChecklistItems(items.length > 0 ? items : ['']);
+          setModules(Array.isArray(mods) ? mods : []);
         })
         .catch(() => navigate('/app/akademie/admin'))
         .finally(() => setLoading(false));
@@ -72,6 +79,55 @@ export default function AcademyEdit() {
       if (res.ok) navigate('/app/akademie/admin');
     } catch (e) { console.error(e); }
     finally { setSaving(false); }
+  };
+
+  const addModule = async () => {
+    if (!newModuleTitle.trim() || addingModule) return;
+    setAddingModule(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/academy/courses/${courseId}/modules`, {
+        method: 'POST', headers: h,
+        body: JSON.stringify({ title: newModuleTitle.trim(), sort_order: modules.length }),
+      });
+      const mod = await res.json();
+      setModules(prev => [...prev, mod]);
+      setNewModuleTitle('');
+    } catch (e) { console.error(e); }
+    finally { setAddingModule(false); }
+  };
+
+  const updateModuleTitle = async (mod, title) => {
+    setModules(prev => prev.map(m => m.id === mod.id ? { ...m, title } : m));
+    try {
+      await fetch(`${API_BASE_URL}/api/academy/modules/${mod.id}`, {
+        method: 'PUT', headers: h, body: JSON.stringify({ title }),
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const deleteModule = async (modId) => {
+    if (!window.confirm('Modul und alle Lektionen darin löschen?')) return;
+    try {
+      await fetch(`${API_BASE_URL}/api/academy/modules/${modId}`, { method: 'DELETE', headers: h });
+      setModules(prev => prev.filter(m => m.id !== modId));
+    } catch (e) { console.error(e); }
+  };
+
+  const moveModule = async (idx, dir) => {
+    const newMods = [...modules];
+    const target = idx + dir;
+    if (target < 0 || target >= newMods.length) return;
+    [newMods[idx], newMods[target]] = [newMods[target], newMods[idx]];
+    const updated = newMods.map((m, i) => ({ ...m, sort_order: i }));
+    setModules(updated);
+    setModuleLoading(true);
+    try {
+      await fetch(`${API_BASE_URL}/api/academy/courses/${courseId}/modules/reorder`, {
+        method: 'PUT', headers: h,
+        body: JSON.stringify({ order: updated.map(m => ({ id: m.id, sort_order: m.sort_order })) }),
+      });
+    } catch (e) { console.error(e); }
+    finally { setModuleLoading(false); }
   };
 
   if (user?.role !== 'admin') return (
@@ -100,21 +156,19 @@ export default function AcademyEdit() {
         }}>← Zurück</button>
       </div>
 
+      {/* Course form */}
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Title */}
         <div>
           <label style={labelStyle}>Titel *</label>
           <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Kurstitel..." style={inputStyle} />
         </div>
 
-        {/* Description */}
         <div>
           <label style={labelStyle}>Beschreibung</label>
           <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} placeholder="Kurzbeschreibung..." style={{ ...inputStyle, resize: 'vertical' }} />
         </div>
 
-        {/* Row: Category + Color + Audience */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
           <div>
             <label style={labelStyle}>Kategorie</label>
@@ -135,36 +189,29 @@ export default function AcademyEdit() {
           </div>
         </div>
 
-        {/* Formats */}
-        <div>
-          <label style={labelStyle}>Formate</label>
-          <div style={{ display: 'flex', gap: 12 }}>
-            {[{ id: 'text', label: '📄 Text' }, { id: 'video', label: '🎬 Video' }, { id: 'checklist', label: '✅ Checkliste' }].map(fmt => (
-              <label key={fmt.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                <input type="checkbox" checked={form.formats.includes(fmt.id)} onChange={() => toggleFormat(fmt.id)}
-                  style={{ width: 16, height: 16, accentColor: 'var(--brand-primary)' }} />
-                {fmt.label}
-              </label>
-            ))}
+        {/* Formats + linear_progress */}
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div>
+            <label style={labelStyle}>Formate</label>
+            <div style={{ display: 'flex', gap: 12 }}>
+              {[{ id: 'text', label: '📄 Text' }, { id: 'video', label: '🎬 Video' }, { id: 'checklist', label: '✅ Checkliste' }].map(fmt => (
+                <label key={fmt.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                  <input type="checkbox" checked={form.formats.includes(fmt.id)} onChange={() => toggleFormat(fmt.id)}
+                    style={{ width: 16, height: 16, accentColor: 'var(--brand-primary)' }} />
+                  {fmt.label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Freischaltung</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', color: 'var(--text-secondary)' }}>
+              <input type="checkbox" checked={form.linear_progress} onChange={e => setForm(p => ({ ...p, linear_progress: e.target.checked }))}
+                style={{ width: 16, height: 16, accentColor: 'var(--brand-primary)' }} />
+              Lineare Freischaltung
+            </label>
           </div>
         </div>
-
-        {/* Content Text */}
-        {form.formats.includes('text') && (
-          <div>
-            <label style={labelStyle}>Anleitungstext (HTML erlaubt)</label>
-            <textarea value={form.content_text} onChange={e => setForm(p => ({ ...p, content_text: e.target.value }))} rows={8}
-              placeholder="<h3>Schritt 1</h3><p>Beschreibung...</p>" style={{ ...inputStyle, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 12, lineHeight: 1.6 }} />
-          </div>
-        )}
-
-        {/* Video URL */}
-        {form.formats.includes('video') && (
-          <div>
-            <label style={labelStyle}>Video-URL (YouTube/Vimeo Embed)</label>
-            <input value={form.video_url} onChange={e => setForm(p => ({ ...p, video_url: e.target.value }))} placeholder="https://www.youtube.com/embed/..." style={inputStyle} />
-          </div>
-        )}
 
         {/* Checklist Items */}
         {form.formats.includes('checklist') && (
@@ -206,6 +253,64 @@ export default function AcademyEdit() {
           fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)',
         }}>Abbrechen</button>
       </div>
+
+      {/* Modules management (only for existing courses) */}
+      {!isNew && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Module verwalten</h3>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{modules.length} Module</span>
+          </div>
+
+          {/* Module list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+            {modules.length === 0 && (
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'center', padding: '12px 0' }}>
+                Noch keine Module angelegt
+              </div>
+            )}
+            {modules.map((mod, idx) => (
+              <div key={mod.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '8px 12px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                {/* Sort arrows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
+                  <button onClick={() => moveModule(idx, -1)} disabled={idx === 0 || moduleLoading} style={{ padding: '1px 5px', background: 'none', border: '1px solid var(--border-medium)', borderRadius: 3, fontSize: 10, cursor: 'pointer', opacity: idx === 0 ? 0.3 : 1 }}>▲</button>
+                  <button onClick={() => moveModule(idx, 1)} disabled={idx === modules.length - 1 || moduleLoading} style={{ padding: '1px 5px', background: 'none', border: '1px solid var(--border-medium)', borderRadius: 3, fontSize: 10, cursor: 'pointer', opacity: idx === modules.length - 1 ? 0.3 : 1 }}>▼</button>
+                </div>
+                {/* Inline title edit */}
+                <input
+                  value={mod.title}
+                  onChange={e => updateModuleTitle(mod, e.target.value)}
+                  style={{ ...inputStyle, flex: 1, padding: '6px 10px' }}
+                />
+                {/* Edit lessons button */}
+                <Link
+                  to={`/app/akademie/admin/modul/${mod.id}`}
+                  style={{ padding: '6px 12px', background: 'var(--brand-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                >
+                  Lektionen
+                </Link>
+                <button onClick={() => deleteModule(mod.id)} style={{ padding: '6px 8px', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 12, cursor: 'pointer', flexShrink: 0 }}>✕</button>
+              </div>
+            ))}
+          </div>
+
+          {/* Add new module */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              value={newModuleTitle}
+              onChange={e => setNewModuleTitle(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addModule()}
+              placeholder="Neues Modul..."
+              style={{ ...inputStyle, flex: 1 }}
+            />
+            <button onClick={addModule} disabled={addingModule || !newModuleTitle.trim()} style={{
+              padding: '9px 16px', background: 'var(--brand-primary)', color: 'white', border: 'none',
+              borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+              fontFamily: 'var(--font-sans)', opacity: !newModuleTitle.trim() ? 0.5 : 1, whiteSpace: 'nowrap',
+            }}>+ Modul hinzufügen</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

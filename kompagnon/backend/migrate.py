@@ -93,6 +93,34 @@ migrations = [
         completed BOOLEAN DEFAULT FALSE,
         completed_at TIMESTAMP
     )""",
+    # Academy: neue Spalten academy_courses
+    "ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS thumbnail_url VARCHAR(500) DEFAULT ''",
+    "ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT FALSE",
+    "ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS target_audience VARCHAR(20) DEFAULT 'both'",
+    # Academy: neue Spalten academy_modules
+    "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS position INT DEFAULT 0",
+    "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE",
+    # Academy: neue Spalten academy_lessons
+    "ALTER TABLE academy_lessons ADD COLUMN IF NOT EXISTS position INT DEFAULT 0",
+    "ALTER TABLE academy_lessons ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'text'",
+    "ALTER TABLE academy_lessons ADD COLUMN IF NOT EXISTS content_url VARCHAR(500) DEFAULT ''",
+    "ALTER TABLE academy_lessons ADD COLUMN IF NOT EXISTS duration_minutes INT DEFAULT 0",
+    # Academy: Fortschritt (quiz-fähig, mit Score)
+    """CREATE TABLE IF NOT EXISTS academy_progress (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL,
+        lesson_id INT REFERENCES academy_lessons(id) ON DELETE CASCADE,
+        completed_at TIMESTAMP,
+        score NUMERIC(5,2)
+    )""",
+    # Academy: Zertifikate
+    """CREATE TABLE IF NOT EXISTS academy_certificates (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL,
+        course_id INT REFERENCES academy_courses(id) ON DELETE CASCADE,
+        issued_at TIMESTAMP DEFAULT NOW(),
+        certificate_code VARCHAR(64) UNIQUE NOT NULL
+    )""",
 ]
 
 

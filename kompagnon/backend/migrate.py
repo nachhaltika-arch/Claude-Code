@@ -61,6 +61,36 @@ migrations = [
     "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_vertrauen INTEGER DEFAULT 0",
     "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_content INTEGER DEFAULT 0",
     "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_kontakt INTEGER DEFAULT 0",
+    # Academy: linear_progress flag
+    "ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS linear_progress BOOLEAN DEFAULT FALSE",
+    # Academy: Inhalt wandert in Lektionen — content_text und video_url entfernen
+    "ALTER TABLE academy_courses DROP COLUMN IF EXISTS content_text",
+    "ALTER TABLE academy_courses DROP COLUMN IF EXISTS video_url",
+    # Academy: Module-Tabelle
+    """CREATE TABLE IF NOT EXISTS academy_modules (
+        id SERIAL PRIMARY KEY,
+        course_id INT REFERENCES academy_courses(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        sort_order INT DEFAULT 0
+    )""",
+    # Academy: Lektionen-Tabelle
+    """CREATE TABLE IF NOT EXISTS academy_lessons (
+        id SERIAL PRIMARY KEY,
+        module_id INT REFERENCES academy_modules(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        content_text TEXT,
+        video_url VARCHAR(500),
+        file_url VARCHAR(500),
+        sort_order INT DEFAULT 0
+    )""",
+    # Academy: Lernfortschritt je Lektion
+    """CREATE TABLE IF NOT EXISTS academy_lesson_progress (
+        id SERIAL PRIMARY KEY,
+        user_id INT,
+        lesson_id INT REFERENCES academy_lessons(id) ON DELETE CASCADE,
+        completed BOOLEAN DEFAULT FALSE,
+        completed_at TIMESTAMP
+    )""",
 ]
 
 

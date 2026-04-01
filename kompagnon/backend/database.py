@@ -400,6 +400,31 @@ class Briefing(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class AcademyCourse(Base):
+    """Academy course."""
+    __tablename__ = "academy_courses"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, default='')
+    category = Column(String(100), default='')
+    category_color = Column(String(50), default='primary')
+    audience = Column(String(20), nullable=False, default='employee')
+    formats = Column(Text, default='["text"]')
+    content_text = Column(Text, default='')
+    video_url = Column(String(500), default='')
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AcademyChecklistItem(Base):
+    """Checklist item for an academy course."""
+    __tablename__ = "academy_checklist_items"
+    id = Column(Integer, primary_key=True)
+    course_id = Column(Integer, ForeignKey('academy_courses.id', ondelete='CASCADE'), nullable=False)
+    label = Column(String(500), nullable=False)
+    sort_order = Column(Integer, default=0)
+
+
 def init_db():
     """Create all tables."""
     Base.metadata.create_all(bind=engine)

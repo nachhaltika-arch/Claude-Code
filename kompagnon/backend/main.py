@@ -151,6 +151,25 @@ def _run_migrations():
             browser_info VARCHAR DEFAULT '', screenshot_base64 TEXT DEFAULT '', admin_notes TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW(), resolved_at TIMESTAMP
         )""",
+        """CREATE TABLE IF NOT EXISTS academy_courses (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            description TEXT DEFAULT '',
+            category VARCHAR(100) DEFAULT '',
+            category_color VARCHAR(50) DEFAULT 'primary',
+            audience VARCHAR(20) NOT NULL DEFAULT 'employee',
+            formats TEXT DEFAULT '["text"]',
+            content_text TEXT DEFAULT '',
+            video_url VARCHAR(500) DEFAULT '',
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS academy_checklist_items (
+            id SERIAL PRIMARY KEY,
+            course_id INTEGER REFERENCES academy_courses(id) ON DELETE CASCADE,
+            label VARCHAR(500) NOT NULL,
+            sort_order INTEGER DEFAULT 0
+        )""",
         # Note: users + user_sessions tables are created by init_db() via SQLAlchemy
     ]
     try:
@@ -216,6 +235,16 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"⚠ Default admin: {e}")
 
+        # Seed academy courses if empty
+        try:
+            from routers.academy import seed_academy_courses
+            from database import SessionLocal
+            _seed_db = SessionLocal()
+            seed_academy_courses(_seed_db)
+            _seed_db.close()
+        except Exception as e:
+            logger.warning(f"⚠ Academy seed: {e}")
+
         # Start scheduler (non-critical — don't block app start)
         try:
             start_scheduler()
@@ -278,6 +307,9 @@ app.include_router(tickets_router)
 
 from routers.briefing import router as briefing_router
 app.include_router(briefing_router)
+
+from routers.academy import router as academy_router
+app.include_router(academy_router)
 
 
 # Global exception handler — catches unhandled errors

@@ -412,6 +412,7 @@ class AcademyCourse(Base):
     formats = Column(Text, default='["text"]')
     content_text = Column(Text, default='')
     video_url = Column(String(500), default='')
+    linear_progress = Column(Boolean, default=False)
     sort_order = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -423,6 +424,37 @@ class AcademyChecklistItem(Base):
     course_id = Column(Integer, ForeignKey('academy_courses.id', ondelete='CASCADE'), nullable=False)
     label = Column(String(500), nullable=False)
     sort_order = Column(Integer, default=0)
+
+
+class AcademyModule(Base):
+    """Module within an academy course."""
+    __tablename__ = "academy_modules"
+    id = Column(Integer, primary_key=True)
+    course_id = Column(Integer, ForeignKey('academy_courses.id', ondelete='CASCADE'), nullable=False)
+    title = Column(String(255), nullable=False)
+    sort_order = Column(Integer, default=0)
+
+
+class AcademyLesson(Base):
+    """Lesson within a module."""
+    __tablename__ = "academy_lessons"
+    id = Column(Integer, primary_key=True)
+    module_id = Column(Integer, ForeignKey('academy_modules.id', ondelete='CASCADE'), nullable=False)
+    title = Column(String(255), nullable=False)
+    content_text = Column(Text, default='')
+    video_url = Column(String(500), default='')
+    file_url = Column(String(500), default='')
+    sort_order = Column(Integer, default=0)
+
+
+class AcademyLessonProgress(Base):
+    """User progress on a lesson."""
+    __tablename__ = "academy_lesson_progress"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer)
+    lesson_id = Column(Integer, ForeignKey('academy_lessons.id', ondelete='CASCADE'), nullable=False)
+    completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime, nullable=True)
 
 
 def init_db():

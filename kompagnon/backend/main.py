@@ -170,6 +170,29 @@ def _run_migrations():
             label VARCHAR(500) NOT NULL,
             sort_order INTEGER DEFAULT 0
         )""",
+        "ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS linear_progress BOOLEAN DEFAULT FALSE",
+        """CREATE TABLE IF NOT EXISTS academy_modules (
+            id SERIAL PRIMARY KEY,
+            course_id INTEGER REFERENCES academy_courses(id) ON DELETE CASCADE,
+            title VARCHAR(255) NOT NULL,
+            sort_order INTEGER DEFAULT 0
+        )""",
+        """CREATE TABLE IF NOT EXISTS academy_lessons (
+            id SERIAL PRIMARY KEY,
+            module_id INTEGER REFERENCES academy_modules(id) ON DELETE CASCADE,
+            title VARCHAR(255) NOT NULL,
+            content_text TEXT DEFAULT '',
+            video_url VARCHAR(500) DEFAULT '',
+            file_url VARCHAR(500) DEFAULT '',
+            sort_order INTEGER DEFAULT 0
+        )""",
+        """CREATE TABLE IF NOT EXISTS academy_lesson_progress (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER,
+            lesson_id INTEGER REFERENCES academy_lessons(id) ON DELETE CASCADE,
+            completed BOOLEAN DEFAULT FALSE,
+            completed_at TIMESTAMP
+        )""",
         # Note: users + user_sessions tables are created by init_db() via SQLAlchemy
     ]
     try:

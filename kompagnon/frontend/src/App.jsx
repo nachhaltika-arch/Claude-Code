@@ -33,6 +33,7 @@ import ResetPassword from './pages/ResetPassword';
 import Akademie from './pages/Akademie';
 import AcademyCourse from './pages/AcademyCourse';
 import AcademyAdmin from './pages/AcademyAdmin';
+import AcademyEdit from './pages/AcademyEdit';
 import SalesPipeline from './pages/SalesPipeline';
 import DomainImport from './pages/DomainImport';
 import CustomerPortal from './pages/CustomerPortal';
@@ -110,7 +111,8 @@ function App() {
             <Route path="akademie" element={<Akademie />} />
             <Route path="akademie/kurs/:kursId" element={<AcademyCourse />} />
             <Route path="akademie/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />
-            <Route path="akademie/admin/:courseId" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />
+            <Route path="akademie/admin/neu" element={<PrivateRoute roles={['admin']}><AcademyEdit /></PrivateRoute>} />
+            <Route path="akademie/admin/:courseId" element={<PrivateRoute roles={['admin']}><AcademyEdit /></PrivateRoute>} />
 
             {/* Settings with sub-navigation */}
             <Route path="settings" element={<SettingsLayout />}>

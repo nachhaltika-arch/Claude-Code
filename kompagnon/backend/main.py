@@ -155,38 +155,60 @@ def _run_migrations():
             id SERIAL PRIMARY KEY,
             title VARCHAR(255) NOT NULL,
             description TEXT DEFAULT '',
+            thumbnail_url VARCHAR(500) DEFAULT '',
+            is_published BOOLEAN DEFAULT FALSE,
+            target_audience VARCHAR(20) DEFAULT 'both',
             category VARCHAR(100) DEFAULT '',
             category_color VARCHAR(50) DEFAULT 'primary',
-            audience VARCHAR(20) NOT NULL DEFAULT 'employee',
+            audience VARCHAR(20) DEFAULT 'employee',
             formats TEXT DEFAULT '["text"]',
             content_text TEXT DEFAULT '',
             video_url VARCHAR(500) DEFAULT '',
+            linear_progress BOOLEAN DEFAULT FALSE,
             sort_order INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT NOW()
         )""",
+        # Missing columns on academy_courses (for existing deployments)
+        "ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS thumbnail_url VARCHAR(500) DEFAULT ''",
+        "ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS target_audience VARCHAR(20) DEFAULT 'both'",
+        "ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS linear_progress BOOLEAN DEFAULT FALSE",
         """CREATE TABLE IF NOT EXISTS academy_checklist_items (
             id SERIAL PRIMARY KEY,
             course_id INTEGER REFERENCES academy_courses(id) ON DELETE CASCADE,
             label VARCHAR(500) NOT NULL,
             sort_order INTEGER DEFAULT 0
         )""",
-        "ALTER TABLE academy_courses ADD COLUMN IF NOT EXISTS linear_progress BOOLEAN DEFAULT FALSE",
         """CREATE TABLE IF NOT EXISTS academy_modules (
             id SERIAL PRIMARY KEY,
             course_id INTEGER REFERENCES academy_courses(id) ON DELETE CASCADE,
             title VARCHAR(255) NOT NULL,
+            position INTEGER DEFAULT 0,
+            is_locked BOOLEAN DEFAULT FALSE,
             sort_order INTEGER DEFAULT 0
         )""",
+        # Missing columns on academy_modules (for existing deployments)
+        "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0",
+        "ALTER TABLE academy_modules ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE",
         """CREATE TABLE IF NOT EXISTS academy_lessons (
             id SERIAL PRIMARY KEY,
             module_id INTEGER REFERENCES academy_modules(id) ON DELETE CASCADE,
             title VARCHAR(255) NOT NULL,
+            position INTEGER DEFAULT 0,
+            type VARCHAR(20) DEFAULT 'text',
             content_text TEXT DEFAULT '',
+            content_url VARCHAR(500) DEFAULT '',
             video_url VARCHAR(500) DEFAULT '',
             file_url VARCHAR(500) DEFAULT '',
+            duration_minutes INTEGER DEFAULT 0,
             sort_order INTEGER DEFAULT 0,
             checklist_items_json TEXT DEFAULT '[]'
         )""",
+        # Missing columns on academy_lessons (for existing deployments)
+        "ALTER TABLE academy_lessons ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0",
+        "ALTER TABLE academy_lessons ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'text'",
+        "ALTER TABLE academy_lessons ADD COLUMN IF NOT EXISTS content_url VARCHAR(500) DEFAULT ''",
+        "ALTER TABLE academy_lessons ADD COLUMN IF NOT EXISTS duration_minutes INTEGER DEFAULT 0",
         "ALTER TABLE academy_lessons ADD COLUMN IF NOT EXISTS checklist_items_json TEXT DEFAULT '[]'",
         """CREATE TABLE IF NOT EXISTS academy_lesson_progress (
             id SERIAL PRIMARY KEY,
@@ -194,6 +216,28 @@ def _run_migrations():
             lesson_id INTEGER REFERENCES academy_lessons(id) ON DELETE CASCADE,
             completed BOOLEAN DEFAULT FALSE,
             completed_at TIMESTAMP
+        )""",
+        """CREATE TABLE IF NOT EXISTS academy_progress (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            lesson_id INTEGER REFERENCES academy_lessons(id) ON DELETE CASCADE,
+            completed_at TIMESTAMP,
+            score FLOAT
+        )""",
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_academy_progress ON academy_progress(user_id, lesson_id)",
+        """CREATE TABLE IF NOT EXISTS academy_certificates (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            course_id INTEGER REFERENCES academy_courses(id) ON DELETE CASCADE,
+            issued_at TIMESTAMP DEFAULT NOW(),
+            certificate_code VARCHAR(64) UNIQUE NOT NULL
+        )""",
+        """CREATE TABLE IF NOT EXISTS academy_quiz_questions (
+            id SERIAL PRIMARY KEY,
+            lesson_id INTEGER REFERENCES academy_lessons(id) ON DELETE CASCADE,
+            question TEXT NOT NULL,
+            answers_json TEXT DEFAULT '[]',
+            sort_order INTEGER DEFAULT 0
         )""",
         # Note: users + user_sessions tables are created by init_db() via SQLAlchemy
         """CREATE TABLE IF NOT EXISTS academy_customer_access (
@@ -213,14 +257,27 @@ def _run_migrations():
         "ALTER TABLE customers ADD COLUMN IF NOT EXISTS pagespeed_fcp_mobile FLOAT",
         "ALTER TABLE customers ADD COLUMN IF NOT EXISTS pagespeed_checked_at TIMESTAMP",
     ]
+    academy_tables = [
+        'academy_courses', 'academy_modules', 'academy_lessons',
+        'academy_progress', 'academy_lesson_progress',
+        'academy_certificates', 'academy_quiz_questions',
+        'academy_customer_access', 'academy_checklist_items',
+    ]
     try:
         with engine.connect() as conn:
             for sql in migrations:
                 try:
                     conn.execute(text(sql))
                 except Exception:
-                    pass  # Spalte existiert bereits
+                    pass  # Spalte/Tabelle existiert bereits
             conn.commit()
+            # Verify academy tables exist and log
+            for tbl in academy_tables:
+                try:
+                    conn.execute(text(f"SELECT 1 FROM {tbl} LIMIT 1"))
+                    print(f"✓ {tbl} OK")
+                except Exception as e:
+                    print(f"✗ {tbl} FEHLER: {e}")
         logger.info("✓ Migrationen abgeschlossen")
     except Exception as e:
         logger.warning(f"Migration Warnung: {e}")

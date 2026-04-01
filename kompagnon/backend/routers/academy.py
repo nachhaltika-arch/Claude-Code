@@ -100,8 +100,26 @@ def _progress_summary(course_id: int, user_id: int, db: Session) -> dict:
 
 @router.get('/courses')
 def list_courses(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    """Liste aller Kurse mit Fortschritt des aktuellen Users."""
-    courses = db.query(AcademyCourse).order_by(AcademyCourse.sort_order, AcademyCourse.id).all()
+    """Liste aller Kurse gefiltert nach Rolle und Zielgruppe."""
+    role = current_user.role
+
+    q = db.query(AcademyCourse)
+
+    if role == 'kunde':
+        q = q.filter(
+            AcademyCourse.target_audience.in_(['customer', 'both']),
+            AcademyCourse.is_published.is_(True),
+        )
+    elif role == 'admin':
+        pass  # Admin sieht alle Kurse inkl. Entwürfe, keine Filterung
+    else:
+        # nutzer, auditor, und alle anderen internen Rollen
+        q = q.filter(
+            AcademyCourse.target_audience.in_(['employee', 'both']),
+            AcademyCourse.is_published.is_(True),
+        )
+
+    courses = q.order_by(AcademyCourse.sort_order, AcademyCourse.id).all()
     result = []
     for c in courses:
         data = _serialize_course(c)

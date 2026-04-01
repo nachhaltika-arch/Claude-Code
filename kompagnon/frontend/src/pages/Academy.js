@@ -25,23 +25,45 @@ const T = {
   certText:   '#a06800',
 };
 
-const AUDIENCE_LABEL = {
-  employee: 'Für Mitarbeiter',
-  customer: 'Für Kunden',
-  both:     'Für alle',
+const AUDIENCE_BADGE = {
+  customer: { label: 'Kunden',       bg: '#008eaa', color: '#fff'     },
+  employee: { label: 'Mitarbeiter',  bg: '#6366f1', color: '#fff'     },
+  both:     { label: 'Für alle',     bg: '#f0f2f4', color: '#4a6470'  },
 };
+
+// ── Tab definitions per role ───────────────────────────────────
+function buildTabs(role) {
+  if (role === 'admin') {
+    return [
+      { id: 'employee', label: 'Mitarbeiter' },
+      { id: 'customer', label: 'Kunden' },
+      { id: 'all',      label: 'Alle' },
+    ];
+  }
+  if (role === 'kunde') {
+    return null; // no tabs for Kunde
+  }
+  // nutzer / auditor
+  return [
+    { id: 'mine',     label: 'Meine Kurse' },
+    { id: 'customer', label: 'Für Kunden' },
+  ];
+}
 
 export default function Academy() {
   const navigate = useNavigate();
   const { user, token } = useAuth();
-  const isInternal = user?.role === 'admin' || user?.role === 'auditor';
+  const role = user?.role;
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
-  const [courses, setCourses]       = useState([]);
+  const tabs = buildTabs(role);
+  const defaultTab = tabs?.[0]?.id ?? null;
+
+  const [courses, setCourses]         = useState([]);
   const [progressMap, setProgressMap] = useState({});
-  const [loading, setLoading]       = useState(true);
-  const [filter, setFilter]         = useState('all'); // all | mine | done
-  const [search, setSearch]         = useState('');
+  const [loading, setLoading]         = useState(true);
+  const [tab, setTab]                 = useState(defaultTab);
+  const [search, setSearch]           = useState('');
 
   useEffect(() => {
     const uid = user?.id;
@@ -61,16 +83,22 @@ export default function Academy() {
 
   const visible = courses.filter(c => {
     const aud = c.target_audience || c.audience;
-    const roleOk = isInternal
-      ? aud === 'employee' || aud === 'both'
-      : aud === 'customer'  || aud === 'both';
-    if (!roleOk) return false;
+
+    // Audience tab filter
+    if (tab === 'employee') {
+      if (aud !== 'employee' && aud !== 'both') return false;
+    } else if (tab === 'customer') {
+      if (aud !== 'customer' && aud !== 'both') return false;
+    } else if (tab === 'mine') {
+      const p = progressMap[c.id];
+      if (!p || p.completed === 0) return false;
+    }
+    // tab === 'all' → no audience filter
+
     if (search.trim()) {
       const q = search.toLowerCase();
       if (!c.title?.toLowerCase().includes(q) && !c.description?.toLowerCase().includes(q)) return false;
     }
-    if (filter === 'mine') { const p = progressMap[c.id]; return p && p.completed > 0; }
-    if (filter === 'done') { const p = progressMap[c.id]; return p && p.progress_pct === 100; }
     return true;
   });
 
@@ -92,7 +120,9 @@ export default function Academy() {
             KOMPAGNON Akademy
           </h1>
           <p style={{ fontSize: 14, color: T.textMuted, margin: 0, fontFamily: T.font }}>
-            {isInternal ? 'Schulungen & internes Wissen für das Team' : 'Dein Lernbereich — Wissen & Kurse'}
+            {role === 'admin' ? 'Alle Kurse — Mitarbeiter & Kunden'
+              : role === 'kunde' ? 'Dein Lernbereich — Wissen & Kurse'
+              : 'Schulungen & internes Wissen für das Team'}
           </p>
         </div>
 
@@ -122,45 +152,46 @@ export default function Academy() {
       </div>
 
       {/* ── Filter tabs ─────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', borderBottom: `1px solid ${T.border}` }}>
-          {[
-            { id: 'all',  label: 'Alle' },
-            { id: 'mine', label: 'In Bearbeitung' },
-            { id: 'done', label: 'Abgeschlossen' },
-          ].map(f => {
-            const active = filter === f.id;
-            return (
-              <button
-                key={f.id}
-                onClick={() => setFilter(f.id)}
-                style={{
-                  padding: '9px 18px',
-                  background: 'none', border: 'none',
-                  borderBottom: active ? `2px solid ${T.primary}` : '2px solid transparent',
-                  marginBottom: -1,
-                  color: active ? T.primary : T.textSub,
-                  fontSize: 13, fontWeight: active ? 600 : 400,
-                  cursor: 'pointer', fontFamily: T.font,
-                  transition: 'color 0.15s',
-                }}
-              >{f.label}</button>
-            );
-          })}
-        </div>
+      {(tabs || role === 'admin') && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          {tabs && (
+            <div style={{ display: 'flex', borderBottom: `1px solid ${T.border}` }}>
+              {tabs.map(f => {
+                const active = tab === f.id;
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => setTab(f.id)}
+                    style={{
+                      padding: '9px 18px',
+                      background: 'none', border: 'none',
+                      borderBottom: active ? `2px solid ${T.primary}` : '2px solid transparent',
+                      marginBottom: -1,
+                      color: active ? T.primary : T.textSub,
+                      fontSize: 13, fontWeight: active ? 600 : 400,
+                      cursor: 'pointer', fontFamily: T.font,
+                      transition: 'color 0.15s',
+                    }}
+                  >{f.label}</button>
+                );
+              })}
+            </div>
+          )}
+          {!tabs && <div />}
 
-        {user?.role === 'admin' && (
-          <button
-            onClick={() => navigate('/app/akademie/admin')}
-            style={{
-              padding: '7px 14px',
-              background: T.appBg, color: T.textSub,
-              border: `1px solid ${T.borderMed}`, borderRadius: T.radiusLg,
-              fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: T.font,
-            }}
-          >⚙️ Kurse verwalten</button>
-        )}
-      </div>
+          {role === 'admin' && (
+            <button
+              onClick={() => navigate('/app/akademie/admin')}
+              style={{
+                padding: '7px 14px',
+                background: T.appBg, color: T.textSub,
+                border: `1px solid ${T.borderMed}`, borderRadius: T.radiusLg,
+                fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: T.font,
+              }}
+            >⚙️ Kurse verwalten</button>
+          )}
+        </div>
+      )}
 
       {/* ── Grid ────────────────────────────────────────────── */}
       {loading ? (
@@ -180,8 +211,7 @@ export default function Academy() {
           <div style={{ fontSize: 15, fontWeight: 600, color: T.textSub, marginBottom: 6, fontFamily: T.font }}>
             {search
               ? 'Keine Kurse gefunden'
-              : filter === 'done' ? 'Noch kein Kurs abgeschlossen'
-              : filter === 'mine' ? 'Noch kein Kurs gestartet'
+              : tab === 'mine' ? 'Noch kein Kurs gestartet'
               : 'Noch keine Kurse verfügbar'}
           </div>
           <div style={{ fontSize: 13, color: T.textMuted, fontFamily: T.font }}>
@@ -240,14 +270,15 @@ export default function Academy() {
                   {/* Audience badge — top left */}
                   <div style={{
                     position: 'absolute', top: 10, left: 10,
-                    background: T.primary, color: '#fff',
+                    background: AUDIENCE_BADGE[aud]?.bg || T.primary,
+                    color: AUDIENCE_BADGE[aud]?.color || '#fff',
                     borderRadius: T.radiusFull,
                     fontSize: 11, fontWeight: 600,
                     padding: '3px 10px',
                     fontFamily: T.font,
                     letterSpacing: '0.02em',
                   }}>
-                    {AUDIENCE_LABEL[aud] || aud}
+                    {AUDIENCE_BADGE[aud]?.label || aud}
                   </div>
 
                   {/* Status badge — top right */}

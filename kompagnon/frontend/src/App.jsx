@@ -36,6 +36,7 @@ import AcademyCourseNew from './pages/AcademyCourse';   // neue 2-Spalten-Versio
 import AcademyLesson from './pages/AcademyLesson';
 import AcademyAdmin from './pages/AcademyAdmin';
 import AcademyAdminCourse from './pages/AcademyAdminCourse';
+import AcademyAdminLesson from './pages/AcademyAdminLesson';
 import AcademyEdit from './pages/AcademyEdit';
 import AcademyModuleEdit from './pages/AcademyModuleEdit';
 import AcademyCertificate from './pages/AcademyCertificate';
@@ -126,6 +127,8 @@ function App() {
             <Route path="akademie/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />
             <Route path="akademie/admin/course/new" element={<PrivateRoute roles={['admin']}><AcademyAdminCourse /></PrivateRoute>} />
             <Route path="akademie/admin/course/:courseId" element={<PrivateRoute roles={['admin']}><AcademyAdminCourse /></PrivateRoute>} />
+            <Route path="akademie/admin/lesson/new" element={<PrivateRoute roles={['admin']}><AcademyAdminLesson /></PrivateRoute>} />
+            <Route path="akademie/admin/lesson/:lessonId" element={<PrivateRoute roles={['admin']}><AcademyAdminLesson /></PrivateRoute>} />
             <Route path="akademie/admin/neu" element={<PrivateRoute roles={['admin']}><AcademyEdit /></PrivateRoute>} />
             <Route path="akademie/admin/:courseId" element={<PrivateRoute roles={['admin']}><AcademyEdit /></PrivateRoute>} />
             <Route path="akademie/admin/modul/:moduleId" element={<PrivateRoute roles={['admin']}><AcademyModuleEdit /></PrivateRoute>} />

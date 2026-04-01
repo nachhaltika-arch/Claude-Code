@@ -11,6 +11,7 @@ const T = {
   appBg:       '#f4f6f8',
   surface:     '#ffffff',
   border:      'rgba(0,142,170,0.12)',
+  borderMed:   'rgba(0,142,170,0.25)',
   text:        '#0f1c20',
   textSub:     '#4a6470',
   textMuted:   '#8fa8b0',
@@ -20,6 +21,8 @@ const T = {
   font:        "'DM Sans', system-ui, sans-serif",
   successBg:   '#eaf5ee',
   successText: '#1a7a3a',
+  errorBg:     '#fef0f0',
+  errorText:   '#b02020',
   neutralBg:   '#f0f2f4',
   quizBg:      '#fff8e6',
   quizText:    '#a06800',
@@ -465,15 +468,15 @@ export default function AcademyCourse() {
                         <div style={{
                           display: 'inline-block', borderRadius: T.radiusLg,
                           padding: '28px 44px',
-                          background: quizResult.passed ? T.successBg : '#fef2f2',
+                          background: quizResult.passed ? T.successBg : T.errorBg,
                           border: `1px solid ${quizResult.passed ? '#bbf7d0' : '#fecaca'}`,
                           marginBottom: 24,
                         }}>
                           <div style={{ fontSize: 44, marginBottom: 10 }}>{quizResult.passed ? '🏆' : '😞'}</div>
-                          <div style={{ fontSize: 24, fontWeight: 700, color: quizResult.passed ? T.successText : '#dc2626', marginBottom: 4, fontFamily: T.font }}>
+                          <div style={{ fontSize: 24, fontWeight: 700, color: quizResult.passed ? T.successText : T.errorText, marginBottom: 4, fontFamily: T.font }}>
                             {quizResult.passed ? 'Bestanden' : 'Nicht bestanden'}
                           </div>
-                          <div style={{ fontSize: 14, color: quizResult.passed ? T.successText : '#b91c1c', fontFamily: T.font }}>
+                          <div style={{ fontSize: 14, color: quizResult.passed ? T.successText : T.errorText, fontFamily: T.font }}>
                             {quizResult.correct} von {quizResult.total} richtig
                           </div>
                         </div>
@@ -528,7 +531,7 @@ export default function AcademyCourse() {
                                     cursor: 'pointer', padding: '12px 16px',
                                     borderRadius: '8px',
                                     background: selected ? T.primaryBg : T.appBg,
-                                    border: `1.5px solid ${selected ? T.primary : T.border}`,
+                                    border: selected ? `2px solid ${T.primary}` : `1.5px solid ${T.borderMed}`,
                                     transition: 'all 0.15s',
                                   }}>
                                     <input

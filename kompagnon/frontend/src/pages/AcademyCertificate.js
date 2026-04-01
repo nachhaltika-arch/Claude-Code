@@ -2,11 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import API_BASE_URL from '../config';
 
+// ── Design tokens ──────────────────────────────────────────────
+const T = {
+  primary:    '#008eaa',
+  primaryBg:  '#e0f4f8',
+  border:     'rgba(0,142,170,0.12)',
+  borderMed:  'rgba(0,142,170,0.25)',
+  text:       '#0f1c20',
+  textSub:    '#4a6470',
+  textMuted:  '#8fa8b0',
+  appBg:      '#f4f6f8',
+  font:       "'DM Sans', system-ui, sans-serif",
+};
+
 export default function AcademyCertificate() {
   const { code } = useParams();
-  const [data, setData] = useState(null);
+  const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error,   setError]   = useState(null);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/academy/certificates/${code}/verify`)
@@ -20,116 +33,177 @@ export default function AcademyCertificate() {
   }, [code]);
 
   if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f8fafc' }}>
-      <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #e2e8f0', borderTopColor: '#1e40af', animation: 'spin 0.8s linear infinite' }} />
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: T.appBg }}>
+      <div style={{ width: 32, height: 32, borderRadius: '50%', border: `3px solid ${T.primaryBg}`, borderTopColor: T.primary, animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
   if (error) return (
-    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f8fafc', gap: 16 }}>
-      <div style={{ fontSize: 56 }}>❌</div>
-      <div style={{ fontSize: 20, fontWeight: 700, color: '#dc2626' }}>Zertifikat nicht gefunden</div>
-      <div style={{ fontSize: 14, color: '#64748b' }}>Der Code <strong>{code}</strong> ist ungültig oder wurde widerrufen.</div>
+    <div style={{
+      display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+      minHeight: '100vh', background: T.appBg, gap: 12, fontFamily: T.font,
+    }}>
+      <div style={{ fontSize: 52, opacity: 0.4 }}>🔍</div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: '#b02020' }}>Zertifikat nicht gefunden</div>
+      <div style={{ fontSize: 14, color: T.textSub, textAlign: 'center', maxWidth: 360 }}>
+        Der Code <strong style={{ fontFamily: 'monospace', letterSpacing: '0.08em' }}>{code}</strong> ist ungültig oder wurde widerrufen.
+      </div>
     </div>
   );
 
+  const issuedFormatted = data.issued_at
+    ? new Date(data.issued_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
+    : '—';
+
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f5e9 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>
-      <style>{`@media print { body { margin: 0; } .no-print { display: none !important; } }`}</style>
+    <div style={{
+      minHeight: '100vh',
+      background: T.appBg,
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '40px 16px',
+      fontFamily: T.font,
+    }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media print {
+          body { margin: 0; background: white !important; }
+          .cert-no-print { display: none !important; }
+          .cert-card { box-shadow: none !important; border: 2px solid ${T.borderMed} !important; }
+        }
+      `}</style>
 
-      {/* Certificate card */}
-      <div style={{
-        background: 'white', maxWidth: 720, width: '100%',
-        borderRadius: 20, boxShadow: '0 20px 60px rgba(0,0,0,0.12)',
-        overflow: 'hidden', position: 'relative',
-      }}>
-        {/* Top accent bar */}
-        <div style={{ height: 8, background: 'linear-gradient(90deg, #1e40af 0%, #3b82f6 50%, #0891b2 100%)' }} />
+      {/* ── Certificate card (A4-like) ── */}
+      <div
+        className="cert-card"
+        style={{
+          background: '#ffffff',
+          maxWidth: 680, width: '100%',
+          border: `2px solid ${T.borderMed}`,
+          borderRadius: '16px',
+          boxShadow: '0 8px 40px rgba(0,142,170,0.10)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Inner content */}
+        <div style={{ padding: '48px 56px 44px' }}>
 
-        {/* Decorative corner */}
-        <div style={{ position: 'absolute', top: 30, right: 30, width: 100, height: 100, borderRadius: '50%', border: '2px solid #e8eef8', opacity: 0.5 }} />
-        <div style={{ position: 'absolute', top: 50, right: 50, width: 60, height: 60, borderRadius: '50%', border: '2px solid #e8eef8', opacity: 0.5 }} />
-
-        <div style={{ padding: '48px 56px 40px', position: 'relative' }}>
-          {/* Logo / Issuer */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 40 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: '#1e40af', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: 'white', fontWeight: 900, fontSize: 14 }}>K</span>
+          {/* ── Logo (centered) ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 32 }}>
+            <div style={{
+              width: 52, height: 52, borderRadius: '14px',
+              background: T.primary,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 10,
+            }}>
+              <span style={{ color: '#fff', fontWeight: 900, fontSize: 22, letterSpacing: '-0.02em' }}>K</span>
             </div>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#1e293b', letterSpacing: '0.04em' }}>KOMPAGNON</div>
-              <div style={{ fontSize: 11, color: '#64748b', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Akademy</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: T.text, letterSpacing: '0.06em' }}>KOMPAGNON</div>
+            <div style={{ fontSize: 11, color: T.textMuted, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>
+              Akademy
             </div>
           </div>
 
-          {/* Certificate title */}
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#3b82f6', marginBottom: 12 }}>
-            Zertifikat über den Abschluss
+          {/* ── Divider ── */}
+          <div style={{ height: 1, background: T.border, marginBottom: 36 }} />
+
+          {/* ── Certificate heading ── */}
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+            <div style={{
+              fontSize: 28, fontWeight: 700, color: T.primary,
+              letterSpacing: '-0.01em', lineHeight: 1.2, marginBottom: 6,
+            }}>
+              Zertifikat der Teilnahme
+            </div>
+            <div style={{ fontSize: 14, color: T.textMuted }}>
+              Hiermit wird bestätigt, dass
+            </div>
           </div>
 
-          {/* Trophy */}
-          <div style={{ fontSize: 56, marginBottom: 16 }}>🏆</div>
-
-          {/* Recipient */}
-          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 6 }}>Hiermit bestätigen wir, dass</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: '#1e293b', letterSpacing: '-0.02em', marginBottom: 6, lineHeight: 1.2 }}>
-            {data.user_name}
-          </div>
-          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 6 }}>den Kurs erfolgreich abgeschlossen hat:</div>
-
-          {/* Course title */}
-          <div style={{
-            display: 'inline-block', background: '#eff6ff', color: '#1e40af',
-            borderRadius: 10, padding: '10px 20px', fontSize: 16, fontWeight: 700, margin: '8px 0 32px',
-          }}>
-            {data.course_title}
+          {/* ── Recipient name ── */}
+          <div style={{ textAlign: 'center', marginBottom: 8 }}>
+            <div style={{
+              fontSize: 24, fontWeight: 700, color: T.text,
+              letterSpacing: '-0.01em', lineHeight: 1.2,
+            }}>
+              {data.user_name}
+            </div>
           </div>
 
-          {/* Meta row */}
-          <div style={{ display: 'flex', gap: 32, borderTop: '1px solid #f1f5f9', paddingTop: 24, marginTop: 8 }}>
+          {/* ── Course context ── */}
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <div style={{ fontSize: 14, color: T.textMuted, marginBottom: 8 }}>
+              den folgenden Kurs erfolgreich abgeschlossen hat:
+            </div>
+            <div style={{
+              display: 'inline-block',
+              background: T.primaryBg, color: T.primary,
+              borderRadius: '9999px', padding: '8px 22px',
+              fontSize: 18, fontWeight: 600,
+            }}>
+              {data.course_title}
+            </div>
+          </div>
+
+          {/* ── Divider ── */}
+          <div style={{ height: 1, background: T.border, marginBottom: 24 }} />
+
+          {/* ── Date + code ── */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Ausstellungsdatum</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>
-                {data.issued_at ? new Date(data.issued_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'}
+              <div style={{ fontSize: 10, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>
+                Ausstellungsdatum
               </div>
+              <div style={{ fontSize: 12, color: T.textMuted, fontWeight: 500 }}>{issuedFormatted}</div>
             </div>
-            <div>
-              <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Zertifikat-Code</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', fontFamily: 'monospace', letterSpacing: '0.12em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#1a7a3a' }} />
+              <span style={{ fontSize: 12, color: '#1a7a3a', fontWeight: 600 }}>Verifiziert</span>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 10, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>
+                Zertifikat-Code
+              </div>
+              <div style={{ fontSize: 12, color: T.textMuted, fontFamily: 'monospace', letterSpacing: '0.1em' }}>
                 {data.certificate_code}
               </div>
             </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Status</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#16a34a', fontWeight: 700, fontSize: 13 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a' }} />
-                Verifiziert
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Bottom strip */}
-        <div style={{ background: '#f8fafc', borderTop: '1px solid #f1f5f9', padding: '14px 56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>
-            Verifiziert unter: <span style={{ color: '#3b82f6' }}>kompagnon.app/academy/certificate/{data.certificate_code}</span>
+        {/* ── Footer strip ── */}
+        <div style={{
+          background: T.appBg, borderTop: `1px solid ${T.border}`,
+          padding: '12px 56px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8,
+        }}>
+          <div style={{ fontSize: 11, color: T.textMuted }}>
+            kompagnon.app/academy/certificate/{data.certificate_code}
           </div>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>KOMPAGNON Akademy © {new Date().getFullYear()}</div>
+          <div style={{ fontSize: 11, color: T.textMuted }}>
+            KOMPAGNON Akademy © {new Date().getFullYear()}
+          </div>
         </div>
       </div>
 
-      {/* Print button */}
+      {/* ── Print / PDF button ── */}
       <button
-        className="no-print"
+        className="cert-no-print"
         onClick={() => window.print()}
         style={{
-          marginTop: 24, padding: '11px 24px', background: '#1e40af', color: 'white',
-          border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700,
-          cursor: 'pointer', fontFamily: 'var(--font-sans, sans-serif)',
+          marginTop: 28, padding: '11px 28px',
+          background: T.primary, color: '#fff',
+          border: 'none', borderRadius: '8px',
+          fontSize: 13, fontWeight: 600,
+          cursor: 'pointer', fontFamily: T.font,
+          boxShadow: '0 2px 8px rgba(0,142,170,0.25)',
+          transition: 'opacity 0.15s',
         }}
+        onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
       >
-        🖨️ Als PDF herunterladen
+        🖨️ Als PDF speichern
       </button>
     </div>
   );

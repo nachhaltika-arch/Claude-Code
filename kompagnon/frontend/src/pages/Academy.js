@@ -21,6 +21,8 @@ const T = {
   font:       "'DM Sans', system-ui, sans-serif",
   successBg:  '#eaf5ee',
   successText:'#1a7a3a',
+  certBg:     '#fff8e6',
+  certText:   '#a06800',
 };
 
 const AUDIENCE_LABEL = {
@@ -252,7 +254,7 @@ export default function Academy() {
                   {done && (
                     <div style={{
                       position: 'absolute', top: 10, right: 10,
-                      background: T.successBg, color: T.successText,
+                      background: T.certBg, color: T.certText,
                       borderRadius: T.radiusFull,
                       fontSize: 11, fontWeight: 600, padding: '3px 10px',
                       fontFamily: T.font,
@@ -332,8 +334,8 @@ export default function Academy() {
                     }}
                     style={{
                       marginTop: 2, width: '100%', padding: '10px 16px',
-                      background: done ? T.successBg : T.primary,
-                      color:      done ? T.successText : '#fff',
+                      background: done ? T.certBg : T.primary,
+                      color:      done ? T.certText : '#fff',
                       border: 'none', borderRadius: '8px',
                       fontSize: 13, fontWeight: 600,
                       cursor: 'pointer', fontFamily: T.font,

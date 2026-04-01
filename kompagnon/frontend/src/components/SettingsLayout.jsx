@@ -1,38 +1,79 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 
 const SETTINGS_NAV = [
-  { label: 'Profil', path: '/app/settings/profile', icon: 'fa-user', roles: ['admin', 'auditor', 'nutzer', 'kunde'] },
-  { label: 'Sicherheit', path: '/app/settings/security', icon: 'fa-shield-halved', roles: ['admin', 'auditor', 'nutzer', 'kunde'] },
-  { label: 'Rollenverwaltung', path: '/app/settings/roles', icon: 'fa-users-gear', roles: ['admin'] },
-  { label: 'Benutzerverwaltung', path: '/app/settings/users', icon: 'fa-user-gear', roles: ['admin'] },
-  { label: 'System', path: '/app/settings/system', icon: 'fa-server', roles: ['admin'] },
-  { label: 'Benachrichtigungen', path: '/app/settings/notifications', icon: 'fa-bell', roles: ['admin', 'auditor'] },
-  { label: 'Abonnement', path: '/app/settings/subscription', icon: 'fa-credit-card', roles: ['nutzer', 'kunde'] },
+  { label: 'Profil', path: '/app/settings/profile', icon: '👤', roles: ['admin', 'auditor', 'nutzer', 'kunde'] },
+  { label: 'Sicherheit', path: '/app/settings/security', icon: '🔐', roles: ['admin', 'auditor', 'nutzer', 'kunde'] },
+  { label: 'Rollenverwaltung', path: '/app/settings/roles', icon: '👥', roles: ['admin'] },
+  { label: 'Benutzerverwaltung', path: '/app/settings/users', icon: '🧑‍💼', roles: ['admin'] },
+  { label: 'System', path: '/app/settings/system', icon: '🏢', roles: ['admin'] },
+  { label: 'Benachrichtigungen', path: '/app/settings/notifications', icon: '📧', roles: ['admin', 'auditor'] },
+  { label: 'Abonnement', path: '/app/settings/subscription', icon: '💳', roles: ['nutzer', 'kunde'] },
 ];
 
 export default function SettingsLayout() {
   const { user } = useAuth();
+  const { isMobile } = useScreenSize();
   const navigate = useNavigate();
   const location = useLocation();
-  const items = SETTINGS_NAV.filter(i => i.roles.includes(user?.role));
+  const items = SETTINGS_NAV.filter((i) => i.roles.includes(user?.role));
+
+  if (isMobile) {
+    return (
+      <div>
+        <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 8, marginBottom: 20, borderBottom: '1px solid var(--border-light)' }}>
+          {items.map((item) => {
+            const active = location.pathname === item.path;
+            return (
+              <button key={item.path} onClick={() => navigate(item.path)} style={{
+                padding: '7px 12px', background: 'none', border: 'none', whiteSpace: 'nowrap',
+                borderBottom: active ? '2px solid var(--brand-primary)' : '2px solid transparent',
+                color: active ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                fontWeight: active ? 500 : 400, fontSize: 13, cursor: 'pointer', marginBottom: -1,
+                fontFamily: 'var(--font-sans)',
+              }}>
+                {item.icon} {item.label}
+              </button>
+            );
+          })}
+        </div>
+        <Outlet />
+      </div>
+    );
+  }
 
   return (
-    <div className="row g-4">
-      <div className="col-lg-3">
-        <div className="card shadow-sm">
-          <div className="card-header fw-semibold"><i className="fas fa-gear me-2"></i>Einstellungen</div>
-          <div className="list-group list-group-flush">
-            {items.map(item => (
-              <button key={item.path} className={`list-group-item list-group-item-action d-flex align-items-center gap-2 ${location.pathname === item.path ? 'active' : ''}`} onClick={() => navigate(item.path)}>
-                <i className={`fas ${item.icon}`}></i> {item.label}
+    <div style={{ display: 'flex', gap: 20 }}>
+      <nav style={{ width: 220, flexShrink: 0 }}>
+        <div style={{
+          background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-light)', overflow: 'hidden', padding: 4,
+        }}>
+          {items.map((item) => {
+            const active = location.pathname === item.path;
+            return (
+              <button key={item.path} onClick={() => navigate(item.path)} style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                padding: '7px 12px', borderRadius: 'var(--radius-md)',
+                background: active ? 'var(--bg-active)' : 'transparent',
+                border: 'none',
+                color: active ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                fontWeight: active ? 500 : 400, fontSize: 13, cursor: 'pointer',
+                textAlign: 'left', fontFamily: 'var(--font-sans)',
+                transition: 'background 0.1s, color 0.1s',
+              }}
+              onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}}
+              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}}
+              >
+                <span style={{ fontSize: 14 }}>{item.icon}</span> {item.label}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      </div>
-      <div className="col-lg-9">
+      </nav>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <Outlet />
       </div>
     </div>

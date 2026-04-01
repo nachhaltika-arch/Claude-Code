@@ -61,7 +61,7 @@ export default function PackageKompagnon() {
 
       <nav style={{ background: 'white', borderBottom: '1px solid #e8eef2', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}><Logo size="small" /></div>
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+        <div style={{ display: 'flex', gap: 8 }}>
           {[
             { label: 'Starter', path: '/paket/starter' },
             { label: 'KOMPAGNON', path: '/paket/kompagnon', active: true },
@@ -83,7 +83,7 @@ export default function PackageKompagnon() {
         </div>
       )}
 
-      <div style={{ background: 'linear-gradient(135deg, #1a1000 0%, #3a2800 100%)', padding: 'clamp(40px, 8vw, 80px) 20px clamp(60px, 10vw, 100px)', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ background: 'linear-gradient(135deg, #1a1000 0%, #3a2800 100%)', padding: '60px 24px 80px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(212,160,23,0.15) 0%, transparent 60%)' }} />
         <div style={{ position: 'relative', maxWidth: 640, margin: '0 auto' }}>
           <div className="fade1" style={{ display: 'inline-block', background: 'rgba(212,160,23,0.25)', border: '1px solid rgba(212,160,23,0.5)', color: '#fde68a', borderRadius: 20, padding: '4px 14px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>
@@ -96,7 +96,7 @@ export default function PackageKompagnon() {
             Website, SEO, Google Business und Strategie-Workshop — alles aus einer Hand für maximale Sichtbarkeit.
           </p>
           <div className="fade4" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
-            <span style={{ fontSize: 'clamp(36px, 10vw, 52px)', fontWeight: 700, color: '#fde68a', letterSpacing: '-0.03em' }}>2.000 €</span>
+            <span style={{ fontSize: 52, fontWeight: 700, color: '#fde68a', letterSpacing: '-0.03em' }}>2.000 €</span>
             <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>netto</span>
           </div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>14 Werktage · Vorkasse · zzgl. MwSt.</div>
@@ -113,7 +113,7 @@ export default function PackageKompagnon() {
             <form onSubmit={handleCheckout}>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="kontakt@ihrbetrieb.de" required style={{ width: '100%', padding: '14px 16px', border: '1.5px solid #e0eaee', borderRadius: 10, fontSize: 16, fontFamily: 'inherit', color: '#0f1c20', background: '#f8fafc', boxSizing: 'border-box', transition: 'all 0.15s' }} />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="kontakt@ihrbetrieb.de" required style={{ width: '100%', padding: '11px 14px', border: '1.5px solid #e0eaee', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: '#0f1c20', background: '#f8fafc', boxSizing: 'border-box', transition: 'all 0.15s' }} />
               </div>
               <button type="submit" disabled={loading} className="cta-btn" style={{ width: '100%', padding: '14px', background: loading ? '#8fa8b0' : '#d4a017', color: 'white', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                 {loading ? 'Wird weitergeleitet...' : 'Jetzt sicher bezahlen →'}

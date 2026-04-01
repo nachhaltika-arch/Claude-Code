@@ -163,8 +163,8 @@ export default function AuditHook() {
           <div className="result-card">
             <div style={{ textAlign: 'center', marginBottom: 28 }}>
               <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Audit-Ergebnis für {url.replace(/^https?:\/\//, '')}</div>
-              <div style={{ display: 'flex', flexDirection: window.innerWidth < 400 ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-                <div style={{ width: 'clamp(70px, 20vw, 100px)', height: 'clamp(70px, 20vw, 100px)', borderRadius: '50%', background: scoreBg(auditData.total_score), display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `3px solid ${scoreColor(auditData.total_score)}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+                <div style={{ width: 100, height: 100, borderRadius: '50%', background: scoreBg(auditData.total_score), display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `3px solid ${scoreColor(auditData.total_score)}` }}>
                   <div style={{ fontSize: 32, fontWeight: 700, color: scoreColor(auditData.total_score), lineHeight: 1 }}>{auditData.total_score}</div>
                   <div style={{ fontSize: 11, color: scoreColor(auditData.total_score), opacity: 0.7 }}>/100</div>
                 </div>
@@ -212,7 +212,7 @@ export default function AuditHook() {
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 18, lineHeight: 1.6 }}>
                 KOMPAGNON bringt Ihre Homepage auf Gold oder Platin — in 14 Werktagen, zum Festpreis. Der vollständige PDF-Bericht geht an {email}.
               </p>
-              <div className="cta-stack" style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button onClick={() => navigate('/paket/kompagnon')} style={{ padding: '12px 24px', background: '#d4a017', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                   ⭐ Jetzt optimieren →
                 </button>

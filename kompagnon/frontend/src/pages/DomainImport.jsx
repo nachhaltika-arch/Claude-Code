@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
 import API_BASE_URL from '../config';
 
 export default function DomainImport() {
@@ -26,50 +28,90 @@ export default function DomainImport() {
   const handleFileChange = (e) => {
     const f = e.target.files[0];
     if (!f) return;
-    setFile(f); setError(''); setCheckResult(null);
+    setFile(f);
+    setError('');
+    setCheckResult(null);
     const reader = new FileReader();
-    reader.onload = (ev) => setPreview(extractDomains(ev.target.result));
+    reader.onload = (ev) => { setPreview(extractDomainsPreview(ev.target.result)); };
     reader.readAsText(f, 'utf-8');
   };
 
-  const handleTextChange = (val) => { setTextInput(val); setCheckResult(null); setPreview(extractDomains(val)); };
+  const handleTextChange = (val) => {
+    setTextInput(val);
+    setCheckResult(null);
+    setPreview(extractDomainsPreview(val));
+  };
 
-  const extractDomains = (text) => {
-    const domains = [], seen = new Set();
+  const extractDomainsPreview = (text) => {
+    const domains = [];
+    const seen = new Set();
     for (const line of text.split(/[\n,;]/)) {
-      const clean = line.trim().replace(/^["']|["']$/g, '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].toLowerCase();
-      if (/^[a-z0-9][a-z0-9\-\.]+\.[a-z]{2,}$/.test(clean) && !seen.has(clean)) { domains.push(`https://${clean}`); seen.add(clean); }
+      const cell = line.trim().replace(/^["']|["']$/g, '');
+      const clean = cell.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].toLowerCase();
+      if (/^[a-z0-9][a-z0-9\-\.]+\.[a-z]{2,}$/.test(clean) && !seen.has(clean)) {
+        domains.push(`https://${clean}`);
+        seen.add(clean);
+      }
     }
     return domains.slice(0, 50);
   };
 
   const checkDomains = async () => {
-    if (!preview.length) return;
-    setChecking(true); setCheckResult(null);
+    if (preview.length === 0) return;
+    setChecking(true);
+    setCheckResult(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/leads/import/domains/check`, { method: 'POST', headers: { ...h, 'Content-Type': 'application/json' }, body: JSON.stringify({ domains: preview }) });
-      setCheckResult(await res.json());
-    } catch { setError('Prüfung fehlgeschlagen'); }
-    finally { setChecking(false); }
+      const res = await fetch(`${API_BASE_URL}/api/leads/import/domains/check`, {
+        method: 'POST',
+        headers: { ...h, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domains: preview }),
+      });
+      const data = await res.json();
+      setCheckResult(data);
+    } catch {
+      setError('Prüfung fehlgeschlagen');
+    } finally {
+      setChecking(false);
+    }
   };
 
   const startImport = async () => {
-    const toImport = checkResult ? (importFilter === 'new' ? checkResult.results.filter(r => !r.exists).map(r => r.url) : preview) : preview;
-    if (!toImport.length) { setError('Keine Domains'); return; }
-    setLoading(true); setError('');
+    const domainsToImport = checkResult
+      ? importFilter === 'new'
+        ? checkResult.results.filter(r => !r.exists).map(r => r.url)
+        : preview
+      : preview;
+
+    if (domainsToImport.length === 0) {
+      setError('Keine neuen Domains zum Importieren');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
     try {
+      const domainsText = domainsToImport.join('\n');
       let res;
       if (mode === 'csv' && file && importFilter === 'all') {
-        const form = new FormData(); form.append('file', file);
+        const form = new FormData();
+        form.append('file', file);
         res = await fetch(`${API_BASE_URL}/api/leads/import/domains/file`, { method: 'POST', headers: h, body: form });
       } else {
-        res = await fetch(`${API_BASE_URL}/api/leads/import/domains/text`, { method: 'POST', headers: { ...h, 'Content-Type': 'application/json' }, body: JSON.stringify({ domains_text: toImport.join('\n') }) });
+        res = await fetch(`${API_BASE_URL}/api/leads/import/domains/text`, {
+          method: 'POST', headers: { ...h, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domains_text: domainsText }),
+        });
       }
       const data = await res.json();
       if (!res.ok) { setError(data.detail || 'Fehler'); setLoading(false); return; }
-      setJobId(data.job_id); setJobStatus({ status: 'running', total: data.total_domains, processed: 0, results: [] });
-      setLoading(false); pollStatus(data.job_id);
-    } catch { setError('Verbindungsfehler'); setLoading(false); }
+      setJobId(data.job_id);
+      setJobStatus({ status: 'running', total: data.total_domains, processed: 0, results: [] });
+      setLoading(false);
+      pollStatus(data.job_id);
+    } catch {
+      setError('Verbindungsfehler');
+      setLoading(false);
+    }
   };
 
   const pollStatus = (jid) => {
@@ -77,7 +119,8 @@ export default function DomainImport() {
     const iv = setInterval(async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/leads/import/domains/${jid}/status`, { headers: h });
-        const data = await res.json(); setJobStatus(data);
+        const data = await res.json();
+        setJobStatus(data);
         if (data.status === 'done' || data.status === 'error') { clearInterval(iv); setPolling(false); }
       } catch { clearInterval(iv); setPolling(false); }
     }, 3000);
@@ -85,163 +128,294 @@ export default function DomainImport() {
   };
 
   const pct = jobStatus ? Math.round(((jobStatus.processed || 0) / (jobStatus.total || 1)) * 100) : 0;
+  const statusIcon = (s) => s === 'completed' ? '✅' : s === 'failed' ? '❌' : s === 'already_exists' ? '⏭️' : '⏳';
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto' }}>
-      <h2 className="mb-1"><i className="fas fa-cloud-arrow-up me-2"></i>Domain-Import</h2>
-      <p className="text-muted small mb-3">CSV hochladen oder Domains eingeben → Duplikat-Check → Audit + Impressum</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease', maxWidth: 900, margin: '0 auto', width: '100%' }}>
 
-      {/* Steps */}
+      <div>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>Domain-Import</h1>
+        <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0 }}>CSV hochladen oder Domains eingeben → Duplikat-Check → Audit + Impressum automatisch</p>
+      </div>
+
       {!jobId && (
-        <div className="row g-2 mb-3">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
           {[
-            { icon: 'fa-file-csv', title: 'Domains laden', color: 'primary' },
-            { icon: 'fa-magnifying-glass', title: 'Duplikat-Check', color: 'info' },
-            { icon: 'fa-magnifying-glass-chart', title: 'Audit', color: 'warning' },
-            { icon: 'fa-address-card', title: 'Impressum', color: 'success' },
-          ].map((s, i) => (
-            <div className="col-6 col-md-3" key={i}>
-              <div className={`card border-${s.color} border-top-3 h-100`} style={{ borderTopWidth: 3 }}>
-                <div className="card-body p-2 text-center">
-                  <i className={`fas ${s.icon} fs-5 text-${s.color} mb-1`}></i>
-                  <div className="small fw-semibold">{s.title}</div>
-                </div>
-              </div>
+            { step: '1', icon: '📂', title: 'Domains laden', desc: 'CSV hochladen oder direkt eingeben', color: 'var(--brand-primary)' },
+            { step: '2', icon: '🔎', title: 'Duplikat-Check', desc: 'Vorhandene Domains erkennen', color: '#7c3aed' },
+            { step: '3', icon: '🔍', title: 'Audit läuft', desc: 'Jede Domain wird automatisch geprüft', color: '#d97706' },
+            { step: '4', icon: '📋', title: 'Impressum', desc: 'Kontaktdaten werden ausgelesen', color: '#059669' },
+          ].map(s => (
+            <div key={s.step} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', borderTop: `3px solid ${s.color}`, padding: '12px 14px' }}>
+              <div style={{ fontSize: 20, marginBottom: 6 }}>{s.icon}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{s.title}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>{s.desc}</div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Input Form */}
       {!jobId && (
-        <div className="card shadow-sm mb-3">
-          <div className="card-body">
-            <ul className="nav nav-pills mb-3">
-              <li className="nav-item"><button className={`nav-link ${mode === 'csv' ? 'active' : ''}`} onClick={() => { setMode('csv'); setPreview([]); setFile(null); setTextInput(''); setCheckResult(null); }}><i className="fas fa-file-csv me-1"></i> CSV-Datei</button></li>
-              <li className="nav-item"><button className={`nav-link ${mode === 'text' ? 'active' : ''}`} onClick={() => { setMode('text'); setPreview([]); setFile(null); setTextInput(''); setCheckResult(null); }}><i className="fas fa-keyboard me-1"></i> Direkt eingeben</button></li>
-            </ul>
+        <Card padding="md">
+          <div style={{ display: 'flex', gap: 4, background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: 3, marginBottom: 20, width: 'fit-content' }}>
+            {[{ id: 'csv', label: '📂 CSV-Datei' }, { id: 'text', label: '⌨️ Direkt eingeben' }].map(m => (
+              <button key={m.id} onClick={() => { setMode(m.id); setPreview([]); setFile(null); setTextInput(''); setCheckResult(null); }} style={{
+                padding: '6px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
+                background: mode === m.id ? 'var(--bg-surface)' : 'transparent',
+                color: mode === m.id ? 'var(--brand-primary)' : 'var(--text-tertiary)',
+                fontSize: 12, fontWeight: mode === m.id ? 600 : 400, cursor: 'pointer',
+                fontFamily: 'var(--font-sans)', boxShadow: mode === m.id ? 'var(--shadow-card)' : 'none', transition: 'all 0.15s',
+              }}>{m.label}</button>
+            ))}
+          </div>
 
-            {mode === 'csv' && (
-              <div className={`border border-2 border-dashed rounded-3 p-4 text-center ${file ? 'border-primary bg-light' : ''}`} style={{ cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>
-                <i className={`fas ${file ? 'fa-check-circle text-success' : 'fa-cloud-arrow-up text-muted'} fs-1 mb-2`}></i>
-                <div className="fw-semibold">{file ? file.name : 'CSV-Datei hier ablegen oder klicken'}</div>
-                <small className="text-muted">{file ? `${preview.length} Domains erkannt` : 'Alle Spalten werden nach Domains durchsucht'}</small>
-                <input ref={fileRef} type="file" accept=".csv,.txt" onChange={handleFileChange} className="d-none" />
+          {mode === 'csv' && (
+            <div>
+              <div onClick={() => fileRef.current?.click()} style={{
+                border: `2px dashed ${file ? 'var(--brand-primary)' : 'var(--border-medium)'}`,
+                borderRadius: 'var(--radius-lg)', padding: '32px 20px', textAlign: 'center', cursor: 'pointer',
+                background: file ? 'var(--bg-active)' : 'var(--bg-app)', transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = file ? 'var(--bg-active)' : 'var(--bg-app)'; }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>{file ? '✅' : '📂'}</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>{file ? file.name : 'CSV-Datei hier ablegen oder klicken'}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{file ? `${preview.length} Domains erkannt` : 'Alle Spalten werden nach Domains durchsucht'}</div>
               </div>
-            )}
+              <input ref={fileRef} type="file" accept=".csv,.txt" onChange={handleFileChange} style={{ display: 'none' }} />
+            </div>
+          )}
 
-            {mode === 'text' && (
-              <textarea className="form-control font-monospace" rows={6} value={textInput} onChange={e => handleTextChange(e.target.value)} placeholder={'maler-mueller.de\nsanitaer-schmidt.de\nhttps://elektro-weber.de'} />
-            )}
+          {mode === 'text' && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                Domains eingeben (eine pro Zeile oder kommagetrennt)
+              </div>
+              <textarea value={textInput} onChange={e => handleTextChange(e.target.value)}
+                placeholder={'maler-mueller.de\nsanitaer-schmidt.de\nhttps://elektro-weber.de\nwww.dachdecker-klein.de'}
+                rows={8} style={{
+                  width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)',
+                  borderRadius: 'var(--radius-md)', fontSize: 13, fontFamily: 'var(--font-mono)',
+                  color: 'var(--text-primary)', background: 'var(--bg-app)', resize: 'vertical',
+                  outline: 'none', boxSizing: 'border-box', lineHeight: 1.6,
+                }}
+                onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
+            </div>
+          )}
 
-            {/* Preview + Check */}
-            {preview.length > 0 && (
-              <div className="mt-3">
-                {!checkResult ? (
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <small className="text-muted fw-semibold text-uppercase">{preview.length} Domains erkannt</small>
-                    <button className="btn btn-outline-primary btn-sm" onClick={checkDomains} disabled={checking}>
-                      {checking ? <><span className="spinner-border spinner-border-sm me-1"></span>Prüfen...</> : <><i className="fas fa-magnifying-glass me-1"></i>Duplikate prüfen</>}
-                    </button>
+          {/* Preview + Duplicate Check */}
+          {preview.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+
+              {/* Before check: show check button */}
+              {!checkResult && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {preview.length} Domains erkannt
                   </div>
-                ) : (
-                  <div className="mb-3">
-                    <div className="row g-2 mb-2">
+                  <button onClick={checkDomains} disabled={checking} style={{
+                    padding: '6px 14px', background: checking ? 'var(--bg-app)' : 'var(--bg-active)',
+                    border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
+                    color: checking ? 'var(--text-tertiary)' : 'var(--brand-primary)',
+                    fontSize: 12, fontWeight: 600, cursor: checking ? 'not-allowed' : 'pointer',
+                    fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6,
+                  }}>
+                    {checking ? (
+                      <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--border-medium)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Wird geprüft...</>
+                    ) : '🔎 Auf Duplikate prüfen'}
+                  </button>
+                </div>
+              )}
+
+              {/* Check Result */}
+              {checkResult && (
+                <div style={{ marginBottom: 14 }}>
+                  {/* KPIs */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+                    {[
+                      { label: 'Neu', value: checkResult.new_count, icon: '🆕', color: 'var(--status-success-text)', bg: 'var(--status-success-bg)' },
+                      { label: 'Bereits vorhanden', value: checkResult.existing_count, icon: '⏭️', color: 'var(--text-tertiary)', bg: 'var(--bg-app)' },
+                      { label: 'Gesamt', value: checkResult.total, icon: '📋', color: 'var(--brand-primary)', bg: 'var(--bg-active)' },
+                    ].map(kpi => (
+                      <div key={kpi.label} style={{ background: kpi.bg, borderRadius: 'var(--radius-md)', padding: '10px 12px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 16 }}>{kpi.icon}</div>
+                        <div style={{ fontSize: 20, fontWeight: 700, color: kpi.color, lineHeight: 1.2 }}>{kpi.value}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{kpi.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Filter Toggle */}
+                  {checkResult.existing_count > 0 && (
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 10, background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: 3, width: 'fit-content' }}>
                       {[
-                        { label: 'Neu', val: checkResult.new_count, bg: 'success' },
-                        { label: 'Vorhanden', val: checkResult.existing_count, bg: 'secondary' },
-                        { label: 'Übersprungen', val: checkResult.skipped_count || 0, bg: 'danger' },
-                        { label: 'Redirects', val: checkResult.redirect_count || 0, bg: 'warning' },
-                      ].map(k => (
-                        <div className="col-3" key={k.label}>
-                          <div className={`card bg-${k.bg} bg-opacity-10 text-center p-2`}>
-                            <div className={`fs-4 fw-bold text-${k.bg}`}>{k.val}</div>
-                            <small className="text-muted">{k.label}</small>
-                          </div>
-                        </div>
+                        { id: 'new', label: `✅ Nur neue (${checkResult.new_count})` },
+                        { id: 'all', label: `Alle (${checkResult.total})` },
+                      ].map(f => (
+                        <button key={f.id} onClick={() => setImportFilter(f.id)} style={{
+                          padding: '5px 12px', borderRadius: 'var(--radius-sm)', border: 'none',
+                          background: importFilter === f.id ? 'var(--bg-surface)' : 'transparent',
+                          color: importFilter === f.id ? 'var(--brand-primary)' : 'var(--text-tertiary)',
+                          fontSize: 11, fontWeight: importFilter === f.id ? 600 : 400, cursor: 'pointer',
+                          fontFamily: 'var(--font-sans)', boxShadow: importFilter === f.id ? 'var(--shadow-card)' : 'none', whiteSpace: 'nowrap',
+                        }}>{f.label}</button>
                       ))}
                     </div>
-                    {checkResult.existing_count > 0 && (
-                      <div className="btn-group btn-group-sm mb-2">
-                        <button className={`btn ${importFilter === 'new' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setImportFilter('new')}>Nur neue ({checkResult.new_count})</button>
-                        <button className={`btn ${importFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setImportFilter('all')}>Alle ({checkResult.total})</button>
-                      </div>
-                    )}
-                    <div className="list-group list-group-flush border rounded" style={{ maxHeight: 220, overflowY: 'auto' }}>
-                      {checkResult.results.filter(r => importFilter === 'all' || (!r.exists && !r.skip_import)).map((r, i) => (
-                        <div key={i} className={`list-group-item d-flex align-items-center gap-2 py-1 px-2 small ${r.skip_import ? 'list-group-item-danger' : r.exists ? 'text-muted' : ''}`} style={{ opacity: r.skip_import ? 0.7 : 1 }}>
-                          <i className={`fas ${r.skip_import ? 'fa-ban text-danger' : r.exists ? 'fa-forward text-secondary' : r.has_redirect ? 'fa-share text-warning' : 'fa-circle-plus text-success'}`}></i>
-                          <div className="flex-grow-1 min-w-0">
-                            <div className="font-monospace text-truncate">{r.domain}</div>
-                            {r.has_redirect && !r.skip_import && <div className="text-muted" style={{ fontSize: 10 }}>↪ {(r.final_url || '').replace(/^https?:\/\//, '')}</div>}
-                            {r.skip_import && <div className="text-danger" style={{ fontSize: 10 }}>{r.skip_reason}</div>}
-                            {r.exists && r.company_name && <div className="text-muted" style={{ fontSize: 10 }}>{r.company_name}</div>}
+                  )}
+
+                  {/* Domain list with status */}
+                  <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', maxHeight: 220, overflowY: 'auto' }}>
+                    {checkResult.results.filter(r => importFilter === 'all' || !r.exists).map((r, i, arr) => (
+                      <div key={i}
+                        onClick={() => { if (r.exists && r.lead_id) window.open(`/app/leads/${r.lead_id}`, '_blank'); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                          borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none',
+                          cursor: r.exists ? 'pointer' : 'default',
+                          background: r.exists ? 'var(--bg-surface)' : 'transparent',
+                        }}
+                        onMouseEnter={e => { if (r.exists) e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = r.exists ? 'var(--bg-surface)' : 'transparent'; }}
+                      >
+                        <span style={{ fontSize: 14, flexShrink: 0, width: 20, textAlign: 'center' }}>{r.exists ? '⏭️' : '🆕'}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: r.exists ? 'var(--text-tertiary)' : 'var(--brand-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {r.domain}
                           </div>
-                          {r.score > 0 && <span className="badge bg-secondary">{r.score}</span>}
-                          {!r.skip_import && !r.exists && (
-                            <span className={`badge ${r.final_is_https ? 'bg-success' : 'bg-warning'}`} style={{ fontSize: 9 }}>
-                              {r.final_is_https ? 'HTTPS' : 'HTTP'}
-                            </span>
+                          {r.exists && r.company_name && (
+                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>
+                              {r.company_name}{r.status && <> · {r.status}</>}
+                            </div>
                           )}
                         </div>
-                      ))}
-                    </div>
-                    <button className="btn btn-link btn-sm text-muted mt-1" onClick={() => { setCheckResult(null); setImportFilter('new'); }}>↺ Erneut prüfen</button>
+                        {r.score > 0 && (
+                          <span style={{ fontSize: 11, fontWeight: 600, color: r.score >= 70 ? 'var(--status-success-text)' : r.score >= 50 ? 'var(--status-warning-text)' : 'var(--status-danger-text)', flexShrink: 0 }}>
+                            {r.score}/100
+                          </span>
+                        )}
+                        {r.exists && r.lead_id && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', flexShrink: 0 }}>öffnen ↗</span>}
+                      </div>
+                    ))}
+                    {checkResult.new_count === 0 && (
+                      <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12 }}>✅ Alle Domains bereits vorhanden</div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
 
-            {error && <div className="alert alert-danger py-2 small mt-2">{error}</div>}
+                  <button onClick={() => { setCheckResult(null); setImportFilter('new'); }} style={{
+                    marginTop: 8, background: 'none', border: 'none', color: 'var(--text-tertiary)',
+                    fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'underline',
+                  }}>↺ Erneut prüfen</button>
+                </div>
+              )}
 
-            <div className="mt-3">
-              <button className="btn btn-primary" onClick={checkResult ? startImport : checkDomains}
-                disabled={loading || !preview.length || checking || (checkResult && checkResult.new_count === 0 && importFilter === 'new')}>
-                {loading ? <><span className="spinner-border spinner-border-sm me-1"></span>Startet...</>
-                  : checking ? <><span className="spinner-border spinner-border-sm me-1"></span>Prüft...</>
-                  : checkResult ? <><i className="fas fa-rocket me-1"></i>{importFilter === 'new' ? checkResult.new_count : checkResult.total} Domains importieren</>
-                  : <><i className="fas fa-magnifying-glass me-1"></i>{preview.length} Domains prüfen</>}
-              </button>
+              {/* Time estimate */}
+              {(checkResult ? checkResult.new_count > 0 : preview.length > 0) && (
+                <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--status-warning-bg)', borderRadius: 'var(--radius-sm)', fontSize: 11, color: 'var(--status-warning-text)', lineHeight: 1.5 }}>
+                  ⏱️ Verarbeitung dauert ca. <strong>{Math.ceil((checkResult ? (importFilter === 'new' ? checkResult.new_count : checkResult.total) : preview.length) * 0.5)} Minuten</strong> — Import läuft im Hintergrund.
+                </div>
+              )}
             </div>
+          )}
+
+          {error && (
+            <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', borderRadius: 'var(--radius-md)', fontSize: 12 }}>{error}</div>
+          )}
+
+          <div style={{ marginTop: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
+            <Button variant="primary" onClick={checkResult ? startImport : checkDomains}
+              disabled={loading || preview.length === 0 || checking || (checkResult && checkResult.new_count === 0 && importFilter === 'new')}>
+              {loading ? '⏳ Wird gestartet...'
+                : checking ? '🔎 Wird geprüft...'
+                : checkResult
+                  ? importFilter === 'new'
+                    ? `🚀 ${checkResult.new_count} neue Domains importieren`
+                    : `🚀 Alle ${checkResult.total} Domains importieren`
+                  : `🔎 ${preview.length} Domains prüfen`
+              }
+            </Button>
+            {preview.length === 0 && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Zuerst Domains laden</span>}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Job Status */}
       {jobId && jobStatus && (
-        <div className="card shadow-sm">
-          <div className="card-body">
-            <div className="d-flex justify-content-between align-items-center mb-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Card padding="md">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
               <div>
-                <h5 className="mb-0">
-                  {jobStatus.status === 'done' ? <><i className="fas fa-check-circle text-success me-2"></i>Import abgeschlossen</> : jobStatus.status === 'error' ? <><i className="fas fa-circle-xmark text-danger me-2"></i>Fehler</> : <><span className="spinner-border spinner-border-sm me-2"></span>Import läuft...</>}
-                </h5>
-                <small className="text-muted">{jobStatus.processed || 0} von {jobStatus.total} Domains{polling && ' · wird aktualisiert'}</small>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+                  {jobStatus.status === 'done' ? '✅ Import abgeschlossen' : jobStatus.status === 'error' ? '❌ Import fehlgeschlagen' : '⚙️ Import läuft...'}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                  {jobStatus.processed || 0} von {jobStatus.total} Domains{polling && ' · wird aktualisiert...'}
+                </div>
               </div>
-              {jobStatus.status === 'done' && <button className="btn btn-primary btn-sm" onClick={() => navigate('/app/sales')}><i className="fas fa-arrow-right me-1"></i>Zur Pipeline</button>}
+              {jobStatus.status === 'done' && (
+                <Button variant="primary" size="sm" onClick={() => navigate('/app/sales')}>→ Zur Vertriebspipeline</Button>
+              )}
             </div>
-            <div className="progress mb-3" style={{ height: 8 }}>
-              <div className={`progress-bar ${jobStatus.status === 'done' ? 'bg-success' : ''}`} style={{ width: `${pct}%` }}></div>
+            <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden', marginBottom: 12 }}>
+              <div style={{ height: '100%', width: `${pct}%`, background: jobStatus.status === 'done' ? 'var(--status-success-text)' : 'var(--brand-primary)', borderRadius: 3, transition: 'width 0.5s ease' }} />
             </div>
             {(jobStatus.results || []).length > 0 && (
-              <div className="list-group list-group-flush border rounded" style={{ maxHeight: 300, overflowY: 'auto' }}>
-                {jobStatus.results.map((r, i) => (
-                  <div key={i} className="list-group-item d-flex align-items-center gap-2 py-2 px-2 small" style={{ cursor: r.lead_id ? 'pointer' : 'default' }} onClick={() => r.lead_id && navigate(`/app/leads/${r.lead_id}`)}>
-                    <span className="fw-semibold flex-grow-1 text-truncate">{r.company_name || r.url.replace('https://', '')}</span>
-                    {r.score !== undefined && r.score !== null && <span className="badge bg-secondary">{r.score}/100</span>}
-                    {r.audit_status === 'completed' && <i className="fas fa-check text-success" title="Audit"></i>}
-                    {r.impressum_status === 'completed' && <i className="fas fa-check text-info" title="Impressum"></i>}
-                    {r.status === 'already_exists' && <span className="badge bg-light text-muted border">vorhanden</span>}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 8, marginTop: 8 }}>
+                {[
+                  { label: 'Neu angelegt', count: (jobStatus.results || []).filter(r => r.status === 'created').length, color: 'var(--status-success-text)', bg: 'var(--status-success-bg)', icon: '✅' },
+                  { label: 'Auditiert', count: (jobStatus.results || []).filter(r => r.audit_status === 'completed').length, color: 'var(--brand-primary)', bg: 'var(--bg-active)', icon: '🔍' },
+                  { label: 'Impressum', count: (jobStatus.results || []).filter(r => r.impressum_status === 'completed').length, color: '#7c3aed', bg: '#f5f3ff', icon: '📋' },
+                  { label: 'Bereits da', count: (jobStatus.results || []).filter(r => r.status === 'already_exists').length, color: 'var(--text-tertiary)', bg: 'var(--bg-app)', icon: '⏭️' },
+                ].map(kpi => (
+                  <div key={kpi.label} style={{ background: kpi.bg, borderRadius: 'var(--radius-md)', padding: '10px 12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 18, marginBottom: 2 }}>{kpi.icon}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: kpi.color, lineHeight: 1 }}>{kpi.count}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{kpi.label}</div>
                   </div>
                 ))}
               </div>
             )}
-            {jobStatus.status === 'done' && (
-              <div className="text-center mt-3">
-                <button className="btn btn-link text-muted small" onClick={() => { setJobId(null); setJobStatus(null); setPreview([]); setFile(null); setTextInput(''); setCheckResult(null); }}>Weiteren Import starten</button>
+          </Card>
+
+          {(jobStatus.results || []).length > 0 && (
+            <Card padding="sm">
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, padding: '0 4px' }}>
+                Verarbeitete Domains
               </div>
-            )}
-          </div>
+              {jobStatus.results.map((r, i) => (
+                <div key={i} onClick={() => r.lead_id && navigate(`/app/leads/${r.lead_id}`)} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '8px 6px',
+                  borderBottom: i < jobStatus.results.length - 1 ? '1px solid var(--border-light)' : 'none',
+                  cursor: r.lead_id ? 'pointer' : 'default', borderRadius: 'var(--radius-sm)', transition: 'background 0.1s',
+                }}
+                onMouseEnter={e => { if (r.lead_id) e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {r.company_name || r.url.replace('https://', '')}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--brand-primary)', fontFamily: 'var(--font-mono)', marginTop: 1 }}>{r.url.replace('https://', '')}</div>
+                  </div>
+                  {r.score !== undefined && (
+                    <div style={{ fontSize: 12, fontWeight: 700, color: r.score >= 70 ? 'var(--status-success-text)' : r.score >= 50 ? 'var(--status-warning-text)' : 'var(--status-danger-text)', flexShrink: 0 }}>{r.score}/100</div>
+                  )}
+                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                    <span title="Audit">{statusIcon(r.audit_status)}</span>
+                    <span title="Impressum">{statusIcon(r.impressum_status)}</span>
+                  </div>
+                  {r.lead_id && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>→</span>}
+                </div>
+              ))}
+            </Card>
+          )}
+
+          {jobStatus.status === 'done' && (
+            <div style={{ textAlign: 'center' }}>
+              <button onClick={() => { setJobId(null); setJobStatus(null); setPreview([]); setFile(null); setTextInput(''); setCheckResult(null); }} style={{
+                background: 'none', border: 'none', color: 'var(--brand-primary)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'underline',
+              }}>Weiteren Import starten</button>
+            </div>
+          )}
         </div>
       )}
     </div>

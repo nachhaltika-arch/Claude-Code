@@ -80,7 +80,7 @@ export default function PackagePremium() {
         <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
           <Logo size="small" />
         </div>
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+        <div style={{ display: 'flex', gap: 8 }}>
           {[
             { label: 'Starter', path: '/paket/starter' },
             { label: 'KOMPAGNON', path: '/paket/kompagnon' },
@@ -108,7 +108,7 @@ export default function PackagePremium() {
       {/* Hero */}
       <div style={{
         background: 'linear-gradient(135deg, #1a0a3a 0%, #2d1a5c 100%)',
-        padding: 'clamp(40px, 8vw, 80px) 20px clamp(60px, 10vw, 100px)', textAlign: 'center',
+        padding: '60px 24px 80px', textAlign: 'center',
         position: 'relative', overflow: 'hidden',
       }}>
         <div style={{
@@ -137,7 +137,7 @@ export default function PackagePremium() {
             Für Betriebe, die ihre Region digital dominant besetzen wollen — mit mehr Seiten, mehr Content-Tiefe und maximalem Sichtbarkeits-Ausbau.
           </p>
           <div className="fade4" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
-            <span style={{ fontSize: 'clamp(36px, 10vw, 52px)', fontWeight: 700, color: '#c4b5fd', letterSpacing: '-0.03em' }}>2.500 €</span>
+            <span style={{ fontSize: 52, fontWeight: 700, color: '#c4b5fd', letterSpacing: '-0.03em' }}>2.500 €</span>
             <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>netto</span>
           </div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>
@@ -180,7 +180,7 @@ export default function PackagePremium() {
                 </label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="kontakt@ihrbetrieb.de" required
-                  style={{ width: '100%', padding: '14px 16px', border: '1.5px solid #e0eaee', borderRadius: 10, fontSize: 16, fontFamily: 'inherit', color: '#0f1c20', background: '#f8fafc', boxSizing: 'border-box', transition: 'all 0.15s' }} />
+                  style={{ width: '100%', padding: '11px 14px', border: '1.5px solid #e0eaee', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: '#0f1c20', background: '#f8fafc', boxSizing: 'border-box', transition: 'all 0.15s' }} />
               </div>
               <button type="submit" disabled={loading} className="cta-btn" style={{
                 width: '100%', padding: '14px', background: loading ? '#8fa8b0' : '#7c3aed',

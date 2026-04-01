@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import Skeleton from '../components/ui/Skeleton';
 import API_BASE_URL from '../config';
 
 export default function Dashboard() {
@@ -8,111 +11,286 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [kpis, setKpis] = useState(null);
   const [leads, setLeads] = useState([]);
+  const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  const h = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 
   useEffect(() => {
     Promise.all([
       fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE_URL}/api/leads/`, { headers: h }).then(r => r.json()),
-    ]).then(([kpiData, leadsData]) => {
+      fetch(`${API_BASE_URL}/api/audit/recent`, { headers: h }).then(r => r.json().catch(() => [])),
+    ]).then(([kpiData, leadsData, auditData]) => {
       setKpis(kpiData);
       setLeads(Array.isArray(leadsData) ? leadsData.slice(0, 8) : []);
+      setAudits(Array.isArray(auditData) ? auditData.slice(0, 5) : []);
     }).finally(() => setLoading(false));
   }, []); // eslint-disable-line
 
-  const scoreColor = (s) => s >= 70 ? 'text-success' : s >= 50 ? 'text-warning' : 'text-danger';
-  const statusBadge = (status) => {
-    const map = { new: ['secondary', 'Neu'], contacted: ['info', 'Kontaktiert'], qualified: ['success', 'Qualifiziert'], proposal_sent: ['warning', 'Angebot'], won: ['success', 'Gewonnen'], lost: ['danger', 'Verloren'] };
-    const [c, l] = map[status] || ['secondary', status];
-    return <span className={`badge bg-${c}`}>{l}</span>;
-  };
-
-  if (loading) return (
-    <div className="d-flex justify-content-center align-items-center" style={{ height: '50vh' }}>
-      <div className="spinner-border text-primary" role="status"><span className="visually-hidden">Laden...</span></div>
-    </div>
+  const KpiCard = ({ label, value, icon, delta, color }) => (
+    <Card>
+      <div style={{
+        display: 'flex', alignItems: 'flex-start',
+        justifyContent: 'space-between', marginBottom: 12,
+      }}>
+        <span style={{
+          fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em',
+          color: 'var(--text-tertiary)', fontWeight: 500,
+        }}>
+          {label}
+        </span>
+        <span style={{ fontSize: 18, opacity: 0.6 }}>{icon}</span>
+      </div>
+      {loading ? (
+        <Skeleton height={32} width={80} />
+      ) : (
+        <div style={{
+          fontSize: 28, fontWeight: 500,
+          color: color || 'var(--text-primary)',
+          lineHeight: 1, marginBottom: delta ? 8 : 0,
+        }}>
+          {value ?? '—'}
+        </div>
+      )}
+      {delta && !loading && (
+        <div style={{
+          fontSize: 11,
+          color: delta > 0 ? 'var(--status-success-text)' : 'var(--status-danger-text)',
+        }}>
+          {delta > 0 ? '↑' : '↓'} {Math.abs(delta)} diese Woche
+        </div>
+      )}
+    </Card>
   );
 
-  const kpiCards = [
-    { label: 'Leads gesamt', value: leads.length, icon: 'fas fa-users', border: 'border-primary' },
-    { label: 'Audits heute', value: kpis?.audits_today ?? 0, icon: 'fas fa-clipboard-list', border: 'border-warning' },
-    { label: 'Ø Score', value: kpis?.audits_avg_score ? `${kpis.audits_avg_score}/100` : '—', icon: 'fas fa-chart-line', border: 'border-success' },
-    { label: 'Gewonnen', value: leads.filter(l => l.status === 'won').length, icon: 'fas fa-circle-check', border: 'border-info' },
-  ];
+  const avgScore = audits.length
+    ? Math.round(audits.reduce((s, a) => s + (a.total_score || 0), 0) / audits.length)
+    : null;
+
+  const statusBadge = (status) => {
+    const map = {
+      new: ['neutral', 'Neu'],
+      contacted: ['info', 'Kontaktiert'],
+      qualified: ['success', 'Qualifiziert'],
+      proposal_sent: ['warning', 'Angebot'],
+      won: ['success', 'Gewonnen'],
+      lost: ['danger', 'Verloren'],
+    };
+    const [v, l] = map[status] || ['neutral', status];
+    return <Badge variant={v}>{l}</Badge>;
+  };
+
+  const scoreColor = (s) =>
+    s >= 70 ? 'var(--status-success-text)'
+    : s >= 50 ? 'var(--status-warning-text)'
+    : 'var(--status-danger-text)';
 
   return (
-    <div>
-      <h2 className="mb-4"><i className="fas fa-gauge-high me-2"></i>Dashboard</h2>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, animation: 'fadeIn 0.3s ease' }}>
 
-      {/* KPI Cards */}
-      <div className="row g-3 mb-4">
-        {kpiCards.map((kpi, i) => (
-          <div className="col-6 col-md-3" key={i}>
-            <div className={`card shadow-sm h-100 ${kpi.border}`} style={{ borderTopWidth: 3 }}>
-              <div className="card-body text-center">
-                <i className={`${kpi.icon} fs-4 text-muted mb-2`}></i>
-                <div className="display-6 fw-bold">{kpi.value}</div>
-                <small className="text-muted text-uppercase">{kpi.label}</small>
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* KPI Grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+        gap: 12,
+      }}>
+        <KpiCard label="Leads gesamt" value={leads.length} icon="👥" />
+        <KpiCard label="Audits heute" value={kpis?.audits_today ?? 0} icon="✓" color="var(--brand-primary)" />
+        <KpiCard
+          label="Ø Homepage-Score"
+          value={avgScore !== null ? `${avgScore}/100` : '—'}
+          icon="◎"
+          color={avgScore ? scoreColor(avgScore) : undefined}
+        />
+        <KpiCard
+          label="Gewonnene Leads"
+          value={leads.filter(l => l.status === 'won').length}
+          icon="🏆"
+          color="var(--status-success-text)"
+        />
       </div>
 
-      {/* Leads List */}
-      <div className="row g-3">
-        <div className="col-lg-8">
-          <div className="card shadow-sm">
-            <div className="card-header d-flex justify-content-between align-items-center">
-              <span className="fw-semibold">Aktuelle Leads</span>
-              <button className="btn btn-link btn-sm text-decoration-none p-0" onClick={() => navigate('/app/leads')}>
-                Alle anzeigen <i className="fas fa-arrow-right ms-1"></i>
-              </button>
-            </div>
-            <div className="card-body p-0">
-              {leads.length === 0 ? (
-                <p className="text-muted text-center py-4 mb-0">Noch keine Leads vorhanden</p>
-              ) : (
-                <div className="list-group list-group-flush">
-                  {leads.map(lead => (
-                    <button key={lead.id} className="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2" onClick={() => navigate(`/app/leads/${lead.id}`)}>
-                      <div className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold" style={{ width: 36, height: 36, flexShrink: 0 }}>
-                        {lead.company_name?.[0] || '?'}
-                      </div>
-                      <div className="flex-grow-1 min-w-0">
-                        <div className="fw-semibold text-truncate">{lead.company_name}</div>
-                        <small className="text-muted">{[lead.city, lead.trade].filter(Boolean).join(' · ')}</small>
-                      </div>
-                      {lead.analysis_score > 0 && (
-                        <span className={`fw-bold ${scoreColor(lead.analysis_score)}`}>{lead.analysis_score}</span>
-                      )}
-                      {statusBadge(lead.status)}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* Zwei-Spalten */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1fr)',
+        gap: 16,
+      }}>
 
-        <div className="col-lg-4">
-          <div className="card shadow-sm">
-            <div className="card-header fw-semibold">Schnellaktionen</div>
-            <div className="card-body d-grid gap-2">
-              <button className="btn btn-primary" onClick={() => navigate('/app/import')}>
-                <i className="fas fa-cloud-arrow-up me-2"></i>Domains importieren
-              </button>
-              <button className="btn btn-outline-primary" onClick={() => navigate('/app/audit')}>
-                <i className="fas fa-magnifying-glass-chart me-2"></i>Audit starten
-              </button>
-              <button className="btn btn-outline-secondary" onClick={() => navigate('/app/sales')}>
-                <i className="fas fa-bars-progress me-2"></i>Vertriebspipeline
-              </button>
-            </div>
+        {/* Leads */}
+        <Card padding="sm">
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '4px 4px 12px', borderBottom: '1px solid var(--border-light)', marginBottom: 4,
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+              Aktuelle Leads
+            </span>
+            <button
+              onClick={() => navigate('/app/leads')}
+              style={{
+                fontSize: 11, color: 'var(--brand-primary)', background: 'none',
+                border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)',
+              }}
+            >
+              Alle anzeigen →
+            </button>
           </div>
-        </div>
+
+          {loading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '8px 4px' }}>
+              {[1,2,3,4].map(i => <Skeleton key={i} height={40} />)}
+            </div>
+          ) : leads.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-tertiary)', fontSize: 13 }}>
+              Noch keine Leads vorhanden
+            </div>
+          ) : (
+            leads.map((lead, i) => (
+              <div
+                key={lead.id}
+                onClick={() => navigate(`/app/leads/${lead.id}`)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 4px',
+                  borderBottom: i < leads.length - 1 ? '1px solid var(--border-light)' : 'none',
+                  cursor: 'pointer', transition: 'background 0.1s',
+                  borderRadius: 'var(--radius-sm)', gap: 12,
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: 'var(--brand-primary-light)', color: 'var(--brand-primary)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 600, flexShrink: 0,
+                }}>
+                  {lead.company_name?.[0] || '?'}
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 13, fontWeight: 500, color: 'var(--text-primary)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {lead.company_name}
+                  </div>
+                  <div style={{
+                    fontSize: 11, color: 'var(--text-tertiary)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {lead.city}{lead.city && lead.trade ? ' · ' : ''}{lead.trade}
+                  </div>
+                </div>
+
+                {lead.analysis_score > 0 && (
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: scoreColor(lead.analysis_score) }}>
+                      {lead.analysis_score}
+                    </div>
+                    <div style={{ width: 40, height: 3, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden', marginTop: 3 }}>
+                      <div style={{ width: `${lead.analysis_score}%`, height: '100%', background: scoreColor(lead.analysis_score), borderRadius: 2 }} />
+                    </div>
+                  </div>
+                )}
+
+                {statusBadge(lead.status)}
+              </div>
+            ))
+          )}
+        </Card>
+
+        {/* Letzte Audits */}
+        <Card padding="sm">
+          <div style={{
+            fontSize: 13, fontWeight: 500, color: 'var(--text-primary)',
+            padding: '4px 4px 12px', borderBottom: '1px solid var(--border-light)', marginBottom: 8,
+          }}>
+            Letzte Audits
+          </div>
+
+          {loading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '4px' }}>
+              {[1,2,3].map(i => <Skeleton key={i} height={48} />)}
+            </div>
+          ) : audits.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 12px', color: 'var(--text-tertiary)', fontSize: 13 }}>
+              Noch keine Audits
+            </div>
+          ) : (
+            audits.map((audit, i) => {
+              const score = audit.total_score || 0;
+              const level = score >= 85 ? 'Pt' : score >= 70 ? 'Go' : score >= 50 ? 'Si' : score >= 30 ? 'Br' : 'NC';
+              const levelColor =
+                score >= 85 ? 'var(--brand-primary)'
+                : score >= 70 ? 'var(--status-warning-text)'
+                : score >= 50 ? 'var(--text-secondary)'
+                : score >= 30 ? '#a06820'
+                : 'var(--status-danger-text)';
+
+              return (
+                <div key={audit.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px',
+                  borderBottom: i < audits.length - 1 ? '1px solid var(--border-light)' : 'none',
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 'var(--radius-sm)',
+                    background: `${levelColor}18`, color: levelColor,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, fontWeight: 700, flexShrink: 0,
+                  }}>
+                    {level}
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 12, fontWeight: 500, color: 'var(--text-primary)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {audit.company_name || audit.website_url}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                      {new Date(audit.created_at).toLocaleDateString('de-DE')}
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 14, fontWeight: 600, color: levelColor, flexShrink: 0 }}>
+                    {score}
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          {!loading && audits.length > 0 && (
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
+              marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-light)',
+            }}>
+              {[
+                { label: 'Ø Score', value: avgScore || '—' },
+                { label: 'Audits', value: audits.length },
+              ].map(stat => (
+                <div key={stat.label} style={{
+                  textAlign: 'center', padding: '8px',
+                  background: 'var(--bg-app)', borderRadius: 'var(--radius-sm)',
+                }}>
+                  <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--brand-primary)' }}>
+                    {stat.value}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   );

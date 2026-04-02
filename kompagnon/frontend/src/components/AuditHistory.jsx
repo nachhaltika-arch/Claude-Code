@@ -230,7 +230,7 @@ export default function AuditHistory({ leadId }) {
           <div style={{
             width: '100%',
             maxWidth: isMobile ? '100%' : 960,
-            height: '100vh',
+            height: '100%',
             display: 'flex',
             flexDirection: 'column',
             background: 'var(--bg-surface)',

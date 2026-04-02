@@ -44,7 +44,11 @@ export default function CustomerDashboard() {
   const [error, setError]   = useState(null);
 
   useEffect(() => {
-    if (!user?.lead_id) { setLoading(false); return; }
+    if (!user?.lead_id) {
+      setLoading(false);
+      setError('no_lead_id');
+      return;
+    }
     const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
     fetch(`${API_BASE_URL}/api/usercards/${user.lead_id}/profile`, { headers: h })
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
@@ -58,6 +62,19 @@ export default function CustomerDashboard() {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: 12 }}>
       <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
       <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Wird geladen…</span>
+    </div>
+  );
+
+  if (error === 'no_lead_id') return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: 16, textAlign: 'center', padding: 24 }}>
+      <div style={{ fontSize: 32 }}>📋</div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Kartei noch nicht verknüpft</h2>
+      <p style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 400, margin: 0 }}>
+        Ihre Kundenkartei wurde noch nicht verknüpft. Bitte kontaktieren Sie KOMPAGNON.
+      </p>
+      <a href="mailto:info@kompagnon.eu" style={{ background: 'var(--brand-primary)', color: 'white', padding: '10px 24px', borderRadius: 'var(--radius-md)', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+        Kontakt aufnehmen
+      </a>
     </div>
   );
 
@@ -295,25 +312,16 @@ export default function CustomerDashboard() {
             Unser Team steht Ihnen gerne zur Verfügung.
           </div>
         </div>
-        {lead.email ? (
-          <a
-            href={`mailto:${lead.email}`}
-            style={{
-              background: 'white', color: '#16a34a', borderRadius: 'var(--radius-md)',
-              padding: '10px 20px', fontSize: 13, fontWeight: 700,
-              textDecoration: 'none', flexShrink: 0, display: 'inline-block',
-            }}
-          >
-            Kontakt aufnehmen
-          </a>
-        ) : (
-          <div style={{
+        <a
+          href={lead.email ? `mailto:${lead.email}` : 'mailto:info@kompagnon.eu'}
+          style={{
             background: 'white', color: '#16a34a', borderRadius: 'var(--radius-md)',
-            padding: '10px 20px', fontSize: 13, fontWeight: 700, flexShrink: 0,
-          }}>
-            Kontakt aufnehmen
-          </div>
-        )}
+            padding: '10px 20px', fontSize: 13, fontWeight: 700,
+            textDecoration: 'none', flexShrink: 0, display: 'inline-block',
+          }}
+        >
+          Kontakt aufnehmen
+        </a>
       </div>
 
     </div>

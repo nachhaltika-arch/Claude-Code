@@ -65,7 +65,7 @@ export default function Sidebar() {
   if (user?.role === 'kunde') {
     const kundeItems = [
       { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
-      ...(user.lead_id ? [{ label: 'Meine Kartei', path: `/app/leads/${user.lead_id}`, icon: '📋' }] : []),
+      ...(user.lead_id ? [{ label: 'Meine Kartei', path: `/app/usercards/${user.lead_id}`, icon: '📋' }] : []),
       { label: 'Akademy', path: '/app/academy', icon: '🎓' },
     ];
     return (

@@ -72,17 +72,32 @@ function PrivateRoute({ children, roles }) {
   if (!user) return <Navigate to="/login" replace />;
   // Kunde role: redirect to own card if they try to access restricted pages
   if (user.role === 'kunde' && roles && !roles.includes('kunde')) {
-    return <Navigate to={user.lead_id ? `/app/leads/${user.lead_id}` : '/app/dashboard'} replace />;
+    return <Navigate to={user.lead_id ? `/app/usercards/${user.lead_id}` : '/app/dashboard'} replace />;
   }
   if (roles && !roles.includes(user.role)) return <Navigate to="/app/dashboard" replace />;
   return children;
 }
 
-// ── Dashboard: render CustomerDashboard for Kunde, regular Dashboard otherwise ──
+// ── Dashboard: redirect Kunde to /app/usercards/:id, else regular Dashboard ──
 
 function DashboardRoute() {
   const { user } = useAuth();
-  if (user?.role === 'kunde') return <CustomerDashboard />;
+  if (user?.role === 'kunde') {
+    if (user.lead_id) return <Navigate to={`/app/usercards/${user.lead_id}`} replace />;
+    // Kunde without linked card
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: 16, textAlign: 'center', padding: 24 }}>
+        <div style={{ fontSize: 32 }}>📋</div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Kartei noch nicht verknüpft</h2>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 400, margin: 0 }}>
+          Ihre Kundenkartei wurde noch nicht verknüpft. Bitte kontaktieren Sie KOMPAGNON.
+        </p>
+        <a href="mailto:info@kompagnon.eu" style={{ background: 'var(--brand-primary)', color: 'white', padding: '10px 24px', borderRadius: 'var(--radius-md)', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+          Kontakt aufnehmen
+        </a>
+      </div>
+    );
+  }
   return <Dashboard />;
 }
 
@@ -113,6 +128,7 @@ function App() {
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
             <Route index element={<Navigate to="/app/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardRoute />} />
+            <Route path="usercards/:id" element={<PrivateRoute><CustomerDashboard /></PrivateRoute>} />
             <Route path="sales" element={<PrivateRoute roles={['admin', 'auditor']}><SalesPipeline /></PrivateRoute>} />
             <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
             <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />

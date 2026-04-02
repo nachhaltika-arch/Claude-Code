@@ -3,11 +3,11 @@ import { useScreenSize } from '../utils/responsive';
 
 
 const STAGES = [
-  { id: 'idea', label: 'Idee', icon: '💡', color: '#7c3aed', bg: '#faf5ff' },
-  { id: 'planned', label: 'Geplant', icon: '📋', color: '#2563eb', bg: '#eff6ff' },
-  { id: 'in_progress', label: 'In Entwicklung', icon: '⚙️', color: '#d97706', bg: '#fffbeb' },
-  { id: 'testing', label: 'Testing', icon: '🧪', color: '#0891b2', bg: '#ecfeff' },
-  { id: 'done', label: 'Fertig', icon: '✅', color: '#059669', bg: '#f0fdf4' },
+  { id: 'idea', label: 'Idee', icon: '💡', color: '#7c3aed', bg: 'var(--bg-elevated)' },
+  { id: 'planned', label: 'Geplant', icon: '📋', color: '#2563eb', bg: 'var(--bg-elevated)' },
+  { id: 'in_progress', label: 'In Entwicklung', icon: '⚙️', color: '#d97706', bg: 'var(--status-warning-bg)' },
+  { id: 'testing', label: 'Testing', icon: '🧪', color: '#0891b2', bg: 'var(--bg-elevated)' },
+  { id: 'done', label: 'Fertig', icon: '✅', color: '#059669', bg: 'var(--status-success-bg)' },
 ];
 const CATS = [
   { id: 'feature', label: 'Feature', icon: '⭐', color: '#2563eb' },
@@ -84,7 +84,7 @@ export default function ProductDevelopment() {
             {STAGES.map((s, idx) => (
               <button key={s.id} onClick={() => setActiveTab(idx)} style={{
                 flexShrink: 0, padding: '8px 14px', borderRadius: 20, border: 'none',
-                background: activeTab === idx ? s.color : 'var(--status-neutral-bg)', color: activeTab === idx ? '#fff' : '#475569',
+                background: activeTab === idx ? s.color : 'var(--status-neutral-bg)', color: activeTab === idx ? '#fff' : 'var(--text-secondary)',
                 fontSize: 13, fontWeight: 600, cursor: 'pointer', minHeight: 36, whiteSpace: 'nowrap',
               }}>{s.icon} {s.label} ({getStageItems(s.id).length})</button>
             ))}

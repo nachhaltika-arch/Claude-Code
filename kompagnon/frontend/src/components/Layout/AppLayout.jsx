@@ -48,6 +48,12 @@ const icons = {
       <circle cx="10.5" cy="5.5" r="3"/><path d="M2 14l5.3-5.3"/><path d="M5.8 10.2l1.5 1.5"/>
     </svg>
   ),
+  book: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 2.5A1.5 1.5 0 013.5 1h9A1.5 1.5 0 0114 2.5v11a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 13.5V2.5z"/>
+      <path d="M5 1v14M5 5h6M5 8h6M5 11h4"/>
+    </svg>
+  ),
   dots: (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
       <circle cx="4" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12" cy="8" r="1.2"/>
@@ -93,8 +99,9 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    title: 'Akademie',
+    title: 'Inhalte',
     items: [
+      { label: 'Kurse', path: '/app/courses', icon: 'book' },
       { label: 'Akademy', path: '/app/academy', icon: 'gradCap' },
       { label: 'Kurse verwalten', path: '/app/akademie/admin', icon: 'gear', adminOnly: true },
     ],
@@ -114,6 +121,7 @@ const PAGE_NAMES = {
   '/app/customers': 'Kunden',
   '/app/audit': 'Website Audit',
   '/app/akademie': 'Akademy',
+  '/app/courses': 'Kurse',
   '/app/academy': 'Akademy',
   '/app/akademie/admin': 'Kurse verwalten',
   '/app/academy/admin': 'Kurse verwalten',

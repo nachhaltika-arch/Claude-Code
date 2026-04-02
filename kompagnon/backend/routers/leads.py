@@ -11,6 +11,7 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db
+from routers.auth_router import require_any_auth
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 import asyncio
@@ -1404,6 +1405,42 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(lead)
     return _pagespeed_payload_lead(lead)
+
+
+# ── Lead Domains ─────────────────────────────────────────────────────────────
+
+@router.get("/{lead_id}/domains")
+def get_lead_domains(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
+    from database import LeadDomain
+    domains = db.query(LeadDomain).filter(LeadDomain.lead_id == lead_id).order_by(LeadDomain.is_primary.desc(), LeadDomain.created_at).all()
+    return [{"id": d.id, "url": d.url, "label": d.label, "is_primary": d.is_primary} for d in domains]
+
+@router.post("/{lead_id}/domains")
+def add_lead_domain(lead_id: int, data: dict, db: Session = Depends(get_db), _=Depends(require_any_auth)):
+    from database import LeadDomain
+    url = data.get("url", "").strip()
+    if not url:
+        raise HTTPException(400, "URL fehlt")
+    if not url.startswith("http"):
+        url = "https://" + url
+    is_primary = data.get("is_primary", False)
+    if is_primary:
+        db.query(LeadDomain).filter(LeadDomain.lead_id == lead_id).update({"is_primary": False})
+    domain = LeadDomain(lead_id=lead_id, url=url, label=data.get("label", ""), is_primary=is_primary)
+    db.add(domain)
+    db.commit()
+    db.refresh(domain)
+    return {"id": domain.id, "url": domain.url, "label": domain.label, "is_primary": domain.is_primary}
+
+@router.delete("/{lead_id}/domains/{domain_id}")
+def delete_lead_domain(lead_id: int, domain_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
+    from database import LeadDomain
+    domain = db.query(LeadDomain).filter(LeadDomain.id == domain_id, LeadDomain.lead_id == lead_id).first()
+    if not domain:
+        raise HTTPException(404, "Domain nicht gefunden")
+    db.delete(domain)
+    db.commit()
+    return {"ok": True}
 
 
 # ── /api/customers aliases for all /{lead_id}/... endpoints ─────────────────

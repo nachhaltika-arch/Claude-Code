@@ -44,18 +44,16 @@ function fmtTs(iso) {
 
 function PageSpeedSection({ customerId, headers }) {
   const { isMobile } = useScreenSize();
-  const [ps, setPs]         = useState(null);   // stored data
+  const [ps, setPs]           = useState(null);
   const [loading, setLoading] = useState(true);
   const [measuring, setMeasuring] = useState(false);
-  const [noUrl, setNoUrl]   = useState(false);
-  const [error, setError]   = useState(null);
+  const [noUrl, setNoUrl]     = useState(false);
+  const [error, setError]     = useState(null);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/customers/${customerId}/pagespeed`, { headers })
       .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data && data.checked_at) setPs(data);
-      })
+      .then(data => { if (data && data.checked_at) setPs(data); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [customerId]); // eslint-disable-line
@@ -65,38 +63,34 @@ function PageSpeedSection({ customerId, headers }) {
     setError(null);
     setNoUrl(false);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/customers/${customerId}/pagespeed`, {
-        method: 'POST', headers,
-      });
+      const res  = await fetch(`${API_BASE_URL}/api/customers/${customerId}/pagespeed`, { method: 'POST', headers });
       const data = await res.json();
       if (!res.ok) {
-        if (data?.detail?.includes('Website-URL')) { setNoUrl(true); }
-        else { setError(data?.detail || 'Fehler bei der Messung'); }
+        if (data?.detail?.includes('Website-URL')) setNoUrl(true);
+        else setError(data?.detail || 'Fehler bei der Messung');
       } else {
         setPs(data);
       }
-    } catch (e) {
-      setError('Verbindungsfehler');
-    }
+    } catch { setError('Verbindungsfehler'); }
     setMeasuring(false);
   };
 
   const vitals = ps ? [
-    { key: 'lcp', label: 'LCP', value: ps.lcp_mobile, unit: 's' },
-    { key: 'cls', label: 'CLS', value: ps.cls_mobile, unit: '' },
-    { key: 'inp', label: 'INP', value: ps.inp_mobile, unit: 's' },
-    { key: 'fcp', label: 'FCP', value: ps.fcp_mobile, unit: 's' },
+    { key: 'lcp', label: 'LCP', value: ps.lcp_mobile },
+    { key: 'cls', label: 'CLS', value: ps.cls_mobile },
+    { key: 'inp', label: 'INP', value: ps.inp_mobile },
+    { key: 'fcp', label: 'FCP', value: ps.fcp_mobile },
   ] : [];
 
   return (
-    <div style={{
-      background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
-      borderRadius: 'var(--radius-lg)', overflow: 'hidden',
-    }}>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+
       {/* Section header */}
       <div style={{
-        padding: '16px 20px', borderBottom: '1px solid var(--border-light)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: isMobile ? '12px 16px' : '16px 20px',
+        borderBottom: '1px solid var(--border-light)',
+        display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 16 }}>⚡</span>
@@ -108,24 +102,20 @@ function PageSpeedSection({ customerId, headers }) {
           style={{
             padding: '6px 14px',
             background: measuring ? 'var(--bg-elevated)' : 'var(--brand-primary)',
-            color: measuring ? 'var(--text-tertiary)' : 'white',
+            color: measuring ? 'var(--text-tertiary)' : 'var(--text-inverse)',
             border: measuring ? '1px solid var(--border-medium)' : 'none',
-            borderRadius: 'var(--radius-md)', fontSize: 12,
-            fontWeight: 600, cursor: measuring ? 'not-allowed' : 'pointer',
+            borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,
+            cursor: measuring ? 'not-allowed' : 'pointer',
             fontFamily: 'var(--font-sans)', transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', gap: 6,
+            ...(isMobile ? { width: '100%', justifyContent: 'center' } : {}),
           }}
           onMouseEnter={e => { if (!measuring) e.currentTarget.style.opacity = '0.85'; }}
           onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
         >
           {measuring ? (
             <>
-              <span style={{
-                display: 'inline-block', width: 11, height: 11,
-                borderRadius: '50%', border: '2px solid var(--border-medium)',
-                borderTopColor: 'var(--brand-primary)',
-                animation: 'spin 0.8s linear infinite', flexShrink: 0,
-              }} />
+              <span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: '50%', border: '2px solid var(--border-medium)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
               Wird gemessen…
             </>
           ) : 'PageSpeed messen'}
@@ -133,78 +123,52 @@ function PageSpeedSection({ customerId, headers }) {
       </div>
 
       {/* Body */}
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: isMobile ? '16px' : '20px' }}>
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
             <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
           </div>
-
         ) : noUrl ? (
           <div style={{ fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'center', padding: '16px 0' }}>
             Keine Website-URL hinterlegt — PageSpeed-Messung nicht möglich.
           </div>
-
         ) : error ? (
-          <div style={{
-            fontSize: 12, color: 'var(--status-danger-text)',
-            background: 'var(--status-danger-bg)',
-            borderRadius: 'var(--radius-md)', padding: '10px 14px',
-          }}>
+          <div style={{ fontSize: 12, color: 'var(--status-danger-text)', background: 'var(--status-danger-bg)', borderRadius: 'var(--radius-md)', padding: '10px 14px' }}>
             {error}
           </div>
-
         ) : !ps ? (
           <div style={{ fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'center', padding: '16px 0' }}>
             Noch keine Messung vorhanden. Klicke auf „PageSpeed messen".
           </div>
-
         ) : (
           <>
-            {/* Score cards */}
+            {/* Score cards — 1 col mobile, 2 col desktop */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
-              {[
-                { label: 'Mobil',   score: ps.mobile_score },
-                { label: 'Desktop', score: ps.desktop_score },
-              ].map(({ label, score }) => {
+              {[{ label: 'Mobil', score: ps.mobile_score }, { label: 'Desktop', score: ps.desktop_score }].map(({ label, score }) => {
                 const c = scoreColor(score);
                 return (
-                  <div key={label} style={{
-                    background: c.bg, borderRadius: 'var(--radius-lg)',
-                    padding: '20px 16px', textAlign: 'center',
-                  }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: c.text, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-                      {label}
-                    </div>
-                    <div style={{ fontSize: 42, fontWeight: 700, color: c.text, lineHeight: 1 }}>
-                      {score ?? '—'}
-                    </div>
+                  <div key={label} style={{ background: c.bg, borderRadius: 'var(--radius-lg)', padding: '20px 16px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: c.text, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{label}</div>
+                    <div style={{ fontSize: 42, fontWeight: 700, color: c.text, lineHeight: 1 }}>{score ?? '—'}</div>
                     <div style={{ fontSize: 11, color: c.text, marginTop: 4, opacity: 0.7 }}>/ 100</div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Core Web Vitals */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
+            {/* Core Web Vitals — 2×2 mobile, 4 desktop */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 14 }}>
               {vitals.map(({ key, label, value }) => {
                 const c = vitalColor(key, value);
                 return (
-                  <div key={key} style={{
-                    background: c.bg, borderRadius: 'var(--radius-md)',
-                    padding: '12px 10px', textAlign: 'center',
-                  }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: c.text, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
-                      {label}
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: c.text, lineHeight: 1.1 }}>
-                      {fmtVital(key, value)}
-                    </div>
+                  <div key={key} style={{ background: c.bg, borderRadius: 'var(--radius-md)', padding: '12px 10px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: c.text, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: c.text, lineHeight: 1.1 }}>{fmtVital(key, value)}</div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Timestamp */}
             {ps.checked_at && (
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'right' }}>
                 Zuletzt gemessen: {fmtTs(ps.checked_at)}
@@ -221,27 +185,25 @@ function PageSpeedSection({ customerId, headers }) {
 
 export default function CustomerDetail() {
   const { customerId } = useParams();
-  const navigate = useNavigate();
-  const { token } = useAuth();
-  const { isMobile } = useScreenSize();
+  const navigate       = useNavigate();
+  const { token }      = useAuth();
+  const { isMobile }   = useScreenSize();
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
-  const [customer, setCustomer] = useState(null);
+  const [customer, setCustomer]           = useState(null);
   const [loadingCustomer, setLoadingCustomer] = useState(true);
 
   // Academy state
-  const [assigned, setAssigned] = useState([]);
+  const [assigned, setAssigned]     = useState([]);
   const [allCourses, setAllCourses] = useState([]);
   const [loadingAcademy, setLoadingAcademy] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [assigning, setAssigning] = useState(null);
-  const [removing, setRemoving] = useState(null);
+  const [showModal, setShowModal]   = useState(false);
+  const [assigning, setAssigning]   = useState(null);
+  const [removing, setRemoving]     = useState(null);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/leads/${customerId}`, { headers: h })
-      .then(r => r.json())
-      .then(setCustomer)
-      .catch(console.error)
+      .then(r => r.json()).then(setCustomer).catch(console.error)
       .finally(() => setLoadingCustomer(false));
   }, [customerId]); // eslint-disable-line
 
@@ -261,9 +223,7 @@ export default function CustomerDetail() {
   const handleAssign = async (courseId) => {
     setAssigning(courseId);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/academy/customer/${customerId}/courses/${courseId}/assign`, {
-        method: 'POST', headers: h,
-      });
+      const res = await fetch(`${API_BASE_URL}/api/academy/customer/${customerId}/courses/${courseId}/assign`, { method: 'POST', headers: h });
       if (res.ok) {
         const data = await res.json();
         setAssigned(prev => [...prev, { ...data, progress_pct: 0, total_lessons: 0, completed: 0, certificate_code: null }]);
@@ -276,18 +236,14 @@ export default function CustomerDetail() {
   const handleRemove = async (courseId) => {
     setRemoving(courseId);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/academy/customer/${customerId}/courses/${courseId}`, {
-        method: 'DELETE', headers: h,
-      });
-      if (res.ok) {
-        setAssigned(prev => prev.filter(a => a.course_id !== courseId));
-      }
+      const res = await fetch(`${API_BASE_URL}/api/academy/customer/${customerId}/courses/${courseId}`, { method: 'DELETE', headers: h });
+      if (res.ok) setAssigned(prev => prev.filter(a => a.course_id !== courseId));
     } catch (e) { console.error(e); }
     setRemoving(null);
   };
 
   const assignedIds = new Set(assigned.map(a => a.course_id));
-  const available = allCourses.filter(c => {
+  const available   = allCourses.filter(c => {
     const aud = c.target_audience || c.audience;
     return !assignedIds.has(c.id) && (aud === 'customer' || aud === 'both');
   });
@@ -299,57 +255,72 @@ export default function CustomerDetail() {
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    // SCHRITT 8 — bottom nav clearance on mobile
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 16 : 24, paddingBottom: isMobile ? 80 : 0 }}>
 
-      {/* ── Header ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={() => navigate(-1)} style={{
-          background: 'none', border: 'none', color: 'var(--text-tertiary)',
-          cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)', padding: 0,
-          display: 'flex', alignItems: 'center', gap: 4,
-        }}>← Zurück</button>
-        <span style={{ color: 'var(--border-medium)' }}>·</span>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-          {customer?.contact_name || customer?.company_name || `Kunde #${customerId}`}
-        </h1>
+      {/* ── SCHRITT 2 — Header ── */}
+      <div style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        justifyContent: 'space-between',
+        gap: isMobile ? 8 : 12,
+      }}>
+        {/* Back + name */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <button
+            onClick={() => navigate(-1)}
+            style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)', padding: 0, display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
+          >← Zurück</button>
+          <span style={{ color: 'var(--border-medium)' }}>·</span>
+          <h1 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {customer?.contact_name || customer?.company_name || `Kunde #${customerId}`}
+          </h1>
+        </div>
       </div>
 
       {/* ── PageSpeed Section ── */}
       <PageSpeedSection customerId={customerId} headers={h} />
 
-      {/* ── Akademy Section ── */}
-      <div style={{
-        background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
-        borderRadius: 'var(--radius-lg)', overflow: 'hidden',
-      }}>
-        {/* Section header */}
+      {/* ── SCHRITT 6 — Akademy Section ── */}
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+
+        {/* Section header — stacked on mobile */}
         <div style={{
-          padding: '16px 20px', borderBottom: '1px solid var(--border-light)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: isMobile ? '12px 16px' : '16px 20px',
+          borderBottom: '1px solid var(--border-light)',
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'stretch' : 'center',
+          justifyContent: 'space-between',
+          gap: isMobile ? 10 : 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 16 }}>🎓</span>
             <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Akademy</span>
             {!loadingAcademy && assigned.length > 0 && (
-              <span style={{
-                background: 'var(--brand-primary-light)', color: 'var(--brand-primary)',
-                borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600,
-                padding: '2px 8px',
-              }}>{assigned.length}</span>
+              <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>
+                {assigned.length}
+              </span>
             )}
           </div>
+          {/* Full-width button on mobile */}
           <button
             onClick={() => setShowModal(true)}
             style={{
-              padding: '6px 14px', background: 'var(--brand-primary)', color: 'white',
-              border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12,
-              fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
-              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 14px',
+              background: 'var(--brand-primary)',
+              color: 'var(--text-inverse)',
+              border: 'none', borderRadius: 'var(--radius-md)',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              ...(isMobile ? { width: '100%' } : {}),
             }}
           >+ Kurs zuweisen</button>
         </div>
 
-        {/* Course table */}
+        {/* SCHRITT 4 — Course table with horizontal scroll */}
         <div style={{ padding: '4px 0' }}>
           {loadingAcademy ? (
             <div style={{ padding: '32px 20px', display: 'flex', justifyContent: 'center' }}>
@@ -366,26 +337,23 @@ export default function CustomerDetail() {
               {/* Table header */}
               <div style={{
                 display: 'grid', gridTemplateColumns: '1fr 180px 120px 40px',
-                minWidth: 480,
-                gap: 12, padding: '8px 20px',
+                minWidth: 520, gap: 12, padding: '8px 20px',
                 fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
                 textTransform: 'uppercase', letterSpacing: '0.06em',
                 borderBottom: '1px solid var(--border-light)',
               }}>
-                <span>Kurs</span>
-                <span>Fortschritt</span>
-                <span>Zertifikat</span>
-                <span />
+                <span>Kurs</span><span>Fortschritt</span><span>Zertifikat</span><span />
               </div>
 
               {assigned.map(row => (
-                <div key={row.course_id} style={{
-                  display: 'grid', gridTemplateColumns: '1fr 180px 120px 40px',
-                  minWidth: 480,
-                  gap: 12, padding: '12px 20px', alignItems: 'center',
-                  borderBottom: '1px solid var(--border-light)',
-                  transition: 'background 0.1s',
-                }}
+                <div
+                  key={row.course_id}
+                  style={{
+                    display: 'grid', gridTemplateColumns: '1fr 180px 120px 40px',
+                    minWidth: 520, gap: 12, padding: '12px 20px',
+                    alignItems: 'center', borderBottom: '1px solid var(--border-light)',
+                    transition: 'background 0.1s',
+                  }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-app)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
@@ -393,9 +361,7 @@ export default function CustomerDetail() {
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.3 }}>
                     {row.course_title}
                     {row.assigned_at && (
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
-                        Zugewiesen: {row.assigned_at}
-                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>Zugewiesen: {row.assigned_at}</div>
                     )}
                   </div>
 
@@ -405,16 +371,12 @@ export default function CustomerDetail() {
                       <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
                         {row.total_lessons > 0 ? `${row.completed}/${row.total_lessons}` : '—'}
                       </span>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: row.progress_pct === 100 ? '#16a34a' : 'var(--text-tertiary)' }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: row.progress_pct === 100 ? 'var(--status-success-text)' : 'var(--text-tertiary)' }}>
                         {row.progress_pct}%
                       </span>
                     </div>
                     <div style={{ height: 5, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
-                      <div style={{
-                        width: `${row.progress_pct}%`, height: '100%',
-                        background: row.progress_pct === 100 ? '#16a34a' : 'var(--brand-primary)',
-                        borderRadius: 3, transition: 'width 0.4s',
-                      }} />
+                      <div style={{ width: `${row.progress_pct}%`, height: '100%', background: row.progress_pct === 100 ? 'var(--status-success-text)' : 'var(--brand-primary)', borderRadius: 3, transition: 'width 0.4s' }} />
                     </div>
                   </div>
 
@@ -423,11 +385,12 @@ export default function CustomerDetail() {
                     {row.certificate_code ? (
                       <a
                         href={`/academy/certificate/${row.certificate_code}`}
-                        target="_blank"
-                        rel="noreferrer"
+                        target="_blank" rel="noreferrer"
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 4,
-                          padding: '3px 10px', background: '#dcfce7', color: '#16a34a',
+                          padding: '3px 10px',
+                          background: 'var(--status-success-bg)',
+                          color: 'var(--status-success-text)',
                           borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 700,
                           textDecoration: 'none',
                         }}
@@ -444,9 +407,10 @@ export default function CustomerDetail() {
                     title="Kurs entfernen"
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer',
-                      color: 'var(--status-danger-text)', padding: 4, borderRadius: 'var(--radius-sm)',
-                      opacity: removing === row.course_id ? 0.4 : 0.6, display: 'flex', alignItems: 'center',
-                      transition: 'opacity 0.15s',
+                      color: 'var(--status-danger-text)', padding: 4,
+                      borderRadius: 'var(--radius-sm)',
+                      opacity: removing === row.course_id ? 0.4 : 0.6,
+                      display: 'flex', alignItems: 'center', transition: 'opacity 0.15s',
                     }}
                     onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                     onMouseLeave={e => e.currentTarget.style.opacity = removing === row.course_id ? '0.4' : '0.6'}
@@ -462,21 +426,39 @@ export default function CustomerDetail() {
         </div>
       </div>
 
-      {/* ── Assign Modal ── */}
+      {/* ── SCHRITT 6 — Assign Modal ── */}
       {showModal && (
         <>
+          {/* Backdrop */}
           <div
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }}
             onClick={() => setShowModal(false)}
           />
-          <div style={{
+
+          {/* Modal — slides from bottom on mobile, centered on desktop */}
+          <div style={isMobile ? {
+            position: 'fixed', bottom: 0, left: 0, right: 0,
+            background: 'var(--bg-surface)',
+            borderRadius: '16px 16px 0 0',
+            boxShadow: '0 -8px 32px rgba(0,0,0,0.18)',
+            maxHeight: '80vh',
+            display: 'flex', flexDirection: 'column', zIndex: 101,
+          } : {
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-            background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)',
+            background: 'var(--bg-surface)',
+            borderRadius: 'var(--radius-xl)',
             boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
             width: 480, maxWidth: '90vw', maxHeight: '70vh',
             display: 'flex', flexDirection: 'column', zIndex: 101,
           }}>
-            <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Drag handle (mobile only) */}
+            {isMobile && (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
+                <div style={{ width: 36, height: 4, background: 'var(--border-medium)', borderRadius: 2 }} />
+              </div>
+            )}
+
+            <div style={{ padding: isMobile ? '14px 16px' : '18px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Kurs zuweisen</span>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1 }}>×</button>
             </div>
@@ -493,22 +475,18 @@ export default function CustomerDetail() {
                   disabled={assigning === course.id}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 14px', background: 'transparent',
-                    border: 'none', borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer', textAlign: 'left',
-                    transition: 'background 0.1s',
-                    opacity: assigning === course.id ? 0.6 : 1,
+                    padding: isMobile ? '14px 12px' : '12px 14px',
+                    background: 'transparent', border: 'none',
+                    borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left',
+                    transition: 'background 0.1s', opacity: assigning === course.id ? 0.6 : 1,
                   }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-app)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   <div style={{
                     width: 40, height: 40, borderRadius: 'var(--radius-md)', flexShrink: 0,
-                    background: course.thumbnail_url
-                      ? `url(${course.thumbnail_url}) center/cover`
-                      : 'linear-gradient(135deg, var(--brand-primary), #1e3a5f)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 18,
+                    background: course.thumbnail_url ? `url(${course.thumbnail_url}) center/cover` : 'linear-gradient(135deg, var(--brand-primary), var(--brand-primary-deeper))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
                   }}>
                     {!course.thumbnail_url && '🎓'}
                   </div>

@@ -177,7 +177,7 @@ function FileUploadSection({ token }) {
             marginBottom: 14,
           }}
         >
-          <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileInput} />
+          <input ref={fileInputRef} id="portal-file-input" name="portal-file-input" type="file" style={{ display: 'none' }} onChange={handleFileInput} />
           {pendingFile ? (
             <div>
               <div style={{ fontSize: 22, marginBottom: 4 }}>📎</div>
@@ -207,6 +207,8 @@ function FileUploadSection({ token }) {
                 Dateityp
               </label>
               <select
+                id="portal-file-type"
+                name="portal-file-type"
                 value={fileType}
                 onChange={e => setFileType(e.target.value)}
                 style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d8e8', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: 'var(--bg-surface)', color: 'var(--text-primary)', outline: 'none' }}
@@ -221,6 +223,8 @@ function FileUploadSection({ token }) {
                 Anmerkung (optional)
               </label>
               <input
+                id="portal-file-note"
+                name="portal-file-note"
                 type="text"
                 value={note}
                 onChange={e => setNote(e.target.value)}

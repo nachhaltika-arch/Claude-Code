@@ -319,6 +319,7 @@ export default function CustomerPortal() {
   const [verifyError, setVerifyError] = useState('');
   const [verifiedData, setVerifiedData] = useState(null);
   const [error, setError] = useState('');
+  const [portalTab, setPortalTab] = useState('uebersicht');
 
   useEffect(() => { loadPortal(); }, [token]); // eslint-disable-line
 
@@ -420,11 +421,10 @@ export default function CustomerPortal() {
   // DASHBOARD
   if (step === 'dashboard') return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-app)', fontFamily: 'var(--font-sans, system-ui)' }}>
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-      `}</style>
-      <div style={{ background: '#008eaa', padding: '16px 20px 20px' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      {/* Header */}
+      <div style={{ background: '#008eaa', padding: '16px 20px 0' }}>
         <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <Logo size="small" />
           <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{data?.company_name}</div>
@@ -441,67 +441,87 @@ export default function CustomerPortal() {
             </div>
           </div>
         )}
-      </div>
-      <div style={{ maxWidth: 700, margin: '0 auto', padding: '20px 16px', animation: 'fadeIn 0.4s ease' }}>
-        {data?.ai_summary && (
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e0f4f8' }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Zusammenfassung</div>
-            <p style={{ fontSize: 13, color: '#4a6470', lineHeight: 1.6, margin: 0 }}>{data.ai_summary}</p>
-          </div>
-        )}
-        {data?.rc_score !== null && (
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Ihre Ergebnisse im Detail</div>
-            {[
-              ['Rechtliche Compliance', data.rc_score, 30],
-              ['Technische Performance', data.tp_score, 20],
-              ['Barrierefreiheit', data.bf_score, 20],
-              ['Sicherheit & Datenschutz', data.si_score, 15],
-              ['SEO & Sichtbarkeit', data.se_score, 10],
-              ['Inhalt & Nutzererfahrung', data.ux_score, 5],
-            ].map(([label, score, max]) => {
-              const pct = Math.min(100, ((score || 0) / max) * 100);
-              const col = pct >= 75 ? '#1a7a3a' : pct >= 50 ? '#a06800' : '#b02020';
-              return (
-                <div key={label} style={{ marginBottom: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4, color: '#4a6470' }}>
-                    <span>{label}</span>
-                    <span style={{ fontWeight: 600, color: col }}>{score || 0}/{max}</span>
-                  </div>
-                  <div style={{ height: 6, background: 'var(--bg-app)', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: col, borderRadius: 3, transition: 'width 0.8s ease' }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {data?.website_screenshot && (
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Ihre Website</div>
-            <div style={{ background: 'var(--bg-app)', borderRadius: 8, overflow: 'hidden', border: '1px solid #e0f4f8' }}>
-              <div style={{ background: 'var(--brand-primary-light)', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
-                {['#ef4444','#f59e0b','#22c55e'].map(c => <div key={c} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />)}
-                <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: 4, padding: '2px 8px', fontSize: 10, color: '#8fa8b0', marginLeft: 6 }}>{data.website_url}</div>
-              </div>
-              <img src={data.website_screenshot} alt="Website" style={{ width: '100%', display: 'block', maxHeight: 240, objectFit: 'cover', objectPosition: 'top' }} />
-            </div>
-          </div>
-        )}
 
-        {/* File upload section */}
-        <FileUploadSection token={token} />
-
-        <div style={{ background: '#0f1e3a', borderRadius: 12, padding: 20, textAlign: 'center', color: 'white' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Jetzt Ihre Website optimieren</div>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 14, lineHeight: 1.5 }}>
-            KOMPAGNON bringt Ihre Homepage auf Homepage Standard Gold oder Platin — in 14 Werktagen, zum Festpreis.
-          </p>
-          <a href="https://www.kompagnon.eu" target="_blank" rel="noopener noreferrer" style={{
-            display: 'block', width: '100%', maxWidth: 320, margin: '0 auto', padding: '14px 24px', background: '#008eaa', color: 'white', textAlign: 'center',
-            borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none',
-          }}>Jetzt anfragen →</a>
+        {/* Tab bar */}
+        <div style={{ maxWidth: 700, margin: '16px auto 0', display: 'flex', gap: 4 }}>
+          {[['uebersicht', 'Übersicht'], ['unterlagen', 'Unterlagen']].map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setPortalTab(id)}
+              style={{
+                padding: '8px 16px', border: 'none', borderRadius: '8px 8px 0 0',
+                fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                background: portalTab === id ? 'var(--bg-app)' : 'rgba(255,255,255,0.15)',
+                color: portalTab === id ? '#008eaa' : 'rgba(255,255,255,0.85)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
+      </div>
+
+      {/* Tab content */}
+      <div style={{ maxWidth: 700, margin: '0 auto', padding: '20px 16px' }}>
+        {portalTab === 'uebersicht' && <>
+          {data?.ai_summary && (
+            <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e0f4f8' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Zusammenfassung</div>
+              <p style={{ fontSize: 13, color: '#4a6470', lineHeight: 1.6, margin: 0 }}>{data.ai_summary}</p>
+            </div>
+          )}
+          {data?.rc_score !== null && (
+            <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Ihre Ergebnisse im Detail</div>
+              {[
+                ['Rechtliche Compliance', data.rc_score, 30],
+                ['Technische Performance', data.tp_score, 20],
+                ['Barrierefreiheit', data.bf_score, 20],
+                ['Sicherheit & Datenschutz', data.si_score, 15],
+                ['SEO & Sichtbarkeit', data.se_score, 10],
+                ['Inhalt & Nutzererfahrung', data.ux_score, 5],
+              ].map(([label, score, max]) => {
+                const pct = Math.min(100, ((score || 0) / max) * 100);
+                const col = pct >= 75 ? '#1a7a3a' : pct >= 50 ? '#a06800' : '#b02020';
+                return (
+                  <div key={label} style={{ marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4, color: '#4a6470' }}>
+                      <span>{label}</span>
+                      <span style={{ fontWeight: 600, color: col }}>{score || 0}/{max}</span>
+                    </div>
+                    <div style={{ height: 6, background: 'var(--bg-app)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ width: `${pct}%`, height: '100%', background: col, borderRadius: 3, transition: 'width 0.8s ease' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {data?.website_screenshot && (
+            <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Ihre Website</div>
+              <div style={{ background: 'var(--bg-app)', borderRadius: 8, overflow: 'hidden', border: '1px solid #e0f4f8' }}>
+                <div style={{ background: 'var(--brand-primary-light)', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  {['#ef4444','#f59e0b','#22c55e'].map(c => <div key={c} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />)}
+                  <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: 4, padding: '2px 8px', fontSize: 10, color: '#8fa8b0', marginLeft: 6 }}>{data.website_url}</div>
+                </div>
+                <img src={data.website_screenshot} alt="Website" style={{ width: '100%', display: 'block', maxHeight: 240, objectFit: 'cover', objectPosition: 'top' }} />
+              </div>
+            </div>
+          )}
+          <div style={{ background: '#0f1e3a', borderRadius: 12, padding: 20, textAlign: 'center', color: 'white' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Jetzt Ihre Website optimieren</div>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 14, lineHeight: 1.5 }}>
+              KOMPAGNON bringt Ihre Homepage auf Homepage Standard Gold oder Platin — in 14 Werktagen, zum Festpreis.
+            </p>
+            <a href="https://www.kompagnon.eu" target="_blank" rel="noopener noreferrer" style={{
+              display: 'block', width: '100%', maxWidth: 320, margin: '0 auto', padding: '14px 24px', background: '#008eaa', color: 'white', textAlign: 'center',
+              borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none',
+            }}>Jetzt anfragen →</a>
+          </div>
+        </>}
+
+        {portalTab === 'unterlagen' && <FileUploadSection token={token} />}
       </div>
     </div>
   );

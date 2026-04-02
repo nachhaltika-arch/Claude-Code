@@ -478,7 +478,9 @@ export default function AppLayout() {
           padding: isMobile ? 16 : '20px 28px',
           paddingBottom: isMobile ? 80 : 20,
         }}>
-          <Outlet />
+          <div key={location.pathname} className="page-enter">
+            <Outlet />
+          </div>
         </main>
       </div>
 

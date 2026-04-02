@@ -242,6 +242,13 @@ textarea::placeholder {
 .kc-skeleton { background: linear-gradient(90deg, var(--kc-rand) 25%, var(--kc-hell) 50%, var(--kc-rand) 75%); background-size: 200% 100%; animation: kc-shimmer 1.5s ease-in-out infinite; border-radius: var(--kc-radius-md); }
 @keyframes kc-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: page-enter 150ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
 @keyframes crawlHintIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Academy card hover */
@@ -251,3 +258,114 @@ textarea::placeholder {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   iOS-LEVEL DESIGN SYSTEM — Cards, Buttons, Inputs, Badges
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Cards ──────────────────────────────────────────────────── */
+.kc-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
+  border: 0.5px solid var(--border-light);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
+}
+.kc-card:hover { box-shadow: var(--shadow-md); }
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: var(--brand-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+.btn-primary:hover { background: var(--brand-primary-dark); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: transparent;
+  border: 0.5px solid var(--border-medium);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.btn-secondary:hover { background: var(--bg-hover); color: var(--text-primary); }
+.btn-secondary:active { transform: scale(0.98); }
+.btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: transparent;
+  border: 0.5px solid var(--border-light);
+  color: var(--status-danger-text);
+  border-radius: var(--radius-md);
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.btn-danger:hover { background: var(--status-danger-bg); }
+.btn-danger:active { transform: scale(0.98); }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Inputs ──────────────────────────────────────────────────── */
+input, select, textarea {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 0.5px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(0, 142, 170, 0.12);
+}
+input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
+
+/* ── Badges / Pills ──────────────────────────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  letter-spacing: 0.01em;
+}
+.pill-success { background: var(--status-success-bg); color: var(--status-success-text); }
+.pill-warning { background: var(--status-warning-bg); color: var(--status-warning-text); }
+.pill-danger  { background: var(--status-danger-bg);  color: var(--status-danger-text);  }
+.pill-info    { background: var(--status-info-bg);    color: var(--status-info-text);    }
+.pill-neutral { background: var(--status-neutral-bg); color: var(--status-neutral-text); }
+.pill-brand   { background: var(--brand-primary-light); color: var(--brand-primary-dark); }

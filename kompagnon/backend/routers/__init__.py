@@ -1,5 +1,7 @@
 """API routers for KOMPAGNON."""
 
+from .usercards import router as usercards_router
+from .usercards import leads_alias_router, customers_alias_router as usercards_customers_alias_router
 from .leads import router as leads_router
 from .leads import customers_alias_router
 from .projects import router as projects_router
@@ -15,6 +17,9 @@ from .tickets import router as tickets_router
 from .scraper import router as scraper_router
 
 __all__ = [
+    "usercards_router",
+    "leads_alias_router",
+    "usercards_customers_alias_router",
     "leads_router",
     "customers_alias_router",
     "projects_router",

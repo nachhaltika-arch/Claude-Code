@@ -84,14 +84,14 @@ export default function ProductDevelopment() {
             {STAGES.map((s, idx) => (
               <button key={s.id} onClick={() => setActiveTab(idx)} style={{
                 flexShrink: 0, padding: '8px 14px', borderRadius: 20, border: 'none',
-                background: activeTab === idx ? s.color : '#f1f5f9', color: activeTab === idx ? '#fff' : '#475569',
+                background: activeTab === idx ? s.color : 'var(--status-neutral-bg)', color: activeTab === idx ? '#fff' : '#475569',
                 fontSize: 13, fontWeight: 600, cursor: 'pointer', minHeight: 36, whiteSpace: 'nowrap',
               }}>{s.icon} {s.label} ({getStageItems(s.id).length})</button>
             ))}
           </div>
           <div>
             {getStageItems(STAGES[activeTab].id).map((item) => <ItemCard key={item.id} item={item} onEdit={() => openForm(item.stage, item)} onDelete={() => deleteItem(item.id)} onDragStart={() => {}} />)}
-            <button onClick={() => openForm(STAGES[activeTab].id)} style={{ width: '100%', padding: 10, background: 'none', border: '1.5px dashed #e2e8f0', borderRadius: 'var(--radius-md)', color: 'var(--text-tertiary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', marginTop: 8, minHeight: 44 }}>+ Hinzufuegen</button>
+            <button onClick={() => openForm(STAGES[activeTab].id)} style={{ width: '100%', padding: 10, background: 'none', border: '1.5px dashed var(--border-light)', borderRadius: 'var(--radius-md)', color: 'var(--text-tertiary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', marginTop: 8, minHeight: 44 }}>+ Hinzufuegen</button>
           </div>
         </div>
       ) : (
@@ -101,7 +101,7 @@ export default function ProductDevelopment() {
             const over = dragOver === stage.id;
             return (
               <div key={stage.id} onDragOver={(e) => { e.preventDefault(); setDragOver(stage.id); }} onDrop={(e) => handleDrop(e, stage.id)} onDragLeave={() => setDragOver(null)}
-                style={{ flex: '1 1 0', minWidth: 170, background: over ? stage.bg : '#f8fafc', borderRadius: 'var(--radius-lg)', border: over ? `2px dashed ${stage.color}` : '2px solid transparent', transition: 'all 0.15s' }}>
+                style={{ flex: '1 1 0', minWidth: 170, background: over ? stage.bg : 'var(--bg-app)', borderRadius: 'var(--radius-lg)', border: over ? `2px dashed ${stage.color}` : '2px solid transparent', transition: 'all 0.15s' }}>
                 <div style={{ padding: '12px 14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                     <span style={{ fontSize: 14 }}>{stage.icon}</span>
@@ -166,7 +166,7 @@ function ItemCard({ item, onEdit, onDelete, onDragStart }) {
       {item.description && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.description}</div>}
       {item.tags?.length > 0 && <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>{item.tags.map((t) => <span key={t} style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-app)', padding: '1px 6px', borderRadius: 4 }}>#{t}</span>)}</div>}
       {item.ticket_ref && <div style={{ fontSize: 10, color: 'var(--brand-primary)', marginBottom: 6 }}>🎫 {item.ticket_ref}</div>}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: '1px solid #f1f5f9' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: '1px solid var(--border-light)' }}>
         <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{item.due_date || item.created_at || ''}</span>
         <div style={{ display: 'flex', gap: 4 }}>
           <button onClick={(e) => { e.stopPropagation(); onEdit(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, padding: '2px 4px', color: 'var(--text-tertiary)' }}>✏️</button>

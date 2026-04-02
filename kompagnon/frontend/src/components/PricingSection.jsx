@@ -98,7 +98,7 @@ export default function PricingSection() {
 
   return (
     <section id="pakete" style={{
-      background: '#f4f6f8',
+      background: 'var(--bg-app)',
       padding: '80px 20px',
       fontFamily: 'var(--font-sans, system-ui)',
     }}>
@@ -151,7 +151,7 @@ export default function PricingSection() {
         {PACKAGES.map((pkg, idx) => (
           <div key={pkg.id} className="pkg-card" style={{
             animationDelay: `${idx * 0.1}s`,
-            background: 'white', borderRadius: 20,
+            background: 'var(--bg-surface)', borderRadius: 20,
             border: `2px solid ${pkg.recommended ? pkg.accentColor : '#e8eef2'}`,
             overflow: 'hidden',
             boxShadow: pkg.recommended
@@ -215,7 +215,7 @@ export default function PricingSection() {
                       <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 5 }}>
                         <div style={{
                           width: 16, height: 16, borderRadius: '50%',
-                          background: '#f4f6f8', color: '#c0ccd4',
+                          background: 'var(--bg-app)', color: '#c0ccd4',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: 9, flexShrink: 0, marginTop: 2,
                         }}>–</div>
@@ -250,7 +250,7 @@ export default function PricingSection() {
       {/* Vergleichstabelle */}
       <div style={{
         maxWidth: 900, margin: '0 auto 48px',
-        background: 'white', borderRadius: 16,
+        background: 'var(--bg-surface)', borderRadius: 16,
         overflow: 'hidden',
         boxShadow: '0 2px 16px rgba(0,0,0,0.07)',
         border: '1px solid #e8eef2',
@@ -270,7 +270,7 @@ export default function PricingSection() {
           ))}
         </div>
         <div style={{
-          background: '#f4f6f8', padding: '12px 28px',
+          background: 'var(--bg-app)', padding: '12px 28px',
           display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr',
           gap: 8, borderBottom: '2px solid #e8eef2',
         }}>
@@ -287,7 +287,7 @@ export default function PricingSection() {
             display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr',
             gap: 8, alignItems: 'center',
             borderBottom: i < COMPARE_ROWS.length - 1 ? '1px solid #f0f4f6' : 'none',
-            background: 'white',
+            background: 'var(--bg-surface)',
           }}>
             <div style={{ fontSize: 12, color: '#4a6470', fontWeight: 500 }}>{row.label}</div>
             {row.values.map((val, j) => (
@@ -316,7 +316,7 @@ export default function PricingSection() {
           { icon: '🔒', title: 'Sicher bezahlen', text: 'Zahlung über Stripe — Kreditkarte, SEPA-Überweisung oder Lastschrift möglich.' },
         ].map(hint => (
           <div key={hint.icon} style={{
-            background: 'white', borderRadius: 12,
+            background: 'var(--bg-surface)', borderRadius: 12,
             padding: '14px 16px', border: '1px solid #e8eef2',
             display: 'flex', gap: 12, alignItems: 'flex-start',
           }}>

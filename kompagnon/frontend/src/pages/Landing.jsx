@@ -57,7 +57,7 @@ export default function Landing() {
       </section>
 
       {/* ── SOCIAL PROOF ── */}
-      <section style={{ background: '#fff', padding: isMobile ? '40px 20px' : '48px 60px' }}>
+      <section style={{ background: 'var(--bg-surface)', padding: isMobile ? '40px 20px' : '48px 60px' }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: isMobile ? 20 : 60, flexWrap: 'wrap', alignItems: 'center' }}>
           <TrustBadge title="Trustpilot" rating="4.9/5" sub="127 Bewertungen" />
           {!isMobile && <div style={{ width: 1, height: 50, background: '#eee' }} />}
@@ -77,7 +77,7 @@ export default function Landing() {
             ['⚖️', 'Rechtssicher', 'Impressum, Datenschutz, Cookie-Banner — DSGVO-konform und abmahnsicher.'],
             ['📊', 'SEO-Volloptimierung', 'Keywords, Meta-Daten, Google Search Console, Sitemap — alles eingerichtet.'],
           ].map(([icon, title, desc], i) => (
-            <div key={i} style={{ background: '#fff', borderRadius: 12, padding: 24, border: '1px solid #eef0f8' }}>
+            <div key={i} style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 24, border: '1px solid var(--border-light)' }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>{icon}</div>
               <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)', marginBottom: 8 }}>{title}</div>
               <div style={{ fontSize: 14, color: G, lineHeight: 1.5 }}>{desc}</div>
@@ -119,7 +119,7 @@ export default function Landing() {
       </section>
 
       {/* ── BEWERTUNGEN ── */}
-      <section style={{ background: '#fff', padding: isMobile ? '48px 20px' : '72px 60px' }}>
+      <section style={{ background: 'var(--bg-surface)', padding: isMobile ? '48px 20px' : '72px 60px' }}>
         <SectionHead title="Was unsere Kunden sagen" />
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 20, maxWidth: 900, margin: '0 auto' }}>
           {[
@@ -127,7 +127,7 @@ export default function Landing() {
             ['"Endlich eine Webseite, die auch bei Google gefunden wird. Der Strategie-Workshop hat mir die Augen geoeffnet."', 'Klaus B., Sanitaer & Heizung, Hamburg'],
             ['"Professionell, schnell und das fuer einen Festpreis. Kein Vergleich zu der Agentur, die mir 8.000 Euro wollte."', 'Andrea S., Malerbetrieb, Berlin'],
           ].map(([text, author], i) => (
-            <div key={i} style={{ background: '#f8f9fc', borderRadius: 12, padding: 24, border: '1px solid #eef0f8' }}>
+            <div key={i} style={{ background: '#f8f9fc', borderRadius: 12, padding: 24, border: '1px solid var(--border-light)' }}>
               <div style={{ color: A, fontSize: 16, marginBottom: 12 }}>★★★★★</div>
               <p style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.6, fontStyle: 'italic', marginBottom: 16 }}>{text}</p>
               <div style={{ fontSize: 13, color: G }}>— {author}</div>
@@ -259,12 +259,12 @@ function TrustBadge({ title, rating, sub }) {
 }
 
 function PriceCard({ name, price, features = [], missing = [], recommended, onClick }) {
-  const bg = recommended ? 'var(--text-primary)' : '#fff';
+  const bg = recommended ? 'var(--text-primary)' : 'var(--bg-surface)';
   const fg = recommended ? '#fff' : 'var(--text-primary)';
   const sub = recommended ? 'rgba(255,255,255,0.8)' : '#4a5a7a';
   return (
     <div style={{
-      background: bg, borderRadius: 16, padding: 28, border: recommended ? 'none' : '1px solid #eef0f8',
+      background: bg, borderRadius: 16, padding: 28, border: recommended ? 'none' : '1px solid var(--border-light)',
       width: '100%', maxWidth: 280, transform: recommended ? 'scale(1.05)' : 'none', position: 'relative',
     }}>
       {recommended && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#D4A017', color: 'var(--text-primary)', fontSize: 11, fontWeight: 800, padding: '4px 16px', borderRadius: 20 }}>EMPFOHLEN</div>}
@@ -286,7 +286,7 @@ function PriceCard({ name, price, features = [], missing = [], recommended, onCl
 function FAQItem({ question, answer }) {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{ borderBottom: '1px solid #eef0f8', padding: '16px 0' }}>
+    <div style={{ borderBottom: '1px solid var(--border-light)', padding: '16px 0' }}>
       <button onClick={() => setOpen(!open)} style={{
         width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0,

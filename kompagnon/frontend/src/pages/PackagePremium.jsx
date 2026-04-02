@@ -57,7 +57,7 @@ export default function PackagePremium() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#f4f6f8',
+      background: 'var(--bg-app)',
       fontFamily: "'DM Sans', system-ui, sans-serif",
     }}>
       <style>{`
@@ -73,7 +73,7 @@ export default function PackagePremium() {
 
       {/* Nav */}
       <nav style={{
-        background: 'white', borderBottom: '1px solid #e8eef2', padding: '14px 24px',
+        background: 'var(--bg-surface)', borderBottom: '1px solid #e8eef2', padding: '14px 24px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, zIndex: 50,
       }}>
@@ -100,7 +100,7 @@ export default function PackagePremium() {
       </nav>
 
       {cancelled && (
-        <div style={{ background: '#fff8e6', borderBottom: '1px solid #fde68a', padding: '12px 24px', textAlign: 'center', fontSize: 13, color: '#a06800' }}>
+        <div style={{ background: 'var(--status-warning-bg)', borderBottom: '1px solid #fde68a', padding: '12px 24px', textAlign: 'center', fontSize: 13, color: '#a06800' }}>
           Zahlung abgebrochen — kein Betrag wurde berechnet.
         </div>
       )}
@@ -154,7 +154,7 @@ export default function PackagePremium() {
 
           {/* Checkout */}
           <div style={{
-            background: 'white', borderRadius: 20, padding: 32,
+            background: 'var(--bg-surface)', borderRadius: 20, padding: 32,
             boxShadow: '0 8px 40px rgba(124,58,237,0.15)', border: '2px solid #7c3aed',
           }}>
             <div style={{
@@ -170,7 +170,7 @@ export default function PackagePremium() {
             </div>
 
             {error && (
-              <div style={{ background: '#fef0f0', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{error}</div>
+              <div style={{ background: 'var(--status-danger-bg)', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{error}</div>
             )}
 
             <form onSubmit={handleCheckout}>
@@ -180,7 +180,7 @@ export default function PackagePremium() {
                 </label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="kontakt@ihrbetrieb.de" required
-                  style={{ width: '100%', padding: '11px 14px', border: '1.5px solid #e0eaee', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: '#0f1c20', background: '#f8fafc', boxSizing: 'border-box', transition: 'all 0.15s' }} />
+                  style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--border-light)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: '#0f1c20', background: 'var(--bg-app)', boxSizing: 'border-box', transition: 'all 0.15s' }} />
               </div>
               <button type="submit" disabled={loading} className="cta-btn" style={{
                 width: '100%', padding: '14px', background: loading ? '#8fa8b0' : '#7c3aed',
@@ -203,7 +203,7 @@ export default function PackagePremium() {
 
           {/* Leistungen */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ background: 'white', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <div style={{ background: 'var(--bg-surface)', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
                 ✅ Basis (alles aus KOMPAGNON)
               </div>
@@ -233,7 +233,7 @@ export default function PackagePremium() {
         </div>
 
         {/* Vergleich */}
-        <div style={{ marginTop: 40, background: 'white', borderRadius: 16, padding: 28, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div style={{ marginTop: 40, background: 'var(--bg-surface)', borderRadius: 16, padding: 28, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: '#0f1c20', marginBottom: 20, textAlign: 'center' }}>Alle Pakete im Vergleich</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
             {[
@@ -244,7 +244,7 @@ export default function PackagePremium() {
               <div key={pkg.id} onClick={() => navigate(`/paket/${pkg.id}`)} style={{
                 padding: '16px 14px', borderRadius: 12,
                 border: `2px solid ${pkg.active ? '#7c3aed' : pkg.recommended ? '#d4a017' : '#e8eef2'}`,
-                background: pkg.active ? '#f5f3ff' : 'white',
+                background: pkg.active ? 'var(--status-neutral-bg)' : 'var(--bg-surface)',
                 cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s', position: 'relative',
               }}>
                 {pkg.recommended && !pkg.active && (

@@ -52,10 +52,10 @@ function getStatus(score, maxScore) {
 }
 
 const S = {
-  ok: { icon: '✓', color: '#059669', bg: '#d1fae5', label: 'Vorhanden' },
-  partial: { icon: '~', color: '#d97706', bg: '#fef3c7', label: 'Unvollstaendig' },
-  missing: { icon: '✗', color: '#dc2626', bg: '#fee2e2', label: 'Fehlt' },
-  unknown: { icon: '?', color: 'var(--text-tertiary)', bg: '#f1f5f9', label: 'Nicht geprueft' },
+  ok: { icon: '✓', color: '#059669', bg: 'var(--status-success-bg)', label: 'Vorhanden' },
+  partial: { icon: '~', color: '#d97706', bg: 'var(--status-warning-bg)', label: 'Unvollstaendig' },
+  missing: { icon: '✗', color: '#dc2626', bg: 'var(--status-danger-bg)', label: 'Fehlt' },
+  unknown: { icon: '?', color: 'var(--text-tertiary)', bg: 'var(--status-neutral-bg)', label: 'Nicht geprueft' },
 };
 
 export default function HomepageChecklist({ auditData }) {
@@ -97,7 +97,7 @@ export default function HomepageChecklist({ auditData }) {
           <div key={area.area}>
             <button onClick={() => setOpenArea(isOpen ? null : area.area)} style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px',
-              background: isOpen ? area.bg : '#fff', border: 'none', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s',
+              background: isOpen ? area.bg : 'var(--bg-surface)', border: 'none', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 20 }}>{area.icon}</span>
@@ -107,7 +107,7 @@ export default function HomepageChecklist({ auditData }) {
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 60, height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ width: 60, height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
                   <div style={{ width: `${(areaOk / area.items.length) * 100}%`, height: '100%', background: area.color, borderRadius: 2, transition: 'width 0.6s ease' }} />
                 </div>
                 <span style={{ color: 'var(--text-tertiary)', fontSize: 12, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
@@ -120,7 +120,7 @@ export default function HomepageChecklist({ auditData }) {
                   const status = getStatus(score, item.maxScore);
                   const cfg = S[status];
                   return (
-                    <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 20px', background: idx % 2 === 0 ? '#fafbfc' : '#fff', borderTop: idx > 0 ? '1px solid #f1f5f9' : 'none' }}>
+                    <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 20px', background: idx % 2 === 0 ? 'var(--bg-elevated)' : 'var(--bg-surface)', borderTop: idx > 0 ? '1px solid var(--border-light)' : 'none' }}>
                       <div style={{ width: 28, height: 28, borderRadius: '50%', background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: cfg.color, flexShrink: 0, marginTop: 1 }}>{cfg.icon}</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
@@ -135,7 +135,7 @@ export default function HomepageChecklist({ auditData }) {
                   );
                 })}
                 {!auditData && (
-                  <div style={{ padding: '12px 20px', background: '#fffbeb', fontSize: 12, color: '#92400e', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ padding: '12px 20px', background: 'var(--status-warning-bg)', fontSize: 12, color: '#92400e', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span>💡</span> Fuehren Sie einen Audit durch um den Status zu ermitteln
                   </div>
                 )}

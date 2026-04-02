@@ -45,10 +45,10 @@ function getStatus(field, data, max) {
 }
 
 const S = {
-  ok: { icon: '✓', color: '#059669', bg: '#d1fae5', label: 'Umgesetzt' },
-  partial: { icon: '~', color: '#d97706', bg: '#fef3c7', label: 'Teilweise' },
-  missing: { icon: '✗', color: '#dc2626', bg: '#fee2e2', label: 'Fehlt' },
-  unknown: { icon: '?', color: 'var(--text-tertiary)', bg: '#f1f5f9', label: 'Nicht geprueft' },
+  ok: { icon: '✓', color: '#059669', bg: 'var(--status-success-bg)', label: 'Umgesetzt' },
+  partial: { icon: '~', color: '#d97706', bg: 'var(--status-warning-bg)', label: 'Teilweise' },
+  missing: { icon: '✗', color: '#dc2626', bg: 'var(--status-danger-bg)', label: 'Fehlt' },
+  unknown: { icon: '?', color: 'var(--text-tertiary)', bg: 'var(--status-neutral-bg)', label: 'Nicht geprueft' },
 };
 
 export default function SecurityChecklist({ auditData }) {
@@ -80,7 +80,7 @@ export default function SecurityChecklist({ auditData }) {
           <div key={area.area}>
             <button onClick={() => setOpenArea(isOpen ? null : area.area)} style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 20px',
-              background: isOpen ? area.bg : '#fff', border: 'none', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', textAlign: 'left',
+              background: isOpen ? area.bg : 'var(--bg-surface)', border: 'none', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', textAlign: 'left',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 18 }}>{area.icon}</span>
@@ -90,7 +90,7 @@ export default function SecurityChecklist({ auditData }) {
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 60, height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ width: 60, height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
                   <div style={{ width: `${(areaOk / area.items.length) * 100}%`, height: '100%', background: area.color, borderRadius: 2 }} />
                 </div>
                 <span style={{ color: 'var(--text-tertiary)', fontSize: 12, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>▼</span>
@@ -102,7 +102,7 @@ export default function SecurityChecklist({ auditData }) {
                   const status = getStatus(item.auditField, auditData, item.maxScore);
                   const cfg = S[status];
                   return (
-                    <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 20px', background: idx % 2 === 0 ? '#fafbfc' : '#fff', borderTop: idx > 0 ? '1px solid #f1f5f9' : 'none' }}>
+                    <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 20px', background: idx % 2 === 0 ? 'var(--bg-elevated)' : 'var(--bg-surface)', borderTop: idx > 0 ? '1px solid var(--border-light)' : 'none' }}>
                       <div style={{ width: 28, height: 28, borderRadius: '50%', background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: cfg.color, flexShrink: 0 }}>{cfg.icon}</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
@@ -112,7 +112,7 @@ export default function SecurityChecklist({ auditData }) {
                         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 6 }}>{item.desc}</div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                           <span style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'var(--bg-hover)', padding: '2px 7px', borderRadius: 4, fontWeight: 600 }}>{item.tool}</span>
-                          <span style={{ fontSize: 11, color: '#059669', background: '#f0fdf4', padding: '2px 7px', borderRadius: 4 }}>{item.cost}</span>
+                          <span style={{ fontSize: 11, color: '#059669', background: 'var(--status-success-bg)', padding: '2px 7px', borderRadius: 4 }}>{item.cost}</span>
                         </div>
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 700, color: cfg.color, background: cfg.bg, padding: '3px 8px', borderRadius: 6, flexShrink: 0, whiteSpace: 'nowrap' }}>{cfg.label}</div>

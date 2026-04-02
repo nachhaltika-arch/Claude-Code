@@ -47,7 +47,7 @@ export default function PackageKompagnon() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f6f8', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app)', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <style>{`
         @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
         .fade1 { animation: fadeUp 0.5s ease both; }
@@ -59,7 +59,7 @@ export default function PackageKompagnon() {
         input:focus { border-color: #d4a017 !important; box-shadow: 0 0 0 3px rgba(212,160,23,0.12) !important; outline: none !important; }
       `}</style>
 
-      <nav style={{ background: 'white', borderBottom: '1px solid #e8eef2', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50 }}>
+      <nav style={{ background: 'var(--bg-surface)', borderBottom: '1px solid #e8eef2', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}><Logo size="small" /></div>
         <div style={{ display: 'flex', gap: 8 }}>
           {[
@@ -78,7 +78,7 @@ export default function PackageKompagnon() {
       </nav>
 
       {cancelled && (
-        <div style={{ background: '#fff8e6', borderBottom: '1px solid #fde68a', padding: '12px 24px', textAlign: 'center', fontSize: 13, color: '#a06800' }}>
+        <div style={{ background: 'var(--status-warning-bg)', borderBottom: '1px solid #fde68a', padding: '12px 24px', textAlign: 'center', fontSize: 13, color: '#a06800' }}>
           Zahlung abgebrochen — kein Betrag wurde berechnet.
         </div>
       )}
@@ -105,15 +105,15 @@ export default function PackageKompagnon() {
 
       <div style={{ maxWidth: 880, margin: '0 auto', padding: '0 20px 80px', marginTop: -40 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, alignItems: 'flex-start' }}>
-          <div style={{ background: 'white', borderRadius: 20, padding: 32, boxShadow: '0 8px 40px rgba(212,160,23,0.15)', border: '2px solid #d4a017' }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 20, padding: 32, boxShadow: '0 8px 40px rgba(212,160,23,0.15)', border: '2px solid #d4a017' }}>
             <div style={{ display: 'inline-block', background: '#d4a017', color: 'white', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Empfohlen</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#0f1c20', marginBottom: 4 }}>KOMPAGNON Standard — 2.000 € netto</div>
             <div style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 24 }}>Einmalige Zahlung · keine laufenden Kosten</div>
-            {error && <div style={{ background: '#fef0f0', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{error}</div>}
+            {error && <div style={{ background: 'var(--status-danger-bg)', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{error}</div>}
             <form onSubmit={handleCheckout}>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="kontakt@ihrbetrieb.de" required style={{ width: '100%', padding: '11px 14px', border: '1.5px solid #e0eaee', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: '#0f1c20', background: '#f8fafc', boxSizing: 'border-box', transition: 'all 0.15s' }} />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="kontakt@ihrbetrieb.de" required style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--border-light)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: '#0f1c20', background: 'var(--bg-app)', boxSizing: 'border-box', transition: 'all 0.15s' }} />
               </div>
               <button type="submit" disabled={loading} className="cta-btn" style={{ width: '100%', padding: '14px', background: loading ? '#8fa8b0' : '#d4a017', color: 'white', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                 {loading ? 'Wird weitergeleitet...' : 'Jetzt sicher bezahlen →'}
@@ -126,7 +126,7 @@ export default function PackageKompagnon() {
               ))}
             </div>
           </div>
-          <div style={{ background: 'white', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>✅ Im KOMPAGNON Paket enthalten</div>
             {FEATURES.map(item => (
               <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>

@@ -4,9 +4,9 @@ import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
 
-const TC = { bug: { label: 'Fehler', icon: '🐛', color: '#dc2626', bg: '#fee2e2' }, feature: { label: 'Idee', icon: '💡', color: '#7c3aed', bg: '#f5f3ff' }, feedback: { label: 'Feedback', icon: '💬', color: 'var(--brand-primary)', bg: 'var(--bg-hover)' }, question: { label: 'Frage', icon: '❓', color: '#d97706', bg: '#fffbeb' } };
-const SC = { open: { label: 'Offen', icon: '🔵', color: '#2563eb', bg: '#dbeafe' }, in_progress: { label: 'In Bearbeitung', icon: '🟡', color: '#d97706', bg: '#fef3c7' }, resolved: { label: 'Geloest', icon: '🟢', color: '#059669', bg: '#d1fae5' }, closed: { label: 'Geschlossen', icon: '⚫', color: 'var(--text-tertiary)', bg: '#f1f5f9' } };
-const PC = { low: { label: 'Niedrig', color: 'var(--text-tertiary)', bg: '#f1f5f9' }, medium: { label: 'Mittel', color: '#d97706', bg: '#fef3c7' }, high: { label: 'Hoch', color: '#dc2626', bg: '#fee2e2' }, critical: { label: 'Kritisch', color: '#7c3aed', bg: '#f5f3ff' } };
+const TC = { bug: { label: 'Fehler', icon: '🐛', color: '#dc2626', bg: 'var(--status-danger-bg)' }, feature: { label: 'Idee', icon: '💡', color: '#7c3aed', bg: 'var(--status-neutral-bg)' }, feedback: { label: 'Feedback', icon: '💬', color: 'var(--brand-primary)', bg: 'var(--bg-hover)' }, question: { label: 'Frage', icon: '❓', color: '#d97706', bg: 'var(--status-warning-bg)' } };
+const SC = { open: { label: 'Offen', icon: '🔵', color: '#2563eb', bg: 'var(--status-info-bg)' }, in_progress: { label: 'In Bearbeitung', icon: '🟡', color: '#d97706', bg: 'var(--status-warning-bg)' }, resolved: { label: 'Geloest', icon: '🟢', color: '#059669', bg: 'var(--status-success-bg)' }, closed: { label: 'Geschlossen', icon: '⚫', color: 'var(--text-tertiary)', bg: 'var(--status-neutral-bg)' } };
+const PC = { low: { label: 'Niedrig', color: 'var(--text-tertiary)', bg: 'var(--status-neutral-bg)' }, medium: { label: 'Mittel', color: '#d97706', bg: 'var(--status-warning-bg)' }, high: { label: 'Hoch', color: '#dc2626', bg: 'var(--status-danger-bg)' }, critical: { label: 'Kritisch', color: '#7c3aed', bg: 'var(--status-neutral-bg)' } };
 
 export default function Tickets() {
   const { token } = useAuth();

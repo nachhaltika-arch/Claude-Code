@@ -1168,7 +1168,7 @@ export default function LeadProfile() {
                     {sorted.map((r, i) => {
                       const sc = r.status_code;
                       const scColor = !sc ? '#94a3b8' : sc < 300 ? '#16a34a' : sc < 400 ? '#f59e0b' : '#dc2626';
-                      const scBg = !sc ? 'var(--bg-app)' : sc < 300 ? '#f0fdf4' : sc < 400 ? '#fffbeb' : '#fef2f2';
+                      const scBg = !sc ? 'var(--bg-app)' : sc < 300 ? 'var(--status-success-bg)' : sc < 400 ? 'var(--status-warning-bg)' : 'var(--status-danger-bg)';
                       const lt = r.load_time;
                       const rowKey = r.url + '_' + i;
                       const isExpanded = crawlExpandedRow === rowKey;
@@ -1229,7 +1229,7 @@ export default function LeadProfile() {
                                   animation: 'crawlHintIn 0.18s ease',
                                 }}>
                                   {hints.length === 0 ? (
-                                    <div style={{ padding: '8px 12px', background: '#f8fafc', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)' }}>
+                                    <div style={{ padding: '8px 12px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)' }}>
                                       Keine Empfehlung verfügbar.
                                     </div>
                                   ) : hints.map((hint, hi) => (

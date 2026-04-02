@@ -8,7 +8,7 @@ export default function MarginBadge({ marginPercent, status = 'green' }) {
       icon: '✓',
     },
     yellow: {
-      background: '#fff3e0',
+      background: 'var(--status-warning-bg)',
       color: 'var(--status-warning-text)',
       icon: '⚠',
     },

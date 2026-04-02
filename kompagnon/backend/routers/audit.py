@@ -586,6 +586,35 @@ def _run_audit_background(audit_id: int):
         db.close()
 
 
+@router.get("/recent")
+def get_recent_audits(
+    limit: int = 10,
+    skip: int = 0,
+    db: Session = Depends(get_db),
+):
+    """Return the most recent completed audits, newest first."""
+    audits = (
+        db.query(AuditResult)
+        .filter(AuditResult.status == "completed")
+        .order_by(AuditResult.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "id": a.id,
+            "website_url": a.website_url,
+            "company_name": a.company_name,
+            "total_score": a.total_score,
+            "level": a.level,
+            "lead_id": a.lead_id,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+        }
+        for a in audits
+    ]
+
+
 @router.post("/start")
 async def start_audit(
     req: AuditRequest,

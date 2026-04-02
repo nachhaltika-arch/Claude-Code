@@ -513,6 +513,68 @@ class AcademyCustomerAccess(Base):
     assigned_by = Column(Integer, nullable=True)
 
 
+class UserCard(Base):
+    """Unified contact card — merges leads + customer management (Part 1/3)."""
+    __tablename__ = "usercards"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # Core contact info (from leads)
+    company_name  = Column(String(255), default="")
+    contact_name  = Column(String(255), nullable=True, default=None)
+    phone         = Column(String(20),  nullable=True, default=None)
+    email         = Column(String(255), nullable=True, default=None)
+    website_url   = Column(String(500), default="")
+    city          = Column(String(100), nullable=True, default=None)
+    trade         = Column(String(100), nullable=True, default=None)
+    lead_source   = Column(String(100), default="")
+    status        = Column(String(50),  default="new")
+    analysis_score = Column(Integer, default=0)
+    geo_score      = Column(Integer, default=0)
+    notes          = Column(Text, nullable=True, default=None)
+    website_screenshot = Column(Text, nullable=True, default=None)
+
+    # Address
+    street       = Column(String(255), default="")
+    house_number = Column(String(20),  default="")
+    postal_code  = Column(String(10),  default="")
+
+    # Company details
+    legal_form      = Column(String(50),  default="")
+    vat_id          = Column(String(30),  default="")
+    register_number = Column(String(50),  default="")
+    register_court  = Column(String(100), default="")
+    ceo_first_name  = Column(String(100), default="")
+    ceo_last_name   = Column(String(100), default="")
+    display_name    = Column(String(255), default="")
+
+    # Portal access
+    customer_token            = Column(String, unique=True, nullable=True)
+    customer_token_created_at = Column(DateTime, nullable=True)
+
+    # PageSpeed Insights
+    pagespeed_mobile_score  = Column(Integer,  nullable=True)
+    pagespeed_desktop_score = Column(Integer,  nullable=True)
+    pagespeed_lcp_mobile    = Column(Float,    nullable=True)
+    pagespeed_cls_mobile    = Column(Float,    nullable=True)
+    pagespeed_inp_mobile    = Column(Float,    nullable=True)
+    pagespeed_fcp_mobile    = Column(Float,    nullable=True)
+    pagespeed_checked_at    = Column(DateTime, nullable=True)
+
+    # Customer management fields (from customers table)
+    next_touchpoint_date = Column(DateTime, nullable=True)
+    next_touchpoint_type = Column(String(100), nullable=True)
+    upsell_status        = Column(String(50),  default="none")
+    upsell_package       = Column(String(255), nullable=True)
+    recurring_revenue    = Column(Float, default=0.0)
+
+    # Migration tracking
+    legacy_type = Column(String(20), default="lead")   # 'lead' | 'customer'
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class CrawlJob(Base):
     """Background crawl job."""
     __tablename__ = "crawl_jobs"

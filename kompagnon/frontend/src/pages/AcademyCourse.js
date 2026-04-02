@@ -3,29 +3,29 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 
-// ── Design tokens ──────────────────────────────────────────────
+// ── Design tokens (CSS variables — auto-adapt to dark mode) ────
 const T = {
-  primary:     '#008eaa',
-  primaryBg:   '#e0f4f8',
-  primaryDark: '#006880',
-  appBg:       '#f4f6f8',
-  surface:     '#ffffff',
-  border:      'rgba(0,142,170,0.12)',
-  borderMed:   'rgba(0,142,170,0.25)',
-  text:        '#0f1c20',
-  textSub:     '#4a6470',
-  textMuted:   '#8fa8b0',
+  primary:     'var(--brand-primary)',
+  primaryBg:   'var(--brand-primary-light)',
+  primaryDark: 'var(--brand-primary-dark)',
+  appBg:       'var(--bg-app)',
+  surface:     'var(--bg-surface)',
+  border:      'var(--border-light)',
+  borderMed:   'var(--border-medium)',
+  text:        'var(--text-primary)',
+  textSub:     'var(--text-secondary)',
+  textMuted:   'var(--text-tertiary)',
   radiusLg:    '12px',
   radiusFull:  '9999px',
-  shadow:      '0 1px 3px rgba(0,0,0,0.06)',
+  shadow:      'var(--shadow-card)',
   font:        "'DM Sans', system-ui, sans-serif",
-  successBg:   '#eaf5ee',
-  successText: '#1a7a3a',
-  errorBg:     '#fef0f0',
-  errorText:   '#b02020',
-  neutralBg:   '#f0f2f4',
-  quizBg:      '#fff8e6',
-  quizText:    '#a06800',
+  successBg:   'var(--status-success-bg)',
+  successText: 'var(--status-success-text)',
+  errorBg:     'var(--status-danger-bg)',
+  errorText:   'var(--status-danger-text)',
+  neutralBg:   'var(--status-neutral-bg)',
+  quizBg:      'var(--status-warning-bg)',
+  quizText:    'var(--status-warning-text)',
 };
 
 // Lesson-type badge tokens

@@ -3,32 +3,32 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 
-// ── Design tokens ──────────────────────────────────────────────
+// ── Design tokens (CSS variables — auto-adapt to dark mode) ────
 const T = {
-  primary:    '#008eaa',
-  primaryBg:  '#e0f4f8',
-  appBg:      '#f4f6f8',
-  surface:    '#ffffff',
-  border:     'rgba(0,142,170,0.12)',
-  borderMed:  'rgba(0,142,170,0.25)',
-  text:       '#0f1c20',
-  textSub:    '#4a6470',
-  textMuted:  '#8fa8b0',
+  primary:    'var(--brand-primary)',
+  primaryBg:  'var(--brand-primary-light)',
+  appBg:      'var(--bg-app)',
+  surface:    'var(--bg-surface)',
+  border:     'var(--border-light)',
+  borderMed:  'var(--border-medium)',
+  text:       'var(--text-primary)',
+  textSub:    'var(--text-secondary)',
+  textMuted:  'var(--text-tertiary)',
   radiusLg:   '12px',
   radiusXl:   '16px',
   radiusFull: '9999px',
-  shadow:     '0 1px 3px rgba(0,0,0,0.06)',
+  shadow:     'var(--shadow-card)',
   font:       "'DM Sans', system-ui, sans-serif",
-  successBg:  '#eaf5ee',
-  successText:'#1a7a3a',
-  certBg:     '#fff8e6',
-  certText:   '#a06800',
+  successBg:  'var(--status-success-bg)',
+  successText:'var(--status-success-text)',
+  certBg:     'var(--status-warning-bg)',
+  certText:   'var(--status-warning-text)',
 };
 
 const AUDIENCE_BADGE = {
-  customer: { label: 'Kunden',       bg: '#008eaa', color: '#fff'     },
-  employee: { label: 'Mitarbeiter',  bg: '#6366f1', color: '#fff'     },
-  both:     { label: 'Für alle',     bg: '#f0f2f4', color: '#4a6470'  },
+  customer: { label: 'Kunden',       bg: 'var(--brand-primary)',       color: 'var(--text-inverse)'   },
+  employee: { label: 'Mitarbeiter',  bg: '#6366f1',                    color: '#fff'                  },
+  both:     { label: 'Für alle',     bg: 'var(--status-neutral-bg)',   color: 'var(--text-secondary)' },
 };
 
 // ── Tab definitions per role ───────────────────────────────────

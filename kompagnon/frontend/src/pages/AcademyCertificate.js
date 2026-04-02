@@ -2,16 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import API_BASE_URL from '../config';
 
-// ── Design tokens ──────────────────────────────────────────────
+// ── Design tokens (CSS variables — auto-adapt to dark mode) ────
 const T = {
-  primary:    '#008eaa',
-  primaryBg:  '#e0f4f8',
-  border:     'rgba(0,142,170,0.12)',
-  borderMed:  'rgba(0,142,170,0.25)',
-  text:       '#0f1c20',
-  textSub:    '#4a6470',
-  textMuted:  '#8fa8b0',
-  appBg:      '#f4f6f8',
+  primary:    'var(--brand-primary)',
+  primaryBg:  'var(--brand-primary-light)',
+  border:     'var(--border-light)',
+  borderMed:  'var(--border-medium)',
+  text:       'var(--text-primary)',
+  textSub:    'var(--text-secondary)',
+  textMuted:  'var(--text-tertiary)',
+  appBg:      'var(--bg-app)',
   font:       "'DM Sans', system-ui, sans-serif",
 };
 
@@ -78,7 +78,7 @@ export default function AcademyCertificate() {
       <div
         className="cert-card"
         style={{
-          background: '#ffffff',
+          background: 'var(--bg-surface)',
           maxWidth: 680, width: '100%',
           border: `2px solid ${T.borderMed}`,
           borderRadius: '16px',

@@ -54,7 +54,7 @@ export default function CustomerPortal() {
 
   // LOADING
   if (step === 'loading') return (
-    <div style={{ minHeight: '100vh', background: '#f4f6f8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sans, system-ui)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sans, system-ui)' }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #e0f4f8', borderTopColor: '#008eaa', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
         <div style={{ color: '#8fa8b0', fontSize: 13 }}>Wird geladen...</div>
@@ -65,8 +65,8 @@ export default function CustomerPortal() {
 
   // ERROR
   if (step === 'error') return (
-    <div style={{ minHeight: '100vh', background: '#f4f6f8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'var(--font-sans, system-ui)' }}>
-      <div style={{ background: 'white', borderRadius: 16, padding: 40, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'var(--font-sans, system-ui)' }}>
+      <div style={{ background: 'var(--bg-surface)', borderRadius: 16, padding: 40, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🔗</div>
         <h2 style={{ fontSize: 18, color: '#0f1c20', marginBottom: 8 }}>Ungültiger Link</h2>
         <p style={{ fontSize: 13, color: '#8fa8b0' }}>{error}</p>
@@ -76,7 +76,7 @@ export default function CustomerPortal() {
 
   // VERIFY
   if (step === 'verify') return (
-    <div style={{ minHeight: '100vh', background: '#f4f6f8', fontFamily: 'var(--font-sans, system-ui)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app)', fontFamily: 'var(--font-sans, system-ui)' }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ background: '#0f1e3a', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Logo size="small" />
@@ -87,13 +87,13 @@ export default function CustomerPortal() {
           <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 6px' }}>Willkommen, {data?.company_name}!</h1>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', margin: 0 }}>Ihr persönlicher Homepage-Audit Zugang</p>
         </div>
-        <div style={{ background: 'white', borderRadius: 16, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
+        <div style={{ background: 'var(--bg-surface)', borderRadius: 16, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
           <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0f1c20', marginBottom: 6, marginTop: 0 }}>Identität bestätigen</h2>
           <p style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 20, lineHeight: 1.6 }}>
             Bitte geben Sie eine E-Mail-Adresse mit der Domain <strong style={{ color: '#008eaa' }}>@{data?.email_domain}</strong> ein.
           </p>
           {verifyError && (
-            <div style={{ background: '#fef0f0', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{verifyError}</div>
+            <div style={{ background: 'var(--status-danger-bg)', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{verifyError}</div>
           )}
           <form onSubmit={handleVerify}>
             <div style={{ marginBottom: 16 }}>
@@ -120,7 +120,7 @@ export default function CustomerPortal() {
 
   // DASHBOARD
   if (step === 'dashboard') return (
-    <div style={{ minHeight: '100vh', background: '#f4f6f8', fontFamily: 'var(--font-sans, system-ui)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app)', fontFamily: 'var(--font-sans, system-ui)' }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -145,13 +145,13 @@ export default function CustomerPortal() {
       </div>
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '20px 16px', animation: 'fadeIn 0.4s ease' }}>
         {data?.ai_summary && (
-          <div style={{ background: 'white', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e0f4f8' }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e0f4f8' }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Zusammenfassung</div>
             <p style={{ fontSize: 13, color: '#4a6470', lineHeight: 1.6, margin: 0 }}>{data.ai_summary}</p>
           </div>
         )}
         {data?.rc_score !== null && (
-          <div style={{ background: 'white', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Ihre Ergebnisse im Detail</div>
             {[
               ['Rechtliche Compliance', data.rc_score, 30],
@@ -169,7 +169,7 @@ export default function CustomerPortal() {
                     <span>{label}</span>
                     <span style={{ fontWeight: 600, color: col }}>{score || 0}/{max}</span>
                   </div>
-                  <div style={{ height: 6, background: '#f4f6f8', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ height: 6, background: 'var(--bg-app)', borderRadius: 3, overflow: 'hidden' }}>
                     <div style={{ width: `${pct}%`, height: '100%', background: col, borderRadius: 3, transition: 'width 0.8s ease' }} />
                   </div>
                 </div>
@@ -178,12 +178,12 @@ export default function CustomerPortal() {
           </div>
         )}
         {data?.website_screenshot && (
-          <div style={{ background: 'white', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Ihre Website</div>
-            <div style={{ background: '#f4f6f8', borderRadius: 8, overflow: 'hidden', border: '1px solid #e0f4f8' }}>
+            <div style={{ background: 'var(--bg-app)', borderRadius: 8, overflow: 'hidden', border: '1px solid #e0f4f8' }}>
               <div style={{ background: '#e0f4f8', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
                 {['#ef4444','#f59e0b','#22c55e'].map(c => <div key={c} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />)}
-                <div style={{ flex: 1, background: 'white', borderRadius: 4, padding: '2px 8px', fontSize: 10, color: '#8fa8b0', marginLeft: 6 }}>{data.website_url}</div>
+                <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: 4, padding: '2px 8px', fontSize: 10, color: '#8fa8b0', marginLeft: 6 }}>{data.website_url}</div>
               </div>
               <img src={data.website_screenshot} alt="Website" style={{ width: '100%', display: 'block', maxHeight: 240, objectFit: 'cover', objectPosition: 'top' }} />
             </div>

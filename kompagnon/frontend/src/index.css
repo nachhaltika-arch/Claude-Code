@@ -94,6 +94,60 @@ input, select, textarea { font-family: inherit; }
   --kc-transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── kc-* dark mode overrides ──────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --kc-weiss:          #1a2e35;
+    --kc-hell:           #0f1c20;
+    --kc-rot:            #40c4df;
+    --kc-rot-hover:      #30a0b8;
+    --kc-rot-subtle:     #0f2a35;
+    --kc-anthrazit:      #f0f4f5;
+    --kc-text-primaer:   #f0f4f5;
+    --kc-text-sekundaer: #a8c0c8;
+    --kc-text-subtil:    #6a8f9a;
+    --kc-rand:           rgba(64, 196, 223, 0.20);
+    --kc-mittel:         #6a8f9a;
+  }
+}
+[data-theme="dark"] {
+  --kc-weiss:          #1a2e35;
+  --kc-hell:           #0f1c20;
+  --kc-rot:            #40c4df;
+  --kc-rot-hover:      #30a0b8;
+  --kc-rot-subtle:     #0f2a35;
+  --kc-anthrazit:      #f0f4f5;
+  --kc-text-primaer:   #f0f4f5;
+  --kc-text-sekundaer: #a8c0c8;
+  --kc-text-subtil:    #6a8f9a;
+  --kc-rand:           rgba(64, 196, 223, 0.20);
+  --kc-mittel:         #6a8f9a;
+}
+[data-theme="light"] {
+  --kc-weiss:          #FFFFFF;
+  --kc-hell:           #f8fafc;
+  --kc-rot:            #008EAA;
+  --kc-rot-hover:      #007090;
+  --kc-rot-subtle:     #f0fafa;
+  --kc-anthrazit:      #002535;
+  --kc-text-primaer:   #0f172a;
+  --kc-text-sekundaer: #475569;
+  --kc-text-subtil:    #64748b;
+  --kc-rand:           #e2e8f0;
+  --kc-mittel:         #64748b;
+}
+
+/* ── Global form element styles ────────────────────────────── */
+input, select, textarea {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
 /* ══════════════════════════════════════════════════════════════
    LEGACY TAILWIND COMPONENT CLASSES (kept for unmigrated pages)
    ══════════════════════════════════════════════════════════════ */

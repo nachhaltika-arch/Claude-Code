@@ -809,7 +809,7 @@ export default function AcademyAdminCourse() {
             >
               <div style={{
                 position: 'absolute', top: 3, width: 16, height: 16, borderRadius: '50%',
-                background: '#fff', transition: 'left 0.2s',
+                background: 'var(--bg-surface)', transition: 'left 0.2s',
                 left: form.is_published ? 21 : 3,
                 boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
               }} />

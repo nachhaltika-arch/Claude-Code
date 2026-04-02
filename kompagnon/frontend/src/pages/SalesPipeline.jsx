@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/ui/Badge';
@@ -25,11 +25,16 @@ export default function SalesPipeline() {
   const [search, setSearch] = useState('');
   const [filterTrade, setFilterTrade] = useState('');
 
-  const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  const fetchedRef = useRef(false);
 
-  useEffect(() => { loadLeads(); }, []); // eslint-disable-line
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    loadLeads();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadLeads = async () => {
+    const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     try {
       const res = await fetch(`${API_BASE_URL}/api/leads/`, { headers: h });
       const data = await res.json();

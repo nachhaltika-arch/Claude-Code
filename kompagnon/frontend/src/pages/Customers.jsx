@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
@@ -32,15 +32,18 @@ export default function Customers() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name'); // name | score | date | city
 
-  const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     fetch(`${API_BASE_URL}/api/leads/`, { headers: h })
       .then(r => r.json())
       .then(d => setLeads(Array.isArray(d) ? d : []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []); // eslint-disable-line
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derived data ──
 

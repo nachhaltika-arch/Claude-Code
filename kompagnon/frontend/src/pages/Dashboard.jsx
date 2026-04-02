@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
@@ -15,13 +15,12 @@ export default function Dashboard() {
   const [leads, setLeads] = useState([]);
   const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const h = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     Promise.all([
       fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE_URL}/api/leads/`, { headers: h }).then(r => r.json()),
@@ -31,7 +30,7 @@ export default function Dashboard() {
       setLeads(Array.isArray(leadsData) ? leadsData.slice(0, 8) : []);
       setAudits(Array.isArray(auditData) ? auditData.slice(0, 5) : []);
     }).finally(() => setLoading(false));
-  }, []); // eslint-disable-line
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const KpiCard = ({ label, value, icon, delta, color }) => (
     <Card>

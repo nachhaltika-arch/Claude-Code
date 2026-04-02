@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
@@ -24,13 +24,18 @@ export default function LeadPipeline() {
   const [dragOver, setDragOver] = useState(null);
   const [dragging, setDragging] = useState(null);
 
-  const headers = () => ({ 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) });
+  const fetchedRef = useRef(false);
 
-  useEffect(() => { loadLeads(); }, []); // eslint-disable-line
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    loadLeads();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadLeads = async () => {
+    const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     try {
-      const res = await fetch(`${API_BASE_URL}/api/leads/`, { headers: headers() });
+      const res = await fetch(`${API_BASE_URL}/api/leads/`, { headers });
       const data = await res.json();
       const projectLeads = Array.isArray(data)
         ? data.filter(l => l.status === 'won' || l.lead_source === 'stripe_checkout' || l.lead_source === 'llm_landing')
@@ -43,9 +48,11 @@ export default function LeadPipeline() {
   const getColumnLeads = (colId) =>
     leads.filter((l) => l.status === colId).sort((a, b) => (b.analysis_score || 0) - (a.analysis_score || 0));
 
+  const mkHeaders = () => ({ 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) });
+
   const updateStatus = async (leadId, newStatus) => {
     try {
-      await fetch(`${API_BASE_URL}/api/leads/${leadId}`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ status: newStatus }) });
+      await fetch(`${API_BASE_URL}/api/leads/${leadId}`, { method: 'PATCH', headers: mkHeaders(), body: JSON.stringify({ status: newStatus }) });
       setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)));
     } catch (e) { console.error(e); }
   };
@@ -56,7 +63,7 @@ export default function LeadPipeline() {
 
   const deleteLead = async (id) => {
     try {
-      await fetch(`${API_BASE_URL}/api/leads/${id}`, { method: 'DELETE', headers: headers() });
+      await fetch(`${API_BASE_URL}/api/leads/${id}`, { method: 'DELETE', headers: mkHeaders() });
       setLeads((prev) => prev.filter((l) => l.id !== id));
       setDeleteConfirm(null);
     } catch (e) { console.error(e); }

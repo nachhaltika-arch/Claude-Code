@@ -88,6 +88,17 @@ class Lead(Base):
     projects = relationship("Project", back_populates="lead", cascade="all, delete-orphan")
 
 
+class LeadDomain(Base):
+    __tablename__ = "lead_domains"
+    id = Column(Integer, primary_key=True, index=True)
+    lead_id = Column(Integer, ForeignKey("leads.id", ondelete="CASCADE"), nullable=False)
+    url = Column(String(500), nullable=False)
+    label = Column(String(100), default="")  # e.g. "Hauptseite", "Shop", "Karriere"
+    is_primary = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    lead = relationship("Lead", backref="domains")
+
+
 class Project(Base):
     """Project model for WordPress website builds."""
     __tablename__ = "projects"

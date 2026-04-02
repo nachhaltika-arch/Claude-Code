@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useScreenSize } from '../../utils/responsive';
@@ -64,13 +64,13 @@ const icons = {
 
 const NAV_SECTIONS = [
   {
-    title: 'ÜBERSICHT',
+    title: 'Übersicht',
     items: [
       { label: 'Dashboard', path: '/app/dashboard', icon: 'grid' },
     ],
   },
   {
-    title: 'SALES',
+    title: 'Sales',
     items: [
       { label: 'Vertriebspipeline', path: '/app/sales', icon: 'chart' },
       { label: 'Domain Import', path: '/app/import', icon: 'users' },
@@ -79,28 +79,28 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    title: 'DELIVERY',
+    title: 'Delivery',
     items: [
       { label: 'Projektpipeline', path: '/app/leads', icon: 'chart' },
       { label: 'Kundenprojekte', path: '/app/projects', icon: 'users' },
     ],
   },
   {
-    title: 'QUALITÄT',
+    title: 'Qualität',
     items: [
       { label: 'Support Tickets', path: '/app/tickets', icon: 'docCheck' },
       { label: 'Produktentwicklung', path: '/app/product', icon: 'gear', adminOnly: true },
     ],
   },
   {
-    title: 'AKADEMIE',
+    title: 'Akademie',
     items: [
       { label: 'Akademy', path: '/app/academy', icon: 'gradCap' },
-      { label: '⚙️ Kurse verwalten', path: '/app/akademie/admin', icon: 'gear', adminOnly: true },
+      { label: 'Kurse verwalten', path: '/app/akademie/admin', icon: 'gear', adminOnly: true },
     ],
   },
   {
-    title: 'EINSTELLUNGEN',
+    title: 'Einstellungen',
     items: [
       { label: 'Einstellungen', path: '/app/settings', icon: 'gear' },
     ],
@@ -156,7 +156,7 @@ function SidebarNav({ badges }) {
     }}>
       {/* Logo */}
       <div style={{
-        padding: '20px 16px', borderBottom: '1px solid var(--border-light)',
+        padding: '20px 16px 18px', borderBottom: '1px solid var(--border-light)',
         cursor: 'pointer',
       }} onClick={() => navigate('/app/dashboard')}>
         <div style={{ color: 'var(--brand-primary)' }}>
@@ -172,16 +172,20 @@ function SidebarNav({ badges }) {
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, padding: '12px 8px', overflowY: 'auto' }}>
+      <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
         {NAV_SECTIONS.map((section) => {
           const visibleItems = section.items.filter(i => !i.adminOnly || hasRole('admin'));
           if (visibleItems.length === 0) return null;
           return (
-            <div key={section.title} style={{ marginBottom: 16 }}>
+            <div key={section.title} style={{ marginBottom: 20 }}>
               <div style={{
-                fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)',
-                letterSpacing: '0.08em', textTransform: 'uppercase',
-                padding: '0 10px', marginBottom: 4,
+                fontSize: 10,
+                fontWeight: 500,
+                color: 'var(--text-tertiary)',
+                opacity: 0.4,
+                letterSpacing: '0.1em',
+                padding: '0 10px',
+                marginBottom: 4,
               }}>
                 {section.title}
               </div>
@@ -192,19 +196,18 @@ function SidebarNav({ badges }) {
                     key={item.path}
                     onClick={() => navigate(item.path)}
                     style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                      width: '100%', display: 'flex', alignItems: 'center',
                       padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-md)',
                       cursor: 'pointer', fontSize: 13, textAlign: 'left',
                       fontFamily: 'var(--font-sans)',
                       background: active ? 'var(--bg-active)' : 'transparent',
                       color: active ? 'var(--brand-primary)' : 'var(--text-secondary)',
                       fontWeight: active ? 500 : 400,
-                      transition: 'background 0.15s, color 0.15s',
+                      transition: 'background var(--transition-fast), color var(--transition-fast)',
                     }}
                     onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}}
                     onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}}
                   >
-                    <span style={{ flexShrink: 0, display: 'flex' }}>{icons[item.icon]}</span>
                     <span>{item.label}</span>
                     {item.badgeKey && badges[item.badgeKey] > 0 && (
                       <span style={{
@@ -228,7 +231,7 @@ function SidebarNav({ badges }) {
       {user && (
         <div style={{
           marginTop: 'auto', borderTop: '1px solid var(--border-light)',
-          padding: '12px 8px', position: 'relative',
+          padding: '12px 10px', position: 'relative',
         }}>
           {/* Theme toggle */}
           <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 8, marginBottom: 8 }}>
@@ -239,7 +242,7 @@ function SidebarNav({ badges }) {
                 padding: '6px 8px', border: 'none', borderRadius: 'var(--radius-md)',
                 background: 'transparent', cursor: 'pointer',
                 color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)',
-                transition: 'background 0.15s, color 0.15s',
+                transition: 'background var(--transition-fast), color var(--transition-fast)',
               }}
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
@@ -279,6 +282,7 @@ function SidebarNav({ badges }) {
                 background: 'none', border: 'none', padding: 4,
                 color: 'var(--text-tertiary)', cursor: 'pointer',
                 display: 'flex', borderRadius: 'var(--radius-sm)',
+                transition: 'color var(--transition-fast)',
               }}
             >
               {icons.dots}
@@ -289,9 +293,9 @@ function SidebarNav({ badges }) {
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 50 }} onClick={() => setMenuOpen(false)} />
               <div style={{
-                position: 'absolute', bottom: '100%', left: 8, right: 8,
+                position: 'absolute', bottom: '100%', left: 10, right: 10,
                 background: 'var(--bg-elevated)', border: '1px solid var(--border-light)',
-                borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-elevated)',
+                borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)',
                 padding: 4, zIndex: 51, marginBottom: 4,
               }}>
                 <button
@@ -301,6 +305,7 @@ function SidebarNav({ badges }) {
                     padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-sm)',
                     background: 'transparent', cursor: 'pointer', fontSize: 13,
                     color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)',
+                    transition: 'background var(--transition-fast)',
                   }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -314,6 +319,7 @@ function SidebarNav({ badges }) {
                     padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-sm)',
                     background: 'transparent', cursor: 'pointer', fontSize: 13,
                     color: 'var(--status-danger-text)', fontFamily: 'var(--font-sans)',
+                    transition: 'background var(--transition-fast)',
                   }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--status-danger-bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -333,40 +339,35 @@ function SidebarNav({ badges }) {
 // ── Topbar ─────────────────────────────────────────────────────
 
 function Topbar({ pageName, ctaLabel, ctaAction }) {
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-
   return (
     <header style={{
-      height: 'var(--topbar-height)', minHeight: 56,
+      height: 52,
       borderBottom: '1px solid var(--border-light)',
       background: 'var(--bg-surface)',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '0 24px',
       position: 'sticky', top: 0, zIndex: 30,
+      flexShrink: 0,
     }}>
       <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)' }}>
         {pageName}
       </span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{dateStr}</span>
-        {ctaLabel && (
-          <button
-            onClick={ctaAction}
-            style={{
-              background: 'var(--brand-primary)', color: 'var(--text-inverse)',
-              border: 'none', padding: '7px 16px', borderRadius: 'var(--radius-md)',
-              fontSize: 13, fontWeight: 500, cursor: 'pointer',
-              fontFamily: 'var(--font-sans)',
-              transition: 'background 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--brand-primary-dark)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'var(--brand-primary)'}
-          >
-            {ctaLabel}
-          </button>
-        )}
-      </div>
+      {ctaLabel && (
+        <button
+          onClick={ctaAction}
+          style={{
+            background: 'var(--brand-primary)', color: 'var(--text-inverse)',
+            border: 'none', padding: '6px 14px', borderRadius: 'var(--radius-md)',
+            fontSize: 13, fontWeight: 500, cursor: 'pointer',
+            fontFamily: 'var(--font-sans)',
+            transition: 'background var(--transition-fast)',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--brand-primary-dark)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'var(--brand-primary)'}
+        >
+          {ctaLabel}
+        </button>
+      )}
     </header>
   );
 }
@@ -383,7 +384,10 @@ function BottomNav() {
       background: 'var(--bg-surface)',
       borderTop: '1px solid var(--border-light)',
       display: 'flex', justifyContent: 'space-around',
-      padding: '6px 0 calc(6px + env(safe-area-inset-bottom))',
+      height: 'calc(56px + env(safe-area-inset-bottom))',
+      paddingBottom: 'env(safe-area-inset-bottom)',
+      alignItems: 'flex-start',
+      paddingTop: 8,
       zIndex: 100,
     }}>
       {MOBILE_TABS.map((tab) => {
@@ -397,11 +401,11 @@ function BottomNav() {
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
               padding: '4px 8px', cursor: 'pointer', minWidth: 48,
               color: active ? 'var(--brand-primary)' : 'var(--text-tertiary)',
-              transition: 'color 0.15s',
+              transition: 'color var(--transition-fast)',
             }}
           >
             <span style={{ display: 'flex' }}>{icons[tab.icon]}</span>
-            <span style={{ fontSize: 9, fontWeight: active ? 600 : 400 }}>{tab.label}</span>
+            <span style={{ fontSize: 10, fontWeight: active ? 600 : 400 }}>{tab.label}</span>
           </button>
         );
       })}
@@ -416,13 +420,12 @@ export default function AppLayout() {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [badges, setBadges] = useState({ pipeline: 0, audits: 0 });
+  const [badges] = useState({ pipeline: 0, audits: 0 });
 
   const pageName = PAGE_NAMES[location.pathname] ||
     Object.entries(PAGE_NAMES).find(([p]) => location.pathname.startsWith(p + '/'))?.[1] ||
     'KOMPAGNON';
 
-  // CTA mapping per page
   const ctaMap = {
     '/app/dashboard': null,
     '/app/leads': { label: '+ Neuer Lead', action: () => navigate('/app/import') },
@@ -458,7 +461,7 @@ export default function AppLayout() {
             padding: '12px 16px', background: 'var(--bg-surface)',
             borderBottom: '1px solid var(--border-light)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            position: 'sticky', top: 0, zIndex: 30,
+            position: 'sticky', top: 0, zIndex: 30, flexShrink: 0,
           }}>
             <div style={{ color: 'var(--brand-primary)' }}>
               <Logo size="small" />

@@ -133,4 +133,115 @@
 
 ---
 
-*Diese Roadmap wird laufend aktualisiert.*
+# KOMPAGNON – Produkt-Roadmap
+
+> Stand: April 2026  
+> Webdesign-Service für deutsches Handwerk | 2.000 € netto | 14 Werktage
+
+---
+
+## ✅ Umgesetzt (Deployed & Live)
+
+### Backend (FastAPI / Python)
+- [x] FastAPI-Grundstruktur mit PostgreSQL (Render)
+- [x] JWT-Authentifizierung + TOTP/2FA
+- [x] Rollenbasierter Zugriff: Admin, Auditor, Nutzer, Kunde
+- [x] OAuth-Platzhalter (Google, GitHub)
+- [x] 7-Phasen-Projektautomatisierung mit APScheduler
+- [x] Hintergrund-Scheduling für Langzeitaufgaben
+- [x] Website Audit Tool (async) mit PageSpeed API-Integration
+- [x] PDF-Berichtsgenerierung via ReportLab
+- [x] CSV-Kontaktimport mit KI-gestützter Spaltenzuordnung (Claude API)
+- [x] Automatisches Lead-Enrichment (Website-Scraping)
+- [x] Datenbankmigrationen via run_migrations() (ALTER TABLE IF NOT EXISTS)
+- [x] E-Mail-Benachrichtigungen (Test-Endpoint)
+- [x] Stripe-Checkout Integration
+- [x] 28+ API-Endpunkte (Leads, Projekte, Agenten, Kunden, Automatisierungen)
+- [x] Seed-Skript: 54 Checklisten-Einträge
+
+### Frontend (React)
+- [x] Mobile-first Design mit Bottom-Navigation
+- [x] Dashboard mit KPI-Übersicht
+- [x] Lead-Pipeline mit Kanban-Ansicht
+- [x] Vertriebspipeline
+- [x] Domain-Import / CSV-Upload
+- [x] Export-Funktion
+- [x] Website Audit Seite (Async-Verarbeitung + Ergebnis-Anzeige)
+- [x] Nutzerkartei (Kundenprofil + Audit-Historie)
+- [x] Produktentwicklung / Roadmap-Board (Kanban)
+- [x] Angebots-Tab mit Paketvergleich (Starter / KOMPAGNON / Premium)
+- [x] Rollen-Management
+- [x] Einstellungen
+- [x] Impressum
+- [x] Landing Page mit BAFA-Rechner
+- [x] Vollständiges Auth-System (Login, 2FA, Logout)
+
+### Homepage Standard 2025 Framework
+- [x] 5-Stufen-Zertifizierungsrahmen (Nicht konform / Bronze / Silber / Gold / Platin)
+- [x] Bewertung in 7 Kategorien (0–100 Punkte):
+  - Rechtliche Compliance
+  - Technische Performance
+  - Hosting & Infrastruktur
+  - Barrierefreiheit
+  - Sicherheit & Datenschutz
+  - SEO & Sichtbarkeit
+  - Inhalt & Nutzererfahrung
+- [x] Audit-PDF-Report für Kaltakquise
+- [x] Integration als Vertriebs-Qualifizierungstool
+
+### Print & Outreach-Materialien
+- [x] DIN 5008-konformes Anschreiben-Template
+- [x] A3-Faltbroschüre (Ist-Stand / Soll-Stand, Mittelfalz)
+- [x] CLAUDE.md Brandeisen (Marken-Systemprompt für Claude Code)
+
+---
+
+## 🔄 In Entwicklung / Geplant
+
+### Kurzfristig
+- [ ] E-Mail-Versand direkt aus der App (SMTP-Integration)
+- [ ] Audit-Ergebnisse direkt im Kundenprofil speichern
+- [ ] Kalenderansicht für Projektphasen
+- [ ] Benachrichtigungssystem (In-App)
+
+### Mittelfristig
+- [ ] Automatisierter Kaltakquise-Workflow (Audit → Anschreiben → Versand)
+- [ ] Google Business Profile API-Integration
+- [ ] Erweiterung des Homepage Standard auf neue Branchen
+- [ ] Kundenportal (Login für Endkunden)
+- [ ] Dokumenten-Upload für Kunden
+
+### Langfristig
+- [ ] KI-gestützte Textgenerierung für Websites (im Workflow integriert)
+- [ ] White-Label-Version für andere Agenturen
+- [ ] API für externe Tools (Zapier, Make)
+- [ ] Mobile App (iOS/Android)
+
+---
+
+## ⚙️ Technischer Stack
+
+| Bereich | Technologie |
+|---|---|
+| Backend | FastAPI (Python) |
+| Frontend | React |
+| Datenbank | PostgreSQL (Render) |
+| Deployment | Render.com |
+| KI | Anthropic Claude (claude-sonnet-4-6) |
+| PDF | ReportLab |
+| Zahlungen | Stripe |
+| Performance | Google PageSpeed API |
+| Versionierung | GitHub (nachhaltika-arch/Claude-Code) |
+
+---
+
+## 🔗 Live-URLs
+
+- **Backend**: https://claude-code-znq2.onrender.com  
+- **Frontend**: https://kompagnon-frontend.onrender.com  
+- **Repo**: nachhaltika-arch/Claude-Code  
+- **Branch**: claude/kompagnon-automation-system-FapM9
+
+---
+
+*Zuletzt aktualisiert: April 2026*

@@ -214,28 +214,29 @@ export default function AuditHistory({ leadId }) {
 
       {/* Full Audit Report Modal — rendered via portal to bypass transform stacking context */}
       {openAudit && createPortal(
-        <div
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.75)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'stretch',
-            justifyContent: 'center',
-            padding: 0,
-          }}
-          onClick={(e) => { if (e.target === e.currentTarget) setOpenAudit(null); }}
-        >
-          {/* Inner container — full height, max 960px wide */}
+        <>
+          {/* Backdrop */}
+          <div
+            style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.75)',
+              zIndex: 1000,
+            }}
+            onClick={() => setOpenAudit(null)}
+          />
+          {/* Panel — own position:fixed with top:0/bottom:0, no height inheritance */}
           <div style={{
+            position: 'fixed',
+            top: 0, bottom: 0,
+            left: 0, right: 0,
             width: '100%',
             maxWidth: isMobile ? '100%' : 960,
-            height: '100%',
+            margin: '0 auto',
             display: 'flex',
             flexDirection: 'column',
             background: 'var(--bg-surface)',
-            borderRadius: 0,
             overflow: 'hidden',
+            zIndex: 1001,
           }}>
             {/* Fixed header bar — 52px */}
             <div style={{
@@ -317,7 +318,7 @@ export default function AuditHistory({ leadId }) {
               <AuditReport auditData={openAudit} />
             </div>
           </div>
-        </div>,
+        </>,
         document.body
       )}
     </div>

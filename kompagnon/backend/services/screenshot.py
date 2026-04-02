@@ -3,8 +3,20 @@ import base64
 import os
 import logging
 from io import BytesIO
+from urllib.parse import quote, urlparse
 
 logger = logging.getLogger(__name__)
+
+
+def build_screenshot_url(target_url: str):
+    """Validate and encode a URL for thum.io. Returns None if URL is invalid."""
+    parsed = urlparse(target_url)
+    if parsed.scheme not in ('http', 'https'):
+        return None
+    if not parsed.netloc:
+        return None
+    encoded = quote(target_url, safe='')
+    return f"https://image.thum.io/get/width/1280/crop/720/{encoded}"
 
 
 async def capture_screenshot(url: str) -> str:
@@ -24,14 +36,18 @@ async def capture_screenshot(url: str) -> str:
 
 
 async def _screenshot_thumio(url: str) -> str:
+    thumb_url = build_screenshot_url(url)
+    if not thumb_url:
+        logger.warning(f"Thum.io: Ungültige URL übersprungen: {url}")
+        return ""
     try:
-        import urllib.parse
-        encoded = urllib.parse.quote(url, safe="")
-        thumb_url = f"https://image.thum.io/get/width/1280/crop/720/{encoded}"
         async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
             res = await client.get(thumb_url)
             if res.status_code == 200 and len(res.content) > 5000:
                 return await _resize(res.content)
+            if res.status_code in (400, 404, 500):
+                logger.warning(f"Thum.io HTTP {res.status_code} für URL: {url}")
+                return ""
     except Exception as e:
         logger.warning(f"Thum.io Fehler: {e}")
     return ""

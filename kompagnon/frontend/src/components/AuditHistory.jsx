@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import API_BASE_URL from '../config';
 import AuditReport from './AuditReport';
+import { useScreenSize } from '../utils/responsive';
 
 const LEVEL_STYLES = {
   'Homepage Standard Platin': { color: '#283593', icon: '\uD83C\uDFC6' },
@@ -12,6 +13,7 @@ const LEVEL_STYLES = {
 };
 
 export default function AuditHistory({ leadId }) {
+  const { isMobile } = useScreenSize();
   const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
@@ -28,6 +30,32 @@ export default function AuditHistory({ leadId }) {
       alert('Audit konnte nicht geladen werden.');
     } finally {
       setLoadingAuditId(null);
+    }
+  };
+
+  const downloadPdf = async (audit) => {
+    try {
+      setDownloadingId(audit.id);
+      const response = await fetch(`${API_BASE_URL}/api/audit/${audit.id}/pdf`);
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'PDF konnte nicht erstellt werden');
+      }
+      const blob = await response.blob();
+      if (blob.size === 0) throw new Error('PDF ist leer');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Homepage-Standard-Audit-${(audit.company_name || 'Audit').replace(/\s+/g, '-')}-${audit.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('PDF Fehler:', error);
+      alert(`Fehler: ${error.message}`);
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -132,46 +160,21 @@ export default function AuditHistory({ leadId }) {
                   {loadingAuditId === audit.id ? '...' : 'Details anzeigen'}
                 </button>
                 <button
-                  onClick={() => {
-                    (async () => {
-                      try {
-                        setDownloadingId(audit.id);
-                        const response = await fetch(`${API_BASE_URL}/api/audit/${audit.id}/pdf`, { method: 'GET' });
-                        if (!response.ok) {
-                          const error = await response.json();
-                          throw new Error(error.detail || 'PDF konnte nicht erstellt werden');
-                        }
-                        const blob = await response.blob();
-                        if (blob.size === 0) throw new Error('PDF ist leer');
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `Homepage-Standard-Audit-${(audit.company_name || 'Audit').replace(/\s+/g, '-')}-${audit.id}.pdf`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                      } catch (error) {
-                        console.error('PDF Fehler:', error);
-                        alert(`Fehler: ${error.message}`);
-                      } finally {
-                        setDownloadingId(null);
-                      }
-                    })();
-                  }}
+                  onClick={() => downloadPdf(audit)}
                   disabled={downloadingId === audit.id}
                   style={{
-                    background: downloadingId === audit.id ? '#ccc' : 'var(--text-primary)',
-                    color: '#fff',
+                    background: downloadingId === audit.id ? 'var(--bg-elevated)' : 'var(--text-primary)',
+                    color: downloadingId === audit.id ? 'var(--text-tertiary)' : 'var(--text-inverse)',
                     border: 'none',
-                    borderRadius: 6,
+                    borderRadius: 'var(--radius-md)',
                     padding: '6px 12px',
                     fontSize: 12,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     cursor: downloadingId === audit.id ? 'not-allowed' : 'pointer',
+                    fontFamily: 'var(--font-sans)',
                   }}
                 >
-                  {downloadingId === audit.id ? '⏳ Erstellt...' : '📄 PDF'}
+                  {downloadingId === audit.id ? '⏳ Erstellt…' : '📄 PDF'}
                 </button>
               </div>
             </div>
@@ -208,21 +211,110 @@ export default function AuditHistory({ leadId }) {
         );
       })}
 
-      {/* Full Audit Report Modal */}
+      {/* Full Audit Report Modal — full viewport height */}
       {openAudit && (
         <div
           style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.7)', zIndex: 1000,
-            overflowY: 'auto', padding: '20px',
+            background: 'rgba(0,0,0,0.75)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'stretch',
+            justifyContent: 'center',
+            padding: 0,
           }}
           onClick={(e) => { if (e.target === e.currentTarget) setOpenAudit(null); }}
         >
-          <div style={{ maxWidth: 900, margin: '0 auto', borderRadius: 'var(--radius-lg)', overflow: 'hidden', background: 'var(--kc-weiss, #fff)' }}>
-            <AuditReport
-              auditData={openAudit}
-              onClose={() => setOpenAudit(null)}
-            />
+          {/* Inner container — full height, max 960px wide */}
+          <div style={{
+            width: '100%',
+            maxWidth: isMobile ? '100%' : 960,
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'var(--bg-surface)',
+            borderRadius: 0,
+            overflow: 'hidden',
+          }}>
+            {/* Fixed header bar — 52px */}
+            <div style={{
+              flexShrink: 0,
+              height: 52,
+              background: 'var(--bg-surface)',
+              borderBottom: '0.5px solid var(--border-light)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0 20px',
+              gap: 12,
+            }}>
+              {/* Left — company name + score */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <span style={{
+                  fontSize: 14, fontWeight: 600, color: 'var(--text-primary)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {openAudit.company_name || openAudit.website_url}
+                </span>
+                {openAudit.total_score != null && (() => {
+                  const s = openAudit.total_score;
+                  const bg  = s >= 70 ? 'var(--status-success-bg)'  : s >= 45 ? 'var(--status-warning-bg)'  : 'var(--status-danger-bg)';
+                  const col = s >= 70 ? 'var(--status-success-text)' : s >= 45 ? 'var(--status-warning-text)' : 'var(--status-danger-text)';
+                  return (
+                    <span style={{ flexShrink: 0, background: bg, color: col, borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 700, padding: '2px 8px' }}>
+                      {s}/100
+                    </span>
+                  );
+                })()}
+              </div>
+
+              {/* Right — PDF + Close */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <button
+                  onClick={() => downloadPdf(openAudit)}
+                  disabled={downloadingId === openAudit.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    background: 'transparent',
+                    border: '0.5px solid var(--border-medium)',
+                    color: 'var(--text-secondary)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '5px 12px', fontSize: 12, fontWeight: 500,
+                    cursor: downloadingId === openAudit.id ? 'not-allowed' : 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    opacity: downloadingId === openAudit.id ? 0.5 : 1,
+                    transition: 'background var(--transition-fast)',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  {downloadingId === openAudit.id ? '⏳ Erstellt…' : '📄 PDF'}
+                </button>
+                <button
+                  onClick={() => setOpenAudit(null)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    background: 'transparent',
+                    border: '0.5px solid var(--border-medium)',
+                    color: 'var(--text-secondary)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '5px 12px', fontSize: 12, fontWeight: 500,
+                    cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                    transition: 'background var(--transition-fast)',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  ✕ Schließen
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable report area */}
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {/* onClose not passed — suppresses AuditReport's own floating × */}
+              <AuditReport auditData={openAudit} />
+            </div>
           </div>
         </div>
       )}

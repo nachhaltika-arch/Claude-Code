@@ -417,10 +417,11 @@ function BottomNav() {
 
 export default function AppLayout() {
   const { isMobile } = useScreenSize();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [badges] = useState({ pipeline: 0, audits: 0 });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const pageName = PAGE_NAMES[location.pathname] ||
     Object.entries(PAGE_NAMES).find(([p]) => location.pathname.startsWith(p + '/'))?.[1] ||
@@ -458,7 +459,7 @@ export default function AppLayout() {
         {/* Mobile header */}
         {isMobile && (
           <header style={{
-            padding: '12px 16px', background: 'var(--bg-surface)',
+            padding: '10px 16px', background: 'var(--bg-surface)',
             borderBottom: '1px solid var(--border-light)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             position: 'sticky', top: 0, zIndex: 30, flexShrink: 0,
@@ -469,6 +470,67 @@ export default function AppLayout() {
             <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
               {pageName}
             </span>
+            {/* User avatar + dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setMobileMenuOpen(o => !o)}
+                style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: 'var(--brand-primary-light)', color: 'var(--brand-primary)',
+                  border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              >
+                {(user?.first_name?.[0] || 'U').toUpperCase()}
+              </button>
+              {mobileMenuOpen && (
+                <>
+                  <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 50 }}
+                    onClick={() => setMobileMenuOpen(false)}
+                  />
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                    background: 'var(--bg-elevated)', border: '1px solid var(--border-light)',
+                    borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)',
+                    padding: 4, zIndex: 51, minWidth: 160,
+                  }}>
+                    <div style={{ padding: '8px 12px 6px', borderBottom: '1px solid var(--border-light)', marginBottom: 4 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+                        {user?.first_name} {user?.last_name}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'capitalize' }}>
+                        {user?.role}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { navigate('/app/profile'); setMobileMenuOpen(false); }}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-sm)',
+                        background: 'transparent', cursor: 'pointer', fontSize: 13,
+                        color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)', textAlign: 'left',
+                      }}
+                    >
+                      Profil
+                    </button>
+                    <button
+                      onClick={() => { logout(); navigate('/'); setMobileMenuOpen(false); }}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-sm)',
+                        background: 'transparent', cursor: 'pointer', fontSize: 13,
+                        color: 'var(--status-danger-text)', fontFamily: 'var(--font-sans)', textAlign: 'left',
+                      }}
+                    >
+                      {icons.logout}
+                      <span>Abmelden</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </header>
         )}
 

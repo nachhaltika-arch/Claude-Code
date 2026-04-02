@@ -138,30 +138,33 @@ export default function AuditReport({ auditData, onClose }) {
   const r = auditData;
   const ls = LEVEL_STYLES[r.level] || LEVEL_STYLES['Nicht konform'];
 
-  // Support both r.items.key (from _format_audit) and r.key (direct DB object)
-  const itemsRaw = r.items || {};
-  const items = {};
-  for (const cat of CATEGORIES) {
-    for (const item of cat.items) {
-      items[item.key] = itemsRaw[item.key] ?? r[item.key] ?? 0;
-    }
-  }
-  for (const hi of HOSTING_ITEMS) {
-    items[hi.key] = itemsRaw[hi.key] ?? r[hi.key] ?? 0;
-  }
-
   // Debug: log the raw API response to verify field names
   console.log('[AuditReport] auditData:', r);
 
-  const checks = r.checks || {
-    ssl_ok: r.ssl_ok,
-    impressum_ok: r.impressum_ok,
-    datenschutz_ok: r.datenschutz_ok,
-    lcp_value: r.lcp_value,
-    cls_value: r.cls_value,
-    inp_value: r.inp_value,
-    mobile_score: r.mobile_score,
-    performance_score: r.performance_score,
+  // r.result is a fallback for response shapes that nest data one level deeper
+  const res = r.result || r;
+
+  // Support: res.items.key (from _format_audit), res.key (flat DB), r.result.key
+  const itemsRaw = res.items || r.items || {};
+  const items = {};
+  for (const cat of CATEGORIES) {
+    for (const item of cat.items) {
+      items[item.key] = itemsRaw[item.key] ?? res[item.key] ?? r[item.key] ?? 0;
+    }
+  }
+  for (const hi of HOSTING_ITEMS) {
+    items[hi.key] = itemsRaw[hi.key] ?? res[hi.key] ?? r[hi.key] ?? 0;
+  }
+
+  const checks = res.checks || r.checks || {
+    ssl_ok: res.ssl_ok ?? r.ssl_ok,
+    impressum_ok: res.impressum_ok ?? r.impressum_ok,
+    datenschutz_ok: res.datenschutz_ok ?? r.datenschutz_ok,
+    lcp_value: res.lcp_value ?? r.lcp_value,
+    cls_value: res.cls_value ?? r.cls_value,
+    inp_value: res.inp_value ?? r.inp_value,
+    mobile_score: res.mobile_score ?? r.mobile_score,
+    performance_score: res.performance_score ?? r.performance_score,
   };
 
   // Parse JSON fields if needed
@@ -172,7 +175,7 @@ export default function AuditReport({ auditData, onClose }) {
     if (typeof recommendations === 'string') recommendations = JSON.parse(recommendations);
   } catch (e) { /* ignore */ }
 
-  // Mapping from CATEGORIES key → flat score field returned by GET /api/audit/{id}
+  // Mapping from CATEGORIES key → flat score field
   const CAT_SCORE_FIELD = {
     'rechtliche_compliance':  'rc_score',
     'technische_performance': 'tp_score',
@@ -182,11 +185,19 @@ export default function AuditReport({ auditData, onClose }) {
     'inhalt_nutzererfahrung': 'ux_score',
   };
 
-  // Build category score: prefer r.categories, then flat score fields, then sum items
+  // Build category score: prefer categories object, then flat score fields (also in r.result),
+  // then fall back to summing individual items
   const getCatScore = (catKey, catMax) => {
-    if (r.categories?.[catKey]?.score != null) return r.categories[catKey].score;
+    // 1. categories object (from _format_audit or r.result.categories)
+    const cats = res.categories || r.categories;
+    if (cats?.[catKey]?.score != null) return cats[catKey].score;
+    // 2. flat score fields on res (r.result) or r directly
     const field = CAT_SCORE_FIELD[catKey];
-    if (field && r[field] != null) return r[field];
+    if (field) {
+      if (res[field] != null) return res[field];
+      if (r[field] != null) return r[field];
+    }
+    // 3. sum individual item scores
     const cat = CATEGORIES.find(c => c.key === catKey);
     if (!cat) return 0;
     return Math.min(cat.items.reduce((sum, item) => sum + (items[item.key] || 0), 0), catMax);

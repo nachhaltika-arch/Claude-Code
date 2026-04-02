@@ -1282,10 +1282,12 @@ export default function LeadProfile() {
 
       {/* AUDIT DETAIL MODAL */}
       {openAudit && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, overflowY: 'auto', padding: '20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '20px' }}
           onClick={e => { if (e.target === e.currentTarget) setOpenAudit(null); }}>
-          <div style={{ maxWidth: 900, width: '100%', borderRadius: 'var(--radius-xl)', overflow: 'hidden', marginTop: 20 }}>
-            <AuditReport auditData={openAudit} onClose={() => setOpenAudit(null)} />
+          <div style={{ maxWidth: 900, width: '100%', maxHeight: 'calc(100vh - 40px)', borderRadius: 'var(--radius-xl)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              <AuditReport auditData={openAudit} onClose={() => setOpenAudit(null)} />
+            </div>
           </div>
         </div>
       )}

@@ -94,13 +94,17 @@ export default function LeadProfile() {
   const [crawlLoading, setCrawlLoading] = useState(false);
   const [crawlSort, setCrawlSort] = useState({ col: 'crawled_at', asc: true });
   const [crawlExpandedRow, setCrawlExpandedRow] = useState(null);
+  // Domains
+  const [domains, setDomains] = useState([]);
+  const [domainForm, setDomainForm] = useState({ url: '', label: '', is_primary: false });
+  const [domainAdding, setDomainAdding] = useState(false);
 
   const h = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  useEffect(() => { loadProfile(); loadQrCode(); }, [leadId]); // eslint-disable-line
+  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); }, [leadId]); // eslint-disable-line
 
   const loadProfile = async () => {
     try {
@@ -138,6 +142,34 @@ export default function LeadProfile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadDomains = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/domains`, { headers: h });
+      if (res.ok) setDomains(await res.json());
+    } catch { /* silent */ }
+  };
+
+  const addDomain = async () => {
+    const url = domainForm.url.trim();
+    if (!url) return;
+    setDomainAdding(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/domains`, {
+        method: 'POST', headers: h,
+        body: JSON.stringify({ url, label: domainForm.label.trim(), is_primary: domainForm.is_primary }),
+      });
+      if (res.ok) {
+        setDomainForm({ url: '', label: '', is_primary: false });
+        await loadDomains();
+      }
+    } finally { setDomainAdding(false); }
+  };
+
+  const deleteDomain = async (domainId) => {
+    await fetch(`${API_BASE_URL}/api/leads/${leadId}/domains/${domainId}`, { method: 'DELETE', headers: h });
+    await loadDomains();
   };
 
   const fetchLatestScreenshot = async () => {
@@ -607,6 +639,124 @@ export default function LeadProfile() {
                   {lead.notes}
                 </div>
               )}
+            </Card>
+
+            {/* ── Weitere Domains ── */}
+            <Card padding="md">
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 12 }}>
+                Weitere Domains
+              </div>
+
+              {/* Domain list */}
+              {domains.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '8px 0', textAlign: 'center' }}>
+                  Keine weiteren Domains
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                  {domains.map(d => (
+                    <div key={d.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '7px 10px', borderRadius: 'var(--radius-md)',
+                      background: d.is_primary ? 'var(--bg-active)' : 'var(--bg-app)',
+                      border: `1px solid ${d.is_primary ? 'var(--brand-primary)' : 'var(--border-light)'}`,
+                    }}>
+                      {d.is_primary && (
+                        <span title="Primär" style={{ fontSize: 13, flexShrink: 0 }}>⭐</span>
+                      )}
+                      <a
+                        href={d.url.startsWith('http') ? d.url : 'https://' + d.url}
+                        target="_blank" rel="noopener noreferrer"
+                        style={{
+                          fontSize: 12, flex: 1, minWidth: 0,
+                          color: d.is_primary ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                          fontWeight: d.is_primary ? 500 : 400,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          textDecoration: 'none',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+                        onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+                      >
+                        {d.url.replace(/^https?:\/\//, '')}
+                      </a>
+                      {d.label && (
+                        <span style={{
+                          fontSize: 10, padding: '1px 7px', borderRadius: 'var(--radius-full)',
+                          background: 'var(--bg-surface)', color: 'var(--text-tertiary)',
+                          border: '1px solid var(--border-light)', flexShrink: 0,
+                        }}>
+                          {d.label}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => deleteDomain(d.id)}
+                        title="Löschen"
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+                          color: 'var(--text-tertiary)', borderRadius: 'var(--radius-sm)', fontSize: 13, flexShrink: 0,
+                          lineHeight: 1, transition: 'color 0.1s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.color = 'var(--status-danger-text)'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add form */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: domains.length ? 10 : 0, borderTop: domains.length ? '1px solid var(--border-light)' : 'none' }}>
+                <input
+                  value={domainForm.url}
+                  onChange={e => setDomainForm(f => ({ ...f, url: e.target.value }))}
+                  onKeyDown={e => e.key === 'Enter' && addDomain()}
+                  placeholder="https://shop.firma.de"
+                  style={{
+                    padding: '7px 10px', fontSize: 12,
+                    border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+                    background: 'var(--bg-app)', color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-sans)', outline: 'none',
+                  }}
+                />
+                <input
+                  value={domainForm.label}
+                  onChange={e => setDomainForm(f => ({ ...f, label: e.target.value }))}
+                  placeholder="Label (z.B. Shop, Karriere)"
+                  style={{
+                    padding: '7px 10px', fontSize: 12,
+                    border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+                    background: 'var(--bg-app)', color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-sans)', outline: 'none',
+                  }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={domainForm.is_primary}
+                      onChange={e => setDomainForm(f => ({ ...f, is_primary: e.target.checked }))}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    Als primär markieren
+                  </label>
+                  <button
+                    onClick={addDomain}
+                    disabled={!domainForm.url.trim() || domainAdding}
+                    style={{
+                      padding: '6px 14px', fontSize: 12, fontWeight: 600,
+                      background: 'var(--brand-primary)', color: 'white',
+                      border: 'none', borderRadius: 'var(--radius-md)',
+                      cursor: domainForm.url.trim() && !domainAdding ? 'pointer' : 'not-allowed',
+                      opacity: domainForm.url.trim() && !domainAdding ? 1 : 0.5,
+                      fontFamily: 'var(--font-sans)',
+                    }}
+                  >
+                    {domainAdding ? '…' : 'Hinzufügen'}
+                  </button>
+                </div>
+              </div>
             </Card>
 
             {latestAudit && (

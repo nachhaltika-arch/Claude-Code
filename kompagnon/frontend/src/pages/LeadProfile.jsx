@@ -9,6 +9,8 @@ import SecurityChecklist from '../components/SecurityChecklist';
 import AuditReport from '../components/AuditReport';
 import BriefingTab from '../components/BriefingTab';
 import OfferTab from '../components/OfferTab';
+import ProjectFilesSection from '../components/ProjectFilesSection';
+import AcademyCustomerSection from '../components/AcademyCustomerSection';
 import API_BASE_URL from '../config';
 
 function useScreenWidth() {
@@ -44,14 +46,16 @@ const LEVEL_COLORS = {
 };
 
 const TABS = [
-  { id: 'overview', label: 'Übersicht', icon: '⊞' },
-  { id: 'briefing', label: 'Briefing', icon: '📋' },
-  { id: 'contact', label: 'Kontakt', icon: '👤' },
-  { id: 'audits', label: 'Audits', icon: '✓' },
+  { id: 'overview',   label: 'Übersicht',   icon: '⊞' },
+  { id: 'briefing',   label: 'Briefing',    icon: '📋' },
+  { id: 'contact',    label: 'Kontakt',     icon: '👤' },
+  { id: 'audits',     label: 'Audits',      icon: '✓' },
+  { id: 'dateien',    label: 'Dateien',     icon: '📎' },
+  { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
   { id: 'checklists', label: 'Checklisten', icon: '📋' },
-  { id: 'offer', label: 'Angebot', icon: '📄' },
-  { id: 'qrcode', label: 'Zugang', icon: '📲' },
-  { id: 'crawler', label: 'Crawler', icon: '🕷️' },
+  { id: 'offer',      label: 'Angebot',     icon: '📄' },
+  { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
+  { id: 'crawler',    label: 'Crawler',     icon: '🕷️' },
 ];
 
 export default function LeadProfile() {
@@ -950,6 +954,12 @@ export default function LeadProfile() {
           <SecurityChecklist auditData={latestAudit} />
         </div>
       )}
+
+      {/* DATEIEN TAB */}
+      {activeTab === 'dateien' && <ProjectFilesSection leadId={lead.id} />}
+
+      {/* AKADEMY TAB */}
+      {activeTab === 'akademy' && <AcademyCustomerSection leadId={lead.id} />}
 
       {/* ANGEBOT TAB */}
       {activeTab === 'offer' && (

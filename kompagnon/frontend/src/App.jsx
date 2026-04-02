@@ -69,6 +69,10 @@ function PrivateRoute({ children, roles }) {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
+  // Kunde role: redirect to own card if they try to access restricted pages
+  if (user.role === 'kunde' && roles && !roles.includes('kunde')) {
+    return <Navigate to={user.lead_id ? `/app/leads/${user.lead_id}` : '/app/dashboard'} replace />;
+  }
   if (roles && !roles.includes(user.role)) return <Navigate to="/app/dashboard" replace />;
   return children;
 }

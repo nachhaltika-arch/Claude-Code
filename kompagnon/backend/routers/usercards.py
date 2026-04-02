@@ -25,7 +25,8 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import AuditResult, Project, UserCard, get_db
+from database import AuditResult, Project, UserCard, User, get_db
+from routers.auth_router import optional_auth
 
 router = APIRouter(prefix="/api/usercards", tags=["usercards"])
 
@@ -181,6 +182,13 @@ def _get_card_or_404(card_id: int, db: Session) -> UserCard:
     return card
 
 
+def _check_kunde_access(card_id: int, current_user: User | None) -> None:
+    """Raise 403 if the authenticated user is a Kunde accessing someone else's card."""
+    if current_user and current_user.role == "kunde":
+        if current_user.lead_id != card_id:
+            raise HTTPException(status_code=403, detail="Zugriff verweigert")
+
+
 # ── CRUD ──────────────────────────────────────────────────────────────────────
 
 @router.get("/")
@@ -190,9 +198,15 @@ def list_usercards(
     skip: int = Query(0),
     limit: int = Query(200),
     db: Session = Depends(get_db),
+    current_user: User = Depends(optional_auth),
 ):
     """List all user cards, optionally filtered by status or legacy_type."""
     query = db.query(UserCard)
+    # Kunde role: only own card
+    if current_user and current_user.role == "kunde":
+        if not current_user.lead_id:
+            return []
+        query = query.filter(UserCard.id == current_user.lead_id)
     if status:
         query = query.filter(UserCard.status == status)
     if legacy_type:
@@ -238,8 +252,9 @@ def create_usercard(data: UserCardCreate, background_tasks: BackgroundTasks, db:
 
 
 @router.get("/{card_id}/profile")
-def get_usercard_profile(card_id: int, db: Session = Depends(get_db)):
+def get_usercard_profile(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(optional_auth)):
     """Full card profile with audits, projects, and score history."""
+    _check_kunde_access(card_id, current_user)
     card = _get_card_or_404(card_id, db)
 
     audits = (
@@ -304,8 +319,9 @@ def get_usercard_profile(card_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{card_id}/audits")
-def get_usercard_audits(card_id: int, db: Session = Depends(get_db)):
+def get_usercard_audits(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(optional_auth)):
     """Get all completed audits for a card, newest first."""
+    _check_kunde_access(card_id, current_user)
     _get_card_or_404(card_id, db)
     audits = (
         db.query(AuditResult)
@@ -317,8 +333,9 @@ def get_usercard_audits(card_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{card_id}/pagespeed")
-def get_usercard_pagespeed(card_id: int, db: Session = Depends(get_db)):
+def get_usercard_pagespeed(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(optional_auth)):
     """Return stored PageSpeed values without a new API call."""
+    _check_kunde_access(card_id, current_user)
     card = _get_card_or_404(card_id, db)
     return _pagespeed_payload(card)
 
@@ -367,8 +384,9 @@ async def run_usercard_pagespeed(card_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{card_id}")
-def get_usercard(card_id: int, db: Session = Depends(get_db)):
+def get_usercard(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(optional_auth)):
     """Get a single user card by ID."""
+    _check_kunde_access(card_id, current_user)
     card = _get_card_or_404(card_id, db)
     d = _card_to_dict(card)
     # Include screenshot on single-record fetch

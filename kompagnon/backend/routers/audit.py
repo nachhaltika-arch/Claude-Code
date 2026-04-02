@@ -18,7 +18,8 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from database import AuditResult, Lead, get_db
+from database import AuditResult, Lead, User, get_db
+from routers.auth_router import optional_auth
 
 try:
     from anthropic import Anthropic
@@ -591,11 +592,17 @@ def get_recent_audits(
     limit: int = 10,
     skip: int = 0,
     db: Session = Depends(get_db),
+    current_user: User = Depends(optional_auth),
 ):
     """Return the most recent completed audits, newest first."""
+    query = db.query(AuditResult).filter(AuditResult.status == "completed")
+    # Kunde role: only own audits
+    if current_user and current_user.role == "kunde":
+        if not current_user.lead_id:
+            return []
+        query = query.filter(AuditResult.lead_id == current_user.lead_id)
     audits = (
-        db.query(AuditResult)
-        .filter(AuditResult.status == "completed")
+        query
         .order_by(AuditResult.created_at.desc())
         .offset(skip)
         .limit(limit)

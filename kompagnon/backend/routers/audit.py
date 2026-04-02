@@ -268,11 +268,35 @@ Antworte als JSON mit allen Einzelkriterienpunkten:
     if not ANTHROPIC_API_KEY:
         return _mock_ai_score(check_data)
 
+    def extract_json(text: str):
+        """Robustly extract a JSON object from an LLM response."""
+        import re as _re
+        # 1. Direct parse
+        try:
+            return json.loads(text)
+        except Exception:
+            pass
+        # 2. Find first {...} block
+        match = _re.search(r'\{.*\}', text, _re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group())
+            except Exception:
+                pass
+        # 3. Repair: append missing closing brace
+        try:
+            repaired = text.strip()
+            if not repaired.endswith('}'):
+                repaired += '}'
+            return json.loads(repaired)
+        except Exception:
+            return None
+
     try:
         client = Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=0, timeout=25.0)
         message = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=800,
+            max_tokens=2000,
             system=scoring_prompt,
             messages=[{"role": "user", "content": user_message}],
         )
@@ -281,16 +305,11 @@ Antworte als JSON mit allen Einzelkriterienpunkten:
         if not raw:
             logger.warning('AI scoring: Leere Antwort')
             return _mock_ai_score(check_data)
-        import re as _re
-        match = _re.search(r'\{.*\}', raw, _re.DOTALL)
-        if match:
-            return json.loads(match.group())
-        else:
-            logger.warning(f'AI scoring: Kein JSON in Antwort: {raw[:100]}')
+        result = extract_json(raw)
+        if result is None:
+            logger.warning(f'AI scoring: JSON nicht parsebar, verwende Fallback. Rohantwort: {raw[:300]}')
             return _mock_ai_score(check_data)
-    except json.JSONDecodeError as e:
-        logger.warning(f'AI scoring JSON Fehler: {e}')
-        return _mock_ai_score(check_data)
+        return result
     except Exception as e:
         logger.error(f"AI scoring failed: {e}")
         return _mock_ai_score(check_data)

@@ -599,6 +599,21 @@ class CrawlResult(Base):
     crawled_at = Column(DateTime, default=datetime.utcnow)
 
 
+class Course(Base):
+    """Internal / customer / product training courses."""
+    __tablename__ = "courses"
+    id                = Column(Integer, primary_key=True, index=True)
+    title             = Column(String(255), nullable=False)
+    description       = Column(Text, default="")
+    category          = Column(String(50), default="intern")   # intern | kunde | produkt
+    thumbnail_color   = Column(String(20), default="#008eaa")
+    chapter_count     = Column(Integer, default=0)
+    participant_count = Column(Integer, default=0)
+    duration_minutes  = Column(Integer, default=0)
+    created_at        = Column(DateTime, default=datetime.utcnow)
+    created_by        = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+
 def init_db():
     """Create all tables."""
     Base.metadata.create_all(bind=engine)

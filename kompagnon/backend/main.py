@@ -262,6 +262,20 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_inp_mobile FLOAT",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_fcp_mobile FLOAT",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_checked_at TIMESTAMP",
+        # Courses table + optional columns
+        """CREATE TABLE IF NOT EXISTS courses (
+            id                SERIAL PRIMARY KEY,
+            title             VARCHAR(255) NOT NULL,
+            description       TEXT DEFAULT '',
+            category          VARCHAR(50) DEFAULT 'intern',
+            thumbnail_color   VARCHAR(20) DEFAULT '#008eaa',
+            chapter_count     INTEGER DEFAULT 0,
+            participant_count INTEGER DEFAULT 0,
+            duration_minutes  INTEGER DEFAULT 0,
+            created_at        TIMESTAMP DEFAULT NOW(),
+            created_by        INTEGER REFERENCES users(id) ON DELETE SET NULL
+        )""",
+        "ALTER TABLE courses ADD COLUMN IF NOT EXISTS thumbnail_color VARCHAR(20) DEFAULT '#008eaa'",
         # PageSpeed columns on customers
         "ALTER TABLE customers ADD COLUMN IF NOT EXISTS pagespeed_mobile_score INTEGER",
         "ALTER TABLE customers ADD COLUMN IF NOT EXISTS pagespeed_desktop_score INTEGER",
@@ -443,6 +457,16 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"⚠ Academy seed: {e}")
 
+        # Seed courses if empty
+        try:
+            from routers.courses import seed_courses
+            from database import SessionLocal
+            _seed_db = SessionLocal()
+            seed_courses(_seed_db)
+            _seed_db.close()
+        except Exception as e:
+            logger.warning(f"⚠ Courses seed: {e}")
+
         # Start scheduler (non-critical — don't block app start)
         try:
             start_scheduler()
@@ -509,6 +533,9 @@ app.include_router(tickets_router)
 
 from routers.briefing import router as briefing_router
 app.include_router(briefing_router)
+
+from routers.courses import router as courses_router
+app.include_router(courses_router)
 
 from app.routers.academy import router as academy_router
 app.include_router(academy_router)

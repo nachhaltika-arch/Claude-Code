@@ -150,6 +150,9 @@ export default function AuditReport({ auditData, onClose }) {
     items[hi.key] = itemsRaw[hi.key] ?? r[hi.key] ?? 0;
   }
 
+  // Debug: log the raw API response to verify field names
+  console.log('[AuditReport] auditData:', r);
+
   const checks = r.checks || {
     ssl_ok: r.ssl_ok,
     impressum_ok: r.impressum_ok,
@@ -169,10 +172,28 @@ export default function AuditReport({ auditData, onClose }) {
     if (typeof recommendations === 'string') recommendations = JSON.parse(recommendations);
   } catch (e) { /* ignore */ }
 
+  // Mapping from CATEGORIES key → flat score field returned by GET /api/audit/{id}
+  const CAT_SCORE_FIELD = {
+    'rechtliche_compliance':  'rc_score',
+    'technische_performance': 'tp_score',
+    'barrierefreiheit':       'bf_score',
+    'sicherheit_datenschutz': 'si_score',
+    'seo_sichtbarkeit':       'se_score',
+    'inhalt_nutzererfahrung': 'ux_score',
+  };
+
+  // Build category score: prefer r.categories, then flat score fields, then sum items
+  const getCatScore = (catKey, catMax) => {
+    if (r.categories?.[catKey]?.score != null) return r.categories[catKey].score;
+    const field = CAT_SCORE_FIELD[catKey];
+    if (field && r[field] != null) return r[field];
+    const cat = CATEGORIES.find(c => c.key === catKey);
+    if (!cat) return 0;
+    return Math.min(cat.items.reduce((sum, item) => sum + (items[item.key] || 0), 0), catMax);
+  };
+
   const radarData = CATEGORIES.map((cat) => {
-    const catScore = r.categories?.[cat.key]?.score != null
-      ? r.categories[cat.key].score
-      : cat.items.reduce((sum, item) => sum + (items[item.key] || 0), 0);
+    const catScore = getCatScore(cat.key, cat.max);
     return {
       subject: cat.shortLabel,
       score: cat.max > 0 ? Math.round((Math.min(catScore, cat.max) / cat.max) * 100) : 0,
@@ -181,14 +202,6 @@ export default function AuditReport({ auditData, onClose }) {
   });
 
   const hasHostingData = HOSTING_ITEMS.some((hi) => items[hi.key] !== undefined && items[hi.key] !== 0);
-
-  // Build category scores from items if categories not provided
-  const getCatScore = (catKey, catMax) => {
-    if (r.categories?.[catKey]) return r.categories[catKey].score;
-    const cat = CATEGORIES.find(c => c.key === catKey);
-    if (!cat) return 0;
-    return Math.min(cat.items.reduce((sum, item) => sum + (items[item.key] || 0), 0), catMax);
-  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative' }}>

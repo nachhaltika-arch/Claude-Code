@@ -734,7 +734,7 @@ function PageSpeedSection({ customerId, headers }) {
   const [error, setError]     = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/customers/${customerId}/pagespeed`, { headers })
+    fetch(`${API_BASE_URL}/api/leads/${customerId}/pagespeed`, { headers })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data && data.checked_at) setPs(data); })
       .catch(() => {})
@@ -746,7 +746,7 @@ function PageSpeedSection({ customerId, headers }) {
     setError(null);
     setNoUrl(false);
     try {
-      const res  = await fetch(`${API_BASE_URL}/api/customers/${customerId}/pagespeed`, { method: 'POST', headers });
+      const res  = await fetch(`${API_BASE_URL}/api/leads/${customerId}/pagespeed`, { method: 'POST', headers });
       const data = await res.json();
       if (!res.ok) {
         if (data?.detail?.includes('Website-URL')) setNoUrl(true);

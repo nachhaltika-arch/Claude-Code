@@ -44,7 +44,7 @@ export default function PageSpeedSection({ leadId }) {
   const [error, setError]         = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/customers/${leadId}/pagespeed`, { headers })
+    fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data && data.checked_at) setPs(data); })
       .catch(() => {})
@@ -54,7 +54,7 @@ export default function PageSpeedSection({ leadId }) {
   const measure = async () => {
     setMeasuring(true); setError(null); setNoUrl(false);
     try {
-      const res  = await fetch(`${API_BASE_URL}/api/customers/${leadId}/pagespeed`, { method: 'POST', headers });
+      const res  = await fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { method: 'POST', headers });
       const data = await res.json();
       if (!res.ok) {
         if (data?.detail?.includes('Website-URL')) setNoUrl(true);

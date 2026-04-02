@@ -41,6 +41,7 @@ import AcademyEdit from './pages/AcademyEdit';
 import AcademyModuleEdit from './pages/AcademyModuleEdit';
 import AcademyCertificate from './pages/AcademyCertificate';
 import SalesPipeline from './pages/SalesPipeline';
+import CustomerDashboard from './pages/CustomerDashboard';
 import DomainImport from './pages/DomainImport';
 import CustomerPortal from './pages/CustomerPortal';
 import CustomerDetail from './pages/CustomerDetail';
@@ -77,6 +78,14 @@ function PrivateRoute({ children, roles }) {
   return children;
 }
 
+// ── Dashboard: render CustomerDashboard for Kunde, regular Dashboard otherwise ──
+
+function DashboardRoute() {
+  const { user } = useAuth();
+  if (user?.role === 'kunde') return <CustomerDashboard />;
+  return <Dashboard />;
+}
+
 // ── Main App ──
 
 function App() {
@@ -103,7 +112,7 @@ function App() {
           {/* App — authenticated, with Navbar/Sidebar */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
             <Route index element={<Navigate to="/app/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="dashboard" element={<DashboardRoute />} />
             <Route path="sales" element={<PrivateRoute roles={['admin', 'auditor']}><SalesPipeline /></PrivateRoute>} />
             <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
             <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />

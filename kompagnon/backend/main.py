@@ -36,6 +36,7 @@ from seed_checklists import seed_checklists
 # Import all routers
 from routers import (
     leads_router,
+    customers_alias_router,
     projects_router,
     agents_router,
     customers_router,
@@ -407,6 +408,7 @@ app.add_middleware(
 
 # Include all routers
 app.include_router(leads_router)
+app.include_router(customers_alias_router)
 app.include_router(projects_router)
 app.include_router(agents_router)
 app.include_router(customers_router)

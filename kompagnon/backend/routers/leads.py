@@ -1332,3 +1332,24 @@ def refresh_qr_code(lead_id: int, db: Session = Depends(get_db)):
         'qr_code_base64': qr_b64,
         'created_at': str(lead.customer_token_created_at)[:10],
     }
+
+
+# ── /api/customers aliases for all /{lead_id}/... endpoints ─────────────────
+# Registers identical handlers under /api/customers/{lead_id}/... so that
+# frontend calls to either prefix work transparently.
+
+customers_alias_router = APIRouter(prefix="/api/customers", tags=["customers"])
+
+customers_alias_router.add_api_route("/{lead_id}",                  get_lead,             methods=["GET"],    response_model=LeadResponse)
+customers_alias_router.add_api_route("/{lead_id}",                  update_lead,          methods=["PATCH"])
+customers_alias_router.add_api_route("/{lead_id}",                  delete_lead,          methods=["DELETE"])
+customers_alias_router.add_api_route("/{lead_id}/analyze",          analyze_lead,         methods=["POST"])
+customers_alias_router.add_api_route("/{lead_id}/convert",          convert_lead,         methods=["POST"])
+customers_alias_router.add_api_route("/{lead_id}/enrich",           enrich_single_lead,   methods=["POST"])
+customers_alias_router.add_api_route("/{lead_id}/latest-screenshot",get_latest_screenshot,methods=["GET"])
+customers_alias_router.add_api_route("/{lead_id}/screenshot",       create_screenshot,    methods=["POST"])
+customers_alias_router.add_api_route("/{lead_id}/profile",          get_lead_profile,     methods=["GET"])
+customers_alias_router.add_api_route("/{lead_id}/audits",           get_lead_audits,      methods=["GET"])
+customers_alias_router.add_api_route("/{lead_id}/extract-impressum",extract_impressum,    methods=["POST"])
+customers_alias_router.add_api_route("/{lead_id}/qr-code",          get_qr_code,          methods=["GET"])
+customers_alias_router.add_api_route("/{lead_id}/qr-code/refresh",  refresh_qr_code,      methods=["POST"])

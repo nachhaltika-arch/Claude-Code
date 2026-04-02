@@ -160,6 +160,14 @@ migrations = [
         completed_at TIMESTAMP,
         total_urls INT DEFAULT 0
     )""",
+    # PageSpeed columns on leads table
+    "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_mobile_score INTEGER",
+    "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_desktop_score INTEGER",
+    "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_lcp_mobile FLOAT",
+    "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_cls_mobile FLOAT",
+    "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_inp_mobile FLOAT",
+    "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_fcp_mobile FLOAT",
+    "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_checked_at TIMESTAMP",
     # Crawler: Ergebnisse
     """CREATE TABLE IF NOT EXISTS crawl_results (
         id SERIAL PRIMARY KEY,

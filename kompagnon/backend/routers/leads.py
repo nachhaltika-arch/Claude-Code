@@ -13,7 +13,9 @@ from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
+import asyncio
 import csv
+import httpx
 import io
 import json
 import os
@@ -1334,6 +1336,76 @@ def refresh_qr_code(lead_id: int, db: Session = Depends(get_db)):
     }
 
 
+def _pagespeed_payload_lead(lead: Lead) -> dict:
+    """Return stored PageSpeed values for a lead as a dict."""
+    return {
+        "mobile_score":  lead.pagespeed_mobile_score,
+        "desktop_score": lead.pagespeed_desktop_score,
+        "lcp_mobile":    lead.pagespeed_lcp_mobile,
+        "cls_mobile":    lead.pagespeed_cls_mobile,
+        "inp_mobile":    lead.pagespeed_inp_mobile,
+        "fcp_mobile":    lead.pagespeed_fcp_mobile,
+        "checked_at":    lead.pagespeed_checked_at.isoformat() if lead.pagespeed_checked_at else None,
+    }
+
+
+@router.get("/{lead_id}/pagespeed")
+def get_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
+    """Return the last stored PageSpeed values for this lead without a new API call."""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+    return _pagespeed_payload_lead(lead)
+
+
+@router.post("/{lead_id}/pagespeed")
+async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
+    """Call Google PageSpeed Insights (mobile + desktop), persist results on the lead."""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+
+    website_url = lead.website_url
+    if not website_url:
+        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
+
+    api_key = os.getenv("PAGESPEED_API_KEY") or os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+    base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
+    params_base = {"url": website_url}
+    if api_key:
+        params_base["key"] = api_key
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        mobile_resp, desktop_resp = await asyncio.gather(
+            client.get(base, params={**params_base, "strategy": "mobile"}),
+            client.get(base, params={**params_base, "strategy": "desktop"}),
+        )
+
+    def _score(resp) -> int | None:
+        try:
+            return round((resp.json()["categories"]["performance"]["score"] or 0) * 100)
+        except Exception:
+            return None
+
+    def _audit(resp, key) -> float | None:
+        try:
+            return resp.json()["lighthouseResult"]["audits"][key]["numericValue"]
+        except Exception:
+            return None
+
+    lead.pagespeed_mobile_score  = _score(mobile_resp)
+    lead.pagespeed_desktop_score = _score(desktop_resp)
+    lead.pagespeed_lcp_mobile    = _audit(mobile_resp, "largest-contentful-paint")
+    lead.pagespeed_cls_mobile    = _audit(mobile_resp, "cumulative-layout-shift")
+    lead.pagespeed_inp_mobile    = _audit(mobile_resp, "interaction-to-next-paint")
+    lead.pagespeed_fcp_mobile    = _audit(mobile_resp, "first-contentful-paint")
+    lead.pagespeed_checked_at    = datetime.utcnow()
+
+    db.commit()
+    db.refresh(lead)
+    return _pagespeed_payload_lead(lead)
+
+
 # ── /api/customers aliases for all /{lead_id}/... endpoints ─────────────────
 # Registers identical handlers under /api/customers/{lead_id}/... so that
 # frontend calls to either prefix work transparently.
@@ -1353,3 +1425,5 @@ customers_alias_router.add_api_route("/{lead_id}/audits",           get_lead_aud
 customers_alias_router.add_api_route("/{lead_id}/extract-impressum",extract_impressum,    methods=["POST"])
 customers_alias_router.add_api_route("/{lead_id}/qr-code",          get_qr_code,          methods=["GET"])
 customers_alias_router.add_api_route("/{lead_id}/qr-code/refresh",  refresh_qr_code,      methods=["POST"])
+customers_alias_router.add_api_route("/{lead_id}/pagespeed",        get_lead_pagespeed,   methods=["GET"])
+customers_alias_router.add_api_route("/{lead_id}/pagespeed",        run_lead_pagespeed,   methods=["POST"])

@@ -72,6 +72,15 @@ class Lead(Base):
     customer_token = Column(String, unique=True, nullable=True)
     customer_token_created_at = Column(DateTime, nullable=True)
 
+    # PageSpeed Insights (stored per-lead)
+    pagespeed_mobile_score  = Column(Integer, nullable=True)
+    pagespeed_desktop_score = Column(Integer, nullable=True)
+    pagespeed_lcp_mobile    = Column(Float,   nullable=True)
+    pagespeed_cls_mobile    = Column(Float,   nullable=True)
+    pagespeed_inp_mobile    = Column(Float,   nullable=True)
+    pagespeed_fcp_mobile    = Column(Float,   nullable=True)
+    pagespeed_checked_at    = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

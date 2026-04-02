@@ -875,6 +875,7 @@ export default function CustomerDetail() {
 
   const [customer, setCustomer]           = useState(null);
   const [loadingCustomer, setLoadingCustomer] = useState(true);
+  const [activeTab, setActiveTab]          = useState('dateien');
 
   // Academy state
   const [assigned, setAssigned]     = useState([]);
@@ -962,17 +963,36 @@ export default function CustomerDetail() {
         </div>
       </div>
 
-      {/* ── Projektdateien Section ── */}
-      <ProjectFilesSection customerId={customerId} token={token} />
+      {/* ── Tab navigation ── */}
+      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border-light)', paddingBottom: 0, overflowX: 'auto' }}>
+        {[
+          { id: 'dateien',   label: 'Dateien',   icon: '📎' },
+          { id: 'audits',    label: 'Audits',    icon: '📋' },
+          { id: 'pagespeed', label: 'PageSpeed', icon: '⚡' },
+          { id: 'akademy',   label: 'Akademy',   icon: '🎓' },
+        ].map(({ id, label, icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            style={{
+              padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer',
+              fontSize: 13, fontWeight: activeTab === id ? 600 : 400, fontFamily: 'var(--font-sans)',
+              color: activeTab === id ? 'var(--brand-primary)' : 'var(--text-secondary)',
+              borderBottom: activeTab === id ? '2px solid var(--brand-primary)' : '2px solid transparent',
+              marginBottom: -1, whiteSpace: 'nowrap', transition: 'color var(--transition-fast)',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            <span>{icon}</span>{label}
+          </button>
+        ))}
+      </div>
 
-      {/* ── Audit History Section ── */}
-      <AuditHistorySection customerId={customerId} customer={customer} headers={h} />
-
-      {/* ── PageSpeed Section ── */}
-      <PageSpeedSection customerId={customerId} headers={h} />
-
-      {/* ── SCHRITT 6 — Akademy Section ── */}
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+      {/* ── Tab content ── */}
+      {activeTab === 'dateien'   && <ProjectFilesSection customerId={customerId} token={token} />}
+      {activeTab === 'audits'    && <AuditHistorySection customerId={customerId} customer={customer} headers={h} />}
+      {activeTab === 'pagespeed' && <PageSpeedSection customerId={customerId} headers={h} />}
+      {activeTab === 'akademy'   && <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
 
         {/* Section header — stacked on mobile */}
         <div style={{
@@ -1113,7 +1133,7 @@ export default function CustomerDetail() {
             </div>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* ── SCHRITT 6 — Assign Modal ── */}
       {showModal && (

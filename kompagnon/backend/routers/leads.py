@@ -1412,6 +1412,8 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
 
 customers_alias_router = APIRouter(prefix="/api/customers", tags=["customers"])
 
+customers_alias_router.add_api_route("/",                            list_leads,           methods=["GET"])
+customers_alias_router.add_api_route("/",                            create_lead,          methods=["POST"],   response_model=LeadResponse)
 customers_alias_router.add_api_route("/{lead_id}",                  get_lead,             methods=["GET"],    response_model=LeadResponse)
 customers_alias_router.add_api_route("/{lead_id}",                  update_lead,          methods=["PATCH"])
 customers_alias_router.add_api_route("/{lead_id}",                  delete_lead,          methods=["DELETE"])

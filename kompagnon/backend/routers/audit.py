@@ -589,10 +589,10 @@ def _run_audit_background(audit_id: int):
 
 @router.get("/recent")
 def get_recent_audits(
-    limit: int = 10,
-    skip: int = 0,
+    limit: Optional[int] = 10,
+    skip: Optional[int] = 0,
     db: Session = Depends(get_db),
-    current_user: User = Depends(optional_auth),
+    current_user: Optional[User] = Depends(optional_auth),
 ):
     """Return the most recent completed audits, newest first."""
     query = db.query(AuditResult).filter(AuditResult.status == "completed")

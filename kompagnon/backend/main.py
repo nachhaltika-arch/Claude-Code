@@ -256,6 +256,19 @@ def _run_migrations():
         "ALTER TABLE customers ADD COLUMN IF NOT EXISTS pagespeed_inp_mobile FLOAT",
         "ALTER TABLE customers ADD COLUMN IF NOT EXISTS pagespeed_fcp_mobile FLOAT",
         "ALTER TABLE customers ADD COLUMN IF NOT EXISTS pagespeed_checked_at TIMESTAMP",
+        # Project files
+        """CREATE TABLE IF NOT EXISTS project_files (
+            id SERIAL PRIMARY KEY,
+            lead_id INTEGER,
+            uploaded_by_role TEXT DEFAULT 'admin',
+            filename TEXT NOT NULL,
+            original_filename TEXT DEFAULT '',
+            file_type TEXT DEFAULT 'sonstiges',
+            file_size INTEGER DEFAULT 0,
+            file_path TEXT NOT NULL,
+            uploaded_at TIMESTAMP DEFAULT NOW(),
+            note TEXT DEFAULT ''
+        )""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -322,6 +335,9 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 KOMPAGNON Backend Starting...")
     try:
         # Playwright installed at build time via render-build.sh
+
+        os.makedirs("uploads", exist_ok=True)
+        logger.info("✓ uploads/ Ordner bereit")
 
         _run_migrations()
         init_db()
@@ -411,6 +427,9 @@ app.include_router(academy_router)
 
 from routers.crawler import router as crawler_router
 app.include_router(crawler_router)
+
+from app.routers.files import router as files_router
+app.include_router(files_router)
 
 
 # Global exception handler — catches unhandled errors

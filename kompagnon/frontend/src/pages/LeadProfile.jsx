@@ -383,7 +383,7 @@ export default function LeadProfile() {
     : null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease', maxWidth: 1200, margin: '0 auto', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
 
       {/* HEADER */}
       <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: isMobile ? '20px 16px' : '24px', color: 'white', position: 'relative', overflow: 'hidden' }}>
@@ -494,7 +494,7 @@ export default function LeadProfile() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
             {/* Screenshot */}
-            <Card padding="sm">
+            <Card padding="sm" style={{ overflow: 'hidden' }}>
               <div style={{ background: 'var(--bg-app)', padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 5, borderBottom: '1px solid var(--border-light)', margin: '-12px -12px 0' }}>
                 {['#ef4444','#f59e0b','#22c55e'].map(c => (
                   <div key={c} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />

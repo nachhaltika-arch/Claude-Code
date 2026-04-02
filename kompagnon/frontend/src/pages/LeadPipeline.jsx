@@ -120,7 +120,7 @@ export default function LeadPipeline() {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', overflowX: 'auto', paddingBottom: 8 }}>
           {COLUMNS.map((col) => {
             const colLeads = getColumnLeads(col.id);
             const over = dragOver === col.id;

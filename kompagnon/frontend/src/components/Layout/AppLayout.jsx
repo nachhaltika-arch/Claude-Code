@@ -443,6 +443,7 @@ export default function AppLayout() {
       {/* Main area */}
       <div style={{
         flex: 1,
+        minWidth: 0,
         marginLeft: !isMobile && user ? 'var(--sidebar-width)' : 0,
         display: 'flex', flexDirection: 'column',
         height: '100vh', overflow: 'hidden',
@@ -537,10 +538,11 @@ export default function AppLayout() {
         {/* Content */}
         <main style={{
           flex: 1, overflowY: 'auto', overflowX: 'hidden',
+          minWidth: 0,
           padding: isMobile ? 16 : '20px 28px',
           paddingBottom: isMobile ? 80 : 20,
         }}>
-          <div key={location.pathname} className="page-enter">
+          <div key={location.pathname} className="page-enter" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
             <Outlet />
           </div>
         </main>

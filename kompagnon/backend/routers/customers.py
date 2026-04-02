@@ -188,10 +188,14 @@ def _pagespeed_payload(customer: Customer) -> dict:
 async def run_pagespeed(customer_id: int, db: Session = Depends(get_db)):
     """Call Google PageSpeed Insights for mobile + desktop, persist results.
     customer_id accepts either Customer.id or Lead.id (lead_id lookup as fallback)."""
-    customer = (
-        db.query(Customer).filter(Customer.id == customer_id).first()
-        or db.query(Customer).filter(Customer.lead_id == customer_id).first()
-    )
+    customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not customer:
+        customer = (
+            db.query(Customer)
+            .join(Project, Project.id == Customer.project_id)
+            .filter(Project.lead_id == customer_id)
+            .first()
+        )
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
@@ -240,10 +244,14 @@ async def run_pagespeed(customer_id: int, db: Session = Depends(get_db)):
 def get_pagespeed(customer_id: int, db: Session = Depends(get_db)):
     """Return the last stored PageSpeed values without a new API call.
     customer_id accepts either Customer.id or Lead.id (lead_id lookup as fallback)."""
-    customer = (
-        db.query(Customer).filter(Customer.id == customer_id).first()
-        or db.query(Customer).filter(Customer.lead_id == customer_id).first()
-    )
+    customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not customer:
+        customer = (
+            db.query(Customer)
+            .join(Project, Project.id == Customer.project_id)
+            .filter(Project.lead_id == customer_id)
+            .first()
+        )
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     return _pagespeed_payload(customer)

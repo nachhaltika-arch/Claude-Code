@@ -25,6 +25,8 @@ export default function SalesPipeline() {
   const [search, setSearch] = useState('');
   const [filterTrade, setFilterTrade] = useState('');
 
+  const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+
   const fetchedRef = useRef(false);
 
   useEffect(() => {
@@ -34,7 +36,6 @@ export default function SalesPipeline() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadLeads = async () => {
-    const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     try {
       const res = await fetch(`${API_BASE_URL}/api/leads/`, { headers: h });
       const data = await res.json();

@@ -11,6 +11,7 @@ import BriefingTab from '../components/BriefingTab';
 import OfferTab from '../components/OfferTab';
 import ProjectFilesSection from '../components/ProjectFilesSection';
 import AcademyCustomerSection from '../components/AcademyCustomerSection';
+import PageSpeedSection from '../components/PageSpeedSection';
 import API_BASE_URL from '../config';
 
 function useScreenWidth() {
@@ -51,6 +52,7 @@ const TABS = [
   { id: 'contact',    label: 'Kontakt',     icon: '👤' },
   { id: 'audits',     label: 'Audits',      icon: '✓' },
   { id: 'dateien',    label: 'Dateien',     icon: '📎' },
+  { id: 'pagespeed',  label: 'PageSpeed',   icon: '⚡' },
   { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
   { id: 'checklists', label: 'Checklisten', icon: '📋' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
@@ -957,6 +959,9 @@ export default function LeadProfile() {
 
       {/* DATEIEN TAB */}
       {activeTab === 'dateien' && <ProjectFilesSection leadId={lead.id} />}
+
+      {/* PAGESPEED TAB */}
+      {activeTab === 'pagespeed' && <PageSpeedSection leadId={lead.id} />}
 
       {/* AKADEMY TAB */}
       {activeTab === 'akademy' && <AcademyCustomerSection leadId={lead.id} />}

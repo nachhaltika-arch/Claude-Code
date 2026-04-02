@@ -18,7 +18,7 @@ const SECURITY_CHECKS = [
     ],
   },
   {
-    area: 'Aktiver Schutz', icon: '🛡️', color: '#059669', bg: '#f0fdf4',
+    area: 'Aktiver Schutz', icon: '🛡️', color: '#059669', bg: 'var(--status-success-bg)',
     items: [
       { id: 'waf', label: 'Web Application Firewall (WAF)', desc: 'Filtert boesartige Anfragen wie SQL-Injection bevor sie die Website erreichen', tool: 'Cloudflare', cost: 'Kostenlos', critical: true, auditField: 'si_header', maxScore: 3 },
       { id: 'security_plugin', label: 'Sicherheits-Plugin & Malware-Scan', desc: 'Scannt taeglich auf Schadsoftware und blockiert bekannte Angreifer automatisch', tool: 'Wordfence', cost: 'Kostenlos', critical: false, auditField: 'si_header', maxScore: 3 },
@@ -26,7 +26,7 @@ const SECURITY_CHECKS = [
     ],
   },
   {
-    area: 'Backups', icon: '💾', color: '#d97706', bg: '#fffbeb',
+    area: 'Backups', icon: '💾', color: '#d97706', bg: 'var(--status-warning-bg)',
     items: [
       { id: 'auto_backup', label: 'Taegliches automatisches Backup', desc: 'Backup ausserhalb des Servers speichern (Google Drive, Dropbox). Letzte Verteidigungslinie.', tool: 'UpdraftPlus', cost: 'Kostenlos', critical: true, auditField: 'ho_backup', maxScore: 3 },
       { id: 'hosting_backup', label: 'Hosting mit Backup-Infrastruktur', desc: 'Nur Hoster waehlen die taegliche Server-Backups inkludieren', tool: 'Raidboxes / All-Inkl.', cost: 'Im Hosting enthalten', critical: true, auditField: 'ho_backup', maxScore: 3 },
@@ -68,7 +68,7 @@ export default function SecurityChecklist({ auditData }) {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {criticalMissing > 0 && <span style={{ background: 'var(--status-danger-bg)', color: '#dc2626', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>{criticalMissing} kritisch</span>}
-          {auditData && okItems > 0 && <span style={{ background: '#d1fae5', color: '#059669', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>{okItems} umgesetzt</span>}
+          {auditData && okItems > 0 && <span style={{ background: 'var(--status-success-bg)', color: '#059669', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>{okItems} umgesetzt</span>}
         </div>
       </div>
 

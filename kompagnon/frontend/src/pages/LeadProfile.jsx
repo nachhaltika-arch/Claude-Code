@@ -1176,21 +1176,21 @@ export default function LeadProfile() {
                       // ── Build hints ──────────────────────────────
                       const hints = [];
                       if (sc === 301 || sc === 302) {
-                        hints.push({ bg: '#fffbeb', border: '#fde68a', text: '⚠️ Weiterleitung erkannt. Prüfe ob die Ziel-URL direkt verlinkt werden kann, um Ladezeit zu sparen.' });
+                        hints.push({ bg: 'var(--status-warning-bg)', border: '#fde68a', text: '⚠️ Weiterleitung erkannt. Prüfe ob die Ziel-URL direkt verlinkt werden kann, um Ladezeit zu sparen.' });
                       } else if (sc === 404) {
-                        hints.push({ bg: '#fef2f2', border: '#fecaca', text: '🔴 Seite nicht gefunden. Dieser Link sollte entfernt oder korrigiert werden.' });
+                        hints.push({ bg: 'var(--status-danger-bg)', border: '#fecaca', text: '🔴 Seite nicht gefunden. Dieser Link sollte entfernt oder korrigiert werden.' });
                       } else if (sc === 500) {
-                        hints.push({ bg: '#fef2f2', border: '#fecaca', text: '🔴 Serverfehler. Diese Seite hat ein technisches Problem und muss geprüft werden.' });
+                        hints.push({ bg: 'var(--status-danger-bg)', border: '#fecaca', text: '🔴 Serverfehler. Diese Seite hat ein technisches Problem und muss geprüft werden.' });
                       } else if (!sc || sc === 0) {
-                        hints.push({ bg: '#fef2f2', border: '#fecaca', text: '🔴 Seite nicht erreichbar. Timeout nach 10 Sekunden.' });
+                        hints.push({ bg: 'var(--status-danger-bg)', border: '#fecaca', text: '🔴 Seite nicht erreichbar. Timeout nach 10 Sekunden.' });
                       }
                       if (lt != null && lt > 3.0) {
                         hints.push({ bg: '#fff7ed', border: '#fed7aa', text: '🟠 Ladezeit über 3 Sekunden. Bilder komprimieren oder Caching aktivieren.' });
                       } else if (lt != null && lt > 1.5) {
-                        hints.push({ bg: '#fffbeb', border: '#fde68a', text: '🟡 Ladezeit erhöht. Performance-Optimierung empfohlen.' });
+                        hints.push({ bg: 'var(--status-warning-bg)', border: '#fde68a', text: '🟡 Ladezeit erhöht. Performance-Optimierung empfohlen.' });
                       }
                       if (hints.length === 0 && sc >= 200 && sc < 300 && lt != null && lt <= 1.5) {
-                        hints.push({ bg: '#f0fdf4', border: '#bbf7d0', text: '✅ Alles in Ordnung.' });
+                        hints.push({ bg: 'var(--status-success-bg)', border: '#bbf7d0', text: '✅ Alles in Ordnung.' });
                       }
 
                       return (

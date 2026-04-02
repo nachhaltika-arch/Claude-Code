@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const CHECKLIST = [
   {
-    area: 'Compliance', icon: '⚖️', color: 'var(--status-danger-text)', bg: '#fee2e2',
+    area: 'Compliance', icon: '⚖️', color: 'var(--status-danger-text)', bg: 'var(--status-danger-bg)',
     items: [
       { id: 'impressum', label: 'Impressum', desc: 'Name, Adresse, Telefon, E-Mail — max. 2 Klicks erreichbar', law: 'TMG §5', critical: true, auditField: 'rc_impressum', maxScore: 6 },
       { id: 'datenschutz', label: 'Datenschutzerklaerung', desc: 'Erklaert welche Daten gesammelt werden und warum', law: 'DSGVO', critical: true, auditField: 'rc_datenschutz', maxScore: 6 },
@@ -21,7 +21,7 @@ const CHECKLIST = [
     ],
   },
   {
-    area: 'UI', icon: '🖥️', color: '#7c3aed', bg: '#f5f3ff',
+    area: 'UI', icon: '🖥️', color: '#7c3aed', bg: 'var(--status-neutral-bg)',
     items: [
       { id: 'logo', label: 'Logo + Firmenname im Header', desc: 'Nutzer muessen in 3 Sek. wissen wo sie sind', law: 'UX Standard', critical: true, auditField: 'ux_erstindruck', maxScore: 2 },
       { id: 'nav', label: 'Hauptnavigation', desc: 'Max. 5-7 Punkte, mobil als Hamburger-Menue', law: 'UX Standard', critical: true, auditField: 'ux_navigation', maxScore: 2 },
@@ -82,7 +82,7 @@ export default function HomepageChecklist({ auditData }) {
             </span>
           )}
           {auditData && (
-            <span style={{ background: okItems === totalItems ? '#d1fae5' : '#f1f5f9', color: okItems === totalItems ? '#059669' : '#475569', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>
+            <span style={{ background: okItems === totalItems ? 'var(--status-success-bg)' : 'var(--status-neutral-bg)', color: okItems === totalItems ? '#059669' : '#475569', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>
               {Math.round((okItems / totalItems) * 100)}% erfuellt
             </span>
           )}

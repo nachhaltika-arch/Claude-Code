@@ -69,8 +69,8 @@ export default function Tickets() {
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Suche..." style={{ flex: '1 1 200px', padding: '8px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
         {[{ v: '', l: 'Alle' }, { v: 'open', l: 'Offen' }, { v: 'in_progress', l: 'Bearbeitung' }, { v: 'resolved', l: 'Geloest' }, { v: 'closed', l: 'Geschlossen' }].map((s) => (
           <button key={s.v} onClick={() => setFStatus(s.v)} style={{
-            padding: '8px 14px', borderRadius: 'var(--radius-md)', border: `1.5px solid ${fStatus === s.v ? 'var(--brand-primary)' : '#e2e8f0'}`,
-            background: fStatus === s.v ? 'var(--bg-hover)' : '#fff', color: fStatus === s.v ? 'var(--brand-primary)' : '#64748b',
+            padding: '8px 14px', borderRadius: 'var(--radius-md)', border: `1.5px solid ${fStatus === s.v ? 'var(--brand-primary)' : 'var(--border-light)'}`,
+            background: fStatus === s.v ? 'var(--bg-hover)' : 'var(--bg-surface)', color: fStatus === s.v ? 'var(--brand-primary)' : '#64748b',
             fontSize: 12, fontWeight: fStatus === s.v ? 700 : 400, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 36,
           }}>{s.l}</button>
         ))}
@@ -92,7 +92,7 @@ export default function Tickets() {
             const sel = selected?.id === t.id;
             return (
               <div key={t.id} onClick={() => openT(t)} style={{
-                background: sel ? 'var(--bg-hover)' : '#fff', borderRadius: 10, border: `1.5px solid ${sel ? 'var(--brand-primary)' : '#e2e8f0'}`,
+                background: sel ? 'var(--bg-hover)' : 'var(--bg-surface)', borderRadius: 10, border: `1.5px solid ${sel ? 'var(--brand-primary)' : 'var(--border-light)'}`,
                 padding: '14px 16px', cursor: 'pointer', transition: 'all 0.15s',
               }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
@@ -110,7 +110,7 @@ export default function Tickets() {
                   </div>
                   <span style={{ fontSize: 11, fontWeight: 700, color: sc.color, background: sc.bg, padding: '4px 10px', borderRadius: 6, flexShrink: 0 }}>{sc.label}</span>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingTop: 6, borderTop: '1px solid #f1f5f9' }}>{t.description}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingTop: 6, borderTop: '1px solid var(--border-light)' }}>{t.description}</div>
               </div>
             );
           })}
@@ -145,8 +145,8 @@ export default function Tickets() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 16 }}>
                 {Object.entries(SC).map(([id, c]) => (
                   <button key={id} onClick={() => setNStatus(id)} style={{
-                    padding: '8px 10px', borderRadius: 'var(--radius-md)', border: `1.5px solid ${nStatus === id ? c.color : '#e2e8f0'}`,
-                    background: nStatus === id ? c.bg : '#fff', color: nStatus === id ? c.color : '#64748b',
+                    padding: '8px 10px', borderRadius: 'var(--radius-md)', border: `1.5px solid ${nStatus === id ? c.color : 'var(--border-light)'}`,
+                    background: nStatus === id ? c.bg : 'var(--bg-surface)', color: nStatus === id ? c.color : '#64748b',
                     fontSize: 12, fontWeight: nStatus === id ? 700 : 400, cursor: 'pointer', textAlign: 'left', minHeight: 36,
                   }}>{c.icon} {c.label}</button>
                 ))}

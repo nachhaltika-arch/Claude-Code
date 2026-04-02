@@ -90,7 +90,7 @@ export default function OfferTab({ lead, currentScore, currentLevel, isMobile })
                 <div style={{ position: 'absolute', top: 8, right: -20, background: p.accentColor, color: 'white', fontSize: 9, fontWeight: 700, padding: '3px 28px', transform: 'rotate(35deg)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Top</div>
               )}
               <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${isSelected ? p.accentColor : 'var(--border-medium)'}`, background: isSelected ? p.accentColor : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, transition: 'all 0.15s' }}>
-                {isSelected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'white' }} />}
+                {isSelected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--bg-surface)' }} />}
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{p.name}</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: isSelected ? p.accentColor : 'var(--text-primary)', marginBottom: 4, transition: 'color 0.15s' }}>{p.priceLabel} €</div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
 // ── Shared styles ──────────────────────────────────────────────
@@ -317,6 +318,7 @@ export default function AcademyAdminLesson() {
   const [search]      = useSearchParams();
   const navigate      = useNavigate();
   const { token, user } = useAuth();
+  const { isMobile, isTablet } = useScreenSize();
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
   const isNew     = !lessonId || lessonId === 'new';
@@ -463,7 +465,7 @@ export default function AcademyAdminLesson() {
   const isQuiz = form.type === 'quiz';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%' }}>
 
       {/* ── Topbar ───────────────────────────────────────────── */}
       <div style={{
@@ -517,7 +519,7 @@ export default function AcademyAdminLesson() {
       </div>
 
       {/* ── 2-column layout ──────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isQuiz ? '380px 1fr' : '1fr 340px', gap: 20, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? '1fr' : isQuiz ? '380px 1fr' : '1fr 340px', gap: 20, alignItems: 'start' }}>
 
         {/* ── LEFT ─────────────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

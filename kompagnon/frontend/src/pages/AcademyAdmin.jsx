@@ -87,7 +87,7 @@ export default function AcademyAdmin() {
   const deletingCourse = courses.find(c => c.id === deleteId);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 860, margin: '0 auto', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%' }}>
 
       {/* ── Topbar ─────────────────────────────────────────────── */}
       <div style={{

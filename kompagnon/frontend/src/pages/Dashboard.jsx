@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
@@ -9,6 +10,7 @@ import API_BASE_URL from '../config';
 export default function Dashboard() {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const { isMobile } = useScreenSize();
   const [kpis, setKpis] = useState(null);
   const [leads, setLeads] = useState([]);
   const [audits, setAudits] = useState([]);
@@ -117,7 +119,7 @@ export default function Dashboard() {
       {/* Zwei-Spalten */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1fr)',
+        gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.6fr) minmax(0, 1fr)',
         gap: 16,
       }}>
 

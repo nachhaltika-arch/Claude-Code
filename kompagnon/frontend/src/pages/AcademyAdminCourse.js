@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
 // ── Shared styles ──────────────────────────────────────────────
@@ -415,6 +416,7 @@ export default function AcademyAdminCourse() {
   const isNew = !courseId || courseId === 'new';
   const navigate = useNavigate();
   const { token, user } = useAuth();
+  const { isMobile, isTablet } = useScreenSize();
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
   const [loading, setLoading] = useState(!isNew);
@@ -552,7 +554,7 @@ export default function AcademyAdminCourse() {
   const lessonCount = modules.reduce((sum, m) => sum + (m.lessons?.length || 0), 0);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%' }}>
 
       {/* ── Topbar / Breadcrumb ───────────────────────────────── */}
       <div style={{
@@ -607,7 +609,7 @@ export default function AcademyAdminCourse() {
       </div>
 
       {/* ── 2-column layout ───────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? '1fr' : '1fr 340px', gap: 20, alignItems: 'start' }}>
 
         {/* ── LEFT COLUMN ─────────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

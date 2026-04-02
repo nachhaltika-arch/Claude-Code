@@ -209,22 +209,25 @@ export default function AcademyCourse() {
         {/* ════════════════════════════════════════════════════
             SIDEBAR
         ════════════════════════════════════════════════════ */}
-        <aside style={{
-          width: 260, flexShrink: 0,
-          background: T.surface,
-          borderRight: `1px solid ${T.border}`,
-          display: 'flex', flexDirection: 'column',
-          position: 'sticky', top: 0,
-          maxHeight: 'calc(100vh - 76px)',
-          overflowY: 'auto',
-          // Mobile: slide-in panel
-          ...(sidebarOpen ? {
-            position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
-            width: 300, borderRight: `1px solid ${T.border}`,
-            boxShadow: '4px 0 24px rgba(0,0,0,0.12)',
+        <aside
+          className={`ac-sidebar${sidebarOpen ? ' open' : ''}`}
+          style={{
+            width: 260, flexShrink: 0,
+            background: T.surface,
+            borderRight: `1px solid ${T.border}`,
+            display: 'flex', flexDirection: 'column',
+            position: 'sticky', top: 0,
+            maxHeight: 'calc(100vh - 76px)',
             overflowY: 'auto',
-          } : {}),
-        }}>
+            // Mobile: slide-in panel
+            ...(sidebarOpen ? {
+              position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
+              width: 300, borderRight: `1px solid ${T.border}`,
+              boxShadow: '4px 0 24px rgba(0,0,0,0.12)',
+              overflowY: 'auto',
+            } : {}),
+          }}
+        >
 
           {/* Back link + course title + overall progress */}
           <div style={{ padding: '16px 16px 14px', borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
@@ -353,7 +356,7 @@ export default function AcademyCourse() {
         {/* ════════════════════════════════════════════════════
             MAIN CONTENT
         ════════════════════════════════════════════════════ */}
-        <div style={{
+        <div className="ac-content" style={{
           flex: 1, minWidth: 0,
           background: T.appBg,
           padding: '32px 32px 48px',
@@ -720,6 +723,8 @@ export default function AcademyCourse() {
       <style>{`
         @media (max-width: 768px) {
           .ac-mobile-toggle { display: flex !important; }
+          .ac-sidebar:not(.open) { display: none !important; }
+          .ac-content { width: 100% !important; }
         }
       `}</style>
     </>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
 // ── PageSpeed helpers ──────────────────────────────────────────
@@ -159,7 +160,7 @@ function PageSpeedSection({ customerId, headers }) {
         ) : (
           <>
             {/* Score cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
               {[
                 { label: 'Mobil',   score: ps.mobile_score },
                 { label: 'Desktop', score: ps.desktop_score },
@@ -183,7 +184,7 @@ function PageSpeedSection({ customerId, headers }) {
             </div>
 
             {/* Core Web Vitals */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
               {vitals.map(({ key, label, value }) => {
                 const c = vitalColor(key, value);
                 return (
@@ -221,6 +222,7 @@ export default function CustomerDetail() {
   const { customerId } = useParams();
   const navigate = useNavigate();
   const { token } = useAuth();
+  const { isMobile } = useScreenSize();
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
   const [customer, setCustomer] = useState(null);
@@ -359,10 +361,11 @@ export default function CustomerDetail() {
               <div style={{ fontSize: 12 }}>Klicke auf „+ Kurs zuweisen" um diesem Kunden Zugriff zu geben.</div>
             </div>
           ) : (
-            <>
+            <div style={{ overflowX: 'auto' }}>
               {/* Table header */}
               <div style={{
                 display: 'grid', gridTemplateColumns: '1fr 180px 120px 40px',
+                minWidth: 480,
                 gap: 12, padding: '8px 20px',
                 fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
                 textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -377,6 +380,7 @@ export default function CustomerDetail() {
               {assigned.map(row => (
                 <div key={row.course_id} style={{
                   display: 'grid', gridTemplateColumns: '1fr 180px 120px 40px',
+                  minWidth: 480,
                   gap: 12, padding: '12px 20px', alignItems: 'center',
                   borderBottom: '1px solid var(--border-light)',
                   transition: 'background 0.1s',
@@ -452,7 +456,7 @@ export default function CustomerDetail() {
                   </button>
                 </div>
               ))}
-            </>
+            </div>
           )}
         </div>
       </div>

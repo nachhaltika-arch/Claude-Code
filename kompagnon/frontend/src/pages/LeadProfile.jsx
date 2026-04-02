@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
@@ -1281,15 +1282,20 @@ export default function LeadProfile() {
       })()}
 
       {/* AUDIT DETAIL MODAL */}
-      {openAudit && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '20px' }}
-          onClick={e => { if (e.target === e.currentTarget) setOpenAudit(null); }}>
-          <div style={{ maxWidth: 900, width: '100%', maxHeight: 'calc(100vh - 40px)', borderRadius: 'var(--radius-xl)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-              <AuditReport auditData={openAudit} onClose={() => setOpenAudit(null)} />
+      {openAudit && createPortal(
+        <>
+          {/* Overlay — zwei separate fixed-Elemente, außerhalb des page-enter-Transform-Kontexts */}
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000 }}
+            onClick={() => setOpenAudit(null)} />
+          <div style={{ position: 'fixed', top: 0, bottom: 0, left: 0, right: 0, zIndex: 1001, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '20px', pointerEvents: 'none' }}>
+            <div style={{ maxWidth: 900, width: '100%', maxHeight: 'calc(100vh - 40px)', borderRadius: 'var(--radius-xl)', overflow: 'hidden', display: 'flex', flexDirection: 'column', pointerEvents: 'auto' }}>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                <AuditReport auditData={openAudit} onClose={() => setOpenAudit(null)} />
+              </div>
             </div>
           </div>
-        </div>
+        </>,
+        document.body
       )}
 
       {/* AUDIT LÖSCHEN MODAL */}

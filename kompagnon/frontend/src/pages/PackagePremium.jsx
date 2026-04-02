@@ -162,7 +162,7 @@ export default function PackagePremium() {
               fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10,
               textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12,
             }}>Premium</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#0f1c20', marginBottom: 4 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
               Premium — 2.500 € netto
             </div>
             <div style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 24 }}>
@@ -180,7 +180,7 @@ export default function PackagePremium() {
                 </label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="kontakt@ihrbetrieb.de" required
-                  style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--border-light)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: '#0f1c20', background: 'var(--bg-app)', boxSizing: 'border-box', transition: 'all 0.15s' }} />
+                  style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--border-light)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: 'var(--text-primary)', background: 'var(--bg-app)', boxSizing: 'border-box', transition: 'all 0.15s' }} />
               </div>
               <button type="submit" disabled={loading} className="cta-btn" style={{
                 width: '100%', padding: '14px', background: loading ? '#8fa8b0' : '#7c3aed',
@@ -234,7 +234,7 @@ export default function PackagePremium() {
 
         {/* Vergleich */}
         <div style={{ marginTop: 40, background: 'var(--bg-surface)', borderRadius: 16, padding: 28, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#0f1c20', marginBottom: 20, textAlign: 'center' }}>Alle Pakete im Vergleich</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 20, textAlign: 'center' }}>Alle Pakete im Vergleich</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
             {[
               { id: 'starter', name: 'Starter', price: '1.500 €', delivery: '7–10 Tage' },
@@ -252,8 +252,8 @@ export default function PackagePremium() {
                     Empfohlen
                   </div>
                 )}
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f1c20', marginBottom: 4 }}>{pkg.name}</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: pkg.active ? '#7c3aed' : '#0f1c20' }}>{pkg.price}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{pkg.name}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: pkg.active ? '#7c3aed' : 'var(--text-primary)' }}>{pkg.price}</div>
                 <div style={{ fontSize: 11, color: '#8fa8b0', marginTop: 2 }}>{pkg.delivery}</div>
                 {!pkg.active && <div style={{ marginTop: 8, fontSize: 11, color: '#008eaa', fontWeight: 500 }}>Details →</div>}
               </div>

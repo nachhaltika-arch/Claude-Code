@@ -43,6 +43,7 @@ function fmtTs(iso) {
 // ── PageSpeed section component ────────────────────────────────
 
 function PageSpeedSection({ customerId, headers }) {
+  const { isMobile } = useScreenSize();
   const [ps, setPs]         = useState(null);   // stored data
   const [loading, setLoading] = useState(true);
   const [measuring, setMeasuring] = useState(false);

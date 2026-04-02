@@ -414,25 +414,25 @@ export default function AuditReport({ auditData, onClose }) {
       {/* Issues + Recommendations */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
         {topIssues.length > 0 && (
-          <div className="kc-alert kc-alert--danger">
-            <strong style={{ display: 'block', marginBottom: '12px', fontFamily: 'var(--font-sans)' }}>
+          <div className="kc-card" style={{ background: '#ffffff', border: '1px solid #e5e7eb' }}>
+            <strong style={{ display: 'block', marginBottom: '12px', fontFamily: 'var(--font-sans)', color: 'var(--status-danger-text)' }}>
               Top-Probleme
             </strong>
             <ul style={{ margin: 0, paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {topIssues.map((issue, i) => (
-                <li key={i} style={{ fontSize: '13px' }}>{typeof issue === 'string' ? issue : issue?.title || issue?.issue || ''}</li>
+                <li key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{typeof issue === 'string' ? issue : issue?.title || issue?.issue || ''}</li>
               ))}
             </ul>
           </div>
         )}
         {recommendations.length > 0 && (
-          <div className="kc-alert kc-alert--info" style={{ borderColor: 'var(--status-success-text)', background: '#e8f5e9', color: '#1b5e20' }}>
-            <strong style={{ display: 'block', marginBottom: '12px', fontFamily: 'var(--font-sans)' }}>
+          <div className="kc-card" style={{ background: '#ffffff', border: '1px solid #e5e7eb' }}>
+            <strong style={{ display: 'block', marginBottom: '12px', fontFamily: 'var(--font-sans)', color: 'var(--status-success-text)' }}>
               Empfehlungen
             </strong>
             <ol style={{ margin: 0, paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {recommendations.map((rec, i) => (
-                <li key={i} style={{ fontSize: '13px' }}>{typeof rec === 'string' ? rec : rec?.title || ''}</li>
+                <li key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{typeof rec === 'string' ? rec : rec?.title || ''}</li>
               ))}
             </ol>
           </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import API_BASE_URL from '../config';
 import AuditReport from './AuditReport';
@@ -211,8 +212,8 @@ export default function AuditHistory({ leadId }) {
         );
       })}
 
-      {/* Full Audit Report Modal — full viewport height */}
-      {openAudit && (
+      {/* Full Audit Report Modal — rendered via portal to bypass transform stacking context */}
+      {openAudit && createPortal(
         <div
           style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -316,7 +317,8 @@ export default function AuditHistory({ leadId }) {
               <AuditReport auditData={openAudit} />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

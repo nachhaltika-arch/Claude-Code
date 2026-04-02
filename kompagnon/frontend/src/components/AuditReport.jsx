@@ -170,14 +170,12 @@ export default function AuditReport({ auditData, onClose }) {
   } catch (e) { /* ignore */ }
 
   const radarData = CATEGORIES.map((cat) => {
-    const catData = r.categories?.[cat.key] || { score: r[cat.key.replace(/^(.*)$/, (m) => {
-      // fallback: compute from items
-      return m;
-    })] || 0, max: cat.max };
-    const score = catData.score ?? cat.items.reduce((sum, item) => sum + (items[item.key] || 0), 0);
+    const catScore = r.categories?.[cat.key]?.score != null
+      ? r.categories[cat.key].score
+      : cat.items.reduce((sum, item) => sum + (items[item.key] || 0), 0);
     return {
       subject: cat.shortLabel,
-      score: cat.max > 0 ? Math.round((Math.min(score, cat.max) / cat.max) * 100) : 0,
+      score: cat.max > 0 ? Math.round((Math.min(catScore, cat.max) / cat.max) * 100) : 0,
       fullMark: 100,
     };
   });

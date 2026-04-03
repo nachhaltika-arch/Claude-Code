@@ -52,6 +52,7 @@ from routers import (
     payments_router,
     tickets_router,
     cms_connect_router,
+    portal_router,
 )
 
 # Import scheduler
@@ -280,6 +281,12 @@ def _run_migrations():
             created_by        INTEGER REFERENCES users(id) ON DELETE SET NULL
         )""",
         "ALTER TABLE courses ADD COLUMN IF NOT EXISTS thumbnail_color VARCHAR(20) DEFAULT '#008eaa'",
+        # CMS connection columns on customers
+        # ── Portal tables ──────────────────────────────────────────────────────
+        "CREATE TABLE IF NOT EXISTS portal_messages (id SERIAL PRIMARY KEY, customer_id INTEGER NOT NULL, sender_role VARCHAR(50), text TEXT, created_at TIMESTAMP DEFAULT NOW())",
+        "CREATE INDEX IF NOT EXISTS idx_portal_messages_cid ON portal_messages(customer_id)",
+        "CREATE TABLE IF NOT EXISTS portal_documents (id SERIAL PRIMARY KEY, customer_id INTEGER NOT NULL, filename VARCHAR(255), filepath VARCHAR(500), created_at TIMESTAMP DEFAULT NOW())",
+        "CREATE INDEX IF NOT EXISTS idx_portal_documents_cid ON portal_documents(customer_id)",
         # CMS connection columns on customers
         "ALTER TABLE customers ADD COLUMN IF NOT EXISTS cms_type VARCHAR(50)",
         "ALTER TABLE customers ADD COLUMN IF NOT EXISTS cms_url VARCHAR(500)",
@@ -556,6 +563,7 @@ app.include_router(agents_router)
 app.include_router(customers_router)
 app.include_router(automations_router)
 app.include_router(cms_connect_router)
+app.include_router(portal_router)
 app.include_router(audit_router)
 app.include_router(auth_router)
 app.include_router(admin_router)

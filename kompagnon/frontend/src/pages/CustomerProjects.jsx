@@ -1,154 +1,229 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
+const PHASES = [
+  { id: 'phase_1', label: 'Akquise',     color: '#008EAA' },
+  { id: 'phase_2', label: 'Briefing',    color: '#7c3aed' },
+  { id: 'phase_3', label: 'Content',     color: '#d97706' },
+  { id: 'phase_4', label: 'Technik',     color: '#0891b2' },
+  { id: 'phase_5', label: 'QA',          color: '#dc7226' },
+  { id: 'phase_6', label: 'Go-Live',     color: '#059669' },
+  { id: 'phase_7', label: 'Post-Launch', color: '#16a34a' },
+];
 
-const LEVEL_CFG = {
-  'Homepage Standard Platin': { label: 'Platin', icon: '💎', color: '#4a90d9' },
-  'Homepage Standard Gold': { label: 'Gold', icon: '🥇', color: '#b8860b' },
-  'Homepage Standard Silber': { label: 'Silber', icon: '🥈', color: '#708090' },
-  'Homepage Standard Bronze': { label: 'Bronze', icon: '🥉', color: '#cd7f32' },
-  'Nicht konform': { label: 'N/K', icon: '⚠️', color: '#dc2626' },
+const CERT_STYLES = {
+  bronze:  { bg: '#F5E6D3', text: '#7D4A1A' },
+  silber:  { bg: '#EFEFEF', text: '#5A5A5A' },
+  gold:    { bg: '#FEF3DC', text: '#BA7517' },
+  platin:  { bg: '#E6F1FB', text: '#185FA5' },
+  diamant: { bg: '#EAF4E0', text: '#1D9E75' },
 };
-const SRC = { stripe_checkout: 'Checkout', llm_landing: 'Landing', csv_import: 'CSV', landing_page: 'Landing' };
 
+function speedColor(s) {
+  if (s === null || s === undefined) return null;
+  if (s >= 90) return { bg: '#EAF4E0', text: '#3B6D11' };
+  if (s >= 50) return { bg: '#FEF3DC', text: '#BA7517' };
+  return { bg: '#FDEAEA', text: '#E24B4A' };
+}
+
+function getDomain(url) {
+  if (!url) return null;
+  try { return new URL(url.startsWith('http') ? url : 'https://' + url).hostname.replace('www.', ''); }
+  catch { return url; }
+}
+
+function phaseInfo(status) {
+  return PHASES.find(p => p.id === status) || null;
+}
+
+function phaseNum(status) {
+  const idx = PHASES.findIndex(p => p.id === status);
+  return idx === -1 ? null : idx + 1;
+}
+
+// ── Project list card ─────────────────────────────────────────────────────────
+function ProjectListCard({ project, lead, onClick }) {
+  const ph      = phaseInfo(project.status);
+  const pNum    = phaseNum(project.status);
+  const domain  = getDomain(lead?.website_url || project.website_url);
+  const scM     = project.pagespeed_mobile;
+  const scStyle = speedColor(scM);
+  const certKey = (project.audit_level || '').toLowerCase();
+  const certSt  = CERT_STYLES[certKey];
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+        borderRadius: 'var(--radius-lg)', padding: '14px 16px', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+        transition: 'border-color 0.15s, box-shadow 0.15s',
+        borderLeft: ph ? `4px solid ${ph.color}` : undefined,
+      }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = ph?.color || 'var(--border-medium)'; e.currentTarget.style.boxShadow = 'var(--shadow-elevated)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.boxShadow = 'none'; }}
+    >
+      {/* Avatar */}
+      <div style={{
+        width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+        background: ph?.color || '#185FA5', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 13, fontWeight: 700,
+      }}>
+        {((lead?.company_name || project.company_name || '?')[0]).toUpperCase()}
+      </div>
+
+      {/* Name + domain */}
+      <div style={{ flex: '1 1 160px', minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {lead?.company_name || project.company_name || `Projekt #${project.id}`}
+        </div>
+        {domain && (
+          <div style={{ fontSize: 11, color: 'var(--brand-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+            {domain}
+          </div>
+        )}
+      </div>
+
+      {/* Phase + progress */}
+      <div style={{ flex: '1 1 140px', minWidth: 120 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>
+          {pNum ? `Phase ${pNum} von 7 · ${ph?.label}` : project.status || '–'}
+        </div>
+        <div style={{ height: 5, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ width: pNum ? `${(pNum / 7) * 100}%` : '0%', height: '100%', background: '#0d6efd', borderRadius: 3 }} />
+        </div>
+      </div>
+
+      {/* Badges */}
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
+        {scStyle && scM !== null && scM !== undefined && (
+          <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 7px', borderRadius: 10, background: scStyle.bg, color: scStyle.text }}>
+            📱 {scM}
+          </span>
+        )}
+        {certSt && (
+          <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 7px', borderRadius: 10, background: certSt.bg, color: certSt.text }}>
+            🏅 {project.audit_level}
+          </span>
+        )}
+      </div>
+
+      <span style={{ color: 'var(--text-tertiary)', fontSize: 16, flexShrink: 0 }}>→</span>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function CustomerProjects() {
-  const nav = useNavigate();
-  const { token } = useAuth();
-  const { isMobile } = useScreenSize();
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [view, setView] = useState('grid');
+  const navigate     = useNavigate();
+  const { token }    = useAuth();
+  const h            = token ? { Authorization: `Bearer ${token}` } : {};
+
+  const [projects, setProjects]   = useState([]);
+  const [leadsMap, setLeadsMap]   = useState({});  // lead_id → lead
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState('');
+  const [phaseFilter, setPhaseFilter] = useState('');
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/leads/customers`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-        const data = await res.json();
-        setCustomers(Array.isArray(data) ? data : []);
-      } catch { /* */ }
+        const [projRes, leadsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/projects/?limit=200`, { headers: h }),
+          fetch(`${API_BASE_URL}/api/leads/?limit=500`,    { headers: h }),
+        ]);
+        const projData  = await projRes.json();
+        const leadsData = await leadsRes.json();
+
+        setProjects(Array.isArray(projData) ? projData : []);
+
+        const map = {};
+        if (Array.isArray(leadsData)) leadsData.forEach(l => { map[l.id] = l; });
+        setLeadsMap(map);
+      } catch (e) { console.error(e); }
       finally { setLoading(false); }
     })();
   }, []); // eslint-disable-line
 
-  const filtered = customers.filter((c) => !search || [c.company_name, c.city, c.email, c.trade].some((f) => f?.toLowerCase().includes(search.toLowerCase())));
-
-  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--text-tertiary)', fontSize: 14 }}>Kunden werden geladen...</div>;
+  const filtered = projects.filter(p => {
+    const lead = leadsMap[p.lead_id];
+    const name = (lead?.company_name || p.company_name || '').toLowerCase();
+    const domain = (lead?.website_url || p.website_url || '').toLowerCase();
+    const q = search.toLowerCase();
+    if (q && !name.includes(q) && !domain.includes(q)) return false;
+    if (phaseFilter && p.status !== phaseFilter) return false;
+    return true;
+  }).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Kundenprojekte</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '4px 0 0' }}>{filtered.length} zahlende Kunden</p>
-        </div>
-        <div style={{ display: 'flex', gap: 4, background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: 4 }}>
-          {[{ id: 'grid', icon: '⊞' }, { id: 'list', icon: '☰' }].map((v) => (
-            <button key={v.id} onClick={() => setView(v.id)} style={{
-              padding: '6px 12px', borderRadius: 6, border: 'none', background: view === v.id ? '#fff' : 'transparent',
-              color: view === v.id ? 'var(--brand-primary)' : '#94a3b8', fontSize: 16, cursor: 'pointer', boxShadow: view === v.id ? '0 1px 4px rgba(0,0,0,0.1)' : 'none', minHeight: 32, minWidth: 36,
-            }}>{v.icon}</button>
-          ))}
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Kundenprojekte</h1>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
+            {loading ? 'Lädt…' : `${filtered.length} von ${projects.length} Projekten`}
+          </p>
         </div>
       </div>
 
-      {/* Search */}
-      <div style={{ marginBottom: 20 }}>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Suche nach Firma, Stadt, E-Mail..."
-          style={{ width: '100%', maxWidth: 400, padding: '9px 12px 9px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 14, boxSizing: 'border-box', outline: 'none', background: 'var(--bg-surface)' }} />
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: '1 1 200px' }}>
+          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', fontSize: 13 }}>🔍</span>
+          <input
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Firma oder Domain suchen…"
+            style={{ width: '100%', padding: '8px 12px 8px 30px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
+          />
+        </div>
+        <select
+          value={phaseFilter} onChange={e => setPhaseFilter(e.target.value)}
+          style={{ padding: '8px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-surface)', color: 'var(--text-primary)', cursor: 'pointer', outline: 'none' }}
+        >
+          <option value="">Alle Phasen</option>
+          {PHASES.map(ph => <option key={ph.id} value={ph.id}>Phase {PHASES.indexOf(ph)+1} · {ph.label}</option>)}
+        </select>
+        {(search || phaseFilter) && (
+          <button onClick={() => { setSearch(''); setPhaseFilter(''); }}
+            style={{ padding: '8px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--status-danger-text)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+            ✕ Filter
+          </button>
+        )}
       </div>
 
-      {filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-tertiary)' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🏢</div>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{customers.length === 0 ? 'Noch keine zahlenden Kunden' : 'Keine Kunden gefunden'}</div>
+      {/* Loading */}
+      {loading && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
         </div>
       )}
 
-      {/* Grid */}
-      {view === 'grid' && filtered.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-          {filtered.map((c) => {
-            const lc = LEVEL_CFG[c.audit_level] || null;
-            return (
-              <div key={c.id} onClick={() => nav(`/app/leads/${c.id}`)} style={{
-                background: 'var(--bg-surface)', borderRadius: 14, border: '1px solid var(--border-light)', overflow: 'hidden', cursor: 'pointer',
-                transition: 'all 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-              }}>
-                {/* Screenshot */}
-                <div style={{ height: 140, background: 'var(--bg-app)', position: 'relative', overflow: 'hidden' }}>
-                  {c.website_screenshot ? (
-                    <img src={c.website_screenshot} alt={c.company_name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
-                  ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 32 }}>🌐</div>
-                  )}
-                  {c.audit_score != null && (
-                    <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(15,30,58,0.85)', borderRadius: 'var(--radius-md)', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {lc && <span style={{ fontSize: 12 }}>{lc.icon}</span>}
-                      <span style={{ color: lc?.color || '#fff', fontSize: 13, fontWeight: 800 }}>{c.audit_score}/100</span>
-                    </div>
-                  )}
-                  <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(255,255,255,0.9)', borderRadius: 6, padding: '3px 8px', fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    {SRC[c.lead_source] || 'Manuell'}
-                  </div>
-                </div>
-                {/* Body */}
-                <div style={{ padding: '14px 16px' }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.company_name}</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
-                    {c.contact_name && <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>👤 {c.contact_name}</div>}
-                    {c.email && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>✉️ {c.email}</div>}
-                    {c.website_url && <div style={{ fontSize: 12, color: 'var(--brand-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🌐 {c.website_url.replace(/^https?:\/\//, '')}</div>}
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                    {c.city && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', background: 'var(--bg-app)', padding: '2px 8px', borderRadius: 4 }}>📍 {c.city}</span>}
-                    {c.trade && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', background: 'var(--bg-app)', padding: '2px 8px', borderRadius: 4 }}>🔧 {c.trade}</span>}
-                    {c.has_account && <span style={{ fontSize: 11, color: '#059669', background: '#d1fae5', padding: '2px 8px', borderRadius: 4 }}>✓ Login</span>}
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', paddingTop: 10, borderTop: '1px solid #f1f5f9' }}>
-                    <span>Seit {c.created_at}</span>
-                    {c.last_audit_date && <span>Audit: {c.last_audit_date}</span>}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      {/* Empty state */}
+      {!loading && filtered.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-tertiary)' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{projects.length === 0 ? 'Noch keine Projekte' : 'Keine Treffer'}</div>
+          <div style={{ fontSize: 13 }}>Suche anpassen oder Filter zurücksetzen.</div>
         </div>
       )}
 
       {/* List */}
-      {view === 'list' && filtered.length > 0 && (
+      {!loading && filtered.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {filtered.map((c) => {
-            const lc = LEVEL_CFG[c.audit_level] || null;
-            return (
-              <div key={c.id} onClick={() => nav(`/app/leads/${c.id}`)} style={{
-                background: 'var(--bg-surface)', borderRadius: 10, border: '1px solid var(--border-light)', padding: '14px 16px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', transition: 'border-color 0.15s',
-              }}>
-                <div style={{ width: 56, height: 40, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: 'var(--bg-app)', border: '1px solid var(--border-light)' }}>
-                  {c.website_screenshot ? <img src={c.website_screenshot} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: 'var(--text-tertiary)' }}>🌐</div>}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.company_name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    {c.contact_name && <span>👤 {c.contact_name}</span>}
-                    {c.city && <span>📍 {c.city}</span>}
-                    {c.trade && <span>🔧 {c.trade}</span>}
-                  </div>
-                </div>
-                <div style={{ textAlign: 'center', flexShrink: 0, minWidth: 50 }}>
-                  {c.audit_score != null ? <div style={{ fontSize: 16, fontWeight: 800, color: lc?.color || '#64748b' }}>{c.audit_score}</div> : <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</div>}
-                </div>
-                {c.has_account && <span style={{ fontSize: 11, color: '#059669', background: '#d1fae5', padding: '4px 8px', borderRadius: 6, flexShrink: 0 }}>✓ Login</span>}
-                <span style={{ color: 'var(--text-tertiary)', fontSize: 16, flexShrink: 0 }}>→</span>
-              </div>
-            );
-          })}
+          {filtered.map(p => (
+            <ProjectListCard
+              key={p.id}
+              project={p}
+              lead={leadsMap[p.lead_id]}
+              onClick={() => navigate(`/app/projects/${p.id}`)}
+            />
+          ))}
         </div>
       )}
     </div>

@@ -3,423 +3,266 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
-import Badge from '../components/ui/Badge';
 
-const COLUMNS = [
-  { id: 'won', label: 'Auftrag erhalten', icon: '✅', color: '#059669' },
-  { id: 'onboarding', label: 'Onboarding', icon: '🚀', color: '#008EAA' },
-  { id: 'in_progress', label: 'In Umsetzung', icon: '⚙️', color: '#d97706' },
-  { id: 'review', label: 'Abnahme', icon: '👁️', color: '#7c3aed' },
-  { id: 'live', label: 'Live', icon: '🌐', color: '#16a34a' },
+const PHASES = [
+  { id: 'phase_1', label: 'Akquise',     icon: '📋', color: '#008EAA' },
+  { id: 'phase_2', label: 'Briefing',    icon: '📝', color: '#7c3aed' },
+  { id: 'phase_3', label: 'Content',     icon: '✍️',  color: '#d97706' },
+  { id: 'phase_4', label: 'Technik',     icon: '⚙️',  color: '#0891b2' },
+  { id: 'phase_5', label: 'QA',          icon: '🔍',  color: '#dc7226' },
+  { id: 'phase_6', label: 'Go-Live',     icon: '🚀',  color: '#059669' },
+  { id: 'phase_7', label: 'Post-Launch', icon: '🌐',  color: '#16a34a' },
 ];
 
+const CERT_STYLES = {
+  bronze:  { bg: '#F5E6D3', text: '#7D4A1A' },
+  silber:  { bg: '#EFEFEF', text: '#5A5A5A' },
+  gold:    { bg: '#FEF3DC', text: '#BA7517' },
+  platin:  { bg: '#E6F1FB', text: '#185FA5' },
+  diamant: { bg: '#EAF4E0', text: '#1D9E75' },
+};
+
+function speedColor(s) {
+  if (s === null || s === undefined) return null;
+  if (s >= 90) return { bg: '#EAF4E0', text: '#3B6D11' };
+  if (s >= 50) return { bg: '#FEF3DC', text: '#BA7517' };
+  return { bg: '#FDEAEA', text: '#E24B4A' };
+}
+
+function getDomain(url) {
+  if (!url) return null;
+  try { return new URL(url.startsWith('http') ? url : 'https://' + url).hostname.replace('www.', ''); }
+  catch { return url; }
+}
+
 export default function LeadPipeline() {
-  const navigate = useNavigate();
-  const { user, token } = useAuth();
-  const { isMobile } = useScreenSize();
-  const [activeTab, setActiveTab] = useState(0);
-  const [leads, setLeads] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [dragOver, setDragOver] = useState(null);
-  const [dragging, setDragging] = useState(null);
-  const [wonModal, setWonModal] = useState(null);       // { leadId, leadName }
-  const [projectSuccess, setProjectSuccess] = useState(false);
-  const [projects, setProjects] = useState({});          // lead_id → project
+  const navigate         = useNavigate();
+  const { user, token }  = useAuth();
+  const { isMobile }     = useScreenSize();
+  const [activeTab, setActiveTab]   = useState(0);
+  const [leads, setLeads]           = useState([]);
+  const [projects, setProjects]     = useState({});   // lead_id → project
+  const [loading, setLoading]       = useState(true);
+  const [dragging, setDragging]     = useState(null);
+  const [dragOver, setDragOver]     = useState(null);
 
   const fetchedRef = useRef(false);
+  const mkH = () => ({ 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) });
 
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
-    loadLeads();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    loadData();
+  }, []); // eslint-disable-line
 
-  const loadLeads = async () => {
-    const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  const loadData = async () => {
     try {
-      const [leadsRes, projectsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/leads/`, { headers }),
-        fetch(`${API_BASE_URL}/api/projects/?limit=200`, { headers }),
+      const [leadsRes, projRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/leads/`, { headers: mkH() }),
+        fetch(`${API_BASE_URL}/api/projects/?limit=200`, { headers: mkH() }),
       ]);
       const leadsData = await leadsRes.json();
-      const projectsData = await projectsRes.json();
+      const projData  = await projRes.json();
 
-      const projectLeads = Array.isArray(leadsData)
-        ? leadsData.filter(l => l.status === 'won' || l.lead_source === 'stripe_checkout' || l.lead_source === 'llm_landing')
-        : [];
-      setLeads(projectLeads);
+      setLeads(Array.isArray(leadsData) ? leadsData : []);
 
       const map = {};
-      if (Array.isArray(projectsData)) {
-        projectsData.forEach(p => { if (p.lead_id) map[p.lead_id] = p; });
-      }
+      if (Array.isArray(projData)) projData.forEach(p => { if (p.lead_id) map[p.lead_id] = p; });
       setProjects(map);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
 
-  const getColumnLeads = (colId) =>
-    leads.filter((l) => l.status === colId).sort((a, b) => (b.analysis_score || 0) - (a.analysis_score || 0));
+  // Only leads that have a linked project
+  const projectLeads = leads.filter(l => !!projects[l.id]);
 
-  const mkHeaders = () => ({ 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) });
+  const getColCards = (phaseId) =>
+    projectLeads.filter(l => projects[l.id]?.status === phaseId)
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
-  const updateStatus = async (leadId, newStatus) => {
+  const updatePhase = async (leadId, newPhase) => {
+    const project = projects[leadId];
+    if (!project) return;
     try {
-      await fetch(`${API_BASE_URL}/api/leads/${leadId}`, { method: 'PATCH', headers: mkHeaders(), body: JSON.stringify({ status: newStatus }) });
-      setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)));
+      await fetch(`${API_BASE_URL}/api/projects/${project.id}/phase`, {
+        method: 'PATCH', headers: mkH(),
+        body: JSON.stringify({ new_status: newPhase }),
+      });
+      setProjects(prev => ({ ...prev, [leadId]: { ...prev[leadId], status: newPhase } }));
     } catch (e) { console.error(e); }
-  };
-
-  // Intercept status changes that set a lead to "won"
-  const handleStatusChange = (leadId, newStatus) => {
-    if (newStatus === 'won') {
-      const lead = leads.find(l => l.id === leadId);
-      setWonModal({ leadId, leadName: lead?.company_name || `Lead #${leadId}` });
-    } else {
-      updateStatus(leadId, newStatus);
-    }
-  };
-
-  const confirmWon = async (createProject) => {
-    const { leadId } = wonModal;
-    setWonModal(null);
-    await updateStatus(leadId, 'won');
-    if (createProject) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/projects/from-lead/${leadId}`, { method: 'POST', headers: mkHeaders() });
-        if (res.ok) {
-          const p = await res.json();
-          setProjects(prev => ({ ...prev, [leadId]: p }));
-        }
-      } catch (e) { console.error(e); }
-      setProjectSuccess(true);
-      setTimeout(() => setProjectSuccess(false), 3000);
-    }
   };
 
   const handleDragStart = (e, lead) => { setDragging(lead); e.dataTransfer.effectAllowed = 'move'; };
-  const handleDragOver = (e, colId) => { e.preventDefault(); setDragOver(colId); };
-  const handleDrop = (e, colId) => { e.preventDefault(); if (dragging && dragging.status !== colId) handleStatusChange(dragging.id, colId); setDragging(null); setDragOver(null); };
-
-  const deleteLead = async (id) => {
-    try {
-      await fetch(`${API_BASE_URL}/api/leads/${id}`, { method: 'DELETE', headers: mkHeaders() });
-      setLeads((prev) => prev.filter((l) => l.id !== id));
-      setDeleteConfirm(null);
-    } catch (e) { console.error(e); }
+  const handleDrop = (e, phaseId) => {
+    e.preventDefault();
+    if (dragging && projects[dragging.id]?.status !== phaseId) updatePhase(dragging.id, phaseId);
+    setDragging(null); setDragOver(null);
   };
 
   if (loading) return (
-    <div style={{ display: 'flex', gap: 12 }}>
-      {[1,2,3,4,5].map(i => <div key={i} className="skeleton" style={{ flex: 1, height: 300, borderRadius: 'var(--radius-lg)' }} />)}
+    <div style={{ display: 'flex', gap: 10 }}>
+      {[1,2,3,4,5,6,7].map(i => <div key={i} className="skeleton" style={{ flex: 1, height: 280, borderRadius: 'var(--radius-lg)' }} />)}
     </div>
   );
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 2 }}>
-            {leads.length} aktive Kundenprojekte · Drag & Drop zum Verschieben
-          </div>
+      <div style={{ marginBottom: 16 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Projektpipeline</h1>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
+          {projectLeads.length} aktive Projekte · Drag & Drop zum Verschieben
         </div>
       </div>
 
-      {/* Kanban Board */}
+      {/* KPI bar */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 16 }}>
+        {PHASES.map(ph => (
+          <div key={ph.id} style={{
+            background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+            borderRadius: 'var(--radius-md)', padding: '8px 10px', borderTop: `3px solid ${ph.color}`,
+          }}>
+            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 2 }}>{ph.icon} {ph.label}</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: ph.color }}>{getColCards(ph.id).length}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Kanban */}
       {isMobile ? (
         <div>
           <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 8, marginBottom: 12 }}>
-            {COLUMNS.map((col, idx) => {
-              const count = getColumnLeads(col.id).length;
-              return (
-                <button key={col.id} onClick={() => setActiveTab(idx)} style={{
-                  flexShrink: 0, padding: '6px 12px', borderRadius: 'var(--radius-full)', border: 'none',
-                  background: activeTab === idx ? 'var(--bg-active)' : 'transparent',
-                  color: activeTab === idx ? 'var(--brand-primary)' : 'var(--text-secondary)',
-                  fontSize: 12, fontWeight: activeTab === idx ? 500 : 400, cursor: 'pointer',
-                  fontFamily: 'var(--font-sans)',
-                }}>
-                  {col.label} <span style={{ marginLeft: 4, opacity: 0.6 }}>{count}</span>
-                </button>
-              );
-            })}
+            {PHASES.map((ph, idx) => (
+              <button key={ph.id} onClick={() => setActiveTab(idx)} style={{
+                flexShrink: 0, padding: '6px 12px', borderRadius: 'var(--radius-full)',
+                border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 12,
+                background: activeTab === idx ? 'var(--bg-active)' : 'transparent',
+                color: activeTab === idx ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                fontWeight: activeTab === idx ? 500 : 400,
+              }}>
+                {ph.label} <span style={{ opacity: 0.6 }}>{getColCards(ph.id).length}</span>
+              </button>
+            ))}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {getColumnLeads(COLUMNS[activeTab].id).map(lead => (
-              <LeadCard key={lead.id} lead={lead} onDragStart={() => {}} onOpenProfile={() => navigate(`/app/leads/${lead.id}`)}
-                onStartAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
-                onDelete={() => setDeleteConfirm(lead.id)} isAdmin={user?.role === 'admin'} columns={COLUMNS} onStatusChange={handleStatusChange}
-                isInProgress={COLUMNS[activeTab].id === 'won'} project={projects[lead.id]}
-                onOpenProject={id => navigate(`/app/projects/${id}`)} />
+            {getColCards(PHASES[activeTab].id).map(lead => (
+              <ProjectKanbanCard key={lead.id} lead={lead} project={projects[lead.id]} phase={PHASES[activeTab]}
+                onDragStart={() => {}} onOpen={() => navigate(`/app/projects/${projects[lead.id]?.id || lead.id}`)} />
             ))}
-            {getColumnLeads(COLUMNS[activeTab].id).length === 0 && (
-              <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)', fontSize: 12, border: '1.5px dashed var(--border-medium)', borderRadius: 'var(--radius-lg)' }}>
-                Keine Leads
-              </div>
-            )}
+            {getColCards(PHASES[activeTab].id).length === 0 && <EmptyCol />}
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', overflowX: 'auto', paddingBottom: 8 }}>
-          {COLUMNS.map((col) => {
-            const colLeads = getColumnLeads(col.id);
-            const over = dragOver === col.id;
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', overflowX: 'auto', paddingBottom: 8 }}>
+          {PHASES.map(ph => {
+            const cards = getColCards(ph.id);
+            const over  = dragOver === ph.id;
             return (
-              <div key={col.id}
-                onDragOver={(e) => handleDragOver(e, col.id)}
-                onDrop={(e) => handleDrop(e, col.id)}
+              <div key={ph.id}
+                onDragOver={e => { e.preventDefault(); setDragOver(ph.id); }}
+                onDrop={e => handleDrop(e, ph.id)}
                 onDragLeave={() => setDragOver(null)}
                 style={{
-                  flex: '1 1 0', minWidth: 160,
-                  background: over ? 'var(--bg-hover)' : 'var(--bg-app)',
+                  flex: '1 1 0', minWidth: 152,
+                  background: over ? `${ph.color}08` : 'var(--bg-app)',
                   borderRadius: 'var(--radius-lg)',
-                  border: over ? '1.5px dashed var(--brand-primary)' : '1.5px solid transparent',
-                  transition: 'all 0.15s', minHeight: 200, padding: 6,
+                  border: `1.5px ${over ? 'dashed' : 'solid'} ${over ? ph.color : 'var(--border-light)'}`,
+                  transition: 'all 0.15s', padding: 6,
                 }}>
-                {/* Column header */}
-                <div style={{ padding: '8px 8px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {col.label}
+                <div style={{ padding: '6px 6px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {ph.icon} {ph.label}
                   </span>
-                  <span style={{
-                    fontSize: 10, padding: '1px 6px', borderRadius: 10,
-                    background: 'var(--status-neutral-bg)', color: 'var(--status-neutral-text)', fontWeight: 600,
-                  }}>
-                    {colLeads.length}
-                  </span>
+                  <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: `${ph.color}20`, color: ph.color, fontWeight: 600 }}>{cards.length}</span>
                 </div>
-
-                {/* Cards */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
-                  {colLeads.map(lead => (
-                    <LeadCard key={lead.id} lead={lead} onDragStart={handleDragStart}
-                      onOpenProfile={() => navigate(`/app/leads/${lead.id}`)}
-                      onStartAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
-                      onDelete={() => setDeleteConfirm(lead.id)} isAdmin={user?.role === 'admin'} columns={COLUMNS} onStatusChange={handleStatusChange}
-                      isInProgress={col.id === 'won'} project={projects[lead.id]}
-                      onOpenProject={id => navigate(`/app/projects/${id}`)} />
+                <div style={{ height: 2, background: ph.color, margin: '6px 4px', borderRadius: 2 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {cards.map(lead => (
+                    <ProjectKanbanCard key={lead.id} lead={lead} project={projects[lead.id]} phase={ph}
+                      onDragStart={handleDragStart}
+                      onOpen={() => navigate(`/app/projects/${projects[lead.id]?.id || lead.id}`)} />
                   ))}
-                  {colLeads.length === 0 && (
-                    <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, border: '1.5px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>
-                      Keine Leads
-                    </div>
-                  )}
+                  {cards.length === 0 && <EmptyCol />}
                 </div>
               </div>
             );
           })}
         </div>
       )}
-
-      {/* "Projekt anlegen?" Modal */}
-      {wonModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', boxShadow: 'var(--shadow-elevated)' }}>
-            <div style={{ fontSize: 22, textAlign: 'center', marginBottom: 12 }}>🎉</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10, textAlign: 'center' }}>
-              Projekt anlegen?
-            </h3>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 22, textAlign: 'center', lineHeight: 1.5 }}>
-              Der Lead <strong>{wonModal.leadName}</strong> wurde als gewonnen markiert.
-              Soll ich jetzt automatisch ein Projekt anlegen?
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button onClick={() => confirmWon(true)} style={{
-                padding: '11px 16px', background: 'var(--brand-primary)', color: '#fff',
-                border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 600,
-                cursor: 'pointer', fontFamily: 'var(--font-sans)',
-              }}>
-                ✅ Ja, Projekt anlegen
-              </button>
-              <button onClick={() => confirmWon(false)} style={{
-                padding: '11px 16px', background: 'var(--bg-hover)', color: 'var(--text-secondary)',
-                border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
-                fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)',
-              }}>
-                Nur Status speichern
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Success toast */}
-      {projectSuccess && (
-        <div style={{
-          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--status-success-bg)', color: 'var(--status-success-text)',
-          border: '1px solid var(--status-success-text)', borderRadius: 'var(--radius-full)',
-          padding: '10px 20px', fontSize: 13, fontWeight: 600, zIndex: 1100,
-          boxShadow: 'var(--shadow-elevated)', whiteSpace: 'nowrap',
-        }}>
-          ✅ Projekt wurde angelegt!
-        </div>
-      )}
-
-      {/* Delete Modal */}
-      {deleteConfirm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setDeleteConfirm(null)}>
-          <div onClick={(e) => e.stopPropagation()} style={{
-            background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 380, width: '100%',
-            textAlign: 'center', boxShadow: 'var(--shadow-elevated)',
-          }}>
-            <h3 style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 8 }}>Lead löschen?</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
-              <strong>{leads.find((l) => l.id === deleteConfirm)?.company_name}</strong> und alle Audits werden gelöscht.
-            </p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setDeleteConfirm(null)} style={{
-                flex: 1, padding: 10, background: 'var(--bg-hover)', color: 'var(--text-primary)',
-                border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer',
-              }}>Abbrechen</button>
-              <button onClick={() => deleteLead(deleteConfirm)} style={{
-                flex: 1, padding: 10, background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)',
-                border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer',
-              }}>Löschen</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-// ── Lead Card ──
+// ── Project Kanban Card ───────────────────────────────────────────────────────
 
-const phaseNum = (status) => { const m = String(status || '').match(/phase_(\d)/); return m ? parseInt(m[1]) : null; };
-
-function LeadCard({ lead, onDragStart, onOpenProfile, onStartAudit, onDelete, isAdmin, columns, onStatusChange, isInProgress, project, onOpenProject }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const hasAudit = lead.analysis_score > 0;
-  const scoreColor = (s) => s >= 70 ? 'var(--status-success-text)' : s >= 40 ? 'var(--status-warning-text)' : 'var(--status-danger-text)';
-
-  const domain = (url) => {
-    if (!url) return null;
-    try { return new URL(url.startsWith('http') ? url : 'https://' + url).hostname.replace('www.', ''); } catch { return url; }
-  };
-
-  const daysSinceCreated = lead.created_at ? Math.floor((Date.now() - new Date(lead.created_at).getTime()) / 86400000) : null;
+function ProjectKanbanCard({ lead, project, phase, onDragStart, onOpen }) {
+  const domain   = getDomain(lead.website_url || project?.website_url);
+  const pNum     = phase ? PHASES.findIndex(p => p.id === phase.id) + 1 : null;
+  const scM      = project?.pagespeed_mobile;
+  const scStyle  = speedColor(scM);
+  const certKey  = (project?.audit_level || '').toLowerCase();
+  const certSt   = CERT_STYLES[certKey];
 
   return (
-    <div draggable onDragStart={(e) => onDragStart(e, lead)} style={{
-      background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
-      border: '1px solid var(--border-light)', padding: 10, cursor: 'grab',
-      boxShadow: 'var(--shadow-card)', transition: 'border-color 0.15s',
-      borderLeft: isInProgress ? '3px solid var(--brand-primary)' : undefined,
-    }}
-    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-medium)'}
-    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-light)'}
+    <div
+      draggable
+      onDragStart={e => onDragStart(e, lead)}
+      onClick={onOpen}
+      style={{
+        background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--border-light)', padding: '10px 11px',
+        cursor: 'pointer', boxShadow: 'var(--shadow-card)', transition: 'all 0.15s',
+        display: 'flex', flexDirection: 'column', gap: 6,
+      }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = phase?.color || 'var(--border-medium)'; e.currentTarget.style.boxShadow = 'var(--shadow-elevated)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
     >
-      {/* Name */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 4, marginBottom: 4 }}>
-        <div onClick={onOpenProfile} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
-          <div style={{
-            fontSize: 12, fontWeight: 500, color: 'var(--text-primary)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {lead.company_name || 'Unbekannt'}
+      {/* Firmenname + domain */}
+      <div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {lead.company_name || project?.company_name || `Projekt #${project?.id}`}
+        </div>
+        {domain && (
+          <div style={{ fontSize: 10, color: 'var(--brand-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+            {domain}
           </div>
-          {lead.geschaeftsfuehrer && (
-            <div style={{ fontSize: 11, color: '#6c757d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {lead.geschaeftsfuehrer}
-            </div>
-          )}
-        </div>
-        <div style={{ position: 'relative' }}>
-          <button onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }} style={{
-            background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)',
-            fontSize: 14, padding: '0 2px', lineHeight: 1,
-          }}>···</button>
-          {menuOpen && (
-            <>
-              <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => setMenuOpen(false)} />
-              <div style={{
-                position: 'absolute', top: '100%', right: 0,
-                background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-elevated)', border: '1px solid var(--border-light)',
-                zIndex: 50, minWidth: 150, overflow: 'hidden', padding: 4,
-              }}>
-                <MItem onClick={() => { onOpenProfile(); setMenuOpen(false); }}>Kundenkartei</MItem>
-                <MItem onClick={() => { onStartAudit(); setMenuOpen(false); }}>Audit starten</MItem>
-                <div style={{ height: 1, background: 'var(--border-light)', margin: '4px 0' }} />
-                <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', padding: '4px 10px', letterSpacing: '0.06em' }}>Status</div>
-                {columns.filter(c => c.id !== lead.status).map(col => (
-                  <MItem key={col.id} onClick={() => { onStatusChange(lead.id, col.id); setMenuOpen(false); }}>{col.label}</MItem>
-                ))}
-                {isAdmin && (
-                  <>
-                    <div style={{ height: 1, background: 'var(--status-danger-bg)', margin: '4px 0' }} />
-                    <MItem onClick={() => { onDelete(); setMenuOpen(false); }} danger>Löschen</MItem>
-                  </>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Meta: city, trade */}
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>
-        {[lead.city, lead.trade].filter(Boolean).join(' · ') || (domain(lead.website_url) || '')}
-      </div>
-
-      {/* Score bar */}
-      {hasAudit && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-          <div style={{ flex: 1, height: 3, background: 'var(--border-light)', borderRadius: 2 }}>
-            <div style={{ width: `${lead.analysis_score}%`, height: '100%', background: scoreColor(lead.analysis_score), borderRadius: 2 }} />
-          </div>
-          <span style={{ fontSize: 10, fontWeight: 600, color: scoreColor(lead.analysis_score) }}>{lead.analysis_score}</span>
-        </div>
-      )}
-
-      {/* Footer */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Badge variant={lead.status === 'won' ? 'success' : lead.status === 'lost' ? 'danger' : lead.status === 'proposal_sent' ? 'warning' : 'neutral'}>
-          {columns.find(c => c.id === lead.status)?.label || lead.status}
-        </Badge>
-        {daysSinceCreated !== null && (
-          <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Tag {daysSinceCreated}</span>
         )}
       </div>
 
-      {/* Project chip */}
-      {lead.status === 'won' && project && (
-        <div onClick={() => onOpenProject(project.id)} style={{
-          marginTop: 6, padding: '5px 8px',
-          background: 'rgba(13,110,253,0.08)', border: '1px solid rgba(13,110,253,0.18)',
-          borderRadius: 'var(--radius-md)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 7,
-        }}>
-          <span style={{ fontSize: 14, flexShrink: 0 }}>📁</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#0d6efd' }}>Projekt aktiv</div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
-              {phaseNum(project.status) ? `Phase ${phaseNum(project.status)} von 7` : project.status}
-            </div>
-          </div>
-          <span style={{ fontSize: 10, color: 'rgba(13,110,253,0.5)', flexShrink: 0 }}>→</span>
+      {/* Phase label + progress bar */}
+      <div>
+        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 3 }}>
+          Phase {pNum} von 7 · {phase?.label}
         </div>
-      )}
+        <div style={{ height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{ width: `${((pNum || 1) / 7) * 100}%`, height: '100%', background: '#0d6efd', borderRadius: 2 }} />
+        </div>
+      </div>
+
+      {/* Badges row */}
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+        {scStyle && scM !== null && scM !== undefined && (
+          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: scStyle.bg, color: scStyle.text }}>
+            📱 {scM}
+          </span>
+        )}
+        {certSt && (
+          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: certSt.bg, color: certSt.text }}>
+            🏅 {project.audit_level}
+          </span>
+        )}
+        {!scStyle && !certSt && (
+          <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Kein Audit</span>
+        )}
+      </div>
     </div>
   );
 }
 
-function MItem({ children, onClick, danger }) {
+function EmptyCol() {
   return (
-    <button onClick={onClick} style={{
-      width: '100%', display: 'flex', alignItems: 'center', gap: 6,
-      padding: '6px 10px', background: 'transparent', border: 'none',
-      borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 12, textAlign: 'left',
-      color: danger ? 'var(--status-danger-text)' : 'var(--text-secondary)',
-      fontFamily: 'var(--font-sans)', transition: 'background 0.1s',
-    }}
-    onMouseEnter={e => e.currentTarget.style.background = danger ? 'var(--status-danger-bg)' : 'var(--bg-hover)'}
-    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-      {children}
-    </button>
+    <div style={{ padding: '16px 8px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, border: '1.5px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>
+      Keine Projekte
+    </div>
   );
 }

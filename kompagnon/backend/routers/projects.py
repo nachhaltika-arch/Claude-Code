@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime
 from pydantic import BaseModel
-from database import Project, ProjectChecklist, TimeTracking, Lead, get_db
+from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, get_db
 from services.margin_calculator import MarginCalculator
 from automations.scheduler import (
     get_scheduler,
@@ -305,3 +305,69 @@ def trigger_automation(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Automation failed: {str(e)}")
+
+
+@router.post("/from-lead/{lead_id}", status_code=201)
+def create_project_from_lead(lead_id: int, db: Session = Depends(get_db)):
+    """
+    Automatically create a project from a won lead.
+
+    - 400 if lead status is not 'won'
+    - 409 if a project for this lead already exists
+    - 201 + project JSON on success
+    """
+    # 1. Resolve lead
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+
+    # 2. Verify won status
+    if lead.status != "won":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Lead ist nicht als gewonnen markiert (aktueller Status: {lead.status or 'unbekannt'})",
+        )
+
+    # 3. Guard against duplicates
+    existing = db.query(Project).filter(Project.lead_id == lead_id).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Für diesen Lead existiert bereits ein Projekt")
+
+    # 4. Create project
+    company_name = lead.company_name or f"Lead #{lead_id}"
+    now = datetime.utcnow()
+    project = Project(
+        lead_id=lead_id,
+        status="phase_1",
+        start_date=now,
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+
+    # 5. Try to find an existing customer linked to a project with the same e-mail
+    customer_id = None
+    if lead.email:
+        linked = (
+            db.query(Customer)
+            .join(Project, Customer.project_id == Project.id)
+            .join(Lead, Project.lead_id == Lead.id)
+            .filter(Lead.email == lead.email, Lead.id != lead_id)
+            .first()
+        )
+        if linked:
+            customer_id = linked.id
+
+    return {
+        "id": project.id,
+        "lead_id": project.lead_id,
+        "status": project.status,
+        "company_name": company_name,
+        "project_name": f"Website – {company_name}",
+        "start_date": project.start_date.isoformat(),
+        "created_at": project.created_at.isoformat(),
+        "customer_id": customer_id,
+        "message": f"Projekt 'Website – {company_name}' wurde erfolgreich angelegt",
+    }

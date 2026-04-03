@@ -283,6 +283,8 @@ def _run_migrations():
         "ALTER TABLE courses ADD COLUMN IF NOT EXISTS thumbnail_color VARCHAR(20) DEFAULT '#008eaa'",
         # CMS connection columns on customers
         # ── Portal tables ──────────────────────────────────────────────────────
+        # Ensure lead_id column exists on projects (already in ORM model, safety net)
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS lead_id INTEGER REFERENCES leads(id)",
         "CREATE TABLE IF NOT EXISTS portal_messages (id SERIAL PRIMARY KEY, customer_id INTEGER NOT NULL, sender_role VARCHAR(50), text TEXT, created_at TIMESTAMP DEFAULT NOW())",
         "CREATE INDEX IF NOT EXISTS idx_portal_messages_cid ON portal_messages(customer_id)",
         "CREATE TABLE IF NOT EXISTS portal_documents (id SERIAL PRIMARY KEY, customer_id INTEGER NOT NULL, filename VARCHAR(255), filepath VARCHAR(500), created_at TIMESTAMP DEFAULT NOW())",

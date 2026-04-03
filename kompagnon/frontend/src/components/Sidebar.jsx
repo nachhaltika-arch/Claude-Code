@@ -63,12 +63,17 @@ export default function Sidebar() {
 
   // ── Restricted "Kunde" sidebar ──────────────────────────────────────────────
   if (user?.role === 'kunde') {
+    const kundePaths = ['/app/dashboard', '/app/settings', '/app/academy', '/app/kurse'];
+    if (user.lead_id) {
+      kundePaths.push(`/app/usercards/${user.lead_id}`, `/app/leads/${user.lead_id}`);
+    }
+
     const kundeItems = [
-      { label: 'Dashboard',     path: '/app/dashboard',                    icon: '🏠' },
+      { label: 'Dashboard',     path: '/app/dashboard',                                        icon: '🏠' },
       ...(user.lead_id ? [{ label: 'Meine Kartei', path: `/app/usercards/${user.lead_id}`, icon: '📋' }] : []),
-      { label: 'Akademy',       path: '/app/academy',                      icon: '🎓' },
-      { label: 'Einstellungen', path: '/app/settings',                     icon: '⚙️' },
-    ];
+      { label: 'Akademy',       path: '/app/academy',                                          icon: '🎓' },
+      { label: 'Einstellungen', path: '/app/settings',                                         icon: '⚙️' },
+    ].filter(item => kundePaths.some(p => item.path.startsWith(p)));
     return (
       <aside className="sidebar">
         <div className="px-4 py-5 border-b border-white/10">

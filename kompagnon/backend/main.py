@@ -434,6 +434,29 @@ def _create_default_admin():
     finally:
         db.close()
 
+    # Link kunde user to eisistcool lead
+    try:
+        from database import SessionLocal, User, Lead
+        _db = SessionLocal()
+        kunde = _db.query(User).filter(User.email.ilike('%longhin%')).first()
+        if not kunde:
+            kunde = _db.query(User).filter(User.role == 'kunde').first()
+        if kunde and not kunde.lead_id:
+            lead = _db.query(Lead).filter(Lead.website_url.ilike('%eisistcool%')).first()
+            if not lead:
+                from datetime import datetime
+                lead = Lead(company_name='Eisistcool', website_url='https://eisistcool.de',
+                           status='customer', created_at=datetime.utcnow(), updated_at=datetime.utcnow())
+                _db.add(lead)
+                _db.commit()
+                _db.refresh(lead)
+            kunde.lead_id = lead.id
+            _db.commit()
+            logger.info(f"Linked kunde {kunde.email} to lead {lead.id}")
+        _db.close()
+    except Exception as e:
+        logger.warning(f"Kunde-Link Fehler: {e}")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

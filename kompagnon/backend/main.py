@@ -51,6 +51,7 @@ from routers import (
     settings_router,
     payments_router,
     tickets_router,
+    cms_connect_router,
 )
 
 # Import scheduler
@@ -279,6 +280,11 @@ def _run_migrations():
             created_by        INTEGER REFERENCES users(id) ON DELETE SET NULL
         )""",
         "ALTER TABLE courses ADD COLUMN IF NOT EXISTS thumbnail_color VARCHAR(20) DEFAULT '#008eaa'",
+        # CMS connection columns on customers
+        "ALTER TABLE customers ADD COLUMN IF NOT EXISTS cms_type VARCHAR(50)",
+        "ALTER TABLE customers ADD COLUMN IF NOT EXISTS cms_url VARCHAR(500)",
+        "ALTER TABLE customers ADD COLUMN IF NOT EXISTS cms_username VARCHAR(200)",
+        "ALTER TABLE customers ADD COLUMN IF NOT EXISTS cms_password_encrypted TEXT",
         # PageSpeed columns on customers
         "ALTER TABLE customers ADD COLUMN IF NOT EXISTS pagespeed_mobile_score INTEGER",
         "ALTER TABLE customers ADD COLUMN IF NOT EXISTS pagespeed_desktop_score INTEGER",
@@ -526,6 +532,7 @@ app.include_router(projects_router)
 app.include_router(agents_router)
 app.include_router(customers_router)
 app.include_router(automations_router)
+app.include_router(cms_connect_router)
 app.include_router(audit_router)
 app.include_router(auth_router)
 app.include_router(admin_router)

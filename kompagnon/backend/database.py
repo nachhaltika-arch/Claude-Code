@@ -207,6 +207,12 @@ class Customer(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # CMS connection
+    cms_type               = Column(String(50),  nullable=True)
+    cms_url                = Column(String(500),  nullable=True)
+    cms_username           = Column(String(200),  nullable=True)
+    cms_password_encrypted = Column(Text,         nullable=True)
+
     # Relationships
     project = relationship("Project", back_populates="customer")
 

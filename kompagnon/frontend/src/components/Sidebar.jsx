@@ -64,9 +64,10 @@ export default function Sidebar() {
   // ── Restricted "Kunde" sidebar ──────────────────────────────────────────────
   if (user?.role === 'kunde') {
     const kundeItems = [
-      { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
+      { label: 'Dashboard',     path: '/app/dashboard',                    icon: '🏠' },
       ...(user.lead_id ? [{ label: 'Meine Kartei', path: `/app/usercards/${user.lead_id}`, icon: '📋' }] : []),
-      { label: 'Akademy', path: '/app/academy', icon: '🎓' },
+      { label: 'Akademy',       path: '/app/academy',                      icon: '🎓' },
+      { label: 'Einstellungen', path: '/app/settings',                     icon: '⚙️' },
     ];
     return (
       <aside className="sidebar">

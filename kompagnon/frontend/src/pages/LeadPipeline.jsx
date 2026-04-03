@@ -23,8 +23,9 @@ export default function LeadPipeline() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [dragOver, setDragOver] = useState(null);
   const [dragging, setDragging] = useState(null);
-  const [wonModal, setWonModal] = useState(null);    // { leadId, leadName }
+  const [wonModal, setWonModal] = useState(null);       // { leadId, leadName }
   const [projectSuccess, setProjectSuccess] = useState(false);
+  const [projects, setProjects] = useState({});          // lead_id → project
 
   const fetchedRef = useRef(false);
 
@@ -37,12 +38,23 @@ export default function LeadPipeline() {
   const loadLeads = async () => {
     const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     try {
-      const res = await fetch(`${API_BASE_URL}/api/leads/`, { headers });
-      const data = await res.json();
-      const projectLeads = Array.isArray(data)
-        ? data.filter(l => l.status === 'won' || l.lead_source === 'stripe_checkout' || l.lead_source === 'llm_landing')
+      const [leadsRes, projectsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/leads/`, { headers }),
+        fetch(`${API_BASE_URL}/api/projects/?limit=200`, { headers }),
+      ]);
+      const leadsData = await leadsRes.json();
+      const projectsData = await projectsRes.json();
+
+      const projectLeads = Array.isArray(leadsData)
+        ? leadsData.filter(l => l.status === 'won' || l.lead_source === 'stripe_checkout' || l.lead_source === 'llm_landing')
         : [];
       setLeads(projectLeads);
+
+      const map = {};
+      if (Array.isArray(projectsData)) {
+        projectsData.forEach(p => { if (p.lead_id) map[p.lead_id] = p; });
+      }
+      setProjects(map);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -75,7 +87,11 @@ export default function LeadPipeline() {
     await updateStatus(leadId, 'won');
     if (createProject) {
       try {
-        await fetch(`${API_BASE_URL}/api/projects/from-lead/${leadId}`, { method: 'POST', headers: mkHeaders() });
+        const res = await fetch(`${API_BASE_URL}/api/projects/from-lead/${leadId}`, { method: 'POST', headers: mkHeaders() });
+        if (res.ok) {
+          const p = await res.json();
+          setProjects(prev => ({ ...prev, [leadId]: p }));
+        }
       } catch (e) { console.error(e); }
       setProjectSuccess(true);
       setTimeout(() => setProjectSuccess(false), 3000);
@@ -135,7 +151,8 @@ export default function LeadPipeline() {
               <LeadCard key={lead.id} lead={lead} onDragStart={() => {}} onOpenProfile={() => navigate(`/app/leads/${lead.id}`)}
                 onStartAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
                 onDelete={() => setDeleteConfirm(lead.id)} isAdmin={user?.role === 'admin'} columns={COLUMNS} onStatusChange={handleStatusChange}
-                isInProgress={COLUMNS[activeTab].id === 'won'} />
+                isInProgress={COLUMNS[activeTab].id === 'won'} project={projects[lead.id]}
+                onOpenProject={id => navigate(`/app/projects/${id}`)} />
             ))}
             {getColumnLeads(COLUMNS[activeTab].id).length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)', fontSize: 12, border: '1.5px dashed var(--border-medium)', borderRadius: 'var(--radius-lg)' }}>
@@ -181,7 +198,8 @@ export default function LeadPipeline() {
                       onOpenProfile={() => navigate(`/app/leads/${lead.id}`)}
                       onStartAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
                       onDelete={() => setDeleteConfirm(lead.id)} isAdmin={user?.role === 'admin'} columns={COLUMNS} onStatusChange={handleStatusChange}
-                      isInProgress={col.id === 'won'} />
+                      isInProgress={col.id === 'won'} project={projects[lead.id]}
+                      onOpenProject={id => navigate(`/app/projects/${id}`)} />
                   ))}
                   {colLeads.length === 0 && (
                     <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, border: '1.5px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>
@@ -270,7 +288,9 @@ export default function LeadPipeline() {
 
 // ── Lead Card ──
 
-function LeadCard({ lead, onDragStart, onOpenProfile, onStartAudit, onDelete, isAdmin, columns, onStatusChange, isInProgress }) {
+const phaseNum = (status) => { const m = String(status || '').match(/phase_(\d)/); return m ? parseInt(m[1]) : null; };
+
+function LeadCard({ lead, onDragStart, onOpenProfile, onStartAudit, onDelete, isAdmin, columns, onStatusChange, isInProgress, project, onOpenProject }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const hasAudit = lead.analysis_score > 0;
   const scoreColor = (s) => s >= 70 ? 'var(--status-success-text)' : s >= 40 ? 'var(--status-warning-text)' : 'var(--status-danger-text)';
@@ -364,6 +384,25 @@ function LeadCard({ lead, onDragStart, onOpenProfile, onStartAudit, onDelete, is
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Tag {daysSinceCreated}</span>
         )}
       </div>
+
+      {/* Project chip */}
+      {lead.status === 'won' && project && (
+        <div onClick={() => onOpenProject(project.id)} style={{
+          marginTop: 6, padding: '5px 8px',
+          background: 'rgba(13,110,253,0.08)', border: '1px solid rgba(13,110,253,0.18)',
+          borderRadius: 'var(--radius-md)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 7,
+        }}>
+          <span style={{ fontSize: 14, flexShrink: 0 }}>📁</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#0d6efd' }}>Projekt aktiv</div>
+            <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+              {phaseNum(project.status) ? `Phase ${phaseNum(project.status)} von 7` : project.status}
+            </div>
+          </div>
+          <span style={{ fontSize: 10, color: 'rgba(13,110,253,0.5)', flexShrink: 0 }}>→</span>
+        </div>
+      )}
     </div>
   );
 }

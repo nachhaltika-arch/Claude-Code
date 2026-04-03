@@ -116,6 +116,7 @@ const NAV_SECTIONS = [
 
 const PAGE_NAMES = {
   '/app/dashboard': 'Dashboard',
+  '/app/portal': 'Mein Projekt',
   '/app/sales': 'Vertriebspipeline',
   '/app/leads': 'Projektpipeline',
   '/app/customers': 'Kunden',
@@ -181,6 +182,29 @@ function SidebarNav({ badges }) {
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
+        {/* Kunde-only: Mein Projekt link */}
+        {user?.role === 'kunde' && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-tertiary)', opacity: 0.4, letterSpacing: '0.1em', padding: '0 10px', marginBottom: 4 }}>
+              Mein Bereich
+            </div>
+            {[{ label: 'Mein Projekt', path: '/app/portal', icon: 'chart' }].map((item) => {
+              const active = isActive(item.path);
+              return (
+                <button key={item.path} onClick={() => navigate(item.path)} style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '8px 10px', background: active ? 'var(--brand-primary-light, rgba(0,142,170,0.1))' : 'transparent',
+                  border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer',
+                  color: active ? 'var(--brand-primary)' : 'var(--text-secondary)', textAlign: 'left',
+                  fontWeight: active ? 600 : 400, fontSize: 13, fontFamily: 'var(--font-sans)',
+                }}>
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>📋</span>
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
         {NAV_SECTIONS.map((section) => {
           const visibleItems = section.items.filter(i => !i.adminOnly || hasRole('admin'));
           if (visibleItems.length === 0) return null;

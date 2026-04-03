@@ -46,6 +46,7 @@ import Courses from './pages/Courses';
 import DomainImport from './pages/DomainImport';
 import CustomerPortal from './pages/CustomerPortal';
 import CustomerDetail from './pages/CustomerDetail';
+import KundenPortal from './pages/KundenPortal';
 import PackageStarter from './pages/PackageStarter';
 import PackageKompagnon from './pages/PackageKompagnon';
 import PackagePremium from './pages/PackagePremium';
@@ -149,6 +150,7 @@ function App() {
             <Route path="product" element={<PrivateRoute roles={['admin']}><ProductDevelopment /></PrivateRoute>} />
             {/* Academy — neue Routen */}
             <Route path="courses" element={<PrivateRoute roles={['admin', 'auditor']}><Courses /></PrivateRoute>} />
+            <Route path="portal" element={<PrivateRoute roles={['kunde']}><KundenPortal /></PrivateRoute>} />
             <Route path="academy" element={<Academy />} />
             <Route path="academy/:id" element={<AcademyCourseNew />} />
             <Route path="academy/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />

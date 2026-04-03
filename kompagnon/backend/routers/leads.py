@@ -167,6 +167,7 @@ def list_leads(
                 'register_court': lead.register_court or '',
                 'ceo_first_name': lead.ceo_first_name or '',
                 'ceo_last_name': lead.ceo_last_name or '',
+                'geschaeftsfuehrer': lead.geschaeftsfuehrer or '',
                 'created_at': str(lead.created_at)[:10] if lead.created_at else '',
                 'updated_at': str(lead.updated_at)[:10] if lead.updated_at else '',
             })
@@ -220,10 +221,10 @@ def export_leads_csv(db: Session = Depends(get_db)):
     leads = db.query(Lead).order_by(Lead.created_at.desc()).all()
     output = _io.StringIO()
     writer = csv.writer(output, delimiter=";")
-    writer.writerow(["ID", "Firmenname", "Ansprechpartner", "Telefon", "E-Mail", "Website", "Stadt", "Gewerk", "Status", "Score", "Quelle", "Erstellt am"])
+    writer.writerow(["ID", "Firmenname", "Geschäftsführer", "Ansprechpartner", "Telefon", "E-Mail", "Website", "Stadt", "Gewerk", "Status", "Score", "Quelle", "Erstellt am"])
     for lead in leads:
         writer.writerow([
-            lead.id, lead.company_name or "", lead.contact_name or "", lead.phone or "",
+            lead.id, lead.company_name or "", lead.geschaeftsfuehrer or "", lead.contact_name or "", lead.phone or "",
             lead.email or "", lead.website_url or "", lead.city or "", lead.trade or "",
             lead.status or "", lead.analysis_score or 0, lead.lead_source or "",
             str(lead.created_at)[:10] if lead.created_at else "",
@@ -707,6 +708,7 @@ def verify_portal_access(token: str, data: dict, db: Session = Depends(get_db)):
         'register_court': lead.register_court or '',
         'ceo_first_name': lead.ceo_first_name or '',
         'ceo_last_name': lead.ceo_last_name or '',
+        'geschaeftsfuehrer': lead.geschaeftsfuehrer or '',
     }
 
 
@@ -1181,6 +1183,7 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
             "register_court": getattr(lead, 'register_court', '') or '',
             "ceo_first_name": getattr(lead, 'ceo_first_name', '') or '',
             "ceo_last_name": getattr(lead, 'ceo_last_name', '') or '',
+            "geschaeftsfuehrer": getattr(lead, 'geschaeftsfuehrer', '') or '',
             "display_name": getattr(lead, 'display_name', '') or '',
         },
         "current_score": latest_audit.total_score if latest_audit else None,

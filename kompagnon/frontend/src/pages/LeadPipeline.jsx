@@ -224,11 +224,18 @@ function LeadCard({ lead, onDragStart, onOpenProfile, onStartAudit, onDelete, is
     >
       {/* Name */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 4, marginBottom: 4 }}>
-        <div onClick={onOpenProfile} style={{
-          fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', cursor: 'pointer',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
-        }}>
-          {lead.company_name || 'Unbekannt'}
+        <div onClick={onOpenProfile} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+          <div style={{
+            fontSize: 12, fontWeight: 500, color: 'var(--text-primary)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {lead.company_name || 'Unbekannt'}
+          </div>
+          {lead.geschaeftsfuehrer && (
+            <div style={{ fontSize: 11, color: '#6c757d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {lead.geschaeftsfuehrer}
+            </div>
+          )}
         </div>
         <div style={{ position: 'relative' }}>
           <button onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }} style={{

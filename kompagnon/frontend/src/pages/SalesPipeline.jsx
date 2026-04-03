@@ -195,35 +195,74 @@ export default function SalesPipeline() {
   );
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function getDomain(url) {
+  if (!url) return null;
+  try { return new URL(url.startsWith('http') ? url : 'https://' + url).hostname.replace('www.', ''); } catch { return url; }
+}
+
+function scoreStyle(score) {
+  if (!score || score === 0) return null;
+  if (score >= 70) return { bg: '#EAF4E0', text: '#3B6D11' };
+  if (score >= 50) return { bg: '#FEF3DC', text: '#BA7517' };
+  return { bg: '#FDEAEA', text: '#E24B4A' };
+}
+
+const CERT_STYLES = {
+  bronze:  { bg: '#F5E6D3', text: '#7D4A1A' },
+  silber:  { bg: '#EFEFEF', text: '#5A5A5A' },
+  gold:    { bg: '#FEF3DC', text: '#BA7517' },
+  platin:  { bg: '#E6F1FB', text: '#185FA5' },
+  diamant: { bg: '#EAF4E0', text: '#1D9E75' },
+};
+
+function fmtDate(iso) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
 // ── Sales Card ──
 
 function SalesCard({ lead, col, columns, onDragStart, onOpen, onAudit, onDelete, onStatusChange, isAdmin }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const hasScore = lead.analysis_score > 0;
-  const sc = hasScore ? (lead.analysis_score >= 70 ? 'var(--status-success-text)' : lead.analysis_score >= 50 ? 'var(--status-warning-text)' : 'var(--status-danger-text)') : null;
-
-  const getDomain = (url) => {
-    if (!url) return null;
-    try { return new URL(url.startsWith('http') ? url : 'https://' + url).hostname.replace('www.', ''); } catch { return url; }
-  };
+  const domain    = getDomain(lead.website_url);
+  const sc        = scoreStyle(lead.analysis_score);
+  const certKey   = (lead.audit_level || '').toLowerCase();
+  const certStyle = CERT_STYLES[certKey];
 
   return (
-    <div draggable onDragStart={e => onDragStart(e, lead)} style={{
-      background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
-      border: '1px solid var(--border-light)', padding: '10px 12px', cursor: 'grab',
-      boxShadow: 'var(--shadow-card)', transition: 'all 0.15s', position: 'relative',
-    }}
-    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-medium)'; e.currentTarget.style.boxShadow = 'var(--shadow-elevated)'; }}
-    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
+    <div
+      draggable
+      onDragStart={e => onDragStart(e, lead)}
+      onClick={onOpen}
+      style={{
+        background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--border-light)', padding: '11px 12px',
+        cursor: 'grab', boxShadow: 'var(--shadow-card)', transition: 'all 0.15s',
+        position: 'relative', display: 'flex', flexDirection: 'column', gap: 7,
+      }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = col.color; e.currentTarget.style.boxShadow = 'var(--shadow-elevated)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6, gap: 6 }}>
-        <div onClick={onOpen} style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', cursor: 'pointer', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-          onMouseEnter={e => e.currentTarget.style.color = 'var(--brand-primary)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-primary)'}>
-          {lead.company_name || 'Unbekannt'}
+      {/* ── Row 1: name + menu ── */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {lead.company_name || 'Unbekannt'}
+          </div>
+          {domain && (
+            <div style={{ fontSize: 10, color: 'var(--brand-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+              {domain}
+            </div>
+          )}
         </div>
-        <div style={{ position: 'relative' }}>
-          <button onClick={e => { e.stopPropagation(); setMenuOpen(!menuOpen); }} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 14, padding: '0 2px', lineHeight: 1 }}>⋯</button>
+        {/* Context menu */}
+        <div style={{ position: 'relative', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+          <button
+            onClick={e => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}
+          >⋯</button>
           {menuOpen && (
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => setMenuOpen(false)} />
@@ -232,7 +271,7 @@ function SalesCard({ lead, col, columns, onDragStart, onOpen, onAudit, onDelete,
                 <MItem onClick={() => { onOpen(); setMenuOpen(false); }}>👤 Kundenkartei</MItem>
                 <MItem onClick={() => { onAudit(); setMenuOpen(false); }}>🔍 Audit starten</MItem>
                 <div style={{ borderTop: '1px solid var(--border-light)', padding: '4px 0' }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', padding: '4px 12px', letterSpacing: '0.06em' }}>Status</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', padding: '4px 12px', letterSpacing: '0.06em' }}>Status ändern</div>
                   {columns.filter(c => c.id !== lead.status).map(c => (
                     <MItem key={c.id} onClick={() => { onStatusChange(lead.id, c.id); setMenuOpen(false); }} style={{ color: c.color }}>{c.icon} {c.label}</MItem>
                   ))}
@@ -248,27 +287,36 @@ function SalesCard({ lead, col, columns, onDragStart, onOpen, onAudit, onDelete,
         </div>
       </div>
 
-      {lead.website_url && (
-        <div style={{ fontSize: 10, color: 'var(--brand-primary)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          🌐 {getDomain(lead.website_url)}
+      {/* ── Row 2: Stadt + Gewerk tags ── */}
+      {(lead.city || lead.trade) && (
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          {lead.city  && <span style={{ fontSize: 10, color: 'var(--text-secondary)', background: 'var(--bg-app)', border: '1px solid var(--border-light)', padding: '1px 6px', borderRadius: 10 }}>📍 {lead.city}</span>}
+          {lead.trade && <span style={{ fontSize: 10, color: 'var(--text-secondary)', background: 'var(--bg-app)', border: '1px solid var(--border-light)', padding: '1px 6px', borderRadius: 10 }}>🔧 {lead.trade}</span>}
         </div>
       )}
 
-      {hasScore ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-          <div style={{ flex: 1, height: 3, background: 'var(--border-light)', borderRadius: 2 }}>
-            <div style={{ width: `${lead.analysis_score}%`, height: '100%', background: sc, borderRadius: 2 }} />
-          </div>
-          <span style={{ fontSize: 11, fontWeight: 600, color: sc, flexShrink: 0 }}>{lead.analysis_score}</span>
-        </div>
-      ) : (
-        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 6 }}>Kein Audit</div>
-      )}
-
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {lead.city && <span style={{ fontSize: 10, color: 'var(--text-secondary)', background: 'var(--bg-app)', padding: '1px 6px', borderRadius: 'var(--radius-sm)' }}>📍 {lead.city}</span>}
-        {lead.trade && <span style={{ fontSize: 10, color: 'var(--text-secondary)', background: 'var(--bg-app)', padding: '1px 6px', borderRadius: 'var(--radius-sm)' }}>🔧 {lead.trade}</span>}
+      {/* ── Row 3: Score badge + Zertifizierung ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+        {sc ? (
+          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: sc.bg, color: sc.text }}>
+            ⭐ {lead.analysis_score}
+          </span>
+        ) : (
+          <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Kein Audit</span>
+        )}
+        {certStyle && (
+          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 10, background: certStyle.bg, color: certStyle.text }}>
+            🏅 {lead.audit_level}
+          </span>
+        )}
       </div>
+
+      {/* ── Row 4: Erstellungsdatum ── */}
+      {lead.created_at && (
+        <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+          📅 {fmtDate(lead.created_at)}
+        </div>
+      )}
     </div>
   );
 }

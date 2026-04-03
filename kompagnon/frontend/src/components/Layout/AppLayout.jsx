@@ -80,6 +80,8 @@ const NAV_SECTIONS = [
     items: [
       { label: 'Vertriebspipeline', path: '/app/sales',     icon: 'chart' },
       { label: 'Unternehmen',       path: '/app/companies', icon: 'users' },
+      { label: 'Domain Import',     path: '/app/import',    icon: 'users' },
+      { label: 'Export',            path: '/app/export',    icon: 'docCheck' },
       { label: 'Website Audit',     path: '/app/audit',     icon: 'docCheck' },
     ],
   },

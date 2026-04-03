@@ -6,21 +6,20 @@ const AREAS = {
   sales: {
     label: 'Sales', icon: '💼', color: 'var(--brand-primary)',
     items: [
-      { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
-      { label: 'Lead Pipeline', path: '/app/leads', icon: '👥' },
-      { label: 'Website Audit', path: '/app/audit', icon: '🔍' },
-      { label: 'Kontakt Import', path: '/app/import', icon: '📥' },
-      { label: 'Massen Export', path: '/app/export', icon: '📤' },
-      { label: 'Akademy', path: '/app/academy', icon: '🎓' },
+      { label: 'Dashboard',        path: '/app/dashboard', icon: '🏠' },
+      { label: 'Vertriebspipeline',path: '/app/sales',      icon: '📊' },
+      { label: 'Unternehmen',      path: '/app/companies',  icon: '🏢' },
+      { label: 'Website Audit',    path: '/app/audit',      icon: '🔍' },
+      { label: 'Akademie',         path: '/app/academy',    icon: '🎓' },
     ],
   },
   delivery: {
     label: 'Delivery', icon: '🚀', color: '#7c3aed',
     items: [
-      { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
-      { label: 'Kundenprojekte', path: '/app/projects', icon: '📋' },
-      { label: 'Website Audit', path: '/app/audit', icon: '🔍' },
-      { label: 'Akademy', path: '/app/academy', icon: '🎓' },
+      { label: 'Dashboard',      path: '/app/dashboard', icon: '🏠' },
+      { label: 'Projektpipeline',path: '/app/leads',     icon: '👥' },
+      { label: 'Kundenprojekte', path: '/app/projects',  icon: '📋' },
+      { label: 'Akademie',       path: '/app/academy',   icon: '🎓' },
     ],
   },
   quality: {

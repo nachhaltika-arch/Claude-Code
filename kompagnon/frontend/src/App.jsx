@@ -41,6 +41,7 @@ import AcademyEdit from './pages/AcademyEdit';
 import AcademyModuleEdit from './pages/AcademyModuleEdit';
 import AcademyCertificate from './pages/AcademyCertificate';
 import SalesPipeline from './pages/SalesPipeline';
+import Companies from './pages/Companies';
 import CustomerDashboard from './pages/CustomerDashboard';
 import Courses from './pages/Courses';
 import DomainImport from './pages/DomainImport';
@@ -132,6 +133,7 @@ function App() {
             <Route path="dashboard" element={<DashboardRoute />} />
             <Route path="usercards/:id" element={<PrivateRoute><CustomerDashboard /></PrivateRoute>} />
             <Route path="sales" element={<PrivateRoute roles={['admin', 'auditor']}><SalesPipeline /></PrivateRoute>} />
+            <Route path="companies" element={<PrivateRoute roles={['admin', 'auditor']}><Companies /></PrivateRoute>} />
             <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
             <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
             <Route path="projects" element={<PrivateRoute roles={['admin', 'auditor']}><CustomerProjects /></PrivateRoute>} />

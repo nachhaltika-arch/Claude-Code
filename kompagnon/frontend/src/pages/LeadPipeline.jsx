@@ -23,6 +23,8 @@ export default function LeadPipeline() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [dragOver, setDragOver] = useState(null);
   const [dragging, setDragging] = useState(null);
+  const [wonModal, setWonModal] = useState(null);    // { leadId, leadName }
+  const [projectSuccess, setProjectSuccess] = useState(false);
 
   const fetchedRef = useRef(false);
 
@@ -57,9 +59,32 @@ export default function LeadPipeline() {
     } catch (e) { console.error(e); }
   };
 
+  // Intercept status changes that set a lead to "won"
+  const handleStatusChange = (leadId, newStatus) => {
+    if (newStatus === 'won') {
+      const lead = leads.find(l => l.id === leadId);
+      setWonModal({ leadId, leadName: lead?.company_name || `Lead #${leadId}` });
+    } else {
+      updateStatus(leadId, newStatus);
+    }
+  };
+
+  const confirmWon = async (createProject) => {
+    const { leadId } = wonModal;
+    setWonModal(null);
+    await updateStatus(leadId, 'won');
+    if (createProject) {
+      try {
+        await fetch(`${API_BASE_URL}/api/projects/from-lead/${leadId}`, { method: 'POST', headers: mkHeaders() });
+      } catch (e) { console.error(e); }
+      setProjectSuccess(true);
+      setTimeout(() => setProjectSuccess(false), 3000);
+    }
+  };
+
   const handleDragStart = (e, lead) => { setDragging(lead); e.dataTransfer.effectAllowed = 'move'; };
   const handleDragOver = (e, colId) => { e.preventDefault(); setDragOver(colId); };
-  const handleDrop = (e, colId) => { e.preventDefault(); if (dragging && dragging.status !== colId) updateStatus(dragging.id, colId); setDragging(null); setDragOver(null); };
+  const handleDrop = (e, colId) => { e.preventDefault(); if (dragging && dragging.status !== colId) handleStatusChange(dragging.id, colId); setDragging(null); setDragOver(null); };
 
   const deleteLead = async (id) => {
     try {
@@ -109,7 +134,7 @@ export default function LeadPipeline() {
             {getColumnLeads(COLUMNS[activeTab].id).map(lead => (
               <LeadCard key={lead.id} lead={lead} onDragStart={() => {}} onOpenProfile={() => navigate(`/app/leads/${lead.id}`)}
                 onStartAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
-                onDelete={() => setDeleteConfirm(lead.id)} isAdmin={user?.role === 'admin'} columns={COLUMNS} onStatusChange={updateStatus}
+                onDelete={() => setDeleteConfirm(lead.id)} isAdmin={user?.role === 'admin'} columns={COLUMNS} onStatusChange={handleStatusChange}
                 isInProgress={COLUMNS[activeTab].id === 'won'} />
             ))}
             {getColumnLeads(COLUMNS[activeTab].id).length === 0 && (
@@ -155,7 +180,7 @@ export default function LeadPipeline() {
                     <LeadCard key={lead.id} lead={lead} onDragStart={handleDragStart}
                       onOpenProfile={() => navigate(`/app/leads/${lead.id}`)}
                       onStartAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
-                      onDelete={() => setDeleteConfirm(lead.id)} isAdmin={user?.role === 'admin'} columns={COLUMNS} onStatusChange={updateStatus}
+                      onDelete={() => setDeleteConfirm(lead.id)} isAdmin={user?.role === 'admin'} columns={COLUMNS} onStatusChange={handleStatusChange}
                       isInProgress={col.id === 'won'} />
                   ))}
                   {colLeads.length === 0 && (
@@ -167,6 +192,51 @@ export default function LeadPipeline() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* "Projekt anlegen?" Modal */}
+      {wonModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', boxShadow: 'var(--shadow-elevated)' }}>
+            <div style={{ fontSize: 22, textAlign: 'center', marginBottom: 12 }}>🎉</div>
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10, textAlign: 'center' }}>
+              Projekt anlegen?
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 22, textAlign: 'center', lineHeight: 1.5 }}>
+              Der Lead <strong>{wonModal.leadName}</strong> wurde als gewonnen markiert.
+              Soll ich jetzt automatisch ein Projekt anlegen?
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button onClick={() => confirmWon(true)} style={{
+                padding: '11px 16px', background: 'var(--brand-primary)', color: '#fff',
+                border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'var(--font-sans)',
+              }}>
+                ✅ Ja, Projekt anlegen
+              </button>
+              <button onClick={() => confirmWon(false)} style={{
+                padding: '11px 16px', background: 'var(--bg-hover)', color: 'var(--text-secondary)',
+                border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+                fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+              }}>
+                Nur Status speichern
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success toast */}
+      {projectSuccess && (
+        <div style={{
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          background: 'var(--status-success-bg)', color: 'var(--status-success-text)',
+          border: '1px solid var(--status-success-text)', borderRadius: 'var(--radius-full)',
+          padding: '10px 20px', fontSize: 13, fontWeight: 600, zIndex: 1100,
+          boxShadow: 'var(--shadow-elevated)', whiteSpace: 'nowrap',
+        }}>
+          ✅ Projekt wurde angelegt!
         </div>
       )}
 

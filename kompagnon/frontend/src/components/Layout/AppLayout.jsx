@@ -79,7 +79,7 @@ const NAV_SECTIONS = [
     title: 'Sales',
     items: [
       { label: 'Vertriebspipeline', path: '/app/sales',     icon: 'chart' },
-      { label: 'Unternehmen',       path: '/app/companies', icon: 'users' },
+      { label: 'Unternehmen',       path: '/app/companies', icon: 'users', activePaths: ['/app/companies', '/app/leads/'] },
       { label: 'Domain Import',     path: '/app/import',    icon: 'users' },
       { label: 'Export',            path: '/app/export',    icon: 'docCheck' },
       { label: 'Website Audit',     path: '/app/audit',     icon: 'docCheck' },
@@ -88,7 +88,7 @@ const NAV_SECTIONS = [
   {
     title: 'Delivery',
     items: [
-      { label: 'Projektpipeline', path: '/app/leads', icon: 'chart' },
+      { label: 'Projektpipeline', path: '/app/leads', icon: 'chart', exactMatch: true },
       { label: 'Kundenprojekte', path: '/app/projects', icon: 'users' },
     ],
   },
@@ -155,7 +155,14 @@ function SidebarNav({ badges }) {
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
+  const isActive = (item) => {
+    const p = typeof item === 'string' ? item : item.path;
+    if (item.exactMatch)  return location.pathname === p;
+    if (item.activePaths) return item.activePaths.some(ap =>
+      ap.endsWith('/') ? location.pathname.startsWith(ap) : location.pathname === ap
+    );
+    return location.pathname === p || location.pathname.startsWith(p + '/');
+  };
 
   return (
     <aside style={{
@@ -196,7 +203,7 @@ function SidebarNav({ badges }) {
               { label: 'Akademie',     path: '/app/academy',                                              icon: '🎓' },
               { label: 'Einstellungen',path: '/app/settings',                                             icon: '⚙️' },
             ].map((item) => {
-              const active = isActive(item.path);
+              const active = isActive(item);
               return (
                 <button key={item.path} onClick={() => navigate(item.path)} style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10,
@@ -229,7 +236,7 @@ function SidebarNav({ badges }) {
                   {section.title}
                 </div>
                 {visibleItems.map((item) => {
-                  const active = isActive(item.path);
+                  const active = isActive(item);
                   return (
                     <button
                       key={item.path}
@@ -461,9 +468,10 @@ export default function AppLayout() {
   const [badges] = useState({ pipeline: 0, audits: 0 });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const pageName = PAGE_NAMES[location.pathname] ||
-    Object.entries(PAGE_NAMES).find(([p]) => location.pathname.startsWith(p + '/'))?.[1] ||
-    'KOMPAGNON';
+  const pageName = location.pathname.match(/^\/app\/leads\/\d+/) ? 'Nutzerkartei'
+    : PAGE_NAMES[location.pathname]
+    || Object.entries(PAGE_NAMES).find(([p]) => location.pathname.startsWith(p + '/'))?.[1]
+    || 'KOMPAGNON';
 
   const ctaMap = {
     '/app/dashboard': null,

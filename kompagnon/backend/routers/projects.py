@@ -394,9 +394,9 @@ def trigger_automation(
 @router.post("/from-lead/{lead_id}", status_code=201)
 def create_project_from_lead(lead_id: int, db: Session = Depends(get_db)):
     """
-    Automatically create a project from a won lead.
+    Create a project from any lead (Nutzerkartei).
 
-    - 400 if lead status is not 'won'
+    - 404 if lead not found
     - 409 if a project for this lead already exists
     - 201 + project JSON on success
     """
@@ -405,19 +405,12 @@ def create_project_from_lead(lead_id: int, db: Session = Depends(get_db)):
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
-    # 2. Verify won status
-    if lead.status != "won":
-        raise HTTPException(
-            status_code=400,
-            detail=f"Lead ist nicht als gewonnen markiert (aktueller Status: {lead.status or 'unbekannt'})",
-        )
-
-    # 3. Guard against duplicates
+    # 2. Guard against duplicates
     existing = db.query(Project).filter(Project.lead_id == lead_id).first()
     if existing:
         raise HTTPException(status_code=409, detail="Für diesen Lead existiert bereits ein Projekt")
 
-    # 4. Create project
+    # 3. Create project
     company_name = lead.company_name or f"Lead #{lead_id}"
     now = datetime.utcnow()
     project = Project(
@@ -427,11 +420,22 @@ def create_project_from_lead(lead_id: int, db: Session = Depends(get_db)):
         created_at=now,
         updated_at=now,
     )
+    # Set extra columns via setattr so missing ORM fields don't crash
+    for col, val in [
+        ("company_name", company_name),
+        ("website_url",  lead.website_url),
+        ("contact_name", lead.contact_name),
+        ("contact_email", lead.email),
+    ]:
+        try:
+            setattr(project, col, val)
+        except Exception:
+            pass
     db.add(project)
     db.commit()
     db.refresh(project)
 
-    # 5. Try to find an existing customer linked to a project with the same e-mail
+    # 4. Try to find an existing customer linked via email
     customer_id = None
     if lead.email:
         linked = (
@@ -450,6 +454,7 @@ def create_project_from_lead(lead_id: int, db: Session = Depends(get_db)):
         "status": project.status,
         "company_name": company_name,
         "project_name": f"Website – {company_name}",
+        "website_url": lead.website_url,
         "start_date": project.start_date.isoformat(),
         "created_at": project.created_at.isoformat(),
         "customer_id": customer_id,

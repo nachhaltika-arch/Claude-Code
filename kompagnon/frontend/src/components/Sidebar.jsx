@@ -61,43 +61,40 @@ export default function Sidebar() {
   const switchArea = (id) => { setActiveArea(id); localStorage.setItem('kompagnon_area', id); setAreaOpen(false); navigate('/app/dashboard'); };
   const currentArea = AREAS[activeArea] || AREAS.sales;
 
-  // ── Restricted "Kunde" sidebar ──────────────────────────────────────────────
+  // Kunden-Modus: eigenes Menü ohne Bereichs-Switcher
   if (user?.role === 'kunde') {
-    const kundePaths = ['/app/dashboard', '/app/settings', '/app/academy', '/app/kurse'];
-    if (user.lead_id) {
-      kundePaths.push(`/app/usercards/${user.lead_id}`, `/app/leads/${user.lead_id}`);
-    }
-
     const kundeItems = [
-      { label: 'Dashboard',     path: '/app/dashboard',                                        icon: '🏠' },
-      ...(user.lead_id ? [{ label: 'Meine Kartei', path: `/app/usercards/${user.lead_id}`, icon: '📋' }] : []),
-      { label: 'Akademy',       path: '/app/academy',                                          icon: '🎓' },
-      { label: 'Einstellungen', path: '/app/settings',                                         icon: '⚙️' },
-    ].filter(item => kundePaths.some(p => item.path.startsWith(p)));
+      { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
+      { label: 'Meine Kartei', path: user.lead_id ? `/app/leads/${user.lead_id}` : '/app/dashboard', icon: '📋' },
+      { label: 'Akademie', path: '/app/academy', icon: '🎓' },
+      { label: 'Einstellungen', path: '/app/settings', icon: '⚙️' },
+    ];
     return (
       <aside className="sidebar">
+        {/* Logo */}
         <div className="px-4 py-5 border-b border-white/10">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/app/dashboard')}>
             <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
-              <span className="text-white font-black text-sm">HS</span>
+              <span className="text-white font-black text-sm">K</span>
             </div>
             <div>
               <div className="text-white font-bold text-sm tracking-wide">KOMPAGNON</div>
-              <div className="text-kompagnon-300 text-xs">Kunden-Portal</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Kundenportal</div>
             </div>
           </div>
         </div>
+        {/* Kunde Navigation */}
         <nav className="flex-1 px-2 py-3 overflow-y-auto" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {kundeItems.map((item) => {
             const active = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
             return (
               <button key={item.path} onClick={() => navigate(item.path)} style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-                background: active ? 'rgba(0,142,170,0.2)' : 'transparent', border: 'none',
-                borderRadius: 'var(--radius-md)', cursor: 'pointer',
+                background: active ? 'var(--brand-primary)20' : 'transparent',
+                border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer',
                 color: active ? '#fff' : 'rgba(255,255,255,0.65)', textAlign: 'left',
                 borderLeft: active ? '3px solid var(--brand-primary)' : '3px solid transparent',
-                fontWeight: active ? 600 : 400, fontSize: 14, transition: 'all 0.15s',
+                fontWeight: active ? 600 : 400, fontSize: 14,
               }}>
                 <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
                 {item.label}
@@ -105,22 +102,16 @@ export default function Sidebar() {
             );
           })}
         </nav>
-        <div className="px-3 py-4 border-t border-white/10">
-          {user && (
-            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/5 mb-2">
-              <div className="w-8 h-8 rounded-full bg-kompagnon-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                {user.first_name?.[0] || 'K'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-white text-sm font-medium truncate">{user.first_name} {user.last_name}</div>
-                <div className="text-kompagnon-300 text-xs truncate">Kunde</div>
-              </div>
-            </div>
-          )}
-          <button onClick={() => { logout(); navigate('/'); }} className="w-full nav-item text-red-400 hover:bg-red-500/10 hover:text-red-300">
-            <span>🚪</span>
-            <span>Abmelden</span>
-          </button>
+        {/* User info bottom */}
+        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13 }}>
+            {user.first_name?.[0] || 'K'}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.first_name} {user.last_name}</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Kunde</div>
+          </div>
+          <button onClick={logout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 18 }} title="Abmelden">⏻</button>
         </div>
       </aside>
     );

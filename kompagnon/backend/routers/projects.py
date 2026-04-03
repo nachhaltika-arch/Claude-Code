@@ -82,6 +82,27 @@ class PhaseChangeRequest(BaseModel):
     new_status: str
 
 
+class ProjectUpdateRequest(BaseModel):
+    website_url: str = None
+    cms_type: str = None
+    contact_name: str = None
+    contact_phone: str = None
+    contact_email: str = None
+    go_live_date: str = None        # ISO date string, e.g. "2025-09-01"
+    package_type: str = None
+    payment_status: str = None
+    desired_pages: str = None
+    has_logo: bool = None
+    has_briefing: bool = None
+    has_photos: bool = None
+    pagespeed_mobile: int = None
+    pagespeed_desktop: int = None
+    audit_score: int = None
+    audit_level: str = None
+    top_problems: str = None
+    industry: str = None
+
+
 class MarginResponse(BaseModel):
     human_hours: float
     human_costs: float
@@ -121,25 +142,57 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
     # Build response with lead data
     lead = project.lead
     return {
-        **{
-            "id": project.id,
-            "lead_id": project.lead_id,
-            "status": project.status,
-            "start_date": project.start_date,
-            "target_go_live": project.target_go_live,
-            "actual_go_live": project.actual_go_live,
-            "fixed_price": project.fixed_price,
-            "actual_hours": project.actual_hours,
-            "hourly_rate": project.hourly_rate,
-            "ai_tool_costs": project.ai_tool_costs,
-            "margin_percent": project.margin_percent,
-            "scope_creep_flags": project.scope_creep_flags,
-            "created_at": project.created_at,
-        },
+        "id": project.id,
+        "lead_id": project.lead_id,
+        "status": project.status,
+        "start_date": project.start_date,
+        "target_go_live": project.target_go_live,
+        "actual_go_live": project.actual_go_live,
+        "fixed_price": project.fixed_price,
+        "actual_hours": project.actual_hours,
+        "hourly_rate": project.hourly_rate,
+        "ai_tool_costs": project.ai_tool_costs,
+        "margin_percent": project.margin_percent,
+        "scope_creep_flags": project.scope_creep_flags,
+        "created_at": project.created_at,
+        # lead-derived defaults (fallback if project fields are empty)
         "company_name": lead.company_name if lead else "N/A",
-        "contact_name": lead.contact_name if lead else "N/A",
         "email": lead.email if lead else "N/A",
+        # redesign fields
+        "website_url": getattr(project, "website_url", None),
+        "cms_type": getattr(project, "cms_type", None),
+        "contact_name": getattr(project, "contact_name", None) or (lead.contact_name if lead else None),
+        "contact_phone": getattr(project, "contact_phone", None),
+        "contact_email": getattr(project, "contact_email", None),
+        "go_live_date": getattr(project, "go_live_date", None),
+        "package_type": getattr(project, "package_type", None),
+        "payment_status": getattr(project, "payment_status", None),
+        "desired_pages": getattr(project, "desired_pages", None),
+        "has_logo": getattr(project, "has_logo", None),
+        "has_briefing": getattr(project, "has_briefing", None),
+        "has_photos": getattr(project, "has_photos", None),
+        "pagespeed_mobile": getattr(project, "pagespeed_mobile", None),
+        "pagespeed_desktop": getattr(project, "pagespeed_desktop", None),
+        "audit_score": getattr(project, "audit_score", None),
+        "audit_level": getattr(project, "audit_level", None),
+        "top_problems": getattr(project, "top_problems", None),
+        "industry": getattr(project, "industry", None),
     }
+
+
+@router.put("/{project_id}")
+def update_project(project_id: int, body: ProjectUpdateRequest, db: Session = Depends(get_db)):
+    """Update redesign fields on a project."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    update_data = body.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(project, key, value)
+    db.commit()
+    db.refresh(project)
+    return {"id": project.id, "updated": list(update_data.keys())}
 
 
 @router.patch("/{project_id}/phase")

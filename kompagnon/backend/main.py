@@ -385,6 +385,25 @@ def _run_migrations():
             uploaded_at TIMESTAMP DEFAULT NOW(),
             note TEXT DEFAULT ''
         )""",
+        # Redesign fields on projects
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS website_url VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS cms_type VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS contact_name VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS contact_phone VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS contact_email VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS go_live_date DATE",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS package_type VARCHAR DEFAULT 'kompagnon'",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS payment_status VARCHAR DEFAULT 'offen'",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS desired_pages TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS has_logo BOOLEAN DEFAULT false",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS has_briefing BOOLEAN DEFAULT false",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS has_photos BOOLEAN DEFAULT false",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_mobile INTEGER",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_desktop INTEGER",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS audit_score INTEGER",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS audit_level VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS top_problems TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS industry VARCHAR",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

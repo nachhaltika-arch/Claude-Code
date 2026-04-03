@@ -98,6 +98,10 @@ export default function LeadProfile() {
   const [domains, setDomains] = useState([]);
   const [domainForm, setDomainForm] = useState({ url: '', label: '', is_primary: false });
   const [domainAdding, setDomainAdding] = useState(false);
+  // Project
+  const [projectId, setProjectId] = useState(null);
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [wonModal, setWonModal] = useState(false);
 
   const h = {
     'Content-Type': 'application/json',
@@ -116,6 +120,7 @@ export default function LeadProfile() {
       setProfile(data);
       const lead = data.lead;
       setDisplayName(lead.display_name || lead.company_name || '');
+      setProjectId(data.project_id || null);
       setEditData({
         company_name: lead.company_name || '',
         display_name: lead.display_name || '',
@@ -211,6 +216,33 @@ export default function LeadProfile() {
     } catch {}
   };
 
+  const createProject = async () => {
+    setCreatingProject(true);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/projects/from-lead/${leadId}`,
+        { method: 'POST', headers: h }
+      );
+      const data = await res.json();
+      if (res.status === 409) {
+        // Project already exists — find and navigate to it
+        const projRes = await fetch(`${API_BASE_URL}/api/projects/?limit=200`, { headers: h });
+        const projects = await projRes.json();
+        const existing = Array.isArray(projects) ? projects.find(p => p.lead_id === parseInt(leadId)) : null;
+        if (existing) navigate(`/app/projects/${existing.id}`);
+        return;
+      }
+      if (!res.ok) throw new Error();
+      setProjectId(data.id);
+      setWonModal(false);
+      navigate(`/app/projects/${data.id}`);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCreatingProject(false);
+    }
+  };
+
   const updateStatus = async (status) => {
     try {
       await fetch(
@@ -218,6 +250,9 @@ export default function LeadProfile() {
         { method: 'PATCH', headers: h, body: JSON.stringify({ status }) }
       );
       await loadProfile();
+      if (status === 'won' && !projectId) {
+        setWonModal(true);
+      }
     } catch {}
   };
 
@@ -497,6 +532,16 @@ export default function LeadProfile() {
           <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 500, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
             ✏️ Bearbeiten
           </button>
+
+          {projectId ? (
+            <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 600, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              📁 Zum Projekt →
+            </button>
+          ) : (
+            <button onClick={createProject} disabled={creatingProject} style={{ background: creatingProject ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 600, padding: '7px 14px', cursor: creatingProject ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {creatingProject ? <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Anlegen…</> : '📁 Projekt anlegen'}
+            </button>
+          )}
 
           <select value={lead.status} onChange={e => updateStatus(e.target.value)} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, padding: '7px 12px', cursor: 'pointer', fontFamily: 'var(--font-sans)', outline: 'none' }}>
             <option value="new">Neu</option>
@@ -1466,6 +1511,31 @@ export default function LeadProfile() {
             <div style={{ display: 'flex', gap: 10 }}>
               <Button variant="secondary" fullWidth onClick={() => setDeleteAuditId(null)}>Abbrechen</Button>
               <Button variant="danger" fullWidth onClick={() => deleteAudit(deleteAuditId)}>Löschen</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GEWONNEN MODAL */}
+      {wonModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setWonModal(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#EAF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px' }}>🎉</div>
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Glückwunsch!</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6, lineHeight: 1.6 }}>
+              <strong>{lead.display_name || lead.company_name}</strong> wurde als gewonnen markiert.
+            </p>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>
+              Möchtest du jetzt ein Projekt anlegen?
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setWonModal(false)} style={{ flex: 1, padding: '10px 16px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                Nein, danke
+              </button>
+              <button onClick={createProject} disabled={creatingProject} style={{ flex: 1, padding: '10px 16px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: 'white', fontSize: 13, fontWeight: 600, cursor: creatingProject ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                {creatingProject ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Anlegen…</> : '📁 Ja, Projekt anlegen'}
+              </button>
             </div>
           </div>
         </div>

@@ -58,10 +58,14 @@ export default function Sidebar() {
   const [activeArea, setActiveArea] = useState(localStorage.getItem('kompagnon_area') || 'sales');
   const [areaOpen, setAreaOpen] = useState(false);
 
-  const switchArea = (id) => { setActiveArea(id); localStorage.setItem('kompagnon_area', id); setAreaOpen(false); navigate('/app/dashboard'); };
-  const currentArea = AREAS[activeArea] || AREAS.sales;
+  // Close area dropdown on outside click (must be before early return to satisfy rules-of-hooks)
+  useEffect(() => {
+    if (!areaOpen) return;
+    const close = () => setAreaOpen(false);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [areaOpen]);
 
-  // Kunden-Modus: eigenes Menü ohne Bereichs-Switcher
   if (user?.role === 'kunde') {
     const kundeItems = [
       { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
@@ -71,11 +75,10 @@ export default function Sidebar() {
     ];
     return (
       <aside className="sidebar">
-        {/* Logo */}
         <div className="px-4 py-5 border-b border-white/10">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/app/dashboard')}>
             <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
-              <span className="text-white font-black text-sm">K</span>
+              <span className="text-white font-black text-sm">KS</span>
             </div>
             <div>
               <div className="text-white font-bold text-sm tracking-wide">KOMPAGNON</div>
@@ -83,17 +86,16 @@ export default function Sidebar() {
             </div>
           </div>
         </div>
-        {/* Kunde Navigation */}
         <nav className="flex-1 px-2 py-3 overflow-y-auto" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {kundeItems.map((item) => {
             const active = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
             return (
               <button key={item.path} onClick={() => navigate(item.path)} style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-                background: active ? 'var(--brand-primary)20' : 'transparent',
+                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 12px', background: active ? 'rgba(13,110,253,0.2)' : 'transparent',
                 border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer',
                 color: active ? '#fff' : 'rgba(255,255,255,0.65)', textAlign: 'left',
-                borderLeft: active ? '3px solid var(--brand-primary)' : '3px solid transparent',
+                borderLeft: active ? '3px solid #0d6efd' : '3px solid transparent',
                 fontWeight: active ? 600 : 400, fontSize: 14,
               }}>
                 <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
@@ -102,13 +104,12 @@ export default function Sidebar() {
             );
           })}
         </nav>
-        {/* User info bottom */}
         <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13 }}>
-            {user.first_name?.[0] || 'K'}
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#0d6efd', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13 }}>
+            {(user.first_name?.[0] || 'K').toUpperCase()}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.first_name} {user.last_name}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{user.first_name} {user.last_name}</div>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Kunde</div>
           </div>
           <button onClick={logout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 18 }} title="Abmelden">⏻</button>
@@ -117,13 +118,8 @@ export default function Sidebar() {
     );
   }
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    if (!areaOpen) return;
-    const close = () => setAreaOpen(false);
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [areaOpen]);
+  const switchArea = (id) => { setActiveArea(id); localStorage.setItem('kompagnon_area', id); setAreaOpen(false); navigate('/app/dashboard'); };
+  const currentArea = AREAS[activeArea] || AREAS.sales;
 
   return (
     <aside className="sidebar">

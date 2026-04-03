@@ -43,7 +43,19 @@ async def enrich_lead(lead_id: int, db) -> dict:
     has_ssl = url.startswith("https")
     has_impressum = scraped.get("has_impressum", False)
 
-    # 2. PageSpeed score
+    # 2. North Data — Geschäftsführer lookup
+    try:
+        from northdata import fetch_geschaeftsfuehrer
+        company = enriched.get("company_name") or lead.company_name or ""
+        city = enriched.get("city") or lead.city or ""
+        if company and not lead.geschaeftsfuehrer:
+            gf = await fetch_geschaeftsfuehrer(company, city)
+            if gf:
+                enriched["geschaeftsfuehrer"] = gf
+    except Exception as exc:
+        logger.debug("NorthData enrichment skipped: %s", exc)
+
+    # 3. PageSpeed score
     pagespeed_score = 0
     try:
         api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
@@ -60,7 +72,7 @@ async def enrich_lead(lead_id: int, db) -> dict:
     except Exception:
         pass
 
-    # 3. Compute analysis score (0-100)
+    # 4. Compute analysis score (0-100)
     score = 0
     if has_ssl:
         score += 20
@@ -83,7 +95,7 @@ async def enrich_lead(lead_id: int, db) -> dict:
 
     geo_score = min(10, score // 10)
 
-    # 4. Update lead
+    # 5. Update lead
     try:
         for key, value in enriched.items():
             if value:

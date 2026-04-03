@@ -80,6 +80,7 @@ class Lead(Base):
     pagespeed_inp_mobile    = Column(Float,   nullable=True)
     pagespeed_fcp_mobile    = Column(Float,   nullable=True)
     pagespeed_checked_at    = Column(DateTime, nullable=True)
+    geschaeftsfuehrer       = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

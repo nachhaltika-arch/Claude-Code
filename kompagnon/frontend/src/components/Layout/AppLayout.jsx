@@ -78,10 +78,9 @@ const NAV_SECTIONS = [
   {
     title: 'Sales',
     items: [
-      { label: 'Vertriebspipeline', path: '/app/sales', icon: 'chart' },
-      { label: 'Domain Import', path: '/app/import', icon: 'users' },
-      { label: 'Export', path: '/app/export', icon: 'docCheck' },
-      { label: 'Website Audit', path: '/app/audit', icon: 'docCheck' },
+      { label: 'Vertriebspipeline', path: '/app/sales',     icon: 'chart' },
+      { label: 'Unternehmen',       path: '/app/companies', icon: 'users' },
+      { label: 'Website Audit',     path: '/app/audit',     icon: 'docCheck' },
     ],
   },
   {
@@ -128,6 +127,7 @@ const PAGE_NAMES = {
   '/app/academy/admin': 'Kurse verwalten',
   '/app/settings': 'Einstellungen',
   '/app/projects': 'Kundenprojekte',
+  '/app/companies': 'Unternehmen',
   '/app/import': 'Domain Import',
   '/app/export': 'Export',
   '/app/tickets': 'Support Tickets',
@@ -182,81 +182,85 @@ function SidebarNav({ badges }) {
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
-        {/* Kunde-only: Mein Projekt link */}
-        {user?.role === 'kunde' && (
+        {user?.role === 'kunde' ? (
+          /* ── Kunde: only these four items ── */
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-tertiary)', opacity: 0.4, letterSpacing: '0.1em', padding: '0 10px', marginBottom: 4 }}>
               Mein Bereich
             </div>
-            {[{ label: 'Mein Projekt', path: '/app/portal', icon: 'chart' }].map((item) => {
+            {[
+              { label: 'Dashboard',    path: '/app/dashboard',                                            icon: '🏠' },
+              { label: 'Meine Kartei', path: user.lead_id ? `/app/leads/${user.lead_id}` : '/app/dashboard', icon: '📋' },
+              { label: 'Akademie',     path: '/app/academy',                                              icon: '🎓' },
+              { label: 'Einstellungen',path: '/app/settings',                                             icon: '⚙️' },
+            ].map((item) => {
               const active = isActive(item.path);
               return (
                 <button key={item.path} onClick={() => navigate(item.path)} style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '8px 10px', background: active ? 'var(--brand-primary-light, rgba(0,142,170,0.1))' : 'transparent',
+                  padding: '7px 10px', background: active ? 'var(--bg-active)' : 'transparent',
                   border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer',
                   color: active ? 'var(--brand-primary)' : 'var(--text-secondary)', textAlign: 'left',
-                  fontWeight: active ? 600 : 400, fontSize: 13, fontFamily: 'var(--font-sans)',
-                }}>
-                  <span style={{ fontSize: 16, flexShrink: 0 }}>📋</span>
+                  fontWeight: active ? 500 : 400, fontSize: 13, fontFamily: 'var(--font-sans)',
+                  transition: 'background var(--transition-fast), color var(--transition-fast)',
+                }}
+                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}}
+                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}}
+                >
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>{item.icon}</span>
                   {item.label}
                 </button>
               );
             })}
           </div>
-        )}
-        {NAV_SECTIONS.map((section) => {
-          const visibleItems = section.items.filter(i => !i.adminOnly || hasRole('admin'));
-          if (visibleItems.length === 0) return null;
-          return (
-            <div key={section.title} style={{ marginBottom: 20 }}>
-              <div style={{
-                fontSize: 10,
-                fontWeight: 500,
-                color: 'var(--text-tertiary)',
-                opacity: 0.4,
-                letterSpacing: '0.1em',
-                padding: '0 10px',
-                marginBottom: 4,
-              }}>
-                {section.title}
+        ) : (
+          /* ── All other roles: full NAV_SECTIONS ── */
+          NAV_SECTIONS.map((section) => {
+            const visibleItems = section.items.filter(i => !i.adminOnly || hasRole('admin'));
+            if (visibleItems.length === 0) return null;
+            return (
+              <div key={section.title} style={{ marginBottom: 20 }}>
+                <div style={{
+                  fontSize: 10, fontWeight: 500, color: 'var(--text-tertiary)',
+                  opacity: 0.4, letterSpacing: '0.1em', padding: '0 10px', marginBottom: 4,
+                }}>
+                  {section.title}
+                </div>
+                {visibleItems.map((item) => {
+                  const active = isActive(item.path);
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => navigate(item.path)}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center',
+                        padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer', fontSize: 13, textAlign: 'left',
+                        fontFamily: 'var(--font-sans)',
+                        background: active ? 'var(--bg-active)' : 'transparent',
+                        color: active ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                        fontWeight: active ? 500 : 400,
+                        transition: 'background var(--transition-fast), color var(--transition-fast)',
+                      }}
+                      onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}}
+                      onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}}
+                    >
+                      <span>{item.label}</span>
+                      {item.badgeKey && badges[item.badgeKey] > 0 && (
+                        <span style={{
+                          marginLeft: 'auto', fontSize: 10, padding: '1px 6px', borderRadius: 10,
+                          background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', fontWeight: 600,
+                        }}>
+                          {badges[item.badgeKey]}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-              {visibleItems.map((item) => {
-                const active = isActive(item.path);
-                return (
-                  <button
-                    key={item.path}
-                    onClick={() => navigate(item.path)}
-                    style={{
-                      width: '100%', display: 'flex', alignItems: 'center',
-                      padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-md)',
-                      cursor: 'pointer', fontSize: 13, textAlign: 'left',
-                      fontFamily: 'var(--font-sans)',
-                      background: active ? 'var(--bg-active)' : 'transparent',
-                      color: active ? 'var(--brand-primary)' : 'var(--text-secondary)',
-                      fontWeight: active ? 500 : 400,
-                      transition: 'background var(--transition-fast), color var(--transition-fast)',
-                    }}
-                    onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}}
-                    onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}}
-                  >
-                    <span>{item.label}</span>
-                    {item.badgeKey && badges[item.badgeKey] > 0 && (
-                      <span style={{
-                        marginLeft: 'auto', fontSize: 10, padding: '1px 6px',
-                        borderRadius: 10,
-                        background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)',
-                        fontWeight: 600,
-                      }}>
-                        {badges[item.badgeKey]}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </nav>
 
       {/* Footer */}

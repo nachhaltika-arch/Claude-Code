@@ -28,27 +28,45 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 class ProjectResponse(BaseModel):
     id: int
-    lead_id: int
-    status: str
+    lead_id: int = None
+    status: str = None
     start_date: datetime = None
     target_go_live: datetime = None
     actual_go_live: datetime = None
-    fixed_price: float
-    actual_hours: float
-    hourly_rate: float
-    ai_tool_costs: float
-    margin_percent: float
-    scope_creep_flags: int
-    created_at: datetime
+    fixed_price: float = 0.0
+    actual_hours: float = 0.0
+    hourly_rate: float = 0.0
+    ai_tool_costs: float = 0.0
+    margin_percent: float = 0.0
+    scope_creep_flags: int = 0
+    created_at: datetime = None
+    # redesign fields
+    company_name: str = None
+    website_url: str = None
+    cms_type: str = None
+    contact_name: str = None
+    contact_phone: str = None
+    contact_email: str = None
+    go_live_date: str = None
+    package_type: str = None
+    payment_status: str = None
+    desired_pages: str = None
+    has_logo: bool = None
+    has_briefing: bool = None
+    has_photos: bool = None
+    pagespeed_mobile: int = None
+    pagespeed_desktop: int = None
+    audit_score: int = None
+    audit_level: str = None
+    top_problems: str = None
+    industry: str = None
 
     class Config:
         from_attributes = True
 
 
 class ProjectDetailResponse(ProjectResponse):
-    company_name: str
-    contact_name: str
-    email: str
+    email: str = None
 
 
 class TimeLogRequest(BaseModel):
@@ -128,8 +146,21 @@ def list_projects(
     query = db.query(Project)
     if status:
         query = query.filter(Project.status == status)
-    projects = query.offset(skip).limit(limit).all()
-    return projects
+    rows = query.offset(skip).limit(limit).all()
+    result = []
+    for p in rows:
+        lead = p.lead
+        d = {c.name: getattr(p, c.name) for c in p.__table__.columns}
+        if not d.get("company_name") and lead:
+            d["company_name"] = lead.company_name
+        if not d.get("website_url") and lead:
+            d["website_url"] = lead.website_url
+        if not d.get("contact_name") and lead:
+            d["contact_name"] = lead.contact_name
+        if not d.get("contact_email") and lead:
+            d["contact_email"] = lead.email
+        result.append(d)
+    return result
 
 
 @router.get("/{project_id}", response_model=ProjectDetailResponse)

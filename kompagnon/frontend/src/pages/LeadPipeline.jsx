@@ -35,16 +35,62 @@ function getDomain(url) {
   catch { return url; }
 }
 
+// ── Unified card type ─────────────────────────────────────────────────────────
+// { key, type, projectId, leadId, companyName, websiteUrl, phase, project, lead }
+
+function buildCards(projArray, leadsArray) {
+  const cards = [];
+  const projLeadIds = new Set();
+
+  // Cards from projects
+  const leadsById = {};
+  leadsArray.forEach(l => { leadsById[l.id] = l; });
+
+  projArray.forEach(p => {
+    const lead = leadsById[p.lead_id] || {};
+    projLeadIds.add(p.lead_id);
+    cards.push({
+      key:         `p-${p.id}`,
+      type:        'project',
+      projectId:   p.id,
+      leadId:      p.lead_id,
+      companyName: p.company_name || lead.company_name || `Projekt #${p.id}`,
+      websiteUrl:  p.website_url  || lead.website_url  || null,
+      phase:       p.status || 'phase_1',
+      project:     p,
+      lead,
+    });
+  });
+
+  // Won leads without a project → appear in Phase 1 as fallback
+  leadsArray
+    .filter(l => l.status === 'won' && !projLeadIds.has(l.id))
+    .forEach(l => {
+      cards.push({
+        key:         `l-${l.id}`,
+        type:        'lead',
+        projectId:   null,
+        leadId:      l.id,
+        companyName: l.company_name || `Lead #${l.id}`,
+        websiteUrl:  l.website_url  || null,
+        phase:       'phase_1',
+        project:     null,
+        lead:        l,
+      });
+    });
+
+  return cards;
+}
+
 export default function LeadPipeline() {
   const navigate         = useNavigate();
   const { user, token }  = useAuth();
   const { isMobile }     = useScreenSize();
-  const [activeTab, setActiveTab]   = useState(0);
-  const [leads, setLeads]           = useState([]);
-  const [projects, setProjects]     = useState({});   // lead_id → project
-  const [loading, setLoading]       = useState(true);
-  const [dragging, setDragging]     = useState(null);
-  const [dragOver, setDragOver]     = useState(null);
+  const [activeTab, setActiveTab] = useState(0);
+  const [cards, setCards]         = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [dragging, setDragging]   = useState(null);
+  const [dragOver, setDragOver]   = useState(null);
 
   const fetchedRef = useRef(false);
   const mkH = () => ({ 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) });
@@ -58,44 +104,39 @@ export default function LeadPipeline() {
   const loadData = async () => {
     try {
       const [leadsRes, projRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/leads/`, { headers: mkH() }),
+        fetch(`${API_BASE_URL}/api/leads/?limit=500`, { headers: mkH() }),
         fetch(`${API_BASE_URL}/api/projects/?limit=200`, { headers: mkH() }),
       ]);
       const leadsData = await leadsRes.json();
       const projData  = await projRes.json();
-
-      setLeads(Array.isArray(leadsData) ? leadsData : []);
-
-      const map = {};
-      if (Array.isArray(projData)) projData.forEach(p => { if (p.lead_id) map[p.lead_id] = p; });
-      setProjects(map);
+      setCards(buildCards(
+        Array.isArray(projData)  ? projData  : [],
+        Array.isArray(leadsData) ? leadsData : [],
+      ));
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
 
-  // Only leads that have a linked project
-  const projectLeads = leads.filter(l => !!projects[l.id]);
-
   const getColCards = (phaseId) =>
-    projectLeads.filter(l => projects[l.id]?.status === phaseId)
-      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    cards.filter(c => c.phase === phaseId)
+         .sort((a, b) => new Date(b.lead?.created_at || b.project?.created_at || 0)
+                       - new Date(a.lead?.created_at || a.project?.created_at || 0));
 
-  const updatePhase = async (leadId, newPhase) => {
-    const project = projects[leadId];
-    if (!project) return;
+  const updatePhase = async (card, newPhase) => {
+    if (!card.projectId) return; // won-lead fallback cards can't be dragged to a different phase
     try {
-      await fetch(`${API_BASE_URL}/api/projects/${project.id}/phase`, {
+      await fetch(`${API_BASE_URL}/api/projects/${card.projectId}/phase`, {
         method: 'PATCH', headers: mkH(),
         body: JSON.stringify({ new_status: newPhase }),
       });
-      setProjects(prev => ({ ...prev, [leadId]: { ...prev[leadId], status: newPhase } }));
+      setCards(prev => prev.map(c => c.key === card.key ? { ...c, phase: newPhase } : c));
     } catch (e) { console.error(e); }
   };
 
-  const handleDragStart = (e, lead) => { setDragging(lead); e.dataTransfer.effectAllowed = 'move'; };
+  const handleDragStart = (e, card) => { setDragging(card); e.dataTransfer.effectAllowed = 'move'; };
   const handleDrop = (e, phaseId) => {
     e.preventDefault();
-    if (dragging && projects[dragging.id]?.status !== phaseId) updatePhase(dragging.id, phaseId);
+    if (dragging && dragging.phase !== phaseId) updatePhase(dragging, phaseId);
     setDragging(null); setDragOver(null);
   };
 
@@ -111,7 +152,7 @@ export default function LeadPipeline() {
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Projektpipeline</h1>
         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
-          {projectLeads.length} aktive Projekte · Drag & Drop zum Verschieben
+          {cards.length} aktive Projekte · Drag & Drop zum Verschieben
         </div>
       </div>
 
@@ -145,9 +186,10 @@ export default function LeadPipeline() {
             ))}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {getColCards(PHASES[activeTab].id).map(lead => (
-              <ProjectKanbanCard key={lead.id} lead={lead} project={projects[lead.id]} phase={PHASES[activeTab]}
-                onDragStart={() => {}} onOpen={() => navigate(`/app/projects/${projects[lead.id]?.id || lead.id}`)} />
+            {getColCards(PHASES[activeTab].id).map(card => (
+              <ProjectKanbanCard key={card.key} card={card} phase={PHASES[activeTab]}
+                onDragStart={() => {}}
+                onOpen={() => card.projectId ? navigate(`/app/projects/${card.projectId}`) : navigate(`/app/leads/${card.leadId}`)} />
             ))}
             {getColCards(PHASES[activeTab].id).length === 0 && <EmptyCol />}
           </div>
@@ -155,8 +197,8 @@ export default function LeadPipeline() {
       ) : (
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', overflowX: 'auto', paddingBottom: 8 }}>
           {PHASES.map(ph => {
-            const cards = getColCards(ph.id);
-            const over  = dragOver === ph.id;
+            const colCards = getColCards(ph.id);
+            const over     = dragOver === ph.id;
             return (
               <div key={ph.id}
                 onDragOver={e => { e.preventDefault(); setDragOver(ph.id); }}
@@ -173,14 +215,14 @@ export default function LeadPipeline() {
                   <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     {ph.icon} {ph.label}
                   </span>
-                  <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: `${ph.color}20`, color: ph.color, fontWeight: 600 }}>{cards.length}</span>
+                  <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: `${ph.color}20`, color: ph.color, fontWeight: 600 }}>{colCards.length}</span>
                 </div>
                 <div style={{ height: 2, background: ph.color, margin: '6px 4px', borderRadius: 2 }} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {cards.map(lead => (
-                    <ProjectKanbanCard key={lead.id} lead={lead} project={projects[lead.id]} phase={ph}
+                  {colCards.map(card => (
+                    <ProjectKanbanCard key={card.key} card={card} phase={ph}
                       onDragStart={handleDragStart}
-                      onOpen={() => navigate(`/app/projects/${projects[lead.id]?.id || lead.id}`)} />
+                      onOpen={() => card.projectId ? navigate(`/app/projects/${card.projectId}`) : navigate(`/app/leads/${card.leadId}`)} />
                   ))}
                   {cards.length === 0 && <EmptyCol />}
                 </div>
@@ -195,32 +237,34 @@ export default function LeadPipeline() {
 
 // ── Project Kanban Card ───────────────────────────────────────────────────────
 
-function ProjectKanbanCard({ lead, project, phase, onDragStart, onOpen }) {
-  const domain   = getDomain(lead.website_url || project?.website_url);
-  const pNum     = phase ? PHASES.findIndex(p => p.id === phase.id) + 1 : null;
-  const scM      = project?.pagespeed_mobile;
-  const scStyle  = speedColor(scM);
-  const certKey  = (project?.audit_level || '').toLowerCase();
-  const certSt   = CERT_STYLES[certKey];
+function ProjectKanbanCard({ card, phase, onDragStart, onOpen }) {
+  const { companyName, websiteUrl, project, type } = card;
+  const domain  = getDomain(websiteUrl);
+  const pNum    = phase ? PHASES.findIndex(p => p.id === phase.id) + 1 : null;
+  const scM     = project?.pagespeed_mobile;
+  const scStyle = speedColor(scM);
+  const certKey = (project?.audit_level || '').toLowerCase();
+  const certSt  = CERT_STYLES[certKey];
 
   return (
     <div
-      draggable
-      onDragStart={e => onDragStart(e, lead)}
+      draggable={!!card.projectId}
+      onDragStart={e => onDragStart(e, card)}
       onClick={onOpen}
       style={{
         background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--border-light)', padding: '10px 11px',
-        cursor: 'pointer', boxShadow: 'var(--shadow-card)', transition: 'all 0.15s',
+        border: `1px solid ${type === 'lead' ? 'rgba(13,110,253,0.25)' : 'var(--border-light)'}`,
+        padding: '10px 11px', cursor: 'pointer',
+        boxShadow: 'var(--shadow-card)', transition: 'all 0.15s',
         display: 'flex', flexDirection: 'column', gap: 6,
       }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = phase?.color || 'var(--border-medium)'; e.currentTarget.style.boxShadow = 'var(--shadow-elevated)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = type === 'lead' ? 'rgba(13,110,253,0.25)' : 'var(--border-light)'; e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
     >
       {/* Firmenname + domain */}
       <div>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {lead.company_name || project?.company_name || `Projekt #${project?.id}`}
+          {companyName}
         </div>
         {domain && (
           <div style={{ fontSize: 10, color: 'var(--brand-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
@@ -232,10 +276,10 @@ function ProjectKanbanCard({ lead, project, phase, onDragStart, onOpen }) {
       {/* Phase label + progress bar */}
       <div>
         <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 3 }}>
-          Phase {pNum} von 7 · {phase?.label}
+          {type === 'lead' ? 'Gewonnen · kein Projekt' : `Phase ${pNum} von 7 · ${phase?.label}`}
         </div>
         <div style={{ height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{ width: `${((pNum || 1) / 7) * 100}%`, height: '100%', background: '#0d6efd', borderRadius: 2 }} />
+          <div style={{ width: type === 'project' ? `${((pNum || 1) / 7) * 100}%` : '8%', height: '100%', background: type === 'lead' ? '#0d6efd' : '#0d6efd', borderRadius: 2 }} />
         </div>
       </div>
 
@@ -251,8 +295,8 @@ function ProjectKanbanCard({ lead, project, phase, onDragStart, onOpen }) {
             🏅 {project.audit_level}
           </span>
         )}
-        {!scStyle && !certSt && (
-          <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Kein Audit</span>
+        {type === 'lead' && !certSt && (
+          <span style={{ fontSize: 10, color: 'var(--brand-primary)', fontWeight: 500 }}>→ Projekt anlegen</span>
         )}
       </div>
     </div>

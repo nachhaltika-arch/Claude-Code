@@ -726,7 +726,7 @@ function ProjectFilesSection({ customerId, token }) {
 
 // ── PageSpeed section component ────────────────────────────────
 
-function PageSpeedSection({ customerId, headers }) {
+function PageSpeedSection({ leadId, headers }) {
   const { isMobile } = useScreenSize();
   const [ps, setPs]           = useState(null);
   const [loading, setLoading] = useState(true);
@@ -735,19 +735,19 @@ function PageSpeedSection({ customerId, headers }) {
   const [error, setError]     = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/leads/${customerId}/pagespeed`, { headers })
+    fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data && data.checked_at) setPs(data); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [customerId]); // eslint-disable-line
+  }, [leadId]); // eslint-disable-line
 
   const measure = async () => {
     setMeasuring(true);
     setError(null);
     setNoUrl(false);
     try {
-      const res  = await fetch(`${API_BASE_URL}/api/leads/${customerId}/pagespeed`, { method: 'POST', headers });
+      const res  = await fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { method: 'POST', headers });
       const data = await res.json();
       if (!res.ok) {
         if (data?.detail?.includes('Website-URL')) setNoUrl(true);
@@ -1126,6 +1126,8 @@ export default function CustomerDetail() {
   const [customer, setCustomer]           = useState(null);
   const [loadingCustomer, setLoadingCustomer] = useState(true);
   const [activeTab, setActiveTab]          = useState('dateien');
+  // lead_id for PageSpeed — loaded from project, falls back to customerId
+  const [leadId, setLeadId] = useState(customerId);
 
   // Academy state
   const [assigned, setAssigned]     = useState([]);
@@ -1140,6 +1142,16 @@ export default function CustomerDetail() {
     fetch(`${API_BASE_URL}/api/leads/${customerId}`, { headers: h })
       .then(r => r.json()).then(setCustomer).catch(console.error)
       .finally(() => setLoadingCustomer(false));
+    // Try to resolve the real lead_id via the linked project
+    fetch(`${API_BASE_URL}/api/projects/?limit=200`, { headers: h })
+      .then(r => r.ok ? r.json() : [])
+      .then(projects => {
+        const linked = Array.isArray(projects)
+          ? projects.find(p => String(p.lead_id) === String(customerId))
+          : null;
+        if (linked?.lead_id) setLeadId(linked.lead_id);
+      })
+      .catch(() => {}); // fallback stays as customerId
   }, [customerId]); // eslint-disable-line
 
   useEffect(() => {
@@ -1259,7 +1271,11 @@ export default function CustomerDetail() {
       {/* ── Tab content ── */}
       {activeTab === 'dateien'   && <ProjectFilesSection customerId={customerId} token={token} />}
       {activeTab === 'audits'    && <AuditHistorySection customerId={customerId} customer={customer} headers={h} />}
-      {activeTab === 'pagespeed' && <PageSpeedSection customerId={customerId} headers={h} />}
+      {activeTab === 'pagespeed' && (
+        leadId
+          ? <PageSpeedSection leadId={leadId} headers={h} />
+          : <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>Lade Projektdaten…</div>
+      )}
       {activeTab === 'cms'       && <CmsConnectionSection customerId={customerId} headers={h} />}
       {activeTab === 'akademy'   && <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
 

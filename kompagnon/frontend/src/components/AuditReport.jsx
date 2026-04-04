@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   RadarChart,
   PolarGrid,
@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
   Tooltip as ReTooltip,
 } from 'recharts';
+import * as echarts from 'echarts';
 import { useScreenSize } from '../utils/responsive';
 
 const LEVEL_STYLES = {
@@ -463,6 +464,125 @@ export default function AuditReport({ auditData, onClose }) {
         )}
       </div>
 
+      {/* ── BLOCK 1: Alert Banner ── */}
+      {(() => {
+        const score = r.total_score || 0;
+        const notOk = r.level === 'Nicht konform' || score < 40;
+        const partial = !notOk && score < 70;
+        if (!notOk && !partial) return null;
+        const bg    = notOk ? '#FFF7ED' : '#EFF6FF';
+        const border= notOk ? '#F97316' : '#3B82F6';
+        const color = notOk ? '#9A3412' : '#1E40AF';
+        const icon  = notOk ? '⚠️' : 'ℹ️';
+        const text  = notOk
+          ? 'Handlungsbedarf: Diese Website erfüllt den Homepage Standard 2025 nicht. Die wichtigsten Probleme sind unten aufgeführt.'
+          : 'Gutes Fundament — gezielte Optimierungen bringen Sie auf Gold-Niveau.';
+        return (
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: bg, border: `1px solid ${border}`, borderRadius: 10, padding: '14px 18px' }}>
+            <span style={{ fontSize: 22, flexShrink: 0 }}>{icon}</span>
+            <p style={{ margin: 0, fontSize: 14, color, lineHeight: 1.6 }}>{text}</p>
+          </div>
+        );
+      })()}
+
+      {/* ── BLOCK 2: ECharts Radar ── */}
+      <EChartsRadar auditData={r} getCatScore={getCatScore} />
+
+      {/* ── BLOCK 3: GEO / KI Readiness ── */}
+      {(() => {
+        const llmsTxt    = !!(r.llms_txt ?? false);
+        const robotsOk   = !!(r.robots_ai_friendly ?? false);
+        const schemaOk   = !!(r.structured_data ?? (r.se_schema > 0));
+        const aiMentions = r.ai_mentions ?? 0;
+        const aiOverview = (r.se_score || 0) >= 7;
+        const rows = [
+          { label: 'llms.txt vorhanden',      ok: llmsTxt,    rec: llmsTxt    ? 'Vorhanden ✓'                      : 'Datei unter /llms.txt anlegen' },
+          { label: 'robots.txt KI-freundlich', ok: robotsOk,   rec: robotsOk   ? 'KI-Crawler erlaubt ✓'             : 'GPTBot nicht blockieren' },
+          { label: 'Strukturierte Daten',      ok: schemaOk,   rec: schemaOk   ? 'Schema.org vorhanden ✓'           : 'Schema.org LocalBusiness ergänzen' },
+          { label: 'KI-Erwähnungen',           ok: aiMentions > 0, rec: aiMentions > 0 ? `${aiMentions} gefunden ✓` : 'Content-Authority aufbauen' },
+          { label: 'Google AI Overview',       ok: aiOverview, rec: aiOverview  ? 'Gut aufgestellt ✓'               : 'Featured Snippets optimieren' },
+        ];
+        return (
+          <div className="kc-card">
+            <strong style={{ display: 'block', marginBottom: 12, fontSize: 14 }}>🤖 GEO & KI-Sichtbarkeit</strong>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: '#F9FAFB' }}>
+                  <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '1px solid #E5E7EB' }}>Prüfpunkt</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, color: '#374151', borderBottom: '1px solid #E5E7EB', width: 70 }}>Status</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '1px solid #E5E7EB' }}>Empfehlung</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#F9FAFB' }}>
+                    <td style={{ padding: '8px 10px', color: '#374151', borderBottom: '1px solid #F3F4F6' }}>{row.label}</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 18, borderBottom: '1px solid #F3F4F6' }}>
+                      <span style={{ color: row.ok ? '#16a34a' : '#DC2626' }}>{row.ok ? '✓' : '✗'}</span>
+                    </td>
+                    <td style={{ padding: '8px 10px', color: '#6B7280', borderBottom: '1px solid #F3F4F6' }}>{row.rec}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
+
+      {/* ── BLOCK 4: Roadmap ── */}
+      {(() => {
+        const score = r.total_score || 0;
+        const llmsTxt  = !!(r.llms_txt ?? false);
+        const schemaOk = !!(r.structured_data ?? (r.se_schema > 0));
+        const robotsOk = !!(r.robots_ai_friendly ?? false);
+        const mobilePs = r.mobile_score || 0;
+
+        const phase1 = [];
+        if (!llmsTxt)   phase1.push('llms.txt anlegen (ca. 1 Tag)');
+        if (!schemaOk)  phase1.push('Schema.org LocalBusiness einbauen');
+        if (mobilePs < 50) phase1.push('Bilder komprimieren & Lazy Load aktivieren');
+        if (!robotsOk)  phase1.push('robots.txt: GPTBot-Blockierung entfernen');
+        if (!phase1.length) phase1.push('Audit-Score weiter optimieren & Inhalte aktualisieren');
+
+        const phase2 = ['Regelmäßige Blog-Inhalte für SEO-Autorität aufbauen'];
+        if (r.level === 'Nicht konform') phase2.push('SSL, Datenschutz & Impressum prüfen und korrigieren');
+        if (!schemaOk) phase2.push('Weitere Schema.org-Typen (FAQPage, Review) ergänzen');
+
+        const phase3 = [
+          'Backlink-Aufbau über lokale Verzeichnisse und Branchenportale',
+          'Google Business Profil optimieren und regelmäßig pflegen',
+          'KI-Sichtbarkeit: Erwähnungen in Fachartikeln & Podcasts aufbauen',
+        ];
+
+        const phases = [
+          { label: 'Phase 1', title: 'Quick Wins', period: 'Woche 1–2', items: phase1, bg: '#F0FDF4', border: '#16a34a', headerBg: '#16a34a' },
+          { label: 'Phase 2', title: 'Mittelfristig', period: 'Monat 1–3', items: phase2, bg: '#EFF6FF', border: '#2563EB', headerBg: '#2563EB' },
+          { label: 'Phase 3', title: 'Langfristig', period: 'Monat 3–6', items: phase3, bg: '#FAF5FF', border: '#7C3AED', headerBg: '#7C3AED' },
+        ];
+        return (
+          <div>
+            <strong style={{ display: 'block', marginBottom: 12, fontSize: 14 }}>📋 Maßnahmen-Roadmap</strong>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12 }}>
+              {phases.map(ph => (
+                <div key={ph.label} style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid ${ph.border}` }}>
+                  <div style={{ background: ph.headerBg, padding: '10px 14px' }}>
+                    <div style={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{ph.label} — {ph.title}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11 }}>{ph.period}</div>
+                  </div>
+                  <div style={{ background: ph.bg, padding: '12px 14px' }}>
+                    <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {ph.items.map((item, i) => (
+                        <li key={i} style={{ fontSize: 12, color: '#374151', lineHeight: 1.5 }}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Certification */}
       {r.level && r.total_score != null && (
         <div className="kc-card" style={{
@@ -564,6 +684,68 @@ function CategorySection({ category, catScore, items }) {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// ECharts Radar (Block 2)
+// ═══════════════════════════════════════════════════════════
+
+const RADAR_INDICATORS = [
+  { name: 'SEO & Keywords', max: 10 },
+  { name: 'Performance',    max: 10 },
+  { name: 'Sicherheit',     max: 10 },
+  { name: 'Inhalt & UX',    max: 10 },
+  { name: 'Rechtliches',    max: 10 },
+  { name: 'GEO / KI',       max: 10 },
+];
+
+function EChartsRadar({ auditData: r, getCatScore }) {
+  const radarRef = useRef(null);
+
+  const vals = [
+    Math.round((Math.min(getCatScore('seo_sichtbarkeit', 10),   10)  / 10)  * 10),
+    Math.round((Math.min(getCatScore('technische_performance',20),20) / 20)  * 10),
+    Math.round((Math.min(getCatScore('sicherheit_datenschutz',15),15)/ 15)  * 10),
+    Math.round((Math.min(getCatScore('inhalt_nutzererfahrung', 5),  5)  / 5)  * 10),
+    Math.round((Math.min(getCatScore('rechtliche_compliance',  30), 30) / 30) * 10),
+    Math.round(((r.geo_score || 0) / 10) * 10),
+  ];
+
+  useEffect(() => {
+    if (!radarRef.current) return;
+    const chart = echarts.init(radarRef.current);
+    chart.setOption({
+      backgroundColor: 'transparent',
+      radar: {
+        indicator: RADAR_INDICATORS,
+        splitNumber: 5,
+        axisName: { color: '#374151', fontSize: 11 },
+        splitLine: { lineStyle: { color: '#E5E7EB' } },
+        splitArea: { show: false },
+        axisLine: { lineStyle: { color: '#E5E7EB' } },
+      },
+      series: [{
+        type: 'radar',
+        data: [{ value: vals, name: 'Score (0–10)' }],
+        lineStyle: { color: '#0d6efd', width: 2 },
+        areaStyle: { color: 'rgba(13,110,253,0.18)' },
+        symbol: 'circle',
+        symbolSize: 5,
+        itemStyle: { color: '#0d6efd' },
+      }],
+      tooltip: { trigger: 'item' },
+    });
+    const onResize = () => chart.resize();
+    window.addEventListener('resize', onResize);
+    return () => { window.removeEventListener('resize', onResize); chart.dispose(); };
+  }, [r.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="kc-card">
+      <strong style={{ display: 'block', marginBottom: 8, fontSize: 14 }}>Kategorien-Radar (interaktiv)</strong>
+      <div ref={radarRef} style={{ width: '100%', height: 320 }} />
     </div>
   );
 }

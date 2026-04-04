@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import API_BASE_URL from '../config';
 
 const TEAL   = '#008EAA';
 const STEPS  = [
   'Betrieb & Leistungen',
   'Zielgruppe & Kunden',
   'Alleinstellung & Mitbewerb',
-  'Design & Wünsche',
+  'Design & Stil',
   'Seiten & Assets',
   'Zusammenfassung',
 ];
@@ -15,6 +16,17 @@ const GEWERK_OPTIONS = [
   'Dachdecker', 'Fliesenleger', 'Zimmerer', 'Kfz', 'Sonstige',
 ];
 const ZIELGRUPPE_OPTIONS = ['Privatkunden', 'Gewerbekunden', 'Beides'];
+const STIL_OPTIONS = [
+  'Modern & Minimalistisch',
+  'Klassisch & Seriös',
+  'Frisch & Freundlich',
+  'Industriell & Technisch',
+  'Kein Vorzug',
+];
+const SEITEN_OPTIONS = [
+  'Startseite', 'Über uns', 'Leistungen', 'Referenzen',
+  'Kontakt', 'Blog / News', 'Stellenangebote', 'FAQ',
+];
 
 // ── Shared field components ──────────────────────────────────────────────────
 
@@ -214,14 +226,194 @@ function Step3({ data, set }) {
   );
 }
 
-// Placeholder steps (4–6 to be implemented)
-function StepPlaceholder({ step }) {
+function Toggle({ value, onChange, labelOn = 'Ja', labelOff = 'Nein' }) {
   return (
-    <div style={{ textAlign: 'center', padding: '40px 0', color: '#8A9BA8' }}>
-      <div style={{ fontSize: 36, marginBottom: 12 }}>🚧</div>
-      <div style={{ fontSize: 14, fontWeight: 600 }}>{STEPS[step]}</div>
-      <div style={{ fontSize: 12, marginTop: 6 }}>Wird in Teil 4 implementiert</div>
+    <div style={{ display: 'flex', gap: 8 }}>
+      {[true, false].map(opt => (
+        <button
+          key={String(opt)}
+          type="button"
+          onClick={() => onChange(opt)}
+          style={{
+            padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+            border: `1.5px solid ${value === opt ? TEAL : '#DDE4E8'}`,
+            background: value === opt ? TEAL : '#fff',
+            color: value === opt ? '#fff' : '#5A7080',
+            cursor: 'pointer', transition: 'all 0.15s',
+            fontFamily: 'var(--font-sans, system-ui)',
+          }}
+        >
+          {opt ? labelOn : labelOff}
+        </button>
+      ))}
     </div>
+  );
+}
+
+function SeitenCheckbox({ selected, onChange }) {
+  const toggle = (page) => {
+    if (selected.includes(page)) onChange(selected.filter(p => p !== page));
+    else onChange([...selected, page]);
+  };
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {SEITEN_OPTIONS.map(page => {
+        const active = selected.includes(page);
+        return (
+          <button
+            key={page}
+            type="button"
+            onClick={() => toggle(page)}
+            style={{
+              padding: '7px 14px', borderRadius: 8, fontSize: 13,
+              border: `1.5px solid ${active ? TEAL : '#DDE4E8'}`,
+              background: active ? '#E6F5F8' : '#FAFCFD',
+              color: active ? TEAL : '#5A7080',
+              fontWeight: active ? 700 : 400,
+              cursor: 'pointer', transition: 'all 0.15s',
+              fontFamily: 'var(--font-sans, system-ui)',
+            }}
+          >
+            {active ? '✓ ' : ''}{page}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Step4({ data, set }) {
+  return (
+    <>
+      <Field label="Farbwünsche" hint="Welche Farben passen zu Ihrer Marke oder sollen verwendet werden?">
+        <Input
+          value={data.farben}
+          onChange={v => set('farben', v)}
+          placeholder="z.B. Blau & Weiß, Grün-Töne, keine Vorgabe …"
+        />
+      </Field>
+      <Field label="Stil" required hint="Welcher Designstil soll Ihre Website prägen?">
+        <Select value={data.stil} onChange={v => set('stil', v)} options={STIL_OPTIONS} />
+      </Field>
+      <Field label="Vorbilder / Inspiration" hint="Gibt es Websites, die Ihnen gefallen? URL(s) eintragen.">
+        <Input
+          value={data.vorbilder}
+          onChange={v => set('vorbilder', v)}
+          placeholder="z.B. https://www.beispiel.de, https://andereseite.de"
+        />
+      </Field>
+    </>
+  );
+}
+
+function Step5({ data, set }) {
+  return (
+    <>
+      <Field label="Gewünschte Seiten" hint="Welche Seiten soll Ihre neue Website enthalten?">
+        <SeitenCheckbox
+          selected={data.wunschseiten}
+          onChange={v => set('wunschseiten', v)}
+        />
+      </Field>
+      <Field label="Logo vorhanden?" hint="Haben Sie bereits ein Logo, das wir verwenden können?">
+        <Toggle value={data.logo_vorhanden} onChange={v => set('logo_vorhanden', v)} />
+      </Field>
+      <Field label="Fotos / Bilder vorhanden?" hint="Haben Sie Fotos Ihres Betriebs, Teams oder Ihrer Arbeit?">
+        <Toggle value={data.fotos_vorhanden} onChange={v => set('fotos_vorhanden', v)} />
+      </Field>
+      <Field label="Sonstige Hinweise" hint="Gibt es weitere Wünsche, Anforderungen oder wichtige Informationen?">
+        <Textarea
+          value={data.sonstige_hinweise}
+          onChange={v => set('sonstige_hinweise', v)}
+          placeholder="Weitere Hinweise, besondere Anforderungen …"
+          rows={4}
+        />
+      </Field>
+    </>
+  );
+}
+
+function SummaryRow({ label, value }) {
+  if (!value && value !== false) return null;
+  const display = typeof value === 'boolean' ? (value ? 'Ja' : 'Nein')
+    : Array.isArray(value) ? (value.length ? value.join(', ') : '–')
+    : (value || '–');
+  return (
+    <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
+      <div style={{ width: 160, flexShrink: 0, fontSize: 12, fontWeight: 700, color: '#5A7080', textTransform: 'uppercase', letterSpacing: '0.06em', paddingTop: 2 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 13, color: '#1A2C32', lineHeight: 1.5, flex: 1 }}>{display}</div>
+    </div>
+  );
+}
+
+function SummarySection({ title, children }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{
+        background: TEAL, color: '#fff', fontWeight: 700, fontSize: 12,
+        padding: '5px 10px', borderRadius: 6, marginBottom: 10,
+        letterSpacing: '0.04em',
+      }}>
+        {title}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Step6({ data, saving, error, onSaveAndPdf }) {
+  return (
+    <>
+      <div style={{ marginBottom: 16, fontSize: 13, color: '#5A7080' }}>
+        Bitte prüfen Sie alle Angaben. Mit „Speichern & PDF" wird das Briefing gespeichert und als PDF heruntergeladen.
+      </div>
+      <SummarySection title="Betrieb & Leistungen">
+        <SummaryRow label="Gewerk" value={data.gewerk} />
+        <SummaryRow label="Leistungen" value={data.leistungen} />
+        <SummaryRow label="Einzugsgebiet" value={data.einzugsgebiet} />
+      </SummarySection>
+      <SummarySection title="Zielgruppe & Kunden">
+        <SummaryRow label="Zielgruppe" value={data.zielgruppe} />
+        <SummaryRow label="Typischer Kunde" value={data.typischerKunde} />
+        <SummaryRow label="Häufigste Anfrage" value={data.haeufigeAnfrage} />
+      </SummarySection>
+      <SummarySection title="Alleinstellung & Mitbewerb">
+        <SummaryRow label="USP" value={data.usp} />
+        <SummaryRow label="Mitbewerber" value={data.mitbewerber} />
+      </SummarySection>
+      <SummarySection title="Design & Stil">
+        <SummaryRow label="Farbwünsche" value={data.farben} />
+        <SummaryRow label="Stil" value={data.stil} />
+        <SummaryRow label="Vorbilder" value={data.vorbilder} />
+      </SummarySection>
+      <SummarySection title="Seiten & Assets">
+        <SummaryRow label="Gewünschte Seiten" value={data.wunschseiten} />
+        <SummaryRow label="Logo vorhanden" value={data.logo_vorhanden} />
+        <SummaryRow label="Fotos vorhanden" value={data.fotos_vorhanden} />
+        <SummaryRow label="Sonstige Hinweise" value={data.sonstige_hinweise} />
+      </SummarySection>
+      {error && (
+        <div style={{ background: '#FFF0F0', border: '1px solid #FFBDBD', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#C0392B', marginTop: 8 }}>
+          {error}
+        </div>
+      )}
+      <button
+        onClick={onSaveAndPdf}
+        disabled={saving}
+        style={{
+          width: '100%', marginTop: 12, padding: '13px 0', borderRadius: 10,
+          border: 'none', background: saving ? '#DDE4E8' : TEAL,
+          color: saving ? '#8A9BA8' : '#fff', fontSize: 15, fontWeight: 700,
+          cursor: saving ? 'not-allowed' : 'pointer',
+          fontFamily: 'var(--font-sans, system-ui)',
+          transition: 'background 0.15s',
+        }}
+      >
+        {saving ? 'Speichern …' : 'Briefing speichern & PDF herunterladen'}
+      </button>
+    </>
   );
 }
 
@@ -229,20 +421,34 @@ function StepPlaceholder({ step }) {
 
 export default function BriefingWizard({ leadId, leadData, onClose, onComplete }) {
   const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const [data, setData] = useState({
     // Step 1
-    gewerk:          leadData?.gewerk          || '',
-    leistungen:      leadData?.leistungen      || '',
-    einzugsgebiet:   leadData?.einzugsgebiet   || '',
+    gewerk:            leadData?.gewerk            || '',
+    leistungen:        leadData?.leistungen        || '',
+    einzugsgebiet:     leadData?.einzugsgebiet     || '',
     // Step 2
-    zielgruppe:      leadData?.zielgruppe      || '',
-    typischerKunde:  leadData?.typischerKunde  || '',
-    haeufigeAnfrage: leadData?.haeufigeAnfrage || '',
+    zielgruppe:        leadData?.zielgruppe        || '',
+    typischerKunde:    leadData?.typischerKunde    || '',
+    haeufigeAnfrage:   leadData?.haeufigeAnfrage   || '',
     // Step 3
-    usp:             leadData?.usp             || '',
-    mitbewerber:     leadData?.mitbewerber     || '',
-    vorbilder:       leadData?.vorbilder       || '',
+    usp:               leadData?.usp               || '',
+    mitbewerber:       leadData?.mitbewerber       || '',
+    vorbilder:         leadData?.vorbilder         || '',
+    // Step 4
+    farben:            leadData?.farben            || '',
+    stil:              leadData?.stil              || '',
+    // Step 5
+    wunschseiten:      leadData?.wunschseiten
+      ? (Array.isArray(leadData.wunschseiten)
+          ? leadData.wunschseiten
+          : leadData.wunschseiten.split(', ').filter(Boolean))
+      : [],
+    logo_vorhanden:    leadData?.logo_vorhanden    ?? false,
+    fotos_vorhanden:   leadData?.fotos_vorhanden   ?? false,
+    sonstige_hinweise: leadData?.sonstige_hinweise || '',
   });
 
   const set = (key, val) => setData(d => ({ ...d, [key]: val }));
@@ -251,12 +457,54 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
     if (step === 0) return !!data.gewerk && !!data.leistungen.trim();
     if (step === 1) return !!data.zielgruppe;
     if (step === 2) return !!data.usp.trim();
+    if (step === 3) return !!data.stil;
+    if (step === 4) return data.wunschseiten.length > 0;
     return true;
+  };
+
+  const handleSaveAndPdf = async () => {
+    setSaving(true);
+    setSaveError('');
+    try {
+      const token = localStorage.getItem('kompagnon_token');
+      const payload = {
+        gewerk:            data.gewerk,
+        leistungen:        data.leistungen,
+        einzugsgebiet:     data.einzugsgebiet,
+        usp:               data.usp,
+        mitbewerber:       data.mitbewerber,
+        vorbilder:         data.vorbilder,
+        farben:            data.farben,
+        stil:              data.stil,
+        wunschseiten:      data.wunschseiten.join(', '),
+        logo_vorhanden:    data.logo_vorhanden,
+        fotos_vorhanden:   data.fotos_vorhanden,
+        sonstige_hinweise: data.sonstige_hinweise,
+      };
+      const res = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Fehler ${res.status}`);
+      }
+      // Open PDF in new tab
+      window.open(`${API_BASE_URL}/api/briefings/${leadId}/pdf`, '_blank');
+      if (onComplete) onComplete(data);
+    } catch (e) {
+      setSaveError(e.message || 'Speichern fehlgeschlagen.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleNext = () => {
     if (step < STEPS.length - 1) setStep(s => s + 1);
-    else if (onComplete) onComplete(data);
   };
 
   const handleBack = () => {
@@ -269,7 +517,10 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
       case 0: return <Step1 data={data} set={set} />;
       case 1: return <Step2 data={data} set={set} />;
       case 2: return <Step3 data={data} set={set} />;
-      default: return <StepPlaceholder step={step} />;
+      case 3: return <Step4 data={data} set={set} />;
+      case 4: return <Step5 data={data} set={set} />;
+      case 5: return <Step6 data={data} saving={saving} error={saveError} onSaveAndPdf={handleSaveAndPdf} />;
+      default: return null;
     }
   };
 
@@ -361,22 +612,27 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
             {step + 1} / {STEPS.length}
           </div>
 
-          <button
-            onClick={handleNext}
-            disabled={!canNext()}
-            style={{
-              padding: '10px 24px', borderRadius: 8,
-              border: 'none',
-              background: canNext() ? TEAL : '#DDE4E8',
-              color: canNext() ? '#fff' : '#8A9BA8',
-              fontSize: 14, fontWeight: 600,
-              cursor: canNext() ? 'pointer' : 'not-allowed',
-              fontFamily: 'var(--font-sans, system-ui)',
-              transition: 'background 0.15s',
-            }}
-          >
-            {step === STEPS.length - 1 ? 'Fertigstellen ✓' : 'Weiter →'}
-          </button>
+          {step < STEPS.length - 1 && (
+            <button
+              onClick={handleNext}
+              disabled={!canNext()}
+              style={{
+                padding: '10px 24px', borderRadius: 8,
+                border: 'none',
+                background: canNext() ? TEAL : '#DDE4E8',
+                color: canNext() ? '#fff' : '#8A9BA8',
+                fontSize: 14, fontWeight: 600,
+                cursor: canNext() ? 'pointer' : 'not-allowed',
+                fontFamily: 'var(--font-sans, system-ui)',
+                transition: 'background 0.15s',
+              }}
+            >
+              Weiter →
+            </button>
+          )}
+          {step === STEPS.length - 1 && (
+            <div style={{ width: 120 }} />
+          )}
         </div>
       </div>
     </div>

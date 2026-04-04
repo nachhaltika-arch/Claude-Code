@@ -9,11 +9,12 @@ import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
 
-from database import get_db, Briefing
+from database import get_db, Briefing, Lead
 from routers.auth_router import require_any_auth
 
 logger = logging.getLogger(__name__)
@@ -130,6 +131,31 @@ def create_briefing(
     db.commit()
     db.refresh(briefing)
     return _serialize(briefing)
+
+
+@router.get("/{lead_id}/pdf")
+def briefing_pdf(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Generate and return briefing as PDF (application/pdf)."""
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    if not briefing:
+        raise HTTPException(status_code=404, detail="Briefing nicht gefunden")
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    company_name = (lead.display_name or lead.company_name) if lead else f"Lead #{lead_id}"
+
+    from services.briefing_pdf import generate_briefing_pdf
+    pdf_bytes = generate_briefing_pdf(briefing, company_name)
+
+    filename = f"briefing-{lead_id}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.put("/{lead_id}")

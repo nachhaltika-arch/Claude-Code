@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import PhaseTracker from '../components/PhaseTracker';
 import MarginBadge from '../components/MarginBadge';
 import ProjectCard from '../components/ProjectCard';
+import BriefingTab from '../components/BriefingTab';
 import { useAuth } from '../context/AuthContext';
 
 import API_BASE_URL from '../config';
@@ -376,7 +377,7 @@ export default function ProjectDetail() {
     );
   }
 
-  const tabs = ['overview', 'checklists', 'zeit', 'kommunikation'];
+  const tabs = ['overview', 'briefing', 'checklists', 'zeit', 'kommunikation'];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -436,9 +437,10 @@ export default function ProjectDetail() {
             onClick={() => setActiveTab(tab)}
             className={`kc-tab ${activeTab === tab ? 'kc-tab--active' : ''}`}
           >
-            {tab === 'overview'       ? 'Übersicht'    :
-             tab === 'checklists'     ? 'Checklisten'  :
-             tab === 'zeit'           ? 'Zeiterfassung': 'Kommunikation'}
+            {tab === 'overview'    ? 'Übersicht'    :
+             tab === 'briefing'    ? 'Briefing'     :
+             tab === 'checklists'  ? 'Checklisten'  :
+             tab === 'zeit'        ? 'Zeiterfassung': 'Kommunikation'}
           </button>
         ))}
       </div>
@@ -470,8 +472,13 @@ export default function ProjectDetail() {
         </div>
       )}
 
+      {/* ── Briefing Tab ────────────────────────────────────────────────────── */}
+      {activeTab === 'briefing' && project.lead_id && (
+        <BriefingTab lead={{ id: project.lead_id }} isMobile={false} />
+      )}
+
       {/* ── Placeholder tabs ────────────────────────────────────────────────── */}
-      {activeTab !== 'overview' && (
+      {activeTab !== 'overview' && activeTab !== 'briefing' && (
         <div className="kc-card" style={{ textAlign: 'center', padding: 'var(--kc-space-16)', color: 'var(--text-tertiary)' }}>
           <p style={{ fontSize: 16, fontWeight: 600 }}>
             {activeTab === 'checklists' ? 'Checklisten' : activeTab === 'zeit' ? 'Zeiterfassung' : 'Kommunikation'}

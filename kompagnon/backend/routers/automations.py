@@ -5,10 +5,10 @@ GET /api/dashboard/alerts - Active alerts
 POST /api/automations/trigger - Manual trigger
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from pydantic import BaseModel
-from sqlalchemy import func
 from database import Project, Lead, Communication, AuditResult, get_db
 from services.margin_calculator import MarginCalculator
 
@@ -25,6 +25,8 @@ class KPIData(BaseModel):
     audits_today: int = 0
     audits_avg_score: float = 0
     audits_improved: int = 0
+    leads_total: int = 0
+    leads_won: int = 0
 
 
 class Alert(BaseModel):
@@ -95,6 +97,16 @@ def get_dashboard_kpis(db: Session = Depends(get_db)):
         if len(scores) >= 2 and scores[-1][0] > scores[0][0]:
             audits_improved += 1
 
+    # Lead / Usercard counts — prefer leads table, fallback to usercards
+    leads_total = db.query(Lead).count()
+    leads_won   = db.query(Lead).filter(Lead.status == "won").count()
+    if leads_total == 0:
+        try:
+            leads_total = db.execute(text("SELECT COUNT(*) FROM usercards")).scalar() or 0
+            leads_won   = db.execute(text("SELECT COUNT(*) FROM usercards WHERE status = 'won'")).scalar() or 0
+        except Exception:
+            pass
+
     return {
         "active_projects": margin_summary.get("active_projects", 0),
         "average_margin_percent": margin_summary.get("average_margin_percent", 0),
@@ -105,6 +117,8 @@ def get_dashboard_kpis(db: Session = Depends(get_db)):
         "audits_today": audits_today,
         "audits_avg_score": audits_avg_score,
         "audits_improved": audits_improved,
+        "leads_total": leads_total,
+        "leads_won": leads_won,
     }
 
 

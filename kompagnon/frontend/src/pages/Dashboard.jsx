@@ -23,11 +23,19 @@ export default function Dashboard() {
     const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     Promise.all([
       fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h }).then(r => r.json()),
-      fetch(`${API_BASE_URL}/api/leads/`, { headers: h }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/api/leads/`, { headers: h }).then(r => r.json()).catch(() => []),
       fetch(`${API_BASE_URL}/api/audit/recent`, { headers: h }).then(r => r.json().catch(() => [])),
-    ]).then(([kpiData, leadsData, auditData]) => {
+    ]).then(async ([kpiData, leadsData, auditData]) => {
       setKpis(kpiData);
-      setLeads(Array.isArray(leadsData) ? leadsData.slice(0, 8) : []);
+      let rows = Array.isArray(leadsData) ? leadsData : [];
+      // Fallback: if leads table is empty, try usercards
+      if (rows.length === 0) {
+        try {
+          const uc = await fetch(`${API_BASE_URL}/api/usercards/`, { headers: h }).then(r => r.json());
+          if (Array.isArray(uc) && uc.length > 0) rows = uc;
+        } catch (_) {}
+      }
+      setLeads(rows.slice(0, 8));
       setAudits(Array.isArray(auditData) ? auditData.slice(0, 5) : []);
     }).finally(() => setLoading(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -99,7 +107,7 @@ export default function Dashboard() {
         gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
         gap: 12,
       }}>
-        <KpiCard label="Leads gesamt" value={leads.length} icon="👥" />
+        <KpiCard label="Leads gesamt" value={kpis?.leads_total ?? leads.length} icon="👥" />
         <KpiCard label="Audits heute" value={kpis?.audits_today ?? 0} icon="✓" color="var(--brand-primary)" />
         <KpiCard
           label="Ø Homepage-Score"
@@ -109,7 +117,7 @@ export default function Dashboard() {
         />
         <KpiCard
           label="Gewonnene Leads"
-          value={leads.filter(l => l.status === 'won').length}
+          value={kpis?.leads_won ?? leads.filter(l => l.status === 'won').length}
           icon="🏆"
           color="var(--status-success-text)"
         />
@@ -132,7 +140,7 @@ export default function Dashboard() {
               Aktuelle Leads
             </span>
             <button
-              onClick={() => navigate('/app/leads')}
+              onClick={() => navigate('/app/sales')}
               style={{
                 fontSize: 11, color: 'var(--brand-primary)', background: 'none',
                 border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)',

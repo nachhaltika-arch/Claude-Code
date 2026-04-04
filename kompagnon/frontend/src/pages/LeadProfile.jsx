@@ -9,6 +9,7 @@ import HomepageChecklist from '../components/HomepageChecklist';
 import SecurityChecklist from '../components/SecurityChecklist';
 import AuditReport from '../components/AuditReport';
 import BriefingTab from '../components/BriefingTab';
+import BriefingWizard from '../components/BriefingWizard';
 import OfferTab from '../components/OfferTab';
 import ProjectFilesSection from '../components/ProjectFilesSection';
 import AcademyCustomerSection from '../components/AcademyCustomerSection';
@@ -55,6 +56,7 @@ const TABS = [
   { id: 'pagespeed',  label: 'PageSpeed',   icon: '⚡' },
   { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
   { id: 'checklists', label: 'Checklisten', icon: '📋' },
+  { id: 'mockup',     label: 'Mockup',      icon: '🎨' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
   { id: 'crawler',    label: 'Crawler',     icon: '🕷️' },
@@ -102,13 +104,21 @@ export default function LeadProfile() {
   const [projectData, setProjectData] = useState(null);
   const [creatingProject, setCreatingProject] = useState(false);
   const [wonModal, setWonModal] = useState(false);
+  // Briefing wizard
+  const [showBriefingWizard, setShowBriefingWizard] = useState(false);
+  const [briefingData, setBriefingData] = useState(null);
+  const [briefingLoading, setBriefingLoading] = useState(false);
+  // Mockup tab
+  const [mockupRunning, setMockupRunning] = useState(false);
+  const [mockupResult, setMockupResult] = useState(null);
+  const [mockupError, setMockupError] = useState('');
 
   const h = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); }, [leadId]); // eslint-disable-line
+  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); }, [leadId]); // eslint-disable-line
 
   const loadProfile = async () => {
     try {
@@ -160,6 +170,65 @@ export default function LeadProfile() {
       const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/domains`, { headers: h });
       if (res.ok) setDomains(await res.json());
     } catch { /* silent */ }
+  };
+
+  const loadBriefing = async () => {
+    setBriefingLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers: h });
+      if (res.ok) {
+        const data = await res.json();
+        setBriefingData(data);
+        return data;
+      }
+    } catch { /* silent */ }
+    finally { setBriefingLoading(false); }
+    return null;
+  };
+
+  const openBriefingWizard = async () => {
+    const data = await loadBriefing();
+    setBriefingData(data);
+    setShowBriefingWizard(true);
+  };
+
+  const generateMockup = async () => {
+    setMockupRunning(true);
+    setMockupError('');
+    setMockupResult(null);
+    try {
+      // Fetch briefing first
+      const bRes = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers: h });
+      const briefing = bRes.ok ? await bRes.json() : null;
+
+      const lead = profile?.lead;
+      const payload = {
+        company_name: lead?.display_name || lead?.company_name || '',
+        city: lead?.city || briefing?.einzugsgebiet || '',
+        trade: briefing?.gewerk || lead?.trade || '',
+        usp: briefing?.usp || '',
+        services: briefing?.leistungen
+          ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+          : [],
+        target_audience: briefing?.zielgruppe || '',
+      };
+
+      const res = await fetch(`${API_BASE_URL}/api/agents/${projectId}/content`, {
+        method: 'POST',
+        headers: h,
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Fehler ${res.status}`);
+      }
+      const data = await res.json();
+      setMockupResult(data.result);
+    } catch (e) {
+      setMockupError(e.message || 'Generierung fehlgeschlagen.');
+    } finally {
+      setMockupRunning(false);
+    }
   };
 
   const addDomain = async () => {
@@ -551,6 +620,14 @@ export default function LeadProfile() {
             ✏️ Bearbeiten
           </button>
 
+          <button
+            onClick={openBriefingWizard}
+            disabled={briefingLoading}
+            style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 500, padding: '7px 14px', cursor: briefingLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}
+          >
+            📋 Briefing starten
+          </button>
+
           {projectId ? (
             <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 600, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
               📁 Zum Projekt →
@@ -571,6 +648,26 @@ export default function LeadProfile() {
           </select>
         </div>
       </div>
+
+      {/* Briefing status */}
+      {briefingData && briefingData.gewerk ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.1)', borderRadius: 'var(--radius-md)', padding: '6px 12px', width: 'fit-content' }}>
+          <span style={{ color: '#4ade80', fontWeight: 700 }}>✓</span>
+          Briefing ausgefüllt{briefingData.updated_at ? ` · ${briefingData.updated_at.slice(0, 10).split('-').reverse().join('.')}` : ''}
+          <a
+            href={`${API_BASE_URL}/api/briefings/${leadId}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'underline', marginLeft: 4, cursor: 'pointer' }}
+          >
+            PDF herunterladen
+          </a>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', padding: '2px 4px' }}>
+          Noch kein Briefing vorhanden
+        </div>
+      )}
 
       {/* TABS */}
       <div style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto' }}>
@@ -1206,6 +1303,62 @@ export default function LeadProfile() {
       {/* AKADEMY TAB */}
       {activeTab === 'akademy' && <AcademyCustomerSection leadId={lead.id} />}
 
+      {/* MOCKUP TAB */}
+      {activeTab === 'mockup' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+              KI-Website-Entwurf generieren
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+              Generiert automatisch Textentwürfe für die Website auf Basis der Briefing-Daten.
+              {briefingData?.gewerk
+                ? ` Briefing vorhanden: ${briefingData.gewerk}${briefingData.einzugsgebiet ? ` · ${briefingData.einzugsgebiet}` : ''}.`
+                : ' Noch kein Briefing ausgefüllt – Basisdaten des Leads werden verwendet.'}
+            </div>
+            {!projectId && (
+              <div style={{ background: '#FFF9E6', border: '1px solid #F5D87A', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92660A', marginBottom: 12 }}>
+                Für den KI-Entwurf wird ein Projekt benötigt. Bitte zuerst ein Projekt anlegen.
+              </div>
+            )}
+            <button
+              onClick={generateMockup}
+              disabled={mockupRunning || !projectId}
+              style={{
+                padding: '10px 22px', borderRadius: 8, border: 'none',
+                background: mockupRunning || !projectId ? 'var(--bg-muted)' : 'var(--brand-primary)',
+                color: mockupRunning || !projectId ? 'var(--text-tertiary)' : '#fff',
+                fontSize: 14, fontWeight: 600, cursor: mockupRunning || !projectId ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              {mockupRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
+              {mockupRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
+            </button>
+            {mockupError && (
+              <div style={{ background: '#FFF0F0', border: '1px solid #FFBDBD', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#C0392B', marginTop: 12 }}>
+                {mockupError}
+              </div>
+            )}
+          </div>
+          {mockupResult && (
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>Generierter Entwurf</div>
+              {typeof mockupResult === 'string' ? (
+                <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'inherit', lineHeight: 1.7, margin: 0 }}>{mockupResult}</pre>
+              ) : (
+                Object.entries(mockupResult).map(([key, val]) => (
+                  <div key={key} style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{key}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{typeof val === 'string' ? val : JSON.stringify(val, null, 2)}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ANGEBOT TAB */}
       {activeTab === 'offer' && (
         <OfferTab lead={lead} currentScore={current_score} currentLevel={current_level} isMobile={isMobile} />
@@ -1576,6 +1729,19 @@ export default function LeadProfile() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* BRIEFING WIZARD MODAL */}
+      {showBriefingWizard && profile?.lead && (
+        <BriefingWizard
+          leadId={Number(leadId)}
+          leadData={briefingData}
+          onClose={() => setShowBriefingWizard(false)}
+          onComplete={async () => {
+            setShowBriefingWizard(false);
+            await loadBriefing();
+          }}
+        />
       )}
 
     </div>

@@ -404,6 +404,13 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS audit_level VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS top_problems TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS industry VARCHAR",
+        # ── ORM-Felder die in älteren DBs fehlen können (f405-Fix) ──────────
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_approved_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS review_received BOOLEAN DEFAULT false",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS review_platform VARCHAR(50)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS review_rating FLOAT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS review_text TEXT",
         # ── Seed: Projekte aus Leads anlegen (idempotent) ────────────────────
         # Pass 1: won-Leads die noch kein Projekt haben
         """INSERT INTO projects (lead_id, status, start_date, created_at, updated_at,

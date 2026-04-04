@@ -124,6 +124,27 @@ class Project(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Redesign / extra columns (added via ALTER TABLE in migrations)
+    company_name = Column(String(255))
+    website_url = Column(String(500))
+    cms_type = Column(String(50))
+    contact_name = Column(String(255))
+    contact_phone = Column(String(50))
+    contact_email = Column(String(255))
+    go_live_date = Column(String(20))  # stored as ISO date string
+    package_type = Column(String(50), default="kompagnon")
+    payment_status = Column(String(50), default="offen")
+    desired_pages = Column(Text)
+    has_logo = Column(Boolean, default=False)
+    has_briefing = Column(Boolean, default=False)
+    has_photos = Column(Boolean, default=False)
+    pagespeed_mobile = Column(Integer)
+    pagespeed_desktop = Column(Integer)
+    audit_score = Column(Integer)
+    audit_level = Column(String(100))
+    top_problems = Column(Text)
+    industry = Column(String(100))
+
     # Relationships
     lead = relationship("Lead", back_populates="projects")
     checklists = relationship("ProjectChecklist", back_populates="project", cascade="all, delete-orphan")

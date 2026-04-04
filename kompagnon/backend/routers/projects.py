@@ -236,39 +236,62 @@ def seed_projects(db: Session = Depends(get_db)):
     return {"seeded": len(seeded), "details": seeded}
 
 
-@router.get("/", response_model=list[ProjectResponse])
+@router.get("/")
 def list_projects(
     status: str = Query(None),
     skip: int = Query(0),
-    limit: int = Query(50),
+    limit: int = Query(200),
     db: Session = Depends(get_db),
 ):
-    """List all projects, optionally filtered by status."""
+    """List all projects. Returns raw dicts to prevent silent Pydantic filtering."""
     try:
         query = db.query(Project)
         if status:
             query = query.filter(Project.status == status)
-        rows = query.offset(skip).limit(limit).all()
+        projects = query.offset(skip).limit(limit).all()
     except Exception as e:
         logger.error(f"list_projects DB error: {e}")
         return []
     result = []
-    for p in rows:
+    for p in projects:
         try:
-            lead = p.lead
-            d = {c.name: getattr(p, c.name, None) for c in p.__table__.columns}
-            if not d.get("company_name") and lead:
-                d["company_name"] = lead.company_name
-            if not d.get("website_url") and lead:
-                d["website_url"] = lead.website_url
-            if not d.get("contact_name") and lead:
-                d["contact_name"] = lead.contact_name
-            if not d.get("contact_email") and lead:
-                d["contact_email"] = lead.email
-            result.append(d)
+            lead = p.lead if p.lead_id else None
+            result.append({
+                "id": p.id,
+                "lead_id": p.lead_id,
+                "name": getattr(p, "name", "") or "",
+                "customer_name": getattr(p, "customer_name", "") or (lead.company_name if lead else ""),
+                "company_name": getattr(p, "company_name", "") or (lead.company_name if lead else ""),
+                "status": p.status or "aktiv",
+                "current_phase": getattr(p, "current_phase", 1) or 1,
+                "website_url": getattr(p, "website_url", "") or (lead.website_url if lead else ""),
+                "cms_type": getattr(p, "cms_type", None),
+                "contact_name": getattr(p, "contact_name", "") or (lead.contact_name if lead else ""),
+                "contact_phone": getattr(p, "contact_phone", None),
+                "contact_email": getattr(p, "contact_email", "") or (lead.email if lead else ""),
+                "go_live_date": str(getattr(p, "go_live_date", "") or ""),
+                "package_type": getattr(p, "package_type", None),
+                "payment_status": getattr(p, "payment_status", None),
+                "desired_pages": getattr(p, "desired_pages", None),
+                "has_logo": getattr(p, "has_logo", False),
+                "has_briefing": getattr(p, "has_briefing", False),
+                "has_photos": getattr(p, "has_photos", False),
+                "pagespeed_mobile": getattr(p, "pagespeed_mobile", None),
+                "pagespeed_desktop": getattr(p, "pagespeed_desktop", None),
+                "audit_score": getattr(p, "audit_score", None),
+                "audit_level": getattr(p, "audit_level", None),
+                "top_problems": getattr(p, "top_problems", None),
+                "industry": getattr(p, "industry", None),
+                "fixed_price": p.fixed_price or 0.0,
+                "actual_hours": p.actual_hours or 0.0,
+                "start_date": str(p.start_date)[:10] if p.start_date else "",
+                "target_go_live": str(p.target_go_live)[:10] if p.target_go_live else "",
+                "created_at": str(p.created_at)[:10] if p.created_at else "",
+            })
         except Exception as e:
             logger.warning(f"list_projects: skipping project {getattr(p, 'id', '?')}: {e}")
-    logger.info(f"list_projects: returning {len(result)} projects (DB rows: {len(rows)})")
+            continue
+    logger.info(f"list_projects: returning {len(result)} of {len(projects)} projects")
     return result
 
 

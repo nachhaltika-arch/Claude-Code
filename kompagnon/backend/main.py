@@ -404,7 +404,7 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS audit_level VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS top_problems TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS industry VARCHAR",
-        # ── Seed: Projekte aus gewonnenen Leads anlegen (idempotent) ──────────
+        # ── Seed: Projekte aus Leads anlegen (idempotent) ────────────────────
         # Pass 1: won-Leads die noch kein Projekt haben
         """INSERT INTO projects (lead_id, status, start_date, created_at, updated_at,
                                  company_name, website_url, contact_name, contact_email)
@@ -413,7 +413,7 @@ def _run_migrations():
            FROM leads l
            WHERE l.status = 'won'
              AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.lead_id = l.id)""",
-        # Pass 2: Fallback — wenn Tabelle noch leer, alle neuesten 50 Leads nehmen
+        # Pass 2: Fallback — wenn Tabelle nach Pass 1 noch leer, neueste 50 Leads nehmen
         """INSERT INTO projects (lead_id, status, start_date, created_at, updated_at,
                                  company_name, website_url, contact_name, contact_email)
            SELECT l.id, 'phase_1', NOW(), NOW(), NOW(),
@@ -421,6 +421,8 @@ def _run_migrations():
            FROM (SELECT * FROM leads ORDER BY created_at DESC LIMIT 50) l
            WHERE (SELECT COUNT(*) FROM projects) = 0
              AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.lead_id = l.id)""",
+        # Sicherheit: lead_id NOT NULL Constraint entfernen falls Direkt-Einträge existieren
+        "ALTER TABLE projects ALTER COLUMN lead_id DROP NOT NULL",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

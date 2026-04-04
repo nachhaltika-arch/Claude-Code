@@ -6,6 +6,7 @@ import PhaseTracker from '../components/PhaseTracker';
 import MarginBadge from '../components/MarginBadge';
 import ProjectCard from '../components/ProjectCard';
 import BriefingTab from '../components/BriefingTab';
+import BriefingWizard from '../components/BriefingWizard';
 import ProjectFilesSection from '../components/ProjectFilesSection';
 import { useAuth } from '../context/AuthContext';
 
@@ -349,6 +350,8 @@ export default function ProjectDetail() {
   const [activeTab, setActiveTab]     = useState('overview');
   const [showEdit, setShowEdit]       = useState(false);
   const [showApproval, setShowApproval] = useState(false);
+  const [showBriefingWizard, setShowBriefingWizard] = useState(false);
+  const [briefingData, setBriefingData] = useState(null);
 
   const loadProject = useCallback(async () => {
     try {
@@ -407,6 +410,25 @@ export default function ProjectDetail() {
           }}
         >
           ✏️ Projektdaten bearbeiten
+        </button>
+
+        <button
+          onClick={async () => {
+            try {
+              const res = await axios.get(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers });
+              setBriefingData(res.data);
+            } catch { setBriefingData(null); }
+            setShowBriefingWizard(true);
+          }}
+          style={{
+            padding: '9px 18px', background: 'var(--bg-surface)',
+            border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
+            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            fontFamily: 'var(--font-sans)', color: 'var(--text-primary)',
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+          }}
+        >
+          📋 Briefing starten
         </button>
 
         {isAdmin && (
@@ -510,6 +532,16 @@ export default function ProjectDetail() {
           projectId={project.id}
           token={token}
           onClose={() => setShowApproval(false)}
+        />
+      )}
+
+      {/* ── Briefing Wizard ─────────────────────────────────────────────────── */}
+      {showBriefingWizard && (
+        <BriefingWizard
+          leadId={project.lead_id}
+          leadData={briefingData}
+          onClose={() => setShowBriefingWizard(false)}
+          onComplete={() => setShowBriefingWizard(false)}
         />
       )}
     </div>

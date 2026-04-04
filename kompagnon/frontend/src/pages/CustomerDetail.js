@@ -1243,7 +1243,7 @@ export default function CustomerDetail() {
       <LinkedProjectSection leadId={customerId} headers={h} navigate={navigate} />
 
       {/* ── Tab navigation ── */}
-      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border-light)', paddingBottom: 0, overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border-light)', paddingBottom: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {[
           { id: 'dateien',   label: 'Dateien',   icon: '📎' },
           { id: 'audits',    label: 'Audits',    icon: '📋' },

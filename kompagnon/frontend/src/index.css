@@ -244,8 +244,9 @@ textarea::placeholder {
 .kc-badge--neutral { background: var(--kc-hell); color: var(--kc-text-sekundaer); }
 .kc-badge--info { background: #e0f2fe; color: var(--kc-info); }
 .kc-badge--active { background: var(--kc-rot-subtle); color: var(--kc-rot); }
-.kc-tabs { display: flex; border-bottom: 2px solid var(--kc-rand); gap: var(--kc-space-1); }
-.kc-tab { padding: var(--kc-space-3) var(--kc-space-6); font-size: var(--kc-text-sm); font-weight: 600; color: var(--kc-text-subtil); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.kc-tabs { display: flex; border-bottom: 2px solid var(--kc-rand); gap: var(--kc-space-1); overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
+.kc-tabs::-webkit-scrollbar { display: none; }
+.kc-tab { padding: var(--kc-space-3) var(--kc-space-6); font-size: var(--kc-text-sm); font-weight: 600; color: var(--kc-text-subtil); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; white-space: nowrap; flex-shrink: 0; }
 .kc-tab:hover { color: var(--kc-text-primaer); }
 .kc-tab--active { color: var(--kc-rot); border-bottom-color: var(--kc-rot); }
 .kc-section-header { margin-bottom: var(--kc-space-6); }

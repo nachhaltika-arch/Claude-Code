@@ -6,6 +6,7 @@ POST /api/leads/{id}/analyze - Run lead analyst agent
 POST /api/leads/{id}/convert - Convert to project
 """
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, BackgroundTasks
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
@@ -98,43 +99,61 @@ class LeadConvertRequest(BaseModel):
 
 @router.post("/")
 def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    """Create a new lead in the pipeline."""
-    db_lead = Lead(
-        company_name=lead.company_name,
-        contact_name=lead.contact_name or "",
-        phone=lead.phone or "",
-        email=lead.email or "",
-        website_url=lead.website_url,
-        city=lead.city or "",
-        trade=lead.trade or "",
-        lead_source=lead.lead_source,
-        notes=lead.notes,
-        status="new",
-    )
-    db.add(db_lead)
-    db.commit()
-    db.refresh(db_lead)
+    try:
+        result = db.execute(text("""
+            INSERT INTO leads (
+                company_name, contact_name, phone, email,
+                website_url, city, trade, lead_source, notes,
+                status, analysis_score, geo_score,
+                created_at, updated_at
+            ) VALUES (
+                :company_name, :contact_name, :phone, :email,
+                :website_url, :city, :trade, :lead_source, :notes,
+                'new', 0, 0,
+                NOW(), NOW()
+            ) RETURNING id, company_name, contact_name, phone, email,
+                website_url, city, trade, lead_source, status,
+                analysis_score, geo_score, created_at, updated_at
+        """), {
+            'company_name': lead.company_name or '',
+            'contact_name': lead.contact_name or '',
+            'phone': lead.phone or '',
+            'email': lead.email or '',
+            'website_url': lead.website_url or '',
+            'city': lead.city or '',
+            'trade': lead.trade or '',
+            'lead_source': lead.lead_source or '',
+            'notes': lead.notes or '',
+        })
+        db.commit()
+        row = result.fetchone()
+        lead_id = row[0]
 
-    if db_lead.website_url:
-        from services.lead_enrichment import enrich_lead_sync
-        background_tasks.add_task(enrich_lead_sync, db_lead.id)
+        if lead.website_url:
+            from services.lead_enrichment import enrich_lead_sync
+            background_tasks.add_task(enrich_lead_sync, lead_id)
 
-    return {
-        'id': db_lead.id,
-        'company_name': db_lead.company_name or '',
-        'contact_name': db_lead.contact_name or '',
-        'phone': db_lead.phone or '',
-        'email': db_lead.email or '',
-        'website_url': db_lead.website_url or '',
-        'city': db_lead.city or '',
-        'trade': db_lead.trade or '',
-        'status': db_lead.status or 'new',
-        'analysis_score': db_lead.analysis_score or 0,
-        'geo_score': db_lead.geo_score or 0,
-        'lead_source': db_lead.lead_source or '',
-        'created_at': str(db_lead.created_at)[:19] if db_lead.created_at else '',
-        'updated_at': str(db_lead.updated_at)[:19] if db_lead.updated_at else '',
-    }
+        return {
+            'id': row[0],
+            'company_name': row[1] or '',
+            'contact_name': row[2] or '',
+            'phone': row[3] or '',
+            'email': row[4] or '',
+            'website_url': row[5] or '',
+            'city': row[6] or '',
+            'trade': row[7] or '',
+            'lead_source': row[8] or '',
+            'status': row[9] or 'new',
+            'analysis_score': row[10] or 0,
+            'geo_score': row[11] or 0,
+            'created_at': str(row[12])[:19] if row[12] else '',
+            'updated_at': str(row[13])[:19] if row[13] else '',
+        }
+    except Exception as e:
+        db.rollback()
+        import logging
+        logging.getLogger('leads').error(f'Lead create error: {type(e).__name__}: {e}')
+        raise HTTPException(status_code=500, detail=f'Lead konnte nicht angelegt werden: {str(e)}')
 
 
 @router.get("/")

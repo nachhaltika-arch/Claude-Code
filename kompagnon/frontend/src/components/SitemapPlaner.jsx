@@ -17,6 +17,7 @@ const TYPE_OPTIONS = [
   { value: 'info',       label: 'Info-Seite' },
   { value: 'vertrauen',  label: 'Vertrauensseite' },
   { value: 'conversion', label: 'Kontakt' },
+  { value: 'sonstige',   label: 'Sonstige' },
 ];
 
 const STATUS_COLOR = {
@@ -261,17 +262,18 @@ function AddPageForm({ pages, leadId, onAdded, onCancel }) {
 
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 
-function EditModal({ page, pages, onSave, onClose }) {
+function EditModal({ page, pages, onSaved, onClose }) {
   const [form, setForm] = useState({
     page_name:    page.page_name,
     page_type:    page.page_type,
     zweck:        page.zweck || '',
     ziel_keyword: page.ziel_keyword || '',
     cta_text:     page.cta_text || '',
-    cta_ziel:     page.cta_ziel || 'kontakt',
+    cta_ziel:     page.cta_ziel || 'kontaktformular',
     notizen:      page.notizen || '',
     status:       page.status || 'geplant',
     parent_id:    page.parent_id ? String(page.parent_id) : '',
+    position:     page.position != null ? page.position : 0,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
@@ -282,22 +284,25 @@ function EditModal({ page, pages, onSave, onClose }) {
     fontFamily: 'var(--font-sans, system-ui)', background: '#FAFCFD', color: '#1A2C32',
   };
   const lbl = { fontSize: 11, fontWeight: 700, color: '#5A7080', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, display: 'block' };
+  const divider = { border: 'none', borderTop: '1px solid #EEF2F4', margin: '4px 0' };
 
   const handleSave = async () => {
     if (!form.page_name.trim()) { setError('Seitenname ist erforderlich.'); return; }
     setSaving(true);
     setError('');
     try {
-      const body = { ...form, parent_id: form.parent_id ? Number(form.parent_id) : null };
+      const body = {
+        ...form,
+        parent_id: form.parent_id ? Number(form.parent_id) : null,
+        position:  Number(form.position),
+      };
       const res = await fetch(`${API_BASE_URL}/api/sitemap/pages/${page.id}`, {
         method: 'PUT', headers: authHeaders(), body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `Fehler ${res.status}`);
-      const updated = await res.json();
-      onSave(updated);
+      onSaved();
     } catch (err) {
       setError(err.message);
-    } finally {
       setSaving(false);
     }
   };
@@ -312,21 +317,23 @@ function EditModal({ page, pages, onSave, onClose }) {
     }} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{
         background: '#fff', borderRadius: 14, width: '100%', maxWidth: 560,
-        maxHeight: '88vh', display: 'flex', flexDirection: 'column',
+        maxHeight: '90vh', display: 'flex', flexDirection: 'column',
         boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
       }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #EEF2F4', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontWeight: 700, fontSize: 15, color: '#1A2C32' }}>Seite bearbeiten</span>
+          <span style={{ fontWeight: 700, fontSize: 15, color: '#1A2C32' }}>Seite bearbeiten — {page.page_name}</span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#8A9BA8' }}>×</button>
         </div>
         <div style={{ padding: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* Gruppe 1: Identität */}
           <div>
             <label style={lbl}>Seitenname *</label>
             <input style={inp} value={form.page_name} onChange={e => setForm(f => ({ ...f, page_name: e.target.value }))} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={lbl}>Typ</label>
+              <label style={lbl}>Seitentyp</label>
               <select style={{ ...inp, cursor: 'pointer' }} value={form.page_type} onChange={e => setForm(f => ({ ...f, page_type: e.target.value }))}>
                 {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -335,26 +342,51 @@ function EditModal({ page, pages, onSave, onClose }) {
               <label style={lbl}>Status</label>
               <select style={{ ...inp, cursor: 'pointer' }} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
                 <option value="geplant">Geplant</option>
-                <option value="in_arbeit">In Arbeit</option>
-                <option value="fertig">Fertig</option>
+                <option value="in_bearbeitung">In Bearbeitung</option>
+                <option value="freigegeben">Freigegeben</option>
+                <option value="live">Live</option>
               </select>
             </div>
           </div>
-          <div>
-            <label style={lbl}>Übergeordnete Seite</label>
-            <select style={{ ...inp, cursor: 'pointer' }} value={form.parent_id} onChange={e => setForm(f => ({ ...f, parent_id: e.target.value }))}>
-              <option value="">– Keine (Top-Level) –</option>
-              {parentOptions.map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
-            </select>
+
+          <hr style={divider} />
+
+          {/* Gruppe 2: Struktur */}
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>Übergeordnete Seite</label>
+              <select style={{ ...inp, cursor: 'pointer' }} value={form.parent_id} onChange={e => setForm(f => ({ ...f, parent_id: e.target.value }))}>
+                <option value="">– Keine (Top-Level) –</option>
+                {parentOptions.map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={lbl}>Reihenfolge</label>
+              <input
+                style={inp}
+                type="number"
+                min={0}
+                value={form.position}
+                onChange={e => setForm(f => ({ ...f, position: e.target.value }))}
+              />
+            </div>
           </div>
+
+          <hr style={divider} />
+
+          {/* Gruppe 3: SEO & Zweck */}
           <div>
-            <label style={lbl}>Zweck</label>
+            <label style={lbl}>Zweck der Seite</label>
             <input style={inp} value={form.zweck} onChange={e => setForm(f => ({ ...f, zweck: e.target.value }))} placeholder="Was soll diese Seite erreichen?" />
           </div>
           <div>
             <label style={lbl}>Ziel-Keyword</label>
             <input style={inp} value={form.ziel_keyword} onChange={e => setForm(f => ({ ...f, ziel_keyword: e.target.value }))} placeholder="z.B. Klempner Berlin" />
           </div>
+
+          <hr style={divider} />
+
+          {/* Gruppe 4: CTA */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>CTA-Text</label>
@@ -363,16 +395,22 @@ function EditModal({ page, pages, onSave, onClose }) {
             <div>
               <label style={lbl}>CTA-Ziel</label>
               <select style={{ ...inp, cursor: 'pointer' }} value={form.cta_ziel} onChange={e => setForm(f => ({ ...f, cta_ziel: e.target.value }))}>
-                <option value="kontakt">Kontakt</option>
-                <option value="formular">Formular</option>
-                <option value="tel">Telefon</option>
+                <option value="kontaktformular">Kontaktformular</option>
+                <option value="telefon">Telefon</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="angebotsseite">Angebotsseite</option>
               </select>
             </div>
           </div>
+
+          <hr style={divider} />
+
+          {/* Gruppe 5: Notizen */}
           <div>
             <label style={lbl}>Notizen</label>
             <textarea style={{ ...inp, resize: 'vertical', lineHeight: 1.5 }} rows={3} value={form.notizen} onChange={e => setForm(f => ({ ...f, notizen: e.target.value }))} placeholder="Interne Notizen…" />
           </div>
+
           {error && <div style={{ fontSize: 12, color: '#DC2626' }}>{error}</div>}
         </div>
         <div style={{ padding: '14px 20px', borderTop: '1px solid #EEF2F4', display: 'flex', gap: 10, justifyContent: 'flex-end', background: '#FAFCFD' }}>
@@ -453,9 +491,9 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
     setShowAddForm(false);
   };
 
-  const handleSaved = (updated) => {
-    setPages(prev => prev.map(p => p.id === updated.id ? updated : p));
+  const handleSaved = () => {
     setEditPage(null);
+    load();
   };
 
   const btnPrimary = {
@@ -573,7 +611,7 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
         <EditModal
           page={editPage}
           pages={pages}
-          onSave={handleSaved}
+          onSaved={handleSaved}
           onClose={() => setEditPage(null)}
         />
       )}

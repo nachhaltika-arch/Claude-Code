@@ -4,11 +4,13 @@ import API_BASE_URL from '../config';
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const TYPE_META = {
-  startseite:  { label: 'Startseite',       color: '#008EAA', icon: '🏠' },
-  leistung:    { label: 'Leistungsseite',   color: '#2563EB', icon: '🔧' },
-  info:        { label: 'Info-Seite',       color: '#059669', icon: 'ℹ️' },
-  vertrauen:   { label: 'Vertrauensseite',  color: '#D97706', icon: '⭐' },
-  conversion:  { label: 'Kontakt',          color: '#DC2626', icon: '📞' },
+  startseite:  { label: 'Startseite',      color: '#008EAA', icon: '🏠' },
+  leistung:    { label: 'Leistungsseite',  color: '#2563EB', icon: '🔧' },
+  info:        { label: 'Info-Seite',      color: '#059669', icon: 'ℹ️' },
+  vertrauen:   { label: 'Vertrauensseite', color: '#D97706', icon: '⭐' },
+  conversion:  { label: 'Kontakt',         color: '#DC2626', icon: '📞' },
+  rechtlich:   { label: 'Rechtlich',       color: '#6B7280', icon: '⚖️' },
+  sonstige:    { label: 'Sonstige',        color: '#8B5CF6', icon: '📄' },
 };
 
 const TYPE_OPTIONS = [
@@ -20,14 +22,22 @@ const TYPE_OPTIONS = [
   { value: 'sonstige',   label: 'Sonstige' },
 ];
 
-const STATUS_COLOR = {
-  geplant:     { bg: '#EFF6FF', text: '#1D4ED8' },
-  in_arbeit:   { bg: '#FEF9C3', text: '#92400E' },
-  fertig:      { bg: '#DCFCE7', text: '#166534' },
+const STATUS_OPTIONS = [
+  { value: 'geplant',        label: 'Geplant' },
+  { value: 'in_bearbeitung', label: 'In Bearbeitung' },
+  { value: 'freigegeben',    label: 'Freigegeben' },
+  { value: 'live',           label: 'Live' },
+];
+
+const STATUS_STYLE = {
+  geplant:        { bg: '#EFF6FF', text: '#1D4ED8' },
+  in_bearbeitung: { bg: '#FEF9C3', text: '#92400E' },
+  freigegeben:    { bg: '#FEF3C7', text: '#B45309' },
+  live:           { bg: '#DCFCE7', text: '#166534' },
 };
 
-function statusStyle(status) {
-  return STATUS_COLOR[status] || STATUS_COLOR.geplant;
+function statusLabel(s) {
+  return STATUS_OPTIONS.find(o => o.value === s)?.label || 'Geplant';
 }
 
 const authHeaders = () => {
@@ -37,6 +47,20 @@ const authHeaders = () => {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 };
+
+// ── Shared style helpers ──────────────────────────────────────────────────────
+
+const inp = {
+  width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 8,
+  border: '1.5px solid #DDE4E8', outline: 'none', boxSizing: 'border-box',
+  fontFamily: 'var(--font-sans, system-ui)', background: '#FAFCFD', color: '#1A2C32',
+};
+const lbl = {
+  fontSize: 11, fontWeight: 700, color: '#5A7080',
+  textTransform: 'uppercase', letterSpacing: '0.06em',
+  marginBottom: 4, display: 'block',
+};
+const divider = { border: 'none', borderTop: '1px solid #EEF2F4', margin: '4px 0' };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -55,16 +79,18 @@ function TypeDot({ type }) {
 }
 
 function StatusBadge({ status }) {
-  const s = statusStyle(status);
+  const s = STATUS_STYLE[status] || STATUS_STYLE.geplant;
   return (
     <span style={{
       padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600,
       background: s.bg, color: s.text, whiteSpace: 'nowrap',
     }}>
-      {status === 'in_arbeit' ? 'In Arbeit' : status === 'fertig' ? 'Fertig' : 'Geplant'}
+      {statusLabel(status)}
     </span>
   );
 }
+
+// ── Content page card ─────────────────────────────────────────────────────────
 
 function PageCard({ page, isChild, onEdit, onDelete }) {
   return (
@@ -79,8 +105,7 @@ function PageCard({ page, isChild, onEdit, onDelete }) {
       {isChild && (
         <div style={{
           position: 'absolute', left: -16, top: '50%',
-          width: 12, height: 1,
-          background: '#D1D5DB',
+          width: 12, height: 1, background: '#D1D5DB',
         }} />
       )}
       <TypeDot type={page.page_type} />
@@ -89,14 +114,10 @@ function PageCard({ page, isChild, onEdit, onDelete }) {
           {page.page_name}
         </div>
         {page.ziel_keyword && (
-          <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
-            🔑 {page.ziel_keyword}
-          </div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>🔑 {page.ziel_keyword}</div>
         )}
         {page.zweck && (
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1, fontStyle: 'italic' }}>
-            {page.zweck}
-          </div>
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1, fontStyle: 'italic' }}>{page.zweck}</div>
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -119,24 +140,17 @@ function PageCard({ page, isChild, onEdit, onDelete }) {
 function PageTree({ pages, onEdit, onDelete }) {
   if (!pages.length) {
     return (
-      <div style={{
-        textAlign: 'center', padding: '48px 24px',
-        color: '#9CA3AF', fontSize: 14,
-      }}>
-        <div style={{ fontSize: 36, marginBottom: 12 }}>🗺️</div>
-        <div style={{ fontWeight: 600, marginBottom: 6 }}>Noch keine Seiten geplant</div>
+      <div style={{ textAlign: 'center', padding: '40px 24px', color: '#9CA3AF', fontSize: 14 }}>
+        <div style={{ fontSize: 32, marginBottom: 10 }}>🗺️</div>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>Noch keine Seiten geplant</div>
         <div style={{ fontSize: 12 }}>Klicke auf „KI-Vorlage laden" oder füge Seiten manuell hinzu.</div>
       </div>
     );
   }
 
-  const roots  = pages.filter(p => !p.parent_id).sort((a, b) => a.position - b.position);
+  const roots    = pages.filter(p => !p.parent_id).sort((a, b) => a.position - b.position);
   const byParent = {};
-  pages.forEach(p => {
-    if (p.parent_id) {
-      (byParent[p.parent_id] = byParent[p.parent_id] || []).push(p);
-    }
-  });
+  pages.forEach(p => { if (p.parent_id) (byParent[p.parent_id] = byParent[p.parent_id] || []).push(p); });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -145,10 +159,7 @@ function PageTree({ pages, onEdit, onDelete }) {
           <PageCard page={root} isChild={false} onEdit={onEdit} onDelete={onDelete} />
           {(byParent[root.id] || []).sort((a, b) => a.position - b.position).map(child => (
             <div key={child.id} style={{ marginTop: 6, position: 'relative' }}>
-              <div style={{
-                position: 'absolute', left: 16, top: -6, bottom: '50%',
-                width: 1, background: '#D1D5DB',
-              }} />
+              <div style={{ position: 'absolute', left: 16, top: -6, bottom: '50%', width: 1, background: '#D1D5DB' }} />
               <PageCard page={child} isChild={true} onEdit={onEdit} onDelete={onDelete} />
             </div>
           ))}
@@ -158,40 +169,59 @@ function PageTree({ pages, onEdit, onDelete }) {
   );
 }
 
+// ── Pflichtseiten area ────────────────────────────────────────────────────────
+
+function PflichtseiteRow({ page, onEdit }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '8px 12px', borderRadius: 8,
+      background: '#fff', border: '1px solid #E5E7EB',
+      cursor: 'default',
+    }}>
+      <span style={{ fontSize: 16, flexShrink: 0, color: '#9CA3AF' }}>🔒</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ fontWeight: 700, fontSize: 13, color: '#6B7280' }}>{page.page_name}</span>
+      </div>
+      <span style={{
+        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
+        background: '#F3F4F6', color: '#6B7280', whiteSpace: 'nowrap',
+      }}>⚖️ Pflicht</span>
+      <StatusBadge status={page.status} />
+      <button
+        onClick={() => onEdit(page)}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, padding: '2px 4px', lineHeight: 1 }}
+        title="Notizen bearbeiten"
+      >✏️</button>
+    </div>
+  );
+}
+
 // ── Inline Add Form ───────────────────────────────────────────────────────────
 
 const EMPTY_FORM = { page_name: '', page_type: 'info', parent_id: '' };
 
-function AddPageForm({ pages, leadId, onAdded, onCancel }) {
-  const [form, setForm]       = useState(EMPTY_FORM);
-  const [saving, setSaving]   = useState(false);
-  const [error, setError]     = useState('');
-
-  const inp = {
-    padding: '8px 10px', fontSize: 13, borderRadius: 8,
-    border: '1.5px solid #DDE4E8', outline: 'none',
-    fontFamily: 'var(--font-sans, system-ui)', background: '#FAFCFD',
-    color: '#1A2C32', boxSizing: 'border-box',
-  };
+function AddPageForm({ contentPages, leadId, onAdded, onCancel }) {
+  const [form, setForm]     = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.page_name.trim()) { setError('Seitenname ist erforderlich.'); return; }
-    setSaving(true);
-    setError('');
+    setSaving(true); setError('');
     try {
       const body = {
         page_name: form.page_name.trim(),
         page_type: form.page_type,
-        position:  pages.length,
+        position:  contentPages.length,
         parent_id: form.parent_id ? Number(form.parent_id) : null,
       };
       const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pages`, {
         method: 'POST', headers: authHeaders(), body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `Fehler ${res.status}`);
-      const created = await res.json();
-      onAdded(created);
+      onAdded(await res.json());
       setForm(EMPTY_FORM);
     } catch (err) {
       setError(err.message);
@@ -226,7 +256,7 @@ function AddPageForm({ pages, leadId, onAdded, onCancel }) {
           onChange={e => setForm(f => ({ ...f, parent_id: e.target.value }))}
         >
           <option value="">– Kein Elternelement –</option>
-          {pages.filter(p => !p.parent_id).map(p => (
+          {contentPages.filter(p => !p.parent_id).map(p => (
             <option key={p.id} value={p.id}>{p.page_name}</option>
           ))}
         </select>
@@ -237,8 +267,10 @@ function AddPageForm({ pages, leadId, onAdded, onCancel }) {
           type="submit" disabled={saving}
           style={{
             padding: '8px 20px', borderRadius: 8, border: 'none',
-            background: saving ? '#DDE4E8' : '#008EAA', color: saving ? '#8A9BA8' : '#fff',
-            fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
+            background: saving ? '#DDE4E8' : '#008EAA',
+            color: saving ? '#8A9BA8' : '#fff',
+            fontSize: 13, fontWeight: 600,
+            cursor: saving ? 'not-allowed' : 'pointer',
             fontFamily: 'var(--font-sans, system-ui)',
           }}
         >
@@ -262,7 +294,9 @@ function AddPageForm({ pages, leadId, onAdded, onCancel }) {
 
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 
-function EditModal({ page, pages, onSaved, onClose }) {
+function EditModal({ page, contentPages, onSaved, onClose }) {
+  const isPflicht = !!page.ist_pflichtseite;
+
   const [form, setForm] = useState({
     page_name:    page.page_name,
     page_type:    page.page_type,
@@ -278,24 +312,17 @@ function EditModal({ page, pages, onSaved, onClose }) {
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
 
-  const inp = {
-    width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 8,
-    border: '1.5px solid #DDE4E8', outline: 'none', boxSizing: 'border-box',
-    fontFamily: 'var(--font-sans, system-ui)', background: '#FAFCFD', color: '#1A2C32',
-  };
-  const lbl = { fontSize: 11, fontWeight: 700, color: '#5A7080', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, display: 'block' };
-  const divider = { border: 'none', borderTop: '1px solid #EEF2F4', margin: '4px 0' };
-
   const handleSave = async () => {
-    if (!form.page_name.trim()) { setError('Seitenname ist erforderlich.'); return; }
-    setSaving(true);
-    setError('');
+    if (!isPflicht && !form.page_name.trim()) { setError('Seitenname ist erforderlich.'); return; }
+    setSaving(true); setError('');
     try {
-      const body = {
-        ...form,
-        parent_id: form.parent_id ? Number(form.parent_id) : null,
-        position:  Number(form.position),
-      };
+      const body = isPflicht
+        ? { zweck: form.zweck, notizen: form.notizen, status: form.status }
+        : {
+            ...form,
+            parent_id: form.parent_id ? Number(form.parent_id) : null,
+            position:  Number(form.position),
+          };
       const res = await fetch(`${API_BASE_URL}/api/sitemap/pages/${page.id}`, {
         method: 'PUT', headers: authHeaders(), body: JSON.stringify(body),
       });
@@ -307,117 +334,179 @@ function EditModal({ page, pages, onSaved, onClose }) {
     }
   };
 
-  const parentOptions = pages.filter(p => p.id !== page.id && !p.parent_id);
+  const parentOptions = contentPages.filter(p => p.id !== page.id && !p.parent_id);
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 3000,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-    }} onClick={e => e.target === e.currentTarget && onClose()}>
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 3000,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+      }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
       <div style={{
         background: '#fff', borderRadius: 14, width: '100%', maxWidth: 560,
         maxHeight: '90vh', display: 'flex', flexDirection: 'column',
         boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
       }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #EEF2F4', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontWeight: 700, fontSize: 15, color: '#1A2C32' }}>Seite bearbeiten — {page.page_name}</span>
+        {/* Header */}
+        <div style={{
+          padding: '16px 20px', borderBottom: '1px solid #EEF2F4',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <span style={{ fontWeight: 700, fontSize: 15, color: '#1A2C32' }}>
+            Seite bearbeiten — {page.page_name}
+          </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#8A9BA8' }}>×</button>
         </div>
+
+        {/* Body */}
         <div style={{ padding: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {/* Gruppe 1: Identität */}
+          {/* Pflichtseiten-Banner */}
+          {isPflicht && (
+            <div style={{
+              background: '#FFFBEB', border: '1.5px solid #F59E0B',
+              borderRadius: 8, padding: '10px 14px',
+              fontSize: 13, color: '#92400E', fontWeight: 500,
+            }}>
+              ⚖️ Pflichtseite — Name und Typ können nicht geändert werden.
+            </div>
+          )}
+
+          {/* Seitenname */}
           <div>
-            <label style={lbl}>Seitenname *</label>
-            <input style={inp} value={form.page_name} onChange={e => setForm(f => ({ ...f, page_name: e.target.value }))} />
+            <label style={lbl}>Seitenname {!isPflicht && '*'}</label>
+            {isPflicht
+              ? <div style={{ fontSize: 14, fontWeight: 600, color: '#9CA3AF', padding: '8px 0' }}>{form.page_name}</div>
+              : <input style={inp} value={form.page_name} onChange={e => setForm(f => ({ ...f, page_name: e.target.value }))} />
+            }
           </div>
+
+          {/* Seitentyp + Status */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Seitentyp</label>
-              <select style={{ ...inp, cursor: 'pointer' }} value={form.page_type} onChange={e => setForm(f => ({ ...f, page_type: e.target.value }))}>
-                {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              {isPflicht
+                ? <div style={{ fontSize: 13, color: '#9CA3AF', padding: '8px 0' }}>Rechtlich</div>
+                : (
+                  <select style={{ ...inp, cursor: 'pointer' }} value={form.page_type} onChange={e => setForm(f => ({ ...f, page_type: e.target.value }))}>
+                    {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                )
+              }
             </div>
             <div>
               <label style={lbl}>Status</label>
               <select style={{ ...inp, cursor: 'pointer' }} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-                <option value="geplant">Geplant</option>
-                <option value="in_bearbeitung">In Bearbeitung</option>
-                <option value="freigegeben">Freigegeben</option>
-                <option value="live">Live</option>
+                {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
           </div>
 
-          <hr style={divider} />
-
-          {/* Gruppe 2: Struktur */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
-            <div>
-              <label style={lbl}>Übergeordnete Seite</label>
-              <select style={{ ...inp, cursor: 'pointer' }} value={form.parent_id} onChange={e => setForm(f => ({ ...f, parent_id: e.target.value }))}>
-                <option value="">– Keine (Top-Level) –</option>
-                {parentOptions.map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={lbl}>Reihenfolge</label>
-              <input
-                style={inp}
-                type="number"
-                min={0}
-                value={form.position}
-                onChange={e => setForm(f => ({ ...f, position: e.target.value }))}
-              />
-            </div>
-          </div>
+          {/* Strukturfelder – nur für freie Seiten */}
+          {!isPflicht && (
+            <>
+              <hr style={divider} />
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={lbl}>Übergeordnete Seite</label>
+                  <select style={{ ...inp, cursor: 'pointer' }} value={form.parent_id} onChange={e => setForm(f => ({ ...f, parent_id: e.target.value }))}>
+                    <option value="">– Keine (Top-Level) –</option>
+                    {parentOptions.map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Reihenfolge</label>
+                  <input style={inp} type="number" min={0} value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} />
+                </div>
+              </div>
+            </>
+          )}
 
           <hr style={divider} />
 
-          {/* Gruppe 3: SEO & Zweck */}
+          {/* Zweck */}
           <div>
             <label style={lbl}>Zweck der Seite</label>
-            <input style={inp} value={form.zweck} onChange={e => setForm(f => ({ ...f, zweck: e.target.value }))} placeholder="Was soll diese Seite erreichen?" />
-          </div>
-          <div>
-            <label style={lbl}>Ziel-Keyword</label>
-            <input style={inp} value={form.ziel_keyword} onChange={e => setForm(f => ({ ...f, ziel_keyword: e.target.value }))} placeholder="z.B. Klempner Berlin" />
-          </div>
-
-          <hr style={divider} />
-
-          {/* Gruppe 4: CTA */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={lbl}>CTA-Text</label>
-              <input style={inp} value={form.cta_text} onChange={e => setForm(f => ({ ...f, cta_text: e.target.value }))} placeholder="z.B. Jetzt anfragen" />
-            </div>
-            <div>
-              <label style={lbl}>CTA-Ziel</label>
-              <select style={{ ...inp, cursor: 'pointer' }} value={form.cta_ziel} onChange={e => setForm(f => ({ ...f, cta_ziel: e.target.value }))}>
-                <option value="kontaktformular">Kontaktformular</option>
-                <option value="telefon">Telefon</option>
-                <option value="whatsapp">WhatsApp</option>
-                <option value="angebotsseite">Angebotsseite</option>
-              </select>
-            </div>
+            {isPflicht
+              ? (
+                <textarea
+                  style={{ ...inp, resize: 'vertical', lineHeight: 1.5 }}
+                  rows={3}
+                  value={form.zweck}
+                  onChange={e => setForm(f => ({ ...f, zweck: e.target.value }))}
+                  placeholder="Gesetzliche Beschreibung…"
+                />
+              )
+              : (
+                <input style={inp} value={form.zweck} onChange={e => setForm(f => ({ ...f, zweck: e.target.value }))} placeholder="Was soll diese Seite erreichen?" />
+              )
+            }
           </div>
 
-          <hr style={divider} />
+          {/* SEO & CTA – nur für freie Seiten */}
+          {!isPflicht && (
+            <>
+              <div>
+                <label style={lbl}>Ziel-Keyword</label>
+                <input style={inp} value={form.ziel_keyword} onChange={e => setForm(f => ({ ...f, ziel_keyword: e.target.value }))} placeholder="z.B. Klempner Berlin" />
+              </div>
 
-          {/* Gruppe 5: Notizen */}
+              <hr style={divider} />
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={lbl}>CTA-Text</label>
+                  <input style={inp} value={form.cta_text} onChange={e => setForm(f => ({ ...f, cta_text: e.target.value }))} placeholder="z.B. Jetzt anfragen" />
+                </div>
+                <div>
+                  <label style={lbl}>CTA-Ziel</label>
+                  <select style={{ ...inp, cursor: 'pointer' }} value={form.cta_ziel} onChange={e => setForm(f => ({ ...f, cta_ziel: e.target.value }))}>
+                    <option value="kontaktformular">Kontaktformular</option>
+                    <option value="telefon">Telefon</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="angebotsseite">Angebotsseite</option>
+                  </select>
+                </div>
+              </div>
+
+              <hr style={divider} />
+            </>
+          )}
+
+          {/* Notizen */}
           <div>
             <label style={lbl}>Notizen</label>
-            <textarea style={{ ...inp, resize: 'vertical', lineHeight: 1.5 }} rows={3} value={form.notizen} onChange={e => setForm(f => ({ ...f, notizen: e.target.value }))} placeholder="Interne Notizen…" />
+            <textarea
+              style={{ ...inp, resize: 'vertical', lineHeight: 1.5 }}
+              rows={3}
+              value={form.notizen}
+              onChange={e => setForm(f => ({ ...f, notizen: e.target.value }))}
+              placeholder={isPflicht ? 'z.B. Rechtsbeistand prüft Text am 01.05.' : 'Interne Notizen…'}
+            />
           </div>
 
           {error && <div style={{ fontSize: 12, color: '#DC2626' }}>{error}</div>}
         </div>
-        <div style={{ padding: '14px 20px', borderTop: '1px solid #EEF2F4', display: 'flex', gap: 10, justifyContent: 'flex-end', background: '#FAFCFD' }}>
-          <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid #DDE4E8', background: '#fff', color: '#5A7080', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+
+        {/* Footer */}
+        <div style={{
+          padding: '14px 20px', borderTop: '1px solid #EEF2F4',
+          display: 'flex', gap: 10, justifyContent: 'flex-end', background: '#FAFCFD',
+        }}>
+          <button
+            onClick={onClose}
+            style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid #DDE4E8', background: '#fff', color: '#5A7080', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}
+          >
             Abbrechen
           </button>
-          <button onClick={handleSave} disabled={saving} style={{ padding: '9px 22px', borderRadius: 8, border: 'none', background: saving ? '#DDE4E8' : '#008EAA', color: saving ? '#8A9BA8' : '#fff', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{ padding: '9px 22px', borderRadius: 8, border: 'none', background: saving ? '#DDE4E8' : '#008EAA', color: saving ? '#8A9BA8' : '#fff', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}
+          >
             {saving ? 'Speichern…' : 'Speichern'}
           </button>
         </div>
@@ -429,18 +518,17 @@ function EditModal({ page, pages, onSaved, onClose }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function SitemapPlaner({ leadId, leadData, onClose }) {
-  const [pages, setPages]         = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [pages, setPages]           = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [generating, setGenerating] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editPage, setEditPage]   = useState(null);
-  const [error, setError]         = useState('');
+  const [editPage, setEditPage]     = useState(null);
+  const [error, setError]           = useState('');
 
   const companyName = leadData?.display_name || leadData?.company_name || `Lead #${leadId}`;
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error(`Fehler ${res.status}`);
@@ -454,12 +542,16 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const contentPages  = pages.filter(p => !p.ist_pflichtseite);
+  const pflichtPages  = pages.filter(p =>  p.ist_pflichtseite);
+
   const handleGenerate = async () => {
-    if (pages.length > 0) {
-      if (!window.confirm('Bestehende Seiten werden ersetzt. Fortfahren?')) return;
-    }
-    setGenerating(true);
-    setError('');
+    if (!window.confirm(
+      'Inhaltliche Seiten werden durch den KI-Vorschlag ersetzt.\n' +
+      'Pflichtseiten (Impressum, Datenschutz, AGB, Barrierefreiheit) bleiben erhalten.\n\n' +
+      'Fortfahren?'
+    )) return;
+    setGenerating(true); setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/generate`, {
         method: 'POST', headers: authHeaders(),
@@ -477,9 +569,10 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
   const handleDelete = async (page) => {
     if (!window.confirm(`„${page.page_name}" wirklich löschen?`)) return;
     try {
-      await fetch(`${API_BASE_URL}/api/sitemap/pages/${page.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/pages/${page.id}`, {
         method: 'DELETE', headers: authHeaders(),
       });
+      if (res.status === 403) { setError('Pflichtseiten können nicht gelöscht werden.'); return; }
       setPages(prev => prev.filter(p => p.id !== page.id && p.parent_id !== page.id));
     } catch (e) {
       setError(e.message);
@@ -494,6 +587,24 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
   const handleSaved = () => {
     setEditPage(null);
     load();
+  };
+
+  const downloadPdf = async () => {
+    setError('');
+    try {
+      const token = localStorage.getItem('kompagnon_token');
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('PDF konnte nicht geladen werden');
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `sitemap-${leadId}.pdf`; a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e.message);
+    }
   };
 
   const btnPrimary = {
@@ -512,13 +623,15 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
   };
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 2000,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 16,
-    }} onClick={e => e.target === e.currentTarget && onClose?.()}>
-
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 2000,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16,
+      }}
+      onClick={e => e.target === e.currentTarget && onClose?.()}
+    >
       <div style={{
         background: '#F8FAFC', borderRadius: 16,
         width: '100%', maxWidth: 900, maxHeight: '92vh',
@@ -552,14 +665,9 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
             }
           </button>
 
-          <a
-            href={`${API_BASE_URL}/api/sitemap/${leadId}/pdf`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ ...btnSecondary, textDecoration: 'none' }}
-          >
+          <button onClick={downloadPdf} style={btnSecondary}>
             📄 PDF exportieren
-          </a>
+          </button>
 
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#8A9BA8', lineHeight: 1, padding: 4 }}>
             ×
@@ -567,9 +675,9 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 24 }}>
           {error && (
-            <div style={{ background: '#FFF0F0', border: '1px solid #FFBDBD', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#C0392B', marginBottom: 16 }}>
+            <div style={{ background: '#FFF0F0', border: '1px solid #FFBDBD', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#C0392B' }}>
               {error}
             </div>
           )}
@@ -579,38 +687,65 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
               <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid #DDE4E8', borderTopColor: '#008EAA', animation: 'spin 0.8s linear infinite' }} />
             </div>
           ) : (
-            <PageTree pages={pages} onEdit={setEditPage} onDelete={handleDelete} />
+            <>
+              {/* ── Bereich A: Inhaltliche Seiten ── */}
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#1A2C32', marginBottom: 12 }}>
+                  Inhaltliche Seiten
+                </div>
+                <PageTree pages={contentPages} onEdit={setEditPage} onDelete={handleDelete} />
+              </div>
+
+              {/* ── Bereich B: Pflichtseiten ── */}
+              <div>
+                <div style={{ borderTop: '2px solid #EEF2F4', paddingTop: 20 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                    ⚖️ Rechtlich vorgeschriebene Seiten
+                  </div>
+                  <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 14, lineHeight: 1.5 }}>
+                    Diese Seiten sind gesetzlich verpflichtend und werden von KOMPAGNON mit rechtskonformem Inhalt befüllt.
+                  </div>
+                  <div style={{
+                    background: '#F8F9FA', borderRadius: 12, padding: 16,
+                    display: 'flex', flexDirection: 'column', gap: 8,
+                  }}>
+                    {pflichtPages.length === 0
+                      ? <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '12px 0' }}>Keine Pflichtseiten geladen.</div>
+                      : pflichtPages.map(p => (
+                          <PflichtseiteRow key={p.id} page={p} onEdit={setEditPage} />
+                        ))
+                    }
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
 
         {/* Footer */}
-        <div style={{
-          background: '#fff', borderTop: '1px solid #EEF2F4',
-          padding: '14px 20px', flexShrink: 0,
-        }}>
-          {showAddForm ? (
-            <AddPageForm
-              pages={pages}
-              leadId={leadId}
-              onAdded={handleAdded}
-              onCancel={() => setShowAddForm(false)}
-            />
-          ) : (
-            <button
-              onClick={() => setShowAddForm(true)}
-              style={{ ...btnSecondary, borderStyle: 'dashed' }}
-            >
-              + Seite hinzufügen
-            </button>
-          )}
-        </div>
+        {!loading && (
+          <div style={{ background: '#fff', borderTop: '1px solid #EEF2F4', padding: '14px 20px', flexShrink: 0 }}>
+            {showAddForm ? (
+              <AddPageForm
+                contentPages={contentPages}
+                leadId={leadId}
+                onAdded={handleAdded}
+                onCancel={() => setShowAddForm(false)}
+              />
+            ) : (
+              <button onClick={() => setShowAddForm(true)} style={{ ...btnSecondary, borderStyle: 'dashed' }}>
+                + Seite hinzufügen
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Edit Modal */}
       {editPage && (
         <EditModal
           page={editPage}
-          pages={pages}
+          contentPages={contentPages}
           onSaved={handleSaved}
           onClose={() => setEditPage(null)}
         />

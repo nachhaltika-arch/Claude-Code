@@ -55,6 +55,7 @@ const TABS = [
   { id: 'contact',    label: 'Kontakt',     icon: '👤' },
   { id: 'audits',     label: 'Audits',      icon: '✓' },
   { id: 'dateien',    label: 'Dateien',     icon: '📎' },
+  { id: 'sitemap',    label: 'Sitemap',     icon: '🗺️' },
   { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
@@ -197,10 +198,11 @@ export default function LeadProfile() {
       if (res.ok) {
         const pages = await res.json();
         setSitemapPages(pages);
-        // Auto-select startseite, else first page
+        // Auto-select startseite, else first content (non-pflicht) page
         if (!selectedPageId && pages.length > 0) {
-          const start = pages.find(p => p.page_type === 'startseite') || pages[0];
-          setSelectedPageId(start.id);
+          const contentPages = pages.filter(p => !p.ist_pflichtseite);
+          const start = contentPages.find(p => p.page_type === 'startseite') || contentPages[0];
+          if (start) setSelectedPageId(start.id);
         }
       }
     } catch { /* silent */ }
@@ -1401,31 +1403,52 @@ export default function LeadProfile() {
                   Noch keine Seiten geplant. Klicke auf „Sitemap bearbeiten" um loszulegen.
                 </div>
               ) : (
-                sitemapPages.map((page, idx) => {
-                  const st = SITEMAP_STATUS[page.status] || SITEMAP_STATUS.geplant;
-                  return (
-                    <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: idx < sitemapPages.length - 1 ? '1px solid var(--border-light)' : 'none', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 18, flexShrink: 0 }}>{TYPE_ICON[page.page_type] || '📄'}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {page.page_name}
+                <>
+                  {sitemapPages.filter(p => !p.ist_pflichtseite).map((page, idx, arr) => {
+                    const st = SITEMAP_STATUS[page.status] || SITEMAP_STATUS.geplant;
+                    return (
+                      <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 18, flexShrink: 0 }}>{TYPE_ICON[page.page_type] || '📄'}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {page.page_name}
+                          </div>
+                          {page.ziel_keyword && (
+                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{page.ziel_keyword}</div>
+                          )}
                         </div>
-                        {page.ziel_keyword && (
-                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{page.ziel_keyword}</div>
-                        )}
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          {st.label}
+                        </span>
+                        <button
+                          onClick={() => { setSelectedPageId(page.id); setActiveTab('mockup'); }}
+                          style={{ padding: '5px 12px', borderRadius: 6, border: '1.5px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
+                        >
+                          Mockup öffnen →
+                        </button>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                        {st.label}
-                      </span>
-                      <button
-                        onClick={() => { setSelectedPageId(page.id); setActiveTab('mockup'); }}
-                        style={{ padding: '5px 12px', borderRadius: 6, border: '1.5px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
-                      >
-                        Mockup öffnen →
-                      </button>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                  {sitemapPages.filter(p => p.ist_pflichtseite).map((page, idx, arr) => {
+                    const st = SITEMAP_STATUS[page.status] || SITEMAP_STATUS.geplant;
+                    const isLast = idx === arr.length - 1;
+                    return (
+                      <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px', borderBottom: !isLast ? '1px solid var(--border-light)' : 'none', flexWrap: 'wrap', background: 'var(--bg-app)', cursor: 'default' }}>
+                        <span style={{ fontSize: 16, flexShrink: 0, color: 'var(--text-tertiary)' }}>🔒</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-tertiary)' }}>{page.page_name}</span>
+                        </div>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#F3F4F6', color: '#6B7280', whiteSpace: 'nowrap', flexShrink: 0 }}>⚖️ Pflicht</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          {st.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  <div style={{ padding: '8px 16px', fontSize: 11, color: 'var(--text-tertiary)', borderTop: '1px solid var(--border-light)' }}>
+                    4 Pflichtseiten werden von KOMPAGNON rechtskonform befüllt.
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -1452,7 +1475,7 @@ export default function LeadProfile() {
                   style={{ width: '100%', maxWidth: 360, padding: '8px 10px', fontSize: 13, borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', cursor: 'pointer' }}
                 >
                   <option value="">– Keine Seite ausgewählt –</option>
-                  {sitemapPages.map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
+                  {sitemapPages.filter(p => !p.ist_pflichtseite).map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
                 </select>
                 {selectedPageId && (() => {
                   const pg = sitemapPages.find(p => p.id === selectedPageId);

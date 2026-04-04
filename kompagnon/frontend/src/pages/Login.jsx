@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Logo from '../components/Logo';
+import KompagnonLogo from '../components/KompagnonLogo';
 import Button from '../components/ui/Button';
 import API_BASE_URL from '../config';
 
@@ -108,9 +109,24 @@ export default function Login() {
       <div style={{ width: '100%', maxWidth: 380 }}>
 
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 28, cursor: 'pointer' }}
-          onClick={() => navigate('/')}>
-          <Logo size="default" />
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          marginBottom: '2rem',
+          gap: '0.5rem',
+          cursor: 'pointer',
+        }} onClick={() => navigate('/')}>
+          <KompagnonLogo height={52} variant="color" showTagline={false} />
+          <p style={{
+            fontSize: '0.8rem',
+            color: 'var(--color-text-secondary)',
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+            marginTop: '0.5rem',
+          }}>
+            Automation System
+          </p>
         </div>
 
         {/* Card */}

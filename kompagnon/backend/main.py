@@ -405,23 +405,22 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS top_problems TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS industry VARCHAR",
         # ── Seed: Projekte aus gewonnenen Leads anlegen (idempotent) ──────────
+        # Pass 1: won-Leads die noch kein Projekt haben
         """INSERT INTO projects (lead_id, status, start_date, created_at, updated_at,
                                  company_name, website_url, contact_name, contact_email)
-           SELECT
-               l.id,
-               'phase_1',
-               NOW(),
-               NOW(),
-               NOW(),
-               l.company_name,
-               l.website_url,
-               l.contact_name,
-               l.email
+           SELECT l.id, 'phase_1', NOW(), NOW(), NOW(),
+                  l.company_name, l.website_url, l.contact_name, l.email
            FROM leads l
            WHERE l.status = 'won'
-             AND NOT EXISTS (
-                 SELECT 1 FROM projects p WHERE p.lead_id = l.id
-             )""",
+             AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.lead_id = l.id)""",
+        # Pass 2: Fallback — wenn Tabelle noch leer, alle neuesten 50 Leads nehmen
+        """INSERT INTO projects (lead_id, status, start_date, created_at, updated_at,
+                                 company_name, website_url, contact_name, contact_email)
+           SELECT l.id, 'phase_1', NOW(), NOW(), NOW(),
+                  l.company_name, l.website_url, l.contact_name, l.email
+           FROM (SELECT * FROM leads ORDER BY created_at DESC LIMIT 50) l
+           WHERE (SELECT COUNT(*) FROM projects) = 0
+             AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.lead_id = l.id)""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -544,6 +543,45 @@ async def lifespan(app: FastAPI):
             _seed_db.close()
         except Exception as e:
             logger.warning(f"⚠ Courses seed: {e}")
+
+        # Seed projects from won leads (or all leads if table empty)
+        try:
+            from database import SessionLocal, Project as _Project, Lead as _Lead
+            _seed_db = SessionLocal()
+            project_count = _seed_db.query(_Project).count()
+            won_leads = _seed_db.query(_Lead).filter(_Lead.status == "won").all()
+            won_without_project = [l for l in won_leads
+                                   if not _seed_db.query(_Project).filter(_Project.lead_id == l.id).first()]
+            seeded = 0
+            # Seed won leads that have no project
+            candidates = won_without_project
+            # If table completely empty, also pull all leads as fallback
+            if project_count == 0 and not won_without_project:
+                all_leads = _seed_db.query(_Lead).order_by(_Lead.id.desc()).limit(50).all()
+                candidates = [l for l in all_leads
+                              if not _seed_db.query(_Project).filter(_Project.lead_id == l.id).first()]
+            for lead in candidates:
+                now = __import__('datetime').datetime.utcnow()
+                p = _Project(lead_id=lead.id, status="phase_1",
+                             start_date=now, created_at=now, updated_at=now)
+                for col, val in [("company_name", lead.company_name),
+                                  ("website_url",  lead.website_url),
+                                  ("contact_name", lead.contact_name),
+                                  ("contact_email", lead.email)]:
+                    try:
+                        setattr(p, col, val)
+                    except Exception:
+                        pass
+                _seed_db.add(p)
+                seeded += 1
+            if seeded:
+                _seed_db.commit()
+                logger.info(f"✓ {seeded} Projekte aus Leads angelegt (Seed)")
+            else:
+                logger.info(f"✓ Projekt-Seed: {project_count} Projekte bereits vorhanden")
+            _seed_db.close()
+        except Exception as e:
+            logger.warning(f"⚠ Projekt-Seed: {e}")
 
         # Start scheduler (non-critical — don't block app start)
         try:

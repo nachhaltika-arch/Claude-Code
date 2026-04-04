@@ -1,6 +1,8 @@
 """
 Project Management API routes.
 GET /api/projects/ - List all projects
+GET /api/projects/debug - Diagnostic info (counts, sample rows)
+POST /api/projects/seed - Seed projects from leads (admin)
 GET /api/projects/{id} - Project detail
 PATCH /api/projects/{id}/phase - Change phase
 POST /api/projects/{id}/time - Log hours
@@ -8,7 +10,9 @@ GET /api/projects/{id}/checklist - Get checklist
 PATCH /api/projects/{id}/checklist/{item_key} - Check item
 GET /api/projects/{id}/margin - Get margin
 """
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from datetime import datetime
 from pydantic import BaseModel
@@ -22,6 +26,8 @@ from automations.scheduler import (
     job_tag_30_geo_check,
     job_tag_30_upsell,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -135,6 +141,101 @@ class MarginResponse(BaseModel):
     min_acceptable_margin: float
 
 
+@router.get("/debug")
+def debug_projects(db: Session = Depends(get_db)):
+    """Diagnostic: raw project + lead counts and sample rows."""
+    try:
+        project_count = db.execute(text("SELECT COUNT(*) FROM projects")).scalar()
+        lead_count = db.execute(text("SELECT COUNT(*) FROM leads")).scalar()
+        won_count = db.execute(text("SELECT COUNT(*) FROM leads WHERE status = 'won'")).scalar()
+        table_exists = db.execute(
+            text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'projects')")
+        ).scalar()
+        sample = db.execute(
+            text("SELECT id, lead_id, status, created_at FROM projects ORDER BY id DESC LIMIT 5")
+        ).fetchall()
+        leads_sample = db.execute(
+            text("SELECT id, company_name, status FROM leads ORDER BY created_at DESC LIMIT 5")
+        ).fetchall()
+        return {
+            "table_exists": table_exists,
+            "project_count": project_count,
+            "lead_count": lead_count,
+            "won_lead_count": won_count,
+            "projects_sample": [
+                {"id": r[0], "lead_id": r[1], "status": r[2], "created_at": str(r[3])}
+                for r in sample
+            ],
+            "leads_sample": [
+                {"id": r[0], "company_name": r[1], "status": r[2]}
+                for r in leads_sample
+            ],
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@router.post("/seed")
+def seed_projects(db: Session = Depends(get_db)):
+    """
+    Admin: Create projects from leads that have none yet.
+    Priority: status='won' leads first, then all others as fallback
+    if projects table is completely empty.
+    """
+    project_count = db.query(Project).count()
+    won_leads = db.query(Lead).filter(
+        Lead.status == "won",
+        ~Lead.projects.any()
+    ).all()
+
+    seeded = []
+
+    # Always seed won leads
+    for lead in won_leads:
+        now = datetime.utcnow()
+        p = Project(lead_id=lead.id, status="phase_1", start_date=now,
+                    created_at=now, updated_at=now)
+        for col, val in [
+            ("company_name", lead.company_name),
+            ("website_url",  lead.website_url),
+            ("contact_name", lead.contact_name),
+            ("contact_email", lead.email),
+        ]:
+            try:
+                setattr(p, col, val)
+            except Exception:
+                pass
+        db.add(p)
+        seeded.append({"lead_id": lead.id, "company": lead.company_name, "reason": "won"})
+
+    # If table was completely empty, also seed non-won leads
+    if project_count == 0 and not won_leads:
+        all_leads_without_project = db.query(Lead).filter(
+            ~Lead.projects.any()
+        ).order_by(Lead.id.desc()).limit(50).all()
+        for lead in all_leads_without_project:
+            now = datetime.utcnow()
+            p = Project(lead_id=lead.id, status="phase_1", start_date=now,
+                        created_at=now, updated_at=now)
+            for col, val in [
+                ("company_name", lead.company_name),
+                ("website_url",  lead.website_url),
+                ("contact_name", lead.contact_name),
+                ("contact_email", lead.email),
+            ]:
+                try:
+                    setattr(p, col, val)
+                except Exception:
+                    pass
+            db.add(p)
+            seeded.append({"lead_id": lead.id, "company": lead.company_name, "reason": "fallback"})
+
+    if seeded:
+        db.commit()
+    logger.info(f"Seed: {len(seeded)} projects created")
+    return {"seeded": len(seeded), "details": seeded}
+
+
 @router.get("/", response_model=list[ProjectResponse])
 def list_projects(
     status: str = Query(None),
@@ -143,23 +244,31 @@ def list_projects(
     db: Session = Depends(get_db),
 ):
     """List all projects, optionally filtered by status."""
-    query = db.query(Project)
-    if status:
-        query = query.filter(Project.status == status)
-    rows = query.offset(skip).limit(limit).all()
+    try:
+        query = db.query(Project)
+        if status:
+            query = query.filter(Project.status == status)
+        rows = query.offset(skip).limit(limit).all()
+    except Exception as e:
+        logger.error(f"list_projects DB error: {e}")
+        return []
     result = []
     for p in rows:
-        lead = p.lead
-        d = {c.name: getattr(p, c.name) for c in p.__table__.columns}
-        if not d.get("company_name") and lead:
-            d["company_name"] = lead.company_name
-        if not d.get("website_url") and lead:
-            d["website_url"] = lead.website_url
-        if not d.get("contact_name") and lead:
-            d["contact_name"] = lead.contact_name
-        if not d.get("contact_email") and lead:
-            d["contact_email"] = lead.email
-        result.append(d)
+        try:
+            lead = p.lead
+            d = {c.name: getattr(p, c.name, None) for c in p.__table__.columns}
+            if not d.get("company_name") and lead:
+                d["company_name"] = lead.company_name
+            if not d.get("website_url") and lead:
+                d["website_url"] = lead.website_url
+            if not d.get("contact_name") and lead:
+                d["contact_name"] = lead.contact_name
+            if not d.get("contact_email") and lead:
+                d["contact_email"] = lead.email
+            result.append(d)
+        except Exception as e:
+            logger.warning(f"list_projects: skipping project {getattr(p, 'id', '?')}: {e}")
+    logger.info(f"list_projects: returning {len(result)} projects (DB rows: {len(rows)})")
     return result
 
 

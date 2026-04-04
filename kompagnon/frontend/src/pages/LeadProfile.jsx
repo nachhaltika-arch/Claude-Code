@@ -99,6 +99,7 @@ export default function LeadProfile() {
   const [domainAdding, setDomainAdding] = useState(false);
   // Project
   const [projectId, setProjectId] = useState(null);
+  const [projectData, setProjectData] = useState(null);
   const [creatingProject, setCreatingProject] = useState(false);
   const [wonModal, setWonModal] = useState(false);
 
@@ -120,6 +121,12 @@ export default function LeadProfile() {
       const lead = data.lead;
       setDisplayName(lead.display_name || lead.company_name || '');
       setProjectId(data.project_id || null);
+      if (data.project_id) {
+        fetch(`${API_BASE_URL}/api/projects/${data.project_id}`, { headers: h })
+          .then(r => r.ok ? r.json() : null)
+          .then(p => { if (p) setProjectData(p); })
+          .catch(() => {});
+      }
       setEditData({
         company_name: lead.company_name || '',
         display_name: lead.display_name || '',
@@ -844,6 +851,30 @@ export default function LeadProfile() {
                 )}
                 <button onClick={() => setOpenAudit(latestAudit)} style={{ marginTop: 10, width: '100%', padding: '7px', background: 'var(--bg-active)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                   Vollständigen Bericht anzeigen
+                </button>
+              </Card>
+            )}
+
+            {/* ── Projekt ── */}
+            {projectData && (
+              <Card padding="md">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Projekt</span>
+                  <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    Öffnen →
+                  </button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {fieldRow('🔄', projectData.status?.replace('phase_', 'Phase ') || '–', 'Phase')}
+                  {fieldRow('📦', projectData.package_type || '–', 'Paket')}
+                  {fieldRow('💳', projectData.payment_status || '–', 'Zahlung')}
+                  {fieldRow('📅', projectData.go_live_date || '–', 'Go-Live')}
+                </div>
+                <button
+                  onClick={() => navigate(`/app/projects/${projectId}`)}
+                  style={{ marginTop: 10, width: '100%', padding: '7px', background: 'var(--bg-active)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+                >
+                  📁 Zum Projekt
                 </button>
               </Card>
             )}

@@ -6,6 +6,7 @@ import PhaseTracker from '../components/PhaseTracker';
 import MarginBadge from '../components/MarginBadge';
 import ProjectCard from '../components/ProjectCard';
 import BriefingTab from '../components/BriefingTab';
+import ProjectFilesSection from '../components/ProjectFilesSection';
 import { useAuth } from '../context/AuthContext';
 
 import API_BASE_URL from '../config';
@@ -377,7 +378,7 @@ export default function ProjectDetail() {
     );
   }
 
-  const tabs = ['overview', 'briefing', 'checklists', 'zeit', 'kommunikation'];
+  const tabs = ['overview', 'briefing', 'dateien', 'checklists', 'zeit', 'kommunikation'];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -439,6 +440,7 @@ export default function ProjectDetail() {
           >
             {tab === 'overview'    ? 'Übersicht'    :
              tab === 'briefing'    ? 'Briefing'     :
+             tab === 'dateien'     ? 'Dateien'      :
              tab === 'checklists'  ? 'Checklisten'  :
              tab === 'zeit'        ? 'Zeiterfassung': 'Kommunikation'}
           </button>
@@ -477,8 +479,13 @@ export default function ProjectDetail() {
         <BriefingTab lead={{ id: project.lead_id }} isMobile={false} />
       )}
 
+      {/* ── Dateien Tab ─────────────────────────────────────────────────────── */}
+      {activeTab === 'dateien' && project.lead_id && (
+        <ProjectFilesSection leadId={project.lead_id} />
+      )}
+
       {/* ── Placeholder tabs ────────────────────────────────────────────────── */}
-      {activeTab !== 'overview' && activeTab !== 'briefing' && (
+      {activeTab !== 'overview' && activeTab !== 'briefing' && activeTab !== 'dateien' && (
         <div className="kc-card" style={{ textAlign: 'center', padding: 'var(--kc-space-16)', color: 'var(--text-tertiary)' }}>
           <p style={{ fontSize: 16, fontWeight: 600 }}>
             {activeTab === 'checklists' ? 'Checklisten' : activeTab === 'zeit' ? 'Zeiterfassung' : 'Kommunikation'}

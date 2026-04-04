@@ -151,6 +151,7 @@ export default function Impressum() {
           <div className="flex gap-4">
             <Link to="/impressum" className="hover:text-slate-600">Impressum</Link>
             <Link to="/datenschutz" className="hover:text-slate-600">Datenschutz</Link>
+            <Link to="/barrierefreiheit" className="hover:text-slate-600">Barrierefreiheit</Link>
           </div>
         </div>
       </div>

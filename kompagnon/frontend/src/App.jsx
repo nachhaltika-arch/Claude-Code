@@ -29,6 +29,7 @@ import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
 import Impressum from './pages/Impressum';
 import Datenschutz from './pages/Datenschutz';
+import Barrierefreiheit from './pages/Barrierefreiheit';
 import ResetPassword from './pages/ResetPassword';
 import Akademie from './pages/Akademie';
 import Academy from './pages/Academy';
@@ -121,6 +122,7 @@ function App() {
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/impressum" element={<Impressum />} />
           <Route path="/datenschutz" element={<Datenschutz />} />
+          <Route path="/barrierefreiheit" element={<Barrierefreiheit />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/portal/:token" element={<CustomerPortal />} />
           <Route path="/paket/starter" element={<PackageStarter />} />

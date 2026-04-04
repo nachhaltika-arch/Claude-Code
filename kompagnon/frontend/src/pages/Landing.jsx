@@ -200,7 +200,7 @@ export default function Landing() {
           </div>
         </div>
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 32, paddingTop: 20, textAlign: 'center', fontSize: 12 }}>
-          2026 KOMPAGNON Communications · <Link to="/impressum" style={{ color: 'inherit' }}>Impressum</Link> · <Link to="/datenschutz" style={{ color: 'inherit' }}>Datenschutz</Link> · AGB
+          2026 KOMPAGNON Communications · <Link to="/impressum" style={{ color: 'inherit' }}>Impressum</Link> · <Link to="/datenschutz" style={{ color: 'inherit' }}>Datenschutz</Link> · <Link to="/barrierefreiheit" style={{ color: 'inherit' }}>Barrierefreiheit</Link> · AGB
         </div>
       </footer>
 

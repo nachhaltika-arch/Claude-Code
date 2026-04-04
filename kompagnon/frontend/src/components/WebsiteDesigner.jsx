@@ -3,6 +3,7 @@ import grapesjs from 'grapesjs';
 import grapesjsPresetWebpage from 'grapesjs-preset-webpage';
 import grapesjsBlocksBasic from 'grapesjs-blocks-basic';
 import 'grapesjs/dist/css/grapes.min.css';
+import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 
 const TOOLBAR_H = 52;
@@ -10,7 +11,8 @@ const TOOLBAR_H = 52;
 export default function WebsiteDesigner({ customerId, customerName, onClose }) {
   const containerRef = useRef(null);
   const editorRef    = useRef(null);
-  const [kiLoading, setKiLoading] = useState(false);
+  const [kiLoading, setKiLoading]   = useState(false);
+  const [cmsLoading, setCmsLoading] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -66,25 +68,56 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
 
   const handlePushToCms = async () => {
     const editor = editorRef.current;
-    if (!editor) return;
-    const html = editor.getHtml();
-    const css  = editor.getCss();
+    if (!editor || cmsLoading) return;
+    setCmsLoading(true);
     try {
       const token = localStorage.getItem('kompagnon_token');
-      const API_BASE_URL = process.env.REACT_APP_API_URL || '';
-      const res = await fetch(`${API_BASE_URL}/api/customers/${customerId}/cms-push`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ html, css }),
-      });
-      if (res.ok) {
-        alert('Erfolgreich zum CMS gepusht.');
+      const authHeader = { Authorization: `Bearer ${token}` };
+
+      // 1. Check which CMS is configured
+      const connRes = await fetch(
+        `${API_BASE_URL}/api/customers/${customerId}/cms-connection`,
+        { headers: authHeader }
+      );
+      if (!connRes.ok) throw new Error('CMS-Verbindung konnte nicht geladen werden');
+      const conn = await connRes.json();
+
+      if (!conn.has_cms_connection || conn.cms_type === 'none' || !conn.cms_type) {
+        toast.error('Keine CMS-Verbindung konfiguriert. Bitte zuerst CMS-Zugangsdaten hinterlegen.');
+        return;
+      }
+
+      if (conn.cms_type !== 'wordpress_elementor') {
+        toast.error(`CMS-Typ "${conn.cms_type}" wird noch nicht unterstützt.`);
+        return;
+      }
+
+      // 2. Combine HTML + CSS and push
+      const html = editor.getHtml() + `<style>${editor.getCss()}</style>`;
+      const pubRes = await fetch(
+        `${API_BASE_URL}/api/customers/${customerId}/publish`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeader },
+          body: JSON.stringify({ html, page_title: customerName || `Kunde #${customerId}` }),
+        }
+      );
+      const result = await pubRes.json().catch(() => ({}));
+
+      if (pubRes.ok && result.success) {
+        toast.success(
+          result.page_url
+            ? <span>✅ Seite als Entwurf in WordPress erstellt – <a href={result.page_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Seite öffnen ↗</a></span>
+            : '✅ Seite als Entwurf in WordPress erstellt',
+          { duration: 6000 }
+        );
       } else {
-        const err = await res.json().catch(() => ({}));
-        alert(`Fehler: ${err.detail || res.status}`);
+        throw new Error(result.detail || result.message || `HTTP ${pubRes.status}`);
       }
     } catch (e) {
-      alert(`Verbindungsfehler: ${e.message}`);
+      toast.error(`CMS Push fehlgeschlagen: ${e.message}`, { duration: 5000 });
+    } finally {
+      setCmsLoading(false);
     }
   };
 
@@ -152,8 +185,15 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
             : '🤖 KI-Entwurf laden'
           }
         </button>
-        <button style={btnStyle} onClick={handlePushToCms}>
-          🚀 Zum CMS pushen
+        <button
+          style={{ ...btnStyle, opacity: cmsLoading ? 0.7 : 1, cursor: cmsLoading ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }}
+          onClick={handlePushToCms}
+          disabled={cmsLoading}
+        >
+          {cmsLoading
+            ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block', flexShrink: 0 }} /> Pushe zu WordPress...</>
+            : '🚀 Zum CMS pushen'
+          }
         </button>
         <button style={btnStyle} onClick={handleDownloadHtml}>
           📥 Als HTML herunterladen

@@ -456,6 +456,25 @@ def _run_migrations():
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS logo_vorhanden BOOLEAN DEFAULT false",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS fotos_vorhanden BOOLEAN DEFAULT false",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS sonstige_hinweise TEXT",
+        # sitemap_pages table
+        """
+        CREATE TABLE IF NOT EXISTS sitemap_pages (
+          id SERIAL PRIMARY KEY,
+          lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+          parent_id INTEGER REFERENCES sitemap_pages(id) ON DELETE SET NULL,
+          position INTEGER DEFAULT 0,
+          page_name VARCHAR(100) NOT NULL,
+          page_type VARCHAR(50) DEFAULT 'info',
+          zweck TEXT,
+          ziel_keyword VARCHAR(150),
+          cta_text VARCHAR(100),
+          cta_ziel VARCHAR(50) DEFAULT 'kontakt',
+          notizen TEXT,
+          status VARCHAR(30) DEFAULT 'geplant',
+          mockup_html TEXT,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+        """,
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -707,6 +726,9 @@ app.include_router(files_router)
 
 from app.routers import website_mockup
 app.include_router(website_mockup.router, prefix="/api")
+
+from routers import sitemap
+app.include_router(sitemap.router)
 
 
 # Global exception handler — catches unhandled errors

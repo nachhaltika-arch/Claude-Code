@@ -5,12 +5,16 @@ import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
+import HomepageChecklist from '../components/HomepageChecklist';
+import SecurityChecklist from '../components/SecurityChecklist';
 import AuditReport from '../components/AuditReport';
 import BriefingTab from '../components/BriefingTab';
 import BriefingWizard from '../components/BriefingWizard';
+import SitemapPlaner from '../components/SitemapPlaner';
 import OfferTab from '../components/OfferTab';
 import ProjectFilesSection from '../components/ProjectFilesSection';
 import AcademyCustomerSection from '../components/AcademyCustomerSection';
+import PageSpeedSection from '../components/PageSpeedSection';
 import API_BASE_URL from '../config';
 
 function useScreenWidth() {
@@ -50,9 +54,14 @@ const TABS = [
   { id: 'contact',    label: 'Kontakt',     icon: '👤' },
   { id: 'audits',     label: 'Audits',      icon: '✓' },
   { id: 'dateien',    label: 'Dateien',     icon: '📎' },
+  { id: 'pagespeed',  label: 'PageSpeed',   icon: '⚡' },
   { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
+  { id: 'checklists', label: 'Checklisten', icon: '📋' },
+  { id: 'sitemap',    label: 'Sitemap',     icon: '🗺️' },
+  { id: 'mockup',     label: 'Mockup',      icon: '🎨' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
+  { id: 'crawler',    label: 'Crawler',     icon: '🕷️' },
 ];
 
 export default function LeadProfile() {
@@ -82,6 +91,12 @@ export default function LeadProfile() {
   const [qrData, setQrData] = useState(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrRefreshing, setQrRefreshing] = useState(false);
+  // Crawler
+  const [crawlJob, setCrawlJob] = useState(null);
+  const [crawlResults, setCrawlResults] = useState([]);
+  const [crawlLoading, setCrawlLoading] = useState(false);
+  const [crawlSort, setCrawlSort] = useState({ col: 'crawled_at', asc: true });
+  const [crawlExpandedRow, setCrawlExpandedRow] = useState(null);
   // Domains
   const [domains, setDomains] = useState([]);
   const [domainForm, setDomainForm] = useState({ url: '', label: '', is_primary: false });
@@ -95,12 +110,22 @@ export default function LeadProfile() {
   const [showBriefingWizard, setShowBriefingWizard] = useState(false);
   const [briefingData, setBriefingData] = useState(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
+  // Mockup tab
+  const [mockupRunning, setMockupRunning] = useState(false);
+  const [mockupResult, setMockupResult] = useState(null);
+  const [mockupError, setMockupError] = useState('');
+  // Sitemap tab
+  const [sitemapPages, setSitemapPages] = useState([]);
+  const [sitemapLoading, setSitemapLoading] = useState(false);
+  const [showSitemapPlaner, setShowSitemapPlaner] = useState(false);
+  const [selectedPageId, setSelectedPageId] = useState(null);
+
   const h = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); }, [leadId]); // eslint-disable-line
+  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); loadSitemapPages(); }, [leadId]); // eslint-disable-line
 
   const loadProfile = async () => {
     try {
@@ -169,10 +194,84 @@ export default function LeadProfile() {
     return null;
   };
 
+  const loadSitemapPages = async () => {
+    setSitemapLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}`, { headers: h });
+      if (res.ok) {
+        const pages = await res.json();
+        setSitemapPages(pages);
+        // Auto-select startseite, else first page
+        if (!selectedPageId && pages.length > 0) {
+          const start = pages.find(p => p.page_type === 'startseite') || pages[0];
+          setSelectedPageId(start.id);
+        }
+      }
+    } catch { /* silent */ }
+    finally { setSitemapLoading(false); }
+  };
+
   const openBriefingWizard = async () => {
     const data = await loadBriefing();
     setBriefingData(data);
     setShowBriefingWizard(true);
+  };
+
+  const generateMockup = async () => {
+    setMockupRunning(true);
+    setMockupError('');
+    setMockupResult(null);
+    try {
+      // Fetch briefing first
+      const bRes = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers: h });
+      const briefing = bRes.ok ? await bRes.json() : null;
+
+      const lead = profile?.lead;
+      const selectedPage = sitemapPages.find(p => p.id === selectedPageId) || null;
+
+      const payload = {
+        company_name: lead?.display_name || lead?.company_name || '',
+        city: lead?.city || briefing?.einzugsgebiet || '',
+        trade: briefing?.gewerk || lead?.trade || '',
+        usp: briefing?.usp || '',
+        services: briefing?.leistungen
+          ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+          : [],
+        target_audience: briefing?.zielgruppe || '',
+        ...(selectedPage ? {
+          page_name: selectedPage.page_name,
+          zweck: selectedPage.zweck || '',
+          ziel_keyword: selectedPage.ziel_keyword || '',
+          cta_text: selectedPage.cta_text || '',
+        } : {}),
+      };
+
+      const res = await fetch(`${API_BASE_URL}/api/agents/${projectId}/content`, {
+        method: 'POST',
+        headers: h,
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Fehler ${res.status}`);
+      }
+      const data = await res.json();
+      setMockupResult(data.result);
+
+      // Save mockup_html to the selected sitemap page
+      if (selectedPage && data.result) {
+        const mockupHtml = typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2);
+        fetch(`${API_BASE_URL}/api/sitemap/pages/${selectedPage.id}`, {
+          method: 'PUT',
+          headers: h,
+          body: JSON.stringify({ ...selectedPage, mockup_html: mockupHtml }),
+        }).catch(() => {});
+      }
+    } catch (e) {
+      setMockupError(e.message || 'Generierung fehlgeschlagen.');
+    } finally {
+      setMockupRunning(false);
+    }
   };
 
   const addDomain = async () => {
@@ -1232,11 +1331,179 @@ export default function LeadProfile() {
         </div>
       )}
 
+      {/* CHECKLISTEN TAB */}
+      {activeTab === 'checklists' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <HomepageChecklist auditData={latestAudit} />
+          <SecurityChecklist auditData={latestAudit} />
+        </div>
+      )}
+
       {/* DATEIEN TAB */}
       {activeTab === 'dateien' && <ProjectFilesSection leadId={lead.id} />}
 
+      {/* PAGESPEED TAB */}
+      {activeTab === 'pagespeed' && <PageSpeedSection leadId={lead.id} />}
+
       {/* AKADEMY TAB */}
       {activeTab === 'akademy' && <AcademyCustomerSection leadId={lead.id} />}
+
+      {/* SITEMAP TAB */}
+      {activeTab === 'sitemap' && (() => {
+        if (!sitemapLoading && sitemapPages.length === 0) loadSitemapPages();
+        const SITEMAP_STATUS = {
+          geplant:       { bg: '#EFF6FF', text: '#1D4ED8', label: 'Geplant' },
+          in_bearbeitung:{ bg: '#FEF9C3', text: '#92400E', label: 'In Bearb.' },
+          freigegeben:   { bg: '#FEF3C7', text: '#B45309', label: 'Freigegeben' },
+          live:          { bg: '#DCFCE7', text: '#166534', label: 'Live' },
+        };
+        const TYPE_ICON = { startseite: '🏠', leistung: '🔧', info: 'ℹ️', vertrauen: '⭐', conversion: '📞', sonstige: '📄' };
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setShowSitemapPlaner(true)}
+                style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                🗺️ Sitemap bearbeiten
+              </button>
+              <a
+                href={`${API_BASE_URL}/api/sitemap/${leadId}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+              >
+                📥 PDF herunterladen
+              </a>
+            </div>
+
+            {/* Page list */}
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+              {sitemapLoading ? (
+                <div style={{ padding: 32, textAlign: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+                </div>
+              ) : sitemapPages.length === 0 ? (
+                <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
+                  Noch keine Seiten geplant. Klicke auf „Sitemap bearbeiten" um loszulegen.
+                </div>
+              ) : (
+                sitemapPages.map((page, idx) => {
+                  const st = SITEMAP_STATUS[page.status] || SITEMAP_STATUS.geplant;
+                  return (
+                    <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: idx < sitemapPages.length - 1 ? '1px solid var(--border-light)' : 'none', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 18, flexShrink: 0 }}>{TYPE_ICON[page.page_type] || '📄'}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {page.page_name}
+                        </div>
+                        {page.ziel_keyword && (
+                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{page.ziel_keyword}</div>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        {st.label}
+                      </span>
+                      <button
+                        onClick={() => { setSelectedPageId(page.id); setActiveTab('mockup'); }}
+                        style={{ padding: '5px 12px', borderRadius: 6, border: '1.5px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
+                      >
+                        Mockup öffnen →
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* MOCKUP TAB */}
+      {activeTab === 'mockup' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+              KI-Website-Entwurf generieren
+            </div>
+
+            {/* Page selector */}
+            {sitemapPages.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
+                  Welche Seite gestalten?
+                </label>
+                <select
+                  value={selectedPageId || ''}
+                  onChange={e => setSelectedPageId(Number(e.target.value) || null)}
+                  style={{ width: '100%', maxWidth: 360, padding: '8px 10px', fontSize: 13, borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', cursor: 'pointer' }}
+                >
+                  <option value="">– Keine Seite ausgewählt –</option>
+                  {sitemapPages.map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
+                </select>
+                {selectedPageId && (() => {
+                  const pg = sitemapPages.find(p => p.id === selectedPageId);
+                  if (!pg) return null;
+                  return (
+                    <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13 }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{pg.page_name}</span>
+                      {pg.ziel_keyword && <span style={{ color: 'var(--text-tertiary)', marginLeft: 10 }}>🔑 {pg.ziel_keyword}</span>}
+                      {pg.zweck && <div style={{ color: 'var(--text-secondary)', marginTop: 4, fontSize: 12 }}>{pg.zweck}</div>}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+              Generiert automatisch Textentwürfe für die Website auf Basis der Briefing-Daten.
+              {briefingData?.gewerk
+                ? ` Briefing vorhanden: ${briefingData.gewerk}${briefingData.einzugsgebiet ? ` · ${briefingData.einzugsgebiet}` : ''}.`
+                : ' Noch kein Briefing ausgefüllt – Basisdaten des Leads werden verwendet.'}
+            </div>
+            {!projectId && (
+              <div style={{ background: '#FFF9E6', border: '1px solid #F5D87A', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92660A', marginBottom: 12 }}>
+                Für den KI-Entwurf wird ein Projekt benötigt. Bitte zuerst ein Projekt anlegen.
+              </div>
+            )}
+            <button
+              onClick={generateMockup}
+              disabled={mockupRunning || !projectId}
+              style={{
+                padding: '10px 22px', borderRadius: 8, border: 'none',
+                background: mockupRunning || !projectId ? 'var(--bg-muted)' : 'var(--brand-primary)',
+                color: mockupRunning || !projectId ? 'var(--text-tertiary)' : '#fff',
+                fontSize: 14, fontWeight: 600, cursor: mockupRunning || !projectId ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              {mockupRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
+              {mockupRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
+            </button>
+            {mockupError && (
+              <div style={{ background: '#FFF0F0', border: '1px solid #FFBDBD', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#C0392B', marginTop: 12 }}>
+                {mockupError}
+              </div>
+            )}
+          </div>
+          {mockupResult && (
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>Generierter Entwurf</div>
+              {typeof mockupResult === 'string' ? (
+                <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'inherit', lineHeight: 1.7, margin: 0 }}>{mockupResult}</pre>
+              ) : (
+                Object.entries(mockupResult).map(([key, val]) => (
+                  <div key={key} style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{key}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{typeof val === 'string' ? val : JSON.stringify(val, null, 2)}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ANGEBOT TAB */}
       {activeTab === 'offer' && (
@@ -1326,8 +1593,233 @@ export default function LeadProfile() {
         );
       })()}
 
+      {/* CRAWLER TAB */}
+      {activeTab === 'crawler' && (() => {
+        const loadCrawlStatus = () => {
+          fetch(`${API_BASE_URL}/api/crawler/status/${leadId}`, { headers: h })
+            .then(r => r.json()).then(d => {
+              setCrawlJob(d);
+              if (d.status === 'completed') {
+                fetch(`${API_BASE_URL}/api/crawler/results/${leadId}`, { headers: h })
+                  .then(r => r.json()).then(res => setCrawlResults(res.results || []));
+              }
+            }).catch(console.error);
+        };
+        const startCrawl = () => {
+          const url = lead?.website_url;
+          if (!url) return;
+          setCrawlLoading(true);
+          fetch(`${API_BASE_URL}/api/crawler/start/${leadId}`, {
+            method: 'POST', headers: h,
+            body: JSON.stringify({ url, max_pages: 50 }),
+          }).then(r => r.json()).then(d => {
+            setCrawlJob(d);
+            setCrawlResults([]);
+            // Poll while running
+            const interval = setInterval(() => {
+              fetch(`${API_BASE_URL}/api/crawler/status/${leadId}`, { headers: h })
+                .then(r => r.json()).then(status => {
+                  setCrawlJob(status);
+                  if (status.status === 'completed' || status.status === 'failed') {
+                    clearInterval(interval);
+                    setCrawlLoading(false);
+                    if (status.status === 'completed') {
+                      fetch(`${API_BASE_URL}/api/crawler/results/${leadId}`, { headers: h })
+                        .then(r => r.json()).then(res => setCrawlResults(res.results || []));
+                    }
+                  }
+                });
+            }, 3000);
+          }).catch(e => { console.error(e); setCrawlLoading(false); });
+        };
 
-      {/* AUDIT DETAIL MODAL */
+        if (!crawlJob && !crawlLoading) loadCrawlStatus();
+
+        const statusColor = { running: '#f59e0b', completed: '#16a34a', failed: '#dc2626', pending: '#64748b', none: '#94a3b8' };
+        const statusLabel = { running: 'Läuft', completed: 'Abgeschlossen', failed: 'Fehler', pending: 'Wartend', none: 'Kein Job' };
+
+        const sorted = [...crawlResults].sort((a, b) => {
+          const va = a[crawlSort.col] ?? '';
+          const vb = b[crawlSort.col] ?? '';
+          return crawlSort.asc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+        });
+
+        const statusGroups = { '2xx': 0, '3xx': 0, '4xx+': 0 };
+        crawlResults.forEach(r => {
+          if (!r.status_code) return;
+          if (r.status_code < 300) statusGroups['2xx']++;
+          else if (r.status_code < 400) statusGroups['3xx']++;
+          else statusGroups['4xx+']++;
+        });
+        const totalForBar = Object.values(statusGroups).reduce((a, b) => a + b, 0) || 1;
+
+        const ThSort = ({ col, label }) => (
+          <th onClick={() => setCrawlSort(p => ({ col, asc: p.col === col ? !p.asc : true }))} style={{ padding: '8px 12px', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'left', cursor: 'pointer', borderBottom: '1px solid var(--border-light)', userSelect: 'none', whiteSpace: 'nowrap' }}>
+            {label} {crawlSort.col === col ? (crawlSort.asc ? '↑' : '↓') : ''}
+          </th>
+        );
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🕷️ Website-Crawler</div>
+              <button onClick={startCrawl} disabled={crawlLoading || crawlJob?.status === 'running'} style={{
+                padding: '8px 18px', background: '#16a34a', color: 'white',
+                border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 700,
+                cursor: crawlLoading || crawlJob?.status === 'running' ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)', opacity: crawlLoading || crawlJob?.status === 'running' ? 0.7 : 1,
+              }}>
+                {crawlJob?.status === 'running' ? '⏳ Läuft…' : '▶ Crawler starten'}
+              </button>
+            </div>
+
+            {/* Status cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              {[
+                { label: 'Status', value: statusLabel[crawlJob?.status || 'none'], color: statusColor[crawlJob?.status || 'none'] },
+                { label: 'Laufzeit', value: crawlJob?.duration_seconds != null ? `${Math.floor(crawlJob.duration_seconds / 60)}m ${crawlJob.duration_seconds % 60}s` : '—' },
+                { label: 'Gecrawlte URLs', value: crawlJob?.total_urls || crawlResults.length || 0 },
+                { label: 'URL-Limit', value: 50 },
+              ].map(c => (
+                <div key={c.label} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '14px 16px' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{c.label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: c.color || 'var(--text-primary)' }}>{c.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Status bar chart */}
+            {crawlResults.length > 0 && (
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>URLs nach Status-Code</div>
+                <div style={{ display: 'flex', height: 28, borderRadius: 6, overflow: 'hidden', marginBottom: 10 }}>
+                  {statusGroups['2xx'] > 0 && <div style={{ flex: statusGroups['2xx'], background: '#16a34a', minWidth: 2 }} title={`${statusGroups['2xx']} × 2xx`} />}
+                  {statusGroups['3xx'] > 0 && <div style={{ flex: statusGroups['3xx'], background: '#f59e0b', minWidth: 2 }} title={`${statusGroups['3xx']} × 3xx`} />}
+                  {statusGroups['4xx+'] > 0 && <div style={{ flex: statusGroups['4xx+'], background: '#dc2626', minWidth: 2 }} title={`${statusGroups['4xx+']} × 4xx+`} />}
+                </div>
+                <div style={{ display: 'flex', gap: 20, fontSize: 11, color: 'var(--text-secondary)' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#16a34a', display: 'inline-block' }} />{statusGroups['2xx']} OK</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#f59e0b', display: 'inline-block' }} />{statusGroups['3xx']} Redirect</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#dc2626', display: 'inline-block' }} />{statusGroups['4xx+']} Fehler</span>
+                </div>
+              </div>
+            )}
+
+            {/* Results table */}
+            {sorted.length > 0 ? (
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', overflowX: 'auto' }}>
+                <table style={{ width: '100%', minWidth: 480, borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-app)' }}>
+                      <ThSort col="crawled_at" label="Zeitpunkt" />
+                      <ThSort col="status_code" label="Status" />
+                      <ThSort col="load_time" label="Ladezeit" />
+                      <ThSort col="url" label="URL" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sorted.map((r, i) => {
+                      const sc = r.status_code;
+                      const scColor = !sc ? '#94a3b8' : sc < 300 ? '#16a34a' : sc < 400 ? '#f59e0b' : '#dc2626';
+                      const scBg = !sc ? 'var(--bg-app)' : sc < 300 ? 'var(--status-success-bg)' : sc < 400 ? 'var(--status-warning-bg)' : 'var(--status-danger-bg)';
+                      const lt = r.load_time;
+                      const rowKey = r.url + '_' + i;
+                      const isExpanded = crawlExpandedRow === rowKey;
+
+                      // ── Build hints ──────────────────────────────
+                      const hints = [];
+                      if (sc === 301 || sc === 302) {
+                        hints.push({ bg: 'var(--status-warning-bg)', border: '#fde68a', text: '⚠️ Weiterleitung erkannt. Prüfe ob die Ziel-URL direkt verlinkt werden kann, um Ladezeit zu sparen.' });
+                      } else if (sc === 404) {
+                        hints.push({ bg: 'var(--status-danger-bg)', border: '#fecaca', text: '🔴 Seite nicht gefunden. Dieser Link sollte entfernt oder korrigiert werden.' });
+                      } else if (sc === 500) {
+                        hints.push({ bg: 'var(--status-danger-bg)', border: '#fecaca', text: '🔴 Serverfehler. Diese Seite hat ein technisches Problem und muss geprüft werden.' });
+                      } else if (!sc || sc === 0) {
+                        hints.push({ bg: 'var(--status-danger-bg)', border: '#fecaca', text: '🔴 Seite nicht erreichbar. Timeout nach 10 Sekunden.' });
+                      }
+                      if (lt != null && lt > 3.0) {
+                        hints.push({ bg: '#fff7ed', border: '#fed7aa', text: '🟠 Ladezeit über 3 Sekunden. Bilder komprimieren oder Caching aktivieren.' });
+                      } else if (lt != null && lt > 1.5) {
+                        hints.push({ bg: 'var(--status-warning-bg)', border: '#fde68a', text: '🟡 Ladezeit erhöht. Performance-Optimierung empfohlen.' });
+                      }
+                      if (hints.length === 0 && sc >= 200 && sc < 300 && lt != null && lt <= 1.5) {
+                        hints.push({ bg: 'var(--status-success-bg)', border: '#bbf7d0', text: '✅ Alles in Ordnung.' });
+                      }
+
+                      return (
+                        <>
+                          <tr
+                            key={rowKey}
+                            onClick={() => setCrawlExpandedRow(isExpanded ? null : rowKey)}
+                            style={{
+                              borderTop: '1px solid var(--border-light)',
+                              cursor: 'pointer',
+                              background: isExpanded ? 'var(--bg-app)' : 'transparent',
+                              transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                            onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.background = 'transparent'; }}
+                          >
+                            <td style={{ padding: '7px 12px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{r.crawled_at || '—'}</td>
+                            <td style={{ padding: '7px 12px' }}>
+                              <span style={{ background: scBg, color: scColor, fontWeight: 700, borderRadius: 4, padding: '2px 7px' }}>{sc || '—'}</span>
+                            </td>
+                            <td style={{ padding: '7px 12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                              {lt != null ? `${lt}s` : '—'}
+                            </td>
+                            <td style={{ padding: '7px 12px', maxWidth: 400 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                                <a href={r.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontSize: 11, wordBreak: 'break-all' }}>{r.url}</a>
+                                <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-tertiary)', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+                              </div>
+                            </td>
+                          </tr>
+                          {isExpanded && (
+                            <tr key={rowKey + '_hint'} style={{ background: 'var(--bg-app)' }}>
+                              <td colSpan={4} style={{ padding: '0 12px 10px 12px' }}>
+                                <div style={{
+                                  display: 'flex', flexDirection: 'column', gap: 6,
+                                  animation: 'crawlHintIn 0.18s ease',
+                                }}>
+                                  {hints.length === 0 ? (
+                                    <div style={{ padding: '8px 12px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)' }}>
+                                      Keine Empfehlung verfügbar.
+                                    </div>
+                                  ) : hints.map((hint, hi) => (
+                                    <div key={hi} style={{
+                                      padding: '9px 13px',
+                                      background: hint.bg,
+                                      border: `1px solid ${hint.border}`,
+                                      borderRadius: 'var(--radius-md)',
+                                      fontSize: 12, lineHeight: 1.5,
+                                      color: 'var(--text-primary)',
+                                    }}>
+                                      {hint.text}
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : crawlJob?.status !== 'running' && (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-tertiary)', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
+                <div style={{ fontSize: 40, marginBottom: 10, opacity: 0.3 }}>🕷️</div>
+                <div style={{ fontSize: 13 }}>Noch kein Crawl durchgeführt</div>
+                <div style={{ fontSize: 11, marginTop: 4 }}>Klicke auf "Crawler starten" um die Website zu analysieren.</div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* AUDIT DETAIL MODAL */}
       {openAudit && createPortal(
         <>
           {/* Overlay — zwei separate fixed-Elemente, außerhalb des page-enter-Transform-Kontexts */}
@@ -1383,6 +1875,15 @@ export default function LeadProfile() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* SITEMAP PLANER MODAL */}
+      {showSitemapPlaner && profile?.lead && (
+        <SitemapPlaner
+          leadId={Number(leadId)}
+          leadData={profile.lead}
+          onClose={() => { setShowSitemapPlaner(false); loadSitemapPages(); }}
+        />
       )}
 
       {/* BRIEFING WIZARD MODAL */}

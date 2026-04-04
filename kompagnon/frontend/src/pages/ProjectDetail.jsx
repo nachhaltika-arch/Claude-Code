@@ -17,22 +17,24 @@ const PAY_OPTIONS  = ['offen', 'bezahlt', 'überfällig'];
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 function EditModal({ project, token, onClose, onSaved }) {
   const [form, setForm] = useState({
-    website_url:    project.website_url    || '',
-    cms_type:       project.cms_type       || '',
-    contact_name:   project.contact_name   || '',
-    contact_phone:  project.contact_phone  || '',
-    contact_email:  project.contact_email  || '',
-    go_live_date:   project.go_live_date
-                      ? String(project.go_live_date).slice(0, 10)
-                      : '',
-    package_type:   project.package_type   || 'kompagnon',
-    payment_status: project.payment_status || 'offen',
-    desired_pages:  project.desired_pages  || '',
-    has_logo:       !!project.has_logo,
-    has_briefing:   !!project.has_briefing,
-    has_photos:     !!project.has_photos,
-    top_problems:   project.top_problems   || '',
-    industry:       project.industry       || '',
+    website_url:                  project.website_url    || '',
+    cms_type:                     project.cms_type       || '',
+    contact_name:                 project.contact_name   || '',
+    contact_phone:                project.contact_phone  || '',
+    contact_email:                project.contact_email  || '',
+    go_live_date:                 project.go_live_date
+                                    ? String(project.go_live_date).slice(0, 10)
+                                    : '',
+    package_type:                 project.package_type   || 'kompagnon',
+    payment_status:               project.payment_status || 'offen',
+    desired_pages:                project.desired_pages  || '',
+    has_logo:                     !!project.has_logo,
+    has_briefing:                 !!project.has_briefing,
+    has_photos:                   !!project.has_photos,
+    top_problems:                 project.top_problems   || '',
+    industry:                     project.industry       || '',
+    customer_email:               project.customer_email || '',
+    email_notifications_enabled:  project.email_notifications_enabled !== false,
   });
   const [saving, setSaving] = useState(false);
 
@@ -183,6 +185,31 @@ function EditModal({ project, token, onClose, onSaved }) {
           <Field label="Top-Probleme aus Audit (eine pro Zeile, max. 3)">
             <textarea style={textarea} value={form.top_problems} onChange={e => set('top_problems', e.target.value)} placeholder={"Problem 1\nProblem 2\nProblem 3"} rows={3} />
           </Field>
+
+          {/* E-Mail-Benachrichtigungen */}
+          <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 16 }}>
+            <span style={label}>E-Mail-Benachrichtigungen</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+              <Field label="Kunden-E-Mail">
+                <input
+                  style={input}
+                  type="email"
+                  value={form.customer_email}
+                  onChange={e => set('customer_email', e.target.value)}
+                  placeholder="kunde@beispiel.de"
+                />
+              </Field>
+              <label style={checkRow}>
+                <input
+                  type="checkbox"
+                  checked={form.email_notifications_enabled}
+                  onChange={e => set('email_notifications_enabled', e.target.checked)}
+                  style={{ width: 15, height: 15, accentColor: '#008EAA', cursor: 'pointer' }}
+                />
+                E-Mail-Benachrichtigungen aktiv
+              </label>
+            </div>
+          </div>
         </div>
 
         <div style={footer}>
@@ -198,17 +225,128 @@ function EditModal({ project, token, onClose, onSaved }) {
   );
 }
 
+// ── Approval Modal ────────────────────────────────────────────────────────────
+function ApprovalModal({ projectId, token, onClose }) {
+  const [topic, setTopic]     = useState('');
+  const [notes, setNotes]     = useState('');
+  const [sending, setSending] = useState(false);
+  const [result, setResult]   = useState(null); // { ok: bool, msg: str }
+
+  const overlay = {
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    zIndex: 1000, padding: 16,
+  };
+  const panel = {
+    background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+    width: '100%', maxWidth: 480,
+    boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+    display: 'flex', flexDirection: 'column',
+  };
+  const header = {
+    padding: '16px 20px', borderBottom: '1px solid var(--border-light)',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  };
+  const body   = { padding: '20px', display: 'flex', flexDirection: 'column', gap: 14 };
+  const footer = {
+    padding: '12px 20px', borderTop: '1px solid var(--border-light)',
+    display: 'flex', justifyContent: 'flex-end', gap: 8,
+  };
+  const labelSt = { fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, display: 'block' };
+  const inputSt  = { width: '100%', padding: '8px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' };
+
+  const handleSend = async () => {
+    if (!topic.trim()) return;
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}/api/projects/${projectId}/request-approval`,
+        { topic: topic.trim(), notes: notes.trim() },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (res.data.success) {
+        setResult({ ok: true, msg: 'Freigabe-E-Mail wurde gesendet ✓' });
+      } else {
+        setResult({ ok: false, msg: `Fehler: ${res.data.message || 'Keine E-Mail-Adresse hinterlegt'}` });
+      }
+    } catch {
+      setResult({ ok: false, msg: 'Fehler: Keine E-Mail-Adresse hinterlegt' });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div style={overlay} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={panel}>
+        <div style={header}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Freigabe anfordern</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1 }}>×</button>
+        </div>
+
+        <div style={body}>
+          {result && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: 13,
+              background: result.ok ? 'var(--status-success-bg)' : 'var(--status-danger-bg)',
+              color:      result.ok ? 'var(--status-success-text)' : 'var(--status-danger-text)',
+            }}>
+              {result.msg}
+            </div>
+          )}
+
+          <div>
+            <label style={labelSt}>Thema der Freigabe *</label>
+            <input
+              style={inputSt}
+              value={topic}
+              onChange={e => setTopic(e.target.value)}
+              placeholder="z.B. Design-Freigabe Phase 3"
+            />
+          </div>
+
+          <div>
+            <label style={labelSt}>Hinweise / Details (optional)</label>
+            <textarea
+              style={{ ...inputSt, resize: 'vertical', minHeight: 80 }}
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Bitte bis Freitag rückmelden…"
+            />
+          </div>
+        </div>
+
+        <div style={footer}>
+          <button onClick={onClose} style={{ padding: '8px 16px', background: 'var(--bg-hover)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--text-secondary)' }}>
+            Schließen
+          </button>
+          <button
+            onClick={handleSend}
+            disabled={sending || !topic.trim()}
+            style={{ padding: '8px 18px', background: '#008EAA', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: (sending || !topic.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !topic.trim()) ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}
+          >
+            {sending ? 'Senden…' : 'Freigabe-E-Mail senden'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function ProjectDetail() {
   const { id }         = useParams();
-  const { token }      = useAuth();
-  const headers        = token ? { Authorization: `Bearer ${token}` } : {};
+  const { token, user } = useAuth();
+  const headers          = token ? { Authorization: `Bearer ${token}` } : {};
+  const isAdmin          = user?.role === 'admin';
 
-  const [project, setProject]     = useState(null);
-  const [margin, setMargin]       = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [showEdit, setShowEdit]   = useState(false);
+  const [project, setProject]         = useState(null);
+  const [margin, setMargin]           = useState(null);
+  const [loading, setLoading]         = useState(true);
+  const [activeTab, setActiveTab]     = useState('overview');
+  const [showEdit, setShowEdit]       = useState(false);
+  const [showApproval, setShowApproval] = useState(false);
 
   const loadProject = useCallback(async () => {
     try {
@@ -254,8 +392,8 @@ export default function ProjectDetail() {
       {/* ── ProjectCard ─────────────────────────────────────────────────────── */}
       <ProjectCard project={project} />
 
-      {/* ── Edit button ─────────────────────────────────────────────────────── */}
-      <div>
+      {/* ── Buttons ─────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <button
           onClick={() => setShowEdit(true)}
           style={{
@@ -268,6 +406,21 @@ export default function ProjectDetail() {
         >
           ✏️ Projektdaten bearbeiten
         </button>
+
+        {isAdmin && (
+          <button
+            onClick={() => setShowApproval(true)}
+            style={{
+              padding: '9px 18px', background: '#008EAA', color: '#fff',
+              border: 'none', borderRadius: 'var(--radius-md)',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            📧 Freigabe anfordern
+          </button>
+        )}
       </div>
 
       {/* ── Phase Tracker ───────────────────────────────────────────────────── */}
@@ -334,6 +487,15 @@ export default function ProjectDetail() {
           token={token}
           onClose={() => setShowEdit(false)}
           onSaved={() => { setShowEdit(false); loadProject(); }}
+        />
+      )}
+
+      {/* ── Approval Modal ──────────────────────────────────────────────────── */}
+      {showApproval && (
+        <ApprovalModal
+          projectId={project.id}
+          token={token}
+          onClose={() => setShowApproval(false)}
         />
       )}
     </div>

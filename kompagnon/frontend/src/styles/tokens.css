@@ -86,6 +86,25 @@
   /* Layout */
   --sidebar-width: 220px;
   --topbar-height: 56px;
+
+  /* === KOMPAGNON Brand Colors (Styleguide 2023) === */
+  --color-brand-teal:        #008EAA;
+  --color-brand-teal-dark:   #004F59;
+  --color-brand-teal-light:  #40B4CC;
+  --color-brand-yellow:      #FAE600;
+  --color-brand-yellow-dark: #C9B800;
+
+  /* Primärfarbe auf Brand-Teal setzen */
+  --color-primary:           #008EAA;
+  --color-primary-dark:      #004F59;
+  --color-primary-light:     #40B4CC;
+
+  /* === Typografie === */
+  --font-family-base:      'Noto Sans', system-ui, -apple-system, sans-serif;
+  --font-weight-regular:   400;
+  --font-weight-bold:      700;
+  --font-weight-black:     900;
+  --font-weight-extrabold: 800;
 }
 
 /* ── Dark mode — only when system is dark AND no manual override ── */
@@ -129,6 +148,17 @@
     --shadow-md: 0 2px 8px rgba(0,0,0,0.5);
     --shadow-lg: 0 4px 16px rgba(0,0,0,0.6);
     --shadow-xl: 0 8px 32px rgba(0,0,0,0.7);
+
+    /* === KOMPAGNON Brand Colors (Styleguide 2023) === */
+    --color-brand-teal:        #008EAA;
+    --color-brand-teal-dark:   #004F59;
+    --color-brand-teal-light:  #40B4CC;
+    --color-brand-yellow:      #FAE600;
+    --color-brand-yellow-dark: #C9B800;
+
+    --color-primary:           #008EAA;
+    --color-primary-dark:      #004F59;
+    --color-primary-light:     #40B4CC;
   }
 }
 
@@ -172,6 +202,18 @@
   --shadow-md: 0 2px 8px rgba(0,0,0,0.5);
   --shadow-lg: 0 4px 16px rgba(0,0,0,0.6);
   --shadow-xl: 0 8px 32px rgba(0,0,0,0.7);
+
+  /* === KOMPAGNON Brand Colors (Styleguide 2023) === */
+  --color-brand-teal:        #008EAA;
+  --color-brand-teal-dark:   #004F59;
+  --color-brand-teal-light:  #40B4CC;
+  --color-brand-yellow:      #FAE600;
+  --color-brand-yellow-dark: #C9B800;
+
+  /* Primärfarbe auf Brand-Teal setzen */
+  --color-primary:           #008EAA;
+  --color-primary-dark:      #004F59;
+  --color-primary-light:     #40B4CC;
 }
 
 /* ── Manual light toggle — overrides OS dark preference ─────── */

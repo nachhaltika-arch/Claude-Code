@@ -54,14 +54,9 @@ const TABS = [
   { id: 'contact',    label: 'Kontakt',     icon: '👤' },
   { id: 'audits',     label: 'Audits',      icon: '✓' },
   { id: 'dateien',    label: 'Dateien',     icon: '📎' },
-  { id: 'pagespeed',  label: 'PageSpeed',   icon: '⚡' },
   { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
-  { id: 'checklists', label: 'Checklisten', icon: '📋' },
-  { id: 'sitemap',    label: 'Sitemap',     icon: '🗺️' },
-  { id: 'mockup',     label: 'Mockup',      icon: '🎨' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
-  { id: 'crawler',    label: 'Crawler',     icon: '🕷️' },
 ];
 
 export default function LeadProfile() {

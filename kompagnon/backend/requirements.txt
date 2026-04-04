@@ -18,3 +18,4 @@ pyotp
 qrcode[pil]
 pillow
 stripe
+matplotlib

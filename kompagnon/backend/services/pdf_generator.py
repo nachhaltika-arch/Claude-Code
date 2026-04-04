@@ -5,6 +5,7 @@ Generates a professional multi-page PDF using ReportLab.
 import json
 import os
 import unicodedata
+import math
 from io import BytesIO
 from datetime import datetime
 
@@ -17,7 +18,7 @@ from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
     PageBreak, KeepTogether,
 )
-from reportlab.platypus.flowables import HRFlowable
+from reportlab.platypus.flowables import HRFlowable, Image as RLImage
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
@@ -195,6 +196,115 @@ def _footer(canvas_obj, doc):
     canvas_obj.drawRightString(w - 20*mm, 10*mm,
         _clean_text("Dieses Audit ersetzt keine Rechtsberatung."))
     canvas_obj.restoreState()
+
+
+# ═══════════════════════════════════════════════════════════
+# Chart generators (matplotlib)
+# ═══════════════════════════════════════════════════════════
+
+def generate_radar_chart(scores: dict) -> bytes:
+    """Draw a spider/radar chart for 6 audit categories. Returns PNG bytes."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    labels = [
+        "SEO & Keywords",
+        "Performance",
+        "Sicherheit",
+        "Inhalt & UX",
+        "Rechtliches",
+        "GEO / KI-Sichtbarkeit",
+    ]
+    values = [
+        scores.get("seo", 0),
+        scores.get("performance", 0),
+        scores.get("sicherheit", 0),
+        scores.get("ux", 0),
+        scores.get("rechtliches", 0),
+        scores.get("geo", 0),
+    ]
+
+    N = len(labels)
+    angles = [2 * math.pi * i / N for i in range(N)]
+    angles_closed = angles + [angles[0]]
+    values_closed = values + [values[0]]
+
+    fig, ax = plt.subplots(figsize=(4, 4), subplot_kw=dict(polar=True))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    # Grid
+    ax.set_ylim(0, 10)
+    ax.set_yticks([2, 4, 6, 8, 10])
+    ax.set_yticklabels(["2", "4", "6", "8", "10"], fontsize=6, color="#94a3b8")
+    ax.yaxis.grid(True, color="#e2e8f0", linewidth=0.7)
+    ax.xaxis.grid(True, color="#e2e8f0", linewidth=0.7)
+    ax.spines["polar"].set_color("#e2e8f0")
+
+    # Axes
+    ax.set_xticks(angles)
+    ax.set_xticklabels(labels, fontsize=7, color="#2c3e50")
+
+    # Plot
+    ax.plot(angles_closed, values_closed, color="#0d6efd", linewidth=1.8)
+    ax.fill(angles_closed, values_closed, color="#0d6efd", alpha=0.25)
+
+    plt.tight_layout(pad=1.2)
+    buf = BytesIO()
+    plt.savefig(buf, format="png", dpi=130, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
+
+
+def generate_donut_chart(positions: dict) -> bytes:
+    """Draw a donut chart for keyword position distribution. Returns PNG bytes."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    labels = ["Top 10", "11–20", "21–50", "51–100"]
+    values = [
+        positions.get("top10", 0),
+        positions.get("11_20", 0),
+        positions.get("21_50", 0),
+        positions.get("51_100", 0),
+    ]
+    palette = ["#10b981", "#f97316", "#fbbf24", "#ef4444"]
+
+    # If all zeros show a placeholder
+    if sum(values) == 0:
+        values = [1, 1, 1, 1]
+        palette = ["#e2e8f0", "#e2e8f0", "#e2e8f0", "#e2e8f0"]
+
+    fig, ax = plt.subplots(figsize=(4, 4))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    wedges, texts, autotexts = ax.pie(
+        values,
+        labels=labels,
+        colors=palette,
+        autopct=lambda p: f"{p:.0f}%" if p > 3 else "",
+        pctdistance=0.78,
+        startangle=90,
+        wedgeprops=dict(width=0.45, edgecolor="white", linewidth=2),
+    )
+    for t in texts:
+        t.set_fontsize(8)
+        t.set_color("#2c3e50")
+    for at in autotexts:
+        at.set_fontsize(7)
+        at.set_color("white")
+        at.set_fontweight("bold")
+
+    plt.tight_layout(pad=0.5)
+    buf = BytesIO()
+    plt.savefig(buf, format="png", dpi=130, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
 
 
 # ═══════════════════════════════════════════════════════════
@@ -488,6 +598,61 @@ def generate_audit_report(audit_data: dict) -> bytes:
             sum_style.append(("BACKGROUND", (0, i), (-1, i), KC_LIGHT))
     sum_table.setStyle(TableStyle(sum_style))
     story.append(sum_table)
+    story.append(Spacer(1, 8*mm))
+
+    # ── CHARTS: Radar + Donut ───────────────────────────────
+    try:
+        # Normalize raw scores to 0–10 scale
+        radar_scores = {
+            "seo":          round((se / 10) * 10, 1),
+            "performance":  round((tp / 20) * 10, 1),
+            "sicherheit":   round((si / 15) * 10, 1),
+            "ux":           round((ux / 5)  * 10, 1),
+            "rechtliches":  round((rc / 30) * 10, 1),
+            "geo":          round((audit_data.get("geo_score", 0) or 0) / 10 * 10, 1),
+        }
+        keyword_positions = audit_data.get("keyword_positions") or {}
+        if isinstance(keyword_positions, str):
+            try:
+                keyword_positions = json.loads(keyword_positions)
+            except Exception:
+                keyword_positions = {}
+
+        radar_png  = generate_radar_chart(radar_scores)
+        donut_png  = generate_donut_chart(keyword_positions)
+
+        radar_buf = BytesIO(radar_png)
+        donut_buf = BytesIO(donut_png)
+
+        chart_w = 72 * mm   # ~260px equivalent
+        radar_img = RLImage(radar_buf, width=chart_w, height=chart_w)
+        donut_img = RLImage(donut_buf, width=chart_w, height=chart_w)
+
+        caption_style = ParagraphStyle(
+            "ChartCaption", fontName=FONT_NORMAL, fontSize=8,
+            textColor=colors.HexColor("#64748b"), alignment=TA_CENTER,
+        )
+        chart_table = Table(
+            [
+                [radar_img, donut_img],
+                [
+                    Paragraph("Kategorien-Radar", caption_style),
+                    Paragraph("Keyword-Positionen", caption_style),
+                ],
+            ],
+            colWidths=[chart_w + 4*mm, chart_w + 4*mm],
+        )
+        chart_table.setStyle(TableStyle([
+            ("ALIGN",   (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN",  (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING",    (0, 0), (-1, -1), 2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 4),
+        ]))
+        story.append(chart_table)
+    except Exception as _chart_err:
+        pass  # Charts are optional — don't break PDF generation
 
     story.append(PageBreak())
 

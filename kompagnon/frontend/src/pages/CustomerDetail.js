@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import WebsiteDesigner from '../components/WebsiteDesigner';
 
 // ── PageSpeed helpers ──────────────────────────────────────────
 
@@ -1133,6 +1134,7 @@ export default function CustomerDetail() {
   const [showModal, setShowModal]   = useState(false);
   const [assigning, setAssigning]   = useState(null);
   const [removing, setRemoving]     = useState(null);
+  const [isDesignerOpen, setIsDesignerOpen] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/leads/${customerId}`, { headers: h })
@@ -1200,7 +1202,7 @@ export default function CustomerDetail() {
         gap: isMobile ? 8 : 12,
       }}>
         {/* Back + name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
           <button
             onClick={() => navigate(-1)}
             style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)', padding: 0, display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
@@ -1210,6 +1212,19 @@ export default function CustomerDetail() {
             {customer?.contact_name || customer?.company_name || `Kunde #${customerId}`}
           </h1>
         </div>
+
+        {/* Aktionsleiste */}
+        <button
+          onClick={() => setIsDesignerOpen(true)}
+          style={{
+            padding: '8px 16px', border: 'none', borderRadius: 'var(--radius-md)',
+            background: 'var(--brand-primary)', color: '#fff',
+            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0,
+          }}
+        >
+          🌐 Website erstellen
+        </button>
       </div>
 
       {/* ── Verknüpftes Projekt ── */}
@@ -1465,6 +1480,14 @@ export default function CustomerDetail() {
             </div>
           </div>
         </>
+      )}
+
+      {isDesignerOpen && (
+        <WebsiteDesigner
+          customerId={customerId}
+          customerName={customer?.contact_name || customer?.company_name}
+          onClose={() => setIsDesignerOpen(false)}
+        />
       )}
     </div>
   );

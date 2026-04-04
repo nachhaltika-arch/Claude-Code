@@ -8,10 +8,10 @@ export default function Impressum() {
       <div className="bg-kompagnon-900 text-white py-12">
         <div className="max-w-3xl mx-auto px-6">
           <div onClick={() => window.history.back()} className="text-kompagnon-300 text-sm cursor-pointer hover:text-white mb-4 flex items-center gap-2">
-            ← Zurueck
+            ← Zurück
           </div>
           <h1 className="text-3xl font-extrabold">Impressum</h1>
-          <p className="text-kompagnon-300 mt-2 text-sm">Angaben gemaess Paragraph 5 TMG</p>
+          <p className="text-kompagnon-300 mt-2 text-sm">Angaben gemäß DDG</p>
         </div>
       </div>
 
@@ -20,9 +20,9 @@ export default function Impressum() {
         <div className="card card-body space-y-8">
 
           <Section title="Unternehmen">
-            <p className="font-semibold text-slate-900">KOMPAGNON</p>
-            <p>[Strasse und Hausnummer]</p>
-            <p>[PLZ] [Stadt]</p>
+            <p className="font-semibold text-slate-900">KOMPAGNON communications BP GmbH</p>
+            <p>Marienfelder Straße 52</p>
+            <p>56070 Koblenz</p>
             <p>Deutschland</p>
           </Section>
 
@@ -30,85 +30,124 @@ export default function Impressum() {
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <span className="text-kompagnon-500">Tel:</span>
-                <span>[Telefonnummer]</span>
+                <a href="tel:+4926188447-0" className="text-kompagnon-600 hover:underline">+49-261-88447-0</a>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-kompagnon-500">Fax:</span>
+                <span>+49-261-88447-70</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-kompagnon-500">E-Mail:</span>
-                <a href="mailto:info@kompagnon.de" className="text-kompagnon-600 hover:underline">info@kompagnon.de</a>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-kompagnon-500">Web:</span>
-                <a href="https://kompagnon.de" className="text-kompagnon-600 hover:underline">www.kompagnon.de</a>
+                <a href="mailto:info@kompagnon.eu" className="text-kompagnon-600 hover:underline">info@kompagnon.eu</a>
               </div>
             </div>
           </Section>
 
+          <Section title="Meetingroom (nach Terminvereinbarung)">
+            <p>Koblenz Zentrum, im Confluentis Business Center</p>
+            <p>Josef-Görres-Platz 2</p>
+            <p>56068 Koblenz</p>
+          </Section>
+
           <Section title="Vertreten durch">
-            <p>[Vor- und Nachname des Geschaeftsfuehrers]</p>
+            <p>Manuel Potter</p>
           </Section>
 
           <Section title="Handelsregister">
-            <p><span className="font-medium text-slate-700">Registergericht:</span> [Amtsgericht Stadt]</p>
-            <p><span className="font-medium text-slate-700">Registernummer:</span> [HRB XXXXX]</p>
+            <p><span className="font-medium text-slate-700">Registergericht:</span> Amtsgericht Koblenz</p>
+            <p><span className="font-medium text-slate-700">Registernummer:</span> HRB 26213</p>
           </Section>
 
           <Section title="Umsatzsteuer-ID">
             <p>
-              Umsatzsteuer-Identifikationsnummer gemaess Paragraph 27a Umsatzsteuergesetz:
-              <span className="font-medium text-slate-800 ml-1">DE [XXXXXXXXX]</span>
+              Umsatzsteuer-Identifikationsnummer gemäß § 27a Umsatzsteuergesetz:
+              <span className="font-medium text-slate-800 ml-1">DE317883455</span>
             </p>
           </Section>
 
-          <Section title="Verantwortlich fuer den Inhalt nach Paragraph 55 Abs. 2 RStV">
-            <p>[Vor- und Nachname]</p>
-            <p>[Strasse und Hausnummer]</p>
-            <p>[PLZ] [Stadt]</p>
+          <Section title="D-U-N-S® Nummer">
+            <p>315046814</p>
           </Section>
 
-          <Section title="Streitschlichtung">
+          <Section title="Redaktionell Verantwortlicher">
+            <p className="font-semibold text-slate-900">KOMPAGNON communications BP GmbH</p>
+            <p>Manuel Potter</p>
+            <p>Marienfelder Straße 52</p>
+            <p>56070 Koblenz</p>
+          </Section>
+
+          <Section title="EU-Streitschlichtung">
             <p>
-              Die Europaeische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:{' '}
-              <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer" className="text-kompagnon-600 hover:underline">
-                https://ec.europa.eu/consumers/odr/
+              Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:{' '}
+              <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="text-kompagnon-600 hover:underline">
+                ec.europa.eu/consumers/odr
               </a>
+              . Unsere E-Mail-Adresse finden Sie oben im Impressum.
             </p>
+          </Section>
+
+          <Section title="Verbraucherstreitbeilegung / Universalschlichtungsstelle">
             <p>Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p>
           </Section>
 
-          <Section title="Haftung fuer Inhalte">
+          <Section title="Haftung für Inhalte">
             <p>
-              Als Diensteanbieter sind wir gemaess Paragraph 7 Abs. 1 TMG fuer eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich.
-              Nach Paragraphen 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet, uebermittelte oder gespeicherte fremde Informationen zu ueberwachen
-              oder nach Umstaenden zu forschen, die auf eine rechtswidrige Taetigkeit hinweisen.
+              Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich.
+              Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen
+              oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen.
+            </p>
+            <p>
+              Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt.
+              Eine diesbezügliche Haftung ist jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten Rechtsverletzung möglich.
+              Bei Bekanntwerden von entsprechenden Rechtsverletzungen werden wir diese Inhalte umgehend entfernen.
+            </p>
+          </Section>
+
+          <Section title="Haftung für Links">
+            <p>
+              Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben.
+              Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten
+              ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich. Die verlinkten Seiten wurden zum Zeitpunkt
+              der Verlinkung auf mögliche Rechtsverstöße überprüft. Rechtswidrige Inhalte waren zum Zeitpunkt der Verlinkung nicht erkennbar.
+            </p>
+            <p>
+              Eine permanente inhaltliche Kontrolle der verlinkten Seiten ist jedoch ohne konkrete Anhaltspunkte einer Rechtsverletzung
+              nicht zumutbar. Bei Bekanntwerden von Rechtsverletzungen werden wir derartige Links umgehend entfernen.
             </p>
           </Section>
 
           <Section title="Urheberrecht">
             <p>
               Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht.
-              Die Vervielfaeltigung, Bearbeitung, Verbreitung und jede Art der Verwertung ausserhalb der Grenzen des Urheberrechtes
-              beduerfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.
+              Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes
+              bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers. Downloads und Kopien dieser Seite sind
+              nur für den privaten, nicht kommerziellen Gebrauch gestattet.
+            </p>
+            <p>
+              Soweit die Inhalte auf dieser Seite nicht vom Betreiber erstellt wurden, werden die Urheberrechte Dritter beachtet.
+              Insbesondere werden Inhalte Dritter als solche gekennzeichnet. Sollten Sie trotzdem auf eine Urheberrechtsverletzung
+              aufmerksam werden, bitten wir um einen entsprechenden Hinweis. Bei Bekanntwerden von Rechtsverletzungen werden wir
+              derartige Inhalte umgehend entfernen.
+            </p>
+          </Section>
+
+          <Section title="Weitere Büroadresse">
+            <p>
+              Wir sind ebenfalls erreichbar im Herzen der Stadt Koblenz, am Görresplatz 2 im CBC Confluentis Business Center.
+              Für Termine vor Ort bitten wir um vorherige Ankündigung, um Sie dort zu empfangen.
             </p>
           </Section>
 
           <div className="pt-4 border-t border-slate-100">
-            <p className="text-xs text-slate-400">Stand: Maerz 2026</p>
+            <p className="text-xs text-slate-400">Stand: 2026</p>
           </div>
-        </div>
-
-        <div className="alert-warning mt-6 rounded-xl">
-          <span>Hinweis: </span>
-          <p className="text-xs">
-            Bitte ersetzen Sie alle Platzhalter in eckigen Klammern [ ] mit Ihren echten Angaben.
-            Ein unvollstaendiges Impressum kann zu Abmahnungen fuehren.
-          </p>
         </div>
       </div>
 
       {/* Footer */}
       <div className="border-t border-slate-200 py-6 mt-8">
         <div className="max-w-3xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
-          <span>2026 KOMPAGNON</span>
+          <span>© 2026 KOMPAGNON communications BP GmbH</span>
           <div className="flex gap-4">
             <Link to="/impressum" className="hover:text-slate-600">Impressum</Link>
             <Link to="/datenschutz" className="hover:text-slate-600">Datenschutz</Link>
@@ -123,7 +162,7 @@ function Section({ title, children }) {
   return (
     <section>
       <h2 className="text-lg font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100">{title}</h2>
-      <div className="text-slate-600 space-y-1 text-sm leading-relaxed">{children}</div>
+      <div className="text-slate-600 space-y-2 text-sm leading-relaxed">{children}</div>
     </section>
   );
 }

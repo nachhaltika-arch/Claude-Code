@@ -473,9 +473,11 @@ def _run_migrations():
           notizen TEXT,
           status VARCHAR(30) DEFAULT 'geplant',
           mockup_html TEXT,
+          ist_pflichtseite BOOLEAN DEFAULT false,
           created_at TIMESTAMP DEFAULT NOW()
         )
         """,
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ist_pflichtseite BOOLEAN DEFAULT false",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

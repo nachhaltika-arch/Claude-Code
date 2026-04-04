@@ -28,7 +28,7 @@ from reportlab.platypus import (
     PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
 )
 from reportlab.platypus.flowables import HRFlowable
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
@@ -91,8 +91,9 @@ class SitemapPage(Base):
     cta_ziel      = Column(String(50),  default="kontakt")
     notizen       = Column(Text,        nullable=True)
     status        = Column(String(30),  default="geplant")
-    mockup_html   = Column(Text,        nullable=True)
-    created_at    = Column(DateTime,    server_default=func.now())
+    mockup_html      = Column(Text,        nullable=True)
+    ist_pflichtseite = Column(Boolean,     default=False)
+    created_at       = Column(DateTime,    server_default=func.now())
 
 
 # ── Pydantic schemas ───────────────────────────────────────────────────────────
@@ -109,6 +110,7 @@ class PageCreate(BaseModel):
     notizen:      Optional[str]  = None
     status:       str            = "geplant"
     mockup_html:  Optional[str]  = None
+    # ist_pflichtseite is intentionally excluded – always forced to False in handler
 
 
 class PageUpdate(BaseModel):
@@ -123,6 +125,7 @@ class PageUpdate(BaseModel):
     notizen:      Optional[str]  = None
     status:       Optional[str]  = None
     mockup_html:  Optional[str]  = None
+    # ist_pflichtseite is intentionally excluded – cannot be changed via API
 
 
 class ReorderItem(BaseModel):
@@ -146,10 +149,43 @@ def _serialize(p: SitemapPage) -> dict:
         "cta_text":     p.cta_text or "",
         "cta_ziel":     p.cta_ziel or "kontakt",
         "notizen":      p.notizen or "",
-        "status":       p.status or "geplant",
-        "mockup_html":  p.mockup_html or "",
-        "created_at":   str(p.created_at)[:16] if p.created_at else "",
+        "status":           p.status or "geplant",
+        "mockup_html":      p.mockup_html or "",
+        "ist_pflichtseite": bool(p.ist_pflichtseite),
+        "created_at":       str(p.created_at)[:16] if p.created_at else "",
     }
+
+
+# ── Pflichtseiten ──────────────────────────────────────────────────────────────
+
+PFLICHTSEITEN = [
+    {"page_name": "Impressum",                 "page_type": "rechtlich", "position": 90, "zweck": "Gesetzlich vorgeschriebene Pflichtangaben"},
+    {"page_name": "Datenschutzerklärung",      "page_type": "rechtlich", "position": 91, "zweck": "Informationen zur Datenverarbeitung gemäß DSGVO"},
+    {"page_name": "Barrierefreiheitserklärung","page_type": "rechtlich", "position": 92, "zweck": "Konformitätserklärung gemäß BFSG / BITV 2.0"},
+    {"page_name": "AGB",                       "page_type": "rechtlich", "position": 93, "zweck": "Allgemeine Geschäftsbedingungen"},
+]
+
+
+def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
+    """Insert missing Pflichtseiten for a lead (idempotent)."""
+    existing_names = {
+        p.page_name
+        for p in db.query(SitemapPage.page_name)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.ist_pflichtseite.is_(True))
+        .all()
+    }
+    for pf in PFLICHTSEITEN:
+        if pf["page_name"] not in existing_names:
+            db.add(SitemapPage(
+                lead_id=lead_id,
+                page_name=pf["page_name"],
+                page_type=pf["page_type"],
+                position=pf["position"],
+                zweck=pf["zweck"],
+                status="geplant",
+                ist_pflichtseite=True,
+            ))
+    db.commit()
 
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
@@ -161,6 +197,7 @@ def get_sitemap(
     _=Depends(require_any_auth),
 ):
     """Return all sitemap pages for a lead as a flat list (parent_id indicates hierarchy)."""
+    _ensure_pflichtseiten(lead_id, db)
     pages = (
         db.query(SitemapPage)
         .filter(SitemapPage.lead_id == lead_id)
@@ -177,7 +214,9 @@ def create_page(
     db: Session = Depends(get_db),
     _=Depends(require_any_auth),
 ):
-    page = SitemapPage(lead_id=lead_id, **body.model_dump())
+    data = body.model_dump()
+    data["ist_pflichtseite"] = False  # user-created pages are never Pflichtseiten
+    page = SitemapPage(lead_id=lead_id, **data)
     db.add(page)
     db.commit()
     db.refresh(page)
@@ -194,7 +233,12 @@ def update_page(
     page = db.query(SitemapPage).filter(SitemapPage.id == page_id).first()
     if not page:
         raise HTTPException(status_code=404, detail="Seite nicht gefunden")
-    for field, value in body.model_dump(exclude_unset=True).items():
+    updates = body.model_dump(exclude_unset=True)
+    if page.ist_pflichtseite:
+        # Only content fields may be changed; structural fields are locked
+        allowed = {"zweck", "notizen", "status"}
+        updates = {k: v for k, v in updates.items() if k in allowed}
+    for field, value in updates.items():
         setattr(page, field, value)
     db.commit()
     db.refresh(page)
@@ -210,6 +254,8 @@ def delete_page(
     page = db.query(SitemapPage).filter(SitemapPage.id == page_id).first()
     if not page:
         raise HTTPException(status_code=404, detail="Seite nicht gefunden")
+    if page.ist_pflichtseite:
+        raise HTTPException(status_code=403, detail="Pflichtseiten können nicht gelöscht werden")
     db.delete(page)
     db.commit()
 

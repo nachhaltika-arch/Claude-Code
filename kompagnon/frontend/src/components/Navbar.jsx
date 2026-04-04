@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import KompagnonLogo from './KompagnonLogo';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -37,30 +38,11 @@ export default function Navbar() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
             textDecoration: 'none',
-            color: 'var(--text-inverse)',
           }}
         >
-          <span
-            style={{
-              display: 'inline-block',
-              width: '8px',
-              height: '24px',
-              background: 'var(--brand-primary)',
-              borderRadius: 'var(--kc-radius-sm)',
-            }}
-          />
-          <span
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: '18px',
-              fontWeight: 700,
-              letterSpacing: 'var(--kc-tracking-wide)',
-            }}
-          >
-            KOMPAGNON
-          </span>
+          {/* TODO: use variant="white" when dark theme is active */}
+          <KompagnonLogo height={36} variant="color" />
         </Link>
         <span
           style={{

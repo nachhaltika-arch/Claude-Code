@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useScreenSize } from '../../utils/responsive';
 import { useTheme } from '../../context/ThemeContext';
 import Logo from '../Logo';
+import KompagnonLogo from '../KompagnonLogo';
 
 // ── SVG Icons (16x16) ──────────────────────────────────────────
 
@@ -178,16 +179,7 @@ function SidebarNav({ badges }) {
         padding: '20px 16px 18px', borderBottom: '1px solid var(--border-light)',
         cursor: 'pointer',
       }} onClick={() => navigate('/app/dashboard')}>
-        <div style={{ color: 'var(--brand-primary)' }}>
-          <Logo size="small" />
-        </div>
-        <div style={{
-          fontSize: 10, color: 'var(--text-tertiary)',
-          letterSpacing: '0.06em', textTransform: 'uppercase',
-          marginTop: 4,
-        }}>
-          Automation System
-        </div>
+        <KompagnonLogo height={36} variant={theme === 'dark' ? 'white' : 'color'} />
       </div>
 
       {/* Navigation */}
@@ -464,6 +456,7 @@ function BottomNav() {
 export default function AppLayout() {
   const { isMobile } = useScreenSize();
   const { user, logout } = useAuth();
+  const { theme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [badges] = useState({ pipeline: 0, audits: 0 });
@@ -512,8 +505,8 @@ export default function AppLayout() {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             position: 'sticky', top: 0, zIndex: 30, flexShrink: 0,
           }}>
-            <div style={{ color: 'var(--brand-primary)' }}>
-              <Logo size="small" />
+            <div>
+              <KompagnonLogo height={36} variant={theme === 'dark' ? 'white' : 'color'} />
             </div>
             <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
               {pageName}

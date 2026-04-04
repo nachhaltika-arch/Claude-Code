@@ -644,15 +644,15 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# Include all routers
+# Include all routers — specific routers BEFORE alias/fallback routers
 app.include_router(usercards_router)
-app.include_router(leads_alias_router)
+app.include_router(leads_router)                      # real leads router first
+app.include_router(leads_alias_router)                # alias after
 app.include_router(usercards_customers_alias_router)
-app.include_router(leads_router)
-app.include_router(customers_alias_router)
+app.include_router(customers_router)                  # real customers router first
+app.include_router(customers_alias_router)            # alias after
 app.include_router(projects_router)
 app.include_router(agents_router)
-app.include_router(customers_router)
 app.include_router(automations_router)
 app.include_router(cms_connect_router)
 app.include_router(portal_router)

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -210,6 +211,24 @@ export default function LeadProfile() {
     const data = await loadBriefing();
     setBriefingData(data);
     setShowBriefingWizard(true);
+  };
+
+  const downloadSitemapPdf = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('PDF konnte nicht geladen werden');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sitemap-${leadId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error('PDF Fehler: ' + e.message);
+    }
   };
 
   const generateMockup = async () => {
@@ -1363,14 +1382,12 @@ export default function LeadProfile() {
               >
                 🗺️ Sitemap bearbeiten
               </button>
-              <a
-                href={`${API_BASE_URL}/api/sitemap/${leadId}/pdf`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+              <button
+                onClick={downloadSitemapPdf}
+                style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
                 📥 PDF herunterladen
-              </a>
+              </button>
             </div>
 
             {/* Page list */}

@@ -33,7 +33,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
 from database import Base, Briefing, Lead, get_db
-from routers.auth_router import require_any_auth
+from routers.auth_router import require_any_auth, optional_auth
 
 logger = logging.getLogger(__name__)
 
@@ -481,7 +481,7 @@ def _generate_sitemap_pdf(pages: list, company_name: str) -> bytes:
 def export_sitemap_pdf(
     lead_id: int,
     db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
+    _=Depends(optional_auth),
 ):
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:

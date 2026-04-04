@@ -13,6 +13,7 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
   const editorRef    = useRef(null);
   const [kiLoading, setKiLoading]   = useState(false);
   const [cmsLoading, setCmsLoading] = useState(false);
+  const [cmsConn, setCmsConn]       = useState(null); // {cms_type, has_cms_connection}
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -38,6 +39,17 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
       editorRef.current = null;
     };
   }, []); // eslint-disable-line
+
+  // Load CMS connection info for dynamic button label
+  useEffect(() => {
+    const token = localStorage.getItem('kompagnon_token');
+    fetch(`${API_BASE_URL}/api/customers/${customerId}/cms-connection`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setCmsConn(d); })
+      .catch(() => {});
+  }, [customerId]); // eslint-disable-line
 
   const handleLoadKiEntwurf = async () => {
     const editor = editorRef.current;
@@ -87,12 +99,10 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
         return;
       }
 
-      if (conn.cms_type !== 'wordpress_elementor') {
-        toast.error(`CMS-Typ "${conn.cms_type}" wird noch nicht unterstützt.`);
-        return;
-      }
+      // 2. Update local conn state for label refresh
+      setCmsConn(conn);
 
-      // 2. Combine HTML + CSS and push
+      // 3. Combine HTML + CSS and push
       const html = editor.getHtml() + `<style>${editor.getCss()}</style>`;
       const pubRes = await fetch(
         `${API_BASE_URL}/api/customers/${customerId}/publish`,
@@ -105,10 +115,11 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
       const result = await pubRes.json().catch(() => ({}));
 
       if (pubRes.ok && result.success) {
+        const cmsName = conn.cms_type === 'webflow' ? 'Webflow' : 'WordPress';
         toast.success(
           result.page_url
-            ? <span>✅ Seite als Entwurf in WordPress erstellt – <a href={result.page_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Seite öffnen ↗</a></span>
-            : '✅ Seite als Entwurf in WordPress erstellt',
+            ? <span>✅ Seite als Entwurf in {cmsName} erstellt – <a href={result.page_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Seite öffnen ↗</a></span>
+            : `✅ Seite als Entwurf in ${cmsName} erstellt`,
           { duration: 6000 }
         );
       } else {
@@ -185,16 +196,28 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
             : '🤖 KI-Entwurf laden'
           }
         </button>
-        <button
-          style={{ ...btnStyle, opacity: cmsLoading ? 0.7 : 1, cursor: cmsLoading ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }}
-          onClick={handlePushToCms}
-          disabled={cmsLoading}
-        >
-          {cmsLoading
-            ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block', flexShrink: 0 }} /> Pushe zu WordPress...</>
-            : '🚀 Zum CMS pushen'
-          }
-        </button>
+        {(() => {
+          const hasCms = cmsConn?.has_cms_connection;
+          const cmsType = cmsConn?.cms_type;
+          const label = cmsType === 'wordpress_elementor' ? '🚀 Zu WordPress pushen'
+            : cmsType === 'webflow' ? '🚀 Zu Webflow pushen'
+            : '🚀 Zum CMS pushen';
+          const pushingLabel = cmsType === 'webflow' ? 'Pushe zu Webflow...' : 'Pushe zu WordPress...';
+          const disabled = cmsLoading || !hasCms;
+          return (
+            <button
+              style={{ ...btnStyle, opacity: disabled ? 0.45 : 1, cursor: disabled ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }}
+              onClick={handlePushToCms}
+              disabled={disabled}
+              title={!hasCms ? 'CMS-Verbindung im Kundenprofil einrichten' : undefined}
+            >
+              {cmsLoading
+                ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block', flexShrink: 0 }} />{pushingLabel}</>
+                : label
+              }
+            </button>
+          );
+        })()}
         <button style={btnStyle} onClick={handleDownloadHtml}>
           📥 Als HTML herunterladen
         </button>

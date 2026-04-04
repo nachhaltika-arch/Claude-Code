@@ -97,6 +97,7 @@ const NAV_SECTIONS = [
     items: [
       { label: 'Support Tickets', path: '/app/tickets', icon: 'docCheck' },
       { label: 'Produktentwicklung', path: '/app/product', icon: 'gear', adminOnly: true },
+      { label: 'QR-Generator', path: '/app/qr-generator', icon: 'qr', adminOnly: true },
     ],
   },
   {

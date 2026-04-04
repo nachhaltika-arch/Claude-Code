@@ -286,13 +286,12 @@ def reorder_pages(
 # ── Fallback template ─────────────────────────────────────────────────────────
 
 _FALLBACK_PAGES = [
-    {"page_name": "Startseite",          "page_type": "startseite",  "position": 0, "parent_id": None, "zweck": "Erster Eindruck, klare Botschaft", "ziel_keyword": "", "cta_text": "Jetzt anfragen",      "cta_ziel": "kontakt"},
-    {"page_name": "Leistungen",          "page_type": "leistung",    "position": 1, "parent_id": None, "zweck": "Übersicht aller Leistungen",        "ziel_keyword": "", "cta_text": "Mehr erfahren",        "cta_ziel": "kontakt"},
-    {"page_name": "Leistung 1",          "page_type": "leistung",    "position": 2, "parent_id": None, "zweck": "Detail-Seite erste Leistung",       "ziel_keyword": "", "cta_text": "Angebot anfordern",    "cta_ziel": "kontakt"},
-    {"page_name": "Leistung 2",          "page_type": "leistung",    "position": 3, "parent_id": None, "zweck": "Detail-Seite zweite Leistung",      "ziel_keyword": "", "cta_text": "Angebot anfordern",    "cta_ziel": "kontakt"},
-    {"page_name": "Über uns",            "page_type": "vertrauen",   "position": 4, "parent_id": None, "zweck": "Vertrauen aufbauen, Team vorstellen","ziel_keyword": "", "cta_text": "Kontakt aufnehmen",    "cta_ziel": "kontakt"},
-    {"page_name": "Referenzen",          "page_type": "vertrauen",   "position": 5, "parent_id": None, "zweck": "Abgeschlossene Projekte zeigen",     "ziel_keyword": "", "cta_text": "Jetzt anfragen",       "cta_ziel": "kontakt"},
-    {"page_name": "Kontakt",             "page_type": "conversion",  "position": 6, "parent_id": None, "zweck": "Leadgenerierung, Kontaktformular",  "ziel_keyword": "", "cta_text": "Nachricht senden",     "cta_ziel": "kontakt"},
+    {"page_name": "Startseite", "page_type": "startseite", "position": 0, "parent_id": None, "zweck": "Erster Eindruck, klare Botschaft",     "ziel_keyword": "", "cta_text": "Jetzt anfragen",   "cta_ziel": "kontakt"},
+    {"page_name": "Leistungen", "page_type": "leistung",   "position": 1, "parent_id": None, "zweck": "Übersicht aller Leistungen",            "ziel_keyword": "", "cta_text": "Mehr erfahren",    "cta_ziel": "kontakt"},
+    {"page_name": "Leistung 1", "page_type": "leistung",   "position": 2, "parent_id": 1,    "zweck": "Detail-Seite erste Leistung",           "ziel_keyword": "", "cta_text": "Angebot anfordern","cta_ziel": "kontakt"},
+    {"page_name": "Leistung 2", "page_type": "leistung",   "position": 3, "parent_id": 1,    "zweck": "Detail-Seite zweite Leistung",          "ziel_keyword": "", "cta_text": "Angebot anfordern","cta_ziel": "kontakt"},
+    {"page_name": "Über uns",   "page_type": "vertrauen",  "position": 4, "parent_id": None, "zweck": "Vertrauen aufbauen, Team vorstellen",   "ziel_keyword": "", "cta_text": "Kontakt aufnehmen","cta_ziel": "kontakt"},
+    {"page_name": "Kontakt",    "page_type": "conversion", "position": 5, "parent_id": None, "zweck": "Leadgenerierung, Kontaktformular",      "ziel_keyword": "", "cta_text": "Nachricht senden", "cta_ziel": "kontakt"},
 ]
 
 
@@ -344,54 +343,69 @@ async def generate_sitemap(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
-    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
-    gewerk    = (briefing.gewerk if briefing and briefing.gewerk else lead.trade) or "Handwerk"
-    leistungen = (briefing.leistungen if briefing and briefing.leistungen else "") or ""
+    # Step 1: Pflichtseiten immer zuerst sicherstellen
+    _ensure_pflichtseiten(lead_id, db)
+
+    briefing   = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    gewerk     = (briefing.gewerk     if briefing and briefing.gewerk     else lead.trade)   or "Handwerk"
+    leistungen = (briefing.leistungen if briefing and briefing.leistungen else "")           or ""
     city       = lead.city or "Deutschland"
 
-    # Delete existing pages first
-    db.query(SitemapPage).filter(SitemapPage.lead_id == lead_id).delete()
+    # Step 2: Nur Nicht-Pflichtseiten löschen
+    db.query(SitemapPage).filter(
+        SitemapPage.lead_id == lead_id,
+        SitemapPage.ist_pflichtseite.is_(False),
+    ).delete()
     db.commit()
 
+    # Step 3: KI oder Fallback
     api_key = os.getenv("ANTHROPIC_API_KEY")
+    source = "fallback"
     if not api_key:
-        pages = _insert_pages(lead_id, _FALLBACK_PAGES, db)
-        return {"pages": pages, "source": "fallback"}
-
-    prompt = (
-        "Du bist ein Website-Stratege für Handwerksbetriebe.\n"
-        f"Erstelle eine Sitemap mit 6-9 Seiten für diesen Betrieb.\n"
-        f"Gewerk: {gewerk}, Stadt: {city}, Leistungen: {leistungen}\n"
-        "Antworte NUR als JSON-Array:\n"
-        '[{ "page_name": "", "page_type": "startseite|leistung|info|vertrauen|conversion", '
-        '"zweck": "", "ziel_keyword": "", "cta_text": "", "cta_ziel": "kontakt|formular|tel", '
-        '"position": 0, "parent_id": null }]'
-    )
-
-    try:
-        from anthropic import Anthropic
-        client = Anthropic(api_key=api_key, max_retries=0, timeout=60.0)
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1500,
-            messages=[{"role": "user", "content": prompt}],
+        _insert_pages(lead_id, _FALLBACK_PAGES, db)
+    else:
+        prompt = (
+            "Du bist ein Website-Stratege für Handwerksbetriebe.\n"
+            "Erstelle eine Sitemap mit 5-8 INHALTLICHEN Seiten für diesen Betrieb.\n"
+            "NICHT einschließen: Impressum, Datenschutz, AGB, Barrierefreiheit – "
+            "diese werden automatisch ergänzt.\n"
+            f"Gewerk: {gewerk}, Stadt: {city}, Leistungen: {leistungen}\n"
+            "Antworte NUR als JSON-Array:\n"
+            '[{ "page_name": "", "page_type": "startseite|leistung|info|vertrauen|conversion", '
+            '"zweck": "", "ziel_keyword": "", "cta_text": "", "cta_ziel": "kontakt|formular|tel", '
+            '"position": 0, "parent_id": null }]'
         )
-        raw = response.content[0].text.strip()
-        # Strip markdown fences
-        if raw.startswith("```"):
-            raw = "\n".join(
-                line for line in raw.splitlines()
-                if not line.strip().startswith("```")
-            ).strip()
-        raw_pages = json.loads(raw)
-        if not isinstance(raw_pages, list) or not raw_pages:
-            raise ValueError("Ungültige Antwortstruktur")
-        pages = _insert_pages(lead_id, raw_pages, db)
-        return {"pages": pages, "source": "ai"}
-    except Exception as exc:
-        logger.warning("Sitemap KI-Generierung fehlgeschlagen, Fallback: %s", exc)
-        pages = _insert_pages(lead_id, _FALLBACK_PAGES, db)
-        return {"pages": pages, "source": "fallback"}
+        try:
+            from anthropic import Anthropic
+            client = Anthropic(api_key=api_key, max_retries=0, timeout=60.0)
+            response = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=1500,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            raw = response.content[0].text.strip()
+            if raw.startswith("```"):
+                raw = "\n".join(
+                    line for line in raw.splitlines()
+                    if not line.strip().startswith("```")
+                ).strip()
+            raw_pages = json.loads(raw)
+            if not isinstance(raw_pages, list) or not raw_pages:
+                raise ValueError("Ungültige Antwortstruktur")
+            _insert_pages(lead_id, raw_pages, db)
+            source = "ai"
+        except Exception as exc:
+            logger.warning("Sitemap KI-Generierung fehlgeschlagen, Fallback: %s", exc)
+            _insert_pages(lead_id, _FALLBACK_PAGES, db)
+
+    # Gesamte Sitemap (Inhalt + Pflichtseiten) zurückgeben
+    all_pages = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id)
+        .order_by(SitemapPage.position)
+        .all()
+    )
+    return {"pages": [_serialize(p) for p in all_pages], "source": source}
 
 
 # ── ENDPOINT: PDF-Export ──────────────────────────────────────────────────────
@@ -418,7 +432,21 @@ def _styles() -> dict:
     }
 
 
+_PFLICHT_DESC = {
+    "Impressum":                  "Gesetzliche Anbieterkennzeichnung nach § 5 TMG",
+    "Datenschutzerklärung":       "Informationspflicht gemäß Art. 13/14 DSGVO",
+    "Barrierefreiheitserklärung": "Konformitätserklärung gemäß BFSG / BITV 2.0",
+    "AGB":                        "Allgemeine Geschäftsbedingungen / Vertragsgrundlage",
+}
+
+
 def _generate_sitemap_pdf(pages: list, company_name: str) -> bytes:
+    content_pages = [p for p in pages if not p.get("ist_pflichtseite")]
+    pflicht_pages = [p for p in pages if p.get("ist_pflichtseite")]
+
+    _RED       = colors.HexColor("#C0392B")
+    _LIGHT_RED = colors.HexColor("#FDECEA")
+
     buf = BytesIO()
     doc = SimpleDocTemplate(
         buf, pagesize=A4,
@@ -429,6 +457,7 @@ def _generate_sitemap_pdf(pages: list, company_name: str) -> bytes:
     )
     S = _styles()
     story = []
+    col_w = _PAGE_W - 2 * _MARGIN
 
     # ── PAGE 1: Cover ─────────────────────────────────────────────────────────
     story.append(Spacer(1, 40 * mm))
@@ -447,22 +476,22 @@ def _generate_sitemap_pdf(pages: list, company_name: str) -> bytes:
     story.append(Paragraph("Vertraulich – erstellt im Strategy Workshop", S["cover_sub"]))
     story.append(PageBreak())
 
-    # ── PAGE 2: Table ─────────────────────────────────────────────────────────
-    # Header bar
-    col_w = _PAGE_W - 2 * _MARGIN
-    hdr = Table([[Paragraph("Geplante Seiten", S["section_head"])]], colWidths=[col_w])
-    hdr.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), _TEAL),
-        ("TOPPADDING",    (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
-    ]))
-    story.append(hdr)
+    # ── PAGE 2: Inhaltliche Seiten ────────────────────────────────────────────
+    def _section_header(label: str, bg=_TEAL) -> Table:
+        t = Table([[Paragraph(label, S["section_head"])]], colWidths=[col_w])
+        t.setStyle(TableStyle([
+            ("BACKGROUND",    (0, 0), (-1, -1), bg),
+            ("TOPPADDING",    (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
+        ]))
+        return t
+
+    story.append(_section_header("Inhaltliche Seiten"))
     story.append(Spacer(1, 4 * mm))
 
-    # Build id→page lookup for indentation
-    id_set = {p["id"] for p in pages}
+    id_set = {p["id"] for p in content_pages}
     col_widths = [60 * mm, 55 * mm, 40 * mm, 30 * mm]
     tbl_data = [[
         Paragraph("<b>Seitenname</b>",  S["body"]),
@@ -470,31 +499,84 @@ def _generate_sitemap_pdf(pages: list, company_name: str) -> bytes:
         Paragraph("<b>Keyword</b>",     S["body"]),
         Paragraph("<b>CTA</b>",         S["body"]),
     ]]
-    for p in pages:
+    for p in content_pages:
         is_child = p.get("parent_id") and p["parent_id"] in id_set
         name = ("  \u2514 " if is_child else "") + _t(p["page_name"])
         tbl_data.append([
-            Paragraph(name,                  S["body"]),
-            Paragraph(_t(p.get("zweck",  "")), S["body"]),
-            Paragraph(_t(p.get("ziel_keyword", "")), S["body"]),
-            Paragraph(_t(p.get("cta_text", "")), S["body"]),
+            Paragraph(name,                              S["body"]),
+            Paragraph(_t(p.get("zweck", "")),            S["body"]),
+            Paragraph(_t(p.get("ziel_keyword", "")),     S["body"]),
+            Paragraph(_t(p.get("cta_text", "")),         S["body"]),
         ])
 
     tbl = Table(tbl_data, colWidths=col_widths, repeatRows=1)
     tbl.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, 0),  _LIGHT_GREY),
-        ("GRID",          (0, 0), (-1, -1), 0.4, _MID_GREY),
-        ("TOPPADDING",    (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 6),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
-        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+        ("BACKGROUND",     (0, 0), (-1, 0),  _LIGHT_GREY),
+        ("GRID",           (0, 0), (-1, -1), 0.4, _MID_GREY),
+        ("TOPPADDING",     (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING",  (0, 0), (-1, -1), 4),
+        ("LEFTPADDING",    (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING",   (0, 0), (-1, -1), 6),
+        ("VALIGN",         (0, 0), (-1, -1), "TOP"),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_WHITE, _LIGHT_GREY]),
     ]))
     story.append(tbl)
     story.append(PageBreak())
 
-    # ── PAGE 3: Next Steps ────────────────────────────────────────────────────
+    # ── PAGE 3: Rechtlich erforderliche Seiten ────────────────────────────────
+    story.append(_section_header("Rechtlich erforderliche Seiten", bg=_DARK_TEAL))
+    story.append(Spacer(1, 4 * mm))
+
+    pf_widths = [70 * mm, 115 * mm]
+    pf_data = [[
+        Paragraph("<b>Seite</b>",        S["body"]),
+        Paragraph("<b>Beschreibung</b>", S["body"]),
+    ]]
+    for p in pflicht_pages:
+        desc = _PFLICHT_DESC.get(p["page_name"], p.get("zweck", ""))
+        pf_data.append([
+            Paragraph(_t(p["page_name"]), S["body"]),
+            Paragraph(_t(desc),           S["body"]),
+        ])
+
+    pf_tbl = Table(pf_data, colWidths=pf_widths, repeatRows=1)
+    pf_tbl.setStyle(TableStyle([
+        ("BACKGROUND",     (0, 0), (-1, 0),  _LIGHT_GREY),
+        ("GRID",           (0, 0), (-1, -1), 0.4, _MID_GREY),
+        ("TOPPADDING",     (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING",  (0, 0), (-1, -1), 4),
+        ("LEFTPADDING",    (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING",   (0, 0), (-1, -1), 6),
+        ("VALIGN",         (0, 0), (-1, -1), "TOP"),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_WHITE, _LIGHT_GREY]),
+    ]))
+    story.append(pf_tbl)
+    story.append(Spacer(1, 6 * mm))
+
+    # Roter Hinweis-Kasten
+    warn_style = ParagraphStyle(
+        "sm_warn", fontName=_FONT_B, fontSize=9, textColor=_RED, leading=14,
+    )
+    warn_tbl = Table(
+        [[Paragraph(
+            "Diese Seiten sind gesetzlich vorgeschrieben und werden von KOMPAGNON "
+            "mit rechtskonformem Inhalt befüllt.",
+            warn_style,
+        )]],
+        colWidths=[col_w],
+    )
+    warn_tbl.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), _LIGHT_RED),
+        ("BOX",           (0, 0), (-1, -1), 1.5, _RED),
+        ("TOPPADDING",    (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
+    ]))
+    story.append(warn_tbl)
+    story.append(PageBreak())
+
+    # ── PAGE 4: Nächste Schritte ──────────────────────────────────────────────
     story.append(Spacer(1, 6 * mm))
     story.append(Paragraph("Nächste Schritte nach Freigabe der Sitemap", S["cover_title"]))
     story.append(Spacer(1, 4 * mm))
@@ -533,6 +615,7 @@ def export_sitemap_pdf(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
+    _ensure_pflichtseiten(lead_id, db)
     pages = (
         db.query(SitemapPage)
         .filter(SitemapPage.lead_id == lead_id)

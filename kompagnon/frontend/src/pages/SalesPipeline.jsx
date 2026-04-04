@@ -245,8 +245,29 @@ function SalesCard({ lead, col, columns, onDragStart, onOpen, onAudit, onDelete,
       onMouseEnter={e => { e.currentTarget.style.borderColor = col.color; e.currentTarget.style.boxShadow = 'var(--shadow-elevated)'; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
     >
-      {/* ── Row 1: name + menu ── */}
+      {/* ── Row 1: avatar + name + menu ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+        {/* Favicon / Initialen-Kreis */}
+        <div style={{ flexShrink: 0, marginTop: 1 }}>
+          {lead.favicon_url ? (
+            <img
+              src={lead.favicon_url}
+              alt=""
+              style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'contain', background: '#fff', padding: 2, display: 'block' }}
+              onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+            />
+          ) : null}
+          <div style={{
+            width: 28, height: 28, borderRadius: 4,
+            background: col.color + '22', color: col.color,
+            fontSize: 12, fontWeight: 700,
+            display: lead.favicon_url ? 'none' : 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            {(lead.company_name || '?')[0].toUpperCase()}
+          </div>
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {lead.company_name || 'Unbekannt'}

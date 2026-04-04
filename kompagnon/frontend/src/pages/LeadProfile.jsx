@@ -480,6 +480,18 @@ export default function LeadProfile() {
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                {lead.favicon_url ? (
+                  <img
+                    src={lead.favicon_url}
+                    alt=""
+                    style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'contain', background: '#fff', padding: 2, flexShrink: 0 }}
+                    onError={e => { e.target.style.display = 'none'; }}
+                  />
+                ) : (
+                  <div style={{ width: 32, height: 32, borderRadius: 6, background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {(lead.display_name || lead.company_name || '?')[0].toUpperCase()}
+                  </div>
+                )}
                 <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 600, color: 'white', margin: 0, letterSpacing: '-0.01em' }}>
                   {lead.display_name || lead.company_name}
                 </h1>

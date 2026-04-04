@@ -184,12 +184,36 @@ export default function Companies() {
                     >
                       {/* Firmenname */}
                       <td style={{ padding: '12px 14px' }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                          {row.company_name || `Lead #${row.id}`}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {row.favicon_url ? (
+                            <img
+                              src={row.favicon_url}
+                              alt=""
+                              style={{ width: 24, height: 24, borderRadius: 4, objectFit: 'contain', background: '#fff', padding: 2, border: '1px solid var(--border-light)', flexShrink: 0 }}
+                              onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                            />
+                          ) : null}
+                          <div
+                            style={{
+                              width: 24, height: 24, borderRadius: 4,
+                              background: 'var(--brand-primary)', color: '#fff',
+                              fontSize: 11, fontWeight: 700,
+                              display: row.favicon_url ? 'none' : 'flex',
+                              alignItems: 'center', justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {(row.company_name || '?')[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {row.company_name || `Lead #${row.id}`}
+                            </div>
+                            {row.trade && (
+                              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{row.trade}</div>
+                            )}
+                          </div>
                         </div>
-                        {row.trade && (
-                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{row.trade}</div>
-                        )}
                       </td>
                       {/* Stadt */}
                       <td style={{ padding: '12px 14px', fontSize: 13, color: 'var(--text-secondary)' }}>

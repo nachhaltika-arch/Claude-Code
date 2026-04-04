@@ -51,6 +51,7 @@ import KundenPortal from './pages/KundenPortal';
 import PackageStarter from './pages/PackageStarter';
 import PackageKompagnon from './pages/PackageKompagnon';
 import PackagePremium from './pages/PackagePremium';
+import KampagneLandingPage from './pages/KampagneLandingPage';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -126,6 +127,7 @@ function App() {
           <Route path="/paket/premium" element={<PackagePremium />} />
           <Route path="/checkout/:package" element={<Checkout />} />
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
+          <Route path="/kampagne/:slug" element={<KampagneLandingPage />} />
 
           {/* App — authenticated, with Navbar/Sidebar */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>

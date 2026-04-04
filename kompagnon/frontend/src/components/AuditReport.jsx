@@ -439,7 +439,7 @@ export default function AuditReport({ auditData, onClose }) {
       {/* Issues + Recommendations */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
         {topIssues.length > 0 && (
-          <div className="kc-card" style={{ background: '#ffffff', border: '1px solid #e5e7eb' }}>
+          <div className="kc-card" style={{ background: 'var(--color-bg-surface, var(--bg-surface))', border: '1px solid var(--border-light)' }}>
             <strong style={{ display: 'block', marginBottom: '12px', fontFamily: 'var(--font-sans)', color: 'var(--status-danger-text)' }}>
               Top-Probleme
             </strong>
@@ -451,7 +451,7 @@ export default function AuditReport({ auditData, onClose }) {
           </div>
         )}
         {recommendations.length > 0 && (
-          <div className="kc-card" style={{ background: '#ffffff', border: '1px solid #e5e7eb' }}>
+          <div className="kc-card" style={{ background: 'var(--color-bg-surface, var(--bg-surface))', border: '1px solid var(--border-light)' }}>
             <strong style={{ display: 'block', marginBottom: '12px', fontFamily: 'var(--font-sans)', color: 'var(--status-success-text)' }}>
               Empfehlungen
             </strong>
@@ -484,9 +484,6 @@ export default function AuditReport({ auditData, onClose }) {
           </div>
         );
       })()}
-
-      {/* ── BLOCK 2: ECharts Radar ── */}
-      <EChartsRadar auditData={r} getCatScore={getCatScore} />
 
       {/* ── BLOCK 3: GEO / KI Readiness ── */}
       {(() => {

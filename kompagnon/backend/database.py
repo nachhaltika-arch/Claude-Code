@@ -44,6 +44,7 @@ class Lead(Base):
     company_name = Column(String(255), default="")
     contact_name = Column(String(255), nullable=True, default=None)
     phone = Column(String(20), nullable=True, default=None)
+    mobile = Column(String(20), nullable=True, default=None)
     email = Column(String(255), nullable=True, default=None)
     website_url = Column(String(500), default="")
     city = Column(String(100), nullable=True, default=None)

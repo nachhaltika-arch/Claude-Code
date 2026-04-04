@@ -149,6 +149,7 @@ export default function LeadProfile() {
         display_name: lead.display_name || '',
         contact_name: lead.contact_name || '',
         phone: lead.phone || '',
+        mobile: lead.mobile || '',
         email: lead.email || '',
         website_url: lead.website_url || '',
         street: lead.street || '',
@@ -1192,6 +1193,7 @@ export default function LeadProfile() {
                 {[
                   ['Ansprechpartner', 'contact_name', 'Max Mustermann'],
                   ['Telefon', 'phone', '+49 261 123456'],
+                  ['Mobilfunknummer', 'mobile', '+49 170 1234567'],
                   ['E-Mail', 'email', 'info@firma.de'],
                   ['Website', 'website_url', 'www.firma.de'],
                 ].map(([label, field, ph]) => (
@@ -1248,6 +1250,7 @@ export default function LeadProfile() {
                 <div style={sectionLabel}>Kontakt</div>
                 {fieldRow('👤', lead.contact_name, 'Ansprechpartner')}
                 {fieldRow('📞', lead.phone, 'Telefon')}
+                {fieldRow('📱', lead.mobile, 'Mobilfunknummer')}
                 {fieldRow('✉️', lead.email, 'E-Mail')}
                 {fieldRow('🌐', lead.website_url?.replace(/^https?:\/\//, ''), 'Website')}
               </div>

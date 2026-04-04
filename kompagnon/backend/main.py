@@ -256,6 +256,7 @@ def _run_migrations():
             assigned_by INTEGER
         )""",
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_academy_customer_access ON academy_customer_access(customer_id, course_id)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS mobile VARCHAR(20)",
         # PageSpeed columns on leads table
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_mobile_score INTEGER",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_desktop_score INTEGER",

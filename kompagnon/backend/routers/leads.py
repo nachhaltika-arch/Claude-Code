@@ -49,6 +49,7 @@ class LeadUpdate(BaseModel):
     company_name: Optional[str] = None
     contact_name: Optional[str] = None
     phone: Optional[str] = None
+    mobile: Optional[str] = None
     email: Optional[str] = None
     website_url: Optional[str] = None
     city: Optional[str] = None

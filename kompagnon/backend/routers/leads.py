@@ -71,19 +71,19 @@ class LeadUpdate(BaseModel):
 
 class LeadResponse(BaseModel):
     id: int
-    company_name: str
-    contact_name: str
-    phone: str
-    email: str
+    company_name: str = ""
+    contact_name: str = ""
+    phone: str = ""
+    email: str = ""
     website_url: str = None
-    city: str
-    trade: str
+    city: str = ""
+    trade: str = ""
     lead_source: str = None
-    status: str
-    analysis_score: int
-    geo_score: int
-    created_at: datetime
-    updated_at: datetime
+    status: str = "new"
+    analysis_score: int = 0
+    geo_score: int = 0
+    created_at: datetime = None
+    updated_at: datetime = None
 
     class Config:
         from_attributes = True
@@ -96,17 +96,17 @@ class LeadConvertRequest(BaseModel):
     assigned_person: str = "KOMPAGNON-Team"
 
 
-@router.post("/", response_model=LeadResponse)
+@router.post("/")
 def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Create a new lead in the pipeline."""
     db_lead = Lead(
         company_name=lead.company_name,
-        contact_name=lead.contact_name,
-        phone=lead.phone,
-        email=lead.email,
+        contact_name=lead.contact_name or "",
+        phone=lead.phone or "",
+        email=lead.email or "",
         website_url=lead.website_url,
-        city=lead.city,
-        trade=lead.trade,
+        city=lead.city or "",
+        trade=lead.trade or "",
         lead_source=lead.lead_source,
         notes=lead.notes,
         status="new",
@@ -115,12 +115,26 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
     db.commit()
     db.refresh(db_lead)
 
-    # Auto-enrich in background
     if db_lead.website_url:
         from services.lead_enrichment import enrich_lead_sync
         background_tasks.add_task(enrich_lead_sync, db_lead.id)
 
-    return db_lead
+    return {
+        'id': db_lead.id,
+        'company_name': db_lead.company_name or '',
+        'contact_name': db_lead.contact_name or '',
+        'phone': db_lead.phone or '',
+        'email': db_lead.email or '',
+        'website_url': db_lead.website_url or '',
+        'city': db_lead.city or '',
+        'trade': db_lead.trade or '',
+        'status': db_lead.status or 'new',
+        'analysis_score': db_lead.analysis_score or 0,
+        'geo_score': db_lead.geo_score or 0,
+        'lead_source': db_lead.lead_source or '',
+        'created_at': str(db_lead.created_at)[:19] if db_lead.created_at else '',
+        'updated_at': str(db_lead.updated_at)[:19] if db_lead.updated_at else '',
+    }
 
 
 @router.get("/")

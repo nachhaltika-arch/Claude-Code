@@ -223,61 +223,94 @@ def list_projects(
     limit: int = Query(200),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Project)
-    if status:
-        query = query.filter(Project.status == status)
-    projects = query.offset(skip).limit(limit).all()
+    try:
+        rows = db.execute(
+            text(
+                "SELECT id, lead_id, status, fixed_price, actual_hours, hourly_rate, "
+                "ai_tool_costs, margin_percent, scope_creep_flags, created_at, "
+                "company_name, website_url, contact_name "
+                "FROM projects "
+                + ("WHERE status = :status " if status else "")
+                + "ORDER BY id DESC LIMIT :limit OFFSET :skip"
+            ),
+            {"status": status, "limit": limit, "skip": skip} if status else {"limit": limit, "skip": skip},
+        ).fetchall()
+    except Exception as e:
+        logger.error(f"list_projects query error: {e}")
+        return []
+
     result = []
-    for p in projects:
+    for row in rows:
         try:
-            lead = db.query(Lead).filter(Lead.id == p.lead_id).first() if p.lead_id else None
+            lead_id = row[1]
+            lead = db.query(Lead).filter(Lead.id == lead_id).first() if lead_id else None
+            company = row[10] or (lead.company_name if lead else '') or ''
+            website = row[11] or (lead.website_url if lead else '') or ''
             result.append({
-                'id': p.id,
-                'lead_id': p.lead_id,
-                'name': getattr(p, 'name', '') or (f"Website – {lead.company_name}" if lead else ''),
-                'customer_name': getattr(p, 'customer_name', '') or (lead.company_name if lead else ''),
-                'status': p.status or 'akquise',
-                'current_phase': getattr(p, 'current_phase', 1) or 1,
-                'website_url': getattr(p, 'website_url', '') or (lead.website_url if lead else ''),
-                'fixed_price': p.fixed_price or 2000,
-                'actual_hours': p.actual_hours or 0,
-                'hourly_rate': p.hourly_rate or 45,
-                'ai_tool_costs': p.ai_tool_costs or 50,
-                'margin_percent': p.margin_percent or 0,
-                'scope_creep_flags': p.scope_creep_flags or 0,
-                'created_at': str(p.created_at)[:10] if p.created_at else '',
+                'id': row[0],
+                'lead_id': lead_id,
+                'name': f"Website – {company}" if company else f"Projekt #{row[0]}",
+                'customer_name': company,
+                'status': row[2] or 'phase_1',
+                'current_phase': 1,
+                'website_url': website,
+                'fixed_price': row[3] or 2000,
+                'actual_hours': row[4] or 0,
+                'hourly_rate': row[5] or 45,
+                'ai_tool_costs': row[6] or 50,
+                'margin_percent': row[7] or 0,
+                'scope_creep_flags': row[8] or 0,
+                'created_at': str(row[9])[:10] if row[9] else '',
             })
-        except Exception as e:
+        except Exception:
             continue
     return result
 
 
 @router.get("/{project_id}")
 def get_project(project_id: int, db: Session = Depends(get_db)):
-    """Get project detail. Raw dict — no Pydantic response_model to prevent silent filtering."""
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
+    """Get project detail via raw SQL — bypasses ORM column mapping issues."""
+    try:
+        row = db.execute(
+            text(
+                "SELECT id, lead_id, status, fixed_price, actual_hours, hourly_rate, "
+                "ai_tool_costs, margin_percent, scope_creep_flags, start_date, "
+                "target_go_live, created_at, company_name, website_url, contact_name "
+                "FROM projects WHERE id = :pid"
+            ),
+            {"pid": project_id},
+        ).fetchone()
+    except Exception as e:
+        logger.error(f"get_project query error: {e}")
+        raise HTTPException(status_code=500, detail=f"DB error: {e}")
+
+    if not row:
         raise HTTPException(status_code=404, detail="Project not found")
-    lead = db.query(Lead).filter(Lead.id == project.lead_id).first() if project.lead_id else None
+
+    lead_id = row[1]
+    lead = db.query(Lead).filter(Lead.id == lead_id).first() if lead_id else None
+    company = row[12] or (lead.company_name if lead else '') or ''
+    website = row[13] or (lead.website_url if lead else '') or ''
+
     return {
-        'id': project.id,
-        'lead_id': project.lead_id,
-        'name': getattr(project, 'name', '') or (f"Website – {lead.company_name}" if lead else ''),
-        'customer_name': getattr(project, 'customer_name', '') or (lead.company_name if lead else ''),
-        'status': project.status or 'akquise',
-        'current_phase': getattr(project, 'current_phase', 1) or 1,
-        'website_url': getattr(project, 'website_url', '') or (lead.website_url if lead else ''),
-        'fixed_price': project.fixed_price or 2000,
-        'actual_hours': project.actual_hours or 0,
-        'hourly_rate': project.hourly_rate or 45,
-        'ai_tool_costs': project.ai_tool_costs or 50,
-        'margin_percent': project.margin_percent or 0,
-        'scope_creep_flags': project.scope_creep_flags or 0,
-        'start_date': str(project.start_date)[:10] if project.start_date else '',
-        'target_go_live': str(project.target_go_live)[:10] if project.target_go_live else '',
-        'created_at': str(project.created_at)[:10] if project.created_at else '',
-        'company_name': lead.company_name if lead else '',
-        'contact_name': lead.contact_name if lead else '',
+        'id': row[0],
+        'lead_id': lead_id,
+        'name': f"Website – {company}" if company else f"Projekt #{row[0]}",
+        'customer_name': company,
+        'status': row[2] or 'phase_1',
+        'current_phase': 1,
+        'website_url': website,
+        'fixed_price': row[3] or 2000,
+        'actual_hours': row[4] or 0,
+        'hourly_rate': row[5] or 45,
+        'ai_tool_costs': row[6] or 50,
+        'margin_percent': row[7] or 0,
+        'scope_creep_flags': row[8] or 0,
+        'start_date': str(row[9])[:10] if row[9] else '',
+        'target_go_live': str(row[10])[:10] if row[10] else '',
+        'created_at': str(row[11])[:10] if row[11] else '',
+        'company_name': company,
+        'contact_name': row[14] or (lead.contact_name if lead else '') or '',
         'email': lead.email if lead else '',
         'phone': lead.phone if lead else '',
         'city': lead.city if lead else '',

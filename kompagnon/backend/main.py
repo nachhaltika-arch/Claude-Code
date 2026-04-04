@@ -386,6 +386,7 @@ def _run_migrations():
             note TEXT DEFAULT ''
         )""",
         # Redesign fields on projects
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS company_name VARCHAR(255)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS website_url VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS cms_type VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS contact_name VARCHAR",

@@ -1,14 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import grapesjs from 'grapesjs';
 import grapesjsPresetWebpage from 'grapesjs-preset-webpage';
 import grapesjsBlocksBasic from 'grapesjs-blocks-basic';
 import 'grapesjs/dist/css/grapes.min.css';
+import API_BASE_URL from '../config';
 
 const TOOLBAR_H = 52;
 
 export default function WebsiteDesigner({ customerId, customerName, onClose }) {
   const containerRef = useRef(null);
   const editorRef    = useRef(null);
+  const [kiLoading, setKiLoading] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -37,32 +39,28 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
 
   const handleLoadKiEntwurf = async () => {
     const editor = editorRef.current;
-    if (!editor) return;
+    if (!editor || kiLoading) return;
+    setKiLoading(true);
     try {
       const token = localStorage.getItem('kompagnon_token');
-      const API_BASE_URL = process.env.REACT_APP_API_URL || '';
-      const res = await fetch(`${API_BASE_URL}/api/briefings/${customerId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const briefing = await res.json();
-
-      const name = customerName || `Kunde #${customerId}`;
-      const gewerk = briefing.gewerk || '';
-      const usp    = briefing.usp    || '';
-      const leistungen = briefing.leistungen || '';
-
-      const html = `
-        <section style="font-family:sans-serif;max-width:900px;margin:0 auto;padding:40px 24px">
-          <h1 style="font-size:2.2rem;font-weight:800;color:#1A2C32;margin-bottom:12px">${name}</h1>
-          ${gewerk ? `<p style="font-size:1.1rem;color:#008EAA;font-weight:600;margin-bottom:24px">${gewerk}</p>` : ''}
-          ${usp ? `<blockquote style="border-left:4px solid #008EAA;padding:12px 20px;background:#f0fafd;margin:0 0 24px;font-size:1rem;color:#1A2C32">${usp}</blockquote>` : ''}
-          ${leistungen ? `<h2 style="font-size:1.3rem;font-weight:700;color:#1A2C32;margin-bottom:12px">Unsere Leistungen</h2><p style="color:#444;line-height:1.7">${leistungen.replace(/\n/g, '<br/>')}</p>` : ''}
-        </section>
-      `;
-      editor.setComponents(html);
+      const res = await fetch(
+        `${API_BASE_URL}/api/customers/${customerId}/generate-mockup`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Fehler ${res.status}`);
+      }
+      const data = await res.json();
+      editor.setComponents(data.html);
     } catch (e) {
       console.error('KI-Entwurf laden fehlgeschlagen:', e);
+      alert(`KI-Entwurf fehlgeschlagen: ${e.message}`);
+    } finally {
+      setKiLoading(false);
     }
   };
 
@@ -144,8 +142,15 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
 
         <div style={{ flex: 1 }} />
 
-        <button style={btnStyle} onClick={handleLoadKiEntwurf}>
-          🤖 KI-Entwurf laden
+        <button
+          style={{ ...btnStyle, opacity: kiLoading ? 0.7 : 1, cursor: kiLoading ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }}
+          onClick={handleLoadKiEntwurf}
+          disabled={kiLoading}
+        >
+          {kiLoading
+            ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block', flexShrink: 0 }} /> KI erstellt deinen Entwurf...</>
+            : '🤖 KI-Entwurf laden'
+          }
         </button>
         <button style={btnStyle} onClick={handlePushToCms}>
           🚀 Zum CMS pushen

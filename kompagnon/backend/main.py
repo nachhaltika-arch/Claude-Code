@@ -705,6 +705,9 @@ app.include_router(crawler_router)
 from app.routers.files import router as files_router
 app.include_router(files_router)
 
+from app.routers import website_mockup
+app.include_router(website_mockup.router, prefix="/api")
+
 
 # Global exception handler — catches unhandled errors
 @app.exception_handler(Exception)

@@ -442,6 +442,20 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_email VARCHAR",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS favicon_url VARCHAR(500) DEFAULT ''",
         "ALTER TABLE usercards ADD COLUMN IF NOT EXISTS favicon_url VARCHAR(500) DEFAULT ''",
+        # Flat briefing fields on existing briefings table
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS project_id INTEGER",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS gewerk VARCHAR(100)",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS leistungen TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS einzugsgebiet VARCHAR(100)",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS usp TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS mitbewerber TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS vorbilder TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS farben VARCHAR(100)",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS wunschseiten TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS stil VARCHAR(50)",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS logo_vorhanden BOOLEAN DEFAULT false",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS fotos_vorhanden BOOLEAN DEFAULT false",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS sonstige_hinweise TEXT",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -670,8 +684,11 @@ app.include_router(settings_router)
 app.include_router(payments_router)
 app.include_router(tickets_router)
 
+from routers import briefings
+app.include_router(briefings.router)      # GET /api/briefings/{lead_id} + POST + PUT
+
 from routers.briefing import router as briefing_router
-app.include_router(briefing_router)
+app.include_router(briefing_router)       # PATCH + AI endpoints
 
 from routers.kampagne import router as kampagne_router
 app.include_router(kampagne_router)

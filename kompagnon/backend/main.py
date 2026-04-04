@@ -438,6 +438,8 @@ def _run_migrations():
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS robots_ai_friendly BOOLEAN DEFAULT false",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS structured_data BOOLEAN DEFAULT false",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ai_mentions INTEGER DEFAULT 0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS email_notifications_enabled BOOLEAN DEFAULT true",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_email VARCHAR",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

@@ -18,6 +18,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, get_db
 from services.margin_calculator import MarginCalculator
+from email_service import send_phase_change_email
 from automations.scheduler import (
     get_scheduler,
     job_tag_5_followup,
@@ -105,6 +106,8 @@ class ProjectUpdateRequest(BaseModel):
     audit_level: str = None
     top_problems: str = None
     industry: str = None
+    email_notifications_enabled: bool = None
+    customer_email: str = None
 
 
 class MarginResponse(BaseModel):
@@ -325,11 +328,32 @@ def update_project(project_id: int, body: ProjectUpdateRequest, db: Session = De
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    old_status = project.status
+
     update_data = body.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(project, key, value)
     db.commit()
     db.refresh(project)
+
+    # E-Mail bei Phasenwechsel
+    new_status = project.status
+    notifications_on = getattr(project, "email_notifications_enabled", True)
+    to_email = getattr(project, "customer_email", None) or ""
+    if (
+        notifications_on
+        and new_status != old_status
+        and new_status
+        and new_status.startswith("phase_")
+        and to_email
+    ):
+        try:
+            phase_num = int(new_status.split("_")[1])
+            company = getattr(project, "company_name", "") or f"Projekt #{project.id}"
+            send_phase_change_email(to=to_email, company=company, phase=phase_num)
+        except Exception as exc:
+            logger.warning(f"Phase-E-Mail fehlgeschlagen für Projekt {project_id}: {exc}")
+
     return {"id": project.id, "updated": list(update_data.keys())}
 
 

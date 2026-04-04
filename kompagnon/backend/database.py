@@ -145,6 +145,8 @@ class Project(Base):
     audit_level = Column(String(100))
     top_problems = Column(Text)
     industry = Column(String(100))
+    email_notifications_enabled = Column(Boolean, default=True)
+    customer_email = Column(String(255))
 
     # Relationships
     lead = relationship("Lead", back_populates="projects", foreign_keys=[lead_id])

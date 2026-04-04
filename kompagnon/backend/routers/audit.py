@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from database import AuditResult, Lead, User, get_db
+from email_service import send_audit_done_email
 from routers.auth_router import optional_auth
 
 try:
@@ -572,6 +573,20 @@ def _run_audit_background(audit_id: int):
         audit.status = "completed"
         db.commit()
         logger.info(f"✓ Audit {audit_id} completed: {total}/100 ({level})")
+
+        # E-Mail bei Audit-Abschluss
+        try:
+            if audit.lead_id:
+                from database import Project
+                project = db.query(Project).filter(Project.lead_id == audit.lead_id).first()
+                if project:
+                    to_email = getattr(project, "customer_email", None) or ""
+                    notifications_on = getattr(project, "email_notifications_enabled", True)
+                    if notifications_on and to_email:
+                        company = getattr(project, "company_name", "") or f"Lead #{audit.lead_id}"
+                        send_audit_done_email(to=to_email, company=company, report_url=None)
+        except Exception as exc:
+            logger.warning(f"Audit-E-Mail fehlgeschlagen für Audit {audit_id}: {exc}")
 
     except Exception as e:
         logger.error(f"✗ Audit {audit_id} failed: {e}")

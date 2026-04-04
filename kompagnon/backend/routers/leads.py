@@ -1204,6 +1204,7 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
             "company_name": lead.company_name,
             "contact_name": lead.contact_name,
             "phone": lead.phone,
+            "mobile": getattr(lead, 'mobile', '') or '',
             "email": lead.email,
             "website_url": lead.website_url,
             "city": lead.city,

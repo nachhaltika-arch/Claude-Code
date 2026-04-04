@@ -56,6 +56,7 @@ async def audit_anfrage(
                 db.execute(
                     text(
                         "UPDATE leads SET email = :email, "
+                        "mobile = :mobil, "
                         "whatsapp_nummer = :mobil, "
                         "kampagne_quelle = :quelle, "
                         "updated_at = NOW() "
@@ -97,11 +98,11 @@ async def audit_anfrage(
             row = result.fetchone()
             db.commit()
             lead_id = row[0]
-            # Versuche whatsapp_nummer + kampagne_quelle zu setzen (Spalten ggf. neu)
+            # Versuche mobile + whatsapp_nummer + kampagne_quelle zu setzen
             try:
                 db.execute(
                     text(
-                        "UPDATE leads SET whatsapp_nummer = :mobil, "
+                        "UPDATE leads SET mobile = :mobil, whatsapp_nummer = :mobil, "
                         "kampagne_quelle = :quelle WHERE id = :id"
                     ),
                     {"mobil": req.mobil, "quelle": req.kampagne_quelle, "id": lead_id},

@@ -1148,6 +1148,11 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
             "ux_erstindruck", "ux_cta", "ux_navigation", "ux_vertrauen", "ux_content", "ux_kontakt",
         ]:
             d[key] = getattr(a, key, 0) or 0
+        # GEO / KI-Sichtbarkeit fields
+        d["llms_txt"] = getattr(a, "llms_txt", False) or False
+        d["robots_ai_friendly"] = getattr(a, "robots_ai_friendly", False) or False
+        d["structured_data"] = getattr(a, "structured_data", False) or False
+        d["ai_mentions"] = getattr(a, "ai_mentions", 0) or 0
         # JSON fields
         try:
             d["top_issues"] = json.loads(a.top_issues) if a.top_issues else []
@@ -1201,6 +1206,7 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
             }
             for p in projects
         ],
+        "project_id": projects[0].id if projects else None,
     }
 
 

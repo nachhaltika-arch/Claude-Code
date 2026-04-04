@@ -86,7 +86,8 @@ class Lead(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    projects = relationship("Project", back_populates="lead", cascade="all, delete-orphan")
+    projects = relationship("Project", back_populates="lead", cascade="all, delete-orphan",
+                            foreign_keys="[Project.lead_id]")
 
 
 class LeadDomain(Base):
@@ -97,7 +98,7 @@ class LeadDomain(Base):
     label = Column(String(100), default="")  # e.g. "Hauptseite", "Shop", "Karriere"
     is_primary = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    lead = relationship("Lead", backref="domains")
+    lead = relationship("Lead", backref="domains", foreign_keys=[lead_id])
 
 
 class Project(Base):
@@ -146,7 +147,7 @@ class Project(Base):
     industry = Column(String(100))
 
     # Relationships
-    lead = relationship("Lead", back_populates="projects")
+    lead = relationship("Lead", back_populates="projects", foreign_keys=[lead_id])
     checklists = relationship("ProjectChecklist", back_populates="project", cascade="all, delete-orphan")
     communications = relationship("Communication", back_populates="project", cascade="all, delete-orphan")
     automations = relationship("AutomationLog", back_populates="project", cascade="all, delete-orphan")
@@ -346,7 +347,7 @@ class AuditResult(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    lead = relationship("Lead", backref="audits")
+    lead = relationship("Lead", backref="audits", foreign_keys=[lead_id])
 
 
 class User(Base):

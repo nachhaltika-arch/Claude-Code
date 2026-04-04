@@ -80,6 +80,29 @@ async def fetch_impressum_text(website_url: str) -> str:
     return found_text[:8000] if found_text else ''
 
 
+def extract_favicon_from_html(html: str, base_url: str) -> str:
+    """Extract favicon URL from HTML <head> link tags. Returns absolute URL or ''."""
+    base = base_url.rstrip('/')
+    # Look for <link rel="icon"> or <link rel="shortcut icon">
+    pattern = re.compile(
+        r'<link[^>]+rel=["\'](?:shortcut icon|icon)["\'][^>]*href=["\']([^"\']+)["\']'
+        r'|<link[^>]+href=["\']([^"\']+)["\'][^>]*rel=["\'](?:shortcut icon|icon)["\']',
+        re.IGNORECASE,
+    )
+    for m in pattern.finditer(html):
+        href = m.group(1) or m.group(2)
+        if not href:
+            continue
+        if href.startswith('http'):
+            return href
+        if href.startswith('//'):
+            return 'https:' + href
+        if href.startswith('/'):
+            return base + href
+        return base + '/' + href
+    return ''
+
+
 def clean_html(html: str) -> str:
     """HTML Tags entfernen und Text säubern."""
     html = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL | re.IGNORECASE)

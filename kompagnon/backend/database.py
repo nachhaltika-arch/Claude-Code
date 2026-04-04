@@ -81,6 +81,7 @@ class Lead(Base):
     pagespeed_fcp_mobile    = Column(Float,   nullable=True)
     pagespeed_checked_at    = Column(DateTime, nullable=True)
     geschaeftsfuehrer       = Column(String, nullable=True)
+    favicon_url             = Column(String(500), default='')
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

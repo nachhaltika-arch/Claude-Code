@@ -28,6 +28,23 @@ async def enrich_lead(lead_id: int, db) -> dict:
     # 1. Scrape website using existing scraper
     scraped = await scrape_website(url)
 
+    # Favicon — Google Favicon API (reliable, no direct download needed)
+    try:
+        base_url = url.rstrip('/')
+        domain = base_url.replace('https://', '').replace('http://', '').split('/')[0]
+        favicon_url = f'https://www.google.com/s2/favicons?domain={domain}&sz=64'
+        # Try HTML-based fallback first if homepage HTML is available
+        try:
+            from services.impressum_scraper import extract_favicon_from_html
+            html_favicon = extract_favicon_from_html(scraped.get('raw_html', ''), base_url)
+            if html_favicon:
+                favicon_url = html_favicon
+        except Exception:
+            pass
+        enriched['favicon_url'] = favicon_url
+    except Exception:
+        pass
+
     if not lead.company_name or lead.company_name == "Unbekannt":
         if scraped.get("company_name"):
             enriched["company_name"] = scraped["company_name"]

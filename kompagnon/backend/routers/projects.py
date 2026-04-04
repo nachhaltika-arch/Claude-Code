@@ -35,44 +35,24 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 class ProjectResponse(BaseModel):
     id: int
     lead_id: int = None
-    status: str = None
+    name: str = ""
+    customer_name: str = ""
+    status: str = ""
+    current_phase: int = 1
+    website_url: str = ""
+    fixed_price: float = 2000
+    actual_hours: float = 0
+    hourly_rate: float = 45
+    ai_tool_costs: float = 50
+    margin_percent: float = 0
+    scope_creep_flags: int = 0
     start_date: datetime = None
     target_go_live: datetime = None
     actual_go_live: datetime = None
-    fixed_price: float = 0.0
-    actual_hours: float = 0.0
-    hourly_rate: float = 0.0
-    ai_tool_costs: float = 0.0
-    margin_percent: float = 0.0
-    scope_creep_flags: int = 0
     created_at: datetime = None
-    # redesign fields
-    company_name: str = None
-    website_url: str = None
-    cms_type: str = None
-    contact_name: str = None
-    contact_phone: str = None
-    contact_email: str = None
-    go_live_date: str = None
-    package_type: str = None
-    payment_status: str = None
-    desired_pages: str = None
-    has_logo: bool = None
-    has_briefing: bool = None
-    has_photos: bool = None
-    pagespeed_mobile: int = None
-    pagespeed_desktop: int = None
-    audit_score: int = None
-    audit_level: str = None
-    top_problems: str = None
-    industry: str = None
 
     class Config:
         from_attributes = True
-
-
-class ProjectDetailResponse(ProjectResponse):
-    email: str = None
 
 
 class TimeLogRequest(BaseModel):
@@ -243,55 +223,32 @@ def list_projects(
     limit: int = Query(200),
     db: Session = Depends(get_db),
 ):
-    """List all projects. Returns raw dicts to prevent silent Pydantic filtering."""
-    try:
-        query = db.query(Project)
-        if status:
-            query = query.filter(Project.status == status)
-        projects = query.offset(skip).limit(limit).all()
-    except Exception as e:
-        logger.error(f"list_projects DB error: {e}")
-        return []
+    query = db.query(Project)
+    if status:
+        query = query.filter(Project.status == status)
+    projects = query.offset(skip).limit(limit).all()
     result = []
     for p in projects:
         try:
-            lead = p.lead if p.lead_id else None
+            lead = db.query(Lead).filter(Lead.id == p.lead_id).first() if p.lead_id else None
             result.append({
-                "id": p.id,
-                "lead_id": p.lead_id,
-                "name": getattr(p, "name", "") or "",
-                "customer_name": getattr(p, "customer_name", "") or (lead.company_name if lead else ""),
-                "company_name": getattr(p, "company_name", "") or (lead.company_name if lead else ""),
-                "status": p.status or "aktiv",
-                "current_phase": getattr(p, "current_phase", 1) or 1,
-                "website_url": getattr(p, "website_url", "") or (lead.website_url if lead else ""),
-                "cms_type": getattr(p, "cms_type", None),
-                "contact_name": getattr(p, "contact_name", "") or (lead.contact_name if lead else ""),
-                "contact_phone": getattr(p, "contact_phone", None),
-                "contact_email": getattr(p, "contact_email", "") or (lead.email if lead else ""),
-                "go_live_date": str(getattr(p, "go_live_date", "") or ""),
-                "package_type": getattr(p, "package_type", None),
-                "payment_status": getattr(p, "payment_status", None),
-                "desired_pages": getattr(p, "desired_pages", None),
-                "has_logo": getattr(p, "has_logo", False),
-                "has_briefing": getattr(p, "has_briefing", False),
-                "has_photos": getattr(p, "has_photos", False),
-                "pagespeed_mobile": getattr(p, "pagespeed_mobile", None),
-                "pagespeed_desktop": getattr(p, "pagespeed_desktop", None),
-                "audit_score": getattr(p, "audit_score", None),
-                "audit_level": getattr(p, "audit_level", None),
-                "top_problems": getattr(p, "top_problems", None),
-                "industry": getattr(p, "industry", None),
-                "fixed_price": p.fixed_price or 0.0,
-                "actual_hours": p.actual_hours or 0.0,
-                "start_date": str(p.start_date)[:10] if p.start_date else "",
-                "target_go_live": str(p.target_go_live)[:10] if p.target_go_live else "",
-                "created_at": str(p.created_at)[:10] if p.created_at else "",
+                'id': p.id,
+                'lead_id': p.lead_id,
+                'name': getattr(p, 'name', '') or (f"Website – {lead.company_name}" if lead else ''),
+                'customer_name': getattr(p, 'customer_name', '') or (lead.company_name if lead else ''),
+                'status': p.status or 'akquise',
+                'current_phase': getattr(p, 'current_phase', 1) or 1,
+                'website_url': getattr(p, 'website_url', '') or (lead.website_url if lead else ''),
+                'fixed_price': p.fixed_price or 2000,
+                'actual_hours': p.actual_hours or 0,
+                'hourly_rate': p.hourly_rate or 45,
+                'ai_tool_costs': p.ai_tool_costs or 50,
+                'margin_percent': p.margin_percent or 0,
+                'scope_creep_flags': p.scope_creep_flags or 0,
+                'created_at': str(p.created_at)[:10] if p.created_at else '',
             })
         except Exception as e:
-            logger.warning(f"list_projects: skipping project {getattr(p, 'id', '?')}: {e}")
             continue
-    logger.info(f"list_projects: returning {len(result)} of {len(projects)} projects")
     return result
 
 
@@ -301,50 +258,30 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    lead = None
-    if project.lead_id:
-        lead = db.query(Lead).filter(Lead.id == project.lead_id).first()
+    lead = db.query(Lead).filter(Lead.id == project.lead_id).first() if project.lead_id else None
     return {
-        "id": project.id,
-        "lead_id": project.lead_id,
-        "name": getattr(project, "name", "") or "",
-        "customer_name": getattr(project, "customer_name", "") or (lead.company_name if lead else ""),
-        "company_name": getattr(project, "company_name", "") or (lead.company_name if lead else ""),
-        "status": project.status or "akquise",
-        "current_phase": getattr(project, "current_phase", 1) or 1,
-        "website_url": getattr(project, "website_url", "") or (lead.website_url if lead else ""),
-        "cms_type": getattr(project, "cms_type", None),
-        "contact_name": getattr(project, "contact_name", "") or (lead.contact_name if lead else ""),
-        "contact_phone": getattr(project, "contact_phone", None),
-        "contact_email": getattr(project, "contact_email", "") or (lead.email if lead else ""),
-        "go_live_date": str(getattr(project, "go_live_date", "") or ""),
-        "package_type": getattr(project, "package_type", None),
-        "payment_status": getattr(project, "payment_status", None),
-        "desired_pages": getattr(project, "desired_pages", None),
-        "has_logo": getattr(project, "has_logo", False),
-        "has_briefing": getattr(project, "has_briefing", False),
-        "has_photos": getattr(project, "has_photos", False),
-        "pagespeed_mobile": getattr(project, "pagespeed_mobile", None),
-        "pagespeed_desktop": getattr(project, "pagespeed_desktop", None),
-        "audit_score": getattr(project, "audit_score", None),
-        "audit_level": getattr(project, "audit_level", None),
-        "top_problems": getattr(project, "top_problems", None),
-        "industry": getattr(project, "industry", None),
-        "fixed_price": project.fixed_price or 2000,
-        "actual_hours": project.actual_hours or 0,
-        "hourly_rate": project.hourly_rate or 45,
-        "ai_tool_costs": project.ai_tool_costs or 50,
-        "margin_percent": project.margin_percent or 0,
-        "scope_creep_flags": project.scope_creep_flags or 0,
-        "start_date": str(project.start_date)[:10] if project.start_date else "",
-        "target_go_live": str(project.target_go_live)[:10] if project.target_go_live else "",
-        "actual_go_live": str(project.actual_go_live)[:10] if project.actual_go_live else "",
-        "created_at": str(project.created_at)[:10] if project.created_at else "",
-        # Lead fields (direct access for components that use lead.X)
-        "email": lead.email if lead else "",
-        "phone": lead.phone if lead else "",
-        "city": lead.city if lead else "",
-        "trade": lead.trade if lead else "",
+        'id': project.id,
+        'lead_id': project.lead_id,
+        'name': getattr(project, 'name', '') or (f"Website – {lead.company_name}" if lead else ''),
+        'customer_name': getattr(project, 'customer_name', '') or (lead.company_name if lead else ''),
+        'status': project.status or 'akquise',
+        'current_phase': getattr(project, 'current_phase', 1) or 1,
+        'website_url': getattr(project, 'website_url', '') or (lead.website_url if lead else ''),
+        'fixed_price': project.fixed_price or 2000,
+        'actual_hours': project.actual_hours or 0,
+        'hourly_rate': project.hourly_rate or 45,
+        'ai_tool_costs': project.ai_tool_costs or 50,
+        'margin_percent': project.margin_percent or 0,
+        'scope_creep_flags': project.scope_creep_flags or 0,
+        'start_date': str(project.start_date)[:10] if project.start_date else '',
+        'target_go_live': str(project.target_go_live)[:10] if project.target_go_live else '',
+        'created_at': str(project.created_at)[:10] if project.created_at else '',
+        'company_name': lead.company_name if lead else '',
+        'contact_name': lead.contact_name if lead else '',
+        'email': lead.email if lead else '',
+        'phone': lead.phone if lead else '',
+        'city': lead.city if lead else '',
+        'trade': lead.trade if lead else '',
     }
 
 

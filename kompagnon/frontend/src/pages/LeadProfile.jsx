@@ -10,6 +10,7 @@ import SecurityChecklist from '../components/SecurityChecklist';
 import AuditReport from '../components/AuditReport';
 import BriefingTab from '../components/BriefingTab';
 import BriefingWizard from '../components/BriefingWizard';
+import SitemapPlaner from '../components/SitemapPlaner';
 import OfferTab from '../components/OfferTab';
 import ProjectFilesSection from '../components/ProjectFilesSection';
 import AcademyCustomerSection from '../components/AcademyCustomerSection';
@@ -56,6 +57,7 @@ const TABS = [
   { id: 'pagespeed',  label: 'PageSpeed',   icon: '⚡' },
   { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
   { id: 'checklists', label: 'Checklisten', icon: '📋' },
+  { id: 'sitemap',    label: 'Sitemap',     icon: '🗺️' },
   { id: 'mockup',     label: 'Mockup',      icon: '🎨' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
@@ -112,13 +114,18 @@ export default function LeadProfile() {
   const [mockupRunning, setMockupRunning] = useState(false);
   const [mockupResult, setMockupResult] = useState(null);
   const [mockupError, setMockupError] = useState('');
+  // Sitemap tab
+  const [sitemapPages, setSitemapPages] = useState([]);
+  const [sitemapLoading, setSitemapLoading] = useState(false);
+  const [showSitemapPlaner, setShowSitemapPlaner] = useState(false);
+  const [selectedPageId, setSelectedPageId] = useState(null);
 
   const h = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); }, [leadId]); // eslint-disable-line
+  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); loadSitemapPages(); }, [leadId]); // eslint-disable-line
 
   const loadProfile = async () => {
     try {
@@ -186,6 +193,23 @@ export default function LeadProfile() {
     return null;
   };
 
+  const loadSitemapPages = async () => {
+    setSitemapLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}`, { headers: h });
+      if (res.ok) {
+        const pages = await res.json();
+        setSitemapPages(pages);
+        // Auto-select startseite, else first page
+        if (!selectedPageId && pages.length > 0) {
+          const start = pages.find(p => p.page_type === 'startseite') || pages[0];
+          setSelectedPageId(start.id);
+        }
+      }
+    } catch { /* silent */ }
+    finally { setSitemapLoading(false); }
+  };
+
   const openBriefingWizard = async () => {
     const data = await loadBriefing();
     setBriefingData(data);
@@ -202,6 +226,8 @@ export default function LeadProfile() {
       const briefing = bRes.ok ? await bRes.json() : null;
 
       const lead = profile?.lead;
+      const selectedPage = sitemapPages.find(p => p.id === selectedPageId) || null;
+
       const payload = {
         company_name: lead?.display_name || lead?.company_name || '',
         city: lead?.city || briefing?.einzugsgebiet || '',
@@ -211,6 +237,12 @@ export default function LeadProfile() {
           ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
           : [],
         target_audience: briefing?.zielgruppe || '',
+        ...(selectedPage ? {
+          page_name: selectedPage.page_name,
+          zweck: selectedPage.zweck || '',
+          ziel_keyword: selectedPage.ziel_keyword || '',
+          cta_text: selectedPage.cta_text || '',
+        } : {}),
       };
 
       const res = await fetch(`${API_BASE_URL}/api/agents/${projectId}/content`, {
@@ -224,6 +256,16 @@ export default function LeadProfile() {
       }
       const data = await res.json();
       setMockupResult(data.result);
+
+      // Save mockup_html to the selected sitemap page
+      if (selectedPage && data.result) {
+        const mockupHtml = typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2);
+        fetch(`${API_BASE_URL}/api/sitemap/pages/${selectedPage.id}`, {
+          method: 'PUT',
+          headers: h,
+          body: JSON.stringify({ ...selectedPage, mockup_html: mockupHtml }),
+        }).catch(() => {});
+      }
     } catch (e) {
       setMockupError(e.message || 'Generierung fehlgeschlagen.');
     } finally {
@@ -1303,6 +1345,78 @@ export default function LeadProfile() {
       {/* AKADEMY TAB */}
       {activeTab === 'akademy' && <AcademyCustomerSection leadId={lead.id} />}
 
+      {/* SITEMAP TAB */}
+      {activeTab === 'sitemap' && (() => {
+        if (!sitemapLoading && sitemapPages.length === 0) loadSitemapPages();
+        const SITEMAP_STATUS = {
+          geplant:       { bg: '#EFF6FF', text: '#1D4ED8', label: 'Geplant' },
+          in_bearbeitung:{ bg: '#FEF9C3', text: '#92400E', label: 'In Bearb.' },
+          freigegeben:   { bg: '#FEF3C7', text: '#B45309', label: 'Freigegeben' },
+          live:          { bg: '#DCFCE7', text: '#166534', label: 'Live' },
+        };
+        const TYPE_ICON = { startseite: '🏠', leistung: '🔧', info: 'ℹ️', vertrauen: '⭐', conversion: '📞', sonstige: '📄' };
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setShowSitemapPlaner(true)}
+                style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                🗺️ Sitemap bearbeiten
+              </button>
+              <a
+                href={`${API_BASE_URL}/api/sitemap/${leadId}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+              >
+                📥 PDF herunterladen
+              </a>
+            </div>
+
+            {/* Page list */}
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+              {sitemapLoading ? (
+                <div style={{ padding: 32, textAlign: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+                </div>
+              ) : sitemapPages.length === 0 ? (
+                <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
+                  Noch keine Seiten geplant. Klicke auf „Sitemap bearbeiten" um loszulegen.
+                </div>
+              ) : (
+                sitemapPages.map((page, idx) => {
+                  const st = SITEMAP_STATUS[page.status] || SITEMAP_STATUS.geplant;
+                  return (
+                    <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: idx < sitemapPages.length - 1 ? '1px solid var(--border-light)' : 'none', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 18, flexShrink: 0 }}>{TYPE_ICON[page.page_type] || '📄'}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {page.page_name}
+                        </div>
+                        {page.ziel_keyword && (
+                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{page.ziel_keyword}</div>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        {st.label}
+                      </span>
+                      <button
+                        onClick={() => { setSelectedPageId(page.id); setActiveTab('mockup'); }}
+                        style={{ padding: '5px 12px', borderRadius: 6, border: '1.5px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
+                      >
+                        Mockup öffnen →
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* MOCKUP TAB */}
       {activeTab === 'mockup' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1310,6 +1424,35 @@ export default function LeadProfile() {
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
               KI-Website-Entwurf generieren
             </div>
+
+            {/* Page selector */}
+            {sitemapPages.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
+                  Welche Seite gestalten?
+                </label>
+                <select
+                  value={selectedPageId || ''}
+                  onChange={e => setSelectedPageId(Number(e.target.value) || null)}
+                  style={{ width: '100%', maxWidth: 360, padding: '8px 10px', fontSize: 13, borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', cursor: 'pointer' }}
+                >
+                  <option value="">– Keine Seite ausgewählt –</option>
+                  {sitemapPages.map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
+                </select>
+                {selectedPageId && (() => {
+                  const pg = sitemapPages.find(p => p.id === selectedPageId);
+                  if (!pg) return null;
+                  return (
+                    <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13 }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{pg.page_name}</span>
+                      {pg.ziel_keyword && <span style={{ color: 'var(--text-tertiary)', marginLeft: 10 }}>🔑 {pg.ziel_keyword}</span>}
+                      {pg.zweck && <div style={{ color: 'var(--text-secondary)', marginTop: 4, fontSize: 12 }}>{pg.zweck}</div>}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
             <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
               Generiert automatisch Textentwürfe für die Website auf Basis der Briefing-Daten.
               {briefingData?.gewerk
@@ -1729,6 +1872,15 @@ export default function LeadProfile() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* SITEMAP PLANER MODAL */}
+      {showSitemapPlaner && profile?.lead && (
+        <SitemapPlaner
+          leadId={Number(leadId)}
+          leadData={profile.lead}
+          onClose={() => { setShowSitemapPlaner(false); loadSitemapPages(); }}
+        />
       )}
 
       {/* BRIEFING WIZARD MODAL */}

@@ -702,7 +702,177 @@ def generate_audit_report(audit_data: dict) -> bytes:
 
     story.append(PageBreak())
 
-    # ── PAGE 6: CERTIFICATION ───────────────────────────────
+    # ── PAGE 6: GEO & KI-SICHTBARKEIT ───────────────────────
+    story.append(Paragraph("GEO \u0026 KI-Sichtbarkeit", styles["KCHeading"]))
+    story.append(Paragraph(
+        "KI-Suchsysteme wie ChatGPT, Google AI Overview oder Perplexity crawlen Websites "
+        "nach eigenen Regeln. Die folgenden Prüfpunkte zeigen, wie gut die Website für "
+        "diese neuen Sichtbarkeitskanäle aufgestellt ist.",
+        styles["KCBody"],
+    ))
+    story.append(Spacer(1, 4*mm))
+
+    llms_txt_ok      = bool(audit_data.get("llms_txt", False))
+    robots_ai_ok     = bool(audit_data.get("robots_ai_friendly", False))
+    structured_ok    = bool(audit_data.get("structured_data", False))
+    ai_mentions_n    = int(audit_data.get("ai_mentions", 0) or 0)
+    # Google AI Overview: derive from se_score as proxy if no dedicated field
+    ai_overview_ok   = (audit_data.get("se_score", 0) or 0) >= 7
+
+    def _geo_check(ok):
+        return Paragraph(
+            f'<font color="{"#27ae60" if ok else "#e74c3c"}"><b>{"✓" if ok else "✗"}</b></font>',
+            ParagraphStyle("GeoCheck", fontName=FONT_BOLD, fontSize=12, alignment=TA_CENTER),
+        )
+
+    geo_header = ["Prüfpunkt", "Status", "Empfehlung"]
+    geo_rows = [
+        [
+            "llms.txt vorhanden",
+            _geo_check(llms_txt_ok),
+            "Datei unter /llms.txt anlegen" if not llms_txt_ok else "Vorhanden ✓",
+        ],
+        [
+            "robots.txt KI-freundlich",
+            _geo_check(robots_ai_ok),
+            "GPTBot nicht blockieren" if not robots_ai_ok else "KI-Crawler erlaubt ✓",
+        ],
+        [
+            "Strukturierte Daten",
+            _geo_check(structured_ok),
+            "Schema.org LocalBusiness ergänzen" if not structured_ok else "Schema.org vorhanden ✓",
+        ],
+        [
+            "KI-Erwähnungen",
+            Paragraph(
+                f'<font color="{"#27ae60" if ai_mentions_n > 0 else "#e74c3c"}"><b>{ai_mentions_n} gefunden</b></font>',
+                ParagraphStyle("GeoMention", fontName=FONT_BOLD, fontSize=10, alignment=TA_CENTER),
+            ),
+            "Content-Authority aufbauen" if ai_mentions_n == 0 else "Weiter ausbauen",
+        ],
+        [
+            "Google AI Overview",
+            _geo_check(ai_overview_ok),
+            "Featured Snippets optimieren" if not ai_overview_ok else "Gut aufgestellt ✓",
+        ],
+    ]
+
+    geo_table = Table(
+        [geo_header] + geo_rows,
+        colWidths=[55*mm, 25*mm, 80*mm],
+    )
+    geo_style = list(BASE_TABLE_STYLE)
+    for i in range(1, len(geo_rows) + 1):
+        if i % 2 == 0:
+            geo_style.append(("BACKGROUND", (0, i), (-1, i), KC_LIGHT))
+        geo_style.append(("ALIGN", (1, i), (1, i), "CENTER"))
+        geo_style.append(("VALIGN", (1, i), (1, i), "MIDDLE"))
+    geo_table.setStyle(TableStyle(geo_style))
+    story.append(geo_table)
+    story.append(Spacer(1, 6*mm))
+
+    # GEO info box
+    geo_info = (
+        '<b>Was ist llms.txt?</b> Eine neue Konvention (ähnlich robots.txt) die KI-Systemen '
+        'mitteilt, welche Inhalte für das Training oder die Antwortgenerierung genutzt werden '
+        'dürfen. Websites mit llms.txt werden von ChatGPT, Claude \u0026 Co. bevorzugt zitiert.'
+    )
+    geo_box = Table([[Paragraph(geo_info, styles["KCBody"])]], colWidths=[160*mm])
+    geo_box.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#EEF6FF")),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#BFDBFE")),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+    ]))
+    story.append(geo_box)
+
+    story.append(PageBreak())
+
+    # ── PAGE 7: MASSNAHMEN-ROADMAP ───────────────────────────
+    story.append(Paragraph("Ma\u00dfnahmen-Roadmap", styles["KCHeading"]))
+    story.append(Paragraph(
+        "Basierend auf den Audit-Ergebnissen empfehlen wir folgende Umsetzungsreihenfolge:",
+        styles["KCBody"],
+    ))
+    story.append(Spacer(1, 6*mm))
+
+    # Derive quick wins from audit data
+    quick_wins = []
+    if not llms_txt_ok:
+        quick_wins.append("llms.txt anlegen (ca. 1 Tag Aufwand)")
+    if not structured_ok:
+        quick_wins.append("Schema.org LocalBusiness einbauen")
+    mobile_ps = audit_data.get("mobile_score", 0) or 0
+    if mobile_ps < 50:
+        quick_wins.append("Bilder komprimieren \u0026 Lazy Load aktivieren")
+    if not robots_ai_ok:
+        quick_wins.append("robots.txt: GPTBot-Blockierung entfernen")
+    if not quick_wins:
+        quick_wins.append("Audit-Score weiter optimieren \u0026 Inhalte aktualisieren")
+
+    midterm = ["Regelmä\u00dfige Blog-Inhalte für SEO-Autorität aufbauen"]
+    if level == "Nicht konform":
+        midterm.append("SSL, Datenschutzerklärung und Impressum prüfen \u0026 korrigieren")
+    if not structured_ok:
+        midterm.append("Weitere Schema.org-Typen (FAQPage, Review) ergänzen")
+
+    longterm = [
+        "Backlink-Aufbau über lokale Verzeichnisse und Branchenportale",
+        "Google Business Profil optimieren und regelmäßig pflegen",
+        "KI-Sichtbarkeit: Erwähnungen in Fachartikeln \u0026 Podcasts aufbauen",
+    ]
+
+    def _roadmap_box(title, items, bg_color, border_color, phase_label):
+        """Build a single phase box as a Table."""
+        header_para = Paragraph(
+            f'<font color="white"><b>{phase_label} — {title}</b></font>',
+            ParagraphStyle("RoadmapHeader", fontName=FONT_BOLD, fontSize=11,
+                           textColor=KC_WHITE, alignment=TA_LEFT),
+        )
+        header_row = Table([[header_para]], colWidths=[160*mm])
+        header_row.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(border_color)),
+            ("TOPPADDING", (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ]))
+        item_rows = []
+        for item in items:
+            item_rows.append([
+                Paragraph(f"\u2022 {_clean_text(item)}", styles["KCBody"]),
+            ])
+        body = Table(item_rows, colWidths=[160*mm])
+        body.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(bg_color)),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("LEFTPADDING", (0, 0), (-1, -1), 14),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor(border_color)),
+        ]))
+        return KeepTogether([header_row, body])
+
+    story.append(_roadmap_box(
+        "Quick Wins (Woche 1\u20132)", quick_wins,
+        bg_color="#F0FDF4", border_color="#16a34a", phase_label="Phase 1",
+    ))
+    story.append(Spacer(1, 5*mm))
+    story.append(_roadmap_box(
+        "Mittelfristig (Monat 1\u20133)", midterm,
+        bg_color="#EFF6FF", border_color="#2563eb", phase_label="Phase 2",
+    ))
+    story.append(Spacer(1, 5*mm))
+    story.append(_roadmap_box(
+        "Langfristig (Monat 3\u20136)", longterm,
+        bg_color="#FAF5FF", border_color="#7c3aed", phase_label="Phase 3",
+    ))
+
+    story.append(PageBreak())
+
+    # ── LAST PAGE: CERTIFICATION ────────────────────────────
     story.append(Spacer(1, 20*mm))
     story.append(Paragraph("Zertifizierungsaussage", styles["KCTitle"]))
     story.append(Spacer(1, 10*mm))

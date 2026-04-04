@@ -423,6 +423,11 @@ def _run_migrations():
              AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.lead_id = l.id)""",
         # Sicherheit: lead_id NOT NULL Constraint entfernen falls Direkt-Einträge existieren
         "ALTER TABLE projects ALTER COLUMN lead_id DROP NOT NULL",
+        # GEO / KI-Sichtbarkeit Felder auf audit_results
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS llms_txt BOOLEAN DEFAULT false",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS robots_ai_friendly BOOLEAN DEFAULT false",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS structured_data BOOLEAN DEFAULT false",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ai_mentions INTEGER DEFAULT 0",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

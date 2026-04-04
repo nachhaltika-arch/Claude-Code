@@ -316,6 +316,12 @@ class AuditResult(Base):
     top_issues = Column(Text)  # JSON array of top issues
     recommendations = Column(Text)  # JSON array of recommendations
 
+    # GEO / KI-Sichtbarkeit
+    llms_txt = Column(Boolean, default=False)
+    robots_ai_friendly = Column(Boolean, default=False)
+    structured_data = Column(Boolean, default=False)
+    ai_mentions = Column(Integer, default=0)
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

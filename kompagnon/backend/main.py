@@ -404,6 +404,24 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS audit_level VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS top_problems TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS industry VARCHAR",
+        # ── Seed: Projekte aus gewonnenen Leads anlegen (idempotent) ──────────
+        """INSERT INTO projects (lead_id, status, start_date, created_at, updated_at,
+                                 company_name, website_url, contact_name, contact_email)
+           SELECT
+               l.id,
+               'phase_1',
+               NOW(),
+               NOW(),
+               NOW(),
+               l.company_name,
+               l.website_url,
+               l.contact_name,
+               l.email
+           FROM leads l
+           WHERE l.status = 'won'
+             AND NOT EXISTS (
+                 SELECT 1 FROM projects p WHERE p.lead_id = l.id
+             )""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

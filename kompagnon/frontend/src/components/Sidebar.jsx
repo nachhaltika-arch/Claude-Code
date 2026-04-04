@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import KompagnonLogo from './KompagnonLogo';
 
 const AREAS = {
   sales: {
@@ -75,14 +76,9 @@ export default function Sidebar() {
     return (
       <aside className="sidebar">
         <div className="px-4 py-5 border-b border-white/10">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/app/dashboard')}>
-            <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
-              <span className="text-white font-black text-sm">KS</span>
-            </div>
-            <div>
-              <div className="text-white font-bold text-sm tracking-wide">KOMPAGNON</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Kundenportal</div>
-            </div>
+          <div className="cursor-pointer" onClick={() => navigate('/app/dashboard')}>
+            {/* Dark sidebar background → white variant */}
+            <KompagnonLogo height={32} variant="white" />
           </div>
         </div>
         <nav className="flex-1 px-2 py-3 overflow-y-auto" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -124,14 +120,9 @@ export default function Sidebar() {
     <aside className="sidebar">
       {/* Logo */}
       <div className="px-4 py-5 border-b border-white/10">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/app/dashboard')}>
-          <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
-            <span className="text-white font-black text-sm">HS</span>
-          </div>
-          <div>
-            <div className="text-white font-bold text-sm tracking-wide">KOMPAGNON</div>
-            <div className="text-kompagnon-300 text-xs">Automation System</div>
-          </div>
+        <div className="cursor-pointer" onClick={() => navigate('/app/dashboard')}>
+          {/* Dark sidebar background → white variant */}
+          <KompagnonLogo height={32} variant="white" />
         </div>
       </div>
 

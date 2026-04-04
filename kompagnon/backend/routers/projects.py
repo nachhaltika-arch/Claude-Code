@@ -18,7 +18,8 @@ from datetime import datetime
 from pydantic import BaseModel
 from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, get_db
 from services.margin_calculator import MarginCalculator
-from email_service import send_phase_change_email
+from email_service import send_phase_change_email, send_approval_request_email
+from routers.auth_router import require_admin
 from automations.scheduler import (
     get_scheduler,
     job_tag_5_followup,
@@ -520,6 +521,44 @@ def trigger_automation(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Automation failed: {str(e)}")
+
+
+class ApprovalRequest(BaseModel):
+    topic: str
+    notes: str = ""
+
+
+@router.post("/{project_id}/request-approval")
+def request_approval(
+    project_id: int,
+    body: ApprovalRequest,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Admin: send a approval-request e-mail to the customer."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    notifications_on = getattr(project, "email_notifications_enabled", True)
+    to_email = getattr(project, "customer_email", None) or ""
+
+    if not notifications_on or not to_email:
+        return {"success": False, "message": "Keine E-Mail hinterlegt"}
+
+    company = getattr(project, "company_name", "") or f"Projekt #{project_id}"
+    try:
+        send_approval_request_email(
+            to=to_email,
+            company=company,
+            topic=body.topic,
+            notes=body.notes,
+        )
+    except Exception as exc:
+        logger.warning(f"Freigabe-E-Mail fehlgeschlagen für Projekt {project_id}: {exc}")
+        return {"success": False, "message": f"E-Mail-Versand fehlgeschlagen: {exc}"}
+
+    return {"success": True, "message": "Freigabe-E-Mail gesendet"}
 
 
 @router.post("/from-lead/{lead_id}", status_code=201)

@@ -295,51 +295,56 @@ def list_projects(
     return result
 
 
-@router.get("/{project_id}", response_model=ProjectDetailResponse)
+@router.get("/{project_id}")
 def get_project(project_id: int, db: Session = Depends(get_db)):
-    """Get project detail with lead information."""
+    """Get project detail. Raw dict — no Pydantic response_model to prevent silent filtering."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-
-    # Build response with lead data
-    lead = project.lead
+    lead = None
+    if project.lead_id:
+        lead = db.query(Lead).filter(Lead.id == project.lead_id).first()
     return {
         "id": project.id,
         "lead_id": project.lead_id,
-        "status": project.status,
-        "start_date": project.start_date,
-        "target_go_live": project.target_go_live,
-        "actual_go_live": project.actual_go_live,
-        "fixed_price": project.fixed_price,
-        "actual_hours": project.actual_hours,
-        "hourly_rate": project.hourly_rate,
-        "ai_tool_costs": project.ai_tool_costs,
-        "margin_percent": project.margin_percent,
-        "scope_creep_flags": project.scope_creep_flags,
-        "created_at": project.created_at,
-        # lead-derived defaults (fallback if project fields are empty)
-        "company_name": lead.company_name if lead else "N/A",
-        "email": lead.email if lead else "N/A",
-        # redesign fields
-        "website_url": getattr(project, "website_url", None),
+        "name": getattr(project, "name", "") or "",
+        "customer_name": getattr(project, "customer_name", "") or (lead.company_name if lead else ""),
+        "company_name": getattr(project, "company_name", "") or (lead.company_name if lead else ""),
+        "status": project.status or "akquise",
+        "current_phase": getattr(project, "current_phase", 1) or 1,
+        "website_url": getattr(project, "website_url", "") or (lead.website_url if lead else ""),
         "cms_type": getattr(project, "cms_type", None),
-        "contact_name": getattr(project, "contact_name", None) or (lead.contact_name if lead else None),
+        "contact_name": getattr(project, "contact_name", "") or (lead.contact_name if lead else ""),
         "contact_phone": getattr(project, "contact_phone", None),
-        "contact_email": getattr(project, "contact_email", None),
-        "go_live_date": getattr(project, "go_live_date", None),
+        "contact_email": getattr(project, "contact_email", "") or (lead.email if lead else ""),
+        "go_live_date": str(getattr(project, "go_live_date", "") or ""),
         "package_type": getattr(project, "package_type", None),
         "payment_status": getattr(project, "payment_status", None),
         "desired_pages": getattr(project, "desired_pages", None),
-        "has_logo": getattr(project, "has_logo", None),
-        "has_briefing": getattr(project, "has_briefing", None),
-        "has_photos": getattr(project, "has_photos", None),
+        "has_logo": getattr(project, "has_logo", False),
+        "has_briefing": getattr(project, "has_briefing", False),
+        "has_photos": getattr(project, "has_photos", False),
         "pagespeed_mobile": getattr(project, "pagespeed_mobile", None),
         "pagespeed_desktop": getattr(project, "pagespeed_desktop", None),
         "audit_score": getattr(project, "audit_score", None),
         "audit_level": getattr(project, "audit_level", None),
         "top_problems": getattr(project, "top_problems", None),
         "industry": getattr(project, "industry", None),
+        "fixed_price": project.fixed_price or 2000,
+        "actual_hours": project.actual_hours or 0,
+        "hourly_rate": project.hourly_rate or 45,
+        "ai_tool_costs": project.ai_tool_costs or 50,
+        "margin_percent": project.margin_percent or 0,
+        "scope_creep_flags": project.scope_creep_flags or 0,
+        "start_date": str(project.start_date)[:10] if project.start_date else "",
+        "target_go_live": str(project.target_go_live)[:10] if project.target_go_live else "",
+        "actual_go_live": str(project.actual_go_live)[:10] if project.actual_go_live else "",
+        "created_at": str(project.created_at)[:10] if project.created_at else "",
+        # Lead fields (direct access for components that use lead.X)
+        "email": lead.email if lead else "",
+        "phone": lead.phone if lead else "",
+        "city": lead.city if lead else "",
+        "trade": lead.trade if lead else "",
     }
 
 

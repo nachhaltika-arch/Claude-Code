@@ -12,6 +12,7 @@ import AuditReport from '../components/AuditReport';
 import BriefingTab from '../components/BriefingTab';
 import BriefingWizard from '../components/BriefingWizard';
 import SitemapPlaner from '../components/SitemapPlaner';
+import ContentManager from '../components/ContentManager';
 import OfferTab from '../components/OfferTab';
 import ProjectFilesSection from '../components/ProjectFilesSection';
 import AcademyCustomerSection from '../components/AcademyCustomerSection';
@@ -47,6 +48,7 @@ const TABS = [
   { id: 'audits',     label: 'Audits',      icon: '✓' },
   { id: 'dateien',    label: 'Dateien',     icon: '📎' },
   { id: 'sitemap',    label: 'Sitemap',     icon: '🗺️' },
+  { id: 'content',    label: 'Content',     icon: '📝' },
   { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
@@ -106,6 +108,8 @@ export default function LeadProfile() {
   const [sitemapLoading, setSitemapLoading] = useState(false);
   const [showSitemapPlaner, setShowSitemapPlaner] = useState(false);
   const [selectedPageId, setSelectedPageId] = useState(null);
+  const [showContentManager, setShowContentManager] = useState(false);
+  const [contentSummary, setContentSummary] = useState([]);
 
   const h = {
     'Content-Type': 'application/json',
@@ -1445,6 +1449,77 @@ export default function LeadProfile() {
         );
       })()}
 
+      {/* CONTENT TAB */}
+      {activeTab === 'content' && (() => {
+        const contentPages = sitemapPages.filter(p => !p.ist_pflichtseite);
+        const totalSlots = contentSummary.reduce((a, p) => a + (p.sections?.length || 0) + (p.media?.length || 0), 0);
+        const doneSlots  = contentSummary.reduce((a, p) => a + (p.sections?.filter(s => s.status === 'freigegeben').length || 0) + (p.media?.filter(m => m.status === 'freigegeben').length || 0), 0);
+        const pending    = totalSlots - doneSlots;
+        const allDone    = totalSlots > 0 && pending === 0;
+
+        // Lazy-load summary
+        if (contentSummary.length === 0 && lead) {
+          fetch(`${API_BASE_URL}/api/content/${lead.id}`, { headers: h })
+            .then(r => r.json()).then(d => setContentSummary(Array.isArray(d) ? d.filter(p => !p.ist_pflichtseite) : []));
+        }
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Banner */}
+            {contentSummary.length > 0 && (
+              <div style={{ padding: '10px 16px', borderRadius: 8, background: allDone ? '#D1FAE5' : '#FFFBEB', border: `1px solid ${allDone ? '#A7F3D0' : '#FDE68A'}`, fontSize: 13, color: allDone ? '#065F46' : '#92400E' }}>
+                {allDone
+                  ? '✅ Alle Inhalte freigegeben — Mockup-Designer kann gestartet werden'
+                  : `⚠️ ${pending} Inhalt${pending !== 1 ? 'e' : ''} noch ausstehend — Mockup-Designer erst nach Freigabe empfohlen`}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setShowContentManager(true)}
+                style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                📝 Content bearbeiten
+              </button>
+            </div>
+
+            {/* Seiten-Tabelle */}
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+              {contentSummary.length === 0 ? (
+                <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
+                  Noch keine Content-Slots. Erst Sitemap anlegen, dann hier befüllen.
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 100px 80px', gap: 0, borderBottom: '2px solid var(--border-light)', padding: '8px 16px' }}>
+                    {['Seite', 'Text-Slots', 'Medien', 'Ampel'].map(l => (
+                      <span key={l} style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>{l}</span>
+                    ))}
+                  </div>
+                  {contentSummary.map(page => {
+                    const secTotal  = page.sections?.length || 0;
+                    const secDone   = page.sections?.filter(s => s.status === 'freigegeben').length || 0;
+                    const medTotal  = page.media?.length || 0;
+                    const medDone   = page.media?.filter(m => m.status === 'freigegeben').length || 0;
+                    const allFree   = secTotal + medTotal > 0 && secDone + medDone === secTotal + medTotal;
+                    const partial   = secDone + medDone > 0;
+                    const ampelColor = allFree ? '#22C55E' : partial ? '#F59E0B' : '#EF4444';
+                    return (
+                      <div key={page.sitemap_page_id} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 100px 80px', gap: 0, padding: '10px 16px', borderBottom: '1px solid var(--border-light)', alignItems: 'center' }}>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{page.page_name}</span>
+                        <span style={{ fontSize: 12, color: secDone === secTotal && secTotal > 0 ? '#065F46' : 'var(--text-secondary)' }}>{secDone}/{secTotal} freigegeben</span>
+                        <span style={{ fontSize: 12, color: medDone === medTotal && medTotal > 0 ? '#065F46' : 'var(--text-secondary)' }}>{medDone}/{medTotal}</span>
+                        <span style={{ width: 14, height: 14, borderRadius: '50%', background: ampelColor, display: 'inline-block' }} />
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* MOCKUP TAB */}
       {activeTab === 'mockup' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1908,6 +1983,15 @@ export default function LeadProfile() {
           leadId={Number(leadId)}
           leadData={profile.lead}
           onClose={() => { setShowSitemapPlaner(false); loadSitemapPages(); }}
+        />
+      )}
+
+      {showContentManager && profile?.lead && (
+        <ContentManager
+          leadId={Number(leadId)}
+          leadName={profile.lead.display_name || profile.lead.company_name}
+          token={token}
+          onClose={() => { setShowContentManager(false); setContentSummary([]); }}
         />
       )}
 

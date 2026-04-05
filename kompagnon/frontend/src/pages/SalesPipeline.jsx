@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import API_BASE_URL from '../config';
+import { useScreenSize } from '../utils/responsive';
 
 const COLUMNS = [
   { id: 'new', label: 'Neue Leads', icon: '🆕', color: '#008EAA', desc: 'Frisch importiert oder auditiert' },
@@ -24,6 +25,9 @@ export default function SalesPipeline() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [search, setSearch] = useState('');
   const [filterTrade, setFilterTrade] = useState('');
+
+  const { isMobile } = useScreenSize();
+  const [mobileTab, setMobileTab] = useState(0);
 
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
@@ -112,15 +116,15 @@ export default function SalesPipeline() {
       </div>
 
       {/* Filter */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: '1 1 180px' }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8, flexWrap: isMobile ? undefined : 'wrap' }}>
+        <div style={{ position: 'relative', flex: isMobile ? undefined : '1 1 180px' }}>
           <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', fontSize: 13 }}>🔍</span>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Firma oder Stadt suchen..."
             style={{ width: '100%', padding: '8px 12px 8px 30px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)', background: 'var(--bg-surface)' }} />
         </div>
         {trades.length > 0 && (
           <select value={filterTrade} onChange={e => setFilterTrade(e.target.value)}
-            style={{ padding: '8px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-surface)', color: 'var(--text-primary)', cursor: 'pointer', outline: 'none' }}>
+            style={{ width: isMobile ? '100%' : 'auto', padding: '8px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-surface)', color: 'var(--text-primary)', cursor: 'pointer', outline: 'none' }}>
             <option value="">Alle Gewerke</option>
             {trades.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
@@ -133,46 +137,101 @@ export default function SalesPipeline() {
         )}
       </div>
 
-      {/* Kanban */}
-      <div style={{ display: 'flex', gap: 10, width: '100%', alignItems: 'flex-start', overflowX: 'auto' }}>
-        {COLUMNS.map(col => {
-          const colLeads = getColLeads(col.id);
-          const isOver = dragOver === col.id;
-          return (
-            <div key={col.id}
-              onDragOver={e => { e.preventDefault(); setDragOver(col.id); }}
-              onDrop={e => handleDrop(e, col.id)}
-              onDragLeave={() => setDragOver(null)}
-              style={{
-                flex: '1 1 0', minWidth: 170,
-                background: isOver ? `${col.color}08` : 'var(--bg-app)',
-                borderRadius: 'var(--radius-lg)',
-                border: `1.5px ${isOver ? 'dashed' : 'solid'} ${isOver ? col.color : 'var(--border-light)'}`,
-                transition: 'all 0.15s',
-              }}>
-              <div style={{ padding: '10px 12px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
-                  <span style={{ fontSize: 13 }}>{col.icon}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{col.label}</span>
+      {/* Kanban / Mobile-Tabs */}
+      {isMobile ? (
+        <div>
+          {/* Tab-Leiste */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', paddingBottom: 4, marginBottom: 12 }}>
+            {COLUMNS.map((col, idx) => {
+              const count = getColLeads(col.id).length;
+              const active = mobileTab === idx;
+              return (
+                <button key={col.id} onClick={() => setMobileTab(idx)} style={{
+                  flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '6px 12px', borderRadius: 'var(--radius-full)',
+                  background: active ? col.color : 'var(--bg-surface)',
+                  color: active ? '#fff' : 'var(--text-secondary)',
+                  border: `1px solid ${active ? col.color : 'var(--border-light)'}`,
+                  fontSize: 12, fontWeight: active ? 600 : 400, cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}>
+                  <span style={{ fontSize: 14 }}>{col.icon}</span>
+                  {col.label}
+                  {count > 0 && (
+                    <span style={{ background: active ? 'rgba(255,255,255,0.3)' : `${col.color}20`, color: active ? '#fff' : col.color, borderRadius: 99, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Karten der aktiven Spalte */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {getColLeads(COLUMNS[mobileTab].id).length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-tertiary)', fontSize: 13, border: '1.5px dashed var(--border-medium)', borderRadius: 'var(--radius-lg)' }}>
+                Keine Leads in dieser Spalte
+              </div>
+            ) : (
+              getColLeads(COLUMNS[mobileTab].id).map(lead => (
+                <SalesCard
+                  key={lead.id}
+                  lead={lead}
+                  col={COLUMNS[mobileTab]}
+                  columns={COLUMNS}
+                  onDragStart={() => {}}
+                  onOpen={() => navigate(`/app/leads/${lead.id}`)}
+                  onAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
+                  onDelete={() => setDeleteConfirm(lead.id)}
+                  onStatusChange={updateStatus}
+                  isAdmin={user?.role === 'admin'}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 10, width: '100%', alignItems: 'flex-start', overflowX: 'auto' }}>
+          {COLUMNS.map(col => {
+            const colLeads = getColLeads(col.id);
+            const isOver = dragOver === col.id;
+            return (
+              <div key={col.id}
+                onDragOver={e => { e.preventDefault(); setDragOver(col.id); }}
+                onDrop={e => handleDrop(e, col.id)}
+                onDragLeave={() => setDragOver(null)}
+                style={{
+                  flex: '1 1 0', minWidth: 170,
+                  background: isOver ? `${col.color}08` : 'var(--bg-app)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: `1.5px ${isOver ? 'dashed' : 'solid'} ${isOver ? col.color : 'var(--border-light)'}`,
+                  transition: 'all 0.15s',
+                }}>
+                <div style={{ padding: '10px 12px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                    <span style={{ fontSize: 13 }}>{col.icon}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{col.label}</span>
+                  </div>
+                  <span style={{ background: `${col.color}20`, color: col.color, borderRadius: 'var(--radius-full)', padding: '1px 7px', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{colLeads.length}</span>
                 </div>
-                <span style={{ background: `${col.color}20`, color: col.color, borderRadius: 'var(--radius-full)', padding: '1px 7px', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{colLeads.length}</span>
+                <div style={{ height: 2, background: col.color, margin: '8px 12px', borderRadius: 2 }} />
+                <div style={{ padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {colLeads.map(lead => (
+                    <SalesCard key={lead.id} lead={lead} col={col} columns={COLUMNS} onDragStart={handleDragStart}
+                      onOpen={() => navigate(`/app/leads/${lead.id}`)}
+                      onAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
+                      onDelete={() => setDeleteConfirm(lead.id)} onStatusChange={updateStatus} isAdmin={user?.role === 'admin'} />
+                  ))}
+                  {colLeads.length === 0 && (
+                    <div style={{ padding: '14px 8px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>Leer</div>
+                  )}
+                </div>
               </div>
-              <div style={{ height: 2, background: col.color, margin: '8px 12px', borderRadius: 2 }} />
-              <div style={{ padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {colLeads.map(lead => (
-                  <SalesCard key={lead.id} lead={lead} col={col} columns={COLUMNS} onDragStart={handleDragStart}
-                    onOpen={() => navigate(`/app/leads/${lead.id}`)}
-                    onAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
-                    onDelete={() => setDeleteConfirm(lead.id)} onStatusChange={updateStatus} isAdmin={user?.role === 'admin'} />
-                ))}
-                {colLeads.length === 0 && (
-                  <div style={{ padding: '14px 8px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>Leer</div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Lösch Modal */}
       {deleteConfirm && (

@@ -205,7 +205,7 @@ def get_projects_by_phase(db: Session = Depends(get_db)):
             )
 
     return {
-        "phase_1_akquisition": phases["phase_1"],
+        "phase_1_onboarding": phases["phase_1"],
         "phase_2_briefing": phases["phase_2"],
         "phase_3_content": phases["phase_3"],
         "phase_4_technik": phases["phase_4"],

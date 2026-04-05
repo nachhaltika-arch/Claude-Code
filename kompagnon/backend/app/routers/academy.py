@@ -779,7 +779,7 @@ def seed_academy_courses(db: Session):
     courses = [
         ('Der KOMPAGNON Akquise-Prozess', 'Vom Erstkontakt bis zum Auftrag.', 'Akquise', 'primary', 'employee', 'employee'),
         ('Website-Audit durchführen', 'Wie Sie einen Audit starten und präsentieren.', 'Audit', 'warning', 'employee', 'employee'),
-        ('Die 7 Projektphasen', 'Von Akquisition bis Post-Launch.', 'Projekt', 'success', 'employee', 'employee'),
+        ('Die 7 Projektphasen', 'Von Onboarding bis Post-Launch.', 'Projekt', 'success', 'employee', 'employee'),
         ('So läuft Ihr Website-Projekt ab', 'Überblick für Kunden.', 'Start', 'primary', 'customer', 'customer'),
         ('Ihre neue Website pflegen', 'WordPress-Einführung.', 'Website', 'success', 'customer', 'customer'),
     ]

@@ -5,7 +5,7 @@ Run once after database creation: python seed_checklists.py
 from database import SessionLocal, init_db, ProjectChecklist
 from datetime import datetime
 
-# Phase 1: Akquisition (Erstkontakt bis Vertragsabschluss)
+# Phase 1: Onboarding (Erstkontakt bis Vertragsabschluss)
 PHASE_1 = [
     ("AKQ-01", "Erstkontakt durchgeführt", "both", True),
     ("AKQ-02", "Website analysiert", "ki", True),

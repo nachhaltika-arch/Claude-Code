@@ -2,7 +2,7 @@ import React from 'react';
 import { CheckIcon } from '@heroicons/react/24/solid';
 
 const phaseLabels = {
-  phase_1: 'Akquisition',
+  phase_1: 'Onboarding',
   phase_2: 'Briefing',
   phase_3: 'Content',
   phase_4: 'Technik',

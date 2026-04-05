@@ -526,7 +526,7 @@ export default function ProjectDetail() {
       <ProjectCard project={project} />
 
       {/* ── Buttons ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <button
           onClick={() => setShowEdit(true)}
           style={{
@@ -534,7 +534,7 @@ export default function ProjectDetail() {
             border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
             fontSize: 13, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'var(--font-sans)', color: 'var(--text-primary)',
-            display: 'inline-flex', alignItems: 'center', gap: 6,
+            display: 'flex', alignItems: 'center', gap: 6, width: '100%',
           }}
         >
           ✏️ Projektdaten bearbeiten
@@ -553,7 +553,7 @@ export default function ProjectDetail() {
             border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
             fontSize: 13, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'var(--font-sans)', color: 'var(--text-primary)',
-            display: 'inline-flex', alignItems: 'center', gap: 6,
+            display: 'flex', alignItems: 'center', gap: 6, width: '100%',
           }}
         >
           📋 Briefing starten
@@ -567,7 +567,7 @@ export default function ProjectDetail() {
               border: 'none', borderRadius: 'var(--radius-md)',
               fontSize: 13, fontWeight: 600, cursor: 'pointer',
               fontFamily: 'var(--font-sans)',
-              display: 'inline-flex', alignItems: 'center', gap: 6,
+              display: 'flex', alignItems: 'center', gap: 6, width: '100%',
             }}
           >
             📧 Freigabe anfordern

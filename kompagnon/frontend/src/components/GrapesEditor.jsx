@@ -82,14 +82,18 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
     fetch(`${API_BASE_URL}/api/pages/${pageId}/editor`, { headers: h })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data?.html) {
+        if (data?.html && data.html.trim()) {
           editor.setComponents(data.html);
           if (data.css) editor.setStyle(data.css);
-        } else if (initialHtml) {
+        } else if (initialHtml && initialHtml.trim().startsWith('<')) {
           editor.setComponents(initialHtml);
         }
       })
-      .catch(() => { if (initialHtml) editor.setComponents(initialHtml); });
+      .catch(() => {
+        if (initialHtml && initialHtml.trim().startsWith('<')) {
+          editor.setComponents(initialHtml);
+        }
+      });
 
     return () => { editor.destroy(); editorRef.current = null; };
   }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps

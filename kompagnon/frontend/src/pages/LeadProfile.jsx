@@ -303,13 +303,16 @@ export default function LeadProfile() {
         const pollRes = await fetch(`${API_BASE_URL}/api/agents/jobs/${job_id}`, { headers: h });
         if (!pollRes.ok) throw new Error('Job-Status konnte nicht abgerufen werden');
         const job = await pollRes.json();
-        if (job.status === 'done') { result = job.result; break; }
+        if (job.status === 'done') {
+          result = job.result_html || (typeof job.result === 'string' ? job.result : null);
+          break;
+        }
         if (job.status === 'error') throw new Error(job.error || 'KI-Generierung fehlgeschlagen');
       }
       if (!result) throw new Error('Zeitüberschreitung — bitte erneut versuchen');
       setMockupResult(result);
 
-      // Save mockup_html to the selected sitemap page
+      // Save mockup_html (HTML string) to the selected sitemap page
       if (selectedPage && result) {
         const mockupHtml = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
         fetch(`${API_BASE_URL}/api/sitemap/pages/${selectedPage.id}`, {

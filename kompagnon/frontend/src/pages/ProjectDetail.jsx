@@ -487,7 +487,10 @@ export default function ProjectDetail() {
         const pollRes = await fetch(`${API_BASE_URL}/api/agents/jobs/${job_id}`, { headers: h });
         if (!pollRes.ok) throw new Error('Job-Status konnte nicht abgerufen werden');
         const job = await pollRes.json();
-        if (job.status === 'done') { result = job.result; break; }
+        if (job.status === 'done') {
+          result = job.result_html || (typeof job.result === 'string' ? job.result : null);
+          break;
+        }
         if (job.status === 'error') throw new Error(job.error || 'KI-Generierung fehlgeschlagen');
       }
       if (!result) throw new Error('Zeitüberschreitung — bitte erneut versuchen');

@@ -93,6 +93,9 @@ class SitemapPage(Base):
     status        = Column(String(30),  default="geplant")
     mockup_html      = Column(Text,        nullable=True)
     ist_pflichtseite = Column(Boolean,     default=False)
+    gjs_html         = Column(Text,        default='')
+    gjs_css          = Column(Text,        default='')
+    gjs_data         = Column(Text,        default='{}')
     created_at       = Column(DateTime,    server_default=func.now())
 
 
@@ -258,6 +261,51 @@ def delete_page(
         raise HTTPException(status_code=403, detail="Pflichtseiten können nicht gelöscht werden")
     db.delete(page)
     db.commit()
+
+
+# ── GrapesJS editor endpoints ─────────────────────────────────────────────────
+
+pages_router = APIRouter(prefix="/api/pages", tags=["pages"])
+
+
+class GjsData(BaseModel):
+    html:    str  = ""
+    css:     str  = ""
+    gjsData: dict = {}
+
+
+@pages_router.get("/{page_id}/editor")
+def get_editor_data(
+    page_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    page = db.query(SitemapPage).filter(SitemapPage.id == page_id).first()
+    if not page:
+        raise HTTPException(status_code=404, detail="Seite nicht gefunden")
+    gjs_data = {}
+    try:
+        gjs_data = json.loads(page.gjs_data or '{}')
+    except Exception:
+        pass
+    return {"html": page.gjs_html or "", "css": page.gjs_css or "", "gjsData": gjs_data}
+
+
+@pages_router.post("/{page_id}/editor")
+def save_editor_data(
+    page_id: int,
+    body: GjsData,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    page = db.query(SitemapPage).filter(SitemapPage.id == page_id).first()
+    if not page:
+        raise HTTPException(status_code=404, detail="Seite nicht gefunden")
+    page.gjs_html = body.html
+    page.gjs_css  = body.css
+    page.gjs_data = json.dumps(body.gjsData, ensure_ascii=False)
+    db.commit()
+    return {"ok": True}
 
 
 @router.put("/{lead_id}/reorder")

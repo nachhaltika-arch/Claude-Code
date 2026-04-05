@@ -478,6 +478,10 @@ def _run_migrations():
         )
         """,
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ist_pflichtseite BOOLEAN DEFAULT false",
+        # GrapesJS editor data per sitemap page
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS gjs_html TEXT DEFAULT ''",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS gjs_css TEXT DEFAULT ''",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS gjs_data TEXT DEFAULT '{}'",
         # content_sections + content_media
         """CREATE TABLE IF NOT EXISTS content_sections (
           id SERIAL PRIMARY KEY,
@@ -762,6 +766,7 @@ app.include_router(website_mockup.router, prefix="/api")
 
 from routers import sitemap
 app.include_router(sitemap.router)
+app.include_router(sitemap.pages_router)
 
 from routers import content
 app.include_router(content.router)

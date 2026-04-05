@@ -17,16 +17,7 @@ import ProjectFilesSection from '../components/ProjectFilesSection';
 import AcademyCustomerSection from '../components/AcademyCustomerSection';
 import PageSpeedSection from '../components/PageSpeedSection';
 import API_BASE_URL from '../config';
-
-function useScreenWidth() {
-  const [width, setWidth] = useState(window.innerWidth);
-  useEffect(() => {
-    const h = () => setWidth(window.innerWidth);
-    window.addEventListener('resize', h);
-    return () => window.removeEventListener('resize', h);
-  }, []);
-  return width;
-}
+import { useScreenSize } from '../utils/responsive';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -65,8 +56,7 @@ export default function LeadProfile() {
   const { leadId } = useParams();
   const navigate = useNavigate();
   const { token, user } = useAuth();
-  const width = useScreenWidth();
-  const isMobile = width < 768;
+  const { isMobile, width } = useScreenSize();
   const isTablet = width >= 768 && width < 1100;
   const isDesktop = width >= 1100;
 
@@ -585,10 +575,9 @@ export default function LeadProfile() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease', maxWidth: 1200, margin: '0 auto', width: '100%', minWidth: 0, overflowX: 'hidden', padding: isMobile ? '0 4px' : undefined }}>
-      <style>{'.tab-nav::-webkit-scrollbar{display:none}'}</style>
 
       {/* HEADER */}
-      <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: isMobile ? '20px 16px' : '24px', color: 'white', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: isMobile ? '12px 16px' : '24px', color: 'white', position: 'relative', overflow: 'hidden' }}>
 
         <button onClick={() => navigate(-1)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, padding: '5px 10px', cursor: 'pointer', marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)' }}>
           ← Zurück
@@ -627,7 +616,7 @@ export default function LeadProfile() {
                     {(lead.display_name || lead.company_name || '?')[0].toUpperCase()}
                   </div>
                 )}
-                <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 600, color: 'white', margin: 0, letterSpacing: '-0.01em' }}>
+                <h1 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 600, color: 'white', margin: 0, letterSpacing: '-0.01em' }}>
                   {lead.display_name || lead.company_name}
                 </h1>
                 <button onClick={() => setEditingName(true)} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 'var(--radius-sm)', color: 'rgba(255,255,255,0.7)', fontSize: 11, padding: '3px 7px', cursor: 'pointer' }} title="Karteiname ändern">
@@ -654,7 +643,7 @@ export default function LeadProfile() {
 
           {current_score !== null && (
             <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', textAlign: 'center', flexShrink: 0, backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.2)', minWidth: 90 }}>
-              <div style={{ fontSize: isMobile ? 32 : 40, fontWeight: 600, color: 'white', lineHeight: 1 }}>{current_score}</div>
+              <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 600, color: 'white', lineHeight: 1 }}>{current_score}</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>/ 100</div>
               {current_level && (
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', marginTop: 6, fontWeight: 500 }}>
@@ -730,7 +719,7 @@ export default function LeadProfile() {
       )}
 
       {/* TABS */}
-      <div className="tab-nav" style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4 }}>
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ flex: isMobile ? '0 0 auto' : 1, flexShrink: 0, padding: isMobile ? '7px 14px' : '8px 12px', borderRadius: 'var(--radius-md)', border: 'none', background: activeTab === tab.id ? 'var(--bg-active)' : 'transparent', color: activeTab === tab.id ? 'var(--brand-primary)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: activeTab === tab.id ? 500 : 400, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
             <span>{tab.icon}</span>{tab.label}
@@ -770,7 +759,7 @@ export default function LeadProfile() {
                   </div>
                 ) : lead.website_screenshot ? (
                   <>
-                    <img src={lead.website_screenshot} alt="Website" style={{ width: '100%', display: 'block', maxHeight: isMobile ? 180 : 200, objectFit: 'cover', objectPosition: 'top' }} />
+                    <img src={lead.website_screenshot} alt="Website" style={{ width: '100%', display: 'block', maxHeight: isMobile ? 150 : 200, objectFit: 'cover', objectPosition: 'top' }} />
                     {current_score !== null && (
                       <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(15,28,32,0.85)', backdropFilter: 'blur(6px)', borderRadius: 'var(--radius-md)', padding: '4px 10px' }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: levelColor }}>{current_score}/100</span>

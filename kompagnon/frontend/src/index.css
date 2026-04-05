@@ -382,3 +382,26 @@ input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
 .pill-info    { background: var(--status-info-bg);    color: var(--status-info-text);    }
 .pill-neutral { background: var(--status-neutral-bg); color: var(--status-neutral-text); }
 .pill-brand   { background: var(--brand-primary-light); color: var(--brand-primary-dark); }
+
+/* ══════════════════════════════════════════════════════════════
+   GLOBAL MOBILE RULES — max-width: 767px
+   ══════════════════════════════════════════════════════════════ */
+
+/* Scrollable tab nav (shared class for all pages) */
+.kc-tab-nav {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex-wrap: nowrap;
+}
+.kc-tab-nav::-webkit-scrollbar { display: none; }
+.kc-tab-nav button { flex-shrink: 0; white-space: nowrap; }
+
+@media (max-width: 767px) {
+  .kc-card { padding: 12px !important; }
+  .kc-page-content { padding: 12px !important; }
+  .kc-grid-2 { grid-template-columns: 1fr !important; }
+  .kc-grid-3 { grid-template-columns: 1fr !important; }
+  .kc-grid-4 { grid-template-columns: 1fr 1fr !important; }
+}

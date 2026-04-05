@@ -478,7 +478,36 @@ def _run_migrations():
         )
         """,
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ist_pflichtseite BOOLEAN DEFAULT false",
-    ]
+        # content_sections + content_media
+        """CREATE TABLE IF NOT EXISTS content_sections (
+          id SERIAL PRIMARY KEY,
+          sitemap_page_id INTEGER REFERENCES sitemap_pages(id) ON DELETE CASCADE,
+          lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+          slot_typ VARCHAR(80) NOT NULL,
+          slot_label VARCHAR(150) NOT NULL,
+          hinweis TEXT,
+          inhalt_ki TEXT,
+          inhalt_kunde TEXT,
+          inhalt_final TEXT,
+          status VARCHAR(30) DEFAULT 'ausstehend',
+          zeichenlimit INTEGER,
+          erstellt_am TIMESTAMP DEFAULT NOW(),
+          aktualisiert_am TIMESTAMP DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS content_media (
+          id SERIAL PRIMARY KEY,
+          sitemap_page_id INTEGER REFERENCES sitemap_pages(id) ON DELETE CASCADE,
+          lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+          slot_typ VARCHAR(80) NOT NULL,
+          slot_label VARCHAR(150) NOT NULL,
+          hinweis TEXT,
+          dateiname VARCHAR(255),
+          dateityp VARCHAR(50),
+          datei_base64 TEXT,
+          dateigroesse_kb INTEGER,
+          status VARCHAR(30) DEFAULT 'ausstehend',
+          erstellt_am TIMESTAMP DEFAULT NOW()
+        )""",
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
         'academy_progress', 'academy_lesson_progress',
@@ -732,6 +761,9 @@ app.include_router(website_mockup.router, prefix="/api")
 
 from routers import sitemap
 app.include_router(sitemap.router)
+
+from routers import content
+app.include_router(content.router)
 
 
 # Global exception handler — catches unhandled errors

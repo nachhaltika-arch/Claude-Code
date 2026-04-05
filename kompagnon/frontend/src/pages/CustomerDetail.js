@@ -1153,6 +1153,9 @@ export default function CustomerDetail() {
   const [mockupSlow, setMockupSlow]        = useState(false);
   const [mockupResult, setMockupResult]    = useState(null);
   const [mockupError, setMockupError]      = useState('');
+  // Mockup — per-page workflow
+  const [activeMockupPage, setActiveMockupPage] = useState(null);
+  const [pageVersions, setPageVersions]         = useState({});
 
   // Academy state
   const [assigned, setAssigned]     = useState([]);
@@ -1286,8 +1289,36 @@ export default function CustomerDetail() {
     finally { setAddPageSaving(false); }
   };
 
+  const loadVersionsForPage = async (pageId) => {
+    if (!pageId) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/mockups/${leadId}?page_id=${pageId}`, { headers: h });
+      if (res.ok) {
+        const data = await res.json();
+        setPageVersions(prev => ({ ...prev, [pageId]: Array.isArray(data) ? data : [] }));
+      }
+    } catch { /* silent */ }
+  };
+
+  const saveVersion = async (html) => {
+    if (!activeMockupPage || !leadId) return;
+    const versionName = `v${(pageVersions[activeMockupPage.id]?.length || 0) + 1} — ${new Date().toLocaleDateString('de-DE')}`;
+    try {
+      await fetch(`${API_BASE_URL}/api/mockups/${leadId}`, {
+        method: 'POST', headers: h,
+        body: JSON.stringify({
+          sitemap_page_id: activeMockupPage.id,
+          page_name: activeMockupPage.page_name,
+          version_name: versionName,
+          html_content: html,
+        }),
+      });
+      loadVersionsForPage(activeMockupPage.id);
+    } catch { /* silent */ }
+  };
+
   const generateMockup = async () => {
-    if (!projectId) return;
+    if (!projectId || !activeMockupPage) return;
     setMockupRunning(true);
     setMockupSlow(false);
     setMockupError('');
@@ -1296,37 +1327,34 @@ export default function CustomerDetail() {
     try {
       const bRes = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers: h });
       const briefing = bRes.ok ? await bRes.json() : null;
-      const selectedPage = sitemapPages.find(p => p.id === selectedPageId) || null;
 
       let contentFields = {};
-      if (selectedPage) {
-        try {
-          const cRes = await fetch(`${API_BASE_URL}/api/content/page/${selectedPage.id}`, { headers: h });
-          if (cRes.ok) {
-            const cData = await cRes.json();
-            (cData.sections || []).forEach(s => {
-              const text = s.inhalt_final || s.inhalt_ki || '';
-              if (text) contentFields[`content_${s.slot_typ}`] = text;
-            });
-          }
-        } catch { /* optional */ }
-      }
+      try {
+        const cRes = await fetch(`${API_BASE_URL}/api/content/page/${activeMockupPage.id}`, { headers: h });
+        if (cRes.ok) {
+          const cData = await cRes.json();
+          (cData.sections || []).forEach(s => {
+            const text = s.inhalt_final || s.inhalt_ki || '';
+            if (text) contentFields[`content_${s.slot_typ}`] = text;
+          });
+        }
+      } catch { /* optional */ }
 
       const payload = {
-        company_name: String(customer?.company_name || ''),
-        city: String(briefing?.einzugsgebiet || customer?.city || ''),
-        trade: String(briefing?.gewerk || customer?.trade || ''),
-        usp: String(briefing?.usp || ''),
-        services: Array.isArray(briefing?.leistungen)
-          ? briefing.leistungen.map(String)
-          : typeof briefing?.leistungen === 'string'
-            ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
-            : [],
+        company_name:    String(customer?.company_name || ''),
+        city:            String(briefing?.einzugsgebiet || customer?.city || ''),
+        trade:           String(briefing?.gewerk || customer?.trade || ''),
+        usp:             String(briefing?.usp || ''),
+        services:        Array.isArray(briefing?.leistungen)
+                           ? briefing.leistungen.map(String)
+                           : typeof briefing?.leistungen === 'string'
+                             ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+                             : [],
         target_audience: String(briefing?.zielgruppe || ''),
-        page_name: String(selectedPage?.page_name || 'Startseite'),
-        zweck: String(selectedPage?.zweck || ''),
-        ziel_keyword: String(selectedPage?.ziel_keyword || ''),
-        cta_text: String(selectedPage?.cta_text || ''),
+        page_name:       String(activeMockupPage.page_name || 'Startseite'),
+        zweck:           String(activeMockupPage.zweck || ''),
+        ziel_keyword:    String(activeMockupPage.ziel_keyword || ''),
+        cta_text:        String(activeMockupPage.cta_text || ''),
         ...contentFields,
       };
 
@@ -1356,14 +1384,14 @@ export default function CustomerDetail() {
       if (!result) throw new Error('Zeitüberschreitung — bitte erneut versuchen');
       setMockupResult(result);
 
-      if (selectedPage && result) {
-        const html = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
-        fetch(`${API_BASE_URL}/api/sitemap/pages/${selectedPage.id}`, {
-          method: 'PUT', headers: h,
-          body: JSON.stringify({ ...selectedPage, mockup_html: html }),
-        }).catch(() => {});
-        setSitemapPages(prev => prev.map(p => p.id === selectedPage.id ? { ...p, mockup_html: html } : p));
-      }
+      // Auto-save version + update sitemap page
+      const html = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+      saveVersion(html);
+      fetch(`${API_BASE_URL}/api/sitemap/pages/${activeMockupPage.id}`, {
+        method: 'PUT', headers: h,
+        body: JSON.stringify({ ...activeMockupPage, mockup_html: html }),
+      }).catch(() => {});
+      setSitemapPages(prev => prev.map(p => p.id === activeMockupPage.id ? { ...p, mockup_html: html } : p));
     } catch (e) {
       setMockupError(e?.message || String(e) || 'Generierung fehlgeschlagen.');
     } finally {
@@ -1673,52 +1701,91 @@ export default function CustomerDetail() {
       {/* ── MOCKUP TAB ── */}
       {activeTab === 'mockup' && (() => {
         if (!sitemapLoaded && !sitemapLoading) loadSitemapPages();
+        const PAGE_ICONS = { startseite: '🏠', leistung: '🔧', info: 'ℹ️', vertrauen: '⭐', conversion: '📞', kontakt: '✉️' };
+        const contentPages = sitemapPages.filter(p => !p.ist_pflichtseite);
+
+        // Auto-set first page if not set yet
+        if (contentPages.length > 0 && !activeMockupPage) {
+          const first = contentPages.find(p => p.page_type === 'startseite') || contentPages[0];
+          setActiveMockupPage(first);
+          if (!pageVersions[first.id]) loadVersionsForPage(first.id);
+        }
+
+        if (sitemapLoaded && contentPages.length === 0) {
+          return (
+            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 24, textAlign: 'center' }}>
+              <div style={{ fontSize: 24, marginBottom: 12 }}>🗺️</div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 8 }}>Noch keine Sitemap-Seiten angelegt</div>
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 16 }}>Bitte zuerst im Sitemap-Tab die Website-Struktur planen.</div>
+              <button onClick={() => setActiveTab('sitemap')} style={{ padding: '8px 16px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                Zur Sitemap →
+              </button>
+            </div>
+          );
+        }
+
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>🎨 KI-Website-Entwurf generieren</div>
 
-              {/* Page selector */}
-              {sitemapPages.filter(p => !p.ist_pflichtseite).length > 0 && (
-                <div style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
-                    Welche Seite gestalten?
-                  </label>
-                  <select value={selectedPageId || ''} onChange={e => setSelectedPageId(Number(e.target.value) || null)}
-                    style={{ width: '100%', maxWidth: 360, padding: '8px 10px', fontSize: 13, borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', cursor: 'pointer' }}>
-                    <option value="">– Keine Seite ausgewählt –</option>
-                    {sitemapPages.filter(p => !p.ist_pflichtseite).map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
-                  </select>
-                  {selectedPageId && (() => {
-                    const pg = sitemapPages.find(p => p.id === selectedPageId);
-                    if (!pg) return null;
-                    return (
-                      <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13 }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{pg.page_name}</span>
-                        {pg.ziel_keyword && <span style={{ color: 'var(--text-tertiary)', marginLeft: 10 }}>🔑 {pg.ziel_keyword}</span>}
-                        {pg.zweck && <div style={{ color: 'var(--text-secondary)', marginTop: 4, fontSize: 12 }}>{pg.zweck}</div>}
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14 }}>
-                Generiert automatisch eine vollständige HTML-Seite auf Basis des Briefings.
+            {/* ── Page tab strip ── */}
+            {contentPages.length > 0 && (
+              <div style={{ display: 'flex', gap: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', borderBottom: '1px solid var(--border-light)', marginBottom: 4 }}>
+                {contentPages.map(page => (
+                  <button key={page.id}
+                    onClick={() => {
+                      setActiveMockupPage(page);
+                      setMockupResult(null);
+                      if (!pageVersions[page.id]) loadVersionsForPage(page.id);
+                    }}
+                    style={{
+                      flexShrink: 0, padding: '8px 16px', border: 'none',
+                      borderBottom: activeMockupPage?.id === page.id ? '2px solid var(--brand-primary)' : '2px solid transparent',
+                      background: 'none', cursor: 'pointer', fontSize: 13,
+                      fontWeight: activeMockupPage?.id === page.id ? 600 : 400,
+                      color: activeMockupPage?.id === page.id ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                      whiteSpace: 'nowrap', marginBottom: -1, display: 'flex', alignItems: 'center', gap: 5,
+                    }}>
+                    {PAGE_ICONS[page.page_type] || '📄'} {page.page_name}
+                    {(pageVersions[page.id]?.length || 0) > 0 && (
+                      <span style={{ background: 'var(--brand-primary)', color: '#fff', borderRadius: 99, padding: '1px 6px', fontSize: 10 }}>
+                        {pageVersions[page.id].length}
+                      </span>
+                    )}
+                  </button>
+                ))}
               </div>
-              {!projectId && (
-                <div style={{ background: '#FFF9E6', border: '1px solid #F5D87A', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92660A', marginBottom: 12 }}>
-                  Noch kein verknüpftes Projekt gefunden — bitte zuerst ein Projekt anlegen.
+            )}
+
+            {/* ── Active page info + generator ── */}
+            {activeMockupPage && (
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>🎨 KI-Entwurf generieren</div>
+
+                {/* Active page info box */}
+                <div style={{ background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                    {PAGE_ICONS[activeMockupPage.page_type] || '📄'} {activeMockupPage.page_name}
+                  </div>
+                  {activeMockupPage.ziel_keyword && <div style={{ color: 'var(--text-secondary)' }}>🔑 Keyword: <strong>{activeMockupPage.ziel_keyword}</strong></div>}
+                  {activeMockupPage.zweck && <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>🎯 Zweck: {activeMockupPage.zweck}</div>}
                 </div>
-              )}
-              <button onClick={generateMockup} disabled={mockupRunning || !projectId}
-                style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: mockupRunning || !projectId ? 'var(--bg-muted)' : 'var(--brand-primary)', color: mockupRunning || !projectId ? 'var(--text-tertiary)' : '#fff', fontSize: 14, fontWeight: 600, cursor: mockupRunning || !projectId ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                {mockupRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
-                {mockupRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
-              </button>
-              {mockupSlow && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8 }}>⏳ Claude denkt gründlich nach — das kann bis zu 55 Sekunden dauern…</div>}
-              {mockupError && <div style={{ background: 'var(--status-danger-bg)', border: '1px solid var(--status-danger-text)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--status-danger-text)', marginTop: 12 }}>{mockupError}</div>}
-            </div>
+
+                {!projectId && (
+                  <div style={{ background: '#FFF9E6', border: '1px solid #F5D87A', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92660A', marginBottom: 12 }}>
+                    Noch kein verknüpftes Projekt gefunden — bitte zuerst ein Projekt anlegen.
+                  </div>
+                )}
+                <button onClick={generateMockup} disabled={mockupRunning || !projectId}
+                  style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: mockupRunning || !projectId ? 'var(--bg-muted)' : 'var(--brand-primary)', color: mockupRunning || !projectId ? 'var(--text-tertiary)' : '#fff', fontSize: 14, fontWeight: 600, cursor: mockupRunning || !projectId ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {mockupRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
+                  {mockupRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
+                </button>
+                {mockupSlow && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8 }}>⏳ Claude denkt gründlich nach — das kann bis zu 55 Sekunden dauern…</div>}
+                {mockupError && <div style={{ background: 'var(--status-danger-bg)', border: '1px solid var(--status-danger-text)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--status-danger-text)', marginTop: 12 }}>{mockupError}</div>}
+              </div>
+            )}
+
+            {/* ── Result preview ── */}
             {mockupResult && (
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -1737,6 +1804,39 @@ export default function CustomerDetail() {
                 )}
               </div>
             )}
+
+            {/* ── Version history for active page ── */}
+            {activeMockupPage && (pageVersions[activeMockupPage.id]?.length || 0) > 0 && (
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>🕓 Versionen — {activeMockupPage.page_name}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {(pageVersions[activeMockupPage.id] || []).map(v => (
+                    <div key={v.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13 }}>
+                      <div>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{v.version_name}</span>
+                        <span style={{ color: 'var(--text-tertiary)', marginLeft: 10, fontSize: 11 }}>{v.created_at}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={async () => {
+                          const res = await fetch(`${API_BASE_URL}/api/mockups/version/${v.id}`, { headers: h });
+                          if (res.ok) { const d = await res.json(); setMockupResult(d.html_content); }
+                        }} style={{ padding: '4px 10px', fontSize: 11, borderRadius: 5, border: '1px solid var(--border-medium)', background: 'var(--bg-surface)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                          👁 Laden
+                        </button>
+                        <button onClick={async () => {
+                          if (!window.confirm('Version löschen?')) return;
+                          await fetch(`${API_BASE_URL}/api/mockups/version/${v.id}`, { method: 'DELETE', headers: h });
+                          setPageVersions(prev => ({ ...prev, [activeMockupPage.id]: prev[activeMockupPage.id].filter(x => x.id !== v.id) }));
+                        }} style={{ padding: '4px 10px', fontSize: 11, borderRadius: 5, border: '1px solid var(--status-danger-text)', background: 'transparent', color: 'var(--status-danger-text)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                          🗑
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         );
       })()}

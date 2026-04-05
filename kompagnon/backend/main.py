@@ -512,6 +512,20 @@ def _run_migrations():
           status VARCHAR(30) DEFAULT 'ausstehend',
           erstellt_am TIMESTAMP DEFAULT NOW()
         )""",
+        # Mockup version history
+        """CREATE TABLE IF NOT EXISTS mockup_versions (
+          id              SERIAL PRIMARY KEY,
+          lead_id         INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+          sitemap_page_id INTEGER REFERENCES sitemap_pages(id) ON DELETE CASCADE,
+          page_name       VARCHAR(150) DEFAULT '',
+          version_name    VARCHAR(150) DEFAULT '',
+          html_content    TEXT DEFAULT '',
+          created_at      TIMESTAMP DEFAULT NOW(),
+          created_by      VARCHAR(100) DEFAULT ''
+        )""",
+        "ALTER TABLE mockup_versions ADD COLUMN IF NOT EXISTS sitemap_page_id INTEGER REFERENCES sitemap_pages(id) ON DELETE CASCADE",
+        "CREATE INDEX IF NOT EXISTS idx_mockup_versions_lead_id ON mockup_versions(lead_id)",
+        "CREATE INDEX IF NOT EXISTS idx_mockup_versions_page_id ON mockup_versions(sitemap_page_id)",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -770,6 +784,9 @@ app.include_router(sitemap.pages_router)
 
 from routers import content
 app.include_router(content.router)
+
+from routers import mockups
+app.include_router(mockups.router)
 
 
 # Global exception handler — catches unhandled errors

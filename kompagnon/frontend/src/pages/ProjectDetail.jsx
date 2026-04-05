@@ -429,6 +429,8 @@ export default function ProjectDetail() {
   const [mockupSlow, setMockupSlow] = useState(false);
   const [mockupResult, setMockupResult] = useState(null);
   const [mockupError, setMockupError] = useState('');
+  const [activeMockupPage, setActiveMockupPage] = useState(null);
+  const [activeContentPage, setActiveContentPage] = useState(null);
 
   const loadProject = useCallback(async () => {
     try {
@@ -544,6 +546,27 @@ export default function ProjectDetail() {
     if (res.ok) setBrandData(await res.json());
   };
 
+  const loadPageContext = async () => {
+    const leadId = project?.lead_id;
+    if (!leadId) return {};
+    const [audits, pagespeed, crawler, briefing] = await Promise.allSettled([
+      fetch(`${API_BASE_URL}/api/audit/lead/${leadId}`, { headers }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/api/crawler/${leadId}`, { headers }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers }).then(r => r.json()),
+    ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null));
+    const latestAudit = Array.isArray(audits) ? audits[0] : null;
+    return {
+      audit_score: latestAudit?.total_score || null,
+      audit_problems: latestAudit?.top_problems || [],
+      pagespeed_mobile: pagespeed?.mobile_score || null,
+      crawler_pages: Array.isArray(crawler) ? crawler.length : 0,
+      briefing_usp: briefing?.usp || '',
+      briefing_leistungen: briefing?.leistungen || '',
+      briefing_zielgruppe: briefing?.zielgruppe || '',
+    };
+  };
+
   const generateMockup = async () => {
     setMockupRunning(true);
     setMockupSlow(false);
@@ -554,6 +577,7 @@ export default function ProjectDetail() {
       const bRes = await fetch(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers });
       const briefing = bRes.ok ? await bRes.json() : null;
       const selectedPage = sitemapPages.find(p => p.id === selectedPageId) || null;
+      const ctx = await loadPageContext();
 
       const payload = {
         company_name: String(project.company_name || ''),
@@ -570,6 +594,7 @@ export default function ProjectDetail() {
         zweck: String(selectedPage?.zweck || ''),
         ziel_keyword: String(selectedPage?.ziel_keyword || ''),
         cta_text: String(selectedPage?.cta_text || ''),
+        ...ctx,
       };
       console.log('Mockup payload:', JSON.stringify(payload, null, 2));
 
@@ -634,63 +659,40 @@ export default function ProjectDetail() {
       <ProjectCard project={project} />
 
       {/* ── Buttons ─────────────────────────────────────────────────────────── */}
-      <div style={{
-        display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: 8,
-        marginBottom: 16,
-        flexWrap: 'wrap',
-      }}>
-        <button
-          onClick={() => setShowEdit(true)}
-          style={{
-            flex: isMobile ? 'none' : 1,
-            padding: '9px 14px', background: 'var(--bg-surface)',
-            border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            fontFamily: 'var(--font-sans)', color: 'var(--text-primary)',
-            display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
-          }}
-        >
-          ✏️ Projektdaten bearbeiten
-        </button>
-
-        <button
-          onClick={async () => {
-            try {
-              const res = await axios.get(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers });
-              setBriefingData(res.data);
-            } catch { setBriefingData(null); }
-            setShowBriefingWizard(true);
-          }}
-          style={{
-            flex: isMobile ? 'none' : 1,
-            padding: '9px 14px', background: 'var(--bg-surface)',
-            border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            fontFamily: 'var(--font-sans)', color: 'var(--text-primary)',
-            display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
-          }}
-        >
-          📋 Briefing starten
-        </button>
-
-        {isAdmin && (
-          <button
-            onClick={() => setShowApproval(true)}
-            style={{
-              flex: isMobile ? 'none' : 1,
-              padding: '9px 14px', background: '#008EAA', color: '#fff',
-              border: 'none', borderRadius: 'var(--radius-md)',
-              fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              fontFamily: 'var(--font-sans)',
-              display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
-            }}
-          >
-            📧 Freigabe anfordern
-          </button>
-        )}
-      </div>
+      {(() => {
+        const btnBase = {
+          flex: 1, minWidth: 120, padding: '8px 10px', fontSize: 12,
+          fontWeight: 500, borderRadius: 'var(--radius-md)', cursor: 'pointer',
+          border: '1px solid var(--border-light)', background: 'var(--bg-surface)',
+          color: 'var(--text-primary)', display: 'flex', alignItems: 'center',
+          gap: 5, justifyContent: 'center', fontFamily: 'var(--font-sans)',
+        };
+        const btnApproval = {
+          ...btnBase, background: 'var(--brand-primary)', color: '#fff', border: 'none',
+        };
+        return (
+          <div style={{ display: 'flex', flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+            <button onClick={() => setShowEdit(true)} style={btnBase}>✏️ Projektdaten bearbeiten</button>
+            <button onClick={() => setActiveTab('audits')} style={btnBase}>🔍 Audit starten</button>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await axios.get(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers });
+                  setBriefingData(res.data);
+                } catch { setBriefingData(null); }
+                setShowBriefingWizard(true);
+              }}
+              style={btnBase}
+            >📋 Briefing starten</button>
+            <button onClick={() => setActiveTab('webcontent')} style={btnBase}>📝 Website-Content</button>
+            <button onClick={() => setActiveTab('crawler')} style={btnBase}>🕷️ Crawler</button>
+            <button onClick={() => setActiveTab('pagespeed')} style={btnBase}>⚡ PageSpeed</button>
+            {isAdmin && (
+              <button onClick={() => setShowApproval(true)} style={btnApproval}>🖊️ Freigabe anfordern</button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── Phase Tracker ───────────────────────────────────────────────────── */}
       <div className="kc-card">
@@ -1056,28 +1058,32 @@ export default function ProjectDetail() {
                           {page.ziel_keyword && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{page.ziel_keyword}</div>}
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>{st.label}</span>
-                        {page.mockup_html && (
-                          <button onClick={() => { const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${page.mockup_html}</body></html>`; window.open('data:text/html;charset=utf-8,' + encodeURIComponent(doc), '_blank'); }}
-                            style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
-                            👁 Vorschau
-                          </button>
-                        )}
-                        <button onClick={() => { setEditPageModal(page); setEditPageForm({ page_name: page.page_name, page_type: page.page_type, ziel_keyword: page.ziel_keyword || '', zweck: page.zweck || '', cta_text: page.cta_text || '', status: page.status || 'geplant' }); }}
-                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
-                          ✏️ Bearbeiten
-                        </button>
-                        <button onClick={() => setEditingPage(page)}
-                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
-                          🖼 Editor
-                        </button>
-                        <button onClick={() => { setSelectedPageId(page.id); setActiveTab('mockup'); }}
-                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
-                          🎨 Mockup
-                        </button>
-                        <button onClick={() => deleteSitemapPage(page.id)}
-                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--status-danger-text)', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
-                          🗑️
-                        </button>
+                        {(() => {
+                          const ab = (bg, color) => ({
+                            padding: '4px 10px', fontSize: 11, fontWeight: 500,
+                            background: bg, color: color, border: 'none',
+                            borderRadius: 'var(--radius-md)', cursor: 'pointer', whiteSpace: 'nowrap',
+                            fontFamily: 'var(--font-sans)', flexShrink: 0,
+                          });
+                          const openEditModal = (p) => { setEditPageModal(p); setEditPageForm({ page_name: p.page_name, page_type: p.page_type, ziel_keyword: p.ziel_keyword || '', zweck: p.zweck || '', cta_text: p.cta_text || '', status: p.status || 'geplant' }); };
+                          const goToMockup = (p) => { setActiveTab('mockup'); setActiveMockupPage(p); setSelectedPageId(p.id); };
+                          const goToContent = (p) => { setActiveTab('content'); setActiveContentPage(p); };
+                          const previewPage = (p) => {
+                            if (p.mockup_html) {
+                              const w = window.open('', '_blank');
+                              w.document.write(p.mockup_html); w.document.close();
+                            } else toast.info('Noch kein Mockup vorhanden — zuerst Mockup generieren');
+                          };
+                          return (
+                            <>
+                              <button onClick={() => openEditModal(page)} style={ab('var(--bg-elevated)', 'var(--text-primary)')}>✏️ Bearbeiten</button>
+                              <button onClick={() => goToMockup(page)} style={ab('var(--brand-primary)', '#fff')}>🎨 Mockup</button>
+                              <button onClick={() => goToContent(page)} style={ab('#059669', '#fff')}>📝 Content</button>
+                              <button onClick={() => previewPage(page)} style={ab('#7c3aed', '#fff')}>👁 Vorschau</button>
+                              <button onClick={() => setEditingPage(page)} style={ab('#1a2332', '#fff')}>🖊️ Editor</button>
+                            </>
+                          );
+                        })()}
                       </div>
                     );
                   })}

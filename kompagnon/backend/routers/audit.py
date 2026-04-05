@@ -688,6 +688,7 @@ async def start_audit(
             "trade": trade,
             "phone": scraped.get("phone", ""),
             "email": scraped.get("email", ""),
+            "scraping_blocked": bool(scraped.get("_scraping_blocked", False)),
         },
         "message": "Audit gestartet. Ergebnis mit GET /api/audit/{id} abrufen.",
     }

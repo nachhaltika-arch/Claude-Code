@@ -35,15 +35,29 @@ async def scrape_website(url: str) -> dict:
 
     try:
         headers = {
-            "User-Agent": "Mozilla/5.0 (compatible; KOMPAGNON-Bot/1.0)"
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
         }
 
         async with httpx.AsyncClient(
             timeout=8.0, follow_redirects=True, verify=False
         ) as client:
             response = await client.get(url, headers=headers)
-            html = response.text
 
+        if response.status_code in (403, 429):
+            # Website blockiert automatisches Scraping — Fallback-Daten verwenden
+            from urllib.parse import urlparse
+            domain = urlparse(url).netloc.lstrip("www.")
+            result["company_name"] = domain
+            result["has_ssl"] = url.startswith("https://")
+            result["_scraping_blocked"] = True
+            return result
+
+        html = response.text
         soup = BeautifulSoup(html, "html.parser")
 
         # 1. Firmenname aus Title oder H1

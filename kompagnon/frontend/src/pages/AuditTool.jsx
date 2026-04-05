@@ -28,6 +28,7 @@ export default function AuditTool() {
   const [showLeadModal, setShowLeadModal] = useState(false);
   const [savedLeadId, setSavedLeadId] = useState(null);
   const [scrapedData, setScrapedData] = useState(null);
+  const [scrapingBlocked, setScrapingBlocked] = useState(false);
   const [url, setUrl] = useState(searchParams.get('url') || '');
   const { isMobile } = useScreenSize();
   const pollRef = useRef(null);
@@ -69,6 +70,7 @@ export default function AuditTool() {
       // Store scraped data for display
       if (res.data.scraped) {
         setScrapedData(res.data.scraped);
+        if (res.data.scraped.scraping_blocked) setScrapingBlocked(true);
       }
 
       // Start polling every 4 seconds
@@ -271,6 +273,20 @@ export default function AuditTool() {
         <span >Audit-Ergebnis</span>
         <h1>{r.company_name}</h1>
       </div>
+
+      {/* Scraping-blocked warning */}
+      {scrapingBlocked && (
+        <div style={{
+          background: '#FFFBEB', border: '1px solid #F59E0B', borderRadius: 8,
+          padding: '10px 16px', fontSize: 13, color: '#92400E',
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+        }}>
+          <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+          <span>
+            Die Website hat automatisches Scraping blockiert. Einige Felder wurden nicht automatisch befüllt.
+          </span>
+        </div>
+      )}
 
       {/* Full Report */}
       <AuditReport auditData={r} />

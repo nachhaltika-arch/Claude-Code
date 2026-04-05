@@ -599,15 +599,22 @@ export default function ProjectDetail() {
       <ProjectCard project={project} />
 
       {/* ── Buttons ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: 8,
+        marginBottom: 16,
+        flexWrap: 'wrap',
+      }}>
         <button
           onClick={() => setShowEdit(true)}
           style={{
-            padding: '9px 18px', background: 'var(--bg-surface)',
+            flex: isMobile ? 'none' : 1,
+            padding: '9px 14px', background: 'var(--bg-surface)',
             border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
             fontSize: 13, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'var(--font-sans)', color: 'var(--text-primary)',
-            display: 'flex', alignItems: 'center', gap: 6, width: '100%',
+            display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
           }}
         >
           ✏️ Projektdaten bearbeiten
@@ -622,11 +629,12 @@ export default function ProjectDetail() {
             setShowBriefingWizard(true);
           }}
           style={{
-            padding: '9px 18px', background: 'var(--bg-surface)',
+            flex: isMobile ? 'none' : 1,
+            padding: '9px 14px', background: 'var(--bg-surface)',
             border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
             fontSize: 13, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'var(--font-sans)', color: 'var(--text-primary)',
-            display: 'flex', alignItems: 'center', gap: 6, width: '100%',
+            display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
           }}
         >
           📋 Briefing starten
@@ -636,11 +644,12 @@ export default function ProjectDetail() {
           <button
             onClick={() => setShowApproval(true)}
             style={{
-              padding: '9px 18px', background: '#008EAA', color: '#fff',
+              flex: isMobile ? 'none' : 1,
+              padding: '9px 14px', background: '#008EAA', color: '#fff',
               border: 'none', borderRadius: 'var(--radius-md)',
               fontSize: 13, fontWeight: 600, cursor: 'pointer',
               fontFamily: 'var(--font-sans)',
-              display: 'flex', alignItems: 'center', gap: 6, width: '100%',
+              display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
             }}
           >
             📧 Freigabe anfordern

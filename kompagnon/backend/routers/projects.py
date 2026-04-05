@@ -642,3 +642,76 @@ def create_project_from_lead(lead_id: int, background_tasks: BackgroundTasks, db
         "customer_id": customer_id,
         "message": f"Projekt 'Website – {company_name}' wurde erfolgreich angelegt",
     }
+
+
+@router.post("/{project_id}/scrape")
+async def scrape_project_website(
+    project_id: int,
+    db: Session = Depends(get_db),
+):
+    """Scrapt die Website des Projekts und extrahiert Branddesign-Daten."""
+    import httpx, re, json
+    from datetime import datetime as dt
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+
+    lead = project.lead
+    if not lead or not lead.website_url:
+        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
+
+    url = lead.website_url
+    if not url.startswith("http"):
+        url = "https://" + url
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0, headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/120.0.0.0 Safari/537.36"
+        }) as client:
+            resp = await client.get(url, follow_redirects=True)
+
+        html = resp.text
+
+        hex_colors = list(set(re.findall(r'#([0-9a-fA-F]{6})\b', html)))[:15]
+        fonts = list(set(re.findall(r"font-family:\s*['\"]?([^;'\"{}]+)", html)))[:5]
+        logo_match = re.search(r'<img[^>]+(logo)[^>]+src=["\']([^"\']+)["\']', html, re.IGNORECASE)
+        logo_url = logo_match.group(2) if logo_match else None
+
+        primary = ('#' + hex_colors[0]) if hex_colors else None
+        secondary = ('#' + hex_colors[1]) if len(hex_colors) > 1 else None
+        font_primary = fonts[0].strip() if fonts else None
+
+        lead.brand_primary_color = primary
+        lead.brand_secondary_color = secondary
+        lead.brand_font_primary = font_primary
+        lead.brand_logo_url = logo_url
+        lead.brand_colors = json.dumps(['#' + c for c in hex_colors])
+        lead.brand_fonts = json.dumps(fonts)
+        lead.brand_scrape_failed = False
+        lead.brand_scraped_at = dt.utcnow()
+        db.commit()
+
+        return {
+            "success": True,
+            "primary_color": primary,
+            "secondary_color": secondary,
+            "font_primary": font_primary,
+            "logo_url": logo_url,
+            "all_colors": ['#' + c for c in hex_colors],
+            "all_fonts": fonts,
+            "scrape_failed": False,
+            "scraped_at": dt.utcnow().isoformat(),
+        }
+
+    except Exception as e:
+        lead.brand_scrape_failed = True
+        db.commit()
+        return {
+            "success": False,
+            "scrape_failed": True,
+            "error": str(e),
+            "message": "Website konnte nicht gescrapt werden",
+        }

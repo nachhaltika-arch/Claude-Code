@@ -420,6 +420,10 @@ export default function ProjectDetail() {
   const [scrapeLoaded, setScrapeLoaded]       = useState(false);
   const [scrapePolling, setScrapePolling]     = useState(false);
   const [expandedScrape, setExpandedScrape]   = useState({});
+  // BrandDesign
+  const [brandData, setBrandData]   = useState(null);
+  const [scraping, setScraping]     = useState(false);
+  const [analyzing, setAnalyzing]   = useState(false);
   // Mockup
   const [mockupRunning, setMockupRunning] = useState(false);
   const [mockupSlow, setMockupSlow] = useState(false);
@@ -534,6 +538,12 @@ export default function ProjectDetail() {
     } catch { /* silent */ }
   };
 
+  const loadBrandData = async () => {
+    if (!project?.lead_id) return;
+    const res = await fetch(`${API_BASE_URL}/api/branddesign/${project.lead_id}`, { headers });
+    if (res.ok) setBrandData(await res.json());
+  };
+
   const generateMockup = async () => {
     setMockupRunning(true);
     setMockupSlow(false);
@@ -607,7 +617,7 @@ export default function ProjectDetail() {
     }
   };
 
-  const tabs = ['overview', 'briefing', 'dateien', 'pagespeed', 'sitemap', 'content', 'mockup', 'checklists', 'crawler', 'webcontent', 'zeit', 'kommunikation'];
+  const tabs = ['overview', 'briefing', 'branddesign', 'dateien', 'pagespeed', 'sitemap', 'content', 'mockup', 'checklists', 'crawler', 'webcontent', 'zeit', 'kommunikation'];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -693,6 +703,7 @@ export default function ProjectDetail() {
           const label =
             tab === 'overview'   ? '⊞ Übersicht'    :
             tab === 'briefing'   ? '📋 Briefing'     :
+            tab === 'branddesign'? '🎨 Branddesign'  :
             tab === 'dateien'    ? '📎 Dateien'      :
             tab === 'pagespeed'  ? '⚡ PageSpeed'    :
             tab === 'sitemap'    ? '🗺️ Sitemap'      :
@@ -745,6 +756,193 @@ export default function ProjectDetail() {
       {activeTab === 'briefing' && project.lead_id && (
         <BriefingTab lead={{ id: project.lead_id }} isMobile={false} />
       )}
+
+      {/* ── BrandDesign Tab ─────────────────────────────────────────────────── */}
+      {activeTab === 'branddesign' && (() => {
+        const lid = project.lead_id;
+        if (!brandData) loadBrandData();
+
+        const scrapeWebsite = async () => {
+          setScraping(true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/branddesign/${lid}/scrape`, { method: 'POST', headers: h });
+            if (res.ok) setBrandData(await res.json());
+            else toast.error('Scraping fehlgeschlagen');
+          } catch { toast.error('Fehler beim Scraping'); }
+          finally { setScraping(false); }
+        };
+
+        const analyzeScreenshot = async () => {
+          setAnalyzing(true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/branddesign/${lid}/analyze-screenshot`, { method: 'POST', headers: h });
+            if (res.ok) { setBrandData(d => ({ ...d, ...(res.ok ? {} : {}) })); await loadBrandData(); }
+            else { const e = await res.json().catch(() => ({})); toast.error(e.detail || 'Analyse fehlgeschlagen'); }
+          } catch { toast.error('Fehler bei der Analyse'); }
+          finally { setAnalyzing(false); }
+        };
+
+        const uploadPdf = async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          const fd = new FormData(); fd.append('file', file);
+          const res = await fetch(`${API_BASE_URL}/api/branddesign/${lid}/upload-pdf`, { method: 'POST', headers, body: fd });
+          if (res.ok) { toast.success('PDF hochgeladen'); await loadBrandData(); }
+          else toast.error('PDF-Upload fehlgeschlagen');
+          e.target.value = '';
+        };
+
+        const downloadPdf = async () => {
+          const res = await fetch(`${API_BASE_URL}/api/branddesign/${lid}/pdf`, { headers });
+          if (!res.ok) return toast.error('PDF nicht gefunden');
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = brandData?.pdf_filename || 'brand.pdf'; a.click();
+          URL.revokeObjectURL(url);
+        };
+
+        const copyColor = (color) => { navigator.clipboard.writeText(color).catch(() => {}); toast.success(`${color} kopiert`); };
+
+        const colors = [
+          { key: 'primary_color', label: 'Primär' },
+          { key: 'secondary_color', label: 'Sekundär' },
+        ];
+        const allColors = brandData?.all_colors || [];
+        const fonts = brandData?.all_fonts || [];
+        const hasBrand = brandData && (brandData.primary_color || brandData.font_primary);
+
+        const btnStyle = (active) => ({
+          flex: 1, minWidth: 140, padding: '9px 14px', borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-light)', background: active ? '#008EAA' : 'var(--bg-surface)',
+          color: active ? '#fff' : 'var(--text-primary)', fontSize: 13, fontWeight: 500,
+          cursor: active ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: active ? 0.7 : 1,
+        });
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Status Banner */}
+            <div style={{
+              padding: '12px 16px', borderRadius: 'var(--radius-lg)', fontSize: 13,
+              background: hasBrand ? '#EAF4E0' : brandData?.scrape_failed ? '#FEF3DC' : 'var(--bg-surface)',
+              border: `1px solid ${hasBrand ? '#3B6D11' : brandData?.scrape_failed ? '#BA7517' : 'var(--border-light)'}`,
+              color: hasBrand ? '#3B6D11' : brandData?.scrape_failed ? '#BA7517' : 'var(--text-secondary)',
+            }}>
+              {hasBrand ? `✅ Branddesign geladen — zuletzt aktualisiert: ${brandData.scraped_at || '–'}` :
+               brandData?.scrape_failed ? '⚠️ Letzter Scraping-Versuch fehlgeschlagen (403 oder Timeout)' :
+               '⬜ Noch keine Markendaten vorhanden — Website scrapen oder Screenshot analysieren'}
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={scrapeWebsite} disabled={scraping} style={btnStyle(scraping)}>
+                {scraping ? '⏳ Scraping…' : '🌐 Website scrapen'}
+              </button>
+              <button onClick={analyzeScreenshot} disabled={analyzing} style={btnStyle(analyzing)}>
+                {analyzing ? '⏳ Analysiere…' : '🤖 Screenshot analysieren'}
+              </button>
+              <label style={{ ...btnStyle(false), cursor: 'pointer' }}>
+                📄 PDF hochladen
+                <input type="file" accept=".pdf" onChange={uploadPdf} style={{ display: 'none' }} />
+              </label>
+            </div>
+
+            {/* Color Palette */}
+            {allColors.length > 0 && (
+              <div className="kc-card">
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>🎨 Farb-Palette</div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {allColors.map((color, i) => (
+                    <div key={i} title={`${color} – klicken zum Kopieren`} onClick={() => copyColor(color)}
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: '50%', background: color,
+                        border: '2px solid var(--border-light)', boxShadow: 'var(--shadow-card)',
+                        transition: 'transform 0.15s',
+                      }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                      />
+                      <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>
+                        {i === 0 ? 'Primär' : i === 1 ? 'Sekundär' : color}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Fonts */}
+            {fonts.length > 0 && (
+              <div className="kc-card">
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>🔤 Schriften</div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {fonts.map((font, i) => (
+                    <div key={i} style={{
+                      padding: '10px 16px', background: 'var(--bg-app)', border: '1px solid var(--border-light)',
+                      borderRadius: 'var(--radius-md)', fontFamily: font,
+                    }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4, fontFamily: 'var(--font-sans)' }}>
+                        {i === 0 ? 'Primär' : 'Sekundär'}
+                      </div>
+                      <div style={{ fontSize: 16, fontWeight: 600 }}>{font}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Aa Bb Cc 123</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Design Style + Notes */}
+            {(brandData?.design_style || brandData?.brand_notes) && (
+              <div className="kc-card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {brandData.design_style && (
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>Designstil</div>
+                    <span style={{
+                      display: 'inline-block', padding: '4px 12px', borderRadius: 'var(--radius-full)',
+                      background: '#E6F1FB', color: '#185FA5', fontSize: 13, fontWeight: 600,
+                    }}>
+                      🎭 {brandData.design_style}
+                    </span>
+                  </div>
+                )}
+                {brandData.brand_notes && (
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>KI-Notizen</div>
+                    <div style={{
+                      padding: '10px 14px', background: 'var(--bg-app)', border: '1px solid var(--border-light)',
+                      borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6,
+                    }}>
+                      {brandData.brand_notes}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* PDF */}
+            {brandData?.pdf_filename && (
+              <div className="kc-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 20 }}>📄</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{brandData.pdf_filename}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Brand Guidelines PDF</div>
+                  </div>
+                </div>
+                <button onClick={downloadPdf} style={{
+                  padding: '7px 14px', background: 'var(--bg-app)', border: '1px solid var(--border-light)',
+                  borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer',
+                  fontFamily: 'var(--font-sans)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  ⬇️ Herunterladen
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── Dateien Tab ─────────────────────────────────────────────────────── */}
       {activeTab === 'dateien' && project.lead_id && (

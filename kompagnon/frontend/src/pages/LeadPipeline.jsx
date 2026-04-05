@@ -5,7 +5,7 @@ import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
 const PHASES = [
-  { id: 'phase_1', label: 'Akquise',     icon: '📋', color: '#008EAA' },
+  { id: 'phase_1', label: 'Onboarding',  icon: '📋', color: '#008EAA' },
   { id: 'phase_2', label: 'Briefing',    icon: '📝', color: '#7c3aed' },
   { id: 'phase_3', label: 'Content',     icon: '✍️',  color: '#d97706' },
   { id: 'phase_4', label: 'Technik',     icon: '⚙️',  color: '#0891b2' },

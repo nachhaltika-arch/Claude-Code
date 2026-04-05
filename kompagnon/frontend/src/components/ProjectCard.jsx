@@ -3,7 +3,7 @@ import React from 'react';
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const PHASES = [
-  { key: 'phase_1', label: 'Akquise',    short: '1' },
+  { key: 'phase_1', label: 'Onboarding',  short: '1' },
   { key: 'phase_2', label: 'Briefing',   short: '2' },
   { key: 'phase_3', label: 'Content',    short: '3' },
   { key: 'phase_4', label: 'Technik',    short: '4' },

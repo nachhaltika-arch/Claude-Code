@@ -570,6 +570,14 @@ def _run_migrations():
     except Exception as e:
         logger.warning(f"Migration Warnung: {e}")
 
+    # Create any ORM-defined tables that don't exist yet (incl. project_scraped_pages, project_scrape_jobs)
+    try:
+        from database import Base, engine as db_engine
+        Base.metadata.create_all(bind=db_engine)
+        logger.info("✓ Base.metadata.create_all abgeschlossen")
+    except Exception as e:
+        logger.warning(f"create_all Warnung: {e}")
+
 
 def _create_default_admin():
     """Create demo users for all 4 roles if they don't exist."""

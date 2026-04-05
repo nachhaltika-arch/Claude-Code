@@ -336,6 +336,28 @@ function SidebarNav({ badges }) {
                 borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)',
                 padding: 4, zIndex: 51, marginBottom: 4,
               }}>
+                <div
+                  onClick={toggleTheme}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 10px', cursor: 'pointer', fontSize: 13,
+                    color: 'var(--text-primary)', borderBottom: '1px solid var(--border-light)',
+                    marginBottom: 4,
+                  }}
+                >
+                  <span>{theme === 'dark' ? '☀️ Hell' : '🌙 Dunkel'}</span>
+                  <div style={{
+                    width: 36, height: 20, borderRadius: 10,
+                    background: theme === 'dark' ? 'var(--brand-primary)' : 'var(--border-light)',
+                    position: 'relative', transition: 'background 0.2s',
+                  }}>
+                    <div style={{
+                      position: 'absolute', top: 2, left: theme === 'dark' ? 18 : 2,
+                      width: 16, height: 16, borderRadius: '50%',
+                      background: '#fff', transition: 'left 0.2s',
+                    }} />
+                  </div>
+                </div>
                 <button
                   onClick={() => { navigate('/app/profile'); setMenuOpen(false); }}
                   style={{
@@ -456,7 +478,7 @@ function BottomNav() {
 export default function AppLayout() {
   const { isMobile } = useScreenSize();
   const { user, logout } = useAuth();
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [badges] = useState({ pipeline: 0, audits: 0 });
@@ -543,6 +565,28 @@ export default function AppLayout() {
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'capitalize' }}>
                         {user?.role}
+                      </div>
+                    </div>
+                    <div
+                      onClick={toggleTheme}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '10px 10px', cursor: 'pointer', fontSize: 13,
+                        color: 'var(--text-primary)', borderBottom: '1px solid var(--border-light)',
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span>{theme === 'dark' ? '☀️ Hell' : '🌙 Dunkel'}</span>
+                      <div style={{
+                        width: 36, height: 20, borderRadius: 10,
+                        background: theme === 'dark' ? 'var(--brand-primary)' : 'var(--border-light)',
+                        position: 'relative', transition: 'background 0.2s',
+                      }}>
+                        <div style={{
+                          position: 'absolute', top: 2, left: theme === 'dark' ? 18 : 2,
+                          width: 16, height: 16, borderRadius: '50%',
+                          background: '#fff', transition: 'left 0.2s',
+                        }} />
                       </div>
                     </div>
                     <button

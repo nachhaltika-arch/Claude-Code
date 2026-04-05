@@ -99,13 +99,14 @@ export default function Dashboard() {
     : 'var(--status-danger-text)';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, animation: 'fadeIn 0.3s ease' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, animation: 'fadeIn 0.3s ease', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
 
       {/* KPI Grid */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
         gap: 12,
+        minWidth: 0, width: '100%',
       }}>
         <KpiCard label="Leads gesamt" value={kpis?.leads_total ?? leads.length} icon="👥" />
         <KpiCard label="Audits heute" value={kpis?.audits_today ?? 0} icon="✓" color="var(--brand-primary)" />
@@ -128,10 +129,11 @@ export default function Dashboard() {
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.6fr) minmax(0, 1fr)',
         gap: 16,
+        minWidth: 0, width: '100%', overflowX: 'hidden',
       }}>
 
         {/* Leads */}
-        <Card padding="sm">
+        <Card padding="sm" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '4px 4px 12px', borderBottom: '1px solid var(--border-light)', marginBottom: 4,
@@ -208,14 +210,14 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {statusBadge(lead.status)}
+                <span style={{ flexShrink: 0 }}>{statusBadge(lead.status)}</span>
               </div>
             ))
           )}
         </Card>
 
         {/* Letzte Audits */}
-        <Card padding="sm">
+        <Card padding="sm" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
           <div style={{
             fontSize: 13, fontWeight: 500, color: 'var(--text-primary)',
             padding: '4px 4px 12px', borderBottom: '1px solid var(--border-light)', marginBottom: 8,

@@ -1510,31 +1510,51 @@ export default function CustomerDetail() {
         </div>
 
         {/* Aktionsleiste */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {(() => {
-            const btnStyle = (variant) => ({
-              padding: '10px 16px',
-              background: variant === 'primary' ? 'var(--brand-primary)' : 'var(--bg-surface)',
-              color: variant === 'primary' ? '#fff' : 'var(--text-primary)',
-              border: '1px solid var(--border-light)',
-              borderRadius: 'var(--radius-md)',
-              fontSize: 13, fontWeight: 500,
-              cursor: 'pointer', textAlign: 'left',
-              fontFamily: 'var(--font-sans)',
-              width: '100%',
-            });
-            return (
-              <>
-                <button onClick={() => setActiveTab('dateien')} style={btnStyle('secondary')}>✏️ Projektdaten bearbeiten</button>
-                <button onClick={() => { setActiveTab('audits'); }} style={btnStyle('secondary')}>🔍 Audit starten</button>
-                <button onClick={() => setActiveTab('sitemap')} style={btnStyle('secondary')}>📋 Briefing / Sitemap</button>
-                <button onClick={() => setActiveTab('mockup')} style={btnStyle('secondary')}>📝 Website-Content</button>
-                <button onClick={() => setActiveTab('audits')} style={btnStyle('secondary')}>🕷️ Crawler</button>
-                <button onClick={() => setActiveTab('pagespeed')} style={btnStyle('secondary')}>⚡ PageSpeed</button>
-                <button onClick={() => setIsDesignerOpen(true)} style={btnStyle('primary')}>🌐 Website erstellen</button>
-              </>
-            );
-          })()}
+        <div style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: 8,
+          marginBottom: 16,
+          flexWrap: 'wrap',
+        }}>
+          <button onClick={() => setActiveTab('dateien')} style={{
+            flex: isMobile ? 'none' : 1,
+            padding: '9px 14px',
+            background: 'var(--bg-surface)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-light)',
+            borderRadius: 'var(--radius-md)',
+            fontSize: 13, fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'var(--font-sans)',
+            display: 'flex', alignItems: 'center', gap: 6,
+            justifyContent: 'center',
+          }}>✏️ Projektdaten bearbeiten</button>
+
+          <button onClick={() => setActiveTab('sitemap')} style={{
+            flex: isMobile ? 'none' : 1,
+            padding: '9px 14px',
+            background: 'var(--bg-surface)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-light)',
+            borderRadius: 'var(--radius-md)',
+            fontSize: 13, fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'var(--font-sans)',
+            display: 'flex', alignItems: 'center', gap: 6,
+            justifyContent: 'center',
+          }}>📋 Briefing starten</button>
+
+          <button onClick={() => setIsDesignerOpen(true)} style={{
+            flex: isMobile ? 'none' : 1,
+            padding: '9px 14px',
+            background: 'var(--brand-primary)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 'var(--radius-md)',
+            fontSize: 13, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'var(--font-sans)',
+            display: 'flex', alignItems: 'center', gap: 6,
+            justifyContent: 'center',
+          }}>🖊️ Website erstellen</button>
         </div>
       </div>
 

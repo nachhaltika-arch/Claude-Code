@@ -489,8 +489,8 @@ export default function ProjectDetail() {
       if (!result) throw new Error('Zeitüberschreitung — bitte erneut versuchen');
       setMockupResult(result);
 
-      if (selectedPage && data.result) {
-        const mockupHtml = typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2);
+      if (selectedPage && result) {
+        const mockupHtml = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
         fetch(`${API_BASE_URL}/api/sitemap/pages/${selectedPage.id}`, {
           method: 'PUT', headers: h,
           body: JSON.stringify({ ...selectedPage, mockup_html: mockupHtml }),

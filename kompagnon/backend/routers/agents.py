@@ -185,13 +185,55 @@ class ReviewInput(BaseModel):
 @router.post("/{project_id}/content")
 def start_content_agent(
     project_id: int,
-    briefing: ContentBriefing,
+    briefing: ContentBriefing = None,
     db: Session = Depends(get_db),
 ):
     """Start content writer job. Returns job_id immediately — poll /api/agents/jobs/{job_id}."""
+    from sqlalchemy import text as _text
+
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+
+    lead = project.lead
+
+    if briefing is None:
+        briefing = ContentBriefing()
+
+    # Auto-fill missing fields from lead/project
+    company_name = briefing.company_name or (lead.company_name if lead else "") or ""
+    city         = briefing.city or (lead.city if lead else "") or ""
+    trade        = briefing.trade or (lead.trade if lead else "") or ""
+    usp          = briefing.usp or ""
+    services     = briefing.services or ([lead.trade] if lead and lead.trade else ["Handwerk"])
+    target_audience = briefing.target_audience or (f"Kunden in {city}" if city else "Lokale Kunden")
+
+    # Enrich from briefings table if available
+    if project.lead_id:
+        try:
+            briefing_row = db.execute(
+                _text("SELECT usp, leistungen, zielgruppe FROM briefings WHERE lead_id = :lid LIMIT 1"),
+                {"lid": project.lead_id},
+            ).fetchone()
+            if briefing_row:
+                if briefing_row.usp:
+                    usp = briefing_row.usp
+                if briefing_row.leistungen:
+                    services = [s.strip() for s in briefing_row.leistungen.split(",") if s.strip()]
+                if briefing_row.zielgruppe:
+                    target_audience = briefing_row.zielgruppe
+        except Exception:
+            pass
+
+    briefing_dict = briefing.dict()
+    briefing_dict.update({
+        "company_name": company_name,
+        "city": city,
+        "trade": trade,
+        "usp": usp,
+        "services": services,
+        "target_audience": target_audience,
+    })
 
     job_id = str(uuid.uuid4())
     _jobs[job_id] = {"status": "running"}
@@ -199,8 +241,7 @@ def start_content_agent(
     use_mock = not os.getenv("ANTHROPIC_API_KEY")
     t = threading.Thread(
         target=_run_content_job,
-        args=(job_id, briefing.dict(), use_mock,
-              briefing.company_name, briefing.city, briefing.trade),
+        args=(job_id, briefing_dict, use_mock, company_name, city, trade),
         daemon=True,
     )
     t.start()

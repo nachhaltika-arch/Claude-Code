@@ -579,17 +579,20 @@ export default function ProjectDetail() {
       const selectedPage = sitemapPages.find(p => p.id === selectedPageId) || null;
       const ctx = await loadPageContext();
 
+      const city = briefing?.einzugsgebiet || project.city || '';
+      const trade = briefing?.gewerk || project.trade || project.industry || '';
+      const services = Array.isArray(briefing?.leistungen)
+        ? briefing.leistungen.map(String)
+        : typeof briefing?.leistungen === 'string'
+          ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+          : (trade ? [trade] : ['Handwerk']);
       const payload = {
         company_name: String(project.company_name || ''),
-        city: String(briefing?.einzugsgebiet || ''),
-        trade: String(briefing?.gewerk || project.industry || ''),
+        city: String(city),
+        trade: String(trade),
         usp: String(briefing?.usp || ''),
-        services: Array.isArray(briefing?.leistungen)
-          ? briefing.leistungen.map(String)
-          : typeof briefing?.leistungen === 'string'
-            ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
-            : [],
-        target_audience: String(briefing?.zielgruppe || ''),
+        services,
+        target_audience: String(briefing?.zielgruppe || (city ? `Kunden in ${city}` : 'Lokale Kunden')),
         page_name: String(selectedPage?.page_name || 'Startseite'),
         zweck: String(selectedPage?.zweck || ''),
         ziel_keyword: String(selectedPage?.ziel_keyword || ''),

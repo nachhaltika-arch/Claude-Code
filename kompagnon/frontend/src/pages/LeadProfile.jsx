@@ -239,6 +239,26 @@ export default function LeadProfile() {
       const lead = profile?.lead;
       const selectedPage = sitemapPages.find(p => p.id === selectedPageId) || null;
 
+      // Content-Slots laden (inhalt_final bevorzugt, inhalt_ki als Fallback)
+      let contentFields = {};
+      let logoUrl = null;
+      if (selectedPage) {
+        try {
+          const cRes = await fetch(`${API_BASE_URL}/api/content/page/${selectedPage.id}`, { headers: h });
+          if (cRes.ok) {
+            const cData = await cRes.json();
+            // Text-Slots → content_{slot_typ}
+            (cData.sections || []).forEach(s => {
+              const text = s.inhalt_final || s.inhalt_ki || '';
+              if (text) contentFields[`content_${s.slot_typ}`] = text;
+            });
+            // Logo-URL wenn freigegeben
+            const logoSlot = (cData.media || []).find(m => m.slot_typ === 'logo' && m.status === 'freigegeben');
+            if (logoSlot) logoUrl = `${API_BASE_URL}/api/content/media/${logoSlot.id}/file`;
+          }
+        } catch (_) { /* Content optional — kein Fehler */ }
+      }
+
       const payload = {
         company_name: lead?.display_name || lead?.company_name || '',
         city: lead?.city || briefing?.einzugsgebiet || '',
@@ -254,6 +274,9 @@ export default function LeadProfile() {
           ziel_keyword: selectedPage.ziel_keyword || '',
           cta_text: selectedPage.cta_text || '',
         } : {}),
+        // Echter Content aus Content-Manager
+        ...contentFields,
+        ...(logoUrl ? { logo_url: logoUrl } : {}),
       };
 
       const res = await fetch(`${API_BASE_URL}/api/agents/${projectId}/content`, {
@@ -1557,10 +1580,15 @@ export default function LeadProfile() {
             )}
 
             <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
-              Generiert automatisch Textentwürfe für die Website auf Basis der Briefing-Daten.
-              {briefingData?.gewerk
-                ? ` Briefing vorhanden: ${briefingData.gewerk}${briefingData.einzugsgebiet ? ` · ${briefingData.einzugsgebiet}` : ''}.`
-                : ' Noch kein Briefing ausgefüllt – Basisdaten des Leads werden verwendet.'}
+              Generiert automatisch Textentwürfe für die Website auf Basis der Briefing- und Content-Daten.
+              {selectedPageId && contentSummary.find(p => p.sitemap_page_id === selectedPageId) && (() => {
+                const pg = contentSummary.find(p => p.sitemap_page_id === selectedPageId);
+                const filled = (pg.sections || []).filter(s => s.inhalt_final || s.inhalt_ki).length;
+                const total  = (pg.sections || []).length;
+                if (filled > 0) return <span style={{ color: 'var(--brand-primary)', fontWeight: 500 }}> {filled}/{total} Content-Slots werden eingesetzt.</span>;
+                return null;
+              })()}
+              {!briefingData?.gewerk && ' Noch kein Briefing ausgefüllt – Basisdaten des Leads werden verwendet.'}
             </div>
             {!projectId && (
               <div style={{ background: '#FFF9E6', border: '1px solid #F5D87A', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92660A', marginBottom: 12 }}>

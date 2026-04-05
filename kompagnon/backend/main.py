@@ -788,6 +788,9 @@ app.include_router(content.router)
 from routers import mockups
 app.include_router(mockups.router)
 
+from routers import content_scraper_router
+app.include_router(content_scraper_router.router)
+
 
 # Global exception handler — catches unhandled errors
 @app.exception_handler(Exception)

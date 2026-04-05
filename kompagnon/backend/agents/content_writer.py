@@ -133,12 +133,22 @@ Liefere das Ergebnis als JSON:
                 timeout=55.0,
             )
 
-            response_text = message.content[0].text
+            response_text = message.content[0].text.strip() if message.content else ""
+            if not response_text:
+                return {"error": "Leere Antwort von der KI — bitte erneut versuchen."}
+
+            # Strip markdown code fences if present (```json ... ``` or ``` ... ```)
+            if response_text.startswith("```"):
+                lines = response_text.splitlines()
+                # remove first line (```json or ```) and last line (```)
+                inner = [l for l in lines[1:] if l.strip() != "```"]
+                response_text = "\n".join(inner).strip()
+
             result = json.loads(response_text)
             return result
 
         except json.JSONDecodeError as e:
-            return {"error": f"JSON parse error: {str(e)}"}
+            return {"error": f"KI-Antwort konnte nicht verarbeitet werden (kein gültiges JSON). Bitte erneut versuchen."}
         except Exception as e:
             return {"error": f"Content generation failed: {str(e)}"}
 

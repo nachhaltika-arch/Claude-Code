@@ -729,13 +729,13 @@ export default function LeadProfile() {
 
       {/* ÜBERSICHT TAB */}
       {activeTab === 'overview' && (
-        <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '340px 1fr' : isTablet ? '280px 1fr' : '1fr', gap: 16, alignItems: 'flex-start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '340px 1fr' : isTablet ? '280px 1fr' : '1fr', gap: 16, alignItems: 'flex-start', minWidth: 0, width: '100%', overflowX: 'hidden' }}>
 
           {/* Linke Spalte */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
 
             {/* Screenshot */}
-            <Card padding="sm" style={{ overflow: 'hidden', maxHeight: isMobile ? 200 : 'none' }}>
+            <Card padding="sm" style={{ overflow: 'hidden', maxHeight: isMobile ? 200 : 'none', width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
               <div style={{ background: 'var(--bg-app)', padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 5, borderBottom: '1px solid var(--border-light)', margin: '-12px -12px 0' }}>
                 {['#ef4444','#f59e0b','#22c55e'].map(c => (
                   <div key={c} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />
@@ -759,7 +759,7 @@ export default function LeadProfile() {
                   </div>
                 ) : lead.website_screenshot ? (
                   <>
-                    <img src={lead.website_screenshot} alt="Website" style={{ width: '100%', display: 'block', maxHeight: isMobile ? 160 : 320, objectFit: 'cover', objectPosition: 'top' }} />
+                    <img src={lead.website_screenshot} alt="Website" style={{ width: '100%', maxHeight: isMobile ? '150px' : '300px', objectFit: 'cover', objectPosition: 'top', display: 'block', borderRadius: 0 }} />
                     {current_score !== null && (
                       <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(15,28,32,0.85)', backdropFilter: 'blur(6px)', borderRadius: 'var(--radius-md)', padding: '4px 10px' }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: levelColor }}>{current_score}/100</span>
@@ -780,7 +780,7 @@ export default function LeadProfile() {
 
             {/* Score Verlauf */}
             {score_history.length >= 2 && (
-              <Card padding="sm">
+              <Card padding="sm" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Score-Verlauf</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   {score_history.map((s, i) => (
@@ -798,7 +798,7 @@ export default function LeadProfile() {
 
             {/* Kategorie Scores */}
             {latestAudit && (
-              <Card padding="sm">
+              <Card padding="sm" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Kategorien</div>
                 {[
                   ['Compliance', latestAudit.rc_score, 25],
@@ -827,9 +827,9 @@ export default function LeadProfile() {
           </div>
 
           {/* Rechte Spalte */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
 
-            <Card padding="md">
+            <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Kontaktdaten</span>
                 <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Bearbeiten →</button>
@@ -858,7 +858,7 @@ export default function LeadProfile() {
             </Card>
 
             {/* ── Weitere Domains ── */}
-            <Card padding="md">
+            <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 12 }}>
                 Weitere Domains
               </div>
@@ -976,7 +976,7 @@ export default function LeadProfile() {
             </Card>
 
             {latestAudit && (
-              <Card padding="md">
+              <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Letzter Audit</span>
                   <button onClick={() => setActiveTab('audits')} style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Alle anzeigen →</button>
@@ -1003,7 +1003,7 @@ export default function LeadProfile() {
 
             {/* ── Projekt ── */}
             {projectData && (
-              <Card padding="md">
+              <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Projekt</span>
                   <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
@@ -1026,7 +1026,7 @@ export default function LeadProfile() {
             )}
 
             {(lead.vat_id || lead.register_number || lead.register_court) && (
-              <Card padding="md">
+              <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 12 }}>Rechtliches</div>
                 {fieldRow('🏛️', lead.vat_id, 'USt-IdNr.')}
                 {fieldRow('📋', lead.register_number, 'Handelsreg.-Nr.')}
@@ -1035,7 +1035,7 @@ export default function LeadProfile() {
             )}
 
             {/* QR-Code */}
-            <Card padding="md">
+            <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Kunden-Zugang</span>
                 <button onClick={() => setActiveTab('qrcode')} style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Details →</button>

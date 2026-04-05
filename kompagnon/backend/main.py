@@ -508,6 +508,7 @@ def _run_migrations():
           status VARCHAR(30) DEFAULT 'ausstehend',
           erstellt_am TIMESTAMP DEFAULT NOW()
         )""",
+    ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
         'academy_progress', 'academy_lesson_progress',

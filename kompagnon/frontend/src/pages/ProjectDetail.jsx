@@ -389,6 +389,12 @@ export default function ProjectDetail() {
   // Content Manager
   const [showContentManager, setShowContentManager] = useState(false);
   const [contentSummary, setContentSummary] = useState([]);
+  // Website-Content Scraper
+  const [scrapeStatus, setScrapeStatus]       = useState(null);
+  const [scrapedPages, setScrapedPages]       = useState([]);
+  const [scrapeLoaded, setScrapeLoaded]       = useState(false);
+  const [scrapePolling, setScrapePolling]     = useState(false);
+  const [expandedScrape, setExpandedScrape]   = useState({});
   // Mockup
   const [mockupRunning, setMockupRunning] = useState(false);
   const [mockupSlow, setMockupSlow] = useState(false);
@@ -576,7 +582,7 @@ export default function ProjectDetail() {
     }
   };
 
-  const tabs = ['overview', 'briefing', 'dateien', 'pagespeed', 'sitemap', 'content', 'mockup', 'checklists', 'crawler', 'zeit', 'kommunikation'];
+  const tabs = ['overview', 'briefing', 'dateien', 'pagespeed', 'sitemap', 'content', 'mockup', 'checklists', 'crawler', 'webcontent', 'zeit', 'kommunikation'];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -660,6 +666,7 @@ export default function ProjectDetail() {
             tab === 'mockup'     ? '🎨 Mockup'       :
             tab === 'checklists' ? '✓ Checklisten'  :
             tab === 'crawler'    ? '🕷️ Crawler'      :
+            tab === 'webcontent' ? '🌐 Website-Content' :
             tab === 'zeit'       ? '⏱ Zeiterfassung' : '💬 Kommunikation';
           return (
             <button
@@ -1251,6 +1258,144 @@ export default function ProjectDetail() {
                 <div style={{ fontSize: 11, marginTop: 4 }}>Klicke auf "Crawler starten" um die Website zu analysieren.</div>
               </div>
             )}
+          </div>
+        );
+      })()}
+
+      {/* ── Website-Content Tab ─────────────────────────────────────────────── */}
+      {activeTab === 'webcontent' && (() => {
+        if (!scrapeLoaded) {
+          setScrapeLoaded(true);
+          Promise.all([
+            fetch(`${API_BASE_URL}/api/projects/${project.id}/scrape-status`, { headers: h }).then(r => r.ok ? r.json() : null),
+            fetch(`${API_BASE_URL}/api/projects/${project.id}/scraped-content`, { headers: h }).then(r => r.ok ? r.json() : []),
+          ]).then(([status, pages]) => {
+            if (status) setScrapeStatus(status);
+            if (Array.isArray(pages)) setScrapedPages(pages);
+          }).catch(() => {});
+        }
+
+        const startScan = async () => {
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/scrape`, { method: 'POST', headers: h });
+            const data = await res.json();
+            if (data.status === 'already_running' || data.status === 'started') {
+              setScrapeStatus(prev => ({ ...prev, status: 'running' }));
+              setScrapePolling(true);
+              const poll = setInterval(async () => {
+                const sr = await fetch(`${API_BASE_URL}/api/projects/${project.id}/scrape-status`, { headers: h });
+                const sd = await sr.json();
+                setScrapeStatus(sd);
+                if (sd.status === 'done' || sd.status === 'failed') {
+                  clearInterval(poll);
+                  setScrapePolling(false);
+                  if (sd.status === 'done') {
+                    const pr = await fetch(`${API_BASE_URL}/api/projects/${project.id}/scraped-content`, { headers: h });
+                    const pd = await pr.json();
+                    if (Array.isArray(pd)) setScrapedPages(pd);
+                  }
+                }
+              }, 3000);
+            }
+          } catch { /* silent */ }
+        };
+
+        const isRunning = scrapeStatus?.status === 'running' || scrapeStatus?.status === 'pending';
+        const card = { background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 16, marginBottom: 12 };
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Status + Scan button */}
+            <div style={card}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                  {isRunning ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #ccc', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
+                      Scan läuft…
+                    </span>
+                  ) : scrapeStatus?.total_pages > 0 ? (
+                    <span>✅ <strong>{scrapeStatus.total_pages}</strong> Seiten gescrapt · Zuletzt: {scrapeStatus.completed_at || '–'}</span>
+                  ) : (
+                    <span>Noch kein Scan durchgeführt</span>
+                  )}
+                </div>
+                <button
+                  onClick={startScan}
+                  disabled={isRunning || scrapePolling}
+                  style={{ padding: '7px 16px', background: isRunning ? 'var(--bg-muted)' : 'var(--brand-primary)', color: isRunning ? 'var(--text-tertiary)' : '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: isRunning ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}
+                >
+                  {isRunning ? 'Scan läuft…' : scrapeStatus?.total_pages > 0 ? '🔄 Neu scannen' : '🌐 Jetzt scannen'}
+                </button>
+              </div>
+            </div>
+
+            {/* Results */}
+            {scrapedPages.length === 0 && !isRunning && (
+              <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: '24px 0', fontSize: 13 }}>
+                Noch keine Seiten gescrapt.
+              </div>
+            )}
+            {scrapedPages.map((page, idx) => {
+              const open = !!expandedScrape[idx];
+              return (
+                <div key={idx} style={{ ...card, padding: 0, overflow: 'hidden' }}>
+                  {/* Header */}
+                  <div
+                    onClick={() => setExpandedScrape(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                    style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: open ? 'var(--bg-app)' : 'transparent', userSelect: 'none' }}
+                  >
+                    <div style={{ overflow: 'hidden' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {page.page_title || page.url}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{page.url}</div>
+                    </div>
+                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 8 }}>{open ? '▲' : '▼'}</span>
+                  </div>
+                  {/* Body */}
+                  {open && (
+                    <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {page.meta_description && (
+                        <div style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-secondary)' }}>{page.meta_description}</div>
+                      )}
+                      {page.h1 && (
+                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{page.h1}</div>
+                      )}
+                      {page.h2_list?.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {page.h2_list.map((h2, i) => (
+                            <span key={i} style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: 99, padding: '2px 9px', fontSize: 11, fontWeight: 500 }}>{h2}</span>
+                          ))}
+                        </div>
+                      )}
+                      {page.paragraphs?.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {page.paragraphs.slice(0, 3).map((p, i) => (
+                            <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{p}</div>
+                          ))}
+                          {page.paragraphs.length > 3 && (
+                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>… {page.paragraphs.length - 3} weitere Absätze</div>
+                          )}
+                        </div>
+                      )}
+                      {(page.contact_phone || page.contact_email || page.contact_address) && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {page.contact_phone && <span style={{ background: '#d1fae5', color: '#065f46', borderRadius: 99, padding: '2px 9px', fontSize: 11 }}>📞 {page.contact_phone}</span>}
+                          {page.contact_email && <span style={{ background: '#d1fae5', color: '#065f46', borderRadius: 99, padding: '2px 9px', fontSize: 11 }}>✉️ {page.contact_email}</span>}
+                          {page.contact_address && <span style={{ background: '#d1fae5', color: '#065f46', borderRadius: 99, padding: '2px 9px', fontSize: 11 }}>📍 {page.contact_address}</span>}
+                        </div>
+                      )}
+                      {page.images?.length > 0 && (
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                          🖼 {page.images.length} Bild{page.images.length !== 1 ? 'er' : ''}: {page.images.slice(0, 3).map(img => img.alt || img.src).join(', ')}{page.images.length > 3 ? '…' : ''}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         );
       })()}

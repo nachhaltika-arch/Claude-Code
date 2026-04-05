@@ -1243,7 +1243,7 @@ export default function CustomerDetail() {
       <LinkedProjectSection leadId={customerId} headers={h} navigate={navigate} />
 
       {/* ── Tab navigation ── */}
-      <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border-light)', paddingBottom: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {[
           { id: 'dateien',   label: 'Dateien',   icon: '📎' },
           { id: 'audits',    label: 'Audits',    icon: '📋' },
@@ -1254,14 +1254,7 @@ export default function CustomerDetail() {
           <button
             key={id}
             onClick={() => setActiveTab(id)}
-            style={{
-              padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer',
-              fontSize: 13, fontWeight: activeTab === id ? 600 : 400, fontFamily: 'var(--font-sans)',
-              color: activeTab === id ? 'var(--brand-primary)' : 'var(--text-secondary)',
-              borderBottom: activeTab === id ? '2px solid var(--brand-primary)' : '2px solid transparent',
-              marginBottom: -1, whiteSpace: 'nowrap', transition: 'color var(--transition-fast)',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}
+            style={{ flex: isMobile ? '0 0 auto' : 1, flexShrink: 0, padding: isMobile ? '7px 14px' : '8px 12px', borderRadius: 'var(--radius-md)', border: 'none', background: activeTab === id ? 'var(--bg-active)' : 'transparent', color: activeTab === id ? 'var(--brand-primary)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: activeTab === id ? 500 : 400, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', transition: 'all 0.15s' }}
           >
             <span>{icon}</span>{label}
           </button>

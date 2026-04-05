@@ -12,6 +12,7 @@ import AuditReport from '../components/AuditReport';
 import BriefingTab from '../components/BriefingTab';
 import BriefingWizard from '../components/BriefingWizard';
 import SitemapPlaner from '../components/SitemapPlaner';
+import GrapesEditor from '../components/GrapesEditor';
 import ContentManager from '../components/ContentManager';
 import OfferTab from '../components/OfferTab';
 import ProjectFilesSection from '../components/ProjectFilesSection';
@@ -108,6 +109,7 @@ export default function LeadProfile() {
   const [sitemapLoading, setSitemapLoading] = useState(false);
   const [showSitemapPlaner, setShowSitemapPlaner] = useState(false);
   const [selectedPageId, setSelectedPageId] = useState(null);
+  const [editingPage, setEditingPage] = useState(null);
   const [showContentManager, setShowContentManager] = useState(false);
   const [contentSummary, setContentSummary] = useState([]);
 
@@ -1439,10 +1441,10 @@ export default function LeadProfile() {
                 </div>
               ) : (
                 <>
-                  {sitemapPages.filter(p => !p.ist_pflichtseite).map((page, idx, arr) => {
+                  {sitemapPages.filter(p => !p.ist_pflichtseite).map((page) => {
                     const st = SITEMAP_STATUS[page.status] || SITEMAP_STATUS.geplant;
                     return (
-                      <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
+                      <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 18, flexShrink: 0 }}>{TYPE_ICON[page.page_type] || '📄'}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -1455,11 +1457,22 @@ export default function LeadProfile() {
                         <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
                           {st.label}
                         </span>
+                        {page.mockup_html && (
+                          <button
+                            onClick={() => {
+                              const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${page.mockup_html}</body></html>`;
+                              window.open('data:text/html;charset=utf-8,' + encodeURIComponent(doc), '_blank');
+                            }}
+                            style={{ padding: '5px 10px', borderRadius: 6, border: '1.5px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
+                          >
+                            👁 Vorschau
+                          </button>
+                        )}
                         <button
-                          onClick={() => { setSelectedPageId(page.id); setActiveTab('mockup'); }}
-                          style={{ padding: '5px 12px', borderRadius: 6, border: '1.5px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
+                          onClick={() => setEditingPage(page)}
+                          style={{ padding: '5px 12px', borderRadius: 6, border: '1.5px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
                         >
-                          Mockup öffnen →
+                          ✏️ Bearbeiten
                         </button>
                       </div>
                     );
@@ -1964,6 +1977,20 @@ export default function LeadProfile() {
           leadId={Number(leadId)}
           leadData={profile.lead}
           onClose={() => { setShowSitemapPlaner(false); loadSitemapPages(); }}
+        />
+      )}
+
+      {/* GRAPES EDITOR MODAL */}
+      {editingPage && (
+        <GrapesEditor
+          pageId={editingPage.id}
+          pageName={editingPage.page_name}
+          initialHtml={editingPage.mockup_html || ''}
+          onClose={() => setEditingPage(null)}
+          onSave={({ html }) => {
+            setSitemapPages(prev => prev.map(p => p.id === editingPage.id ? { ...p, mockup_html: html } : p));
+            setEditingPage(null);
+          }}
         />
       )}
 

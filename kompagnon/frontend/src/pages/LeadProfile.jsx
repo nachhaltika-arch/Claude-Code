@@ -735,7 +735,7 @@ export default function LeadProfile() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
             {/* Screenshot */}
-            <Card padding="sm" style={{ overflow: 'hidden' }}>
+            <Card padding="sm" style={{ overflow: 'hidden', maxHeight: isMobile ? 200 : 'none' }}>
               <div style={{ background: 'var(--bg-app)', padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 5, borderBottom: '1px solid var(--border-light)', margin: '-12px -12px 0' }}>
                 {['#ef4444','#f59e0b','#22c55e'].map(c => (
                   <div key={c} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />
@@ -759,7 +759,7 @@ export default function LeadProfile() {
                   </div>
                 ) : lead.website_screenshot ? (
                   <>
-                    <img src={lead.website_screenshot} alt="Website" style={{ width: '100%', display: 'block', maxHeight: isMobile ? 150 : 200, objectFit: 'cover', objectPosition: 'top' }} />
+                    <img src={lead.website_screenshot} alt="Website" style={{ width: '100%', display: 'block', maxHeight: isMobile ? 160 : 320, objectFit: 'cover', objectPosition: 'top' }} />
                     {current_score !== null && (
                       <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(15,28,32,0.85)', backdropFilter: 'blur(6px)', borderRadius: 'var(--radius-md)', padding: '4px 10px' }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: levelColor }}>{current_score}/100</span>

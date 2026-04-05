@@ -157,7 +157,7 @@ export default function LeadPipeline() {
       </div>
 
       {/* KPI bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 16, minWidth: 0, width: '100%' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : 'repeat(7, 1fr)', gap: 6, marginBottom: 16, minWidth: 0, width: '100%' }}>
         {PHASES.map(ph => (
           <div key={ph.id} style={{
             background: 'var(--bg-surface)', border: '1px solid var(--border-light)',

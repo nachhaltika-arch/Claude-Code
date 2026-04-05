@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import API_BASE_URL from '../config';
+import { useScreenSize } from '../utils/responsive';
 
 // ── Status-Farben ─────────────────────────────────────────────────────────────
 const STATUS_COLOR = {
@@ -36,6 +37,7 @@ function SectionCard({ section, token, onUpdated }) {
   const [kiLoading, setKiLoading] = useState(false);
   const [kunde, setKunde] = useState(section.inhalt_kunde || '');
   const [final, setFinal] = useState(section.inhalt_final || '');
+  const { isMobile } = useScreenSize();
 
   const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
@@ -110,7 +112,7 @@ function SectionCard({ section, token, onUpdated }) {
       )}
 
       {/* 3-Spalten */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 0 }}>
         {/* KI-Entwurf */}
         <div style={{ background: '#EFF6FF', padding: 12, borderRight: '1px solid var(--border-light)' }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#1D4ED8', marginBottom: 6 }}>KI-Entwurf</div>
@@ -170,12 +172,15 @@ function SectionCard({ section, token, onUpdated }) {
 function MediaCard({ media, token, onUpdated, onDeleted }) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [uploadError, setUploadError] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const fileRef = useRef(null);
   const h = { Authorization: `Bearer ${token}` };
 
   async function handleFile(file) {
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { alert('Datei zu groß (max. 10 MB)'); return; }
+    if (file.size > 10 * 1024 * 1024) { setUploadError('Datei zu groß (max. 10 MB)'); return; }
+    setUploadError('');
     setUploading(true); setProgress(10);
     try {
       const fd = new FormData();
@@ -205,7 +210,8 @@ function MediaCard({ media, token, onUpdated, onDeleted }) {
   }
 
   async function handleDelete() {
-    if (!window.confirm('Datei wirklich löschen?')) return;
+    if (!deleteConfirm) { setDeleteConfirm(true); return; }
+    setDeleteConfirm(false);
     await fetch(`${API_BASE_URL}/api/content/media/${media.id}`, { method: 'DELETE', headers: h });
     onDeleted(media.id);
   }
@@ -230,12 +236,20 @@ function MediaCard({ media, token, onUpdated, onDeleted }) {
             {media.dateiname} · {media.dateigroesse_kb} KB
           </div>
           <StatusBadge status={media.status} />
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             {media.status !== 'freigegeben' && (
               <button onClick={handleApprove} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #065F46', background: '#065F46', color: 'white', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>✅ Freigeben</button>
             )}
             <button onClick={() => fileRef.current?.click()} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>🔄 Ersetzen</button>
-            <button onClick={handleDelete} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#DC2626', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>🗑️ Löschen</button>
+            {deleteConfirm ? (
+              <>
+                <span style={{ fontSize: 11, color: '#DC2626' }}>Sicher?</span>
+                <button onClick={handleDelete} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #DC2626', background: '#DC2626', color: 'white', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, löschen</button>
+                <button onClick={() => setDeleteConfirm(false)} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
+              </>
+            ) : (
+              <button onClick={handleDelete} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#DC2626', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>🗑️ Löschen</button>
+            )}
           </div>
         </>
       ) : (
@@ -253,6 +267,12 @@ function MediaCard({ media, token, onUpdated, onDeleted }) {
           {uploading && (
             <div style={{ height: 4, background: '#E2E8F0', borderRadius: 2, overflow: 'hidden' }}>
               <div style={{ width: `${progress}%`, height: '100%', background: 'var(--brand-primary)', transition: 'width 0.3s ease' }} />
+            </div>
+          )}
+          {uploadError && (
+            <div style={{ fontSize: 11, color: '#DC2626', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 6, padding: '5px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>⚠️ {uploadError}</span>
+              <button onClick={() => setUploadError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontSize: 14, lineHeight: 1, padding: 0, marginLeft: 8 }}>×</button>
             </div>
           )}
         </>

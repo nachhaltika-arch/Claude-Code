@@ -112,10 +112,10 @@ export default function Customers() {
   // ── Render ──
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', minWidth: 0, overflowX: 'hidden' }}>
 
       {/* ── Stats Row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, minWidth: 0, width: '100%' }}>
         <MiniStat label="Gesamt" value={stats.total} />
         <MiniStat label="Mit Score" value={stats.withScore} />
         <MiniStat label="Ø Score" value={stats.avgScore || '—'} color={stats.avgScore >= 70 ? 'var(--status-success-text)' : stats.avgScore >= 50 ? 'var(--status-warning-text)' : undefined} />
@@ -192,7 +192,7 @@ export default function Customers() {
 
       {/* ── Customer List ── */}
       {filtered.length === 0 ? (
-        <Card style={{ textAlign: 'center', padding: '48px 20px' }}>
+        <Card style={{ textAlign: 'center', padding: '48px 20px', width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
           <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.4 }}>🔍</div>
           <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 4 }}>
             Keine Ergebnisse
@@ -202,7 +202,7 @@ export default function Customers() {
           </div>
         </Card>
       ) : (
-        <Card padding="sm" style={{ padding: 0, overflow: 'hidden' }}>
+        <Card padding="sm" style={{ padding: 0, overflow: 'hidden', width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
           {/* Table header — desktop only */}
           {!isMobile && (
             <div style={{

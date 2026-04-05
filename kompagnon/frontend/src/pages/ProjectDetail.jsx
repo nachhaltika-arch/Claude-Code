@@ -13,6 +13,7 @@ import SecurityChecklist from '../components/SecurityChecklist';
 import PageSpeedSection from '../components/PageSpeedSection';
 import SitemapPlaner from '../components/SitemapPlaner';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 
 import API_BASE_URL from '../config';
 
@@ -345,6 +346,7 @@ function ApprovalModal({ projectId, token, onClose }) {
 export default function ProjectDetail() {
   const { id }         = useParams();
   const { token, user } = useAuth();
+  const { isMobile }   = useScreenSize();
   const headers          = token ? { Authorization: `Bearer ${token}` } : {};
   const isAdmin          = user?.role === 'admin';
 
@@ -554,24 +556,28 @@ export default function ProjectDetail() {
       </div>
 
       {/* ── Tabs ───────────────────────────────────────────────────────────── */}
-      <div className="kc-tabs">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`kc-tab ${activeTab === tab ? 'kc-tab--active' : ''}`}
-          >
-            {tab === 'overview'      ? 'Übersicht'    :
-             tab === 'briefing'      ? 'Briefing'     :
-             tab === 'dateien'       ? 'Dateien'      :
-             tab === 'pagespeed'     ? '⚡ PageSpeed'  :
-             tab === 'sitemap'       ? '🗺️ Sitemap'    :
-             tab === 'mockup'        ? '🎨 Mockup'     :
-             tab === 'checklists'    ? 'Checklisten'  :
-             tab === 'crawler'       ? '🕷️ Crawler'    :
-             tab === 'zeit'          ? 'Zeiterfassung': 'Kommunikation'}
-          </button>
-        ))}
+      <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        {tabs.map((tab) => {
+          const label =
+            tab === 'overview'   ? '⊞ Übersicht'    :
+            tab === 'briefing'   ? '📋 Briefing'     :
+            tab === 'dateien'    ? '📎 Dateien'      :
+            tab === 'pagespeed'  ? '⚡ PageSpeed'    :
+            tab === 'sitemap'    ? '🗺️ Sitemap'      :
+            tab === 'mockup'     ? '🎨 Mockup'       :
+            tab === 'checklists' ? '✓ Checklisten'  :
+            tab === 'crawler'    ? '🕷️ Crawler'      :
+            tab === 'zeit'       ? '⏱ Zeiterfassung' : '💬 Kommunikation';
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{ flex: isMobile ? '0 0 auto' : 1, flexShrink: 0, padding: isMobile ? '7px 14px' : '8px 12px', borderRadius: 'var(--radius-md)', border: 'none', background: activeTab === tab ? 'var(--bg-active)' : 'transparent', color: activeTab === tab ? 'var(--brand-primary)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: activeTab === tab ? 500 : 400, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Overview Tab ────────────────────────────────────────────────────── */}

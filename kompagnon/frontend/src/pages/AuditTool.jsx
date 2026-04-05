@@ -143,7 +143,7 @@ export default function AuditTool() {
   // ═════════════════════════════════════════════════════════
   if (step === 'form') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
         <div >
           <span >Homepage Standard</span>
           <h1>Website-Audit</h1>
@@ -187,7 +187,7 @@ export default function AuditTool() {
   // ═════════════════════════════════════════════════════════
   if (step === 'loading') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
         <div >
           <span >Audit läuft</span>
           <h1>Analyse von {scrapedData?.company_name || url}</h1>
@@ -238,7 +238,7 @@ export default function AuditTool() {
             }}>
               ✓ Automatisch erkannt
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '8px', fontSize: '13px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '8px', fontSize: '13px', minWidth: 0, width: '100%' }}>
               {scrapedData.company_name && (
                 <div><span style={{ color: 'var(--text-tertiary)' }}>Firma:</span> <strong>{scrapedData.company_name}</strong></div>
               )}
@@ -267,7 +267,7 @@ export default function AuditTool() {
   const r = result;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       {/* Header */}
       <div >
         <span >Audit-Ergebnis</span>

@@ -58,7 +58,7 @@ export default function ProductDevelopment() {
   const inp = { width: '100%', padding: '10px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, boxSizing: 'border-box', outline: 'none' };
 
   return (
-    <div>
+    <div style={{ width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>Produktentwicklung</h1>
@@ -68,7 +68,7 @@ export default function ProductDevelopment() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 20, minWidth: 0, width: '100%' }}>
         {[{ l: 'Gesamt', v: stats.total, c: '#2563eb', i: '📦' }, { l: 'In Entwicklung', v: stats.wip, c: '#d97706', i: '⚙️' }, { l: 'Abgeschlossen', v: stats.done, c: '#059669', i: '✅' }, { l: 'Hohe Prio', v: stats.high, c: '#dc2626', i: '🔴' }].map((k) => (
           <div key={k.l} style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '14px 16px', border: '1px solid var(--border-light)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}><span style={{ fontSize: 20 }}>{k.i}</span><span style={{ fontSize: 22, fontWeight: 900, color: k.c }}>{k.v}</span></div>
@@ -83,7 +83,7 @@ export default function ProductDevelopment() {
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 16, scrollbarWidth: 'none' }}>
             {STAGES.map((s, idx) => (
               <button key={s.id} onClick={() => setActiveTab(idx)} style={{
-                flexShrink: 0, padding: '8px 14px', borderRadius: 20, border: 'none',
+                flexShrink: 0, whiteSpace: 'nowrap', padding: '8px 14px', borderRadius: 20, border: 'none',
                 background: activeTab === idx ? s.color : 'var(--status-neutral-bg)', color: activeTab === idx ? '#fff' : 'var(--text-secondary)',
                 fontSize: 13, fontWeight: 600, cursor: 'pointer', minHeight: 36, whiteSpace: 'nowrap',
               }}>{s.icon} {s.label} ({getStageItems(s.id).length})</button>

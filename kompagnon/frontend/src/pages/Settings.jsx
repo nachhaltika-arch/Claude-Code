@@ -7,11 +7,11 @@ import { useScreenSize } from '../utils/responsive';
 
 
 export default function Settings({ tab }) {
-  if (tab === 'security') return <SecurityTab />;
-  if (tab === 'system') return <SystemTab />;
-  if (tab === 'notifications') return <NotificationsTab />;
-  if (tab === 'subscription') return <SubscriptionTab />;
-  return <ProfileTab />;
+  return (
+    <div style={{ width: '100%', minWidth: 0, overflowX: 'hidden' }}>
+      {tab === 'security' ? <SecurityTab /> : tab === 'system' ? <SystemTab /> : tab === 'notifications' ? <NotificationsTab /> : tab === 'subscription' ? <SubscriptionTab /> : <ProfileTab />}
+    </div>
+  );
 }
 
 // ── Profile ──
@@ -37,7 +37,7 @@ function ProfileTab() {
 
   return (
     <Card title="Profil-Einstellungen" icon="👤">
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14, minWidth: 0, width: '100%' }}>
         <Field label="Vorname" value={form.first_name} onChange={(v) => setForm((f) => ({ ...f, first_name: v }))} />
         <Field label="Nachname" value={form.last_name} onChange={(v) => setForm((f) => ({ ...f, last_name: v }))} />
       </div>

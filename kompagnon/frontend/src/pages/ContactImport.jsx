@@ -25,7 +25,7 @@ export default function ContactImport() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       <div >
         <span >Datenimport</span>
         <h1>Kontakt-Import</h1>
@@ -297,7 +297,7 @@ function ManualEntryTab() {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', minWidth: 0, width: '100%' }}>
         <div>
           <label style={labelStyle}>Ansprechpartner</label>
           <input type="text" value={form.contact_name} onChange={set('contact_name')} placeholder="Vor- und Nachname" style={inputStyle} />
@@ -308,7 +308,7 @@ function ManualEntryTab() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', minWidth: 0, width: '100%' }}>
         <div>
           <label style={labelStyle}>E-Mail</label>
           <input type="email" value={form.email} onChange={set('email')} placeholder="info@firma.de" style={inputStyle} />
@@ -319,7 +319,7 @@ function ManualEntryTab() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', minWidth: 0, width: '100%' }}>
         <div>
           <label style={labelStyle}>Stadt</label>
           <input type="text" value={form.city} onChange={set('city')} placeholder="z.B. Koblenz" style={inputStyle} />

@@ -45,14 +45,14 @@ export default function Tickets() {
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>Laden...</div>;
 
   return (
-    <div>
+    <div style={{ width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>Support Tickets</h1>
         <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>{filtered.length} Tickets{tickets.length !== filtered.length ? ` von ${tickets.length}` : ''}</p>
       </div>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 20, minWidth: 0, width: '100%' }}>
         {[{ l: 'Offen', v: kpis.open, c: '#2563eb', i: '📬', f: () => setFStatus('open') }, { l: 'In Bearbeitung', v: kpis.wip, c: '#d97706', i: '⚙️', f: () => setFStatus('in_progress') }, { l: 'Kritisch', v: kpis.crit, c: '#dc2626', i: '🚨', f: () => setFStatus('open') }, { l: 'Geloest', v: kpis.done, c: '#059669', i: '✅', f: () => setFStatus('resolved') }].map((k) => (
           <div key={k.l} onClick={k.f} style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '14px 16px', border: '1px solid var(--border-light)', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -81,9 +81,9 @@ export default function Tickets() {
       </div>
 
       {/* Two-column: List + Detail */}
-      <div style={{ display: 'grid', gridTemplateColumns: selected && !isMobile ? '1fr 400px' : '1fr', gap: 16, alignItems: 'flex-start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: selected && !isMobile ? '1fr 400px' : '1fr', gap: 16, alignItems: 'flex-start', minWidth: 0, width: '100%', overflowX: 'hidden' }}>
         {/* List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
           {filtered.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)', background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)' }}>Keine Tickets</div>}
           {filtered.map((t) => {
             const tc = TC[t.type] || TC.feedback;
@@ -118,7 +118,7 @@ export default function Tickets() {
 
         {/* Detail */}
         {selected && (
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden', position: isMobile ? 'fixed' : 'sticky', top: isMobile ? 0 : 20, left: isMobile ? 0 : 'auto', right: isMobile ? 0 : 'auto', bottom: isMobile ? 0 : 'auto', zIndex: isMobile ? 200 : 1, maxHeight: isMobile ? '100vh' : 'auto', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden', position: isMobile ? 'fixed' : 'sticky', top: isMobile ? 0 : 20, left: isMobile ? 0 : 'auto', right: isMobile ? 0 : 'auto', bottom: isMobile ? 0 : 'auto', zIndex: isMobile ? 200 : 1, maxHeight: isMobile ? '100vh' : 'auto', overflowY: 'auto', minWidth: 0 }}>
             <div style={{ background: 'var(--brand-primary)', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, marginBottom: 2 }}>{selected.ticket_number}</div>

@@ -147,7 +147,7 @@ export default function LeadPipeline() {
   );
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease' }}>
+    <div style={{ animation: 'fadeIn 0.3s ease', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       {/* Header */}
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Projektpipeline</h1>
@@ -157,7 +157,7 @@ export default function LeadPipeline() {
       </div>
 
       {/* KPI bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 16, minWidth: 0, width: '100%' }}>
         {PHASES.map(ph => (
           <div key={ph.id} style={{
             background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
@@ -175,7 +175,7 @@ export default function LeadPipeline() {
           <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 8, marginBottom: 12 }}>
             {PHASES.map((ph, idx) => (
               <button key={ph.id} onClick={() => setActiveTab(idx)} style={{
-                flexShrink: 0, padding: '6px 12px', borderRadius: 'var(--radius-full)',
+                flexShrink: 0, whiteSpace: 'nowrap', padding: '6px 12px', borderRadius: 'var(--radius-full)',
                 border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 12,
                 background: activeTab === idx ? 'var(--bg-active)' : 'transparent',
                 color: activeTab === idx ? 'var(--brand-primary)' : 'var(--text-secondary)',
@@ -195,7 +195,7 @@ export default function LeadPipeline() {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', overflowX: 'auto', paddingBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', overflowX: 'auto', paddingBottom: 8, minWidth: 0 }}>
           {PHASES.map(ph => {
             const colCards = getColCards(ph.id);
             const over     = dragOver === ph.id;

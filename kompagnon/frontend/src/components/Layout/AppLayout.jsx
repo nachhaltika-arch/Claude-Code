@@ -525,7 +525,7 @@ export default function AppLayout() {
             padding: '10px 16px', background: 'var(--bg-surface)',
             borderBottom: '1px solid var(--border-light)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            position: 'sticky', top: 0, zIndex: 30, flexShrink: 0,
+            position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, flexShrink: 0,
           }}>
             <div>
               <KompagnonLogo height={36} variant={theme === 'dark' ? 'white' : 'color'} />
@@ -624,6 +624,7 @@ export default function AppLayout() {
           flex: 1, overflowY: 'auto', overflowX: 'hidden',
           minWidth: 0,
           padding: isMobile ? 16 : '20px 28px',
+          paddingTop: isMobile ? 72 : undefined,
           paddingBottom: isMobile ? 80 : 20,
         }}>
           <div key={location.pathname} className="page-enter" style={{ maxWidth: '100%', overflowX: 'hidden' }}>

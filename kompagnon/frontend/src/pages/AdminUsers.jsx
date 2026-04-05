@@ -120,7 +120,7 @@ export default function AdminUsers() {
       {showCreate && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowCreate(false); }}>
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: '28px 32px', maxWidth: 440, width: '100%' }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: '28px 32px', maxWidth: 440, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ fontSize: 18, color: 'var(--text-primary)', marginBottom: 20 }}>Neuen Benutzer anlegen</h3>
             {tempPw ? (
               <div style={{ textAlign: 'center' }}>

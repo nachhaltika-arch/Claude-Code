@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import API_BASE_URL from '../config';
+import { useScreenSize } from '../utils/responsive';
 
 const TEAL   = '#008EAA';
 const STEPS  = [
@@ -420,6 +421,7 @@ function Step6({ data, saving, error, onSaveAndPdf }) {
 // ── Wizard ───────────────────────────────────────────────────────────────────
 
 export default function BriefingWizard({ leadId, leadData, onClose, onComplete }) {
+  const { isMobile } = useScreenSize();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -529,15 +531,15 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
     <div style={{
       position: 'fixed', inset: 0, zIndex: 2000,
       background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '16px',
+      display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
+      padding: isMobile ? 0 : '16px',
     }} onClick={e => e.target === e.currentTarget && onClose?.()}>
 
       {/* Panel */}
       <div style={{
-        background: '#fff', borderRadius: 16,
+        background: '#fff', borderRadius: isMobile ? '16px 16px 0 0' : 16,
         width: '100%', maxWidth: 700,
-        maxHeight: '92vh',
+        maxHeight: isMobile ? '94vh' : '92vh',
         display: 'flex', flexDirection: 'column',
         boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
         overflow: 'hidden',

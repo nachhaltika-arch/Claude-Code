@@ -434,50 +434,78 @@ export default function ContentManager({ leadId, leadName, token, onClose }) {
     return { total, done };
   }
 
+  const { isMobile } = useScreenSize();
+
+  function pageIcon(type) {
+    return type === 'startseite' ? '🏠' : type === 'leistung' ? '🔧' : type === 'info' ? 'ℹ️' : type === 'vertrauen' ? '⭐' : type === 'conversion' ? '📞' : '📄';
+  }
+
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: 'var(--bg-surface)', borderRadius: 12, width: '100%', maxWidth: 1100, height: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 16 }}>
+      <div style={{ background: 'var(--bg-surface)', borderRadius: isMobile ? '16px 16px 0 0' : 12, width: '100%', maxWidth: 1100, height: isMobile ? '94vh' : '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }}>
 
         {/* Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <div>
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
             <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Content-Management</span>
-            {leadName && <span style={{ fontSize: 13, color: 'var(--text-tertiary)', marginLeft: 8 }}>— {leadName}</span>}
+            {leadName && !isMobile && <span style={{ fontSize: 13, color: 'var(--text-tertiary)', marginLeft: 8 }}>— {leadName}</span>}
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, flexShrink: 0 }}>✕</button>
         </div>
 
-        {/* Body */}
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-
-          {/* Linke Spalte — Seitennavigation */}
-          <div style={{ width: 250, flexShrink: 0, borderRight: '1px solid var(--border-light)', overflowY: 'auto', padding: '12px 0' }}>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', padding: '0 14px 8px', fontStyle: 'italic' }}>
-              Pflichtseiten werden von KOMPAGNON befüllt.
-            </div>
-            {loading && <div style={{ padding: '20px 14px', color: 'var(--text-tertiary)', fontSize: 12 }}>Lade Seiten…</div>}
+        {/* Mobile: horizontale Tab-Bar */}
+        {isMobile && (
+          <div style={{ borderBottom: '1px solid var(--border-light)', overflowX: 'auto', display: 'flex', flexShrink: 0, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+            {loading && <div style={{ padding: '10px 16px', color: 'var(--text-tertiary)', fontSize: 12 }}>Lade Seiten…</div>}
             {pages.map(page => {
               const { total, done } = pageProgress(page);
               const isActive = activePage?.sitemap_page_id === page.sitemap_page_id;
               return (
-                <div
+                <button
                   key={page.sitemap_page_id}
                   onClick={() => setActivePage(page)}
-                  style={{ padding: '10px 14px', cursor: 'pointer', background: isActive ? '#E6F1FB' : 'transparent', borderLeft: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent', display: 'flex', alignItems: 'center', gap: 8 }}
+                  style={{ flexShrink: 0, padding: '10px 14px', background: 'none', border: 'none', borderBottom: isActive ? '2px solid var(--brand-primary)' : '2px solid transparent', cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
                 >
-                  <span style={{ fontSize: 14 }}>
-                    {page.page_type === 'startseite' ? '🏠' : page.page_type === 'leistung' ? '🔧' : page.page_type === 'info' ? 'ℹ️' : page.page_type === 'vertrauen' ? '⭐' : page.page_type === 'conversion' ? '📞' : '📄'}
-                  </span>
-                  <span style={{ flex: 1, fontSize: 13, fontWeight: isActive ? 500 : 400, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{page.page_name}</span>
-                  {total > 0 && (
-                    <span style={{ fontSize: 10, color: done === total ? '#065F46' : 'var(--text-tertiary)', fontWeight: 600, flexShrink: 0 }}>
-                      {done}/{total} {done === total ? '✅' : ''}
-                    </span>
-                  )}
-                </div>
+                  <span>{pageIcon(page.page_type)}</span>
+                  <span style={{ fontSize: 13, fontWeight: isActive ? 600 : 400, color: isActive ? 'var(--brand-primary)' : 'var(--text-secondary)' }}>{page.page_name}</span>
+                  {total > 0 && <span style={{ fontSize: 10, color: done === total ? '#065F46' : 'var(--text-tertiary)', fontWeight: 600 }}>{done}/{total}</span>}
+                </button>
               );
             })}
           </div>
+        )}
+
+        {/* Body */}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+          {/* Desktop: Linke Spalte — Seitennavigation */}
+          {!isMobile && (
+            <div style={{ width: 250, flexShrink: 0, borderRight: '1px solid var(--border-light)', overflowY: 'auto', padding: '12px 0' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', padding: '0 14px 8px', fontStyle: 'italic' }}>
+                Pflichtseiten werden von KOMPAGNON befüllt.
+              </div>
+              {loading && <div style={{ padding: '20px 14px', color: 'var(--text-tertiary)', fontSize: 12 }}>Lade Seiten…</div>}
+              {pages.map(page => {
+                const { total, done } = pageProgress(page);
+                const isActive = activePage?.sitemap_page_id === page.sitemap_page_id;
+                return (
+                  <div
+                    key={page.sitemap_page_id}
+                    onClick={() => setActivePage(page)}
+                    style={{ padding: '10px 14px', cursor: 'pointer', background: isActive ? '#E6F1FB' : 'transparent', borderLeft: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent', display: 'flex', alignItems: 'center', gap: 8 }}
+                  >
+                    <span style={{ fontSize: 14 }}>{pageIcon(page.page_type)}</span>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: isActive ? 500 : 400, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{page.page_name}</span>
+                    {total > 0 && (
+                      <span style={{ fontSize: 10, color: done === total ? '#065F46' : 'var(--text-tertiary)', fontWeight: 600, flexShrink: 0 }}>
+                        {done}/{total} {done === total ? '✅' : ''}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Rechte Spalte */}
           <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>

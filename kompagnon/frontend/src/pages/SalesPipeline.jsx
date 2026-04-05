@@ -287,7 +287,7 @@ function SalesCard({ lead, col, columns, onDragStart, onOpen, onAudit, onDelete,
           {menuOpen && (
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => setMenuOpen(false)} />
-              <div style={{ position: 'absolute', top: '100%', right: 0, background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-elevated)', border: '1px solid var(--border-light)', zIndex: 50, minWidth: 160, overflow: 'hidden' }}
+              <div style={{ position: 'absolute', top: '100%', right: 0, background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-elevated)', border: '1px solid var(--border-light)', zIndex: 50, minWidth: 160, maxWidth: 'calc(100vw - 24px)', overflow: 'hidden' }}
                 onClick={e => e.stopPropagation()}>
                 <MItem onClick={() => { onOpen(); setMenuOpen(false); }}>👤 Kundenkartei</MItem>
                 <MItem onClick={() => { onAudit(); setMenuOpen(false); }}>🔍 Audit starten</MItem>

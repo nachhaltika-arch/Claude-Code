@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import API_BASE_URL from '../config';
+import { useScreenSize } from '../utils/responsive';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -518,6 +519,7 @@ function EditModal({ page, contentPages, onSaved, onClose }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function SitemapPlaner({ leadId, leadData, onClose }) {
+  const { isMobile } = useScreenSize();
   const [pages, setPages]           = useState([]);
   const [loading, setLoading]       = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -627,14 +629,14 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
       style={{
         position: 'fixed', inset: 0, zIndex: 2000,
         background: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 16,
+        display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
+        padding: isMobile ? 0 : 16,
       }}
       onClick={e => e.target === e.currentTarget && onClose?.()}
     >
       <div style={{
-        background: '#F8FAFC', borderRadius: 16,
-        width: '100%', maxWidth: 900, maxHeight: '92vh',
+        background: '#F8FAFC', borderRadius: isMobile ? '16px 16px 0 0' : 16,
+        width: '100%', maxWidth: 900, maxHeight: isMobile ? '94vh' : '92vh',
         display: 'flex', flexDirection: 'column',
         boxShadow: '0 24px 80px rgba(0,0,0,0.25)', overflow: 'hidden',
       }}>

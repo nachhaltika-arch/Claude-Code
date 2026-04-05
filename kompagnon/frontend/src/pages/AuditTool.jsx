@@ -341,6 +341,7 @@ const LEVEL_STYLES = {
 };
 
 function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
+  const { isMobile } = useScreenSize();
   const [saving, setSaving] = useState(false);
   const [leadForm, setLeadForm] = useState({
     company_name: audit.company_name || '',
@@ -393,18 +394,18 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
       style={{
         position: 'fixed', inset: 0, zIndex: 100,
         background: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '16px',
+        display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
+        padding: isMobile ? 0 : '16px',
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
           background: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-lg)',
+          borderRadius: isMobile ? '16px 16px 0 0' : 'var(--radius-lg)',
           boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
           width: '100%', maxWidth: '560px',
-          maxHeight: '90vh', overflow: 'auto',
+          maxHeight: isMobile ? '94vh' : '90vh', overflow: 'auto',
         }}
       >
         {/* Modal Header */}

@@ -525,7 +525,10 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_scraped_at TIMESTAMP",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_pdf_data BYTEA",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_pdf_filename VARCHAR(255)",
-        # Mockup version history
+        # Mockup version history (simple form first — idempotent)
+        "CREATE TABLE IF NOT EXISTS mockup_versions (id SERIAL PRIMARY KEY, lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE, sitemap_page_id INTEGER, page_name VARCHAR(100) DEFAULT 'Startseite', version_name VARCHAR(150), html_content TEXT, created_at TIMESTAMP DEFAULT NOW(), created_by VARCHAR(100))",
+        "ALTER TABLE mockup_versions ADD COLUMN IF NOT EXISTS sitemap_page_id INTEGER",
+        # Full mockup_versions with FK constraints
         """CREATE TABLE IF NOT EXISTS mockup_versions (
           id              SERIAL PRIMARY KEY,
           lead_id         INTEGER REFERENCES leads(id) ON DELETE CASCADE,

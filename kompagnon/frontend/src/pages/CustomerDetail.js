@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import WebsiteDesigner from '../components/WebsiteDesigner';
+import GrapesEditor from '../components/GrapesEditor';
 
 // ── PageSpeed helpers ──────────────────────────────────────────
 
@@ -1128,6 +1129,30 @@ export default function CustomerDetail() {
   const [activeTab, setActiveTab]          = useState('dateien');
   // lead_id for PageSpeed — loaded from project, falls back to customerId
   const [leadId, setLeadId] = useState(customerId);
+  const [projectId, setProjectId] = useState(null);
+
+  // ── Sitemap state ──────────────────────────────────────────────
+  const [sitemapPages, setSitemapPages]   = useState([]);
+  const [sitemapLoading, setSitemapLoading] = useState(false);
+  const [sitemapLoaded, setSitemapLoaded]  = useState(false);
+  const [selectedPageId, setSelectedPageId] = useState(null);
+  const [editingPage, setEditingPage]      = useState(null);
+  // Add page inline form
+  const [addPageOpen, setAddPageOpen]      = useState(false);
+  const [addPageForm, setAddPageForm]      = useState({ page_name: '', page_type: 'info', parent_id: '' });
+  const [addPageSaving, setAddPageSaving]  = useState(false);
+  // Edit page modal
+  const [editPageModal, setEditPageModal]  = useState(null); // page object
+  const [editPageForm, setEditPageForm]    = useState({});
+  const [editPageSaving, setEditPageSaving] = useState(false);
+  // KI generation
+  const [kiGenerating, setKiGenerating]    = useState(false);
+  const [kiConfirm, setKiConfirm]          = useState(false);
+  // Mockup state
+  const [mockupRunning, setMockupRunning]  = useState(false);
+  const [mockupSlow, setMockupSlow]        = useState(false);
+  const [mockupResult, setMockupResult]    = useState(null);
+  const [mockupError, setMockupError]      = useState('');
 
   // Academy state
   const [assigned, setAssigned]     = useState([]);
@@ -1150,6 +1175,7 @@ export default function CustomerDetail() {
           ? projects.find(p => String(p.lead_id) === String(customerId))
           : null;
         if (linked?.lead_id) setLeadId(linked.lead_id);
+        if (linked?.id) setProjectId(linked.id);
       })
       .catch(() => {}); // fallback stays as customerId
   }, [customerId]); // eslint-disable-line
@@ -1166,6 +1192,186 @@ export default function CustomerDetail() {
       .catch(console.error)
       .finally(() => setLoadingAcademy(false));
   }, [customerId]); // eslint-disable-line
+
+  // ── Sitemap helpers ────────────────────────────────────────────
+  const loadSitemapPages = async (lid = leadId) => {
+    if (!lid) return;
+    setSitemapLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${lid}`, { headers: h });
+      if (res.ok) {
+        const pages = await res.json();
+        setSitemapPages(pages);
+        setSitemapLoaded(true);
+        if (!selectedPageId && pages.length > 0) {
+          const content = pages.filter(p => !p.ist_pflichtseite);
+          const start = content.find(p => p.page_type === 'startseite') || content[0];
+          if (start) setSelectedPageId(start.id);
+        }
+      }
+    } catch { /* silent */ }
+    finally { setSitemapLoading(false); }
+  };
+
+  const downloadSitemapPdf = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('PDF konnte nicht geladen werden');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'sitemap.pdf'; a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) { alert('PDF Fehler: ' + e.message); }
+  };
+
+  const deleteSitemapPage = async (pageId) => {
+    if (!window.confirm('Seite wirklich löschen?')) return;
+    await fetch(`${API_BASE_URL}/api/sitemap/pages/${pageId}`, { method: 'DELETE', headers: h });
+    setSitemapPages(prev => prev.filter(p => p.id !== pageId));
+  };
+
+  const generateKI = async () => {
+    setKiConfirm(false);
+    setKiGenerating(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/generate`, { method: 'POST', headers: h });
+      if (res.ok) {
+        const data = await res.json();
+        setSitemapPages(data.pages || []);
+        setSelectedPageId(null);
+      }
+    } catch { /* silent */ }
+    finally { setKiGenerating(false); }
+  };
+
+  const saveEditPage = async () => {
+    if (!editPageModal) return;
+    setEditPageSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/pages/${editPageModal.id}`, {
+        method: 'PUT', headers: h, body: JSON.stringify(editPageForm),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setSitemapPages(prev => prev.map(p => p.id === updated.id ? updated : p));
+        setEditPageModal(null);
+      }
+    } catch { /* silent */ }
+    finally { setEditPageSaving(false); }
+  };
+
+  const createPage = async () => {
+    if (!addPageForm.page_name.trim()) return;
+    setAddPageSaving(true);
+    try {
+      const body = {
+        page_name: addPageForm.page_name,
+        page_type: addPageForm.page_type,
+        parent_id: addPageForm.parent_id ? Number(addPageForm.parent_id) : null,
+        position: sitemapPages.filter(p => !p.ist_pflichtseite).length,
+      };
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pages`, {
+        method: 'POST', headers: h, body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const page = await res.json();
+        setSitemapPages(prev => [...prev, page]);
+        setAddPageForm({ page_name: '', page_type: 'info', parent_id: '' });
+        setAddPageOpen(false);
+      }
+    } catch { /* silent */ }
+    finally { setAddPageSaving(false); }
+  };
+
+  const generateMockup = async () => {
+    if (!projectId) return;
+    setMockupRunning(true);
+    setMockupSlow(false);
+    setMockupError('');
+    setMockupResult(null);
+    const slowTimer = setTimeout(() => setMockupSlow(true), 20000);
+    try {
+      const bRes = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers: h });
+      const briefing = bRes.ok ? await bRes.json() : null;
+      const selectedPage = sitemapPages.find(p => p.id === selectedPageId) || null;
+
+      let contentFields = {};
+      if (selectedPage) {
+        try {
+          const cRes = await fetch(`${API_BASE_URL}/api/content/page/${selectedPage.id}`, { headers: h });
+          if (cRes.ok) {
+            const cData = await cRes.json();
+            (cData.sections || []).forEach(s => {
+              const text = s.inhalt_final || s.inhalt_ki || '';
+              if (text) contentFields[`content_${s.slot_typ}`] = text;
+            });
+          }
+        } catch { /* optional */ }
+      }
+
+      const payload = {
+        company_name: String(customer?.company_name || ''),
+        city: String(briefing?.einzugsgebiet || customer?.city || ''),
+        trade: String(briefing?.gewerk || customer?.trade || ''),
+        usp: String(briefing?.usp || ''),
+        services: Array.isArray(briefing?.leistungen)
+          ? briefing.leistungen.map(String)
+          : typeof briefing?.leistungen === 'string'
+            ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+            : [],
+        target_audience: String(briefing?.zielgruppe || ''),
+        page_name: String(selectedPage?.page_name || 'Startseite'),
+        zweck: String(selectedPage?.zweck || ''),
+        ziel_keyword: String(selectedPage?.ziel_keyword || ''),
+        cta_text: String(selectedPage?.cta_text || ''),
+        ...contentFields,
+      };
+
+      const startRes = await fetch(`${API_BASE_URL}/api/agents/${projectId}/content`, {
+        method: 'POST', headers: h, body: JSON.stringify(payload),
+      });
+      if (!startRes.ok) {
+        const err = await startRes.json().catch(() => ({}));
+        const detail = err.detail;
+        throw new Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(d => d.msg || JSON.stringify(d)).join(', ') : `Fehler ${startRes.status}`);
+      }
+      const { job_id } = await startRes.json();
+
+      let result = null;
+      const deadline = Date.now() + 120_000;
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 2000));
+        const pollRes = await fetch(`${API_BASE_URL}/api/agents/jobs/${job_id}`, { headers: h });
+        if (!pollRes.ok) throw new Error('Job-Status konnte nicht abgerufen werden');
+        const job = await pollRes.json();
+        if (job.status === 'done') {
+          result = job.result_html || (typeof job.result === 'string' ? job.result : null);
+          break;
+        }
+        if (job.status === 'error') throw new Error(job.error || 'KI-Generierung fehlgeschlagen');
+      }
+      if (!result) throw new Error('Zeitüberschreitung — bitte erneut versuchen');
+      setMockupResult(result);
+
+      if (selectedPage && result) {
+        const html = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+        fetch(`${API_BASE_URL}/api/sitemap/pages/${selectedPage.id}`, {
+          method: 'PUT', headers: h,
+          body: JSON.stringify({ ...selectedPage, mockup_html: html }),
+        }).catch(() => {});
+        setSitemapPages(prev => prev.map(p => p.id === selectedPage.id ? { ...p, mockup_html: html } : p));
+      }
+    } catch (e) {
+      setMockupError(e?.message || String(e) || 'Generierung fehlgeschlagen.');
+    } finally {
+      clearTimeout(slowTimer);
+      setMockupRunning(false);
+      setMockupSlow(false);
+    }
+  };
 
   const handleAssign = async (courseId) => {
     setAssigning(courseId);
@@ -1247,6 +1453,8 @@ export default function CustomerDetail() {
         {[
           { id: 'dateien',   label: 'Dateien',   icon: '📎' },
           { id: 'audits',    label: 'Audits',    icon: '📋' },
+          { id: 'sitemap',   label: 'Sitemap',   icon: '🗺️' },
+          { id: 'mockup',    label: 'Mockup',    icon: '🎨' },
           { id: 'pagespeed', label: 'PageSpeed', icon: '⚡' },
           { id: 'akademy',   label: 'Akademy',   icon: '🎓' },
           { id: 'cms',       label: 'CMS',       icon: '🔌' },
@@ -1264,6 +1472,274 @@ export default function CustomerDetail() {
       {/* ── Tab content ── */}
       {activeTab === 'dateien'   && <ProjectFilesSection customerId={customerId} token={token} />}
       {activeTab === 'audits'    && <AuditHistorySection customerId={customerId} customer={customer} headers={h} />}
+
+      {/* ── SITEMAP TAB ── */}
+      {activeTab === 'sitemap' && (() => {
+        if (!sitemapLoaded && !sitemapLoading) loadSitemapPages();
+        const ST = {
+          geplant:        { bg: '#EFF6FF', text: '#1D4ED8', label: 'Geplant' },
+          in_bearbeitung: { bg: '#FEF9C3', text: '#92400E', label: 'In Bearb.' },
+          freigegeben:    { bg: '#FEF3C7', text: '#B45309', label: 'Freigegeben' },
+          live:           { bg: '#DCFCE7', text: '#166534', label: 'Live' },
+        };
+        const TI = { startseite: '🏠', leistung: '🔧', info: 'ℹ️', vertrauen: '⭐', conversion: '📞', sonstige: '📄' };
+        const PAGE_TYPES = [
+          { v: 'startseite', l: 'Startseite' }, { v: 'leistung', l: 'Leistung' },
+          { v: 'info', l: 'Info' }, { v: 'vertrauen', l: 'Vertrauen' },
+          { v: 'conversion', l: 'Conversion' }, { v: 'sonstige', l: 'Sonstige' },
+        ];
+        const inp = { width: '100%', padding: '7px 10px', fontSize: 13, border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box' };
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={() => setAddPageOpen(o => !o)}
+                style={{ padding: '8px 16px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                ➕ Seite hinzufügen
+              </button>
+              <button onClick={() => setKiConfirm(true)} disabled={kiGenerating || !leadId}
+                style={{ padding: '8px 16px', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', opacity: kiGenerating ? 0.6 : 1 }}>
+                {kiGenerating ? '⏳ Generiere…' : '🤖 KI-Vorlage laden'}
+              </button>
+              <button onClick={downloadSitemapPdf} disabled={!leadId}
+                style={{ padding: '8px 16px', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                📄 PDF herunterladen
+              </button>
+            </div>
+
+            {/* KI Confirm */}
+            {kiConfirm && (
+              <div style={{ background: '#FFF9E6', border: '1px solid #F5D87A', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 13, color: '#92660A', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ flex: 1 }}>⚠️ KI-Vorlage überschreibt alle vorhandenen (Nicht-Pflicht-)Seiten.</span>
+                <button onClick={generateKI} style={{ padding: '6px 14px', background: '#d97706', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, generieren</button>
+                <button onClick={() => setKiConfirm(false)} style={{ padding: '6px 14px', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
+              </div>
+            )}
+
+            {/* Add page form */}
+            {addPageOpen && (
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-lg)', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>Neue Seite anlegen</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Seitenname *</label>
+                    <input value={addPageForm.page_name} onChange={e => setAddPageForm(f => ({ ...f, page_name: e.target.value }))} placeholder="z.B. Leistungen" style={inp} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Typ</label>
+                    <select value={addPageForm.page_type} onChange={e => setAddPageForm(f => ({ ...f, page_type: e.target.value }))} style={inp}>
+                      {PAGE_TYPES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Übergeordnete Seite</label>
+                    <select value={addPageForm.parent_id} onChange={e => setAddPageForm(f => ({ ...f, parent_id: e.target.value }))} style={inp}>
+                      <option value="">– Keine –</option>
+                      {sitemapPages.filter(p => !p.ist_pflichtseite).map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={createPage} disabled={addPageSaving || !addPageForm.page_name.trim()}
+                    style={{ padding: '7px 16px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', opacity: addPageSaving ? 0.6 : 1 }}>
+                    {addPageSaving ? 'Speichert…' : '💾 Anlegen'}
+                  </button>
+                  <button onClick={() => setAddPageOpen(false)}
+                    style={{ padding: '7px 14px', background: 'var(--bg-app)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    Abbrechen
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Page list */}
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+              {sitemapLoading ? (
+                <div style={{ padding: 32, textAlign: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+                </div>
+              ) : sitemapPages.filter(p => !p.ist_pflichtseite).length === 0 ? (
+                <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                  <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.3 }}>🗺️</div>
+                  <div style={{ fontSize: 13 }}>Noch keine Seiten geplant.</div>
+                </div>
+              ) : (
+                <>
+                  {sitemapPages.filter(p => !p.ist_pflichtseite).map(page => {
+                    const st = ST[page.status] || ST.geplant;
+                    return (
+                      <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 17, flexShrink: 0 }}>{TI[page.page_type] || '📄'}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{page.page_name}</div>
+                          {page.ziel_keyword && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{page.ziel_keyword}</div>}
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>{st.label}</span>
+                        {page.mockup_html && (
+                          <button onClick={() => { const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${page.mockup_html}</body></html>`; window.open('data:text/html;charset=utf-8,' + encodeURIComponent(doc), '_blank'); }}
+                            style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                            👁 Vorschau
+                          </button>
+                        )}
+                        <button onClick={() => { setEditPageModal(page); setEditPageForm({ page_name: page.page_name, page_type: page.page_type, ziel_keyword: page.ziel_keyword || '', zweck: page.zweck || '', cta_text: page.cta_text || '', status: page.status || 'geplant' }); }}
+                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                          ✏️ Bearbeiten
+                        </button>
+                        <button onClick={() => setEditingPage(page)}
+                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                          🖼 Editor
+                        </button>
+                        <button onClick={() => deleteSitemapPage(page.id)}
+                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--status-danger-text)', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                          🗑️
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {sitemapPages.filter(p => p.ist_pflichtseite).map((page, idx, arr) => {
+                    const st = ST[page.status] || ST.geplant;
+                    return (
+                      <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderBottom: idx < arr.length - 1 ? '1px solid var(--border-light)' : 'none', background: 'var(--bg-app)' }}>
+                        <span style={{ fontSize: 15, flexShrink: 0, color: 'var(--text-tertiary)' }}>🔒</span>
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-tertiary)' }}>{page.page_name}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#F3F4F6', color: '#6B7280' }}>⚖️ Pflicht</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 10, background: st.bg, color: st.text }}>{st.label}</span>
+                      </div>
+                    );
+                  })}
+                  <div style={{ padding: '8px 14px', fontSize: 11, color: 'var(--text-tertiary)', borderTop: '1px solid var(--border-light)' }}>
+                    4 Pflichtseiten werden von KOMPAGNON rechtskonform befüllt.
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Edit page modal */}
+            {editPageModal && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 20 }}
+                onClick={e => e.target === e.currentTarget && setEditPageModal(null)}>
+                <div style={{ background: 'var(--bg-surface)', borderRadius: isMobile ? '16px 16px 0 0' : 'var(--radius-xl)', padding: 24, width: '100%', maxWidth: 480, maxHeight: isMobile ? '92vh' : '85vh', overflowY: 'auto' }}
+                  onClick={e => e.stopPropagation()}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Seite bearbeiten</span>
+                    <button onClick={() => setEditPageModal(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)' }}>×</button>
+                  </div>
+                  {[
+                    { k: 'page_name', label: 'Seitenname', type: 'text' },
+                    { k: 'ziel_keyword', label: 'Ziel-Keyword', type: 'text' },
+                    { k: 'zweck', label: 'Zweck / Beschreibung', type: 'textarea' },
+                    { k: 'cta_text', label: 'CTA-Text', type: 'text' },
+                  ].map(f => (
+                    <div key={f.k} style={{ marginBottom: 12 }}>
+                      <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>{f.label}</label>
+                      {f.type === 'textarea'
+                        ? <textarea value={editPageForm[f.k] || ''} onChange={e => setEditPageForm(p => ({ ...p, [f.k]: e.target.value }))} rows={3} style={{ ...inp, resize: 'vertical' }} />
+                        : <input type="text" value={editPageForm[f.k] || ''} onChange={e => setEditPageForm(p => ({ ...p, [f.k]: e.target.value }))} style={inp} />
+                      }
+                    </div>
+                  ))}
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Typ</label>
+                    <select value={editPageForm.page_type || 'info'} onChange={e => setEditPageForm(p => ({ ...p, page_type: e.target.value }))} style={inp}>
+                      {PAGE_TYPES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Status</label>
+                    <select value={editPageForm.status || 'geplant'} onChange={e => setEditPageForm(p => ({ ...p, status: e.target.value }))} style={inp}>
+                      <option value="geplant">Geplant</option>
+                      <option value="in_bearbeitung">In Bearbeitung</option>
+                      <option value="freigegeben">Freigegeben</option>
+                      <option value="live">Live</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={saveEditPage} disabled={editPageSaving}
+                      style={{ flex: 1, padding: '10px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', opacity: editPageSaving ? 0.6 : 1 }}>
+                      {editPageSaving ? 'Speichert…' : '💾 Speichern'}
+                    </button>
+                    <button onClick={() => setEditPageModal(null)}
+                      style={{ flex: 1, padding: '10px', background: 'var(--bg-app)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── MOCKUP TAB ── */}
+      {activeTab === 'mockup' && (() => {
+        if (!sitemapLoaded && !sitemapLoading) loadSitemapPages();
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>🎨 KI-Website-Entwurf generieren</div>
+
+              {/* Page selector */}
+              {sitemapPages.filter(p => !p.ist_pflichtseite).length > 0 && (
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
+                    Welche Seite gestalten?
+                  </label>
+                  <select value={selectedPageId || ''} onChange={e => setSelectedPageId(Number(e.target.value) || null)}
+                    style={{ width: '100%', maxWidth: 360, padding: '8px 10px', fontSize: 13, borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', cursor: 'pointer' }}>
+                    <option value="">– Keine Seite ausgewählt –</option>
+                    {sitemapPages.filter(p => !p.ist_pflichtseite).map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
+                  </select>
+                  {selectedPageId && (() => {
+                    const pg = sitemapPages.find(p => p.id === selectedPageId);
+                    if (!pg) return null;
+                    return (
+                      <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13 }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{pg.page_name}</span>
+                        {pg.ziel_keyword && <span style={{ color: 'var(--text-tertiary)', marginLeft: 10 }}>🔑 {pg.ziel_keyword}</span>}
+                        {pg.zweck && <div style={{ color: 'var(--text-secondary)', marginTop: 4, fontSize: 12 }}>{pg.zweck}</div>}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14 }}>
+                Generiert automatisch eine vollständige HTML-Seite auf Basis des Briefings.
+              </div>
+              {!projectId && (
+                <div style={{ background: '#FFF9E6', border: '1px solid #F5D87A', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92660A', marginBottom: 12 }}>
+                  Noch kein verknüpftes Projekt gefunden — bitte zuerst ein Projekt anlegen.
+                </div>
+              )}
+              <button onClick={generateMockup} disabled={mockupRunning || !projectId}
+                style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: mockupRunning || !projectId ? 'var(--bg-muted)' : 'var(--brand-primary)', color: mockupRunning || !projectId ? 'var(--text-tertiary)' : '#fff', fontSize: 14, fontWeight: 600, cursor: mockupRunning || !projectId ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                {mockupRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
+                {mockupRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
+              </button>
+              {mockupSlow && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8 }}>⏳ Claude denkt gründlich nach — das kann bis zu 55 Sekunden dauern…</div>}
+              {mockupError && <div style={{ background: 'var(--status-danger-bg)', border: '1px solid var(--status-danger-text)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--status-danger-text)', marginTop: 12 }}>{mockupError}</div>}
+            </div>
+            {mockupResult && (
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Generierter Entwurf</div>
+                  {typeof mockupResult === 'string' && mockupResult.startsWith('<') && (
+                    <button onClick={() => window.open('data:text/html;charset=utf-8,' + encodeURIComponent(mockupResult), '_blank')}
+                      style={{ padding: '5px 12px', background: 'var(--bg-app)', border: '1px solid var(--border-medium)', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      👁 Im Browser öffnen
+                    </button>
+                  )}
+                </div>
+                {typeof mockupResult === 'string' && mockupResult.trim().startsWith('<') ? (
+                  <iframe srcDoc={mockupResult} style={{ width: '100%', height: 600, border: '1px solid var(--border-light)', borderRadius: 8 }} title="Vorschau" />
+                ) : (
+                  <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'inherit', lineHeight: 1.7, margin: 0 }}>{typeof mockupResult === 'string' ? mockupResult : JSON.stringify(mockupResult, null, 2)}</pre>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
       {activeTab === 'pagespeed' && (
         leadId
           ? <PageSpeedSection leadId={leadId} headers={h} />
@@ -1496,6 +1972,20 @@ export default function CustomerDetail() {
           customerId={customerId}
           customerName={customer?.contact_name || customer?.company_name}
           onClose={() => setIsDesignerOpen(false)}
+        />
+      )}
+
+      {/* GrapesJS Editor Modal */}
+      {editingPage && (
+        <GrapesEditor
+          pageId={editingPage.id}
+          pageName={editingPage.page_name}
+          initialHtml={editingPage.mockup_html || ''}
+          onClose={() => setEditingPage(null)}
+          onSave={({ html }) => {
+            setSitemapPages(prev => prev.map(p => p.id === editingPage.id ? { ...p, mockup_html: html } : p));
+            setEditingPage(null);
+          }}
         />
       )}
     </div>

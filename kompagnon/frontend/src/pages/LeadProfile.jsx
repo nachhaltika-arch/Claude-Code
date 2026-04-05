@@ -12,7 +12,6 @@ import AuditReport from '../components/AuditReport';
 import BriefingTab from '../components/BriefingTab';
 import BriefingWizard from '../components/BriefingWizard';
 import SitemapPlaner from '../components/SitemapPlaner';
-import GrapesEditor from '../components/GrapesEditor';
 import ContentManager from '../components/ContentManager';
 import OfferTab from '../components/OfferTab';
 import ProjectFilesSection from '../components/ProjectFilesSection';
@@ -48,7 +47,6 @@ const TABS = [
   { id: 'contact',    label: 'Kontakt',     icon: '👤' },
   { id: 'audits',     label: 'Audits',      icon: '✓' },
   { id: 'dateien',    label: 'Dateien',     icon: '📎' },
-  { id: 'sitemap',    label: 'Sitemap',     icon: '🗺️' },
   { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
@@ -104,21 +102,13 @@ export default function LeadProfile() {
   const [mockupSlow, setMockupSlow] = useState(false);
   const [mockupResult, setMockupResult] = useState(null);
   const [mockupError, setMockupError] = useState('');
-  // Sitemap tab
-  const [sitemapPages, setSitemapPages] = useState([]);
-  const [sitemapLoading, setSitemapLoading] = useState(false);
-  const [showSitemapPlaner, setShowSitemapPlaner] = useState(false);
-  const [selectedPageId, setSelectedPageId] = useState(null);
-  const [editingPage, setEditingPage] = useState(null);
-  const [showContentManager, setShowContentManager] = useState(false);
-  const [contentSummary, setContentSummary] = useState([]);
 
   const h = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); loadSitemapPages(); }, [leadId]); // eslint-disable-line
+  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); }, [leadId]); // eslint-disable-line
 
   const loadProfile = async () => {
     try {
@@ -187,46 +177,10 @@ export default function LeadProfile() {
     return null;
   };
 
-  const loadSitemapPages = async () => {
-    setSitemapLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}`, { headers: h });
-      if (res.ok) {
-        const pages = await res.json();
-        setSitemapPages(pages);
-        // Auto-select startseite, else first content (non-pflicht) page
-        if (!selectedPageId && pages.length > 0) {
-          const contentPages = pages.filter(p => !p.ist_pflichtseite);
-          const start = contentPages.find(p => p.page_type === 'startseite') || contentPages[0];
-          if (start) setSelectedPageId(start.id);
-        }
-      }
-    } catch { /* silent */ }
-    finally { setSitemapLoading(false); }
-  };
-
   const openBriefingWizard = async () => {
     const data = await loadBriefing();
     setBriefingData(data);
     setShowBriefingWizard(true);
-  };
-
-  const downloadSitemapPdf = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pdf`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('PDF konnte nicht geladen werden');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `sitemap-${leadId}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      toast.error('PDF Fehler: ' + e.message);
-    }
   };
 
   const generateMockup = async () => {
@@ -241,27 +195,6 @@ export default function LeadProfile() {
       const briefing = bRes.ok ? await bRes.json() : null;
 
       const lead = profile?.lead;
-      const selectedPage = sitemapPages.find(p => p.id === selectedPageId) || null;
-
-      // Content-Slots laden (inhalt_final bevorzugt, inhalt_ki als Fallback)
-      let contentFields = {};
-      let logoUrl = null;
-      if (selectedPage) {
-        try {
-          const cRes = await fetch(`${API_BASE_URL}/api/content/page/${selectedPage.id}`, { headers: h });
-          if (cRes.ok) {
-            const cData = await cRes.json();
-            // Text-Slots → content_{slot_typ}
-            (cData.sections || []).forEach(s => {
-              const text = s.inhalt_final || s.inhalt_ki || '';
-              if (text) contentFields[`content_${s.slot_typ}`] = text;
-            });
-            // Logo-URL wenn freigegeben
-            const logoSlot = (cData.media || []).find(m => m.slot_typ === 'logo' && m.status === 'freigegeben');
-            if (logoSlot) logoUrl = `${API_BASE_URL}/api/content/media/${logoSlot.id}/file`;
-          }
-        } catch (_) { /* Content optional — kein Fehler */ }
-      }
 
       const payload = {
         company_name: String(lead?.display_name || lead?.company_name || ''),
@@ -274,13 +207,10 @@ export default function LeadProfile() {
             ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
             : [],
         target_audience: String(briefing?.zielgruppe || ''),
-        page_name: String(selectedPage?.page_name || 'Startseite'),
-        zweck: String(selectedPage?.zweck || ''),
-        ziel_keyword: String(selectedPage?.ziel_keyword || ''),
-        cta_text: String(selectedPage?.cta_text || ''),
-        // Echter Content aus Content-Manager
-        ...contentFields,
-        ...(logoUrl ? { logo_url: logoUrl } : {}),
+        page_name: 'Startseite',
+        zweck: '',
+        ziel_keyword: '',
+        cta_text: '',
       };
       console.log('Mockup payload:', JSON.stringify(payload, null, 2));
 
@@ -311,16 +241,6 @@ export default function LeadProfile() {
       }
       if (!result) throw new Error('Zeitüberschreitung — bitte erneut versuchen');
       setMockupResult(result);
-
-      // Save mockup_html (HTML string) to the selected sitemap page
-      if (selectedPage && result) {
-        const mockupHtml = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
-        fetch(`${API_BASE_URL}/api/sitemap/pages/${selectedPage.id}`, {
-          method: 'PUT',
-          headers: h,
-          body: JSON.stringify({ ...selectedPage, mockup_html: mockupHtml }),
-        }).catch(() => {});
-      }
     } catch (e) {
       setMockupError(e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.');
     } finally {
@@ -1404,108 +1324,6 @@ export default function LeadProfile() {
       {/* AKADEMY TAB */}
       {activeTab === 'akademy' && <AcademyCustomerSection leadId={lead.id} />}
 
-      {/* SITEMAP TAB */}
-      {activeTab === 'sitemap' && (() => {
-        if (!sitemapLoading && sitemapPages.length === 0) loadSitemapPages();
-        const SITEMAP_STATUS = {
-          geplant:       { bg: '#EFF6FF', text: '#1D4ED8', label: 'Geplant' },
-          in_bearbeitung:{ bg: '#FEF9C3', text: '#92400E', label: 'In Bearb.' },
-          freigegeben:   { bg: '#FEF3C7', text: '#B45309', label: 'Freigegeben' },
-          live:          { bg: '#DCFCE7', text: '#166534', label: 'Live' },
-        };
-        const TYPE_ICON = { startseite: '🏠', leistung: '🔧', info: 'ℹ️', vertrauen: '⭐', conversion: '📞', sonstige: '📄' };
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button
-                onClick={() => setShowSitemapPlaner(true)}
-                style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                🗺️ Sitemap bearbeiten
-              </button>
-              <button
-                onClick={downloadSitemapPdf}
-                style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                📥 PDF herunterladen
-              </button>
-            </div>
-
-            {/* Page list */}
-            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-              {sitemapLoading ? (
-                <div style={{ padding: 32, textAlign: 'center' }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
-                </div>
-              ) : sitemapPages.length === 0 ? (
-                <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
-                  Noch keine Seiten geplant. Klicke auf „Sitemap bearbeiten" um loszulegen.
-                </div>
-              ) : (
-                <>
-                  {sitemapPages.filter(p => !p.ist_pflichtseite).map((page) => {
-                    const st = SITEMAP_STATUS[page.status] || SITEMAP_STATUS.geplant;
-                    return (
-                      <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 18, flexShrink: 0 }}>{TYPE_ICON[page.page_type] || '📄'}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {page.page_name}
-                          </div>
-                          {page.ziel_keyword && (
-                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{page.ziel_keyword}</div>
-                          )}
-                        </div>
-                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                          {st.label}
-                        </span>
-                        {page.mockup_html && (
-                          <button
-                            onClick={() => {
-                              const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${page.mockup_html}</body></html>`;
-                              window.open('data:text/html;charset=utf-8,' + encodeURIComponent(doc), '_blank');
-                            }}
-                            style={{ padding: '5px 10px', borderRadius: 6, border: '1.5px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
-                          >
-                            👁 Vorschau
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setEditingPage(page)}
-                          style={{ padding: '5px 12px', borderRadius: 6, border: '1.5px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
-                        >
-                          ✏️ Bearbeiten
-                        </button>
-                      </div>
-                    );
-                  })}
-                  {sitemapPages.filter(p => p.ist_pflichtseite).map((page, idx, arr) => {
-                    const st = SITEMAP_STATUS[page.status] || SITEMAP_STATUS.geplant;
-                    const isLast = idx === arr.length - 1;
-                    return (
-                      <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px', borderBottom: !isLast ? '1px solid var(--border-light)' : 'none', flexWrap: 'wrap', background: 'var(--bg-app)', cursor: 'default' }}>
-                        <span style={{ fontSize: 16, flexShrink: 0, color: 'var(--text-tertiary)' }}>🔒</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-tertiary)' }}>{page.page_name}</span>
-                        </div>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#F3F4F6', color: '#6B7280', whiteSpace: 'nowrap', flexShrink: 0 }}>⚖️ Pflicht</span>
-                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                          {st.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  <div style={{ padding: '8px 16px', fontSize: 11, color: 'var(--text-tertiary)', borderTop: '1px solid var(--border-light)' }}>
-                    4 Pflichtseiten werden von KOMPAGNON rechtskonform befüllt.
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        );
-      })()}
-
       {/* MOCKUP TAB */}
       {activeTab === 'mockup' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1514,43 +1332,8 @@ export default function LeadProfile() {
               KI-Website-Entwurf generieren
             </div>
 
-            {/* Page selector */}
-            {sitemapPages.length > 0 && (
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
-                  Welche Seite gestalten?
-                </label>
-                <select
-                  value={selectedPageId || ''}
-                  onChange={e => setSelectedPageId(Number(e.target.value) || null)}
-                  style={{ width: '100%', maxWidth: 360, padding: '8px 10px', fontSize: 13, borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', cursor: 'pointer' }}
-                >
-                  <option value="">– Keine Seite ausgewählt –</option>
-                  {sitemapPages.filter(p => !p.ist_pflichtseite).map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
-                </select>
-                {selectedPageId && (() => {
-                  const pg = sitemapPages.find(p => p.id === selectedPageId);
-                  if (!pg) return null;
-                  return (
-                    <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13 }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{pg.page_name}</span>
-                      {pg.ziel_keyword && <span style={{ color: 'var(--text-tertiary)', marginLeft: 10 }}>🔑 {pg.ziel_keyword}</span>}
-                      {pg.zweck && <div style={{ color: 'var(--text-secondary)', marginTop: 4, fontSize: 12 }}>{pg.zweck}</div>}
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-
             <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
-              Generiert automatisch Textentwürfe für die Website auf Basis der Briefing- und Content-Daten.
-              {selectedPageId && contentSummary.find(p => p.sitemap_page_id === selectedPageId) && (() => {
-                const pg = contentSummary.find(p => p.sitemap_page_id === selectedPageId);
-                const filled = (pg.sections || []).filter(s => s.inhalt_final || s.inhalt_ki).length;
-                const total  = (pg.sections || []).length;
-                if (filled > 0) return <span style={{ color: 'var(--brand-primary)', fontWeight: 500 }}> {filled}/{total} Content-Slots werden eingesetzt.</span>;
-                return null;
-              })()}
+              Generiert automatisch Textentwürfe für die Website auf Basis der Briefing-Daten.
               {!briefingData?.gewerk && ' Noch kein Briefing ausgefüllt – Basisdaten des Leads werden verwendet.'}
             </div>
             {!projectId && (
@@ -1972,29 +1755,6 @@ export default function LeadProfile() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* SITEMAP PLANER MODAL */}
-      {showSitemapPlaner && profile?.lead && (
-        <SitemapPlaner
-          leadId={Number(leadId)}
-          leadData={profile.lead}
-          onClose={() => { setShowSitemapPlaner(false); loadSitemapPages(); }}
-        />
-      )}
-
-      {/* GRAPES EDITOR MODAL */}
-      {editingPage && (
-        <GrapesEditor
-          pageId={editingPage.id}
-          pageName={editingPage.page_name}
-          initialHtml={editingPage.mockup_html || ''}
-          onClose={() => setEditingPage(null)}
-          onSave={({ html }) => {
-            setSitemapPages(prev => prev.map(p => p.id === editingPage.id ? { ...p, mockup_html: html } : p));
-            setEditingPage(null);
-          }}
-        />
       )}
 
       {/* BRIEFING WIZARD MODAL */}

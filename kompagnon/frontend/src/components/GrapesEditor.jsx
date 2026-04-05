@@ -2,14 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 
-const GJS_CSS = 'https://unpkg.com/grapesjs/dist/css/grapes.min.css';
-const GJS_JS  = 'https://unpkg.com/grapesjs';
+// ── CDN resources ──────────────────────────────────────────────────────────────
+const GJS_CSS      = 'https://unpkg.com/grapesjs/dist/css/grapes.min.css';
+const GJS_JS       = 'https://unpkg.com/grapesjs';
+const GJS_BLOCKS   = 'https://unpkg.com/grapesjs-blocks-basic';
+const GJS_WEBPAGE  = 'https://unpkg.com/grapesjs-preset-webpage';
+const GJS_FORMS    = 'https://unpkg.com/grapesjs-plugin-forms';
 
 function loadScript(src) {
   return new Promise((resolve, reject) => {
     if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
     const s = document.createElement('script');
-    s.src = src; s.async = true;
+    s.src = src; s.async = false;
     s.onload = resolve; s.onerror = reject;
     document.head.appendChild(s);
   });
@@ -22,31 +26,75 @@ function loadStyle(href) {
   document.head.appendChild(l);
 }
 
-const BLOCKS = [
-  { id: 'text',    label: '📝 Text',     content: '<p style="padding:8px">Text hier eingeben</p>' },
-  { id: 'heading', label: '🔤 Überschrift', content: '<h2 style="padding:8px">Überschrift</h2>' },
-  { id: 'image',   label: '🖼️ Bild',     content: '<img src="https://placehold.co/800x400" style="max-width:100%;display:block"/>' },
-  { id: 'button',  label: '🔘 Button',   content: '<a href="#" style="display:inline-block;padding:12px 28px;background:#008EAA;color:#fff;border-radius:6px;text-decoration:none;font-weight:600">Jetzt anfragen</a>' },
-  { id: 'hero',    label: '🦸 Hero',     content: '<div style="background:#008EAA;color:#fff;padding:80px 40px;text-align:center"><h1 style="margin:0 0 16px">Ihre Überschrift</h1><p style="margin:0 0 28px;font-size:18px">Unterzeile mit Ihrer Botschaft</p><a href="#" style="background:#fff;color:#008EAA;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700">Jetzt anfragen</a></div>' },
-  { id: 'section', label: '📦 Abschnitt', content: '<section style="padding:60px 40px;max-width:900px;margin:0 auto"><h2>Titel</h2><p>Ihr Inhalt hier…</p></section>' },
-  { id: 'cols2',   label: '⬜⬜ 2 Spalten', content: '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:40px"><div style="background:#f5f5f5;padding:24px;border-radius:8px"><h3>Spalte 1</h3><p>Inhalt</p></div><div style="background:#f5f5f5;padding:24px;border-radius:8px"><h3>Spalte 2</h3><p>Inhalt</p></div></div>' },
-  { id: 'card',    label: '🃏 Karte',    content: '<div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:28px;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:360px"><h3 style="margin:0 0 8px">Kartentitel</h3><p style="margin:0;color:#555">Karteninhalt</p></div>' },
-];
+// ── Style overrides injected once ──────────────────────────────────────────────
+const EDITOR_STYLES = `
+  .gjs-editor { font-family: var(--font-sans, system-ui, sans-serif); }
+  .gjs-pn-panels { display: none; }
+  .gjs-cv-canvas { top: 0; }
+  .gjs-block-category .gjs-title { background: #1e2d31; color: #ccc; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .gjs-block { border-color: #2e3f44; color: #ddd; background: #1a2e33; }
+  .gjs-block:hover { border-color: #008EAA; background: #1e3840; }
+  .gjs-block__media { color: #008EAA; }
+  .gjs-sm-sector-title { background: #1e2d31; color: #aaa; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .gjs-sm-property { padding: 6px 10px; }
+  .gjs-sm-label { color: #aaa; font-size: 11px; }
+  .gjs-sm-input-holder input, .gjs-sm-input-holder select { background: #1a2e33; color: #ddd; border-color: #2e3f44; border-radius: 4px; }
+  .gjs-sm-composite { border-color: #2e3f44; }
+  .gjs-layer { border-color: #2e3f44; color: #ccc; }
+  .gjs-layer-name { color: #ccc; }
+  .gjs-layer:hover { background: #1e3840; }
+  .gjs-layer.gjs-hovered { background: #1e3840; }
+  .gjs-layer.gjs-selected { background: #1e3840; border-left: 3px solid #008EAA; }
+  .gjs-trt-trait { padding: 6px 10px; }
+  .gjs-trt-trait__wrp-label { color: #aaa; font-size: 11px; }
+  .gjs-trt-trait input, .gjs-trt-trait select { background: #1a2e33; color: #ddd; border: 1px solid #2e3f44; border-radius: 4px; padding: 4px 8px; width: 100%; box-sizing: border-box; }
+  .gjs-editor-cont { background: #111; }
+  .gjs-toolbar { background: #008EAA; }
+  .gjs-toolbar-item { color: #fff; }
+  .gjs-rte-toolbar { background: #1a2e33; border-color: #2e3f44; }
+  .gjs-rte-actionbar button { color: #ddd; }
+  .gjs-rte-actionbar button:hover { color: #fff; background: rgba(255,255,255,0.1); }
+  .gjs-mdl-dialog { background: #1a2e33; border-color: #2e3f44; color: #ddd; }
+  .gjs-mdl-title { color: #fff; }
+  .gjs-btn-prim { background: #008EAA; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; }
+  .gjs-btn-prim:hover { background: #007a94; }
+  .gjs-field { background: #1a2e33; border-color: #2e3f44; color: #ddd; }
+  .gjs-field input, .gjs-field textarea, .gjs-field select { color: #ddd; background: transparent; }
+  .gjs-clm-tag { background: #1e3840; color: #ddd; border-color: #2e3f44; }
+  .gjs-clm-tag-status { background: #008EAA; }
+  .gjs-sm-color-picker { z-index: 99999; }
+  #gjs-left-panel::-webkit-scrollbar, #gjs-right-panel::-webkit-scrollbar { width: 4px; }
+  #gjs-left-panel::-webkit-scrollbar-track, #gjs-right-panel::-webkit-scrollbar-track { background: #111; }
+  #gjs-left-panel::-webkit-scrollbar-thumb, #gjs-right-panel::-webkit-scrollbar-thumb { background: #2e3f44; border-radius: 2px; }
+`;
 
 export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, onSave }) {
   const { token } = useAuth();
-  const containerRef = useRef(null);
-  const editorRef    = useRef(null);
+  const containerRef  = useRef(null);
+  const editorRef     = useRef(null);
   const [ready,   setReady]   = useState(false);
   const [saving,  setSaving]  = useState(false);
-  const [device,  setDevice]  = useState('desktop');
   const [saveOk,  setSaveOk]  = useState(false);
+  const [device,  setDevice]  = useState('desktop');
+  const [leftTab, setLeftTab] = useState('blocks');   // 'blocks' | 'layers'
+  const [rightTab, setRightTab] = useState('styles'); // 'styles' | 'traits'
 
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
+  // Inject editor styles once
   useEffect(() => {
+    if (!document.getElementById('gjs-custom-styles')) {
+      const style = document.createElement('style');
+      style.id = 'gjs-custom-styles';
+      style.textContent = EDITOR_STYLES;
+      document.head.appendChild(style);
+    }
     loadStyle(GJS_CSS);
-    loadScript(GJS_JS).then(() => setReady(true));
+    loadScript(GJS_JS)
+      .then(() => loadScript(GJS_BLOCKS))
+      .then(() => loadScript(GJS_WEBPAGE))
+      .then(() => loadScript(GJS_FORMS))
+      .then(() => setReady(true));
   }, []);
 
   useEffect(() => {
@@ -61,18 +109,113 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
       storageManager: false,
       panels: { defaults: [] },
       canvas: {
-        styles: ['https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap'],
+        styles: [
+          'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+        ],
       },
+      // Block manager renders into our custom left panel
       blockManager: {
         appendTo: '#gjs-blocks-panel',
-        blocks: BLOCKS,
       },
+      // Style manager renders into our custom right panel
+      styleManager: {
+        appendTo: '#gjs-styles-panel',
+        sectors: [
+          {
+            name: 'Abmessungen',
+            open: false,
+            properties: [
+              'width', 'min-width', 'max-width',
+              'height', 'min-height', 'max-height',
+              { property: 'margin', type: 'composite' },
+              { property: 'padding', type: 'composite' },
+            ],
+          },
+          {
+            name: 'Typografie',
+            open: false,
+            properties: [
+              'font-family', 'font-size', 'font-weight', 'line-height',
+              'letter-spacing', 'color', 'text-align', 'text-decoration',
+            ],
+          },
+          {
+            name: 'Hintergrund',
+            open: false,
+            properties: [
+              'background-color',
+              { property: 'background-image', type: 'file' },
+              'background-size', 'background-position', 'background-repeat',
+            ],
+          },
+          {
+            name: 'Rahmen',
+            open: false,
+            properties: [
+              'border-radius',
+              { property: 'border', type: 'composite' },
+              'box-shadow',
+            ],
+          },
+          {
+            name: 'Layout',
+            open: false,
+            properties: [
+              'display', 'flex-direction', 'flex-wrap',
+              'align-items', 'justify-content', 'gap',
+              'position', 'top', 'right', 'bottom', 'left',
+              'overflow', 'opacity',
+            ],
+          },
+        ],
+      },
+      // Layer manager renders into our custom left panel (layers tab)
+      layerManager: {
+        appendTo: '#gjs-layers-panel',
+      },
+      // Trait manager (component properties) renders into right panel
+      traitManager: {
+        appendTo: '#gjs-traits-panel',
+      },
+      // Asset manager
+      assetManager: {
+        upload: false,
+        assets: [],
+      },
+      // Device manager
       deviceManager: {
         devices: [
-          { name: 'Desktop',  width: '' },
-          { name: 'Tablet',   width: '768px' },
-          { name: 'Mobile',   width: '390px' },
+          { name: 'Desktop', width: '' },
+          { name: 'Tablet',  width: '768px',  widthMedia: '992px' },
+          { name: 'Mobile',  width: '390px',  widthMedia: '480px' },
         ],
+      },
+      // Plugins
+      plugins: [
+        'grapesjs-blocks-basic',
+        'grapesjs-preset-webpage',
+        'grapesjs-plugin-forms',
+      ],
+      pluginsOpts: {
+        'grapesjs-blocks-basic': {
+          flexGrid: true,
+          addBasicStyle: true,
+          category: 'Grundelemente',
+          blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map'],
+        },
+        'grapesjs-preset-webpage': {
+          blocksBasicOpts: { flexGrid: true },
+          modalImportTitle: 'HTML importieren',
+          modalImportLabel: '<div style="margin-bottom:10px;font-size:13px;color:#aaa">Fügen Sie Ihren HTML-Code ein</div>',
+          modalImportContent: '',
+        },
+        'grapesjs-plugin-forms': {
+          category: 'Formular',
+        },
+      },
+      // Rich text editor settings
+      richTextEditor: {
+        actions: ['bold', 'italic', 'underline', 'strikethrough', 'link', 'wrap'],
       },
     });
 
@@ -82,7 +225,9 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
     fetch(`${API_BASE_URL}/api/pages/${pageId}/editor`, { headers: h })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data?.html && data.html.trim()) {
+        if (data?.gjsData && Object.keys(data.gjsData).length > 0) {
+          editor.loadProjectData(data.gjsData);
+        } else if (data?.html && data.html.trim()) {
           editor.setComponents(data.html);
           if (data.css) editor.setStyle(data.css);
         } else if (initialHtml && initialHtml.trim().startsWith('<')) {
@@ -95,6 +240,12 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
         }
       });
 
+    // Sync device state
+    editor.on('device:select', () => {
+      const dev = editor.getDevice();
+      setDevice(dev?.toLowerCase() || 'desktop');
+    });
+
     return () => { editor.destroy(); editorRef.current = null; };
   }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -103,19 +254,22 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
     setDevice(name.toLowerCase());
   };
 
+  const handleUndo = () => editorRef.current?.UndoManager.undo();
+  const handleRedo = () => editorRef.current?.UndoManager.redo();
+
   const handleSave = async () => {
     if (!editorRef.current) return;
     setSaving(true);
     try {
-      const html = editorRef.current.getHtml();
-      const css  = editorRef.current.getCss();
+      const html    = editorRef.current.getHtml();
+      const css     = editorRef.current.getCss();
       const gjsData = editorRef.current.getProjectData?.() || {};
       await fetch(`${API_BASE_URL}/api/pages/${pageId}/editor`, {
         method: 'POST', headers: h,
         body: JSON.stringify({ html, css, gjsData }),
       });
       setSaveOk(true);
-      setTimeout(() => setSaveOk(false), 2000);
+      setTimeout(() => setSaveOk(false), 2500);
       onSave?.({ html, css });
     } catch (e) {
       console.error('GrapesJS save error', e);
@@ -128,64 +282,153 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
     if (!editorRef.current) return;
     const html = editorRef.current.getHtml();
     const css  = editorRef.current.getCss();
-    const doc  = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body>${html}</body></html>`;
-    const url  = 'data:text/html;charset=utf-8,' + encodeURIComponent(doc);
-    window.open(url, '_blank');
+    const doc  = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style></head><body>${html}</body></html>`;
+    window.open('data:text/html;charset=utf-8,' + encodeURIComponent(doc), '_blank');
   };
 
-  const btnBase = {
-    padding: '6px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600,
-    cursor: 'pointer', border: 'none', fontFamily: 'var(--font-sans)',
-    display: 'inline-flex', alignItems: 'center', gap: 5,
+  const openCodeView = () => {
+    if (!editorRef.current) return;
+    editorRef.current.Commands.run('core:open-code');
   };
+
+  // ── Style helpers ──────────────────────────────────────────────────────────
+  const btn = (extra = {}) => ({
+    padding: '5px 12px', borderRadius: 5, fontSize: 12, fontWeight: 600,
+    cursor: 'pointer', border: 'none', fontFamily: 'inherit',
+    display: 'inline-flex', alignItems: 'center', gap: 5,
+    ...extra,
+  });
+
   const devBtn = (name) => ({
-    ...btnBase,
-    background: device === name ? 'rgba(255,255,255,0.2)' : 'transparent',
-    color: '#fff',
-    border: device === name ? '1px solid rgba(255,255,255,0.4)' : '1px solid transparent',
+    ...btn(),
+    background: device === name ? 'rgba(255,255,255,0.15)' : 'transparent',
+    color: device === name ? '#fff' : 'rgba(255,255,255,0.55)',
+    border: `1px solid ${device === name ? 'rgba(255,255,255,0.3)' : 'transparent'}`,
+  });
+
+  const tabBtn = (active) => ({
+    flex: 1, padding: '7px 0', fontSize: 11, fontWeight: 700,
+    textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer',
+    border: 'none', borderRadius: 0,
+    background: active ? '#1e3840' : 'transparent',
+    color: active ? '#008EAA' : '#666',
+    borderBottom: active ? '2px solid #008EAA' : '2px solid transparent',
   });
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9000, display: 'flex', flexDirection: 'column', background: '#1a1a1a' }}>
-      {/* Toolbar */}
-      <div style={{ height: 48, background: '#0f2024', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', flexShrink: 0 }}>
-        {/* Left: back + page name */}
-        <button onClick={onClose} style={{ ...btnBase, background: 'transparent', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.2)' }}>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 9000,
+      display: 'flex', flexDirection: 'column',
+      background: '#111', fontFamily: 'system-ui, sans-serif',
+    }}>
+      {/* ── Toolbar ───────────────────────────────────────────────────────────── */}
+      <div style={{
+        height: 48, background: '#0d1e22', borderBottom: '1px solid #1e3840',
+        display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', flexShrink: 0,
+      }}>
+        {/* Back + name */}
+        <button onClick={onClose} style={btn({ background: 'transparent', color: 'rgba(255,255,255,0.65)', border: '1px solid rgba(255,255,255,0.15)' })}>
           ← Zurück
         </button>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginLeft: 4 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginLeft: 2, marginRight: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
           {pageName}
         </span>
 
-        {/* Center: device switcher */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 4 }}>
+        {/* Undo / Redo */}
+        <button onClick={handleUndo} title="Rückgängig (Ctrl+Z)" style={btn({ background: 'transparent', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 15 })}>↩</button>
+        <button onClick={handleRedo} title="Wiederholen (Ctrl+Y)" style={btn({ background: 'transparent', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 15 })}>↪</button>
+
+        {/* Device switcher (center) */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 2 }}>
           <button onClick={() => switchDevice('Desktop')} style={devBtn('desktop')}>🖥 Desktop</button>
           <button onClick={() => switchDevice('Tablet')}  style={devBtn('tablet')}>📱 Tablet</button>
           <button onClick={() => switchDevice('Mobile')}  style={devBtn('mobile')}>📲 Mobil</button>
         </div>
 
-        {/* Right: preview + save */}
-        <button onClick={openPreview} style={{ ...btnBase, background: 'transparent', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.2)' }}>
+        {/* Code / Preview / Save */}
+        <button onClick={openCodeView} title="HTML-Code anzeigen" style={btn({ background: 'transparent', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.1)' })}>{'</>'}</button>
+        <button onClick={openPreview} style={btn({ background: 'transparent', color: 'rgba(255,255,255,0.65)', border: '1px solid rgba(255,255,255,0.15)' })}>
           👁 Vorschau
         </button>
-        <button onClick={handleSave} disabled={saving} style={{ ...btnBase, background: saveOk ? '#16a34a' : '#008EAA', color: '#fff', opacity: saving ? 0.7 : 1 }}>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={btn({ background: saveOk ? '#16a34a' : '#008EAA', color: '#fff', opacity: saving ? 0.7 : 1, minWidth: 110 })}
+        >
           {saving ? '⏳ Speichert…' : saveOk ? '✓ Gespeichert' : '💾 Speichern'}
         </button>
       </div>
 
-      {/* Editor area */}
+      {/* ── Main editor area ─────────────────────────────────────────────────── */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Blocks panel */}
-        <div id="gjs-blocks-panel" style={{ width: 160, background: '#18292e', overflowY: 'auto', flexShrink: 0 }} />
 
-        {/* Canvas */}
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        {/* ── Left panel ───────────────────────────────────────────────────── */}
+        <div style={{
+          width: 220, background: '#131e21', borderRight: '1px solid #1e3840',
+          display: 'flex', flexDirection: 'column', flexShrink: 0,
+        }}>
+          {/* Tab strip */}
+          <div style={{ display: 'flex', borderBottom: '1px solid #1e3840', flexShrink: 0 }}>
+            <button onClick={() => setLeftTab('blocks')} style={tabBtn(leftTab === 'blocks')}>🧩 Blöcke</button>
+            <button onClick={() => setLeftTab('layers')} style={tabBtn(leftTab === 'layers')}>🗂 Ebenen</button>
+          </div>
+          {/* Blocks panel */}
+          <div
+            id="gjs-blocks-panel"
+            style={{
+              flex: 1, overflowY: 'auto',
+              display: leftTab === 'blocks' ? 'block' : 'none',
+            }}
+          />
+          {/* Layers panel */}
+          <div
+            id="gjs-layers-panel"
+            style={{
+              flex: 1, overflowY: 'auto',
+              display: leftTab === 'layers' ? 'block' : 'none',
+            }}
+          />
+        </div>
+
+        {/* ── Canvas ───────────────────────────────────────────────────────── */}
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
           {!ready && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#aaa', fontSize: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#555', fontSize: 14 }}>
               Editor wird geladen…
             </div>
           )}
-          <div ref={containerRef} style={{ width: '100%', height: '100%', display: ready ? 'block' : 'none' }} />
+          <div
+            ref={containerRef}
+            style={{ width: '100%', height: '100%', display: ready ? 'block' : 'none' }}
+          />
+        </div>
+
+        {/* ── Right panel ──────────────────────────────────────────────────── */}
+        <div style={{
+          width: 260, background: '#131e21', borderLeft: '1px solid #1e3840',
+          display: 'flex', flexDirection: 'column', flexShrink: 0,
+        }}>
+          {/* Tab strip */}
+          <div style={{ display: 'flex', borderBottom: '1px solid #1e3840', flexShrink: 0 }}>
+            <button onClick={() => setRightTab('styles')} style={tabBtn(rightTab === 'styles')}>🎨 Stil</button>
+            <button onClick={() => setRightTab('traits')} style={tabBtn(rightTab === 'traits')}>⚙️ Props</button>
+          </div>
+          {/* Style manager */}
+          <div
+            id="gjs-styles-panel"
+            style={{
+              flex: 1, overflowY: 'auto',
+              display: rightTab === 'styles' ? 'block' : 'none',
+            }}
+          />
+          {/* Trait manager */}
+          <div
+            id="gjs-traits-panel"
+            style={{
+              flex: 1, overflowY: 'auto', padding: '8px 0',
+              display: rightTab === 'traits' ? 'block' : 'none',
+            }}
+          />
         </div>
       </div>
     </div>

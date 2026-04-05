@@ -11,13 +11,14 @@ PATCH /api/projects/{id}/checklist/{item_key} - Check item
 GET /api/projects/{id}/margin - Get margin
 """
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from datetime import datetime
 from pydantic import BaseModel
-from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, get_db
+from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, ProjectScrapeJob, get_db
 from services.margin_calculator import MarginCalculator
+from routers.content_scraper_router import _run_content_scrape
 from email_service import send_phase_change_email, send_approval_request_email
 from routers.auth_router import require_admin
 from automations.scheduler import (
@@ -562,7 +563,7 @@ def request_approval(
 
 
 @router.post("/from-lead/{lead_id}", status_code=201)
-def create_project_from_lead(lead_id: int, db: Session = Depends(get_db)):
+def create_project_from_lead(lead_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Create a project from any lead (Nutzerkartei).
 
@@ -604,6 +605,17 @@ def create_project_from_lead(lead_id: int, db: Session = Depends(get_db)):
     db.add(project)
     db.commit()
     db.refresh(project)
+
+    # 3b. Auto-start content scrape if website_url is present
+    if lead.website_url:
+        try:
+            scrape_job = ProjectScrapeJob(project_id=project.id, status="pending")
+            db.add(scrape_job)
+            db.commit()
+            db.refresh(scrape_job)
+            background_tasks.add_task(_run_content_scrape, scrape_job.id, project.id, lead.website_url)
+        except Exception as exc:
+            logger.warning("Could not start auto-scrape for project %s: %s", project.id, exc)
 
     # 4. Try to find an existing customer linked via email
     customer_id = None

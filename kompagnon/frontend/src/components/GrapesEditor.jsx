@@ -1,4 +1,8 @@
 import { useEffect, useRef } from 'react';
+import grapesjs from 'grapesjs';
+import 'grapesjs/dist/css/grapes.min.css';
+import gjsPresetWebpage from 'grapesjs-preset-webpage';
+import gjsBlocksBasic from 'grapesjs-blocks-basic';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
@@ -12,95 +16,75 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
   useEffect(() => {
     if (editorRef.current || !containerRef.current) return;
 
-    const loadEditor = async () => {
-      const [
-        { default: grapesjs },
-        { default: gjsPresetWebpage },
-        { default: gjsBlocksBasic },
-      ] = await Promise.all([
-        import('grapesjs'),
-        import('grapesjs-preset-webpage'),
-        import('grapesjs-blocks-basic'),
-      ]);
-
-      await import('grapesjs/dist/css/grapes.min.css');
-      await import('grapesjs-preset-webpage/dist/grapesjs-preset-webpage.min.css');
-
-      const editor = grapesjs.init({
-        container: containerRef.current,
-        height: '100%',
-        width: '100%',
-        storageManager: false,
-        plugins: [gjsPresetWebpage, gjsBlocksBasic],
-        pluginsOpts: {
-          [gjsPresetWebpage]: {
-            blocks: ['link-block', 'quote', 'text-basic'],
+    const editor = grapesjs.init({
+      container: containerRef.current,
+      height: '100%',
+      width: '100%',
+      storageManager: false,
+      plugins: [gjsPresetWebpage, gjsBlocksBasic],
+      pluginsOpts: {
+        [gjsPresetWebpage]: {
+          blocks: ['link-block', 'quote', 'text-basic'],
+        },
+        [gjsBlocksBasic]: {
+          blocks: ['column1', 'column2', 'column3', 'column3-7',
+                   'text', 'link', 'image', 'video', 'map'],
+          flexGrid: true,
+        },
+      },
+      deviceManager: {
+        devices: [
+          { id: 'desktop', name: 'Desktop', width: '' },
+          { id: 'tablet',  name: 'Tablet',  width: '768px', widthMedia: '992px' },
+          { id: 'mobile',  name: 'Mobil',   width: '375px', widthMedia: '575px' },
+        ],
+      },
+      styleManager: {
+        sectors: [
+          {
+            name: 'Dimension', open: false,
+            properties: ['width', 'height', 'max-width', 'min-height', 'margin', 'padding'],
           },
-          [gjsBlocksBasic]: {
-            blocks: ['column1', 'column2', 'column3', 'column3-7',
-                     'text', 'link', 'image', 'video', 'map'],
-            flexGrid: true,
+          {
+            name: 'Typography', open: false,
+            properties: ['font-family', 'font-size', 'font-weight', 'line-height',
+                         'color', 'text-align', 'text-decoration'],
           },
-        },
-        deviceManager: {
-          devices: [
-            { id: 'desktop', name: 'Desktop', width: '' },
-            { id: 'tablet',  name: 'Tablet',  width: '768px', widthMedia: '992px' },
-            { id: 'mobile',  name: 'Mobil',   width: '375px', widthMedia: '575px' },
-          ],
-        },
-        styleManager: {
-          sectors: [
-            {
-              name: 'Dimension', open: false,
-              properties: ['width', 'height', 'max-width', 'min-height', 'margin', 'padding'],
-            },
-            {
-              name: 'Typography', open: false,
-              properties: ['font-family', 'font-size', 'font-weight', 'line-height',
-                           'color', 'text-align', 'text-decoration'],
-            },
-            {
-              name: 'Decorations', open: false,
-              properties: ['background-color', 'border-radius', 'border',
-                           'box-shadow', 'opacity'],
-            },
-            {
-              name: 'Flexbox', open: false,
-              properties: ['display', 'flex-direction', 'justify-content',
-                           'align-items', 'flex-wrap', 'gap'],
-            },
-          ],
-        },
-        canvas: {
-          styles: [
-            'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
-          ],
-        },
-      });
+          {
+            name: 'Decorations', open: false,
+            properties: ['background-color', 'border-radius', 'border',
+                         'box-shadow', 'opacity'],
+          },
+          {
+            name: 'Flexbox', open: false,
+            properties: ['display', 'flex-direction', 'justify-content',
+                         'align-items', 'flex-wrap', 'gap'],
+          },
+        ],
+      },
+      canvas: {
+        styles: [
+          'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+        ],
+      },
+    });
 
-      // Gespeicherte Daten laden
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/pages/${pageId}/editor`, { headers });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.html) {
-            editor.setComponents(data.html);
-            if (data.css) editor.setStyle(data.css);
-          } else if (initialHtml) {
-            editor.setComponents(initialHtml);
-          }
+    // Gespeicherte Daten laden
+    fetch(`${API_BASE_URL}/api/pages/${pageId}/editor`, { headers })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.html) {
+          editor.setComponents(data.html);
+          if (data.css) editor.setStyle(data.css);
         } else if (initialHtml) {
           editor.setComponents(initialHtml);
         }
-      } catch {
+      })
+      .catch(() => {
         if (initialHtml) editor.setComponents(initialHtml);
-      }
+      });
 
-      editorRef.current = editor;
-    };
-
-    loadEditor();
+    editorRef.current = editor;
 
     return () => {
       if (editorRef.current) {

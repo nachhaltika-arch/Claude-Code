@@ -90,6 +90,22 @@ class ContentWriterAgent:
             if b_leistungen and not briefing_data.get('services'):
                 page_context += f'\nLeistungen (Briefing): {b_leistungen}'
 
+            # ── Brand design context ─────────────────────────────────────────
+            brand_primary   = briefing_data.get('brand_primary_color')
+            brand_secondary = briefing_data.get('brand_secondary_color')
+            brand_font      = briefing_data.get('brand_font_primary')
+            brand_style     = briefing_data.get('brand_design_style')
+            if brand_primary:
+                page_context += f'\nPrimärfarbe der Marke: {brand_primary}'
+            if brand_secondary:
+                page_context += f'\nSekundärfarbe der Marke: {brand_secondary}'
+            if brand_font:
+                page_context += f'\nSchriftart: {brand_font}'
+            if brand_style:
+                page_context += f'\nDesignstil: {brand_style}'
+            if brand_primary or brand_secondary:
+                page_context += '\nBitte den generierten HTML-Entwurf an diese Markenfarben anpassen.'
+
             system_prompt = """Du bist ein Texter für KOMPAGNON, spezialisiert auf deutsche Handwerksbetriebe.
 Schreibe konvertierungsstarke, authentische Website-Texte.
 

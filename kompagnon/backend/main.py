@@ -512,6 +512,19 @@ def _run_migrations():
           status VARCHAR(30) DEFAULT 'ausstehend',
           erstellt_am TIMESTAMP DEFAULT NOW()
         )""",
+        # Brand design columns on leads
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_primary_color VARCHAR(20)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_secondary_color VARCHAR(20)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_font_primary VARCHAR(100)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_font_secondary VARCHAR(100)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_logo_url VARCHAR(500)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_colors TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_fonts TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_scrape_failed BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_pdf_path VARCHAR(500)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_scraped_at TIMESTAMP",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_pdf_data BYTEA",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_pdf_filename VARCHAR(255)",
         # Mockup version history
         """CREATE TABLE IF NOT EXISTS mockup_versions (
           id              SERIAL PRIMARY KEY,
@@ -790,6 +803,9 @@ app.include_router(mockups.router)
 
 from routers import content_scraper_router
 app.include_router(content_scraper_router.router)
+
+from routers.branddesign import router as branddesign_router
+app.include_router(branddesign_router)
 
 
 # Global exception handler — catches unhandled errors

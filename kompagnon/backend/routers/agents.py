@@ -29,7 +29,12 @@ router = APIRouter(prefix="/api/agents", tags=["agents"])
 _jobs: dict = {}
 
 
-def _json_to_html(data: dict) -> str:
+def _json_to_html(data: dict, context: dict | None = None) -> str:
+    ctx = context or {}
+    primary_color   = ctx.get('brand_primary_color')   or '#0d6efd'
+    secondary_color = ctx.get('brand_secondary_color') or '#1a2332'
+    font_primary    = ctx.get('brand_font_primary')    or '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif'
+
     hero     = data.get('hero_headline', '')
     subline  = data.get('hero_subline', '')
     about    = data.get('about_text', '')
@@ -43,7 +48,7 @@ def _json_to_html(data: dict) -> str:
             service_cards += (
                 f'<div style="background:white;border-radius:8px;padding:24px;'
                 f'box-shadow:0 2px 8px rgba(0,0,0,0.1)">'
-                f'<h3 style="margin-bottom:12px">{key}</h3>'
+                f'<h3 style="margin-bottom:12px;color:{primary_color}">{key}</h3>'
                 f'<p style="color:#555;line-height:1.6">{val}</p></div>'
             )
 
@@ -54,39 +59,39 @@ def _json_to_html(data: dict) -> str:
             a = item.get('answer', '')   if isinstance(item, dict) else ''
             faq_html += (
                 f'<div style="border-bottom:1px solid #eee;padding:20px 0">'
-                f'<h3 style="margin-bottom:8px;font-size:1rem">{q}</h3>'
+                f'<h3 style="margin-bottom:8px;font-size:1rem;color:{primary_color}">{q}</h3>'
                 f'<p style="color:#555;line-height:1.6">{a}</p></div>'
             )
 
     hero_block = (
-        f'<div style="background:#0d6efd;color:white;padding:80px 40px;text-align:center">'
+        f'<div style="background:{primary_color};color:white;padding:80px 40px;text-align:center">'
         f'<h1 style="font-size:2.5rem;font-weight:700;margin-bottom:16px">{hero}</h1>'
         f'<p style="font-size:1.2rem;opacity:0.9">{subline}</p></div>'
     ) if hero else ''
 
     about_block = (
         f'<div style="padding:60px 40px;max-width:1200px;margin:0 auto">'
-        f'<h2 style="font-size:1.8rem;margin-bottom:20px">Über uns</h2>'
+        f'<h2 style="font-size:1.8rem;margin-bottom:20px;color:{primary_color}">Über uns</h2>'
         f'<p style="line-height:1.7;color:#555">{about}</p></div>'
     ) if about else ''
 
     services_block = (
         f'<div style="background:#f8f9fa;padding:60px 40px">'
-        f'<h2 style="text-align:center;margin-bottom:40px;font-size:1.8rem">Unsere Leistungen</h2>'
+        f'<h2 style="text-align:center;margin-bottom:40px;font-size:1.8rem;color:{primary_color}">Unsere Leistungen</h2>'
         f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));'
         f'gap:24px;max-width:1200px;margin:0 auto">{service_cards}</div></div>'
     ) if service_cards else ''
 
     faq_block = (
         f'<div style="padding:60px 40px;max-width:800px;margin:0 auto">'
-        f'<h2 style="margin-bottom:30px;font-size:1.8rem">Häufige Fragen</h2>'
+        f'<h2 style="margin-bottom:30px;font-size:1.8rem;color:{primary_color}">Häufige Fragen</h2>'
         f'{faq_html}</div>'
     ) if faq_html else ''
 
     cta_block = (
-        f'<div style="background:#1a2332;color:white;padding:60px 40px;text-align:center">'
+        f'<div style="background:{secondary_color};color:white;padding:60px 40px;text-align:center">'
         f'<h2 style="font-size:1.8rem;margin-bottom:20px">{cta}</h2>'
-        f'<a href="#" style="display:inline-block;background:#0d6efd;color:white;'
+        f'<a href="#" style="display:inline-block;background:{primary_color};color:white;'
         f'padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;'
         f'margin-top:8px">Jetzt Kontakt aufnehmen</a></div>'
     ) if cta else ''
@@ -94,8 +99,8 @@ def _json_to_html(data: dict) -> str:
     return (
         '<!DOCTYPE html><html><head><meta charset="UTF-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        '<style>*{box-sizing:border-box;margin:0;padding:0}'
-        'body{font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif}</style>'
+        f'<style>*{{box-sizing:border-box;margin:0;padding:0}}'
+        f'body{{font-family:{font_primary}}}</style>'
         f'</head><body>{hero_block}{about_block}{services_block}{faq_block}{cta_block}</body></html>'
     )
 
@@ -113,7 +118,7 @@ def _run_content_job(job_id: str, briefing_dict: dict, use_mock: bool,
         if "error" in result:
             _jobs[job_id] = {"status": "error", "error": result["error"]}
         else:
-            result_html = _json_to_html(result) if isinstance(result, dict) else result
+            result_html = _json_to_html(result, briefing_dict) if isinstance(result, dict) else result
             _jobs[job_id] = {"status": "done", "result": result, "result_html": result_html}
     except Exception as e:
         _jobs[job_id] = {"status": "error", "error": str(e)}
@@ -142,6 +147,11 @@ class ContentBriefing(BaseModel):
     briefing_usp: str = ""
     briefing_leistungen: str = ""
     briefing_zielgruppe: str = ""
+    # Brand design context
+    brand_primary_color: str | None = None
+    brand_secondary_color: str | None = None
+    brand_font_primary: str | None = None
+    brand_design_style: str | None = None
 
 
 class CompanyData(BaseModel):

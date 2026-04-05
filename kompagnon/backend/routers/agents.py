@@ -1,9 +1,10 @@
 """
 KI Agent API routes.
-POST /api/agents/content/{project_id} - Run content writer
-POST /api/agents/seo/{project_id} - Run SEO/GEO agent
-POST /api/agents/qa/{project_id} - Run QA agent
-POST /api/agents/review/{project_id} - Run review agent
+POST /api/agents/{project_id}/content       - Start content writer job (returns job_id)
+GET  /api/agents/jobs/{job_id}              - Poll job status
+POST /api/agents/{project_id}/seo           - Run SEO/GEO agent
+POST /api/agents/{project_id}/qa            - Run QA agent
+POST /api/agents/{project_id}/review        - Run review agent
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -17,9 +18,33 @@ from agents import (
 )
 import os
 import asyncio
+import uuid
+import threading
 from functools import partial
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
+
+# ── In-memory job store ────────────────────────────────────────────────────────
+# { job_id: { "status": "running"|"done"|"error", "result": ..., "error": ... } }
+_jobs: dict = {}
+
+
+def _run_content_job(job_id: str, briefing_dict: dict, use_mock: bool,
+                     company_name: str, city: str, trade: str) -> None:
+    """Runs in a background thread. Updates _jobs[job_id] when done."""
+    try:
+        if use_mock:
+            result = ContentWriterAgent.get_mock_content(company_name, city, trade)
+        else:
+            agent = ContentWriterAgent()
+            result = agent.write_content(briefing_dict)
+
+        if "error" in result:
+            _jobs[job_id] = {"status": "error", "error": result["error"]}
+        else:
+            _jobs[job_id] = {"status": "done", "result": result}
+    except Exception as e:
+        _jobs[job_id] = {"status": "error", "error": str(e)}
 
 
 class ContentBriefing(BaseModel):
@@ -68,52 +93,41 @@ class ReviewInput(BaseModel):
 
 
 @router.post("/{project_id}/content")
-async def run_content_agent(
+def start_content_agent(
     project_id: int,
     briefing: ContentBriefing,
     db: Session = Depends(get_db),
 ):
-    """Run content writer agent for a project."""
+    """Start content writer job. Returns job_id immediately — poll /api/agents/jobs/{job_id}."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    try:
-        use_mock = not os.getenv("ANTHROPIC_API_KEY")
+    job_id = str(uuid.uuid4())
+    _jobs[job_id] = {"status": "running"}
 
-        briefing_dict = briefing.dict()
+    use_mock = not os.getenv("ANTHROPIC_API_KEY")
+    t = threading.Thread(
+        target=_run_content_job,
+        args=(job_id, briefing.dict(), use_mock,
+              briefing.company_name, briefing.city, briefing.trade),
+        daemon=True,
+    )
+    t.start()
 
-        if use_mock:
-            result = ContentWriterAgent.get_mock_content(
-                briefing.company_name,
-                briefing.city,
-                briefing.trade,
-            )
-        else:
-            agent = ContentWriterAgent()
-            loop = asyncio.get_event_loop()
-            try:
-                result = await asyncio.wait_for(
-                    loop.run_in_executor(None, partial(agent.write_content, briefing_dict)),
-                    timeout=55.0,
-                )
-            except asyncio.TimeoutError:
-                raise HTTPException(status_code=504, detail="KI-Generierung hat zu lange gedauert. Bitte erneut versuchen.")
+    return {"job_id": job_id, "status": "running"}
 
-        if "error" in result:
-            raise HTTPException(status_code=500, detail=result["error"])
 
-        return {
-            "project_id": project_id,
-            "agent": "ContentWriterAgent",
-            "result": result,
-            "status": "success",
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Agent failed: {str(e)}")
+@router.get("/jobs/{job_id}")
+def get_job(job_id: str):
+    """Poll job status. Returns status running|done|error + result or error message."""
+    job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job nicht gefunden")
+    # Clean up finished jobs after first successful read
+    if job["status"] in ("done", "error"):
+        _jobs.pop(job_id, None)
+    return job
 
 
 @router.post("/{project_id}/seo")

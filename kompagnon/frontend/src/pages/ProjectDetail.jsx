@@ -441,8 +441,6 @@ export default function ProjectDetail() {
     setMockupError('');
     setMockupResult(null);
     const slowTimer = setTimeout(() => setMockupSlow(true), 20000);
-    const controller = new AbortController();
-    const hardTimer = setTimeout(() => controller.abort(), 55000);
     try {
       const bRes = await fetch(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers });
       const briefing = bRes.ok ? await bRes.json() : null;
@@ -466,17 +464,30 @@ export default function ProjectDetail() {
       };
       console.log('Mockup payload:', JSON.stringify(payload, null, 2));
 
-      const res = await fetch(`${API_BASE_URL}/api/agents/${project.id}/content`, {
+      // Start background job — returns immediately with job_id
+      const startRes = await fetch(`${API_BASE_URL}/api/agents/${project.id}/content`, {
         method: 'POST', headers: h, body: JSON.stringify(payload),
-        signal: controller.signal,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
+      if (!startRes.ok) {
+        const err = await startRes.json().catch(() => ({}));
         const detail = err.detail;
-        throw new Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(d => d.msg || JSON.stringify(d)).join(', ') : detail ? JSON.stringify(detail) : `Fehler ${res.status}`);
+        throw new Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(d => d.msg || JSON.stringify(d)).join(', ') : detail ? JSON.stringify(detail) : `Fehler ${startRes.status}`);
       }
-      const data = await res.json();
-      setMockupResult(data.result);
+      const { job_id } = await startRes.json();
+
+      // Poll until done (max 120 s, every 2 s)
+      let result = null;
+      const deadline = Date.now() + 120_000;
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 2000));
+        const pollRes = await fetch(`${API_BASE_URL}/api/agents/jobs/${job_id}`, { headers: h });
+        if (!pollRes.ok) throw new Error('Job-Status konnte nicht abgerufen werden');
+        const job = await pollRes.json();
+        if (job.status === 'done') { result = job.result; break; }
+        if (job.status === 'error') throw new Error(job.error || 'KI-Generierung fehlgeschlagen');
+      }
+      if (!result) throw new Error('Zeitüberschreitung — bitte erneut versuchen');
+      setMockupResult(result);
 
       if (selectedPage && data.result) {
         const mockupHtml = typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2);
@@ -486,13 +497,9 @@ export default function ProjectDetail() {
         }).catch(() => {});
       }
     } catch (e) {
-      const msg = e?.name === 'AbortError'
-        ? 'Zeitüberschreitung (>55 s) — bitte erneut versuchen.'
-        : e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.';
-      setMockupError(msg);
+      setMockupError(e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.');
     } finally {
       clearTimeout(slowTimer);
-      clearTimeout(hardTimer);
       setMockupRunning(false);
       setMockupSlow(false);
     }

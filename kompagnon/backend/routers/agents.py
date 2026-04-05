@@ -21,12 +21,16 @@ router = APIRouter(prefix="/api/agents", tags=["agents"])
 
 
 class ContentBriefing(BaseModel):
-    company_name: str
-    city: str
-    trade: str
-    usp: str
-    services: list[str]
-    target_audience: str
+    company_name: str = ""
+    city: str = ""
+    trade: str = ""
+    usp: str = ""
+    services: list[str] = []
+    target_audience: str = ""
+    page_name: str = "Startseite"
+    zweck: str = ""
+    ziel_keyword: str = ""
+    cta_text: str = ""
     team_size: int = 1
     team_info: str = ""
     years_in_business: int = 0

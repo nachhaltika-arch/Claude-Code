@@ -444,21 +444,22 @@ export default function ProjectDetail() {
       const selectedPage = sitemapPages.find(p => p.id === selectedPageId) || null;
 
       const payload = {
-        company_name: project.company_name || '',
-        city: briefing?.einzugsgebiet || '',
-        trade: briefing?.gewerk || project.industry || '',
-        usp: briefing?.usp || '',
-        services: briefing?.leistungen
-          ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
-          : [],
-        target_audience: briefing?.zielgruppe || '',
-        ...(selectedPage ? {
-          page_name: selectedPage.page_name,
-          zweck: selectedPage.zweck || '',
-          ziel_keyword: selectedPage.ziel_keyword || '',
-          cta_text: selectedPage.cta_text || '',
-        } : {}),
+        company_name: String(project.company_name || ''),
+        city: String(briefing?.einzugsgebiet || ''),
+        trade: String(briefing?.gewerk || project.industry || ''),
+        usp: String(briefing?.usp || ''),
+        services: Array.isArray(briefing?.leistungen)
+          ? briefing.leistungen.map(String)
+          : typeof briefing?.leistungen === 'string'
+            ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+            : [],
+        target_audience: String(briefing?.zielgruppe || ''),
+        page_name: String(selectedPage?.page_name || 'Startseite'),
+        zweck: String(selectedPage?.zweck || ''),
+        ziel_keyword: String(selectedPage?.ziel_keyword || ''),
+        cta_text: String(selectedPage?.cta_text || ''),
       };
+      console.log('Mockup payload:', JSON.stringify(payload, null, 2));
 
       const res = await fetch(`${API_BASE_URL}/api/agents/${project.id}/content`, {
         method: 'POST', headers: h, body: JSON.stringify(payload),

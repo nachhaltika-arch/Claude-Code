@@ -260,24 +260,25 @@ export default function LeadProfile() {
       }
 
       const payload = {
-        company_name: lead?.display_name || lead?.company_name || '',
-        city: lead?.city || briefing?.einzugsgebiet || '',
-        trade: briefing?.gewerk || lead?.trade || '',
-        usp: briefing?.usp || '',
-        services: briefing?.leistungen
-          ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
-          : [],
-        target_audience: briefing?.zielgruppe || '',
-        ...(selectedPage ? {
-          page_name: selectedPage.page_name,
-          zweck: selectedPage.zweck || '',
-          ziel_keyword: selectedPage.ziel_keyword || '',
-          cta_text: selectedPage.cta_text || '',
-        } : {}),
+        company_name: String(lead?.display_name || lead?.company_name || ''),
+        city: String(briefing?.einzugsgebiet || lead?.city || ''),
+        trade: String(briefing?.gewerk || lead?.trade || ''),
+        usp: String(briefing?.usp || ''),
+        services: Array.isArray(briefing?.leistungen)
+          ? briefing.leistungen.map(String)
+          : typeof briefing?.leistungen === 'string'
+            ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+            : [],
+        target_audience: String(briefing?.zielgruppe || ''),
+        page_name: String(selectedPage?.page_name || 'Startseite'),
+        zweck: String(selectedPage?.zweck || ''),
+        ziel_keyword: String(selectedPage?.ziel_keyword || ''),
+        cta_text: String(selectedPage?.cta_text || ''),
         // Echter Content aus Content-Manager
         ...contentFields,
         ...(logoUrl ? { logo_url: logoUrl } : {}),
       };
+      console.log('Mockup payload:', JSON.stringify(payload, null, 2));
 
       const res = await fetch(`${API_BASE_URL}/api/agents/${projectId}/content`, {
         method: 'POST',

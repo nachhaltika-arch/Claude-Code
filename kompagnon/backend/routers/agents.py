@@ -108,7 +108,7 @@ def _run_content_job(job_id: str, briefing_dict: dict, use_mock: bool,
             result = ContentWriterAgent.get_mock_content(company_name, city, trade)
         else:
             agent = ContentWriterAgent()
-            result = agent.write_content(briefing_dict)
+            result = agent.write_content(briefing_dict)  # full dict incl. context fields
 
         if "error" in result:
             _jobs[job_id] = {"status": "error", "error": result["error"]}
@@ -134,6 +134,14 @@ class ContentBriefing(BaseModel):
     team_info: str = ""
     years_in_business: int = 0
     awards_or_certifications: list[str] = []
+    # Context fields from audit / pagespeed / crawler / briefing
+    audit_score: int | None = None
+    audit_problems: list[str] = []
+    pagespeed_mobile: int | None = None
+    crawler_titles: list[str] = []
+    briefing_usp: str = ""
+    briefing_leistungen: str = ""
+    briefing_zielgruppe: str = ""
 
 
 class CompanyData(BaseModel):

@@ -66,6 +66,30 @@ class ContentWriterAgent:
             if keyword:  page_context += f'\nZiel-Keyword (SEO): {keyword}'
             if cta_text: page_context += f'\nGewünschter CTA-Text: {cta_text}'
 
+            # ── Inject audit/pagespeed/crawler/briefing context ──────────────
+            audit_score   = briefing_data.get('audit_score')
+            audit_probs   = briefing_data.get('audit_problems') or []
+            ps_mobile     = briefing_data.get('pagespeed_mobile')
+            crawler_titles = briefing_data.get('crawler_titles') or []
+            b_usp         = briefing_data.get('briefing_usp') or briefing_data.get('usp', '')
+            b_leistungen  = briefing_data.get('briefing_leistungen', '')
+            b_zielgruppe  = briefing_data.get('briefing_zielgruppe') or briefing_data.get('target_audience', '')
+
+            if audit_score:
+                page_context += f'\nAktueller Website-Score: {audit_score}/100'
+            if audit_probs:
+                page_context += f'\nTop-Probleme der aktuellen Website: {", ".join(str(p) for p in audit_probs[:3])}'
+            if ps_mobile:
+                page_context += f'\nPageSpeed Mobil: {ps_mobile}/100'
+            if crawler_titles:
+                page_context += f'\nAktuell vorhandene Seiten: {", ".join(crawler_titles)}'
+            if b_usp:
+                page_context += f'\nUSP des Betriebs: {b_usp}'
+            if b_zielgruppe:
+                page_context += f'\nZielgruppe: {b_zielgruppe}'
+            if b_leistungen and not briefing_data.get('services'):
+                page_context += f'\nLeistungen (Briefing): {b_leistungen}'
+
             system_prompt = """Du bist ein Texter für KOMPAGNON, spezialisiert auf deutsche Handwerksbetriebe.
 Schreibe konvertierungsstarke, authentische Website-Texte.
 

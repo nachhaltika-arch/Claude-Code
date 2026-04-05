@@ -1317,6 +1317,31 @@ export default function CustomerDetail() {
     } catch { /* silent */ }
   };
 
+  const loadPageContext = async (lid, pageId) => {
+    const results = await Promise.allSettled([
+      fetch(`${API_BASE_URL}/api/audit/lead/${lid}`, { headers: h }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/api/leads/${lid}/pagespeed`, { headers: h }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/api/crawler/${lid}`, { headers: h }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/api/briefings/${lid}`, { headers: h }).then(r => r.json()),
+    ]);
+    const [audits, pagespeed, crawler, briefing] = results.map(r =>
+      r.status === 'fulfilled' ? r.value : null
+    );
+    const latestAudit = Array.isArray(audits) ? audits[0] : null;
+    return {
+      audit_score:         latestAudit?.total_score || null,
+      audit_problems:      latestAudit?.top_problems || [],
+      audit_summary:       latestAudit?.ai_summary || '',
+      pagespeed_mobile:    pagespeed?.mobile_score || null,
+      pagespeed_desktop:   pagespeed?.desktop_score || null,
+      crawler_pages:       Array.isArray(crawler) ? crawler.length : 0,
+      crawler_titles:      Array.isArray(crawler) ? crawler.slice(0, 5).map(p => p.title).filter(Boolean) : [],
+      briefing_usp:        briefing?.usp || '',
+      briefing_leistungen: briefing?.leistungen || '',
+      briefing_zielgruppe: briefing?.zielgruppe || '',
+    };
+  };
+
   const generateMockup = async () => {
     if (!projectId || !activeMockupPage) return;
     setMockupRunning(true);
@@ -1325,7 +1350,10 @@ export default function CustomerDetail() {
     setMockupResult(null);
     const slowTimer = setTimeout(() => setMockupSlow(true), 20000);
     try {
-      const bRes = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers: h });
+      const [bRes, ctx] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers: h }),
+        loadPageContext(leadId, activeMockupPage.id),
+      ]);
       const briefing = bRes.ok ? await bRes.json() : null;
 
       let contentFields = {};
@@ -1341,20 +1369,27 @@ export default function CustomerDetail() {
       } catch { /* optional */ }
 
       const payload = {
-        company_name:    String(customer?.company_name || ''),
-        city:            String(briefing?.einzugsgebiet || customer?.city || ''),
-        trade:           String(briefing?.gewerk || customer?.trade || ''),
-        usp:             String(briefing?.usp || ''),
-        services:        Array.isArray(briefing?.leistungen)
-                           ? briefing.leistungen.map(String)
-                           : typeof briefing?.leistungen === 'string'
-                             ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
-                             : [],
-        target_audience: String(briefing?.zielgruppe || ''),
-        page_name:       String(activeMockupPage.page_name || 'Startseite'),
-        zweck:           String(activeMockupPage.zweck || ''),
-        ziel_keyword:    String(activeMockupPage.ziel_keyword || ''),
-        cta_text:        String(activeMockupPage.cta_text || ''),
+        company_name:       String(customer?.company_name || ''),
+        city:               String(briefing?.einzugsgebiet || customer?.city || ''),
+        trade:              String(briefing?.gewerk || customer?.trade || ''),
+        usp:                String(briefing?.usp || ''),
+        services:           Array.isArray(briefing?.leistungen)
+                              ? briefing.leistungen.map(String)
+                              : typeof briefing?.leistungen === 'string'
+                                ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+                                : [],
+        target_audience:    String(briefing?.zielgruppe || ''),
+        page_name:          String(activeMockupPage.page_name || 'Startseite'),
+        zweck:              String(activeMockupPage.zweck || ''),
+        ziel_keyword:       String(activeMockupPage.ziel_keyword || ''),
+        cta_text:           String(activeMockupPage.cta_text || ''),
+        audit_score:        ctx.audit_score,
+        audit_problems:     ctx.audit_problems,
+        pagespeed_mobile:   ctx.pagespeed_mobile,
+        crawler_titles:     ctx.crawler_titles,
+        briefing_usp:       ctx.briefing_usp,
+        briefing_leistungen: ctx.briefing_leistungen,
+        briefing_zielgruppe: ctx.briefing_zielgruppe,
         ...contentFields,
       };
 
@@ -1460,17 +1495,32 @@ export default function CustomerDetail() {
         </div>
 
         {/* Aktionsleiste */}
-        <button
-          onClick={() => setIsDesignerOpen(true)}
-          style={{
-            padding: '8px 16px', border: 'none', borderRadius: 'var(--radius-md)',
-            background: 'var(--brand-primary)', color: '#fff',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0,
-          }}
-        >
-          🌐 Website erstellen
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {(() => {
+            const btnStyle = (variant) => ({
+              padding: '10px 16px',
+              background: variant === 'primary' ? 'var(--brand-primary)' : 'var(--bg-surface)',
+              color: variant === 'primary' ? '#fff' : 'var(--text-primary)',
+              border: '1px solid var(--border-light)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: 13, fontWeight: 500,
+              cursor: 'pointer', textAlign: 'left',
+              fontFamily: 'var(--font-sans)',
+              width: '100%',
+            });
+            return (
+              <>
+                <button onClick={() => setActiveTab('dateien')} style={btnStyle('secondary')}>✏️ Projektdaten bearbeiten</button>
+                <button onClick={() => { setActiveTab('audits'); }} style={btnStyle('secondary')}>🔍 Audit starten</button>
+                <button onClick={() => setActiveTab('sitemap')} style={btnStyle('secondary')}>📋 Briefing / Sitemap</button>
+                <button onClick={() => setActiveTab('mockup')} style={btnStyle('secondary')}>📝 Website-Content</button>
+                <button onClick={() => setActiveTab('audits')} style={btnStyle('secondary')}>🕷️ Crawler</button>
+                <button onClick={() => setActiveTab('pagespeed')} style={btnStyle('secondary')}>⚡ PageSpeed</button>
+                <button onClick={() => setIsDesignerOpen(true)} style={btnStyle('primary')}>🌐 Website erstellen</button>
+              </>
+            );
+          })()}
+        </div>
       </div>
 
       {/* ── Verknüpftes Projekt ── */}
@@ -1603,24 +1653,52 @@ export default function CustomerDetail() {
                           {page.ziel_keyword && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{page.ziel_keyword}</div>}
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>{st.label}</span>
-                        {page.mockup_html && (
-                          <button onClick={() => { const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${page.mockup_html}</body></html>`; window.open('data:text/html;charset=utf-8,' + encodeURIComponent(doc), '_blank'); }}
-                            style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
-                            👁 Vorschau
-                          </button>
-                        )}
-                        <button onClick={() => { setEditPageModal(page); setEditPageForm({ page_name: page.page_name, page_type: page.page_type, ziel_keyword: page.ziel_keyword || '', zweck: page.zweck || '', cta_text: page.cta_text || '', status: page.status || 'geplant' }); }}
-                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
-                          ✏️ Bearbeiten
-                        </button>
-                        <button onClick={() => setEditingPage(page)}
-                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
-                          🖼 Editor
-                        </button>
-                        <button onClick={() => deleteSitemapPage(page.id)}
-                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--status-danger-text)', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
-                          🗑️
-                        </button>
+                        {/* Action buttons */}
+                        {(() => {
+                          const aBtn = (bg, color) => ({
+                            padding: '5px 11px', fontSize: 12, fontWeight: 500,
+                            background: bg, color, border: 'none',
+                            borderRadius: 'var(--radius-md)', cursor: 'pointer',
+                            fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap',
+                          });
+                          return (
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                              <button
+                                onClick={() => { setEditPageModal(page); setEditPageForm({ page_name: page.page_name, page_type: page.page_type, ziel_keyword: page.ziel_keyword || '', zweck: page.zweck || '', cta_text: page.cta_text || '', status: page.status || 'geplant' }); }}
+                                style={aBtn('#1a2332', '#fff')}>
+                                ✏️ Bearbeiten
+                              </button>
+                              <button
+                                onClick={() => { setActiveMockupPage(page); setActiveTab('mockup'); }}
+                                style={aBtn('var(--brand-primary)', '#fff')}>
+                                🎨 Mockup
+                              </button>
+                              <button
+                                onClick={() => { setActiveMockupPage(page); setActiveTab('mockup'); }}
+                                style={aBtn('#059669', '#fff')}>
+                                📝 Content
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (page.mockup_html) {
+                                    const w = window.open('', '_blank');
+                                    w.document.write(page.mockup_html);
+                                    w.document.close();
+                                  } else {
+                                    toast.error('Noch kein Mockup für diese Seite');
+                                  }
+                                }}
+                                style={aBtn('var(--bg-elevated)', 'var(--text-primary)')}>
+                                👁 Vorschau
+                              </button>
+                              <button
+                                onClick={() => setEditingPage(page)}
+                                style={aBtn('#7c3aed', '#fff')}>
+                                🖊️ Editor
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })}

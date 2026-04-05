@@ -544,6 +544,25 @@ def _run_migrations():
         "ALTER TABLE mockup_versions ADD COLUMN IF NOT EXISTS sitemap_page_id INTEGER REFERENCES sitemap_pages(id) ON DELETE CASCADE",
         "CREATE INDEX IF NOT EXISTS idx_mockup_versions_lead_id ON mockup_versions(lead_id)",
         "CREATE INDEX IF NOT EXISTS idx_mockup_versions_page_id ON mockup_versions(sitemap_page_id)",
+        # Website Templates
+        """CREATE TABLE IF NOT EXISTS website_templates (
+          id             SERIAL PRIMARY KEY,
+          name           VARCHAR(200) NOT NULL,
+          description    TEXT,
+          source         VARCHAR(50) DEFAULT 'upload',
+          source_url     VARCHAR(500),
+          thumbnail_url  VARCHAR(500),
+          html_content   TEXT,
+          css_content    TEXT,
+          grapes_data    JSONB,
+          tags           VARCHAR(200),
+          category       VARCHAR(100) DEFAULT 'allgemein',
+          is_active      BOOLEAN DEFAULT true,
+          created_at     TIMESTAMP DEFAULT NOW(),
+          updated_at     TIMESTAMP DEFAULT NOW()
+        )""",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES website_templates(id) ON DELETE SET NULL",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES website_templates(id) ON DELETE SET NULL",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -819,6 +838,9 @@ app.include_router(content_scraper_router.router)
 
 from routers.branddesign import router as branddesign_router
 app.include_router(branddesign_router)
+
+from routers import templates as templates_router
+app.include_router(templates_router.router)
 
 
 # Global exception handler — catches unhandled errors

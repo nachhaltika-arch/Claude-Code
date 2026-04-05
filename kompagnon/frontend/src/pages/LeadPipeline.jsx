@@ -172,18 +172,24 @@ export default function LeadPipeline() {
       {/* Kanban */}
       {isMobile ? (
         <div>
-          <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 8, marginBottom: 12 }}>
-            {PHASES.map((ph, idx) => (
-              <button key={ph.id} onClick={() => setActiveTab(idx)} style={{
-                flexShrink: 0, whiteSpace: 'nowrap', padding: '6px 12px', borderRadius: 'var(--radius-full)',
-                border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 12,
-                background: activeTab === idx ? 'var(--bg-active)' : 'transparent',
-                color: activeTab === idx ? 'var(--brand-primary)' : 'var(--text-secondary)',
-                fontWeight: activeTab === idx ? 500 : 400,
-              }}>
-                {ph.label} <span style={{ opacity: 0.6 }}>{getColCards(ph.id).length}</span>
-              </button>
-            ))}
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 8, marginBottom: 4, scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+              {PHASES.map((ph, idx) => (
+                <button key={ph.id} onClick={() => setActiveTab(idx)} style={{
+                  flexShrink: 0, whiteSpace: 'nowrap', padding: '6px 12px', borderRadius: 'var(--radius-full)',
+                  border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 12,
+                  background: activeTab === idx ? 'var(--bg-active)' : 'transparent',
+                  color: activeTab === idx ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                  fontWeight: activeTab === idx ? 500 : 400,
+                }}>
+                  {ph.label} <span style={{ opacity: 0.6 }}>{getColCards(ph.id).length}</span>
+                </button>
+              ))}
+            </div>
+            <div style={{ position: 'absolute', right: 0, top: 0, bottom: 8, width: 32, background: 'linear-gradient(to right, transparent, var(--bg-app))', pointerEvents: 'none' }} />
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8, textAlign: 'right' }}>
+            Phase {activeTab + 1} / {PHASES.length} — wischen zum Wechseln
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {getColCards(PHASES[activeTab].id).map(card => (

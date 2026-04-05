@@ -157,8 +157,12 @@ export default function Dashboard() {
               {[1,2,3,4].map(i => <Skeleton key={i} height={40} />)}
             </div>
           ) : leads.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-tertiary)', fontSize: 13 }}>
-              Noch keine Leads vorhanden
+            <div style={{ textAlign: 'center', padding: '32px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              <div style={{ fontSize: 28 }}>📋</div>
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Noch keine Leads vorhanden</div>
+              <button onClick={() => navigate('/app/import')} style={{ marginTop: 4, padding: '8px 18px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                + Leads importieren
+              </button>
             </div>
           ) : (
             leads.map((lead, i) => (

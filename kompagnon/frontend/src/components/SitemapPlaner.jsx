@@ -532,7 +532,7 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
     try {
       const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error(`Fehler ${res.status}`);
-      setPages(await res.json());
+      setPages(await res.json() || []);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -685,6 +685,20 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
               <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid #DDE4E8', borderTopColor: '#008EAA', animation: 'spin 0.8s linear infinite' }} />
+            </div>
+          ) : contentPages.length === 0 && !generating ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', textAlign: 'center' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>🗺️</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#1A2C32', marginBottom: 8 }}>Noch keine Sitemap geplant</div>
+              <div style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 24, maxWidth: 300 }}>
+                Klicke auf „KI-Vorlage laden" um automatisch eine passende Seitenstruktur zu erstellen, oder füge Seiten manuell hinzu.
+              </div>
+              <button
+                onClick={() => setShowAddForm(true)}
+                style={{ padding: '8px 20px', borderRadius: 8, border: '1px dashed #CBD5E1', background: '#F8FAFC', color: '#374151', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                + Seite manuell hinzufügen
+              </button>
             </div>
           ) : (
             <>

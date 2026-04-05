@@ -286,16 +286,17 @@ function MediaCard({ media, token, onUpdated, onDeleted }) {
 function PageContent({ page, token, onPageUpdated }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [genAllLoading, setGenAllLoading] = useState(false);
   const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   useEffect(() => {
     if (!page) return;
-    setLoading(true);
+    setLoading(true); setLoadError('');
     fetch(`${API_BASE_URL}/api/content/page/${page.sitemap_page_id}`, { headers: h })
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`Fehler ${r.status}`); return r.json(); })
       .then(d => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch(e => { setLoadError(e.message || 'Slots konnten nicht geladen werden'); setLoading(false); });
   }, [page?.sitemap_page_id]);
 
   function updateSection(updated) {
@@ -327,6 +328,14 @@ function PageContent({ page, token, onPageUpdated }) {
 
   if (!page) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>← Seite auswählen</div>;
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>Lade Slots…</div>;
+  if (loadError) return (
+    <div style={{ padding: 40, textAlign: 'center' }}>
+      <div style={{ fontSize: 28, marginBottom: 10 }}>⚠️</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>Slots konnten nicht geladen werden</div>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16 }}>{loadError}</div>
+      <button onClick={() => { setLoadError(''); setLoading(true); fetch(`${API_BASE_URL}/api/content/page/${page.sitemap_page_id}`, { headers: h }).then(r => r.json()).then(d => { setData(d); setLoading(false); }).catch(e => { setLoadError(e.message); setLoading(false); }); }} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-medium)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 13 }}>Erneut versuchen</button>
+    </div>
+  );
   if (!data) return null;
 
   const mediaEingegangen = data.media.filter(m => m.status !== 'ausstehend').length;

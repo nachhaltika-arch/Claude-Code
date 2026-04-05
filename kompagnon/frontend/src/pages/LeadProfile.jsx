@@ -1507,6 +1507,26 @@ export default function LeadProfile() {
             </div>
 
             {/* Seiten-Tabelle */}
+            {contentSummary.length > 0 && (() => {
+              const totalSec  = contentSummary.reduce((a, p) => a + (p.sections?.length || 0), 0);
+              const doneSec   = contentSummary.reduce((a, p) => a + (p.sections?.filter(s => s.status === 'freigegeben').length || 0), 0);
+              const totalMed  = contentSummary.reduce((a, p) => a + (p.media?.length || 0), 0);
+              const doneMed   = contentSummary.reduce((a, p) => a + (p.media?.filter(m => m.status === 'freigegeben').length || 0), 0);
+              const total = totalSec + totalMed;
+              const done  = doneSec + doneMed;
+              const pct   = total > 0 ? Math.round(done / total * 100) : 0;
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-light)', borderRadius: 8, marginBottom: 8 }}>
+                  <div style={{ flex: 1, height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: pct === 100 ? '#22C55E' : 'var(--brand-primary)', transition: 'width 0.4s ease', borderRadius: 3 }} />
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: pct === 100 ? '#065F46' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                    {done}/{total} freigegeben ({pct}%)
+                  </span>
+                </div>
+              );
+            })()}
+
             <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
               {contentSummary.length === 0 ? (
                 <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>

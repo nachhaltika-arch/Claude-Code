@@ -737,13 +737,15 @@ export default function ProjectDetail() {
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>Generierter Entwurf</div>
                 {typeof mockupResult === 'string' ? (
                   <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'inherit', lineHeight: 1.7, margin: 0 }}>{mockupResult}</pre>
-                ) : (
+                ) : typeof mockupResult === 'object' ? (
                   Object.entries(mockupResult).map(([key, val]) => (
                     <div key={key} style={{ marginBottom: 16 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{key}</div>
                       <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{typeof val === 'string' ? val : JSON.stringify(val, null, 2)}</div>
                     </div>
                   ))
+                ) : (
+                  <pre style={{ fontSize: 13 }}>{JSON.stringify(mockupResult, null, 2)}</pre>
                 )}
               </div>
             )}

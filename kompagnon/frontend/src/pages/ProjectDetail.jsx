@@ -12,6 +12,7 @@ import HomepageChecklist from '../components/HomepageChecklist';
 import SecurityChecklist from '../components/SecurityChecklist';
 import PageSpeedSection from '../components/PageSpeedSection';
 import SitemapPlaner from '../components/SitemapPlaner';
+import GrapesEditor from '../components/GrapesEditor';
 import ContentManager from '../components/ContentManager';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
@@ -368,10 +369,23 @@ export default function ProjectDetail() {
   const [crawlSort, setCrawlSort] = useState({ col: 'crawled_at', asc: true });
   const [crawlExpandedRow, setCrawlExpandedRow] = useState(null);
   // Sitemap
-  const [sitemapPages, setSitemapPages] = useState([]);
+  const [sitemapPages, setSitemapPages]     = useState([]);
   const [sitemapLoading, setSitemapLoading] = useState(false);
+  const [sitemapLoaded, setSitemapLoaded]   = useState(false);
   const [showSitemapPlaner, setShowSitemapPlaner] = useState(false);
   const [selectedPageId, setSelectedPageId] = useState(null);
+  const [editingPage, setEditingPage]       = useState(null);
+  // Add page form
+  const [addPageOpen, setAddPageOpen]       = useState(false);
+  const [addPageForm, setAddPageForm]       = useState({ page_name: '', page_type: 'info', parent_id: '' });
+  const [addPageSaving, setAddPageSaving]   = useState(false);
+  // Edit page modal
+  const [editPageModal, setEditPageModal]   = useState(null);
+  const [editPageForm, setEditPageForm]     = useState({});
+  const [editPageSaving, setEditPageSaving] = useState(false);
+  // KI generation
+  const [kiGenerating, setKiGenerating]     = useState(false);
+  const [kiConfirm, setKiConfirm]           = useState(false);
   // Content Manager
   const [showContentManager, setShowContentManager] = useState(false);
   const [contentSummary, setContentSummary] = useState([]);
@@ -419,13 +433,63 @@ export default function ProjectDetail() {
       if (res.ok) {
         const pages = await res.json();
         setSitemapPages(pages);
+        setSitemapLoaded(true);
         if (!selectedPageId && pages.length > 0) {
-          const start = pages.find(p => p.page_type === 'startseite') || pages[0];
-          setSelectedPageId(start.id);
+          const contentPages = pages.filter(p => !p.ist_pflichtseite);
+          const start = contentPages.find(p => p.page_type === 'startseite') || contentPages[0];
+          if (start) setSelectedPageId(start.id);
         }
       }
     } catch { /* silent */ }
     finally { setSitemapLoading(false); }
+  };
+
+  const downloadSitemapPdf = async () => {
+    if (!project?.lead_id) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id}/pdf`, { headers });
+      if (!res.ok) throw new Error('PDF konnte nicht geladen werden');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'sitemap.pdf'; a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) { toast.error('PDF Fehler: ' + e.message); }
+  };
+
+  const deleteSitemapPage = async (pageId) => {
+    if (!window.confirm('Seite wirklich löschen?')) return;
+    await fetch(`${API_BASE_URL}/api/sitemap/pages/${pageId}`, { method: 'DELETE', headers: h });
+    setSitemapPages(prev => prev.filter(p => p.id !== pageId));
+  };
+
+  const generateKI = async () => {
+    setKiConfirm(false); setKiGenerating(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id}/generate`, { method: 'POST', headers: h });
+      if (res.ok) { const d = await res.json(); setSitemapPages(d.pages || []); setSelectedPageId(null); }
+    } catch { /* silent */ }
+    finally { setKiGenerating(false); }
+  };
+
+  const createSitemapPage = async () => {
+    if (!addPageForm.page_name.trim()) return;
+    setAddPageSaving(true);
+    try {
+      const body = { page_name: addPageForm.page_name, page_type: addPageForm.page_type, parent_id: addPageForm.parent_id ? Number(addPageForm.parent_id) : null, position: sitemapPages.filter(p => !p.ist_pflichtseite).length };
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id}/pages`, { method: 'POST', headers: h, body: JSON.stringify(body) });
+      if (res.ok) { const page = await res.json(); setSitemapPages(prev => [...prev, page]); setAddPageForm({ page_name: '', page_type: 'info', parent_id: '' }); setAddPageOpen(false); }
+    } catch { /* silent */ }
+    finally { setAddPageSaving(false); }
+  };
+
+  const saveEditPage = async () => {
+    if (!editPageModal) return;
+    setEditPageSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/pages/${editPageModal.id}`, { method: 'PUT', headers: h, body: JSON.stringify(editPageForm) });
+      if (res.ok) { const updated = await res.json(); setSitemapPages(prev => prev.map(p => p.id === updated.id ? updated : p)); setEditPageModal(null); }
+    } catch { /* silent */ }
+    finally { setEditPageSaving(false); }
   };
 
   const loadLatestAudit = async () => {
@@ -653,60 +717,201 @@ export default function ProjectDetail() {
 
       {/* ── Sitemap Tab ─────────────────────────────────────────────────────── */}
       {activeTab === 'sitemap' && (() => {
-        if (!sitemapLoading && sitemapPages.length === 0) loadSitemapPages();
-        const SITEMAP_STATUS = {
+        if (!sitemapLoaded && !sitemapLoading) loadSitemapPages();
+        const ST = {
           geplant:        { bg: '#EFF6FF', text: '#1D4ED8', label: 'Geplant' },
           in_bearbeitung: { bg: '#FEF9C3', text: '#92400E', label: 'In Bearb.' },
           freigegeben:    { bg: '#FEF3C7', text: '#B45309', label: 'Freigegeben' },
           live:           { bg: '#DCFCE7', text: '#166534', label: 'Live' },
         };
-        const TYPE_ICON = { startseite: '🏠', leistung: '🔧', info: 'ℹ️', vertrauen: '⭐', conversion: '📞', sonstige: '📄' };
+        const TI = { startseite: '🏠', leistung: '🔧', info: 'ℹ️', vertrauen: '⭐', conversion: '📞', sonstige: '📄' };
+        const PAGE_TYPES = [
+          { v: 'startseite', l: 'Startseite' }, { v: 'leistung', l: 'Leistung' },
+          { v: 'info', l: 'Info' }, { v: 'vertrauen', l: 'Vertrauen' },
+          { v: 'conversion', l: 'Conversion' }, { v: 'sonstige', l: 'Sonstige' },
+        ];
+        const inp = { width: '100%', padding: '7px 10px', fontSize: 13, border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box' };
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button
-                onClick={() => setShowSitemapPlaner(true)}
-                style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                🗺️ Sitemap bearbeiten
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={() => setAddPageOpen(o => !o)}
+                style={{ padding: '8px 16px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                ➕ Seite hinzufügen
               </button>
-              <a
-                href={`${API_BASE_URL}/api/sitemap/${project.lead_id}/pdf`}
-                target="_blank" rel="noopener noreferrer"
-                style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
-              >
-                📥 PDF herunterladen
-              </a>
+              <button onClick={() => setKiConfirm(true)} disabled={kiGenerating || !project.lead_id}
+                style={{ padding: '8px 16px', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', opacity: kiGenerating ? 0.6 : 1 }}>
+                {kiGenerating ? '⏳ Generiere…' : '🤖 KI-Vorlage laden'}
+              </button>
+              <button onClick={downloadSitemapPdf}
+                style={{ padding: '8px 16px', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                📄 PDF herunterladen
+              </button>
             </div>
+
+            {/* KI confirm */}
+            {kiConfirm && (
+              <div style={{ background: '#FFF9E6', border: '1px solid #F5D87A', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 13, color: '#92660A', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ flex: 1 }}>⚠️ KI-Vorlage überschreibt alle Nicht-Pflicht-Seiten.</span>
+                <button onClick={generateKI} style={{ padding: '6px 14px', background: '#d97706', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, generieren</button>
+                <button onClick={() => setKiConfirm(false)} style={{ padding: '6px 14px', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
+              </div>
+            )}
+
+            {/* Add page form */}
+            {addPageOpen && (
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-lg)', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Neue Seite anlegen</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Seitenname *</label>
+                    <input value={addPageForm.page_name} onChange={e => setAddPageForm(f => ({ ...f, page_name: e.target.value }))} placeholder="z.B. Leistungen" style={inp} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Typ</label>
+                    <select value={addPageForm.page_type} onChange={e => setAddPageForm(f => ({ ...f, page_type: e.target.value }))} style={inp}>
+                      {PAGE_TYPES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Übergeordnete Seite</label>
+                    <select value={addPageForm.parent_id} onChange={e => setAddPageForm(f => ({ ...f, parent_id: e.target.value }))} style={inp}>
+                      <option value="">– Keine –</option>
+                      {sitemapPages.filter(p => !p.ist_pflichtseite).map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={createSitemapPage} disabled={addPageSaving || !addPageForm.page_name.trim()}
+                    style={{ padding: '7px 16px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', opacity: addPageSaving ? 0.6 : 1 }}>
+                    {addPageSaving ? 'Speichert…' : '💾 Anlegen'}
+                  </button>
+                  <button onClick={() => setAddPageOpen(false)}
+                    style={{ padding: '7px 14px', background: 'var(--bg-app)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    Abbrechen
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Page list */}
             <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
               {sitemapLoading ? (
                 <div style={{ padding: 32, textAlign: 'center' }}>
                   <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
                 </div>
-              ) : sitemapPages.length === 0 ? (
-                <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
-                  Noch keine Seiten geplant. Klicke auf „Sitemap bearbeiten" um loszulegen.
+              ) : sitemapPages.filter(p => !p.ist_pflichtseite).length === 0 ? (
+                <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                  <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.3 }}>🗺️</div>
+                  <div style={{ fontSize: 13 }}>Noch keine Seiten geplant.</div>
                 </div>
-              ) : sitemapPages.map((page, idx) => {
-                const st = SITEMAP_STATUS[page.status] || SITEMAP_STATUS.geplant;
-                return (
-                  <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: idx < sitemapPages.length - 1 ? '1px solid var(--border-light)' : 'none', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 18, flexShrink: 0 }}>{TYPE_ICON[page.page_type] || '📄'}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{page.page_name}</div>
-                      {page.ziel_keyword && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{page.ziel_keyword}</div>}
+              ) : (
+                <>
+                  {sitemapPages.filter(p => !p.ist_pflichtseite).map(page => {
+                    const st = ST[page.status] || ST.geplant;
+                    return (
+                      <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 17, flexShrink: 0 }}>{TI[page.page_type] || '📄'}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{page.page_name}</div>
+                          {page.ziel_keyword && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{page.ziel_keyword}</div>}
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>{st.label}</span>
+                        {page.mockup_html && (
+                          <button onClick={() => { const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${page.mockup_html}</body></html>`; window.open('data:text/html;charset=utf-8,' + encodeURIComponent(doc), '_blank'); }}
+                            style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                            👁 Vorschau
+                          </button>
+                        )}
+                        <button onClick={() => { setEditPageModal(page); setEditPageForm({ page_name: page.page_name, page_type: page.page_type, ziel_keyword: page.ziel_keyword || '', zweck: page.zweck || '', cta_text: page.cta_text || '', status: page.status || 'geplant' }); }}
+                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                          ✏️ Bearbeiten
+                        </button>
+                        <button onClick={() => setEditingPage(page)}
+                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                          🖼 Editor
+                        </button>
+                        <button onClick={() => { setSelectedPageId(page.id); setActiveTab('mockup'); }}
+                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                          🎨 Mockup
+                        </button>
+                        <button onClick={() => deleteSitemapPage(page.id)}
+                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid var(--status-danger-text)', background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                          🗑️
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {sitemapPages.filter(p => p.ist_pflichtseite).map((page, idx, arr) => {
+                    const st = ST[page.status] || ST.geplant;
+                    return (
+                      <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderBottom: idx < arr.length - 1 ? '1px solid var(--border-light)' : 'none', background: 'var(--bg-app)' }}>
+                        <span style={{ fontSize: 15, flexShrink: 0, color: 'var(--text-tertiary)' }}>🔒</span>
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-tertiary)' }}>{page.page_name}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#F3F4F6', color: '#6B7280' }}>⚖️ Pflicht</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 10, background: st.bg, color: st.text }}>{st.label}</span>
+                      </div>
+                    );
+                  })}
+                  <div style={{ padding: '8px 14px', fontSize: 11, color: 'var(--text-tertiary)', borderTop: '1px solid var(--border-light)' }}>
+                    4 Pflichtseiten werden von KOMPAGNON rechtskonform befüllt.
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Edit page modal */}
+            {editPageModal && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 20 }}
+                onClick={e => e.target === e.currentTarget && setEditPageModal(null)}>
+                <div style={{ background: 'var(--bg-surface)', borderRadius: isMobile ? '16px 16px 0 0' : 'var(--radius-xl)', padding: 24, width: '100%', maxWidth: 480, maxHeight: isMobile ? '92vh' : '85vh', overflowY: 'auto' }}
+                  onClick={e => e.stopPropagation()}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Seite bearbeiten</span>
+                    <button onClick={() => setEditPageModal(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)' }}>×</button>
+                  </div>
+                  {[
+                    { k: 'page_name', label: 'Seitenname', type: 'text' },
+                    { k: 'ziel_keyword', label: 'Ziel-Keyword', type: 'text' },
+                    { k: 'zweck', label: 'Zweck / Beschreibung', type: 'textarea' },
+                    { k: 'cta_text', label: 'CTA-Text', type: 'text' },
+                  ].map(f => (
+                    <div key={f.k} style={{ marginBottom: 12 }}>
+                      <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>{f.label}</label>
+                      {f.type === 'textarea'
+                        ? <textarea value={editPageForm[f.k] || ''} onChange={e => setEditPageForm(p => ({ ...p, [f.k]: e.target.value }))} rows={3} style={{ ...inp, resize: 'vertical' }} />
+                        : <input type="text" value={editPageForm[f.k] || ''} onChange={e => setEditPageForm(p => ({ ...p, [f.k]: e.target.value }))} style={inp} />
+                      }
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: st.bg, color: st.text, whiteSpace: 'nowrap', flexShrink: 0 }}>{st.label}</span>
-                    <button
-                      onClick={() => { setSelectedPageId(page.id); setActiveTab('mockup'); }}
-                      style={{ padding: '5px 12px', borderRadius: 6, border: '1.5px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
-                    >
-                      Mockup öffnen →
+                  ))}
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Typ</label>
+                    <select value={editPageForm.page_type || 'info'} onChange={e => setEditPageForm(p => ({ ...p, page_type: e.target.value }))} style={inp}>
+                      {PAGE_TYPES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Status</label>
+                    <select value={editPageForm.status || 'geplant'} onChange={e => setEditPageForm(p => ({ ...p, status: e.target.value }))} style={inp}>
+                      <option value="geplant">Geplant</option>
+                      <option value="in_bearbeitung">In Bearbeitung</option>
+                      <option value="freigegeben">Freigegeben</option>
+                      <option value="live">Live</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={saveEditPage} disabled={editPageSaving}
+                      style={{ flex: 1, padding: '10px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', opacity: editPageSaving ? 0.6 : 1 }}>
+                      {editPageSaving ? 'Speichert…' : '💾 Speichern'}
+                    </button>
+                    <button onClick={() => setEditPageModal(null)}
+                      style={{ flex: 1, padding: '10px', background: 'var(--bg-app)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      Abbrechen
                     </button>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              </div>
+            )}
           </div>
         );
       })()}
@@ -1103,6 +1308,22 @@ export default function ProjectDetail() {
           leadName={project.company_name}
           token={token}
           onClose={() => { setShowContentManager(false); setContentSummary([]); }}
+        />
+      )}
+
+      {/* ── GrapesJS Editor ─────────────────────────────────────────────────── */}
+      {editingPage && (
+        <GrapesEditor
+          pageId={editingPage.id}
+          pageName={editingPage.page_name}
+          initialHtml={editingPage.mockup_html || ''}
+          onClose={() => setEditingPage(null)}
+          onSave={({ html }) => {
+            setSitemapPages(prev => prev.map(p =>
+              p.id === editingPage.id ? { ...p, mockup_html: html } : p
+            ));
+            setEditingPage(null);
+          }}
         />
       )}
     </div>

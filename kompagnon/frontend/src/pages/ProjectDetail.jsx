@@ -617,7 +617,7 @@ export default function ProjectDetail() {
     }
   };
 
-  const tabs = ['overview', 'briefing', 'branddesign', 'dateien', 'pagespeed', 'sitemap', 'content', 'mockup', 'checklists', 'crawler', 'webcontent', 'zeit', 'kommunikation'];
+  const tabs = ['overview', 'webcontent', 'briefing', 'branddesign', 'dateien', 'pagespeed', 'sitemap', 'content', 'mockup', 'checklists', 'crawler', 'zeit', 'kommunikation'];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>

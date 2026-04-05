@@ -19,6 +19,31 @@ import { useScreenSize } from '../utils/responsive';
 
 import API_BASE_URL from '../config';
 
+// ── HTML builder ─────────────────────────────────────────────────────────────
+const buildHtmlFromContent = (content) => {
+  if (!content) return '';
+  if (typeof content === 'string' && content.trim().startsWith('<')) return content;
+  let data = content;
+  if (typeof content === 'string') {
+    try { data = JSON.parse(content); } catch { return content; }
+  }
+  if (typeof data !== 'object') return String(data);
+  const primary = '#0d6efd';
+  const services = typeof data.service_texts === 'object'
+    ? Object.entries(data.service_texts).map(([k,v]) => `<div style="background:white;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.1)"><h3 style="margin-bottom:10px">${k}</h3><p style="color:#555;line-height:1.6">${v}</p></div>`).join('')
+    : '';
+  const faqs = Array.isArray(data.faq_items)
+    ? data.faq_items.map(i => `<div style="border-bottom:1px solid #eee;padding:18px 0"><h3 style="margin-bottom:8px">${i.question||''}</h3><p style="color:#555;line-height:1.6">${i.answer||''}</p></div>`).join('')
+    : '';
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}</style></head><body>
+    ${data.hero_headline ? `<div style="background:${primary};color:white;padding:80px 40px;text-align:center"><h1 style="font-size:2.5rem;font-weight:700;margin-bottom:16px">${data.hero_headline}</h1>${data.hero_subline ? `<p style="font-size:1.2rem;opacity:0.9">${data.hero_subline}</p>` : ''}</div>` : ''}
+    ${data.about_text ? `<div style="padding:60px 40px;max-width:1200px;margin:0 auto"><h2 style="font-size:1.8rem;margin-bottom:20px">Über uns</h2><p style="line-height:1.8;color:#555">${data.about_text}</p></div>` : ''}
+    ${services ? `<div style="background:#f8f9fa;padding:60px 40px"><h2 style="text-align:center;margin-bottom:40px;font-size:1.8rem">Unsere Leistungen</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;max-width:1200px;margin:0 auto">${services}</div></div>` : ''}
+    ${faqs ? `<div style="padding:60px 40px;max-width:800px;margin:0 auto"><h2 style="margin-bottom:30px;font-size:1.8rem">Häufige Fragen</h2>${faqs}</div>` : ''}
+    ${data.local_cta ? `<div style="background:#1a2332;color:white;padding:60px 40px;text-align:center"><h2 style="font-size:1.8rem;margin-bottom:20px">${data.local_cta}</h2><a href="#" style="display:inline-block;background:${primary};color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600">Kontakt aufnehmen</a></div>` : ''}
+  </body></html>`;
+};
+
 // ── CMS options ───────────────────────────────────────────────────────────────
 const CMS_OPTIONS  = ['WordPress', 'Wix', 'TYPO3', 'Webflow', 'Sonstige'];
 const PKG_OPTIONS  = ['kompagnon', 'starter', 'professional', 'enterprise'];
@@ -1069,20 +1094,22 @@ export default function ProjectDetail() {
               )}
             </div>
             {mockupResult && (
-              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>Generierter Entwurf</div>
-                {typeof mockupResult === 'string' ? (
-                  <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'inherit', lineHeight: 1.7, margin: 0 }}>{mockupResult}</pre>
-                ) : typeof mockupResult === 'object' ? (
-                  Object.entries(mockupResult).map(([key, val]) => (
-                    <div key={key} style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{key}</div>
-                      <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{typeof val === 'string' ? val : JSON.stringify(val, null, 2)}</div>
-                    </div>
-                  ))
-                ) : (
-                  <pre style={{ fontSize: 13 }}>{JSON.stringify(mockupResult, null, 2)}</pre>
-                )}
+              <div style={{ marginTop: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Generierter Entwurf</span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => { const w = window.open('', '_blank'); w.document.write(buildHtmlFromContent(mockupResult)); w.document.close(); }}
+                      style={{ fontSize: 12, padding: '4px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                      Im Browser öffnen ↗
+                    </button>
+                  </div>
+                </div>
+                <iframe
+                  srcDoc={buildHtmlFromContent(mockupResult)}
+                  style={{ width: '100%', height: 600, border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', background: '#fff' }}
+                  title="Website Vorschau"
+                  sandbox="allow-same-origin"
+                />
               </div>
             )}
           </div>

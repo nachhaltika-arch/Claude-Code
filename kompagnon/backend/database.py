@@ -679,6 +679,33 @@ class Course(Base):
     created_by        = Column(Integer, ForeignKey("users.id"), nullable=True)
 
 
+class ProjectScrapedPage(Base):
+    __tablename__ = "project_scraped_pages"
+    id                = Column(Integer, primary_key=True)
+    project_id        = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    url               = Column(String, nullable=False)
+    page_title        = Column(String)
+    meta_description  = Column(Text)
+    h1                = Column(String)
+    h2_list           = Column(Text)       # JSON-Array als String
+    paragraphs        = Column(Text)       # JSON-Array als String
+    images            = Column(Text)       # JSON-Array {src, alt} als String
+    contact_phone     = Column(String)
+    contact_email     = Column(String)
+    contact_address   = Column(Text)
+    scraped_at        = Column(DateTime, default=datetime.utcnow)
+
+
+class ProjectScrapeJob(Base):
+    __tablename__ = "project_scrape_jobs"
+    id           = Column(Integer, primary_key=True)
+    project_id   = Column(Integer, nullable=False)
+    status       = Column(String, default="pending")  # pending/running/done/failed
+    total_pages  = Column(Integer, default=0)
+    started_at   = Column(DateTime)
+    completed_at = Column(DateTime)
+
+
 def init_db():
     """Create all tables."""
     Base.metadata.create_all(bind=engine)

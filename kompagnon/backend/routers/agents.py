@@ -16,6 +16,8 @@ from agents import (
     ReviewAgent,
 )
 import os
+import asyncio
+from functools import partial
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
 
@@ -66,7 +68,7 @@ class ReviewInput(BaseModel):
 
 
 @router.post("/{project_id}/content")
-def run_content_agent(
+async def run_content_agent(
     project_id: int,
     briefing: ContentBriefing,
     db: Session = Depends(get_db),
@@ -78,18 +80,25 @@ def run_content_agent(
 
     try:
         use_mock = not os.getenv("ANTHROPIC_API_KEY")
-        agent = ContentWriterAgent() if not use_mock else None
 
         briefing_dict = briefing.dict()
 
-        if agent:
-            result = agent.write_content(briefing_dict)
-        else:
+        if use_mock:
             result = ContentWriterAgent.get_mock_content(
                 briefing.company_name,
                 briefing.city,
                 briefing.trade,
             )
+        else:
+            agent = ContentWriterAgent()
+            loop = asyncio.get_event_loop()
+            try:
+                result = await asyncio.wait_for(
+                    loop.run_in_executor(None, partial(agent.write_content, briefing_dict)),
+                    timeout=55.0,
+                )
+            except asyncio.TimeoutError:
+                raise HTTPException(status_code=504, detail="KI-Generierung hat zu lange gedauert. Bitte erneut versuchen.")
 
         if "error" in result:
             raise HTTPException(status_code=500, detail=result["error"])
@@ -101,6 +110,8 @@ def run_content_agent(
             "status": "success",
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Agent failed: {str(e)}")
 

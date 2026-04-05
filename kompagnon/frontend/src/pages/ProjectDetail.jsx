@@ -373,6 +373,7 @@ export default function ProjectDetail() {
   const [selectedPageId, setSelectedPageId] = useState(null);
   // Mockup
   const [mockupRunning, setMockupRunning] = useState(false);
+  const [mockupSlow, setMockupSlow] = useState(false);
   const [mockupResult, setMockupResult] = useState(null);
   const [mockupError, setMockupError] = useState('');
 
@@ -436,8 +437,12 @@ export default function ProjectDetail() {
 
   const generateMockup = async () => {
     setMockupRunning(true);
+    setMockupSlow(false);
     setMockupError('');
     setMockupResult(null);
+    const slowTimer = setTimeout(() => setMockupSlow(true), 20000);
+    const controller = new AbortController();
+    const hardTimer = setTimeout(() => controller.abort(), 55000);
     try {
       const bRes = await fetch(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers });
       const briefing = bRes.ok ? await bRes.json() : null;
@@ -463,6 +468,7 @@ export default function ProjectDetail() {
 
       const res = await fetch(`${API_BASE_URL}/api/agents/${project.id}/content`, {
         method: 'POST', headers: h, body: JSON.stringify(payload),
+        signal: controller.signal,
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -480,9 +486,15 @@ export default function ProjectDetail() {
         }).catch(() => {});
       }
     } catch (e) {
-      setMockupError(e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.');
+      const msg = e?.name === 'AbortError'
+        ? 'Zeitüberschreitung (>55 s) — bitte erneut versuchen.'
+        : e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.';
+      setMockupError(msg);
     } finally {
+      clearTimeout(slowTimer);
+      clearTimeout(hardTimer);
       setMockupRunning(false);
+      setMockupSlow(false);
     }
   };
 
@@ -730,6 +742,12 @@ export default function ProjectDetail() {
                 {mockupRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
                 {mockupRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
               </button>
+              {mockupSlow && (
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F59E0B', display: 'inline-block', flexShrink: 0 }} />
+                  Claude denkt gründlich nach — das kann bis zu 55 Sekunden dauern…
+                </div>
+              )}
               {mockupError && (
                 <div style={{ background: 'var(--status-danger-bg)', border: '1px solid var(--status-danger-text)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--status-danger-text)', marginTop: 12 }}>
                   {typeof mockupError === 'string' ? mockupError : JSON.stringify(mockupError)}

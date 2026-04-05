@@ -130,6 +130,7 @@ Liefere das Ergebnis als JSON:
                 max_tokens=3000,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_message}],
+                timeout=55.0,
             )
 
             response_text = message.content[0].text

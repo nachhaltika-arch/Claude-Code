@@ -181,6 +181,20 @@ export default function BriefingTab({ lead, isMobile }) {
   const freigaben = localData.freigaben || {};
   const freigabenCount = FREIGABEN.filter(f => freigaben[f.key]?.datum).length;
 
+  // Mobile step navigation
+  const ALL_SECTIONS = [...SECTIONS.map(s => s.id), 'freigaben'];
+  const currentMobileIndex = ALL_SECTIONS.indexOf(activeSection);
+  const isLastMobileSection = currentMobileIndex === ALL_SECTIONS.length - 1;
+
+  const handleMobileBack = () => {
+    if (currentMobileIndex > 0) setActiveSection(ALL_SECTIONS[currentMobileIndex - 1]);
+  };
+
+  const handleMobileNext = async () => {
+    if (activeSection !== 'freigaben') await saveSection(activeSection);
+    if (!isLastMobileSection) setActiveSection(ALL_SECTIONS[currentMobileIndex + 1]);
+  };
+
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
       <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
@@ -206,47 +220,69 @@ export default function BriefingTab({ lead, isMobile }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, flexDirection: isMobile ? 'column' : 'row', alignItems: 'flex-start' }}>
-
-        {/* Section Nav */}
-        <div style={{ flexShrink: 0, width: isMobile ? '100%' : 180 }}>
-          <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: 4, overflowX: isMobile ? 'auto' : 'visible' }}>
-            {SECTIONS.map(s => {
-              const data = localData[s.id] || {};
-              const filledFields = s.fields.filter(f => { const v = data[f.key]; return v && (typeof v === 'string' ? v.trim() : v); }).length;
-              const isActive = activeSection === s.id;
-              return (
-                <button key={s.id} onClick={() => setActiveSection(s.id)} style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
-                  background: isActive ? 'var(--bg-active)' : 'transparent',
-                  border: isActive ? '1px solid var(--border-medium)' : '1px solid transparent',
-                  borderRadius: 'var(--radius-md)', cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                  textAlign: 'left', flexShrink: 0, width: isMobile ? 'auto' : '100%',
-                }}>
-                  <span style={{ fontSize: 14 }}>{s.icon}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: isActive ? 600 : 400, color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{s.label}</div>
-                    {!isMobile && <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{filledFields}/{s.fields.length}</div>}
-                  </div>
-                  {filledFields === s.fields.length && <span style={{ fontSize: 10, color: 'var(--status-success-text)' }}>✓</span>}
-                </button>
-              );
-            })}
-            <button onClick={() => setActiveSection('freigaben')} style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
-              background: activeSection === 'freigaben' ? 'var(--bg-active)' : 'transparent',
-              border: activeSection === 'freigaben' ? '1px solid var(--border-medium)' : '1px solid transparent',
-              borderRadius: 'var(--radius-md)', cursor: 'pointer', fontFamily: 'var(--font-sans)',
-              textAlign: 'left', flexShrink: 0, width: isMobile ? 'auto' : '100%',
-            }}>
-              <span style={{ fontSize: 14 }}>⭐</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, fontWeight: activeSection === 'freigaben' ? 600 : 400, color: activeSection === 'freigaben' ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Freigaben</div>
-                {!isMobile && <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{freigabenCount}/{FREIGABEN.length}</div>}
-              </div>
-            </button>
+      {/* ── MOBILE: Step counter + progress bar ── */}
+      {isMobile && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '14px 16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+              {activeSection === 'freigaben'
+                ? '⭐ Freigaben'
+                : (() => { const s = SECTIONS.find(x => x.id === activeSection); return s ? `${s.icon} ${s.label}` : ''; })()
+              }
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+              {currentMobileIndex + 1} / {ALL_SECTIONS.length}
+            </div>
+          </div>
+          <div style={{ height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ width: `${((currentMobileIndex + 1) / ALL_SECTIONS.length) * 100}%`, height: '100%', background: 'var(--brand-primary)', borderRadius: 2, transition: 'width 0.3s ease' }} />
           </div>
         </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 12, flexDirection: 'row', alignItems: 'flex-start' }}>
+
+        {/* Section Nav — desktop only */}
+        {!isMobile && (
+          <div style={{ flexShrink: 0, width: 180 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {SECTIONS.map(s => {
+                const data = localData[s.id] || {};
+                const filledFields = s.fields.filter(f => { const v = data[f.key]; return v && (typeof v === 'string' ? v.trim() : v); }).length;
+                const isActive = activeSection === s.id;
+                return (
+                  <button key={s.id} onClick={() => setActiveSection(s.id)} style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+                    background: isActive ? 'var(--bg-active)' : 'transparent',
+                    border: isActive ? '1px solid var(--border-medium)' : '1px solid transparent',
+                    borderRadius: 'var(--radius-md)', cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                    textAlign: 'left', width: '100%',
+                  }}>
+                    <span style={{ fontSize: 14 }}>{s.icon}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: isActive ? 600 : 400, color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{s.label}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{filledFields}/{s.fields.length}</div>
+                    </div>
+                    {filledFields === s.fields.length && <span style={{ fontSize: 10, color: 'var(--status-success-text)' }}>✓</span>}
+                  </button>
+                );
+              })}
+              <button onClick={() => setActiveSection('freigaben')} style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+                background: activeSection === 'freigaben' ? 'var(--bg-active)' : 'transparent',
+                border: activeSection === 'freigaben' ? '1px solid var(--border-medium)' : '1px solid transparent',
+                borderRadius: 'var(--radius-md)', cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                textAlign: 'left', width: '100%',
+              }}>
+                <span style={{ fontSize: 14 }}>⭐</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: activeSection === 'freigaben' ? 600 : 400, color: activeSection === 'freigaben' ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Freigaben</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{freigabenCount}/{FREIGABEN.length}</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Content Area */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -347,6 +383,7 @@ export default function BriefingTab({ lead, isMobile }) {
               <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {currentSection.fields.map(field => {
                   const val = (localData[activeSection] || {})[field.key] || '';
+                  const inputStyle = { width: '100%', padding: isMobile ? '12px' : '9px 12px', minHeight: isMobile ? 44 : undefined, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box' };
                   return (
                     <div key={field.key}>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 5 }}>{field.label}</label>
@@ -354,36 +391,74 @@ export default function BriefingTab({ lead, isMobile }) {
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {field.options.map(opt => (
                             <button key={opt} onClick={() => updateField(activeSection, field.key, opt)} style={{
-                              padding: '5px 12px', background: val === opt ? 'var(--brand-primary)' : 'var(--bg-app)',
+                              padding: isMobile ? '10px 16px' : '5px 12px', minHeight: isMobile ? 44 : undefined,
+                              background: val === opt ? 'var(--brand-primary)' : 'var(--bg-app)',
                               color: val === opt ? 'white' : 'var(--text-secondary)', border: '1px solid var(--border-medium)',
-                              borderRadius: 'var(--radius-full)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
+                              borderRadius: 'var(--radius-full)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
                             }}>{opt}</button>
                           ))}
                         </div>
                       ) : field.type === 'textarea' ? (
                         <textarea value={val} onChange={e => updateField(activeSection, field.key, e.target.value)} rows={3}
                           placeholder={`${field.label}...`}
-                          style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }} />
+                          style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5, minHeight: isMobile ? 88 : undefined }} />
                       ) : (
                         <input type={field.type || 'text'} value={val} onChange={e => updateField(activeSection, field.key, e.target.value)}
                           placeholder={`${field.label}...`}
-                          style={{ width: '100%', padding: '9px 12px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box' }} />
+                          style={inputStyle} />
                       )}
                     </div>
                   );
                 })}
               </div>
-              <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'flex-end' }}>
-                <button onClick={() => saveSection(activeSection)} disabled={saving} style={{
-                  padding: '9px 20px', background: saved ? 'var(--status-success-text)' : 'var(--brand-primary)',
-                  color: 'white', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600,
-                  cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', transition: 'background 0.2s',
-                }}>{saved ? '✓ Gespeichert' : saving ? 'Speichert...' : 'Abschnitt speichern'}</button>
-              </div>
+              {/* Desktop save button */}
+              {!isMobile && (
+                <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button onClick={() => saveSection(activeSection)} disabled={saving} style={{
+                    padding: '9px 20px', background: saved ? 'var(--status-success-text)' : 'var(--brand-primary)',
+                    color: 'white', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600,
+                    cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', transition: 'background 0.2s',
+                  }}>{saved ? '✓ Gespeichert' : saving ? 'Speichert...' : 'Abschnitt speichern'}</button>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* ── MOBILE: Back / Next navigation ── */}
+      {isMobile && (
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={handleMobileBack}
+            disabled={currentMobileIndex === 0}
+            style={{
+              flex: 1, minHeight: 48, padding: '12px 16px',
+              background: 'var(--bg-surface)', border: '1.5px solid var(--border-medium)',
+              borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 500,
+              color: currentMobileIndex === 0 ? 'var(--text-tertiary)' : 'var(--text-primary)',
+              cursor: currentMobileIndex === 0 ? 'not-allowed' : 'pointer',
+              fontFamily: 'var(--font-sans)',
+            }}
+          >
+            ← Zurück
+          </button>
+          <button
+            onClick={handleMobileNext}
+            disabled={saving}
+            style={{
+              flex: 2, minHeight: 48, padding: '12px 16px',
+              background: saving ? 'var(--border-medium)' : 'var(--brand-primary)',
+              border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700,
+              color: saving ? 'var(--text-tertiary)' : 'white',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              fontFamily: 'var(--font-sans)', transition: 'background 0.15s',
+            }}
+          >
+            {saving ? 'Speichert…' : isLastMobileSection ? '✓ Fertig' : 'Weiter →'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

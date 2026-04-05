@@ -286,7 +286,8 @@ export default function LeadProfile() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `Fehler ${res.status}`);
+        const detail = err.detail;
+        throw new Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(d => d.msg || JSON.stringify(d)).join(', ') : detail ? JSON.stringify(detail) : `Fehler ${res.status}`);
       }
       const data = await res.json();
       setMockupResult(data.result);
@@ -301,7 +302,7 @@ export default function LeadProfile() {
         }).catch(() => {});
       }
     } catch (e) {
-      setMockupError(e.message || 'Generierung fehlgeschlagen.');
+      setMockupError(e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.');
     } finally {
       setMockupRunning(false);
     }
@@ -1630,8 +1631,8 @@ export default function LeadProfile() {
               {mockupRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
             </button>
             {mockupError && (
-              <div style={{ background: '#FFF0F0', border: '1px solid #FFBDBD', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#C0392B', marginTop: 12 }}>
-                {mockupError}
+              <div style={{ background: 'var(--status-danger-bg)', border: '1px solid var(--status-danger-text)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--status-danger-text)', marginTop: 12 }}>
+                {typeof mockupError === 'string' ? mockupError : JSON.stringify(mockupError)}
               </div>
             )}
           </div>

@@ -34,7 +34,7 @@ class ContentBriefing(BaseModel):
     team_size: int = 1
     team_info: str = ""
     years_in_business: int = 0
-    awards_or_certifications: list[str] = None
+    awards_or_certifications: list[str] = []
 
 
 class CompanyData(BaseModel):

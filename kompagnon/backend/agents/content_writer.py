@@ -31,28 +31,41 @@ class ContentWriterAgent:
                 'company_name': str,
                 'city': str,
                 'trade': str,
-                'usp': str (unique selling point),
-                'services': [str] (list of services),
-                'target_audience': str (e.g., "Hausbesitzer in Gröpelingen"),
+                'usp': str,
+                'services': [str],
+                'target_audience': str,
+                'page_name': str  (optional, e.g. "Startseite"),
+                'zweck': str      (optional, page purpose),
+                'ziel_keyword': str (optional, SEO keyword),
+                'cta_text': str   (optional, CTA text),
+                'content_*': str  (optional, pre-written slot texts),
                 'team_size': int,
-                'team_info': str (brief team description),
+                'team_info': str,
                 'years_in_business': int,
                 'awards_or_certifications': [str],
             }
-
-        Returns:
-            {
-                'hero_headline': str (max 8 words),
-                'hero_subline': str (1 sentence),
-                'about_text': str (150 words),
-                'service_texts': {'Service Name': 'Text', ...},
-                'faq_items': [{'question': str, 'answer': str}, ...],
-                'meta_titles': {'page_name': 'Title Tag', ...},
-                'meta_descriptions': {'page_name': 'Description', ...},
-                'local_cta': str (regional call-to-action),
-            }
         """
         try:
+            # Collect pre-written content slots (keys starting with "content_")
+            content_slots = {
+                k: v for k, v in briefing_data.items()
+                if k.startswith('content_') and v
+            }
+            content_slots_text = ''
+            if content_slots:
+                lines = [f'  {k.replace("content_", "")}: {v}' for k, v in content_slots.items()]
+                content_slots_text = '\nBereits freigegebene Texte (diese DIREKT übernehmen, nicht umschreiben):\n' + '\n'.join(lines)
+
+            page_name = briefing_data.get('page_name') or 'Startseite'
+            zweck     = briefing_data.get('zweck', '')
+            keyword   = briefing_data.get('ziel_keyword', '')
+            cta_text  = briefing_data.get('cta_text', '')
+
+            page_context = f'\nZielseite: {page_name}'
+            if zweck:    page_context += f'\nSeitenzweck: {zweck}'
+            if keyword:  page_context += f'\nZiel-Keyword (SEO): {keyword}'
+            if cta_text: page_context += f'\nGewünschter CTA-Text: {cta_text}'
+
             system_prompt = """Du bist ein Texter für KOMPAGNON, spezialisiert auf deutsche Handwerksbetriebe.
 Schreibe konvertierungsstarke, authentische Website-Texte.
 
@@ -61,14 +74,15 @@ WICHTIG:
 - Ton: vertrauenswürdig, bodenständig, kompetent — kein Marketing-Speak
 - Integriere den Ortsnamen natürlich in die Texte
 - FAQ-Antworten müssen kurz, faktisch und von KI-Suchmaschinen zitierfähig sein
-- hero_headline: max. 8 Wörter, Action-focused
+- hero_headline: max. 8 Wörter, Action-focused, enthält Ziel-Keyword wenn vorhanden
 - hero_subline: 1 Satz, Nutzen-fokussiert
 - about_text: 150 Wörter, Ich-Perspektive ("Wir sind...", "Wir machen...")
 - service_texts: Für jede Leistung 80 Wörter, fokussiert auf Vorteile
 - faq_items: Mindestens 5, häufige Fragen aus Sicht der Zielgruppe
-- meta_titles: max. 60 Zeichen
+- meta_titles: max. 60 Zeichen, enthält Ziel-Keyword wenn vorhanden
 - meta_descriptions: max. 160 Zeichen
-- local_cta: Ein regionaler CTA, der den Ortsnamen enthält"""
+- local_cta: nutze den angegebenen CTA-Text wenn vorhanden, sonst regionaler CTA mit Ortsnamen
+- Bereits freigegebene Texte IMMER unverändert in das Ergebnis übernehmen"""
 
             user_message = f"""
 Erstelle Website-Texte für diesen Betrieb:
@@ -77,11 +91,11 @@ Betrieb: {briefing_data.get('company_name', 'Unbekannt')}
 Gewerk: {briefing_data.get('trade', 'Handwerk')}
 Stadt: {briefing_data.get('city', 'Lokation')}
 USP: {briefing_data.get('usp', 'Keine Angabe')}
-Leistungen: {', '.join(briefing_data.get('services', []))}
+Leistungen: {', '.join(briefing_data.get('services', []) or [])}
 Zielgruppe: {briefing_data.get('target_audience', 'Lokale Kunden')}
 Team: {briefing_data.get('team_info', 'Professionelles Team')}
 Betrieb seit: {briefing_data.get('years_in_business', 0)} Jahren
-Zertifikate: {', '.join(briefing_data.get('awards_or_certifications', []))}
+Zertifikate: {', '.join(briefing_data.get('awards_or_certifications', []) or [])}{page_context}{content_slots_text}
 
 Liefere das Ergebnis als JSON:
 {{

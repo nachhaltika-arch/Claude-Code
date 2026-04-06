@@ -1,9 +1,25 @@
+// Helper functions
+export function getTemplatesByCategory(cat) {
+  return cat === 'Alle' ? templates : templates.filter(t => t.category === cat);
+}
+export function getTemplatesByStyle(style) {
+  return templates.filter(t => t.style === style);
+}
+export function getTemplateById(id) {
+  return templates.find(t => t.id === id);
+}
+export const categories = ['Alle', 'Elektriker', 'Klempner & Sanitär', 'Maler & Lackierer', 'Dachdecker', 'Schreiner & Tischler', 'Fliesenleger', 'Heizungsbauer', 'Garten & Landschaftsbau', 'Kfz-Werkstatt', 'Zimmermann & Holzbau', 'Reinigungsservice', 'Umzugsunternehmen', 'Allgemein'];
+
 export const templates = [
   {
-    id: 'handwerker-basis',
-    name: 'Handwerker Basis',
-    category: 'Handwerk',
-    emoji: '🔨',
+    id: 'tpl-001',
+    name: 'Modern Elektriker',
+    category: 'Elektriker',
+    style: 'modern',
+    emoji: '⚡',
+    colors: { primary: '#0d6efd', secondary: '#1a2332', accent: '#ffc107' },
+    fonts: { heading: 'Inter, sans-serif', body: 'system-ui, sans-serif' },
+    thumbnail: null,
     html: `<!DOCTYPE html>
 <html lang="de">
 <head><meta charset="UTF-8"><title>Handwerker</title></head>

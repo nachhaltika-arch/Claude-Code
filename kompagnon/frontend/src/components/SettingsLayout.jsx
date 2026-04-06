@@ -11,6 +11,7 @@ const SETTINGS_NAV = [
   { label: 'System', path: '/app/settings/system', icon: '🏢', roles: ['admin'] },
   { label: 'Benachrichtigungen', path: '/app/settings/notifications', icon: '📧', roles: ['admin', 'auditor'] },
   { label: 'Abonnement', path: '/app/settings/subscription', icon: '💳', roles: ['nutzer', 'kunde'] },
+  { label: 'Templates', path: '/app/settings/templates', icon: '🗂️', roles: ['admin'] },
 ];
 
 export default function SettingsLayout() {

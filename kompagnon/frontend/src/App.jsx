@@ -54,6 +54,8 @@ import PackageKompagnon from './pages/PackageKompagnon';
 import PackagePremium from './pages/PackagePremium';
 import KampagneLandingPage from './pages/KampagneLandingPage';
 import QRGenerator from './pages/QRGenerator';
+import TemplateLibrary from './pages/TemplateLibrary';
+import TemplateEditor from './pages/TemplateEditor';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -189,7 +191,10 @@ function App() {
               <Route path="system" element={<PrivateRoute roles={['admin']}><Settings tab="system" /></PrivateRoute>} />
               <Route path="notifications" element={<Settings tab="notifications" />} />
               <Route path="subscription" element={<PrivateRoute roles={['admin']}><Settings tab="subscription" /></PrivateRoute>} />
+              <Route path="templates" element={<PrivateRoute roles={['admin']}><TemplateLibrary /></PrivateRoute>} />
             </Route>
+            {/* Template Editor — fullscreen, outside settings layout */}
+            <Route path="settings/templates/:id" element={<PrivateRoute roles={['admin']}><TemplateEditor /></PrivateRoute>} />
           </Route>
 
           {/* Fallback */}

@@ -17,7 +17,7 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
     if (editorRef.current || !containerRef.current) return;
     const editor = grapesjs.init({
       container: containerRef.current,
-      height: '100%', width: '100%',
+      height: 'calc(100vh - 52px)', width: '100%',
       storageManager: false,
       plugins: [gjsPresetWebpage, gjsBlocksBasic],
       pluginsOpts: {
@@ -63,7 +63,7 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9000, display: 'flex', flexDirection: 'column', background: '#f0f0f0' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9000, display: 'flex', flexDirection: 'column', background: '#f0f0f0', height: '100vh', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', background: '#1a2332', color: '#fff', flexShrink: 0, gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={onClose} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>← Zurück</button>
@@ -74,7 +74,7 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
           <button onClick={save} style={{ background: '#0d6efd', border: 'none', color: '#fff', padding: '6px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>💾 Speichern</button>
         </div>
       </div>
-      <div ref={containerRef} style={{ flex: 1, overflow: 'hidden' }} />
+      <div ref={containerRef} style={{ flex: 1, overflow: 'hidden', height: 'calc(100vh - 52px)', minHeight: 0 }} />
     </div>
   );
 }

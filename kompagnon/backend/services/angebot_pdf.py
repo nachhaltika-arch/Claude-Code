@@ -73,21 +73,21 @@ def _angebot_nr(audit_id):
 
 def _styles():
     base = getSampleStyleSheet()
-    add = lambda name, **kw: base.add(ParagraphStyle(name, parent=base["Normal"], fontName=FN, **kw))
-    add("ANG_Small",   fontSize=8,  leading=11, textColor=KC_GRAY)
-    add("ANG_Body",    fontSize=10, leading=14)
+    add = lambda name, **kw: base.add(ParagraphStyle(name, parent=base["Normal"], **kw))
+    add("ANG_Small",   fontSize=8,  leading=11, fontName=FN,  textColor=KC_GRAY)
+    add("ANG_Body",    fontSize=10, leading=14, fontName=FN)
     add("ANG_Bold",    fontSize=10, leading=14, fontName=FNB)
     add("ANG_H1",      fontSize=20, leading=26, fontName=FNB, textColor=KC_DARK)
     add("ANG_H2",      fontSize=14, leading=18, fontName=FNB, textColor=KC_DARK)
-    add("ANG_Center",  fontSize=10, leading=14, alignment=TA_CENTER)
-    add("ANG_CenterB", fontSize=10, leading=14, alignment=TA_CENTER, fontName=FNB)
+    add("ANG_Center",  fontSize=10, leading=14, fontName=FN,  alignment=TA_CENTER)
+    add("ANG_CenterB", fontSize=10, leading=14, fontName=FNB, alignment=TA_CENTER)
     add("ANG_Teal",    fontSize=28, leading=34, fontName=FNB, textColor=KC_TEAL)
-    add("ANG_Sub",     fontSize=11, leading=15, textColor=KC_GRAY)
+    add("ANG_Sub",     fontSize=11, leading=15, fontName=FN,  textColor=KC_GRAY)
     add("ANG_BigNum",  fontSize=32, leading=38, fontName=FNB, alignment=TA_CENTER)
     add("ANG_Price",   fontSize=32, leading=38, fontName=FNB, alignment=TA_CENTER, textColor=KC_WHITE)
-    add("ANG_White",   fontSize=10, leading=14, textColor=KC_WHITE, alignment=TA_CENTER)
-    add("ANG_WhiteB",  fontSize=12, leading=16, textColor=KC_WHITE, alignment=TA_CENTER, fontName=FNB)
-    add("ANG_Danger",  fontSize=10, leading=14, textColor=KC_DANGER)
+    add("ANG_White",   fontSize=10, leading=14, fontName=FN,  textColor=KC_WHITE, alignment=TA_CENTER)
+    add("ANG_WhiteB",  fontSize=12, leading=16, fontName=FNB, textColor=KC_WHITE, alignment=TA_CENTER)
+    add("ANG_Danger",  fontSize=10, leading=14, fontName=FN,  textColor=KC_DANGER)
     return base
 
 

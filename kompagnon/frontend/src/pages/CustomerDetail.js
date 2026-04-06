@@ -1554,7 +1554,7 @@ export default function CustomerDetail() {
             cursor: 'pointer', fontFamily: 'var(--font-sans)',
             display: 'flex', alignItems: 'center', gap: 6,
             justifyContent: 'center',
-          }}>🖊️ Website erstellen</button>
+          }}>🌐 Website erstellen</button>
         </div>
       </div>
 

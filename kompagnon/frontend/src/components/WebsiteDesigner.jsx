@@ -105,25 +105,36 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
       setCmsConn(conn);
 
       // 3. Combine HTML + CSS and push
-      const html = editor.getHtml() + `<style>${editor.getCss()}</style>`;
       const pubRes = await fetch(
         `${API_BASE_URL}/api/customers/${customerId}/publish`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeader },
-          body: JSON.stringify({ html, page_title: customerName || `Kunde #${customerId}` }),
+          body: JSON.stringify({
+            html: editor.getHtml(),
+            css: editor.getCss(),
+            page_title: customerName || `Kunde #${customerId}`,
+          }),
         }
       );
       const result = await pubRes.json().catch(() => ({}));
 
       if (pubRes.ok && result.success) {
         const cmsName = conn.cms_type === 'webflow' ? 'Webflow' : 'WordPress';
-        toast.success(
-          result.page_url
-            ? <span>✅ Seite als Entwurf in {cmsName} erstellt – <a href={result.page_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Seite öffnen ↗</a></span>
-            : `✅ Seite als Entwurf in ${cmsName} erstellt`,
-          { duration: 6000 }
-        );
+        if (result.page_url) {
+          toast.success(
+            <span>
+              ✅ Entwurf in {cmsName} erstellt –{' '}
+              <a href={result.page_url} target="_blank" rel="noopener noreferrer"
+                style={{ color: 'inherit', textDecoration: 'underline' }}>
+                Seite öffnen ↗
+              </a>
+            </span>,
+            { duration: 8000 }
+          );
+        } else {
+          toast.success(`✅ Seite als Entwurf in ${cmsName} erstellt`, { duration: 5000 });
+        }
       } else {
         throw new Error(result.detail || result.message || `HTTP ${pubRes.status}`);
       }
@@ -199,25 +210,43 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
           }
         </button>
         {(() => {
-          const hasCms = cmsConn?.has_cms_connection;
           const cmsType = cmsConn?.cms_type;
-          const label = cmsType === 'wordpress_elementor' ? '🚀 Zu WordPress pushen'
-            : cmsType === 'webflow' ? '🚀 Zu Webflow pushen'
-            : '🚀 Zum CMS pushen';
-          const pushingLabel = cmsType === 'webflow' ? 'Pushe zu Webflow...' : 'Pushe zu WordPress...';
-          const disabled = cmsLoading || !hasCms;
+          const hasCms = cmsConn?.has_cms_connection;
+          const spinner = <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block', flexShrink: 0 }} />;
+          const noTooltip = 'CMS im Kundenprofil einrichten';
+
+          if (cmsType === 'wordpress_elementor') {
+            return (
+              <button
+                style={{ ...btnStyle, opacity: cmsLoading ? 0.7 : 1, cursor: cmsLoading ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }}
+                onClick={handlePushToCms}
+                disabled={cmsLoading}
+              >
+                {cmsLoading ? <>{spinner} Pushe zu WordPress...</> : '🚀 Zu WordPress pushen'}
+              </button>
+            );
+          }
+          if (cmsType === 'webflow') {
+            return (
+              <button
+                style={{ ...btnStyle, opacity: cmsLoading ? 0.7 : 1, cursor: cmsLoading ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }}
+                onClick={handlePushToCms}
+                disabled={cmsLoading}
+              >
+                {cmsLoading ? <>{spinner} Pushe zu Webflow...</> : '🌐 Zu Webflow pushen'}
+              </button>
+            );
+          }
+          // No CMS configured — show both buttons greyed out
           return (
-            <button
-              style={{ ...btnStyle, opacity: disabled ? 0.45 : 1, cursor: disabled ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }}
-              onClick={handlePushToCms}
-              disabled={disabled}
-              title={!hasCms ? 'CMS-Verbindung im Kundenprofil einrichten' : undefined}
-            >
-              {cmsLoading
-                ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block', flexShrink: 0 }} />{pushingLabel}</>
-                : label
-              }
-            </button>
+            <>
+              <button style={{ ...btnStyle, opacity: 0.35, cursor: 'not-allowed' }} disabled title={noTooltip}>
+                🚀 Zu WordPress pushen
+              </button>
+              <button style={{ ...btnStyle, opacity: 0.35, cursor: 'not-allowed' }} disabled title={noTooltip}>
+                🌐 Zu Webflow pushen
+              </button>
+            </>
           );
         })()}
         <button onClick={() => setShowGallery(true)}

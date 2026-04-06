@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import API_BASE_URL from '../config';
-import { templates as localTemplates } from '../data/templates';
+import { allTemplates as localTemplates } from '../data/allTemplates';
 
 export default function TemplateGallery({ onSelect, onClose }) {
   const [templates, setTemplates] = useState([]);

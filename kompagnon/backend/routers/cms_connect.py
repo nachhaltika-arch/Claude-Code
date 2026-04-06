@@ -27,6 +27,7 @@ class CmsConnectionIn(BaseModel):
 
 class PublishIn(BaseModel):
     html: str
+    css: Optional[str] = ""
     page_title: str
 
 
@@ -124,10 +125,10 @@ async def publish_to_cms(
     password = _decrypt(customer.cms_password_encrypted)
 
     if customer.cms_type == "wordpress_elementor":
-        from services.wordpress_service import push_to_wordpress_elementor
-        ok, result = await push_to_wordpress_elementor(
+        from services.wordpress_service import push_to_wordpress
+        ok, result = await push_to_wordpress(
             customer.cms_url, customer.cms_username, password,
-            data.html, data.page_title,
+            data.html, data.css or "", data.page_title,
         )
     elif customer.cms_type == "webflow":
         from services.webflow_service import push_to_webflow

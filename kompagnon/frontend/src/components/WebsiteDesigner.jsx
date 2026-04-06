@@ -105,25 +105,36 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
       setCmsConn(conn);
 
       // 3. Combine HTML + CSS and push
-      const html = editor.getHtml() + `<style>${editor.getCss()}</style>`;
       const pubRes = await fetch(
         `${API_BASE_URL}/api/customers/${customerId}/publish`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeader },
-          body: JSON.stringify({ html, page_title: customerName || `Kunde #${customerId}` }),
+          body: JSON.stringify({
+            html: editor.getHtml(),
+            css: editor.getCss(),
+            page_title: customerName || `Kunde #${customerId}`,
+          }),
         }
       );
       const result = await pubRes.json().catch(() => ({}));
 
       if (pubRes.ok && result.success) {
         const cmsName = conn.cms_type === 'webflow' ? 'Webflow' : 'WordPress';
-        toast.success(
-          result.page_url
-            ? <span>✅ Seite als Entwurf in {cmsName} erstellt – <a href={result.page_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Seite öffnen ↗</a></span>
-            : `✅ Seite als Entwurf in ${cmsName} erstellt`,
-          { duration: 6000 }
-        );
+        if (result.page_url) {
+          toast.success(
+            <span>
+              ✅ Entwurf in {cmsName} erstellt –{' '}
+              <a href={result.page_url} target="_blank" rel="noopener noreferrer"
+                style={{ color: 'inherit', textDecoration: 'underline' }}>
+                Seite öffnen ↗
+              </a>
+            </span>,
+            { duration: 8000 }
+          );
+        } else {
+          toast.success(`✅ Seite als Entwurf in ${cmsName} erstellt`, { duration: 5000 });
+        }
       } else {
         throw new Error(result.detail || result.message || `HTTP ${pubRes.status}`);
       }

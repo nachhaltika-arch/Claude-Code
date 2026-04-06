@@ -700,9 +700,7 @@ export default function ProjectDetail() {
         };
         return (
           <div style={{ display: 'flex', flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-            {project.lead_id && (
-              <button onClick={() => navigate(`/app/leads/${project.lead_id}`)} style={btnBase}>👤 Zur Kundenkartei</button>
-            )}
+            <button onClick={() => project.lead_id ? navigate(`/app/leads/${project.lead_id}`) : navigate('/app/leads')} style={btnBase}>👤 Zur Kundenkartei</button>
             <button onClick={() => setShowEdit(true)} style={btnBase}>✏️ Projektdaten bearbeiten</button>
             <button onClick={() => setActiveTab('audits')} style={btnBase}>🔍 Audit starten</button>
             <button

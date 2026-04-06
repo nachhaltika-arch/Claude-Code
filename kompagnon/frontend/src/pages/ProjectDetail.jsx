@@ -434,6 +434,12 @@ export default function ProjectDetail() {
   const [hostingData, setHostingData]       = useState(null);
   const [hostingLoaded, setHostingLoaded]   = useState(false);
   const [hostingScanning, setHostingScanning] = useState(false);
+  // Screenshots before/after
+  const [screenshots, setScreenshots]       = useState({ before: { data: null, date: null, url: null }, after: { data: null, date: null, url: null } });
+  const [screenshotsLoaded, setScreenshotsLoaded] = useState(false);
+  const [takingBefore, setTakingBefore]     = useState(false);
+  const [takingAfter, setTakingAfter]       = useState(false);
+  const [newWebsiteUrl, setNewWebsiteUrl]   = useState('');
   const [mockupPreview, setMockupPreview]         = useState(null); // { html, version_name }
   const [savingVersion, setSavingVersion]         = useState(false);
   // Mockup
@@ -453,6 +459,12 @@ export default function ProjectDetail() {
       ]);
       setProject(projectRes.data);
       setMargin(marginRes.data);
+      setNewWebsiteUrl(projectRes.data.new_website_url || '');
+      // Screenshots lazy-load
+      fetch(`${API_BASE_URL}/api/projects/${id}/screenshots`, { headers })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) { setScreenshots(d); setScreenshotsLoaded(true); } })
+        .catch(() => {});
     } catch {
       toast.error('Projekt konnte nicht geladen werden.');
     } finally {
@@ -767,6 +779,139 @@ export default function ProjectDetail() {
               </div>
             </div>
           )}
+
+          {/* ── Website-Vergleich ─────────────────────────────────────────── */}
+          {(() => {
+            const phaseNum = parseInt((project.status || '').replace('phase_', '')) || 0;
+            const isGoLiveOrLater = phaseNum >= 6;
+
+            const takeBefore = async () => {
+              setTakingBefore(true);
+              try {
+                const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/screenshot/before`, { method: 'POST', headers: h });
+                if (res.ok) {
+                  const data = await res.json();
+                  setScreenshots(s => ({ ...s, before: { data: data.screenshot_url, date: new Date().toISOString(), url: project.website_url } }));
+                } else toast.error('Screenshot fehlgeschlagen');
+              } catch { toast.error('Screenshot fehlgeschlagen'); }
+              finally { setTakingBefore(false); }
+            };
+
+            const takeAfter = async () => {
+              setTakingAfter(true);
+              try {
+                const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/screenshot/after`, { method: 'POST', headers: h });
+                if (res.ok) {
+                  const data = await res.json();
+                  const afterUrl = newWebsiteUrl || project.website_url;
+                  setScreenshots(s => ({ ...s, after: { data: data.screenshot_url, date: new Date().toISOString(), url: afterUrl } }));
+                } else toast.error('Screenshot fehlgeschlagen');
+              } catch { toast.error('Screenshot fehlgeschlagen'); }
+              finally { setTakingAfter(false); }
+            };
+
+            const saveNewUrl = async () => {
+              try {
+                await fetch(`${API_BASE_URL}/api/projects/${project.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ new_website_url: newWebsiteUrl }) });
+                toast.success('URL gespeichert');
+              } catch { toast.error('Speichern fehlgeschlagen'); }
+            };
+
+            const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
+
+            const Placeholder = ({ icon, text }) => (
+              <div style={{ height: 160, background: 'var(--bg-app)', border: '1.5px dashed var(--border-medium)', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                {icon && <span style={{ fontSize: 28 }}>{icon}</span>}
+                <span style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', padding: '0 16px' }}>{text}</span>
+              </div>
+            );
+
+            const btnSmall = { padding: '5px 12px', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 5 };
+            const Spinner = () => <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />;
+
+            return (
+              <div className="kc-card">
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>📸 Website-Vergleich</div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
+                  {/* VORHER */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Vorher</span>
+                        {screenshots.before?.date && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{fmtDate(screenshots.before.date)}</span>}
+                      </div>
+                    </div>
+
+                    {screenshots.before?.data
+                      ? <img src={screenshots.before.data} alt="Vorher-Screenshot" style={{ width: '100%', borderRadius: 8, border: '2px solid var(--border-light)', display: 'block' }} />
+                      : <Placeholder icon={null} text="Noch kein Screenshot" />
+                    }
+
+                    {screenshots.before?.url && (
+                      <a href={screenshots.before.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--brand-primary)', display: 'block', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {screenshots.before.url}
+                      </a>
+                    )}
+
+                    <div style={{ marginTop: 10 }}>
+                      <button onClick={takeBefore} disabled={takingBefore} style={{ ...btnSmall, background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)' }}>
+                        {takingBefore ? <><Spinner /> Aufnehmen…</> : '📷 Screenshot aufnehmen'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* NACHHER */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#1D9E75', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Nachher</span>
+                        {screenshots.after?.date && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{fmtDate(screenshots.after.date)}</span>}
+                      </div>
+                    </div>
+
+                    {screenshots.after?.data
+                      ? <img src={screenshots.after.data} alt="Nachher-Screenshot" style={{ width: '100%', borderRadius: 8, border: '2px solid #1D9E75', display: 'block' }} />
+                      : <Placeholder icon="🚀" text={isGoLiveOrLater ? 'Noch kein Screenshot' : 'Verfügbar nach Go-Live (Phase 6)'} />
+                    }
+
+                    {screenshots.after?.url && (
+                      <a href={screenshots.after.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#1D9E75', display: 'block', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {screenshots.after.url}
+                      </a>
+                    )}
+
+                    {isGoLiveOrLater && (
+                      <div style={{ marginTop: 10 }}>
+                        <button onClick={takeAfter} disabled={takingAfter} style={{ ...btnSmall, background: '#1D9E75', color: '#fff' }}>
+                          {takingAfter ? <><Spinner /> Aufnehmen…</> : '📷 Nachher-Screenshot aufnehmen'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Neue Website-URL — ab Phase 5 */}
+                {phaseNum >= 5 && (
+                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-light)' }}>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
+                      Neue Website-URL (falls abweichend)
+                    </label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input
+                        value={newWebsiteUrl}
+                        onChange={e => setNewWebsiteUrl(e.target.value)}
+                        placeholder="URL der neuen Website (falls abweichend)"
+                        style={{ flex: 1, padding: '7px 10px', border: '1px solid var(--border-medium)', borderRadius: 6, fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-app)', color: 'var(--text-primary)', outline: 'none' }}
+                        onKeyDown={e => e.key === 'Enter' && saveNewUrl()}
+                      />
+                      <button onClick={saveNewUrl} style={{ ...btnSmall, background: 'var(--brand-primary)', color: '#fff' }}>Speichern</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 

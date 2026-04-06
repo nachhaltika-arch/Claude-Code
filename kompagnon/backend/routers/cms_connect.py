@@ -135,7 +135,7 @@ async def publish_to_cms(
         # cms_username holds the Site ID for Webflow
         ok, result = await push_to_webflow(
             password, customer.cms_username,
-            data.html, data.page_title,
+            data.html, data.css or "", data.page_title,
         )
     else:
         return {"success": False, "page_url": "", "message": f"Unbekannter CMS-Typ: {customer.cms_type}"}

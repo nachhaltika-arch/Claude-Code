@@ -1,84 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import grapesjs from 'grapesjs';
-import grapesjsPresetWebpage from 'grapesjs-preset-webpage';
-import grapesjsBlocksBasic from 'grapesjs-blocks-basic';
-import 'grapesjs/dist/css/grapes.min.css';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { useAuth } from '../context/AuthContext';
 import { allTemplates } from '../data/allTemplates';
-
-/* ─── Inline GrapesJS editor for local templates ─── */
-function LocalTemplateEditor({ template, onClose }) {
-  const containerRef = useRef(null);
-  const editorRef = useRef(null);
-  const TOOLBAR_H = 56;
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const editor = grapesjs.init({
-      container: containerRef.current,
-      height: `calc(100vh - ${TOOLBAR_H}px)`,
-      width: '100%',
-      plugins: [grapesjsPresetWebpage, grapesjsBlocksBasic],
-      pluginsOpts: { [grapesjsPresetWebpage]: {}, [grapesjsBlocksBasic]: {} },
-      storageManager: false,
-      components: template.html || '',
-      style: '',
-    });
-    editorRef.current = editor;
-    return () => { editor.destroy(); editorRef.current = null; };
-  }, [template.id]); // eslint-disable-line
-
-  const handlePreview = () => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
-    const blob = new Blob([html], { type: 'text/html' });
-    window.open(URL.createObjectURL(blob), '_blank');
-  };
-
-  const handleDownload = () => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
-    const blob = new Blob([html], { type: 'text/html' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${template.id || 'template'}.html`;
-    a.click();
-  };
-
-  const btnStyle = {
-    padding: '8px 16px', border: 'none', borderRadius: 6,
-    fontSize: 13, fontWeight: 600, cursor: 'pointer',
-  };
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#fff', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ height: TOOLBAR_H, flexShrink: 0, background: '#1A2C32', display: 'flex', alignItems: 'center', gap: 10, padding: '0 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
-        <button onClick={onClose} style={{ ...btnStyle, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
-          ← Zurück
-        </button>
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {template.thumbnail} {template.name}
-        </span>
-        <span style={{ fontSize: 11, background: 'rgba(255,255,255,0.12)', color: '#ccc', padding: '3px 10px', borderRadius: 12 }}>
-          {template.category}
-        </span>
-        <div style={{ flex: 1 }} />
-        <button onClick={handlePreview} style={{ ...btnStyle, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
-          👁 Vorschau
-        </button>
-        <button onClick={handleDownload} style={{ ...btnStyle, background: '#16a34a', color: '#fff' }}>
-          📥 HTML herunterladen
-        </button>
-      </div>
-      <div ref={containerRef} style={{ flex: 1, overflow: 'hidden' }} />
-    </div>
-  );
-}
+import GrapesEditor from '../components/GrapesEditor';
 
 /* ─── Main TemplateLibrary page ─── */
 export default function TemplateLibrary() {
@@ -166,7 +92,15 @@ export default function TemplateLibrary() {
   const modal = { background: '#fff', borderRadius: 12, padding: 28, width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 16 };
 
   if (editingTemplate) {
-    return <LocalTemplateEditor template={editingTemplate} onClose={() => setEditingTemplate(null)} />;
+    return (
+      <GrapesEditor
+        pageId={`template-${editingTemplate.id}`}
+        pageName={`${editingTemplate.thumbnail || ''} ${editingTemplate.name}`}
+        initialHtml={editingTemplate.html}
+        onClose={() => setEditingTemplate(null)}
+        onSave={() => setEditingTemplate(null)}
+      />
+    );
   }
 
   return (

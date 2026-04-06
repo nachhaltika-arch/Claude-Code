@@ -150,6 +150,14 @@ class Project(Base):
     email_notifications_enabled = Column(Boolean, default=True)
     customer_email = Column(String(255))
 
+    # Screenshots before/after
+    screenshot_before       = Column(Text)
+    screenshot_before_date  = Column(DateTime)
+    screenshot_after        = Column(Text)
+    screenshot_after_date   = Column(DateTime)
+    screenshot_url_before   = Column(String(500))
+    screenshot_url_after    = Column(String(500))
+
     # Relationships
     lead = relationship("Lead", back_populates="projects", foreign_keys=[lead_id])
     checklists = relationship("ProjectChecklist", back_populates="project", cascade="all, delete-orphan")

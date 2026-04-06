@@ -22,9 +22,9 @@ export default function Dashboard() {
     fetchedRef.current = true;
     const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     Promise.all([
-      fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h }).then(r => r.json()).catch(() => null),
       fetch(`${API_BASE_URL}/api/leads/`, { headers: h }).then(r => r.json()).catch(() => []),
-      fetch(`${API_BASE_URL}/api/audit/recent`, { headers: h }).then(r => r.json().catch(() => [])),
+      fetch(`${API_BASE_URL}/api/audit/recent`, { headers: h }).then(r => r.json()).catch(() => []),
     ]).then(async ([kpiData, leadsData, auditData]) => {
       setKpis(kpiData);
       let rows = Array.isArray(leadsData) ? leadsData : [];

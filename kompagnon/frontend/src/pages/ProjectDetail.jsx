@@ -427,6 +427,10 @@ export default function ProjectDetail() {
   // Mockup versions
   const [mockupVersions, setMockupVersions]       = useState([]);
   const [mockupVersionsLoaded, setMockupVersionsLoaded] = useState(false);
+  // Hosting-Analyse
+  const [hostingData, setHostingData]       = useState(null);
+  const [hostingLoaded, setHostingLoaded]   = useState(false);
+  const [hostingScanning, setHostingScanning] = useState(false);
   const [mockupPreview, setMockupPreview]         = useState(null); // { html, version_name }
   const [savingVersion, setSavingVersion]         = useState(false);
   // Mockup
@@ -650,7 +654,7 @@ export default function ProjectDetail() {
     }
   };
 
-  const tabs = ['overview', 'webcontent', 'briefing', 'branddesign', 'dateien', 'pagespeed', 'sitemap', 'content', 'mockup', 'checklists', 'crawler', 'zeit', 'kommunikation'];
+  const tabs = ['overview', 'webcontent', 'briefing', 'branddesign', 'dateien', 'pagespeed', 'sitemap', 'content', 'mockup', 'checklists', 'crawler', 'hosting', 'zeit', 'kommunikation'];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -722,6 +726,7 @@ export default function ProjectDetail() {
             tab === 'checklists' ? '✓ Checklisten'  :
             tab === 'crawler'    ? '🕷️ Crawler'      :
             tab === 'webcontent' ? '🌐 Website-Content' :
+            tab === 'hosting'    ? '🖥️ Hosting'       :
             tab === 'zeit'       ? '⏱ Zeiterfassung' : '💬 Kommunikation';
           return (
             <button
@@ -1770,6 +1775,147 @@ export default function ProjectDetail() {
                 </div>
               );
             })}
+          </div>
+        );
+      })()}
+
+      {/* ── Hosting-Analyse ─────────────────────────────────────────────────── */}
+      {activeTab === 'hosting' && (() => {
+        const token = localStorage.getItem('kompagnon_token');
+        const authH = token ? { Authorization: `Bearer ${token}` } : {};
+
+        if (!hostingLoaded) {
+          fetch(`${API_BASE_URL}/api/projects/${project.id}/hosting-info`, { headers: authH })
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { setHostingData(d); setHostingLoaded(true); })
+            .catch(() => setHostingLoaded(true));
+        }
+
+        const scan = async () => {
+          setHostingScanning(true);
+          try {
+            const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/hosting-scan`, { method: 'POST', headers: authH });
+            const d = await r.json();
+            setHostingData(d);
+          } catch {}
+          setHostingScanning(false);
+        };
+
+        const fmtDate = (s) => {
+          if (!s) return null;
+          return new Date(s).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        };
+
+        const timeAgo = (iso) => {
+          if (!iso) return null;
+          const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+          if (diff < 60) return `vor ${diff} Sek.`;
+          if (diff < 3600) return `vor ${Math.floor(diff / 60)} Min.`;
+          if (diff < 86400) return `vor ${Math.floor(diff / 3600)} Std.`;
+          return fmtDate(iso);
+        };
+
+        const expiresWarn = (dateStr) => {
+          if (!dateStr) return null;
+          const days = Math.floor((new Date(dateStr) - Date.now()) / 86400000);
+          return days < 30 ? 'danger' : 'success';
+        };
+
+        const card = { background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 12, padding: '20px 22px' };
+        const lbl = { fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 };
+        const val = { fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 };
+        const sub = { fontSize: 12, color: 'var(--text-tertiary)' };
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Header + Button */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>🖥️ Hosting-Analyse</h2>
+                {hostingData?.hosting_checked_at && (
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                    Zuletzt gescannt: {timeAgo(hostingData.hosting_checked_at)}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={scan}
+                disabled={hostingScanning}
+                style={{ padding: '9px 20px', background: hostingScanning ? '#94a3b8' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: hostingScanning ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+              >
+                {hostingScanning
+                  ? <><span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} /> Scanning…</>
+                  : hostingData?.hosting_checked_at ? '🔄 Erneut scannen' : '🔍 Hosting scannen'}
+              </button>
+            </div>
+
+            {!hostingLoaded ? (
+              <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)' }}>Lade…</div>
+            ) : !hostingData?.hosting_checked_at ? (
+              <div style={{ textAlign: 'center', padding: 48, background: 'var(--bg-surface)', borderRadius: 12, border: '1px dashed var(--border-light)', color: 'var(--text-tertiary)' }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>🖥️</div>
+                <div style={{ fontWeight: 600, marginBottom: 6 }}>Noch kein Scan durchgeführt</div>
+                <div style={{ fontSize: 13 }}>Klicke auf "Hosting scannen" um Hosting, DNS und WHOIS zu analysieren.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+
+                {/* Block 1: Hosting-Anbieter */}
+                <div style={card}>
+                  <div style={lbl}>🖥 Hosting-Anbieter</div>
+                  <div style={val}>{hostingData.hosting_provider || '–'}</div>
+                  {hostingData.hosting_org && <div style={sub}>{hostingData.hosting_org}</div>}
+                  <div style={{ ...sub, marginTop: 6 }}>
+                    {[hostingData.hosting_ip, hostingData.hosting_country].filter(Boolean).join(' · ') || '–'}
+                  </div>
+                </div>
+
+                {/* Block 2: DNS & Nameserver */}
+                <div style={card}>
+                  <div style={lbl}>🌐 DNS & Nameserver</div>
+                  <div style={val}>{hostingData.dns_provider || 'Unbekannt'}</div>
+                  {hostingData.nameservers && (
+                    <ul style={{ margin: '6px 0 0', paddingLeft: 16, ...sub }}>
+                      {hostingData.nameservers.split(',').slice(0, 3).map((ns, i) => (
+                        <li key={i}>{ns.trim()}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {/* Block 3: Domain-Registrar */}
+                <div style={card}>
+                  <div style={lbl}>📋 Domain-Registrar</div>
+                  <div style={val}>{hostingData.domain_registrar || '–'}</div>
+                  {hostingData.domain_created && (
+                    <div style={sub}>Registriert: {fmtDate(hostingData.domain_created)}</div>
+                  )}
+                  {hostingData.domain_expires && (
+                    <div style={{ ...sub, marginTop: 4, color: expiresWarn(hostingData.domain_expires) === 'danger' ? '#dc2626' : '#16a34a', fontWeight: 600 }}>
+                      Läuft ab: {fmtDate(hostingData.domain_expires)}
+                      {expiresWarn(hostingData.domain_expires) === 'danger' && ' ⚠️'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Block 4: CMS & Technologie */}
+                <div style={card}>
+                  <div style={lbl}>⚙️ CMS & Technologie</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                    {hostingData.is_wordpress ? (
+                      <span style={{ background: '#2271b1', color: '#fff', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700 }}>WordPress</span>
+                    ) : (
+                      <span style={{ background: '#f1f5f9', color: '#94a3b8', borderRadius: 6, padding: '3px 10px', fontSize: 12 }}>Kein WordPress erkannt</span>
+                    )}
+                    {hostingData.wordpress_hosting && (
+                      <span style={{ background: '#dcfce7', color: '#166534', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700 }}>{hostingData.wordpress_hosting}</span>
+                    )}
+                  </div>
+                  {hostingData.server_software && <div style={sub}>{hostingData.server_software}</div>}
+                </div>
+
+              </div>
+            )}
           </div>
         );
       })()}

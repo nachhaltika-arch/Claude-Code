@@ -783,15 +783,24 @@ async def hosting_scan(
     })
     db.commit()
 
-    row = db.execute(text("""
-        SELECT hosting_provider, hosting_org, hosting_ip, hosting_country,
-               dns_provider, nameservers, domain_registrar, domain_created,
-               domain_expires, server_software, wordpress_hosting, is_wordpress,
-               hosting_checked_at, website_url
-        FROM projects WHERE id = :id
-    """), {"id": project_id}).mappings().first()
-
-    return dict(row)
+    from datetime import datetime
+    return {
+        "hosting_provider":      data.get("hosting_provider"),
+        "hosting_org":           data.get("hosting_org"),
+        "hosting_ip":            data.get("ip_address"),
+        "hosting_country":       data.get("country"),
+        "dns_provider":          data.get("dns_provider"),
+        "nameservers":           ",".join(data.get("nameservers") or []) or None,
+        "domain_registrar":      data.get("registrar"),
+        "domain_created":        data.get("domain_created"),
+        "domain_expires":        data.get("domain_expires"),
+        "server_software":       data.get("server_software"),
+        "wordpress_hosting":     data.get("wordpress_hosting"),
+        "is_wordpress":          data.get("is_wordpress"),
+        "detected_technologies": ",".join(data.get("detected_technologies") or []) or None,
+        "hosting_checked_at":    datetime.utcnow().isoformat(),
+        "website_url":           website_url,
+    }
 
 
 # ── Screenshots ──────────────────────────────────────────────────────────────

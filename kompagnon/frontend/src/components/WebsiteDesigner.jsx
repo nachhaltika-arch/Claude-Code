@@ -5,6 +5,7 @@ import grapesjsBlocksBasic from 'grapesjs-blocks-basic';
 import 'grapesjs/dist/css/grapes.min.css';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import TemplateGallery from './TemplateGallery';
 
 const TOOLBAR_H = 52;
 
@@ -14,6 +15,7 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
   const [kiLoading, setKiLoading]   = useState(false);
   const [cmsLoading, setCmsLoading] = useState(false);
   const [cmsConn, setCmsConn]       = useState(null); // {cms_type, has_cms_connection}
+  const [showGallery, setShowGallery] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -218,6 +220,10 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
             </button>
           );
         })()}
+        <button onClick={() => setShowGallery(true)}
+          style={{ padding:'8px 16px', background:'#6f42c1', color:'#fff', border:'none', borderRadius:6, cursor:'pointer', fontWeight:600 }}>
+          🗂️ Template laden
+        </button>
         <button style={btnStyle} onClick={handleDownloadHtml}>
           📥 Als HTML herunterladen
         </button>
@@ -232,6 +238,19 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
 
       {/* GrapesJS canvas */}
       <div ref={containerRef} style={{ flex: 1, overflow: 'hidden' }} />
+
+      {showGallery && (
+        <TemplateGallery
+          onSelect={(tpl) => {
+            if (editorRef.current) {
+              editorRef.current.setComponents(tpl.html);
+              editorRef.current.setStyle('');
+            }
+            setShowGallery(false);
+          }}
+          onClose={() => setShowGallery(false)}
+        />
+      )}
     </div>
   );
 }

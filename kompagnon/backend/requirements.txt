@@ -20,3 +20,5 @@ qrcode[pil]
 pillow
 stripe
 matplotlib
+dnspython
+python-whois

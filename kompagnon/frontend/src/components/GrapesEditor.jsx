@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import gjsPresetWebpage from 'grapesjs-preset-webpage';
@@ -13,11 +14,18 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
   const { token } = useAuth();
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
+  // Lock body scroll while editor is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
   useEffect(() => {
     if (editorRef.current || !containerRef.current) return;
     const editor = grapesjs.init({
       container: containerRef.current,
-      height: 'calc(100vh - 52px)', width: '100%',
+      height: '100%',
+      width: '100%',
       storageManager: false,
       plugins: [gjsPresetWebpage, gjsBlocksBasic],
       pluginsOpts: {
@@ -62,9 +70,30 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
     w.document.close();
   };
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9000, display: 'flex', flexDirection: 'column', background: '#f0f0f0', height: '100vh', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', background: '#1a2332', color: '#fff', flexShrink: 0, gap: 12 }}>
+  return createPortal(
+    <div style={{
+      position: 'fixed',
+      top: 0, left: 0,
+      width: '100vw',
+      height: '100vh',
+      zIndex: 99999,
+      display: 'flex',
+      flexDirection: 'column',
+      background: '#1a1a1a',
+      overflow: 'hidden',
+    }}>
+      {/* Toolbar */}
+      <div style={{
+        height: 52,
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 16px',
+        background: '#1a2332',
+        color: '#fff',
+        zIndex: 1,
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={onClose} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>← Zurück</button>
           <span style={{ fontSize: 14, fontWeight: 600 }}>{pageName}</span>
@@ -74,7 +103,13 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
           <button onClick={save} style={{ background: '#0d6efd', border: 'none', color: '#fff', padding: '6px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>💾 Speichern</button>
         </div>
       </div>
-      <div ref={containerRef} style={{ flex: 1, overflow: 'hidden', height: 'calc(100vh - 52px)', minHeight: 0 }} />
-    </div>
+      {/* Canvas */}
+      <div ref={containerRef} style={{
+        flex: 1,
+        width: '100%',
+        minHeight: 0,
+      }} />
+    </div>,
+    document.body
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/ui/Badge';
@@ -234,7 +235,7 @@ export default function SalesPipeline() {
       )}
 
       {/* Lösch Modal */}
-      {deleteConfirm && (
+      {deleteConfirm && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setDeleteConfirm(null)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 360, width: '100%', textAlign: 'center' }}>
@@ -248,7 +249,8 @@ export default function SalesPipeline() {
               <Button variant="danger" fullWidth onClick={() => deleteLead(deleteConfirm)}>Löschen</Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

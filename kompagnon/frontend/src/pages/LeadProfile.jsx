@@ -1454,7 +1454,7 @@ export default function LeadProfile() {
       )}
 
       {/* TEMPLATE SELECTION MODAL */}
-      {showTemplateModal && (
+      {showTemplateModal && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => e.target === e.currentTarget && setShowTemplateModal(false)}>
           <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: '100%', maxWidth: 600, maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ fontWeight: 700, fontSize: 17 }}>🗂️ Template auswählen</div>
@@ -1481,7 +1481,8 @@ export default function LeadProfile() {
             )}
             <button onClick={() => setShowTemplateModal(false)} style={{ padding: '9px', background: '#f5f5f5', color: '#555', border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ANGEBOT TAB */}
@@ -1816,7 +1817,7 @@ export default function LeadProfile() {
       )}
 
       {/* AUDIT LÖSCHEN MODAL */}
-      {deleteAuditId && (
+      {deleteAuditId && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setDeleteAuditId(null)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
@@ -1828,11 +1829,12 @@ export default function LeadProfile() {
               <Button variant="danger" fullWidth onClick={() => deleteAudit(deleteAuditId)}>Löschen</Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* GEWONNEN MODAL */}
-      {wonModal && (
+      {wonModal && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setWonModal(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
@@ -1853,7 +1855,8 @@ export default function LeadProfile() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* BRIEFING WIZARD MODAL */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import { apiCall } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
@@ -117,7 +118,7 @@ export default function AdminUsers() {
       )}
 
       {/* Create User Modal */}
-      {showCreate && (
+      {showCreate && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowCreate(false); }}>
           <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: '28px 32px', maxWidth: 440, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -160,7 +161,8 @@ export default function AdminUsers() {
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -388,11 +389,11 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
 
   const ls = LEVEL_STYLES[audit.level] || LEVEL_STYLES['Nicht konform'];
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 100,
+        position: 'fixed', inset: 0, zIndex: 1000,
         background: 'rgba(0,0,0,0.5)',
         display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
         padding: isMobile ? 0 : '16px',
@@ -520,7 +521,8 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

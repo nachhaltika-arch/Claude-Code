@@ -781,7 +781,15 @@ async def hosting_scan(
     })
     db.commit()
 
-    return {**data, "project_id": project_id}
+    row = db.execute(text("""
+        SELECT hosting_provider, hosting_org, hosting_ip, hosting_country,
+               dns_provider, nameservers, domain_registrar, domain_created,
+               domain_expires, server_software, wordpress_hosting, is_wordpress,
+               hosting_checked_at, website_url
+        FROM projects WHERE id = :id
+    """), {"id": project_id}).mappings().first()
+
+    return dict(row)
 
 
 # ── Screenshots ──────────────────────────────────────────────────────────────

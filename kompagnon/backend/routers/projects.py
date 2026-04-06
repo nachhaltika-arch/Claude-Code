@@ -20,7 +20,7 @@ from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, Pr
 from services.margin_calculator import MarginCalculator
 from routers.content_scraper_router import _run_content_scrape
 from email_service import send_phase_change_email, send_approval_request_email
-from routers.auth_router import require_admin
+from routers.auth_router import require_admin, get_current_user
 from automations.scheduler import (
     get_scheduler,
     job_tag_5_followup,
@@ -715,3 +715,82 @@ async def scrape_project_website(
             "error": str(e),
             "message": "Website konnte nicht gescrapt werden",
         }
+
+
+@router.post("/{project_id}/hosting-scan")
+async def hosting_scan(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(get_current_user),
+):
+    """Scannt Hosting, DNS, WHOIS und WordPress-Erkennung für das Projekt."""
+    from services.hosting_scraper import scrape_hosting_info
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+
+    website_url = getattr(project, "website_url", None)
+    if not website_url:
+        return {"error": "Keine Website-URL im Projekt hinterlegt"}
+
+    if not website_url.startswith("http"):
+        website_url = "https://" + website_url
+
+    data = await scrape_hosting_info(website_url)
+
+    db.execute(text("""
+        UPDATE projects SET
+            hosting_provider    = :hosting_provider,
+            hosting_org         = :hosting_org,
+            hosting_ip          = :hosting_ip,
+            hosting_country     = :hosting_country,
+            dns_provider        = :dns_provider,
+            nameservers         = :nameservers,
+            domain_registrar    = :domain_registrar,
+            domain_created      = :domain_created,
+            domain_expires      = :domain_expires,
+            server_software     = :server_software,
+            wordpress_hosting   = :wordpress_hosting,
+            is_wordpress        = :is_wordpress,
+            hosting_checked_at  = NOW()
+        WHERE id = :project_id
+    """), {
+        "project_id":       project_id,
+        "hosting_provider": data.get("hosting_provider"),
+        "hosting_org":      data.get("hosting_org"),
+        "hosting_ip":       data.get("ip_address"),
+        "hosting_country":  data.get("country"),
+        "dns_provider":     data.get("dns_provider"),
+        "nameservers":      ",".join(data.get("nameservers") or []) or None,
+        "domain_registrar": data.get("registrar"),
+        "domain_created":   data.get("domain_created"),
+        "domain_expires":   data.get("domain_expires"),
+        "server_software":  data.get("server_software"),
+        "wordpress_hosting": data.get("wordpress_hosting"),
+        "is_wordpress":     data.get("is_wordpress"),
+    })
+    db.commit()
+
+    return {**data, "project_id": project_id}
+
+
+@router.get("/{project_id}/hosting-info")
+def hosting_info(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(get_current_user),
+):
+    """Gibt gespeicherte Hosting-Infos des Projekts zurück (kein neuer Scan)."""
+    row = db.execute(text("""
+        SELECT hosting_provider, hosting_org, hosting_ip, hosting_country,
+               dns_provider, nameservers, domain_registrar, domain_created,
+               domain_expires, server_software, wordpress_hosting, is_wordpress,
+               hosting_checked_at, website_url
+        FROM projects WHERE id = :id
+    """), {"id": project_id}).mappings().first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+
+    return dict(row)

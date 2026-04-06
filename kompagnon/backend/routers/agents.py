@@ -235,6 +235,25 @@ def start_content_agent(
         "target_audience": target_audience,
     })
 
+    # Check if lead has a template assigned
+    template_html = None
+    if project.lead_id:
+        try:
+            tpl_row = db.execute(
+                _text("SELECT html_content FROM website_templates wt JOIN leads l ON l.template_id = wt.id WHERE l.id = :lid LIMIT 1"),
+                {"lid": project.lead_id}
+            ).fetchone()
+            if tpl_row and tpl_row.html_content:
+                template_html = tpl_row.html_content[:3000]
+        except Exception:
+            pass
+
+    if template_html:
+        briefing_dict["template_hint"] = (
+            "Nutze folgendes Template als Designgrundlage und passe "
+            f"Texte, Farben und Inhalte an den Betrieb an:\n{template_html}"
+        )
+
     job_id = str(uuid.uuid4())
     _jobs[job_id] = {"status": "running"}
 

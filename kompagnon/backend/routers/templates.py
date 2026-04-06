@@ -191,6 +191,28 @@ async def import_template_from_url(
     }
 
 
+@router.get("/project/{project_id}")
+def get_project_template(project_id: int, db: Session = Depends(get_db)):
+    row = db.execute(
+        text("SELECT wt.* FROM website_templates wt JOIN projects p ON p.template_id = wt.id WHERE p.id = :pid"),
+        {"pid": project_id}
+    ).fetchone()
+    if not row:
+        return None
+    return dict(row._mapping)
+
+
+@router.get("/lead/{lead_id}")
+def get_lead_template(lead_id: int, db: Session = Depends(get_db)):
+    row = db.execute(
+        text("SELECT wt.* FROM website_templates wt JOIN leads l ON l.template_id = wt.id WHERE l.id = :lid"),
+        {"lid": lead_id}
+    ).fetchone()
+    if not row:
+        return None
+    return dict(row._mapping)
+
+
 @router.get("/{template_id}")
 def get_template(template_id: int, db: Session = Depends(get_db)):
     """Get a single template including HTML/CSS content."""
@@ -201,3 +223,49 @@ def get_template(template_id: int, db: Session = Depends(get_db)):
     if not row:
         raise HTTPException(status_code=404, detail="Template nicht gefunden")
     return dict(row._mapping)
+
+
+# PUT /api/templates/{id}
+@router.put("/{template_id}")
+def update_template(template_id: int, body: dict, db: Session = Depends(get_db)):
+    row = db.execute(text("SELECT id FROM website_templates WHERE id = :id"), {"id": template_id}).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Template nicht gefunden")
+    fields = {k: v for k, v in body.items() if k in ("name","description","html_content","css_content","grapes_data","tags","category","is_active")}
+    if not fields:
+        raise HTTPException(status_code=400, detail="Keine gültigen Felder")
+    set_clause = ", ".join(f"{k} = :{k}" for k in fields)
+    fields["id"] = template_id
+    db.execute(text(f"UPDATE website_templates SET {set_clause}, updated_at=NOW() WHERE id = :id"), fields)
+    db.commit()
+    return {"ok": True}
+
+
+# DELETE /api/templates/{id}
+@router.delete("/{template_id}")
+def delete_template(template_id: int, _admin=Depends(require_admin), db: Session = Depends(get_db)):
+    db.execute(text("DELETE FROM website_templates WHERE id = :id"), {"id": template_id})
+    db.commit()
+    return {"ok": True}
+
+
+# POST /api/templates/{id}/assign-project
+@router.post("/{template_id}/assign-project")
+def assign_to_project(template_id: int, body: dict, db: Session = Depends(get_db)):
+    project_id = body.get("project_id")
+    if not project_id:
+        raise HTTPException(status_code=400, detail="project_id fehlt")
+    db.execute(text("UPDATE projects SET template_id = :tid WHERE id = :pid"), {"tid": template_id, "pid": project_id})
+    db.commit()
+    return {"ok": True}
+
+
+# POST /api/templates/{id}/assign-lead
+@router.post("/{template_id}/assign-lead")
+def assign_to_lead(template_id: int, body: dict, db: Session = Depends(get_db)):
+    lead_id = body.get("lead_id")
+    if not lead_id:
+        raise HTTPException(status_code=400, detail="lead_id fehlt")
+    db.execute(text("UPDATE leads SET template_id = :tid WHERE id = :lid"), {"tid": template_id, "lid": lead_id})
+    db.commit()
+    return {"ok": True}

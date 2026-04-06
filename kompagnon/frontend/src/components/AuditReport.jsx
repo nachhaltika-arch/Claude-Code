@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   RadarChart,
   PolarGrid,
@@ -9,6 +9,8 @@ import {
 } from 'recharts';
 import * as echarts from 'echarts';
 import { useScreenSize } from '../utils/responsive';
+import { useAuth } from '../context/AuthContext';
+import API_BASE_URL from '../config';
 
 const LEVEL_STYLES = {
   'Homepage Standard Platin': { bg: '#e8eaf6', color: '#283593', icon: '\uD83C\uDFC6' },
@@ -133,6 +135,28 @@ function scoreIcon(score, max) {
 
 export default function AuditReport({ auditData, onClose }) {
   const { isMobile } = useScreenSize();
+  const { token } = useAuth();
+  const [angebotLoading, setAngebotLoading] = useState(false);
+
+  const createAngebot = async () => {
+    setAngebotLoading(true);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/audit/${auditData.id}/angebot`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok) throw new Error("Fehler");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Angebot-KOMPAGNON-${auditData.company_name}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Angebot konnte nicht erstellt werden.");
+    } finally { setAngebotLoading(false); }
+  };
 
   if (!auditData) return null;
 
@@ -231,6 +255,25 @@ export default function AuditReport({ auditData, onClose }) {
           ×
         </button>
       )}
+      {/* Angebot Button */}
+      {auditData.id && auditData.status === "completed" && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={createAngebot}
+            disabled={angebotLoading}
+            title="Erstellt ein fertiges PDF-Angebot auf Basis dieses Audit-Ergebnisses"
+            style={{
+              background: '#1D9E75', color: '#fff', border: 'none',
+              borderRadius: 8, padding: '8px 16px', fontSize: 13,
+              fontWeight: 600, cursor: 'pointer', display: 'flex',
+              alignItems: 'center', gap: 6,
+            }}
+          >
+            {angebotLoading ? '⏳ Wird erstellt...' : '📄 Angebot erstellen'}
+          </button>
+        </div>
+      )}
+
       {/* Score Hero */}
       <div
         className="kc-card"

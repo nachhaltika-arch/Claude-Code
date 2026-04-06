@@ -405,6 +405,7 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS wordpress_hosting VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_wordpress BOOLEAN",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS hosting_checked_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS detected_technologies TEXT",
         "ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS page_name VARCHAR DEFAULT ''",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS contact_name VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS contact_phone VARCHAR",

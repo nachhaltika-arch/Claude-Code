@@ -2065,6 +2065,20 @@ export default function ProjectDetail() {
                   {hostingData.server_software && <div style={sub}>{hostingData.server_software}</div>}
                 </div>
 
+                {/* Block 5: Erkannte Technologien */}
+                {hostingData.detected_technologies && (
+                  <div style={{ ...card, gridColumn: '1 / -1' }}>
+                    <div style={lbl}>🔍 Erkannte Technologien & Tools</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                      {hostingData.detected_technologies.split(',').filter(Boolean).map(tech => (
+                        <span key={tech} style={{ background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+                          {tech.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               </div>
             )}
           </div>

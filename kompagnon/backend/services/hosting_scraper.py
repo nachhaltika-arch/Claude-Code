@@ -1,5 +1,5 @@
 """
-Hosting-Erkennung: IP-Lookup, WHOIS, DNS, WordPress-Hosting-Erkennung
+Hosting-Erkennung: IP-Lookup, WHOIS, DNS, WordPress-Hosting-Erkennung, Tech-Stack
 """
 import asyncio
 import re
@@ -29,6 +29,65 @@ DNS_PROVIDER_PATTERNS = {
     "strato":     "Strato",
     "hetzner":    "Hetzner",
 }
+
+# ── Technologie-Erkennung ────────────────────────────────────────────────────
+
+TECH_PATTERNS = [
+    # CMS
+    ("TYPO3",           ["typo3"]),
+    ("Joomla",          ["joomla"]),
+    ("Drupal",          ["drupal"]),
+    ("Wix",             ["wixsite.com", "static.wixstatic.com", "wix.com"]),
+    ("Squarespace",     ["squarespace.com", "squarespace-cdn.com"]),
+    ("Webflow",         ["webflow.io", "webflow.com"]),
+    ("Jimdo",           ["jimdo.com", "jimdosite.com"]),
+    ("Shopware",        ["shopware"]),
+    ("OXID",            ["oxid"]),
+    ("Contao",          ["contao"]),
+    # Page Builder
+    ("Elementor",       ["elementor"]),
+    ("Divi",            ["/et-", "divi-theme", "divi/"]),
+    ("WP Bakery",       ["wpb_", "vc_row", "vc_column"]),
+    # E-Commerce
+    ("WooCommerce",     ["woocommerce"]),
+    ("Shopify",         ["shopify.com", "cdn.shopify"]),
+    ("Magento",         ["mage/", "magento"]),
+    # CRM / Marketing
+    ("HubSpot",         ["hubspot.com", "hs-scripts.com", "hs-analytics.net"]),
+    ("Salesforce",      ["salesforce.com", "pardot.com", "force.com"]),
+    ("Zoho CRM",        ["zoho.com"]),
+    ("Pipedrive",       ["pipedrive.com"]),
+    ("ActiveCampaign",  ["activecampaign.com"]),
+    ("Mailchimp",       ["mailchimp.com", "chimpstatic.com"]),
+    ("Brevo",           ["brevo.com", "sendinblue.com"]),
+    ("Klaviyo",         ["klaviyo.com"]),
+    # Booking
+    ("Calendly",        ["calendly.com"]),
+    ("SimplyBook",      ["simplybook.me"]),
+    ("Bookingkit",      ["bookingkit.net"]),
+    ("Eversports",      ["eversports.de"]),
+    # Analytics
+    ("Google Analytics",["gtag/js", "google-analytics.com", "googletagmanager.com"]),
+    ("Matomo",          ["matomo.js", "piwik.js", "matomo.php"]),
+    ("Hotjar",          ["hotjar.com"]),
+    ("Microsoft Clarity",["clarity.ms"]),
+    # Chat / Support
+    ("Intercom",        ["intercom.io", "widget.intercom.io"]),
+    ("LiveChat",        ["livechatinc.com"]),
+    ("Tidio",           ["tidiochat.com", "tidio.co"]),
+    ("Zendesk",         ["zopim.com", "zendesk.com"]),
+    ("Freshdesk",       ["freshdesk.com", "freshchat.com"]),
+]
+
+
+def detect_technologies(html: str, headers: dict) -> list[str]:
+    """Erkennt eingesetzte Technologien anhand von HTML-Inhalt und HTTP-Headern."""
+    combined = (html[:80_000] + " " + " ".join(headers.values())).lower()
+    detected = []
+    for name, patterns in TECH_PATTERNS:
+        if any(p.lower() in combined for p in patterns):
+            detected.append(name)
+    return detected
 
 
 def extract_domain(website_url: str) -> str:
@@ -139,12 +198,15 @@ async def check_wordpress_hosting(website_url: str) -> dict:
             or "wordpress" in html[:5000].lower()
         )
 
+        technologies = detect_technologies(html, headers)
+
         return {
             "server_software": server_software,
             "powered_by": powered_by,
             "cdn_info": cdn_info,
             "wordpress_hosting": wordpress_hosting,
             "is_wordpress": is_wordpress,
+            "detected_technologies": technologies,
         }
     except Exception:
         return {}

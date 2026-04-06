@@ -31,6 +31,7 @@ class TicketCreate(BaseModel):
     title: str
     description: str
     page_url: str = ""
+    page_name: str = ""
     browser_info: str = ""
     user_email: str = ""
     user_name: str = ""
@@ -47,10 +48,11 @@ class TicketUpdate(BaseModel):
 def create_ticket(req: TicketCreate, db: Session = Depends(get_db)):
     nr = _gen_ticket_nr()
     db.execute(text(
-        "INSERT INTO support_tickets (ticket_number, user_email, user_name, type, priority, status, title, description, page_url, browser_info, screenshot_base64) "
-        "VALUES (:nr, :email, :name, :type, :prio, 'open', :title, :desc, :page, :browser, :screenshot)"
+        "INSERT INTO support_tickets (ticket_number, user_email, user_name, type, priority, status, title, description, page_url, page_name, browser_info, screenshot_base64) "
+        "VALUES (:nr, :email, :name, :type, :prio, 'open', :title, :desc, :page, :page_name, :browser, :screenshot)"
     ), {"nr": nr, "email": req.user_email, "name": req.user_name, "type": req.type, "prio": req.priority,
-        "title": req.title, "desc": req.description, "page": req.page_url, "browser": req.browser_info, "screenshot": req.screenshot_base64})
+        "title": req.title, "desc": req.description, "page": req.page_url, "page_name": req.page_name,
+        "browser": req.browser_info, "screenshot": req.screenshot_base64})
     db.commit()
     return {"ticket_number": nr, "message": "Ticket erstellt"}
 

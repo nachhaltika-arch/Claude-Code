@@ -738,6 +738,36 @@ def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"PDF-Generierung fehlgeschlagen: {str(e)}")
 
 
+@router.get("/{audit_id}/angebot")
+def download_angebot_pdf(audit_id: int, db: Session = Depends(get_db)):
+    """Angebots-PDF für ein abgeschlossenes Audit herunterladen."""
+    try:
+        audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+        if not audit:
+            raise HTTPException(status_code=404, detail="Audit nicht gefunden")
+        if audit.status != "completed":
+            raise HTTPException(status_code=400, detail=f"Audit noch nicht abgeschlossen: {audit.status}")
+
+        from services.angebot_pdf import generate_angebot_pdf
+        pdf_bytes = generate_angebot_pdf(audit.__dict__)
+
+        safe_name = (audit.company_name or "Angebot").replace(" ", "-").replace("/", "-")
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="Angebot-KOMPAGNON-{safe_name}.pdf"'
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        logger.error(f"Angebots-PDF Generierung fehlgeschlagen für Audit {audit_id}: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Angebots-PDF-Generierung fehlgeschlagen: {str(e)}")
+
+
 @router.get("/{audit_id}")
 def get_audit(audit_id: int, db: Session = Depends(get_db)):
     """Get a stored audit result."""

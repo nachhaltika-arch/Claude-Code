@@ -102,13 +102,18 @@ export default function LeadProfile() {
   const [mockupSlow, setMockupSlow] = useState(false);
   const [mockupResult, setMockupResult] = useState(null);
   const [mockupError, setMockupError] = useState('');
+  // Template assignment
+  const [assignedTemplate, setAssignedTemplate] = useState(null);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [allTemplates, setAllTemplates] = useState([]);
 
   const h = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); }, [leadId]); // eslint-disable-line
+  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); loadAssignedTemplate(); }, [leadId]); // eslint-disable-line
 
   const loadProfile = async () => {
     try {
@@ -181,6 +186,41 @@ export default function LeadProfile() {
     const data = await loadBriefing();
     setBriefingData(data);
     setShowBriefingWizard(true);
+  };
+
+  const loadAssignedTemplate = async () => {
+    setTemplateLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/templates/lead/${leadId}`, { headers: h });
+      if (res.ok) {
+        const data = await res.json();
+        setAssignedTemplate(data);
+      } else {
+        setAssignedTemplate(null);
+      }
+    } catch { setAssignedTemplate(null); }
+    setTemplateLoading(false);
+  };
+
+  const openTemplateModal = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/templates/`, { headers: h });
+      if (res.ok) setAllTemplates(await res.json());
+    } catch { setAllTemplates([]); }
+    setShowTemplateModal(true);
+  };
+
+  const assignTemplate = async (templateId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/templates/${templateId}/assign-lead`, {
+        method: 'POST', headers: h, body: JSON.stringify({ lead_id: parseInt(leadId) }),
+      });
+      if (res.ok) {
+        toast.success('Template zugewiesen');
+        setShowTemplateModal(false);
+        await loadAssignedTemplate();
+      }
+    } catch { toast.error('Fehler beim Zuweisen'); }
   };
 
   const generateMockup = async () => {
@@ -1336,6 +1376,34 @@ export default function LeadProfile() {
               Generiert automatisch Textentwürfe für die Website auf Basis der Briefing-Daten.
               {!briefingData?.gewerk && ' Noch kein Briefing ausgefüllt – Basisdaten des Leads werden verwendet.'}
             </div>
+
+            {/* Template assignment */}
+            <div style={{ background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>Design-Template</div>
+              {templateLoading ? (
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Lade Template-Info...</div>
+              ) : assignedTemplate ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>📐 {assignedTemplate.name}</span>
+                  <button onClick={openTemplateModal} style={{ fontSize: 11, padding: '3px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 6, cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)' }}>
+                    wechseln
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Kein Template zugewiesen</span>
+                  <button onClick={openTemplateModal} style={{ fontSize: 11, padding: '4px 12px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                    Template zuweisen
+                  </button>
+                </div>
+              )}
+              {assignedTemplate && (
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                  Die KI nutzt dieses Template als Designgrundlage für den Entwurf.
+                </div>
+              )}
+            </div>
+
             {!projectId && (
               <div style={{ background: '#FFF9E6', border: '1px solid #F5D87A', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92660A', marginBottom: 12 }}>
                 Für den KI-Entwurf wird ein Projekt benötigt. Bitte zuerst ein Projekt anlegen.
@@ -1382,6 +1450,37 @@ export default function LeadProfile() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* TEMPLATE SELECTION MODAL */}
+      {showTemplateModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => e.target === e.currentTarget && setShowTemplateModal(false)}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: '100%', maxWidth: 600, maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 17 }}>🗂️ Template auswählen</div>
+            {allTemplates.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>🗂️</div>
+                <div>Noch keine Templates vorhanden.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+                {allTemplates.map(tpl => (
+                  <div key={tpl.id} onClick={() => assignTemplate(tpl.id)} style={{ border: `2px solid ${assignedTemplate?.id === tpl.id ? 'var(--brand-primary)' : '#e0e0e0'}`, borderRadius: 8, padding: 14, cursor: 'pointer', background: assignedTemplate?.id === tpl.id ? 'var(--bg-active)' : '#fff', transition: 'border-color 0.15s' }}
+                    onMouseEnter={e => { if (assignedTemplate?.id !== tpl.id) e.currentTarget.style.borderColor = 'var(--brand-primary)'; }}
+                    onMouseLeave={e => { if (assignedTemplate?.id !== tpl.id) e.currentTarget.style.borderColor = '#e0e0e0'; }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{tpl.name}</div>
+                    <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, background: tpl.source === 'url' ? '#e3f2fd' : '#e8f5e9', color: tpl.source === 'url' ? '#1565c0' : '#2e7d32', fontWeight: 600 }}>
+                      {tpl.source === 'url' ? '🌐 URL' : '📁 ZIP'}
+                    </span>
+                    {tpl.created_at && <div style={{ fontSize: 10, color: '#aaa', marginTop: 6 }}>{new Date(tpl.created_at).toLocaleDateString('de-DE')}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setShowTemplateModal(false)} style={{ padding: '9px', background: '#f5f5f5', color: '#555', border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
+          </div>
         </div>
       )}
 

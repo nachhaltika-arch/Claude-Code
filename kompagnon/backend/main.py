@@ -156,7 +156,7 @@ def _run_migrations():
             user_id INTEGER, user_email VARCHAR DEFAULT '', user_name VARCHAR DEFAULT '',
             type VARCHAR DEFAULT 'feedback', priority VARCHAR DEFAULT 'medium', status VARCHAR DEFAULT 'open',
             title VARCHAR NOT NULL, description TEXT NOT NULL, page_url VARCHAR DEFAULT '',
-            browser_info VARCHAR DEFAULT '', screenshot_base64 TEXT DEFAULT '', admin_notes TEXT DEFAULT '',
+            browser_info VARCHAR DEFAULT '', page_name VARCHAR DEFAULT '', screenshot_base64 TEXT DEFAULT '', admin_notes TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW(), resolved_at TIMESTAMP
         )""",
         """CREATE TABLE IF NOT EXISTS academy_courses (
@@ -392,6 +392,7 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS company_name VARCHAR(255)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS website_url VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS cms_type VARCHAR",
+        "ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS page_name VARCHAR DEFAULT ''",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS contact_name VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS contact_phone VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS contact_email VARCHAR",

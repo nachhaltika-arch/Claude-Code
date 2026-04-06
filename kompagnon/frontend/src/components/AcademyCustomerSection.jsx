@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
@@ -123,7 +124,7 @@ export default function AcademyCustomerSection({ leadId }) {
       </div>
 
       {/* Assign Modal */}
-      {showModal && (
+      {showModal && createPortal(
         <>
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }} onClick={() => setShowModal(false)} />
           <div style={isMobile ? {
@@ -158,7 +159,8 @@ export default function AcademyCustomerSection({ leadId }) {
               </div>
             )}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </>
   );

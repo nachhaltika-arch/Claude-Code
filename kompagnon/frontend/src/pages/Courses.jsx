@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 
@@ -442,7 +443,7 @@ function CourseCard({ course, menuOpen, onMenuToggle, onMenuClose, isAdmin, onEd
 // ── Modal wrapper ─────────────────────────────────────────────────────────────
 
 function Modal({ children, onClose, maxWidth = 480 }) {
-  return (
+  return createPortal(
     <>
       <div
         style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.55)', backdropFilter: 'blur(4px)', zIndex: 200 }}
@@ -459,7 +460,8 @@ function Modal({ children, onClose, maxWidth = 480 }) {
       >
         {children}
       </div>
-    </>
+    </>,
+    document.body
   );
 }
 

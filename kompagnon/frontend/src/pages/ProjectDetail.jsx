@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -136,7 +137,7 @@ function EditModal({ project, token, onClose, onSaved }) {
     </div>
   );
 
-  return (
+  return createPortal(
     <div style={overlay} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={panel}>
         <div style={header}>
@@ -256,7 +257,8 @@ function EditModal({ project, token, onClose, onSaved }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -312,7 +314,7 @@ function ApprovalModal({ projectId, token, onClose }) {
     }
   };
 
-  return (
+  return createPortal(
     <div style={overlay} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={panel}>
         <div style={header}>
@@ -365,7 +367,8 @@ function ApprovalModal({ projectId, token, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1119,7 +1122,7 @@ export default function ProjectDetail() {
             </div>
 
             {/* Edit page modal */}
-            {editPageModal && (
+            {editPageModal && createPortal(
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 20 }}
                 onClick={e => e.target === e.currentTarget && setEditPageModal(null)}>
                 <div style={{ background: 'var(--bg-surface)', borderRadius: isMobile ? '16px 16px 0 0' : 'var(--radius-xl)', padding: 24, width: '100%', maxWidth: 480, maxHeight: isMobile ? '92vh' : '85vh', overflowY: 'auto' }}
@@ -1168,7 +1171,8 @@ export default function ProjectDetail() {
                     </button>
                   </div>
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
           </div>
         );

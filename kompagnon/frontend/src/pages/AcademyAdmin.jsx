@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
@@ -279,7 +280,7 @@ export default function AcademyAdmin() {
       )}
 
       {/* ── Delete confirm modal ────────────────────────────────── */}
-      {deleteId && (
+      {deleteId && createPortal(
         <>
           <div
             style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000 }}
@@ -328,7 +329,8 @@ export default function AcademyAdmin() {
               >Löschen</button>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );

@@ -577,6 +577,12 @@ def _run_migrations():
         )""",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES website_templates(id) ON DELETE SET NULL",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES website_templates(id) ON DELETE SET NULL",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_before TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_before_date TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_after TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_after_date TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_url_before VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_url_after VARCHAR",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

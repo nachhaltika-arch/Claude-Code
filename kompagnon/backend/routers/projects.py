@@ -324,7 +324,12 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{project_id}")
-def update_project(project_id: int, body: ProjectUpdateRequest, db: Session = Depends(get_db)):
+def update_project(
+    project_id: int,
+    body: ProjectUpdateRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     """Update redesign fields on a project."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
@@ -355,6 +360,10 @@ def update_project(project_id: int, body: ProjectUpdateRequest, db: Session = De
             send_phase_change_email(to=to_email, company=company, phase=phase_num)
         except Exception as exc:
             logger.warning(f"Phase-E-Mail fehlgeschlagen für Projekt {project_id}: {exc}")
+
+    # Auto-Screenshot "after" beim Wechsel auf Go-Live (phase_6)
+    if new_status == "phase_6" and old_status != "phase_6":
+        background_tasks.add_task(_capture_project_screenshot_after, project_id)
 
     return {"id": project.id, "updated": list(update_data.keys())}
 
@@ -773,6 +782,112 @@ async def hosting_scan(
     db.commit()
 
     return {**data, "project_id": project_id}
+
+
+# ── Screenshots ──────────────────────────────────────────────────────────────
+
+async def _capture_project_screenshot_after(project_id: int):
+    """Background-Hilfsfunktion: After-Screenshot aufnehmen und speichern."""
+    from database import SessionLocal
+    from services.screenshot import capture_screenshot
+    db = SessionLocal()
+    try:
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project:
+            return
+        url = getattr(project, "new_website_url", None) or project.website_url
+        if not url:
+            return
+        b64 = await capture_screenshot(url)
+        if b64:
+            project.screenshot_after      = b64
+            project.screenshot_after_date = datetime.utcnow()
+            project.screenshot_url_after  = url
+            db.commit()
+            logger.info(f"✓ After-Screenshot für Projekt {project_id} gespeichert")
+    except Exception as e:
+        logger.warning(f"After-Screenshot Fehler (Projekt {project_id}): {e}")
+    finally:
+        db.close()
+
+
+@router.post("/{project_id}/screenshot/before")
+async def screenshot_before(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(get_current_user),
+):
+    """Nimmt einen Before-Screenshot der alten Website auf."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+    if not project.website_url:
+        raise HTTPException(status_code=400, detail="Keine website_url am Projekt hinterlegt")
+
+    from services.screenshot import capture_screenshot
+    b64 = await capture_screenshot(project.website_url)
+    if not b64:
+        raise HTTPException(status_code=502, detail="Screenshot konnte nicht erstellt werden")
+
+    project.screenshot_before      = b64
+    project.screenshot_before_date = datetime.utcnow()
+    project.screenshot_url_before  = project.website_url
+    db.commit()
+
+    return {"success": True, "screenshot_url": f"data:image/jpeg;base64,{b64}"}
+
+
+@router.post("/{project_id}/screenshot/after")
+async def screenshot_after(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(get_current_user),
+):
+    """Nimmt einen After-Screenshot der neuen Website auf."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+
+    url = getattr(project, "new_website_url", None) or project.website_url
+    if not url:
+        raise HTTPException(status_code=400, detail="Keine URL am Projekt hinterlegt")
+
+    from services.screenshot import capture_screenshot
+    b64 = await capture_screenshot(url)
+    if not b64:
+        raise HTTPException(status_code=502, detail="Screenshot konnte nicht erstellt werden")
+
+    project.screenshot_after      = b64
+    project.screenshot_after_date = datetime.utcnow()
+    project.screenshot_url_after  = url
+    db.commit()
+
+    return {"success": True, "screenshot_url": f"data:image/jpeg;base64,{b64}"}
+
+
+@router.get("/{project_id}/screenshots")
+def get_screenshots(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(get_current_user),
+):
+    """Gibt gespeicherte Before/After-Screenshots zurück."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+
+    return {
+        "before": {
+            "data":  f"data:image/jpeg;base64,{project.screenshot_before}" if project.screenshot_before else None,
+            "date":  project.screenshot_before_date.isoformat() if project.screenshot_before_date else None,
+            "url":   project.screenshot_url_before,
+        },
+        "after": {
+            "data":  f"data:image/jpeg;base64,{project.screenshot_after}" if project.screenshot_after else None,
+            "date":  project.screenshot_after_date.isoformat() if project.screenshot_after_date else None,
+            "url":   project.screenshot_url_after,
+        },
+    }
 
 
 @router.get("/{project_id}/hosting-info")

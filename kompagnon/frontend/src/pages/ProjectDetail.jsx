@@ -424,6 +424,11 @@ export default function ProjectDetail() {
   const [brandData, setBrandData]   = useState(null);
   const [scraping, setScraping]     = useState(false);
   const [analyzing, setAnalyzing]   = useState(false);
+  // Mockup versions
+  const [mockupVersions, setMockupVersions]       = useState([]);
+  const [mockupVersionsLoaded, setMockupVersionsLoaded] = useState(false);
+  const [mockupPreview, setMockupPreview]         = useState(null); // { html, version_name }
+  const [savingVersion, setSavingVersion]         = useState(false);
   // Mockup
   const [mockupRunning, setMockupRunning] = useState(false);
   const [mockupSlow, setMockupSlow] = useState(false);
@@ -1245,9 +1250,66 @@ export default function ProjectDetail() {
 
       {activeTab === 'mockup' && (() => {
         if (sitemapPages.length === 0 && !sitemapLoading) loadSitemapPages();
+
+        // Load saved versions once
+        if (!mockupVersionsLoaded && project.lead_id) {
+          setMockupVersionsLoaded(true);
+          fetch(`${API_BASE_URL}/api/mockups/${project.lead_id}`, { headers: h })
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setMockupVersions(Array.isArray(data) ? data : []))
+            .catch(() => {});
+        }
+
+        const saveCurrentVersion = async () => {
+          if (!mockupResult || !project.lead_id) return;
+          const selectedPage = sitemapPages.find(p => p.id === selectedPageId);
+          const pageName = selectedPage?.page_name || 'Startseite';
+          const versionName = `${pageName} – ${new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
+          setSavingVersion(true);
+          try {
+            const html = buildHtmlFromContent(mockupResult);
+            const res = await fetch(`${API_BASE_URL}/api/mockups/${project.lead_id}`, {
+              method: 'POST', headers: h,
+              body: JSON.stringify({
+                sitemap_page_id: selectedPageId || null,
+                page_name: pageName,
+                version_name: versionName,
+                html_content: html,
+              }),
+            });
+            if (res.ok) {
+              toast.success('Version gespeichert');
+              // Reload versions list
+              fetch(`${API_BASE_URL}/api/mockups/${project.lead_id}`, { headers: h })
+                .then(r => r.ok ? r.json() : [])
+                .then(data => setMockupVersions(Array.isArray(data) ? data : []));
+            }
+          } catch { toast.error('Fehler beim Speichern'); }
+          finally { setSavingVersion(false); }
+        };
+
+        const loadVersion = async (versionId) => {
+          const res = await fetch(`${API_BASE_URL}/api/mockups/${project.lead_id}/${versionId}`, { headers: h });
+          if (res.ok) {
+            const data = await res.json();
+            setMockupPreview({ html: data.html_content, version_name: data.version_name });
+          }
+        };
+
+        const deleteVersion = async (versionId) => {
+          if (!window.confirm('Version löschen?')) return;
+          await fetch(`${API_BASE_URL}/api/mockups/version/${versionId}`, { method: 'DELETE', headers: h });
+          setMockupVersions(prev => prev.filter(v => v.id !== versionId));
+          if (mockupPreview) setMockupPreview(null);
+        };
+
+        const activeHtml = mockupPreview ? mockupPreview.html : (mockupResult ? buildHtmlFromContent(mockupResult) : null);
+
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
+
+            {/* ── Generator ── */}
+            <div className="kc-card">
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>KI-Website-Entwurf generieren</div>
 
               {sitemapPages.length > 0 && (
@@ -1300,25 +1362,94 @@ export default function ProjectDetail() {
                 </div>
               )}
             </div>
-            {mockupResult && (
-              <div style={{ marginTop: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Generierter Entwurf</span>
+
+            {/* ── Aktuelle Vorschau (neu generiert oder aus Version geladen) ── */}
+            {activeHtml && (
+              <div className="kc-card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border-light)' }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {mockupPreview ? `📂 ${mockupPreview.version_name}` : '✨ Aktueller Entwurf'}
+                  </span>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => { const w = window.open('', '_blank'); w.document.write(buildHtmlFromContent(mockupResult)); w.document.close(); }}
+                    {mockupPreview && (
+                      <button onClick={() => setMockupPreview(null)}
+                        style={{ fontSize: 12, padding: '4px 10px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                        ✕ Schließen
+                      </button>
+                    )}
+                    {mockupResult && !mockupPreview && (
+                      <button onClick={saveCurrentVersion} disabled={savingVersion}
+                        style={{ fontSize: 12, padding: '4px 10px', background: '#008EAA', border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer', color: '#fff', fontWeight: 600 }}>
+                        {savingVersion ? '…' : '💾 Version speichern'}
+                      </button>
+                    )}
+                    <button onClick={() => { const w = window.open('', '_blank'); w.document.write(activeHtml); w.document.close(); }}
                       style={{ fontSize: 12, padding: '4px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                       Im Browser öffnen ↗
                     </button>
                   </div>
                 </div>
                 <iframe
-                  srcDoc={buildHtmlFromContent(mockupResult)}
-                  style={{ width: '100%', height: 600, border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', background: '#fff' }}
+                  srcDoc={activeHtml}
+                  style={{ width: '100%', height: 600, border: 'none', background: '#fff', display: 'block' }}
                   title="Website Vorschau"
                   sandbox="allow-same-origin"
                 />
               </div>
             )}
+
+            {/* ── Gespeicherte Versionen ── */}
+            <div className="kc-card">
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
+                📂 Gespeicherte Entwürfe
+                {mockupVersions.length > 0 && (
+                  <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 500, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 99, padding: '1px 8px', color: 'var(--text-tertiary)' }}>
+                    {mockupVersions.length}
+                  </span>
+                )}
+              </div>
+
+              {mockupVersions.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)', fontSize: 13, border: '1.5px dashed var(--border-medium)', borderRadius: 'var(--radius-lg)' }}>
+                  Noch keine Versionen gespeichert — generiere einen Entwurf und klicke "💾 Version speichern"
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {mockupVersions.map(v => {
+                    const isActive = mockupPreview && mockupPreview.version_name === v.version_name;
+                    return (
+                      <div key={v.id} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                        padding: '10px 14px', borderRadius: 'var(--radius-md)',
+                        background: isActive ? '#EAF4E0' : 'var(--bg-app)',
+                        border: `1px solid ${isActive ? '#3B6D11' : 'var(--border-light)'}`,
+                      }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {v.version_name || v.page_name}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                            {v.page_name} · {v.created_at}
+                            {v.created_by && ` · ${v.created_by}`}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                          <button onClick={() => loadVersion(v.id)}
+                            style={{ fontSize: 12, padding: '4px 10px', background: isActive ? '#3B6D11' : 'var(--bg-surface)', border: `1px solid ${isActive ? '#3B6D11' : 'var(--border-light)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', color: isActive ? '#fff' : 'var(--brand-primary)', fontWeight: 600 }}>
+                            {isActive ? '✓ Aktiv' : '👁 Laden'}
+                          </button>
+                          <button onClick={() => deleteVersion(v.id)}
+                            style={{ fontSize: 12, padding: '4px 8px', background: 'var(--status-danger-bg)', border: '1px solid var(--status-danger-text)', borderRadius: 'var(--radius-md)', cursor: 'pointer', color: 'var(--status-danger-text)' }}>
+                            🗑
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
           </div>
         );
       })()}

@@ -310,6 +310,23 @@ function FileUploadSection({ token }) {
   );
 }
 
+const PHASEN = [
+  { nr: 1, label: 'Onboarding',  icon: '👋', beschreibung: 'Strategie-Workshop & Briefing' },
+  { nr: 2, label: 'Briefing',    icon: '📋', beschreibung: 'Inhalte & Ziele festlegen' },
+  { nr: 3, label: 'Content',     icon: '✏️', beschreibung: 'Texte, Bilder & Sitemap' },
+  { nr: 4, label: 'Technik',     icon: '⚙️', beschreibung: 'Entwicklung & Umsetzung' },
+  { nr: 5, label: 'Q&A',         icon: '🔍', beschreibung: 'Qualitätsprüfung & Abnahme' },
+  { nr: 6, label: 'Go-Live',     icon: '🚀', beschreibung: 'Website geht online' },
+  { nr: 7, label: 'Post-Launch', icon: '⭐', beschreibung: 'Nachbetreuung & Optimierung' },
+];
+
+const getPhaseStatus = (phaseNr, currentPhase) => {
+  if (!currentPhase) return 'ausstehend';
+  if (phaseNr < currentPhase)  return 'abgeschlossen';
+  if (phaseNr === currentPhase) return 'aktiv';
+  return 'ausstehend';
+};
+
 export default function CustomerPortal() {
   const { token } = useParams();
   const [step, setStep] = useState('loading');
@@ -727,6 +744,88 @@ export default function CustomerPortal() {
       {/* Tab content */}
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '20px 16px' }}>
         {portalTab === 'uebersicht' && <>
+
+          {/* ── Projektstatus / Phasen ── */}
+          {data?.project_id ? (
+            <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e0f4f8' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Ihr Projektstatus
+                </div>
+                {data.go_live_date && (
+                  <div style={{ fontSize: 11, color: '#008eaa', fontWeight: 500, background: '#E1F5EE', padding: '3px 8px', borderRadius: 20 }}>
+                    Go-Live: {new Date(data.go_live_date).toLocaleDateString('de-DE')}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {PHASEN.map((phase) => {
+                  const status = getPhaseStatus(phase.nr, data.current_phase);
+                  const istAbgeschlossen = status === 'abgeschlossen';
+                  const istAktiv         = status === 'aktiv';
+                  const istAusstehend    = status === 'ausstehend';
+                  return (
+                    <div key={phase.nr} style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 12px', borderRadius: 8,
+                      background: istAktiv ? '#E1F5EE' : 'transparent',
+                      border: istAktiv ? '1.5px solid #1D9E75' : '1.5px solid transparent',
+                      transition: 'all 0.2s',
+                    }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 14, fontWeight: 600,
+                        background: istAbgeschlossen ? '#1D9E75' : istAktiv ? '#008eaa' : '#e2e8f0',
+                        color: (istAbgeschlossen || istAktiv) ? 'white' : '#94a3b8',
+                        boxShadow: istAktiv ? '0 0 0 4px rgba(0,142,170,0.15)' : 'none',
+                      }}>
+                        {istAbgeschlossen ? '✓' : phase.nr}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: istAktiv ? 600 : 500, color: istAbgeschlossen ? '#1D9E75' : istAktiv ? '#085041' : '#94a3b8' }}>
+                          {phase.icon} {phase.label}
+                          {istAktiv && (
+                            <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: '#008eaa', color: 'white', padding: '2px 6px', borderRadius: 10, verticalAlign: 'middle' }}>
+                              Aktuell
+                            </span>
+                          )}
+                        </div>
+                        {(istAktiv || istAbgeschlossen) && (
+                          <div style={{ fontSize: 11, color: istAktiv ? '#0F6E56' : '#94a3b8', marginTop: 1 }}>
+                            {phase.beschreibung}
+                          </div>
+                        )}
+                      </div>
+                      {istAbgeschlossen && <div style={{ fontSize: 16, color: '#1D9E75', flexShrink: 0 }}>✓</div>}
+                      {istAusstehend    && <div style={{ width: 16, height: 2, background: '#e2e8f0', borderRadius: 1, flexShrink: 0 }} />}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94a3b8', marginBottom: 6 }}>
+                  <span>Gesamtfortschritt</span>
+                  <span>{data.current_phase ? `Phase ${data.current_phase} von 7` : 'Noch nicht gestartet'}</span>
+                </div>
+                <div style={{ height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: 3,
+                    background: 'linear-gradient(90deg, #1D9E75, #008eaa)',
+                    width: `${data.current_phase ? Math.min(100, ((data.current_phase - 1) / 6) * 100) : 0}%`,
+                    transition: 'width 0.6s ease',
+                  }} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 12, padding: '14px 16px', marginBottom: 16, fontSize: 13, color: '#92400E' }}>
+              Ihr Projekt wird gerade vorbereitet. Wir melden uns innerhalb von 24 Stunden.
+            </div>
+          )}
+
           {data?.ai_summary && (
             <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e0f4f8' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Zusammenfassung</div>

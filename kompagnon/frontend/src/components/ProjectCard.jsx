@@ -112,8 +112,8 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
   const activePhase = PHASES[activeIdx];
   const progressPct = 60; // placeholder — replace with real checklist % if available
 
-  const speedM      = project.pagespeed_mobile;
-  const speedD      = project.pagespeed_desktop;
+  const speedM      = project.pagespeed_mobile  ?? project.ps_mobile  ?? null;
+  const speedD      = project.pagespeed_desktop ?? project.ps_desktop ?? null;
   const speedMColor = speedColor(speedM);
   const speedDColor = speedColor(speedD);
 
@@ -121,13 +121,20 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
 
   const auditInfo   = AUDIT_LEVELS[(project.audit_level || '').toLowerCase()];
 
-  const desiredPages = project.desired_pages
-    ? project.desired_pages.split(',').map(s => s.trim()).filter(Boolean)
+  const rawPages     = project.desired_pages ?? project.seiten ?? null;
+  const desiredPages = rawPages
+    ? rawPages.split(',').map(s => s.trim()).filter(Boolean)
     : [];
 
-  const topProblems = project.top_problems
-    ? project.top_problems.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 3)
+  const rawProblems = project.top_issues ?? project.probleme ?? null;
+  const topProblems = rawProblems
+    ? rawProblems.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 3)
     : [];
+
+  const contactName = project.contact_name || project.ansprechpartner || '—';
+  const logoReceived    = project.logo_received    ?? false;
+  const briefingReceived = project.briefing_received ?? false;
+  const photosReceived  = project.photos_received  ?? false;
 
   const card = {
     background: 'var(--bg-surface)',
@@ -235,16 +242,20 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
         <Divider />
         <div style={{ ...col, paddingLeft: 16 }}>
           <InfoBlock label="PageSpeed">
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <Badge
-                label={speedM !== null && speedM !== undefined ? `📱 ${speedM}` : '📱 –'}
-                colorStyle={speedMColor}
-              />
-              <Badge
-                label={speedD !== null && speedD !== undefined ? `🖥 ${speedD}` : '🖥 –'}
-                colorStyle={speedDColor}
-              />
-            </div>
+            {speedM === null && speedD === null ? (
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Nicht gemessen</span>
+            ) : (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <Badge
+                  label={speedM !== null && speedM !== undefined ? `📱 ${speedM}` : '📱 –'}
+                  colorStyle={speedMColor}
+                />
+                <Badge
+                  label={speedD !== null && speedD !== undefined ? `🖥 ${speedD}` : '🖥 –'}
+                  colorStyle={speedDColor}
+                />
+              </div>
+            )}
           </InfoBlock>
         </div>
         <Divider />
@@ -278,7 +289,7 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
                 ))}
               </div>
             ) : (
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>–</span>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Noch nicht angegeben</span>
             )}
           </InfoBlock>
         </div>
@@ -286,9 +297,9 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
         <div style={{ ...col, paddingLeft: 16 }}>
           <InfoBlock label="Assets">
             {[
-              { label: 'Logo',     val: project.has_logo },
-              { label: 'Briefing', val: project.has_briefing },
-              { label: 'Fotos',    val: project.has_photos },
+              { label: 'Logo',     val: logoReceived },
+              { label: 'Briefing', val: briefingReceived },
+              { label: 'Fotos',    val: photosReceived },
             ].map(({ label, val }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                 <span style={{ color: val ? '#1D9E75' : '#E24B4A', fontWeight: 700 }}>{val ? '✓' : '✗'}</span>
@@ -335,7 +346,7 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
                 })}
               </div>
             ) : (
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>–</span>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Kein Audit vorhanden</span>
             )}
           </InfoBlock>
         </div>
@@ -344,7 +355,7 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
           <InfoBlock label="Ansprechpartner">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
               <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                {project.contact_name || '–'}
+                {contactName}
               </div>
               {project.contact_phone && (
                 <a href={`tel:${project.contact_phone}`} style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
@@ -355,9 +366,6 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
                 <a href={`mailto:${project.contact_email}`} style={{ color: '#185FA5', textDecoration: 'none', wordBreak: 'break-all' }}>
                   ✉ {project.contact_email}
                 </a>
-              )}
-              {!project.contact_phone && !project.contact_email && !project.contact_name && (
-                <span style={{ color: 'var(--text-tertiary)' }}>–</span>
               )}
             </div>
           </InfoBlock>

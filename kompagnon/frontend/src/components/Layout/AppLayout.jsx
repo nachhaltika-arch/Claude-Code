@@ -157,13 +157,14 @@ function SidebarNav({ badges }) {
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const isActive = (item) => {
-    const p = typeof item === 'string' ? item : item.path;
-    if (item.exactMatch)  return location.pathname === p;
-    if (item.activePaths) return item.activePaths.some(ap =>
-      ap.endsWith('/') ? location.pathname.startsWith(ap) : location.pathname === ap
-    );
-    return location.pathname === p || location.pathname.startsWith(p + '/');
+  const isActive = (path) => {
+    if (path === '/app/leads') {
+      return location.pathname === '/app/leads';
+    }
+    if (path === '/app/projects') {
+      return location.pathname === '/app/projects' || location.pathname.startsWith('/app/projects/');
+    }
+    return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
   return (
@@ -196,7 +197,7 @@ function SidebarNav({ badges }) {
               { label: 'Akademie',     path: '/app/academy',                                              icon: '🎓' },
               { label: 'Einstellungen',path: '/app/settings',                                             icon: '⚙️' },
             ].map((item) => {
-              const active = isActive(item);
+              const active = isActive(item.path);
               return (
                 <button key={item.path} onClick={() => navigate(item.path)} style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10,
@@ -229,7 +230,7 @@ function SidebarNav({ badges }) {
                   {section.title}
                 </div>
                 {visibleItems.map((item) => {
-                  const active = isActive(item);
+                  const active = isActive(item.path);
                   return (
                     <button
                       key={item.path}

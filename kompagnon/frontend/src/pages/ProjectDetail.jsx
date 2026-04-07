@@ -450,12 +450,23 @@ export default function ProjectDetail() {
   const [mockupError, setMockupError] = useState('');
   const [activeMockupPage, setActiveMockupPage] = useState(null);
   const [activeContentPage, setActiveContentPage] = useState(null);
+  // Domain-Check
+  const [domainChecking, setDomainChecking] = useState(false);
   // Nachrichten
   const [chatMessages, setChatMessages] = useState([]);
   const [chatText, setChatText] = useState('');
   const [chatChannel, setChatChannel] = useState('in_app');
   const [chatSubject, setChatSubject] = useState('');
   const [chatSending, setChatSending] = useState(false);
+
+  const checkDomain = async () => {
+    setDomainChecking(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/projects/${id}/domain-check`, { method: 'POST', headers });
+      const d = await res.json();
+      setProject(prev => ({ ...prev, domain_reachable: d.reachable, domain_status_code: d.status_code, domain_checked_at: d.checked_at }));
+    } catch { /* silent */ } finally { setDomainChecking(false); }
+  };
 
   const loadProject = useCallback(async () => {
     try {
@@ -690,7 +701,7 @@ export default function ProjectDetail() {
       </div>
 
       {/* ── ProjectCard ─────────────────────────────────────────────────────── */}
-      <ProjectCard project={project} />
+      <ProjectCard project={project} onDomainCheck={checkDomain} domainChecking={domainChecking} />
 
       {/* ── Buttons ─────────────────────────────────────────────────────────── */}
       {(() => {

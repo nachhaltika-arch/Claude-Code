@@ -42,6 +42,20 @@ const LEVEL_COLORS = {
   'Nicht konform': 'var(--status-danger-text)',
 };
 
+const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
+  if (loading) return <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>⏳ Prüfe...</span>;
+  const date = checkedAt ? new Date(checkedAt).toLocaleDateString('de-DE') : null;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: reachable === null ? '#f3f4f6' : reachable ? '#dcfce7' : '#fee2e2', color: reachable === null ? '#6b7280' : reachable ? '#166534' : '#991b1b' }}>
+        {reachable === null ? '● Nicht geprüft' : reachable ? '✓ Erreichbar' : '✗ Nicht erreichbar'}
+      </span>
+      {date && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{date}</span>}
+      <button onClick={onCheck} title="Jetzt prüfen" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-tertiary)', padding: '0 2px' }}>🔄</button>
+    </span>
+  );
+};
+
 const TABS = [
   { id: 'overview',   label: 'Übersicht',   icon: '⊞' },
   { id: 'messages',   label: 'Nachrichten', icon: '💬' },
@@ -108,6 +122,8 @@ export default function LeadProfile() {
   const [templateLoading, setTemplateLoading] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [allTemplates, setAllTemplates] = useState([]);
+  // Domain-Check
+  const [domainLoading, setDomainLoading] = useState(false);
   // Nachrichten
   const [messages, setMessages] = useState([]);
   const [msgLoading, setMsgLoading] = useState(false);
@@ -149,6 +165,15 @@ export default function LeadProfile() {
     const interval = setInterval(loadMessages, 30000);
     return () => clearInterval(interval);
   }, [activeTab, leadId]); // eslint-disable-line
+
+  const checkDomain = async () => {
+    setDomainLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/domain-check`, { method: 'POST', headers: h });
+      const d = await res.json();
+      setProfile(prev => ({ ...prev, lead: { ...prev.lead, domain_reachable: d.reachable, domain_status_code: d.status_code, domain_checked_at: d.checked_at } }));
+    } catch { /* silent */ } finally { setDomainLoading(false); }
+  };
 
   const loadProfile = async () => {
     try {
@@ -905,6 +930,10 @@ export default function LeadProfile() {
                 <button onClick={createScreenshot} disabled={screenshotLoading} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: screenshotLoading ? 'wait' : 'pointer', fontSize: 12, padding: '1px 4px', flexShrink: 0 }} title="Screenshot aktualisieren">
                   {screenshotLoading ? '⏳' : '🔄'}
                 </button>
+              </div>
+
+              <div style={{ padding: '4px 10px 6px' }}>
+                <DomainBadge reachable={lead.domain_reachable ?? null} checkedAt={lead.domain_checked_at} loading={domainLoading} onCheck={checkDomain} />
               </div>
 
               <div style={{ margin: '0 -12px', position: 'relative', minHeight: 160, overflow: 'hidden' }}>

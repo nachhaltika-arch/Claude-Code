@@ -1,5 +1,19 @@
 import React from 'react';
 
+const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
+  if (loading) return <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>⏳ Prüfe...</span>;
+  const date = checkedAt ? new Date(checkedAt).toLocaleDateString('de-DE') : null;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+      <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: reachable === null ? '#f3f4f6' : reachable ? '#dcfce7' : '#fee2e2', color: reachable === null ? '#6b7280' : reachable ? '#166534' : '#991b1b' }}>
+        {reachable === null ? '● Nicht geprüft' : reachable ? '✓ Erreichbar' : '✗ Nicht erreichbar'}
+      </span>
+      {date && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{date}</span>}
+      {onCheck && <button onClick={onCheck} title="Jetzt prüfen" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-tertiary)', padding: '0 2px' }}>🔄</button>}
+    </span>
+  );
+};
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const PHASES = [
@@ -91,7 +105,7 @@ function Divider() {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function ProjectCard({ project }) {
+export default function ProjectCard({ project, onDomainCheck, domainChecking }) {
   if (!project) return null;
 
   const activeIdx   = phaseIndex(project.status);
@@ -212,6 +226,7 @@ export default function ProjectCard({ project }) {
               ? <a href={project.website_url} target="_blank" rel="noreferrer" style={{ color: '#185FA5', textDecoration: 'none', fontSize: 12, wordBreak: 'break-all' }}>{project.website_url}</a>
               : <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>–</span>
             }
+            <DomainBadge reachable={project.domain_reachable ?? null} checkedAt={project.domain_checked_at} loading={domainChecking} onCheck={onDomainCheck} />
             {project.cms_type && (
               <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{project.cms_type}</div>
             )}

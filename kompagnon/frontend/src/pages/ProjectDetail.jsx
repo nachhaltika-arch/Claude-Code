@@ -487,6 +487,7 @@ export default function ProjectDetail() {
   const [editPageModal, setEditPageModal]   = useState(null);
   const [editPageForm, setEditPageForm]     = useState({});
   const [editPageSaving, setEditPageSaving] = useState(false);
+  const [deletingPageId, setDeletingPageId] = useState(null);
   // KI generation
   const [kiGenerating, setKiGenerating]     = useState(false);
   const [kiConfirm, setKiConfirm]           = useState(false);
@@ -702,9 +703,22 @@ export default function ProjectDetail() {
   };
 
   const deleteSitemapPage = async (pageId) => {
-    if (!window.confirm('Seite wirklich löschen?')) return;
-    await fetch(`${API_BASE_URL}/api/sitemap/pages/${pageId}`, { method: 'DELETE', headers: h });
-    setSitemapPages(prev => prev.filter(p => p.id !== pageId));
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/sitemap/pages/${pageId}`,
+        { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.ok) {
+        setSitemapPages(prev => prev.filter(p => p.id !== pageId));
+        toast.success('Seite gelöscht');
+      } else {
+        toast.error('Löschen fehlgeschlagen');
+      }
+    } catch (e) {
+      toast.error('Fehler: ' + e.message);
+    } finally {
+      setDeletingPageId(null);
+    }
   };
 
   const generateKI = async () => {
@@ -1460,6 +1474,19 @@ export default function ProjectDetail() {
                               <button onClick={() => goToContent(page)} style={ab('#059669', '#fff')}>📝 Content</button>
                               <button onClick={() => previewPage(page)} style={ab('#7c3aed', '#fff')}>👁 Vorschau</button>
                               <button onClick={() => setEditingPage(page)} style={ab('#1a2332', '#fff')}>🖊️ Editor</button>
+                              <button
+                                onClick={() => setDeletingPageId(page.id)}
+                                title="Seite löschen"
+                                style={{
+                                  padding: '4px 8px', fontSize: 11,
+                                  background: 'var(--status-danger-bg)',
+                                  color: 'var(--status-danger-text)',
+                                  border: 'none', borderRadius: 'var(--radius-md)',
+                                  cursor: 'pointer', flexShrink: 0,
+                                }}
+                              >
+                                🗑️
+                              </button>
                             </>
                           );
                         })()}
@@ -1531,6 +1558,62 @@ export default function ProjectDetail() {
                     <button onClick={() => setEditPageModal(null)}
                       style={{ flex: 1, padding: '10px', background: 'var(--bg-app)', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                       Abbrechen
+                    </button>
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )}
+
+            {/* Delete confirmation modal */}
+            {deletingPageId && createPortal(
+              <div style={{
+                position: 'fixed', inset: 0,
+                background: 'rgba(15,28,32,0.5)',
+                zIndex: 1000, display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                padding: 20,
+              }} onClick={() => setDeletingPageId(null)}>
+                <div onClick={e => e.stopPropagation()} style={{
+                  background: 'var(--bg-surface)',
+                  borderRadius: 'var(--radius-xl)',
+                  padding: 28, maxWidth: 360, width: '100%',
+                  textAlign: 'center',
+                  boxShadow: 'var(--shadow-xl)',
+                }}>
+                  <div style={{ fontSize: 32, marginBottom: 12 }}>🗑️</div>
+                  <h3 style={{ fontSize: 15, fontWeight: 700,
+                    color: 'var(--text-primary)', marginBottom: 8 }}>
+                    Seite löschen?
+                  </h3>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)',
+                    marginBottom: 20, lineHeight: 1.5 }}>
+                    Diese Seite wird dauerhaft aus der Sitemap entfernt.
+                    Diese Aktion kann nicht rückgängig gemacht werden.
+                  </p>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={() => setDeletingPageId(null)} style={{
+                      flex: 1, padding: '10px 0',
+                      background: 'var(--bg-app)',
+                      border: '1px solid var(--border-light)',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 13, cursor: 'pointer',
+                      fontFamily: 'var(--font-sans)',
+                      color: 'var(--text-primary)',
+                    }}>
+                      Abbrechen
+                    </button>
+                    <button onClick={() => deleteSitemapPage(deletingPageId)} style={{
+                      flex: 1, padding: '10px 0',
+                      background: 'var(--status-danger-text)',
+                      border: 'none',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 13, fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-sans)',
+                      color: 'white',
+                    }}>
+                      Löschen
                     </button>
                   </div>
                 </div>

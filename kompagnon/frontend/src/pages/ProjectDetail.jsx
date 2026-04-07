@@ -160,7 +160,7 @@ const SUB_TAB_MAP = {
   'content':         'content',
   'crawler':         'crawler',
   'golive-prep':     'overview',
-  'dns':             'netlify-dns',
+  'dns':             'hosting',
 };
 
 // Maps tool tile ID → which activeSubTab value to set (for content blocks keyed on activeSubTab)
@@ -169,7 +169,7 @@ const TOOL_SUBTAB_MAP = {
   'preview':     'preview',
   'editor':      'editor',
   'netlify-dns': 'netlify-dns',
-  'dns':         'netlify-dns',
+  'dns':         'hosting-form',
   'live-data':   'live-data',
   'trustpilot':  'trustpilot',
   'upsell':      'upsell',

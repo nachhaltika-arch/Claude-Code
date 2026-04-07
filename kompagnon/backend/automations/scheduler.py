@@ -370,6 +370,20 @@ class CompagnonScheduler:
         )
         logger.info("✓ Daily jobs registered (incl. weekly HWK scraper)")
 
+        # Stündlicher E-Mail-Sequenz-Runner
+        try:
+            from services.sequence_runner import run_email_sequences
+            self.scheduler.add_job(
+                run_email_sequences,
+                "interval",
+                hours=1,
+                id="email_sequence_runner",
+                replace_existing=True,
+            )
+            logger.info("✓ E-Mail-Sequenz-Job registriert (stündlich)")
+        except Exception as e:
+            logger.warning(f"⚠ E-Mail-Sequenz-Job nicht registriert: {e}")
+
     def trigger_phase_change(self, project_id: int, new_status: str):
         """Called when project phase changes. Schedules follow-up jobs."""
         db = SessionLocal()

@@ -461,6 +461,32 @@ def change_phase(
         t.start()
         logger.info(f"Go-Live: Automatisierung gestartet ({project_id})")
 
+    # ── Kunden-E-Mail bei Phasenwechsel ──────────────────────
+    try:
+        phase_nr = int("".join(c for c in str(new_status) if c.isdigit()) or "0")
+        if phase_nr and project.lead and project.lead.email:
+            from services.email import send_email
+            from services.email_templates import PHASE_NAMES, render
+            phase_name, phase_desc = PHASE_NAMES.get(phase_nr, (f"Phase {phase_nr}", ""))
+            portal = os.getenv(
+                "FRONTEND_URL",
+                "https://kompagnon-frontend.onrender.com"
+            ) + "/portal/login"
+            rendered = render("phase_change", {
+                "firma":              project.lead.company_name or "dort",
+                "phase_nr":           phase_nr,
+                "phase_name":         phase_name,
+                "phase_beschreibung": phase_desc,
+                "portal_url":         portal,
+            })
+            threading.Thread(
+                target=send_email,
+                args=(project.lead.email, rendered["subject"], rendered["html"]),
+                daemon=True,
+            ).start()
+    except Exception as e:
+        logger.warning(f"Phasenwechsel-E-Mail Fehler: {e}")
+
     return {
         "project_id": project_id,
         "old_status": old_status,

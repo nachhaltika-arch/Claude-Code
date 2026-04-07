@@ -1659,6 +1659,48 @@ async def domain_check_lead(lead_id: int, db: Session = Depends(get_db), _=Depen
     }
 
 
+# ── E-Mail-Sequenz-Endpunkte ─────────────────────────────────────────────────
+
+@router.post("/{lead_id}/sequence/start", dependencies=[Depends(require_any_auth)])
+def sequence_start(lead_id: int, db: Session = Depends(get_db)):
+    from services.sequence_runner import start_sequence_for_lead
+    ok = start_sequence_for_lead(lead_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Lead not found or no email")
+    return {"success": ok}
+
+
+@router.post("/{lead_id}/sequence/pause", dependencies=[Depends(require_any_auth)])
+def sequence_pause(lead_id: int, db: Session = Depends(get_db)):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    lead.sequence_paused = True
+    db.commit()
+    return {"success": True}
+
+
+@router.post("/{lead_id}/sequence/stop", dependencies=[Depends(require_any_auth)])
+def sequence_stop(lead_id: int, db: Session = Depends(get_db)):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    lead.sequence_active = False
+    lead.sequence_paused = False
+    lead.sequence_step = 0
+    db.commit()
+    return {"success": True}
+
+
+@router.get("/{lead_id}/email-logs", dependencies=[Depends(require_any_auth)])
+def get_email_logs(lead_id: int, db: Session = Depends(get_db)):
+    rows = db.execute(
+        text("SELECT * FROM email_logs WHERE lead_id=:id ORDER BY sent_at DESC LIMIT 50"),
+        {"id": lead_id},
+    ).mappings().all()
+    return [dict(r) for r in rows]
+
+
 # ── /api/customers aliases for all /{lead_id}/... endpoints ─────────────────
 # Registers identical handlers under /api/customers/{lead_id}/... so that
 # frontend calls to either prefix work transparently.

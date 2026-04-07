@@ -604,20 +604,28 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS hosting_notes TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scraped_content TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scraped_at TIMESTAMP",
-        # Netlify-Integration (NETLIFY_API_TOKEN env-Variable erforderlich)
         # Website-Content-Cache für Crawler-Scraping
         """CREATE TABLE IF NOT EXISTS website_content_cache (
           id               SERIAL PRIMARY KEY,
           customer_id      INTEGER,
-          url              TEXT,
-          title            TEXT,
+          url              VARCHAR,
+          title            VARCHAR,
           meta_description TEXT,
-          h1               TEXT,
+          h1               VARCHAR,
           h2s              TEXT,
           text_preview     TEXT,
-          word_count       INTEGER,
+          full_text        TEXT,
+          word_count       INTEGER DEFAULT 0,
+          images           TEXT DEFAULT '[]',
+          files            TEXT DEFAULT '[]',
           scraped_at       TIMESTAMP DEFAULT NOW()
         )""",
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS full_text TEXT",
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS images TEXT DEFAULT '[]'",
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS files TEXT DEFAULT '[]'",
+        """CREATE INDEX IF NOT EXISTS idx_website_content_cache_customer
+           ON website_content_cache(customer_id)""",
+        # Netlify-Integration (NETLIFY_API_TOKEN env-Variable erforderlich)
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_site_id VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_site_url VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_deploy_id VARCHAR",

@@ -320,8 +320,48 @@ export default function CustomerPortal() {
   const [verifiedData, setVerifiedData] = useState(null);
   const [error, setError] = useState('');
   const [portalTab, setPortalTab] = useState('uebersicht');
+  const [messages, setMessages] = useState([]);
+  const [msgText, setMsgText] = useState('');
+  const [msgSending, setMsgSending] = useState(false);
+  const [msgSuccess, setMsgSuccess] = useState('');
+  const [msgError, setMsgError] = useState('');
+  const msgEndRef = useRef(null);
 
   useEffect(() => { loadPortal(); }, [token]); // eslint-disable-line
+
+  const loadMessages = async () => {
+    if (!data?.lead_id) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/messages/${data.lead_id}/kunde?token=${token}`);
+      if (res.ok) {
+        const msgs = await res.json();
+        setMessages(msgs);
+        setTimeout(() => msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      }
+    } catch { /* silent */ }
+  };
+
+  const sendMessage = async () => {
+    if (!msgText.trim() || msgSending || !data?.lead_id) return;
+    setMsgSending(true); setMsgSuccess(''); setMsgError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/messages/${data.lead_id}/kunde`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: msgText.trim(), token }),
+      });
+      if (res.ok) {
+        setMsgText('');
+        setMsgSuccess('✓ Nachricht gesendet — wir melden uns bald!');
+        await loadMessages();
+        setTimeout(() => setMsgSuccess(''), 4000);
+      } else { setMsgError('Verbindungsfehler — bitte erneut versuchen.'); }
+    } catch { setMsgError('Verbindungsfehler — bitte erneut versuchen.'); }
+    finally { setMsgSending(false); }
+  };
+
+  useEffect(() => {
+    if (portalTab === 'nachrichten') loadMessages();
+  }, [portalTab, data?.lead_id]); // eslint-disable-line
 
   const loadPortal = async () => {
     try {
@@ -444,7 +484,7 @@ export default function CustomerPortal() {
 
         {/* Tab bar */}
         <div style={{ maxWidth: 700, margin: '16px auto 0', display: 'flex', gap: 4 }}>
-          {[['uebersicht', 'Übersicht'], ['unterlagen', 'Unterlagen']].map(([id, label]) => (
+          {[['uebersicht', 'Übersicht'], ['nachrichten', '💬 Nachrichten'], ['unterlagen', 'Unterlagen']].map(([id, label]) => (
             <button
               key={id}
               onClick={() => setPortalTab(id)}
@@ -520,6 +560,91 @@ export default function CustomerPortal() {
             }}>Jetzt anfragen →</a>
           </div>
         </>}
+
+        {portalTab === 'nachrichten' && (() => {
+          const fmtTime = (iso) => {
+            if (!iso) return '';
+            return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+          };
+          const fmtDay = (iso) => {
+            if (!iso) return '';
+            const d = new Date(iso);
+            const today = new Date();
+            const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+            if (d.toDateString() === today.toDateString()) return 'Heute';
+            if (d.toDateString() === yesterday.toDateString()) return 'Gestern';
+            return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          };
+          const unreadCount = messages.filter(m => m.sender_role === 'admin' && !m.is_read).length;
+          const grouped = [];
+          let lastDay = null;
+          for (const m of messages) {
+            const day = fmtDay(m.created_at);
+            if (day !== lastDay) { grouped.push({ type: 'sep', day }); lastDay = day; }
+            grouped.push({ type: 'msg', msg: m });
+          }
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>💬 Ihre Nachrichten von KOMPAGNON</div>
+
+              {unreadCount > 0 && (
+                <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92400e', fontWeight: 500 }}>
+                  Sie haben {unreadCount} neue Nachricht{unreadCount !== 1 ? 'en' : ''} von uns.
+                </div>
+              )}
+
+              {/* Verlauf */}
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid #e0f4f8', borderRadius: 12, maxHeight: 400, overflowY: 'auto', padding: '14px 14px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {messages.length === 0 && (
+                  <div style={{ textAlign: 'center', color: '#8fa8b0', fontSize: 13, padding: 24 }}>Noch keine Nachrichten.</div>
+                )}
+                {grouped.map((item, i) => {
+                  if (item.type === 'sep') return (
+                    <div key={`sep-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#8fa8b0', fontSize: 11 }}>
+                      <div style={{ flex: 1, height: 1, background: '#e0f4f8' }} />
+                      {item.day}
+                      <div style={{ flex: 1, height: 1, background: '#e0f4f8' }} />
+                    </div>
+                  );
+                  const m = item.msg;
+                  const isAdmin = m.sender_role === 'admin';
+                  return (
+                    <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isAdmin ? 'flex-start' : 'flex-end' }}>
+                      <div style={{ fontSize: 10, color: '#8fa8b0', marginBottom: 3, display: 'flex', gap: 5, alignItems: 'center' }}>
+                        <span style={{ fontWeight: 600 }}>{isAdmin ? 'KOMPAGNON' : 'Sie'}</span>
+                        <span>{fmtTime(m.created_at)}</span>
+                      </div>
+                      <div style={{ maxWidth: '80%', padding: '9px 13px', borderRadius: isAdmin ? '12px 12px 12px 3px' : '12px 12px 3px 12px', background: isAdmin ? '#E6F1FB' : '#fff', border: '1px solid #e0f4f8', fontSize: 13, lineHeight: 1.6, color: '#1a2332', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                        {m.content}
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={msgEndRef} />
+              </div>
+
+              {/* Eingabe */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <textarea
+                  value={msgText}
+                  onChange={e => setMsgText(e.target.value)}
+                  placeholder="Hier antworten..."
+                  rows={2}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #e0f4f8', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', outline: 'none', color: '#1a2332', background: '#fff' }}
+                />
+                {msgSuccess && <div style={{ fontSize: 12, color: '#1a7a3a', fontWeight: 500 }}>{msgSuccess}</div>}
+                {msgError && <div style={{ fontSize: 12, color: '#b02020', fontWeight: 500 }}>{msgError}</div>}
+                <button
+                  onClick={sendMessage}
+                  disabled={msgSending || !msgText.trim()}
+                  style={{ padding: '10px 20px', background: '#008eaa', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'inherit', alignSelf: 'flex-end' }}
+                >
+                  {msgSending ? 'Wird gesendet…' : 'Nachricht senden'}
+                </button>
+              </div>
+            </div>
+          );
+        })()}
 
         {portalTab === 'unterlagen' && <FileUploadSection token={token} />}
       </div>

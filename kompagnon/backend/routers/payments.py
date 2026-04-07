@@ -146,7 +146,7 @@ def _handle_successful_payment(session: dict, db: Session):
     db.flush()
 
     paket_name = PACKAGE_NAMES.get(package_id, package_id)
-    portal_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com") + "/login"
+    portal_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com") + "/portal/login"
 
     # Create user account if email provided and not existing
     if email:

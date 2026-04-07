@@ -130,6 +130,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/portal/:token" element={<CustomerPortal />} />
           <Route path="/kundenportal" element={<PortalLogin />} />
+          <Route path="/portal/login" element={<PortalLogin />} />
           <Route path="/paket/starter" element={<PackageStarter />} />
           <Route path="/paket/kompagnon" element={<PackageKompagnon />} />
           <Route path="/paket/premium" element={<PackagePremium />} />

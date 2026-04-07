@@ -57,6 +57,7 @@ import QRGenerator from './pages/QRGenerator';
 import TemplateLibrary from './pages/TemplateLibrary';
 import TemplateEditor from './pages/TemplateEditor';
 import NewsletterDesigner from './components/NewsletterDesigner';
+import PortalLogin from './pages/PortalLogin';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -128,6 +129,7 @@ function App() {
           <Route path="/barrierefreiheit" element={<Barrierefreiheit />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/portal/:token" element={<CustomerPortal />} />
+          <Route path="/kundenportal" element={<PortalLogin />} />
           <Route path="/paket/starter" element={<PackageStarter />} />
           <Route path="/paket/kompagnon" element={<PackageKompagnon />} />
           <Route path="/paket/premium" element={<PackagePremium />} />

@@ -705,9 +705,9 @@ export default function ProjectDetail() {
       audit_problems: latestAudit?.top_problems || [],
       pagespeed_mobile: pagespeed?.mobile_score || null,
       crawler_pages: Array.isArray(crawler) ? crawler.length : 0,
-      briefing_usp: briefing?.usp || '',
-      briefing_leistungen: briefing?.leistungen || '',
-      briefing_zielgruppe: briefing?.zielgruppe || '',
+      briefing_usp: typeof briefing?.usp === 'string' ? briefing.usp : '',
+      briefing_leistungen: typeof briefing?.leistungen === 'string' ? briefing.leistungen : '',
+      briefing_zielgruppe: typeof briefing?.zielgruppe === 'string' ? briefing.zielgruppe : '',
     };
   };
 

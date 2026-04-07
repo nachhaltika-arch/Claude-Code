@@ -57,6 +57,8 @@ async def create_checkout(request: Request):
     customer_email = body.get("email", "")
     customer_name = body.get("name", "")
     company_name = body.get("company", "")
+    website_url = body.get("website_url", "")
+    phone = body.get("phone", "")
 
     package = PACKAGES.get(package_id)
     if not package:
@@ -86,6 +88,8 @@ async def create_checkout(request: Request):
                 "company_name": company_name,
                 "customer_name": customer_name,
                 "customer_email": customer_email,
+                "website_url": website_url,
+                "phone": phone,
             },
             success_url=f"{FRONTEND_URL}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{FRONTEND_URL}/checkout?cancelled=1",
@@ -126,6 +130,8 @@ def _handle_successful_payment(session: dict, db: Session):
     company = meta.get("company_name", "")
     name = meta.get("customer_name", "")
     package_id = meta.get("package", "kompagnon")
+    website_url = meta.get("website_url", "")
+    phone_nr = meta.get("phone", "") or (session.get("customer_details") or {}).get("phone", "")
     amount = (session.get("amount_total", 0) or 0) / 100
 
     name_parts = name.split(" ", 1)
@@ -137,7 +143,8 @@ def _handle_successful_payment(session: dict, db: Session):
         company_name=company or email or "Stripe-Kunde",
         contact_name=name,
         email=email,
-        phone=(session.get("customer_details") or {}).get("phone", ""),
+        phone=phone_nr,
+        website_url=website_url,
         lead_source="stripe_checkout",
         status="won",
         notes=f"Zahlung erhalten: {amount} EUR | Paket: {package_id} | Stripe: {session.get('id', '')}",

@@ -409,6 +409,10 @@ def change_phase(
     scheduler = get_scheduler()
     scheduler.trigger_phase_change(project_id, change_request.new_status)
 
+    # Go-Live Automation: trigger when project reaches phase 6+
+    if change_request.new_status in _GOLIVE_STATUSES:
+        _trigger_golive_automation(project_id, db)
+
     return {
         "project_id": project_id,
         "old_status": old_status,
@@ -591,6 +595,120 @@ def request_approval(
         return {"success": False, "message": f"E-Mail-Versand fehlgeschlagen: {exc}"}
 
     return {"success": True, "message": "Freigabe-E-Mail gesendet"}
+
+
+# ── Go-Live Automation ────────────────────────────────────────────────────────
+
+_GOLIVE_STATUSES = {"phase_6", "6", "go_live", "live", "golive", "phase_7", "7"}
+
+
+def _trigger_golive_automation(project_id: int, db: Session) -> None:
+    """
+    Called after a project transitions to Phase 6+ (Go-Live / Fertig).
+    1. Records actual_go_live timestamp on the project row.
+    2. Takes a screenshot of the live website (if website_url is set).
+    3. Sends a Go-Live congratulation e-mail to the customer.
+    All steps are wrapped in try/except so a single failure never crashes the caller.
+    """
+    import threading
+
+    def _run():
+        from database import SessionLocal
+        _db = SessionLocal()
+        try:
+            proj = _db.query(Project).filter(Project.id == project_id).first()
+            if not proj:
+                return
+
+            # 1. Record actual_go_live
+            try:
+                proj.actual_go_live = datetime.utcnow()
+                _db.commit()
+            except Exception as e:
+                logger.warning(f"Go-Live: actual_go_live setzen fehlgeschlagen: {e}")
+                _db.rollback()
+
+            # 2. Screenshot of live website
+            website_url = getattr(proj, "website_url", None) or ""
+            if website_url:
+                try:
+                    import httpx
+                    api_key = __import__("os").getenv("SCREENSHOTONE_KEY", "")
+                    if api_key:
+                        params = {
+                            "access_key": api_key,
+                            "url": website_url,
+                            "format": "png",
+                            "viewport_width": 1280,
+                            "viewport_height": 800,
+                            "full_page": "false",
+                            "cache": "false",
+                        }
+                        resp = httpx.get(
+                            "https://api.screenshotone.com/take",
+                            params=params,
+                            timeout=30,
+                        )
+                        if resp.status_code == 200:
+                            import base64
+                            b64 = "data:image/png;base64," + base64.b64encode(resp.content).decode()
+                            proj.screenshot_after = b64
+                            proj.screenshot_after_date = datetime.utcnow()
+                            _db.commit()
+                            logger.info(f"Go-Live: Screenshot gespeichert für Projekt {project_id}")
+                except Exception as e:
+                    logger.warning(f"Go-Live: Screenshot fehlgeschlagen: {e}")
+
+            # 3. Go-Live congratulation e-mail
+            customer_email = (
+                getattr(proj, "customer_email", None)
+                or getattr(proj, "contact_email", None)
+                or ""
+            )
+            company = getattr(proj, "company_name", "") or f"Projekt #{project_id}"
+            if customer_email:
+                try:
+                    from email_service import send_email
+                    live_url = website_url or "#"
+                    html = f"""
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto">
+  <div style="background:#008eaa;padding:28px 32px;border-radius:12px 12px 0 0">
+    <div style="font-size:13px;color:rgba(255,255,255,0.7);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">KOMPAGNON</div>
+    <div style="font-size:24px;font-weight:700;color:white">🚀 Ihre Website ist live!</div>
+  </div>
+  <div style="background:#f8fafc;padding:32px;border-radius:0 0 12px 12px">
+    <p style="font-size:16px;color:#1a2332;margin-top:0">Herzlichen Glückwunsch, {company}!</p>
+    <p style="font-size:14px;color:#475569;line-height:1.7">
+      Ihre neue Website ist ab sofort online und für alle Besucher erreichbar.
+      Wir sind stolz darauf, diesen wichtigen Schritt gemeinsam mit Ihnen gegangen zu sein.
+    </p>
+    <div style="text-align:center;margin:28px 0">
+      <a href="{live_url}" style="display:inline-block;padding:14px 32px;background:#008eaa;color:white;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px">
+        Website besuchen →
+      </a>
+    </div>
+    <p style="font-size:13px;color:#64748b;line-height:1.6">
+      Unser Team steht Ihnen weiterhin zur Verfügung.<br>
+      Bei Fragen oder Anpassungswünschen melden Sie sich jederzeit.
+    </p>
+    <p style="font-size:13px;color:#94a3b8;margin-bottom:0">
+      Herzliche Grüße<br><strong style="color:#1a2332">Das KOMPAGNON-Team</strong>
+    </p>
+  </div>
+</div>"""
+                    send_email(
+                        to=customer_email,
+                        subject=f"🚀 Ihre Website ist jetzt live — {company}",
+                        html_body=html,
+                    )
+                    logger.info(f"Go-Live: E-Mail gesendet an {customer_email} für Projekt {project_id}")
+                except Exception as e:
+                    logger.warning(f"Go-Live: E-Mail fehlgeschlagen: {e}")
+        finally:
+            _db.close()
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
 
 
 @router.post("/from-lead/{lead_id}", status_code=201)

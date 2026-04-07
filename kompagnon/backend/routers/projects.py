@@ -14,6 +14,7 @@ import logging
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, ProjectScrapeJob, get_db
@@ -37,21 +38,49 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 class ProjectResponse(BaseModel):
     id: int
-    lead_id: int = None
-    name: str = ""
-    customer_name: str = ""
-    status: str = ""
-    current_phase: int = 1
-    website_url: str = ""
-    fixed_price: float = 2000
-    actual_hours: float = 0
-    hourly_rate: float = 45
-    ai_tool_costs: float = 50
-    margin_percent: float = 0
-    scope_creep_flags: int = 0
+    lead_id: Optional[int] = None
+    name: Optional[str] = None
+    customer_name: Optional[str] = None
+    status: Optional[str] = None
+    current_phase: Optional[int] = None
+    website_url: Optional[str] = None
+    cms_type: Optional[str] = None
+    contact_name: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    industry: Optional[str] = None
+    wz_code: Optional[str] = None
+    wz_title: Optional[str] = None
+    package_type: Optional[str] = None
+    payment_status: Optional[str] = None
+    desired_pages: Optional[str] = None
+    top_problems: Optional[str] = None
+    customer_email: Optional[str] = None
+    hosting_provider: Optional[str] = None
+    domain_registrar: Optional[str] = None
+    nameserver1: Optional[str] = None
+    nameserver2: Optional[str] = None
+    ftp_credentials: Optional[str] = None
+    wp_admin_url: Optional[str] = None
+    hosting_notes: Optional[str] = None
+    fixed_price: Optional[float] = None
+    actual_hours: Optional[float] = None
+    hourly_rate: Optional[float] = None
+    ai_tool_costs: Optional[float] = None
+    margin_percent: Optional[float] = None
+    scope_creep_flags: Optional[int] = None
+    pagespeed_mobile: Optional[int] = None
+    pagespeed_desktop: Optional[int] = None
+    analysis_score: Optional[int] = None
+    audit_score: Optional[int] = None
+    has_logo: Optional[bool] = None
+    has_briefing: Optional[bool] = None
+    has_photos: Optional[bool] = None
+    email_notifications_enabled: Optional[bool] = None
     start_date: datetime = None
     target_go_live: datetime = None
     actual_go_live: datetime = None
+    go_live_date: datetime = None
     created_at: datetime = None
 
     class Config:

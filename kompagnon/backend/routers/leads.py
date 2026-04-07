@@ -75,17 +75,24 @@ class LeadUpdate(BaseModel):
 
 class LeadResponse(BaseModel):
     id: int
-    company_name: str = ""
-    contact_name: str = ""
-    phone: str = ""
-    email: str = ""
-    website_url: str = None
-    city: str = ""
-    trade: str = ""
-    lead_source: str = None
+    company_name: Optional[str] = None
+    contact_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    website_url: Optional[str] = None
+    city: Optional[str] = None
+    trade: Optional[str] = None
+    industry: Optional[str] = None
+    description: Optional[str] = None
+    notes: Optional[str] = None
+    wz_code: Optional[str] = None
+    wz_title: Optional[str] = None
+    lead_source: Optional[str] = None
     status: str = "new"
-    analysis_score: int = 0
-    geo_score: int = 0
+    analysis_score: Optional[int] = None
+    geo_score: Optional[int] = None
+    pagespeed_mobile: Optional[int] = None
+    pagespeed_desktop: Optional[int] = None
     created_at: datetime = None
     updated_at: datetime = None
 

@@ -642,6 +642,11 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_mobile INTEGER",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_desktop INTEGER",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS golive_audit_id INTEGER",
+        # QA-Scanner Ergebnisse
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_result JSONB",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_score INTEGER",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_golive_ok BOOLEAN",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_run_at TIMESTAMP",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

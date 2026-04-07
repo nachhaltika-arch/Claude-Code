@@ -235,3 +235,129 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
         "meta_desc": desc_text,
         "h1": results.get("h1_text", ""),
     }
+
+
+async def ai_evaluate_qa(scan: dict) -> dict:
+    """
+    Schickt alle Scan-Ergebnisse an Claude.
+    Claude bewertet 6 Kategorien und gibt Go-Live-Empfehlung.
+    """
+    import os
+    from anthropic import Anthropic
+    client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+    checks = scan["checks"]
+
+    prompt = f"""Du bist ein erfahrener Website-Qualitätsauditor.
+Analysiere diese automatisch gesammelten Website-Daten und
+bewerte 6 Kategorien sowie eine Go-Live-Empfehlung.
+
+WEBSITE: {scan.get("url")}
+BETRIEB: {scan.get("company")} | Branche: {scan.get("trade")}
+TITLE: {scan.get("title")}
+META-DESCRIPTION: {scan.get("meta_desc")}
+H1: {scan.get("h1")}
+
+TECHNISCHE CHECKS:
+{checks}
+
+HTML-AUSSCHNITT (Startseite):
+{scan.get("html_snippet", "")[:3000]}
+
+Bewerte ALLE folgenden Punkte im JSON-Format.
+Antworte NUR mit validem JSON, keine Erklärungen außerhalb:
+
+{{
+  "kategorien": {{
+    "seo": {{
+      "score": 0-100,
+      "status": "bestanden|warnung|kritisch",
+      "punkte": ["was gut ist"],
+      "probleme": ["was fehlt oder schlecht ist"]
+    }},
+    "performance": {{
+      "score": 0-100, "status": "...",
+      "punkte": [], "probleme": []
+    }},
+    "mobile": {{
+      "score": 0-100, "status": "...",
+      "punkte": [], "probleme": []
+    }},
+    "dsgvo": {{
+      "score": 0-100, "status": "...",
+      "punkte": [], "probleme": []
+    }},
+    "content": {{
+      "score": 0-100, "status": "...",
+      "punkte": [], "probleme": []
+    }},
+    "technik": {{
+      "score": 0-100, "status": "...",
+      "punkte": [], "probleme": []
+    }}
+  }},
+  "gesamt_score": 0-100,
+  "golive_empfehlung": true,
+  "golive_begruendung": "1 Satz warum ja/nein",
+  "kritische_blocker": ["max 3 Dinge die VOR Go-Live behoben werden müssen"],
+  "top_empfehlungen": ["5 wichtigste Verbesserungen"],
+  "ki_zusammenfassung": "3-4 Sätze Gesamtbewertung für das Team"
+}}
+
+SEO: Bewerte Title-Länge ({len(scan.get("title",""))} Zeichen),
+Meta-Description ({len(scan.get("meta_desc",""))} Zeichen),
+H1 ({checks.get("h1_genau_eins")}), Schema ({checks.get("schema_markup")}),
+OG-Tags ({checks.get("og_tags_vorhanden")}), robots.txt ({checks.get("robots_txt")}),
+sitemap.xml ({checks.get("sitemap_xml")}), canonical ({checks.get("canonical_vorhanden")}),
+lokale SEO-Signale.
+
+DSGVO: Beachte impressum ({checks.get("impressum_link")}),
+datenschutz ({checks.get("datenschutz_link")}),
+cookie-banner ({checks.get("cookie_banner")}),
+google-fonts-extern ({checks.get("google_fonts_extern")}),
+dsgvo-checkbox ({checks.get("dsgvo_checkbox")}).
+
+TECHNIK: ssl ({checks.get("ssl_aktiv")}),
+https-redirect ({checks.get("https_redirect")}),
+hsts ({checks.get("hsts")}), csp ({checks.get("csp")}),
+favicon ({checks.get("favicon_vorhanden")}),
+llm.txt ({checks.get("llm_txt")}), faq ({checks.get("faq_block")}).
+
+CONTENT: Bilder mit Alt-Text ({checks.get("alt_texte_quote")}%),
+H2 vorhanden ({checks.get("h2_vorhanden")}),
+Kontaktformular ({checks.get("kontaktformular")}),
+Tel-Links ({checks.get("telefon_link")}),
+Google Maps ({checks.get("google_maps")}).
+
+MOBILE: Viewport-Meta ({checks.get("mobile_viewport")}),
+kein horizontales Scrollen prüfbar, schätze aufgrund HTML-Struktur.
+
+PERFORMANCE: Cache-Header ({checks.get("cache_control")}),
+PageSpeed-Daten werden separat als Wert übergeben wenn vorhanden.
+"""
+
+    try:
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        import json
+        text = resp.content[0].text.strip()
+        # JSON aus Antwort extrahieren
+        if "```" in text:
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        return json.loads(text)
+    except Exception as e:
+        logger.error(f"QA KI-Auswertung Fehler: {e}")
+        return {
+            "kategorien": {},
+            "gesamt_score": 0,
+            "golive_empfehlung": False,
+            "golive_begruendung": "Auswertung fehlgeschlagen",
+            "kritische_blocker": [],
+            "top_empfehlungen": [],
+            "ki_zusammenfassung": f"Fehler: {e}",
+        }

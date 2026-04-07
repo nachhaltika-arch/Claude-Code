@@ -1670,3 +1670,69 @@ def scrape_project_content(project_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"content": content, "scraped_at": scraped_at.isoformat()}
+
+
+# ── QA-Scanner Endpunkte ──────────────────────────────────────────────────────
+
+@router.post("/{project_id}/qa/run")
+async def run_project_qa(project_id: int, db: Session = Depends(get_db)):
+    """Führt vollständigen KI-QA-Scan durch und speichert Ergebnis."""
+    from services.qa_scanner import run_full_qa, ai_evaluate_qa
+    import json as _json
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    # Website-URL ermitteln
+    url = getattr(project, "website_url", None)
+    if not url and project.lead:
+        url = project.lead.website_url
+    if not url:
+        raise HTTPException(400, "Keine Website-URL hinterlegt")
+
+    company = getattr(project, "customer_name", None) or \
+              (project.lead.company_name if project.lead else "")
+    trade = (project.lead.trade if project.lead else "") or ""
+
+    # 1. Automatische Checks
+    scan = await run_full_qa(url, company, trade)
+    if "error" in scan:
+        raise HTTPException(422, f"Website nicht erreichbar: {scan['error']}")
+
+    # 2. KI-Auswertung
+    ai = await ai_evaluate_qa(scan)
+
+    # 3. Ergebnis speichern
+    full_result = {**scan, "ai": ai, "checks": scan["checks"]}
+    full_result.pop("html_snippet", None)  # zu groß für DB
+
+    project.qa_result    = _json.dumps(full_result, ensure_ascii=False)
+    project.qa_score     = ai.get("gesamt_score", 0)
+    project.qa_golive_ok = ai.get("golive_empfehlung", False)
+    project.qa_run_at    = datetime.utcnow()
+    db.commit()
+
+    return {
+        "success": True,
+        "score": project.qa_score,
+        "golive_ok": project.qa_golive_ok,
+        "result": full_result,
+    }
+
+
+@router.get("/{project_id}/qa/result")
+def get_qa_result(project_id: int, db: Session = Depends(get_db)):
+    """Gibt das zuletzt gespeicherte QA-Ergebnis zurück."""
+    import json as _json
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project or not project.qa_result:
+        raise HTTPException(404, "Noch kein QA-Scan vorhanden")
+
+    return {
+        "score": project.qa_score,
+        "golive_ok": project.qa_golive_ok,
+        "run_at": str(project.qa_run_at)[:16] if project.qa_run_at else None,
+        "result": _json.loads(project.qa_result),
+    }

@@ -1,7 +1,7 @@
 import csv, json, os
 
 csv_path = os.path.join(os.path.dirname(__file__), "WZ_2025-DE-2026-03-30-Gliederung__1_.csv")
-out_path = os.path.join(os.path.dirname(__file__), "../../../frontend/src/data/wz2025.json")
+out_path = os.path.join(os.path.dirname(__file__), "../../frontend/src/data/wz2025.json")
 
 entries = []
 with open(csv_path, encoding="utf-8-sig") as f:

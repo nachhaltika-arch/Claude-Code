@@ -14,6 +14,7 @@ import SecurityChecklist from '../components/SecurityChecklist';
 import PageSpeedSection from '../components/PageSpeedSection';
 import SitemapPlaner from '../components/SitemapPlaner';
 import GrapesEditor from '../components/GrapesEditor';
+import WebsiteDesigner from '../components/WebsiteDesigner';
 import ContentManager from '../components/ContentManager';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
@@ -2383,11 +2384,23 @@ export default function ProjectDetail() {
 
       {/* ── Editor Tab ─────────────────────────────────────────────────────── */}
       {activeSubTab === 'editor' && (
-        <div style={{ background: 'var(--bg-app)', border: '2px dashed var(--border-light)', borderRadius: 8, padding: 40, textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>✏️</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>GrapesJS Editor</div>
-          <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Seite aus dem Sitemap-Planer auswählen, um den Editor zu öffnen.</div>
-        </div>
+        <WebsiteDesigner
+          projectId={id}
+          leadId={project.lead_id}
+          initialHtml={project.mockup_html || ''}
+          initialCss={project.mockup_css || ''}
+          onSave={async (html, css) => {
+            await fetch(`${API_BASE_URL}/api/projects/${id}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${localStorage.getItem('kompagnon_token')}`,
+              },
+              body: JSON.stringify({ mockup_html: html, mockup_css: css }),
+            });
+            toast.success('Design gespeichert');
+          }}
+        />
       )}
 
       {/* ── Netlify-DNS Tab ────────────────────────────────────────────────── */}

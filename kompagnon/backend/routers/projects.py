@@ -955,3 +955,74 @@ async def domain_check_project(
         "checked_at":  project.domain_checked_at.isoformat(),
         "website_url": project.website_url,
     }
+
+
+@router.post("/{project_id}/screenshot/before")
+async def screenshot_before(project_id: int, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    lead = project.lead
+    if not lead or not lead.website_url:
+        raise HTTPException(400, "Keine Website-URL beim verknüpften Lead hinterlegt")
+    url = lead.website_url
+    if not url.startswith("http"):
+        url = "https://" + url
+    from services.screenshot import capture_screenshot
+    screenshot_b64 = await capture_screenshot(url)
+    if not screenshot_b64:
+        raise HTTPException(500, "Screenshot konnte nicht erstellt werden")
+    db.execute(
+        text("UPDATE projects SET screenshot_before = :s, screenshot_before_date = :d WHERE id = :id"),
+        {"s": screenshot_b64, "d": datetime.utcnow(), "id": project_id},
+    )
+    db.commit()
+    return {
+        "success": True,
+        "screenshot_url": f"data:image/jpeg;base64,{screenshot_b64}",
+        "type": "before",
+    }
+
+
+@router.post("/{project_id}/screenshot/after")
+async def screenshot_after(project_id: int, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    lead = project.lead
+    if not lead or not lead.website_url:
+        raise HTTPException(400, "Keine Website-URL beim verknüpften Lead hinterlegt")
+    url = lead.website_url
+    if not url.startswith("http"):
+        url = "https://" + url
+    from services.screenshot import capture_screenshot
+    screenshot_b64 = await capture_screenshot(url)
+    if not screenshot_b64:
+        raise HTTPException(500, "Screenshot konnte nicht erstellt werden")
+    db.execute(
+        text("UPDATE projects SET screenshot_after = :s, screenshot_after_date = :d WHERE id = :id"),
+        {"s": screenshot_b64, "d": datetime.utcnow(), "id": project_id},
+    )
+    db.commit()
+    return {
+        "success": True,
+        "screenshot_url": f"data:image/jpeg;base64,{screenshot_b64}",
+        "type": "after",
+    }
+
+
+@router.get("/{project_id}/screenshots")
+def get_screenshots(project_id: int, db: Session = Depends(get_db)):
+    row = db.execute(
+        text(
+            "SELECT screenshot_before, screenshot_after, screenshot_before_date, screenshot_after_date "
+            "FROM projects WHERE id = :id"
+        ),
+        {"id": project_id},
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    return {
+        "before": {"data": f"data:image/jpeg;base64,{row[0]}" if row[0] else None, "date": row[2].isoformat() if row[2] else None, "url": None},
+        "after":  {"data": f"data:image/jpeg;base64,{row[1]}" if row[1] else None, "date": row[3].isoformat() if row[3] else None, "url": None},
+    }

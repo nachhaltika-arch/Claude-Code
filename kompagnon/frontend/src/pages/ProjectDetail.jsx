@@ -162,6 +162,18 @@ const SUB_TAB_MAP = {
   'dns':             'netlify-dns',
 };
 
+// Maps tool tile ID → which activeSubTab value to set (for content blocks keyed on activeSubTab)
+const TOOL_SUBTAB_MAP = {
+  'audits':      'audit',
+  'preview':     'preview',
+  'editor':      'editor',
+  'netlify-dns': 'netlify-dns',
+  'dns':         'netlify-dns',
+  'live-data':   'live-data',
+  'trustpilot':  'trustpilot',
+  'upsell':      'upsell',
+};
+
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 function EditModal({ project, lead, latestAudit, token, onClose, onSaved }) {
   const [form, setForm] = useState(() => buildInitialForm(project, lead, latestAudit));
@@ -1062,37 +1074,45 @@ export default function ProjectDetail() {
             display: 'flex', gap: 8, overflowX: 'auto', scrollBehavior: 'smooth',
             padding: '0 40px', scrollbarWidth: 'none', msOverflowStyle: 'none',
           }}>
-            {(PHASE_TOOLS[activePhase] || []).map(tool => (
-              <div key={tool.id} onClick={() => setActiveTab(SUB_TAB_MAP[tool.id] || tool.id)} style={{
-                flex: '0 0 120px', minWidth: 120,
-                background: activeTab === (SUB_TAB_MAP[tool.id] || tool.id) ? 'var(--brand-primary-light)' : 'var(--bg-surface)',
-                border: activeTab === (SUB_TAB_MAP[tool.id] || tool.id)
-                  ? '1.5px solid var(--brand-primary)'
-                  : '1px solid var(--border-light)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '12px 10px', cursor: 'pointer', textAlign: 'center',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                position: 'relative',
-              }}>
-                {tool.badge && (
-                  <span style={{
-                    position: 'absolute', top: 6, right: 6,
-                    background: '#E24B4A', color: 'white',
-                    fontSize: 9, fontWeight: 600, borderRadius: 99, padding: '1px 5px',
-                  }}>{tool.badge}</span>
-                )}
-                <div style={{
-                  width: 38, height: 38, borderRadius: 8, fontSize: 18,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: activeTab === (SUB_TAB_MAP[tool.id] || tool.id) ? 'var(--brand-primary-mid)' : 'var(--bg-app)',
-                }}>{tool.icon}</div>
-                <div style={{
-                  fontSize: 11, fontWeight: 500,
-                  color: activeTab === (SUB_TAB_MAP[tool.id] || tool.id) ? 'var(--brand-primary-dark)' : 'var(--text-primary)',
-                }}>{tool.label}</div>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{tool.sub}</div>
-              </div>
-            ))}
+            {(PHASE_TOOLS[activePhase] || []).map(tool => {
+              const isActive = TOOL_SUBTAB_MAP[tool.id]
+                ? activeSubTab === TOOL_SUBTAB_MAP[tool.id]
+                : activeTab === (SUB_TAB_MAP[tool.id] || tool.id);
+              return (
+                <div key={tool.id} onClick={() => {
+                  setActiveTab(SUB_TAB_MAP[tool.id] || tool.id);
+                  setActiveSubTab(TOOL_SUBTAB_MAP[tool.id] || tool.id);
+                }} style={{
+                  flex: '0 0 120px', minWidth: 120,
+                  background: isActive ? 'var(--brand-primary-light)' : 'var(--bg-surface)',
+                  border: isActive
+                    ? '1.5px solid var(--brand-primary)'
+                    : '1px solid var(--border-light)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '12px 10px', cursor: 'pointer', textAlign: 'center',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                  position: 'relative',
+                }}>
+                  {tool.badge && (
+                    <span style={{
+                      position: 'absolute', top: 6, right: 6,
+                      background: '#E24B4A', color: 'white',
+                      fontSize: 9, fontWeight: 600, borderRadius: 99, padding: '1px 5px',
+                    }}>{tool.badge}</span>
+                  )}
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 8, fontSize: 18,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: isActive ? 'var(--brand-primary-mid)' : 'var(--bg-app)',
+                  }}>{tool.icon}</div>
+                  <div style={{
+                    fontSize: 11, fontWeight: 500,
+                    color: isActive ? 'var(--brand-primary-dark)' : 'var(--text-primary)',
+                  }}>{tool.label}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{tool.sub}</div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Pfeil rechts */}
@@ -2667,7 +2687,7 @@ export default function ProjectDetail() {
       })()}
 
       {/* ── Audit Tab ──────────────────────────────────────────────────────── */}
-      {activeSubTab === 'audit' && (
+      {(activeSubTab === 'audit' || activeTab === 'audits') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {audits.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 20px',
@@ -2745,7 +2765,7 @@ export default function ProjectDetail() {
       )}
 
       {/* ── Preview Tab ────────────────────────────────────────────────────── */}
-      {activeSubTab === 'preview' && (
+      {(activeSubTab === 'preview' || activeTab === 'preview') && (
         <div className="kc-card" style={{ textAlign: 'center', padding: 32 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>👁</div>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Website-Vorschau</div>
@@ -2761,7 +2781,7 @@ export default function ProjectDetail() {
       )}
 
       {/* ── Editor Tab ─────────────────────────────────────────────────────── */}
-      {activeSubTab === 'editor' && (
+      {(activeSubTab === 'editor' || activeTab === 'editor') && (
         <div style={{ background: 'var(--bg-app)', border: '2px dashed var(--border-light)', borderRadius: 8, padding: 40, textAlign: 'center' }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>✏️</div>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>GrapesJS Editor</div>
@@ -2770,7 +2790,7 @@ export default function ProjectDetail() {
       )}
 
       {/* ── Netlify-DNS Tab ────────────────────────────────────────────────── */}
-      {activeSubTab === 'netlify-dns' && (() => {
+      {(activeSubTab === 'netlify-dns' || activeTab === 'netlify-dns') && (() => {
         // Load status on first open
         if (!netlify && !netlifyLoading) {
           setNetlifyLoading(true);
@@ -2974,7 +2994,7 @@ export default function ProjectDetail() {
       )}
 
       {/* ── Live-Daten Tab ─────────────────────────────────────────────────── */}
-      {activeSubTab === 'live-data' && (
+      {(activeSubTab === 'live-data' || activeTab === 'live-data') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="kc-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
             <InfoBlock label="Phase" value={project.status?.replace('phase_', 'Phase ') || '—'} />
@@ -2996,7 +3016,7 @@ export default function ProjectDetail() {
       )}
 
       {/* ── Trustpilot Tab ─────────────────────────────────────────────────── */}
-      {activeSubTab === 'trustpilot' && (
+      {(activeSubTab === 'trustpilot' || activeTab === 'trustpilot') && (
         <div className="kc-card" style={{ textAlign: 'center', padding: 32 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>⭐</div>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Trustpilot-Bewertung anfragen</div>
@@ -3011,7 +3031,7 @@ export default function ProjectDetail() {
       )}
 
       {/* ── Upsell Tab ─────────────────────────────────────────────────────── */}
-      {activeSubTab === 'upsell' && (
+      {(activeSubTab === 'upsell' || activeTab === 'upsell') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>💼 Upsell-Produkte</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>

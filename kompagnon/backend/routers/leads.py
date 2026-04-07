@@ -682,6 +682,10 @@ def get_portal_data(token: str, db: Session = Depends(get_db)):
         AuditResult.lead_id == lead.id, AuditResult.status == 'completed',
     ).order_by(AuditResult.created_at.desc()).first()
 
+    project = db.query(Project).filter(
+        Project.lead_id == lead.id
+    ).order_by(Project.created_at.desc()).first()
+
     return {
         'lead_id': lead.id,
         'company_name': lead.display_name or lead.company_name or '',
@@ -702,6 +706,10 @@ def get_portal_data(token: str, db: Session = Depends(get_db)):
         'ai_summary': latest_audit.ai_summary if latest_audit else None,
         'website_screenshot': f'data:image/jpeg;base64,{lead.website_screenshot}' if lead.website_screenshot else None,
         'onboarding_completed': getattr(lead, 'onboarding_completed', False) or False,
+        'project_id':     project.id if project else None,
+        'current_phase':  project.current_phase if project else None,
+        'project_status': project.status if project else None,
+        'go_live_date':   str(project.go_live_date)[:10] if project and project.go_live_date else None,
     }
 
 

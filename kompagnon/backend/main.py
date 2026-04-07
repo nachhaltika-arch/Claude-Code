@@ -723,123 +723,76 @@ def _create_default_admin():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("🚀 KOMPAGNON Backend Starting...")
+
+    # Uploads-Ordner — das einzige was synchron laufen muss
     try:
         os.makedirs("uploads", exist_ok=True)
         logger.info("✓ uploads/ Ordner bereit")
     except Exception as e:
         logger.warning(f"⚠ uploads: {e}")
 
-    # Alle DB-Operationen in einem einzigen Timeout-Block
-    async def db_startup():
+    # Port SOFORT öffnen — yield muss vor jeder DB-Operation kommen
+    logger.info("✅ Port wird geöffnet...")
+
+    async def _background_init():
+        """Alle DB-Operationen laufen NACH dem Start im Hintergrund."""
+        await asyncio.sleep(3)  # 3 Sekunden warten bis Server stabil ist
         loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor() as pool:
-            def _all_db_ops():
-                try:
-                    _run_migrations()
-                    logger.info("✓ Migrations OK")
-                except Exception as e:
-                    logger.warning(f"⚠ Migrations: {e}")
-                try:
-                    init_db()
-                    logger.info("✓ DB initialisiert")
-                except Exception as e:
-                    logger.warning(f"⚠ init_db: {e}")
-                try:
-                    _create_default_admin()
-                    logger.info("✓ Admin OK")
-                except Exception as e:
-                    logger.warning(f"⚠ Admin: {e}")
-                try:
-                    from routers.academy import seed_academy_courses
-                    from database import SessionLocal
-                    _db = SessionLocal()
-                    seed_academy_courses(_db)
-                    _db.close()
-                    logger.info("✓ Academy seed OK")
-                except Exception as e:
-                    logger.warning(f"⚠ Academy seed: {e}")
-                try:
-                    from routers.courses import seed_courses
-                    from database import SessionLocal
-                    _db = SessionLocal()
-                    seed_courses(_db)
-                    _db.close()
-                    logger.info("✓ Courses seed OK")
-                except Exception as e:
-                    logger.warning(f"⚠ Courses seed: {e}")
-                try:
-                    from database import SessionLocal, Project as _Project, Lead as _Lead
-                    _seed_db = SessionLocal()
-                    project_count = _seed_db.query(_Project).count()
-                    won_leads = _seed_db.query(_Lead).filter(_Lead.status == "won").all()
-                    won_without_project = [l for l in won_leads
-                                           if not _seed_db.query(_Project).filter(_Project.lead_id == l.id).first()]
-                    candidates = won_without_project
-                    if project_count == 0 and not won_without_project:
-                        all_leads = _seed_db.query(_Lead).order_by(_Lead.id.desc()).limit(50).all()
-                        candidates = [l for l in all_leads
-                                      if not _seed_db.query(_Project).filter(_Project.lead_id == l.id).first()]
-                    seeded = 0
-                    for lead in candidates:
-                        now = __import__('datetime').datetime.utcnow()
-                        p = _Project(lead_id=lead.id, status="phase_1",
-                                     start_date=now, created_at=now, updated_at=now)
-                        for col, val in [("company_name", lead.company_name),
-                                          ("website_url",  lead.website_url),
-                                          ("contact_name", lead.contact_name),
-                                          ("contact_email", lead.email)]:
-                            try:
-                                setattr(p, col, val)
-                            except Exception:
-                                pass
-                        _seed_db.add(p)
-                        seeded += 1
-                    if seeded:
-                        _seed_db.commit()
-                        logger.info(f"✓ {seeded} Projekte aus Leads angelegt (Seed)")
-                    else:
-                        logger.info(f"✓ Projekt-Seed: {project_count} Projekte bereits vorhanden")
-                    _seed_db.close()
-                except Exception as e:
-                    logger.warning(f"⚠ Projekt-Seed: {e}")
 
+        def _db_ops():
             try:
-                await asyncio.wait_for(
-                    loop.run_in_executor(pool, _all_db_ops),
-                    timeout=15.0,
-                )
-            except asyncio.TimeoutError:
-                logger.warning("⚠ DB-Startup Timeout — App startet trotzdem")
-
-    await db_startup()
-
-    # Scheduler separat — in eigenem Timeout
-    async def start_scheduler_safe():
-        loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor() as pool:
-            try:
-                await asyncio.wait_for(
-                    loop.run_in_executor(pool, start_scheduler),
-                    timeout=5.0,
-                )
-                logger.info("✓ Scheduler gestartet")
-            except asyncio.TimeoutError:
-                logger.warning("⚠ Scheduler Timeout — wird übersprungen")
+                _run_migrations()
+                logger.info("✓ Migrations OK")
             except Exception as e:
-                logger.warning(f"⚠ Scheduler Fehler: {e}")
+                logger.warning(f"⚠ Migrations: {e}")
+            try:
+                init_db()
+                logger.info("✓ DB init OK")
+            except Exception as e:
+                logger.warning(f"⚠ init_db: {e}")
+            try:
+                _create_default_admin()
+                logger.info("✓ Admin OK")
+            except Exception as e:
+                logger.warning(f"⚠ Admin: {e}")
+            try:
+                from routers.academy import seed_academy_courses
+                from database import SessionLocal
+                _db = SessionLocal()
+                seed_academy_courses(_db)
+                _db.close()
+                logger.info("✓ Academy seed OK")
+            except Exception as e:
+                logger.warning(f"⚠ Academy: {e}")
+            try:
+                start_scheduler()
+                logger.info("✓ Scheduler OK")
+            except Exception as e:
+                logger.warning(f"⚠ Scheduler: {e}")
+            logger.info("✅ Hintergrund-Init abgeschlossen")
 
-    await start_scheduler_safe()
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            try:
+                await asyncio.wait_for(
+                    loop.run_in_executor(pool, _db_ops),
+                    timeout=30.0
+                )
+            except asyncio.TimeoutError:
+                logger.warning("⚠ Hintergrund-Init Timeout nach 30s")
+            except Exception as e:
+                logger.warning(f"⚠ Hintergrund-Init Fehler: {e}")
 
-    logger.info("✅ KOMPAGNON bereit — Port wird geöffnet")
-    yield
+    task = asyncio.create_task(_background_init())
+
+    yield  # ← Port öffnet HIER sofort
 
     # Shutdown
-    logger.info("🛑 KOMPAGNON Backend Shutting Down...")
+    task.cancel()
     try:
         stop_scheduler()
     except Exception:
         pass
-    logger.info("✓ Shutdown complete")
+    logger.info("🛑 Shutdown complete")
 
 
 # Create FastAPI app with lifespan

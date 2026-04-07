@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -117,6 +117,52 @@ const PHASE_MENU = {
   8: { label: 'Fertig', tabs: [
     { id: 'upsell', label: '💼 Upsell-Produkte' },
   ]},
+};
+
+const PHASE_TOOLS = {
+  'onboarding': [
+    { id: 'audits',          label: 'Audit',           icon: '🔍', sub: 'Bericht' },
+    { id: 'pagespeed',       label: 'PageSpeed',        icon: '⚡', sub: 'Score' },
+    { id: 'website-content', label: 'Website-Content',  icon: '🌐', sub: '50 Seiten', badge: '!' },
+    { id: 'crawler',         label: 'Crawler',          icon: '🕷️', sub: 'URLs erfasst' },
+    { id: 'hosting',         label: 'Hosting',          icon: '🖥️', sub: 'Scan' },
+    { id: 'domain',          label: 'Domain',           icon: '🌍', sub: 'DNS / SSL' },
+    { id: 'screenshot',      label: 'Screenshot',       icon: '📸', sub: 'Vorher/Nachher' },
+  ],
+  'briefing': [
+    { id: 'briefing',        label: 'Briefing',         icon: '📋', sub: 'Fragenkatalog' },
+    { id: 'branddesign',     label: 'Branddesign',      icon: '🎨', sub: 'Farben & Fonts' },
+    { id: 'dateien',         label: 'Dateien',          icon: '📁', sub: 'Upload' },
+  ],
+  'content': [
+    { id: 'sitemap',         label: 'Sitemap',          icon: '🗺️', sub: 'Seitenstruktur' },
+    { id: 'content',         label: 'Content',          icon: '📝', sub: 'Texte & Medien' },
+    { id: 'mockup',          label: 'Mockup',           icon: '🎨', sub: 'Entwürfe' },
+    { id: 'editor',          label: 'Editor',           icon: '🖊️', sub: 'GrapesJS' },
+  ],
+  'technik': [
+    { id: 'checklisten',     label: 'Checklisten',      icon: '✅', sub: 'Aufgaben' },
+    { id: 'zeiterfassung',   label: 'Zeiterfassung',    icon: '⏱️', sub: 'Stunden' },
+    { id: 'kommunikation',   label: 'Nachrichten',      icon: '💬', sub: 'Kommunikation' },
+  ],
+  'qa': [
+    { id: 'checklisten',     label: 'Checklisten',      icon: '✅', sub: 'QA-Prüfung' },
+    { id: 'pagespeed',       label: 'PageSpeed',        icon: '⚡', sub: 'Final-Check' },
+    { id: 'audits',          label: 'Audit',            icon: '🔍', sub: 'Abschluss-Audit' },
+  ],
+  'go-live': [
+    { id: 'checklisten',     label: 'Checklisten',      icon: '✅', sub: 'Go-Live' },
+    { id: 'kommunikation',   label: 'Nachrichten',      icon: '💬', sub: 'Freigaben' },
+  ],
+  'post-launch': [
+    { id: 'zeiterfassung',   label: 'Zeiterfassung',    icon: '⏱️', sub: 'Nachbetreuung' },
+    { id: 'kommunikation',   label: 'Nachrichten',      icon: '💬', sub: 'Support' },
+  ],
+};
+const PHASE_NAMES = ['onboarding','briefing','content','technik','qa','go-live','post-launch'];
+const PHASE_LABELS = {
+  'onboarding': 'Onboarding', 'briefing': 'Briefing', 'content': 'Content',
+  'technik': 'Technik', 'qa': 'Q&A', 'go-live': 'Go-Live', 'post-launch': 'Post-Launch',
 };
 
 const SUB_TAB_MAP = {
@@ -458,8 +504,9 @@ export default function ProjectDetail() {
   const [margin, setMargin]           = useState(null);
   const [loading, setLoading]         = useState(true);
   const [activeTab, setActiveTab]     = useState('overview');
-  const [activePhase, setActivePhase] = useState(1);
+  const [activePhase, setActivePhase] = useState('onboarding');
   const [activeSubTab, setActiveSubTab] = useState('unternehmen');
+  const scrollRef = useRef(null);
   const [showEdit, setShowEdit]       = useState(false);
   const [showApproval, setShowApproval] = useState(false);
   const [showBriefingWizard, setShowBriefingWizard] = useState(false);
@@ -651,11 +698,12 @@ export default function ProjectDetail() {
   // Sync activePhase from project status on load
   useEffect(() => {
     if (project) {
-      const phase = parseInt((project.status || '').replace('phase_', '')) || 1;
-      setActivePhase(phase);
-      const firstTab = PHASE_MENU[phase]?.tabs[0]?.id || 'unternehmen';
-      setActiveSubTab(firstTab);
-      setActiveTab(SUB_TAB_MAP[firstTab] || firstTab);
+      // Map numeric phase status → string phase name
+      const phaseNum = parseInt((project.status || '').replace('phase_', '')) || 1;
+      const phaseName = PHASE_NAMES[phaseNum - 1] || 'onboarding';
+      setActivePhase(phaseName);
+      const firstTool = PHASE_TOOLS[phaseName]?.[0]?.id || 'overview';
+      setActiveTab(SUB_TAB_MAP[firstTool] || firstTool);
     }
   }, [project?.id]); // eslint-disable-line
 
@@ -910,32 +958,31 @@ export default function ProjectDetail() {
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {/* Phasenleiste */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {Object.entries(PHASE_MENU).map(([phase, cfg], idx, arr) => {
-            const phaseNum  = parseInt(phase);
+          {PHASE_NAMES.map((phaseName, idx) => {
             const currentNum = parseInt((project.status || '').replace('phase_', '')) || 1;
-            const isDone    = phaseNum < currentNum;
-            const isActive  = phaseNum === activePhase;
-            const isCurrent = phaseNum === currentNum;
+            const phaseNum   = idx + 1;
+            const isDone     = phaseNum < currentNum;
+            const isActive   = phaseName === activePhase;
+            const isCurrent  = phaseNum === currentNum;
             return (
-              <React.Fragment key={phase}>
+              <React.Fragment key={phaseName}>
                 {idx > 0 && (
                   <div style={{ alignSelf: 'center', height: 2, width: 12, flexShrink: 0, background: isDone ? '#1D9E75' : 'var(--border-light)' }} />
                 )}
                 <button onClick={() => {
-                  setActivePhase(phaseNum);
-                  const firstId = cfg.tabs[0].id;
-                  setActiveSubTab(firstId);
-                  setActiveTab(SUB_TAB_MAP[firstId] || firstId);
+                  setActivePhase(phaseName);
+                  const firstTool = PHASE_TOOLS[phaseName]?.[0]?.id;
+                  if (firstTool) setActiveTab(SUB_TAB_MAP[firstTool] || firstTool);
                 }} style={{
                   flex: 1, minWidth: 70, padding: '10px 4px 8px', border: 'none',
-                  borderBottom: isActive ? '3px solid #0d6efd' : '3px solid transparent',
+                  borderBottom: isActive ? '3px solid #185FA5' : '3px solid transparent',
                   background: isActive ? '#E6F1FB' : 'transparent',
                   cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                   borderRadius: 0, transition: 'all 0.15s',
                 }}>
                   <div style={{
                     width: 24, height: 24, borderRadius: '50%',
-                    background: isDone ? '#1D9E75' : isCurrent ? '#0d6efd' : '#e2e8f0',
+                    background: isDone ? '#1D9E75' : isCurrent ? '#185FA5' : '#e2e8f0',
                     color: (isDone || isCurrent) ? '#fff' : '#64748b',
                     fontSize: 11, fontWeight: 600,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -943,34 +990,72 @@ export default function ProjectDetail() {
                   <span style={{
                     fontSize: 11,
                     fontWeight: isActive ? 600 : 400,
-                    color: isActive ? '#0d6efd' : isDone ? '#1D9E75' : '#64748b',
+                    color: isActive ? '#185FA5' : isDone ? '#1D9E75' : '#64748b',
                     whiteSpace: 'nowrap',
-                  }}>{cfg.label}</span>
+                  }}>{PHASE_LABELS[phaseName]}</span>
                 </button>
               </React.Fragment>
             );
           })}
         </div>
 
-        {/* Untermenü (Ebene 2) */}
-        <div style={{ display: 'flex', gap: 4, padding: '6px 8px 0', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {(PHASE_MENU[activePhase]?.tabs || []).map(tab => (
-            <button key={tab.id} onClick={() => {
-              setActiveSubTab(tab.id);
-              setActiveTab(SUB_TAB_MAP[tab.id] || tab.id);
-            }} style={{
-              padding: '6px 14px', border: 'none',
-              borderRadius: '6px 6px 0 0',
-              background: activeSubTab === tab.id ? 'var(--bg-app)' : 'transparent',
-              borderBottom: activeSubTab === tab.id ? '2px solid #0d6efd' : '2px solid transparent',
-              fontWeight: activeSubTab === tab.id ? 600 : 400,
-              fontSize: 12,
-              color: activeSubTab === tab.id ? '#0d6efd' : 'var(--text-secondary)',
-              cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)',
-            }}>
-              {tab.label}
-            </button>
-          ))}
+        {/* Werkzeug-Kacheln (Ebene 2) */}
+        <div style={{ position: 'relative', padding: '10px 0 8px' }}>
+          {/* Pfeil links */}
+          <button onClick={() => scrollRef.current?.scrollBy({ left: -140, behavior: 'smooth' })} style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: 32, zIndex: 2,
+            background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+            borderRadius: 'var(--radius-md) 0 0 var(--radius-md)',
+            cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>‹</button>
+
+          {/* Scrollbarer Container */}
+          <div ref={scrollRef} style={{
+            display: 'flex', gap: 8, overflowX: 'auto', scrollBehavior: 'smooth',
+            padding: '0 40px', scrollbarWidth: 'none', msOverflowStyle: 'none',
+          }}>
+            {(PHASE_TOOLS[activePhase] || []).map(tool => (
+              <div key={tool.id} onClick={() => setActiveTab(SUB_TAB_MAP[tool.id] || tool.id)} style={{
+                flex: '0 0 120px', minWidth: 120,
+                background: activeTab === (SUB_TAB_MAP[tool.id] || tool.id) ? 'var(--brand-primary-light)' : 'var(--bg-surface)',
+                border: activeTab === (SUB_TAB_MAP[tool.id] || tool.id)
+                  ? '1.5px solid var(--brand-primary)'
+                  : '1px solid var(--border-light)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '12px 10px', cursor: 'pointer', textAlign: 'center',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                position: 'relative',
+              }}>
+                {tool.badge && (
+                  <span style={{
+                    position: 'absolute', top: 6, right: 6,
+                    background: '#E24B4A', color: 'white',
+                    fontSize: 9, fontWeight: 600, borderRadius: 99, padding: '1px 5px',
+                  }}>{tool.badge}</span>
+                )}
+                <div style={{
+                  width: 38, height: 38, borderRadius: 8, fontSize: 18,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: activeTab === (SUB_TAB_MAP[tool.id] || tool.id) ? 'var(--brand-primary-mid)' : 'var(--bg-app)',
+                }}>{tool.icon}</div>
+                <div style={{
+                  fontSize: 11, fontWeight: 500,
+                  color: activeTab === (SUB_TAB_MAP[tool.id] || tool.id) ? 'var(--brand-primary-dark)' : 'var(--text-primary)',
+                }}>{tool.label}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{tool.sub}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pfeil rechts */}
+          <button onClick={() => scrollRef.current?.scrollBy({ left: 140, behavior: 'smooth' })} style={{
+            position: 'absolute', right: 0, top: 0, bottom: 0, width: 32, zIndex: 2,
+            background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+            borderRadius: '0 var(--radius-md) var(--radius-md) 0',
+            cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>›</button>
         </div>
       </div>
 

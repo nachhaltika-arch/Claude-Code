@@ -530,6 +530,10 @@ export default function ProjectDetail() {
   const [openAudit, setOpenAudit] = useState(null);
   // Briefing Lead
   const [briefingLead, setBriefingLead] = useState(null);
+  // Website-Content (Crawler)
+  const [websiteContent, setWebsiteContent] = useState([]);
+  const [contentLoading, setContentLoading] = useState(false);
+  const [selectedContentPage, setSelectedContentPage] = useState(null);
   // Domain-Check
   const [domainChecking, setDomainChecking] = useState(false);
   // Netlify
@@ -603,6 +607,34 @@ export default function ProjectDetail() {
   }, [project?.lead_id]); // eslint-disable-line
 
   useEffect(() => { if (project?.lead_id) loadAudits(); }, [project?.lead_id]); // eslint-disable-line
+
+  const loadWebsiteContent = useCallback(async () => {
+    if (!project?.lead_id) return;
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/crawler/content/${project.lead_id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setWebsiteContent(Array.isArray(data) ? data : data.results || []);
+      }
+    } catch (e) { console.error(e); }
+  }, [project?.lead_id]); // eslint-disable-line
+
+  const scrapeContent = async () => {
+    if (!project?.lead_id) return;
+    setContentLoading(true);
+    try {
+      await fetch(
+        `${API_BASE_URL}/api/crawler/scrape-content/${project.lead_id}`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
+      );
+      await loadWebsiteContent();
+      toast.success('Content von allen Seiten gescrapt!');
+    } catch (e) { toast.error('Scraping fehlgeschlagen'); }
+    finally { setContentLoading(false); }
+  };
 
   const loadBriefingLead = useCallback(async () => {
     if (!project?.lead_id || briefingLead) return;
@@ -1993,138 +2025,128 @@ export default function ProjectDetail() {
 
       {/* ── Website-Content Tab ─────────────────────────────────────────────── */}
       {activeTab === 'webcontent' && (() => {
-        if (!scrapeLoaded) {
-          setScrapeLoaded(true);
-          Promise.all([
-            fetch(`${API_BASE_URL}/api/projects/${project.id}/scrape-status`, { headers: h }).then(r => r.ok ? r.json() : null),
-            fetch(`${API_BASE_URL}/api/projects/${project.id}/scraped-content`, { headers: h }).then(r => r.ok ? r.json() : []),
-          ]).then(([status, pages]) => {
-            if (status) setScrapeStatus(status);
-            if (Array.isArray(pages)) setScrapedPages(pages);
-          }).catch(() => {});
-        }
-
-        const startScan = async () => {
-          try {
-            const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/scrape`, { method: 'POST', headers: h });
-            const data = await res.json();
-            if (data.status === 'already_running' || data.status === 'started') {
-              setScrapeStatus(prev => ({ ...prev, status: 'running' }));
-              setScrapePolling(true);
-              const poll = setInterval(async () => {
-                const sr = await fetch(`${API_BASE_URL}/api/projects/${project.id}/scrape-status`, { headers: h });
-                const sd = await sr.json();
-                setScrapeStatus(sd);
-                if (sd.status === 'done' || sd.status === 'failed') {
-                  clearInterval(poll);
-                  setScrapePolling(false);
-                  if (sd.status === 'done') {
-                    const pr = await fetch(`${API_BASE_URL}/api/projects/${project.id}/scraped-content`, { headers: h });
-                    const pd = await pr.json();
-                    if (Array.isArray(pd)) setScrapedPages(pd);
-                  }
-                }
-              }, 3000);
-            }
-          } catch { /* silent */ }
-        };
-
-        const isRunning = scrapeStatus?.status === 'running' || scrapeStatus?.status === 'pending';
-        const card = { background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 16, marginBottom: 12 };
+        if (!websiteContent.length && !contentLoading) loadWebsiteContent();
 
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Status + Scan button */}
-            <div style={card}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  {isRunning ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #ccc', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
-                      Scan läuft…
-                    </span>
-                  ) : scrapeStatus?.total_pages > 0 ? (
-                    <span>✅ <strong>{scrapeStatus.total_pages}</strong> Seiten gescrapt · Zuletzt: {scrapeStatus.completed_at || '–'}</span>
-                  ) : (
-                    <span>Noch kein Scan durchgeführt</span>
-                  )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Website-Content — {websiteContent.length} Seiten
                 </div>
-                <button
-                  onClick={startScan}
-                  disabled={isRunning || scrapePolling}
-                  style={{ padding: '7px 16px', background: isRunning ? 'var(--bg-muted)' : 'var(--brand-primary)', color: isRunning ? 'var(--text-tertiary)' : '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: isRunning ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}
-                >
-                  {isRunning ? 'Scan läuft…' : scrapeStatus?.total_pages > 0 ? '🔄 Neu scannen' : '🌐 Jetzt scannen'}
-                </button>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                  Content der gecrawlten Seiten: Titel, Meta, H1, H2, Textvorschau
+                </div>
               </div>
+              <button onClick={scrapeContent} disabled={contentLoading} style={{
+                padding: '8px 16px', background: 'var(--brand-primary)', color: 'white',
+                border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13,
+                fontWeight: 600, cursor: contentLoading ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6,
+                opacity: contentLoading ? 0.7 : 1,
+              }}>
+                {contentLoading ? '⏳ Scrapt...' : '🔍 Content scannen'}
+              </button>
             </div>
 
-            {/* Results */}
-            {scrapedPages.length === 0 && !isRunning && (
-              <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: '24px 0', fontSize: 13 }}>
-                Noch keine Seiten gescrapt.
+            {websiteContent.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px 20px',
+                background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+                borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)' }}>
+                <div style={{ fontSize: 32, marginBottom: 10 }}>📄</div>
+                <div style={{ fontSize: 13, marginBottom: 6 }}>Noch kein Content gescrapt</div>
+                <div style={{ fontSize: 11 }}>Zuerst Crawler starten, dann "Content scannen" klicken</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                {/* Seitenliste links */}
+                <div style={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 600, overflowY: 'auto' }}>
+                  {websiteContent.map((page, i) => (
+                    <button key={i} onClick={() => setSelectedContentPage(page)} style={{
+                      padding: '10px 12px', textAlign: 'left', border: '1px solid',
+                      borderColor: selectedContentPage?.url === page.url ? 'var(--brand-primary)' : 'var(--border-light)',
+                      background: selectedContentPage?.url === page.url ? 'var(--brand-primary-light)' : 'var(--bg-surface)',
+                      borderRadius: 'var(--radius-md)', cursor: 'pointer', width: '100%',
+                      fontFamily: 'var(--font-sans)',
+                    }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {page.title || page.h1 || page.url}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {page.url}
+                      </div>
+                      {page.word_count && (
+                        <div style={{ fontSize: 10, color: 'var(--brand-primary)', marginTop: 2 }}>
+                          {page.word_count} Wörter
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Detail rechts */}
+                {selectedContentPage ? (
+                  <div style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+                    borderRadius: 'var(--radius-lg)', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>URL</div>
+                      <a href={selectedContentPage.url} target="_blank" rel="noreferrer"
+                        style={{ fontSize: 12, color: 'var(--brand-primary)', wordBreak: 'break-all' }}>
+                        {selectedContentPage.url}
+                      </a>
+                    </div>
+                    {selectedContentPage.title && (
+                      <div>
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Title Tag</div>
+                        <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{selectedContentPage.title}</div>
+                      </div>
+                    )}
+                    {selectedContentPage.meta_description && (
+                      <div>
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Meta Description</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{selectedContentPage.meta_description}</div>
+                      </div>
+                    )}
+                    {selectedContentPage.h1 && (
+                      <div>
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>H1</div>
+                        <div style={{ fontSize: 15, color: 'var(--text-primary)', fontWeight: 700 }}>{selectedContentPage.h1}</div>
+                      </div>
+                    )}
+                    {selectedContentPage.h2s?.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>H2 Überschriften</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {(typeof selectedContentPage.h2s === 'string' ? JSON.parse(selectedContentPage.h2s) : selectedContentPage.h2s).map((h2, j) => (
+                            <div key={j} style={{ padding: '6px 10px', background: 'var(--bg-app)',
+                              borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                              {h2}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {selectedContentPage.text_preview && (
+                      <div>
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Textvorschau</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7,
+                          padding: '10px 14px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)' }}>
+                          {selectedContentPage.text_preview}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ flex: 1, textAlign: 'center', padding: '60px 20px',
+                    color: 'var(--text-tertiary)', fontSize: 12 }}>
+                    ← Seite auswählen um Content zu sehen
+                  </div>
+                )}
               </div>
             )}
-            {scrapedPages.map((page, idx) => {
-              const open = !!expandedScrape[idx];
-              return (
-                <div key={idx} style={{ ...card, padding: 0, overflow: 'hidden' }}>
-                  {/* Header */}
-                  <div
-                    onClick={() => setExpandedScrape(prev => ({ ...prev, [idx]: !prev[idx] }))}
-                    style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: open ? 'var(--bg-app)' : 'transparent', userSelect: 'none' }}
-                  >
-                    <div style={{ overflow: 'hidden' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {page.page_title || page.url}
-                      </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{page.url}</div>
-                    </div>
-                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 8 }}>{open ? '▲' : '▼'}</span>
-                  </div>
-                  {/* Body */}
-                  {open && (
-                    <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {page.meta_description && (
-                        <div style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-secondary)' }}>{page.meta_description}</div>
-                      )}
-                      {page.h1 && (
-                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{page.h1}</div>
-                      )}
-                      {page.h2_list?.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                          {page.h2_list.map((h2, i) => (
-                            <span key={i} style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: 99, padding: '2px 9px', fontSize: 11, fontWeight: 500 }}>{h2}</span>
-                          ))}
-                        </div>
-                      )}
-                      {page.paragraphs?.length > 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {page.paragraphs.slice(0, 3).map((p, i) => (
-                            <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{p}</div>
-                          ))}
-                          {page.paragraphs.length > 3 && (
-                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>… {page.paragraphs.length - 3} weitere Absätze</div>
-                          )}
-                        </div>
-                      )}
-                      {(page.contact_phone || page.contact_email || page.contact_address) && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                          {page.contact_phone && <span style={{ background: '#d1fae5', color: '#065f46', borderRadius: 99, padding: '2px 9px', fontSize: 11 }}>📞 {page.contact_phone}</span>}
-                          {page.contact_email && <span style={{ background: '#d1fae5', color: '#065f46', borderRadius: 99, padding: '2px 9px', fontSize: 11 }}>✉️ {page.contact_email}</span>}
-                          {page.contact_address && <span style={{ background: '#d1fae5', color: '#065f46', borderRadius: 99, padding: '2px 9px', fontSize: 11 }}>📍 {page.contact_address}</span>}
-                        </div>
-                      )}
-                      {page.images?.length > 0 && (
-                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                          🖼 {page.images.length} Bild{page.images.length !== 1 ? 'er' : ''}: {page.images.slice(0, 3).map(img => img.alt || img.src).join(', ')}{page.images.length > 3 ? '…' : ''}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
           </div>
         );
       })()}

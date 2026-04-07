@@ -126,6 +126,7 @@ const PHASE_TOOLS = {
   ],
   'qm': [
     { id: 'checklists',      label: 'Checkliste QM',        icon: '✅', sub: 'QA-Prüfung' },
+    { id: 'qa-scan',         label: 'KI-QA-Scan',           icon: '🤖', sub: 'Qualitätsprüfung' },
   ],
   'post-launch': [
     { id: 'trustpilot',      label: 'Trustpilot',           icon: '⭐', sub: 'Bewertungen' },
@@ -160,6 +161,7 @@ const SUB_TAB_MAP = {
   'hosting-form':       'hosting',
   'checkliste':         'checklists',
   'checklists':         'checklists',
+  'qa-scan':            'qa-scan',
   'design':             'design',
   'sitemap':            'sitemap',
   'content':            'content',
@@ -604,6 +606,10 @@ export default function ProjectDetail() {
   const [websiteContent, setWebsiteContent] = useState([]);
   const [contentLoading, setContentLoading] = useState(false);
   const [selectedContentPage, setSelectedContentPage] = useState(null);
+  // QA-Scanner
+  const [qaResult, setQaResult]   = useState(null);
+  const [qaRunning, setQaRunning] = useState(false);
+  const [qaError, setQaError]     = useState('');
   // Domain-Check
   const [domainChecking, setDomainChecking] = useState(false);
   // Netlify
@@ -665,6 +671,32 @@ export default function ProjectDetail() {
   }, [id]); // eslint-disable-line
 
   useEffect(() => { loadProject(); }, [id]); // eslint-disable-line
+
+  const loadQa = async () => {
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/projects/${id}/qa/result`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.ok) setQaResult(await res.json());
+    } catch {}
+  };
+
+  useEffect(() => { loadQa(); }, [id]); // eslint-disable-line
+
+  const runQa = async () => {
+    setQaRunning(true); setQaError('');
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/projects/${id}/qa/run`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
+      );
+      const d = await res.json();
+      if (!res.ok) { setQaError(d.detail || 'Fehler'); return; }
+      setQaResult(d);
+    } catch { setQaError('Verbindungsfehler'); }
+    finally { setQaRunning(false); }
+  };
 
   const loadAudits = useCallback(async () => {
     if (!project?.lead_id) return;
@@ -1001,6 +1033,61 @@ export default function ProjectDetail() {
       setDesignSlow(false);
     }
   };
+
+  // ── QA Helpers ───────────────────────────────────────────────────────────
+  const statusFarbe = (status) => ({
+    bestanden: '#1D9E75',
+    warnung:   '#BA7517',
+    kritisch:  '#E24B4A',
+  }[status] || '#94a3b8');
+
+  const checkIcon  = (val) => val ? '✓' : '✗';
+  const checkColor = (val) => val ? '#1D9E75' : '#E24B4A';
+
+  const QA_CHECK_LABELS = {
+    ssl_aktiv:           'SSL-Zertifikat',
+    https_redirect:      'HTTPS-Weiterleitung',
+    favicon_vorhanden:   'Favicon vorhanden',
+    robots_txt:          'robots.txt vorhanden',
+    sitemap_xml:         'sitemap.xml vorhanden',
+    title_vorhanden:     'Title-Tag vorhanden',
+    title_laenge_ok:     'Title-Länge (10–65 Zeichen)',
+    meta_desc_vorhanden: 'Meta-Description vorhanden',
+    meta_desc_laenge_ok: 'Meta-Desc Länge (50–160 Zeichen)',
+    h1_genau_eins:       'Genau ein H1-Tag',
+    h2_vorhanden:        'H2-Tags vorhanden',
+    canonical_vorhanden: 'Canonical-Tag vorhanden',
+    og_tags_vorhanden:   'Open Graph Tags',
+    schema_markup:       'Schema Markup (JSON-LD)',
+    schema_localbusiness:'LocalBusiness Schema',
+    schema_faq:          'FAQ Schema',
+    mobile_viewport:     'Mobile Viewport',
+    alt_texte_ok:        'Alt-Texte (≥80% der Bilder)',
+    kontaktformular:     'Kontaktformular vorhanden',
+    telefon_link:        'Telefon als tel:-Link',
+    mailto_link:         'E-Mail als mailto:-Link',
+    google_fonts_extern: 'Google Fonts NICHT extern',
+    google_maps:         'Google Maps eingebettet',
+    impressum_link:      'Impressum verlinkt',
+    datenschutz_link:    'Datenschutz verlinkt',
+    cookie_banner:       'Cookie-Consent-Banner',
+    dsgvo_checkbox:      'DSGVO-Checkbox in Formular',
+    hsts:                'HSTS Security Header',
+    csp:                 'Content Security Policy',
+    cache_control:       'Cache-Control Header',
+    llm_txt:             'llm.txt vorhanden',
+    faq_block:           'FAQ / Akkordeon vorhanden',
+    footer_timestamp:    'Aktualisierungsdatum im Footer',
+  };
+  // Keys where true = bad (inverted logic)
+  const QA_INVERTED = new Set(['google_fonts_extern']);
+
+  const scoreColor = (s) =>
+    s >= 80 ? '#1D9E75' : s >= 60 ? '#BA7517' : '#E24B4A';
+  const scoreBg = (s) =>
+    s >= 80 ? '#E1F5EE' : s >= 60 ? '#FFF7ED' : '#FFF1F1';
+  const scoreBorder = (s) =>
+    s >= 80 ? '#1D9E75' : s >= 60 ? '#BA7517' : '#E24B4A';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -2938,6 +3025,198 @@ export default function ProjectDetail() {
           )}
         </div>
       )}
+
+      {/* ── QA-Scan Tab ────────────────────────────────────────────────────── */}
+      {activeTab === 'qa-scan' && (() => {
+        const ai = qaResult?.result?.ai || {};
+        const checks = qaResult?.result?.checks || {};
+        const score = qaResult?.score ?? ai.gesamt_score ?? null;
+        const [openKat, setOpenKat] = React.useState(null);
+
+        return (
+          <div style={{ maxWidth: 760, padding: '0 0 40px' }}>
+
+            {/* ── Header ── */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>KI-Qualitätsprüfung</div>
+                {qaResult?.run_at && (
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                    Zuletzt: {qaResult.run_at} Uhr
+                  </div>
+                )}
+              </div>
+              <button
+                disabled={qaRunning}
+                onClick={runQa}
+                style={{
+                  background: qaRunning ? '#94a3b8' : '#008eaa', color: 'white',
+                  border: 'none', borderRadius: 8, padding: '10px 20px',
+                  fontSize: 13, fontWeight: 600, cursor: qaRunning ? 'not-allowed' : 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              >
+                {qaRunning ? 'Scan läuft… (ca. 30–40 Sek.)' : 'QA-Scan starten ↺'}
+              </button>
+            </div>
+
+            {qaError && (
+              <div style={{ background: '#FFF1F1', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#DC2626', marginBottom: 16 }}>
+                {qaError}
+              </div>
+            )}
+
+            {/* ── Kein Ergebnis ── */}
+            {!qaResult && !qaRunning && (
+              <div style={{ background: '#f8f9fa', borderRadius: 12, padding: '40px 20px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>🤖</div>
+                <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Noch kein QA-Scan durchgeführt.</div>
+                <div style={{ fontSize: 13 }}>Klicke „QA-Scan starten" um die Website automatisch auf 50+ Kriterien zu prüfen.</div>
+              </div>
+            )}
+
+            {/* ── Ergebnis ── */}
+            {qaResult && score !== null && (() => {
+              const sc = Number(score);
+              const bg = scoreBg(sc);
+              const bc = scoreBorder(sc);
+              const fc = scoreColor(sc);
+
+              return (
+                <>
+                  {/* A) Gesamt-Score Banner */}
+                  <div style={{ background: bg, border: `1.5px solid ${bc}`, borderRadius: 12, padding: 16, display: 'flex', alignItems: 'center', gap: 20, marginBottom: 16, flexWrap: 'wrap' }}>
+                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: bg, border: `3px solid ${bc}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 24, fontWeight: 700, color: fc, lineHeight: 1 }}>{sc}</span>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>/ 100</span>
+                    </div>
+                    <div>
+                      {ai.golive_empfehlung
+                        ? <div style={{ fontSize: 14, fontWeight: 600, color: '#1D9E75' }}>✓ Go-Live empfohlen</div>
+                        : <div style={{ fontSize: 14, fontWeight: 600, color: '#E24B4A' }}>✗ Noch nicht Go-Live-bereit</div>
+                      }
+                      {ai.golive_begruendung && (
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>{ai.golive_begruendung}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* B) KI-Zusammenfassung */}
+                  {ai.ki_zusammenfassung && (
+                    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#008eaa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>KI-Bewertung</div>
+                      <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{ai.ki_zusammenfassung}</div>
+                    </div>
+                  )}
+
+                  {/* C) Kritische Blocker */}
+                  {!ai.golive_empfehlung && ai.kritische_blocker?.length > 0 && (
+                    <div style={{ background: '#FFF1F1', borderLeft: '3px solid #E24B4A', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#E24B4A', marginBottom: 8 }}>⚠ Vor Go-Live zu beheben:</div>
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {ai.kritische_blocker.map((b, i) => (
+                          <li key={i} style={{ fontSize: 13, color: '#E24B4A', marginBottom: 4 }}>{b}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* D) Kategorie-Scores */}
+                  {ai.kategorien && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 10 }}>Kategorie-Bewertung</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                        {Object.entries(ai.kategorien).map(([key, kat]) => {
+                          const ks = Number(kat.score || 0);
+                          const kc = scoreColor(ks);
+                          const isOpen = openKat === key;
+                          const katLabel = { seo: 'SEO', performance: 'Performance', mobile: 'Mobile', dsgvo: 'DSGVO', content: 'Content', technik: 'Technik' }[key] || key;
+                          const badgeBg = kat.status === 'bestanden' ? '#E1F5EE' : kat.status === 'warnung' ? '#FFF7ED' : '#FFF1F1';
+                          const badgeColor = statusFarbe(kat.status);
+                          return (
+                            <div key={key}
+                              onClick={() => setOpenKat(isOpen ? null : key)}
+                              style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border-light)', borderRadius: 10, padding: 14, cursor: 'pointer' }}
+                            >
+                              <div style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-tertiary)', letterSpacing: '0.05em', marginBottom: 8 }}>{katLabel}</div>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                                <div style={{ flex: 1, height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
+                                  <div style={{ width: `${ks}%`, height: '100%', background: kc, borderRadius: 3 }} />
+                                </div>
+                                <span style={{ fontSize: 14, fontWeight: 600, color: kc, flexShrink: 0 }}>{ks}</span>
+                              </div>
+                              <span style={{ fontSize: 10, fontWeight: 600, background: badgeBg, color: badgeColor, padding: '2px 7px', borderRadius: 20 }}>
+                                {kat.status || '—'}
+                              </span>
+                              {isOpen && (
+                                <div style={{ marginTop: 10, borderTop: '1px solid var(--border-light)', paddingTop: 8 }}>
+                                  {kat.probleme?.length > 0 && (
+                                    <>
+                                      <div style={{ fontSize: 11, fontWeight: 600, color: '#E24B4A', marginBottom: 4 }}>Probleme:</div>
+                                      <ul style={{ margin: '0 0 6px', paddingLeft: 16 }}>
+                                        {kat.probleme.map((p, i) => <li key={i} style={{ fontSize: 11, color: '#E24B4A', marginBottom: 2 }}>{p}</li>)}
+                                      </ul>
+                                    </>
+                                  )}
+                                  {kat.punkte?.slice(0, 3).length > 0 && (
+                                    <>
+                                      <div style={{ fontSize: 11, fontWeight: 600, color: '#1D9E75', marginBottom: 4 }}>Bestanden:</div>
+                                      <ul style={{ margin: 0, paddingLeft: 16 }}>
+                                        {kat.punkte.slice(0, 3).map((p, i) => <li key={i} style={{ fontSize: 11, color: '#1D9E75', marginBottom: 2 }}>{p}</li>)}
+                                      </ul>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* E) Einzelchecks-Tabelle */}
+                  {Object.keys(checks).filter(k => typeof checks[k] === 'boolean').length > 0 && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 10 }}>Technische Einzelprüfungen</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px 20px', background: 'var(--border-light)', border: '1px solid var(--border-light)', borderRadius: 10, overflow: 'hidden' }}>
+                        {Object.entries(QA_CHECK_LABELS).filter(([k]) => k in checks && typeof checks[k] === 'boolean').map(([k, label]) => {
+                          const raw = checks[k];
+                          const ok  = QA_INVERTED.has(k) ? !raw : raw;
+                          return (
+                            <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 12px', background: 'var(--bg-surface)', gap: 8 }}>
+                              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{label}</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: checkColor(ok), flexShrink: 0 }}>{checkIcon(ok)}</span>
+                            </div>
+                          );
+                        })}
+                        {checks.alt_texte_quote != null && (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 12px', background: 'var(--bg-surface)', gap: 8 }}>
+                            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Alt-Texte: Bilder abgedeckt</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: checks.alt_texte_quote >= 80 ? '#1D9E75' : '#E24B4A' }}>{checks.alt_texte_quote}%</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* F) Empfehlungen */}
+                  {ai.top_empfehlungen?.length > 0 && (
+                    <div style={{ background: '#EFF9FB', border: '1px solid #BAE6EF', borderRadius: 10, padding: '14px 18px' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#008eaa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Top-Empfehlungen</div>
+                      <ol style={{ margin: 0, paddingLeft: 20 }}>
+                        {ai.top_empfehlungen.map((r, i) => (
+                          <li key={i} style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6, lineHeight: 1.5 }}>{r}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        );
+      })()}
 
       {/* ── Preview Tab ────────────────────────────────────────────────────── */}
       {(activeSubTab === 'preview' || activeTab === 'preview') && (

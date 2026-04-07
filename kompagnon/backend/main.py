@@ -720,122 +720,116 @@ def _create_default_admin():
         logger.warning(f"Kunde-Link Fehler: {e}")
 
 
-async def run_migrations_safe():
-    """Run _run_migrations() in a thread with a hard timeout so startup never blocks."""
-    loop = asyncio.get_event_loop()
-    with ThreadPoolExecutor() as pool:
-        try:
-            await asyncio.wait_for(
-                loop.run_in_executor(pool, _run_migrations),
-                timeout=20.0,
-            )
-            logger.info("✓ Migrations abgeschlossen")
-        except asyncio.TimeoutError:
-            logger.warning("⚠ Migrations Timeout — App startet trotzdem")
-        except Exception as e:
-            logger.warning(f"⚠ Migrations Fehler: {e} — App startet trotzdem")
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Handle startup and shutdown events."""
-    # Startup
     logger.info("🚀 KOMPAGNON Backend Starting...")
     try:
-        # Playwright installed at build time via render-build.sh
-
         os.makedirs("uploads", exist_ok=True)
         logger.info("✓ uploads/ Ordner bereit")
-
-        await run_migrations_safe()
-        init_db()
-        logger.info("✓ Database initialized")
-
-        # Create default admin if no users exist
-        try:
-            _create_default_admin()
-        except Exception as e:
-            logger.warning(f"⚠ Default admin: {e}")
-
-        # Seed academy courses if empty
-        try:
-            from routers.academy import seed_academy_courses
-            from database import SessionLocal
-            _seed_db = SessionLocal()
-            seed_academy_courses(_seed_db)
-            _seed_db.close()
-        except Exception as e:
-            logger.warning(f"⚠ Academy seed: {e}")
-
-        # Seed courses if empty
-        try:
-            from routers.courses import seed_courses
-            from database import SessionLocal
-            _seed_db = SessionLocal()
-            seed_courses(_seed_db)
-            _seed_db.close()
-        except Exception as e:
-            logger.warning(f"⚠ Courses seed: {e}")
-
-        # Seed projects from won leads (or all leads if table empty)
-        try:
-            from database import SessionLocal, Project as _Project, Lead as _Lead
-            _seed_db = SessionLocal()
-            project_count = _seed_db.query(_Project).count()
-            won_leads = _seed_db.query(_Lead).filter(_Lead.status == "won").all()
-            won_without_project = [l for l in won_leads
-                                   if not _seed_db.query(_Project).filter(_Project.lead_id == l.id).first()]
-            seeded = 0
-            # Seed won leads that have no project
-            candidates = won_without_project
-            # If table completely empty, also pull all leads as fallback
-            if project_count == 0 and not won_without_project:
-                all_leads = _seed_db.query(_Lead).order_by(_Lead.id.desc()).limit(50).all()
-                candidates = [l for l in all_leads
-                              if not _seed_db.query(_Project).filter(_Project.lead_id == l.id).first()]
-            for lead in candidates:
-                now = __import__('datetime').datetime.utcnow()
-                p = _Project(lead_id=lead.id, status="phase_1",
-                             start_date=now, created_at=now, updated_at=now)
-                for col, val in [("company_name", lead.company_name),
-                                  ("website_url",  lead.website_url),
-                                  ("contact_name", lead.contact_name),
-                                  ("contact_email", lead.email)]:
-                    try:
-                        setattr(p, col, val)
-                    except Exception:
-                        pass
-                _seed_db.add(p)
-                seeded += 1
-            if seeded:
-                _seed_db.commit()
-                logger.info(f"✓ {seeded} Projekte aus Leads angelegt (Seed)")
-            else:
-                logger.info(f"✓ Projekt-Seed: {project_count} Projekte bereits vorhanden")
-            _seed_db.close()
-        except Exception as e:
-            logger.warning(f"⚠ Projekt-Seed: {e}")
-
-        # Start scheduler (non-critical — don't block app start)
-        try:
-            start_scheduler()
-            logger.info("✓ Scheduler started")
-        except Exception as e:
-            logger.warning(f"⚠ Scheduler failed to start (non-critical): {e}")
-
-        yield
-
     except Exception as e:
-        logger.error(f"✗ Startup failed: {str(e)}")
-        raise
+        logger.warning(f"⚠ uploads: {e}")
 
-    finally:
-        logger.info("🛑 KOMPAGNON Backend Shutting Down...")
-        try:
-            stop_scheduler()
-        except Exception:
-            pass
-        logger.info("✓ Shutdown complete")
+    # Alle DB-Operationen in einem einzigen Timeout-Block
+    async def db_startup():
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as pool:
+            def _all_db_ops():
+                try:
+                    _run_migrations()
+                    logger.info("✓ Migrations OK")
+                except Exception as e:
+                    logger.warning(f"⚠ Migrations: {e}")
+                try:
+                    init_db()
+                    logger.info("✓ DB initialisiert")
+                except Exception as e:
+                    logger.warning(f"⚠ init_db: {e}")
+                try:
+                    _create_default_admin()
+                    logger.info("✓ Admin OK")
+                except Exception as e:
+                    logger.warning(f"⚠ Admin: {e}")
+                try:
+                    from routers.academy import seed_academy_courses
+                    from database import SessionLocal
+                    _db = SessionLocal()
+                    seed_academy_courses(_db)
+                    _db.close()
+                    logger.info("✓ Academy seed OK")
+                except Exception as e:
+                    logger.warning(f"⚠ Academy seed: {e}")
+                try:
+                    from routers.courses import seed_courses
+                    from database import SessionLocal
+                    _db = SessionLocal()
+                    seed_courses(_db)
+                    _db.close()
+                    logger.info("✓ Courses seed OK")
+                except Exception as e:
+                    logger.warning(f"⚠ Courses seed: {e}")
+                try:
+                    from database import SessionLocal, Project as _Project, Lead as _Lead
+                    _seed_db = SessionLocal()
+                    project_count = _seed_db.query(_Project).count()
+                    won_leads = _seed_db.query(_Lead).filter(_Lead.status == "won").all()
+                    won_without_project = [l for l in won_leads
+                                           if not _seed_db.query(_Project).filter(_Project.lead_id == l.id).first()]
+                    candidates = won_without_project
+                    if project_count == 0 and not won_without_project:
+                        all_leads = _seed_db.query(_Lead).order_by(_Lead.id.desc()).limit(50).all()
+                        candidates = [l for l in all_leads
+                                      if not _seed_db.query(_Project).filter(_Project.lead_id == l.id).first()]
+                    seeded = 0
+                    for lead in candidates:
+                        now = __import__('datetime').datetime.utcnow()
+                        p = _Project(lead_id=lead.id, status="phase_1",
+                                     start_date=now, created_at=now, updated_at=now)
+                        for col, val in [("company_name", lead.company_name),
+                                          ("website_url",  lead.website_url),
+                                          ("contact_name", lead.contact_name),
+                                          ("contact_email", lead.email)]:
+                            try:
+                                setattr(p, col, val)
+                            except Exception:
+                                pass
+                        _seed_db.add(p)
+                        seeded += 1
+                    if seeded:
+                        _seed_db.commit()
+                        logger.info(f"✓ {seeded} Projekte aus Leads angelegt (Seed)")
+                    else:
+                        logger.info(f"✓ Projekt-Seed: {project_count} Projekte bereits vorhanden")
+                    _seed_db.close()
+                except Exception as e:
+                    logger.warning(f"⚠ Projekt-Seed: {e}")
+
+            try:
+                await asyncio.wait_for(
+                    loop.run_in_executor(pool, _all_db_ops),
+                    timeout=15.0,
+                )
+            except asyncio.TimeoutError:
+                logger.warning("⚠ DB-Startup Timeout — App startet trotzdem")
+
+    await db_startup()
+
+    # Scheduler separat — darf nicht blockieren
+    try:
+        start_scheduler()
+        logger.info("✓ Scheduler gestartet")
+    except Exception as e:
+        logger.warning(f"⚠ Scheduler: {e}")
+
+    logger.info("✅ KOMPAGNON bereit")
+    yield
+
+    # Shutdown
+    logger.info("🛑 KOMPAGNON Backend Shutting Down...")
+    try:
+        stop_scheduler()
+    except Exception:
+        pass
+    logger.info("✓ Shutdown complete")
 
 
 # Create FastAPI app with lifespan

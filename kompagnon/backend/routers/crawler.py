@@ -171,6 +171,18 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
     import httpx
     import json
     from datetime import datetime
+    from urllib.parse import urljoin, urlparse
+
+    FILE_EXTENSIONS = {'.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.zip', '.rar', '.csv'}
+
+    # Ensure new columns exist
+    for col_sql in [
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS full_text TEXT",
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS images TEXT",
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS files TEXT",
+    ]:
+        db.execute(text(col_sql))
+    db.commit()
 
     urls = db.query(CrawlResult).filter(
         CrawlResult.customer_id == customer_id,
@@ -179,23 +191,47 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
 
     results = []
     async with httpx.AsyncClient(
-        timeout=8.0,
+        timeout=10.0,
         follow_redirects=True,
-        headers={'User-Agent': 'KOMPAGNON-ContentBot/1.0'},
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,*/*;q=0.9',
+            'Accept-Language': 'de-DE,de;q=0.9,en;q=0.7',
+        },
     ) as client:
         for crawl in urls:
             try:
                 res = await client.get(crawl.url)
                 soup = BeautifulSoup(res.text, 'html.parser')
+                base_url = crawl.url
 
                 title = soup.find('title')
                 meta  = soup.find('meta', attrs={'name': 'description'})
                 h1    = soup.find('h1')
                 h2s   = [h.get_text(strip=True) for h in soup.find_all('h2')[:5]]
 
+                # Extract image URLs (src attributes)
+                images = []
+                for img in soup.find_all('img', src=True):
+                    src = img['src'].strip()
+                    if src and not src.startswith('data:'):
+                        images.append(urljoin(base_url, src))
+
+                # Extract file links (href pointing to documents)
+                files = []
+                for a in soup.find_all('a', href=True):
+                    href = a['href'].strip()
+                    parsed = urlparse(href)
+                    ext = parsed.path.lower()
+                    if any(ext.endswith(fe) for fe in FILE_EXTENSIONS):
+                        files.append(urljoin(base_url, href))
+
+                # Remove noise tags, then extract full text
                 for tag in soup(['script', 'style', 'nav', 'footer', 'header']):
                     tag.decompose()
-                body_text = soup.get_text(separator=' ', strip=True)
+                full_text  = soup.get_text(separator='\n', strip=True)
+                body_text  = ' '.join(full_text.split())  # compact for word count
+                text_preview = body_text[:300]
 
                 entry = {
                     'customer_id':      customer_id,
@@ -204,7 +240,10 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
                     'meta_description': meta.get('content', '') if meta else '',
                     'h1':               h1.get_text(strip=True) if h1 else '',
                     'h2s':              json.dumps(h2s, ensure_ascii=False),
-                    'text_preview':     body_text[:300],
+                    'text_preview':     text_preview,
+                    'full_text':        full_text,
+                    'images':           json.dumps(list(dict.fromkeys(images)), ensure_ascii=False),
+                    'files':            json.dumps(list(dict.fromkeys(files)), ensure_ascii=False),
                     'word_count':       len(body_text.split()),
                     'scraped_at':       datetime.utcnow(),
                 }
@@ -218,7 +257,8 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
                         text(
                             "UPDATE website_content_cache "
                             "SET title=:title, meta_description=:meta_description, h1=:h1, "
-                            "h2s=:h2s, text_preview=:text_preview, word_count=:word_count, "
+                            "h2s=:h2s, text_preview=:text_preview, full_text=:full_text, "
+                            "images=:images, files=:files, word_count=:word_count, "
                             "scraped_at=:scraped_at WHERE id=:id"
                         ),
                         {**entry, 'id': existing[0]},
@@ -228,9 +268,9 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
                         text(
                             "INSERT INTO website_content_cache "
                             "(customer_id, url, title, meta_description, h1, h2s, "
-                            "text_preview, word_count, scraped_at) "
+                            "text_preview, full_text, images, files, word_count, scraped_at) "
                             "VALUES (:customer_id, :url, :title, :meta_description, :h1, "
-                            ":h2s, :text_preview, :word_count, :scraped_at)"
+                            ":h2s, :text_preview, :full_text, :images, :files, :word_count, :scraped_at)"
                         ),
                         entry,
                     )
@@ -250,7 +290,10 @@ def get_content(customer_id: int, db: Session = Depends(get_db)):
     rows = db.execute(
         text(
             "SELECT id, customer_id, url, title, meta_description, h1, h2s, "
-            "text_preview, word_count, scraped_at "
+            "text_preview, word_count, scraped_at, "
+            "COALESCE(full_text, '') as full_text, "
+            "COALESCE(images, '[]') as images, "
+            "COALESCE(files, '[]') as files "
             "FROM website_content_cache WHERE customer_id = :c ORDER BY scraped_at DESC"
         ),
         {"c": customer_id},
@@ -258,11 +301,9 @@ def get_content(customer_id: int, db: Session = Depends(get_db)):
 
     result = []
     for r in rows:
-        h2s_parsed = []
-        try:
-            h2s_parsed = json.loads(r[6]) if r[6] else []
-        except Exception:
-            pass
+        def _parse(val):
+            try: return json.loads(val) if val else []
+            except: return []
         result.append({
             'id':               r[0],
             'customer_id':      r[1],
@@ -270,9 +311,12 @@ def get_content(customer_id: int, db: Session = Depends(get_db)):
             'title':            r[3],
             'meta_description': r[4],
             'h1':               r[5],
-            'h2s':              h2s_parsed,
+            'h2s':              _parse(r[6]),
             'text_preview':     r[7],
             'word_count':       r[8],
             'scraped_at':       r[9].isoformat() if r[9] else None,
+            'full_text':        r[10],
+            'images':           _parse(r[11]),
+            'files':            _parse(r[12]),
         })
     return result

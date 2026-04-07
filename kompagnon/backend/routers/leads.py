@@ -778,14 +778,41 @@ def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db)):
 
 @router.delete("/{lead_id}")
 def delete_lead(lead_id: int, db: Session = Depends(get_db)):
-    """Delete a lead and all associated audits. Admin only."""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    """Delete a lead and all associated data in correct dependency order."""
+    # 1. Prüfen ob Lead existiert
+    lead = db.execute(
+        text("SELECT id FROM leads WHERE id = :id"), {"id": lead_id}
+    ).fetchone()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-    db.query(AuditResult).filter(AuditResult.lead_id == lead_id).delete()
-    db.delete(lead)
+
+    # 2. Verknüpfte Projekte finden
+    projects = db.execute(
+        text("SELECT id FROM projects WHERE lead_id = :id"), {"id": lead_id}
+    ).fetchall()
+    project_ids = [p[0] for p in projects]
+
+    # 3. Abhängige Daten der Projekte löschen (Reihenfolge wichtig)
+    for pid in project_ids:
+        db.execute(text("DELETE FROM project_checklists WHERE project_id = :id"), {"id": pid})
+        db.execute(text("DELETE FROM time_tracking WHERE project_id = :id"), {"id": pid})
+        db.execute(text("DELETE FROM briefings WHERE project_id = :id"), {"id": pid})
+        db.execute(text("DELETE FROM project_files WHERE lead_id = :id"), {"id": lead_id})
+
+    # 4. Projekte selbst löschen
+    if project_ids:
+        db.execute(text("DELETE FROM projects WHERE lead_id = :id"), {"id": lead_id})
+
+    # 5. Weitere Lead-abhängige Daten löschen
+    db.execute(text("DELETE FROM briefings WHERE lead_id = :id"), {"id": lead_id})
+    db.execute(text("DELETE FROM audit_results WHERE lead_id = :id"), {"id": lead_id})
+    db.execute(text("DELETE FROM email_logs WHERE lead_id = :id"), {"id": lead_id})
+
+    # 6. Lead selbst löschen
+    db.execute(text("DELETE FROM leads WHERE id = :id"), {"id": lead_id})
     db.commit()
-    return {"success": True, "message": "Lead geloescht"}
+
+    return {"deleted": True, "id": lead_id}
 
 
 @router.post("/{lead_id}/analyze")

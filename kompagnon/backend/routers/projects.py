@@ -371,74 +371,43 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
 @router.put("/{project_id}")
 def update_project(
     project_id: int,
-    body: ProjectUpdateRequest,
-    background_tasks: BackgroundTasks,
+    body: dict,
     db: Session = Depends(get_db),
 ):
-    """Update redesign fields on a project."""
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+    """Update project fields via raw SQL — avoids ORM column-mapping issues."""
+    from sqlalchemy import text as _text
 
-    old_status = project.status
+    existing = db.execute(
+        _text("SELECT id, status FROM projects WHERE id = :id"),
+        {"id": project_id}
+    ).fetchone()
+    if not existing:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
 
-    update_data = body.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(project, key, value)
-    db.commit()
-    db.refresh(project)
+    old_status = existing[1]
 
-    # E-Mail bei Phasenwechsel
-    new_status = project.status
-    notifications_on = getattr(project, "email_notifications_enabled", True)
-    to_email = getattr(project, "customer_email", None) or ""
-    if (
-        notifications_on
-        and new_status != old_status
-        and new_status
-        and new_status.startswith("phase_")
-        and to_email
-    ):
-        try:
-            phase_num = int(new_status.split("_")[1])
-            company = getattr(project, "company_name", "") or f"Projekt #{project.id}"
-            send_phase_change_email(to=to_email, company=company, phase=phase_num)
-        except Exception as exc:
-            logger.warning(f"Phase-E-Mail fehlgeschlagen für Projekt {project_id}: {exc}")
+    data = {k: v for k, v in body.items() if v is not None}
+    if data:
+        data["pid"] = project_id
+        sets = ", ".join(f"{k} = :{k}" for k in data if k != "pid")
+        db.execute(_text(f"UPDATE projects SET {sets} WHERE id = :pid"), data)
+        db.commit()
 
-    # Auto-Screenshot "after" beim Wechsel auf Go-Live (phase_6)
-    if new_status == "phase_6" and old_status != "phase_6":
-        background_tasks.add_task(_capture_project_screenshot_after, project_id)
-
-    # ── Go-Live Trigger (PUT) ────────────────────────────────
-    old_phase = old_status
-    new_phase = new_status
-    if old_phase != new_phase and new_phase in _GOLIVE_STATUSES:
+    # Go-Live Trigger
+    new_status = data.get("status", old_status)
+    if new_status != old_status and new_status in _GOLIVE_STATUSES:
         def _run():
             import asyncio
-            asyncio.run(_golive_automation(project.id))
+            asyncio.run(_golive_automation(project_id))
         threading.Thread(target=_run, daemon=True).start()
 
-    lead = project.lead
-    return {
-        "id": project.id,
-        "status": project.status,
-        "customer_name": getattr(project, "customer_name", None) or getattr(project, "company_name", None) or (lead.company_name if lead else ""),
-        "website_url": getattr(project, "website_url", None) or (lead.website_url if lead else ""),
-        "cms_type": getattr(project, "cms_type", None),
-        "contact_name": getattr(project, "contact_name", None),
-        "contact_phone": getattr(project, "contact_phone", None),
-        "contact_email": getattr(project, "contact_email", None),
-        "go_live_date": str(getattr(project, "go_live_date", None)) if getattr(project, "go_live_date", None) else None,
-        "package_type": getattr(project, "package_type", "kompagnon"),
-        "payment_status": getattr(project, "payment_status", "offen"),
-        "has_logo": getattr(project, "has_logo", False),
-        "has_briefing": getattr(project, "has_briefing", False),
-        "has_photos": getattr(project, "has_photos", False),
-        "fixed_price": getattr(project, "fixed_price", None),
-        "message": "Projekt aktualisiert",
-        "updated": list(update_data.keys()),
-    }
+    row = db.execute(
+        _text("SELECT * FROM projects WHERE id = :id"),
+        {"id": project_id}
+    ).fetchone()
+    if row:
+        return dict(row._mapping)
+    return {"success": True, "id": project_id}
 
 
 @router.patch("/{project_id}/phase")

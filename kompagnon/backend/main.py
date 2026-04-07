@@ -637,6 +637,11 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS actual_go_live TIMESTAMP",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS website_url VARCHAR",
+        # Go-Live Automation — additional project columns
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_email VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_mobile INTEGER",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_desktop INTEGER",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS golive_audit_id INTEGER",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

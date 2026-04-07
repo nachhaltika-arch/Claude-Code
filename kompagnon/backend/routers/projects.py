@@ -11,6 +11,8 @@ PATCH /api/projects/{id}/checklist/{item_key} - Check item
 GET /api/projects/{id}/margin - Get margin
 """
 import logging
+import threading
+import os
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -408,6 +410,15 @@ def update_project(
     if new_status == "phase_6" and old_status != "phase_6":
         background_tasks.add_task(_capture_project_screenshot_after, project_id)
 
+    # ── Go-Live Trigger (PUT) ────────────────────────────────
+    old_phase = old_status
+    new_phase = new_status
+    if old_phase != new_phase and new_phase in _GOLIVE_STATUSES:
+        def _run():
+            import asyncio
+            asyncio.run(_golive_automation(project.id))
+        threading.Thread(target=_run, daemon=True).start()
+
     lead = project.lead
     return {
         "id": project.id,
@@ -449,9 +460,16 @@ def change_phase(
     scheduler = get_scheduler()
     scheduler.trigger_phase_change(project_id, change_request.new_status)
 
-    # Go-Live Automation: trigger when project reaches phase 6+
-    if change_request.new_status in _GOLIVE_STATUSES:
-        _trigger_golive_automation(project_id, db)
+    # ── Go-Live Trigger ──────────────────────────────────────
+    new_status = change_request.new_status
+    is_golive  = new_status in _GOLIVE_STATUSES
+    if is_golive:
+        def _run_automation():
+            import asyncio
+            asyncio.run(_golive_automation(project_id))
+        t = threading.Thread(target=_run_automation, daemon=True)
+        t.start()
+        logger.info(f"Go-Live: Automatisierung gestartet ({project_id})")
 
     return {
         "project_id": project_id,
@@ -639,116 +657,282 @@ def request_approval(
 
 # ── Go-Live Automation ────────────────────────────────────────────────────────
 
-_GOLIVE_STATUSES = {"phase_6", "6", "go_live", "live", "golive", "phase_7", "7"}
+_GOLIVE_STATUSES = {"phase_6", "6", 6, "go_live", "live", "golive", "phase6"}
 
 
-def _trigger_golive_automation(project_id: int, db: Session) -> None:
+async def _golive_automation(project_id: int):
     """
-    Called after a project transitions to Phase 6+ (Go-Live / Fertig).
-    1. Records actual_go_live timestamp on the project row.
-    2. Takes a screenshot of the live website (if website_url is set).
-    3. Sends a Go-Live congratulation e-mail to the customer.
-    All steps are wrapped in try/except so a single failure never crashes the caller.
+    Läuft im Hintergrund nach Phase-6-Wechsel.
+    Macht: Screenshot, PageSpeed, Audit, E-Mail.
+    Kein raise — Fehler werden nur geloggt.
     """
-    import threading
-
-    def _run():
+    try:
         from database import SessionLocal
-        _db = SessionLocal()
+        db = SessionLocal()
         try:
-            proj = _db.query(Project).filter(Project.id == project_id).first()
-            if not proj:
+            project = db.query(Project).filter(
+                Project.id == project_id
+            ).first()
+            if not project:
                 return
 
-            # 1. Record actual_go_live
+            # Website-URL ermitteln
+            website_url = getattr(project, 'website_url', None)
+            if not website_url and project.lead:
+                website_url = project.lead.website_url
+            if not website_url:
+                logger.warning(f"Go-Live: Keine URL für Projekt {project_id}")
+                return
+
+            company = getattr(project, 'customer_name', None) or \
+                      (project.lead.company_name if project.lead else 'Ihr Betrieb')
+            customer_email = getattr(project, 'customer_email', None) or \
+                             (project.lead.email if project.lead else None)
+
+            # ── 1. GO-LIVE DATUM SETZEN ──────────────────────
+            project.actual_go_live = datetime.utcnow()
+            db.commit()
+            logger.info(f"Go-Live: Datum gesetzt für Projekt {project_id}")
+
+            # ── 2. NACHHER-SCREENSHOT ────────────────────────
             try:
-                proj.actual_go_live = datetime.utcnow()
-                _db.commit()
+                from services.screenshot import capture_screenshot
+                screenshot_b64 = await capture_screenshot(website_url)
+                if screenshot_b64:
+                    project.screenshot_after = screenshot_b64
+                    project.screenshot_after_date = datetime.utcnow()
+                    db.commit()
+                    logger.info(f"Go-Live: Screenshot gespeichert ({project_id})")
             except Exception as e:
-                logger.warning(f"Go-Live: actual_go_live setzen fehlgeschlagen: {e}")
-                _db.rollback()
+                logger.warning(f"Go-Live: Screenshot Fehler: {e}")
 
-            # 2. Screenshot of live website
-            website_url = getattr(proj, "website_url", None) or ""
-            if website_url:
-                try:
-                    import httpx
-                    api_key = __import__("os").getenv("SCREENSHOTONE_KEY", "")
-                    if api_key:
-                        params = {
-                            "access_key": api_key,
-                            "url": website_url,
-                            "format": "png",
-                            "viewport_width": 1280,
-                            "viewport_height": 800,
-                            "full_page": "false",
-                            "cache": "false",
-                        }
-                        resp = httpx.get(
-                            "https://api.screenshotone.com/take",
-                            params=params,
-                            timeout=30,
+            # ── 3. NACHHER-PAGESPEED ─────────────────────────
+            try:
+                import httpx
+                api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+
+                async def _ps(strategy):
+                    url = (
+                        "https://www.googleapis.com/pagespeedonline"
+                        f"/v5/runPagespeed?url={website_url}"
+                        f"&strategy={strategy}"
+                        + (f"&key={api_key}" if api_key else "")
+                    )
+                    async with httpx.AsyncClient(timeout=20.0) as c:
+                        r = await c.get(url)
+                        score = r.json().get("lighthouseResult", {}) \
+                                       .get("categories", {}) \
+                                       .get("performance", {}) \
+                                       .get("score", 0)
+                        return int((score or 0) * 100)
+
+                mobile  = await _ps("mobile")
+                desktop = await _ps("desktop")
+                project.pagespeed_after_mobile  = mobile
+                project.pagespeed_after_desktop = desktop
+                db.commit()
+                logger.info(
+                    f"Go-Live: PageSpeed Mobile={mobile} "
+                    f"Desktop={desktop} für Projekt {project_id}"
+                )
+            except Exception as e:
+                logger.warning(f"Go-Live: PageSpeed Fehler: {e}")
+
+            # ── 4. HOMEPAGE-STANDARD-AUDIT ───────────────────
+            try:
+                lead_id = project.lead_id
+                if lead_id:
+                    import httpx as _httpx
+                    backend_url = os.getenv(
+                        "BACKEND_URL",
+                        "http://localhost:8000"
+                    )
+                    async with _httpx.AsyncClient(timeout=5.0) as c:
+                        resp = await c.post(
+                            f"{backend_url}/api/audit/start",
+                            json={"lead_id": lead_id},
+                            headers={"Content-Type": "application/json"},
                         )
-                        if resp.status_code == 200:
-                            import base64
-                            b64 = "data:image/png;base64," + base64.b64encode(resp.content).decode()
-                            proj.screenshot_after = b64
-                            proj.screenshot_after_date = datetime.utcnow()
-                            _db.commit()
-                            logger.info(f"Go-Live: Screenshot gespeichert für Projekt {project_id}")
-                except Exception as e:
-                    logger.warning(f"Go-Live: Screenshot fehlgeschlagen: {e}")
+                    if resp.status_code in (200, 201, 202):
+                        logger.info(
+                            f"Go-Live: Audit gestartet für Lead {lead_id}"
+                        )
+                    else:
+                        logger.warning(
+                            f"Go-Live: Audit HTTP {resp.status_code}"
+                        )
+            except Exception as e:
+                logger.warning(f"Go-Live: Audit Fehler: {e}")
 
-            # 3. Go-Live congratulation e-mail
-            customer_email = (
-                getattr(proj, "customer_email", None)
-                or getattr(proj, "contact_email", None)
-                or ""
-            )
-            company = getattr(proj, "company_name", "") or f"Projekt #{project_id}"
+            # ── 5. GO-LIVE E-MAIL ────────────────────────────
             if customer_email:
                 try:
-                    from email_service import send_email
-                    live_url = website_url or "#"
-                    html = f"""
-<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto">
-  <div style="background:#008eaa;padding:28px 32px;border-radius:12px 12px 0 0">
-    <div style="font-size:13px;color:rgba(255,255,255,0.7);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">KOMPAGNON</div>
-    <div style="font-size:24px;font-weight:700;color:white">🚀 Ihre Website ist live!</div>
-  </div>
-  <div style="background:#f8fafc;padding:32px;border-radius:0 0 12px 12px">
-    <p style="font-size:16px;color:#1a2332;margin-top:0">Herzlichen Glückwunsch, {company}!</p>
-    <p style="font-size:14px;color:#475569;line-height:1.7">
-      Ihre neue Website ist ab sofort online und für alle Besucher erreichbar.
-      Wir sind stolz darauf, diesen wichtigen Schritt gemeinsam mit Ihnen gegangen zu sein.
-    </p>
-    <div style="text-align:center;margin:28px 0">
-      <a href="{live_url}" style="display:inline-block;padding:14px 32px;background:#008eaa;color:white;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px">
-        Website besuchen →
-      </a>
-    </div>
-    <p style="font-size:13px;color:#64748b;line-height:1.6">
-      Unser Team steht Ihnen weiterhin zur Verfügung.<br>
-      Bei Fragen oder Anpassungswünschen melden Sie sich jederzeit.
-    </p>
-    <p style="font-size:13px;color:#94a3b8;margin-bottom:0">
-      Herzliche Grüße<br><strong style="color:#1a2332">Das KOMPAGNON-Team</strong>
-    </p>
-  </div>
-</div>"""
-                    send_email(
-                        to=customer_email,
-                        subject=f"🚀 Ihre Website ist jetzt live — {company}",
-                        html_body=html,
-                    )
-                    logger.info(f"Go-Live: E-Mail gesendet an {customer_email} für Projekt {project_id}")
-                except Exception as e:
-                    logger.warning(f"Go-Live: E-Mail fehlgeschlagen: {e}")
-        finally:
-            _db.close()
+                    from services.email import send_email
+                    portal_url = os.getenv(
+                        "FRONTEND_URL",
+                        "https://kompagnon-frontend.onrender.com"
+                    ) + "/portal/login"
 
-    t = threading.Thread(target=_run, daemon=True)
-    t.start()
+                    ps_mobile  = getattr(project, 'pagespeed_after_mobile', None)
+                    ps_desktop = getattr(project, 'pagespeed_after_desktop', None)
+
+                    ps_abschnitt = ""
+                    if ps_mobile or ps_desktop:
+                        def ps_farbe(score):
+                            if not score: return "#94a3b8"
+                            if score >= 90: return "#1D9E75"
+                            if score >= 50: return "#BA7517"
+                            return "#E24B4A"
+
+                        ps_abschnitt = f"""
+                        <div style="background:#f8f9fa;border-radius:8px;
+                                    padding:14px 18px;margin:16px 0">
+                          <div style="font-size:11px;font-weight:600;
+                                      color:#64748b;text-transform:uppercase;
+                                      letter-spacing:0.06em;margin-bottom:10px">
+                            Ihr Website-Score
+                          </div>
+                          <div style="display:flex;gap:20px">
+                            <div style="text-align:center">
+                              <div style="font-size:28px;font-weight:700;
+                                          color:{ps_farbe(ps_mobile)}">
+                                {ps_mobile or '—'}
+                              </div>
+                              <div style="font-size:11px;color:#94a3b8">
+                                Mobil
+                              </div>
+                            </div>
+                            <div style="text-align:center">
+                              <div style="font-size:28px;font-weight:700;
+                                          color:{ps_farbe(ps_desktop)}">
+                                {ps_desktop or '—'}
+                              </div>
+                              <div style="font-size:11px;color:#94a3b8">
+                                Desktop
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        """
+
+                    html = f"""
+                    <div style="font-family:Arial,sans-serif;
+                                max-width:600px;margin:0 auto">
+                      <div style="background:#1D9E75;padding:28px;
+                                  text-align:center;
+                                  border-radius:12px 12px 0 0">
+                        <div style="font-size:44px;margin-bottom:8px">🚀</div>
+                        <h1 style="color:white;margin:0;font-size:22px">
+                          Ihre Website ist jetzt live!
+                        </h1>
+                      </div>
+                      <div style="padding:28px 32px;background:#ffffff">
+                        <p style="font-size:15px;color:#1a2332;margin-top:0">
+                          Herzlichen Glückwunsch, {company}!
+                        </p>
+                        <p style="color:#64748b;line-height:1.7;font-size:13px">
+                          Ihre neue Website ist ab sofort online erreichbar.
+                          Wir haben sie nach unserem Homepage Standard 2025
+                          geprüft und optimiert.
+                        </p>
+
+                        <div style="background:#F0FDF4;
+                                    border:1.5px solid #BBF7D0;
+                                    border-radius:8px;padding:14px 18px;
+                                    margin:16px 0">
+                          <div style="font-size:11px;font-weight:600;
+                                      color:#166534;margin-bottom:6px">
+                            IHRE NEUE WEBSITE
+                          </div>
+                          <a href="{website_url}"
+                             style="color:#008eaa;font-size:16px;
+                                    font-weight:600;text-decoration:none">
+                            {website_url}
+                          </a>
+                        </div>
+
+                        {ps_abschnitt}
+
+                        <h3 style="color:#1a2332;font-size:14px;
+                                   margin:20px 0 10px">
+                          Was jetzt passiert:
+                        </h3>
+                        <table style="width:100%">
+                          <tr>
+                            <td style="padding:5px 0;vertical-align:top;
+                                       width:20px;color:#1D9E75">✓</td>
+                            <td style="padding:5px 0;font-size:12px;
+                                       color:#64748b">
+                              Google meldet Ihre Website in 1–3 Tagen
+                              als indexiert
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:5px 0;vertical-align:top;
+                                       color:#1D9E75">✓</td>
+                            <td style="padding:5px 0;font-size:12px;
+                                       color:#64748b">
+                              Wir begleiten Sie noch 30 Tage im
+                              Post-Launch
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:5px 0;vertical-align:top;
+                                       color:#1D9E75">✓</td>
+                            <td style="padding:5px 0;font-size:12px;
+                                       color:#64748b">
+                              Ihr Homepage-Audit-Report folgt per E-Mail
+                            </td>
+                          </tr>
+                        </table>
+
+                        <div style="text-align:center;margin-top:24px">
+                          <a href="{portal_url}"
+                             style="display:inline-block;
+                                    background:#008eaa;color:white;
+                                    padding:13px 28px;border-radius:8px;
+                                    text-decoration:none;font-weight:600;
+                                    font-size:14px">
+                            Zum Kundenportal →
+                          </a>
+                        </div>
+
+                        <p style="color:#94a3b8;font-size:11px;
+                                  margin-top:20px">
+                          Fragen?
+                          <a href="mailto:info@kompagnon.eu"
+                             style="color:#008eaa">
+                            info@kompagnon.eu
+                          </a>
+                        </p>
+                      </div>
+                      <div style="padding:14px;background:#f8f9fa;
+                                  text-align:center;
+                                  border-radius:0 0 12px 12px">
+                        <p style="color:#94a3b8;font-size:11px;margin:0">
+                          KOMPAGNON Communications BP GmbH
+                          &bull; kompagnon.eu
+                        </p>
+                      </div>
+                    </div>
+                    """
+
+                    send_email(
+                        to_email  = customer_email,
+                        subject   = f"🚀 Ihre Website ist live — {company}",
+                        html_body = html,
+                    )
+                    logger.info(
+                        f"Go-Live: E-Mail gesendet an {customer_email}"
+                    )
+                except Exception as e:
+                    logger.error(f"Go-Live: E-Mail Fehler: {e}")
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"Go-Live Automation Fehler: {e}")
 
 
 @router.post("/from-lead/{lead_id}", status_code=201)

@@ -528,6 +528,8 @@ export default function ProjectDetail() {
   // Audits
   const [audits, setAudits] = useState([]);
   const [openAudit, setOpenAudit] = useState(null);
+  // Briefing Lead
+  const [briefingLead, setBriefingLead] = useState(null);
   // Domain-Check
   const [domainChecking, setDomainChecking] = useState(false);
   // Netlify
@@ -601,6 +603,17 @@ export default function ProjectDetail() {
   }, [project?.lead_id]); // eslint-disable-line
 
   useEffect(() => { if (project?.lead_id) loadAudits(); }, [project?.lead_id]); // eslint-disable-line
+
+  const loadBriefingLead = useCallback(async () => {
+    if (!project?.lead_id || briefingLead) return;
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/leads/${project.lead_id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.ok) setBriefingLead(await res.json());
+    } catch (e) { console.error(e); }
+  }, [project?.lead_id, briefingLead]); // eslint-disable-line
 
   // Sync activePhase from project status on load
   useEffect(() => {
@@ -1076,8 +1089,36 @@ export default function ProjectDetail() {
       )}
 
       {/* ── Briefing Tab ────────────────────────────────────────────────────── */}
-      {activeTab === 'briefing' && project.lead_id && (
-        <BriefingTab lead={{ id: project.lead_id }} isMobile={false} />
+      {activeTab === 'briefing' && (
+        <div>
+          {!briefingLead ? (
+            <div style={{ textAlign: 'center', padding: '32px 20px', color: 'var(--text-tertiary)', fontSize: 13 }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
+              <div>Briefing wird geladen…</div>
+              {(() => { loadBriefingLead(); return null; })()}
+            </div>
+          ) : (
+            <>
+              <div style={{
+                background: 'var(--status-info-bg)',
+                border: '1px solid var(--border-medium)',
+                borderRadius: 'var(--radius-md)',
+                padding: '10px 14px',
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                marginBottom: 16,
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <span>ℹ️</span>
+                <span>
+                  Dies ist das <strong>Unternehmensbriefing</strong> aus der Kundenkartei.
+                  Im Prozessschritt „Briefing" wird das projektspezifische Briefing ergänzt.
+                </span>
+              </div>
+              <BriefingTab lead={briefingLead} isMobile={isMobile} />
+            </>
+          )}
+        </div>
       )}
 
       {/* ── BrandDesign Tab ─────────────────────────────────────────────────── */}

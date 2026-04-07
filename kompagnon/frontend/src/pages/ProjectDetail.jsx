@@ -1083,6 +1083,7 @@ export default function ProjectDetail() {
                 <div key={tool.id} onClick={() => {
                   setActiveTab(SUB_TAB_MAP[tool.id] || tool.id);
                   setActiveSubTab(TOOL_SUBTAB_MAP[tool.id] || tool.id);
+                  if (tool.id === 'unternehmen') setShowBriefingWizard(true);
                 }} style={{
                   flex: '0 0 120px', minWidth: 120,
                   background: isActive ? 'var(--brand-primary-light)' : 'var(--bg-surface)',

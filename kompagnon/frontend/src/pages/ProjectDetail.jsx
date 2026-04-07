@@ -2349,6 +2349,132 @@ export default function ProjectDetail() {
         );
       })()}
 
+      {/* ── Audit Tab ──────────────────────────────────────────────────────── */}
+      {activeSubTab === 'audit' && (
+        <div style={{ background: 'var(--bg-app)', border: '2px dashed var(--border-light)', borderRadius: 8, padding: 40, textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Website-Audit</div>
+          {project.lead_id ? (
+            <a href={`/app/leads/${project.lead_id}`} style={{ color: '#0d6efd', fontSize: 13 }}>
+              Zum Audit in der Kundenkartei →
+            </a>
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Kein Lead verknüpft. Bitte Projektdaten bearbeiten.</div>
+          )}
+        </div>
+      )}
+
+      {/* ── Preview Tab ────────────────────────────────────────────────────── */}
+      {activeSubTab === 'preview' && (
+        <div className="kc-card" style={{ textAlign: 'center', padding: 32 }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>👁</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Website-Vorschau</div>
+          {project.website_url ? (
+            <a href={project.website_url} target="_blank" rel="noopener noreferrer"
+              style={{ display: 'inline-block', marginTop: 8, padding: '10px 24px', background: '#0d6efd', color: '#fff', borderRadius: 8, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+              {project.website_url} →
+            </a>
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Keine Website-URL hinterlegt.</div>
+          )}
+        </div>
+      )}
+
+      {/* ── Editor Tab ─────────────────────────────────────────────────────── */}
+      {activeSubTab === 'editor' && (
+        <div style={{ background: 'var(--bg-app)', border: '2px dashed var(--border-light)', borderRadius: 8, padding: 40, textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>✏️</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>GrapesJS Editor</div>
+          <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Seite aus dem Sitemap-Planer auswählen, um den Editor zu öffnen.</div>
+        </div>
+      )}
+
+      {/* ── Netlify-DNS Tab ────────────────────────────────────────────────── */}
+      {activeSubTab === 'netlify-dns' && (
+        <div style={{ background: 'var(--bg-app)', border: '2px dashed var(--border-light)', borderRadius: 8, padding: 40, textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>🌐</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+            Netlify DNS-Einstellungen{project.website_url ? ` für ${project.website_url}` : ''} konfigurieren
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 16 }}>Diese Funktion ist in Entwicklung</div>
+          <a href="https://app.netlify.com" target="_blank" rel="noopener noreferrer"
+            style={{ color: '#0d6efd', fontSize: 13, fontWeight: 600 }}>Netlify öffnen →</a>
+        </div>
+      )}
+
+      {/* ── Go-Live Vorbereitung Tab ────────────────────────────────────────── */}
+      {activeSubTab === 'golive-prep' && activeTab === 'overview' && (
+        <div className="kc-card">
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>🚀 Go-Live Vorbereitung</div>
+          <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
+            Vorher/Nachher-Screenshots und Website-Vergleich: Wechsle zu Übersicht → Unternehmen für den Screenshot-Bereich.
+          </div>
+        </div>
+      )}
+
+      {/* ── Live-Daten Tab ─────────────────────────────────────────────────── */}
+      {activeSubTab === 'live-data' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="kc-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+            <InfoBlock label="Phase" value={project.status?.replace('phase_', 'Phase ') || '—'} />
+            <InfoBlock label="PageSpeed Mobile" value={project.pagespeed_mobile != null ? `${project.pagespeed_mobile}/100` : '—'} mono />
+            <InfoBlock label="PageSpeed Desktop" value={project.pagespeed_desktop != null ? `${project.pagespeed_desktop}/100` : '—'} mono />
+            <InfoBlock label="Domain erreichbar" value={project.domain_reachable === true ? '✅ Ja' : project.domain_reachable === false ? '❌ Nein' : '—'} />
+            {project.domain_checked_at && <InfoBlock label="Zuletzt geprüft" value={new Date(project.domain_checked_at).toLocaleDateString('de-DE')} />}
+          </div>
+        </div>
+      )}
+
+      {/* ── Hosting-Zugangsdaten Tab ────────────────────────────────────────── */}
+      {activeSubTab === 'hosting-keys' && (
+        <div style={{ background: 'var(--bg-app)', border: '2px dashed var(--border-light)', borderRadius: 8, padding: 40, textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>🔑</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Hosting-Zugangsdaten</div>
+          <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Sicher verschlüsselt — Zugangsdaten-Safe (in Entwicklung)</div>
+        </div>
+      )}
+
+      {/* ── Trustpilot Tab ─────────────────────────────────────────────────── */}
+      {activeSubTab === 'trustpilot' && (
+        <div className="kc-card" style={{ textAlign: 'center', padding: 32 }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⭐</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Trustpilot-Bewertung anfragen</div>
+          <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 20 }}>
+            Fordere deinen Kunden auf, eine Bewertung auf Trustpilot zu hinterlassen.
+          </div>
+          <button onClick={() => setShowApproval(true)}
+            style={{ padding: '10px 28px', background: '#00b67a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+            ⭐ Bewertungsanfrage senden
+          </button>
+        </div>
+      )}
+
+      {/* ── Upsell Tab ─────────────────────────────────────────────────────── */}
+      {activeSubTab === 'upsell' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>💼 Upsell-Produkte</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+            {[
+              { name: 'SEO-Retainer', price: '129€/Monat', features: ['Monatliche Keyword-Analyse', 'On-Page Optimierung', 'Monatlicher Report'] },
+              { name: 'Wartungspaket', price: '49€/Monat', features: ['Updates & Sicherheit', 'Backup täglich', 'Support per Chat'] },
+              { name: 'Digital Rundum', price: '249€/Monat', features: ['SEO + Wartung', 'Google Ads Management', 'Monatliches Strategie-Call'] },
+            ].map(pkg => (
+              <div key={pkg.name} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 10, padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{pkg.name}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#0d6efd' }}>{pkg.price}</div>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                  {pkg.features.map(f => <li key={f}>{f}</li>)}
+                </ul>
+                <button onClick={() => setShowApproval(true)}
+                  style={{ marginTop: 'auto', padding: '8px 0', background: '#0d6efd', color: '#fff', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  Angebot senden
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Edit Modal ──────────────────────────────────────────────────────── */}
       {showEdit && (
         <EditModal

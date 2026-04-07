@@ -610,6 +610,7 @@ export default function ProjectDetail() {
   const [qaResult, setQaResult]   = useState(null);
   const [qaRunning, setQaRunning] = useState(false);
   const [qaError, setQaError]     = useState('');
+  const [openKat, setOpenKat]     = useState(null);
   // Domain-Check
   const [domainChecking, setDomainChecking] = useState(false);
   // Netlify
@@ -3031,7 +3032,6 @@ export default function ProjectDetail() {
         const ai = qaResult?.result?.ai || {};
         const checks = qaResult?.result?.checks || {};
         const score = qaResult?.score ?? ai.gesamt_score ?? null;
-        const [openKat, setOpenKat] = React.useState(null);
 
         return (
           <div style={{ maxWidth: 760, padding: '0 0 40px' }}>

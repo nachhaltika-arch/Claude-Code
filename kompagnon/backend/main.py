@@ -584,6 +584,7 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_after_date TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_url_before VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_url_after VARCHAR",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS unread_messages INTEGER DEFAULT 0",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

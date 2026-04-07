@@ -714,6 +714,20 @@ class ProjectScrapeJob(Base):
     completed_at = Column(DateTime)
 
 
+class Message(Base):
+    __tablename__ = "messages"
+    id          = Column(Integer, primary_key=True)
+    lead_id     = Column(Integer, ForeignKey("leads.id"), nullable=False)
+    sender_role = Column(String, nullable=False)   # "admin" | "kunde"
+    sender_name = Column(String)                   # z.B. "David" oder Firmenname
+    channel     = Column(String, default="in_app") # "in_app" | "email"
+    subject     = Column(String)                   # nur bei channel="email"
+    content     = Column(Text, nullable=False)
+    is_read     = Column(Boolean, default=False)
+    read_at     = Column(DateTime, nullable=True)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+
+
 def init_db():
     """Create all tables."""
     Base.metadata.create_all(bind=engine)

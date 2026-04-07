@@ -639,6 +639,19 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS wz_title VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS wz_code VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS wz_title VARCHAR",
+        # email_logs Tabelle
+        """CREATE TABLE IF NOT EXISTS email_logs (
+          id SERIAL PRIMARY KEY,
+          lead_id INTEGER,
+          project_id INTEGER,
+          recipient VARCHAR,
+          subject VARCHAR,
+          body TEXT,
+          sent_at TIMESTAMP DEFAULT NOW(),
+          status VARCHAR DEFAULT 'sent'
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_email_logs_lead ON email_logs(lead_id)",
+        "CREATE INDEX IF NOT EXISTS idx_email_logs_project ON email_logs(project_id)",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

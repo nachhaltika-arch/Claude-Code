@@ -526,6 +526,14 @@ export default function ProjectDetail() {
   const [activeContentPage, setActiveContentPage] = useState(null);
   // Domain-Check
   const [domainChecking, setDomainChecking] = useState(false);
+  // Netlify
+  const [netlify, setNetlify] = useState(null);
+  const [netlifyLoading, setNetlifyLoading] = useState(false);
+  const [deployHtml, setDeployHtml] = useState('');
+  const [netlifyDomain, setNetlifyDomain] = useState('');
+  const [netlifyDnsGuide, setNetlifyDnsGuide] = useState(null); // { cname_target }
+  const [netlifyDeploying, setNetlifyDeploying] = useState(false);
+  const [netlifyDeployResult, setNetlifyDeployResult] = useState(null);
   // Nachrichten
   const [chatMessages, setChatMessages] = useState([]);
   const [chatText, setChatText] = useState('');
@@ -2390,17 +2398,198 @@ export default function ProjectDetail() {
       )}
 
       {/* ── Netlify-DNS Tab ────────────────────────────────────────────────── */}
-      {activeSubTab === 'netlify-dns' && (
-        <div style={{ background: 'var(--bg-app)', border: '2px dashed var(--border-light)', borderRadius: 8, padding: 40, textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🌐</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
-            Netlify DNS-Einstellungen{project.website_url ? ` für ${project.website_url}` : ''} konfigurieren
+      {activeSubTab === 'netlify-dns' && (() => {
+        // Load status on first open
+        if (!netlify && !netlifyLoading) {
+          setNetlifyLoading(true);
+          fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers })
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { setNetlify(d); setNetlifyLoading(false); })
+            .catch(() => setNetlifyLoading(false));
+        }
+
+        const createSite = async () => {
+          setNetlifyLoading(true);
+          try {
+            const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/create-site`, { method: 'POST', headers });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            toast.success('Netlify-Site angelegt');
+            // reload status
+            const s = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers });
+            setNetlify(s.ok ? await s.json() : null);
+          } catch (e) { toast.error('Fehler: ' + e.message); }
+          finally { setNetlifyLoading(false); }
+        };
+
+        const doDeploy = async () => {
+          if (!deployHtml.trim()) { toast.error('HTML-Code fehlt'); return; }
+          setNetlifyDeploying(true);
+          setNetlifyDeployResult(null);
+          try {
+            const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/deploy`, {
+              method: 'POST',
+              headers: { ...headers, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ html: deployHtml, css: '', redirects: '' }),
+            });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const d = await r.json();
+            setNetlifyDeployResult(d);
+            toast.success('Erfolgreich deployed');
+          } catch (e) { toast.error('Deploy fehlgeschlagen: ' + e.message); }
+          finally { setNetlifyDeploying(false); }
+        };
+
+        const doSetDomain = async () => {
+          if (!netlifyDomain.trim()) { toast.error('Bitte Domain eingeben'); return; }
+          try {
+            const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/set-domain`, {
+              method: 'POST',
+              headers: { ...headers, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ domain: netlifyDomain.trim() }),
+            });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const d = await r.json();
+            setNetlifyDnsGuide({ cname_target: d.cname_target || netlify?.url?.replace('https://', '') || '' });
+            toast.success('Domain verbunden');
+          } catch (e) { toast.error('Fehler: ' + e.message); }
+        };
+
+        const sendDnsEmail = async () => {
+          const siteUrl = netlify?.url?.replace('https://', '') || netlifyDnsGuide?.cname_target || '';
+          try {
+            await fetch(`${API_BASE_URL}/api/projects/${project.id}/request-approval`, {
+              method: 'POST',
+              headers: { ...headers, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                topic: 'DNS-Einrichtung erforderlich',
+                notes: `Bitte tragen Sie folgenden CNAME-Eintrag ein:\nName: www\nZiel: ${siteUrl}\nTTL: 3600`,
+              }),
+            });
+            toast.success('Anleitung per E-Mail gesendet');
+          } catch { toast.error('E-Mail konnte nicht gesendet werden'); }
+        };
+
+        const card = { background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 10, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 };
+        const cardTitle = { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 };
+        const inp = { width: '100%', padding: '8px 10px', border: '1px solid var(--border-medium)', borderRadius: 6, fontSize: 13, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box', outline: 'none' };
+        const btnBlue = { padding: '9px 20px', background: netlifyLoading ? '#94a3b8' : '#0d6efd', color: '#fff', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: netlifyLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' };
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* ── BEREICH 1: Site-Status ── */}
+            <div style={card}>
+              <div style={cardTitle}>🌐 Netlify-Site</div>
+              {netlifyLoading && !netlify ? (
+                <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Lade Status…</div>
+              ) : !netlify ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
+                  <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Noch keine Netlify-Site angelegt.</div>
+                  <button onClick={createSite} disabled={netlifyLoading} style={btnBlue}>
+                    {netlifyLoading ? 'Anlegen…' : '+ Netlify-Site anlegen'}
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ background: '#dcfce7', color: '#16a34a', borderRadius: 20, padding: '2px 10px', fontSize: 11, fontWeight: 700 }}>✓ Site aktiv</span>
+                    {netlify.ssl ? (
+                      <span style={{ background: '#dcfce7', color: '#16a34a', borderRadius: 20, padding: '2px 10px', fontSize: 11, fontWeight: 700 }}>🔒 SSL aktiv</span>
+                    ) : (
+                      <span style={{ background: '#fef9c3', color: '#854d0e', borderRadius: 20, padding: '2px 10px', fontSize: 11, fontWeight: 700 }}>⏳ SSL ausstehend</span>
+                    )}
+                  </div>
+                  {netlify.url && (
+                    <a href={netlify.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#0d6efd', wordBreak: 'break-all' }}>{netlify.url}</a>
+                  )}
+                  {netlify.netlify_last_deploy && (
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                      Letzter Deploy: {new Date(netlify.netlify_last_deploy).toLocaleString('de-DE')}
+                    </div>
+                  )}
+                  <button onClick={async () => {
+                    setNetlifyLoading(true);
+                    const s = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers });
+                    setNetlify(s.ok ? await s.json() : null);
+                    setNetlifyLoading(false);
+                  }} disabled={netlifyLoading} style={{ ...btnBlue, background: 'var(--bg-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', width: 'fit-content' }}>
+                    🔄 Status aktualisieren
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* ── BEREICH 2: Deployen ── */}
+            {netlify && (
+              <div style={card}>
+                <div style={cardTitle}>🚀 Deployen</div>
+                <textarea
+                  value={deployHtml}
+                  onChange={e => setDeployHtml(e.target.value)}
+                  rows={5}
+                  placeholder="HTML aus GrapesJS einfügen..."
+                  style={{ ...inp, resize: 'vertical', fontFamily: 'monospace', fontSize: 12 }}
+                />
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>CSS und _redirects werden automatisch ergänzt.</div>
+                <button onClick={doDeploy} disabled={netlifyDeploying} style={{ ...btnBlue, background: netlifyDeploying ? '#94a3b8' : '#0d6efd', cursor: netlifyDeploying ? 'not-allowed' : 'pointer', alignSelf: 'stretch', padding: '10px 0' }}>
+                  {netlifyDeploying ? '⏳ Deploy läuft (~5 Sek.)…' : '🚀 Jetzt deployen'}
+                </button>
+                {netlifyDeployResult && (
+                  <div style={{ background: '#dcfce7', borderRadius: 7, padding: '10px 14px', fontSize: 13 }}>
+                    ✅ Deploy erfolgreich —{' '}
+                    <a href={netlifyDeployResult.deploy_url} target="_blank" rel="noopener noreferrer" style={{ color: '#16a34a', fontWeight: 600 }}>
+                      {netlifyDeployResult.deploy_url}
+                    </a>
+                    <span style={{ marginLeft: 8, color: '#166534' }}>({netlifyDeployResult.state})</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── BEREICH 3: Domain verbinden ── */}
+            {netlify && (
+              <div style={card}>
+                <div style={cardTitle}>🔗 Domain verbinden</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    value={netlifyDomain}
+                    onChange={e => setNetlifyDomain(e.target.value)}
+                    placeholder="www.kundenwebsite.de"
+                    style={{ ...inp, flex: 1 }}
+                  />
+                  <button onClick={doSetDomain} style={{ ...btnBlue, whiteSpace: 'nowrap' }}>Domain verbinden</button>
+                </div>
+
+                {netlifyDnsGuide && (
+                  <div style={{ background: '#E6F1FB', border: '1px solid #93c5fd', borderRadius: 8, padding: 16, marginTop: 4 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#185FA5', marginBottom: 10 }}>
+                      DNS-Eintrag beim Domain-Anbieter setzen:
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <tbody>
+                        {[
+                          ['Typ',  'CNAME'],
+                          ['Name', 'www'],
+                          ['Ziel', netlifyDnsGuide.cname_target],
+                          ['TTL',  '3600'],
+                        ].map(([k, v]) => (
+                          <tr key={k}>
+                            <td style={{ padding: '4px 12px 4px 0', color: '#185FA5', fontWeight: 600, whiteSpace: 'nowrap' }}>{k}</td>
+                            <td style={{ padding: '4px 0', color: '#1e3a5f', fontFamily: 'monospace' }}>{v}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <button onClick={sendDnsEmail} style={{ marginTop: 12, padding: '7px 16px', background: '#185FA5', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      ✉️ Anleitung per E-Mail senden
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 16 }}>Diese Funktion ist in Entwicklung</div>
-          <a href="https://app.netlify.com" target="_blank" rel="noopener noreferrer"
-            style={{ color: '#0d6efd', fontSize: 13, fontWeight: 600 }}>Netlify öffnen →</a>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Go-Live Vorbereitung Tab ────────────────────────────────────────── */}
       {activeSubTab === 'golive-prep' && activeTab === 'overview' && (

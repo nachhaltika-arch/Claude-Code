@@ -12,7 +12,7 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db
-from routers.auth_router import require_any_auth
+from routers.auth_router import require_any_auth, get_current_user
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 import asyncio
@@ -815,6 +815,46 @@ def complete_onboarding(token: str, data: dict, db: Session = Depends(get_db)):
             if anmerkungen:   parts.append(f"Anmerkungen: {anmerkungen}")
             if parts:
                 lead.notes = ((lead.notes or '') + '\n' + '\n'.join(parts)).strip()
+
+    db.commit()
+    return {"success": True}
+
+
+@router.post("/portal-auth/complete-onboarding")
+def portal_auth_complete_onboarding(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """JWT-geschützter Onboarding-Abschluss für Kunden."""
+    from database import User as UserModel
+    if current_user.role != 'kunde':
+        raise HTTPException(403, "Nur für Kunden zugänglich")
+
+    lead_id = data.get('lead_id') or current_user.lead_id
+    if not lead_id:
+        raise HTTPException(400, "lead_id fehlt")
+
+    if current_user.lead_id and current_user.lead_id != lead_id:
+        raise HTTPException(403, "Zugriff verweigert")
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    if data.get('website_url'):
+        lead.website_url = data['website_url']
+
+    lead.onboarding_completed = True
+    lead.onboarding_completed_at = datetime.utcnow()
+
+    parts = []
+    if data.get('gewerk'):        parts.append(f"Gewerk: {data['gewerk']}")
+    if data.get('leistungen'):    parts.append(f"Leistungen: {data['leistungen']}")
+    if data.get('einzugsgebiet'): parts.append(f"Einzugsgebiet: {data['einzugsgebiet']}")
+    if data.get('anmerkungen'):   parts.append(f"Anmerkungen: {data['anmerkungen']}")
+    if parts:
+        lead.notes = ((lead.notes or '') + '\n---\nOnboarding:\n' + '\n'.join(parts)).strip()
 
     db.commit()
     return {"success": True}

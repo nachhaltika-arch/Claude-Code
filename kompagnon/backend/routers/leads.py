@@ -1487,6 +1487,28 @@ def delete_lead_domain(lead_id: int, domain_id: int, db: Session = Depends(get_d
     return {"ok": True}
 
 
+@router.post("/{lead_id}/domain-check")
+async def domain_check_lead(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
+    """Manueller Domain-Check für einen Lead."""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+    if not lead.website_url:
+        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
+    from services.domain_checker import check_domain
+    result = await check_domain(lead.website_url)
+    lead.domain_reachable   = result["reachable"]
+    lead.domain_status_code = result.get("status_code")
+    lead.domain_checked_at  = datetime.utcnow()
+    db.commit()
+    return {
+        "reachable":    lead.domain_reachable,
+        "status_code":  lead.domain_status_code,
+        "checked_at":   lead.domain_checked_at.isoformat(),
+        "website_url":  lead.website_url,
+    }
+
+
 # ── /api/customers aliases for all /{lead_id}/... endpoints ─────────────────
 # Registers identical handlers under /api/customers/{lead_id}/... so that
 # frontend calls to either prefix work transparently.
@@ -1510,3 +1532,4 @@ customers_alias_router.add_api_route("/{lead_id}/qr-code",          get_qr_code,
 customers_alias_router.add_api_route("/{lead_id}/qr-code/refresh",  refresh_qr_code,      methods=["POST"])
 customers_alias_router.add_api_route("/{lead_id}/pagespeed",        get_lead_pagespeed,   methods=["GET"])
 customers_alias_router.add_api_route("/{lead_id}/pagespeed",        run_lead_pagespeed,   methods=["POST"])
+customers_alias_router.add_api_route("/{lead_id}/domain-check",     domain_check_lead,    methods=["POST"])

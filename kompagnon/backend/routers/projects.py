@@ -928,3 +928,30 @@ def hosting_info(
         raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
 
     return dict(row)
+
+
+
+@router.post("/{project_id}/domain-check")
+async def domain_check_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(get_current_user),
+):
+    """Manueller Domain-Check für ein Projekt."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+    if not project.website_url:
+        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
+    from services.domain_checker import check_domain
+    result = await check_domain(project.website_url)
+    project.domain_reachable   = result["reachable"]
+    project.domain_status_code = result.get("status_code")
+    project.domain_checked_at  = datetime.utcnow()
+    db.commit()
+    return {
+        "reachable":   project.domain_reachable,
+        "status_code": project.domain_status_code,
+        "checked_at":  project.domain_checked_at.isoformat(),
+        "website_url": project.website_url,
+    }

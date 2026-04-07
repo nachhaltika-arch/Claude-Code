@@ -813,14 +813,24 @@ async def lifespan(app: FastAPI):
 
     await db_startup()
 
-    # Scheduler separat — darf nicht blockieren
-    try:
-        start_scheduler()
-        logger.info("✓ Scheduler gestartet")
-    except Exception as e:
-        logger.warning(f"⚠ Scheduler: {e}")
+    # Scheduler separat — in eigenem Timeout
+    async def start_scheduler_safe():
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as pool:
+            try:
+                await asyncio.wait_for(
+                    loop.run_in_executor(pool, start_scheduler),
+                    timeout=5.0,
+                )
+                logger.info("✓ Scheduler gestartet")
+            except asyncio.TimeoutError:
+                logger.warning("⚠ Scheduler Timeout — wird übersprungen")
+            except Exception as e:
+                logger.warning(f"⚠ Scheduler Fehler: {e}")
 
-    logger.info("✅ KOMPAGNON bereit")
+    await start_scheduler_safe()
+
+    logger.info("✅ KOMPAGNON bereit — Port wird geöffnet")
     yield
 
     # Shutdown

@@ -93,6 +93,7 @@ const PHASE_MENU = {
 
 const PHASE_TOOLS = {
   'onboarding': [
+    { id: 'null-uebersicht', label: 'Null-Übersicht',       icon: '📊', sub: 'Status · Marge · Nachrichten' },
     { id: 'audits',          label: 'Audit',                icon: '🔍', sub: 'Bericht' },
     { id: 'unternehmen',     label: 'Briefing Unternehmen', icon: '🏢', sub: 'Stammdaten' },
     { id: 'crawler',         label: 'Crawler',              icon: '🕷️', sub: 'URLs erfasst' },
@@ -504,6 +505,8 @@ export default function ProjectDetail() {
   const [showEdit, setShowEdit]       = useState(false);
   const [showApproval, setShowApproval] = useState(false);
   const [showBriefingWizard, setShowBriefingWizard] = useState(false);
+  const [showNewMessageModal, setShowNewMessageModal] = useState(false);
+  const [newMessageText, setNewMessageText] = useState('');
   const [briefingData, setBriefingData] = useState(null);
   // Checklists (lazy audit load)
   const [latestAudit, setLatestAudit] = useState(null);
@@ -3085,6 +3088,131 @@ export default function ProjectDetail() {
           leadData={project}
           onClose={() => { setShowSitemapPlaner(false); loadSitemapPages(); }}
         />
+      )}
+
+      {/* ── Null-Übersicht Tab ──────────────────────────────────────────────── */}
+      {activeTab === 'null-uebersicht' && (() => {
+        const phaseNum  = parseInt((project.status || '').replace('phase_', '')) || 1;
+        const phaseName = ['Onboarding','Briefing','Content','Technik','Go Live','QM','Post-Launch','Fertig'][phaseNum - 1] || 'Onboarding';
+        const statusColor = project.status?.includes('abgeschlossen')
+          ? { bg: '#f3f4f6', text: '#6b7280' }
+          : project.status?.includes('pausiert')
+          ? { bg: '#fef3c7', text: '#92400e' }
+          : { bg: '#dcfce7', text: '#166534' };
+        const statusLabel = project.status?.includes('abgeschlossen') ? 'Abgeschlossen'
+          : project.status?.includes('pausiert') ? 'Pausiert' : 'Aktiv';
+        const marginPct = margin?.margin_percent ?? null;
+        const marginColor = marginPct === null ? 'var(--text-tertiary)'
+          : marginPct < 30 ? '#E24B4A' : marginPct < 50 ? '#BA7517' : '#1D9E75';
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+            {/* Bereich 1 — Status */}
+            <div className="kc-card">
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>📊 Projektstatus</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginBottom: 14 }}>
+                <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: statusColor.bg, color: statusColor.text }}>
+                  {statusLabel}
+                </span>
+                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                  Phase <strong>{phaseNum}</strong> von 7 · {phaseName}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-secondary)' }}>
+                <div>
+                  <span style={{ color: 'var(--text-tertiary)' }}>Start: </span>
+                  {project.start_date ? new Date(project.start_date).toLocaleDateString('de-DE') : '–'}
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-tertiary)' }}>Go-Live: </span>
+                  {project.target_go_live || project.go_live_date
+                    ? new Date(project.target_go_live || project.go_live_date).toLocaleDateString('de-DE')
+                    : '–'}
+                </div>
+              </div>
+            </div>
+
+            {/* Bereich 2 — Marge */}
+            <div className="kc-card">
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>💰 Marge & Kosten</div>
+              {margin ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16 }}>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Fixpreis</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>€{(project.fixed_price || 0).toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Geleistete Stunden</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{(project.actual_hours || 0).toFixed(1)}h</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Marge</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: marginColor, fontVariantNumeric: 'tabular-nums' }}>
+                      {marginPct !== null ? `${marginPct.toFixed(1)}%` : '–'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Gesamtkosten</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>€{(margin.total_costs || 0).toFixed(2)}</div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Noch keine Stunden erfasst</div>
+              )}
+            </div>
+
+            {/* Bereich 3 — Nachrichten */}
+            <div className="kc-card">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>💬 Nachrichten</div>
+                <button onClick={() => setShowNewMessageModal(true)} style={{
+                  width: 28, height: 28, borderRadius: '50%',
+                  background: 'var(--brand-primary)', color: '#fff',
+                  border: 'none', fontSize: 18, cursor: 'pointer', lineHeight: 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>+</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+                {['Erste Nachricht vom Kunden erscheint hier...', 'Interne Notiz erscheint hier...', 'Statusmeldung erscheint hier...'].map((txt, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', opacity: 0.5 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--border-light)', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{txt}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>vor {i + 1} Tagen</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Nachrichtenfunktion wird in Kürze aktiviert</div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Nachrichten Modal ───────────────────────────────────────────────── */}
+      {showNewMessageModal && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setShowNewMessageModal(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 420, width: '100%', boxShadow: 'var(--shadow-xl)' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>💬 Nachricht schreiben</div>
+            <textarea
+              value={newMessageText}
+              onChange={e => setNewMessageText(e.target.value)}
+              placeholder="Nachricht eingeben..."
+              style={{ width: '100%', minHeight: 100, padding: '10px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'var(--font-sans)', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button onClick={() => setShowNewMessageModal(false)} style={{ flex: 1, padding: '10px 0', background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--text-primary)' }}>
+                Abbrechen
+              </button>
+              <button disabled style={{ flex: 1, padding: '10px 0', background: 'var(--border-medium)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'not-allowed', fontFamily: 'var(--font-sans)', color: 'var(--text-tertiary)' }}>
+                Senden (bald verfügbar)
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Briefing Wizard ─────────────────────────────────────────────────── */}

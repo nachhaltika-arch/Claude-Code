@@ -108,14 +108,15 @@ const NAV_SECTIONS = [
       { label: 'QR-Generator', path: '/app/qr-generator', icon: 'qr', adminOnly: true },
     ],
   },
-  {
-    title: 'Inhalte',
-    items: [
-      { label: 'Kurse', path: '/app/courses', icon: 'book' },
-      { label: 'Akademy', path: '/app/academy', icon: 'gradCap' },
-      { label: 'Kurse verwalten', path: '/app/akademie/admin', icon: 'gear', adminOnly: true },
-    ],
-  },
+  // Inhalte / Akademie — ausgeblendet, wird später aktiviert
+  // {
+  //   title: 'Inhalte',
+  //   items: [
+  //     { label: 'Kurse', path: '/app/courses', icon: 'book' },
+  //     { label: 'Akademy', path: '/app/academy', icon: 'gradCap' },
+  //     { label: 'Kurse verwalten', path: '/app/akademie/admin', icon: 'gear', adminOnly: true },
+  //   ],
+  // },
   {
     title: 'Einstellungen',
     items: [

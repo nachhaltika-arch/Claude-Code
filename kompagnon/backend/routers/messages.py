@@ -205,3 +205,43 @@ def get_messages_kunde(
     db.commit()
 
     return [_msg_dict(m) for m in messages]
+
+
+# ── Newsletter / Send-Email Endpunkt ─────────────────────────────────────────
+
+class SendEmailBody(BaseModel):
+    to: str
+    subject: str
+    html: str
+    lead_id: Optional[int] = None
+    project_id: Optional[int] = None
+
+
+@router.post("/send-email")
+def send_email_endpoint(
+    body: SendEmailBody,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if not body.to or not body.subject:
+        raise HTTPException(status_code=400, detail="to und subject sind Pflichtfelder")
+    try:
+        from services.email import send_email
+        send_email(to_email=body.to, subject=body.subject, html_body=body.html)
+
+        if body.lead_id:
+            msg = Message(
+                lead_id=body.lead_id,
+                sender_role="admin",
+                channel="email",
+                subject=body.subject,
+                content="[Newsletter]",
+                created_at=datetime.utcnow(),
+            )
+            db.add(msg)
+            db.commit()
+
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"send-email Fehler: {e}")
+        return {"success": False, "error": str(e)}

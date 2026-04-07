@@ -6,9 +6,11 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import API_BASE_URL from '../config';
+import OnboardingWizard from '../components/OnboardingWizard';
 
 export default function Dashboard() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const navigate = useNavigate();
   const { isMobile } = useScreenSize();
   const [kpis, setKpis] = useState(null);
@@ -39,6 +41,16 @@ export default function Dashboard() {
       setAudits(Array.isArray(auditData) ? auditData.slice(0, 5) : []);
     }).finally(() => setLoading(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (
+      user?.role === 'kunde' &&
+      user?.onboarding_completed === false &&
+      user?.lead_id
+    ) {
+      setShowOnboarding(true);
+    }
+  }, [user]);
 
   const KpiCard = ({ label, value, icon, delta, color }) => (
     <Card>
@@ -100,6 +112,16 @@ export default function Dashboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, animation: 'fadeIn 0.3s ease', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
+
+      {showOnboarding && (
+        <OnboardingWizard
+          user={user}
+          onComplete={() => {
+            setShowOnboarding(false);
+            window.location.reload();
+          }}
+        />
+      )}
 
       {/* KPI Grid */}
       <div style={{

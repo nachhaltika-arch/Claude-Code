@@ -632,6 +632,11 @@ def _run_migrations():
         )""",
         "CREATE INDEX IF NOT EXISTS idx_email_logs_lead ON email_logs(lead_id)",
         "CREATE INDEX IF NOT EXISTS idx_email_logs_project ON email_logs(project_id)",
+        # Onboarding + Go-Live Automation
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT false",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS actual_go_live TIMESTAMP",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS website_url VARCHAR",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -853,17 +858,26 @@ app.include_router(kampagne_router)
 from routers.courses import router as courses_router
 app.include_router(courses_router)
 
-from app.routers.academy import router as academy_router
-app.include_router(academy_router)
+try:
+    from routers.academy import router as academy_router
+    app.include_router(academy_router)
+except ImportError as e:
+    logger.warning(f"⚠ Academy router nicht gefunden: {e}")
 
 from routers.crawler import router as crawler_router
 app.include_router(crawler_router)
 
-from app.routers.files import router as files_router
-app.include_router(files_router)
+try:
+    from routers.files import router as files_router
+    app.include_router(files_router)
+except ImportError as e:
+    logger.warning(f"⚠ Files router nicht gefunden: {e}")
 
-from app.routers import website_mockup
-app.include_router(website_mockup.router, prefix="/api")
+try:
+    from routers import website_mockup
+    app.include_router(website_mockup.router, prefix="/api")
+except ImportError as e:
+    logger.warning(f"⚠ Website-Mockup router nicht gefunden: {e}")
 
 from routers import sitemap
 app.include_router(sitemap.router)

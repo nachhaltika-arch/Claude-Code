@@ -310,6 +310,23 @@ function FileUploadSection({ token }) {
   );
 }
 
+const PHASEN = [
+  { nr: 1, label: 'Onboarding',  icon: '👋', beschreibung: 'Strategie-Workshop & Briefing' },
+  { nr: 2, label: 'Briefing',    icon: '📋', beschreibung: 'Inhalte & Ziele festlegen' },
+  { nr: 3, label: 'Content',     icon: '✏️', beschreibung: 'Texte, Bilder & Sitemap' },
+  { nr: 4, label: 'Technik',     icon: '⚙️', beschreibung: 'Entwicklung & Umsetzung' },
+  { nr: 5, label: 'Q&A',         icon: '🔍', beschreibung: 'Qualitätsprüfung & Abnahme' },
+  { nr: 6, label: 'Go-Live',     icon: '🚀', beschreibung: 'Website geht online' },
+  { nr: 7, label: 'Post-Launch', icon: '⭐', beschreibung: 'Nachbetreuung & Optimierung' },
+];
+
+const getPhaseStatus = (phaseNr, currentPhase) => {
+  if (!currentPhase) return 'ausstehend';
+  if (phaseNr < currentPhase)  return 'abgeschlossen';
+  if (phaseNr === currentPhase) return 'aktiv';
+  return 'ausstehend';
+};
+
 export default function CustomerPortal() {
   const { token } = useParams();
   const [step, setStep] = useState('loading');
@@ -320,6 +337,17 @@ export default function CustomerPortal() {
   const [verifiedData, setVerifiedData] = useState(null);
   const [error, setError] = useState('');
   const [portalTab, setPortalTab] = useState('uebersicht');
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [onboardingData, setOnboardingData] = useState({
+    website_url: '',
+    gewerk: '',
+    leistungen: '',
+    einzugsgebiet: '',
+    has_logo: false,
+    has_photos: false,
+    anmerkungen: '',
+  });
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [messages, setMessages] = useState([]);
   const [msgText, setMsgText] = useState('');
   const [msgSending, setMsgSending] = useState(false);
@@ -385,9 +413,37 @@ export default function CustomerPortal() {
       const d = await res.json();
       if (!res.ok) { setVerifyError(d.detail || 'Verifikation fehlgeschlagen'); return; }
       setVerifiedData(d);
-      setStep('dashboard');
+      if (!data?.onboarding_completed) {
+        setOnboardingData(prev => ({ ...prev, website_url: data?.website_url || '' }));
+        setStep('onboarding');
+      } else {
+        setStep('dashboard');
+      }
     } catch { setVerifyError('Verbindungsfehler'); }
     finally { setVerifying(false); }
+  };
+
+  const toggleField = (field) =>
+    setOnboardingData(prev => ({ ...prev, [field]: !prev[field] }));
+
+  const completeOnboarding = async () => {
+    setOnboardingLoading(true);
+    try {
+      await fetch(
+        `${API_BASE_URL}/api/leads/portal/${token}/complete-onboarding`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(onboardingData),
+        }
+      );
+      setStep('dashboard');
+    } catch (e) {
+      console.error(e);
+      setStep('dashboard');
+    } finally {
+      setOnboardingLoading(false);
+    }
   };
 
   const levelColor = data?.current_level ? LEVEL_COLORS[data.current_level] : '#8fa8b0';
@@ -458,6 +514,190 @@ export default function CustomerPortal() {
     </div>
   );
 
+  // ONBOARDING WIZARD
+  const inputStyle = {
+    fontSize: 16, padding: '12px 14px', border: '1px solid #e2e8f0',
+    borderRadius: 8, width: '100%', boxSizing: 'border-box',
+    background: 'white', color: '#1a2332', outline: 'none',
+  };
+  const labelStyle = { display: 'block', fontSize: 13, fontWeight: 600, color: '#64748b', marginBottom: 6 };
+
+  if (step === 'onboarding') return (
+    <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px', fontFamily: 'var(--font-sans, system-ui)' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ width: '100%', maxWidth: 560 }}>
+
+        {/* Header */}
+        <div style={{ background: '#008eaa', borderRadius: '16px 16px 0 0', padding: '28px 32px', textAlign: 'center' }}>
+          <div style={{ color: 'white', fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px' }}>KOMPAGNON</div>
+          <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, marginTop: 4 }}>Willkommen! Bitte kurz einrichten.</div>
+        </div>
+
+        {/* Progress dots */}
+        <div style={{ background: 'white', padding: '20px 32px 0', display: 'flex', justifyContent: 'center', gap: 10 }}>
+          {[1, 2, 3].map(n => (
+            <div key={n} style={{
+              width: n === onboardingStep ? 28 : 10,
+              height: 10, borderRadius: 5,
+              background: n <= onboardingStep ? '#008eaa' : '#e2e8f0',
+              transition: 'all 0.3s',
+            }} />
+          ))}
+        </div>
+
+        {/* Card */}
+        <div style={{ background: 'white', borderRadius: '0 0 16px 16px', padding: '24px 32px 32px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+
+          {/* ── Schritt 1 ── */}
+          {onboardingStep === 1 && (
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', margin: '0 0 8px' }}>
+                  Herzlich willkommen, {data?.company_name || 'dort'}!
+                </h2>
+                <p style={{ fontSize: 14, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+                  Ihr Projekt startet jetzt. Wir führen Sie in 3 kurzen Schritten durch die ersten Informationen die wir benötigen.
+                </p>
+              </div>
+              <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '20px 0' }} />
+              <label style={labelStyle}>Ihre Website-URL</label>
+              <input
+                type="url"
+                value={onboardingData.website_url}
+                onChange={e => setOnboardingData(prev => ({ ...prev, website_url: e.target.value }))}
+                placeholder="https://ihre-website.de"
+                style={inputStyle}
+              />
+              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 6, marginBottom: 0 }}>
+                Falls Sie noch keine Website haben, lassen Sie das Feld leer.
+              </p>
+            </div>
+          )}
+
+          {/* ── Schritt 2 ── */}
+          {onboardingStep === 2 && (
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🏢</div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', margin: '0 0 8px' }}>
+                  Erzählen Sie uns von Ihrem Betrieb
+                </h2>
+                <p style={{ fontSize: 14, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+                  Diese Informationen helfen uns Ihre neue Website perfekt auf Ihren Betrieb zuzuschneiden.
+                </p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Gewerk / Branche</label>
+                  <input
+                    type="text"
+                    value={onboardingData.gewerk}
+                    onChange={e => setOnboardingData(prev => ({ ...prev, gewerk: e.target.value }))}
+                    placeholder="z.B. Sanitär, Elektriker, Maler..."
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Ihre Leistungen</label>
+                  <textarea
+                    value={onboardingData.leistungen}
+                    onChange={e => setOnboardingData(prev => ({ ...prev, leistungen: e.target.value }))}
+                    placeholder="Was bieten Sie an? z.B. Badezimmer, Heizung, Notdienst, Wartung..."
+                    rows={3}
+                    style={{ ...inputStyle, resize: 'vertical' }}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Einzugsgebiet / Region</label>
+                  <input
+                    type="text"
+                    value={onboardingData.einzugsgebiet}
+                    onChange={e => setOnboardingData(prev => ({ ...prev, einzugsgebiet: e.target.value }))}
+                    placeholder="z.B. Koblenz und Umgebung, Rhein-Mosel-Kreis"
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Schritt 3 ── */}
+          {onboardingStep === 3 && (
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', margin: '0 0 8px' }}>
+                  Fast geschafft!
+                </h2>
+                <p style={{ fontSize: 14, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+                  Haben Sie bereits Unterlagen die wir für Ihre neue Website verwenden können?
+                </p>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                {[
+                  { field: 'has_logo', icon: '🎨', title: 'Logo vorhanden', text: 'Wir haben bereits ein Firmenlogo' },
+                  { field: 'has_photos', icon: '📷', title: 'Fotos vorhanden', text: 'Wir haben Fotos vom Betrieb / Team' },
+                ].map(({ field, icon, title, text }) => (
+                  <div key={field} onClick={() => toggleField(field)} style={{
+                    border: onboardingData[field] ? '2px solid #008eaa' : '2px solid #e2e8f0',
+                    background: onboardingData[field] ? '#E1F5EE' : '#f8f9fa',
+                    borderRadius: 12, padding: '16px 12px', cursor: 'pointer',
+                    textAlign: 'center', transition: 'all 0.2s',
+                  }}>
+                    <div style={{ fontSize: 28, marginBottom: 6 }}>{icon}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1a2332', marginBottom: 4 }}>{title}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>{text}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle}>Sonstige Hinweise (optional)</label>
+                <textarea
+                  value={onboardingData.anmerkungen}
+                  onChange={e => setOnboardingData(prev => ({ ...prev, anmerkungen: e.target.value }))}
+                  placeholder="Gibt es noch etwas das wir wissen sollten?"
+                  rows={2}
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                />
+              </div>
+              <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '16px 0' }} />
+              <div style={{ background: '#E6F1FB', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1a2332', marginBottom: 8 }}>✓ Was jetzt passiert:</div>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#3b5a8a', lineHeight: 2 }}>
+                  <li>Wir melden uns innerhalb von 24 Stunden</li>
+                  <li>Strategy Workshop vereinbaren (ca. 60 Min.)</li>
+                  <li>Ihre neue Website in 14 Werktagen</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation Buttons */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+            {onboardingStep > 1 && (
+              <button onClick={() => setOnboardingStep(s => s - 1)}
+                style={{ flex: 1, padding: '13px 20px', border: '1px solid #e2e8f0', borderRadius: 8, background: 'white', color: '#64748b', fontSize: 15, cursor: 'pointer', fontWeight: 500 }}>
+                ← Zurück
+              </button>
+            )}
+            {onboardingStep < 3 ? (
+              <button onClick={() => setOnboardingStep(s => s + 1)}
+                style={{ flex: 2, padding: '13px 20px', border: 'none', borderRadius: 8, background: '#008eaa', color: 'white', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}>
+                Weiter →
+              </button>
+            ) : (
+              <button onClick={completeOnboarding} disabled={onboardingLoading}
+                style={{ flex: 2, padding: '13px 20px', border: 'none', borderRadius: 8, background: '#008eaa', color: 'white', fontSize: 15, cursor: 'pointer', fontWeight: 600, opacity: onboardingLoading ? 0.7 : 1 }}>
+                {onboardingLoading ? 'Wird gespeichert...' : 'Jetzt starten! 🚀'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   // DASHBOARD
   if (step === 'dashboard') return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-app)', fontFamily: 'var(--font-sans, system-ui)' }}>
@@ -504,6 +744,88 @@ export default function CustomerPortal() {
       {/* Tab content */}
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '20px 16px' }}>
         {portalTab === 'uebersicht' && <>
+
+          {/* ── Projektstatus / Phasen ── */}
+          {data?.project_id ? (
+            <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e0f4f8' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Ihr Projektstatus
+                </div>
+                {data.go_live_date && (
+                  <div style={{ fontSize: 11, color: '#008eaa', fontWeight: 500, background: '#E1F5EE', padding: '3px 8px', borderRadius: 20 }}>
+                    Go-Live: {new Date(data.go_live_date).toLocaleDateString('de-DE')}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {PHASEN.map((phase) => {
+                  const status = getPhaseStatus(phase.nr, data.current_phase);
+                  const istAbgeschlossen = status === 'abgeschlossen';
+                  const istAktiv         = status === 'aktiv';
+                  const istAusstehend    = status === 'ausstehend';
+                  return (
+                    <div key={phase.nr} style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 12px', borderRadius: 8,
+                      background: istAktiv ? '#E1F5EE' : 'transparent',
+                      border: istAktiv ? '1.5px solid #1D9E75' : '1.5px solid transparent',
+                      transition: 'all 0.2s',
+                    }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 14, fontWeight: 600,
+                        background: istAbgeschlossen ? '#1D9E75' : istAktiv ? '#008eaa' : '#e2e8f0',
+                        color: (istAbgeschlossen || istAktiv) ? 'white' : '#94a3b8',
+                        boxShadow: istAktiv ? '0 0 0 4px rgba(0,142,170,0.15)' : 'none',
+                      }}>
+                        {istAbgeschlossen ? '✓' : phase.nr}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: istAktiv ? 600 : 500, color: istAbgeschlossen ? '#1D9E75' : istAktiv ? '#085041' : '#94a3b8' }}>
+                          {phase.icon} {phase.label}
+                          {istAktiv && (
+                            <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: '#008eaa', color: 'white', padding: '2px 6px', borderRadius: 10, verticalAlign: 'middle' }}>
+                              Aktuell
+                            </span>
+                          )}
+                        </div>
+                        {(istAktiv || istAbgeschlossen) && (
+                          <div style={{ fontSize: 11, color: istAktiv ? '#0F6E56' : '#94a3b8', marginTop: 1 }}>
+                            {phase.beschreibung}
+                          </div>
+                        )}
+                      </div>
+                      {istAbgeschlossen && <div style={{ fontSize: 16, color: '#1D9E75', flexShrink: 0 }}>✓</div>}
+                      {istAusstehend    && <div style={{ width: 16, height: 2, background: '#e2e8f0', borderRadius: 1, flexShrink: 0 }} />}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94a3b8', marginBottom: 6 }}>
+                  <span>Gesamtfortschritt</span>
+                  <span>{data.current_phase ? `Phase ${data.current_phase} von 7` : 'Noch nicht gestartet'}</span>
+                </div>
+                <div style={{ height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: 3,
+                    background: 'linear-gradient(90deg, #1D9E75, #008eaa)',
+                    width: `${data.current_phase ? Math.min(100, ((data.current_phase - 1) / 6) * 100) : 0}%`,
+                    transition: 'width 0.6s ease',
+                  }} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 12, padding: '14px 16px', marginBottom: 16, fontSize: 13, color: '#92400E' }}>
+              Ihr Projekt wird gerade vorbereitet. Wir melden uns innerhalb von 24 Stunden.
+            </div>
+          )}
+
           {data?.ai_summary && (
             <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e0f4f8' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Zusammenfassung</div>

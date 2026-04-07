@@ -55,6 +55,12 @@ const icons = {
       <path d="M5 1v14M5 5h6M5 8h6M5 11h4"/>
     </svg>
   ),
+  newspaper: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/>
+      <path d="M4.5 6h7M4.5 8.5h7M4.5 11h4"/>
+    </svg>
+  ),
   dots: (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
       <circle cx="4" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12" cy="8" r="1.2"/>
@@ -84,6 +90,7 @@ const NAV_SECTIONS = [
       { label: 'Domain Import',     path: '/app/import',    icon: 'users' },
       { label: 'Export',            path: '/app/export',    icon: 'docCheck' },
       { label: 'Website Audit',     path: '/app/audit',     icon: 'docCheck' },
+      { label: 'Newsletter',         path: '/app/newsletter', icon: 'newspaper' },
     ],
   },
   {
@@ -101,14 +108,15 @@ const NAV_SECTIONS = [
       { label: 'QR-Generator', path: '/app/qr-generator', icon: 'qr', adminOnly: true },
     ],
   },
-  {
-    title: 'Inhalte',
-    items: [
-      { label: 'Kurse', path: '/app/courses', icon: 'book' },
-      { label: 'Akademy', path: '/app/academy', icon: 'gradCap' },
-      { label: 'Kurse verwalten', path: '/app/akademie/admin', icon: 'gear', adminOnly: true },
-    ],
-  },
+  // Inhalte / Akademie — ausgeblendet, wird später aktiviert
+  // {
+  //   title: 'Inhalte',
+  //   items: [
+  //     { label: 'Kurse', path: '/app/courses', icon: 'book' },
+  //     { label: 'Akademy', path: '/app/academy', icon: 'gradCap' },
+  //     { label: 'Kurse verwalten', path: '/app/akademie/admin', icon: 'gear', adminOnly: true },
+  //   ],
+  // },
   {
     title: 'Einstellungen',
     items: [

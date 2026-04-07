@@ -131,8 +131,9 @@ const PHASE_TOOLS = {
     { id: 'trustpilot',      label: 'Trustpilot',           icon: '⭐', sub: 'Bewertungen' },
   ],
   'fertig': [
-    { id: 'live-data',       label: 'Fertige Website',      icon: '🌐', sub: 'Live' },
-    { id: 'upsell',          label: 'Up-Sales',             icon: '💼', sub: 'Upsell-Produkte' },
+    { id: 'live-data',          label: 'Fertige Website',   icon: '🌐', sub: 'Live' },
+    { id: 'upsell',             label: 'Up-Sales',          icon: '💼', sub: 'Upsell-Produkte' },
+    { id: 'website-vergleich',  label: 'Website-Vergleich', icon: '📸', sub: 'Vorher/Nachher' },
   ],
 };
 const PHASE_NAMES = ['onboarding','briefing','content','technik','go-live','qm','post-launch','fertig'];
@@ -148,37 +149,39 @@ const PHASE_LABELS = {
 };
 
 const SUB_TAB_MAP = {
-  'unternehmen':     'overview',
-  'briefing-quick':  'briefing',
-  'briefing':        'briefing',
-  'brand-design':    'branddesign',
-  'branddesign':     'branddesign',
-  'website-content': 'webcontent',
-  'hosting-scan':    'hosting',
-  'hosting':         'hosting',
-  'hosting-form':    'hosting',
-  'checkliste':      'checklists',
-  'checklists':      'checklists',
-  'design':          'design',
-  'sitemap':         'sitemap',
-  'content':         'content',
-  'crawler':         'crawler',
-  'golive-prep':     'overview',
-  'dns':             'hosting',
+  'unternehmen':        'overview',
+  'briefing-quick':     'briefing',
+  'briefing':           'briefing',
+  'brand-design':       'branddesign',
+  'branddesign':        'branddesign',
+  'website-content':    'webcontent',
+  'hosting-scan':       'hosting',
+  'hosting':            'hosting',
+  'hosting-form':       'hosting',
+  'checkliste':         'checklists',
+  'checklists':         'checklists',
+  'design':             'design',
+  'sitemap':            'sitemap',
+  'content':            'content',
+  'crawler':            'crawler',
+  'golive-prep':        'overview',
+  'dns':                'hosting',
+  'website-vergleich':  'overview',
 };
 
 // Maps tool tile ID → which activeSubTab value to set (for content blocks keyed on activeSubTab)
 const TOOL_SUBTAB_MAP = {
-  'audits':      'audit',
-  'preview':     'preview',
-  'editor':      'editor',
-  'netlify-dns':  'netlify-dns',
-  'dns':          'hosting-form',
-  'hosting':      'hosting-scan',
-  'hosting-form': 'hosting-form',
-  'live-data':   'live-data',
-  'trustpilot':  'trustpilot',
-  'upsell':      'upsell',
+  'audits':             'audit',
+  'preview':            'preview',
+  'editor':             'editor',
+  'netlify-dns':        'netlify-dns',
+  'dns':                'hosting-form',
+  'hosting':            'hosting-scan',
+  'hosting-form':       'hosting-form',
+  'live-data':          'live-data',
+  'trustpilot':         'trustpilot',
+  'upsell':             'upsell',
+  'website-vergleich':  'website-vergleich',
 };
 
 // ── Edit Modal ────────────────────────────────────────────────────────────────
@@ -915,9 +918,9 @@ export default function ProjectDetail() {
       audit_problems: latestAudit?.top_problems || [],
       pagespeed_mobile: pagespeed?.mobile_score || null,
       crawler_pages: Array.isArray(crawler) ? crawler.length : 0,
-      briefing_usp: briefing?.usp || '',
-      briefing_leistungen: briefing?.leistungen || '',
-      briefing_zielgruppe: briefing?.zielgruppe || '',
+      briefing_usp: typeof briefing?.usp === 'string' ? briefing.usp : '',
+      briefing_leistungen: typeof briefing?.leistungen === 'string' ? briefing.leistungen : '',
+      briefing_zielgruppe: typeof briefing?.zielgruppe === 'string' ? briefing.zielgruppe : '',
     };
   };
 
@@ -1176,8 +1179,8 @@ export default function ProjectDetail() {
             </div>
           </div>
 
-          {/* ── Website-Vergleich ─────────────────────────────────────────── */}
-          {(() => {
+          {/* ── Website-Vergleich — nur in Phase 8 → website-vergleich ── */}
+          {activeSubTab === 'website-vergleich' && (() => {
             const phaseNum = parseInt((project.status || '').replace('phase_', '')) || 0;
             const isGoLiveOrLater = phaseNum >= 6;
 
@@ -2953,29 +2956,24 @@ export default function ProjectDetail() {
       )}
 
       {/* ── Editor Tab ─────────────────────────────────────────────────────── */}
-      {/* ── Website Designer Tab ───────────────────────────────────────────── */}
       {(activeSubTab === 'editor' || activeTab === 'editor') && (
-        <>
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 8, padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>🎨 Website Designer</div>
-              <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Visueller GrapesJS-Editor — Drag & Drop Website-Bausteine</div>
-            </div>
-            <button
-              onClick={() => setShowWebsiteDesigner(true)}
-              style={{ padding: '10px 22px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}
-            >
-              Editor öffnen →
-            </button>
-          </div>
-          {showWebsiteDesigner && (
-            <WebsiteDesigner
-              customerId={project.lead_id}
-              customerName={project.company_name || project.name || `Projekt #${project.id}`}
-              onClose={() => setShowWebsiteDesigner(false)}
-            />
-          )}
-        </>
+        <WebsiteDesigner
+          projectId={id}
+          leadId={project.lead_id}
+          initialHtml={project.mockup_html || ''}
+          initialCss={project.mockup_css || ''}
+          onSave={async (html, css) => {
+            await fetch(`${API_BASE_URL}/api/projects/${id}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${localStorage.getItem('kompagnon_token')}`,
+              },
+              body: JSON.stringify({ mockup_html: html, mockup_css: css }),
+            });
+            toast.success('Design gespeichert');
+          }}
+        />
       )}
 
       {/* ── Netlify-DNS Tab ────────────────────────────────────────────────── */}

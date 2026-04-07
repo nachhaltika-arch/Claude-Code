@@ -12,7 +12,7 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db
-from routers.auth_router import require_any_auth
+from routers.auth_router import require_any_auth, get_current_user
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 import asyncio
@@ -691,6 +691,10 @@ def get_portal_data(token: str, db: Session = Depends(get_db)):
         AuditResult.lead_id == lead.id, AuditResult.status == 'completed',
     ).order_by(AuditResult.created_at.desc()).first()
 
+    project = db.query(Project).filter(
+        Project.lead_id == lead.id
+    ).order_by(Project.created_at.desc()).first()
+
     return {
         'lead_id': lead.id,
         'company_name': lead.display_name or lead.company_name or '',
@@ -710,6 +714,11 @@ def get_portal_data(token: str, db: Session = Depends(get_db)):
         'ux_score': latest_audit.ux_score if latest_audit else None,
         'ai_summary': latest_audit.ai_summary if latest_audit else None,
         'website_screenshot': f'data:image/jpeg;base64,{lead.website_screenshot}' if lead.website_screenshot else None,
+        'onboarding_completed': getattr(lead, 'onboarding_completed', False) or False,
+        'project_id':     project.id if project else None,
+        'current_phase':  project.current_phase if project else None,
+        'project_status': project.status if project else None,
+        'go_live_date':   str(project.go_live_date)[:10] if project and project.go_live_date else None,
     }
 
 
@@ -753,6 +762,111 @@ def verify_portal_access(token: str, data: dict, db: Session = Depends(get_db)):
         'ceo_last_name': lead.ceo_last_name or '',
         'geschaeftsfuehrer': lead.geschaeftsfuehrer or '',
     }
+
+
+@router.post("/portal/{token}/complete-onboarding")
+def complete_onboarding(token: str, data: dict, db: Session = Depends(get_db)):
+    """Mark onboarding as completed and optionally save briefing fields."""
+    lead = db.query(Lead).filter(Lead.customer_token == token).first()
+    if not lead:
+        raise HTTPException(404, "Ungültiger Zugangslink")
+
+    if data.get('website_url'):
+        lead.website_url = data['website_url']
+
+    lead.onboarding_completed = True
+    lead.onboarding_completed_at = datetime.utcnow()
+
+    # Briefing-Felder speichern falls vorhanden
+    gewerk       = data.get('gewerk')
+    leistungen   = data.get('leistungen')
+    einzugsgebiet = data.get('einzugsgebiet')
+    has_logo     = data.get('has_logo')
+    has_photos   = data.get('has_photos')
+    anmerkungen  = data.get('anmerkungen')
+
+    briefing_fields = any(v is not None for v in [
+        gewerk, leistungen, einzugsgebiet, has_logo, has_photos, anmerkungen
+    ])
+
+    if briefing_fields:
+        try:
+            db.execute(text("""
+                INSERT INTO briefings
+                  (lead_id, gewerk, leistungen, einzugsgebiet,
+                   logo_vorhanden, fotos_vorhanden, sonstige_hinweise, status)
+                VALUES
+                  (:lead_id, :gewerk, :leistungen, :einzugsgebiet,
+                   :logo_vorhanden, :fotos_vorhanden, :sonstige_hinweise, 'entwurf')
+                ON CONFLICT (lead_id) DO UPDATE SET
+                  gewerk            = COALESCE(EXCLUDED.gewerk, briefings.gewerk),
+                  leistungen        = COALESCE(EXCLUDED.leistungen, briefings.leistungen),
+                  einzugsgebiet     = COALESCE(EXCLUDED.einzugsgebiet, briefings.einzugsgebiet),
+                  logo_vorhanden    = COALESCE(EXCLUDED.logo_vorhanden, briefings.logo_vorhanden),
+                  fotos_vorhanden   = COALESCE(EXCLUDED.fotos_vorhanden, briefings.fotos_vorhanden),
+                  sonstige_hinweise = COALESCE(EXCLUDED.sonstige_hinweise, briefings.sonstige_hinweise),
+                  updated_at        = NOW()
+            """), {
+                'lead_id':          lead.id,
+                'gewerk':           gewerk,
+                'leistungen':       leistungen,
+                'einzugsgebiet':    einzugsgebiet,
+                'logo_vorhanden':   has_logo,
+                'fotos_vorhanden':  has_photos,
+                'sonstige_hinweise': anmerkungen,
+            })
+        except Exception:
+            # Briefings-Tabelle existiert nicht — Felder als Notiz sichern
+            parts = []
+            if gewerk:        parts.append(f"Gewerk: {gewerk}")
+            if leistungen:    parts.append(f"Leistungen: {leistungen}")
+            if einzugsgebiet: parts.append(f"Einzugsgebiet: {einzugsgebiet}")
+            if anmerkungen:   parts.append(f"Anmerkungen: {anmerkungen}")
+            if parts:
+                lead.notes = ((lead.notes or '') + '\n' + '\n'.join(parts)).strip()
+
+    db.commit()
+    return {"success": True}
+
+
+@router.post("/portal-auth/complete-onboarding")
+def portal_auth_complete_onboarding(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """JWT-geschützter Onboarding-Abschluss für Kunden."""
+    from database import User as UserModel
+    if current_user.role != 'kunde':
+        raise HTTPException(403, "Nur für Kunden zugänglich")
+
+    lead_id = data.get('lead_id') or current_user.lead_id
+    if not lead_id:
+        raise HTTPException(400, "lead_id fehlt")
+
+    if current_user.lead_id and current_user.lead_id != lead_id:
+        raise HTTPException(403, "Zugriff verweigert")
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    if data.get('website_url'):
+        lead.website_url = data['website_url']
+
+    lead.onboarding_completed = True
+    lead.onboarding_completed_at = datetime.utcnow()
+
+    parts = []
+    if data.get('gewerk'):        parts.append(f"Gewerk: {data['gewerk']}")
+    if data.get('leistungen'):    parts.append(f"Leistungen: {data['leistungen']}")
+    if data.get('einzugsgebiet'): parts.append(f"Einzugsgebiet: {data['einzugsgebiet']}")
+    if data.get('anmerkungen'):   parts.append(f"Anmerkungen: {data['anmerkungen']}")
+    if parts:
+        lead.notes = ((lead.notes or '') + '\n---\nOnboarding:\n' + '\n'.join(parts)).strip()
+
+    db.commit()
+    return {"success": True}
 
 
 # ── Routes with {lead_id} parameter below ──────────────────────

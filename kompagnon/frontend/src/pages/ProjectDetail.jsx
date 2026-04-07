@@ -450,6 +450,12 @@ export default function ProjectDetail() {
   const [mockupError, setMockupError] = useState('');
   const [activeMockupPage, setActiveMockupPage] = useState(null);
   const [activeContentPage, setActiveContentPage] = useState(null);
+  // Nachrichten
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatText, setChatText] = useState('');
+  const [chatChannel, setChatChannel] = useState('in_app');
+  const [chatSubject, setChatSubject] = useState('');
+  const [chatSending, setChatSending] = useState(false);
 
   const loadProject = useCallback(async () => {
     try {
@@ -746,7 +752,7 @@ export default function ProjectDetail() {
             tab === 'crawler'    ? '🕷️ Crawler'      :
             tab === 'webcontent' ? '🌐 Website-Content' :
             tab === 'hosting'    ? '🖥️ Hosting'       :
-            tab === 'zeit'       ? '⏱ Zeiterfassung' : '💬 Kommunikation';
+            tab === 'zeit'       ? '⏱ Zeiterfassung' : '💬 Nachrichten';
           return (
             <button
               key={tab}
@@ -2073,13 +2079,131 @@ export default function ProjectDetail() {
         );
       })()}
 
-      {/* ── Placeholder tabs ────────────────────────────────────────────────── */}
-      {(activeTab === 'zeit' || activeTab === 'kommunikation') && (
+      {/* ── Zeiterfassung Placeholder ───────────────────────────────────────── */}
+      {activeTab === 'zeit' && (
         <div className="kc-card" style={{ textAlign: 'center', padding: 'var(--kc-space-16)', color: 'var(--text-tertiary)' }}>
-          <p style={{ fontSize: 16, fontWeight: 600 }}>{activeTab === 'zeit' ? 'Zeiterfassung' : 'Kommunikation'}</p>
+          <p style={{ fontSize: 16, fontWeight: 600 }}>Zeiterfassung</p>
           <p style={{ fontSize: 13 }}>In Entwicklung</p>
         </div>
       )}
+
+      {/* ── Nachrichten Tab ─────────────────────────────────────────────────── */}
+      {activeTab === 'kommunikation' && (() => {
+        const leadId = project.lead_id;
+        const hdr = token ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } : { 'Content-Type': 'application/json' };
+
+        const loadChat = async () => {
+          if (!leadId) return;
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/messages/${leadId}`, { headers: hdr });
+            if (res.ok) setChatMessages(await res.json());
+          } catch { /* silent */ }
+        };
+
+        const sendChat = async () => {
+          if (!chatText.trim() || chatSending || !leadId) return;
+          setChatSending(true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/messages/${leadId}`, {
+              method: 'POST', headers: hdr,
+              body: JSON.stringify({ content: chatText.trim(), subject: chatSubject.trim() || undefined, channel: chatChannel }),
+            });
+            if (res.ok) { setChatText(''); setChatSubject(''); await loadChat(); }
+          } catch { /* silent */ } finally { setChatSending(false); }
+        };
+
+        if (chatMessages.length === 0 && leadId) loadChat();
+
+        const fmtTime = (iso) => iso ? new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '';
+        const fmtDay = (iso) => {
+          if (!iso) return '';
+          const d = new Date(iso);
+          const today = new Date(); const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+          if (d.toDateString() === today.toDateString()) return 'Heute';
+          if (d.toDateString() === yesterday.toDateString()) return 'Gestern';
+          return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        };
+
+        const grouped = [];
+        let lastDay = null;
+        for (const m of chatMessages) {
+          const day = fmtDay(m.created_at);
+          if (day !== lastDay) { grouped.push({ type: 'sep', day }); lastDay = day; }
+          grouped.push({ type: 'msg', msg: m });
+        }
+
+        if (!leadId) return (
+          <div className="kc-card" style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)' }}>
+            <p>Kein Kunde mit diesem Projekt verknüpft.</p>
+            <p style={{ fontSize: 13 }}>Verknüpfe zuerst einen Lead über "Projektdaten bearbeiten".</p>
+          </div>
+        );
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', background: 'var(--bg-app)' }}>
+            {/* Verlauf */}
+            <div style={{ maxHeight: 500, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {chatMessages.length === 0 && (
+                <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: 32 }}>Noch keine Nachrichten. Schreib die erste Nachricht!</div>
+              )}
+              {grouped.map((item, i) => {
+                if (item.type === 'sep') return (
+                  <div key={`sep-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)', fontSize: 11 }}>
+                    <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+                    {item.day}
+                    <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+                  </div>
+                );
+                const m = item.msg;
+                const isAdmin = m.sender_role === 'admin';
+                return (
+                  <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isAdmin ? 'flex-end' : 'flex-start' }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontWeight: 600 }}>{m.sender_name || (isAdmin ? 'Admin' : 'Kunde')}</span>
+                      <span>{fmtTime(m.created_at)}</span>
+                      {isAdmin && (
+                        <span style={{ background: m.channel === 'email' ? '#fef3c7' : '#dcfce7', color: m.channel === 'email' ? '#92400e' : '#166534', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 600 }}>
+                          {m.channel === 'email' ? '✉️ E-Mail' : '💬 In-App'}
+                        </span>
+                      )}
+                      {!isAdmin && !m.is_read && <span style={{ color: '#3b82f6', fontSize: 10 }}>🔵 Ungelesen</span>}
+                    </div>
+                    <div style={{ maxWidth: '75%', padding: '10px 14px', borderRadius: isAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: isAdmin ? '#E6F1FB' : 'var(--bg-surface)', border: '1px solid var(--border-light)', fontSize: 13, lineHeight: 1.6, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {m.content}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Eingabe */}
+            <div style={{ borderTop: '1px solid var(--border-light)', padding: '12px 16px', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {chatChannel === 'email' && (
+                <input value={chatSubject} onChange={e => setChatSubject(e.target.value)} placeholder="Betreff der E-Mail…"
+                  style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-app)', color: 'var(--text-primary)', outline: 'none' }} />
+              )}
+              <textarea value={chatText} onChange={e => setChatText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendChat(); }}
+                placeholder="Nachricht schreiben… (Ctrl+Enter zum Senden)" rows={3}
+                style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13, fontFamily: 'var(--font-sans)', resize: 'vertical', background: 'var(--bg-app)', color: 'var(--text-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[{ id: 'in_app', label: '💬 In-App' }, { id: 'email', label: '✉️ + E-Mail' }].map(ch => (
+                    <button key={ch.id} onClick={() => setChatChannel(ch.id)}
+                      style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border-light)', fontSize: 12, fontWeight: chatChannel === ch.id ? 700 : 400, background: chatChannel === ch.id ? 'var(--brand-primary)' : 'var(--bg-app)', color: chatChannel === ch.id ? '#fff' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      {ch.label}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={sendChat} disabled={chatSending || !chatText.trim()}
+                  style={{ padding: '8px 20px', background: '#0d6efd', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: chatSending || !chatText.trim() ? 'not-allowed' : 'pointer', opacity: chatSending || !chatText.trim() ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
+                  {chatSending ? 'Senden…' : 'Senden →'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Edit Modal ──────────────────────────────────────────────────────── */}
       {showEdit && (

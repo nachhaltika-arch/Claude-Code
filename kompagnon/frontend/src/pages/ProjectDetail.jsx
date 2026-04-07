@@ -81,88 +81,65 @@ const buildInitialForm = (project, lead, latestAudit) => ({
 
 // ── Phasen-Navigation ─────────────────────────────────────────────────────────
 const PHASE_MENU = {
-  1: { label: 'Onboarding', tabs: [
-    { id: 'audit',           label: '🔍 Audit' },
-    { id: 'briefing-quick',  label: '📋 Briefing' },
-    { id: 'unternehmen',     label: '🏢 Unternehmen' },
-    { id: 'crawler',         label: '🕷 Crawler' },
-    { id: 'website-content', label: '🌐 Website-Content' },
-    { id: 'brand-design',    label: '🎨 Brand Design' },
-    { id: 'hosting-scan',    label: '🖥 Hosting' },
-  ]},
-  2: { label: 'Briefing', tabs: [
-    { id: 'briefing', label: '📋 Briefing' },
-  ]},
-  3: { label: 'Content', tabs: [
-    { id: 'sitemap',  label: '🗺 Sitemap' },
-    { id: 'content',  label: '📝 Content' },
-    { id: 'design',   label: '🎨 Design' },
-    { id: 'preview',  label: '👁 Vorschau' },
-    { id: 'editor',   label: '✏️ Editor' },
-  ]},
-  4: { label: 'Technik', tabs: [
-    { id: 'netlify-dns', label: '🌐 Netlify-DNS' },
-    { id: 'golive-prep', label: '🚀 Go-Live Vorbereitung' },
-  ]},
-  5: { label: 'Q&A', tabs: [
-    { id: 'checkliste', label: '✅ QA-Checkliste' },
-  ]},
-  6: { label: 'Go-Live', tabs: [
-    { id: 'live-data',    label: '📊 Live-Daten' },
-    { id: 'hosting-keys', label: '🔑 Hosting-Zugangsdaten' },
-  ]},
-  7: { label: 'Post-Launch', tabs: [
-    { id: 'trustpilot', label: '⭐ Trustpilot' },
-  ]},
-  8: { label: 'Fertig', tabs: [
-    { id: 'upsell', label: '💼 Upsell-Produkte' },
-  ]},
+  1: { label: 'Onboarding',  tabs: [{ id: 'audits', label: '🔍 Audit' }] },
+  2: { label: 'Briefing',    tabs: [{ id: 'briefing', label: '📋 Briefing' }] },
+  3: { label: 'Content',     tabs: [{ id: 'sitemap', label: '🗺️ Sitemap' }] },
+  4: { label: 'Technik',     tabs: [{ id: 'netlify-dns', label: '🚀 Netlify' }] },
+  5: { label: 'Go Live',     tabs: [{ id: 'checklists', label: '✅ Go-Live' }] },
+  6: { label: 'QM',          tabs: [{ id: 'checklists', label: '✅ QM' }] },
+  7: { label: 'Post-Launch', tabs: [{ id: 'trustpilot', label: '⭐ Trustpilot' }] },
+  8: { label: 'Fertig',      tabs: [{ id: 'live-data', label: '🌐 Fertig' }] },
 };
 
 const PHASE_TOOLS = {
   'onboarding': [
-    { id: 'audits',          label: 'Audit',           icon: '🔍', sub: 'Bericht' },
-    { id: 'pagespeed',       label: 'PageSpeed',        icon: '⚡', sub: 'Score' },
-    { id: 'website-content', label: 'Website-Content',  icon: '🌐', sub: '50 Seiten', badge: '!' },
-    { id: 'crawler',         label: 'Crawler',          icon: '🕷️', sub: 'URLs erfasst' },
-    { id: 'hosting',         label: 'Hosting',          icon: '🖥️', sub: 'Scan' },
-    { id: 'domain',          label: 'Domain',           icon: '🌍', sub: 'DNS / SSL' },
-    { id: 'screenshot',      label: 'Screenshot',       icon: '📸', sub: 'Vorher/Nachher' },
+    { id: 'audits',          label: 'Audit',                icon: '🔍', sub: 'Bericht' },
+    { id: 'unternehmen',     label: 'Briefing Unternehmen', icon: '🏢', sub: 'Stammdaten' },
+    { id: 'crawler',         label: 'Crawler',              icon: '🕷️', sub: 'URLs erfasst' },
+    { id: 'website-content', label: 'Website-Content',      icon: '🌐', sub: '50 Seiten', badge: '!' },
+    { id: 'hosting',         label: 'Hosting-Crawling',     icon: '🖥️', sub: 'Scan' },
+    { id: 'hosting-form',    label: 'Hosting-Fragebogen',   icon: '📋', sub: 'Fragebogen' },
+    { id: 'branddesign',     label: 'Brand-Design-PDF',     icon: '🎨', sub: 'Dreiseitig' },
+    { id: 'pagespeed',       label: 'Page-Speed',           icon: '⚡', sub: 'Score' },
   ],
   'briefing': [
-    { id: 'briefing',        label: 'Briefing',         icon: '📋', sub: 'Fragenkatalog' },
-    { id: 'branddesign',     label: 'Branddesign',      icon: '🎨', sub: 'Farben & Fonts' },
-    { id: 'dateien',         label: 'Dateien',          icon: '📁', sub: 'Upload' },
+    { id: 'briefing',        label: 'Briefing-Webseite',    icon: '📋', sub: 'Fragenkatalog' },
   ],
   'content': [
-    { id: 'sitemap',         label: 'Sitemap',          icon: '🗺️', sub: 'Seitenstruktur' },
-    { id: 'content',         label: 'Content',          icon: '📝', sub: 'Texte & Medien' },
-    { id: 'mockup',          label: 'Mockup',           icon: '🎨', sub: 'Entwürfe' },
-    { id: 'editor',          label: 'Editor',           icon: '🖊️', sub: 'GrapesJS' },
+    { id: 'sitemap',         label: 'Website neu',          icon: '🗺️', sub: 'Seitenstruktur' },
+    { id: 'content',         label: 'Content neu',          icon: '📝', sub: 'Texte & Medien' },
+    { id: 'design',          label: 'Design',               icon: '🎨', sub: 'Entwürfe' },
+    { id: 'preview',         label: 'Vorschau',             icon: '👁',  sub: 'Vorschau' },
+    { id: 'editor',          label: 'Editor',               icon: '🖊️', sub: 'GrapesJS' },
   ],
   'technik': [
-    { id: 'checklisten',     label: 'Checklisten',      icon: '✅', sub: 'Aufgaben' },
-    { id: 'zeiterfassung',   label: 'Zeiterfassung',    icon: '⏱️', sub: 'Stunden' },
-    { id: 'kommunikation',   label: 'Nachrichten',      icon: '💬', sub: 'Kommunikation' },
-  ],
-  'qa': [
-    { id: 'checklisten',     label: 'Checklisten',      icon: '✅', sub: 'QA-Prüfung' },
-    { id: 'pagespeed',       label: 'PageSpeed',        icon: '⚡', sub: 'Final-Check' },
-    { id: 'audits',          label: 'Audit',            icon: '🔍', sub: 'Abschluss-Audit' },
+    { id: 'netlify-dns',     label: 'Netlify / WP',         icon: '🚀', sub: 'Installieren' },
+    { id: 'dns',             label: 'DNS-Einstellungen',    icon: '🌍', sub: 'Beim Kunden' },
   ],
   'go-live': [
-    { id: 'checklisten',     label: 'Checklisten',      icon: '✅', sub: 'Go-Live' },
-    { id: 'kommunikation',   label: 'Nachrichten',      icon: '💬', sub: 'Freigaben' },
+    { id: 'checklists',      label: 'Go-Live',              icon: '🚀', sub: 'Checkliste' },
+  ],
+  'qm': [
+    { id: 'checklists',      label: 'Checkliste QM',        icon: '✅', sub: 'QA-Prüfung' },
   ],
   'post-launch': [
-    { id: 'zeiterfassung',   label: 'Zeiterfassung',    icon: '⏱️', sub: 'Nachbetreuung' },
-    { id: 'kommunikation',   label: 'Nachrichten',      icon: '💬', sub: 'Support' },
+    { id: 'trustpilot',      label: 'Trustpilot',           icon: '⭐', sub: 'Bewertungen' },
+  ],
+  'fertig': [
+    { id: 'live-data',       label: 'Fertige Website',      icon: '🌐', sub: 'Live' },
+    { id: 'upsell',          label: 'Up-Sales',             icon: '💼', sub: 'Upsell-Produkte' },
   ],
 };
-const PHASE_NAMES = ['onboarding','briefing','content','technik','qa','go-live','post-launch'];
+const PHASE_NAMES = ['onboarding','briefing','content','technik','go-live','qm','post-launch','fertig'];
 const PHASE_LABELS = {
-  'onboarding': 'Onboarding', 'briefing': 'Briefing', 'content': 'Content',
-  'technik': 'Technik', 'qa': 'Q&A', 'go-live': 'Go-Live', 'post-launch': 'Post-Launch',
+  'onboarding':  'Onboarding',
+  'briefing':    'Briefing',
+  'content':     'Content',
+  'technik':     'Technik',
+  'go-live':     'Go Live',
+  'qm':          'QM',
+  'post-launch': 'Post-Launch',
+  'fertig':      'Fertig',
 };
 
 const SUB_TAB_MAP = {
@@ -170,14 +147,19 @@ const SUB_TAB_MAP = {
   'briefing-quick':  'briefing',
   'briefing':        'briefing',
   'brand-design':    'branddesign',
+  'branddesign':     'branddesign',
   'website-content': 'webcontent',
   'hosting-scan':    'hosting',
+  'hosting':         'hosting',
+  'hosting-form':    'hosting',
   'checkliste':      'checklists',
+  'checklists':      'checklists',
   'design':          'design',
   'sitemap':         'sitemap',
   'content':         'content',
   'crawler':         'crawler',
   'golive-prep':     'overview',
+  'dns':             'netlify-dns',
 };
 
 // ── Edit Modal ────────────────────────────────────────────────────────────────

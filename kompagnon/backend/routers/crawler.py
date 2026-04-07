@@ -1,10 +1,13 @@
 """
 Crawler REST API for KOMPAGNON.
-POST /api/crawler/start/{customer_id}  → start background crawl
-GET  /api/crawler/status/{customer_id} → job status
-GET  /api/crawler/results/{customer_id} → crawled URL list
+POST /api/crawler/start/{customer_id}          → start background crawl
+GET  /api/crawler/status/{customer_id}         → job status
+GET  /api/crawler/results/{customer_id}        → crawled URL list
+POST /api/crawler/scrape-content/{customer_id} → scrape content from crawled URLs
+GET  /api/crawler/content/{customer_id}        → cached content results
 """
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database import get_db, CrawlJob, CrawlResult
 from routers.auth_router import get_current_user, require_admin
@@ -159,3 +162,117 @@ def get_results(
             for r in results
         ],
     }
+
+
+@router.post('/scrape-content/{customer_id}')
+async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
+    """Scrapt Inhalte aller gecrawlten URLs und speichert sie in website_content_cache."""
+    from bs4 import BeautifulSoup
+    import httpx
+    import json
+    from datetime import datetime
+
+    urls = db.query(CrawlResult).filter(
+        CrawlResult.customer_id == customer_id,
+        CrawlResult.status_code == 200,
+    ).limit(50).all()
+
+    results = []
+    async with httpx.AsyncClient(
+        timeout=8.0,
+        follow_redirects=True,
+        headers={'User-Agent': 'KOMPAGNON-ContentBot/1.0'},
+    ) as client:
+        for crawl in urls:
+            try:
+                res = await client.get(crawl.url)
+                soup = BeautifulSoup(res.text, 'html.parser')
+
+                title = soup.find('title')
+                meta  = soup.find('meta', attrs={'name': 'description'})
+                h1    = soup.find('h1')
+                h2s   = [h.get_text(strip=True) for h in soup.find_all('h2')[:5]]
+
+                for tag in soup(['script', 'style', 'nav', 'footer', 'header']):
+                    tag.decompose()
+                body_text = soup.get_text(separator=' ', strip=True)
+
+                entry = {
+                    'customer_id':      customer_id,
+                    'url':              crawl.url,
+                    'title':            title.get_text(strip=True) if title else '',
+                    'meta_description': meta.get('content', '') if meta else '',
+                    'h1':               h1.get_text(strip=True) if h1 else '',
+                    'h2s':              json.dumps(h2s, ensure_ascii=False),
+                    'text_preview':     body_text[:300],
+                    'word_count':       len(body_text.split()),
+                    'scraped_at':       datetime.utcnow(),
+                }
+
+                existing = db.execute(
+                    text("SELECT id FROM website_content_cache WHERE customer_id=:c AND url=:u"),
+                    {"c": customer_id, "u": crawl.url},
+                ).fetchone()
+                if existing:
+                    db.execute(
+                        text(
+                            "UPDATE website_content_cache "
+                            "SET title=:title, meta_description=:meta_description, h1=:h1, "
+                            "h2s=:h2s, text_preview=:text_preview, word_count=:word_count, "
+                            "scraped_at=:scraped_at WHERE id=:id"
+                        ),
+                        {**entry, 'id': existing[0]},
+                    )
+                else:
+                    db.execute(
+                        text(
+                            "INSERT INTO website_content_cache "
+                            "(customer_id, url, title, meta_description, h1, h2s, "
+                            "text_preview, word_count, scraped_at) "
+                            "VALUES (:customer_id, :url, :title, :meta_description, :h1, "
+                            ":h2s, :text_preview, :word_count, :scraped_at)"
+                        ),
+                        entry,
+                    )
+                results.append({**entry, 'scraped_at': entry['scraped_at'].isoformat()})
+            except Exception as e:
+                results.append({'url': crawl.url, 'error': str(e)})
+
+    db.commit()
+    return {'scraped': len(results), 'results': results}
+
+
+@router.get('/content/{customer_id}')
+def get_content(customer_id: int, db: Session = Depends(get_db)):
+    """Gibt gecachte Content-Scraping-Ergebnisse für customer_id zurück."""
+    import json
+
+    rows = db.execute(
+        text(
+            "SELECT id, customer_id, url, title, meta_description, h1, h2s, "
+            "text_preview, word_count, scraped_at "
+            "FROM website_content_cache WHERE customer_id = :c ORDER BY scraped_at DESC"
+        ),
+        {"c": customer_id},
+    ).fetchall()
+
+    result = []
+    for r in rows:
+        h2s_parsed = []
+        try:
+            h2s_parsed = json.loads(r[6]) if r[6] else []
+        except Exception:
+            pass
+        result.append({
+            'id':               r[0],
+            'customer_id':      r[1],
+            'url':              r[2],
+            'title':            r[3],
+            'meta_description': r[4],
+            'h1':               r[5],
+            'h2s':              h2s_parsed,
+            'text_preview':     r[7],
+            'word_count':       r[8],
+            'scraped_at':       r[9].isoformat() if r[9] else None,
+        })
+    return result

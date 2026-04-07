@@ -594,6 +594,19 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_name VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS fixed_price FLOAT",
         # Netlify-Integration (NETLIFY_API_TOKEN env-Variable erforderlich)
+        # Website-Content-Cache für Crawler-Scraping
+        """CREATE TABLE IF NOT EXISTS website_content_cache (
+          id               SERIAL PRIMARY KEY,
+          customer_id      INTEGER,
+          url              TEXT,
+          title            TEXT,
+          meta_description TEXT,
+          h1               TEXT,
+          h2s              TEXT,
+          text_preview     TEXT,
+          word_count       INTEGER,
+          scraped_at       TIMESTAMP DEFAULT NOW()
+        )""",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_site_id VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_site_url VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_deploy_id VARCHAR",

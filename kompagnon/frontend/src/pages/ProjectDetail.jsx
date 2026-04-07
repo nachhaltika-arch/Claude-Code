@@ -50,6 +50,61 @@ const CMS_OPTIONS  = ['WordPress', 'Wix', 'TYPO3', 'Webflow', 'Sonstige'];
 const PKG_OPTIONS  = ['kompagnon', 'starter', 'professional', 'enterprise'];
 const PAY_OPTIONS  = ['offen', 'bezahlt', 'überfällig'];
 
+// ── Phasen-Navigation ─────────────────────────────────────────────────────────
+const PHASE_MENU = {
+  1: { label: 'Onboarding', tabs: [
+    { id: 'audit',           label: '🔍 Audit' },
+    { id: 'briefing-quick',  label: '📋 Briefing' },
+    { id: 'unternehmen',     label: '🏢 Unternehmen' },
+    { id: 'crawler',         label: '🕷 Crawler' },
+    { id: 'website-content', label: '🌐 Website-Content' },
+    { id: 'brand-design',    label: '🎨 Brand Design' },
+    { id: 'hosting-scan',    label: '🖥 Hosting' },
+  ]},
+  2: { label: 'Briefing', tabs: [
+    { id: 'briefing', label: '📋 Briefing' },
+  ]},
+  3: { label: 'Content', tabs: [
+    { id: 'sitemap',  label: '🗺 Sitemap' },
+    { id: 'content',  label: '📝 Content' },
+    { id: 'design',   label: '🎨 Design' },
+    { id: 'preview',  label: '👁 Vorschau' },
+    { id: 'editor',   label: '✏️ Editor' },
+  ]},
+  4: { label: 'Technik', tabs: [
+    { id: 'netlify-dns', label: '🌐 Netlify-DNS' },
+    { id: 'golive-prep', label: '🚀 Go-Live Vorbereitung' },
+  ]},
+  5: { label: 'Q&A', tabs: [
+    { id: 'checkliste', label: '✅ QA-Checkliste' },
+  ]},
+  6: { label: 'Go-Live', tabs: [
+    { id: 'live-data',    label: '📊 Live-Daten' },
+    { id: 'hosting-keys', label: '🔑 Hosting-Zugangsdaten' },
+  ]},
+  7: { label: 'Post-Launch', tabs: [
+    { id: 'trustpilot', label: '⭐ Trustpilot' },
+  ]},
+  8: { label: 'Fertig', tabs: [
+    { id: 'upsell', label: '💼 Upsell-Produkte' },
+  ]},
+};
+
+const SUB_TAB_MAP = {
+  'unternehmen':     'overview',
+  'briefing-quick':  'briefing',
+  'briefing':        'briefing',
+  'brand-design':    'branddesign',
+  'website-content': 'webcontent',
+  'hosting-scan':    'hosting',
+  'checkliste':      'checklists',
+  'design':          'mockup',
+  'sitemap':         'sitemap',
+  'content':         'content',
+  'crawler':         'crawler',
+  'golive-prep':     'overview',
+};
+
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 function EditModal({ project, token, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -385,6 +440,8 @@ export default function ProjectDetail() {
   const [margin, setMargin]           = useState(null);
   const [loading, setLoading]         = useState(true);
   const [activeTab, setActiveTab]     = useState('overview');
+  const [activePhase, setActivePhase] = useState(1);
+  const [activeSubTab, setActiveSubTab] = useState('unternehmen');
   const [showEdit, setShowEdit]       = useState(false);
   const [showApproval, setShowApproval] = useState(false);
   const [showBriefingWizard, setShowBriefingWizard] = useState(false);
@@ -491,6 +548,17 @@ export default function ProjectDetail() {
   }, [id]); // eslint-disable-line
 
   useEffect(() => { loadProject(); }, [id]); // eslint-disable-line
+
+  // Sync activePhase from project status on load
+  useEffect(() => {
+    if (project) {
+      const phase = parseInt((project.status || '').replace('phase_', '')) || 1;
+      setActivePhase(phase);
+      const firstTab = PHASE_MENU[phase]?.tabs[0]?.id || 'unternehmen';
+      setActiveSubTab(firstTab);
+      setActiveTab(SUB_TAB_MAP[firstTab] || firstTab);
+    }
+  }, [project?.id]); // eslint-disable-line
 
   if (loading || !project) {
     return (
@@ -687,8 +755,6 @@ export default function ProjectDetail() {
     }
   };
 
-  const tabs = ['overview', 'webcontent', 'briefing', 'branddesign', 'dateien', 'pagespeed', 'sitemap', 'content', 'mockup', 'checklists', 'crawler', 'hosting', 'zeit', 'kommunikation'];
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* ── Header ─────────────────────────────────────────────────────────── */}
@@ -720,21 +786,7 @@ export default function ProjectDetail() {
             {project.lead_id && (
               <button onClick={() => navigate(`/app/leads/${project.lead_id}`)} style={btnBase}>👤 Zur Kundenkartei</button>
             )}
-            <button onClick={() => setShowEdit(true)} style={btnBase}>✏️ Projektdaten bearbeiten</button>
-            <button onClick={() => setActiveTab('audits')} style={btnBase}>🔍 Audit starten</button>
-            <button
-              onClick={async () => {
-                try {
-                  const res = await axios.get(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers });
-                  setBriefingData(res.data);
-                } catch { setBriefingData(null); }
-                setShowBriefingWizard(true);
-              }}
-              style={btnBase}
-            >📋 Briefing starten</button>
-            <button onClick={() => setActiveTab('webcontent')} style={btnBase}>📝 Website-Content</button>
-            <button onClick={() => setActiveTab('crawler')} style={btnBase}>🕷️ Crawler</button>
-            <button onClick={() => setActiveTab('pagespeed')} style={btnBase}>⚡ PageSpeed</button>
+            <button onClick={() => { loadLatestAudit(); setShowEdit(true); }} style={btnBase}>✏️ Projektdaten bearbeiten</button>
             {isAdmin && (
               <button onClick={() => setShowApproval(true)} style={btnApproval}>🖊️ Freigabe anfordern</button>
             )}
@@ -742,38 +794,72 @@ export default function ProjectDetail() {
         );
       })()}
 
-      {/* ── Phase Tracker ───────────────────────────────────────────────────── */}
-      <div className="kc-card">
-        <PhaseTracker currentPhase={project.status} />
-      </div>
+      {/* ── Phasen-Navigation (Ebene 1) ─────────────────────────────────────── */}
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+        {/* Phasenleiste */}
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {Object.entries(PHASE_MENU).map(([phase, cfg], idx, arr) => {
+            const phaseNum  = parseInt(phase);
+            const currentNum = parseInt((project.status || '').replace('phase_', '')) || 1;
+            const isDone    = phaseNum < currentNum;
+            const isActive  = phaseNum === activePhase;
+            const isCurrent = phaseNum === currentNum;
+            return (
+              <React.Fragment key={phase}>
+                {idx > 0 && (
+                  <div style={{ alignSelf: 'center', height: 2, width: 12, flexShrink: 0, background: isDone ? '#1D9E75' : 'var(--border-light)' }} />
+                )}
+                <button onClick={() => {
+                  setActivePhase(phaseNum);
+                  const firstId = cfg.tabs[0].id;
+                  setActiveSubTab(firstId);
+                  setActiveTab(SUB_TAB_MAP[firstId] || firstId);
+                }} style={{
+                  flex: 1, minWidth: 70, padding: '10px 4px 8px', border: 'none',
+                  borderBottom: isActive ? '3px solid #0d6efd' : '3px solid transparent',
+                  background: isActive ? '#E6F1FB' : 'transparent',
+                  cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  borderRadius: 0, transition: 'all 0.15s',
+                }}>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: '50%',
+                    background: isDone ? '#1D9E75' : isCurrent ? '#0d6efd' : '#e2e8f0',
+                    color: (isDone || isCurrent) ? '#fff' : '#64748b',
+                    fontSize: 11, fontWeight: 600,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>{isDone ? '✓' : phaseNum}</div>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: isActive ? 600 : 400,
+                    color: isActive ? '#0d6efd' : isDone ? '#1D9E75' : '#64748b',
+                    whiteSpace: 'nowrap',
+                  }}>{cfg.label}</span>
+                </button>
+              </React.Fragment>
+            );
+          })}
+        </div>
 
-      {/* ── Tabs ───────────────────────────────────────────────────────────── */}
-      <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        {tabs.map((tab) => {
-          const label =
-            tab === 'overview'   ? '⊞ Übersicht'    :
-            tab === 'briefing'   ? '📋 Briefing'     :
-            tab === 'branddesign'? '🎨 Branddesign'  :
-            tab === 'dateien'    ? '📎 Dateien'      :
-            tab === 'pagespeed'  ? '⚡ PageSpeed'    :
-            tab === 'sitemap'    ? '🗺️ Sitemap'      :
-            tab === 'content'    ? '📝 Content'      :
-            tab === 'mockup'     ? '🎨 Mockup'       :
-            tab === 'checklists' ? '✓ Checklisten'  :
-            tab === 'crawler'    ? '🕷️ Crawler'      :
-            tab === 'webcontent' ? '🌐 Website-Content' :
-            tab === 'hosting'    ? '🖥️ Hosting'       :
-            tab === 'zeit'       ? '⏱ Zeiterfassung' : '💬 Nachrichten';
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{ flex: isMobile ? '0 0 auto' : 1, flexShrink: 0, padding: isMobile ? '7px 14px' : '8px 12px', borderRadius: 'var(--radius-md)', border: 'none', background: activeTab === tab ? 'var(--bg-active)' : 'transparent', color: activeTab === tab ? 'var(--brand-primary)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: activeTab === tab ? 500 : 400, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
-            >
-              {label}
+        {/* Untermenü (Ebene 2) */}
+        <div style={{ display: 'flex', gap: 4, padding: '6px 8px 0', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {(PHASE_MENU[activePhase]?.tabs || []).map(tab => (
+            <button key={tab.id} onClick={() => {
+              setActiveSubTab(tab.id);
+              setActiveTab(SUB_TAB_MAP[tab.id] || tab.id);
+            }} style={{
+              padding: '6px 14px', border: 'none',
+              borderRadius: '6px 6px 0 0',
+              background: activeSubTab === tab.id ? 'var(--bg-app)' : 'transparent',
+              borderBottom: activeSubTab === tab.id ? '2px solid #0d6efd' : '2px solid transparent',
+              fontWeight: activeSubTab === tab.id ? 600 : 400,
+              fontSize: 12,
+              color: activeSubTab === tab.id ? '#0d6efd' : 'var(--text-secondary)',
+              cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)',
+            }}>
+              {tab.label}
             </button>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
       {/* ── Overview Tab ────────────────────────────────────────────────────── */}

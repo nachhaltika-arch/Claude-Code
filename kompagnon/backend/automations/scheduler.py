@@ -286,12 +286,25 @@ class CompagnonScheduler:
         global _use_mock_email
         _use_mock_email = use_mock_email
 
-        jobstores = {
-            "default": SQLAlchemyJobStore(url=database_url, tablename="apscheduler_jobs")
-        }
-        executors = {"default": ThreadPoolExecutor(max_workers=3)}
+        # JobStore mit Fallback auf MemoryJobStore wenn DB nicht erreichbar
+        try:
+            from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+            jobstores = {
+                "default": SQLAlchemyJobStore(
+                    url=database_url,
+                    tablename="apscheduler_jobs"
+                )
+            }
+        except Exception as e:
+            logger.warning(f"⚠ SQLAlchemy JobStore nicht verfügbar ({e}) — nutze MemoryJobStore")
+            from apscheduler.jobstores.memory import MemoryJobStore
+            jobstores = {"default": MemoryJobStore()}
 
-        self.scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors)
+        executors = {"default": ThreadPoolExecutor(max_workers=3)}
+        self.scheduler = BackgroundScheduler(
+            jobstores=jobstores,
+            executors=executors
+        )
 
     def start(self):
         """Start the scheduler and register all daily jobs."""
@@ -433,10 +446,22 @@ def get_scheduler(database_url: str = None, use_mock_email: bool = False):
 
 
 def start_scheduler():
-    """Start the global scheduler."""
-    scheduler = get_scheduler()
-    if not scheduler.scheduler.running:
-        scheduler.start()
+    """Start the global scheduler. Fehler werden nur geloggt."""
+    global _scheduler
+    try:
+        scheduler = get_scheduler()
+        if not scheduler.scheduler.running:
+            scheduler.start()
+            logger.info("✓ Scheduler gestartet")
+        else:
+            logger.info("✓ Scheduler läuft bereits")
+    except Exception as e:
+        logger.warning(
+            f"⚠ Scheduler konnte nicht gestartet werden: {e} "
+            f"— Automatische Jobs deaktiviert, App läuft weiter."
+        )
+        # _scheduler NICHT auf None zurücksetzen —
+        # get_active_jobs() soll trotzdem antworten können
 
 
 def stop_scheduler():

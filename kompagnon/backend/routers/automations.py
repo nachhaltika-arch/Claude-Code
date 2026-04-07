@@ -220,24 +220,37 @@ def get_projects_by_phase(db: Session = Depends(get_db)):
 def get_active_jobs():
     """Get list of active scheduled jobs."""
     from automations.scheduler import get_scheduler
-
-    scheduler = get_scheduler()
-    jobs = []
-
-    for job in scheduler.scheduler.get_jobs():
-        jobs.append(
-            {
-                "job_id": job.id,
-                "name": job.name,
-                "next_run": job.next_run_time,
-                "trigger": str(job.trigger),
+    try:
+        scheduler = get_scheduler()
+        if not scheduler.scheduler.running:
+            return {
+                "active_jobs": 0,
+                "jobs": [],
+                "status": "scheduler_not_running",
+                "info": "Scheduler wurde noch nicht gestartet oder ist auf Render nicht verfügbar.",
             }
-        )
-
-    return {
-        "active_jobs": len(jobs),
-        "jobs": jobs,
-    }
+        jobs = []
+        for job in scheduler.scheduler.get_jobs():
+            jobs.append({
+                "job_id":   job.id,
+                "name":     job.name,
+                "next_run": str(job.next_run_time) if job.next_run_time else None,
+                "trigger":  str(job.trigger),
+            })
+        return {
+            "active_jobs": len(jobs),
+            "jobs": jobs,
+            "status": "running",
+        }
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Jobs-Endpunkt Fehler: {e}")
+        return {
+            "active_jobs": 0,
+            "jobs": [],
+            "status": "error",
+            "info": str(e),
+        }
 
 
 @router.post("/automations/test-email")

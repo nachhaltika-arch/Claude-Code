@@ -593,6 +593,14 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_checked_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_name VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS fixed_price FLOAT",
+        # Netlify-Integration (NETLIFY_API_TOKEN env-Variable erforderlich)
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_site_id VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_site_url VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_deploy_id VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_domain VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_domain_status VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_ssl_active BOOLEAN DEFAULT false",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_last_deploy TIMESTAMP",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

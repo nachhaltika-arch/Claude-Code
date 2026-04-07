@@ -1110,3 +1110,162 @@ def get_screenshots(project_id: int, db: Session = Depends(get_db)):
         "before": {"data": f"data:image/jpeg;base64,{row[0]}" if row[0] else None, "date": row[2].isoformat() if row[2] else None, "url": None},
         "after":  {"data": f"data:image/jpeg;base64,{row[1]}" if row[1] else None, "date": row[3].isoformat() if row[3] else None, "url": None},
     }
+
+
+# ── Netlify-Integration ───────────────────────────────────────────────────────
+
+class NetlifyDeployRequest(BaseModel):
+    html:      str
+    css:       str = ""
+    redirects: str = ""
+
+class NetlifyDomainRequest(BaseModel):
+    domain: str
+
+
+@router.post("/{project_id}/netlify/create-site")
+async def netlify_create_site(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Erstellt eine neue Netlify-Site für das Projekt (nur Admin)."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    existing = db.execute(
+        text("SELECT netlify_site_id FROM projects WHERE id = :id"),
+        {"id": project_id},
+    ).scalar()
+    if existing:
+        raise HTTPException(409, f"Netlify-Site bereits vorhanden: {existing}")
+
+    lead = project.lead
+    company = (
+        getattr(project, "company_name", None)
+        or (lead.company_name if lead else None)
+        or f"projekt-{project_id}"
+    )
+
+    from services.netlify_service import create_site
+    result = await create_site(company)
+
+    db.execute(
+        text(
+            "UPDATE projects SET netlify_site_id = :sid, netlify_site_url = :url "
+            "WHERE id = :id"
+        ),
+        {"sid": result["site_id"], "url": result["site_url"], "id": project_id},
+    )
+    db.commit()
+    return {"site_id": result["site_id"], "site_url": result["site_url"]}
+
+
+@router.post("/{project_id}/netlify/deploy")
+async def netlify_deploy(
+    project_id: int,
+    body: NetlifyDeployRequest,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Deployt HTML auf die Netlify-Site des Projekts (nur Admin)."""
+    row = db.execute(
+        text("SELECT netlify_site_id FROM projects WHERE id = :id"),
+        {"id": project_id},
+    ).fetchone()
+    if not row or not row[0]:
+        raise HTTPException(400, "Keine Netlify-Site vorhanden. Zuerst Site anlegen.")
+
+    site_id = row[0]
+    from services.netlify_service import deploy_html
+    result = await deploy_html(site_id, body.html, body.css, body.redirects)
+
+    db.execute(
+        text(
+            "UPDATE projects SET netlify_deploy_id = :did, netlify_last_deploy = :ts "
+            "WHERE id = :id"
+        ),
+        {"did": result["deploy_id"], "ts": datetime.utcnow(), "id": project_id},
+    )
+    db.commit()
+    return {
+        "deploy_id":  result["deploy_id"],
+        "deploy_url": result["deploy_url"],
+        "state":      result["state"],
+    }
+
+
+@router.post("/{project_id}/netlify/set-domain")
+async def netlify_set_domain(
+    project_id: int,
+    body: NetlifyDomainRequest,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Setzt eine Custom-Domain auf der Netlify-Site (nur Admin)."""
+    row = db.execute(
+        text("SELECT netlify_site_id FROM projects WHERE id = :id"),
+        {"id": project_id},
+    ).fetchone()
+    if not row or not row[0]:
+        raise HTTPException(400, "Keine Netlify-Site vorhanden.")
+
+    site_id = row[0]
+    from services.netlify_service import set_custom_domain
+    result = await set_custom_domain(site_id, body.domain)
+
+    db.execute(
+        text(
+            "UPDATE projects SET netlify_domain = :domain, netlify_domain_status = 'pending' "
+            "WHERE id = :id"
+        ),
+        {"domain": body.domain, "id": project_id},
+    )
+    db.commit()
+    return {
+        "custom_domain":       result["custom_domain"],
+        "required_dns_record": result.get("required_dns_record"),
+        "cname_target":        f"{body.domain}.netlify.app",
+    }
+
+
+@router.get("/{project_id}/netlify/status")
+async def netlify_status(
+    project_id: int,
+    db: Session = Depends(get_db),
+):
+    """Ruft den Netlify-Status des Projekts ab."""
+    row = db.execute(
+        text(
+            "SELECT netlify_site_id, netlify_site_url, netlify_deploy_id, "
+            "netlify_domain, netlify_domain_status, netlify_ssl_active, netlify_last_deploy "
+            "FROM projects WHERE id = :id"
+        ),
+        {"id": project_id},
+    ).fetchone()
+    if not row or not row[0]:
+        raise HTTPException(404, "Keine Netlify-Site für dieses Projekt vorhanden.")
+
+    site_id = row[0]
+    from services.netlify_service import get_site_status
+    live = await get_site_status(site_id)
+
+    # SSL-Status in DB aktualisieren
+    ssl_active = bool(live.get("ssl"))
+    db.execute(
+        text("UPDATE projects SET netlify_ssl_active = :ssl WHERE id = :id"),
+        {"ssl": ssl_active, "id": project_id},
+    )
+    db.commit()
+
+    return {
+        **live,
+        "netlify_site_id":       row[0],
+        "netlify_site_url":      row[1],
+        "netlify_deploy_id":     row[2],
+        "netlify_domain":        row[3],
+        "netlify_domain_status": row[4],
+        "netlify_ssl_active":    ssl_active,
+        "netlify_last_deploy":   row[6].isoformat() if row[6] else None,
+    }

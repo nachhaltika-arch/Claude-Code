@@ -44,6 +44,7 @@ const LEVEL_COLORS = {
 
 const TABS = [
   { id: 'overview',   label: 'Übersicht',   icon: '⊞' },
+  { id: 'messages',   label: 'Nachrichten', icon: '💬' },
   { id: 'contact',    label: 'Kontakt',     icon: '👤' },
   { id: 'audits',     label: 'Audits',      icon: '✓' },
   { id: 'dateien',    label: 'Dateien',     icon: '📎' },
@@ -107,6 +108,13 @@ export default function LeadProfile() {
   const [templateLoading, setTemplateLoading] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [allTemplates, setAllTemplates] = useState([]);
+  // Nachrichten
+  const [messages, setMessages] = useState([]);
+  const [msgLoading, setMsgLoading] = useState(false);
+  const [msgText, setMsgText] = useState('');
+  const [msgChannel, setMsgChannel] = useState('in_app');
+  const [msgSubject, setMsgSubject] = useState('');
+  const [msgSending, setMsgSending] = useState(false);
 
   const h = {
     'Content-Type': 'application/json',
@@ -114,6 +122,33 @@ export default function LeadProfile() {
   };
 
   useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); loadAssignedTemplate(); }, [leadId]); // eslint-disable-line
+
+  const loadMessages = async () => {
+    setMsgLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/messages/${leadId}`, { headers: h });
+      if (res.ok) setMessages(await res.json());
+    } catch { /* silent */ } finally { setMsgLoading(false); }
+  };
+
+  const sendMessage = async () => {
+    if (!msgText.trim()) return;
+    setMsgSending(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/messages/${leadId}`, {
+        method: 'POST', headers: h,
+        body: JSON.stringify({ content: msgText.trim(), subject: msgSubject.trim() || undefined, channel: msgChannel }),
+      });
+      if (res.ok) { setMsgText(''); setMsgSubject(''); await loadMessages(); }
+    } catch { /* silent */ } finally { setMsgSending(false); }
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'messages') return;
+    loadMessages();
+    const interval = setInterval(loadMessages, 30000);
+    return () => clearInterval(interval);
+  }, [activeTab, leadId]); // eslint-disable-line
 
   const loadProfile = async () => {
     try {
@@ -733,9 +768,120 @@ export default function LeadProfile() {
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ flex: isMobile ? '0 0 auto' : 1, flexShrink: 0, padding: isMobile ? '7px 14px' : '8px 12px', borderRadius: 'var(--radius-md)', border: 'none', background: activeTab === tab.id ? 'var(--bg-active)' : 'transparent', color: activeTab === tab.id ? 'var(--brand-primary)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: activeTab === tab.id ? 500 : 400, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
             <span>{tab.icon}</span>{tab.label}
+            {tab.id === 'messages' && (lead.unread_messages || 0) > 0 && (
+              <span style={{ background: '#ef4444', color: '#fff', borderRadius: 9999, fontSize: 10, fontWeight: 700, padding: '1px 6px', lineHeight: 1.4 }}>
+                {lead.unread_messages}
+              </span>
+            )}
           </button>
         ))}
       </div>
+
+      {/* NACHRICHTEN TAB */}
+      {activeTab === 'messages' && (() => {
+        const fmtTime = (iso) => {
+          if (!iso) return '';
+          const d = new Date(iso);
+          return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        };
+        const fmtDay = (iso) => {
+          if (!iso) return '';
+          const d = new Date(iso);
+          const today = new Date();
+          const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+          if (d.toDateString() === today.toDateString()) return 'Heute';
+          if (d.toDateString() === yesterday.toDateString()) return 'Gestern';
+          return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        };
+
+        // Group messages by day for separators
+        const grouped = [];
+        let lastDay = null;
+        for (const m of messages) {
+          const day = fmtDay(m.created_at);
+          if (day !== lastDay) { grouped.push({ type: 'sep', day }); lastDay = day; }
+          grouped.push({ type: 'msg', msg: m });
+        }
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', background: 'var(--bg-app)' }}>
+
+            {/* Nachrichtenverlauf */}
+            <div style={{ maxHeight: 500, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {msgLoading && messages.length === 0 && (
+                <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: 32 }}>Nachrichten werden geladen…</div>
+              )}
+              {!msgLoading && messages.length === 0 && (
+                <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: 32 }}>Noch keine Nachrichten. Schreib die erste Nachricht!</div>
+              )}
+              {grouped.map((item, i) => {
+                if (item.type === 'sep') return (
+                  <div key={`sep-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)', fontSize: 11 }}>
+                    <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+                    {item.day}
+                    <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+                  </div>
+                );
+                const m = item.msg;
+                const isAdmin = m.sender_role === 'admin';
+                return (
+                  <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isAdmin ? 'flex-end' : 'flex-start' }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontWeight: 600 }}>{m.sender_name || (isAdmin ? 'Admin' : lead.company_name)}</span>
+                      <span>{fmtTime(m.created_at)}</span>
+                      {isAdmin && (
+                        <span style={{ background: m.channel === 'email' ? '#fef3c7' : '#dcfce7', color: m.channel === 'email' ? '#92400e' : '#166534', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 600 }}>
+                          {m.channel === 'email' ? '✉️ E-Mail' : '💬 In-App'}
+                        </span>
+                      )}
+                      {!isAdmin && !m.is_read && (
+                        <span style={{ color: '#3b82f6', fontSize: 10 }}>🔵 Ungelesen</span>
+                      )}
+                    </div>
+                    <div style={{ maxWidth: '75%', padding: '10px 14px', borderRadius: isAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: isAdmin ? '#E6F1FB' : 'var(--bg-surface)', border: '1px solid var(--border-light)', fontSize: 13, lineHeight: 1.6, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {m.content}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Eingabebereich */}
+            <div style={{ borderTop: '1px solid var(--border-light)', padding: '12px 16px', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {msgChannel === 'email' && (
+                <input
+                  value={msgSubject}
+                  onChange={e => setMsgSubject(e.target.value)}
+                  placeholder="Betreff der E-Mail…"
+                  style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-app)', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              )}
+              <textarea
+                value={msgText}
+                onChange={e => setMsgText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendMessage(); }}
+                placeholder="Nachricht schreiben… (Ctrl+Enter zum Senden)"
+                rows={3}
+                style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13, fontFamily: 'var(--font-sans)', resize: 'vertical', background: 'var(--bg-app)', color: 'var(--text-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[{ id: 'in_app', label: '💬 In-App' }, { id: 'email', label: '✉️ + E-Mail' }].map(ch => (
+                    <button key={ch.id} onClick={() => setMsgChannel(ch.id)}
+                      style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border-light)', fontSize: 12, fontWeight: msgChannel === ch.id ? 700 : 400, background: msgChannel === ch.id ? 'var(--brand-primary)' : 'var(--bg-app)', color: msgChannel === ch.id ? '#fff' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      {ch.label}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={sendMessage} disabled={msgSending || !msgText.trim()}
+                  style={{ padding: '8px 20px', background: '#0d6efd', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
+                  {msgSending ? 'Senden…' : 'Senden →'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ÜBERSICHT TAB */}
       {activeTab === 'overview' && (

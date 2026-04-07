@@ -957,26 +957,89 @@ def hosting_info(
 async def domain_check_project(
     project_id: int,
     db: Session = Depends(get_db),
-    _: object = Depends(get_current_user),
 ):
-    """Manueller Domain-Check für ein Projekt."""
+    """Prüft DNS, WHOIS und SSL für die Website-URL des Projekts."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
-        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
-    if not project.website_url:
-        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
-    from services.domain_checker import check_domain
-    result = await check_domain(project.website_url)
-    project.domain_reachable   = result["reachable"]
-    project.domain_status_code = result.get("status_code")
-    project.domain_checked_at  = datetime.utcnow()
-    db.commit()
-    return {
-        "reachable":   project.domain_reachable,
-        "status_code": project.domain_status_code,
-        "checked_at":  project.domain_checked_at.isoformat(),
-        "website_url": project.website_url,
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    lead = project.lead
+    website_url = getattr(project, "website_url", None) or (lead.website_url if lead else None)
+    if not website_url:
+        raise HTTPException(400, "Keine Website-URL hinterlegt")
+
+    url = website_url.strip()
+    if not url.startswith("http"):
+        url = "https://" + url
+
+    from urllib.parse import urlparse
+    import socket
+    import ssl
+    import datetime as dt
+
+    parsed = urlparse(url)
+    domain = parsed.netloc or parsed.path
+
+    result = {
+        "domain": domain,
+        "url": url,
+        "dns": None,
+        "ssl": None,
+        "ssl_expiry": None,
+        "ssl_days_remaining": None,
+        "reachable": False,
+        "status_code": None,
+        "redirect_url": None,
+        "error": None,
     }
+
+    # DNS check
+    try:
+        ip = socket.gethostbyname(domain)
+        result["dns"] = ip
+    except Exception as e:
+        result["error"] = f"DNS-Fehler: {str(e)}"
+        return result
+
+    # Reachability check
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            resp = await client.get(url)
+            result["reachable"] = True
+            result["status_code"] = resp.status_code
+            if str(resp.url) != url:
+                result["redirect_url"] = str(resp.url)
+    except Exception as e:
+        result["error"] = f"Erreichbarkeit: {str(e)}"
+
+    # SSL cert expiry
+    try:
+        ctx = ssl.create_default_context()
+        with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
+            s.settimeout(5)
+            s.connect((domain, 443))
+            cert = s.getpeercert()
+            expiry_str = cert.get("notAfter", "")
+            if expiry_str:
+                expiry = dt.datetime.strptime(expiry_str, "%b %d %H:%M:%S %Y %Z")
+                days = (expiry - dt.datetime.utcnow()).days
+                result["ssl"] = "valid"
+                result["ssl_expiry"] = expiry.strftime("%d.%m.%Y")
+                result["ssl_days_remaining"] = days
+    except Exception:
+        result["ssl"] = "none_or_error"
+
+    # Persist reachability to project
+    try:
+        project.domain_reachable   = result["reachable"]
+        project.domain_status_code = result.get("status_code")
+        project.domain_checked_at  = datetime.utcnow()
+        db.commit()
+    except Exception:
+        pass
+
+    return result
 
 
 @router.post("/{project_id}/screenshot/before")

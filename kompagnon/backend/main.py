@@ -787,19 +787,24 @@ async def lifespan(app: FastAPI):
             try:
                 await asyncio.wait_for(
                     loop.run_in_executor(pool, _db_ops),
-                    timeout=30.0
+                    timeout=15.0
                 )
             except asyncio.TimeoutError:
-                logger.warning("⚠ Hintergrund-Init Timeout nach 30s")
+                logger.warning("⚠ Hintergrund-Init Timeout nach 15s — Server läuft trotzdem")
             except Exception as e:
                 logger.warning(f"⚠ Hintergrund-Init Fehler: {e}")
 
-    task = asyncio.create_task(_background_init())
+    try:
+        task = asyncio.create_task(_background_init())
+    except Exception as e:
+        logger.warning(f"⚠ Background-Task konnte nicht gestartet werden: {e}")
+        task = None
 
-    yield  # ← Port öffnet HIER sofort
+    yield  # ← Port öffnet HIER — immer, unabhängig von DB-Init
 
     # Shutdown
-    task.cancel()
+    if task is not None:
+        task.cancel()
     try:
         stop_scheduler()
     except Exception:

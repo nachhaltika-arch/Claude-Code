@@ -874,31 +874,22 @@ from routers.courses import router as courses_router
 app.include_router(courses_router)
 
 try:
-    from app.routers.academy import router as academy_router
-    app.include_router(academy_router)
-    logger.info("✓ Academy Router registriert (app.routers)")
+    from app.routers.academy import router as _academy_router
 except ImportError:
-    try:
-        from routers.academy import router as academy_router
-        app.include_router(academy_router)
-        logger.info("✓ Academy Router registriert (routers)")
-    except ImportError as e:
-        logger.warning(f"⚠ Academy Router nicht verfügbar: {e}")
-
-from routers.crawler import router as crawler_router
-app.include_router(crawler_router)
+    from routers.academy import router as _academy_router
+app.include_router(_academy_router)
 
 try:
-    from app.routers.files import router as files_router
-    app.include_router(files_router)
-    logger.info("✓ Files Router registriert (app.routers)")
+    from routers.crawler import router as _crawler_router
+    app.include_router(_crawler_router)
 except ImportError:
-    try:
-        from routers.files import router as files_router
-        app.include_router(files_router)
-        logger.info("✓ Files Router registriert (routers)")
-    except ImportError as e:
-        logger.warning(f"⚠ Files Router nicht verfügbar: {e}")
+    logger.warning("⚠ Crawler Router nicht gefunden — wird übersprungen")
+
+try:
+    from app.routers.files import router as _files_router
+except ImportError:
+    from routers.files import router as _files_router
+app.include_router(_files_router)
 
 try:
     from routers import website_mockup

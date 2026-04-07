@@ -874,19 +874,31 @@ from routers.courses import router as courses_router
 app.include_router(courses_router)
 
 try:
-    from routers.academy import router as academy_router
+    from app.routers.academy import router as academy_router
     app.include_router(academy_router)
-except ImportError as e:
-    logger.warning(f"⚠ Academy router nicht gefunden: {e}")
+    logger.info("✓ Academy Router registriert (app.routers)")
+except ImportError:
+    try:
+        from routers.academy import router as academy_router
+        app.include_router(academy_router)
+        logger.info("✓ Academy Router registriert (routers)")
+    except ImportError as e:
+        logger.warning(f"⚠ Academy Router nicht verfügbar: {e}")
 
 from routers.crawler import router as crawler_router
 app.include_router(crawler_router)
 
 try:
-    from routers.files import router as files_router
+    from app.routers.files import router as files_router
     app.include_router(files_router)
-except ImportError as e:
-    logger.warning(f"⚠ Files router nicht gefunden: {e}")
+    logger.info("✓ Files Router registriert (app.routers)")
+except ImportError:
+    try:
+        from routers.files import router as files_router
+        app.include_router(files_router)
+        logger.info("✓ Files Router registriert (routers)")
+    except ImportError as e:
+        logger.warning(f"⚠ Files Router nicht verfügbar: {e}")
 
 try:
     from routers import website_mockup

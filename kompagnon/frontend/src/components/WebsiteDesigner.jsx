@@ -13,9 +13,48 @@ import gjsStyleFilter from 'grapesjs-style-filter';
 import gjsTooltip from 'grapesjs-tooltip';
 import { useEffect, useRef, useState } from 'react';
 import API_BASE_URL from '../config';
+import JSZip from 'jszip';
 
 export default function WebsiteDesigner({ projectId, leadId, initialHtml, initialCss, onSave }) {
   const editorRef = useRef(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handleZipImport = async (file) => {
+    if (!file || !file.name.endsWith('.zip')) {
+      setImportError('Nur ZIP-Dateien unterstuetzt.'); return;
+    }
+    setImportLoading(true); setImportError('');
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const files = Object.keys(zip.files);
+      const htmlFile = zip.files['index.html'] ||
+        zip.files[files.find(f => f.endsWith('.html') && !zip.files[f].dir)];
+      if (!htmlFile) {
+        setImportError('Keine index.html im ZIP gefunden.');
+        setImportLoading(false); return;
+      }
+      const htmlContent = await htmlFile.async('string');
+      let cssContent = '';
+      const cssFile = zip.files['style.css'] || zip.files['css/style.css'] ||
+        zip.files[files.find(f => f.endsWith('.css') && !zip.files[f].dir)];
+      if (cssFile) cssContent = await cssFile.async('string');
+      let cleanHtml = htmlContent;
+      const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+      if (bodyMatch) cleanHtml = bodyMatch[1].trim();
+      const ed = editorRef.current;
+      if (ed) {
+        ed.setComponents(cleanHtml);
+        if (cssContent) ed.setStyle(cssContent);
+        ed.UndoManager.clear();
+      }
+      setShowImportModal(false);
+    } catch (err) {
+      setImportError(`Fehler: ${err.message}`);
+    } finally { setImportLoading(false); }
+  };
 
   useEffect(() => {
     const editor = grapesjs.init({
@@ -191,6 +230,15 @@ export default function WebsiteDesigner({ projectId, leadId, initialHtml, initia
       },
     });
 
+    editor.Panels.addButton('options', {
+      id: 'zip-import-btn', className: 'fa fa-file-archive-o',
+      command: 'open-zip-import',
+      attributes: { title: 'ZIP-Template importieren' },
+    });
+    editor.Commands.add('open-zip-import', {
+      run: () => setShowImportModal(true),
+    });
+
     editor.Keymaps.add('ns:save', 'ctrl:83', 'save-db');
 
     return () => { if (editorRef.current) editorRef.current.destroy(); };
@@ -207,6 +255,56 @@ export default function WebsiteDesigner({ projectId, leadId, initialHtml, initia
         </span>
       </div>
       <div id="gjs-designer" style={{ flex: 1 }} />
+
+      {showImportModal && (
+        <div style={{ position:'absolute',inset:0,background:'rgba(0,0,0,0.5)',
+                      display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999 }}>
+          <div style={{ background:'var(--bg-surface)',borderRadius:12,
+                        padding:32,width:480,maxWidth:'90vw' }}>
+            <h3 style={{ margin:'0 0 16px',color:'var(--text-primary)' }}>
+              ZIP-Template importieren
+            </h3>
+            <p style={{ fontSize:13,color:'var(--text-secondary)',marginBottom:20 }}>
+              ZIP mit <code>index.html</code> hochladen. Optional: <code>style.css</code>.
+            </p>
+            <div onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => { e.preventDefault(); handleZipImport(e.dataTransfer.files[0]); }}
+              style={{ border:'2px dashed var(--color-border-secondary)',borderRadius:8,
+                       padding:'32px 20px',textAlign:'center',cursor:'pointer',
+                       background:'var(--bg-app)',marginBottom:16 }}>
+              {importLoading
+                ? <p style={{ margin:0,color:'var(--text-secondary)' }}>Verarbeitung...</p>
+                : <><div style={{ fontSize:32,marginBottom:8 }}>📦</div>
+                   <p style={{ margin:0,color:'var(--text-secondary)',fontSize:14 }}>
+                     ZIP hier ablegen oder klicken
+                   </p></>}
+            </div>
+            <input ref={fileInputRef} type="file" accept=".zip" style={{ display:'none' }}
+              onChange={(e) => { handleZipImport(e.target.files[0]); e.target.value=''; }} />
+            {importError && (
+              <p style={{ color:'var(--color-text-danger)',
+                          background:'var(--color-background-danger)',
+                          padding:'8px 12px',borderRadius:6,fontSize:13,marginBottom:12 }}>
+                {importError}
+              </p>
+            )}
+            <div style={{ display:'flex',gap:10,justifyContent:'flex-end' }}>
+              <button onClick={() => { setShowImportModal(false); setImportError(''); }}
+                style={{ padding:'8px 20px',border:'1px solid var(--color-border-primary)',
+                         borderRadius:6,background:'transparent',
+                         color:'var(--text-secondary)',cursor:'pointer' }}>
+                Abbrechen
+              </button>
+              <button onClick={() => fileInputRef.current?.click()} disabled={importLoading}
+                style={{ padding:'8px 20px',border:'none',borderRadius:6,
+                         background:'#0d6efd',color:'white',cursor:'pointer',fontWeight:600 }}>
+                Datei auswaehlen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

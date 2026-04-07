@@ -27,6 +27,7 @@
     "grapesjs-tabs": "^1.0.6",
     "grapesjs-tooltip": "^0.1.8",
     "grapesjs-touch": "^0.1.1",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.363.0",
     "postcss": "^8.4.32",
     "qrcode.react": "^4.2.0",

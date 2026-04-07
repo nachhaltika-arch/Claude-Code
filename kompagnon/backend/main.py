@@ -592,6 +592,7 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_status_code INTEGER",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_checked_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_name VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS current_phase INTEGER DEFAULT 1",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS fixed_price FLOAT",
         # Netlify-Integration (NETLIFY_API_TOKEN env-Variable erforderlich)
         # Website-Content-Cache für Crawler-Scraping

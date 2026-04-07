@@ -1519,6 +1519,43 @@ export default function ProjectDetail() {
                 </button>
               </div>
             )}
+
+            {/* ── Design-Assets ─────────────────────────────────────────── */}
+            <div style={{ marginTop: 8, paddingTop: 16, borderTop: '1px solid var(--border-light)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>🎨 Entdeckte Design-Assets</div>
+                <button onClick={() => toast.info('Asset-Scan wird in Kürze verfügbar')} style={{
+                  padding: '6px 14px', background: 'var(--bg-elevated)', color: 'var(--text-secondary)',
+                  border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+                  fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                }}>
+                  🔍 Assets scannen
+                </button>
+              </div>
+              {(() => {
+                let assets = [];
+                try { assets = project.brand_assets ? JSON.parse(project.brand_assets) : []; } catch { assets = []; }
+                const typeColor = { Farbe: { bg: '#ede9fe', text: '#5b21b6' }, Logo: { bg: '#dcfce7', text: '#166534' }, Font: { bg: '#fef3c7', text: '#92400e' }, Bild: { bg: '#dbeafe', text: '#1e40af' } };
+                if (!assets.length) return (
+                  <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>Noch keine Assets gescrapt</div>
+                );
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {assets.map((a, i) => {
+                      const tc = typeColor[a.type] || { bg: 'var(--bg-app)', text: 'var(--text-secondary)' };
+                      const isHex = /^#[0-9a-fA-F]{3,6}$/.test(a.value);
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)' }}>
+                          <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: tc.bg, color: tc.text, flexShrink: 0 }}>{a.type}</span>
+                          {isHex && <div style={{ width: 18, height: 18, borderRadius: 4, background: a.value, border: '1px solid var(--border-light)', flexShrink: 0 }} />}
+                          <span style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: isHex ? 'monospace' : 'inherit' }}>{a.value}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         );
       })()}
@@ -2494,8 +2531,40 @@ export default function ProjectDetail() {
         );
       })()}
 
+      {/* ── Hosting Fragebogen ──────────────────────────────────────────────── */}
+      {activeTab === 'hosting' && activeSubTab === 'hosting-form' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>🔑 Hosting & Zugangsdaten</div>
+          <div style={{ padding: '10px 14px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 'var(--radius-md)', fontSize: 13, color: '#92400e', display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span>⚠️</span>
+            <span>Dieses Formular wird in Kürze aktiviert.</span>
+          </div>
+          {[
+            { label: 'Hoster / Provider',    type: 'input',    placeholder: 'z.B. IONOS, Strato, All-Inkl.' },
+            { label: 'Domain-Registrar',     type: 'input',    placeholder: 'z.B. united-domains.de' },
+            { label: 'Nameserver 1',         type: 'input',    placeholder: 'ns1.example.com' },
+            { label: 'Nameserver 2',         type: 'input',    placeholder: 'ns2.example.com' },
+            { label: 'FTP/SFTP Zugangsdaten',type: 'textarea', placeholder: 'Host · Benutzer · Passwort' },
+            { label: 'WordPress-Admin URL',  type: 'input',    placeholder: 'https://example.com/wp-admin' },
+            { label: 'Hinweise',             type: 'textarea', placeholder: 'Weitere Informationen...' },
+          ].map(f => (
+            <div key={f.label}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>{f.label}</label>
+              {f.type === 'textarea' ? (
+                <textarea disabled placeholder={f.placeholder} style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', background: 'var(--bg-app)', color: 'var(--text-tertiary)', fontSize: 13, fontFamily: 'var(--font-sans)', resize: 'vertical', minHeight: 72, boxSizing: 'border-box', opacity: 0.6 }} />
+              ) : (
+                <input disabled placeholder={f.placeholder} style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', background: 'var(--bg-app)', color: 'var(--text-tertiary)', fontSize: 13, fontFamily: 'var(--font-sans)', boxSizing: 'border-box', opacity: 0.6 }} />
+              )}
+            </div>
+          ))}
+          <button disabled style={{ alignSelf: 'flex-start', padding: '10px 24px', background: 'var(--border-medium)', color: 'var(--text-tertiary)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'not-allowed', fontFamily: 'var(--font-sans)' }}>
+            Speichern
+          </button>
+        </div>
+      )}
+
       {/* ── Hosting-Analyse ─────────────────────────────────────────────────── */}
-      {activeTab === 'hosting' && (() => {
+      {activeTab === 'hosting' && activeSubTab !== 'hosting-form' && (() => {
         const token = localStorage.getItem('kompagnon_token');
         const authH = token ? { Authorization: `Bearer ${token}` } : {};
 

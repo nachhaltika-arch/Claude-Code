@@ -594,6 +594,9 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_name VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS current_phase INTEGER DEFAULT 1",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS fixed_price FLOAT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS brand_assets TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scraped_content TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scraped_at TIMESTAMP",
         # Netlify-Integration (NETLIFY_API_TOKEN env-Variable erforderlich)
         # Website-Content-Cache für Crawler-Scraping
         """CREATE TABLE IF NOT EXISTS website_content_cache (

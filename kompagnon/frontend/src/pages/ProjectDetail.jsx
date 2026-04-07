@@ -549,6 +549,7 @@ export default function ProjectDetail() {
         axios.get(`${API_BASE_URL}/api/projects/${id}`, { headers }),
         axios.get(`${API_BASE_URL}/api/projects/${id}/margin`, { headers }),
       ]);
+      console.log('Projekt API:', projectRes.data);
       setProject(projectRes.data);
       setMargin(marginRes.data);
       setNewWebsiteUrl(projectRes.data.new_website_url || '');

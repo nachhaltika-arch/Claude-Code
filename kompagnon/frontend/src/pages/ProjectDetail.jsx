@@ -535,6 +535,8 @@ export default function ProjectDetail() {
   const [editPageForm, setEditPageForm]     = useState({});
   const [editPageSaving, setEditPageSaving] = useState(false);
   const [deletingPageId, setDeletingPageId] = useState(null);
+  const [draggedPageId, setDraggedPageId]   = useState(null);
+  const [dragOverPageId, setDragOverPageId] = useState(null);
   // KI generation
   const [kiGenerating, setKiGenerating]     = useState(false);
   const [kiConfirm, setKiConfirm]           = useState(false);
@@ -748,6 +750,69 @@ export default function ProjectDetail() {
       const a = document.createElement('a'); a.href = url; a.download = 'sitemap.pdf'; a.click();
       URL.revokeObjectURL(url);
     } catch (e) { toast.error('PDF Fehler: ' + e.message); }
+  };
+
+  const saveOrder = async (reorderedPages) => {
+    try {
+      await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id}/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ page_ids: reorderedPages.map(p => p.id) }),
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const movePageUp = (pageId) => {
+    const nonPflicht = sitemapPages.filter(p => !p.ist_pflichtseite);
+    const idx = nonPflicht.findIndex(p => p.id === pageId);
+    if (idx <= 0) return;
+    const reordered = [...nonPflicht];
+    [reordered[idx - 1], reordered[idx]] = [reordered[idx], reordered[idx - 1]];
+    const pflicht = sitemapPages.filter(p => p.ist_pflichtseite);
+    const merged = [...reordered, ...pflicht];
+    setSitemapPages(merged);
+    saveOrder(merged);
+  };
+
+  const movePageDown = (pageId) => {
+    const nonPflicht = sitemapPages.filter(p => !p.ist_pflichtseite);
+    const idx = nonPflicht.findIndex(p => p.id === pageId);
+    if (idx >= nonPflicht.length - 1) return;
+    const reordered = [...nonPflicht];
+    [reordered[idx], reordered[idx + 1]] = [reordered[idx + 1], reordered[idx]];
+    const pflicht = sitemapPages.filter(p => p.ist_pflichtseite);
+    const merged = [...reordered, ...pflicht];
+    setSitemapPages(merged);
+    saveOrder(merged);
+  };
+
+  const onDragStart = (e, pageId) => {
+    setDraggedPageId(pageId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const onDragOver = (e, pageId) => {
+    e.preventDefault();
+    setDragOverPageId(pageId);
+  };
+
+  const onDrop = (e, targetPageId) => {
+    e.preventDefault();
+    if (!draggedPageId || draggedPageId === targetPageId) {
+      setDraggedPageId(null); setDragOverPageId(null); return;
+    }
+    const reordered = [...sitemapPages];
+    const fromIdx = reordered.findIndex(p => p.id === draggedPageId);
+    const toIdx   = reordered.findIndex(p => p.id === targetPageId);
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    setSitemapPages(reordered);
+    saveOrder(reordered);
+    setDraggedPageId(null); setDragOverPageId(null);
+  };
+
+  const onDragEnd = () => {
+    setDraggedPageId(null); setDragOverPageId(null);
   };
 
   const deleteSitemapPage = async (pageId) => {
@@ -1526,10 +1591,39 @@ export default function ProjectDetail() {
                 </div>
               ) : (
                 <>
-                  {sitemapPages.filter(p => !p.ist_pflichtseite).map(page => {
+                  {sitemapPages.filter(p => !p.ist_pflichtseite).map((page, index) => {
                     const st = ST[page.status] || ST.geplant;
+                    const isDragOver = dragOverPageId === page.id;
                     return (
-                      <div key={page.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid var(--border-light)', flexWrap: 'wrap' }}>
+                      <div
+                        key={page.id}
+                        draggable
+                        onDragStart={e => onDragStart(e, page.id)}
+                        onDragOver={e => onDragOver(e, page.id)}
+                        onDrop={e => onDrop(e, page.id)}
+                        onDragEnd={onDragEnd}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+                          borderBottom: '1px solid var(--border-light)', flexWrap: 'wrap',
+                          background: isDragOver ? 'var(--bg-hover)' : 'transparent',
+                          borderTop: isDragOver ? '2px solid var(--brand-primary)' : '2px solid transparent',
+                          transition: 'background 0.1s',
+                        }}
+                      >
+                        <span style={{ cursor: 'grab', color: 'var(--text-tertiary)', fontSize: 14, marginRight: 2, userSelect: 'none' }}>⠿</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginRight: 4 }}>
+                          <button onClick={() => movePageUp(page.id)} disabled={index === 0}
+                            style={{ background: 'none', border: 'none', cursor: index === 0 ? 'default' : 'pointer',
+                              fontSize: 12, color: index === 0 ? 'var(--border-light)' : 'var(--text-tertiary)',
+                              padding: '1px 4px', lineHeight: 1 }}>▲</button>
+                          <button onClick={() => movePageDown(page.id)}
+                            disabled={index === sitemapPages.filter(p => !p.ist_pflichtseite).length - 1}
+                            style={{ background: 'none', border: 'none',
+                              cursor: index === sitemapPages.filter(p => !p.ist_pflichtseite).length - 1 ? 'default' : 'pointer',
+                              fontSize: 12,
+                              color: index === sitemapPages.filter(p => !p.ist_pflichtseite).length - 1 ? 'var(--border-light)' : 'var(--text-tertiary)',
+                              padding: '1px 4px', lineHeight: 1 }}>▼</button>
+                        </div>
                         <span style={{ fontSize: 17, flexShrink: 0 }}>{TI[page.page_type] || '📄'}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{page.page_name}</div>

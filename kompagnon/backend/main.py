@@ -596,6 +596,8 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS fixed_price FLOAT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS mockup_css TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS mockup_html TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT false",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMP",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

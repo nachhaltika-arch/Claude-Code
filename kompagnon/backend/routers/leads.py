@@ -701,6 +701,7 @@ def get_portal_data(token: str, db: Session = Depends(get_db)):
         'ux_score': latest_audit.ux_score if latest_audit else None,
         'ai_summary': latest_audit.ai_summary if latest_audit else None,
         'website_screenshot': f'data:image/jpeg;base64,{lead.website_screenshot}' if lead.website_screenshot else None,
+        'onboarding_completed': getattr(lead, 'onboarding_completed', False) or False,
     }
 
 
@@ -744,6 +745,71 @@ def verify_portal_access(token: str, data: dict, db: Session = Depends(get_db)):
         'ceo_last_name': lead.ceo_last_name or '',
         'geschaeftsfuehrer': lead.geschaeftsfuehrer or '',
     }
+
+
+@router.post("/portal/{token}/complete-onboarding")
+def complete_onboarding(token: str, data: dict, db: Session = Depends(get_db)):
+    """Mark onboarding as completed and optionally save briefing fields."""
+    lead = db.query(Lead).filter(Lead.customer_token == token).first()
+    if not lead:
+        raise HTTPException(404, "Ungültiger Zugangslink")
+
+    if data.get('website_url'):
+        lead.website_url = data['website_url']
+
+    lead.onboarding_completed = True
+    lead.onboarding_completed_at = datetime.utcnow()
+
+    # Briefing-Felder speichern falls vorhanden
+    gewerk       = data.get('gewerk')
+    leistungen   = data.get('leistungen')
+    einzugsgebiet = data.get('einzugsgebiet')
+    has_logo     = data.get('has_logo')
+    has_photos   = data.get('has_photos')
+    anmerkungen  = data.get('anmerkungen')
+
+    briefing_fields = any(v is not None for v in [
+        gewerk, leistungen, einzugsgebiet, has_logo, has_photos, anmerkungen
+    ])
+
+    if briefing_fields:
+        try:
+            db.execute(text("""
+                INSERT INTO briefings
+                  (lead_id, gewerk, leistungen, einzugsgebiet,
+                   logo_vorhanden, fotos_vorhanden, sonstige_hinweise, status)
+                VALUES
+                  (:lead_id, :gewerk, :leistungen, :einzugsgebiet,
+                   :logo_vorhanden, :fotos_vorhanden, :sonstige_hinweise, 'entwurf')
+                ON CONFLICT (lead_id) DO UPDATE SET
+                  gewerk            = COALESCE(EXCLUDED.gewerk, briefings.gewerk),
+                  leistungen        = COALESCE(EXCLUDED.leistungen, briefings.leistungen),
+                  einzugsgebiet     = COALESCE(EXCLUDED.einzugsgebiet, briefings.einzugsgebiet),
+                  logo_vorhanden    = COALESCE(EXCLUDED.logo_vorhanden, briefings.logo_vorhanden),
+                  fotos_vorhanden   = COALESCE(EXCLUDED.fotos_vorhanden, briefings.fotos_vorhanden),
+                  sonstige_hinweise = COALESCE(EXCLUDED.sonstige_hinweise, briefings.sonstige_hinweise),
+                  updated_at        = NOW()
+            """), {
+                'lead_id':          lead.id,
+                'gewerk':           gewerk,
+                'leistungen':       leistungen,
+                'einzugsgebiet':    einzugsgebiet,
+                'logo_vorhanden':   has_logo,
+                'fotos_vorhanden':  has_photos,
+                'sonstige_hinweise': anmerkungen,
+            })
+        except Exception:
+            # Briefings-Tabelle existiert nicht — Felder als Notiz sichern
+            parts = []
+            if gewerk:        parts.append(f"Gewerk: {gewerk}")
+            if leistungen:    parts.append(f"Leistungen: {leistungen}")
+            if einzugsgebiet: parts.append(f"Einzugsgebiet: {einzugsgebiet}")
+            if anmerkungen:   parts.append(f"Anmerkungen: {anmerkungen}")
+            if parts:
+                lead.notes = ((lead.notes or '') + '\n' + '\n'.join(parts)).strip()
+
+    db.commit()
+    return {"success": True}
 
 
 # ── Routes with {lead_id} parameter below ──────────────────────

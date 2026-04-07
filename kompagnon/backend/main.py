@@ -595,6 +595,7 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_name VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS fixed_price FLOAT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS mockup_css TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS mockup_html TEXT",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

@@ -595,6 +595,13 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS current_phase INTEGER DEFAULT 1",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS fixed_price FLOAT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS brand_assets TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS hosting_provider VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_registrar VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS nameserver1 VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS nameserver2 VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS ftp_credentials TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS wp_admin_url VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS hosting_notes TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scraped_content TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scraped_at TIMESTAMP",
         # Netlify-Integration (NETLIFY_API_TOKEN env-Variable erforderlich)

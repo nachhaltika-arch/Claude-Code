@@ -115,6 +115,13 @@ class ProjectUpdateRequest(BaseModel):
     target_go_live: str = None
     status: str = None
     current_phase: int = None
+    hosting_provider: str = None
+    domain_registrar: str = None
+    nameserver1: str = None
+    nameserver2: str = None
+    ftp_credentials: str = None
+    wp_admin_url: str = None
+    hosting_notes: str = None
 
 
 class MarginResponse(BaseModel):

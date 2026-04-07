@@ -556,6 +556,11 @@ export default function ProjectDetail() {
   // Hosting-Analyse
   const [hostingData, setHostingData]       = useState(null);
   const [hostingLoaded, setHostingLoaded]   = useState(false);
+  const [hostingForm, setHostingForm] = useState({
+    hosting_provider: '', domain_registrar: '', nameserver1: '', nameserver2: '',
+    ftp_credentials: '', wp_admin_url: '', hosting_notes: '',
+  });
+  const [hostingFormSaving, setHostingFormSaving] = useState(false);
   const [hostingScanning, setHostingScanning] = useState(false);
   // Screenshots before/after
   const [screenshots, setScreenshots]       = useState({ before: { data: null, date: null, url: null }, after: { data: null, date: null, url: null } });
@@ -2532,36 +2537,68 @@ export default function ProjectDetail() {
       })()}
 
       {/* ── Hosting Fragebogen ──────────────────────────────────────────────── */}
-      {activeTab === 'hosting' && activeSubTab === 'hosting-form' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>🔑 Hosting & Zugangsdaten</div>
-          <div style={{ padding: '10px 14px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 'var(--radius-md)', fontSize: 13, color: '#92400e', display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span>⚠️</span>
-            <span>Dieses Formular wird in Kürze aktiviert.</span>
+      {activeTab === 'hosting' && activeSubTab === 'hosting-form' && (() => {
+        const setF = (key, val) => setHostingForm(f => ({ ...f, [key]: val }));
+        const inp = { width: '100%', padding: '8px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-medium)', background: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'var(--font-sans)', boxSizing: 'border-box', outline: 'none' };
+
+        const save = async () => {
+          setHostingFormSaving(true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({
+                hosting_provider: hostingForm.hosting_provider,
+                domain_registrar: hostingForm.domain_registrar,
+                nameserver1:      hostingForm.nameserver1,
+                nameserver2:      hostingForm.nameserver2,
+                ftp_credentials:  hostingForm.ftp_credentials,
+                wp_admin_url:     hostingForm.wp_admin_url,
+                hosting_notes:    hostingForm.hosting_notes,
+              }),
+            });
+            if (res.ok) toast.success('Zugangsdaten gespeichert');
+            else toast.error('Speichern fehlgeschlagen');
+          } catch (e) { toast.error('Fehler: ' + e.message); }
+          finally { setHostingFormSaving(false); }
+        };
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>🔑 Hosting & Zugangsdaten</div>
+            {[
+              { label: 'Hoster / Provider',     key: 'hosting_provider', type: 'input',    placeholder: 'z.B. IONOS, Strato, All-Inkl.' },
+              { label: 'Domain-Registrar',       key: 'domain_registrar', type: 'input',    placeholder: 'z.B. united-domains.de' },
+              { label: 'Nameserver 1',           key: 'nameserver1',      type: 'input',    placeholder: 'ns1.example.com' },
+              { label: 'Nameserver 2',           key: 'nameserver2',      type: 'input',    placeholder: 'ns2.example.com' },
+              { label: 'FTP/SFTP Zugangsdaten',  key: 'ftp_credentials',  type: 'textarea', placeholder: 'Host · Benutzer · Passwort' },
+              { label: 'WordPress-Admin URL',    key: 'wp_admin_url',     type: 'input',    placeholder: 'https://example.com/wp-admin' },
+              { label: 'Hinweise',               key: 'hosting_notes',    type: 'textarea', placeholder: 'Weitere Informationen...' },
+            ].map(f => (
+              <div key={f.key}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>{f.label}</label>
+                {f.type === 'textarea' ? (
+                  <textarea value={hostingForm[f.key]} onChange={e => setF(f.key, e.target.value)} placeholder={f.placeholder}
+                    style={{ ...inp, resize: 'vertical', minHeight: 80 }} />
+                ) : (
+                  <input value={hostingForm[f.key]} onChange={e => setF(f.key, e.target.value)} placeholder={f.placeholder} style={inp} />
+                )}
+              </div>
+            ))}
+            <button onClick={save} disabled={hostingFormSaving} style={{
+              alignSelf: 'flex-start', padding: '10px 24px',
+              background: hostingFormSaving ? 'var(--border-medium)' : 'var(--brand-primary)',
+              color: hostingFormSaving ? 'var(--text-tertiary)' : '#fff',
+              border: 'none', borderRadius: 'var(--radius-md)',
+              fontSize: 13, fontWeight: 600,
+              cursor: hostingFormSaving ? 'not-allowed' : 'pointer',
+              fontFamily: 'var(--font-sans)',
+            }}>
+              {hostingFormSaving ? 'Speichert…' : '💾 Speichern'}
+            </button>
           </div>
-          {[
-            { label: 'Hoster / Provider',    type: 'input',    placeholder: 'z.B. IONOS, Strato, All-Inkl.' },
-            { label: 'Domain-Registrar',     type: 'input',    placeholder: 'z.B. united-domains.de' },
-            { label: 'Nameserver 1',         type: 'input',    placeholder: 'ns1.example.com' },
-            { label: 'Nameserver 2',         type: 'input',    placeholder: 'ns2.example.com' },
-            { label: 'FTP/SFTP Zugangsdaten',type: 'textarea', placeholder: 'Host · Benutzer · Passwort' },
-            { label: 'WordPress-Admin URL',  type: 'input',    placeholder: 'https://example.com/wp-admin' },
-            { label: 'Hinweise',             type: 'textarea', placeholder: 'Weitere Informationen...' },
-          ].map(f => (
-            <div key={f.label}>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>{f.label}</label>
-              {f.type === 'textarea' ? (
-                <textarea disabled placeholder={f.placeholder} style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', background: 'var(--bg-app)', color: 'var(--text-tertiary)', fontSize: 13, fontFamily: 'var(--font-sans)', resize: 'vertical', minHeight: 72, boxSizing: 'border-box', opacity: 0.6 }} />
-              ) : (
-                <input disabled placeholder={f.placeholder} style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', background: 'var(--bg-app)', color: 'var(--text-tertiary)', fontSize: 13, fontFamily: 'var(--font-sans)', boxSizing: 'border-box', opacity: 0.6 }} />
-              )}
-            </div>
-          ))}
-          <button disabled style={{ alignSelf: 'flex-start', padding: '10px 24px', background: 'var(--border-medium)', color: 'var(--text-tertiary)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'not-allowed', fontFamily: 'var(--font-sans)' }}>
-            Speichern
-          </button>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Hosting-Analyse ─────────────────────────────────────────────────── */}
       {activeTab === 'hosting' && activeSubTab !== 'hosting-form' && (() => {

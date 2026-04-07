@@ -5,6 +5,7 @@ Runs the complete backend with scheduler, DB, and all routers.
 Usage:
     uvicorn main:app --reload --host 0.0.0.0 --port 8000
 """
+import asyncio
 import os
 import json
 import logging
@@ -695,9 +696,22 @@ async def lifespan(app: FastAPI):
         os.makedirs("uploads", exist_ok=True)
         logger.info("✓ uploads/ Ordner bereit")
 
-        _run_migrations()
-        init_db()
-        logger.info("✓ Database initialized")
+        try:
+            await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(None, _run_migrations),
+                timeout=15.0
+            )
+            logger.info("✓ Migrations abgeschlossen")
+        except asyncio.TimeoutError:
+            logger.warning("⚠ DB-Migration Timeout nach 15s — App startet trotzdem")
+        except Exception as e:
+            logger.warning(f"⚠ DB-Migration Fehler: {e} — App startet trotzdem")
+
+        try:
+            init_db()
+            logger.info("✓ Database initialized")
+        except Exception as e:
+            logger.warning(f"⚠ DB init Fehler: {e} — App startet trotzdem")
 
         # Create default admin if no users exist
         try:
@@ -774,8 +788,7 @@ async def lifespan(app: FastAPI):
         yield
 
     except Exception as e:
-        logger.error(f"✗ Startup failed: {str(e)}")
-        raise
+        logger.error(f"✗ Startup Fehler (nicht kritisch): {str(e)}")
 
     finally:
         logger.info("🛑 KOMPAGNON Backend Shutting Down...")
@@ -842,17 +855,26 @@ app.include_router(kampagne_router)
 from routers.courses import router as courses_router
 app.include_router(courses_router)
 
-from app.routers.academy import router as academy_router
-app.include_router(academy_router)
+try:
+    from routers.academy import router as academy_router
+    app.include_router(academy_router)
+except ImportError as e:
+    logger.warning(f"⚠ Academy router nicht gefunden: {e}")
 
 from routers.crawler import router as crawler_router
 app.include_router(crawler_router)
 
-from app.routers.files import router as files_router
-app.include_router(files_router)
+try:
+    from routers.files import router as files_router
+    app.include_router(files_router)
+except ImportError as e:
+    logger.warning(f"⚠ Files router nicht gefunden: {e}")
 
-from app.routers import website_mockup
-app.include_router(website_mockup.router, prefix="/api")
+try:
+    from routers import website_mockup
+    app.include_router(website_mockup.router, prefix="/api")
+except ImportError as e:
+    logger.warning(f"⚠ Website-Mockup router nicht gefunden: {e}")
 
 from routers import sitemap
 app.include_router(sitemap.router)

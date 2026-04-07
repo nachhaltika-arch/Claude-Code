@@ -109,6 +109,8 @@ class ProjectUpdateRequest(BaseModel):
     audit_level: str = None
     top_problems: str = None
     industry: str = None
+    wz_code: str = None
+    wz_title: str = None
     email_notifications_enabled: bool = None
     customer_email: str = None
     fixed_price: float = None

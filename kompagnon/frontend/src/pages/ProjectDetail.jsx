@@ -8,6 +8,7 @@ import MarginBadge from '../components/MarginBadge';
 import ProjectCard from '../components/ProjectCard';
 import BriefingTab from '../components/BriefingTab';
 import BriefingWizard from '../components/BriefingWizard';
+import WZSearch from '../components/WZSearch';
 import ProjectFilesSection from '../components/ProjectFilesSection';
 import HomepageChecklist from '../components/HomepageChecklist';
 import SecurityChecklist from '../components/SecurityChecklist';
@@ -75,6 +76,8 @@ const buildInitialForm = (project, lead, latestAudit) => ({
   has_photos:                   !!project.has_photos,
   top_problems:                 project.top_problems   || _extractTopProblems(latestAudit),
   industry:                     project.industry       || lead?.trade          || '',
+  wz_code:                      project.wz_code        || lead?.wz_code        || '',
+  wz_title:                     project.wz_title       || lead?.wz_title       || '',
   customer_email:               project.customer_email || lead?.email          || '',
   email_notifications_enabled:  project.email_notifications_enabled !== false,
 });
@@ -306,7 +309,15 @@ function EditModal({ project, lead, latestAudit, token, onClose, onSaved }) {
 
           {/* Branche */}
           <Field label="Branche">
-            <input style={input} value={form.industry} onChange={e => set('industry', e.target.value)} placeholder="z.B. Gastronomie" />
+            <WZSearch
+              value={form.wz_code ? { code: form.wz_code, title: form.wz_title } : null}
+              onChange={(entry) => {
+                set('wz_code', entry?.code || '');
+                set('wz_title', entry?.title || '');
+                set('industry', entry?.title || '');
+              }}
+              placeholder="Branche suchen..."
+            />
           </Field>
 
           {/* Gewünschte Seiten */}

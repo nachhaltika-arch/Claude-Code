@@ -625,6 +625,12 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_domain_status VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_ssl_active BOOLEAN DEFAULT false",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_last_deploy TIMESTAMP",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS wz_code VARCHAR",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS wz_title VARCHAR",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS wz_code VARCHAR",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS wz_title VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS wz_code VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS wz_title VARCHAR",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

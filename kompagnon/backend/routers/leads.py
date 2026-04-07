@@ -69,6 +69,8 @@ class LeadUpdate(BaseModel):
     register_court: Optional[str] = None
     ceo_first_name: Optional[str] = None
     ceo_last_name: Optional[str] = None
+    wz_code: Optional[str] = None
+    wz_title: Optional[str] = None
 
 
 class LeadResponse(BaseModel):

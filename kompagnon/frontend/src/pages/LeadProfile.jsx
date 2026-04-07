@@ -11,6 +11,7 @@ import SecurityChecklist from '../components/SecurityChecklist';
 import AuditReport from '../components/AuditReport';
 import BriefingTab from '../components/BriefingTab';
 import BriefingWizard from '../components/BriefingWizard';
+import WZSearch from '../components/WZSearch';
 import SitemapPlaner from '../components/SitemapPlaner';
 import ContentManager from '../components/ContentManager';
 import OfferTab from '../components/OfferTab';
@@ -205,6 +206,8 @@ export default function LeadProfile() {
         postal_code: lead.postal_code || '',
         city: lead.city || '',
         trade: lead.trade || '',
+        wz_code: lead.wz_code || '',
+        wz_title: lead.wz_title || '',
         legal_form: lead.legal_form || '',
         vat_id: lead.vat_id || '',
         register_number: lead.register_number || '',
@@ -1333,7 +1336,6 @@ export default function LeadProfile() {
                   ['Gesellschaftsform', 'legal_form', 'GmbH, UG, GmbH & Co. KG'],
                   ['Vorname Geschäftsführer', 'ceo_first_name', 'Max'],
                   ['Nachname Geschäftsführer', 'ceo_last_name', 'Mustermann'],
-                  ['Gewerk', 'trade', 'Elektriker'],
                 ].map(([label, field, ph]) => (
                   <div key={field}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
@@ -1342,6 +1344,19 @@ export default function LeadProfile() {
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                 ))}
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Gewerk / Branche</div>
+                  <WZSearch
+                    value={editData.wz_code ? { code: editData.wz_code, title: editData.wz_title } : null}
+                    onChange={(entry) => setEditData(p => ({
+                      ...p,
+                      wz_code: entry?.code || '',
+                      wz_title: entry?.title || '',
+                      trade: entry?.title || '',
+                    }))}
+                    placeholder="Branche suchen..."
+                  />
+                </div>
 
                 <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
                   <div style={sectionLabel}>Adresse</div>

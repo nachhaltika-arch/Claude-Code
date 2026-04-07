@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/briefings", tags=["briefings"])
 
 FLAT_FIELDS = [
-    "project_id", "gewerk", "leistungen", "einzugsgebiet", "usp",
+    "project_id", "gewerk", "wz_code", "wz_title", "leistungen", "einzugsgebiet", "usp",
     "mitbewerber", "vorbilder", "farben", "wunschseiten", "stil",
     "logo_vorhanden", "fotos_vorhanden", "sonstige_hinweise", "status",
 ]
@@ -31,6 +31,8 @@ FLAT_FIELDS = [
 class BriefingBody(BaseModel):
     project_id: Optional[int] = None
     gewerk: Optional[str] = None
+    wz_code: Optional[str] = None
+    wz_title: Optional[str] = None
     leistungen: Optional[str] = None
     einzugsgebiet: Optional[str] = None
     usp: Optional[str] = None
@@ -75,6 +77,8 @@ def _serialize(b: Briefing) -> dict:
         # Flat fields
         "project_id":        b.project_id,
         "gewerk":            b.gewerk or "",
+        "wz_code":           b.wz_code or "",
+        "wz_title":          b.wz_title or "",
         "leistungen":        b.leistungen or "",
         "einzugsgebiet":     b.einzugsgebiet or "",
         "usp":               b.usp or "",

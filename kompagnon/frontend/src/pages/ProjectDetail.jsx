@@ -81,10 +81,12 @@ const buildInitialForm = (project, lead, latestAudit) => ({
 
 // ── Phasen-Navigation ─────────────────────────────────────────────────────────
 const PHASE_MENU = {
+  0: { label: 'Übersicht', tabs: [
+    { id: 'unternehmen', label: '🏢 Unternehmen' },
+  ]},
   1: { label: 'Onboarding', tabs: [
     { id: 'audit',           label: '🔍 Audit' },
     { id: 'briefing-quick',  label: '📋 Briefing' },
-    { id: 'unternehmen',     label: '🏢 Unternehmen' },
     { id: 'crawler',         label: '🕷 Crawler' },
     { id: 'website-content', label: '🌐 Website-Content' },
     { id: 'brand-design',    label: '🎨 Brand Design' },
@@ -115,23 +117,25 @@ const PHASE_MENU = {
     { id: 'trustpilot', label: '⭐ Trustpilot' },
   ]},
   8: { label: 'Fertig', tabs: [
-    { id: 'upsell', label: '💼 Upsell-Produkte' },
+    { id: 'upsell',             label: '💼 Upsell-Produkte' },
+    { id: 'website-vergleich',  label: '📸 Website-Vergleich' },
   ]},
 };
 
 const SUB_TAB_MAP = {
-  'unternehmen':     'overview',
-  'briefing-quick':  'briefing',
-  'briefing':        'briefing',
-  'brand-design':    'branddesign',
-  'website-content': 'webcontent',
-  'hosting-scan':    'hosting',
-  'checkliste':      'checklists',
-  'design':          'mockup',
-  'sitemap':         'sitemap',
-  'content':         'content',
-  'crawler':         'crawler',
-  'golive-prep':     'overview',
+  'unternehmen':        'overview',
+  'briefing-quick':     'briefing',
+  'briefing':           'briefing',
+  'brand-design':       'branddesign',
+  'website-content':    'webcontent',
+  'hosting-scan':       'hosting',
+  'checkliste':         'checklists',
+  'design':             'mockup',
+  'sitemap':            'sitemap',
+  'content':            'content',
+  'crawler':            'crawler',
+  'golive-prep':        'overview',
+  'website-vergleich':  'overview',
 };
 
 // ── Edit Modal ────────────────────────────────────────────────────────────────
@@ -458,7 +462,7 @@ export default function ProjectDetail() {
   const [margin, setMargin]           = useState(null);
   const [loading, setLoading]         = useState(true);
   const [activeTab, setActiveTab]     = useState('overview');
-  const [activePhase, setActivePhase] = useState(1);
+  const [activePhase, setActivePhase] = useState(0);
   const [activeSubTab, setActiveSubTab] = useState('unternehmen');
   const [showEdit, setShowEdit]       = useState(false);
   const [showApproval, setShowApproval] = useState(false);
@@ -582,7 +586,7 @@ export default function ProjectDetail() {
   // Sync activePhase from project status on load
   useEffect(() => {
     if (project) {
-      const phase = parseInt((project.status || '').replace('phase_', '')) || 1;
+      const phase = parseInt((project.status || '').replace('phase_', '')) || 0;
       setActivePhase(phase);
       const firstTab = PHASE_MENU[phase]?.tabs[0]?.id || 'unternehmen';
       setActiveSubTab(firstTab);
@@ -917,8 +921,8 @@ export default function ProjectDetail() {
             </div>
           )}
 
-          {/* ── Website-Vergleich ─────────────────────────────────────────── */}
-          {(() => {
+          {/* ── Website-Vergleich — nur in Phase 8 → website-vergleich ── */}
+          {activeSubTab === 'website-vergleich' && (() => {
             const phaseNum = parseInt((project.status || '').replace('phase_', '')) || 0;
             const isGoLiveOrLater = phaseNum >= 6;
 

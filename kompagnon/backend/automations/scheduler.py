@@ -234,6 +234,46 @@ def job_tag_30_upsell(project_id: int):
         db.close()
 
 
+async def _check_all_domains_async():
+    from database import SessionLocal, Lead, Project
+    from services.domain_checker import check_domain
+    from datetime import datetime
+    db = SessionLocal()
+    try:
+        leads = db.query(Lead).filter(Lead.website_url != None,
+                                      Lead.website_url != "").all()
+        for lead in leads:
+            try:
+                result = await check_domain(lead.website_url)
+                lead.domain_reachable   = result["reachable"]
+                lead.domain_status_code = result.get("status_code")
+                lead.domain_checked_at  = datetime.utcnow()
+            except Exception:
+                pass
+        db.commit()
+
+        projects = db.query(Project).filter(Project.website_url != None,
+                                            Project.website_url != "").all()
+        for project in projects:
+            try:
+                result = await check_domain(project.website_url)
+                project.domain_reachable   = result["reachable"]
+                project.domain_status_code = result.get("status_code")
+                project.domain_checked_at  = datetime.utcnow()
+            except Exception:
+                pass
+        db.commit()
+    finally:
+        db.close()
+
+
+def job_check_all_domains():
+    import asyncio
+    logger.info("🌐 Domain-Check gestartet...")
+    asyncio.run(_check_all_domains_async())
+    logger.info("✓ Domain-Check abgeschlossen")
+
+
 # ===================================================================
 # SCHEDULER CLASS (thin wrapper, no job logic)
 # ===================================================================
@@ -266,6 +306,12 @@ class CompagnonScheduler:
 
     def _register_daily_jobs(self):
         """Register cron jobs using standalone functions."""
+        self.scheduler.add_job(
+            job_check_all_domains,
+            "interval", hours=6,
+            id="domain_check_every_6h",
+            replace_existing=True,
+        )
         self.scheduler.add_job(
             job_check_overdue_phases,
             "cron",

@@ -15,6 +15,7 @@ import PageSpeedSection from '../components/PageSpeedSection';
 import SitemapPlaner from '../components/SitemapPlaner';
 import GrapesEditor from '../components/GrapesEditor';
 import ContentManager from '../components/ContentManager';
+import AuditReport from '../components/AuditReport';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
@@ -524,6 +525,9 @@ export default function ProjectDetail() {
   const [designError, setDesignError] = useState('');
   const [activeDesignPage, setActiveDesignPage] = useState(null);
   const [activeContentPage, setActiveContentPage] = useState(null);
+  // Audits
+  const [audits, setAudits] = useState([]);
+  const [openAudit, setOpenAudit] = useState(null);
   // Domain-Check
   const [domainChecking, setDomainChecking] = useState(false);
   // Netlify
@@ -584,6 +588,19 @@ export default function ProjectDetail() {
   }, [id]); // eslint-disable-line
 
   useEffect(() => { loadProject(); }, [id]); // eslint-disable-line
+
+  const loadAudits = useCallback(async () => {
+    if (!project?.lead_id) return;
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/audit/lead/${project.lead_id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.ok) setAudits(await res.json());
+    } catch (e) { console.error(e); }
+  }, [project?.lead_id]); // eslint-disable-line
+
+  useEffect(() => { if (project?.lead_id) loadAudits(); }, [project?.lead_id]); // eslint-disable-line
 
   // Sync activePhase from project status on load
   useEffect(() => {
@@ -2359,15 +2376,78 @@ export default function ProjectDetail() {
 
       {/* ── Audit Tab ──────────────────────────────────────────────────────── */}
       {activeSubTab === 'audit' && (
-        <div style={{ background: 'var(--bg-app)', border: '2px dashed var(--border-light)', borderRadius: 8, padding: 40, textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Website-Audit</div>
-          {project.lead_id ? (
-            <a href={`/app/leads/${project.lead_id}`} style={{ color: '#0d6efd', fontSize: 13 }}>
-              Zum Audit in der Kundenkartei →
-            </a>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {audits.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px 20px',
+              background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+              borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)' }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
+              <div style={{ fontSize: 13, marginBottom: 14 }}>
+                {project.lead_id ? 'Noch keine Audits vorhanden' : 'Kein Lead verknüpft — bitte Projektdaten bearbeiten'}
+              </div>
+              {project.lead_id && (
+                <a href={`/app/leads/${project.lead_id}`}
+                  style={{ display: 'inline-block', padding: '8px 18px', background: 'var(--brand-primary)',
+                  color: 'white', border: 'none', borderRadius: 'var(--radius-md)',
+                  fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'none' }}>
+                  Audit in Kundenkartei starten →
+                </a>
+              )}
+            </div>
           ) : (
-            <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Kein Lead verknüpft. Bitte Projektdaten bearbeiten.</div>
+            audits.map((audit, i) => {
+              const levelColors = { Bronze: '#cd7f32', Silber: '#9e9e9e', Gold: '#ffd700', Platin: '#40c4df' };
+              const lc = levelColors[audit.level] || 'var(--text-tertiary)';
+              return (
+                <div key={audit.id} style={{
+                  background: 'var(--bg-surface)',
+                  border: `1px solid ${i === 0 ? 'var(--border-medium)' : 'var(--border-light)'}`,
+                  borderLeft: i === 0 ? '3px solid var(--brand-primary)' : '1px solid var(--border-light)',
+                  borderRadius: 'var(--radius-lg)', padding: '14px 16px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>
+                        {audit.created_at ? new Date(audit.created_at).toLocaleDateString('de-DE') : ''}
+                        {i === 0 && <span style={{ marginLeft: 8, background: 'var(--brand-primary)', color: 'white', padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>AKTUELL</span>}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: 28, fontWeight: 700, color: lc }}>{audit.total_score || 0}</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>/100</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: lc }}>{audit.level || '—'}</span>
+                      </div>
+                      {audit.ai_summary && (
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.5, maxWidth: 500 }}>
+                          {audit.ai_summary.substring(0, 150)}{audit.ai_summary.length > 150 ? '…' : ''}
+                        </div>
+                      )}
+                    </div>
+                    <button onClick={() => setOpenAudit(audit)} style={{
+                      padding: '7px 14px', background: 'var(--bg-elevated)',
+                      border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+                      fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                      color: 'var(--text-primary)', fontFamily: 'var(--font-sans)',
+                    }}>
+                      📋 Bericht öffnen
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          {/* Audit Detail Modal */}
+          {openAudit && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.6)',
+              zIndex: 1000, display: 'flex', alignItems: 'flex-start',
+              justifyContent: 'center', padding: '20px', overflowY: 'auto' }}
+              onClick={() => setOpenAudit(null)}>
+              <div onClick={e => e.stopPropagation()}
+                style={{ maxWidth: 900, width: '100%', background: 'var(--bg-surface)',
+                borderRadius: 'var(--radius-xl)', overflow: 'hidden' }}>
+                <AuditReport auditData={openAudit} onClose={() => setOpenAudit(null)} />
+              </div>
+            </div>
           )}
         </div>
       )}

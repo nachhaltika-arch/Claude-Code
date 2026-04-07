@@ -506,6 +506,11 @@ export default function ProjectDetail() {
         .then(r => r.ok ? r.json() : null)
         .then(d => { if (d) { setScreenshots(d); setScreenshotsLoaded(true); } })
         .catch(() => {});
+      // Auto domain-check im Hintergrund
+      fetch(`${API_BASE_URL}/api/projects/${id}/domain-check`, { method: 'POST', headers })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) setProject(prev => ({ ...prev, domain_reachable: d.reachable, domain_status_code: d.status_code, domain_checked_at: d.checked_at })); })
+        .catch(() => {});
     } catch {
       toast.error('Projekt konnte nicht geladen werden.');
     } finally {

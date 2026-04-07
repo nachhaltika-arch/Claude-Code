@@ -368,6 +368,12 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
     }
 
 
+BLOCKED_KEYS = {
+    "id", "pid", "project_id", "projects_id",
+    "created_at", "updated_at", "lead_id"
+}
+
+
 @router.put("/{project_id}")
 def update_project(
     project_id: int,
@@ -386,12 +392,29 @@ def update_project(
 
     old_status = existing[1]
 
-    data = {k: v for k, v in body.items() if v is not None}
-    if data:
-        data["pid"] = project_id
-        sets = ", ".join(f"{k} = :{k}" for k in data if k != "pid")
-        db.execute(_text(f"UPDATE projects SET {sets} WHERE id = :pid"), data)
-        db.commit()
+    # Filtere: keine gesperrten Keys, keine None, keine leeren Strings
+    data = {
+        k: v for k, v in body.items()
+        if k not in BLOCKED_KEYS
+        and v is not None
+        and v != ""
+        and v != []
+    }
+
+    if not data:
+        row = db.execute(
+            _text("SELECT * FROM projects WHERE id = :id"),
+            {"id": project_id}
+        ).fetchone()
+        return dict(row._mapping) if row else {"success": True}
+
+    # updated_at automatisch setzen
+    data["updated_at"] = datetime.utcnow()
+    data["pid"] = project_id
+
+    sets = ", ".join(f"{k} = :{k}" for k in data if k != "pid")
+    db.execute(_text(f"UPDATE projects SET {sets} WHERE id = :pid"), data)
+    db.commit()
 
     # Go-Live Trigger
     new_status = data.get("status", old_status)
@@ -405,9 +428,7 @@ def update_project(
         _text("SELECT * FROM projects WHERE id = :id"),
         {"id": project_id}
     ).fetchone()
-    if row:
-        return dict(row._mapping)
-    return {"success": True, "id": project_id}
+    return dict(row._mapping) if row else {"success": True}
 
 
 @router.patch("/{project_id}/phase")

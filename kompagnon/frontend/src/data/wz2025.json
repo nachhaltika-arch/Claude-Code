@@ -687,7 +687,7 @@
   {
     "code": "08.9",
     "level": 3,
-    "title": "Sonstiger Bergbau; Gewinnung von Steinen und Erden a. n. g."
+    "title": "Sonstiger Bergbau"
   },
   {
     "code": "08.91",
@@ -1427,7 +1427,7 @@
   {
     "code": "15.1",
     "level": 3,
-    "title": "Gerben, Färben, Zurichten von Leder und Fellen; Herstellung von Reisegepäck, Handtaschen, Sattlerwaren und Geschirren"
+    "title": "Gerben, Färben, Zurichten von Leder und Fellen"
   },
   {
     "code": "15.11",
@@ -1472,7 +1472,7 @@
   {
     "code": "16.1",
     "level": 3,
-    "title": "Säge- und Hobelwerke; Bearbeitung und Veredlung von Holz"
+    "title": "Säge- und Hobelwerke"
   },
   {
     "code": "16.11",
@@ -1672,7 +1672,7 @@
   {
     "code": "18",
     "level": 2,
-    "title": "Herstellung von Druckerzeugnissen; Vervielfältigung von bespielten Ton-, Bild- und Datenträgern"
+    "title": "Herstellung von Druckerzeugnissen"
   },
   {
     "code": "18.1",
@@ -2722,7 +2722,7 @@
   {
     "code": "25.5",
     "level": 3,
-    "title": "Oberflächenveredlung und Wärmebehandlung; Metallbearbeitung a. n. g."
+    "title": "Oberflächenveredlung und Wärmebehandlung"
   },
   {
     "code": "25.51",
@@ -4147,7 +4147,7 @@
   {
     "code": "E",
     "level": 1,
-    "title": "WASSERVERSORGUNG; ABWASSER- UND ABFALLENTSORGUNG UND BESEITIGUNG VON UMWELTVERSCHMUTZUNGEN"
+    "title": "WASSERVERSORGUNG"
   },
   {
     "code": "36",
@@ -6827,7 +6827,7 @@
   {
     "code": "59",
     "level": 2,
-    "title": "Herstellung, Verleih und Vertrieb von Filmen und Fernsehprogrammen; Kinos; Tonstudios und Verlegen von Musik"
+    "title": "Herstellung, Verleih und Vertrieb von Filmen und Fernsehprogrammen"
   },
   {
     "code": "59.1",
@@ -6882,12 +6882,12 @@
   {
     "code": "59.2",
     "level": 3,
-    "title": "Tonstudios; Herstellung von Hörfunkbeiträgen; Verlegen von bespielten Tonträgern und Musikalien"
+    "title": "Tonstudios"
   },
   {
     "code": "59.20",
     "level": 4,
-    "title": "Tonstudios; Herstellung von Hörfunkbeiträgen; Verlegen von bespielten Tonträgern und Musikalien"
+    "title": "Tonstudios"
   },
   {
     "code": "59.20.1",
@@ -7547,7 +7547,7 @@
   {
     "code": "68.12",
     "level": 4,
-    "title": "Erschließung von Grundstücken; Bauträger"
+    "title": "Erschließung von Grundstücken"
   },
   {
     "code": "68.12.1",
@@ -7657,12 +7657,12 @@
   {
     "code": "69.2",
     "level": 3,
-    "title": "Wirtschaftsprüfung und Steuerberatung; Buchführung"
+    "title": "Wirtschaftsprüfung und Steuerberatung"
   },
   {
     "code": "69.20",
     "level": 4,
-    "title": "Wirtschaftsprüfung und Steuerberatung; Buchführung"
+    "title": "Wirtschaftsprüfung und Steuerberatung"
   },
   {
     "code": "69.20.1",
@@ -7682,7 +7682,7 @@
   {
     "code": "70",
     "level": 2,
-    "title": "Verwaltung und Führung von Unternehmen und Betrieben; Unternehmensberatung"
+    "title": "Verwaltung und Führung von Unternehmen und Betrieben"
   },
   {
     "code": "70.1",
@@ -7732,7 +7732,7 @@
   {
     "code": "71",
     "level": 2,
-    "title": "Tätigkeiten von Architektur- und Ingenieurbüros; technische, physikalische und chemische Untersuchung"
+    "title": "Tätigkeiten von Architektur- und Ingenieurbüros"
   },
   {
     "code": "71.1",
@@ -8387,7 +8387,7 @@
   {
     "code": "81",
     "level": 2,
-    "title": "Gebäudebetreuung; Garten- und Landschaftsbau"
+    "title": "Gebäudebetreuung"
   },
   {
     "code": "81.1",
@@ -8592,12 +8592,12 @@
   {
     "code": "P",
     "level": 1,
-    "title": "ÖFFENTLICHE VERWALTUNG, VERTEIDIGUNG; SOZIALVERSICHERUNG"
+    "title": "ÖFFENTLICHE VERWALTUNG, VERTEIDIGUNG"
   },
   {
     "code": "84",
     "level": 2,
-    "title": "Öffentliche Verwaltung, Verteidigung; Sozialversicherung"
+    "title": "Öffentliche Verwaltung, Verteidigung"
   },
   {
     "code": "84.1",
@@ -9722,7 +9722,7 @@
   {
     "code": "94.9",
     "level": 3,
-    "title": "Kirchliche Vereinigungen; politische Parteien sowie sonstige Interessenvertretungen und Vereinigungen"
+    "title": "Kirchliche Vereinigungen"
   },
   {
     "code": "94.91",

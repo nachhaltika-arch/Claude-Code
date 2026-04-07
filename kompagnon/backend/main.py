@@ -585,6 +585,12 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_url_before VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_url_after VARCHAR",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS unread_messages INTEGER DEFAULT 0",
+        "ALTER TABLE leads    ADD COLUMN IF NOT EXISTS domain_reachable BOOLEAN DEFAULT NULL",
+        "ALTER TABLE leads    ADD COLUMN IF NOT EXISTS domain_status_code INTEGER",
+        "ALTER TABLE leads    ADD COLUMN IF NOT EXISTS domain_checked_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_reachable BOOLEAN DEFAULT NULL",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_status_code INTEGER",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_checked_at TIMESTAMP",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

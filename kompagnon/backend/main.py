@@ -572,6 +572,8 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_name VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS current_phase INTEGER DEFAULT 1",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS fixed_price FLOAT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS mockup_html TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS mockup_css TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS brand_assets TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS hosting_provider VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_registrar VARCHAR",

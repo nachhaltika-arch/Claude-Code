@@ -15,6 +15,7 @@ import SecurityChecklist from '../components/SecurityChecklist';
 import PageSpeedSection from '../components/PageSpeedSection';
 import SitemapPlaner from '../components/SitemapPlaner';
 import GrapesEditor from '../components/GrapesEditor';
+import WebsiteDesigner from '../components/WebsiteDesigner';
 import ContentManager from '../components/ContentManager';
 import AuditReport from '../components/AuditReport';
 import { useAuth } from '../context/AuthContext';
@@ -518,6 +519,7 @@ export default function ProjectDetail() {
   const [showEdit, setShowEdit]       = useState(false);
   const [showApproval, setShowApproval] = useState(false);
   const [showBriefingWizard, setShowBriefingWizard] = useState(false);
+  const [showWebsiteDesigner, setShowWebsiteDesigner] = useState(false);
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
   const [newMessageText, setNewMessageText] = useState('');
   const [briefingData, setBriefingData] = useState(null);
@@ -2951,12 +2953,29 @@ export default function ProjectDetail() {
       )}
 
       {/* ── Editor Tab ─────────────────────────────────────────────────────── */}
+      {/* ── Website Designer Tab ───────────────────────────────────────────── */}
       {(activeSubTab === 'editor' || activeTab === 'editor') && (
-        <div style={{ background: 'var(--bg-app)', border: '2px dashed var(--border-light)', borderRadius: 8, padding: 40, textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>✏️</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>GrapesJS Editor</div>
-          <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Seite aus dem Sitemap-Planer auswählen, um den Editor zu öffnen.</div>
-        </div>
+        <>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 8, padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>🎨 Website Designer</div>
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Visueller GrapesJS-Editor — Drag & Drop Website-Bausteine</div>
+            </div>
+            <button
+              onClick={() => setShowWebsiteDesigner(true)}
+              style={{ padding: '10px 22px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}
+            >
+              Editor öffnen →
+            </button>
+          </div>
+          {showWebsiteDesigner && (
+            <WebsiteDesigner
+              customerId={project.lead_id}
+              customerName={project.company_name || project.name || `Projekt #${project.id}`}
+              onClose={() => setShowWebsiteDesigner(false)}
+            />
+          )}
+        </>
       )}
 
       {/* ── Netlify-DNS Tab ────────────────────────────────────────────────── */}

@@ -320,6 +320,17 @@ export default function CustomerPortal() {
   const [verifiedData, setVerifiedData] = useState(null);
   const [error, setError] = useState('');
   const [portalTab, setPortalTab] = useState('uebersicht');
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [onboardingData, setOnboardingData] = useState({
+    website_url: '',
+    gewerk: '',
+    leistungen: '',
+    einzugsgebiet: '',
+    has_logo: false,
+    has_photos: false,
+    anmerkungen: '',
+  });
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [messages, setMessages] = useState([]);
   const [msgText, setMsgText] = useState('');
   const [msgSending, setMsgSending] = useState(false);
@@ -385,9 +396,37 @@ export default function CustomerPortal() {
       const d = await res.json();
       if (!res.ok) { setVerifyError(d.detail || 'Verifikation fehlgeschlagen'); return; }
       setVerifiedData(d);
-      setStep('dashboard');
+      if (!data?.onboarding_completed) {
+        setOnboardingData(prev => ({ ...prev, website_url: data?.website_url || '' }));
+        setStep('onboarding');
+      } else {
+        setStep('dashboard');
+      }
     } catch { setVerifyError('Verbindungsfehler'); }
     finally { setVerifying(false); }
+  };
+
+  const toggleField = (field) =>
+    setOnboardingData(prev => ({ ...prev, [field]: !prev[field] }));
+
+  const completeOnboarding = async () => {
+    setOnboardingLoading(true);
+    try {
+      await fetch(
+        `${API_BASE_URL}/api/leads/portal/${token}/complete-onboarding`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(onboardingData),
+        }
+      );
+      setStep('dashboard');
+    } catch (e) {
+      console.error(e);
+      setStep('dashboard');
+    } finally {
+      setOnboardingLoading(false);
+    }
   };
 
   const levelColor = data?.current_level ? LEVEL_COLORS[data.current_level] : '#8fa8b0';
@@ -454,6 +493,190 @@ export default function CustomerPortal() {
           </form>
         </div>
         <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: '#8fa8b0' }}>🔒 Ihre Daten sind sicher — nur Sie haben Zugriff.</div>
+      </div>
+    </div>
+  );
+
+  // ONBOARDING WIZARD
+  const inputStyle = {
+    fontSize: 16, padding: '12px 14px', border: '1px solid #e2e8f0',
+    borderRadius: 8, width: '100%', boxSizing: 'border-box',
+    background: 'white', color: '#1a2332', outline: 'none',
+  };
+  const labelStyle = { display: 'block', fontSize: 13, fontWeight: 600, color: '#64748b', marginBottom: 6 };
+
+  if (step === 'onboarding') return (
+    <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px', fontFamily: 'var(--font-sans, system-ui)' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ width: '100%', maxWidth: 560 }}>
+
+        {/* Header */}
+        <div style={{ background: '#008eaa', borderRadius: '16px 16px 0 0', padding: '28px 32px', textAlign: 'center' }}>
+          <div style={{ color: 'white', fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px' }}>KOMPAGNON</div>
+          <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, marginTop: 4 }}>Willkommen! Bitte kurz einrichten.</div>
+        </div>
+
+        {/* Progress dots */}
+        <div style={{ background: 'white', padding: '20px 32px 0', display: 'flex', justifyContent: 'center', gap: 10 }}>
+          {[1, 2, 3].map(n => (
+            <div key={n} style={{
+              width: n === onboardingStep ? 28 : 10,
+              height: 10, borderRadius: 5,
+              background: n <= onboardingStep ? '#008eaa' : '#e2e8f0',
+              transition: 'all 0.3s',
+            }} />
+          ))}
+        </div>
+
+        {/* Card */}
+        <div style={{ background: 'white', borderRadius: '0 0 16px 16px', padding: '24px 32px 32px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+
+          {/* ── Schritt 1 ── */}
+          {onboardingStep === 1 && (
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', margin: '0 0 8px' }}>
+                  Herzlich willkommen, {data?.company_name || 'dort'}!
+                </h2>
+                <p style={{ fontSize: 14, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+                  Ihr Projekt startet jetzt. Wir führen Sie in 3 kurzen Schritten durch die ersten Informationen die wir benötigen.
+                </p>
+              </div>
+              <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '20px 0' }} />
+              <label style={labelStyle}>Ihre Website-URL</label>
+              <input
+                type="url"
+                value={onboardingData.website_url}
+                onChange={e => setOnboardingData(prev => ({ ...prev, website_url: e.target.value }))}
+                placeholder="https://ihre-website.de"
+                style={inputStyle}
+              />
+              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 6, marginBottom: 0 }}>
+                Falls Sie noch keine Website haben, lassen Sie das Feld leer.
+              </p>
+            </div>
+          )}
+
+          {/* ── Schritt 2 ── */}
+          {onboardingStep === 2 && (
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🏢</div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', margin: '0 0 8px' }}>
+                  Erzählen Sie uns von Ihrem Betrieb
+                </h2>
+                <p style={{ fontSize: 14, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+                  Diese Informationen helfen uns Ihre neue Website perfekt auf Ihren Betrieb zuzuschneiden.
+                </p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Gewerk / Branche</label>
+                  <input
+                    type="text"
+                    value={onboardingData.gewerk}
+                    onChange={e => setOnboardingData(prev => ({ ...prev, gewerk: e.target.value }))}
+                    placeholder="z.B. Sanitär, Elektriker, Maler..."
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Ihre Leistungen</label>
+                  <textarea
+                    value={onboardingData.leistungen}
+                    onChange={e => setOnboardingData(prev => ({ ...prev, leistungen: e.target.value }))}
+                    placeholder="Was bieten Sie an? z.B. Badezimmer, Heizung, Notdienst, Wartung..."
+                    rows={3}
+                    style={{ ...inputStyle, resize: 'vertical' }}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Einzugsgebiet / Region</label>
+                  <input
+                    type="text"
+                    value={onboardingData.einzugsgebiet}
+                    onChange={e => setOnboardingData(prev => ({ ...prev, einzugsgebiet: e.target.value }))}
+                    placeholder="z.B. Koblenz und Umgebung, Rhein-Mosel-Kreis"
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Schritt 3 ── */}
+          {onboardingStep === 3 && (
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', margin: '0 0 8px' }}>
+                  Fast geschafft!
+                </h2>
+                <p style={{ fontSize: 14, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+                  Haben Sie bereits Unterlagen die wir für Ihre neue Website verwenden können?
+                </p>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                {[
+                  { field: 'has_logo', icon: '🎨', title: 'Logo vorhanden', text: 'Wir haben bereits ein Firmenlogo' },
+                  { field: 'has_photos', icon: '📷', title: 'Fotos vorhanden', text: 'Wir haben Fotos vom Betrieb / Team' },
+                ].map(({ field, icon, title, text }) => (
+                  <div key={field} onClick={() => toggleField(field)} style={{
+                    border: onboardingData[field] ? '2px solid #008eaa' : '2px solid #e2e8f0',
+                    background: onboardingData[field] ? '#E1F5EE' : '#f8f9fa',
+                    borderRadius: 12, padding: '16px 12px', cursor: 'pointer',
+                    textAlign: 'center', transition: 'all 0.2s',
+                  }}>
+                    <div style={{ fontSize: 28, marginBottom: 6 }}>{icon}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1a2332', marginBottom: 4 }}>{title}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>{text}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle}>Sonstige Hinweise (optional)</label>
+                <textarea
+                  value={onboardingData.anmerkungen}
+                  onChange={e => setOnboardingData(prev => ({ ...prev, anmerkungen: e.target.value }))}
+                  placeholder="Gibt es noch etwas das wir wissen sollten?"
+                  rows={2}
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                />
+              </div>
+              <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '16px 0' }} />
+              <div style={{ background: '#E6F1FB', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1a2332', marginBottom: 8 }}>✓ Was jetzt passiert:</div>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#3b5a8a', lineHeight: 2 }}>
+                  <li>Wir melden uns innerhalb von 24 Stunden</li>
+                  <li>Strategy Workshop vereinbaren (ca. 60 Min.)</li>
+                  <li>Ihre neue Website in 14 Werktagen</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation Buttons */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+            {onboardingStep > 1 && (
+              <button onClick={() => setOnboardingStep(s => s - 1)}
+                style={{ flex: 1, padding: '13px 20px', border: '1px solid #e2e8f0', borderRadius: 8, background: 'white', color: '#64748b', fontSize: 15, cursor: 'pointer', fontWeight: 500 }}>
+                ← Zurück
+              </button>
+            )}
+            {onboardingStep < 3 ? (
+              <button onClick={() => setOnboardingStep(s => s + 1)}
+                style={{ flex: 2, padding: '13px 20px', border: 'none', borderRadius: 8, background: '#008eaa', color: 'white', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}>
+                Weiter →
+              </button>
+            ) : (
+              <button onClick={completeOnboarding} disabled={onboardingLoading}
+                style={{ flex: 2, padding: '13px 20px', border: 'none', borderRadius: 8, background: '#008eaa', color: 'white', fontSize: 15, cursor: 'pointer', fontWeight: 600, opacity: onboardingLoading ? 0.7 : 1 }}>
+                {onboardingLoading ? 'Wird gespeichert...' : 'Jetzt starten! 🚀'}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -864,6 +864,9 @@ app.include_router(branddesign_router)
 from routers import templates as templates_router
 app.include_router(templates_router.router)
 
+from routers import messages as messages_router
+app.include_router(messages_router.router)
+
 
 # Global exception handler — catches unhandled errors
 @app.exception_handler(Exception)

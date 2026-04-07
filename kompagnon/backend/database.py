@@ -25,7 +25,7 @@ else:
         max_overflow=5,
         pool_timeout=10,
         connect_args={
-            "connect_timeout": 5,
+            "connect_timeout": 8,
             "keepalives": 1,
             "keepalives_idle": 30,
             "keepalives_interval": 5,

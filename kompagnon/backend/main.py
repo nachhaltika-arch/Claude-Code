@@ -5,10 +5,12 @@ Runs the complete backend with scheduler, DB, and all routers.
 Usage:
     uvicorn main:app --reload --host 0.0.0.0 --port 8000
 """
+import asyncio
 import os
 import json
 import logging
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -349,32 +351,8 @@ def _run_migrations():
             created_at                TIMESTAMP    DEFAULT NOW(),
             updated_at                TIMESTAMP    DEFAULT NOW()
         )""",
-        # Copy all leads into usercards (idempotent — skip rows that already exist)
-        """INSERT INTO usercards (
-            id, company_name, contact_name, phone, email, website_url, city, trade,
-            lead_source, status, analysis_score, geo_score, notes, website_screenshot,
-            street, house_number, postal_code, legal_form, vat_id, register_number,
-            register_court, ceo_first_name, ceo_last_name, display_name,
-            customer_token, customer_token_created_at,
-            pagespeed_mobile_score, pagespeed_desktop_score,
-            pagespeed_lcp_mobile, pagespeed_cls_mobile,
-            pagespeed_inp_mobile, pagespeed_fcp_mobile, pagespeed_checked_at,
-            legacy_type, created_at, updated_at
-        )
-        SELECT
-            id, company_name, contact_name, phone, email, website_url, city, trade,
-            lead_source, status, analysis_score, geo_score, notes, website_screenshot,
-            street, house_number, postal_code, legal_form, vat_id, register_number,
-            register_court, ceo_first_name, ceo_last_name, display_name,
-            customer_token, customer_token_created_at,
-            pagespeed_mobile_score, pagespeed_desktop_score,
-            pagespeed_lcp_mobile, pagespeed_cls_mobile,
-            pagespeed_inp_mobile, pagespeed_fcp_mobile, pagespeed_checked_at,
-            'lead', created_at, updated_at
-        FROM leads
-        WHERE NOT EXISTS (SELECT 1 FROM usercards WHERE usercards.id = leads.id)""",
-        # Sync the SERIAL sequence so new inserts after the bulk copy get correct IDs
-        "SELECT setval(pg_get_serial_sequence('usercards', 'id'), COALESCE((SELECT MAX(id) FROM usercards), 1))",
+        # NOTE: usercards bulk-copy removed — caused DB lock on startup.
+        # Run manually via /admin endpoint or separate script if needed.
         # Project files
         """CREATE TABLE IF NOT EXISTS project_files (
             id SERIAL PRIMARY KEY,
@@ -742,6 +720,22 @@ def _create_default_admin():
         logger.warning(f"Kunde-Link Fehler: {e}")
 
 
+async def run_migrations_safe():
+    """Run _run_migrations() in a thread with a hard timeout so startup never blocks."""
+    loop = asyncio.get_event_loop()
+    with ThreadPoolExecutor() as pool:
+        try:
+            await asyncio.wait_for(
+                loop.run_in_executor(pool, _run_migrations),
+                timeout=20.0,
+            )
+            logger.info("✓ Migrations abgeschlossen")
+        except asyncio.TimeoutError:
+            logger.warning("⚠ Migrations Timeout — App startet trotzdem")
+        except Exception as e:
+            logger.warning(f"⚠ Migrations Fehler: {e} — App startet trotzdem")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown events."""
@@ -753,7 +747,7 @@ async def lifespan(app: FastAPI):
         os.makedirs("uploads", exist_ok=True)
         logger.info("✓ uploads/ Ordner bereit")
 
-        _run_migrations()
+        await run_migrations_safe()
         init_db()
         logger.info("✓ Database initialized")
 

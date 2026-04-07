@@ -90,6 +90,7 @@ class PhaseChangeRequest(BaseModel):
 
 
 class ProjectUpdateRequest(BaseModel):
+    customer_name: str = None
     website_url: str = None
     cms_type: str = None
     contact_name: str = None
@@ -110,6 +111,8 @@ class ProjectUpdateRequest(BaseModel):
     industry: str = None
     email_notifications_enabled: bool = None
     customer_email: str = None
+    fixed_price: float = None
+    target_go_live: str = None
 
 
 class MarginResponse(BaseModel):
@@ -365,7 +368,26 @@ def update_project(
     if new_status == "phase_6" and old_status != "phase_6":
         background_tasks.add_task(_capture_project_screenshot_after, project_id)
 
-    return {"id": project.id, "updated": list(update_data.keys())}
+    lead = project.lead
+    return {
+        "id": project.id,
+        "status": project.status,
+        "customer_name": getattr(project, "customer_name", None) or getattr(project, "company_name", None) or (lead.company_name if lead else ""),
+        "website_url": getattr(project, "website_url", None) or (lead.website_url if lead else ""),
+        "cms_type": getattr(project, "cms_type", None),
+        "contact_name": getattr(project, "contact_name", None),
+        "contact_phone": getattr(project, "contact_phone", None),
+        "contact_email": getattr(project, "contact_email", None),
+        "go_live_date": str(getattr(project, "go_live_date", None)) if getattr(project, "go_live_date", None) else None,
+        "package_type": getattr(project, "package_type", "kompagnon"),
+        "payment_status": getattr(project, "payment_status", "offen"),
+        "has_logo": getattr(project, "has_logo", False),
+        "has_briefing": getattr(project, "has_briefing", False),
+        "has_photos": getattr(project, "has_photos", False),
+        "fixed_price": getattr(project, "fixed_price", None),
+        "message": "Projekt aktualisiert",
+        "updated": list(update_data.keys()),
+    }
 
 
 @router.patch("/{project_id}/phase")

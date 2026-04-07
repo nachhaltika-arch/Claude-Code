@@ -591,6 +591,8 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_reachable BOOLEAN DEFAULT NULL",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_status_code INTEGER",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_checked_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_name VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS fixed_price FLOAT",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

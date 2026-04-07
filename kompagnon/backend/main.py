@@ -632,6 +632,15 @@ def _run_migrations():
         )""",
         "CREATE INDEX IF NOT EXISTS idx_email_logs_lead ON email_logs(lead_id)",
         "CREATE INDEX IF NOT EXISTS idx_email_logs_project ON email_logs(project_id)",
+        # email_logs erweiterte Spalten
+        "ALTER TABLE email_logs ADD COLUMN IF NOT EXISTS to_email VARCHAR",
+        "ALTER TABLE email_logs ADD COLUMN IF NOT EXISTS template_key VARCHAR",
+        "ALTER TABLE email_logs ADD COLUMN IF NOT EXISTS error_message TEXT",
+        # Lead-Sequenzen
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS sequence_active BOOLEAN DEFAULT false",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS sequence_step INTEGER DEFAULT 0",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS sequence_last_sent TIMESTAMP",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS sequence_paused BOOLEAN DEFAULT false",
         # Onboarding + Go-Live Automation
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT false",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMP",

@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 from database import Project, Lead, Communication, AuditResult, get_db
 from services.margin_calculator import MarginCalculator
+from routers.auth_router import require_admin
 
 router = APIRouter(prefix="/api", tags=["dashboard", "automations"])
 
@@ -254,22 +255,10 @@ def get_active_jobs():
 
 
 @router.post("/automations/test-email")
-def test_email_send(
-    recipient: str = Query(...),
-    db: Session = Depends(get_db),
-):
-    """Send a test email to verify SMTP configuration."""
-    from services.email_service import EmailService
-
-    email_service = EmailService()
-    subject = "KOMPAGNON Test Email"
-    body = "Dies ist eine Test-E-Mail. Wenn Sie diese lesen, funktioniert der E-Mail-Service! ✓"
-
-    success = email_service.send_email(to=recipient, subject=subject, body=body)
-
-    return {
-        "recipient": recipient,
-        "subject": subject,
-        "success": success,
-        "message": "Test-E-Mail versendet" if success else "E-Mail-Versand fehlgeschlagen",
-    }
+def test_email(recipient: str = Query(...), _=Depends(require_admin)):
+    """Testversand zur Verifizierung der SMTP-Konfiguration."""
+    from services.email import send_test_email
+    result = send_test_email(recipient)
+    if not result["success"]:
+        raise HTTPException(422, result.get("error", "Versand fehlgeschlagen"))
+    return result

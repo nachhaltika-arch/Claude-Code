@@ -586,10 +586,6 @@ export default function ProjectDetail() {
   const [websiteContent, setWebsiteContent] = useState([]);
   const [contentLoading, setContentLoading] = useState(false);
   const [selectedContentPage, setSelectedContentPage] = useState(null);
-  const [scrapedText, setScrapedText] = useState(project?.scraped_content || null);
-  const [scrapedAt, setScrapedAt] = useState(project?.scraped_at || null);
-  const [textScanning, setTextScanning] = useState(false);
-  const [textScanError, setTextScanError] = useState(null);
   // Domain-Check
   const [domainChecking, setDomainChecking] = useState(false);
   // Netlify
@@ -683,6 +679,7 @@ export default function ProjectDetail() {
     if (!project?.lead_id) return;
     setContentLoading(true);
     try {
+      // Scrape all crawler-recognised pages (text, images, files)
       await fetch(
         `${API_BASE_URL}/api/crawler/scrape-content/${project.lead_id}`,
         { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
@@ -691,30 +688,6 @@ export default function ProjectDetail() {
       toast.success('Content von allen Seiten gescrapt!');
     } catch (e) { toast.error('Scraping fehlgeschlagen'); }
     finally { setContentLoading(false); }
-  };
-
-  const scanWebsiteText = async () => {
-    setTextScanning(true);
-    setTextScanError(null);
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/projects/${project.id}/scrape-content`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      setScrapedText(data.content);
-      setScrapedAt(data.scraped_at);
-      toast.success('Website-Text gescannt!');
-    } catch (e) {
-      setTextScanError(e.message);
-      toast.error('Scannen fehlgeschlagen: ' + e.message);
-    } finally {
-      setTextScanning(false);
-    }
   };
 
   const loadBriefingLead = useCallback(async () => {
@@ -2353,66 +2326,6 @@ export default function ProjectDetail() {
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-            {/* ── Volltext-Scanner ──────────────────────────────────────────── */}
-            <div className="kc-card">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>🌐 Website-Text</div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  {scrapedText && (
-                    <button onClick={scanWebsiteText} disabled={textScanning} style={{
-                      padding: '6px 12px', background: 'var(--bg-elevated)', color: 'var(--text-secondary)',
-                      border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
-                      fontSize: 12, cursor: textScanning ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
-                    }}>
-                      🔄 Erneut scannen
-                    </button>
-                  )}
-                  <button onClick={scanWebsiteText} disabled={textScanning} style={{
-                    padding: '8px 16px', background: 'var(--brand-primary)', color: 'white',
-                    border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13,
-                    fontWeight: 600, cursor: textScanning ? 'not-allowed' : 'pointer',
-                    fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6,
-                    opacity: textScanning ? 0.7 : 1,
-                  }}>
-                    {textScanning ? (
-                      <>
-                        <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
-                        Seite wird gescannt...
-                      </>
-                    ) : '🔍 Website-Text scannen'}
-                  </button>
-                </div>
-              </div>
-
-              {textScanError && (
-                <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 'var(--radius-md)', fontSize: 13, color: '#991b1b', marginBottom: 12 }}>
-                  ⚠️ {textScanError}
-                </div>
-              )}
-
-              {scrapedText ? (
-                <>
-                  {scrapedAt && (
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8 }}>
-                      Gescannt am {new Date(scrapedAt).toLocaleString('de-DE')}
-                    </div>
-                  )}
-                  <div style={{
-                    maxHeight: 500, overflowY: 'auto', background: 'var(--bg-app)',
-                    padding: 16, borderRadius: 8, fontSize: 13, lineHeight: 1.6,
-                    color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                  }}>
-                    {scrapedText}
-                  </div>
-                </>
-              ) : !textScanning && (
-                <div style={{ textAlign: 'center', padding: '28px 20px', color: 'var(--text-tertiary)', fontSize: 13 }}>
-                  <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.4 }}>📄</div>
-                  Noch kein Inhalt gescannt
-                </div>
-              )}
-            </div>
-
             {/* ── Seiten-Liste (Crawler) ─────────────────────────────────── */}
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2523,6 +2436,50 @@ export default function ProjectDetail() {
                         </div>
                       </div>
                     )}
+                    {selectedContentPage.full_text && (
+                      <div>
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Volltext</div>
+                        <div style={{ maxHeight: 300, overflowY: 'auto', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7,
+                          padding: '10px 14px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)',
+                          whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                          {selectedContentPage.full_text}
+                        </div>
+                      </div>
+                    )}
+                    {(() => {
+                      const imgs = Array.isArray(selectedContentPage.images) ? selectedContentPage.images
+                        : (typeof selectedContentPage.images === 'string' ? (() => { try { return JSON.parse(selectedContentPage.images); } catch { return []; } })() : []);
+                      return imgs.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Bilder ({imgs.length})</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 200, overflowY: 'auto' }}>
+                            {imgs.map((url, j) => (
+                              <a key={j} href={url} target="_blank" rel="noreferrer"
+                                style={{ fontSize: 11, color: 'var(--brand-primary)', wordBreak: 'break-all', lineHeight: 1.5 }}>
+                                {url}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {(() => {
+                      const files = Array.isArray(selectedContentPage.files) ? selectedContentPage.files
+                        : (typeof selectedContentPage.files === 'string' ? (() => { try { return JSON.parse(selectedContentPage.files); } catch { return []; } })() : []);
+                      return files.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Dateien ({files.length})</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            {files.map((url, j) => (
+                              <a key={j} href={url} target="_blank" rel="noreferrer"
+                                style={{ fontSize: 11, color: 'var(--brand-primary)', wordBreak: 'break-all', lineHeight: 1.5 }}>
+                                {url}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : (
                   <div style={{ flex: 1, textAlign: 'center', padding: '60px 20px',

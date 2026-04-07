@@ -20,6 +20,7 @@ export default function WebsiteDesigner({ projectId, leadId, initialHtml, initia
   const [showImportModal, setShowImportModal] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState('');
+  const [kiLoading, setKiLoading] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleZipImport = async (file) => {
@@ -187,7 +188,7 @@ export default function WebsiteDesigner({ projectId, leadId, initialHtml, initia
     try {
       const token = localStorage.getItem('kompagnon_token');
       const res = await fetch(
-        `${API_BASE_URL}/api/customers/${customerId}/generate-design`,
+        `${API_BASE_URL}/api/customers/${projectId}/generate-design`,
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },

@@ -1122,35 +1122,20 @@ export default function ProjectDetail() {
 
       {/* ── Briefing Tab ────────────────────────────────────────────────────── */}
       {activeTab === 'briefing' && (
-        <div>
-          {!briefingLead ? (
-            <div style={{ textAlign: 'center', padding: '32px 20px', color: 'var(--text-tertiary)', fontSize: 13 }}>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
-              <div>Briefing wird geladen…</div>
+        briefingLead
+          ? <BriefingTab lead={briefingLead} isMobile={isMobile} />
+          : <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', padding: '48px 20px',
+              color: 'var(--text-tertiary)',
+            }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%',
+                border: '2px solid var(--border-light)',
+                borderTopColor: 'var(--brand-primary)',
+                animation: 'spin 0.8s linear infinite', marginBottom: 12 }} />
+              <div style={{ fontSize: 13 }}>Briefing wird geladen...</div>
               {(() => { loadBriefingLead(); return null; })()}
             </div>
-          ) : (
-            <>
-              <div style={{
-                background: 'var(--status-info-bg)',
-                border: '1px solid var(--border-medium)',
-                borderRadius: 'var(--radius-md)',
-                padding: '10px 14px',
-                fontSize: 12,
-                color: 'var(--text-secondary)',
-                marginBottom: 16,
-                display: 'flex', alignItems: 'center', gap: 8,
-              }}>
-                <span>ℹ️</span>
-                <span>
-                  Dies ist das <strong>Unternehmensbriefing</strong> aus der Kundenkartei.
-                  Im Prozessschritt „Briefing" wird das projektspezifische Briefing ergänzt.
-                </span>
-              </div>
-              <BriefingTab lead={briefingLead} isMobile={isMobile} />
-            </>
-          )}
-        </div>
       )}
 
       {/* ── BrandDesign Tab ─────────────────────────────────────────────────── */}

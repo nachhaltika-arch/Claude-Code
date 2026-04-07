@@ -1986,10 +1986,15 @@ export default function ProjectDetail() {
           setHostingScanning(true);
           try {
             const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/hosting-scan`, { method: 'POST', headers: authH });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
             const d = await r.json();
             setHostingData(d);
-          } catch {}
-          setHostingScanning(false);
+            toast.success('Hosting-Analyse abgeschlossen');
+          } catch (e) {
+            toast.error('Scan fehlgeschlagen: ' + e.message);
+          } finally {
+            setHostingScanning(false);
+          }
         };
 
         const fmtDate = (s) => {

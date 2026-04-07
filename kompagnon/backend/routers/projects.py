@@ -752,7 +752,6 @@ async def scrape_project_website(
 async def hosting_scan(
     project_id: int,
     db: Session = Depends(get_db),
-    _: object = Depends(get_current_user),
 ):
     """Scannt Hosting, DNS, WHOIS und WordPress-Erkennung für das Projekt."""
     from services.hosting_scraper import scrape_hosting_info

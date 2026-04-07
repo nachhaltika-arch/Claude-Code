@@ -112,11 +112,11 @@ export default function LeadProfile() {
   const [showBriefingWizard, setShowBriefingWizard] = useState(false);
   const [briefingData, setBriefingData] = useState(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
-  // Mockup tab
-  const [mockupRunning, setMockupRunning] = useState(false);
-  const [mockupSlow, setMockupSlow] = useState(false);
-  const [mockupResult, setMockupResult] = useState(null);
-  const [mockupError, setMockupError] = useState('');
+  // Design tab
+  const [designRunning, setDesignRunning] = useState(false);
+  const [designSlow, setDesignSlow] = useState(false);
+  const [designResult, setDesignResult] = useState(null);
+  const [designError, setDesignError] = useState('');
   // Template assignment
   const [assignedTemplate, setAssignedTemplate] = useState(null);
   const [templateLoading, setTemplateLoading] = useState(false);
@@ -283,12 +283,12 @@ export default function LeadProfile() {
     } catch { toast.error('Fehler beim Zuweisen'); }
   };
 
-  const generateMockup = async () => {
-    setMockupRunning(true);
-    setMockupSlow(false);
-    setMockupError('');
-    setMockupResult(null);
-    const slowTimer = setTimeout(() => setMockupSlow(true), 20000);
+  const generateDesign = async () => {
+    setDesignRunning(true);
+    setDesignSlow(false);
+    setDesignError('');
+    setDesignResult(null);
+    const slowTimer = setTimeout(() => setDesignSlow(true), 20000);
     try {
       // Fetch briefing first
       const bRes = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers: h });
@@ -312,7 +312,7 @@ export default function LeadProfile() {
         ziel_keyword: '',
         cta_text: '',
       };
-      console.log('Mockup payload:', JSON.stringify(payload, null, 2));
+      console.log('Design payload:', JSON.stringify(payload, null, 2));
 
       // Start background job — returns immediately with job_id
       const startRes = await fetch(`${API_BASE_URL}/api/agents/${projectId}/content`, {
@@ -340,13 +340,13 @@ export default function LeadProfile() {
         if (job.status === 'error') throw new Error(job.error || 'KI-Generierung fehlgeschlagen');
       }
       if (!result) throw new Error('Zeitüberschreitung — bitte erneut versuchen');
-      setMockupResult(result);
+      setDesignResult(result);
     } catch (e) {
-      setMockupError(e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.');
+      setDesignError(e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.');
     } finally {
       clearTimeout(slowTimer);
-      setMockupRunning(false);
-      setMockupSlow(false);
+      setDesignRunning(false);
+      setDesignSlow(false);
     }
   };
 
@@ -1539,8 +1539,8 @@ export default function LeadProfile() {
       {/* AKADEMY TAB */}
       {activeTab === 'akademy' && <AcademyCustomerSection leadId={lead.id} />}
 
-      {/* MOCKUP TAB */}
-      {activeTab === 'mockup' && (
+      {/* DESIGN TAB */}
+      {activeTab === 'design' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
@@ -1585,38 +1585,38 @@ export default function LeadProfile() {
               </div>
             )}
             <button
-              onClick={generateMockup}
-              disabled={mockupRunning || !projectId}
+              onClick={generateDesign}
+              disabled={designRunning || !projectId}
               style={{
                 padding: '10px 22px', borderRadius: 8, border: 'none',
-                background: mockupRunning || !projectId ? 'var(--bg-muted)' : 'var(--brand-primary)',
-                color: mockupRunning || !projectId ? 'var(--text-tertiary)' : '#fff',
-                fontSize: 14, fontWeight: 600, cursor: mockupRunning || !projectId ? 'not-allowed' : 'pointer',
+                background: designRunning || !projectId ? 'var(--bg-muted)' : 'var(--brand-primary)',
+                color: designRunning || !projectId ? 'var(--text-tertiary)' : '#fff',
+                fontSize: 14, fontWeight: 600, cursor: designRunning || !projectId ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8,
               }}
             >
-              {mockupRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
-              {mockupRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
+              {designRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
+              {designRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
             </button>
-            {mockupSlow && (
+            {designSlow && (
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F59E0B', display: 'inline-block', flexShrink: 0 }} />
                 Claude denkt gründlich nach — das kann bis zu 55 Sekunden dauern…
               </div>
             )}
-            {mockupError && (
+            {designError && (
               <div style={{ background: 'var(--status-danger-bg)', border: '1px solid var(--status-danger-text)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--status-danger-text)', marginTop: 12 }}>
-                {typeof mockupError === 'string' ? mockupError : JSON.stringify(mockupError)}
+                {typeof designError === 'string' ? designError : JSON.stringify(designError)}
               </div>
             )}
           </div>
-          {mockupResult && (
+          {designResult && (
             <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>Generierter Entwurf</div>
-              {typeof mockupResult === 'string' ? (
-                <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'inherit', lineHeight: 1.7, margin: 0 }}>{mockupResult}</pre>
+              {typeof designResult === 'string' ? (
+                <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'inherit', lineHeight: 1.7, margin: 0 }}>{designResult}</pre>
               ) : (
-                Object.entries(mockupResult).map(([key, val]) => (
+                Object.entries(designResult).map(([key, val]) => (
                   <div key={key} style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{key}</div>
                     <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{typeof val === 'string' ? val : JSON.stringify(val, null, 2)}</div>

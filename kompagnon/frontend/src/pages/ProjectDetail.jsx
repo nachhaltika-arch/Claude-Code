@@ -126,7 +126,7 @@ const SUB_TAB_MAP = {
   'website-content': 'webcontent',
   'hosting-scan':    'hosting',
   'checkliste':      'checklists',
-  'design':          'mockup',
+  'design':          'design',
   'sitemap':         'sitemap',
   'content':         'content',
   'crawler':         'crawler',
@@ -502,9 +502,9 @@ export default function ProjectDetail() {
   const [brandData, setBrandData]   = useState(null);
   const [scraping, setScraping]     = useState(false);
   const [analyzing, setAnalyzing]   = useState(false);
-  // Mockup versions
-  const [mockupVersions, setMockupVersions]       = useState([]);
-  const [mockupVersionsLoaded, setMockupVersionsLoaded] = useState(false);
+  // Design versions
+  const [designVersions, setDesignVersions]       = useState([]);
+  const [designVersionsLoaded, setDesignVersionsLoaded] = useState(false);
   // Hosting-Analyse
   const [hostingData, setHostingData]       = useState(null);
   const [hostingLoaded, setHostingLoaded]   = useState(false);
@@ -515,14 +515,14 @@ export default function ProjectDetail() {
   const [takingBefore, setTakingBefore]     = useState(false);
   const [takingAfter, setTakingAfter]       = useState(false);
   const [newWebsiteUrl, setNewWebsiteUrl]   = useState('');
-  const [mockupPreview, setMockupPreview]         = useState(null); // { html, version_name }
+  const [designPreview, setDesignPreview]         = useState(null); // { html, version_name }
   const [savingVersion, setSavingVersion]         = useState(false);
-  // Mockup
-  const [mockupRunning, setMockupRunning] = useState(false);
-  const [mockupSlow, setMockupSlow] = useState(false);
-  const [mockupResult, setMockupResult] = useState(null);
-  const [mockupError, setMockupError] = useState('');
-  const [activeMockupPage, setActiveMockupPage] = useState(null);
+  // Design
+  const [designRunning, setDesignRunning] = useState(false);
+  const [designSlow, setDesignSlow] = useState(false);
+  const [designResult, setDesignResult] = useState(null);
+  const [designError, setDesignError] = useState('');
+  const [activeDesignPage, setActiveDesignPage] = useState(null);
   const [activeContentPage, setActiveContentPage] = useState(null);
   // Domain-Check
   const [domainChecking, setDomainChecking] = useState(false);
@@ -705,12 +705,12 @@ export default function ProjectDetail() {
     };
   };
 
-  const generateMockup = async () => {
-    setMockupRunning(true);
-    setMockupSlow(false);
-    setMockupError('');
-    setMockupResult(null);
-    const slowTimer = setTimeout(() => setMockupSlow(true), 20000);
+  const generateDesign = async () => {
+    setDesignRunning(true);
+    setDesignSlow(false);
+    setDesignError('');
+    setDesignResult(null);
+    const slowTimer = setTimeout(() => setDesignSlow(true), 20000);
     try {
       const bRes = await fetch(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers });
       const briefing = bRes.ok ? await bRes.json() : null;
@@ -737,7 +737,7 @@ export default function ProjectDetail() {
         cta_text: String(selectedPage?.cta_text || ''),
         ...ctx,
       };
-      console.log('Mockup payload:', JSON.stringify(payload, null, 2));
+      console.log('Design payload:', JSON.stringify(payload, null, 2));
 
       // Start background job — returns immediately with job_id
       const startRes = await fetch(`${API_BASE_URL}/api/agents/${project.id}/content`, {
@@ -765,21 +765,21 @@ export default function ProjectDetail() {
         if (job.status === 'error') throw new Error(job.error || 'KI-Generierung fehlgeschlagen');
       }
       if (!result) throw new Error('Zeitüberschreitung — bitte erneut versuchen');
-      setMockupResult(result);
+      setDesignResult(result);
 
       if (selectedPage && result) {
-        const mockupHtml = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+        const designHtml = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
         fetch(`${API_BASE_URL}/api/sitemap/pages/${selectedPage.id}`, {
           method: 'PUT', headers: h,
-          body: JSON.stringify({ ...selectedPage, mockup_html: mockupHtml }),
+          body: JSON.stringify({ ...selectedPage, mockup_html: designHtml }),
         }).catch(() => {});
       }
     } catch (e) {
-      setMockupError(e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.');
+      setDesignError(e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.');
     } finally {
       clearTimeout(slowTimer);
-      setMockupRunning(false);
-      setMockupSlow(false);
+      setDesignRunning(false);
+      setDesignSlow(false);
     }
   };
 
@@ -1362,18 +1362,18 @@ export default function ProjectDetail() {
                             fontFamily: 'var(--font-sans)', flexShrink: 0,
                           });
                           const openEditModal = (p) => { setEditPageModal(p); setEditPageForm({ page_name: p.page_name, page_type: p.page_type, ziel_keyword: p.ziel_keyword || '', zweck: p.zweck || '', cta_text: p.cta_text || '', status: p.status || 'geplant' }); };
-                          const goToMockup = (p) => { setActiveTab('mockup'); setActiveMockupPage(p); setSelectedPageId(p.id); };
+                          const goToDesign = (p) => { setActiveTab('design'); setActiveDesignPage(p); setSelectedPageId(p.id); };
                           const goToContent = (p) => { setActiveTab('content'); setActiveContentPage(p); };
                           const previewPage = (p) => {
                             if (p.mockup_html) {
                               const w = window.open('', '_blank');
                               w.document.write(p.mockup_html); w.document.close();
-                            } else toast.info('Noch kein Mockup vorhanden — zuerst Mockup generieren');
+                            } else toast.info('Noch kein Design vorhanden — zuerst Design generieren');
                           };
                           return (
                             <>
                               <button onClick={() => openEditModal(page)} style={ab('var(--bg-elevated)', 'var(--text-primary)')}>✏️ Bearbeiten</button>
-                              <button onClick={() => goToMockup(page)} style={ab('var(--brand-primary)', '#fff')}>🎨 Mockup</button>
+                              <button onClick={() => goToDesign(page)} style={ab('var(--brand-primary)', '#fff')}>🎨 Design</button>
                               <button onClick={() => goToContent(page)} style={ab('#059669', '#fff')}>📝 Content</button>
                               <button onClick={() => previewPage(page)} style={ab('#7c3aed', '#fff')}>👁 Vorschau</button>
                               <button onClick={() => setEditingPage(page)} style={ab('#1a2332', '#fff')}>🖊️ Editor</button>
@@ -1458,7 +1458,7 @@ export default function ProjectDetail() {
         );
       })()}
 
-      {/* ── Mockup Tab ──────────────────────────────────────────────────────── */}
+      {/* ── Design Tab ──────────────────────────────────────────────────────── */}
       {/* ── Content Tab ──────────────────────────────────────────────────────── */}
       {activeTab === 'content' && (() => {
         const totalSlots = contentSummary.reduce((a, p) => a + (p.sections?.length || 0) + (p.media?.length || 0), 0);
@@ -1475,7 +1475,7 @@ export default function ProjectDetail() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {contentSummary.length > 0 && (
               <div style={{ padding: '10px 16px', borderRadius: 8, background: allDone ? '#D1FAE5' : '#FFFBEB', border: `1px solid ${allDone ? '#A7F3D0' : '#FDE68A'}`, fontSize: 13, color: allDone ? '#065F46' : '#92400E' }}>
-                {allDone ? '✅ Alle Inhalte freigegeben — Mockup-Designer kann gestartet werden' : `⚠️ ${pending} Inhalt${pending !== 1 ? 'e' : ''} noch ausstehend — Mockup-Designer erst nach Freigabe empfohlen`}
+                {allDone ? '✅ Alle Inhalte freigegeben — Design-Designer kann gestartet werden' : `⚠️ ${pending} Inhalt${pending !== 1 ? 'e' : ''} noch ausstehend — Design-Designer erst nach Freigabe empfohlen`}
               </div>
             )}
 
@@ -1537,27 +1537,27 @@ export default function ProjectDetail() {
         );
       })()}
 
-      {activeTab === 'mockup' && (() => {
+      {activeTab === 'design' && (() => {
         if (sitemapPages.length === 0 && !sitemapLoading) loadSitemapPages();
 
         // Load saved versions once
-        if (!mockupVersionsLoaded && project.lead_id) {
-          setMockupVersionsLoaded(true);
-          fetch(`${API_BASE_URL}/api/mockups/${project.lead_id}`, { headers: h })
+        if (!designVersionsLoaded && project.lead_id) {
+          setDesignVersionsLoaded(true);
+          fetch(`${API_BASE_URL}/api/designs/${project.lead_id}`, { headers: h })
             .then(r => r.ok ? r.json() : [])
-            .then(data => setMockupVersions(Array.isArray(data) ? data : []))
+            .then(data => setDesignVersions(Array.isArray(data) ? data : []))
             .catch(() => {});
         }
 
         const saveCurrentVersion = async () => {
-          if (!mockupResult || !project.lead_id) return;
+          if (!designResult || !project.lead_id) return;
           const selectedPage = sitemapPages.find(p => p.id === selectedPageId);
           const pageName = selectedPage?.page_name || 'Startseite';
           const versionName = `${pageName} – ${new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
           setSavingVersion(true);
           try {
-            const html = buildHtmlFromContent(mockupResult);
-            const res = await fetch(`${API_BASE_URL}/api/mockups/${project.lead_id}`, {
+            const html = buildHtmlFromContent(designResult);
+            const res = await fetch(`${API_BASE_URL}/api/designs/${project.lead_id}`, {
               method: 'POST', headers: h,
               body: JSON.stringify({
                 sitemap_page_id: selectedPageId || null,
@@ -1569,30 +1569,30 @@ export default function ProjectDetail() {
             if (res.ok) {
               toast.success('Version gespeichert');
               // Reload versions list
-              fetch(`${API_BASE_URL}/api/mockups/${project.lead_id}`, { headers: h })
+              fetch(`${API_BASE_URL}/api/designs/${project.lead_id}`, { headers: h })
                 .then(r => r.ok ? r.json() : [])
-                .then(data => setMockupVersions(Array.isArray(data) ? data : []));
+                .then(data => setDesignVersions(Array.isArray(data) ? data : []));
             }
           } catch { toast.error('Fehler beim Speichern'); }
           finally { setSavingVersion(false); }
         };
 
         const loadVersion = async (versionId) => {
-          const res = await fetch(`${API_BASE_URL}/api/mockups/${project.lead_id}/${versionId}`, { headers: h });
+          const res = await fetch(`${API_BASE_URL}/api/designs/${project.lead_id}/${versionId}`, { headers: h });
           if (res.ok) {
             const data = await res.json();
-            setMockupPreview({ html: data.html_content, version_name: data.version_name });
+            setDesignPreview({ html: data.html_content, version_name: data.version_name });
           }
         };
 
         const deleteVersion = async (versionId) => {
           if (!window.confirm('Version löschen?')) return;
-          await fetch(`${API_BASE_URL}/api/mockups/version/${versionId}`, { method: 'DELETE', headers: h });
-          setMockupVersions(prev => prev.filter(v => v.id !== versionId));
-          if (mockupPreview) setMockupPreview(null);
+          await fetch(`${API_BASE_URL}/api/designs/version/${versionId}`, { method: 'DELETE', headers: h });
+          setDesignVersions(prev => prev.filter(v => v.id !== versionId));
+          if (designPreview) setDesignPreview(null);
         };
 
-        const activeHtml = mockupPreview ? mockupPreview.html : (mockupResult ? buildHtmlFromContent(mockupResult) : null);
+        const activeHtml = designPreview ? designPreview.html : (designResult ? buildHtmlFromContent(designResult) : null);
 
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1632,22 +1632,22 @@ export default function ProjectDetail() {
                 Generiert Textentwürfe für die Website auf Basis der Briefing- und Sitemap-Daten.
               </div>
               <button
-                onClick={generateMockup}
-                disabled={mockupRunning}
-                style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: mockupRunning ? 'var(--bg-muted)' : 'var(--brand-primary)', color: mockupRunning ? 'var(--text-tertiary)' : '#fff', fontSize: 14, fontWeight: 600, cursor: mockupRunning ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8 }}
+                onClick={generateDesign}
+                disabled={designRunning}
+                style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: designRunning ? 'var(--bg-muted)' : 'var(--brand-primary)', color: designRunning ? 'var(--text-tertiary)' : '#fff', fontSize: 14, fontWeight: 600, cursor: designRunning ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8 }}
               >
-                {mockupRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
-                {mockupRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
+                {designRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
+                {designRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
               </button>
-              {mockupSlow && (
+              {designSlow && (
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F59E0B', display: 'inline-block', flexShrink: 0 }} />
                   Claude denkt gründlich nach — das kann bis zu 55 Sekunden dauern…
                 </div>
               )}
-              {mockupError && (
+              {designError && (
                 <div style={{ background: 'var(--status-danger-bg)', border: '1px solid var(--status-danger-text)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--status-danger-text)', marginTop: 12 }}>
-                  {typeof mockupError === 'string' ? mockupError : JSON.stringify(mockupError)}
+                  {typeof designError === 'string' ? designError : JSON.stringify(designError)}
                 </div>
               )}
             </div>
@@ -1657,16 +1657,16 @@ export default function ProjectDetail() {
               <div className="kc-card" style={{ padding: 0, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border-light)' }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {mockupPreview ? `📂 ${mockupPreview.version_name}` : '✨ Aktueller Entwurf'}
+                    {designPreview ? `📂 ${designPreview.version_name}` : '✨ Aktueller Entwurf'}
                   </span>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    {mockupPreview && (
-                      <button onClick={() => setMockupPreview(null)}
+                    {designPreview && (
+                      <button onClick={() => setDesignPreview(null)}
                         style={{ fontSize: 12, padding: '4px 10px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                         ✕ Schließen
                       </button>
                     )}
-                    {mockupResult && !mockupPreview && (
+                    {designResult && !designPreview && (
                       <button onClick={saveCurrentVersion} disabled={savingVersion}
                         style={{ fontSize: 12, padding: '4px 10px', background: '#008EAA', border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer', color: '#fff', fontWeight: 600 }}>
                         {savingVersion ? '…' : '💾 Version speichern'}
@@ -1691,21 +1691,21 @@ export default function ProjectDetail() {
             <div className="kc-card">
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
                 📂 Gespeicherte Entwürfe
-                {mockupVersions.length > 0 && (
+                {designVersions.length > 0 && (
                   <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 500, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 99, padding: '1px 8px', color: 'var(--text-tertiary)' }}>
-                    {mockupVersions.length}
+                    {designVersions.length}
                   </span>
                 )}
               </div>
 
-              {mockupVersions.length === 0 ? (
+              {designVersions.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)', fontSize: 13, border: '1.5px dashed var(--border-medium)', borderRadius: 'var(--radius-lg)' }}>
                   Noch keine Versionen gespeichert — generiere einen Entwurf und klicke "💾 Version speichern"
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {mockupVersions.map(v => {
-                    const isActive = mockupPreview && mockupPreview.version_name === v.version_name;
+                  {designVersions.map(v => {
+                    const isActive = designPreview && designPreview.version_name === v.version_name;
                     return (
                       <div key={v.id} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,

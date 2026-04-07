@@ -60,7 +60,7 @@ export default function WebsiteDesigner({ customerId, customerName, onClose }) {
     try {
       const token = localStorage.getItem('kompagnon_token');
       const res = await fetch(
-        `${API_BASE_URL}/api/customers/${customerId}/generate-mockup`,
+        `${API_BASE_URL}/api/customers/${customerId}/generate-design`,
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },

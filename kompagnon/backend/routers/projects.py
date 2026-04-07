@@ -113,6 +113,8 @@ class ProjectUpdateRequest(BaseModel):
     customer_email: str = None
     fixed_price: float = None
     target_go_live: str = None
+    status: str = None
+    current_phase: int = None
 
 
 class MarginResponse(BaseModel):

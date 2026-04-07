@@ -1983,9 +1983,9 @@ export default function ProjectDetail() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>🖥️ Hosting-Analyse</h2>
-                {hostingData?.hosting_checked_at && (
+                {(hostingData?.hosting_checked_at || hostingData?.checked_at) && (
                   <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
-                    Zuletzt gescannt: {timeAgo(hostingData.hosting_checked_at)}
+                    Zuletzt gescannt: {timeAgo(hostingData.hosting_checked_at || hostingData.checked_at)}
                   </div>
                 )}
               </div>
@@ -1996,13 +1996,13 @@ export default function ProjectDetail() {
               >
                 {hostingScanning
                   ? <><span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} /> Scanning…</>
-                  : hostingData?.hosting_checked_at ? '🔄 Erneut scannen' : '🔍 Hosting scannen'}
+                  : (hostingData?.hosting_checked_at || hostingData?.checked_at) ? '🔄 Erneut scannen' : '🔍 Hosting scannen'}
               </button>
             </div>
 
             {!hostingLoaded ? (
               <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)' }}>Lade…</div>
-            ) : !hostingData?.hosting_checked_at ? (
+            ) : !(hostingData?.hosting_checked_at || hostingData?.checked_at) ? (
               <div style={{ textAlign: 'center', padding: 48, background: 'var(--bg-surface)', borderRadius: 12, border: '1px dashed var(--border-light)', color: 'var(--text-tertiary)' }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>🖥️</div>
                 <div style={{ fontWeight: 600, marginBottom: 6 }}>Noch kein Scan durchgeführt</div>

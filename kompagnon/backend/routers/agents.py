@@ -129,7 +129,7 @@ class ContentBriefing(BaseModel):
     city: str = ""
     trade: str = ""
     usp: str = ""
-    services: list[str] = []
+    services: list = []
     target_audience: str = ""
     page_name: str = "Startseite"
     zweck: str = ""
@@ -138,20 +138,21 @@ class ContentBriefing(BaseModel):
     team_size: int = 1
     team_info: str = ""
     years_in_business: int = 0
-    awards_or_certifications: list[str] = []
+    awards_or_certifications: list = []
+    lead_id: int = None
     # Context fields from audit / pagespeed / crawler / briefing
-    audit_score: int | None = None
-    audit_problems: list[str] = []
-    pagespeed_mobile: int | None = None
-    crawler_titles: list[str] = []
+    audit_score: int = None
+    audit_problems: list = []
+    pagespeed_mobile: int = None
+    crawler_titles: list = []
     briefing_usp: str = ""
     briefing_leistungen: str = ""
     briefing_zielgruppe: str = ""
     # Brand design context
-    brand_primary_color: str | None = None
-    brand_secondary_color: str | None = None
-    brand_font_primary: str | None = None
-    brand_design_style: str | None = None
+    brand_primary_color: str = None
+    brand_secondary_color: str = None
+    brand_font_primary: str = None
+    brand_design_style: str = None
 
 
 class CompanyData(BaseModel):
@@ -183,89 +184,56 @@ class ReviewInput(BaseModel):
 
 
 @router.post("/{project_id}/content")
-def start_content_agent(
+def run_content_agent(
     project_id: int,
-    briefing: ContentBriefing = None,
+    briefing: ContentBriefing,
     db: Session = Depends(get_db),
 ):
-    """Start content writer job. Returns job_id immediately — poll /api/agents/jobs/{job_id}."""
-    from sqlalchemy import text as _text
+    """Run content writer agent synchronously. Returns result directly."""
+    # Wenn lead_id vorhanden: Daten aus DB ergänzen
+    if briefing.lead_id:
+        from database import Lead
+        lead = db.query(Lead).filter(Lead.id == briefing.lead_id).first()
+        if lead:
+            if not briefing.company_name:
+                briefing.company_name = lead.company_name or ""
+            if not briefing.city:
+                briefing.city = lead.city or ""
+            if not briefing.trade:
+                briefing.trade = lead.trade or ""
 
+    # Wenn Projekt-ID nicht gefunden: trotzdem weitermachen mit Lead-Daten
     project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    lead = project.lead
-
-    if briefing is None:
-        briefing = ContentBriefing()
-
-    # Auto-fill missing fields from lead/project
-    company_name = briefing.company_name or (lead.company_name if lead else "") or ""
-    city         = briefing.city or (lead.city if lead else "") or ""
-    trade        = briefing.trade or (lead.trade if lead else "") or ""
-    usp          = briefing.usp or ""
-    services     = briefing.services or ([lead.trade] if lead and lead.trade else ["Handwerk"])
-    target_audience = briefing.target_audience or (f"Kunden in {city}" if city else "Lokale Kunden")
-
-    # Enrich from briefings table if available
-    if project.lead_id:
-        try:
-            briefing_row = db.execute(
-                _text("SELECT usp, leistungen, zielgruppe FROM briefings WHERE lead_id = :lid LIMIT 1"),
-                {"lid": project.lead_id},
-            ).fetchone()
-            if briefing_row:
-                if briefing_row.usp:
-                    usp = briefing_row.usp
-                if briefing_row.leistungen:
-                    services = [s.strip() for s in briefing_row.leistungen.split(",") if s.strip()]
-                if briefing_row.zielgruppe:
-                    target_audience = briefing_row.zielgruppe
-        except Exception:
-            pass
 
     briefing_dict = briefing.dict()
-    briefing_dict.update({
-        "company_name": company_name,
-        "city": city,
-        "trade": trade,
-        "usp": usp,
-        "services": services,
-        "target_audience": target_audience,
-    })
 
-    # Check if lead has a template assigned
-    template_html = None
-    if project.lead_id:
-        try:
-            tpl_row = db.execute(
-                _text("SELECT html_content FROM website_templates wt JOIN leads l ON l.template_id = wt.id WHERE l.id = :lid LIMIT 1"),
-                {"lid": project.lead_id}
-            ).fetchone()
-            if tpl_row and tpl_row.html_content:
-                template_html = tpl_row.html_content[:3000]
-        except Exception:
-            pass
+    try:
+        use_mock = not os.getenv("ANTHROPIC_API_KEY")
+        if not use_mock:
+            from agents import ContentWriterAgent
+            agent = ContentWriterAgent()
+            result = agent.write_content(briefing_dict)
+        else:
+            from agents import ContentWriterAgent
+            result = ContentWriterAgent.get_mock_content(
+                briefing.company_name,
+                briefing.city,
+                briefing.trade,
+            )
 
-    if template_html:
-        briefing_dict["template_hint"] = (
-            "Nutze folgendes Template als Designgrundlage und passe "
-            f"Texte, Farben und Inhalte an den Betrieb an:\n{template_html}"
-        )
+        if "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
 
-    job_id = str(uuid.uuid4())
-    _jobs[job_id] = {"status": "running"}
-
-    use_mock = not os.getenv("ANTHROPIC_API_KEY")
-    t = threading.Thread(
-        target=_run_content_job,
-        args=(job_id, briefing_dict, use_mock, company_name, city, trade),
-        daemon=True,
-    )
-    t.start()
-
-    return {"job_id": job_id, "status": "running"}
+        return {
+            "project_id": project_id,
+            "agent": "ContentWriterAgent",
+            "result": result,
+            "status": "success",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Agent failed: {str(e)}")
 
 
 @router.get("/jobs/{job_id}")

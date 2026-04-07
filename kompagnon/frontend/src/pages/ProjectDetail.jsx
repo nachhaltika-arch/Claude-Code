@@ -1131,27 +1131,26 @@ export default function ProjectDetail() {
       {/* ── Overview Tab ────────────────────────────────────────────────────── */}
       {activeTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div className="kc-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
-            <InfoBlock label="Status" value={project.status.replace('phase_', 'Phase ')} />
-            <InfoBlock label="Festpreis" value={`€${project.fixed_price.toFixed(2)}`} mono />
-            <InfoBlock label="Stunden geloggt" value={`${project.actual_hours.toFixed(1)}h`} mono />
-            {margin && <InfoBlock label="Gesamtkosten" value={`€${margin.total_costs.toFixed(2)}`} mono />}
-          </div>
 
-          {margin && (
-            <div className="kc-card" style={{ background: margin.status === 'red' ? 'var(--kc-rot-subtle)' : 'var(--bg-app)', border: margin.status === 'red' ? '1px solid var(--brand-primary)' : '1px solid var(--border-light)' }}>
-              <div style={{ marginBottom: 16 }}>
-                <span>Marge</span>
-                <h2 style={{ fontSize: 22, margin: 0 }}>Profitabilität</h2>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 24 }}>
-                <InfoBlock label="Personenstunden" value={`${margin.human_hours.toFixed(1)}h × €${project.hourly_rate}/h`} mono />
-                <InfoBlock label="KI-Kosten" value={`€${margin.ai_tool_costs.toFixed(2)}`} mono />
-                <InfoBlock label="Verbleibend bis 70%" value={`${margin.hours_remaining_at_target.toFixed(1)}h`} mono />
-                <InfoBlock label="Marge" value={<MarginBadge marginPercent={margin.margin_percent} status={margin.status} />} raw />
-              </div>
+          {/* ── Briefing Unternehmen ─────────────────────────────────────── */}
+          <div className="kc-card">
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>📋 Briefing Unternehmen</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setShowBriefingWizard(true)}
+                style={{ padding: '8px 18px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                📋 Briefing ausfüllen / bearbeiten
+              </button>
+              <span style={{
+                padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                background: briefingLead ? '#dcfce7' : '#fef3c7',
+                color: briefingLead ? '#166534' : '#92400e',
+              }}>
+                {briefingLead ? '✓ Briefing vorhanden' : '○ Noch nicht ausgefüllt'}
+              </span>
             </div>
-          )}
+          </div>
 
           {/* ── Website-Vergleich ─────────────────────────────────────────── */}
           {(() => {

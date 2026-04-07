@@ -18,6 +18,7 @@ import ProjectFilesSection from '../components/ProjectFilesSection';
 import AcademyCustomerSection from '../components/AcademyCustomerSection';
 import PageSpeedSection from '../components/PageSpeedSection';
 import API_BASE_URL from '../config';
+import NewsletterDesigner from '../components/NewsletterDesigner';
 import { useScreenSize } from '../utils/responsive';
 
 const scoreColor = (s) =>
@@ -75,6 +76,7 @@ export default function LeadProfile() {
   const isTablet = width >= 768 && width < 1100;
   const isDesktop = width >= 1100;
 
+  const [showNewsletter, setShowNewsletter] = useState(false);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -831,6 +833,16 @@ export default function LeadProfile() {
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', background: 'var(--bg-app)' }}>
 
+            {/* Newsletter Button */}
+            <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowNewsletter(true)}
+                style={{ padding: '6px 14px', border: 'none', borderRadius: 6,
+                         background: '#008eaa', color: 'white', cursor: 'pointer',
+                         fontSize: 13, fontWeight: 600 }}>
+                Newsletter erstellen
+              </button>
+            </div>
+
             {/* Nachrichtenverlauf */}
             <div style={{ maxHeight: 500, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               {msgLoading && messages.length === 0 && (
@@ -907,6 +919,27 @@ export default function LeadProfile() {
           </div>
         );
       })()}
+
+      {showNewsletter && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9998,
+                      background: 'var(--bg-surface)' }}>
+          <div style={{ position: 'absolute', top: 12, right: 16, zIndex: 9999 }}>
+            <button onClick={() => setShowNewsletter(false)}
+              style={{ padding: '6px 16px', border: 'none', borderRadius: 6,
+                       background: '#E24B4A', color: 'white', cursor: 'pointer' }}>
+              Schliessen
+            </button>
+          </div>
+          <NewsletterDesigner
+            leadId={leadId}
+            onSend={() => {
+              setShowNewsletter(false);
+              toast.success('Newsletter gesendet');
+            }}
+            onSave={() => toast.success('Entwurf gespeichert')}
+          />
+        </div>
+      )}
 
       {/* ÜBERSICHT TAB */}
       {activeTab === 'overview' && (

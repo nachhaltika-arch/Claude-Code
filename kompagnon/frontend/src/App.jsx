@@ -56,6 +56,7 @@ import KampagneLandingPage from './pages/KampagneLandingPage';
 import QRGenerator from './pages/QRGenerator';
 import TemplateLibrary from './pages/TemplateLibrary';
 import TemplateEditor from './pages/TemplateEditor';
+import NewsletterDesigner from './components/NewsletterDesigner';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -158,6 +159,7 @@ function App() {
             <Route path="tickets" element={<PrivateRoute roles={['admin', 'auditor']}><Tickets /></PrivateRoute>} />
             <Route path="product" element={<PrivateRoute roles={['admin']}><ProductDevelopment /></PrivateRoute>} />
             <Route path="qr-generator" element={<PrivateRoute roles={['admin']}><QRGenerator /></PrivateRoute>} />
+            <Route path="newsletter" element={<PrivateRoute><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}
             <Route path="courses" element={<PrivateRoute roles={['admin', 'auditor']}><Courses /></PrivateRoute>} />
             <Route path="portal" element={<PrivateRoute roles={['kunde']}><KundenPortal /></PrivateRoute>} />

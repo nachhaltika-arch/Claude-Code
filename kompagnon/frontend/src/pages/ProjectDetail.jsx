@@ -50,28 +50,37 @@ const CMS_OPTIONS  = ['WordPress', 'Wix', 'TYPO3', 'Webflow', 'Sonstige'];
 const PKG_OPTIONS  = ['kompagnon', 'starter', 'professional', 'enterprise'];
 const PAY_OPTIONS  = ['offen', 'bezahlt', 'überfällig'];
 
+// ── Edit Modal helpers ────────────────────────────────────────────────────────
+const _extractTopProblems = (audit) => {
+  if (!audit?.top_issues) return '';
+  try {
+    let issues = typeof audit.top_issues === 'string' ? JSON.parse(audit.top_issues) : audit.top_issues;
+    return Array.isArray(issues) ? issues.slice(0, 3).join('\n') : '';
+  } catch { return ''; }
+};
+
+const buildInitialForm = (project, lead, latestAudit) => ({
+  website_url:                  project.website_url    || lead?.website_url    || '',
+  cms_type:                     project.cms_type       || '',
+  contact_name:                 project.contact_name   || lead?.contact_name   || '',
+  contact_phone:                project.contact_phone  || lead?.phone          || '',
+  contact_email:                project.contact_email  || lead?.email          || '',
+  go_live_date:                 project.go_live_date   ? String(project.go_live_date).slice(0, 10) : '',
+  package_type:                 project.package_type   || 'kompagnon',
+  payment_status:               project.payment_status || 'offen',
+  desired_pages:                project.desired_pages  || '',
+  has_logo:                     !!project.has_logo,
+  has_briefing:                 !!project.has_briefing,
+  has_photos:                   !!project.has_photos,
+  top_problems:                 project.top_problems   || _extractTopProblems(latestAudit),
+  industry:                     project.industry       || lead?.trade          || '',
+  customer_email:               project.customer_email || lead?.email          || '',
+  email_notifications_enabled:  project.email_notifications_enabled !== false,
+});
+
 // ── Edit Modal ────────────────────────────────────────────────────────────────
-function EditModal({ project, token, onClose, onSaved }) {
-  const [form, setForm] = useState({
-    website_url:                  project.website_url    || '',
-    cms_type:                     project.cms_type       || '',
-    contact_name:                 project.contact_name   || '',
-    contact_phone:                project.contact_phone  || '',
-    contact_email:                project.contact_email  || '',
-    go_live_date:                 project.go_live_date
-                                    ? String(project.go_live_date).slice(0, 10)
-                                    : '',
-    package_type:                 project.package_type   || 'kompagnon',
-    payment_status:               project.payment_status || 'offen',
-    desired_pages:                project.desired_pages  || '',
-    has_logo:                     !!project.has_logo,
-    has_briefing:                 !!project.has_briefing,
-    has_photos:                   !!project.has_photos,
-    top_problems:                 project.top_problems   || '',
-    industry:                     project.industry       || '',
-    customer_email:               project.customer_email || '',
-    email_notifications_enabled:  project.email_notifications_enabled !== false,
-  });
+function EditModal({ project, lead, latestAudit, token, onClose, onSaved }) {
+  const [form, setForm] = useState(() => buildInitialForm(project, lead, latestAudit));
   const [saving, setSaving] = useState(false);
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
@@ -146,6 +155,13 @@ function EditModal({ project, token, onClose, onSaved }) {
         </div>
 
         <div style={body}>
+          {/* Info banner when pre-filled from lead */}
+          {lead && (
+            <div style={{ background: '#E6F1FB', color: '#185FA5', padding: '6px 12px', borderRadius: 6, fontSize: 12, marginBottom: 4 }}>
+              ℹ️ Felder wurden aus der Kundenkartei vorausgefüllt.
+            </div>
+          )}
+
           {/* Website + CMS */}
           <div style={fieldGroup(2)}>
             <Field label="Website-URL">
@@ -382,6 +398,7 @@ export default function ProjectDetail() {
   const isAdmin          = user?.role === 'admin';
 
   const [project, setProject]         = useState(null);
+  const [lead, setLead]               = useState(null);
   const [margin, setMargin]           = useState(null);
   const [loading, setLoading]         = useState(true);
   const [activeTab, setActiveTab]     = useState('overview');
@@ -478,6 +495,12 @@ export default function ProjectDetail() {
       setProject(projectRes.data);
       setMargin(marginRes.data);
       setNewWebsiteUrl(projectRes.data.new_website_url || '');
+      // Load lead data for modal pre-fill
+      if (projectRes.data.lead_id) {
+        axios.get(`${API_BASE_URL}/api/leads/${projectRes.data.lead_id}`, { headers })
+          .then(r => setLead(r.data))
+          .catch(() => {});
+      }
       // Screenshots lazy-load
       fetch(`${API_BASE_URL}/api/projects/${id}/screenshots`, { headers })
         .then(r => r.ok ? r.json() : null)
@@ -718,7 +741,7 @@ export default function ProjectDetail() {
         return (
           <div style={{ display: 'flex', flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
             <button onClick={() => project.lead_id ? navigate(`/app/leads/${project.lead_id}`) : navigate('/app/leads')} style={btnBase}>👤 Zur Kundenkartei</button>
-            <button onClick={() => setShowEdit(true)} style={btnBase}>✏️ Projektdaten bearbeiten</button>
+            <button onClick={() => { loadLatestAudit(); setShowEdit(true); }} style={btnBase}>✏️ Projektdaten bearbeiten</button>
             <button onClick={() => setActiveTab('audits')} style={btnBase}>🔍 Audit starten</button>
             <button
               onClick={async () => {
@@ -2232,6 +2255,8 @@ export default function ProjectDetail() {
       {showEdit && (
         <EditModal
           project={project}
+          lead={lead}
+          latestAudit={latestAudit || null}
           token={token}
           onClose={() => setShowEdit(false)}
           onSaved={() => { setShowEdit(false); loadProject(); }}

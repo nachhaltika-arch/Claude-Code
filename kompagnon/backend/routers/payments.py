@@ -20,6 +20,12 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.co
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
+PACKAGE_NAMES = {
+    "starter":   "Starter (5 Seiten)",
+    "kompagnon": "KOMPAGNON (8 Seiten)",
+    "premium":   "Premium (12 Seiten)",
+}
+
 PACKAGES = {
     "starter": {
         "name": "Starter",
@@ -139,6 +145,9 @@ def _handle_successful_payment(session: dict, db: Session):
     db.add(lead)
     db.flush()
 
+    paket_name = PACKAGE_NAMES.get(package_id, package_id)
+    portal_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com") + "/login"
+
     # Create user account if email provided and not existing
     if email:
         existing = db.query(User).filter(User.email == email).first()
@@ -157,6 +166,113 @@ def _handle_successful_payment(session: dict, db: Session):
             )
             db.add(user)
             logger.info(f"Stripe: User {email} created (kunde)")
+
+            # Willkommens-E-Mail mit Zugangsdaten
+            try:
+                from services.email import send_email
+                html_body = f"""
+                <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+                  <div style="background:#008eaa;padding:30px;text-align:center">
+                    <h1 style="color:white;margin:0;font-size:24px">Willkommen bei KOMPAGNON</h1>
+                  </div>
+                  <div style="padding:32px;background:#ffffff">
+                    <p>Hallo {first_name or 'dort'},</p>
+                    <p>vielen Dank fuer Ihren Kauf! Ihre Zahlung ueber
+                       <strong>{amount:.2f} EUR</strong> fuer das Paket
+                       <strong>{paket_name}</strong> wurde erfolgreich verarbeitet.</p>
+                    <h3 style="color:#1a2332">Ihre Zugangsdaten:</h3>
+                    <table style="border-collapse:collapse;width:100%">
+                      <tr>
+                        <td style="padding:8px;border:1px solid #e2e8f0;
+                                   background:#f8f9fa;font-weight:bold">E-Mail</td>
+                        <td style="padding:8px;border:1px solid #e2e8f0">{email}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px;border:1px solid #e2e8f0;
+                                   background:#f8f9fa;font-weight:bold">
+                          Temporaeres Passwort</td>
+                        <td style="padding:8px;border:1px solid #e2e8f0;
+                                   font-family:monospace;font-size:16px;
+                                   letter-spacing:2px">{temp_pw}</td>
+                      </tr>
+                    </table>
+                    <p style="color:#E24B4A;font-size:13px">
+                      Bitte aendern Sie Ihr Passwort nach dem ersten Login.
+                    </p>
+                    <div style="text-align:center;margin:32px 0">
+                      <a href="{portal_url}"
+                         style="background:#008eaa;color:white;padding:14px 32px;
+                                border-radius:6px;text-decoration:none;
+                                font-weight:bold;font-size:16px">
+                        Jetzt einloggen
+                      </a>
+                    </div>
+                    <h3 style="color:#1a2332">Naechste Schritte:</h3>
+                    <ol style="color:#64748b;line-height:2">
+                      <li>Melden Sie sich mit Ihren Zugangsdaten an</li>
+                      <li>Fuellen Sie das Briefing-Formular aus</li>
+                      <li>Wir melden uns innerhalb von 24 Stunden fuer
+                          den Strategy Workshop</li>
+                    </ol>
+                    <p>Bei Fragen erreichen Sie uns jederzeit unter
+                       <a href="mailto:info@kompagnon.eu">info@kompagnon.eu</a></p>
+                  </div>
+                  <div style="padding:20px;background:#f8f9fa;text-align:center">
+                    <p style="color:#94a3b8;font-size:12px;margin:0">
+                      KOMPAGNON Communications BP GmbH &bull; kompagnon.eu
+                    </p>
+                  </div>
+                </div>
+                """
+                send_email(
+                    to_email=email,
+                    subject="Willkommen bei KOMPAGNON — Ihre Zugangsdaten",
+                    html_body=html_body,
+                )
+                logger.info(f"Willkommens-E-Mail gesendet an {email}")
+            except Exception as e:
+                logger.error(f"Willkommens-E-Mail Fehler: {e}")
+
+        else:
+            # User existiert bereits — Bestaetigungs-E-Mail ohne Passwort
+            try:
+                from services.email import send_email
+                html_body = f"""
+                <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+                  <div style="background:#008eaa;padding:30px;text-align:center">
+                    <h1 style="color:white;margin:0;font-size:24px">Bestellung bestaetigt</h1>
+                  </div>
+                  <div style="padding:32px;background:#ffffff">
+                    <p>Hallo {first_name or 'dort'},</p>
+                    <p>Ihre Zahlung ueber <strong>{amount:.2f} EUR</strong> fuer das Paket
+                       <strong>{paket_name}</strong> wurde erfolgreich bestaetigt.</p>
+                    <p>Bitte melden Sie sich mit Ihren bestehenden Zugangsdaten an:</p>
+                    <div style="text-align:center;margin:32px 0">
+                      <a href="{portal_url}"
+                         style="background:#008eaa;color:white;padding:14px 32px;
+                                border-radius:6px;text-decoration:none;
+                                font-weight:bold;font-size:16px">
+                        Zum Portal
+                      </a>
+                    </div>
+                    <p>Bei Fragen erreichen Sie uns unter
+                       <a href="mailto:info@kompagnon.eu">info@kompagnon.eu</a></p>
+                  </div>
+                  <div style="padding:20px;background:#f8f9fa;text-align:center">
+                    <p style="color:#94a3b8;font-size:12px;margin:0">
+                      KOMPAGNON Communications BP GmbH &bull; kompagnon.eu
+                    </p>
+                  </div>
+                </div>
+                """
+                send_email(
+                    to_email=email,
+                    subject="Neue Bestellung bei KOMPAGNON bestaetigt",
+                    html_body=html_body,
+                )
+                logger.info(f"Bestaetigungs-E-Mail gesendet an {email}")
+            except Exception as e:
+                logger.error(f"Bestaetigungs-E-Mail Fehler: {e}")
 
     db.commit()
     logger.info(f"Stripe: Lead {lead.id} created for {company} ({amount} EUR, {package_id})")

@@ -2727,6 +2727,8 @@ export default function ProjectDetail() {
             ));
             setEditingPage(null);
           }}
+          projectId={project.id}
+          netlitySiteId={project.netlify_site_id || null}
         />
       )}
     </div>

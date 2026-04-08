@@ -658,6 +658,17 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_run_at TIMESTAMP",
         # Auftragsbestätigung PDF
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS auftragsbestaetigung_pdf VARCHAR",
+        # Zugangsdaten-Safe
+        """CREATE TABLE IF NOT EXISTS project_credentials (
+            id                  SERIAL PRIMARY KEY,
+            project_id          INTEGER NOT NULL,
+            label               VARCHAR(100) NOT NULL,
+            username            VARCHAR(255),
+            password_encrypted  TEXT,
+            url                 VARCHAR(500),
+            notes               TEXT,
+            created_at          TIMESTAMP DEFAULT NOW()
+        )""",
         # Google Business Profile
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_place_id VARCHAR",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_claimed BOOLEAN DEFAULT false",

@@ -14,6 +14,30 @@ import logging
 import threading
 import os
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+
+logger = logging.getLogger(__name__)
+
+
+def _get_fernet():
+    """
+    Gibt eine Fernet-Instanz zurück.
+    CREDENTIALS_KEY muss ein 32-Byte URL-safe base64 Key sein.
+    Generierung: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    """
+    from cryptography.fernet import Fernet
+    key = os.getenv("CREDENTIALS_KEY", "")
+    if not key:
+        logger.warning(
+            "CREDENTIALS_KEY nicht gesetzt — nutze unsicheren Fallback. "
+            "Bitte in Render Environment setzen."
+        )
+        key = "dGhpc2lzYWZha2Vfa2V5Zm9yZGV2b25seXVzZTEyMw=="
+    try:
+        return Fernet(key.encode() if isinstance(key, str) else key)
+    except Exception as e:
+        logger.error(f"Fernet Init Fehler: {e}")
+        from cryptography.fernet import Fernet as F
+        return F(F.generate_key())
 from fastapi.responses import FileResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -1753,6 +1777,115 @@ def get_qa_result(project_id: int, db: Session = Depends(get_db)):
         "run_at": str(project.qa_run_at)[:16] if project.qa_run_at else None,
         "result": _json.loads(project.qa_result),
     }
+
+
+@router.post("/{project_id}/credentials")
+def add_credential(
+    project_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    label    = (data.get("label") or "").strip()
+    username = (data.get("username") or "").strip()
+    password = (data.get("password") or "").strip()
+    url      = (data.get("url") or "").strip()
+    notes    = (data.get("notes") or "").strip()
+
+    if not label:
+        raise HTTPException(400, "Label ist Pflichtfeld")
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    encrypted = ""
+    if password:
+        try:
+            f = _get_fernet()
+            encrypted = f.encrypt(password.encode()).decode()
+        except Exception as e:
+            logger.error(f"Verschluesselung Fehler: {e}")
+            raise HTTPException(500, "Verschluesselung fehlgeschlagen")
+
+    db.execute(text("""
+        INSERT INTO project_credentials
+            (project_id, label, username, password_encrypted, url, notes)
+        VALUES
+            (:pid, :label, :username, :pw, :url, :notes)
+    """), {
+        "pid":      project_id,
+        "label":    label,
+        "username": username,
+        "pw":       encrypted,
+        "url":      url,
+        "notes":    notes,
+    })
+    db.commit()
+
+    row = db.execute(text(
+        "SELECT id, created_at FROM project_credentials "
+        "WHERE project_id=:pid ORDER BY id DESC LIMIT 1"
+    ), {"pid": project_id}).fetchone()
+
+    return {
+        "success":    True,
+        "id":         row[0] if row else None,
+        "label":      label,
+        "username":   username,
+        "url":        url,
+        "created_at": str(row[1])[:16] if row else "",
+    }
+
+
+@router.get("/{project_id}/credentials")
+def get_credentials(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    rows = db.execute(text("""
+        SELECT id, label, username, password_encrypted,
+               url, notes, created_at
+        FROM project_credentials
+        WHERE project_id = :pid
+        ORDER BY created_at ASC
+    """), {"pid": project_id}).mappings().all()
+
+    f = _get_fernet()
+    result = []
+    for r in rows:
+        decrypted = ""
+        if r["password_encrypted"]:
+            try:
+                decrypted = f.decrypt(r["password_encrypted"].encode()).decode()
+            except Exception:
+                decrypted = "Entschluesselung fehlgeschlagen"
+        result.append({
+            "id":         r["id"],
+            "label":      r["label"],
+            "username":   r["username"] or "",
+            "password":   decrypted,
+            "url":        r["url"] or "",
+            "notes":      r["notes"] or "",
+            "created_at": str(r["created_at"])[:16],
+        })
+    return result
+
+
+@router.delete("/{project_id}/credentials/{cred_id}")
+def delete_credential(
+    project_id: int,
+    cred_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    db.execute(text("""
+        DELETE FROM project_credentials
+        WHERE id = :cid AND project_id = :pid
+    """), {"cid": cred_id, "pid": project_id})
+    db.commit()
+    return {"success": True}
 
 
 @router.get("/{project_id}/auftragsbestaetigung")

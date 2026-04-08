@@ -851,6 +851,81 @@ def _create_default_admin():
     except Exception as e:
         logger.warning(f"Kunde-Link Fehler: {e}")
 
+    # ── Produkte seeden (nur wenn Tabelle leer) ──────────────
+    try:
+        from database import SessionLocal
+        from sqlalchemy import text as _t
+        _db3 = SessionLocal()
+        count = _db3.execute(_t("SELECT COUNT(*) FROM products")).scalar()
+        if count == 0:
+            import json as _j
+            SEED = [
+                {
+                    "slug": "starter", "name": "Starter-Paket", "sort_order": 1,
+                    "short_desc": "5 Seiten, SEO Basic, Mobiloptimierung",
+                    "price_brutto": 1500.00, "price_netto": 1260.50, "tax_rate": 19,
+                    "payment_type": "once", "delivery_days": 14, "status": "live",
+                    "features": ["5-seitige WordPress-Website", "Mobile-First Design",
+                                 "SEO-Grundoptimierung", "SSL-Zertifikat & DSGVO-konform",
+                                 "Kontaktformular", "30 Tage Support"],
+                    "checkout_fields": ["name", "company", "email", "phone"],
+                    "webhook_actions": ["create_lead", "create_user", "create_project",
+                                        "send_welcome_email", "send_pdf"],
+                },
+                {
+                    "slug": "kompagnon", "name": "KOMPAGNON-Paket", "sort_order": 2,
+                    "short_desc": "8 Seiten, SEO + GEO, Workshop, Nachbetreuung",
+                    "price_brutto": 2000.00, "price_netto": 1680.67, "tax_rate": 19,
+                    "payment_type": "once", "delivery_days": 14, "status": "live",
+                    "highlighted": True, "highlight_label": "Empfehlung",
+                    "features": ["8-seitige WordPress-Website", "SEO + GEO-Optimierung",
+                                 "Strategy Workshop (60 Min.)", "Schema Markup & KI-Optimierung",
+                                 "Google Business Verknuepfung", "30 Tage Support"],
+                    "checkout_fields": ["name", "company", "email", "phone"],
+                    "webhook_actions": ["create_lead", "create_user", "create_project",
+                                        "send_welcome_email", "send_pdf"],
+                },
+                {
+                    "slug": "premium", "name": "Premium-Paket", "sort_order": 3,
+                    "short_desc": "12 Seiten, Shop-Ready, Fotoshooting",
+                    "price_brutto": 2800.00, "price_netto": 2352.94, "tax_rate": 19,
+                    "payment_type": "once", "delivery_days": 21, "status": "live",
+                    "features": ["12-seitige WordPress-Website", "Individual-Design nach CI",
+                                 "SEO + GEO + KI-Volloptimierung", "Strategy Workshop (90 Min.)",
+                                 "Professioneller Fotoshooting-Tag", "Google Ads Einrichtung",
+                                 "3 Monate Support"],
+                    "checkout_fields": ["name", "company", "email", "phone"],
+                    "webhook_actions": ["create_lead", "create_user", "create_project",
+                                        "send_welcome_email", "send_pdf"],
+                },
+            ]
+            for p in SEED:
+                _db3.execute(_t("""
+                    INSERT INTO products
+                    (slug, name, short_desc, price_brutto, price_netto,
+                     tax_rate, payment_type, delivery_days, status,
+                     highlighted, highlight_label, features,
+                     checkout_fields, webhook_actions, sort_order)
+                    VALUES (:slug, :name, :sd, :pb, :pn, :tr, :pt, :dd,
+                     :status, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :so)
+                """), {
+                    "slug": p["slug"], "name": p["name"], "sd": p["short_desc"],
+                    "pb": p["price_brutto"], "pn": p["price_netto"],
+                    "tr": p["tax_rate"], "pt": p["payment_type"],
+                    "dd": p["delivery_days"], "status": p["status"],
+                    "hl": p.get("highlighted", False),
+                    "hll": p.get("highlight_label", ""),
+                    "feat": _j.dumps(p["features"]),
+                    "cf": _j.dumps(p["checkout_fields"]),
+                    "wa": _j.dumps(p["webhook_actions"]),
+                    "so": p["sort_order"],
+                })
+            _db3.commit()
+            logger.info("✓ 3 Produkte geseedet")
+        _db3.close()
+    except Exception as e:
+        logger.warning(f"Produkt-Seed Fehler: {e}")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

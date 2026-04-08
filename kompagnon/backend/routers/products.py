@@ -121,3 +121,66 @@ def delete_product(slug: str, db: Session = Depends(get_db),
     db.execute(text("DELETE FROM products WHERE slug=:s"), {"s": slug})
     db.commit()
     return {"success": True}
+
+
+@router.post("/{slug}/stripe-sync")
+def stripe_sync(slug: str, db: Session = Depends(get_db),
+                _=Depends(require_admin)):
+    import stripe
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+    if not stripe.api_key:
+        raise HTTPException(422, "STRIPE_SECRET_KEY nicht gesetzt")
+
+    row = db.execute(text(
+        "SELECT * FROM products WHERE slug=:s"
+    ), {"s": slug}).mappings().first()
+    if not row:
+        raise HTTPException(404, "Produkt nicht gefunden")
+
+    try:
+        if row["stripe_product_id"]:
+            sp = stripe.Product.modify(
+                row["stripe_product_id"],
+                name=row["name"],
+                description=row["short_desc"] or "",
+            )
+        else:
+            sp = stripe.Product.create(
+                name=row["name"],
+                description=row["short_desc"] or "",
+                metadata={"slug": slug},
+            )
+
+        price_cents = int(float(row["price_brutto"]) * 100)
+        recurring = None
+        if row["payment_type"] == "monthly":
+            recurring = {"interval": "month"}
+        elif row["payment_type"] == "yearly":
+            recurring = {"interval": "year"}
+
+        price_params = {
+            "product": sp.id,
+            "unit_amount": price_cents,
+            "currency": "eur",
+        }
+        if recurring:
+            price_params["recurring"] = recurring
+
+        sp2 = stripe.Price.create(**price_params)
+
+        db.execute(text("""
+            UPDATE products SET
+              stripe_product_id=:spid,
+              stripe_price_id=:ppid,
+              updated_at=NOW()
+            WHERE slug=:s
+        """), {"spid": sp.id, "ppid": sp2.id, "s": slug})
+        db.commit()
+
+        return {
+            "success": True,
+            "stripe_product_id": sp.id,
+            "stripe_price_id": sp2.id,
+        }
+    except stripe.error.StripeError as e:
+        raise HTTPException(400, str(e))

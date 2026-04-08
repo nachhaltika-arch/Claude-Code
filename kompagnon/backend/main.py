@@ -54,6 +54,7 @@ from routers import (
     tickets_router,
     cms_connect_router,
     portal_router,
+    newsletter_router,
 )
 
 # Import scheduler
@@ -881,6 +882,7 @@ app.include_router(scraper_router)
 app.include_router(settings_router)
 app.include_router(payments_router)
 app.include_router(tickets_router)
+app.include_router(newsletter_router)
 
 from routers import briefings
 app.include_router(briefings.router)      # GET /api/briefings/{lead_id} + POST + PUT

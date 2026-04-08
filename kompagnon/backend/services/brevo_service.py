@@ -56,6 +56,7 @@ class BrevoService:
                 "openRate": stats.open_rate if hasattr(stats, "open_rate") else None,
                 "clickRate": stats.click_rate if hasattr(stats, "click_rate") else None,
                 "unsubscriptions": stats.unsubscriptions if hasattr(stats, "unsubscriptions") else None,
+                "sentCount": stats.sent if hasattr(stats, "sent") else None,
             }
         except ApiException as e:
             return f"Fehler beim Abrufen der Statistiken: {e}"

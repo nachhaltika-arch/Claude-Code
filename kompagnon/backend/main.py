@@ -658,6 +658,9 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_run_at TIMESTAMP",
         # Auftragsbestätigung PDF
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS auftragsbestaetigung_pdf VARCHAR",
+        # Sitemap-Planer
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS sitemap_json TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS sitemap_freigabe TIMESTAMP",
         # Zugangsdaten-Safe
         """CREATE TABLE IF NOT EXISTS project_credentials (
             id                  SERIAL PRIMARY KEY,

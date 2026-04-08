@@ -18,6 +18,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/api/crawler', tags=['crawler'])
 
 
+@router.get('/status')
+def crawler_status():
+    """Prüft ob der Crawler verfügbar ist."""
+    try:
+        from services.crawler_service import crawl_website  # noqa: F401
+        return {'status': 'available', 'engine': 'httpx+beautifulsoup4'}
+    except ImportError as e:
+        return {'status': 'unavailable', 'error': str(e)}
+
+
 def _run_crawl(job_id: int, customer_id: int, start_url: str, max_pages: int):
     """Background task: run crawler and persist results."""
     from database import SessionLocal

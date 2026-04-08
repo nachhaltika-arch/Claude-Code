@@ -18,6 +18,7 @@ import GrapesEditor from '../components/GrapesEditor';
 import WebsiteDesigner from '../components/WebsiteDesigner';
 import ContentManager from '../components/ContentManager';
 import QAChecklist from '../components/QAChecklist';
+import CredentialsSafe from '../components/CredentialsSafe';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
@@ -2699,11 +2700,7 @@ export default function ProjectDetail() {
 
       {/* ── Hosting-Zugangsdaten Tab ────────────────────────────────────────── */}
       {activeSubTab === 'hosting-keys' && (
-        <div style={{ background: 'var(--bg-app)', border: '2px dashed var(--border-light)', borderRadius: 8, padding: 40, textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🔑</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Hosting-Zugangsdaten</div>
-          <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Sicher verschlüsselt — Zugangsdaten-Safe (in Entwicklung)</div>
-        </div>
+        <CredentialsSafe projectId={project.id} token={token} />
       )}
 
       {/* ── Trustpilot Tab ─────────────────────────────────────────────────── */}

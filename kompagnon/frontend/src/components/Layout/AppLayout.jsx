@@ -122,6 +122,7 @@ const NAV_SECTIONS = [
     title: 'Einstellungen',
     items: [
       { label: 'Einstellungen', path: '/app/settings', icon: 'gear' },
+      { label: 'Produkte', path: '/app/products', icon: 'gear', adminOnly: true },
       { label: 'Webhooks', path: '/app/webhooks', icon: 'gear', adminOnly: true },
     ],
   },
@@ -151,6 +152,7 @@ const PAGE_NAMES = {
   '/app/newsletter': 'Newsletter',
   '/app/webhooks': 'Webhooks',
   '/app/retainer': 'Retainer & Rechnungen',
+  '/app/products': 'Produkte & Pakete',
 };
 
 const MOBILE_TABS = [

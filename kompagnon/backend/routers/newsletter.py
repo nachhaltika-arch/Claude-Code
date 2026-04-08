@@ -3,13 +3,14 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from psycopg2.extras import Json
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-from auth import get_current_user
+from routers.auth_router import get_current_user
 from database import get_db
 from services.brevo_service import BrevoService
 
-router = APIRouter(prefix="/newsletter", tags=["Newsletter"])
+router = APIRouter(prefix="/api/newsletter", tags=["Newsletter"])
 
 
 # ---------------------------------------------------------------------------
@@ -58,138 +59,98 @@ class ImportRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/campaigns")
-def list_campaigns(user: dict = Depends(get_current_user), db=Depends(get_db)):
-    cur = db.cursor()
-    cur.execute("""
-        SELECT id, title, subject, status, sent_at, brevo_campaign_id
-        FROM newsletters
-        ORDER BY created_at DESC
-    """)
-    rows = cur.fetchall()
-    cur.close()
-    return rows
+def list_campaigns(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    rows = db.execute(text(
+        "SELECT id, title, subject, preview_text, status, brevo_campaign_id, "
+        "scheduled_at, sent_at, created_at, updated_at "
+        "FROM newsletters ORDER BY created_at DESC"
+    )).mappings().all()
+    return [dict(r) for r in rows]
 
 
 @router.post("/campaigns", status_code=201)
 def create_campaign(
     body: CampaignCreate,
-    user: dict = Depends(get_current_user),
-    db=Depends(get_db),
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    cur = db.cursor()
-    cur.execute(
-        """
+    row = db.execute(text("""
         INSERT INTO newsletters (title, subject, preview_text, html_content, json_content, status)
-        VALUES (%s, %s, %s, %s, %s, 'draft')
+        VALUES (:title, :subject, :preview_text, :html_content, CAST(:json_content AS JSONB), 'draft')
         RETURNING *
-        """,
-        (body.title, body.subject, body.preview_text, body.html_content, Json(body.json_content)),
-    )
-    row = cur.fetchone()
+    """), {
+        "title": body.title,
+        "subject": body.subject,
+        "preview_text": body.preview_text,
+        "html_content": body.html_content,
+        "json_content": str(body.json_content) if body.json_content else None,
+    }).mappings().fetchone()
     db.commit()
-    cur.close()
-    return row
-
-
-@router.get("/campaigns/{campaign_id}")
-def get_campaign(
-    campaign_id: int,
-    user: dict = Depends(get_current_user),
-    db=Depends(get_db),
-):
-    cur = db.cursor()
-    cur.execute("SELECT * FROM newsletters WHERE id = %s", (campaign_id,))
-    row = cur.fetchone()
-    cur.close()
-    if not row:
-        raise HTTPException(status_code=404, detail="Newsletter nicht gefunden")
-    return row
+    return dict(row)
 
 
 @router.put("/campaigns/{campaign_id}")
 def update_campaign(
     campaign_id: int,
     body: CampaignUpdate,
-    user: dict = Depends(get_current_user),
-    db=Depends(get_db),
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    cur = db.cursor()
+    existing = db.execute(
+        text("SELECT status FROM newsletters WHERE id = :id"),
+        {"id": campaign_id},
+    ).mappings().fetchone()
 
-    # Nur Drafts duerfen bearbeitet werden
-    cur.execute("SELECT status FROM newsletters WHERE id = %s", (campaign_id,))
-    row = cur.fetchone()
-    if not row:
-        cur.close()
+    if not existing:
         raise HTTPException(status_code=404, detail="Newsletter nicht gefunden")
-    if row["status"] != "draft":
-        cur.close()
+    if existing["status"] != "draft":
         raise HTTPException(status_code=400, detail="Nur Entwuerfe koennen bearbeitet werden")
 
     fields = []
-    values = []
-    for field in ("title", "subject", "preview_text", "html_content", "json_content"):
+    values: dict = {}
+    for field in ("title", "subject", "preview_text", "html_content"):
         value = getattr(body, field)
         if value is not None:
-            fields.append(f"{field} = %s")
-            values.append(Json(value) if field == "json_content" else value)
+            fields.append(f"{field} = :{field}")
+            values[field] = value
+    if body.json_content is not None:
+        fields.append("json_content = CAST(:json_content AS JSONB)")
+        values["json_content"] = str(body.json_content)
 
     if not fields:
-        cur.close()
         raise HTTPException(status_code=400, detail="Keine Felder zum Aktualisieren angegeben")
 
-    fields.append("updated_at = %s")
-    values.append(datetime.now(timezone.utc))
-    values.append(campaign_id)
+    fields.append("updated_at = :updated_at")
+    values["updated_at"] = datetime.now(timezone.utc)
+    values["id"] = campaign_id
 
-    cur.execute(
-        f"UPDATE newsletters SET {', '.join(fields)} WHERE id = %s RETURNING *",
+    row = db.execute(
+        text(f"UPDATE newsletters SET {', '.join(fields)} WHERE id = :id RETURNING *"),
         values,
-    )
-    updated = cur.fetchone()
+    ).mappings().fetchone()
     db.commit()
-    cur.close()
-    return updated
-
-
-@router.delete("/campaigns/{campaign_id}")
-def delete_campaign(
-    campaign_id: int,
-    user: dict = Depends(get_current_user),
-    db=Depends(get_db),
-):
-    cur = db.cursor()
-    cur.execute("SELECT id FROM newsletters WHERE id = %s", (campaign_id,))
-    if not cur.fetchone():
-        cur.close()
-        raise HTTPException(status_code=404, detail="Newsletter nicht gefunden")
-    cur.execute("DELETE FROM newsletters WHERE id = %s", (campaign_id,))
-    db.commit()
-    cur.close()
-    return {"deleted": True}
+    return dict(row)
 
 
 @router.post("/campaigns/{campaign_id}/send")
 def send_campaign(
     campaign_id: int,
     body: CampaignSend,
-    user: dict = Depends(get_current_user),
-    db=Depends(get_db),
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    cur = db.cursor()
-    cur.execute("SELECT * FROM newsletters WHERE id = %s", (campaign_id,))
-    newsletter = cur.fetchone()
+    newsletter = db.execute(
+        text("SELECT * FROM newsletters WHERE id = :id"),
+        {"id": campaign_id},
+    ).mappings().fetchone()
     if not newsletter:
-        cur.close()
         raise HTTPException(status_code=404, detail="Newsletter nicht gefunden")
 
-    # Brevo-Liste IDs aus newsletter_lists holen
-    cur.execute(
-        "SELECT brevo_list_id FROM newsletter_lists WHERE id = ANY(%s)",
-        (body.list_ids,),
-    )
-    brevo_list_rows = cur.fetchall()
+    brevo_list_rows = db.execute(
+        text("SELECT brevo_list_id FROM newsletter_lists WHERE id = ANY(:ids)"),
+        {"ids": body.list_ids},
+    ).mappings().all()
     if not brevo_list_rows:
-        cur.close()
         raise HTTPException(status_code=400, detail="Keine gueltigen Listen gefunden")
 
     brevo_list_id = brevo_list_rows[0]["brevo_list_id"]
@@ -204,52 +165,41 @@ def send_campaign(
     )
 
     if isinstance(result, str):
-        cur.close()
         raise HTTPException(status_code=502, detail=result)
 
     brevo_campaign_id = result
+    now = datetime.now(timezone.utc)
 
     if body.scheduled_at:
-        new_status = "scheduled"
-        cur.execute(
-            """
-            UPDATE newsletters
-            SET brevo_campaign_id = %s, status = %s, scheduled_at = %s, updated_at = %s
-            WHERE id = %s
-            """,
-            (brevo_campaign_id, new_status, body.scheduled_at, datetime.now(timezone.utc), campaign_id),
-        )
+        db.execute(text(
+            "UPDATE newsletters "
+            "SET brevo_campaign_id = :bcid, status = 'scheduled', scheduled_at = :sched, updated_at = :now "
+            "WHERE id = :id"
+        ), {"bcid": brevo_campaign_id, "sched": body.scheduled_at, "now": now, "id": campaign_id})
     else:
         send_result = brevo.send_campaign_now(brevo_campaign_id)
         if isinstance(send_result, str):
-            cur.close()
             raise HTTPException(status_code=502, detail=send_result)
-        new_status = "sent"
-        now = datetime.now(timezone.utc)
-        cur.execute(
-            """
-            UPDATE newsletters
-            SET brevo_campaign_id = %s, status = %s, sent_at = %s, updated_at = %s
-            WHERE id = %s
-            """,
-            (brevo_campaign_id, new_status, now, now, campaign_id),
-        )
+        db.execute(text(
+            "UPDATE newsletters "
+            "SET brevo_campaign_id = :bcid, status = 'sent', sent_at = :now, updated_at = :now "
+            "WHERE id = :id"
+        ), {"bcid": brevo_campaign_id, "now": now, "id": campaign_id})
 
     db.commit()
-    cur.close()
     return {"success": True, "brevo_campaign_id": brevo_campaign_id}
 
 
 @router.get("/campaigns/{campaign_id}/stats")
 def campaign_stats(
     campaign_id: int,
-    user: dict = Depends(get_current_user),
-    db=Depends(get_db),
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    cur = db.cursor()
-    cur.execute("SELECT brevo_campaign_id FROM newsletters WHERE id = %s", (campaign_id,))
-    row = cur.fetchone()
-    cur.close()
+    row = db.execute(
+        text("SELECT brevo_campaign_id FROM newsletters WHERE id = :id"),
+        {"id": campaign_id},
+    ).mappings().fetchone()
 
     if not row:
         raise HTTPException(status_code=404, detail="Newsletter nicht gefunden")
@@ -260,7 +210,6 @@ def campaign_stats(
     stats = brevo.get_campaign_stats(row["brevo_campaign_id"])
     if isinstance(stats, str):
         raise HTTPException(status_code=502, detail=stats)
-
     return stats
 
 
@@ -269,104 +218,92 @@ def campaign_stats(
 # ---------------------------------------------------------------------------
 
 @router.get("/lists")
-def list_lists(user: dict = Depends(get_current_user), db=Depends(get_db)):
-    cur = db.cursor()
-    cur.execute("""
-        SELECT
-            nl.id, nl.name, nl.source,
-            COUNT(nc.id) AS contact_count
+def list_lists(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    rows = db.execute(text("""
+        SELECT nl.id, nl.name, nl.brevo_list_id, nl.description, nl.source, nl.created_at,
+               COUNT(nc.id) AS contact_count
         FROM newsletter_lists nl
         LEFT JOIN newsletter_contacts nc ON nc.list_id = nl.id
         GROUP BY nl.id
         ORDER BY nl.created_at DESC
-    """)
-    rows = cur.fetchall()
-    cur.close()
-    return rows
+    """)).mappings().all()
+    return [dict(r) for r in rows]
 
 
 @router.post("/lists", status_code=201)
 def create_list(
     body: ListCreate,
-    user: dict = Depends(get_current_user),
-    db=Depends(get_db),
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     brevo = BrevoService()
     brevo_list_id = brevo.create_list(body.name)
     if isinstance(brevo_list_id, str):
         raise HTTPException(status_code=502, detail=brevo_list_id)
 
-    cur = db.cursor()
-    cur.execute(
-        """
+    row = db.execute(text("""
         INSERT INTO newsletter_lists (name, description, source, brevo_list_id)
-        VALUES (%s, %s, %s, %s)
+        VALUES (:name, :description, :source, :brevo_list_id)
         RETURNING *
-        """,
-        (body.name, body.description, body.source, brevo_list_id),
-    )
-    row = cur.fetchone()
+    """), {
+        "name": body.name,
+        "description": body.description,
+        "source": body.source,
+        "brevo_list_id": brevo_list_id,
+    }).mappings().fetchone()
     db.commit()
-    cur.close()
-    return row
+    return dict(row)
 
 
 @router.post("/lists/{list_id}/sync-crm")
 def sync_crm(
     list_id: int,
-    user: dict = Depends(get_current_user),
-    db=Depends(get_db),
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    cur = db.cursor()
-
-    # Liste pruefen
-    cur.execute("SELECT brevo_list_id FROM newsletter_lists WHERE id = %s", (list_id,))
-    nl = cur.fetchone()
+    nl = db.execute(
+        text("SELECT brevo_list_id FROM newsletter_lists WHERE id = :id"),
+        {"id": list_id},
+    ).mappings().fetchone()
     if not nl:
-        cur.close()
         raise HTTPException(status_code=404, detail="Liste nicht gefunden")
 
-    # Alle Kunden aus der users-Tabelle holen
-    cur.execute("SELECT id, email, first_name, last_name FROM users WHERE role = 'customer'")
-    customers = cur.fetchall()
+    customers = db.execute(
+        text("SELECT id, email, first_name, last_name FROM users WHERE role = 'customer'")
+    ).mappings().all()
 
     brevo = BrevoService()
     synced = 0
 
     for c in customers:
-        # Pruefen ob Kontakt bereits existiert
-        cur.execute(
-            "SELECT id FROM newsletter_contacts WHERE email = %s AND list_id = %s",
-            (c["email"], list_id),
-        )
-        if cur.fetchone():
+        exists = db.execute(
+            text("SELECT id FROM newsletter_contacts WHERE email = :email AND list_id = :list_id"),
+            {"email": c["email"], "list_id": list_id},
+        ).mappings().fetchone()
+        if exists:
             continue
 
         brevo_contact_id = brevo.create_contact(
             email=c["email"],
-            first_name=c.get("first_name", ""),
-            last_name=c.get("last_name", ""),
+            first_name=c.get("first_name", "") or "",
+            last_name=c.get("last_name", "") or "",
             list_ids=[nl["brevo_list_id"]],
         )
 
-        cur.execute(
-            """
+        db.execute(text("""
             INSERT INTO newsletter_contacts (email, first_name, last_name, list_id, crm_user_id, brevo_contact_id)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            """,
-            (
-                c["email"],
-                c.get("first_name"),
-                c.get("last_name"),
-                list_id,
-                c["id"],
-                brevo_contact_id if not isinstance(brevo_contact_id, str) else None,
-            ),
-        )
+            VALUES (:email, :first_name, :last_name, :list_id, :crm_user_id, :brevo_contact_id)
+        """), {
+            "email": c["email"],
+            "first_name": c.get("first_name"),
+            "last_name": c.get("last_name"),
+            "list_id": list_id,
+            "crm_user_id": c["id"],
+            "brevo_contact_id": brevo_contact_id if not isinstance(brevo_contact_id, str) else None,
+        })
         synced += 1
 
     db.commit()
-    cur.close()
     return {"synced_count": synced}
 
 
@@ -374,16 +311,14 @@ def sync_crm(
 def import_contacts(
     list_id: int,
     body: ImportRequest,
-    user: dict = Depends(get_current_user),
-    db=Depends(get_db),
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    cur = db.cursor()
-
-    # Liste pruefen
-    cur.execute("SELECT brevo_list_id FROM newsletter_lists WHERE id = %s", (list_id,))
-    nl = cur.fetchone()
+    nl = db.execute(
+        text("SELECT brevo_list_id FROM newsletter_lists WHERE id = :id"),
+        {"id": list_id},
+    ).mappings().fetchone()
     if not nl:
-        cur.close()
         raise HTTPException(status_code=404, detail="Liste nicht gefunden")
 
     brevo = BrevoService()
@@ -397,21 +332,17 @@ def import_contacts(
             list_ids=[nl["brevo_list_id"]],
         )
 
-        cur.execute(
-            """
+        db.execute(text("""
             INSERT INTO newsletter_contacts (email, first_name, last_name, list_id, brevo_contact_id)
-            VALUES (%s, %s, %s, %s, %s)
-            """,
-            (
-                contact.email,
-                contact.first_name,
-                contact.last_name,
-                list_id,
-                brevo_contact_id if not isinstance(brevo_contact_id, str) else None,
-            ),
-        )
+            VALUES (:email, :first_name, :last_name, :list_id, :brevo_contact_id)
+        """), {
+            "email": contact.email,
+            "first_name": contact.first_name,
+            "last_name": contact.last_name,
+            "list_id": list_id,
+            "brevo_contact_id": brevo_contact_id if not isinstance(brevo_contact_id, str) else None,
+        })
         imported += 1
 
     db.commit()
-    cur.close()
     return {"imported_count": imported}

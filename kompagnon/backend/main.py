@@ -54,6 +54,7 @@ from routers import (
     tickets_router,
     cms_connect_router,
     portal_router,
+    newsletter_router,
 )
 
 # Import scheduler
@@ -600,6 +601,40 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS actual_go_live TIMESTAMP",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS website_url VARCHAR",
+        # ── Newsletter tables ──────────────────────────────────────────────
+        """CREATE TABLE IF NOT EXISTS newsletters (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            subject VARCHAR(255) NOT NULL,
+            preview_text VARCHAR(255),
+            html_content TEXT,
+            json_content JSONB,
+            status VARCHAR(50) DEFAULT 'draft',
+            brevo_campaign_id BIGINT,
+            scheduled_at TIMESTAMP WITH TIME ZONE,
+            sent_at TIMESTAMP WITH TIME ZONE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS newsletter_lists (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            brevo_list_id BIGINT,
+            description TEXT,
+            source VARCHAR(50) DEFAULT 'manual',
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS newsletter_contacts (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) NOT NULL,
+            first_name VARCHAR(100),
+            last_name VARCHAR(100),
+            list_id INTEGER REFERENCES newsletter_lists(id),
+            crm_user_id INTEGER,
+            status VARCHAR(50) DEFAULT 'subscribed',
+            brevo_contact_id BIGINT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -847,6 +882,7 @@ app.include_router(scraper_router)
 app.include_router(settings_router)
 app.include_router(payments_router)
 app.include_router(tickets_router)
+app.include_router(newsletter_router)
 
 from routers import briefings
 app.include_router(briefings.router)      # GET /api/briefings/{lead_id} + POST + PUT

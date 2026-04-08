@@ -119,7 +119,7 @@ function FileUploadSection({ token }) {
     <div style={{ marginBottom: 16 }}>
       {/* Header */}
       <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
           Unterlagen einreichen
         </div>
         <p style={{ fontSize: 13, color: '#4a6470', lineHeight: 1.6, margin: '0 0 14px' }}>
@@ -167,7 +167,7 @@ function FileUploadSection({ token }) {
           onDrop={handleDrop}
           onClick={() => !pendingFile && fileInputRef.current?.click()}
           style={{
-            border: `2px dashed ${dragOver ? '#008eaa' : pendingFile ? '#22c55e' : '#d4d8e8'}`,
+            border: `2px dashed ${dragOver ? 'var(--brand-primary)' : pendingFile ? '#22c55e' : 'var(--border-medium)'}`,
             borderRadius: 10,
             padding: '20px 16px',
             textAlign: 'center',
@@ -182,10 +182,10 @@ function FileUploadSection({ token }) {
             <div>
               <div style={{ fontSize: 22, marginBottom: 4 }}>📎</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#4a6470', marginBottom: 2 }}>{pendingFile.name}</div>
-              <div style={{ fontSize: 11, color: '#8fa8b0' }}>{formatSize(pendingFile.size)}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{formatSize(pendingFile.size)}</div>
               <button
                 onClick={(e) => { e.stopPropagation(); setPendingFile(null); fileInputRef.current.value = ''; }}
-                style={{ marginTop: 8, background: 'none', border: 'none', fontSize: 11, color: '#8fa8b0', cursor: 'pointer', textDecoration: 'underline' }}
+                style={{ marginTop: 8, background: 'none', border: 'none', fontSize: 11, color: 'var(--text-tertiary)', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 Andere Datei wählen
               </button>
@@ -194,7 +194,7 @@ function FileUploadSection({ token }) {
             <div>
               <div style={{ fontSize: 28, marginBottom: 6 }}>📤</div>
               <div style={{ fontSize: 13, color: '#4a6470', fontWeight: 500 }}>Datei hierher ziehen oder tippen zum Auswählen</div>
-              <div style={{ fontSize: 11, color: '#8fa8b0', marginTop: 4 }}>PDF, DOCX, JPG, PNG, SVG, AI, EPS, ZIP — max. 20 MB</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>PDF, DOCX, JPG, PNG, SVG, AI, EPS, ZIP — max. 20 MB</div>
             </div>
           )}
         </div>
@@ -203,7 +203,7 @@ function FileUploadSection({ token }) {
         {pendingFile && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
                 Dateityp
               </label>
               <select
@@ -211,7 +211,7 @@ function FileUploadSection({ token }) {
                 name="portal-file-type"
                 value={fileType}
                 onChange={e => setFileType(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d8e8', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: 'var(--bg-surface)', color: 'var(--text-primary)', outline: 'none' }}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: 'var(--bg-surface)', color: 'var(--text-primary)', outline: 'none' }}
               >
                 {Object.entries(FILE_TYPE_LABELS).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
@@ -219,7 +219,7 @@ function FileUploadSection({ token }) {
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
                 Anmerkung (optional)
               </label>
               <input
@@ -229,9 +229,9 @@ function FileUploadSection({ token }) {
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 placeholder="z.B. Hauptlogo in Farbe"
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d8e8', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', color: 'var(--text-primary)' }}
-                onFocus={e => e.target.style.borderColor = '#008eaa'}
-                onBlur={e => e.target.style.borderColor = '#d4d8e8'}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', color: 'var(--text-primary)' }}
+                onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                onBlur={e => e.target.style.borderColor = 'var(--border-medium)'}
               />
             </div>
           </div>
@@ -240,12 +240,12 @@ function FileUploadSection({ token }) {
         {/* Progress bar */}
         {uploading && (
           <div style={{ marginBottom: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#8fa8b0', marginBottom: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>
               <span>Wird hochgeladen…</span>
               <span>{uploadProgress}%</span>
             </div>
-            <div style={{ height: 4, background: '#e0f4f8', borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ width: `${uploadProgress}%`, height: '100%', background: '#008eaa', borderRadius: 2, transition: 'width 0.2s ease' }} />
+            <div style={{ height: 4, background: 'var(--brand-primary-light)', borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{ width: `${uploadProgress}%`, height: '100%', background: 'var(--brand-primary)', borderRadius: 2, transition: 'width 0.2s ease' }} />
             </div>
           </div>
         )}
@@ -255,7 +255,7 @@ function FileUploadSection({ token }) {
           disabled={!pendingFile || uploading}
           style={{
             width: '100%', padding: 12,
-            background: !pendingFile || uploading ? '#8fa8b0' : '#008eaa',
+            background: !pendingFile || uploading ? 'var(--text-tertiary)' : 'var(--brand-primary)',
             color: 'white', border: 'none', borderRadius: 8,
             fontSize: 14, fontWeight: 600,
             cursor: !pendingFile || uploading ? 'not-allowed' : 'pointer',
@@ -268,13 +268,13 @@ function FileUploadSection({ token }) {
 
       {/* Existing files */}
       <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
           Eingereichte Dateien
         </div>
         {loadingFiles ? (
-          <div style={{ color: '#8fa8b0', fontSize: 13 }}>Wird geladen…</div>
+          <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Wird geladen…</div>
         ) : files.length === 0 ? (
-          <div style={{ color: '#8fa8b0', fontSize: 13 }}>Noch keine Dateien eingereicht.</div>
+          <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Noch keine Dateien eingereicht.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {files.map(f => {
@@ -288,7 +288,7 @@ function FileUploadSection({ token }) {
                     <div style={{ fontSize: 13, color: '#4a6470', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {f.original_filename}
                     </div>
-                    <div style={{ fontSize: 11, color: '#8fa8b0', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
                       {f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('de-DE') : '—'} · {formatSize(f.file_size)}
                       {f.note && ` · ${f.note}`}
                     </div>
@@ -446,14 +446,14 @@ export default function CustomerPortal() {
     }
   };
 
-  const levelColor = data?.current_level ? LEVEL_COLORS[data.current_level] : '#8fa8b0';
+  const levelColor = data?.current_level ? LEVEL_COLORS[data.current_level] : 'var(--text-tertiary)';
 
   // LOADING
   if (step === 'loading') return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sans, system-ui)' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #e0f4f8', borderTopColor: '#008eaa', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-        <div style={{ color: '#8fa8b0', fontSize: 13 }}>Wird geladen...</div>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #e0f4f8', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+        <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Wird geladen...</div>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -465,7 +465,7 @@ export default function CustomerPortal() {
       <div style={{ background: 'var(--bg-surface)', borderRadius: 16, padding: 40, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🔗</div>
         <h2 style={{ fontSize: 18, color: 'var(--text-primary)', marginBottom: 8 }}>Ungültiger Link</h2>
-        <p style={{ fontSize: 13, color: '#8fa8b0' }}>{error}</p>
+        <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{error}</p>
       </div>
     </div>
   );
@@ -478,28 +478,28 @@ export default function CustomerPortal() {
         <Logo size="small" />
       </div>
       <div style={{ maxWidth: 420, margin: '40px auto', padding: '0 20px' }}>
-        <div style={{ background: '#008eaa', borderRadius: 16, padding: 24, color: 'white', marginBottom: 20, textAlign: 'center' }}>
+        <div style={{ background: 'var(--brand-primary)', borderRadius: 16, padding: 24, color: 'white', marginBottom: 20, textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 8 }}>👋</div>
           <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 6px' }}>Willkommen, {data?.company_name}!</h1>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', margin: 0 }}>Ihr persönlicher Homepage-Audit Zugang</p>
         </div>
         <div style={{ background: 'var(--bg-surface)', borderRadius: 16, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
           <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6, marginTop: 0 }}>Identität bestätigen</h2>
-          <p style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 20, lineHeight: 1.6 }}>
-            Bitte geben Sie eine E-Mail-Adresse mit der Domain <strong style={{ color: '#008eaa' }}>@{data?.email_domain}</strong> ein.
+          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 20, lineHeight: 1.6 }}>
+            Bitte geben Sie eine E-Mail-Adresse mit der Domain <strong style={{ color: 'var(--brand-primary)' }}>@{data?.email_domain}</strong> ein.
           </p>
           {verifyError && (
             <div style={{ background: 'var(--status-danger-bg)', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{verifyError}</div>
           )}
           <form onSubmit={handleVerify}>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={`name@${data?.email_domain}`} required
-                style={{ width: '100%', padding: '14px 16px', border: '1px solid #d4d8e8', borderRadius: 8, fontSize: 16, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)' }}
-                onFocus={e => e.target.style.borderColor = '#008eaa'} onBlur={e => e.target.style.borderColor = '#d4d8e8'} />
+                style={{ width: '100%', padding: '14px 16px', border: '1px solid var(--border-medium)', borderRadius: 8, fontSize: 16, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)' }}
+                onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'} onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
             </div>
             <button type="submit" disabled={verifying} style={{
-              width: '100%', padding: 12, background: verifying ? '#8fa8b0' : '#008eaa', color: 'white',
+              width: '100%', padding: 12, background: verifying ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: 'white',
               border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: verifying ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
@@ -509,18 +509,18 @@ export default function CustomerPortal() {
             </button>
           </form>
         </div>
-        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: '#8fa8b0' }}>🔒 Ihre Daten sind sicher — nur Sie haben Zugriff.</div>
+        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: 'var(--text-tertiary)' }}>🔒 Ihre Daten sind sicher — nur Sie haben Zugriff.</div>
       </div>
     </div>
   );
 
   // ONBOARDING WIZARD
   const inputStyle = {
-    fontSize: 16, padding: '12px 14px', border: '1px solid #e2e8f0',
+    fontSize: 16, padding: '12px 14px', border: '1px solid var(--border-light)',
     borderRadius: 8, width: '100%', boxSizing: 'border-box',
-    background: 'white', color: '#1a2332', outline: 'none',
+    background: 'var(--bg-surface)', color: 'var(--text-primary)', outline: 'none',
   };
-  const labelStyle = { display: 'block', fontSize: 13, fontWeight: 600, color: '#64748b', marginBottom: 6 };
+  const labelStyle = { display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 };
 
   if (step === 'onboarding') return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px', fontFamily: 'var(--font-sans, system-ui)' }}>
@@ -528,35 +528,35 @@ export default function CustomerPortal() {
       <div style={{ width: '100%', maxWidth: 560 }}>
 
         {/* Header */}
-        <div style={{ background: '#008eaa', borderRadius: '16px 16px 0 0', padding: '28px 32px', textAlign: 'center' }}>
+        <div style={{ background: 'var(--brand-primary)', borderRadius: '16px 16px 0 0', padding: '28px 32px', textAlign: 'center' }}>
           <div style={{ color: 'white', fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px' }}>KOMPAGNON</div>
           <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, marginTop: 4 }}>Willkommen! Bitte kurz einrichten.</div>
         </div>
 
         {/* Progress dots */}
-        <div style={{ background: 'white', padding: '20px 32px 0', display: 'flex', justifyContent: 'center', gap: 10 }}>
+        <div style={{ background: 'var(--bg-surface)', padding: '20px 32px 0', display: 'flex', justifyContent: 'center', gap: 10 }}>
           {[1, 2, 3].map(n => (
             <div key={n} style={{
               width: n === onboardingStep ? 28 : 10,
               height: 10, borderRadius: 5,
-              background: n <= onboardingStep ? '#008eaa' : '#e2e8f0',
+              background: n <= onboardingStep ? 'var(--brand-primary)' : 'var(--border-light)',
               transition: 'all 0.3s',
             }} />
           ))}
         </div>
 
         {/* Card */}
-        <div style={{ background: 'white', borderRadius: '0 0 16px 16px', padding: '24px 32px 32px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+        <div style={{ background: 'var(--bg-surface)', borderRadius: '0 0 16px 16px', padding: '24px 32px 32px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
 
           {/* ── Schritt 1 ── */}
           {onboardingStep === 1 && (
             <div>
               <div style={{ textAlign: 'center', marginBottom: 24 }}>
                 <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', margin: '0 0 8px' }}>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
                   Herzlich willkommen, {data?.company_name || 'dort'}!
                 </h2>
-                <p style={{ fontSize: 14, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
                   Ihr Projekt startet jetzt. Wir führen Sie in 3 kurzen Schritten durch die ersten Informationen die wir benötigen.
                 </p>
               </div>
@@ -580,10 +580,10 @@ export default function CustomerPortal() {
             <div>
               <div style={{ textAlign: 'center', marginBottom: 24 }}>
                 <div style={{ fontSize: 48, marginBottom: 12 }}>🏢</div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', margin: '0 0 8px' }}>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
                   Erzählen Sie uns von Ihrem Betrieb
                 </h2>
-                <p style={{ fontSize: 14, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
                   Diese Informationen helfen uns Ihre neue Website perfekt auf Ihren Betrieb zuzuschneiden.
                 </p>
               </div>
@@ -627,10 +627,10 @@ export default function CustomerPortal() {
             <div>
               <div style={{ textAlign: 'center', marginBottom: 24 }}>
                 <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', margin: '0 0 8px' }}>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
                   Fast geschafft!
                 </h2>
-                <p style={{ fontSize: 14, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
                   Haben Sie bereits Unterlagen die wir für Ihre neue Website verwenden können?
                 </p>
               </div>
@@ -640,14 +640,14 @@ export default function CustomerPortal() {
                   { field: 'has_photos', icon: '📷', title: 'Fotos vorhanden', text: 'Wir haben Fotos vom Betrieb / Team' },
                 ].map(({ field, icon, title, text }) => (
                   <div key={field} onClick={() => toggleField(field)} style={{
-                    border: onboardingData[field] ? '2px solid #008eaa' : '2px solid #e2e8f0',
+                    border: onboardingData[field] ? '2px solid #008eaa' : '2px solid var(--border-light)',
                     background: onboardingData[field] ? '#E1F5EE' : '#f8f9fa',
                     borderRadius: 12, padding: '16px 12px', cursor: 'pointer',
                     textAlign: 'center', transition: 'all 0.2s',
                   }}>
                     <div style={{ fontSize: 28, marginBottom: 6 }}>{icon}</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1a2332', marginBottom: 4 }}>{title}</div>
-                    <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>{text}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{title}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{text}</div>
                   </div>
                 ))}
               </div>
@@ -662,8 +662,8 @@ export default function CustomerPortal() {
                 />
               </div>
               <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '16px 0' }} />
-              <div style={{ background: '#E6F1FB', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#1a2332', marginBottom: 8 }}>✓ Was jetzt passiert:</div>
+              <div style={{ background: 'var(--brand-primary-light)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>✓ Was jetzt passiert:</div>
                 <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#3b5a8a', lineHeight: 2 }}>
                   <li>Wir melden uns innerhalb von 24 Stunden</li>
                   <li>Strategy Workshop vereinbaren (ca. 60 Min.)</li>
@@ -677,18 +677,18 @@ export default function CustomerPortal() {
           <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
             {onboardingStep > 1 && (
               <button onClick={() => setOnboardingStep(s => s - 1)}
-                style={{ flex: 1, padding: '13px 20px', border: '1px solid #e2e8f0', borderRadius: 8, background: 'white', color: '#64748b', fontSize: 15, cursor: 'pointer', fontWeight: 500 }}>
+                style={{ flex: 1, padding: '13px 20px', border: '1px solid var(--border-light)', borderRadius: 8, background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 15, cursor: 'pointer', fontWeight: 500 }}>
                 ← Zurück
               </button>
             )}
             {onboardingStep < 3 ? (
               <button onClick={() => setOnboardingStep(s => s + 1)}
-                style={{ flex: 2, padding: '13px 20px', border: 'none', borderRadius: 8, background: '#008eaa', color: 'white', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}>
+                style={{ flex: 2, padding: '13px 20px', border: 'none', borderRadius: 8, background: 'var(--brand-primary)', color: 'white', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}>
                 Weiter →
               </button>
             ) : (
               <button onClick={completeOnboarding} disabled={onboardingLoading}
-                style={{ flex: 2, padding: '13px 20px', border: 'none', borderRadius: 8, background: '#008eaa', color: 'white', fontSize: 15, cursor: 'pointer', fontWeight: 600, opacity: onboardingLoading ? 0.7 : 1 }}>
+                style={{ flex: 2, padding: '13px 20px', border: 'none', borderRadius: 8, background: 'var(--brand-primary)', color: 'white', fontSize: 15, cursor: 'pointer', fontWeight: 600, opacity: onboardingLoading ? 0.7 : 1 }}>
                 {onboardingLoading ? 'Wird gespeichert...' : 'Jetzt starten! 🚀'}
               </button>
             )}
@@ -704,7 +704,7 @@ export default function CustomerPortal() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Header */}
-      <div style={{ background: '#008eaa', padding: '16px 20px 0' }}>
+      <div style={{ background: 'var(--brand-primary)', padding: '16px 20px 0' }}>
         <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <Logo size="small" />
           <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{data?.company_name}</div>
@@ -732,7 +732,7 @@ export default function CustomerPortal() {
                 padding: '8px 16px', border: 'none', borderRadius: '8px 8px 0 0',
                 fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                 background: portalTab === id ? 'var(--bg-app)' : 'rgba(255,255,255,0.15)',
-                color: portalTab === id ? '#008eaa' : 'rgba(255,255,255,0.85)',
+                color: portalTab === id ? 'var(--brand-primary)' : 'rgba(255,255,255,0.85)',
               }}
             >
               {label}
@@ -747,13 +747,13 @@ export default function CustomerPortal() {
 
           {/* ── Projektstatus / Phasen ── */}
           {data?.project_id ? (
-            <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e0f4f8' }}>
+            <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid var(--border-light)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   Ihr Projektstatus
                 </div>
                 {data.go_live_date && (
-                  <div style={{ fontSize: 11, color: '#008eaa', fontWeight: 500, background: '#E1F5EE', padding: '3px 8px', borderRadius: 20 }}>
+                  <div style={{ fontSize: 11, color: 'var(--brand-primary)', fontWeight: 500, background: '#E1F5EE', padding: '3px 8px', borderRadius: 20 }}>
                     Go-Live: {new Date(data.go_live_date).toLocaleDateString('de-DE')}
                   </div>
                 )}
@@ -777,7 +777,7 @@ export default function CustomerPortal() {
                         width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 14, fontWeight: 600,
-                        background: istAbgeschlossen ? '#1D9E75' : istAktiv ? '#008eaa' : '#e2e8f0',
+                        background: istAbgeschlossen ? '#1D9E75' : istAktiv ? 'var(--brand-primary)' : 'var(--border-light)',
                         color: (istAbgeschlossen || istAktiv) ? 'white' : '#94a3b8',
                         boxShadow: istAktiv ? '0 0 0 4px rgba(0,142,170,0.15)' : 'none',
                       }}>
@@ -787,7 +787,7 @@ export default function CustomerPortal() {
                         <div style={{ fontSize: 13, fontWeight: istAktiv ? 600 : 500, color: istAbgeschlossen ? '#1D9E75' : istAktiv ? '#085041' : '#94a3b8' }}>
                           {phase.icon} {phase.label}
                           {istAktiv && (
-                            <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: '#008eaa', color: 'white', padding: '2px 6px', borderRadius: 10, verticalAlign: 'middle' }}>
+                            <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: 'var(--brand-primary)', color: 'white', padding: '2px 6px', borderRadius: 10, verticalAlign: 'middle' }}>
                               Aktuell
                             </span>
                           )}
@@ -799,7 +799,7 @@ export default function CustomerPortal() {
                         )}
                       </div>
                       {istAbgeschlossen && <div style={{ fontSize: 16, color: '#1D9E75', flexShrink: 0 }}>✓</div>}
-                      {istAusstehend    && <div style={{ width: 16, height: 2, background: '#e2e8f0', borderRadius: 1, flexShrink: 0 }} />}
+                      {istAusstehend    && <div style={{ width: 16, height: 2, background: 'var(--border-light)', borderRadius: 1, flexShrink: 0 }} />}
                     </div>
                   );
                 })}
@@ -810,7 +810,7 @@ export default function CustomerPortal() {
                   <span>Gesamtfortschritt</span>
                   <span>{data.current_phase ? `Phase ${data.current_phase} von 7` : 'Noch nicht gestartet'}</span>
                 </div>
-                <div style={{ height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
                   <div style={{
                     height: '100%', borderRadius: 3,
                     background: 'linear-gradient(90deg, #1D9E75, #008eaa)',
@@ -827,14 +827,14 @@ export default function CustomerPortal() {
           )}
 
           {data?.ai_summary && (
-            <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e0f4f8' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Zusammenfassung</div>
+            <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid var(--border-light)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Zusammenfassung</div>
               <p style={{ fontSize: 13, color: '#4a6470', lineHeight: 1.6, margin: 0 }}>{data.ai_summary}</p>
             </div>
           )}
           {data?.rc_score !== null && (
             <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Ihre Ergebnisse im Detail</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Ihre Ergebnisse im Detail</div>
               {[
                 ['Rechtliche Compliance', data.rc_score, 30],
                 ['Technische Performance', data.tp_score, 20],
@@ -861,11 +861,11 @@ export default function CustomerPortal() {
           )}
           {data?.website_screenshot && (
             <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Ihre Website</div>
-              <div style={{ background: 'var(--bg-app)', borderRadius: 8, overflow: 'hidden', border: '1px solid #e0f4f8' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Ihre Website</div>
+              <div style={{ background: 'var(--bg-app)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-light)' }}>
                 <div style={{ background: 'var(--brand-primary-light)', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
                   {['#ef4444','#f59e0b','#22c55e'].map(c => <div key={c} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />)}
-                  <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: 4, padding: '2px 8px', fontSize: 10, color: '#8fa8b0', marginLeft: 6 }}>{data.website_url}</div>
+                  <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: 4, padding: '2px 8px', fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 6 }}>{data.website_url}</div>
                 </div>
                 <img src={data.website_screenshot} alt="Website" style={{ width: '100%', display: 'block', maxHeight: 240, objectFit: 'cover', objectPosition: 'top' }} />
               </div>
@@ -877,7 +877,7 @@ export default function CustomerPortal() {
               KOMPAGNON bringt Ihre Homepage auf Homepage Standard Gold oder Platin — in 14 Werktagen, zum Festpreis.
             </p>
             <a href="https://www.kompagnon.eu" target="_blank" rel="noopener noreferrer" style={{
-              display: 'block', width: '100%', maxWidth: 320, margin: '0 auto', padding: '14px 24px', background: '#008eaa', color: 'white', textAlign: 'center',
+              display: 'block', width: '100%', maxWidth: 320, margin: '0 auto', padding: '14px 24px', background: 'var(--brand-primary)', color: 'white', textAlign: 'center',
               borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none',
             }}>Jetzt anfragen →</a>
           </div>
@@ -910,33 +910,33 @@ export default function CustomerPortal() {
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>💬 Ihre Nachrichten von KOMPAGNON</div>
 
               {unreadCount > 0 && (
-                <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92400e', fontWeight: 500 }}>
+                <div style={{ background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-text)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--status-warning-text)', fontWeight: 500 }}>
                   Sie haben {unreadCount} neue Nachricht{unreadCount !== 1 ? 'en' : ''} von uns.
                 </div>
               )}
 
               {/* Verlauf */}
-              <div style={{ background: 'var(--bg-surface)', border: '1px solid #e0f4f8', borderRadius: 12, maxHeight: 400, overflowY: 'auto', padding: '14px 14px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 12, maxHeight: 400, overflowY: 'auto', padding: '14px 14px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {messages.length === 0 && (
-                  <div style={{ textAlign: 'center', color: '#8fa8b0', fontSize: 13, padding: 24 }}>Noch keine Nachrichten.</div>
+                  <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: 24 }}>Noch keine Nachrichten.</div>
                 )}
                 {grouped.map((item, i) => {
                   if (item.type === 'sep') return (
-                    <div key={`sep-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#8fa8b0', fontSize: 11 }}>
-                      <div style={{ flex: 1, height: 1, background: '#e0f4f8' }} />
+                    <div key={`sep-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)', fontSize: 11 }}>
+                      <div style={{ flex: 1, height: 1, background: 'var(--brand-primary-light)' }} />
                       {item.day}
-                      <div style={{ flex: 1, height: 1, background: '#e0f4f8' }} />
+                      <div style={{ flex: 1, height: 1, background: 'var(--brand-primary-light)' }} />
                     </div>
                   );
                   const m = item.msg;
                   const isAdmin = m.sender_role === 'admin';
                   return (
                     <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isAdmin ? 'flex-start' : 'flex-end' }}>
-                      <div style={{ fontSize: 10, color: '#8fa8b0', marginBottom: 3, display: 'flex', gap: 5, alignItems: 'center' }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 3, display: 'flex', gap: 5, alignItems: 'center' }}>
                         <span style={{ fontWeight: 600 }}>{isAdmin ? 'KOMPAGNON' : 'Sie'}</span>
                         <span>{fmtTime(m.created_at)}</span>
                       </div>
-                      <div style={{ maxWidth: '80%', padding: '9px 13px', borderRadius: isAdmin ? '12px 12px 12px 3px' : '12px 12px 3px 12px', background: isAdmin ? '#E6F1FB' : '#fff', border: '1px solid #e0f4f8', fontSize: 13, lineHeight: 1.6, color: '#1a2332', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      <div style={{ maxWidth: '80%', padding: '9px 13px', borderRadius: isAdmin ? '12px 12px 12px 3px' : '12px 12px 3px 12px', background: isAdmin ? 'var(--brand-primary-light)' : 'var(--bg-surface)', border: '1px solid var(--border-light)', fontSize: 13, lineHeight: 1.6, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                         {m.content}
                       </div>
                     </div>
@@ -952,14 +952,14 @@ export default function CustomerPortal() {
                   onChange={e => setMsgText(e.target.value)}
                   placeholder="Hier antworten..."
                   rows={2}
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #e0f4f8', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', outline: 'none', color: '#1a2332', background: '#fff' }}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-app)' }}
                 />
                 {msgSuccess && <div style={{ fontSize: 12, color: '#1a7a3a', fontWeight: 500 }}>{msgSuccess}</div>}
                 {msgError && <div style={{ fontSize: 12, color: '#b02020', fontWeight: 500 }}>{msgError}</div>}
                 <button
                   onClick={sendMessage}
                   disabled={msgSending || !msgText.trim()}
-                  style={{ padding: '10px 20px', background: '#008eaa', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'inherit', alignSelf: 'flex-end' }}
+                  style={{ padding: '10px 20px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'inherit', alignSelf: 'flex-end' }}
                 >
                   {msgSending ? 'Wird gesendet…' : 'Nachricht senden'}
                 </button>

@@ -987,15 +987,15 @@ export default function LeadProfile() {
                       <span style={{ fontWeight: 600 }}>{m.sender_name || (isAdmin ? 'Admin' : lead.company_name)}</span>
                       <span>{fmtTime(m.created_at)}</span>
                       {isAdmin && (
-                        <span style={{ background: m.channel === 'email' ? '#fef3c7' : '#dcfce7', color: m.channel === 'email' ? '#92400e' : '#166534', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 600 }}>
+                        <span style={{ background: m.channel === 'email' ? 'var(--status-warning-bg)' : 'var(--status-success-bg)', color: m.channel === 'email' ? 'var(--status-warning-text)' : 'var(--status-success-text)', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 600 }}>
                           {m.channel === 'email' ? '✉️ E-Mail' : '💬 In-App'}
                         </span>
                       )}
                       {!isAdmin && !m.is_read && (
-                        <span style={{ color: '#3b82f6', fontSize: 10 }}>🔵 Ungelesen</span>
+                        <span style={{ color: 'var(--status-info-text)', fontSize: 10 }}>🔵 Ungelesen</span>
                       )}
                     </div>
-                    <div style={{ maxWidth: '75%', padding: '10px 14px', borderRadius: isAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: isAdmin ? '#E6F1FB' : 'var(--bg-surface)', border: '1px solid var(--border-light)', fontSize: 13, lineHeight: 1.6, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    <div style={{ maxWidth: '75%', padding: '10px 14px', borderRadius: isAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: isAdmin ? 'var(--brand-primary-light)' : 'var(--bg-surface)', border: '1px solid var(--border-light)', fontSize: 13, lineHeight: 1.6, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                       {m.content}
                     </div>
                   </div>
@@ -1031,7 +1031,7 @@ export default function LeadProfile() {
                   ))}
                 </div>
                 <button onClick={sendMessage} disabled={msgSending || !msgText.trim()}
-                  style={{ padding: '8px 20px', background: '#0d6efd', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
+                  style={{ padding: '8px 20px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
                   {msgSending ? 'Senden…' : 'Senden →'}
                 </button>
               </div>

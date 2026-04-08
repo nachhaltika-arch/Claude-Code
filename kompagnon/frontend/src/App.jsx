@@ -64,7 +64,6 @@ import WebhookDashboard from './pages/WebhookDashboard';
 import RetainerDashboard from './pages/RetainerDashboard';
 import Abnahme from './pages/Abnahme';
 import ProductManager from './pages/ProductManager';
-import ProductEditor from './pages/ProductEditor';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -175,7 +174,6 @@ function App() {
             <Route path="retainer" element={<PrivateRoute roles={['admin']}><RetainerDashboard /></PrivateRoute>} />
             <Route path="products" element={<PrivateRoute roles={['admin']}><ProductManager /></PrivateRoute>} />
             <Route path="products/editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
-            <Route path="product-editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
             <Route path="newsletter" element={<PrivateRoute><Newsletter /></PrivateRoute>} />
             <Route path="newsletter/editor/:id" element={<PrivateRoute><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}

@@ -183,12 +183,14 @@ const SUB_TAB_MAP = {
 // Maps tool tile ID → which activeSubTab value to set (for content blocks keyed on activeSubTab)
 const TOOL_SUBTAB_MAP = {
   'audits':             'audit',
+  'crawler':            'crawler',
+  'website-content':    'webcontent',
+  'hosting':            'hosting-scan',
+  'hosting-form':       'hosting-form',
   'preview':            'preview',
   'editor':             'editor',
   'netlify-dns':        'netlify-dns',
   'dns':                'hosting-form',
-  'hosting':            'hosting-scan',
-  'hosting-form':       'hosting-form',
   'live-data':          'live-data',
   'trustpilot':         'trustpilot',
   'upsell':             'upsell',
@@ -2420,6 +2422,206 @@ export default function ProjectDetail() {
                 borderRadius: 'var(--radius-xl)', overflow: 'hidden' }}>
                 <AuditReport auditData={openAudit} onClose={() => setOpenAudit(null)} />
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Crawler Tab ──────────────────────────────────────────────────── */}
+      {(activeSubTab === 'crawler' || activeTab === 'crawler') && (
+        <div style={{ maxWidth: 760 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>🕷️ Website-Crawler</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                Erfasst alle URLs der Kunden-Website
+              </div>
+            </div>
+            <button
+              disabled={crawlLoading}
+              onClick={async () => {
+                if (!project?.lead_id) return;
+                setCrawlLoading(true);
+                try {
+                  const lead = await fetch(`${API_BASE_URL}/api/leads/${project.lead_id}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+                  const url = lead.website_url || '';
+                  if (!url) { setCrawlLoading(false); return; }
+                  await fetch(`${API_BASE_URL}/api/crawler/start/${project.lead_id}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ url, max_pages: 50 }),
+                  });
+                  // Poll status
+                  const poll = setInterval(async () => {
+                    const s = await fetch(`${API_BASE_URL}/api/crawler/status/${project.lead_id}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+                    if (s.status === 'completed' || s.status === 'failed') {
+                      clearInterval(poll);
+                      setCrawlJob(s);
+                      setCrawlLoading(false);
+                      const res = await fetch(`${API_BASE_URL}/api/crawler/results/${project.lead_id}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+                      setCrawlResults(res.results || []);
+                    }
+                  }, 3000);
+                } catch { setCrawlLoading(false); }
+              }}
+              style={{ padding: '8px 18px', background: crawlLoading ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: crawlLoading ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}
+            >{crawlLoading ? 'Crawlt…' : 'Crawl starten'}</button>
+          </div>
+          {crawlJob && (
+            <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
+              <div style={{ padding: '8px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12 }}>
+                Status: <strong style={{ color: crawlJob.status === 'completed' ? 'var(--status-success-text)' : 'var(--text-primary)' }}>{crawlJob.status}</strong>
+              </div>
+              <div style={{ padding: '8px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12 }}>
+                URLs: <strong>{crawlJob.total_urls || crawlResults.length}</strong>
+              </div>
+              {crawlJob.duration_seconds && (
+                <div style={{ padding: '8px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12 }}>
+                  Dauer: <strong>{crawlJob.duration_seconds}s</strong>
+                </div>
+              )}
+            </div>
+          )}
+          {crawlResults.length > 0 ? (
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-app)' }}>
+                    <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--text-tertiary)', fontWeight: 600 }}>URL</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-tertiary)', fontWeight: 600, width: 60 }}>Status</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-tertiary)', fontWeight: 600, width: 60 }}>Tiefe</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--text-tertiary)', fontWeight: 600, width: 70 }}>Ladezeit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {crawlResults.map((r, i) => (
+                    <tr key={i} style={{ borderTop: '1px solid var(--border-light)' }}>
+                      <td style={{ padding: '6px 12px', color: 'var(--text-primary)', wordBreak: 'break-all' }}>
+                        <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}>{r.url}</a>
+                      </td>
+                      <td style={{ padding: '6px 12px', textAlign: 'center', color: r.status_code === 200 ? 'var(--status-success-text)' : 'var(--status-danger-text)' }}>{r.status_code || '—'}</td>
+                      <td style={{ padding: '6px 12px', textAlign: 'center', color: 'var(--text-secondary)' }}>{r.depth}</td>
+                      <td style={{ padding: '6px 12px', textAlign: 'right', color: 'var(--text-secondary)' }}>{r.load_time ? `${r.load_time}s` : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : !crawlLoading && (
+            <div style={{ textAlign: 'center', padding: 40, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)', fontSize: 13 }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>🕷️</div>
+              Noch kein Crawl durchgeführt. Klicke oben auf &quot;Crawl starten&quot;.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Hosting-Scan Tab ──────────────────────────────────────────────── */}
+      {(activeSubTab === 'hosting-scan' || activeSubTab === 'hosting') && (
+        <div style={{ maxWidth: 760 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>🖥️ Hosting-Analyse</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>Server, DNS, SSL und Technologien</div>
+            </div>
+            <button
+              disabled={hostingScanning}
+              onClick={async () => {
+                if (!project?.id) return;
+                setHostingScanning(true);
+                try {
+                  const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/hosting-scan`, {
+                    method: 'POST', headers: { Authorization: `Bearer ${token}` },
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    setHostingData(data);
+                  }
+                } catch { /* ignore */ }
+                setHostingScanning(false);
+              }}
+              style={{ padding: '8px 18px', background: hostingScanning ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: hostingScanning ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}
+            >{hostingScanning ? 'Scannt…' : 'Hosting scannen'}</button>
+          </div>
+          {hostingData ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {[
+                { label: 'Server', value: hostingData.server_software || '—', icon: '🖥️' },
+                { label: 'IP', value: hostingData.hosting_ip || '—', icon: '🌐' },
+                { label: 'Hoster', value: hostingData.hosting_org || '—', icon: '🏢' },
+                { label: 'Land', value: hostingData.hosting_country || '—', icon: '🌍' },
+                { label: 'DNS', value: hostingData.dns_provider || '—', icon: '📡' },
+                { label: 'Registrar', value: hostingData.domain_registrar || '—', icon: '📋' },
+                { label: 'WordPress', value: hostingData.is_wordpress ? 'Ja' : 'Nein', icon: '📰' },
+                { label: 'CMS', value: hostingData.cms_type || '—', icon: '⚙️' },
+              ].map(item => (
+                <div key={item.label} style={{ padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>{item.icon} {item.label}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{item.value}</div>
+                </div>
+              ))}
+              {hostingData.detected_technologies && (
+                <div style={{ gridColumn: '1 / -1', padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>🔧 Erkannte Technologien</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {(typeof hostingData.detected_technologies === 'string' ? hostingData.detected_technologies.split(',') : []).map(t => (
+                      <span key={t} style={{ padding: '3px 10px', background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600 }}>{t.trim()}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : !hostingScanning && (
+            <div style={{ textAlign: 'center', padding: 40, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)', fontSize: 13 }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>🖥️</div>
+              Noch kein Hosting-Scan. Klicke oben auf &quot;Hosting scannen&quot;.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Website-Content Tab ───────────────────────────────────────────── */}
+      {(activeSubTab === 'webcontent' || activeSubTab === 'website-content') && (
+        <div style={{ maxWidth: 760 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>🌐 Website-Content</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>Texte, Bilder und Dateien der gecrawlten Seiten</div>
+            </div>
+            <button
+              disabled={contentLoading}
+              onClick={async () => {
+                if (!project?.lead_id) return;
+                setContentLoading(true);
+                try {
+                  await fetch(`${API_BASE_URL}/api/crawler/scrape-content/${project.lead_id}`, {
+                    method: 'POST', headers: { Authorization: `Bearer ${token}` },
+                  });
+                  const res = await fetch(`${API_BASE_URL}/api/crawler/content/${project.lead_id}`, { headers: { Authorization: `Bearer ${token}` } });
+                  if (res.ok) setWebsiteContent(await res.json());
+                } catch { /* ignore */ }
+                setContentLoading(false);
+              }}
+              style={{ padding: '8px 18px', background: contentLoading ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: contentLoading ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}
+            >{contentLoading ? 'Scrapt…' : 'Content scrapen'}</button>
+          </div>
+          {websiteContent.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {websiteContent.map((page, i) => (
+                <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                    <a href={page.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-primary)', textDecoration: 'none', wordBreak: 'break-all' }}>{page.url}</a>
+                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0, marginLeft: 10 }}>{page.word_count || 0} Wörter</span>
+                  </div>
+                  {page.title && <div style={{ fontSize: 12, color: 'var(--text-primary)', marginBottom: 3 }}><strong>Titel:</strong> {page.title}</div>}
+                  {page.h1 && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}><strong>H1:</strong> {page.h1}</div>}
+                  {page.text_preview && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, lineHeight: 1.5 }}>{page.text_preview}</div>}
+                </div>
+              ))}
+            </div>
+          ) : !contentLoading && (
+            <div style={{ textAlign: 'center', padding: 40, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)', fontSize: 13 }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>🌐</div>
+              Noch kein Content gescrapt. Führe zuerst einen Crawl durch, dann klicke &quot;Content scrapen&quot;.
             </div>
           )}
         </div>

@@ -173,6 +173,7 @@ function App() {
             <Route path="retainer" element={<PrivateRoute roles={['admin']}><RetainerDashboard /></PrivateRoute>} />
             <Route path="products" element={<PrivateRoute roles={['admin']}><ProductManager /></PrivateRoute>} />
             <Route path="products/editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
+            <Route path="product-editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
             <Route path="newsletter" element={<PrivateRoute><Newsletter /></PrivateRoute>} />
             <Route path="newsletter/editor/:id" element={<PrivateRoute><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}

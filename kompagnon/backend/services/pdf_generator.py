@@ -247,8 +247,8 @@ def generate_radar_chart(scores: dict) -> bytes:
     ax.set_xticklabels(labels, fontsize=7, color="#2c3e50")
 
     # Plot
-    ax.plot(angles_closed, values_closed, color="#0d6efd", linewidth=1.8)
-    ax.fill(angles_closed, values_closed, color="#0d6efd", alpha=0.25)
+    ax.plot(angles_closed, values_closed, color="#008eaa", linewidth=2)
+    ax.fill(angles_closed, values_closed, color="#008eaa", alpha=0.2)
 
     plt.tight_layout(pad=1.2)
     buf = BytesIO()

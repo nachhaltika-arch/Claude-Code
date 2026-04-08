@@ -14,6 +14,7 @@ import logging
 import threading
 import os
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -1752,3 +1753,24 @@ def get_qa_result(project_id: int, db: Session = Depends(get_db)):
         "run_at": str(project.qa_run_at)[:16] if project.qa_run_at else None,
         "result": _json.loads(project.qa_result),
     }
+
+
+@router.get("/{project_id}/auftragsbestaetigung")
+def download_auftragsbestaetigung(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    """Lädt die Auftragsbestätigung als PDF herunter (nur Admin)."""
+    import os as _os
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    path = getattr(project, "auftragsbestaetigung_pdf", None)
+    if not path or not _os.path.exists(path):
+        raise HTTPException(404, "PDF nicht vorhanden")
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        filename="KOMPAGNON-Auftragsbestaetigung.pdf",
+    )

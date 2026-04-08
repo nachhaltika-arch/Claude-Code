@@ -241,6 +241,27 @@ def _handle_successful_payment(session: dict, db: Session):
     except Exception as e:
         logger.warning(f"Stripe Auto-Sequenz Fehler: {e}")
 
+    # ── AUFTRAGSBESTÄTIGUNG PDF ──────────────────────────────
+    pdf_path = None
+    try:
+        from services.auftragsbestaetigung_pdf import save_auftragsbestaetigung
+        pdf_path = save_auftragsbestaetigung(
+            session_id     = session.get("id", ""),
+            customer_name  = name or company or email,
+            customer_email = email,
+            company_name   = company or "",
+            package_id     = package_id,
+            amount_eur     = amount,
+        )
+        if project_id:
+            proj = db.query(Project).filter(Project.id == project_id).first()
+            if proj:
+                proj.auftragsbestaetigung_pdf = pdf_path
+                db.commit()
+        logger.info(f"Auftragsbestaetigung gespeichert: {pdf_path}")
+    except Exception as e:
+        logger.error(f"Auftragsbestaetigung PDF Fehler: {e}")
+
     # ── 4. WILLKOMMENS-E-MAIL ────────────────────────────────
     if email:
         try:
@@ -381,9 +402,11 @@ def _handle_successful_payment(session: dict, db: Session):
             """
 
             send_email(
-                to_email  = email,
-                subject   = "Willkommen bei KOMPAGNON — Ihre Zugangsdaten",
-                html_body = html_body,
+                to_email        = email,
+                subject         = "Willkommen bei KOMPAGNON — Ihre Zugangsdaten",
+                html_body       = html_body,
+                attachment_path = pdf_path,
+                attachment_name = "KOMPAGNON-Auftragsbestaetigung.pdf",
             )
             logger.info(f"Stripe: Willkommens-E-Mail gesendet an {email}")
 

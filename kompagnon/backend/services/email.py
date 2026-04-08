@@ -25,6 +25,8 @@ def send_email(
     text_body: str = "",
     cc: str = "",
     reply_to: str = "",
+    attachment_path: str = None,
+    attachment_name: str = None,
 ) -> bool:
     """
     Sendet eine HTML-E-Mail via SMTP.
@@ -40,7 +42,7 @@ def send_email(
         return False
 
     try:
-        msg = MIMEMultipart("alternative")
+        msg = MIMEMultipart("mixed")
         msg["Subject"] = subject
         msg["From"]    = f"{cfg['name']} <{cfg['from']}>"
         msg["To"]      = to_email
@@ -52,6 +54,20 @@ def send_email(
         if text_body:
             msg.attach(MIMEText(text_body, "plain", "utf-8"))
         msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+        if attachment_path and os.path.exists(attachment_path):
+            from email.mime.base import MIMEBase
+            from email import encoders as _encoders
+            with open(attachment_path, "rb") as f:
+                part = MIMEBase("application", "octet-stream")
+                part.set_payload(f.read())
+            _encoders.encode_base64(part)
+            fname = attachment_name or os.path.basename(attachment_path)
+            part.add_header(
+                "Content-Disposition",
+                f'attachment; filename="{fname}"',
+            )
+            msg.attach(part)
 
         if cfg["ssl"]:
             server = smtplib.SMTP_SSL(cfg["host"], cfg["port"])

@@ -229,6 +229,18 @@ def _handle_successful_payment(session: dict, db: Session):
     # ── COMMIT (Lead + User + Projekt) ───────────────────────
     db.commit()
 
+    # ── AUTO-SEQUENZ FÜR STRIPE-KÄUFER ──────────────────────
+    try:
+        from services.sequence_runner import start_sequence_for_lead
+        import threading
+        threading.Thread(
+            target=start_sequence_for_lead,
+            args=(lead.id,),
+            daemon=True,
+        ).start()
+    except Exception as e:
+        logger.warning(f"Stripe Auto-Sequenz Fehler: {e}")
+
     # ── 4. WILLKOMMENS-E-MAIL ────────────────────────────────
     if email:
         try:

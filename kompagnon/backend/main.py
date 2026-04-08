@@ -426,6 +426,12 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS top_problems TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS industry VARCHAR",
         # ── ORM-Felder die in älteren DBs fehlen können (f405-Fix) ──────────
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS actual_hours FLOAT DEFAULT 0.0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS hourly_rate FLOAT DEFAULT 45.0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS ai_tool_costs FLOAT DEFAULT 50.0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS margin_percent FLOAT DEFAULT 0.0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scope_creep_flags INTEGER DEFAULT 0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS target_go_live TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_approved_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS review_received BOOLEAN DEFAULT false",
@@ -932,6 +938,7 @@ async def lifespan(app: FastAPI):
     """Handle startup and shutdown events."""
     # Startup
     logger.info("🚀 KOMPAGNON Backend Starting...")
+    startup_ok = True
     try:
         # Playwright installed at build time via render-build.sh
 
@@ -1027,18 +1034,22 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"⚠ Scheduler failed to start (non-critical): {e}")
 
-        yield
-
     except Exception as e:
+        startup_ok = False
         logger.error(f"✗ Startup Fehler (nicht kritisch): {str(e)}")
 
-    finally:
-        logger.info("🛑 KOMPAGNON Backend Shutting Down...")
-        try:
-            stop_scheduler()
-        except Exception:
-            pass
-        logger.info("✓ Shutdown complete")
+    # yield MUST always be reached — otherwise FastAPI refuses to start
+    if not startup_ok:
+        logger.warning("⚠ App startet im degraded-Modus nach Startup-Fehler")
+    yield
+
+    # Shutdown
+    logger.info("🛑 KOMPAGNON Backend Shutting Down...")
+    try:
+        stop_scheduler()
+    except Exception:
+        pass
+    logger.info("✓ Shutdown complete")
 
 
 # Create FastAPI app with lifespan
@@ -1051,14 +1062,25 @@ app = FastAPI(
 )
 
 # CORS Middleware — must be before all routers
+# Build allowed origins from environment or use sensible defaults.
+# NOTE: allow_credentials=True requires explicit origins (not "*").
+_cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
+_cors_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()] if _cors_origins_env else []
+
+# Always include known origins
+_default_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:5173",
+    "https://kompagnon-frontend.onrender.com",
+]
+for _o in _default_origins:
+    if _o not in _cors_origins:
+        _cors_origins.append(_o)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "https://kompagnon-frontend.onrender.com",
-        "*",
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1108,7 +1130,7 @@ from routers.crawler import router as crawler_router
 app.include_router(crawler_router)
 
 try:
-    from routers.files import router as files_router
+    from app.routers.files import router as files_router
     app.include_router(files_router)
 except ImportError as e:
     logger.warning(f"⚠ Files router nicht gefunden: {e}")

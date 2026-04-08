@@ -721,7 +721,26 @@ export default function LeadProfile() {
                   {improvement >= 0 ? '↑' : '↓'}{Math.abs(improvement)} Punkte
                 </span>
               )}
+              {/* GBP Badge */}
+              {lead.gbp_claimed === false || lead.gbp_claimed == null ? (
+                <span style={{ fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 999, background: 'rgba(226,75,74,0.2)', color: '#fca5a5' }}>
+                  Google Business nicht beansprucht
+                </span>
+              ) : lead.gbp_rating != null ? (
+                <span style={{ fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 999, background: 'rgba(29,158,117,0.2)', color: '#86efac' }}>
+                  Google ⭐ {lead.gbp_rating} ({lead.gbp_ratings_total || 0} Bewertungen)
+                </span>
+              ) : (
+                <span style={{ fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 999, background: 'rgba(0,142,170,0.2)', color: '#7dd3fc' }}>
+                  Google Business vorhanden
+                </span>
+              )}
             </div>
+            {lead.gbp_claimed === false && (
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+                Verkaufsargument: Wir richten das Google Business Profil ein
+              </div>
+            )}
           </div>
 
           {current_score !== null && (

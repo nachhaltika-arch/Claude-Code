@@ -700,6 +700,11 @@ def _run_migrations():
             line_item VARCHAR DEFAULT 'Website-Pflege & SEO-Paket',
             created_at TIMESTAMP DEFAULT NOW()
         )""",
+        # ── Google Business Profile ────────────────────────────────
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_place_id VARCHAR",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_claimed BOOLEAN DEFAULT false",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_rating FLOAT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_ratings_total INTEGER",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

@@ -18,6 +18,7 @@ import GrapesEditor from '../components/GrapesEditor';
 import WebsiteDesigner from '../components/WebsiteDesigner';
 import ContentManager from '../components/ContentManager';
 import AuditReport from '../components/AuditReport';
+import QAChecklist from '../components/QAChecklist';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
@@ -121,6 +122,7 @@ const PHASE_TOOLS = {
   'technik': [
     { id: 'netlify-dns',     label: 'Netlify / WP',         icon: '🚀', sub: 'Installieren' },
     { id: 'dns',             label: 'DNS-Einstellungen',    icon: '🌍', sub: 'Beim Kunden' },
+    { id: 'qa',              label: 'QA-Checkliste',        icon: '✓',  sub: 'Go-Live-Check' },
   ],
   'go-live': [
     { id: 'checklists',      label: 'Go-Live',              icon: '🚀', sub: 'Checkliste' },
@@ -167,6 +169,7 @@ const SUB_TAB_MAP = {
   'design':             'design',
   'sitemap':            'sitemap',
   'content':            'content',
+  'qa':                 'qa',
   'crawler':            'crawler',
   'golive-prep':        'overview',
   'dns':                'hosting',
@@ -2851,6 +2854,39 @@ export default function ProjectDetail() {
           leadData={project}
           onClose={() => { setShowSitemapPlaner(false); loadSitemapPages(); }}
         />
+      )}
+
+      {/* ── QA-Checkliste Tab ───────────────────────────────────────────────── */}
+      {activeTab === 'qa' && (
+        <div className="kc-card">
+          <QAChecklist
+            projectId={id}
+            token={localStorage.getItem('kompagnon_token')}
+            qaChecklistJson={project.qa_checklist_json}
+            pagespeedMobile={project.pagespeed_mobile}
+            pagespeedDesktop={project.pagespeed_desktop}
+          />
+        </div>
+      )}
+
+      {/* ── Placeholder-Tabs ────────────────────────────────────────────────── */}
+      {activeTab === 'checklists' && (
+        <div className="kc-card" style={{ textAlign: 'center', padding: 'var(--kc-space-16)', color: 'var(--text-tertiary)' }}>
+          <p style={{ fontSize: 16, fontWeight: 600 }}>Checklisten</p>
+          <p style={{ fontSize: 13 }}>In Entwicklung</p>
+        </div>
+      )}
+      {activeTab === 'zeit' && (
+        <div className="kc-card" style={{ textAlign: 'center', padding: 'var(--kc-space-16)', color: 'var(--text-tertiary)' }}>
+          <p style={{ fontSize: 16, fontWeight: 600 }}>Zeiterfassung</p>
+          <p style={{ fontSize: 13 }}>In Entwicklung</p>
+        </div>
+      )}
+      {activeTab === 'kommunikation' && (
+        <div className="kc-card" style={{ textAlign: 'center', padding: 'var(--kc-space-16)', color: 'var(--text-tertiary)' }}>
+          <p style={{ fontSize: 16, fontWeight: 600 }}>Kommunikation</p>
+          <p style={{ fontSize: 13 }}>In Entwicklung</p>
+        </div>
       )}
 
       {/* ── Null-Übersicht Tab ──────────────────────────────────────────────── */}

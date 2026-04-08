@@ -35,12 +35,13 @@ const INP = {
 const FIELD = { marginBottom: 14 };
 
 export default function ProductEditor() {
-  const [products, setProducts]   = useState([]);
-  const [selected, setSelected]   = useState(null);
-  const [product, setProduct]     = useState(null);
-  const [activeTab, setActiveTab] = useState('produktdaten');
-  const [saving, setSaving]       = useState(false);
-  const [msg, setMsg]             = useState('');
+  const [products, setProducts]       = useState([]);
+  const [selected, setSelected]       = useState(null);
+  const [product, setProduct]         = useState(null);
+  const [activeTab, setActiveTab]     = useState('produktdaten');
+  const [saving, setSaving]           = useState(false);
+  const [msg, setMsg]                 = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { token } = useAuth();
 
   const h = {
@@ -71,6 +72,7 @@ export default function ProductEditor() {
     setProduct({ ...p });
     setActiveTab('produktdaten');
     setMsg('');
+    setConfirmDelete(false);
   };
 
   const newProduct = () => {
@@ -92,6 +94,38 @@ export default function ProductEditor() {
 
   const set = (field) => (val) =>
     setProduct(p => ({ ...p, [field]: val }));
+
+  const deleteProduct = async () => {
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/products/${selected}`, {
+        method: 'DELETE', headers: h,
+      });
+      if (r.ok) {
+        setProduct(null); setSelected(null); setConfirmDelete(false);
+        await loadProducts();
+      }
+    } catch {}
+  };
+
+  const moveSortOrder = async (slug, direction) => {
+    const idx   = products.findIndex(p => p.slug === slug);
+    const other = products[idx + direction];
+    if (!other) return;
+    const newSo      = other.sort_order;
+    const otherNewSo = products[idx].sort_order;
+    await Promise.all([
+      fetch(`${API_BASE_URL}/api/products/${slug}`, {
+        method: 'PUT', headers: h,
+        body: JSON.stringify({ sort_order: newSo }),
+      }),
+      fetch(`${API_BASE_URL}/api/products/${other.slug}`, {
+        method: 'PUT', headers: h,
+        body: JSON.stringify({ sort_order: otherNewSo }),
+      }),
+    ]);
+    await loadProducts();
+  };
 
   const save = async () => {
     setSaving(true); setMsg('');
@@ -150,36 +184,65 @@ export default function ProductEditor() {
             Noch keine Produkte
           </div>
         )}
-        {products.map(p => {
+        {products.map((p, idx) => {
           const dot = STATUS_DOT[p.status] || STATUS_DOT.draft;
           const isActive = selected === p.slug;
           return (
             <div
               key={p.slug}
-              onClick={() => selectProduct(p)}
               style={{
-                padding: '10px 14px',
+                padding: '8px 10px 8px 14px',
                 borderBottom: '0.5px solid var(--border-light)',
-                cursor: 'pointer',
                 background: isActive ? 'var(--brand-primary-light, #e6f1fb)' : 'transparent',
                 borderLeft: isActive ? '3px solid #008eaa' : '3px solid transparent',
+                display: 'flex', alignItems: 'center', gap: 6,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <span style={{
-                  width: 8, height: 8, borderRadius: '50%',
-                  background: dot.bg, flexShrink: 0,
-                }} />
-                <span style={{
-                  fontSize: 13, fontWeight: isActive ? 600 : 400,
-                  color: 'var(--text-primary)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
-                  {p.name}
-                </span>
+              {/* Sort up/down */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
+                <button
+                  onClick={e => { e.stopPropagation(); moveSortOrder(p.slug, -1); }}
+                  disabled={idx === 0}
+                  title="Nach oben"
+                  style={{
+                    width: 16, height: 14, padding: 0, border: 'none',
+                    background: 'transparent', cursor: idx === 0 ? 'default' : 'pointer',
+                    color: idx === 0 ? '#d1d5db' : '#94a3b8', fontSize: 9, lineHeight: 1,
+                  }}
+                >▲</button>
+                <button
+                  onClick={e => { e.stopPropagation(); moveSortOrder(p.slug, 1); }}
+                  disabled={idx === products.length - 1}
+                  title="Nach unten"
+                  style={{
+                    width: 16, height: 14, padding: 0, border: 'none',
+                    background: 'transparent', cursor: idx === products.length - 1 ? 'default' : 'pointer',
+                    color: idx === products.length - 1 ? '#d1d5db' : '#94a3b8', fontSize: 9, lineHeight: 1,
+                  }}
+                >▼</button>
               </div>
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, paddingLeft: 15 }}>
-                {p.price_brutto ? `${parseFloat(p.price_brutto).toFixed(2)} €` : '—'} · {dot.label}
+
+              {/* Product info (clickable) */}
+              <div
+                onClick={() => selectProduct(p)}
+                style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: dot.bg, flexShrink: 0,
+                  }} />
+                  <span style={{
+                    fontSize: 13, fontWeight: isActive ? 600 : 400,
+                    color: 'var(--text-primary)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {p.name}
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, paddingLeft: 15 }}>
+                  {p.price_brutto ? `${parseFloat(p.price_brutto).toFixed(2)} €` : '—'} · {dot.label}
+                </div>
               </div>
             </div>
           );
@@ -251,7 +314,7 @@ export default function ProductEditor() {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 80px', gap: 14, marginBottom: 14 }}>
         <div style={FIELD}>
           <label style={LBL}>Zahlungsart</label>
           <select
@@ -285,6 +348,16 @@ export default function ProductEditor() {
             <option value="live">Live</option>
             <option value="archived">Archiviert</option>
           </select>
+        </div>
+        <div style={FIELD}>
+          <label style={LBL}>Reihenfolge</label>
+          <input
+            type="number"
+            min={0}
+            value={product.sort_order ?? 0}
+            onChange={e => set('sort_order')(parseInt(e.target.value) || 0)}
+            style={INP}
+          />
         </div>
       </div>
 
@@ -862,6 +935,41 @@ export default function ProductEditor() {
               }}>
                 {msg}
               </span>
+            )}
+            {selected !== '__new__' && (
+              confirmDelete ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, color: '#E24B4A', fontWeight: 600 }}>Wirklich löschen?</span>
+                  <button
+                    onClick={deleteProduct}
+                    style={{
+                      padding: '6px 14px', borderRadius: 7, border: 'none',
+                      background: '#E24B4A', color: 'white',
+                      fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >Ja, löschen</button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    style={{
+                      padding: '6px 12px', borderRadius: 7,
+                      border: '1px solid var(--border-light)',
+                      background: 'transparent', color: '#64748b',
+                      fontSize: 12, cursor: 'pointer',
+                    }}
+                  >Abbrechen</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  style={{
+                    padding: '7px 14px', borderRadius: 8,
+                    border: '1px solid #FECACA', background: '#FFF1F1',
+                    color: '#A32D2D', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                  }}
+                >
+                  🗑 Löschen
+                </button>
+              )
             )}
             <button
               onClick={save}

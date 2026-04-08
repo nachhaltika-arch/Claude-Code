@@ -669,6 +669,7 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_durch VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_mobile INTEGER",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_desktop INTEGER",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_after_url VARCHAR",
         # ── Retainer + Invoices ────────────────────────────────────
         """CREATE TABLE IF NOT EXISTS retainer_contracts (
             id SERIAL PRIMARY KEY,

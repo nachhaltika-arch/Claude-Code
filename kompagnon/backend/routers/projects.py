@@ -1231,14 +1231,62 @@ def get_screenshots(project_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{project_id}/abnahme")
-def set_abnahme(project_id: int, body: dict, db: Session = Depends(get_db), _=Depends(get_current_user)):
+def set_abnahme(project_id: int, body: dict, db: Session = Depends(get_db)):
+    """Digitale Abnahme — kein JWT erforderlich (wird per E-Mail-Link aufgerufen)."""
     now = datetime.utcnow()
+    name = body.get("name", "Kunde")
     db.execute(text("""
-        UPDATE projects SET abnahme_datum = :dt, abnahme_durch = :name
+        UPDATE projects SET abnahme_datum = :dt, abnahme_durch = :name,
+        status = CASE WHEN status < 'phase_6' THEN 'phase_6' ELSE status END
         WHERE id = :id
-    """), {"dt": now, "name": body.get("name", "Kunde"), "id": project_id})
+    """), {"dt": now, "name": name, "id": project_id})
     db.commit()
-    return {"success": True, "abnahme_datum": now.isoformat(), "abnahme_durch": body.get("name", "Kunde")}
+    return {"success": True, "abnahme_datum": now.isoformat(), "abnahme_durch": name}
+
+
+@router.post("/{project_id}/freigabe-email")
+def send_freigabe_email(project_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    import os
+    row = db.execute(text(
+        "SELECT customer_email, customer_name, company_name FROM projects WHERE id = :id"
+    ), {"id": project_id}).mappings().fetchone()
+    if not row:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    email = row.get("customer_email") or ""
+    name = row.get("customer_name") or row.get("company_name") or "Kunde"
+    if not email:
+        raise HTTPException(400, "Keine Kunden-E-Mail hinterlegt")
+
+    frontend_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
+    abnahme_link = f"{frontend_url}/abnahme/{project_id}"
+
+    html_body = f"""
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+      <div style="text-align:center;margin-bottom:24px">
+        <span style="font-size:24px;font-weight:700;color:#008eaa">KOMPAGNON</span>
+      </div>
+      <h2 style="font-size:18px;color:#1a1a1a;margin-bottom:12px">Hallo {name},</h2>
+      <p style="font-size:14px;color:#555;line-height:1.6;margin-bottom:20px">
+        Ihre neue Website ist fertig und bereit fuer die Abnahme.
+        Bitte pruefen Sie das Ergebnis und bestaetigen Sie die Abnahme
+        mit einem Klick auf den Button.
+      </p>
+      <div style="text-align:center;margin:28px 0">
+        <a href="{abnahme_link}" style="display:inline-block;background:#008eaa;
+           color:#fff;padding:14px 32px;border-radius:8px;font-size:14px;
+           font-weight:600;text-decoration:none">
+          Jetzt abnehmen
+        </a>
+      </div>
+      <p style="font-size:12px;color:#999;text-align:center;margin-top:24px">
+        KOMPAGNON Communications BP GmbH &bull; kompagnon.eu
+      </p>
+    </div>
+    """
+
+    from services.email import send_email
+    send_email(to_email=email, subject="Ihre Website ist fertig \u2014 bitte abnehmen", html_body=html_body)
+    return {"success": True}
 
 
 # ── Zugangsdaten-Safe ─────────────────────────────────────────────────────────

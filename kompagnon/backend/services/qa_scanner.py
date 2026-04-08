@@ -339,16 +339,32 @@ PageSpeed-Daten werden separat als Wert übergeben wenn vorhanden.
     try:
         resp = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=2000,
+            max_tokens=4096,
             messages=[{"role": "user", "content": prompt}],
         )
-        import json
+        import json, re
         text = resp.content[0].text.strip()
-        # JSON aus Antwort extrahieren
+
+        # JSON aus Markdown-Code-Block extrahieren
         if "```" in text:
             text = text.split("```")[1]
             if text.startswith("json"):
                 text = text[4:]
+            text = text.strip()
+
+        # Falls JSON abgeschnitten wurde (stop_reason == "max_tokens"),
+        # versuche die fehlenden Klammern zu schließen
+        stop = getattr(resp, 'stop_reason', None)
+        if stop == 'max_tokens' or (text and text[-1] not in ('}', ']')):
+            # Zähle offene/geschlossene Klammern
+            opens = text.count('{') - text.count('}')
+            opens_arr = text.count('[') - text.count(']')
+            # Abschneiden bei letztem vollständigen Wert
+            # Entferne unvollständigen String am Ende
+            text = re.sub(r',\s*"[^"]*$', '', text)
+            text = re.sub(r',\s*$', '', text)
+            text += ']' * opens_arr + '}' * opens
+
         return json.loads(text)
     except Exception as e:
         logger.error(f"QA KI-Auswertung Fehler: {e}")

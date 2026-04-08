@@ -722,28 +722,92 @@ def _create_default_admin():
     finally:
         db.close()
 
-    # Link kunde user to eisistcool lead
+    # ── Demo-Kunde vollständig aufbauen ──────────────────────
     try:
-        from database import SessionLocal, User, Lead
-        _db = SessionLocal()
-        kunde = _db.query(User).filter(User.email.ilike('%longhin%')).first()
-        if not kunde:
-            kunde = _db.query(User).filter(User.role == 'kunde').first()
-        if kunde and not kunde.lead_id:
-            lead = _db.query(Lead).filter(Lead.website_url.ilike('%eisistcool%')).first()
-            if not lead:
-                from datetime import datetime
-                lead = Lead(company_name='Eisistcool', website_url='https://eisistcool.de',
-                           status='customer', created_at=datetime.utcnow(), updated_at=datetime.utcnow())
-                _db.add(lead)
-                _db.commit()
-                _db.refresh(lead)
-            kunde.lead_id = lead.id
-            _db.commit()
-            logger.info(f"Linked kunde {kunde.email} to lead {lead.id}")
-        _db.close()
+        from database import Lead, Project, AuditResult
+        from seed_checklists import create_project_checklists
+
+        _db2 = SessionLocal()
+
+        # 1. Demo-Kunde User holen
+        demo_kunde = _db2.query(User).filter(
+            User.email == "kunde@kompagnon.de"
+        ).first()
+        if not demo_kunde:
+            _db2.close()
+            return
+
+        # 2. Prüfen ob bereits vollständig eingerichtet
+        if demo_kunde.lead_id:
+            _db2.close()
+            logger.info("Demo-Kunde bereits vollständig eingerichtet")
+            return
+
+        # 3. Portal-Token erzeugen (qr_service oder uuid-Fallback)
+        try:
+            from services.qr_service import generate_token
+            _token = generate_token()
+        except Exception:
+            import uuid as _uuid
+            _token = _uuid.uuid4().hex
+
+        # 4. Demo-Lead anlegen
+        demo_lead = Lead(
+            company_name         = "Mustermann Sanitär GmbH",
+            contact_name         = "Thomas Mustermann",
+            email                = "kunde@kompagnon.de",
+            phone                = "+49 261 987654",
+            website_url          = "https://mustermann-sanitaer.de",
+            city                 = "Koblenz",
+            trade                = "Sanitär",
+            lead_source          = "stripe_checkout",
+            status               = "won",
+            notes                = "Demo-Kunde | Paket: KOMPAGNON | 2.000 EUR",
+            customer_token       = _token,
+            onboarding_completed = False,
+        )
+        _db2.add(demo_lead)
+        _db2.flush()
+
+        # 5. User mit Lead verknüpfen + Passwort sicherstellen
+        demo_kunde.lead_id      = demo_lead.id
+        demo_kunde.first_name   = "Thomas"
+        demo_kunde.last_name    = "Mustermann"
+        demo_kunde.is_active    = True
+        demo_kunde.is_verified  = True
+        from auth import hash_password
+        demo_kunde.password_hash = hash_password("Kunde2025!")
+
+        # 6. Projekt in Phase 1 anlegen
+        demo_project = Project(
+            lead_id       = demo_lead.id,
+            status        = "phase_1",
+            start_date    = datetime.utcnow(),
+            fixed_price   = 2000.0,
+            hourly_rate   = 45.0,
+            ai_tool_costs = 50.0,
+        )
+        _db2.add(demo_project)
+        _db2.flush()
+
+        # 7. Alle Checklisten-Einträge anlegen
+        create_project_checklists(_db2, demo_project.id)
+
+        _db2.commit()
+
+        logger.info(
+            f"✓ Demo-Kunde vollständig angelegt: "
+            f"Lead {demo_lead.id} | Projekt {demo_project.id} | "
+            f"Portal-Token: {demo_lead.customer_token}"
+        )
+
     except Exception as e:
-        logger.warning(f"Kunde-Link Fehler: {e}")
+        logger.warning(f"Demo-Kunde Setup Fehler: {e}")
+    finally:
+        try:
+            _db2.close()
+        except Exception:
+            pass
 
 
 @asynccontextmanager

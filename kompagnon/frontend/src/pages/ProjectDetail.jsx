@@ -476,6 +476,8 @@ export default function ProjectDetail() {
   const [crawlLoading, setCrawlLoading] = useState(false);
   const [crawlSort, setCrawlSort] = useState({ col: 'crawled_at', asc: true });
   const [crawlExpandedRow, setCrawlExpandedRow] = useState(null);
+  // Abnahme
+  const [abnahmeLoading, setAbnahmeLoading] = useState(false);
   // Sitemap
   const [sitemapPages, setSitemapPages]     = useState([]);
   const [sitemapLoading, setSitemapLoading] = useState(false);
@@ -2422,10 +2424,79 @@ export default function ProjectDetail() {
 
       {/* ── Go-Live Vorbereitung Tab ────────────────────────────────────────── */}
       {activeSubTab === 'golive-prep' && activeTab === 'overview' && (
-        <div className="kc-card">
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>🚀 Go-Live Vorbereitung</div>
-          <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
-            Vorher/Nachher-Screenshots und Website-Vergleich: Wechsle zu Übersicht → Unternehmen für den Screenshot-Bereich.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Digitale Abnahme */}
+          <div className="kc-card">
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>📋 Digitale Abnahme</div>
+            {project.abnahme_datum ? (
+              <div style={{ background: 'var(--status-success-bg)', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 13, color: 'var(--status-success-text)', fontWeight: 500 }}>
+                ✅ Abgenommen am {new Date(project.abnahme_datum).toLocaleDateString('de-DE')} von {project.abnahme_durch || 'Kunde'}
+              </div>
+            ) : (
+              <button
+                onClick={async () => {
+                  setAbnahmeLoading(true);
+                  try {
+                    const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/abnahme`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                      body: JSON.stringify({ name: 'David Väth' }),
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      setProject(prev => ({ ...prev, abnahme_datum: data.abnahme_datum, abnahme_durch: data.abnahme_durch }));
+                    }
+                  } catch (e) { console.error(e); }
+                  finally { setAbnahmeLoading(false); }
+                }}
+                disabled={abnahmeLoading}
+                style={{ padding: '8px 18px', fontSize: 13, fontWeight: 600, background: abnahmeLoading ? 'var(--bg-app)' : 'var(--brand-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', cursor: abnahmeLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                {abnahmeLoading ? '⏳ Wird gespeichert...' : '📋 Digitale Abnahme anfordern'}
+              </button>
+            )}
+          </div>
+
+          {/* Vorher/Nachher PageSpeed */}
+          <div className="kc-card">
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>⚡ PageSpeed Vorher / Nachher</div>
+            <div style={{ display: 'flex', gap: 16 }}>
+              {(() => {
+                const scoreBefore = project.pagespeed_mobile ?? lead?.pagespeed_mobile_score;
+                const scoreAfter = project.pagespeed_after_mobile;
+                const colorFn = (s) => s == null ? 'var(--text-tertiary)' : s < 50 ? '#E24B4A' : s < 90 ? '#BA7517' : '#1D9E75';
+                const diff = (scoreBefore != null && scoreAfter != null) ? scoreAfter - scoreBefore : null;
+                return (
+                  <>
+                    <div style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 20, textAlign: 'center' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Vorher</div>
+                      <div style={{ fontSize: 48, fontWeight: 900, color: colorFn(scoreBefore), lineHeight: 1 }}>{scoreBefore ?? '—'}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>Mobil</div>
+                    </div>
+                    <div style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 20, textAlign: 'center' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Nachher</div>
+                      {scoreAfter != null ? (
+                        <div style={{ fontSize: 48, fontWeight: 900, color: colorFn(scoreAfter), lineHeight: 1 }}>{scoreAfter}</div>
+                      ) : (
+                        <div style={{ fontSize: 14, color: 'var(--text-tertiary)', fontStyle: 'italic', paddingTop: 12 }}>Wird nach Go-Live automatisch gemessen</div>
+                      )}
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>Mobil</div>
+                    </div>
+                    {diff != null && (
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ display: 'inline-block', padding: '4px 12px', borderRadius: 999, fontSize: 14, fontWeight: 700, background: diff >= 0 ? 'var(--status-success-bg)' : 'var(--status-danger-bg)', color: diff >= 0 ? 'var(--status-success-text)' : 'var(--status-danger-text)' }}>
+                          {diff > 0 ? '+' : ''}{diff} Punkte
+                        </span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+
+          <div className="kc-card" style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
+            Vorher/Nachher-Screenshots: Wechsle zu Übersicht → Unternehmen für den Screenshot-Bereich.
           </div>
         </div>
       )}

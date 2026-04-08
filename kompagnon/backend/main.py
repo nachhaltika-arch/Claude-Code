@@ -664,6 +664,11 @@ def _run_migrations():
             company VARCHAR(255),
             created_at TIMESTAMP DEFAULT NOW()
         )""",
+        # ── Digitale Abnahme + PageSpeed After ─────────────────────
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_datum TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_durch VARCHAR",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_mobile INTEGER",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_desktop INTEGER",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

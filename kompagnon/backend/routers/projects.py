@@ -1228,3 +1228,14 @@ def get_screenshots(project_id: int, db: Session = Depends(get_db)):
         "before": {"data": f"data:image/jpeg;base64,{row[0]}" if row[0] else None, "date": row[2].isoformat() if row[2] else None, "url": None},
         "after":  {"data": f"data:image/jpeg;base64,{row[1]}" if row[1] else None, "date": row[3].isoformat() if row[3] else None, "url": None},
     }
+
+
+@router.post("/{project_id}/abnahme")
+def set_abnahme(project_id: int, body: dict, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    now = datetime.utcnow()
+    db.execute(text("""
+        UPDATE projects SET abnahme_datum = :dt, abnahme_durch = :name
+        WHERE id = :id
+    """), {"dt": now, "name": body.get("name", "Kunde"), "id": project_id})
+    db.commit()
+    return {"success": True, "abnahme_datum": now.isoformat(), "abnahme_durch": body.get("name", "Kunde")}

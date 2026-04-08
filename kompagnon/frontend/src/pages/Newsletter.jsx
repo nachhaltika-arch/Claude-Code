@@ -210,7 +210,7 @@ export default function Newsletter() {
         <div style={card}>
           {/* Table header */}
           <div style={{
-            display: 'grid', gridTemplateColumns: '2fr 100px 100px 100px 100px',
+            display: 'grid', gridTemplateColumns: '2fr minmax(80px,100px) minmax(80px,100px) minmax(80px,100px) minmax(80px,100px)',
             gap: 12, padding: '10px 20px', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)',
             borderRadius: '8px 8px 0 0',
           }}>
@@ -229,7 +229,7 @@ export default function Newsletter() {
             <div
               key={c.id}
               style={{
-                display: 'grid', gridTemplateColumns: '2fr 100px 100px 100px 100px',
+                display: 'grid', gridTemplateColumns: '2fr minmax(80px,100px) minmax(80px,100px) minmax(80px,100px) minmax(80px,100px)',
                 gap: 12, padding: '12px 20px', alignItems: 'center',
                 borderBottom: idx < campaigns.length - 1 ? '1px solid var(--border-light)' : 'none',
                 transition: 'background 0.1s',

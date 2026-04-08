@@ -134,6 +134,7 @@ const PHASE_TOOLS = {
   ],
   'post-launch': [
     { id: 'trustpilot',      label: 'Trustpilot',           icon: '⭐', sub: 'Bewertungen' },
+    { id: 'postlaunch',      label: 'Post-Launch',          icon: '📈', sub: 'QR + GBP' },
   ],
   'fertig': [
     { id: 'live-data',          label: 'Fertige Website',   icon: '🌐', sub: 'Live' },
@@ -172,6 +173,7 @@ const SUB_TAB_MAP = {
   'content':            'content',
   'qa':                 'qa',
   'golive':             'golive',
+  'postlaunch':         'postlaunch',
   'crawler':            'crawler',
   'golive-prep':        'overview',
   'dns':                'hosting',
@@ -652,6 +654,12 @@ export default function ProjectDetail() {
   const [abnahmeName, setAbnahmeName]       = useState('');
   const [psLoading, setPsLoading]           = useState(false);
   const [psMsg, setPsMsg]                   = useState('');
+  // Post-Launch / GBP
+  const [gbpData, setGbpData]           = useState(null);
+  const [gbpChecked, setGbpChecked]     = useState({});
+  const [gbpQrLoading, setGbpQrLoading] = useState(false);
+  const [gbpQrData, setGbpQrData]       = useState(null);
+  const [gbpQrError, setGbpQrError]     = useState('');
 
   const checkDomain = async () => {
     setDomainChecking(true);
@@ -676,6 +684,7 @@ export default function ProjectDetail() {
 
   useEffect(() => {
     if (activeTab === 'zugangsdaten') loadCreds();
+    if (activeTab === 'postlaunch')   loadGbpData();
   }, [activeTab]); // eslint-disable-line
 
   const saveCred = async () => {
@@ -772,6 +781,51 @@ export default function ProjectDetail() {
       body: JSON.stringify({ new_status: 'phase_4' }),
     });
     await loadProject();
+  };
+
+  // ── Post-Launch / GBP ───────────────────────────────────────────────────────
+  const loadGbpData = async () => {
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/projects/${id}/bewertungs-url`, { headers: hdr });
+      if (r.ok) setGbpData(await r.json());
+    } catch {}
+    if (project?.gbp_checklist_json) {
+      try { setGbpChecked(JSON.parse(project.gbp_checklist_json) || {}); } catch {}
+    }
+  };
+
+  const loadGbpQr = async () => {
+    setGbpQrLoading(true); setGbpQrError('');
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/projects/${id}/bewertungs-qrcode`, { headers: hdr });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        setGbpQrError(d.detail || 'QR-Code konnte nicht geladen werden');
+        return;
+      }
+      const blob = await r.blob();
+      const reader = new FileReader();
+      reader.onloadend = () => setGbpQrData(reader.result);
+      reader.readAsDataURL(blob);
+    } catch { setGbpQrError('Verbindungsfehler'); }
+    finally { setGbpQrLoading(false); }
+  };
+
+  const downloadGbpQr = () => {
+    if (!gbpQrData) return;
+    const a = document.createElement('a');
+    a.href = gbpQrData;
+    a.download = `bewertungs-qr-${project?.company_name || id}.png`;
+    a.click();
+  };
+
+  const toggleGbpItem = (itemId) => {
+    const next = { ...gbpChecked, [itemId]: !gbpChecked[itemId] };
+    setGbpChecked(next);
+    fetch(`${API_BASE_URL}/api/projects/${id}/gbp-checklist`, {
+      method: 'PATCH', headers: hdr,
+      body: JSON.stringify({ checked: next }),
+    }).catch(() => {});
   };
 
   // ── Go-Live Handler ─────────────────────────────────────────────────────────
@@ -3138,6 +3192,244 @@ export default function ProjectDetail() {
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
               "Jetzt messen" startet PageSpeed + Screenshot nach Go-Live.
               Werte aus "Vorher" kommen aus dem ursprünglichen Audit beim Lead.
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Post-Launch Tab ─────────────────────────────────────────────────── */}
+      {activeTab === 'postlaunch' && (() => {
+        const GBP_ITEMS = [
+          { id: 'profil_beansprucht',     label: 'Google Business Profil beansprucht' },
+          { id: 'adresse_oeffnungszeiten', label: 'Adresse + Öffnungszeiten korrekt hinterlegt' },
+          { id: 'fotos_5',               label: 'Mindestens 5 Fotos hochgeladen' },
+          { id: 'leistungsbeschreibung', label: 'Leistungsbeschreibung vollständig ausgefüllt' },
+          { id: 'erste_bewertung',       label: 'Erste Kundenbewertung eingegangen' },
+          { id: 'antwort_bewertung',     label: 'Auf erste Bewertung geantwortet' },
+        ];
+
+        const gbpTotal   = GBP_ITEMS.length;
+        const gbpDone    = GBP_ITEMS.filter(i => gbpChecked[i.id]).length;
+        const gbpAllDone = gbpDone === gbpTotal;
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+            {/* ── QR-CODE BEWERTUNGEN ── */}
+            <div style={{
+              background: 'var(--bg-surface)',
+              border: '0.5px solid var(--border-light)',
+              borderRadius: 12, overflow: 'hidden',
+            }}>
+              <div style={{
+                padding: '12px 18px', background: 'var(--bg-app)',
+                borderBottom: '0.5px solid var(--border-light)',
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'space-between', flexWrap: 'wrap', gap: 10,
+              }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    QR-Code für Google-Bewertungen
+                  </div>
+                  {gbpData?.rating && (
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                      ⭐ {gbpData.rating?.toFixed(1)} ({gbpData.ratings_total} Bewertungen)
+                    </div>
+                  )}
+                </div>
+                {!gbpQrData && (
+                  <button
+                    onClick={loadGbpQr}
+                    disabled={gbpQrLoading}
+                    style={{
+                      padding: '7px 16px', borderRadius: 8, border: 'none',
+                      background: gbpQrLoading ? '#94a3b8' : '#008eaa',
+                      color: 'white', fontSize: 12, fontWeight: 600,
+                      cursor: gbpQrLoading ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {gbpQrLoading ? '⏳ Wird generiert…' : 'QR-Code generieren'}
+                  </button>
+                )}
+              </div>
+
+              <div style={{ padding: '18px 20px' }}>
+                {gbpQrError && (
+                  <div style={{
+                    background: '#FFF1F1', border: '0.5px solid #FECACA',
+                    borderRadius: 8, padding: '10px 14px',
+                    fontSize: 12, color: '#A32D2D', marginBottom: 14,
+                  }}>
+                    ⚠ {gbpQrError}
+                    {!gbpData?.available && (
+                      <div style={{ marginTop: 6, fontSize: 11 }}>
+                        Tipp: Zuerst GBP-Check in der Nutzerkartei durchführen
+                        (Tab "Übersicht" → "Neu prüfen")
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {gbpQrData ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 20, alignItems: 'start' }}>
+                    {/* QR-Bild */}
+                    <div>
+                      <div style={{
+                        background: 'white', border: '0.5px solid var(--border-light)',
+                        borderRadius: 10, padding: 12, display: 'inline-block',
+                      }}>
+                        <img src={gbpQrData} alt="Bewertungs-QR-Code"
+                             style={{ width: 156, height: 156, display: 'block' }} />
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                        <button onClick={downloadGbpQr} style={{
+                          flex: 1, padding: '7px 10px', borderRadius: 7,
+                          border: 'none', background: '#008eaa', color: 'white',
+                          fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                        }}>
+                          ⬇ PNG laden
+                        </button>
+                        {gbpData?.review_url && (
+                          <button
+                            onClick={() => navigator.clipboard.writeText(gbpData.review_url)}
+                            style={{
+                              flex: 1, padding: '7px 10px', borderRadius: 7,
+                              border: '0.5px solid var(--border-light)',
+                              background: 'transparent', color: 'var(--text-secondary)',
+                              fontSize: 11, cursor: 'pointer',
+                            }}
+                          >
+                            📋 Link
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Infos */}
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 8 }}>
+                        Einsatzmöglichkeiten
+                      </div>
+                      {[
+                        ['🖨️', 'Theke / Empfang',  'QR-Code ausdrucken und aufstellen'],
+                        ['🚗', 'Fahrzeuge',         'Als Aufkleber auf Firmenfahrzeuge'],
+                        ['📄', 'Rechnungen',        'Unten auf jeder Rechnung abdrucken'],
+                        ['✉️', 'E-Mail-Signatur',   'Als Link in der E-Mail-Signatur'],
+                        ['📱', 'WhatsApp Status',   'Link im Business-Account teilen'],
+                      ].map(([icon, titel, beschr]) => (
+                        <div key={titel} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
+                          <span style={{ fontSize: 13, flexShrink: 0 }}>{icon}</span>
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>{titel}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{beschr}</div>
+                          </div>
+                        </div>
+                      ))}
+                      {gbpData?.review_url && (
+                        <div style={{
+                          marginTop: 12, background: 'var(--bg-app)',
+                          border: '0.5px solid var(--border-light)',
+                          borderRadius: 8, padding: '8px 10px',
+                        }}>
+                          <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 3 }}>
+                            Bewertungs-Link
+                          </div>
+                          <div style={{ fontSize: 10, fontFamily: 'monospace', color: '#008eaa', wordBreak: 'break-all' }}>
+                            {gbpData.review_url}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : !gbpQrError && !gbpQrLoading && (
+                  <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-tertiary)', fontSize: 13 }}>
+                    QR-Code generieren um Google-Bewertungen zu erleichtern
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── GBP-CHECKLISTE ── */}
+            <div style={{
+              background: gbpAllDone ? '#EAF3DE' : 'var(--bg-surface)',
+              border: `0.5px solid ${gbpAllDone ? '#97C459' : 'var(--border-light)'}`,
+              borderRadius: 12, overflow: 'hidden',
+            }}>
+              <div style={{
+                padding: '11px 18px',
+                background: gbpAllDone ? '#EAF3DE' : 'var(--bg-app)',
+                borderBottom: '0.5px solid var(--border-light)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>🏢</span> Google Business Optimierung
+                </div>
+                <span style={{
+                  fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 10,
+                  background: gbpAllDone ? '#97C459' : 'var(--border-light)',
+                  color:      gbpAllDone ? '#27500A' : 'var(--text-secondary)',
+                }}>
+                  {gbpDone}/{gbpTotal}
+                </span>
+              </div>
+
+              {GBP_ITEMS.map((item, idx) => {
+                const isChecked = !!gbpChecked[item.id];
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => toggleGbpItem(item.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '11px 18px',
+                      borderBottom: idx < GBP_ITEMS.length - 1 ? '0.5px solid var(--border-light)' : 'none',
+                      cursor: 'pointer',
+                      background: isChecked ? 'rgba(29,158,117,0.04)' : 'transparent',
+                      transition: 'background .1s',
+                    }}
+                  >
+                    <div style={{
+                      width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                      border:     isChecked ? 'none' : '1.5px solid var(--border-medium)',
+                      background: isChecked ? '#1D9E75' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all .15s',
+                    }}>
+                      {isChecked && (
+                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                          <path d="M1 4L3.5 6.5L9 1" stroke="white"
+                                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                    <span style={{
+                      flex: 1, fontSize: 13,
+                      color:          isChecked ? 'var(--text-secondary)' : 'var(--text-primary)',
+                      textDecoration: isChecked ? 'line-through' : 'none',
+                      transition: 'all .15s',
+                    }}>
+                      {item.label}
+                    </span>
+                  </div>
+                );
+              })}
+
+              {gbpAllDone && (
+                <div style={{
+                  padding: '12px 18px', background: '#EAF3DE',
+                  fontSize: 13, fontWeight: 600, color: '#1D9E75',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  borderTop: '0.5px solid #97C459',
+                }}>
+                  ✓ Google Business Profil vollständig optimiert!
+                </div>
+              )}
+            </div>
+
+            {/* Hinweis */}
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              QR-Code und Checkliste sind für die 30-tägige Post-Launch-Betreuung.
+              Der QR-Code ist eindeutig für dieses Google Business Profil.
             </div>
           </div>
         );

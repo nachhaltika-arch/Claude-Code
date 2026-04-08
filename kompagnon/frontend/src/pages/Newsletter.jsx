@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import NewsletterAnalytics from '../components/newsletter/NewsletterAnalytics';
 
 export default function Newsletter() {
   const navigate = useNavigate();
@@ -22,9 +23,8 @@ export default function Newsletter() {
   const [csvText, setCsvText] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Stats modal
-  const [statsData, setStatsData] = useState(null);
-  const [showStats, setShowStats] = useState(false);
+  // Analytics modal
+  const [selectedCampaignId, setSelectedCampaignId] = useState(null);
 
   const mkH = () => ({
     'Content-Type': 'application/json',
@@ -56,14 +56,7 @@ export default function Newsletter() {
   const totalSent = campaigns.filter(c => c.status === 'sent').length;
   const activeLists = lists.length;
 
-  const openStats = async (id) => {
-    try {
-      const r = await fetch(`${API_BASE_URL}/api/newsletter/campaigns/${id}/stats`, { headers: mkH() });
-      if (!r.ok) { toast.error((await r.json()).detail || 'Fehler'); return; }
-      setStatsData(await r.json());
-      setShowStats(true);
-    } catch { toast.error('Statistiken konnten nicht geladen werden'); }
-  };
+  const openStats = (id) => setSelectedCampaignId(id);
 
   // ── Delete ──────────────────────────────────────────────────────
 
@@ -356,29 +349,9 @@ export default function Newsletter() {
         </div>
       )}
 
-      {/* ── Modal: Stats ─────────────────────────────────────────── */}
-      {showStats && statsData && (
-        <div style={overlay} onClick={e => e.target === e.currentTarget && setShowStats(false)}>
-          <div style={modal}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Kampagnen-Statistiken</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {[
-                { label: 'Oeffnungsrate', value: statsData.openRate != null ? `${(statsData.openRate * 100).toFixed(1)}%` : '-' },
-                { label: 'Klickrate', value: statsData.clickRate != null ? `${(statsData.clickRate * 100).toFixed(1)}%` : '-' },
-                { label: 'Abmeldungen', value: statsData.unsubscriptions ?? '-' },
-                { label: 'Versendet', value: statsData.sentCount ?? '-' },
-              ].map((s, i) => (
-                <div key={i} style={{ ...card, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>{s.label}</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--brand-primary)' }}>{s.value}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button style={btnPrimary} onClick={() => setShowStats(false)}>Schliessen</button>
-            </div>
-          </div>
-        </div>
+      {/* ── Modal: Analytics ─────────────────────────────────────── */}
+      {selectedCampaignId != null && (
+        <NewsletterAnalytics campaignId={selectedCampaignId} onClose={() => setSelectedCampaignId(null)} />
       )}
     </div>
   );

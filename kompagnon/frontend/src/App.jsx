@@ -61,6 +61,7 @@ import Newsletter from './pages/Newsletter';
 import PortalLogin from './pages/PortalLogin';
 import WebhookDashboard from './pages/WebhookDashboard';
 import RetainerDashboard from './pages/RetainerDashboard';
+import Abnahme from './pages/Abnahme';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -140,6 +141,7 @@ function App() {
           <Route path="/checkout/:package" element={<Checkout />} />
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
           <Route path="/kampagne/:slug" element={<KampagneLandingPage />} />
+          <Route path="/abnahme/:projectId" element={<Abnahme />} />
 
           {/* App — authenticated, with Navbar/Sidebar */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>

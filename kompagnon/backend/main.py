@@ -669,6 +669,37 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_durch VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_mobile INTEGER",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_desktop INTEGER",
+        # ── Retainer + Invoices ────────────────────────────────────
+        """CREATE TABLE IF NOT EXISTS retainer_contracts (
+            id SERIAL PRIMARY KEY,
+            project_id INTEGER,
+            lead_id INTEGER,
+            package_name VARCHAR DEFAULT 'SEO-Pflege',
+            price_net NUMERIC(10,2) DEFAULT 89.00,
+            billing_cycle VARCHAR DEFAULT 'monthly',
+            start_date DATE,
+            next_billing_date DATE,
+            status VARCHAR DEFAULT 'aktiv',
+            customer_email VARCHAR,
+            customer_name VARCHAR,
+            created_at TIMESTAMP DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS invoices (
+            id SERIAL PRIMARY KEY,
+            retainer_id INTEGER,
+            project_id INTEGER,
+            invoice_number VARCHAR UNIQUE,
+            amount_net NUMERIC(10,2),
+            tax_rate NUMERIC(5,2) DEFAULT 19.00,
+            amount_gross NUMERIC(10,2),
+            status VARCHAR DEFAULT 'offen',
+            due_date DATE,
+            paid_at TIMESTAMP,
+            customer_email VARCHAR,
+            customer_name VARCHAR,
+            line_item VARCHAR DEFAULT 'Website-Pflege & SEO-Paket',
+            created_at TIMESTAMP DEFAULT NOW()
+        )""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -975,6 +1006,9 @@ app.include_router(messages_router.router)
 
 from routers import webhooks
 app.include_router(webhooks.router)
+
+from routers import retainer
+app.include_router(retainer.router)
 
 
 # Global exception handler — catches unhandled errors

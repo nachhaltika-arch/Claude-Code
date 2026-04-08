@@ -728,26 +728,40 @@ def _run_migrations():
         # ── Products ──────────────────────────────────────────────
         """CREATE TABLE IF NOT EXISTS products (
             id SERIAL PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
             slug VARCHAR(100) UNIQUE NOT NULL,
-            beschreibung TEXT,
-            leistungsumfang TEXT,
-            typ VARCHAR(50) DEFAULT 'paket',
-            zielgruppe VARCHAR(50) DEFAULT 'oeffentlich',
-            preis_einmalig INTEGER,
-            preis_monatlich INTEGER,
-            waehrung VARCHAR(10) DEFAULT 'eur',
-            stripe_product_id VARCHAR(255),
-            stripe_price_id VARCHAR(255),
-            stripe_payment_link VARCHAR(255),
-            landing_page_url VARCHAR(255),
-            checkout_url VARCHAR(255),
-            status VARCHAR(50) DEFAULT 'entwurf',
-            ist_live BOOLEAN DEFAULT false,
+            name VARCHAR(200) NOT NULL,
+            short_desc TEXT,
+            long_desc TEXT,
+            price_brutto NUMERIC(10,2) NOT NULL DEFAULT 0,
+            price_netto NUMERIC(10,2) NOT NULL DEFAULT 0,
+            tax_rate NUMERIC(5,2) NOT NULL DEFAULT 19.0,
+            payment_type VARCHAR(50) NOT NULL DEFAULT 'once',
+            delivery_days INTEGER DEFAULT 14,
+            highlighted BOOLEAN DEFAULT false,
+            highlight_label VARCHAR(100) DEFAULT 'Empfehlung',
+            features JSONB DEFAULT '[]',
+            checkout_fields JSONB DEFAULT '[]',
+            webhook_actions JSONB DEFAULT '[]',
+            status VARCHAR(50) NOT NULL DEFAULT 'draft',
+            stripe_price_id VARCHAR(200),
+            stripe_product_id VARCHAR(200),
             sort_order INTEGER DEFAULT 0,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
         )""",
+        # Products schema upgrade (for existing deployments)
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS short_desc TEXT",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS long_desc TEXT",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS price_brutto NUMERIC(10,2) DEFAULT 0",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS price_netto NUMERIC(10,2) DEFAULT 0",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS tax_rate NUMERIC(5,2) DEFAULT 19.0",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS payment_type VARCHAR(50) DEFAULT 'once'",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS delivery_days INTEGER DEFAULT 14",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS highlighted BOOLEAN DEFAULT false",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS highlight_label VARCHAR(100) DEFAULT 'Empfehlung'",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS features JSONB DEFAULT '[]'",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS checkout_fields JSONB DEFAULT '[]'",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS webhook_actions JSONB DEFAULT '[]'",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -1058,8 +1072,8 @@ app.include_router(webhooks.router)
 from routers import retainer
 app.include_router(retainer.router)
 
-from routers import products as products_router_mod
-app.include_router(products_router_mod.router, prefix="/api")
+from routers.products import router as products_router
+app.include_router(products_router)
 
 
 # Global exception handler — catches unhandled errors

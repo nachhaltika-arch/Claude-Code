@@ -17,6 +17,7 @@ import ProjectSitemapPlaner from '../components/ProjectSitemapPlaner';
 import GrapesEditor from '../components/GrapesEditor';
 import WebsiteDesigner from '../components/WebsiteDesigner';
 import ContentManager from '../components/ContentManager';
+import QAChecklist from '../components/QAChecklist';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
@@ -1842,7 +1843,8 @@ export default function ProjectDetail() {
       {activeTab === 'checklists' && (() => {
         if (latestAudit === null) loadLatestAudit();
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <QAChecklist projectId={project.id} initialData={project} />
             <HomepageChecklist auditData={latestAudit || null} />
             <SecurityChecklist auditData={latestAudit || null} />
           </div>

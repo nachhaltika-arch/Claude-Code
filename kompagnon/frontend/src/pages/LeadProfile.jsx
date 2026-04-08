@@ -801,6 +801,32 @@ export default function LeadProfile() {
         </div>
       )}
 
+      {/* LINKED PROJECT */}
+      <div style={{ background: projectId ? 'var(--brand-primary-light)' : 'var(--bg-surface)', border: `1px solid ${projectId ? 'rgba(0,142,170,0.2)' : 'var(--border-light)'}`, borderRadius: 'var(--radius-md)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        {projectData ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Verknuepftes Projekt</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary)' }}>{projectData.company_name || projectData.name || ''}</span>
+              <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 999, background: 'var(--brand-primary)', color: '#fff', fontWeight: 600 }}>
+                Phase {(projectData.status || '').replace('phase_', '')} von 7
+              </span>
+              <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 999, background: projectData.status !== 'completed' ? 'var(--status-success-bg)' : 'var(--bg-app)', color: projectData.status !== 'completed' ? 'var(--status-success-text)' : 'var(--text-secondary)', fontWeight: 500 }}>
+                {projectData.status === 'completed' ? 'Abgeschlossen' : 'Aktiv'}
+              </span>
+            </div>
+            <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', background: 'none', border: '1px solid var(--brand-primary)', borderRadius: 'var(--radius-md)', padding: '5px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>Zum Projekt →</button>
+          </>
+        ) : (
+          <>
+            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Noch kein Projekt angelegt</span>
+            <button onClick={createProject} disabled={creatingProject} style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: creatingProject ? 'var(--bg-app)' : 'var(--brand-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '6px 14px', cursor: creatingProject ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+              {creatingProject ? 'Anlegen...' : 'Projekt anlegen'}
+            </button>
+          </>
+        )}
+      </div>
+
       {/* TABS */}
       <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {TABS.map(tab => (

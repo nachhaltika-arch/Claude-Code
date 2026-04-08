@@ -26,6 +26,7 @@ export default function SalesPipeline() {
   const [dragOver, setDragOver] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [wonConfirm, setWonConfirm] = useState(null);
+  const [leadProjects, setLeadProjects] = useState({});
   const [search, setSearch] = useState('');
   const [filterTrade, setFilterTrade] = useState('');
 
@@ -50,6 +51,16 @@ export default function SalesPipeline() {
         ? data.filter(l => !(l.status === 'won' && l.lead_source === 'stripe_checkout'))
         : [];
       setLeads(salesLeads);
+      // Load projects for won leads
+      try {
+        const pRes = await fetch(`${API_BASE_URL}/api/projects/?limit=200`, { headers: h });
+        const projects = await pRes.json();
+        if (Array.isArray(projects)) {
+          const map = {};
+          projects.forEach(p => { if (p.lead_id) map[p.lead_id] = p; });
+          setLeadProjects(map);
+        }
+      } catch {}
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -206,11 +217,13 @@ export default function SalesPipeline() {
                   lead={lead}
                   col={COLUMNS[mobileTab]}
                   columns={COLUMNS}
+                  project={leadProjects[lead.id]}
                   onDragStart={() => {}}
                   onOpen={() => navigate(`/app/leads/${lead.id}`)}
                   onAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
                   onDelete={() => setDeleteConfirm(lead.id)}
                   onStatusChange={updateStatus}
+                  onProjectClick={(pid) => navigate(`/app/projects/${pid}`)}
                   isAdmin={user?.role === 'admin'}
                 />
               ))
@@ -244,10 +257,10 @@ export default function SalesPipeline() {
                 <div style={{ height: 2, background: col.color, margin: '8px 12px', borderRadius: 2 }} />
                 <div style={{ padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {colLeads.map(lead => (
-                    <SalesCard key={lead.id} lead={lead} col={col} columns={COLUMNS} onDragStart={handleDragStart}
+                    <SalesCard key={lead.id} lead={lead} col={col} columns={COLUMNS} project={leadProjects[lead.id]} onDragStart={handleDragStart}
                       onOpen={() => navigate(`/app/leads/${lead.id}`)}
                       onAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
-                      onDelete={() => setDeleteConfirm(lead.id)} onStatusChange={updateStatus} isAdmin={user?.role === 'admin'} />
+                      onDelete={() => setDeleteConfirm(lead.id)} onStatusChange={updateStatus} onProjectClick={(pid) => navigate(`/app/projects/${pid}`)} isAdmin={user?.role === 'admin'} />
                   ))}
                   {colLeads.length === 0 && (
                     <div style={{ padding: '14px 8px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>Leer</div>
@@ -329,7 +342,7 @@ function fmtDate(iso) {
 
 // ── Sales Card ──
 
-function SalesCard({ lead, col, columns, onDragStart, onOpen, onAudit, onDelete, onStatusChange, isAdmin }) {
+function SalesCard({ lead, col, columns, project, onDragStart, onOpen, onAudit, onDelete, onStatusChange, onProjectClick, isAdmin }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const domain    = getDomain(lead.website_url);
   const sc        = scoreStyle(lead.analysis_score);
@@ -441,6 +454,19 @@ function SalesCard({ lead, col, columns, onDragStart, onOpen, onAudit, onDelete,
       {lead.created_at && (
         <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
           📅 {fmtDate(lead.created_at)}
+        </div>
+      )}
+
+      {/* ── Row 5: Projekt-Karte (nur bei won + Projekt vorhanden) ── */}
+      {lead.status === 'won' && project && (
+        <div
+          onClick={e => { e.stopPropagation(); onProjectClick?.(project.id); }}
+          style={{ background: 'rgba(0,142,170,0.08)', borderRadius: 'var(--radius-md)', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}
+        >
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--brand-primary)' }}>
+            Projekt aktiv · Phase {(project.status || '').replace('phase_', '')} von 7
+          </span>
+          <span style={{ fontSize: 10, color: 'var(--brand-primary)' }}>→</span>
         </div>
       )}
     </div>

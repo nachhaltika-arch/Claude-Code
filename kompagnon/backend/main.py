@@ -426,6 +426,12 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS top_problems TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS industry VARCHAR",
         # ── ORM-Felder die in älteren DBs fehlen können (f405-Fix) ──────────
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS actual_hours FLOAT DEFAULT 0.0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS hourly_rate FLOAT DEFAULT 45.0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS ai_tool_costs FLOAT DEFAULT 50.0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS margin_percent FLOAT DEFAULT 0.0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scope_creep_flags INTEGER DEFAULT 0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS target_go_live TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_approved_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS review_received BOOLEAN DEFAULT false",

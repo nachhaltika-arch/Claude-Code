@@ -13,6 +13,7 @@ import HomepageChecklist from '../components/HomepageChecklist';
 import SecurityChecklist from '../components/SecurityChecklist';
 import PageSpeedSection from '../components/PageSpeedSection';
 import SitemapPlaner from '../components/SitemapPlaner';
+import ProjectSitemapPlaner from '../components/ProjectSitemapPlaner';
 import GrapesEditor from '../components/GrapesEditor';
 import WebsiteDesigner from '../components/WebsiteDesigner';
 import ContentManager from '../components/ContentManager';
@@ -483,6 +484,7 @@ export default function ProjectDetail() {
   const [sitemapLoading, setSitemapLoading] = useState(false);
   const [sitemapLoaded, setSitemapLoaded]   = useState(false);
   const [showSitemapPlaner, setShowSitemapPlaner] = useState(false);
+  const [showProjectSitemap, setShowProjectSitemap] = useState(false);
   const [selectedPageId, setSelectedPageId] = useState(null);
   const [editingPage, setEditingPage]       = useState(null);
   // Add page form
@@ -1291,6 +1293,10 @@ export default function ProjectDetail() {
               <button onClick={downloadSitemapPdf}
                 style={{ padding: '8px 16px', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                 📄 PDF herunterladen
+              </button>
+              <button onClick={() => setShowProjectSitemap(true)}
+                style={{ padding: '8px 16px', background: '#008eaa', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                🗺️ Sitemap-Planer mit Freigabe
               </button>
             </div>
 
@@ -2591,6 +2597,15 @@ export default function ProjectDetail() {
           leadId={project.lead_id}
           leadData={project}
           onClose={() => { setShowSitemapPlaner(false); loadSitemapPages(); }}
+        />
+      )}
+
+      {/* ── Project Sitemap Planer Modal ──────────────────────────────────── */}
+      {showProjectSitemap && (
+        <ProjectSitemapPlaner
+          projectId={project.id}
+          briefingData={briefingData}
+          onClose={() => { setShowProjectSitemap(false); loadSitemapPages(); }}
         />
       )}
 

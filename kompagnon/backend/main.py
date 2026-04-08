@@ -1282,11 +1282,11 @@ from routers.courses import router as courses_router
 app.include_router(courses_router)
 
 try:
-    from app.routers.academy import router as _academy_router
-except ImportError:
     from routers.academy import router as _academy_router
-app.include_router(_academy_router)
-logger.info("✓ Academy Router geladen")
+    app.include_router(_academy_router)
+    logger.info("✓ Academy Router geladen")
+except Exception as e:
+    logger.warning(f"⚠ Academy Router nicht geladen: {e}")
 
 try:
     from routers.crawler import router as _crawler_router
@@ -1296,10 +1296,7 @@ except Exception as e:
     logger.warning(f"⚠ Crawler Router nicht geladen: {e}")
 
 try:
-    try:
-        from app.routers.files import router as _files_router
-    except ImportError:
-        from routers.files import router as _files_router
+    from routers.files import router as _files_router
     app.include_router(_files_router)
     logger.info("✓ Files Router geladen")
 except Exception as e:

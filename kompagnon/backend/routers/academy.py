@@ -4,6 +4,7 @@ from typing import Optional
 from database import (
     get_db, AcademyCourse, AcademyChecklistItem, AcademyModule, AcademyLesson,
     AcademyLessonProgress, AcademyProgress, AcademyCertificate, AcademyQuizQuestion,
+    AcademyCustomerAccess,
 )
 from routers.auth_router import get_current_user, require_admin
 from datetime import datetime
@@ -791,3 +792,93 @@ def seed_academy_courses(db: Session):
         db.add(c)
     db.commit()
     logger.info('✓ Academy-Kurse angelegt')
+
+
+# ── Customer Course Access (Admin only) ──────────────────
+
+@router.get('/customer/{customer_id}/courses')
+def get_customer_courses(
+    customer_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    """Alle Kurse mit Fortschritt und Zertifikat-Status für einen Kunden."""
+    accesses = db.query(AcademyCustomerAccess).filter(
+        AcademyCustomerAccess.customer_id == customer_id
+    ).all()
+    result = []
+    for access in accesses:
+        course = db.query(AcademyCourse).filter(AcademyCourse.id == access.course_id).first()
+        if not course:
+            continue
+        progress = _progress_summary(access.course_id, customer_id, db)
+        cert = db.query(AcademyCertificate).filter(
+            AcademyCertificate.user_id == customer_id,
+            AcademyCertificate.course_id == access.course_id,
+        ).first()
+        result.append({
+            'id': access.id,
+            'course_id': course.id,
+            'course_title': course.title,
+            'course_thumbnail': course.thumbnail_url or '',
+            'assigned_at': str(access.assigned_at)[:10] if access.assigned_at else '',
+            'progress_pct': progress['progress_pct'],
+            'total_lessons': progress['total_lessons'],
+            'completed': progress['completed'],
+            'certificate_code': cert.certificate_code if cert else None,
+        })
+    return result
+
+
+@router.post('/customer/{customer_id}/courses/{course_id}/assign')
+def assign_course_to_customer(
+    customer_id: int,
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    """Kurs dem Kunden freischalten."""
+    course = db.query(AcademyCourse).filter(AcademyCourse.id == course_id).first()
+    if not course:
+        raise HTTPException(404, 'Kurs nicht gefunden')
+    existing = db.query(AcademyCustomerAccess).filter(
+        AcademyCustomerAccess.customer_id == customer_id,
+        AcademyCustomerAccess.course_id == course_id,
+    ).first()
+    if existing:
+        raise HTTPException(409, 'Kurs bereits zugewiesen')
+    access = AcademyCustomerAccess(
+        customer_id=customer_id,
+        course_id=course_id,
+        assigned_at=datetime.utcnow(),
+        assigned_by=current_user.id,
+    )
+    db.add(access)
+    db.commit()
+    db.refresh(access)
+    return {
+        'id': access.id,
+        'customer_id': customer_id,
+        'course_id': course_id,
+        'course_title': course.title,
+        'assigned_at': str(access.assigned_at)[:10],
+    }
+
+
+@router.delete('/customer/{customer_id}/courses/{course_id}')
+def remove_course_from_customer(
+    customer_id: int,
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    """Kurs-Zugang für Kunden entfernen."""
+    access = db.query(AcademyCustomerAccess).filter(
+        AcademyCustomerAccess.customer_id == customer_id,
+        AcademyCustomerAccess.course_id == course_id,
+    ).first()
+    if not access:
+        raise HTTPException(404, 'Kurszugang nicht gefunden')
+    db.delete(access)
+    db.commit()
+    return {'success': True}

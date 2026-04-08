@@ -665,6 +665,12 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS content_freigaben TEXT",
         # QA-Checkliste
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_checklist_json TEXT",
+        # Abnahme & Go-Live Nachher-Daten
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_datum TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_durch VARCHAR(200)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_mobile INTEGER",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_desktop INTEGER",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_after TEXT",
         # Zugangsdaten-Safe
         """CREATE TABLE IF NOT EXISTS project_credentials (
             id                  SERIAL PRIMARY KEY,

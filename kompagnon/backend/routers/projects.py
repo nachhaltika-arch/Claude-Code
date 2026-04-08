@@ -351,7 +351,9 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
                 "SELECT id, lead_id, status, fixed_price, actual_hours, hourly_rate, "
                 "ai_tool_costs, margin_percent, scope_creep_flags, start_date, "
                 "target_go_live, created_at, company_name, website_url, contact_name, "
-                "sitemap_json, sitemap_freigabe, content_freigaben, qa_checklist_json "
+                "sitemap_json, sitemap_freigabe, content_freigaben, qa_checklist_json, "
+                "abnahme_datum, abnahme_durch, "
+                "pagespeed_after_mobile, pagespeed_after_desktop, screenshot_after "
                 "FROM projects WHERE id = :pid"
             ),
             {"pid": project_id},
@@ -391,10 +393,19 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
         'phone': lead.phone if lead else '',
         'city': lead.city if lead else '',
         'trade': lead.trade if lead else '',
-        'sitemap_json':      row[15],
-        'sitemap_freigabe':  str(row[16])[:16] if row[16] else None,
-        'content_freigaben':  row[17],
-        'qa_checklist_json':  row[18],
+        'sitemap_json':             row[15],
+        'sitemap_freigabe':         str(row[16])[:16] if row[16] else None,
+        'content_freigaben':        row[17],
+        'qa_checklist_json':        row[18],
+        'abnahme_datum':            str(row[19])[:16] if row[19] else None,
+        'abnahme_durch':            row[20],
+        'pagespeed_after_mobile':   row[21],
+        'pagespeed_after_desktop':  row[22],
+        'screenshot_after':         row[23],
+        # Lead-seitige PageSpeed-Werte (Vorher)
+        'pagespeed_mobile':         getattr(lead, 'pagespeed_mobile_score', None),
+        'pagespeed_desktop':        getattr(lead, 'pagespeed_desktop_score', None),
+        'screenshot_before':        getattr(lead, 'website_screenshot', None),
     }
 
 
@@ -2159,3 +2170,113 @@ def save_qa_checklist(
     )
     db.commit()
     return {"success": True, "checked_count": len(checked)}
+
+
+# ── Abnahme & Go-Live Nachher ─────────────────────────────────────────────────
+
+@router.post("/{project_id}/abnahme")
+def abnahme_erteilen(
+    project_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    from datetime import datetime as dt
+
+    name = (data.get("name") or "").strip()
+    if not name:
+        raise HTTPException(400, "Name ist Pflichtfeld")
+
+    now = dt.utcnow()
+    db.execute(text("""
+        UPDATE projects SET
+          abnahme_datum=:ts,
+          abnahme_durch=:name,
+          actual_go_live=COALESCE(actual_go_live, :ts)
+        WHERE id=:id
+    """), {"ts": now, "name": name, "id": project_id})
+    db.commit()
+
+    now_de = now.strftime("%d.%m.%Y um %H:%M Uhr")
+    return {
+        "success":       True,
+        "abnahme_datum": str(now)[:16],
+        "abnahme_durch": name,
+        "text":          f"Abgenommen am {now_de} von {name}",
+    }
+
+
+@router.post("/{project_id}/go-live-pagespeed")
+async def go_live_pagespeed(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    import httpx
+    import os
+    import asyncio
+
+    row = db.execute(text("""
+        SELECT l.website_url FROM projects p
+        LEFT JOIN leads l ON l.id = p.lead_id
+        WHERE p.id = :id
+    """), {"id": project_id}).fetchone()
+
+    if not row or not row[0]:
+        raise HTTPException(400, "Keine Website-URL hinterlegt")
+
+    url     = row[0]
+    api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+    base    = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
+    params  = {"url": url}
+    if api_key:
+        params["key"] = api_key
+
+    mob_score = desk_score = None
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            mob, desk = await asyncio.gather(
+                client.get(base, params={**params, "strategy": "mobile"}),
+                client.get(base, params={**params, "strategy": "desktop"}),
+            )
+
+        def sc(r):
+            try:
+                return round(
+                    (r.json()["categories"]["performance"]["score"] or 0) * 100
+                )
+            except Exception:
+                return None
+
+        mob_score  = sc(mob)
+        desk_score = sc(desk)
+    except Exception as e:
+        logger.warning(f"Go-Live PageSpeed Fehler: {e}")
+
+    screenshot_after = None
+    try:
+        from services.screenshot import capture_screenshot
+        screenshot_after = await capture_screenshot(url)
+    except Exception as e:
+        logger.warning(f"Go-Live Screenshot Fehler: {e}")
+
+    db.execute(text("""
+        UPDATE projects SET
+          pagespeed_after_mobile=:mob,
+          pagespeed_after_desktop=:desk,
+          screenshot_after=:sc
+        WHERE id=:id
+    """), {
+        "mob":  mob_score,
+        "desk": desk_score,
+        "sc":   screenshot_after,
+        "id":   project_id,
+    })
+    db.commit()
+
+    return {
+        "success":                 True,
+        "pagespeed_after_mobile":  mob_score,
+        "pagespeed_after_desktop": desk_score,
+        "has_screenshot":          bool(screenshot_after),
+    }

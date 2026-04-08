@@ -1567,7 +1567,7 @@ export default function CustomerDetail() {
           { id: 'dateien',     label: 'Dateien',     icon: '📎' },
           { id: 'audits',      label: 'Audits',      icon: '📋' },
           { id: 'sitemap',     label: 'Sitemap',     icon: '🗺️' },
-          { id: 'mockup',      label: 'Mockup',      icon: '🎨' },
+          { id: 'mockup',      label: 'Design',      icon: '🎨' },
           { id: 'branddesign', label: 'Branddesign', icon: '🎨' },
           { id: 'pagespeed',   label: 'PageSpeed',   icon: '⚡' },
           { id: 'akademy',     label: 'Akademy',     icon: '🎓' },
@@ -1707,7 +1707,7 @@ export default function CustomerDetail() {
                               <button
                                 onClick={() => { setActiveMockupPage(page); setActiveTab('mockup'); }}
                                 style={aBtn('var(--brand-primary)', '#fff')}>
-                                🎨 Mockup
+                                🎨 Design
                               </button>
                               <button
                                 onClick={() => { setActiveMockupPage(page); setActiveTab('mockup'); }}
@@ -1721,7 +1721,7 @@ export default function CustomerDetail() {
                                     w.document.write(page.mockup_html);
                                     w.document.close();
                                   } else {
-                                    toast.error('Noch kein Mockup für diese Seite');
+                                    toast.error('Noch kein Design fuer diese Seite');
                                   }
                                 }}
                                 style={aBtn('var(--bg-elevated)', 'var(--text-primary)')}>

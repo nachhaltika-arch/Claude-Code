@@ -1574,7 +1574,7 @@ export default function LeadProfile() {
       {/* AKADEMY TAB */}
       {activeTab === 'akademy' && <AcademyCustomerSection leadId={lead.id} />}
 
-      {/* MOCKUP TAB */}
+      {/* DESIGN TAB */}
       {activeTab === 'mockup' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>

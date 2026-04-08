@@ -1376,12 +1376,12 @@ export default function ProjectDetail() {
                             if (p.mockup_html) {
                               const w = window.open('', '_blank');
                               w.document.write(p.mockup_html); w.document.close();
-                            } else toast.info('Noch kein Mockup vorhanden — zuerst Mockup generieren');
+                            } else toast.info('Noch kein Design vorhanden — zuerst Design generieren');
                           };
                           return (
                             <>
                               <button onClick={() => openEditModal(page)} style={ab('var(--bg-elevated)', 'var(--text-primary)')}>✏️ Bearbeiten</button>
-                              <button onClick={() => goToMockup(page)} style={ab('var(--brand-primary)', '#fff')}>🎨 Mockup</button>
+                              <button onClick={() => goToMockup(page)} style={ab('var(--brand-primary)', '#fff')}>🎨 Design</button>
                               <button onClick={() => goToContent(page)} style={ab('#059669', '#fff')}>📝 Content</button>
                               <button onClick={() => previewPage(page)} style={ab('#7c3aed', '#fff')}>👁 Vorschau</button>
                               <button onClick={() => setEditingPage(page)} style={ab('#1a2332', '#fff')}>🖊️ Editor</button>
@@ -1466,7 +1466,7 @@ export default function ProjectDetail() {
         );
       })()}
 
-      {/* ── Mockup Tab ──────────────────────────────────────────────────────── */}
+      {/* ── Design Tab ──────────────────────────────────────────────────────── */}
       {/* ── Content Tab ──────────────────────────────────────────────────────── */}
       {activeTab === 'content' && (() => {
         const totalSlots = contentSummary.reduce((a, p) => a + (p.sections?.length || 0) + (p.media?.length || 0), 0);
@@ -1483,7 +1483,7 @@ export default function ProjectDetail() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {contentSummary.length > 0 && (
               <div style={{ padding: '10px 16px', borderRadius: 8, background: allDone ? '#D1FAE5' : '#FFFBEB', border: `1px solid ${allDone ? '#A7F3D0' : '#FDE68A'}`, fontSize: 13, color: allDone ? '#065F46' : '#92400E' }}>
-                {allDone ? '✅ Alle Inhalte freigegeben — Mockup-Designer kann gestartet werden' : `⚠️ ${pending} Inhalt${pending !== 1 ? 'e' : ''} noch ausstehend — Mockup-Designer erst nach Freigabe empfohlen`}
+                {allDone ? '✅ Alle Inhalte freigegeben — Design-Editor kann gestartet werden' : `⚠️ ${pending} Inhalt${pending !== 1 ? 'e' : ''} noch ausstehend — Design-Editor erst nach Freigabe empfohlen`}
               </div>
             )}
 

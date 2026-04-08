@@ -661,6 +661,8 @@ def _run_migrations():
         # Sitemap-Planer
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS sitemap_json TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS sitemap_freigabe TIMESTAMP",
+        # Content-Freigaben
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS content_freigaben TEXT",
         # Zugangsdaten-Safe
         """CREATE TABLE IF NOT EXISTS project_credentials (
             id                  SERIAL PRIMARY KEY,

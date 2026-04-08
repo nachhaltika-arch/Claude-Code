@@ -351,7 +351,7 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
                 "SELECT id, lead_id, status, fixed_price, actual_hours, hourly_rate, "
                 "ai_tool_costs, margin_percent, scope_creep_flags, start_date, "
                 "target_go_live, created_at, company_name, website_url, contact_name, "
-                "sitemap_json, sitemap_freigabe "
+                "sitemap_json, sitemap_freigabe, content_freigaben "
                 "FROM projects WHERE id = :pid"
             ),
             {"pid": project_id},
@@ -391,8 +391,9 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
         'phone': lead.phone if lead else '',
         'city': lead.city if lead else '',
         'trade': lead.trade if lead else '',
-        'sitemap_json':     row[15],
-        'sitemap_freigabe': str(row[16])[:16] if row[16] else None,
+        'sitemap_json':      row[15],
+        'sitemap_freigabe':  str(row[16])[:16] if row[16] else None,
+        'content_freigaben': row[17],
     }
 
 
@@ -1992,3 +1993,149 @@ def request_freigabe(
         }
 
     raise HTTPException(400, f"Unbekannter Freigabe-Typ: {typ}")
+
+
+# ── Content-Freigaben ─────────────────────────────────────────────────────────
+
+@router.post("/{project_id}/request-approval")
+def request_approval(
+    project_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    import json
+    from datetime import datetime
+
+    topic    = data.get("topic", "Freigabe erforderlich")
+    notes    = data.get("notes", "")
+    seite_id = data.get("seite_id")
+
+    row = db.execute(text("""
+        SELECT p.id, p.content_freigaben, l.email, l.company_name
+        FROM projects p
+        LEFT JOIN leads l ON l.id = p.lead_id
+        WHERE p.id = :id
+    """), {"id": project_id}).fetchone()
+
+    if not row:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    customer_email = row[2] or ""
+    company_name   = row[3] or "Kunde"
+
+    freigaben = {}
+    if row[1]:
+        try:
+            freigaben = json.loads(row[1])
+        except Exception:
+            freigaben = {}
+
+    now_str = datetime.utcnow().strftime("%d.%m.%Y %H:%M")
+
+    if seite_id:
+        freigaben[str(seite_id)] = {
+            "status":       "angefragt",
+            "angefragt_am": now_str,
+            "topic":        topic,
+        }
+
+    db.execute(text(
+        "UPDATE projects SET content_freigaben=:cf WHERE id=:id"
+    ), {"cf": json.dumps(freigaben, ensure_ascii=False), "id": project_id})
+    db.commit()
+
+    email_sent = False
+    if customer_email:
+        try:
+            from services.email import send_email
+            html = f"""
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+              <div style="background:#008eaa;padding:20px 28px;border-radius:12px 12px 0 0">
+                <h2 style="color:white;margin:0;font-size:18px">
+                  Ihre Freigabe wird ben&#246;tigt
+                </h2>
+              </div>
+              <div style="padding:24px 28px;background:#fff">
+                <p style="color:#1a2332">Guten Tag, {company_name},</p>
+                <p style="color:#64748b;line-height:1.7">
+                  f&#252;r den n&#228;chsten Schritt in Ihrem Projekt ben&#246;tigen wir Ihre Freigabe:
+                </p>
+                <div style="background:#F8F9FA;border-left:4px solid #008eaa;
+                            padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0">
+                  <strong style="color:#1a2332">{topic}</strong>
+                  {"<p style='color:#64748b;margin-top:8px;font-size:14px'>" + notes + "</p>" if notes else ""}
+                </div>
+                <p style="color:#64748b;line-height:1.7">
+                  Bitte antworten Sie auf diese E-Mail oder melden Sie sich
+                  in Ihrem Kundenportal an, um die Freigabe zu erteilen.
+                </p>
+              </div>
+              <div style="padding:14px 28px;background:#f8f9fa;
+                          border-radius:0 0 12px 12px;text-align:center">
+                <p style="font-size:11px;color:#94a3b8;margin:0">
+                  KOMPAGNON Communications BP GmbH &#183; kompagnon.eu
+                </p>
+              </div>
+            </div>"""
+            email_sent = send_email(
+                to_email=customer_email,
+                subject=f"Freigabe erforderlich: {topic}",
+                html_body=html,
+            )
+        except Exception as e:
+            logger.warning(f"Approval-E-Mail Fehler: {e}")
+
+    return {
+        "success":        True,
+        "seite_id":       seite_id,
+        "email_sent":     email_sent,
+        "customer_email": customer_email,
+        "angefragt_am":   now_str,
+        "freigaben":      freigaben,
+    }
+
+
+@router.post("/{project_id}/confirm-approval")
+def confirm_approval(
+    project_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    import json
+    from datetime import datetime
+
+    seite_id   = str(data.get("seite_id", ""))
+    bestaetigt = data.get("bestaetigt", True)
+
+    row = db.execute(
+        text("SELECT content_freigaben FROM projects WHERE id=:id"),
+        {"id": project_id},
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, "Nicht gefunden")
+
+    freigaben = {}
+    if row[0]:
+        try:
+            freigaben = json.loads(row[0])
+        except Exception:
+            freigaben = {}
+
+    now_str = datetime.utcnow().strftime("%d.%m.%Y %H:%M")
+    if seite_id in freigaben:
+        freigaben[seite_id]["status"]         = "freigegeben" if bestaetigt else "abgelehnt"
+        freigaben[seite_id]["freigegeben_am"] = now_str
+    else:
+        freigaben[seite_id] = {
+            "status":         "freigegeben" if bestaetigt else "abgelehnt",
+            "freigegeben_am": now_str,
+        }
+
+    db.execute(
+        text("UPDATE projects SET content_freigaben=:cf WHERE id=:id"),
+        {"cf": json.dumps(freigaben, ensure_ascii=False), "id": project_id},
+    )
+    db.commit()
+    return {"success": True, "seite_id": seite_id, "freigaben": freigaben}

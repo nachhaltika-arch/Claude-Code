@@ -126,6 +126,7 @@ const PHASE_TOOLS = {
   ],
   'go-live': [
     { id: 'checklists',      label: 'Go-Live',              icon: '🚀', sub: 'Checkliste' },
+    { id: 'golive',          label: 'Abnahme & Vergleich',  icon: '✅', sub: 'Vorher/Nachher' },
   ],
   'qm': [
     { id: 'checklists',      label: 'Checkliste QM',        icon: '✅', sub: 'QA-Prüfung' },
@@ -170,6 +171,7 @@ const SUB_TAB_MAP = {
   'sitemap':            'sitemap',
   'content':            'content',
   'qa':                 'qa',
+  'golive':             'golive',
   'crawler':            'crawler',
   'golive-prep':        'overview',
   'dns':                'hosting',
@@ -644,6 +646,12 @@ export default function ProjectDetail() {
   const [contentFreigaben, setContentFreigaben] = useState({});
   const [approvalSending, setApprovalSending]   = useState({});
   const [approvalMsg, setApprovalMsg]           = useState({});
+  // Go-Live / Abnahme
+  const [abnahmeLoading, setAbnahmeLoading] = useState(false);
+  const [abnahmeMsg, setAbnahmeMsg]         = useState('');
+  const [abnahmeName, setAbnahmeName]       = useState('');
+  const [psLoading, setPsLoading]           = useState(false);
+  const [psMsg, setPsMsg]                   = useState('');
 
   const checkDomain = async () => {
     setDomainChecking(true);
@@ -764,6 +772,38 @@ export default function ProjectDetail() {
       body: JSON.stringify({ new_status: 'phase_4' }),
     });
     await loadProject();
+  };
+
+  // ── Go-Live Handler ─────────────────────────────────────────────────────────
+  const doAbnahme = async () => {
+    if (!abnahmeName.trim()) { setAbnahmeMsg('Bitte Namen eingeben'); return; }
+    setAbnahmeLoading(true); setAbnahmeMsg('');
+    try {
+      const r = await fetch(
+        `${API_BASE_URL}/api/projects/${id}/abnahme`,
+        { method: 'POST', headers: hdr, body: JSON.stringify({ name: abnahmeName }) }
+      );
+      const d = await r.json();
+      if (r.ok) { setAbnahmeMsg(`✓ ${d.text}`); await loadProject(); }
+      else      { setAbnahmeMsg(d.detail || 'Fehler'); }
+    } catch { setAbnahmeMsg('Verbindungsfehler'); }
+    finally { setAbnahmeLoading(false); }
+  };
+
+  const doGoLivePagespeed = async () => {
+    setPsLoading(true); setPsMsg('');
+    try {
+      const r = await fetch(
+        `${API_BASE_URL}/api/projects/${id}/go-live-pagespeed`,
+        { method: 'POST', headers: hdr }
+      );
+      const d = await r.json();
+      if (r.ok) {
+        setPsMsg(`✓ Mobil: ${d.pagespeed_after_mobile ?? '—'} | Desktop: ${d.pagespeed_after_desktop ?? '—'}`);
+        await loadProject();
+      } else { setPsMsg(d.detail || 'Fehler'); }
+    } catch { setPsMsg('Verbindungsfehler'); }
+    finally { setPsLoading(false); }
   };
 
   const loadProject = useCallback(async () => {
@@ -2868,6 +2908,240 @@ export default function ProjectDetail() {
           />
         </div>
       )}
+
+      {/* ── Go-Live Tab ─────────────────────────────────────────────────────── */}
+      {activeTab === 'golive' && (() => {
+        const psMob  = project.pagespeed_mobile         ?? null;
+        const psDes  = project.pagespeed_desktop        ?? null;
+        const psMobA = project.pagespeed_after_mobile   ?? null;
+        const psDesA = project.pagespeed_after_desktop  ?? null;
+        const diffMob = (psMob !== null && psMobA !== null) ? psMobA - psMob : null;
+        const diffDes = (psDes !== null && psDesA !== null) ? psDesA - psDes : null;
+
+        const scoreColor = (s) =>
+          s === null ? 'var(--text-tertiary)' : s >= 90 ? '#1D9E75' : s >= 70 ? '#BA7517' : '#E24B4A';
+
+        const diffColor = (d) =>
+          d === null ? 'var(--text-tertiary)' : d > 0 ? '#1D9E75' : d < 0 ? '#E24B4A' : 'var(--text-secondary)';
+
+        const diffLabel = (d) =>
+          d === null ? '—' : d > 0 ? `+${d} Punkte` : d < 0 ? `${d} Punkte` : '±0 Punkte';
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+            {/* ── DIGITALE ABNAHME ── */}
+            <div style={{
+              background: project.abnahme_datum ? '#EAF3DE' : 'var(--bg-surface)',
+              border: `0.5px solid ${project.abnahme_datum ? '#97C459' : 'var(--border-light)'}`,
+              borderRadius: 12, padding: '18px 20px',
+            }}>
+              <div style={{
+                fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)',
+                textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10,
+              }}>
+                Digitale Abnahme
+              </div>
+
+              {project.abnahme_datum ? (
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 500, color: '#1D9E75', marginBottom: 4 }}>
+                    ✓ Abgenommen
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                    am {project.abnahme_datum.replace('T', ' ')} Uhr
+                    von <strong>{project.abnahme_durch}</strong>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Abnahme zurücksetzen?')) {
+                        fetch(`${API_BASE_URL}/api/projects/${id}/abnahme`,
+                          { method: 'POST', headers: hdr, body: JSON.stringify({ name: '', reset: true }) })
+                          .then(() => loadProject());
+                      }
+                    }}
+                    style={{
+                      marginTop: 10, padding: '5px 12px', borderRadius: 7,
+                      border: '0.5px solid var(--border-light)',
+                      background: 'transparent', color: 'var(--text-secondary)',
+                      fontSize: 11, cursor: 'pointer',
+                    }}
+                  >
+                    Abnahme zurücksetzen
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                    Kunde erteilt die finale Abnahme vor dem Go-Live.
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input
+                      value={abnahmeName}
+                      onChange={e => setAbnahmeName(e.target.value)}
+                      placeholder="Name des Abnehmers (z.B. Thomas Becker)"
+                      style={{
+                        flex: '1 1 220px', padding: '8px 11px',
+                        border: '1.5px solid var(--border-light)',
+                        borderRadius: 8, fontSize: 13,
+                        fontFamily: 'inherit', outline: 'none',
+                        background: 'var(--bg-app)', color: 'var(--text-primary)',
+                        minWidth: 0,
+                      }}
+                    />
+                    <button
+                      onClick={doAbnahme}
+                      disabled={abnahmeLoading}
+                      style={{
+                        padding: '9px 18px', borderRadius: 8, border: 'none',
+                        background: abnahmeLoading ? '#94a3b8' : '#1D9E75',
+                        color: 'white', fontSize: 13, fontWeight: 600,
+                        cursor: abnahmeLoading ? 'not-allowed' : 'pointer',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {abnahmeLoading ? 'Wird gespeichert…' : '✓ Abnahme erteilen'}
+                    </button>
+                  </div>
+                  {abnahmeMsg && (
+                    <div style={{
+                      marginTop: 8, fontSize: 12,
+                      color: abnahmeMsg.startsWith('✓') ? '#1D9E75' : '#E24B4A',
+                    }}>
+                      {abnahmeMsg}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── VORHER / NACHHER ── */}
+            <div style={{
+              background: 'var(--bg-surface)',
+              border: '0.5px solid var(--border-light)',
+              borderRadius: 12, overflow: 'hidden',
+            }}>
+              <div style={{
+                padding: '11px 18px', background: 'var(--bg-app)',
+                borderBottom: '0.5px solid var(--border-light)',
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'space-between', flexWrap: 'wrap', gap: 10,
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Vorher / Nachher — PageSpeed & Screenshot
+                </div>
+                <button
+                  onClick={doGoLivePagespeed}
+                  disabled={psLoading}
+                  style={{
+                    padding: '6px 14px', borderRadius: 7, border: 'none',
+                    background: psLoading ? '#94a3b8' : '#008eaa',
+                    color: 'white', fontSize: 12, fontWeight: 600,
+                    cursor: psLoading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {psLoading ? '⏳ Wird gemessen…' : '⚡ Jetzt messen'}
+                </button>
+              </div>
+
+              {psMsg && (
+                <div style={{
+                  padding: '8px 18px', fontSize: 12,
+                  borderBottom: '0.5px solid var(--border-light)',
+                  color:      psMsg.startsWith('✓') ? '#1D9E75' : '#E24B4A',
+                  background: psMsg.startsWith('✓') ? '#EAF3DE' : '#FFF1F1',
+                }}>
+                  {psMsg}
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+
+                {/* VORHER */}
+                <div style={{ padding: '18px 20px', borderRight: '0.5px solid var(--border-light)' }}>
+                  <div style={{
+                    fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
+                    textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12,
+                  }}>
+                    Vorher
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
+                    {[['Mobil', psMob], ['Desktop', psDes]].map(([lbl, val]) => (
+                      <div key={lbl}>
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 2 }}>{lbl}</div>
+                        <div style={{ fontSize: 32, fontWeight: 500, color: scoreColor(val) }}>{val ?? '—'}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {project.screenshot_before ? (
+                    <img
+                      src={project.screenshot_before.startsWith('data:')
+                        ? project.screenshot_before
+                        : `data:image/jpeg;base64,${project.screenshot_before}`}
+                      alt="Screenshot Vorher"
+                      style={{ width: '100%', borderRadius: 8, border: '0.5px solid var(--border-light)', display: 'block' }}
+                    />
+                  ) : (
+                    <div style={{
+                      height: 120, border: '0.5px dashed var(--border-light)',
+                      borderRadius: 8, display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 12,
+                    }}>
+                      Kein Screenshot vorhanden
+                    </div>
+                  )}
+                </div>
+
+                {/* NACHHER */}
+                <div style={{ padding: '18px 20px' }}>
+                  <div style={{
+                    fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
+                    textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12,
+                  }}>
+                    Nachher
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, marginBottom: 14, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                    {[['Mobil', psMobA, diffMob], ['Desktop', psDesA, diffDes]].map(([lbl, val, diff]) => (
+                      <div key={lbl}>
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 2 }}>{lbl}</div>
+                        <div style={{ fontSize: 32, fontWeight: 500, color: scoreColor(val) }}>{val ?? '—'}</div>
+                        {diff !== null && (
+                          <div style={{ fontSize: 13, fontWeight: 600, color: diffColor(diff), marginTop: 2 }}>
+                            {diffLabel(diff)}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {project.screenshot_after ? (
+                    <img
+                      src={project.screenshot_after.startsWith('data:')
+                        ? project.screenshot_after
+                        : `data:image/jpeg;base64,${project.screenshot_after}`}
+                      alt="Screenshot Nachher"
+                      style={{ width: '100%', borderRadius: 8, border: '0.5px solid var(--border-light)', display: 'block' }}
+                    />
+                  ) : (
+                    <div style={{
+                      height: 120, border: '0.5px dashed var(--border-light)',
+                      borderRadius: 8, display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 12,
+                    }}>
+                      Noch nicht gemessen — "Jetzt messen" klicken
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Hinweis */}
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              "Jetzt messen" startet PageSpeed + Screenshot nach Go-Live.
+              Werte aus "Vorher" kommen aus dem ursprünglichen Audit beim Lead.
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Placeholder-Tabs ────────────────────────────────────────────────── */}
       {activeTab === 'checklists' && (

@@ -513,6 +513,7 @@ export default function ProjectDetail() {
   const { token, user } = useAuth();
   const { isMobile }   = useScreenSize();
   const headers          = token ? { Authorization: `Bearer ${token}` } : {};
+  const hdr              = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
   const isAdmin          = user?.role === 'admin';
 
   const [project, setProject]         = useState(null);
@@ -636,6 +637,10 @@ export default function ProjectDetail() {
   const [credForm, setCredForm]         = useState({ label: '', username: '', password: '', url: '', notes: '' });
   const [credSaving, setCredSaving]     = useState(false);
   const [credError, setCredError]       = useState('');
+  // Content-Freigaben
+  const [contentFreigaben, setContentFreigaben] = useState({});
+  const [approvalSending, setApprovalSending]   = useState({});
+  const [approvalMsg, setApprovalMsg]           = useState({});
 
   const checkDomain = async () => {
     setDomainChecking(true);
@@ -700,6 +705,64 @@ export default function ProjectDetail() {
   const togglePw = (credId) =>
     setShowPasswords(p => ({ ...p, [credId]: !p[credId] }));
 
+  // ── Content-Freigaben Hilfsfunktionen ───────────────────────────────────────
+  const getSitemapSeiten = () => {
+    const sj = project?.sitemap_json;
+    if (!sj) return [];
+    try { return JSON.parse(sj); } catch { return []; }
+  };
+
+  const requestApproval = async (seite) => {
+    setApprovalSending(p => ({ ...p, [seite.id]: true }));
+    setApprovalMsg(p => ({ ...p, [seite.id]: '' }));
+    try {
+      const r = await fetch(
+        `${API_BASE_URL}/api/projects/${id}/request-approval`,
+        {
+          method: 'POST', headers: hdr,
+          body: JSON.stringify({
+            seite_id: seite.id,
+            topic:    `Content-Freigabe: ${seite.name}`,
+            notes:    `Seite vom Typ "${seite.typ}" · Keyword: ${seite.keyword || '—'}`,
+          }),
+        }
+      );
+      const d = await r.json();
+      if (r.ok) {
+        setContentFreigaben(d.freigaben || {});
+        setApprovalMsg(p => ({
+          ...p,
+          [seite.id]: d.email_sent ? '✓ E-Mail gesendet' : '✓ Gespeichert',
+        }));
+      } else {
+        setApprovalMsg(p => ({ ...p, [seite.id]: d.detail || 'Fehler' }));
+      }
+    } catch {
+      setApprovalMsg(p => ({ ...p, [seite.id]: 'Verbindungsfehler' }));
+    }
+    setApprovalSending(p => ({ ...p, [seite.id]: false }));
+  };
+
+  const confirmApproval = async (seiteId, bestaetigt) => {
+    const r = await fetch(
+      `${API_BASE_URL}/api/projects/${id}/confirm-approval`,
+      {
+        method: 'POST', headers: hdr,
+        body: JSON.stringify({ seite_id: seiteId, bestaetigt }),
+      }
+    );
+    const d = await r.json();
+    if (r.ok) setContentFreigaben(d.freigaben || {});
+  };
+
+  const advanceToTechnik = async () => {
+    await fetch(`${API_BASE_URL}/api/projects/${id}/phase`, {
+      method: 'PATCH', headers: hdr,
+      body: JSON.stringify({ new_status: 'phase_4' }),
+    });
+    await loadProject();
+  };
+
   const loadProject = useCallback(async () => {
     try {
       setLoading(true);
@@ -711,6 +774,11 @@ export default function ProjectDetail() {
       setProject(projectRes.data);
       setMargin(marginRes.data);
       setNewWebsiteUrl(projectRes.data.new_website_url || '');
+      // content_freigaben parsen
+      const cf = projectRes.data?.content_freigaben;
+      if (cf) {
+        try { setContentFreigaben(JSON.parse(cf)); } catch {}
+      }
       // Load lead data for modal pre-fill
       if (projectRes.data.lead_id) {
         axios.get(`${API_BASE_URL}/api/leads/${projectRes.data.lead_id}`, { headers })
@@ -1742,6 +1810,243 @@ export default function ProjectDetail() {
           />
         </div>
       )}
+
+      {/* ── Content-Freigabe-Tab ─────────────────────────────────────────────── */}
+      {activeTab === 'content' && (() => {
+        const seiten = getSitemapSeiten();
+        const total   = seiten.length;
+        const freigeg = seiten.filter(s =>
+          contentFreigaben[String(s.id)]?.status === 'freigegeben'
+        ).length;
+        const alleFreigegeben = total > 0 && freigeg === total;
+
+        const STATUS_CONFIG = {
+          freigegeben: { label: '✓ Freigegeben', bg: '#EAF3DE', color: '#27500A' },
+          angefragt:   { label: '⏳ Angefragt',  bg: '#FAEEDA', color: '#633806' },
+          abgelehnt:   { label: '✗ Abgelehnt',   bg: '#FCEBEB', color: '#A32D2D' },
+          default:     { label: 'Ausstehend',     bg: '#F1EFE8', color: '#444441' },
+        };
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* ── GESAMTSTATUS ── */}
+            <div style={{
+              background: alleFreigegeben ? '#EAF3DE' : 'var(--bg-surface)',
+              border: `0.5px solid ${alleFreigegeben ? '#97C459' : 'var(--border-light)'}`,
+              borderRadius: 12, padding: '14px 18px',
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
+            }}>
+              <div>
+                <div style={{
+                  fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)',
+                  textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4,
+                }}>
+                  Content-Freigabe
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 500, color: 'var(--text-primary)' }}>
+                  {freigeg} von {total} Seiten freigegeben
+                </div>
+                {!alleFreigegeben && total > 0 && (
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                    {total - freigeg} Seiten benötigen noch eine Freigabe
+                  </div>
+                )}
+              </div>
+
+              {/* Fortschrittsbalken */}
+              <div style={{ flex: '1 1 200px' }}>
+                <div style={{
+                  height: 6, background: 'var(--border-light)',
+                  borderRadius: 3, overflow: 'hidden',
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: total > 0 ? `${Math.round(freigeg / total * 100)}%` : '0%',
+                    background: alleFreigegeben ? '#1D9E75' : '#008eaa',
+                    borderRadius: 3, transition: 'width .4s',
+                  }} />
+                </div>
+                <div style={{
+                  fontSize: 11, color: 'var(--text-tertiary)',
+                  marginTop: 4, textAlign: 'right',
+                }}>
+                  {total > 0 ? Math.round(freigeg / total * 100) : 0}%
+                </div>
+              </div>
+
+              {alleFreigegeben && (
+                <button
+                  onClick={advanceToTechnik}
+                  style={{
+                    padding: '9px 20px', borderRadius: 8, border: 'none',
+                    background: '#1D9E75', color: 'white',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  Weiter zu Phase Technik →
+                </button>
+              )}
+            </div>
+
+            {/* ── TABELLE ── */}
+            {total === 0 ? (
+              <div style={{
+                background: 'var(--bg-surface)',
+                border: '0.5px solid var(--border-light)',
+                borderRadius: 12, padding: 24,
+                textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13,
+              }}>
+                Keine Sitemap-Seiten vorhanden.
+                Bitte zuerst den Sitemap-Planer ausfüllen.
+              </div>
+            ) : (
+              <div style={{
+                background: 'var(--bg-surface)',
+                border: '0.5px solid var(--border-light)',
+                borderRadius: 12, overflow: 'hidden',
+              }}>
+                {/* Tabellen-Header */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 90px 90px 130px 180px',
+                  gap: 8, padding: '8px 16px',
+                  background: 'var(--bg-app)',
+                  borderBottom: '0.5px solid var(--border-light)',
+                  fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)',
+                  textTransform: 'uppercase', letterSpacing: '.06em',
+                }}>
+                  <div>Seite</div>
+                  <div>Typ</div>
+                  <div>Keyword</div>
+                  <div>Freigabe-Status</div>
+                  <div>Aktion</div>
+                </div>
+
+                {seiten.map((seite, idx) => {
+                  const fg     = contentFreigaben[String(seite.id)] || {};
+                  const sc     = STATUS_CONFIG[fg.status] || STATUS_CONFIG.default;
+                  const isSend = approvalSending[seite.id];
+                  const msg    = approvalMsg[seite.id];
+
+                  return (
+                    <div key={seite.id} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 90px 90px 130px 180px',
+                      gap: 8, padding: '10px 16px', alignItems: 'center',
+                      borderBottom: idx < seiten.length - 1
+                        ? '0.5px solid var(--border-light)' : 'none',
+                    }}>
+                      {/* Seitenname */}
+                      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+                        {seite.order}. {seite.name}
+                      </span>
+
+                      {/* Typ */}
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, padding: '2px 7px',
+                        borderRadius: 8,
+                        background: 'var(--color-background-info)',
+                        color: 'var(--color-text-info)',
+                      }}>
+                        {seite.typ}
+                      </span>
+
+                      {/* Keyword */}
+                      <span style={{
+                        fontSize: 11, color: 'var(--text-tertiary)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {seite.keyword || '—'}
+                      </span>
+
+                      {/* Status */}
+                      <div>
+                        <span style={{
+                          fontSize: 10, fontWeight: 600, padding: '3px 9px',
+                          borderRadius: 10, background: sc.bg, color: sc.color,
+                          display: 'inline-block',
+                        }}>
+                          {sc.label}
+                        </span>
+                        {fg.angefragt_am && fg.status === 'angefragt' && (
+                          <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                            {fg.angefragt_am}
+                          </div>
+                        )}
+                        {fg.freigegeben_am && fg.status === 'freigegeben' && (
+                          <div style={{ fontSize: 10, color: '#27500A', marginTop: 2 }}>
+                            {fg.freigegeben_am}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Aktion */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {fg.status === 'freigegeben' ? (
+                          <button
+                            onClick={() => confirmApproval(seite.id, false)}
+                            style={{
+                              padding: '5px 10px', borderRadius: 6,
+                              border: '0.5px solid var(--border-light)',
+                              background: 'transparent', color: 'var(--text-secondary)',
+                              fontSize: 11, cursor: 'pointer',
+                            }}
+                          >
+                            Freigabe zurückziehen
+                          </button>
+                        ) : (
+                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                            <button
+                              onClick={() => requestApproval(seite)}
+                              disabled={isSend}
+                              style={{
+                                padding: '5px 10px', borderRadius: 6, border: 'none',
+                                background: isSend ? '#94a3b8' : '#008eaa',
+                                color: 'white', fontSize: 11, fontWeight: 600,
+                                cursor: isSend ? 'not-allowed' : 'pointer',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {isSend ? '⏳' : '📧 Freigabe anfragen'}
+                            </button>
+                            <button
+                              onClick={() => confirmApproval(seite.id, true)}
+                              style={{
+                                padding: '5px 10px', borderRadius: 6,
+                                border: '0.5px solid #97C459',
+                                background: '#EAF3DE', color: '#27500A',
+                                fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap',
+                              }}
+                            >
+                              ✓ Manuell
+                            </button>
+                          </div>
+                        )}
+                        {msg && (
+                          <div style={{
+                            fontSize: 10,
+                            color: msg.startsWith('✓') ? '#27500A' : '#A32D2D',
+                          }}>
+                            {msg}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Hinweis */}
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              "Freigabe anfragen" sendet eine E-Mail an {project?.email || '(keine E-Mail hinterlegt)'}.
+              "Manuell" erteilt die Freigabe direkt ohne E-Mail.
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Zugangsdaten-Tab ────────────────────────────────────────────────── */}
       {activeTab === 'zugangsdaten' && (

@@ -4,9 +4,7 @@ from sqlalchemy import text
 from database import get_db
 from routers.auth_router import require_admin, get_current_user
 from datetime import datetime
-import json
-import os
-import logging
+import json, os, logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/products", tags=["products"])
@@ -63,22 +61,22 @@ def create_product(data: dict, db: Session = Depends(get_db),
         VALUES (:slug, :name, :sd, :ld, :pb, :pn, :tr, :pt,
           :dd, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :status, :so)
     """), {
-        "slug": slug,
-        "name": data.get("name", ""),
-        "sd": data.get("short_desc", ""),
-        "ld": data.get("long_desc", ""),
-        "pb": float(data.get("price_brutto", 0)),
-        "pn": float(data.get("price_netto", 0)),
-        "tr": float(data.get("tax_rate", 19)),
-        "pt": data.get("payment_type", "once"),
-        "dd": int(data.get("delivery_days", 14)),
-        "hl": bool(data.get("highlighted", False)),
-        "hll": data.get("highlight_label", "Empfehlung"),
-        "feat": json.dumps(data.get("features", [])),
-        "cf": json.dumps(data.get("checkout_fields", [])),
-        "wa": json.dumps(data.get("webhook_actions", [])),
+        "slug":   slug,
+        "name":   data.get("name", ""),
+        "sd":     data.get("short_desc", ""),
+        "ld":     data.get("long_desc", ""),
+        "pb":     float(data.get("price_brutto", 0)),
+        "pn":     float(data.get("price_netto", 0)),
+        "tr":     float(data.get("tax_rate", 19)),
+        "pt":     data.get("payment_type", "once"),
+        "dd":     int(data.get("delivery_days", 14)),
+        "hl":     bool(data.get("highlighted", False)),
+        "hll":    data.get("highlight_label", "Empfehlung"),
+        "feat":   json.dumps(data.get("features", [])),
+        "cf":     json.dumps(data.get("checkout_fields", [])),
+        "wa":     json.dumps(data.get("webhook_actions", [])),
         "status": data.get("status", "draft"),
-        "so": int(data.get("sort_order", 0)),
+        "so":     int(data.get("sort_order", 0)),
     })
     db.commit()
     return get_product(slug, db)
@@ -90,12 +88,20 @@ def update_product(slug: str, data: dict,
                    _=Depends(require_admin)):
     fields, params = [], {"slug": slug}
     mapping = {
-        "name": "name", "short_desc": "sd", "long_desc": "ld",
-        "price_brutto": "pb", "price_netto": "pn", "tax_rate": "tr",
-        "payment_type": "pt", "delivery_days": "dd", "highlighted": "hl",
-        "highlight_label": "hll", "status": "status",
-        "stripe_price_id": "spid", "stripe_product_id": "sprodid",
-        "sort_order": "so",
+        "name":             "name",
+        "short_desc":       "sd",
+        "long_desc":        "ld",
+        "price_brutto":     "pb",
+        "price_netto":      "pn",
+        "tax_rate":         "tr",
+        "payment_type":     "pt",
+        "delivery_days":    "dd",
+        "highlighted":      "hl",
+        "highlight_label":  "hll",
+        "status":           "status",
+        "stripe_price_id":  "spid",
+        "stripe_product_id":"sprodid",
+        "sort_order":       "so",
     }
     for k, p in mapping.items():
         if k in data:
@@ -126,9 +132,9 @@ def delete_product(slug: str, db: Session = Depends(get_db),
 @router.post("/{slug}/stripe-sync")
 def stripe_sync(slug: str, db: Session = Depends(get_db),
                 _=Depends(require_admin)):
-    import stripe
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
-    if not stripe.api_key:
+    import stripe as _stripe
+    _stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+    if not _stripe.api_key:
         raise HTTPException(422, "STRIPE_SECRET_KEY nicht gesetzt")
 
     row = db.execute(text(
@@ -139,48 +145,44 @@ def stripe_sync(slug: str, db: Session = Depends(get_db),
 
     try:
         if row["stripe_product_id"]:
-            sp = stripe.Product.modify(
+            sp = _stripe.Product.modify(
                 row["stripe_product_id"],
                 name=row["name"],
                 description=row["short_desc"] or "",
             )
         else:
-            sp = stripe.Product.create(
+            sp = _stripe.Product.create(
                 name=row["name"],
                 description=row["short_desc"] or "",
                 metadata={"slug": slug},
             )
 
         price_cents = int(float(row["price_brutto"]) * 100)
-        recurring = None
-        if row["payment_type"] == "monthly":
-            recurring = {"interval": "month"}
-        elif row["payment_type"] == "yearly":
-            recurring = {"interval": "year"}
-
         price_params = {
-            "product": sp.id,
+            "product":     sp.id,
             "unit_amount": price_cents,
-            "currency": "eur",
+            "currency":    "eur",
         }
-        if recurring:
-            price_params["recurring"] = recurring
+        if row["payment_type"] == "monthly":
+            price_params["recurring"] = {"interval": "month"}
+        elif row["payment_type"] == "yearly":
+            price_params["recurring"] = {"interval": "year"}
 
-        sp2 = stripe.Price.create(**price_params)
+        sp2 = _stripe.Price.create(**price_params)
 
         db.execute(text("""
             UPDATE products SET
-              stripe_product_id=:spid,
-              stripe_price_id=:ppid,
-              updated_at=NOW()
-            WHERE slug=:s
+              stripe_product_id = :spid,
+              stripe_price_id   = :ppid,
+              updated_at        = NOW()
+            WHERE slug = :s
         """), {"spid": sp.id, "ppid": sp2.id, "s": slug})
         db.commit()
 
         return {
-            "success": True,
+            "success":           True,
             "stripe_product_id": sp.id,
-            "stripe_price_id": sp2.id,
+            "stripe_price_id":   sp2.id,
         }
-    except stripe.error.StripeError as e:
+    except _stripe.error.StripeError as e:
         raise HTTPException(400, str(e))

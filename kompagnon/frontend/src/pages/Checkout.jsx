@@ -13,32 +13,37 @@ export default function Checkout() {
   const { isMobile } = useScreenSize();
   const cancelled = searchParams.get('cancelled');
 
+  const [packages, setPackages] = useState([]);
   const [step, setStep] = useState(1);
-  const [selected, setSelected] = useState(pkgParam || 'kompagnon');
+  const [selected, setSelected] = useState(pkgParam || searchParams.get('package') || 'kompagnon');
   const [form, setForm] = useState({ name: '', company: '', email: '', phone: '', message: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [packages, setPackages] = useState([]);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/products/public`)
       .then(r => r.json())
       .then(data => {
-        const list = (Array.isArray(data) ? data : []).map(p => ({
-          id: p.slug,
-          name: p.name,
-          price: p.price_brutto ? Number(p.price_brutto).toLocaleString('de-DE', { minimumFractionDigits: 0 }) : '0',
-          desc: p.highlight_label || p.short_desc || '',
+        const list = data.map(p => ({
+          id:        p.slug,
+          name:      p.name,
+          price:     parseFloat(p.price_brutto).toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
+          desc:      p.short_desc || '',
           highlight: p.highlighted,
-          features: Array.isArray(p.features) ? p.features : [],
+          features:  Array.isArray(p.features) ? p.features : [],
         }));
-        if (list.length > 0) setPackages(list);
+        setPackages(list);
+        // Auto-select highlighted package if none pre-selected
+        if (!pkgParam && !searchParams.get('package') && list.length > 0) {
+          const highlighted = list.find(p => p.highlight);
+          setSelected((highlighted || list[0]).id);
+        }
       })
       .catch(() => {});
-  }, []);
+  }, []); // eslint-disable-line
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  const pkg = packages.find((p) => p.id === selected) || packages[1] || { name: '', price: '', features: [] };
+  const pkg = packages.find((p) => p.id === selected) || packages[0] || { name: '', price: '', features: [] };
 
   const handleCheckout = async () => {
     if (!form.email || !form.name || !form.company) { setError('Bitte alle Pflichtfelder ausfuellen'); return; }

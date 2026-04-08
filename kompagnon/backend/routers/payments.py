@@ -10,7 +10,6 @@ from datetime import datetime
 
 import stripe
 from fastapi import APIRouter, Request, HTTPException, Depends
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import Lead, User, Project, get_db
@@ -29,37 +28,39 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.co
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
 PACKAGE_NAMES = {
-    "starter":   "Starter (5 Seiten)",
-    "kompagnon": "KOMPAGNON (8 Seiten)",
-    "premium":   "Premium (12 Seiten)",
+    "starter":   "Starter (5 Seiten · 1.500 EUR)",
+    "kompagnon": "KOMPAGNON (8 Seiten · 2.000 EUR)",
+    "premium":   "Premium (12 Seiten · 2.800 EUR)",
 }
-
 
 @router.get("/packages")
 def get_packages(db: Session = Depends(get_db)):
+    from sqlalchemy import text
     import json as _j
     rows = db.execute(text(
-        "SELECT slug,name,price_brutto,price_netto,tax_rate,"
-        "short_desc,delivery_days,highlighted,highlight_label,"
-        "features,payment_type,status "
+        "SELECT slug, name, price_brutto, price_netto, tax_rate, "
+        "short_desc, delivery_days, highlighted, highlight_label, "
+        "features, payment_type, status "
         "FROM products WHERE status='live' ORDER BY sort_order ASC"
     )).mappings().all()
     result = {}
     for r in rows:
         feats = r["features"]
         if isinstance(feats, str):
-            try: feats = _j.loads(feats)
-            except Exception: feats = []
+            try:
+                feats = _j.loads(feats)
+            except Exception:
+                feats = []
         result[r["slug"]] = {
-            "name":        r["name"],
-            "price":       int(float(r["price_brutto"]) * 100),
-            "price_eur":   float(r["price_brutto"]),
-            "netto":       float(r["price_netto"]),
-            "tax":         float(r["tax_rate"]),
-            "description": r["short_desc"] or "",
-            "features":    feats,
-            "delivery_days": r["delivery_days"],
-            "highlighted": r["highlighted"],
+            "name":            r["name"],
+            "price":           int(float(r["price_brutto"]) * 100),
+            "price_eur":       float(r["price_brutto"]),
+            "netto":           float(r["price_netto"]),
+            "tax":             float(r["tax_rate"]),
+            "description":     r["short_desc"] or "",
+            "features":        feats,
+            "delivery_days":   r["delivery_days"],
+            "highlighted":     r["highlighted"],
             "highlight_label": r["highlight_label"] or "",
         }
     return result
@@ -67,58 +68,62 @@ def get_packages(db: Session = Depends(get_db)):
 
 @router.post("/create-checkout")
 async def create_checkout(request: Request, db: Session = Depends(get_db)):
-    body = await request.json()
-    package_id = body.get("package", "kompagnon")
-    customer_email = body.get("email", "")
-    customer_name = body.get("name", "")
-    company_name = body.get("company", "")
-    website_url = body.get("website_url", "")
-    phone = body.get("phone", "")
+    from sqlalchemy import text as _t
+    import json as _j
 
-    row = db.execute(text(
+    body = await request.json()
+    package_id     = body.get("package", "kompagnon")
+    customer_email = body.get("email", "")
+    customer_name  = body.get("name", "")
+    company_name   = body.get("company", "")
+    website_url    = body.get("website_url", "")
+    phone          = body.get("phone", "")
+
+    row = db.execute(_t(
         "SELECT * FROM products WHERE slug=:s AND status='live'"
     ), {"s": package_id}).mappings().first()
     if not row:
-        raise HTTPException(400, "Ungueltiges oder nicht verfuegbares Paket")
+        raise HTTPException(400, "Ungueltiges oder nicht verfügbares Paket")
 
     price_cents = int(float(row["price_brutto"]) * 100)
-    package_name = row["name"]
-    package_desc = row["short_desc"] or ""
+    package = {
+        "name":            row["name"],
+        "price":           price_cents,
+        "description":     row["short_desc"] or "",
+        "stripe_price_id": row["stripe_price_id"],
+    }
 
     if not stripe.api_key:
         raise HTTPException(500, "Stripe nicht konfiguriert")
 
-    try:
-        if row["stripe_price_id"]:
-            line_items_param = [{
-                "price": row["stripe_price_id"],
-                "quantity": 1,
-            }]
-        else:
-            line_items_param = [{
-                "price_data": {
-                    "currency": "eur",
-                    "product_data": {
-                        "name": f"KOMPAGNON {package_name}",
-                        "description": package_desc,
-                    },
-                    "unit_amount": price_cents,
+    if row["stripe_price_id"]:
+        line_items_param = [{"price": row["stripe_price_id"], "quantity": 1}]
+    else:
+        line_items_param = [{
+            "price_data": {
+                "currency": "eur",
+                "product_data": {
+                    "name":        f"KOMPAGNON {package['name']}",
+                    "description": package["description"],
                 },
-                "quantity": 1,
-            }]
+                "unit_amount": price_cents,
+            },
+            "quantity": 1,
+        }]
 
+    try:
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=line_items_param,
             mode="payment",
             customer_email=customer_email or None,
             metadata={
-                "package": package_id,
-                "company_name": company_name,
-                "customer_name": customer_name,
-                "customer_email": customer_email,
-                "website_url": website_url,
-                "phone": phone,
+                "package":          package_id,
+                "company_name":     company_name,
+                "customer_name":    customer_name,
+                "customer_email":   customer_email,
+                "website_url":      website_url,
+                "phone":            phone,
             },
             success_url=f"{FRONTEND_URL}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{FRONTEND_URL}/checkout?cancelled=1",
@@ -251,35 +256,38 @@ def _handle_successful_payment(session: dict, db: Session):
     # ── COMMIT (Lead + User + Projekt) ───────────────────────
     db.commit()
 
-    # ── 3b. AUFTRAGSBESTAETIGUNG PDF ────────────────────────
+    # ── AUTO-SEQUENZ FÜR STRIPE-KÄUFER ──────────────────────
     try:
-        from services.auftrag_pdf import generate_auftragsbestaetigung
-        from services.email import send_email as send_mail_with_attachment
-        session_id = session.get("id", "")
-        paket_name_ab = PACKAGE_NAMES.get(package_id, "KOMPAGNON Website-Komplett-Paket")
-        preis_ab = f"{amount:,.2f} \u20ac".replace(",", "X").replace(".", ",").replace("X", ".")
-        pdf_path = generate_auftragsbestaetigung(
-            session_id=session_id,
-            customer_name=customer_name if 'customer_name' in dir() else name,
-            customer_email=email,
-            paket=paket_name_ab,
-            preis=preis_ab,
-        )
-        if email:
-            send_mail_with_attachment(
-                to_email=email,
-                subject="Ihre Auftragsbestaetigung \u2013 KOMPAGNON",
-                html_body="<p>Vielen Dank fuer Ihren Auftrag! Im Anhang finden Sie Ihre Auftragsbestaetigung.</p><p>Herzliche Gruesse,<br>Ihr KOMPAGNON Team</p>",
-                attachment_path=pdf_path,
-            )
-        if project_id:
-            db.execute(text(
-                "UPDATE projects SET auftragsbestaetigung_pdf = :path WHERE id = :id"
-            ), {"path": pdf_path, "id": project_id})
-            db.commit()
-        logger.info(f"Stripe: Auftragsbestaetigung erstellt und gesendet an {email}")
+        from services.sequence_runner import start_sequence_for_lead
+        import threading
+        threading.Thread(
+            target=start_sequence_for_lead,
+            args=(lead.id,),
+            daemon=True,
+        ).start()
     except Exception as e:
-        logger.error(f"Stripe: Auftragsbestaetigung Fehler: {e}")
+        logger.warning(f"Stripe Auto-Sequenz Fehler: {e}")
+
+    # ── AUFTRAGSBESTÄTIGUNG PDF ──────────────────────────────
+    pdf_path = None
+    try:
+        from services.auftragsbestaetigung_pdf import save_auftragsbestaetigung
+        pdf_path = save_auftragsbestaetigung(
+            session_id     = session.get("id", ""),
+            customer_name  = name or company or email,
+            customer_email = email,
+            company_name   = company or "",
+            package_id     = package_id,
+            amount_eur     = amount,
+        )
+        if project_id:
+            proj = db.query(Project).filter(Project.id == project_id).first()
+            if proj:
+                proj.auftragsbestaetigung_pdf = pdf_path
+                db.commit()
+        logger.info(f"Auftragsbestaetigung gespeichert: {pdf_path}")
+    except Exception as e:
+        logger.error(f"Auftragsbestaetigung PDF Fehler: {e}")
 
     # ── 4. WILLKOMMENS-E-MAIL ────────────────────────────────
     if email:
@@ -421,9 +429,11 @@ def _handle_successful_payment(session: dict, db: Session):
             """
 
             send_email(
-                to_email  = email,
-                subject   = "Willkommen bei KOMPAGNON — Ihre Zugangsdaten",
-                html_body = html_body,
+                to_email        = email,
+                subject         = "Willkommen bei KOMPAGNON — Ihre Zugangsdaten",
+                html_body       = html_body,
+                attachment_path = pdf_path,
+                attachment_name = "KOMPAGNON-Auftragsbestaetigung.pdf",
             )
             logger.info(f"Stripe: Willkommens-E-Mail gesendet an {email}")
 

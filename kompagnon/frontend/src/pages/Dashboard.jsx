@@ -11,6 +11,7 @@ import OnboardingWizard from '../components/OnboardingWizard';
 export default function Dashboard() {
   const { token, user } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
   const navigate = useNavigate();
   const { isMobile } = useScreenSize();
   const [kpis, setKpis] = useState(null);
@@ -43,14 +44,33 @@ export default function Dashboard() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (
-      user?.role === 'kunde' &&
-      user?.onboarding_completed === false &&
-      user?.lead_id
-    ) {
-      setShowOnboarding(true);
-    }
-  }, [user]);
+    if (!user || onboardingChecked) return;
+    setOnboardingChecked(true);
+
+    // Nur für Kunden mit verknüpftem Lead
+    if (user.role !== 'kunde' || !user.lead_id) return;
+
+    // Onboarding-Status vom Server prüfen
+    const checkOnboarding = async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/auth/me`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('kompagnon_token')}`,
+            },
+          }
+        );
+        if (res.ok) {
+          const me = await res.json();
+          if (me.onboarding_completed === false) {
+            setShowOnboarding(true);
+          }
+        }
+      } catch {}
+    };
+    checkOnboarding();
+  }, [user, onboardingChecked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const KpiCard = ({ label, value, icon, delta, color }) => (
     <Card>
@@ -118,7 +138,9 @@ export default function Dashboard() {
           user={user}
           onComplete={() => {
             setShowOnboarding(false);
-            window.location.reload();
+            // onboarding_completed Flag lokal aktualisieren
+            // damit kein zweiter Check den Wizard nochmal zeigt
+            setOnboardingChecked(true);
           }}
         />
       )}

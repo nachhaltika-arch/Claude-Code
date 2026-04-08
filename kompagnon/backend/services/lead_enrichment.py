@@ -6,8 +6,74 @@ import os
 import asyncio
 import logging
 import httpx
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+
+async def check_google_business_profile(
+    company_name: str,
+    city: str = "",
+) -> dict:
+    """
+    Prüft ob ein Google Business Profil existiert.
+    Nutzt Google Places Text Search API.
+    Gibt dict zurück: claimed, place_id, rating, ratings_total
+    """
+    api_key = os.getenv("GOOGLE_PLACES_API_KEY", "")
+    if not api_key:
+        api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+
+    if not api_key or not company_name:
+        return {"claimed": False, "place_id": None,
+                "rating": None, "ratings_total": None}
+
+    query = f"{company_name} {city}".strip()
+
+    try:
+        url = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+        params = {
+            "input":     query,
+            "inputtype": "textquery",
+            "fields":    "name,place_id,rating,user_ratings_total",
+            "key":       api_key,
+        }
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(url, params=params)
+
+        if resp.status_code != 200:
+            logger.warning(f"GBP API HTTP {resp.status_code} für {query}")
+            return {"claimed": False, "place_id": None,
+                    "rating": None, "ratings_total": None}
+
+        data       = resp.json()
+        status     = data.get("status", "")
+        candidates = data.get("candidates", [])
+
+        if status == "OK" and candidates:
+            c = candidates[0]
+            return {
+                "claimed":       True,
+                "place_id":      c.get("place_id"),
+                "rating":        c.get("rating"),
+                "ratings_total": c.get("user_ratings_total"),
+            }
+
+        if status == "REQUEST_DENIED":
+            logger.warning(
+                "GBP API: REQUEST_DENIED — "
+                "Places API für diesen Key aktivieren: "
+                "https://console.cloud.google.com/apis/library/"
+                "places-backend.googleapis.com"
+            )
+
+        return {"claimed": False, "place_id": None,
+                "rating": None, "ratings_total": None}
+
+    except Exception as e:
+        logger.warning(f"GBP Check Fehler für {query}: {e}")
+        return {"claimed": False, "place_id": None,
+                "rating": None, "ratings_total": None}
 
 
 async def enrich_lead(lead_id: int, db) -> dict:
@@ -89,6 +155,20 @@ async def enrich_lead(lead_id: int, db) -> dict:
     except Exception:
         pass
 
+    # 3b. Google Business Profile Check
+    gbp = {"claimed": False, "place_id": None, "rating": None, "ratings_total": None}
+    try:
+        company  = enriched.get("company_name") or lead.company_name or ""
+        city_val = enriched.get("city") or lead.city or ""
+        already_checked = (
+            lead.gbp_checked_at is not None
+            and (datetime.utcnow() - lead.gbp_checked_at).days < 7
+        )
+        if not already_checked and company:
+            gbp = await check_google_business_profile(company, city_val)
+    except Exception as e:
+        logger.warning(f"GBP Check übersprungen: {e}")
+
     # 4. Compute analysis score (0-100)
     score = 0
     if has_ssl:
@@ -118,8 +198,13 @@ async def enrich_lead(lead_id: int, db) -> dict:
             if value:
                 setattr(lead, key, value)
 
-        lead.analysis_score = score
-        lead.geo_score = geo_score
+        lead.analysis_score    = score
+        lead.geo_score         = geo_score
+        lead.gbp_place_id      = gbp.get("place_id")
+        lead.gbp_claimed       = gbp.get("claimed", False)
+        lead.gbp_rating        = gbp.get("rating")
+        lead.gbp_ratings_total = gbp.get("ratings_total")
+        lead.gbp_checked_at    = datetime.utcnow()
 
         note = (
             f"[Auto-Enrichment] SSL: {'OK' if has_ssl else 'FEHLT'} | "

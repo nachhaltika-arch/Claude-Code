@@ -152,7 +152,7 @@ function SectionCard({ section, token, onUpdated }) {
           <textarea
             value={final}
             onChange={e => { setFinal(e.target.value); saveFinal(e.target.value); }}
-            placeholder="Finaler Text fuer das Design..."
+            placeholder="Finaler Text für den Design..."
             rows={4}
             style={{ width: '100%', fontSize: 12, border: '1px solid #A7F3D0', borderRadius: 6, padding: '6px 8px', resize: 'vertical', fontFamily: 'var(--font-sans)', background: '#F7FEF9', color: 'var(--text-primary)', boxSizing: 'border-box' }}
           />

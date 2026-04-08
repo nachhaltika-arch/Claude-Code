@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import API_BASE_URL from '../config';
-import { useScreenSize } from '../utils/responsive';
 import WZSearch from './WZSearch';
+import { useScreenSize } from '../utils/responsive';
 
 const TEAL   = '#008EAA';
 const STEPS  = [
@@ -152,8 +152,16 @@ function ProgressBar({ step }) {
 function Step1({ data, set }) {
   return (
     <>
-      <Field label="Gewerk / Branche" required hint="Tippen Sie den Anfang Ihres Gewerks ein und waehlen Sie aus der Liste.">
-        <WZSearch value={data.gewerk} onChange={v => set('gewerk', v)} placeholder="Gewerk suchen, z.B. Sanitaer, Elektriker..." />
+      <Field label="Gewerk / Branche" required hint="Wählen Sie die Hauptbranche Ihres Betriebs.">
+        <WZSearch
+          value={data.wz_code ? { code: data.wz_code, title: data.wz_title } : null}
+          onChange={(entry) => {
+            set('wz_code', entry?.code || '');
+            set('wz_title', entry?.title || '');
+            set('gewerk', entry?.title || '');
+          }}
+          placeholder="Branche suchen, z.B. 'Elektro', 'Sanitär', 'Maler'..."
+        />
       </Field>
       <Field label="Leistungen" required hint="Was bieten Sie an? Bitte alle Leistungen auflisten.">
         <Textarea
@@ -430,6 +438,8 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
   const [data, setData] = useState({
     // Step 1
     gewerk:            leadData?.gewerk            || '',
+    wz_code:           leadData?.wz_code           || '',
+    wz_title:          leadData?.wz_title          || '',
     leistungen:        leadData?.leistungen        || '',
     einzugsgebiet:     leadData?.einzugsgebiet     || '',
     // Step 2
@@ -457,7 +467,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
   const set = (key, val) => setData(d => ({ ...d, [key]: val }));
 
   const canNext = () => {
-    if (step === 0) return !!data.gewerk && !!data.leistungen.trim();
+    if (step === 0) return !!(data.gewerk || data.wz_code) && !!data.leistungen.trim();
     if (step === 1) return !!data.zielgruppe;
     if (step === 2) return !!data.usp.trim();
     if (step === 3) return !!data.stil;
@@ -472,6 +482,8 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
       const token = localStorage.getItem('kompagnon_token');
       const payload = {
         gewerk:            data.gewerk,
+        wz_code:           data.wz_code,
+        wz_title:          data.wz_title,
         leistungen:        data.leistungen,
         einzugsgebiet:     data.einzugsgebiet,
         usp:               data.usp,

@@ -271,8 +271,8 @@ def generate_briefing_pdf(briefing, company_name: str) -> bytes:
          "Gemeinsam definieren wir die Seitenstruktur und den Navigationsaufbau Ihrer neuen Website."),
         ("2", "Phase 2: KI-Textentwurf generieren und abstimmen",
          "Auf Basis des Briefings erstellen wir mit KI-Unterstützung erste Textvorschläge für alle Seiten."),
-        ("3", "Phase 3: Design praesentieren und freigeben",
-         "Sie erhalten einen visuellen Design-Entwurf und erteilen nach Abstimmung die Freigabe fuer die Umsetzung."),
+        ("3", "Phase 3: Design-Design präsentieren und freigeben",
+         "Sie erhalten ein visuelles Design und erteilen nach Abstimmung die Freigabe für die Umsetzung."),
         ("4", "Phase 4: Go-Live",
          "Nach finaler Qualitätsprüfung geht Ihre neue Website live – inkl. Einweisung und Übergabe."),
     ]

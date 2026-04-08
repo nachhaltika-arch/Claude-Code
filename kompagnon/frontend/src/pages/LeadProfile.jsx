@@ -11,6 +11,7 @@ import SecurityChecklist from '../components/SecurityChecklist';
 import AuditReport from '../components/AuditReport';
 import BriefingTab from '../components/BriefingTab';
 import BriefingWizard from '../components/BriefingWizard';
+import WZSearch from '../components/WZSearch';
 import SitemapPlaner from '../components/SitemapPlaner';
 import ContentManager from '../components/ContentManager';
 import OfferTab from '../components/OfferTab';
@@ -20,7 +21,6 @@ import PageSpeedSection from '../components/PageSpeedSection';
 import API_BASE_URL from '../config';
 import NewsletterDesigner from '../components/NewsletterDesigner';
 import { useScreenSize } from '../utils/responsive';
-import WZSearch from '../components/WZSearch';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -66,10 +66,63 @@ const TABS = [
   { id: 'dateien',    label: 'Dateien',     icon: '📎' },
   { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
-  { id: 'sitemap',    label: 'Sitemap',     icon: '🗺️' },
-  { id: 'content',    label: 'Content',     icon: '📝' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
+  { id: 'emails',     label: '📧 E-Mails',  icon: '' },
 ];
+
+const GbpBadge = ({ lead }) => {
+  if (!lead) return null;
+
+  const claimed = lead.gbp_claimed;
+  const rating  = lead.gbp_rating;
+  const total   = lead.gbp_ratings_total;
+
+  if (lead.gbp_checked_at === undefined || lead.gbp_checked_at === null) {
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '3px 10px', borderRadius: 12, fontSize: 11,
+        fontWeight: 500, background: '#F1EFE8', color: '#5F5E5A',
+        border: '0.5px solid #D3D1C7',
+      }}>
+        <span>📍</span> Google Business: Nicht geprüft
+      </span>
+    );
+  }
+
+  if (!claimed) {
+    return (
+      <span
+        title="Kein Google Business Profil gefunden — starkes Verkaufsargument!"
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          padding: '3px 10px', borderRadius: 12, fontSize: 11,
+          fontWeight: 600, background: '#FCEBEB', color: '#A32D2D',
+          border: '0.5px solid #F09595', cursor: 'default',
+        }}
+      >
+        <span>⚠</span> Google Business: Nicht eingetragen
+      </span>
+    );
+  }
+
+  const stars = rating ? `⭐ ${rating.toFixed(1)}` : '✓';
+  const count = total  ? ` (${total} Bewertungen)` : '';
+
+  return (
+    <span
+      title={`Google Place ID: ${lead.gbp_place_id || '—'}`}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '3px 10px', borderRadius: 12, fontSize: 11,
+        fontWeight: 600, background: '#EAF3DE', color: '#27500A',
+        border: '0.5px solid #97C459', cursor: 'default',
+      }}
+    >
+      {stars} Google Business{count}
+    </span>
+  );
+};
 
 export default function LeadProfile() {
   const { leadId } = useParams();
@@ -117,11 +170,11 @@ export default function LeadProfile() {
   const [showBriefingWizard, setShowBriefingWizard] = useState(false);
   const [briefingData, setBriefingData] = useState(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
-  // Mockup tab
-  const [mockupRunning, setMockupRunning] = useState(false);
-  const [mockupSlow, setMockupSlow] = useState(false);
-  const [mockupResult, setMockupResult] = useState(null);
-  const [mockupError, setMockupError] = useState('');
+  // Design tab
+  const [designRunning, setDesignRunning] = useState(false);
+  const [designSlow, setDesignSlow] = useState(false);
+  const [designResult, setDesignResult] = useState(null);
+  const [designError, setDesignError] = useState('');
   // Template assignment
   const [assignedTemplate, setAssignedTemplate] = useState(null);
   const [templateLoading, setTemplateLoading] = useState(false);
@@ -136,6 +189,10 @@ export default function LeadProfile() {
   const [msgChannel, setMsgChannel] = useState('in_app');
   const [msgSubject, setMsgSubject] = useState('');
   const [msgSending, setMsgSending] = useState(false);
+  // E-Mail-Sequenz
+  const [emailLogs, setEmailLogs]       = useState([]);
+  const [seqStatus, setSeqStatus]       = useState(null);
+  const [emailLoading, setEmailLoading] = useState(false);
 
   const h = {
     'Content-Type': 'application/json',
@@ -170,6 +227,40 @@ export default function LeadProfile() {
     const interval = setInterval(loadMessages, 30000);
     return () => clearInterval(interval);
   }, [activeTab, leadId]); // eslint-disable-line
+
+  useEffect(() => {
+    if (activeTab === 'emails') loadEmailData();
+  }, [activeTab]); // eslint-disable-line
+
+  const loadEmailData = async () => {
+    setEmailLoading(true);
+    try {
+      const r = await fetch(
+        `${API_BASE_URL}/api/leads/${leadId}/email-logs`,
+        { headers: h }
+      );
+      if (r.ok) setEmailLogs(await r.json());
+
+      if (profile?.lead) {
+        setSeqStatus({
+          active:    profile.lead.sequence_active,
+          paused:    profile.lead.sequence_paused,
+          step:      profile.lead.sequence_step || 0,
+          last_sent: profile.lead.sequence_last_sent,
+        });
+      }
+    } catch {}
+    setEmailLoading(false);
+  };
+
+  const seqAction = async (action) => {
+    await fetch(
+      `${API_BASE_URL}/api/leads/${leadId}/sequence/${action}`,
+      { method: 'POST', headers: h }
+    );
+    await loadProfile();
+    await loadEmailData();
+  };
 
   const checkDomain = async () => {
     setDomainLoading(true);
@@ -210,6 +301,8 @@ export default function LeadProfile() {
         postal_code: lead.postal_code || '',
         city: lead.city || '',
         trade: lead.trade || '',
+        wz_code: lead.wz_code || '',
+        wz_title: lead.wz_title || '',
         legal_form: lead.legal_form || '',
         vat_id: lead.vat_id || '',
         register_number: lead.register_number || '',
@@ -288,12 +381,12 @@ export default function LeadProfile() {
     } catch { toast.error('Fehler beim Zuweisen'); }
   };
 
-  const generateMockup = async () => {
-    setMockupRunning(true);
-    setMockupSlow(false);
-    setMockupError('');
-    setMockupResult(null);
-    const slowTimer = setTimeout(() => setMockupSlow(true), 20000);
+  const generateDesign = async () => {
+    setDesignRunning(true);
+    setDesignSlow(false);
+    setDesignError('');
+    setDesignResult(null);
+    const slowTimer = setTimeout(() => setDesignSlow(true), 20000);
     try {
       // Fetch briefing first
       const bRes = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers: h });
@@ -317,7 +410,7 @@ export default function LeadProfile() {
         ziel_keyword: '',
         cta_text: '',
       };
-      console.log('Mockup payload:', JSON.stringify(payload, null, 2));
+      console.log('Design payload:', JSON.stringify(payload, null, 2));
 
       // Start background job — returns immediately with job_id
       const startRes = await fetch(`${API_BASE_URL}/api/agents/${projectId}/content`, {
@@ -345,13 +438,13 @@ export default function LeadProfile() {
         if (job.status === 'error') throw new Error(job.error || 'KI-Generierung fehlgeschlagen');
       }
       if (!result) throw new Error('Zeitüberschreitung — bitte erneut versuchen');
-      setMockupResult(result);
+      setDesignResult(result);
     } catch (e) {
-      setMockupError(e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.');
+      setDesignError(e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.');
     } finally {
       clearTimeout(slowTimer);
-      setMockupRunning(false);
-      setMockupSlow(false);
+      setDesignRunning(false);
+      setDesignSlow(false);
     }
   };
 
@@ -546,10 +639,7 @@ export default function LeadProfile() {
   };
 
   const extractFromImpressum = async () => {
-    if (!profile?.lead?.website_url) {
-      alert('Keine Website-URL vorhanden');
-      return;
-    }
+    if (!profile?.lead?.website_url) return;
     setExtracting(true);
     setExtractResult(null);
     try {
@@ -559,10 +649,7 @@ export default function LeadProfile() {
       );
       const data = await res.json();
       if (!res.ok) {
-        setExtractResult({
-          success: false,
-          message: data.detail || `Fehler ${res.status}`,
-        });
+        setExtractResult({ success: false, message: data.detail || 'Fehler' });
         return;
       }
       const count = Object.keys(data.updated_fields || {}).length;
@@ -571,15 +658,12 @@ export default function LeadProfile() {
         success: true,
         message: count > 0
           ? `${count} Felder importiert${skipped > 0 ? `, ${skipped} bereits vorhanden` : ''}`
-          : 'Alle Felder bereits befuellt',
+          : 'Alle Felder bereits befüllt',
         updated: data.updated_fields,
       });
       if (count > 0) await loadProfile();
-    } catch (err) {
-      setExtractResult({
-        success: false,
-        message: `Verbindungsfehler: ${err.message}`,
-      });
+    } catch {
+      setExtractResult({ success: false, message: 'Verbindungsfehler' });
     } finally {
       setExtracting(false);
     }
@@ -658,7 +742,7 @@ export default function LeadProfile() {
     : null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease', width: '100%', minWidth: 0, overflowX: 'hidden', padding: isMobile ? '0 4px' : undefined }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease', maxWidth: 1200, margin: '0 auto', width: '100%', minWidth: 0, overflowX: 'hidden', padding: isMobile ? '0 4px' : undefined }}>
 
       {/* HEADER */}
       <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: isMobile ? '12px 16px' : '24px', color: 'white', position: 'relative', overflow: 'hidden' }}>
@@ -722,26 +806,8 @@ export default function LeadProfile() {
                   {improvement >= 0 ? '↑' : '↓'}{Math.abs(improvement)} Punkte
                 </span>
               )}
-              {/* GBP Badge */}
-              {lead.gbp_claimed === false || lead.gbp_claimed == null ? (
-                <span style={{ fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 999, background: 'rgba(226,75,74,0.2)', color: '#fca5a5' }}>
-                  Google Business nicht beansprucht
-                </span>
-              ) : lead.gbp_rating != null ? (
-                <span style={{ fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 999, background: 'rgba(29,158,117,0.2)', color: '#86efac' }}>
-                  Google ⭐ {lead.gbp_rating} ({lead.gbp_ratings_total || 0} Bewertungen)
-                </span>
-              ) : (
-                <span style={{ fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 999, background: 'rgba(0,142,170,0.2)', color: '#7dd3fc' }}>
-                  Google Business vorhanden
-                </span>
-              )}
+              <GbpBadge lead={profile?.lead} />
             </div>
-            {lead.gbp_claimed === false && (
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
-                Verkaufsargument: Wir richten das Google Business Profil ein
-              </div>
-            )}
           </div>
 
           {current_score !== null && (
@@ -770,6 +836,29 @@ export default function LeadProfile() {
 
           <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 500, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
             ✏️ Bearbeiten
+          </button>
+
+          <button
+            onClick={async () => {
+              try {
+                await fetch(
+                  `${API_BASE_URL}/api/leads/${leadId}/enrich`,
+                  { method: 'POST', headers: h }
+                );
+                await loadProfile();
+              } catch {}
+            }}
+            title="Google Business + alle Daten neu prüfen"
+            style={{
+              padding: '6px 12px', borderRadius: 7,
+              background: 'rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              fontSize: 12, cursor: 'pointer', color: 'white',
+              fontFamily: 'var(--font-sans)',
+              width: isMobile ? '100%' : undefined,
+            }}
+          >
+            🔄 Neu prüfen
           </button>
 
           <button
@@ -820,32 +909,6 @@ export default function LeadProfile() {
           Noch kein Briefing vorhanden
         </div>
       )}
-
-      {/* LINKED PROJECT */}
-      <div style={{ background: projectId ? 'var(--brand-primary-light)' : 'var(--bg-surface)', border: `1px solid ${projectId ? 'rgba(0,142,170,0.2)' : 'var(--border-light)'}`, borderRadius: 'var(--radius-md)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-        {projectData ? (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Verknuepftes Projekt</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary)' }}>{projectData.company_name || projectData.name || ''}</span>
-              <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 999, background: 'var(--brand-primary)', color: '#fff', fontWeight: 600 }}>
-                Phase {(projectData.status || '').replace('phase_', '')} von 7
-              </span>
-              <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 999, background: projectData.status !== 'completed' ? 'var(--status-success-bg)' : 'var(--bg-app)', color: projectData.status !== 'completed' ? 'var(--status-success-text)' : 'var(--text-secondary)', fontWeight: 500 }}>
-                {projectData.status === 'completed' ? 'Abgeschlossen' : 'Aktiv'}
-              </span>
-            </div>
-            <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', background: 'none', border: '1px solid var(--brand-primary)', borderRadius: 'var(--radius-md)', padding: '5px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>Zum Projekt →</button>
-          </>
-        ) : (
-          <>
-            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Noch kein Projekt angelegt</span>
-            <button onClick={createProject} disabled={creatingProject} style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: creatingProject ? 'var(--bg-app)' : 'var(--brand-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '6px 14px', cursor: creatingProject ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
-              {creatingProject ? 'Anlegen...' : 'Projekt anlegen'}
-            </button>
-          </>
-        )}
-      </div>
 
       {/* TABS */}
       <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -1000,7 +1063,7 @@ export default function LeadProfile() {
 
       {/* ÜBERSICHT TAB */}
       {activeTab === 'overview' && (
-        <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '1fr 2fr' : isTablet ? '1fr 2fr' : '1fr', gap: 16, alignItems: 'flex-start', minWidth: 0, width: '100%', overflowX: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '340px 1fr' : isTablet ? '280px 1fr' : '1fr', gap: 16, alignItems: 'flex-start', minWidth: 0, width: '100%', overflowX: 'hidden' }}>
 
           {/* Linke Spalte */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
@@ -1432,8 +1495,17 @@ export default function LeadProfile() {
                   </div>
                 ))}
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Gewerk</div>
-                  <WZSearch value={editData.trade || ''} onChange={val => setEditData(p => ({ ...p, trade: val }))} placeholder="Gewerk suchen, z.B. Sanitaer, Elektriker..." />
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Gewerk / Branche</div>
+                  <WZSearch
+                    value={editData.wz_code ? { code: editData.wz_code, title: editData.wz_title } : null}
+                    onChange={(entry) => setEditData(p => ({
+                      ...p,
+                      wz_code: entry?.code || '',
+                      wz_title: entry?.title || '',
+                      trade: entry?.title || '',
+                    }))}
+                    placeholder="Branche suchen..."
+                  />
                 </div>
 
                 <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
@@ -1633,7 +1705,7 @@ export default function LeadProfile() {
       {activeTab === 'akademy' && <AcademyCustomerSection leadId={lead.id} />}
 
       {/* DESIGN TAB */}
-      {activeTab === 'mockup' && (
+      {activeTab === 'design' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
@@ -1678,38 +1750,38 @@ export default function LeadProfile() {
               </div>
             )}
             <button
-              onClick={generateMockup}
-              disabled={mockupRunning || !projectId}
+              onClick={generateDesign}
+              disabled={designRunning || !projectId}
               style={{
                 padding: '10px 22px', borderRadius: 8, border: 'none',
-                background: mockupRunning || !projectId ? 'var(--bg-muted)' : 'var(--brand-primary)',
-                color: mockupRunning || !projectId ? 'var(--text-tertiary)' : '#fff',
-                fontSize: 14, fontWeight: 600, cursor: mockupRunning || !projectId ? 'not-allowed' : 'pointer',
+                background: designRunning || !projectId ? 'var(--bg-muted)' : 'var(--brand-primary)',
+                color: designRunning || !projectId ? 'var(--text-tertiary)' : '#fff',
+                fontSize: 14, fontWeight: 600, cursor: designRunning || !projectId ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8,
               }}
             >
-              {mockupRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
-              {mockupRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
+              {designRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
+              {designRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
             </button>
-            {mockupSlow && (
+            {designSlow && (
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F59E0B', display: 'inline-block', flexShrink: 0 }} />
                 Claude denkt gründlich nach — das kann bis zu 55 Sekunden dauern…
               </div>
             )}
-            {mockupError && (
+            {designError && (
               <div style={{ background: 'var(--status-danger-bg)', border: '1px solid var(--status-danger-text)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--status-danger-text)', marginTop: 12 }}>
-                {typeof mockupError === 'string' ? mockupError : JSON.stringify(mockupError)}
+                {typeof designError === 'string' ? designError : JSON.stringify(designError)}
               </div>
             )}
           </div>
-          {mockupResult && (
+          {designResult && (
             <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>Generierter Entwurf</div>
-              {typeof mockupResult === 'string' ? (
-                <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'inherit', lineHeight: 1.7, margin: 0 }}>{mockupResult}</pre>
+              {typeof designResult === 'string' ? (
+                <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'inherit', lineHeight: 1.7, margin: 0 }}>{designResult}</pre>
               ) : (
-                Object.entries(mockupResult).map(([key, val]) => (
+                Object.entries(designResult).map(([key, val]) => (
                   <div key={key} style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{key}</div>
                     <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{typeof val === 'string' ? val : JSON.stringify(val, null, 2)}</div>
@@ -1762,7 +1834,7 @@ export default function LeadProfile() {
       {activeTab === 'qrcode' && (() => {
         if (!qrData && !qrLoading) { loadQrCode(); }
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '1fr 2fr' : '1fr', gap: 16, alignItems: 'flex-start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '320px 1fr' : '1fr', gap: 16, alignItems: 'flex-start' }}>
             <Card padding="md">
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>Kunden-Zugang QR-Code</div>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, lineHeight: 1.5 }}>
@@ -2067,12 +2139,151 @@ export default function LeadProfile() {
         );
       })()}
 
-      {activeTab === 'sitemap' && (
-        <SitemapPlaner leadId={leadId} token={token} />
-      )}
+      {/* E-MAILS TAB */}
+      {activeTab === 'emails' && (
+        <div style={{ padding: '20px 0' }}>
 
-      {activeTab === 'content' && (
-        <ContentManager leadId={leadId} token={token} />
+          {/* SEQUENZ-STEUERUNG */}
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 12,
+            border: '0.5px solid var(--border-light)',
+            padding: '16px 20px', marginBottom: 16,
+          }}>
+            <div style={{
+              fontSize: 12, fontWeight: 600, color: '#64748b',
+              textTransform: 'uppercase', letterSpacing: '.06em',
+              marginBottom: 12,
+            }}>
+              E-Mail-Sequenz (Tag 1 · 3 · 7)
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <span style={{
+                padding: '3px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600,
+                background: seqStatus?.active && !seqStatus?.paused
+                  ? '#E1F5EE' : seqStatus?.paused ? '#FAEEDA' : '#F1EFE8',
+                color: seqStatus?.active && !seqStatus?.paused
+                  ? '#085041' : seqStatus?.paused ? '#633806' : '#444441',
+              }}>
+                {seqStatus?.active && !seqStatus?.paused
+                  ? `Aktiv — Schritt ${seqStatus.step} von 3`
+                  : seqStatus?.paused ? 'Pausiert'
+                  : 'Inaktiv'}
+              </span>
+              {seqStatus?.last_sent && (
+                <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                  Letzter Versand: {new Date(seqStatus.last_sent).toLocaleDateString('de-DE')}
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {!seqStatus?.active && (
+                <button
+                  onClick={() => seqAction('start')}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8, border: 'none',
+                    background: '#1D9E75', color: 'white',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}>
+                  Sequenz starten
+                </button>
+              )}
+              {seqStatus?.active && !seqStatus?.paused && (
+                <button
+                  onClick={() => seqAction('pause')}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8,
+                    border: '1px solid #e2e8f0', background: 'transparent',
+                    color: '#64748b', fontSize: 12, cursor: 'pointer',
+                  }}>
+                  Pausieren
+                </button>
+              )}
+              {seqStatus?.paused && (
+                <button
+                  onClick={() => seqAction('start')}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8, border: 'none',
+                    background: '#008eaa', color: 'white',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}>
+                  Fortsetzen
+                </button>
+              )}
+              {seqStatus?.active && (
+                <button
+                  onClick={() => seqAction('stop')}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8,
+                    border: '1px solid #FECACA', background: '#FFF1F1',
+                    color: '#A32D2D', fontSize: 12, cursor: 'pointer',
+                  }}>
+                  Stoppen
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* E-MAIL-PROTOKOLL */}
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 12,
+            border: '0.5px solid var(--border-light)',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '12px 16px',
+              borderBottom: '0.5px solid var(--border-light)',
+              fontSize: 12, fontWeight: 600, color: '#64748b',
+              textTransform: 'uppercase', letterSpacing: '.06em',
+            }}>
+              Gesendete E-Mails ({emailLogs.length})
+            </div>
+
+            {emailLoading ? (
+              <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                Lädt...
+              </div>
+            ) : emailLogs.length === 0 ? (
+              <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                Noch keine E-Mails gesendet.
+              </div>
+            ) : emailLogs.map((log, i) => (
+              <div key={i} style={{
+                padding: '10px 16px',
+                borderBottom: i < emailLogs.length - 1 ? '0.5px solid var(--border-light)' : 'none',
+                display: 'flex', alignItems: 'center', gap: 10,
+              }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 600, padding: '2px 7px',
+                  borderRadius: 8,
+                  background: log.status === 'sent' ? '#EAF3DE' : '#FFF1F1',
+                  color: log.status === 'sent' ? '#27500A' : '#A32D2D',
+                  flexShrink: 0,
+                }}>
+                  {log.status === 'sent' ? '✓ Gesendet' : '✗ Fehler'}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 13, color: 'var(--text-primary)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {log.subject}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
+                    {log.template_key} ·{' '}
+                    {log.sent_at
+                      ? new Date(log.sent_at).toLocaleDateString('de-DE', {
+                          day: '2-digit', month: '2-digit', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit',
+                        })
+                      : '—'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* AUDIT DETAIL MODAL */}

@@ -718,6 +718,9 @@ def _run_migrations():
             notes TEXT,
             created_at TIMESTAMP DEFAULT NOW()
         )""",
+        # ── Sitemap JSON + Freigabe ────────────────────────────────
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS sitemap_json TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS sitemap_freigabe TIMESTAMP",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

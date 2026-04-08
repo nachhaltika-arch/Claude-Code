@@ -1301,3 +1301,45 @@ def delete_credential(project_id: int, credential_id: int, db: Session = Depends
     ), {"cid": credential_id, "pid": project_id})
     db.commit()
     return {"success": True}
+
+
+# ── Sitemap JSON + Freigabe ───────────────────────────────────────────────────
+
+@router.get("/{project_id}/sitemap")
+def get_project_sitemap(project_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    import json
+    row = db.execute(text(
+        "SELECT sitemap_json, sitemap_freigabe FROM projects WHERE id = :id"
+    ), {"id": project_id}).mappings().fetchone()
+    if not row:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    seiten = []
+    if row["sitemap_json"]:
+        try:
+            seiten = json.loads(row["sitemap_json"])
+        except Exception:
+            pass
+    return {"seiten": seiten, "freigabe": row["sitemap_freigabe"].isoformat() if row["sitemap_freigabe"] else None}
+
+
+@router.put("/{project_id}/sitemap")
+def update_project_sitemap(project_id: int, body: dict, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    import json
+    seiten = body.get("seiten", [])
+    db.execute(text(
+        "UPDATE projects SET sitemap_json = :sj WHERE id = :id"
+    ), {"sj": json.dumps(seiten, ensure_ascii=False), "id": project_id})
+    db.commit()
+    return {"success": True}
+
+
+@router.post("/{project_id}/freigabe")
+def freigabe_sitemap(project_id: int, body: dict, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    import json
+    now = datetime.utcnow()
+    seiten = body.get("seiten", [])
+    db.execute(text(
+        "UPDATE projects SET sitemap_json = :sj, sitemap_freigabe = :ts WHERE id = :id"
+    ), {"sj": json.dumps(seiten, ensure_ascii=False), "ts": now, "id": project_id})
+    db.commit()
+    return {"success": True, "freigabe": now.isoformat()}

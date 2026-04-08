@@ -707,6 +707,17 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_claimed BOOLEAN DEFAULT false",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_rating FLOAT",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_ratings_total INTEGER",
+        # ── Zugangsdaten-Safe ──────────────────────────────────────
+        """CREATE TABLE IF NOT EXISTS project_credentials (
+            id SERIAL PRIMARY KEY,
+            project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+            label VARCHAR(100) NOT NULL,
+            username VARCHAR(255),
+            password_encrypted TEXT,
+            url VARCHAR(255),
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT NOW()
+        )""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

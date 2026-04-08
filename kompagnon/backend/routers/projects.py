@@ -1239,3 +1239,65 @@ def set_abnahme(project_id: int, body: dict, db: Session = Depends(get_db), _=De
     """), {"dt": now, "name": body.get("name", "Kunde"), "id": project_id})
     db.commit()
     return {"success": True, "abnahme_datum": now.isoformat(), "abnahme_durch": body.get("name", "Kunde")}
+
+
+# ── Zugangsdaten-Safe ─────────────────────────────────────────────────────────
+
+def _get_fernet():
+    import os
+    from cryptography.fernet import Fernet
+    key = os.getenv("CREDENTIALS_KEY")
+    if not key:
+        raise HTTPException(500, "CREDENTIALS_KEY nicht konfiguriert")
+    return Fernet(key.encode())
+
+
+@router.post("/{project_id}/credentials", status_code=201)
+def create_credential(project_id: int, body: dict, db: Session = Depends(get_db), _=Depends(require_admin)):
+    f = _get_fernet()
+    password = body.get("password", "")
+    password_encrypted = f.encrypt(password.encode()).decode() if password else ""
+    db.execute(text("""
+        INSERT INTO project_credentials (project_id, label, username, password_encrypted, url, notes)
+        VALUES (:pid, :label, :user, :pw, :url, :notes)
+    """), {
+        "pid": project_id,
+        "label": body.get("label", ""),
+        "user": body.get("username", ""),
+        "pw": password_encrypted,
+        "url": body.get("url", ""),
+        "notes": body.get("notes", ""),
+    })
+    db.commit()
+    row = db.execute(text(
+        "SELECT id, label, username, url, notes, created_at FROM project_credentials "
+        "WHERE project_id = :pid ORDER BY id DESC LIMIT 1"
+    ), {"pid": project_id}).mappings().fetchone()
+    return dict(row)
+
+
+@router.get("/{project_id}/credentials")
+def list_credentials(project_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
+    f = _get_fernet()
+    rows = db.execute(text(
+        "SELECT * FROM project_credentials WHERE project_id = :pid ORDER BY created_at"
+    ), {"pid": project_id}).mappings().all()
+    result = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["password"] = f.decrypt(d.pop("password_encrypted").encode()).decode() if d.get("password_encrypted") else ""
+        except Exception:
+            d["password"] = ""
+            d.pop("password_encrypted", None)
+        result.append(d)
+    return result
+
+
+@router.delete("/{project_id}/credentials/{credential_id}")
+def delete_credential(project_id: int, credential_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
+    db.execute(text(
+        "DELETE FROM project_credentials WHERE id = :cid AND project_id = :pid"
+    ), {"cid": credential_id, "pid": project_id})
+    db.commit()
+    return {"success": True}

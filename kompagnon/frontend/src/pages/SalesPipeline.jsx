@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -24,6 +25,7 @@ export default function SalesPipeline() {
   const [dragging, setDragging] = useState(null);
   const [dragOver, setDragOver] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [wonConfirm, setWonConfirm] = useState(null);
   const [search, setSearch] = useState('');
   const [filterTrade, setFilterTrade] = useState('');
 
@@ -52,11 +54,34 @@ export default function SalesPipeline() {
     finally { setLoading(false); }
   };
 
-  const updateStatus = async (leadId, status) => {
+  const saveStatus = async (leadId, status) => {
     try {
       await fetch(`${API_BASE_URL}/api/leads/${leadId}`, { method: 'PATCH', headers: h, body: JSON.stringify({ status }) });
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status } : l));
     } catch {}
+  };
+
+  const updateStatus = (leadId, status) => {
+    if (status === 'won') {
+      const lead = leads.find(l => l.id === leadId);
+      setWonConfirm({ leadId, lead });
+      return;
+    }
+    saveStatus(leadId, status);
+  };
+
+  const handleWonConfirm = async (createProject) => {
+    const { leadId } = wonConfirm;
+    await saveStatus(leadId, 'won');
+    if (createProject) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/projects/from-lead/${leadId}`, { method: 'POST', headers: h });
+        if (res.ok) toast.success('Projekt wurde angelegt!');
+        else if (res.status === 409) toast.error('Projekt bereits vorhanden');
+        else toast.error('Fehler beim Anlegen des Projekts');
+      } catch { toast.error('Fehler beim Anlegen des Projekts'); }
+    }
+    setWonConfirm(null);
   };
 
   const deleteLead = async (leadId) => {
@@ -247,6 +272,25 @@ export default function SalesPipeline() {
             <div style={{ display: 'flex', gap: 10 }}>
               <Button variant="secondary" fullWidth onClick={() => setDeleteConfirm(null)}>Abbrechen</Button>
               <Button variant="danger" fullWidth onClick={() => deleteLead(deleteConfirm)}>Löschen</Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {wonConfirm && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setWonConfirm(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center' }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🏆</div>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Projekt anlegen?</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6 }}>
+              Der Lead <strong>{wonConfirm.lead?.company_name || 'Unbekannt'}</strong> wurde als gewonnen markiert.
+              Soll automatisch ein Projekt angelegt werden?
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => handleWonConfirm(false)} style={{ flex: 1, padding: '10px 16px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Nur Status speichern</button>
+              <button onClick={() => handleWonConfirm(true)} style={{ flex: 1, padding: '10px 16px', border: 'none', borderRadius: 'var(--radius-md)', background: '#008eaa', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, Projekt anlegen</button>
             </div>
           </div>
         </div>,

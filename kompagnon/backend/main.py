@@ -656,6 +656,14 @@ def _run_migrations():
         )""",
         "CREATE INDEX IF NOT EXISTS idx_crawl_jobs_customer ON crawl_jobs(customer_id)",
         "CREATE INDEX IF NOT EXISTS idx_crawl_results_job ON crawl_results(job_id)",
+        # ── Webhook log ────────────────────────────────────────────────
+        """CREATE TABLE IF NOT EXISTS webhook_log (
+            id SERIAL PRIMARY KEY,
+            source VARCHAR(50),
+            email VARCHAR(255),
+            company VARCHAR(255),
+            created_at TIMESTAMP DEFAULT NOW()
+        )""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -959,6 +967,9 @@ app.include_router(templates_router.router)
 
 from routers import messages as messages_router
 app.include_router(messages_router.router)
+
+from routers import webhooks
+app.include_router(webhooks.router)
 
 
 # Global exception handler — catches unhandled errors

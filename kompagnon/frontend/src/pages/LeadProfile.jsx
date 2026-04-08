@@ -70,6 +70,60 @@ const TABS = [
   { id: 'emails',     label: '📧 E-Mails',  icon: '' },
 ];
 
+const GbpBadge = ({ lead }) => {
+  if (!lead) return null;
+
+  const claimed = lead.gbp_claimed;
+  const rating  = lead.gbp_rating;
+  const total   = lead.gbp_ratings_total;
+
+  if (lead.gbp_checked_at === undefined || lead.gbp_checked_at === null) {
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '3px 10px', borderRadius: 12, fontSize: 11,
+        fontWeight: 500, background: '#F1EFE8', color: '#5F5E5A',
+        border: '0.5px solid #D3D1C7',
+      }}>
+        <span>📍</span> Google Business: Nicht geprüft
+      </span>
+    );
+  }
+
+  if (!claimed) {
+    return (
+      <span
+        title="Kein Google Business Profil gefunden — starkes Verkaufsargument!"
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          padding: '3px 10px', borderRadius: 12, fontSize: 11,
+          fontWeight: 600, background: '#FCEBEB', color: '#A32D2D',
+          border: '0.5px solid #F09595', cursor: 'default',
+        }}
+      >
+        <span>⚠</span> Google Business: Nicht eingetragen
+      </span>
+    );
+  }
+
+  const stars = rating ? `⭐ ${rating.toFixed(1)}` : '✓';
+  const count = total  ? ` (${total} Bewertungen)` : '';
+
+  return (
+    <span
+      title={`Google Place ID: ${lead.gbp_place_id || '—'}`}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '3px 10px', borderRadius: 12, fontSize: 11,
+        fontWeight: 600, background: '#EAF3DE', color: '#27500A',
+        border: '0.5px solid #97C459', cursor: 'default',
+      }}
+    >
+      {stars} Google Business{count}
+    </span>
+  );
+};
+
 export default function LeadProfile() {
   const { leadId } = useParams();
   const navigate = useNavigate();
@@ -752,6 +806,7 @@ export default function LeadProfile() {
                   {improvement >= 0 ? '↑' : '↓'}{Math.abs(improvement)} Punkte
                 </span>
               )}
+              <GbpBadge lead={profile?.lead} />
             </div>
           </div>
 
@@ -781,6 +836,29 @@ export default function LeadProfile() {
 
           <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 500, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
             ✏️ Bearbeiten
+          </button>
+
+          <button
+            onClick={async () => {
+              try {
+                await fetch(
+                  `${API_BASE_URL}/api/leads/${leadId}/enrich`,
+                  { method: 'POST', headers: h }
+                );
+                await loadProfile();
+              } catch {}
+            }}
+            title="Google Business + alle Daten neu prüfen"
+            style={{
+              padding: '6px 12px', borderRadius: 7,
+              background: 'rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              fontSize: 12, cursor: 'pointer', color: 'white',
+              fontFamily: 'var(--font-sans)',
+              width: isMobile ? '100%' : undefined,
+            }}
+          >
+            🔄 Neu prüfen
           </button>
 
           <button

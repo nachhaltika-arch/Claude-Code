@@ -701,6 +701,8 @@ def _run_migrations():
             created_at TIMESTAMP DEFAULT NOW()
         )""",
         # ── Google Business Profile ────────────────────────────────
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS auftragsbestaetigung_pdf VARCHAR",
+        # ── Google Business Profile ────────────────────────────────
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_place_id VARCHAR",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_claimed BOOLEAN DEFAULT false",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_rating FLOAT",

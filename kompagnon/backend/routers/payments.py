@@ -10,6 +10,7 @@ from datetime import datetime
 
 import stripe
 from fastapi import APIRouter, Request, HTTPException, Depends
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import Lead, User, Project, get_db
@@ -228,6 +229,36 @@ def _handle_successful_payment(session: dict, db: Session):
 
     # ── COMMIT (Lead + User + Projekt) ───────────────────────
     db.commit()
+
+    # ── 3b. AUFTRAGSBESTAETIGUNG PDF ────────────────────────
+    try:
+        from services.auftrag_pdf import generate_auftragsbestaetigung
+        from services.email import send_email as send_mail_with_attachment
+        session_id = session.get("id", "")
+        paket_name_ab = PACKAGE_NAMES.get(package_id, "KOMPAGNON Website-Komplett-Paket")
+        preis_ab = f"{amount:,.2f} \u20ac".replace(",", "X").replace(".", ",").replace("X", ".")
+        pdf_path = generate_auftragsbestaetigung(
+            session_id=session_id,
+            customer_name=customer_name if 'customer_name' in dir() else name,
+            customer_email=email,
+            paket=paket_name_ab,
+            preis=preis_ab,
+        )
+        if email:
+            send_mail_with_attachment(
+                to_email=email,
+                subject="Ihre Auftragsbestaetigung \u2013 KOMPAGNON",
+                html_body="<p>Vielen Dank fuer Ihren Auftrag! Im Anhang finden Sie Ihre Auftragsbestaetigung.</p><p>Herzliche Gruesse,<br>Ihr KOMPAGNON Team</p>",
+                attachment_path=pdf_path,
+            )
+        if project_id:
+            db.execute(text(
+                "UPDATE projects SET auftragsbestaetigung_pdf = :path WHERE id = :id"
+            ), {"path": pdf_path, "id": project_id})
+            db.commit()
+        logger.info(f"Stripe: Auftragsbestaetigung erstellt und gesendet an {email}")
+    except Exception as e:
+        logger.error(f"Stripe: Auftragsbestaetigung Fehler: {e}")
 
     # ── 4. WILLKOMMENS-E-MAIL ────────────────────────────────
     if email:

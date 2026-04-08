@@ -7,11 +7,13 @@ import os
 import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 
 logger = logging.getLogger(__name__)
 
 
-def send_email(to_email: str, subject: str, html_body: str, text_body: str = "") -> bool:
+def send_email(to_email: str, subject: str, html_body: str, text_body: str = "", attachment_path: str = None) -> bool:
     smtp_host = os.getenv("SMTP_HOST", "")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_user = os.getenv("SMTP_USER", "")
@@ -24,13 +26,24 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str = "")
         return False
 
     try:
-        msg = MIMEMultipart("alternative")
+        msg = MIMEMultipart("mixed")
+        body_part = MIMEMultipart("alternative")
+        if text_body:
+            body_part.attach(MIMEText(text_body, "plain", "utf-8"))
+        body_part.attach(MIMEText(html_body, "html", "utf-8"))
+        msg.attach(body_part)
         msg["Subject"] = subject
         msg["From"] = f"{sender_name} <{sender_email}>"
         msg["To"] = to_email
-        if text_body:
-            msg.attach(MIMEText(text_body, "plain", "utf-8"))
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+        if attachment_path and os.path.isfile(attachment_path):
+            with open(attachment_path, "rb") as f:
+                part = MIMEBase("application", "octet-stream")
+                part.set_payload(f.read())
+            encoders.encode_base64(part)
+            filename = os.path.basename(attachment_path)
+            part.add_header("Content-Disposition", f"attachment; filename={filename}")
+            msg.attach(part)
 
         if smtp_port == 465:
             server = smtplib.SMTP_SSL(smtp_host, smtp_port)

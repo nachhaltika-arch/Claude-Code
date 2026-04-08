@@ -60,7 +60,7 @@ async def _crawl_async(start_url: str, max_pages: int) -> List[Dict]:
     queue = [(start_url, 0)]
     results = []
 
-    async with httpx.AsyncClient(headers={'User-Agent': CRAWLER_UA}, follow_redirects=True) as client:
+    async with httpx.AsyncClient(headers={'User-Agent': CRAWLER_UA}, follow_redirects=True, timeout=TIMEOUT) as client:
         while queue and len(results) < max_pages:
             batch = queue[:5]
             queue = queue[5:]

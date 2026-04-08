@@ -635,6 +635,27 @@ def _run_migrations():
             brevo_contact_id BIGINT,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         )""",
+        # ── Crawl tables ───────────────────────────────────────────────
+        """CREATE TABLE IF NOT EXISTS crawl_jobs (
+            id SERIAL PRIMARY KEY,
+            customer_id INTEGER,
+            status VARCHAR(20) DEFAULT 'pending',
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            total_urls INTEGER DEFAULT 0
+        )""",
+        """CREATE TABLE IF NOT EXISTS crawl_results (
+            id SERIAL PRIMARY KEY,
+            customer_id INTEGER,
+            job_id INTEGER REFERENCES crawl_jobs(id) ON DELETE CASCADE,
+            url VARCHAR(2000) NOT NULL,
+            status_code INTEGER,
+            depth INTEGER DEFAULT 0,
+            load_time NUMERIC(8,3),
+            crawled_at TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_crawl_jobs_customer ON crawl_jobs(customer_id)",
+        "CREATE INDEX IF NOT EXISTS idx_crawl_results_job ON crawl_results(job_id)",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

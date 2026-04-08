@@ -485,6 +485,9 @@ export default function ProjectDetail() {
   const [sitemapLoaded, setSitemapLoaded]   = useState(false);
   const [showSitemapPlaner, setShowSitemapPlaner] = useState(false);
   const [showProjectSitemap, setShowProjectSitemap] = useState(false);
+  const [contentFreigaben, setContentFreigaben] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`content_freigabe_${id}`) || '{}'); } catch { return {}; }
+  });
   const [selectedPageId, setSelectedPageId] = useState(null);
   const [editingPage, setEditingPage]       = useState(null);
   // Add page form
@@ -1547,6 +1550,84 @@ export default function ProjectDetail() {
                 </>
               )}
             </div>
+
+            {/* ── Content-Freigabe je Seite ──────────────────────────── */}
+            {(() => {
+              const seiten = (() => { try { return JSON.parse(project.sitemap_json || '[]'); } catch { return []; } })();
+              if (seiten.length === 0) return (
+                <div style={{ padding: '16px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text-tertiary)' }}>
+                  Bitte zuerst Sitemap anlegen (Phase 3)
+                </div>
+              );
+              const freiCount = seiten.filter(s => contentFreigaben[s.name] === 'freigegeben').length;
+              const allFreigegeben = freiCount === seiten.length;
+
+              const updateFreigabe = (name, status) => {
+                const next = { ...contentFreigaben, [name]: status };
+                setContentFreigaben(next);
+                localStorage.setItem(`content_freigabe_${id}`, JSON.stringify(next));
+              };
+
+              const requestApproval = async (seitenname) => {
+                try {
+                  await fetch(`${API_BASE_URL}/api/projects/${project.id}/request-approval`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                    body: JSON.stringify({ topic: `Content-Freigabe: ${seitenname}`, notes: 'Bitte pruefen und freigeben.' }),
+                  });
+                  updateFreigabe(seitenname, 'gesendet');
+                  toast.success('Freigabe-E-Mail wurde gesendet');
+                } catch { toast.error('Fehler beim Senden'); }
+              };
+
+              return (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>Content-Freigabe</div>
+                  <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--text-secondary)' }}>{freiCount} von {seiten.length} Seiten freigegeben</div>
+                  {allFreigegeben && (
+                    <div style={{ padding: '10px 16px', borderRadius: 8, background: 'var(--status-success-bg)', border: '1px solid #bbf7d0', fontSize: 13, color: 'var(--status-success-text)', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                      <span>Alle Inhalte freigegeben &#10003;</span>
+                      <button onClick={async () => { await fetch(`${API_BASE_URL}/api/projects/${project.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ current_phase: 5 }) }); toast.success('Phase aktualisiert'); }} style={{ padding: '6px 14px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Weiter zu Phase Technik</button>
+                    </div>
+                  )}
+                  <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 160px', gap: 0, borderBottom: '2px solid var(--border-light)', padding: '8px 16px' }}>
+                      {['Seite', 'KI-Text', 'Bilder', 'Status', 'Aktion'].map(l => (
+                        <span key={l} style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>{l}</span>
+                      ))}
+                    </div>
+                    {seiten.map((s, idx) => {
+                      const name = s.name || `Seite ${idx + 1}`;
+                      const status = contentFreigaben[name] || 'bereit';
+                      const hasKiText = contentSummary.find(c => c.page_name === name)?.sections?.some(sec => sec.inhalt_ki);
+                      const bilder = contentSummary.find(c => c.page_name === name)?.media?.filter(m => m.status !== 'ausstehend').length || 0;
+                      const statusMap = {
+                        freigegeben: { label: 'Freigegeben', bg: 'var(--status-success-bg)', color: 'var(--status-success-text)' },
+                        gesendet: { label: 'E-Mail gesendet', bg: '#e8f4fd', color: '#0369a1' },
+                        bereit: bilder === 0 ? { label: 'Fehlen Fotos', bg: 'var(--status-warning-bg)', color: '#92600a' } : { label: 'Bereit', bg: 'var(--bg-app)', color: 'var(--text-secondary)' },
+                      };
+                      const st = statusMap[status] || statusMap.bereit;
+                      return (
+                        <div key={name} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 160px', gap: 0, padding: '10px 16px', borderBottom: idx < seiten.length - 1 ? '1px solid var(--border-light)' : 'none', alignItems: 'center' }}>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{name}</span>
+                          <span style={{ fontSize: 12, color: hasKiText ? 'var(--status-success-text)' : 'var(--text-tertiary)' }}>{hasKiText ? '&#10003; KI-Text' : '\u2014'}</span>
+                          <span style={{ fontSize: 12, color: bilder > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{bilder}</span>
+                          <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 500, background: st.bg, color: st.color }}>{st.label}</span>
+                          <div>
+                            {status === 'freigegeben' ? (
+                              <span style={{ fontSize: 12, color: 'var(--status-success-text)', fontWeight: 500 }}>Freigegeben &#10003;</span>
+                            ) : status === 'gesendet' ? (
+                              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Warten auf Freigabe</span>
+                            ) : (
+                              <button onClick={() => requestApproval(name)} style={{ padding: '5px 12px', border: 'none', borderRadius: 'var(--radius-md)', background: '#008eaa', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Freigabe anfordern</button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         );
       })()}

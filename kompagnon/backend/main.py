@@ -675,6 +675,30 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_rating FLOAT",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_ratings_total INTEGER",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_checked_at TIMESTAMP",
+        # Produkt-Katalog
+        """CREATE TABLE IF NOT EXISTS products (
+            id                SERIAL PRIMARY KEY,
+            slug              VARCHAR(100) UNIQUE NOT NULL,
+            name              VARCHAR(200) NOT NULL,
+            short_desc        TEXT,
+            long_desc         TEXT,
+            price_brutto      NUMERIC(10,2) NOT NULL DEFAULT 0,
+            price_netto       NUMERIC(10,2) NOT NULL DEFAULT 0,
+            tax_rate          NUMERIC(5,2)  NOT NULL DEFAULT 19.0,
+            payment_type      VARCHAR(50)   NOT NULL DEFAULT 'once',
+            delivery_days     INTEGER       DEFAULT 14,
+            highlighted       BOOLEAN       DEFAULT false,
+            highlight_label   VARCHAR(100)  DEFAULT 'Empfehlung',
+            features          JSONB         DEFAULT '[]',
+            checkout_fields   JSONB         DEFAULT '[]',
+            webhook_actions   JSONB         DEFAULT '[]',
+            status            VARCHAR(50)   NOT NULL DEFAULT 'draft',
+            stripe_price_id   VARCHAR(200),
+            stripe_product_id VARCHAR(200),
+            sort_order        INTEGER       DEFAULT 0,
+            created_at        TIMESTAMP     DEFAULT NOW(),
+            updated_at        TIMESTAMP     DEFAULT NOW()
+        )""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -1010,6 +1034,9 @@ app.include_router(templates_router.router)
 
 from routers import messages as messages_router
 app.include_router(messages_router.router)
+
+from routers.products import router as products_router
+app.include_router(products_router)
 
 
 # Global exception handler — catches unhandled errors

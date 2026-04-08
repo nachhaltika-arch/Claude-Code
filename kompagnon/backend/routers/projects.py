@@ -1809,14 +1809,28 @@ def get_qa_result(project_id: int, db: Session = Depends(get_db)):
     import json as _json
 
     project = db.query(Project).filter(Project.id == project_id).first()
-    if not project or not project.qa_result:
-        raise HTTPException(404, "Noch kein QA-Scan vorhanden")
+    if not project:
+        return {"status": "no_result", "message": "Projekt nicht gefunden"}
+    if not project.qa_result:
+        return {"status": "no_result", "message": "Noch kein QA-Scan für dieses Projekt"}
+
+    try:
+        parsed = _json.loads(project.qa_result)
+    except _json.JSONDecodeError as e:
+        logger.error(f"QA Result JSON Parse Fehler Projekt {project_id}: {e}")
+        logger.error(f"JSON Länge: {len(project.qa_result)}, Ende: ...{project.qa_result[-200:]}")
+        return {
+            "status": "parse_error",
+            "message": f"QA-Ergebnis konnte nicht gelesen werden: {e}",
+            "score": project.qa_score,
+            "run_at": str(project.qa_run_at)[:16] if project.qa_run_at else None,
+        }
 
     return {
         "score": project.qa_score,
         "golive_ok": project.qa_golive_ok,
         "run_at": str(project.qa_run_at)[:16] if project.qa_run_at else None,
-        "result": _json.loads(project.qa_result),
+        "result": parsed,
     }
 
 

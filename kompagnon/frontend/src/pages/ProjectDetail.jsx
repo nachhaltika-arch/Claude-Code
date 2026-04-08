@@ -909,7 +909,16 @@ export default function ProjectDetail() {
         `${API_BASE_URL}/api/projects/${id}/qa/result`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (res.ok) setQaResult(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'no_result' || data.status === 'parse_error') {
+          setQaResult(null);
+          if (data.status === 'parse_error') setQaError(data.message || 'QA-Ergebnis fehlerhaft');
+        } else {
+          setQaResult(data);
+          setQaError('');
+        }
+      }
     } catch {}
   };
 

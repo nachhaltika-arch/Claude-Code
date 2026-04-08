@@ -146,6 +146,7 @@ const PAGE_NAMES = {
   '/app/profile': 'Profil',
   '/app/checklists': 'Checklisten',
   '/app/product': 'Produktentwicklung',
+  '/app/newsletter': 'Newsletter',
 };
 
 const MOBILE_TABS = [

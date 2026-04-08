@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
@@ -1379,6 +1379,11 @@ def health_check():
         }
     except Exception as e:
         return {"status": "degraded", "database": db_status, "detail": str(e)}
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+def robots_txt():
+    return "User-agent: *\nAllow: /\n"
 
 
 @app.get("/")

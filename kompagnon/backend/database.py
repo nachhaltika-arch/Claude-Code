@@ -150,6 +150,21 @@ class Project(Base):
     email_notifications_enabled = Column(Boolean, default=True)
     customer_email = Column(String(255))
 
+    # QA Scanner
+    qa_result = Column(Text)         # JSON from KI QA evaluation
+    qa_score = Column(Integer)       # 0-100
+    qa_golive_ok = Column(Boolean)   # Go-Live recommendation
+    qa_run_at = Column(DateTime)     # Last scan timestamp
+
+    # Domain check
+    domain_reachable = Column(Boolean)
+    domain_status_code = Column(Integer)
+    domain_checked_at = Column(DateTime)
+
+    # Go-Live PageSpeed after
+    pagespeed_after_mobile = Column(Integer)
+    pagespeed_after_desktop = Column(Integer)
+
     # Screenshots before/after
     screenshot_before       = Column(Text)
     screenshot_before_date  = Column(DateTime)

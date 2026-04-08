@@ -15,45 +15,89 @@ import { useEffect, useRef, useState } from 'react';
 import API_BASE_URL from '../config';
 import JSZip from 'jszip';
 
+const loadProjectFromZip = async (file, editor) => {
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'grapesjs') {
+    const text = await file.text();
+    try {
+      const project = JSON.parse(text);
+      editor.loadProjectData(project);
+      return { success: true, source: 'grapesjs' };
+    } catch (e) {
+      return { success: false, error: 'Ungültige .grapesjs-Datei' };
+    }
+  }
+
+  if (ext === 'zip') {
+    try {
+      const zip   = await JSZip.loadAsync(file);
+      const files = Object.keys(zip.files);
+
+      const gjsFile = files.find(
+        f => f.endsWith('.grapesjs') || f.endsWith('grapesjs.json')
+      );
+      if (gjsFile) {
+        const text    = await zip.files[gjsFile].async('string');
+        const project = JSON.parse(text);
+        editor.loadProjectData(project);
+        return { success: true, source: 'zip-grapesjs' };
+      }
+
+      const htmlFile = files.find(f => f.endsWith('index.html'));
+      const cssFile  = files.find(f => f.endsWith('style.css'));
+      if (htmlFile) {
+        const html = await zip.files[htmlFile].async('string');
+        const css  = cssFile ? await zip.files[cssFile].async('string') : '';
+        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        const bodyHtml  = bodyMatch ? bodyMatch[1].trim() : html;
+        editor.setComponents(bodyHtml);
+        if (css) editor.setStyle(css);
+        return { success: true, source: 'zip-html' };
+      }
+
+      return { success: false, error: 'Keine erkennbare Datei im ZIP' };
+    } catch (e) {
+      return { success: false, error: `ZIP-Fehler: ${e.message}` };
+    }
+  }
+
+  return {
+    success: false,
+    error: `Format .${ext} nicht unterstützt. Bitte .zip oder .grapesjs hochladen.`,
+  };
+};
+
 export default function WebsiteDesigner({ projectId, leadId, initialHtml, initialCss, onSave }) {
   const editorRef = useRef(null);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [importLoading, setImportLoading] = useState(false);
+  const [importing, setImporting]   = useState(false);
+  const [importMsg, setImportMsg]   = useState('');
   const [importError, setImportError] = useState('');
+  const [kiLoading, setKiLoading] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleZipImport = async (file) => {
-    if (!file || !file.name.endsWith('.zip')) {
-      setImportError('Nur ZIP-Dateien unterstuetzt.'); return;
-    }
-    setImportLoading(true); setImportError('');
-    try {
-      const zip = await JSZip.loadAsync(file);
-      const files = Object.keys(zip.files);
-      const htmlFile = zip.files['index.html'] ||
-        zip.files[files.find(f => f.endsWith('.html') && !zip.files[f].dir)];
-      if (!htmlFile) {
-        setImportError('Keine index.html im ZIP gefunden.');
-        setImportLoading(false); return;
-      }
-      const htmlContent = await htmlFile.async('string');
-      let cssContent = '';
-      const cssFile = zip.files['style.css'] || zip.files['css/style.css'] ||
-        zip.files[files.find(f => f.endsWith('.css') && !zip.files[f].dir)];
-      if (cssFile) cssContent = await cssFile.async('string');
-      let cleanHtml = htmlContent;
-      const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-      if (bodyMatch) cleanHtml = bodyMatch[1].trim();
-      const ed = editorRef.current;
-      if (ed) {
-        ed.setComponents(cleanHtml);
-        if (cssContent) ed.setStyle(cssContent);
-        ed.UndoManager.clear();
-      }
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !editorRef.current) return;
+    setImporting(true);
+    setImportMsg('');
+    setImportError('');
+    const result = await loadProjectFromZip(file, editorRef.current);
+    setImporting(false);
+    if (result.success) {
+      setImportMsg(
+        `✓ Template geladen (${
+          result.source === 'zip-grapesjs' ? 'GrapesJS-Projekt aus ZIP' :
+          result.source === 'zip-html'     ? 'HTML/CSS aus ZIP'         :
+                                             '.grapesjs-Datei'
+        })`
+      );
       setShowImportModal(false);
-    } catch (err) {
-      setImportError(`Fehler: ${err.message}`);
-    } finally { setImportLoading(false); }
+    } else {
+      setImportError(result.error || 'Import fehlgeschlagen');
+    }
+    e.target.value = '';
   };
 
   useEffect(() => {
@@ -180,6 +224,33 @@ export default function WebsiteDesigner({ projectId, leadId, initialHtml, initia
       attributes: { class: 'fa fa-building' },
     });
 
+  const handleLoadKiEntwurf = async () => {
+    const editor = editorRef.current;
+    if (!editor || kiLoading) return;
+    setKiLoading(true);
+    try {
+      const token = localStorage.getItem('kompagnon_token');
+      const res = await fetch(
+        `${API_BASE_URL}/api/customers/${projectId}/generate-design`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Fehler ${res.status}`);
+      }
+      const data = await res.json();
+      editor.setComponents(data.html);
+    } catch (e) {
+      console.error('KI-Entwurf laden fehlgeschlagen:', e);
+      alert(`KI-Entwurf fehlgeschlagen: ${e.message}`);
+    } finally {
+      setKiLoading(false);
+    }
+  };
+
     editor.BlockManager.add('kompagnon-leistungen', {
       label: 'Leistungs-Liste', category: 'Data Source',
       content: `<ul style="padding:20px 40px">
@@ -248,11 +319,54 @@ export default function WebsiteDesigner({ projectId, leadId, initialHtml, initia
     <div style={{ position: 'relative', display: 'flex',
                   flexDirection: 'column', height: '100vh' }}>
       <div style={{ padding: '8px 16px', background: '#1a2332',
-                    display: 'flex', alignItems: 'center', gap: 12 }}>
+                    display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <span style={{ color: 'white', fontWeight: 600 }}>Website Designer</span>
         <span style={{ color: '#64748b', fontSize: 12 }}>
           {projectId ? `Projekt #${projectId}` : 'Neues Design'}
         </span>
+
+        {/* Versteckter File-Input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".zip,.grapesjs"
+          style={{ display: 'none' }}
+          onChange={handleImportFile}
+        />
+
+        {/* Upload-Button */}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={importing}
+          title="GrapesJS ZIP oder .grapesjs-Datei importieren"
+          style={{
+            padding: '7px 14px',
+            background: importing ? '#94a3b8' : '#7c3aed',
+            color: 'white',
+            border: 'none',
+            borderRadius: 7,
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: importing ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {importing ? '⏳ Lädt...' : '📂 Template laden'}
+        </button>
+
+        {importMsg && (
+          <span style={{ fontSize: 11, color: '#1D9E75', fontWeight: 500 }}>
+            {importMsg}
+          </span>
+        )}
+        {importError && !showImportModal && (
+          <span style={{ fontSize: 11, color: '#E24B4A', fontWeight: 500 }}>
+            ✗ {importError}
+          </span>
+        )}
       </div>
       <div id="gjs-designer" style={{ flex: 1 }} />
 
@@ -269,19 +383,21 @@ export default function WebsiteDesigner({ projectId, leadId, initialHtml, initia
             </p>
             <div onClick={() => fileInputRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => { e.preventDefault(); handleZipImport(e.dataTransfer.files[0]); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const f = e.dataTransfer.files[0];
+                if (f) { const synth = { target: { files: [f], value: '' }, preventDefault: () => {} }; handleImportFile(synth); }
+              }}
               style={{ border:'2px dashed var(--color-border-secondary)',borderRadius:8,
                        padding:'32px 20px',textAlign:'center',cursor:'pointer',
                        background:'var(--bg-app)',marginBottom:16 }}>
-              {importLoading
+              {importing
                 ? <p style={{ margin:0,color:'var(--text-secondary)' }}>Verarbeitung...</p>
                 : <><div style={{ fontSize:32,marginBottom:8 }}>📦</div>
                    <p style={{ margin:0,color:'var(--text-secondary)',fontSize:14 }}>
-                     ZIP hier ablegen oder klicken
+                     ZIP oder .grapesjs hier ablegen oder klicken
                    </p></>}
             </div>
-            <input ref={fileInputRef} type="file" accept=".zip" style={{ display:'none' }}
-              onChange={(e) => { handleZipImport(e.target.files[0]); e.target.value=''; }} />
             {importError && (
               <p style={{ color:'var(--color-text-danger)',
                           background:'var(--color-background-danger)',
@@ -296,7 +412,7 @@ export default function WebsiteDesigner({ projectId, leadId, initialHtml, initia
                          color:'var(--text-secondary)',cursor:'pointer' }}>
                 Abbrechen
               </button>
-              <button onClick={() => fileInputRef.current?.click()} disabled={importLoading}
+              <button onClick={() => fileInputRef.current?.click()} disabled={importing}
                 style={{ padding:'8px 20px',border:'none',borderRadius:6,
                          background:'#0d6efd',color:'white',cursor:'pointer',fontWeight:600 }}>
                 Datei auswaehlen

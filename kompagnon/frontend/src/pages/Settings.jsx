@@ -176,8 +176,19 @@ function NotificationsTab() {
   const { user } = useAuth();
   const [prefs, setPrefs] = useState({ new_lead: true, audit_done: true, project_status: true, daily_report: false, review_reminder: true, weekly_report: false });
   const [smtp, setSmtp] = useState({ host: '', port: '', user: '', password: '', from_name: '', from_email: '' });
+  const [testEmail, setTestEmail] = useState('');
+  const [testResult, setTestResult] = useState(null);
 
   const toggle = (key) => setPrefs((p) => ({ ...p, [key]: !p[key] }));
+
+  const sendTest = async () => {
+    setTestResult(null);
+    const r = await apiCall(
+      `/api/automations/test-email?recipient=${encodeURIComponent(testEmail)}`,
+      { method: 'POST' }
+    );
+    setTestResult(r.ok ? 'success' : 'error');
+  };
 
   return (
     <>
@@ -205,9 +216,29 @@ function NotificationsTab() {
           <Field label="Passwort" type="password" value={smtp.password} onChange={(v) => setSmtp((s) => ({ ...s, password: v }))} />
           <Field label="Absender-Name" value={smtp.from_name} onChange={(v) => setSmtp((s) => ({ ...s, from_name: v }))} placeholder="KOMPAGNON" />
           <Field label="Absender-E-Mail" value={smtp.from_email} onChange={(v) => setSmtp((s) => ({ ...s, from_email: v }))} placeholder="noreply@kompagnon.de" />
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <Btn onClick={() => apiCall('/api/admin/settings/test-email', { method: 'POST' }).then(() => toast.success('Test-Mail gesendet'))} secondary>Test-E-Mail senden</Btn>
-            <Btn onClick={() => toast.success('Gespeichert')}>Speichern</Btn>
+          <Btn onClick={() => toast.success('Gespeichert')} style={{ marginTop: 4 }}>Speichern</Btn>
+          <div style={{ marginTop: 20 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>SMTP Test-E-Mail</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="email"
+                value={testEmail}
+                onChange={e => setTestEmail(e.target.value)}
+                placeholder="empfaenger@email.de"
+                style={{ flex: 1, padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 16, boxSizing: 'border-box' }}
+              />
+              <Btn onClick={sendTest}>Test senden</Btn>
+            </div>
+            {testResult === 'success' && (
+              <div style={{ color: '#1D9E75', fontSize: 12, marginTop: 6 }}>
+                ✓ Test-E-Mail gesendet — bitte Posteingang prüfen
+              </div>
+            )}
+            {testResult === 'error' && (
+              <div style={{ color: '#E24B4A', fontSize: 12, marginTop: 6 }}>
+                ✗ Versand fehlgeschlagen — SMTP-Konfiguration prüfen
+              </div>
+            )}
           </div>
         </Card>
       )}

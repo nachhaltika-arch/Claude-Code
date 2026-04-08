@@ -33,70 +33,97 @@ PACKAGE_NAMES = {
     "premium":   "Premium (12 Seiten · 2.800 EUR)",
 }
 
-PACKAGES = {
-    "starter": {
-        "name": "Starter",
-        "price": 150000,
-        "description": "5 Seiten, SEO Basic, Mobiloptimierung, 14 Tage",
-    },
-    "kompagnon": {
-        "name": "Kompagnon",
-        "price": 200000,
-        "description": "8 Seiten, SEO + GEO, Workshop, Nachbetreuung",
-    },
-    "premium": {
-        "name": "Premium",
-        "price": 280000,
-        "description": "12 Seiten, Shop-Ready, Fotoshooting, 3 Monate Betreuung",
-    },
-}
-
-
 @router.get("/packages")
-def get_packages():
-    return PACKAGES
+def get_packages(db: Session = Depends(get_db)):
+    from sqlalchemy import text
+    import json as _j
+    rows = db.execute(text(
+        "SELECT slug, name, price_brutto, price_netto, tax_rate, "
+        "short_desc, delivery_days, highlighted, highlight_label, "
+        "features, payment_type, status "
+        "FROM products WHERE status='live' ORDER BY sort_order ASC"
+    )).mappings().all()
+    result = {}
+    for r in rows:
+        feats = r["features"]
+        if isinstance(feats, str):
+            try:
+                feats = _j.loads(feats)
+            except Exception:
+                feats = []
+        result[r["slug"]] = {
+            "name":            r["name"],
+            "price":           int(float(r["price_brutto"]) * 100),
+            "price_eur":       float(r["price_brutto"]),
+            "netto":           float(r["price_netto"]),
+            "tax":             float(r["tax_rate"]),
+            "description":     r["short_desc"] or "",
+            "features":        feats,
+            "delivery_days":   r["delivery_days"],
+            "highlighted":     r["highlighted"],
+            "highlight_label": r["highlight_label"] or "",
+        }
+    return result
 
 
 @router.post("/create-checkout")
-async def create_checkout(request: Request):
-    body = await request.json()
-    package_id = body.get("package", "kompagnon")
-    customer_email = body.get("email", "")
-    customer_name = body.get("name", "")
-    company_name = body.get("company", "")
-    website_url = body.get("website_url", "")
-    phone = body.get("phone", "")
+async def create_checkout(request: Request, db: Session = Depends(get_db)):
+    from sqlalchemy import text as _t
+    import json as _j
 
-    package = PACKAGES.get(package_id)
-    if not package:
-        raise HTTPException(400, "Ungueltiges Paket")
+    body = await request.json()
+    package_id     = body.get("package", "kompagnon")
+    customer_email = body.get("email", "")
+    customer_name  = body.get("name", "")
+    company_name   = body.get("company", "")
+    website_url    = body.get("website_url", "")
+    phone          = body.get("phone", "")
+
+    row = db.execute(_t(
+        "SELECT * FROM products WHERE slug=:s AND status='live'"
+    ), {"s": package_id}).mappings().first()
+    if not row:
+        raise HTTPException(400, "Ungueltiges oder nicht verfügbares Paket")
+
+    price_cents = int(float(row["price_brutto"]) * 100)
+    package = {
+        "name":            row["name"],
+        "price":           price_cents,
+        "description":     row["short_desc"] or "",
+        "stripe_price_id": row["stripe_price_id"],
+    }
 
     if not stripe.api_key:
         raise HTTPException(500, "Stripe nicht konfiguriert")
 
+    if row["stripe_price_id"]:
+        line_items_param = [{"price": row["stripe_price_id"], "quantity": 1}]
+    else:
+        line_items_param = [{
+            "price_data": {
+                "currency": "eur",
+                "product_data": {
+                    "name":        f"KOMPAGNON {package['name']}",
+                    "description": package["description"],
+                },
+                "unit_amount": price_cents,
+            },
+            "quantity": 1,
+        }]
+
     try:
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
-            line_items=[{
-                "price_data": {
-                    "currency": "eur",
-                    "product_data": {
-                        "name": f"KOMPAGNON {package['name']}",
-                        "description": package["description"],
-                    },
-                    "unit_amount": package["price"],
-                },
-                "quantity": 1,
-            }],
+            line_items=line_items_param,
             mode="payment",
             customer_email=customer_email or None,
             metadata={
-                "package": package_id,
-                "company_name": company_name,
-                "customer_name": customer_name,
-                "customer_email": customer_email,
-                "website_url": website_url,
-                "phone": phone,
+                "package":          package_id,
+                "company_name":     company_name,
+                "customer_name":    customer_name,
+                "customer_email":   customer_email,
+                "website_url":      website_url,
+                "phone":            phone,
             },
             success_url=f"{FRONTEND_URL}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{FRONTEND_URL}/checkout?cancelled=1",
@@ -228,6 +255,39 @@ def _handle_successful_payment(session: dict, db: Session):
 
     # ── COMMIT (Lead + User + Projekt) ───────────────────────
     db.commit()
+
+    # ── AUTO-SEQUENZ FÜR STRIPE-KÄUFER ──────────────────────
+    try:
+        from services.sequence_runner import start_sequence_for_lead
+        import threading
+        threading.Thread(
+            target=start_sequence_for_lead,
+            args=(lead.id,),
+            daemon=True,
+        ).start()
+    except Exception as e:
+        logger.warning(f"Stripe Auto-Sequenz Fehler: {e}")
+
+    # ── AUFTRAGSBESTÄTIGUNG PDF ──────────────────────────────
+    pdf_path = None
+    try:
+        from services.auftragsbestaetigung_pdf import save_auftragsbestaetigung
+        pdf_path = save_auftragsbestaetigung(
+            session_id     = session.get("id", ""),
+            customer_name  = name or company or email,
+            customer_email = email,
+            company_name   = company or "",
+            package_id     = package_id,
+            amount_eur     = amount,
+        )
+        if project_id:
+            proj = db.query(Project).filter(Project.id == project_id).first()
+            if proj:
+                proj.auftragsbestaetigung_pdf = pdf_path
+                db.commit()
+        logger.info(f"Auftragsbestaetigung gespeichert: {pdf_path}")
+    except Exception as e:
+        logger.error(f"Auftragsbestaetigung PDF Fehler: {e}")
 
     # ── 4. WILLKOMMENS-E-MAIL ────────────────────────────────
     if email:
@@ -369,9 +429,11 @@ def _handle_successful_payment(session: dict, db: Session):
             """
 
             send_email(
-                to_email  = email,
-                subject   = "Willkommen bei KOMPAGNON — Ihre Zugangsdaten",
-                html_body = html_body,
+                to_email        = email,
+                subject         = "Willkommen bei KOMPAGNON — Ihre Zugangsdaten",
+                html_body       = html_body,
+                attachment_path = pdf_path,
+                attachment_name = "KOMPAGNON-Auftragsbestaetigung.pdf",
             )
             logger.info(f"Stripe: Willkommens-E-Mail gesendet an {email}")
 

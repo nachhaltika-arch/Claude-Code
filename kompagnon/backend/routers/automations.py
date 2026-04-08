@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 from database import Project, Lead, Communication, AuditResult, get_db
 from services.margin_calculator import MarginCalculator
+from routers.auth_router import require_admin
 
 router = APIRouter(prefix="/api", tags=["dashboard", "automations"])
 
@@ -220,43 +221,44 @@ def get_projects_by_phase(db: Session = Depends(get_db)):
 def get_active_jobs():
     """Get list of active scheduled jobs."""
     from automations.scheduler import get_scheduler
-
-    scheduler = get_scheduler()
-    jobs = []
-
-    for job in scheduler.scheduler.get_jobs():
-        jobs.append(
-            {
-                "job_id": job.id,
-                "name": job.name,
-                "next_run": job.next_run_time,
-                "trigger": str(job.trigger),
+    try:
+        scheduler = get_scheduler()
+        if not scheduler.scheduler.running:
+            return {
+                "active_jobs": 0,
+                "jobs": [],
+                "status": "scheduler_not_running",
+                "info": "Scheduler wurde noch nicht gestartet oder ist auf Render nicht verfügbar.",
             }
-        )
-
-    return {
-        "active_jobs": len(jobs),
-        "jobs": jobs,
-    }
+        jobs = []
+        for job in scheduler.scheduler.get_jobs():
+            jobs.append({
+                "job_id":   job.id,
+                "name":     job.name,
+                "next_run": str(job.next_run_time) if job.next_run_time else None,
+                "trigger":  str(job.trigger),
+            })
+        return {
+            "active_jobs": len(jobs),
+            "jobs": jobs,
+            "status": "running",
+        }
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Jobs-Endpunkt Fehler: {e}")
+        return {
+            "active_jobs": 0,
+            "jobs": [],
+            "status": "error",
+            "info": str(e),
+        }
 
 
 @router.post("/automations/test-email")
-def test_email_send(
-    recipient: str = Query(...),
-    db: Session = Depends(get_db),
-):
-    """Send a test email to verify SMTP configuration."""
-    from services.email_service import EmailService
-
-    email_service = EmailService()
-    subject = "KOMPAGNON Test Email"
-    body = "Dies ist eine Test-E-Mail. Wenn Sie diese lesen, funktioniert der E-Mail-Service! ✓"
-
-    success = email_service.send_email(to=recipient, subject=subject, body=body)
-
-    return {
-        "recipient": recipient,
-        "subject": subject,
-        "success": success,
-        "message": "Test-E-Mail versendet" if success else "E-Mail-Versand fehlgeschlagen",
-    }
+def test_email(recipient: str = Query(...), _=Depends(require_admin)):
+    """Testversand zur Verifizierung der SMTP-Konfiguration."""
+    from services.email import send_test_email
+    result = send_test_email(recipient)
+    if not result["success"]:
+        raise HTTPException(422, result.get("error", "Versand fehlgeschlagen"))
+    return result

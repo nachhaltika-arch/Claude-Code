@@ -69,21 +69,30 @@ class LeadUpdate(BaseModel):
     register_court: Optional[str] = None
     ceo_first_name: Optional[str] = None
     ceo_last_name: Optional[str] = None
+    wz_code: Optional[str] = None
+    wz_title: Optional[str] = None
 
 
 class LeadResponse(BaseModel):
     id: int
-    company_name: str = ""
-    contact_name: str = ""
-    phone: str = ""
-    email: str = ""
-    website_url: str = None
-    city: str = ""
-    trade: str = ""
-    lead_source: str = None
+    company_name: Optional[str] = None
+    contact_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    website_url: Optional[str] = None
+    city: Optional[str] = None
+    trade: Optional[str] = None
+    industry: Optional[str] = None
+    description: Optional[str] = None
+    notes: Optional[str] = None
+    wz_code: Optional[str] = None
+    wz_title: Optional[str] = None
+    lead_source: Optional[str] = None
     status: str = "new"
-    analysis_score: int = 0
-    geo_score: int = 0
+    analysis_score: Optional[int] = None
+    geo_score: Optional[int] = None
+    pagespeed_mobile: Optional[int] = None
+    pagespeed_desktop: Optional[int] = None
     created_at: datetime = None
     updated_at: datetime = None
 
@@ -129,6 +138,35 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
         db.commit()
         row = result.fetchone()
         lead_id = row[0]
+
+        AUTO_SEQUENCE_SOURCES = {
+            "stripe_checkout",
+            "landing_audit",
+            "landing_page",
+            "llm_landing",
+            "postkarte",
+            "webhook_facebook",
+            "webhook_linkedin",
+            "webhook_google",
+        }
+
+        if lead.email and (lead.lead_source or '') in AUTO_SEQUENCE_SOURCES:
+            try:
+                from services.sequence_runner import start_sequence_for_lead
+                import threading
+                threading.Thread(
+                    target=start_sequence_for_lead,
+                    args=(lead_id,),
+                    daemon=True,
+                ).start()
+                import logging as _log
+                _log.getLogger('leads').info(
+                    f"Auto-Sequenz gestartet für Lead {lead_id} "
+                    f"(Quelle: {lead.lead_source})"
+                )
+            except Exception as e:
+                import logging as _log
+                _log.getLogger('leads').warning(f"Auto-Sequenz Fehler: {e}")
 
         if lead.website_url:
             from services.lead_enrichment import enrich_lead_sync
@@ -242,6 +280,10 @@ def get_customers(db: Session = Depends(get_db)):
             "project_status": project.status if project else None,
             "project_id": project.id if project else None,
             "has_account": user is not None, "user_id": user.id if user else None,
+            'gbp_claimed':       getattr(lead, 'gbp_claimed', False) or False,
+            'gbp_rating':        getattr(lead, 'gbp_rating', None),
+            'gbp_ratings_total': getattr(lead, 'gbp_ratings_total', None),
+            'gbp_place_id':      getattr(lead, 'gbp_place_id', None),
         })
     return result
 
@@ -892,14 +934,41 @@ def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db)):
 
 @router.delete("/{lead_id}")
 def delete_lead(lead_id: int, db: Session = Depends(get_db)):
-    """Delete a lead and all associated audits. Admin only."""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    """Delete a lead and all associated data in correct dependency order."""
+    # 1. Prüfen ob Lead existiert
+    lead = db.execute(
+        text("SELECT id FROM leads WHERE id = :id"), {"id": lead_id}
+    ).fetchone()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-    db.query(AuditResult).filter(AuditResult.lead_id == lead_id).delete()
-    db.delete(lead)
+
+    # 2. Verknüpfte Projekte finden
+    projects = db.execute(
+        text("SELECT id FROM projects WHERE lead_id = :id"), {"id": lead_id}
+    ).fetchall()
+    project_ids = [p[0] for p in projects]
+
+    # 3. Abhängige Daten der Projekte löschen (Reihenfolge wichtig)
+    for pid in project_ids:
+        db.execute(text("DELETE FROM project_checklists WHERE project_id = :id"), {"id": pid})
+        db.execute(text("DELETE FROM time_tracking WHERE project_id = :id"), {"id": pid})
+        db.execute(text("DELETE FROM briefings WHERE project_id = :id"), {"id": pid})
+        db.execute(text("DELETE FROM project_files WHERE lead_id = :id"), {"id": lead_id})
+
+    # 4. Projekte selbst löschen
+    if project_ids:
+        db.execute(text("DELETE FROM projects WHERE lead_id = :id"), {"id": lead_id})
+
+    # 5. Weitere Lead-abhängige Daten löschen
+    db.execute(text("DELETE FROM briefings WHERE lead_id = :id"), {"id": lead_id})
+    db.execute(text("DELETE FROM audit_results WHERE lead_id = :id"), {"id": lead_id})
+    db.execute(text("DELETE FROM email_logs WHERE lead_id = :id"), {"id": lead_id})
+
+    # 6. Lead selbst löschen
+    db.execute(text("DELETE FROM leads WHERE id = :id"), {"id": lead_id})
     db.commit()
-    return {"success": True, "message": "Lead geloescht"}
+
+    return {"deleted": True, "id": lead_id}
 
 
 @router.post("/{lead_id}/analyze")
@@ -1621,6 +1690,48 @@ async def domain_check_lead(lead_id: int, db: Session = Depends(get_db), _=Depen
         "checked_at":   lead.domain_checked_at.isoformat(),
         "website_url":  lead.website_url,
     }
+
+
+# ── E-Mail-Sequenz-Endpunkte ─────────────────────────────────────────────────
+
+@router.post("/{lead_id}/sequence/start", dependencies=[Depends(require_any_auth)])
+def sequence_start(lead_id: int, db: Session = Depends(get_db)):
+    from services.sequence_runner import start_sequence_for_lead
+    ok = start_sequence_for_lead(lead_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Lead not found or no email")
+    return {"success": ok}
+
+
+@router.post("/{lead_id}/sequence/pause", dependencies=[Depends(require_any_auth)])
+def sequence_pause(lead_id: int, db: Session = Depends(get_db)):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    lead.sequence_paused = True
+    db.commit()
+    return {"success": True}
+
+
+@router.post("/{lead_id}/sequence/stop", dependencies=[Depends(require_any_auth)])
+def sequence_stop(lead_id: int, db: Session = Depends(get_db)):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    lead.sequence_active = False
+    lead.sequence_paused = False
+    lead.sequence_step = 0
+    db.commit()
+    return {"success": True}
+
+
+@router.get("/{lead_id}/email-logs", dependencies=[Depends(require_any_auth)])
+def get_email_logs(lead_id: int, db: Session = Depends(get_db)):
+    rows = db.execute(
+        text("SELECT * FROM email_logs WHERE lead_id=:id ORDER BY sent_at DESC LIMIT 50"),
+        {"id": lead_id},
+    ).mappings().all()
+    return [dict(r) for r in rows]
 
 
 # ── /api/customers aliases for all /{lead_id}/... endpoints ─────────────────

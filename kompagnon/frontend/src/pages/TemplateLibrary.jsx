@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { useAuth } from '../context/AuthContext';
-import GrapesEditor from '../components/GrapesEditor';
+import WebsiteDesigner from '../components/WebsiteDesigner';
+
+const LS_KEY = 'kompagnon_deleted_local_tpl';
 
 const LOCAL_TEMPLATES = [
   {
@@ -158,7 +160,21 @@ export default function TemplateLibrary() {
   const [urlForm, setUrlForm] = useState({ name: '', url: '', description: '' });
   const [activeTab, setActiveTab] = useState('all');
   const [editingTemplate, setEditingTemplate] = useState(null);
+  const [deletedLocal, setDeletedLocal] = useState(
+    () => new Set(JSON.parse(localStorage.getItem(LS_KEY) || '[]'))
+  );
   const fileRef = useRef(null);
+
+  const visibleLocalTemplates = LOCAL_TEMPLATES.filter(t => !deletedLocal.has(t.id));
+
+  const deleteLocalTemplate = (id, name) => {
+    if (!window.confirm(`Lokale Vorlage "${name}" wirklich entfernen?`)) return;
+    const next = new Set(deletedLocal);
+    next.add(id);
+    setDeletedLocal(next);
+    localStorage.setItem(LS_KEY, JSON.stringify([...next]));
+    toast.success('Vorlage entfernt');
+  };
 
   const load = async () => {
     setLoading(true);
@@ -219,11 +235,9 @@ export default function TemplateLibrary() {
 
   if (editingTemplate) {
     return (
-      <GrapesEditor
-        pageId={`template-${editingTemplate.id}`}
-        pageName={editingTemplate.name}
-        initialHtml={editingTemplate.html}
-        onClose={() => setEditingTemplate(null)}
+      <WebsiteDesigner
+        initialHtml={editingTemplate.html || ''}
+        initialCss={editingTemplate.css || ''}
         onSave={() => setEditingTemplate(null)}
       />
     );
@@ -234,8 +248,8 @@ export default function TemplateLibrary() {
   const modal = { background: '#fff', borderRadius: 12, padding: 28, width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 16 };
 
   const tabs = [
-    { key: 'all',   label: `Alle (${LOCAL_TEMPLATES.length + apiTemplates.length})` },
-    { key: 'local', label: `Lokale Vorlagen (${LOCAL_TEMPLATES.length})` },
+    { key: 'all',   label: `Alle (${visibleLocalTemplates.length + apiTemplates.length})` },
+    { key: 'local', label: `Lokale Vorlagen (${visibleLocalTemplates.length})` },
     { key: 'saved', label: `Gespeichert (${apiTemplates.length})` },
   ];
 
@@ -278,7 +292,7 @@ export default function TemplateLibrary() {
             </h2>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18, marginBottom: activeTab === 'all' ? 36 : 0 }}>
-            {LOCAL_TEMPLATES.map(tpl => {
+            {visibleLocalTemplates.map(tpl => {
               const badge = CATEGORY_COLORS[tpl.category] || { bg: '#f0f0f0', color: '#555' };
               return (
                 <div key={tpl.id} style={{ border: '1px solid #e0e0e0', borderRadius: 12, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -292,12 +306,21 @@ export default function TemplateLibrary() {
                       </span>
                     </div>
                     <p style={{ fontSize: 13, color: '#666', lineHeight: 1.5, flex: 1 }}>{tpl.description}</p>
-                    <button
-                      onClick={() => setEditingTemplate(tpl)}
-                      style={{ padding: '9px 14px', background: '#1A2C32', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13, marginTop: 'auto' }}
-                    >
-                      ✏️ Im Editor bearbeiten
-                    </button>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+                      <button
+                        onClick={() => setEditingTemplate(tpl)}
+                        style={{ flex: 1, padding: '9px 14px', background: '#008eaa', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
+                      >
+                        ✏️ Im Website-Builder bearbeiten
+                      </button>
+                      <button
+                        onClick={() => deleteLocalTemplate(tpl.id, tpl.name)}
+                        style={{ padding: '9px 12px', background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
+                        title="Vorlage entfernen"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

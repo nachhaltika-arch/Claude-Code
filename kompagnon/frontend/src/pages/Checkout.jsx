@@ -1,16 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
 
 const A = '#D4A017';
-
-const PACKAGES = [
-  { id: 'starter', name: 'Starter', price: '1.500', desc: 'Fuer kleine Betriebe', features: ['5 Seiten', 'SEO Grundoptimierung', 'Mobiloptimierung', 'Fertig in 14 Tagen'] },
-  { id: 'kompagnon', name: 'Kompagnon', price: '2.000', desc: 'Unsere Empfehlung', highlight: true, features: ['8 Seiten', 'SEO + GEO-Optimierung', 'Strategie-Workshop', 'Nachbetreuung inklusive', 'KI-Suchmaschinen bereit'] },
-  { id: 'premium', name: 'Premium', price: '2.800', desc: 'Full Service', features: ['12 Seiten', 'Shop-Funktionalitaet', 'Professioneller Fotoshoot', '3 Monate Betreuung'] },
-];
 
 export default function Checkout() {
   const nav = useNavigate();
@@ -19,14 +13,37 @@ export default function Checkout() {
   const { isMobile } = useScreenSize();
   const cancelled = searchParams.get('cancelled');
 
+  const [packages, setPackages] = useState([]);
   const [step, setStep] = useState(1);
-  const [selected, setSelected] = useState(pkgParam || 'kompagnon');
+  const [selected, setSelected] = useState(pkgParam || searchParams.get('package') || 'kompagnon');
   const [form, setForm] = useState({ name: '', company: '', email: '', phone: '', message: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/products/public`)
+      .then(r => r.json())
+      .then(data => {
+        const list = data.map(p => ({
+          id:        p.slug,
+          name:      p.name,
+          price:     parseFloat(p.price_brutto).toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
+          desc:      p.short_desc || '',
+          highlight: p.highlighted,
+          features:  Array.isArray(p.features) ? p.features : [],
+        }));
+        setPackages(list);
+        // Auto-select highlighted package if none pre-selected
+        if (!pkgParam && !searchParams.get('package') && list.length > 0) {
+          const highlighted = list.find(p => p.highlight);
+          setSelected((highlighted || list[0]).id);
+        }
+      })
+      .catch(() => {});
+  }, []); // eslint-disable-line
+
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  const pkg = PACKAGES.find((p) => p.id === selected) || PACKAGES[1];
+  const pkg = packages.find((p) => p.id === selected) || packages[0] || { name: '', price: '', features: [] };
 
   const handleCheckout = async () => {
     if (!form.email || !form.name || !form.company) { setError('Bitte alle Pflichtfelder ausfuellen'); return; }
@@ -93,7 +110,7 @@ export default function Checkout() {
             <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8, textAlign: 'center' }}>Waehlen Sie Ihr Paket</h2>
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: 32, fontSize: 15 }}>Alle Preise zzgl. 19% MwSt. · Einmaliger Festpreis</p>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 16, marginBottom: 32 }}>
-              {PACKAGES.map((p) => (
+              {packages.map((p) => (
                 <div key={p.id} onClick={() => setSelected(p.id)} style={{
                   background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 24, cursor: 'pointer', position: 'relative',
                   border: `2px solid ${selected === p.id ? 'var(--brand-primary)' : p.highlight ? A + '60' : '#e8eaf2'}`,

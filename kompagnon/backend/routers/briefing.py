@@ -113,6 +113,8 @@ def _serialize(b):
         'freigaben': _parse(b.freigaben),
         'status': b.status or 'offen',
         'updated_at': str(b.updated_at)[:16] if b.updated_at else '',
+        'wz_code':  getattr(b, 'wz_code', '') or '',
+        'wz_title': getattr(b, 'wz_title', '') or '',
     }
 
 

@@ -61,6 +61,15 @@ def update_retainer(rid: int, body: dict, db: Session = Depends(get_db), _=Depen
     return {"success": True}
 
 
+@router.get("/api/invoices/my")
+def my_invoices(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Rechnungen des eingeloggten Kunden (nach E-Mail)."""
+    rows = db.execute(text(
+        "SELECT * FROM invoices WHERE customer_email = :email ORDER BY created_at DESC"
+    ), {"email": current_user.email}).fetchall()
+    return [dict(r._mapping) for r in rows]
+
+
 @router.get("/api/invoices")
 def list_invoices(db: Session = Depends(get_db), _=Depends(get_current_user)):
     rows = db.execute(text(

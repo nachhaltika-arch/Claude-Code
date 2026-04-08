@@ -13,6 +13,7 @@ from sqlalchemy import text
 from pydantic import BaseModel
 
 from database import get_db
+from routers.auth_router import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,16 @@ def create_ticket(req: TicketCreate, db: Session = Depends(get_db)):
         "browser": req.browser_info, "screenshot": req.screenshot_base64})
     db.commit()
     return {"ticket_number": nr, "message": "Ticket erstellt"}
+
+
+@router.get("/my")
+def my_tickets(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """Tickets des eingeloggten Benutzers (nach E-Mail)."""
+    rows = db.execute(
+        text("SELECT * FROM support_tickets WHERE user_email = :email ORDER BY created_at DESC LIMIT 50"),
+        {"email": current_user.email},
+    ).mappings().all()
+    return [dict(r) for r in rows]
 
 
 @router.get("/")

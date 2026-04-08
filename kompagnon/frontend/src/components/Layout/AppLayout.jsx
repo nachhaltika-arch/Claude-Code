@@ -204,6 +204,9 @@ function SidebarNav({ badges }) {
             {[
               { label: 'Dashboard',    path: '/app/dashboard',                                            icon: '🏠' },
               { label: 'Meine Kartei', path: user.lead_id ? `/app/leads/${user.lead_id}` : '/app/dashboard', icon: '📋' },
+              { label: 'Freigaben',    path: '/app/freigaben',                                            icon: '✅' },
+              { label: 'Support',      path: '/app/support',                                              icon: '🎫' },
+              { label: 'Rechnungen',   path: '/app/rechnungen',                                           icon: '💳' },
               { label: 'Akademie',     path: '/app/academy',                                              icon: '🎓' },
               { label: 'Einstellungen',path: '/app/settings',                                             icon: '⚙️' },
             ].map((item) => {

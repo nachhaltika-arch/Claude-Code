@@ -298,7 +298,21 @@ def list_projects(
     skip: int = Query(0),
     limit: int = Query(200),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
+    # Kunden sehen nur ihre eigenen Projekte
+    customer_filter = ""
+    params = {"limit": limit, "skip": skip}
+    if current_user.role == "kunde":
+        customer_filter = "WHERE lead_id = :lead_id "
+        params["lead_id"] = current_user.lead_id
+        if status:
+            customer_filter += "AND status = :status "
+            params["status"] = status
+    elif status:
+        customer_filter = "WHERE status = :status "
+        params["status"] = status
+
     try:
         rows = db.execute(
             text(
@@ -306,10 +320,10 @@ def list_projects(
                 "ai_tool_costs, margin_percent, scope_creep_flags, created_at, "
                 "company_name, website_url, contact_name "
                 "FROM projects "
-                + ("WHERE status = :status " if status else "")
+                + customer_filter
                 + "ORDER BY id DESC LIMIT :limit OFFSET :skip"
             ),
-            {"status": status, "limit": limit, "skip": skip} if status else {"limit": limit, "skip": skip},
+            params,
         ).fetchall()
     except Exception as e:
         logger.error(f"list_projects query error: {e}")
@@ -344,7 +358,7 @@ def list_projects(
 
 
 @router.get("/{project_id}")
-def get_project(project_id: int, db: Session = Depends(get_db)):
+def get_project(project_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """Get project detail via raw SQL — bypasses ORM column mapping issues."""
     try:
         row = db.execute(
@@ -368,6 +382,10 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Project not found")
 
     lead_id = row[1]
+    # Kunden dürfen nur ihr eigenes Projekt sehen
+    if current_user.role == "kunde" and lead_id != current_user.lead_id:
+        raise HTTPException(status_code=403, detail="Kein Zugriff auf dieses Projekt")
+
     lead = db.query(Lead).filter(Lead.id == lead_id).first() if lead_id else None
     company = row[12] or (lead.company_name if lead else '') or ''
     website = row[13] or (lead.website_url if lead else '') or ''

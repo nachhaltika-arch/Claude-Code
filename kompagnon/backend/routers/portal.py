@@ -108,6 +108,7 @@ def get_portal_me(user=Depends(get_current_user), db: Session = Depends(get_db))
     ]
 
     return {
+        "project_id": project.id,
         "project_name": project_name,
         "project_status": STATUS_LABEL.get(project.status, "In Bearbeitung"),
         "current_phase": current,

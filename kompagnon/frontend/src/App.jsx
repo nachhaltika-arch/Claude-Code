@@ -64,6 +64,9 @@ import WebhookDashboard from './pages/WebhookDashboard';
 import RetainerDashboard from './pages/RetainerDashboard';
 import Abnahme from './pages/Abnahme';
 import ProductManager from './pages/ProductManager';
+import SupportTickets from './pages/customer/SupportTickets';
+import Freigaben from './pages/customer/Freigaben';
+import MeineRechnungen from './pages/customer/MeineRechnungen';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -179,6 +182,9 @@ function App() {
             {/* Academy — neue Routen */}
             <Route path="courses" element={<PrivateRoute roles={['admin', 'auditor']}><Courses /></PrivateRoute>} />
             <Route path="portal" element={<PrivateRoute roles={['kunde']}><KundenPortal /></PrivateRoute>} />
+            <Route path="support" element={<PrivateRoute><SupportTickets /></PrivateRoute>} />
+            <Route path="freigaben" element={<PrivateRoute><Freigaben /></PrivateRoute>} />
+            <Route path="rechnungen" element={<PrivateRoute><MeineRechnungen /></PrivateRoute>} />
             <Route path="academy" element={<Academy />} />
             <Route path="academy/:id" element={<AcademyCourseNew />} />
             <Route path="academy/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />

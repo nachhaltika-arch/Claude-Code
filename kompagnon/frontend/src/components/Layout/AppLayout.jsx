@@ -104,8 +104,9 @@ const NAV_SECTIONS = [
     title: 'Qualität',
     items: [
       { label: 'Support Tickets', path: '/app/tickets', icon: 'docCheck' },
-      { label: 'Produktentwicklung', path: '/app/product', icon: 'gear', adminOnly: true },
-      { label: 'QR-Generator', path: '/app/qr-generator', icon: 'qr', adminOnly: true },
+      { label: 'Produktentwicklung', path: '/app/product',        icon: 'gear', adminOnly: true },
+      { label: 'Produkteditor',      path: '/app/product-editor', icon: 'gear', adminOnly: true },
+      { label: 'QR-Generator',       path: '/app/qr-generator',  icon: 'qr',   adminOnly: true },
     ],
   },
   // Inhalte / Akademie — ausgeblendet, wird später aktiviert
@@ -145,7 +146,8 @@ const PAGE_NAMES = {
   '/app/tickets': 'Support Tickets',
   '/app/profile': 'Profil',
   '/app/checklists': 'Checklisten',
-  '/app/product': 'Produktentwicklung',
+  '/app/product':         'Produktentwicklung',
+  '/app/product-editor':  'Produkteditor',
 };
 
 const MOBILE_TABS = [

@@ -25,6 +25,7 @@ import Landing from './pages/Landing';
 import Checkout from './pages/Checkout';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import Settings from './pages/Settings';
+import ProductEditor from './pages/ProductEditor';
 import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
 import Impressum from './pages/Impressum';
@@ -161,6 +162,7 @@ function App() {
             <Route path="admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
             <Route path="tickets" element={<PrivateRoute roles={['admin', 'auditor']}><Tickets /></PrivateRoute>} />
             <Route path="product" element={<PrivateRoute roles={['admin']}><ProductDevelopment /></PrivateRoute>} />
+            <Route path="product-editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
             <Route path="qr-generator" element={<PrivateRoute roles={['admin']}><QRGenerator /></PrivateRoute>} />
             <Route path="newsletter" element={<PrivateRoute><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}

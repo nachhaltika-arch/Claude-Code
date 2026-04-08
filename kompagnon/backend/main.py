@@ -725,6 +725,29 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_checklist_json TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS gbp_checklist_json TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS gbp_place_id VARCHAR",
+        # ── Products ──────────────────────────────────────────────
+        """CREATE TABLE IF NOT EXISTS products (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            slug VARCHAR(100) UNIQUE NOT NULL,
+            beschreibung TEXT,
+            leistungsumfang TEXT,
+            typ VARCHAR(50) DEFAULT 'paket',
+            zielgruppe VARCHAR(50) DEFAULT 'oeffentlich',
+            preis_einmalig INTEGER,
+            preis_monatlich INTEGER,
+            waehrung VARCHAR(10) DEFAULT 'eur',
+            stripe_product_id VARCHAR(255),
+            stripe_price_id VARCHAR(255),
+            stripe_payment_link VARCHAR(255),
+            landing_page_url VARCHAR(255),
+            checkout_url VARCHAR(255),
+            status VARCHAR(50) DEFAULT 'entwurf',
+            ist_live BOOLEAN DEFAULT false,
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )""",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -1034,6 +1057,9 @@ app.include_router(webhooks.router)
 
 from routers import retainer
 app.include_router(retainer.router)
+
+from routers import products as products_router_mod
+app.include_router(products_router_mod.router, prefix="/api")
 
 
 # Global exception handler — catches unhandled errors

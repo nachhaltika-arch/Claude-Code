@@ -104,6 +104,7 @@ const PHASE_TOOLS = {
     { id: 'website-content', label: 'Website-Content',      icon: '🌐', sub: '50 Seiten', badge: '!' },
     { id: 'hosting',         label: 'Hosting-Crawling',     icon: '🖥️', sub: 'Scan' },
     { id: 'hosting-form',    label: 'Hosting-Fragebogen',   icon: '📋', sub: 'Fragebogen' },
+    { id: 'zugangsdaten',    label: 'Zugangsdaten',         icon: '🔑', sub: 'Safe' },
     { id: 'branddesign',     label: 'Brand-Design-PDF',     icon: '🎨', sub: 'Dreiseitig' },
     { id: 'pagespeed',       label: 'Page-Speed',           icon: '⚡', sub: 'Score' },
   ],
@@ -161,6 +162,7 @@ const SUB_TAB_MAP = {
   'hosting-form':       'hosting',
   'checkliste':         'checklists',
   'checklists':         'checklists',
+  'zugangsdaten':       'zugangsdaten',
   'qa-scan':            'qa-scan',
   'design':             'design',
   'sitemap':            'sitemap',
@@ -627,6 +629,13 @@ export default function ProjectDetail() {
   const [chatChannel, setChatChannel] = useState('in_app');
   const [chatSubject, setChatSubject] = useState('');
   const [chatSending, setChatSending] = useState(false);
+  // Zugangsdaten-Safe
+  const [creds, setCreds]               = useState([]);
+  const [credsLoading, setCredsLoading] = useState(false);
+  const [showPasswords, setShowPasswords] = useState({});
+  const [credForm, setCredForm]         = useState({ label: '', username: '', password: '', url: '', notes: '' });
+  const [credSaving, setCredSaving]     = useState(false);
+  const [credError, setCredError]       = useState('');
 
   const checkDomain = async () => {
     setDomainChecking(true);
@@ -636,6 +645,60 @@ export default function ProjectDetail() {
       setProject(prev => ({ ...prev, domain_reachable: d.reachable, domain_status_code: d.status_code, domain_checked_at: d.checked_at }));
     } catch { /* silent */ } finally { setDomainChecking(false); }
   };
+
+  const loadCreds = async () => {
+    setCredsLoading(true);
+    try {
+      const r = await fetch(
+        `${API_BASE_URL}/api/projects/${id}/credentials`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (r.ok) setCreds(await r.json());
+    } catch {}
+    setCredsLoading(false);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'zugangsdaten') loadCreds();
+  }, [activeTab]); // eslint-disable-line
+
+  const saveCred = async () => {
+    if (!credForm.label.trim()) {
+      setCredError('Bitte einen Namen eingeben (z.B. IONOS).');
+      return;
+    }
+    setCredSaving(true); setCredError('');
+    try {
+      const r = await fetch(
+        `${API_BASE_URL}/api/projects/${id}/credentials`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(credForm),
+        }
+      );
+      if (!r.ok) {
+        const d = await r.json();
+        setCredError(d.detail || 'Fehler beim Speichern');
+        return;
+      }
+      setCredForm({ label: '', username: '', password: '', url: '', notes: '' });
+      await loadCreds();
+    } catch { setCredError('Verbindungsfehler'); }
+    finally { setCredSaving(false); }
+  };
+
+  const deleteCred = async (credId) => {
+    if (!window.confirm('Zugangsdaten löschen?')) return;
+    await fetch(
+      `${API_BASE_URL}/api/projects/${id}/credentials/${credId}`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+    );
+    await loadCreds();
+  };
+
+  const togglePw = (credId) =>
+    setShowPasswords(p => ({ ...p, [credId]: !p[credId] }));
 
   const loadProject = useCallback(async () => {
     try {
@@ -1089,6 +1152,21 @@ export default function ProjectDetail() {
     s >= 80 ? '#E1F5EE' : s >= 60 ? '#FFF7ED' : '#FFF1F1';
   const scoreBorder = (s) =>
     s >= 80 ? '#1D9E75' : s >= 60 ? '#BA7517' : '#E24B4A';
+
+  const LST = {
+    display: 'block', fontSize: 11, fontWeight: 600,
+    color: '#64748b', textTransform: 'uppercase',
+    letterSpacing: '.06em', marginBottom: 5,
+  };
+  const INP = {
+    width: '100%', padding: '9px 12px',
+    border: '1.5px solid var(--border-light)',
+    borderRadius: 8, fontSize: 13,
+    fontFamily: 'inherit', color: 'var(--text-primary)',
+    background: 'var(--bg-app)',
+    boxSizing: 'border-box', outline: 'none',
+    marginBottom: 0,
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -2948,6 +3026,208 @@ export default function ProjectDetail() {
           </div>
         );
       })()}
+
+      {/* ── Zugangsdaten-Tab ────────────────────────────────────────────────── */}
+      {activeTab === 'zugangsdaten' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* FORMULAR */}
+          <div style={{
+            background: 'var(--bg-surface)',
+            border: '0.5px solid var(--border-light)',
+            borderRadius: 12, padding: '18px 20px',
+          }}>
+            <div style={{
+              fontSize: 12, fontWeight: 600, color: '#64748b',
+              textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14,
+            }}>
+              Neuen Zugang hinzufügen
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={LST}>Name / Anbieter *</label>
+                <input
+                  value={credForm.label}
+                  onChange={e => setCredForm(p => ({ ...p, label: e.target.value }))}
+                  placeholder="z.B. IONOS, WordPress, cPanel"
+                  style={INP}
+                />
+              </div>
+              <div>
+                <label style={LST}>URL</label>
+                <input
+                  type="url"
+                  value={credForm.url}
+                  onChange={e => setCredForm(p => ({ ...p, url: e.target.value }))}
+                  placeholder="https://login.ionos.de"
+                  style={INP}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={LST}>Benutzername / E-Mail</label>
+                <input
+                  value={credForm.username}
+                  onChange={e => setCredForm(p => ({ ...p, username: e.target.value }))}
+                  placeholder="benutzer@domain.de"
+                  autoComplete="off"
+                  style={INP}
+                />
+              </div>
+              <div>
+                <label style={LST}>Passwort</label>
+                <input
+                  type="password"
+                  value={credForm.password}
+                  onChange={e => setCredForm(p => ({ ...p, password: e.target.value }))}
+                  placeholder="Passwort eingeben"
+                  autoComplete="new-password"
+                  style={{ ...INP, paddingRight: 36 }}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={LST}>Notizen (optional)</label>
+              <textarea
+                rows={2}
+                value={credForm.notes}
+                onChange={e => setCredForm(p => ({ ...p, notes: e.target.value }))}
+                placeholder="z.B. 2FA aktiviert, Sicherheitsfrage: ..."
+                style={{ ...INP, resize: 'none' }}
+              />
+            </div>
+
+            {credError && (
+              <div style={{
+                background: '#FFF1F1', border: '1px solid #FECACA',
+                borderRadius: 7, padding: '8px 12px',
+                color: '#A32D2D', fontSize: 12, marginBottom: 10,
+              }}>
+                {credError}
+              </div>
+            )}
+
+            <button
+              onClick={saveCred}
+              disabled={credSaving}
+              style={{
+                padding: '9px 20px', borderRadius: 8, border: 'none',
+                background: credSaving ? '#94a3b8' : '#008eaa',
+                color: 'white', fontSize: 13, fontWeight: 600,
+                cursor: credSaving ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {credSaving ? 'Wird gespeichert...' : '+ Zugangsdaten speichern'}
+            </button>
+          </div>
+
+          {/* LISTE */}
+          <div style={{
+            background: 'var(--bg-surface)',
+            border: '0.5px solid var(--border-light)',
+            borderRadius: 12, overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '10px 16px',
+              borderBottom: '0.5px solid var(--border-light)',
+              fontSize: 12, fontWeight: 600, color: '#64748b',
+              textTransform: 'uppercase', letterSpacing: '.06em',
+              display: 'flex', justifyContent: 'space-between',
+            }}>
+              <span>Gespeicherte Zugänge ({creds.length})</span>
+            </div>
+
+            {credsLoading ? (
+              <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                Lädt...
+              </div>
+            ) : creds.length === 0 ? (
+              <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                Noch keine Zugangsdaten gespeichert.
+              </div>
+            ) : creds.map((c, i) => (
+              <div key={c.id} style={{
+                padding: '12px 16px',
+                borderBottom: i < creds.length - 1 ? '0.5px solid var(--border-light)' : 'none',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <span style={{
+                    background: '#E6F1FB', color: '#0C447C',
+                    padding: '2px 9px', borderRadius: 8,
+                    fontSize: 11, fontWeight: 600,
+                  }}>
+                    🔑 {c.label}
+                  </span>
+                  {c.url && (
+                    <a href={c.url} target="_blank" rel="noreferrer"
+                       style={{ fontSize: 11, color: '#008eaa' }}>
+                      {c.url.replace('https://', '').slice(0, 40)}
+                    </a>
+                  )}
+                  <button
+                    onClick={() => deleteCred(c.id)}
+                    style={{
+                      marginLeft: 'auto', background: 'none',
+                      border: 'none', color: '#94a3b8', cursor: 'pointer',
+                      fontSize: 16, padding: '0 4px',
+                    }}
+                    title="Löschen"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
+                  {c.username && (
+                    <div>
+                      <span style={{ color: '#94a3b8' }}>Benutzer: </span>
+                      <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>{c.username}</span>
+                    </div>
+                  )}
+                  {c.password && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: '#94a3b8' }}>Passwort: </span>
+                      <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>
+                        {showPasswords[c.id] ? c.password : '••••••••'}
+                      </span>
+                      <button
+                        onClick={() => togglePw(c.id)}
+                        style={{
+                          background: 'none', border: 'none',
+                          cursor: 'pointer', fontSize: 14, color: '#64748b', padding: '0 2px',
+                        }}
+                        title={showPasswords[c.id] ? 'Verbergen' : 'Einblenden'}
+                      >
+                        {showPasswords[c.id] ? '🙈' : '👁'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {c.notes && (
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 5 }}>
+                    📝 {c.notes}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Sicherheitshinweis */}
+          <div style={{
+            background: '#E6F1FB', border: '0.5px solid #B5D4F4',
+            borderRadius: 8, padding: '10px 14px',
+            fontSize: 11, color: '#0C447C',
+          }}>
+            🔒 Passwörter werden mit AES-128 Fernet-Verschlüsselung gespeichert.
+            Nur Admins können Zugangsdaten abrufen.
+          </div>
+        </div>
+      )}
 
       {/* ── Audit Tab ──────────────────────────────────────────────────────── */}
       {(activeSubTab === 'audit' || activeTab === 'audits') && (

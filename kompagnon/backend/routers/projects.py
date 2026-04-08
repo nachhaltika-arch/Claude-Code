@@ -351,7 +351,7 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
                 "SELECT id, lead_id, status, fixed_price, actual_hours, hourly_rate, "
                 "ai_tool_costs, margin_percent, scope_creep_flags, start_date, "
                 "target_go_live, created_at, company_name, website_url, contact_name, "
-                "sitemap_json, sitemap_freigabe, content_freigaben "
+                "sitemap_json, sitemap_freigabe, content_freigaben, qa_checklist_json "
                 "FROM projects WHERE id = :pid"
             ),
             {"pid": project_id},
@@ -393,7 +393,8 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
         'trade': lead.trade if lead else '',
         'sitemap_json':      row[15],
         'sitemap_freigabe':  str(row[16])[:16] if row[16] else None,
-        'content_freigaben': row[17],
+        'content_freigaben':  row[17],
+        'qa_checklist_json':  row[18],
     }
 
 
@@ -2139,3 +2140,22 @@ def confirm_approval(
     )
     db.commit()
     return {"success": True, "seite_id": seite_id, "freigaben": freigaben}
+
+
+# ── QA-Checkliste ─────────────────────────────────────────────────────────────
+
+@router.patch("/{project_id}/qa-checklist")
+def save_qa_checklist(
+    project_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    import json
+    checked = data.get("checked", {})
+    db.execute(
+        text("UPDATE projects SET qa_checklist_json=:qj WHERE id=:id"),
+        {"qj": json.dumps(checked, ensure_ascii=False), "id": project_id},
+    )
+    db.commit()
+    return {"success": True, "checked_count": len(checked)}

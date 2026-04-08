@@ -663,6 +663,8 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS sitemap_freigabe TIMESTAMP",
         # Content-Freigaben
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS content_freigaben TEXT",
+        # QA-Checkliste
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_checklist_json TEXT",
         # Zugangsdaten-Safe
         """CREATE TABLE IF NOT EXISTS project_credentials (
             id                  SERIAL PRIMARY KEY,

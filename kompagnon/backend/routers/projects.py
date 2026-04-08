@@ -353,7 +353,8 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
                 "target_go_live, created_at, company_name, website_url, contact_name, "
                 "sitemap_json, sitemap_freigabe, content_freigaben, qa_checklist_json, "
                 "abnahme_datum, abnahme_durch, "
-                "pagespeed_after_mobile, pagespeed_after_desktop, screenshot_after "
+                "pagespeed_after_mobile, pagespeed_after_desktop, screenshot_after, "
+                "gbp_checklist_json "
                 "FROM projects WHERE id = :pid"
             ),
             {"pid": project_id},
@@ -406,6 +407,11 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
         'pagespeed_mobile':         getattr(lead, 'pagespeed_mobile_score', None),
         'pagespeed_desktop':        getattr(lead, 'pagespeed_desktop_score', None),
         'screenshot_before':        getattr(lead, 'website_screenshot', None),
+        # Lead-seitige GBP-Daten
+        'gbp_place_id':             getattr(lead, 'gbp_place_id', None),
+        'gbp_rating':               getattr(lead, 'gbp_rating', None),
+        'gbp_ratings_total':        getattr(lead, 'gbp_ratings_total', None),
+        'gbp_checklist_json':       row[24],
     }
 
 
@@ -2280,3 +2286,107 @@ async def go_live_pagespeed(
         "pagespeed_after_desktop": desk_score,
         "has_screenshot":          bool(screenshot_after),
     }
+
+
+# ── Bewertungs-QR-Code & GBP-Checkliste ──────────────────────────────────────
+
+@router.get("/{project_id}/bewertungs-qrcode")
+def get_bewertungs_qrcode(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    from fastapi.responses import Response
+    import io
+
+    row = db.execute(text("""
+        SELECT l.gbp_place_id, l.company_name
+        FROM projects p
+        LEFT JOIN leads l ON l.id = p.lead_id
+        WHERE p.id = :id
+    """), {"id": project_id}).fetchone()
+
+    if not row:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    place_id = row[0]
+    if not place_id:
+        raise HTTPException(
+            422,
+            "Kein Google Business Profil verknüpft. "
+            "Bitte zuerst GBP-Check in der Nutzerkartei durchführen.",
+        )
+
+    review_url = f"https://search.google.com/local/writereview?placeid={place_id}"
+
+    import qrcode
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=10,
+        border=3,
+    )
+    qr.add_data(review_url)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="#0F1E3A", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+
+    return Response(
+        content=buf.read(),
+        media_type="image/png",
+        headers={
+            "Content-Disposition": f'attachment; filename="bewertungs-qr-{project_id}.png"',
+            "X-Review-URL": review_url,
+        },
+    )
+
+
+@router.get("/{project_id}/bewertungs-url")
+def get_bewertungs_url(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    row = db.execute(text("""
+        SELECT l.gbp_place_id, l.gbp_rating, l.gbp_ratings_total,
+               l.company_name
+        FROM projects p
+        LEFT JOIN leads l ON l.id = p.lead_id
+        WHERE p.id = :id
+    """), {"id": project_id}).fetchone()
+
+    if not row:
+        raise HTTPException(404, "Nicht gefunden")
+
+    place_id = row[0]
+    if not place_id:
+        return {"available": False, "review_url": None, "place_id": None}
+
+    return {
+        "available":     True,
+        "review_url":    f"https://search.google.com/local/writereview?placeid={place_id}",
+        "place_id":      place_id,
+        "rating":        row[1],
+        "ratings_total": row[2],
+        "company_name":  row[3],
+    }
+
+
+@router.patch("/{project_id}/gbp-checklist")
+def save_gbp_checklist(
+    project_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    import json
+    checked = data.get("checked", {})
+    db.execute(
+        text("UPDATE projects SET gbp_checklist_json=:gj WHERE id=:id"),
+        {"gj": json.dumps(checked, ensure_ascii=False), "id": project_id},
+    )
+    db.commit()
+    return {"success": True}

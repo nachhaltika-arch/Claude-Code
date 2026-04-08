@@ -666,6 +666,7 @@ def _run_migrations():
         # QA-Checkliste
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_checklist_json TEXT",
         # Abnahme & Go-Live Nachher-Daten
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS gbp_checklist_json TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_datum TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_durch VARCHAR(200)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_mobile INTEGER",

@@ -636,8 +636,8 @@ export default function AppLayout() {
         {/* Content */}
         <main style={{
           flex: 1, overflowY: 'auto', overflowX: 'hidden',
-          minWidth: 0,
-          padding: isMobile ? 16 : '20px 28px',
+          minWidth: 0, width: '100%', boxSizing: 'border-box',
+          padding: isMobile ? 16 : '24px 32px',
           paddingTop: isMobile ? 72 : undefined,
           paddingBottom: isMobile ? 80 : 20,
         }}>

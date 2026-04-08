@@ -65,6 +65,7 @@ const TABS = [
   { id: 'dateien',    label: 'Dateien',     icon: '📎' },
   { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
+  { id: 'sitemap',    label: 'Sitemap',     icon: '🗺️' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
 ];
 
@@ -2006,6 +2007,10 @@ export default function LeadProfile() {
           </div>
         );
       })()}
+
+      {activeTab === 'sitemap' && (
+        <SitemapPlaner leadId={leadId} token={token} />
+      )}
 
       {/* AUDIT DETAIL MODAL */}
       {openAudit && createPortal(

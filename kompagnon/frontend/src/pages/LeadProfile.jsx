@@ -545,7 +545,10 @@ export default function LeadProfile() {
   };
 
   const extractFromImpressum = async () => {
-    if (!profile?.lead?.website_url) return;
+    if (!profile?.lead?.website_url) {
+      alert('Keine Website-URL vorhanden');
+      return;
+    }
     setExtracting(true);
     setExtractResult(null);
     try {
@@ -555,7 +558,10 @@ export default function LeadProfile() {
       );
       const data = await res.json();
       if (!res.ok) {
-        setExtractResult({ success: false, message: data.detail || 'Fehler' });
+        setExtractResult({
+          success: false,
+          message: data.detail || `Fehler ${res.status}`,
+        });
         return;
       }
       const count = Object.keys(data.updated_fields || {}).length;
@@ -564,12 +570,15 @@ export default function LeadProfile() {
         success: true,
         message: count > 0
           ? `${count} Felder importiert${skipped > 0 ? `, ${skipped} bereits vorhanden` : ''}`
-          : 'Alle Felder bereits befüllt',
+          : 'Alle Felder bereits befuellt',
         updated: data.updated_fields,
       });
       if (count > 0) await loadProfile();
-    } catch {
-      setExtractResult({ success: false, message: 'Verbindungsfehler' });
+    } catch (err) {
+      setExtractResult({
+        success: false,
+        message: `Verbindungsfehler: ${err.message}`,
+      });
     } finally {
       setExtracting(false);
     }

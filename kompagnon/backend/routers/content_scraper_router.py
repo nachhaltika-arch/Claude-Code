@@ -80,6 +80,26 @@ def _run_content_scrape(job_id: int, project_id: int, website_url: str):
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
+@router.post("/{project_id}/scrape-full")
+async def scrape_full_analysis(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Single-page full analysis: SEO, text, assets, links, contact."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+    url = project.website_url or ""
+    if not url:
+        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
+    if not url.startswith("http"):
+        url = "https://" + url
+    from services.content_scraper import scrape_page_full
+    result = await scrape_page_full(url)
+    return result
+
+
 @router.post("/{project_id}/scrape")
 def start_scrape(
     project_id: int,

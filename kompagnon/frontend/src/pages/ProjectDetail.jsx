@@ -2589,52 +2589,181 @@ export default function ProjectDetail() {
       )}
 
       {/* ── Website-Content Tab ───────────────────────────────────────────── */}
-      {(activeSubTab === 'webcontent' || activeSubTab === 'website-content') && (
-        <div style={{ maxWidth: 760 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>🌐 Website-Content</div>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>Texte, Bilder und Dateien der gecrawlten Seiten</div>
+      {(activeSubTab === 'webcontent' || activeSubTab === 'website-content') && (() => {
+        const [fullAnalysis, setFullAnalysis] = [scrapeStatus, setScrapeStatus]; // reuse state slots
+        const [openSections, setOpenSections] = [expandedScrape, setExpandedScrape]; // reuse
+        const toggle = (key) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
+        const seoTitleLen = fullAnalysis?.seo?.title_length || 0;
+        const seoDescLen = fullAnalysis?.seo?.meta_description_length || 0;
+        const ampel = (val, lo, hi) => val === 0 ? 'var(--text-tertiary)' : val < lo ? 'var(--status-danger-text)' : val <= hi ? 'var(--status-success-text)' : 'var(--status-warning-text)';
+        const sectionHead = (key, icon, label, count) => (
+          <button onClick={() => toggle(key)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+            <span>{icon} {label} {count != null && <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>({count})</span>}</span>
+            <span style={{ color: 'var(--text-tertiary)' }}>{openSections[key] ? '▾' : '▸'}</span>
+          </button>
+        );
+
+        return (
+          <div style={{ maxWidth: 760 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>🌐 Website-Content</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>SEO, Texte, Assets und Links</div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button disabled={contentLoading} onClick={async () => {
+                  if (!project?.id) return;
+                  setContentLoading(true);
+                  try {
+                    const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/scrape-full`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+                    if (res.ok) setFullAnalysis(await res.json());
+                  } catch {}
+                  setContentLoading(false);
+                }} style={{ padding: '8px 18px', background: contentLoading ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: contentLoading ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  {contentLoading ? 'Analysiert…' : '🔍 SEO-Analyse'}
+                </button>
+                <button disabled={contentLoading} onClick={async () => {
+                  if (!project?.lead_id) return;
+                  setContentLoading(true);
+                  try {
+                    await fetch(`${API_BASE_URL}/api/crawler/scrape-content/${project.lead_id}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+                    const res = await fetch(`${API_BASE_URL}/api/crawler/content/${project.lead_id}`, { headers: { Authorization: `Bearer ${token}` } });
+                    if (res.ok) setWebsiteContent(await res.json());
+                  } catch {}
+                  setContentLoading(false);
+                }} style={{ padding: '8px 18px', background: contentLoading ? 'var(--text-tertiary)' : 'var(--bg-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: contentLoading ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  Multi-Page Scrape
+                </button>
+              </div>
             </div>
-            <button
-              disabled={contentLoading}
-              onClick={async () => {
-                if (!project?.lead_id) return;
-                setContentLoading(true);
-                try {
-                  await fetch(`${API_BASE_URL}/api/crawler/scrape-content/${project.lead_id}`, {
-                    method: 'POST', headers: { Authorization: `Bearer ${token}` },
-                  });
-                  const res = await fetch(`${API_BASE_URL}/api/crawler/content/${project.lead_id}`, { headers: { Authorization: `Bearer ${token}` } });
-                  if (res.ok) setWebsiteContent(await res.json());
-                } catch { /* ignore */ }
-                setContentLoading(false);
-              }}
-              style={{ padding: '8px 18px', background: contentLoading ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: contentLoading ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}
-            >{contentLoading ? 'Scrapt…' : 'Content scrapen'}</button>
-          </div>
-          {websiteContent.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {websiteContent.map((page, i) => (
-                <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                    <a href={page.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-primary)', textDecoration: 'none', wordBreak: 'break-all' }}>{page.url}</a>
-                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0, marginLeft: 10 }}>{page.word_count || 0} Wörter</span>
+
+            {/* SEO Full Analysis */}
+            {fullAnalysis?.seo && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                {/* Sektion 1: SEO */}
+                {sectionHead('seo', '🔍', 'SEO-Übersicht')}
+                {openSections.seo && (
+                  <div style={{ padding: '14px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <div style={{ padding: 10, background: 'var(--bg-app)', borderRadius: 'var(--radius-md)' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Title</div>
+                        <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{fullAnalysis.seo.title || '—'}</div>
+                        <div style={{ fontSize: 11, color: ampel(seoTitleLen, 30, 60), marginTop: 3 }}>{seoTitleLen} Zeichen</div>
+                      </div>
+                      <div style={{ padding: 10, background: 'var(--bg-app)', borderRadius: 'var(--radius-md)' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Meta-Description</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.4 }}>{fullAnalysis.seo.meta_description || '—'}</div>
+                        <div style={{ fontSize: 11, color: ampel(seoDescLen, 120, 160), marginTop: 3 }}>{seoDescLen} Zeichen</div>
+                      </div>
+                    </div>
+                    {fullAnalysis.seo.canonical_url && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}><strong>Canonical:</strong> {fullAnalysis.seo.canonical_url}</div>}
+                    {fullAnalysis.seo.language && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}><strong>Sprache:</strong> {fullAnalysis.seo.language}</div>}
+                    {Object.entries(fullAnalysis.seo.headings || {}).map(([lvl, items]) => items.length > 0 && (
+                      <div key={lvl}><div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>{lvl} ({items.length})</div>
+                        {items.map((h, i) => <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 8 }}>• {h}</div>)}
+                      </div>
+                    ))}
                   </div>
-                  {page.title && <div style={{ fontSize: 12, color: 'var(--text-primary)', marginBottom: 3 }}><strong>Titel:</strong> {page.title}</div>}
-                  {page.h1 && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}><strong>H1:</strong> {page.h1}</div>}
-                  {page.text_preview && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, lineHeight: 1.5 }}>{page.text_preview}</div>}
-                </div>
-              ))}
-            </div>
-          ) : !contentLoading && (
-            <div style={{ textAlign: 'center', padding: 40, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)', fontSize: 13 }}>
-              <div style={{ fontSize: 32, marginBottom: 10 }}>🌐</div>
-              Noch kein Content gescrapt. Führe zuerst einen Crawl durch, dann klicke &quot;Content scrapen&quot;.
-            </div>
-          )}
-        </div>
-      )}
+                )}
+
+                {/* Sektion 2: Text */}
+                {sectionHead('text', '📝', 'Volltext', fullAnalysis.text?.word_count)}
+                {openSections.text && (
+                  <div style={{ padding: '14px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
+                    <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}><strong>{fullAnalysis.text?.word_count}</strong> Wörter</span>
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}><strong>{fullAnalysis.text?.char_count}</strong> Zeichen</span>
+                      <button onClick={() => { navigator.clipboard.writeText(fullAnalysis.text?.full_text || ''); }}
+                        style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                        Kopieren
+                      </button>
+                    </div>
+                    <div style={{ maxHeight: 300, overflowY: 'auto', fontSize: 12, lineHeight: 1.6, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', padding: 10, background: 'var(--bg-app)', borderRadius: 'var(--radius-md)' }}>
+                      {fullAnalysis.text?.full_text || 'Kein Text'}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sektion 3: Assets */}
+                {sectionHead('assets', '📦', 'Assets', (fullAnalysis.assets?.summary?.image_count || 0) + (fullAnalysis.assets?.summary?.script_count || 0))}
+                {openSections.assets && (
+                  <div style={{ padding: '14px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12 }}>
+                    <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
+                      {[['Bilder', fullAnalysis.assets?.summary?.image_count], ['Ohne Alt', fullAnalysis.assets?.summary?.images_without_alt], ['CSS', fullAnalysis.assets?.summary?.stylesheet_count], ['JS', fullAnalysis.assets?.summary?.script_count], ['Fonts', fullAnalysis.assets?.summary?.font_count]].map(([l, v]) => (
+                        <div key={l} style={{ textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 700, color: 'var(--brand-primary)' }}>{v || 0}</div><div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{l}</div></div>
+                      ))}
+                    </div>
+                    {(fullAnalysis.assets?.images || []).length > 0 && (
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 6 }}>BILDER</div>
+                        {fullAnalysis.assets.images.slice(0, 15).map((img, i) => (
+                          <div key={i} style={{ display: 'flex', gap: 8, padding: '4px 0', borderBottom: '1px solid var(--border-light)', alignItems: 'center' }}>
+                            <a href={img.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)', flex: 1, wordBreak: 'break-all', fontSize: 11 }}>{img.url?.split('/').pop()}</a>
+                            <span style={{ color: img.has_alt ? 'var(--status-success-text)' : 'var(--status-danger-text)', fontSize: 10, flexShrink: 0 }}>{img.has_alt ? 'Alt ✓' : 'Alt ✗'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Sektion 4: Links */}
+                {sectionHead('links', '🔗', 'Links', (fullAnalysis.links?.internal_count || 0) + (fullAnalysis.links?.external_count || 0))}
+                {openSections.links && (
+                  <div style={{ padding: '14px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12 }}>
+                    {(fullAnalysis.links?.internal || []).length > 0 && (
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 6 }}>INTERN ({fullAnalysis.links.internal_count})</div>
+                        {fullAnalysis.links.internal.slice(0, 20).map((l, i) => (
+                          <div key={i} style={{ padding: '3px 0' }}>
+                            <a href={l.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)', wordBreak: 'break-all', fontSize: 11 }}>{l.url}</a>
+                            {l.text && <span style={{ color: 'var(--text-tertiary)', marginLeft: 6 }}>— {l.text}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {(fullAnalysis.links?.external || []).length > 0 && (
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 6 }}>EXTERN ({fullAnalysis.links.external_count})</div>
+                        {fullAnalysis.links.external.slice(0, 15).map((l, i) => (
+                          <div key={i} style={{ padding: '3px 0' }}>
+                            <a href={l.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', wordBreak: 'break-all', fontSize: 11 }}>{l.url}</a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Multi-Page Content (existing crawler-based) */}
+            {websiteContent.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.06em' }}>GECRAWLTE SEITEN ({websiteContent.length})</div>
+                {websiteContent.map((page, i) => (
+                  <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                      <a href={page.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-primary)', textDecoration: 'none', wordBreak: 'break-all' }}>{page.url}</a>
+                      <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0, marginLeft: 10 }}>{page.word_count || 0} Wörter</span>
+                    </div>
+                    {page.title && <div style={{ fontSize: 12, color: 'var(--text-primary)', marginBottom: 3 }}><strong>Titel:</strong> {page.title}</div>}
+                    {page.h1 && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}><strong>H1:</strong> {page.h1}</div>}
+                    {page.text_preview && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, lineHeight: 1.5 }}>{page.text_preview}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!fullAnalysis?.seo && websiteContent.length === 0 && !contentLoading && (
+              <div style={{ textAlign: 'center', padding: 40, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)', fontSize: 13 }}>
+                <div style={{ fontSize: 32, marginBottom: 10 }}>🌐</div>
+                Klicke &quot;SEO-Analyse&quot; für die Startseite oder &quot;Multi-Page Scrape&quot; für alle Seiten.
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── QA-Scan Tab ────────────────────────────────────────────────────── */}
       {activeTab === 'qa-scan' && (() => {

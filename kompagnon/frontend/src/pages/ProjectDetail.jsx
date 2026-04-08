@@ -489,6 +489,7 @@ export default function ProjectDetail() {
   const [contentFreigaben, setContentFreigaben] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`content_freigabe_${id}`) || '{}'); } catch { return {}; }
   });
+  const [gbpChecked, setGbpChecked] = useState({});
   const [selectedPageId, setSelectedPageId] = useState(null);
   const [editingPage, setEditingPage]       = useState(null);
   // Add page form
@@ -2706,19 +2707,117 @@ export default function ProjectDetail() {
       )}
 
       {/* ── Trustpilot Tab ─────────────────────────────────────────────────── */}
-      {activeSubTab === 'trustpilot' && (
-        <div className="kc-card" style={{ textAlign: 'center', padding: 32 }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>⭐</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Trustpilot-Bewertung anfragen</div>
-          <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 20 }}>
-            Fordere deinen Kunden auf, eine Bewertung auf Trustpilot zu hinterlassen.
+      {activeSubTab === 'trustpilot' && (() => {
+        // Init gbpChecked from project data once
+        if (Object.keys(gbpChecked).length === 0 && project.gbp_checklist_json) {
+          try { setGbpChecked(JSON.parse(project.gbp_checklist_json)); } catch {}
+        }
+
+        const GBP_CHECKLIST = [
+          { id: 'profil_beansprucht', label: 'Profil beansprucht und verifiziert' },
+          { id: 'adresse_zeiten', label: 'Adresse + Oeffnungszeiten korrekt eingetragen' },
+          { id: 'fotos', label: 'Mindestens 5 Fotos hochgeladen' },
+          { id: 'beschreibung', label: 'Leistungsbeschreibung vollstaendig ausgefuellt' },
+          { id: 'erste_bewertung', label: 'Erste Kundenbewertung eingegangen' },
+        ];
+        const gbpDone = GBP_CHECKLIST.filter(i => gbpChecked[i.id]).length;
+        const gbpAll = gbpDone === GBP_CHECKLIST.length;
+        const gbpPct = Math.round(gbpDone / GBP_CHECKLIST.length * 100);
+
+        const toggleGbp = async (itemId) => {
+          const next = { ...gbpChecked, [itemId]: !gbpChecked[itemId] };
+          setGbpChecked(next);
+          try {
+            await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+              body: JSON.stringify({ gbp_checklist_json: JSON.stringify(next) }),
+            });
+          } catch {}
+        };
+
+        const downloadQr = async () => {
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/bewertungs-qrcode`, {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            if (res.status === 400) { toast.error('Kein Google Business Profil verknuepft'); return; }
+            if (!res.ok) { toast.error('QR-Code konnte nicht geladen werden'); return; }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'bewertungs-qrcode.png'; a.click();
+            URL.revokeObjectURL(url);
+          } catch { toast.error('Download fehlgeschlagen'); }
+        };
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Bewertungs-QR-Code */}
+            <div className="kc-card">
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Google Bewertungen</div>
+              <button onClick={downloadQr} style={{ padding: '8px 18px', border: 'none', borderRadius: 'var(--radius-md)', background: '#008eaa', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+                QR-Code herunterladen
+              </button>
+              <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Drucken Sie diesen QR-Code fuer Ihre Theke, Fahrzeuge und Rechnungen. Kunden koennen damit direkt eine Google-Bewertung hinterlassen.
+              </div>
+            </div>
+
+            {/* Google Business Checkliste */}
+            <div className="kc-card">
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Google Business Optimierung</div>
+
+              {/* Progress */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                <div style={{ flex: 1, height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ width: `${gbpPct}%`, height: '100%', background: gbpAll ? '#22C55E' : '#008eaa', transition: 'width 0.4s ease', borderRadius: 3 }} />
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: gbpAll ? 'var(--status-success-text)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                  {gbpDone} von 5 Punkten erledigt
+                </span>
+              </div>
+
+              {gbpAll && (
+                <div style={{ padding: '10px 16px', borderRadius: 'var(--radius-md)', background: 'var(--status-success-bg)', border: '1px solid #bbf7d0', fontSize: 13, color: 'var(--status-success-text)', marginBottom: 14 }}>
+                  Google Business vollstaendig optimiert &#10003; — Ihr Kunde ist bereit fuer organisches Wachstum.
+                </div>
+              )}
+
+              {/* Items */}
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                {GBP_CHECKLIST.map((item, idx) => {
+                  const done = !!gbpChecked[item.id];
+                  return (
+                    <div key={item.id} onClick={() => toggleGbp(item.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: idx < GBP_CHECKLIST.length - 1 ? '1px solid var(--border-light)' : 'none', cursor: 'pointer', transition: 'background 0.1s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: 18, height: 18, borderRadius: 4, border: done ? 'none' : '2px solid var(--border-light)', background: done ? '#008eaa' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+                        {done && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6l2.5 2.5 4.5-5"/></svg>}
+                      </div>
+                      <span style={{ fontSize: 13, color: done ? 'var(--status-success-text)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none' }}>{item.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Trustpilot */}
+            <div className="kc-card" style={{ textAlign: 'center', padding: 32 }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>&#11088;</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Trustpilot-Bewertung anfragen</div>
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 20 }}>
+                Fordere deinen Kunden auf, eine Bewertung auf Trustpilot zu hinterlassen.
+              </div>
+              <button onClick={() => setShowApproval(true)}
+                style={{ padding: '10px 28px', background: '#00b67a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                &#11088; Bewertungsanfrage senden
+              </button>
+            </div>
           </div>
-          <button onClick={() => setShowApproval(true)}
-            style={{ padding: '10px 28px', background: '#00b67a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-            ⭐ Bewertungsanfrage senden
-          </button>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Upsell Tab ─────────────────────────────────────────────────────── */}
       {activeSubTab === 'upsell' && (

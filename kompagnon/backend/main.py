@@ -723,6 +723,8 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS sitemap_json TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS sitemap_freigabe TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_checklist_json TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS gbp_checklist_json TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS gbp_place_id VARCHAR",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

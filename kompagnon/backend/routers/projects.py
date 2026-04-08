@@ -1391,3 +1391,26 @@ def freigabe_sitemap(project_id: int, body: dict, db: Session = Depends(get_db),
     ), {"sj": json.dumps(seiten, ensure_ascii=False), "ts": now, "id": project_id})
     db.commit()
     return {"success": True, "freigabe": now.isoformat()}
+
+
+@router.get("/{project_id}/bewertungs-qrcode")
+def bewertungs_qrcode(project_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    import qrcode, io
+    from fastapi.responses import StreamingResponse
+    row = db.execute(text(
+        "SELECT p.gbp_place_id, l.gbp_place_id AS lead_gbp "
+        "FROM projects p LEFT JOIN leads l ON l.id = p.lead_id "
+        "WHERE p.id = :id"
+    ), {"id": project_id}).mappings().fetchone()
+    if not row:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    place_id = row["gbp_place_id"] or row["lead_gbp"]
+    if not place_id:
+        raise HTTPException(400, "Kein Google Business Profil verknuepft.")
+    url = f"https://search.google.com/local/writereview?placeid={place_id}"
+    img = qrcode.make(url)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="image/png",
+        headers={"Content-Disposition": "attachment; filename=bewertungs-qrcode.png"})

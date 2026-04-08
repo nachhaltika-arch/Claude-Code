@@ -98,6 +98,7 @@ const NAV_SECTIONS = [
     items: [
       { label: 'Projektpipeline', path: '/app/leads', icon: 'chart', exactMatch: true },
       { label: 'Kundenprojekte', path: '/app/projects', icon: 'users' },
+      { label: 'Retainer & Rechnungen', path: '/app/retainer', icon: 'docCheck', adminOnly: true },
     ],
   },
   {
@@ -149,6 +150,7 @@ const PAGE_NAMES = {
   '/app/product': 'Produktentwicklung',
   '/app/newsletter': 'Newsletter',
   '/app/webhooks': 'Webhooks',
+  '/app/retainer': 'Retainer & Rechnungen',
 };
 
 const MOBILE_TABS = [

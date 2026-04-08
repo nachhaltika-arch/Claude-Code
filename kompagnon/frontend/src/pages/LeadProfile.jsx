@@ -66,6 +66,7 @@ const TABS = [
   { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
   { id: 'sitemap',    label: 'Sitemap',     icon: '🗺️' },
+  { id: 'content',    label: 'Content',     icon: '📝' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
 ];
 
@@ -2010,6 +2011,10 @@ export default function LeadProfile() {
 
       {activeTab === 'sitemap' && (
         <SitemapPlaner leadId={leadId} token={token} />
+      )}
+
+      {activeTab === 'content' && (
+        <ContentManager leadId={leadId} token={token} />
       )}
 
       {/* AUDIT DETAIL MODAL */}

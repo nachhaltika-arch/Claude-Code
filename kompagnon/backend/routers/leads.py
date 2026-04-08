@@ -280,6 +280,10 @@ def get_customers(db: Session = Depends(get_db)):
             "project_status": project.status if project else None,
             "project_id": project.id if project else None,
             "has_account": user is not None, "user_id": user.id if user else None,
+            'gbp_claimed':       getattr(lead, 'gbp_claimed', False) or False,
+            'gbp_rating':        getattr(lead, 'gbp_rating', None),
+            'gbp_ratings_total': getattr(lead, 'gbp_ratings_total', None),
+            'gbp_place_id':      getattr(lead, 'gbp_place_id', None),
         })
     return result
 

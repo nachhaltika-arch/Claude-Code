@@ -656,6 +656,12 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_score INTEGER",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_golive_ok BOOLEAN",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_run_at TIMESTAMP",
+        # Google Business Profile
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_place_id VARCHAR",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_claimed BOOLEAN DEFAULT false",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_rating FLOAT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_ratings_total INTEGER",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_checked_at TIMESTAMP",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

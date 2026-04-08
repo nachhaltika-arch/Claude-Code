@@ -20,6 +20,7 @@ import PageSpeedSection from '../components/PageSpeedSection';
 import API_BASE_URL from '../config';
 import NewsletterDesigner from '../components/NewsletterDesigner';
 import { useScreenSize } from '../utils/responsive';
+import WZSearch from '../components/WZSearch';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -1422,7 +1423,6 @@ export default function LeadProfile() {
                   ['Gesellschaftsform', 'legal_form', 'GmbH, UG, GmbH & Co. KG'],
                   ['Vorname Geschäftsführer', 'ceo_first_name', 'Max'],
                   ['Nachname Geschäftsführer', 'ceo_last_name', 'Mustermann'],
-                  ['Gewerk', 'trade', 'Elektriker'],
                 ].map(([label, field, ph]) => (
                   <div key={field}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
@@ -1431,6 +1431,10 @@ export default function LeadProfile() {
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                 ))}
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Gewerk</div>
+                  <WZSearch value={editData.trade || ''} onChange={val => setEditData(p => ({ ...p, trade: val }))} placeholder="Gewerk suchen, z.B. Sanitaer, Elektriker..." />
+                </div>
 
                 <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
                   <div style={sectionLabel}>Adresse</div>

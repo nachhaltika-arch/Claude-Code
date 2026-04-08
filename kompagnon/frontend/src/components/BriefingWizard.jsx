@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
+import WZSearch from './WZSearch';
 
 const TEAL   = '#008EAA';
 const STEPS  = [
@@ -151,8 +152,8 @@ function ProgressBar({ step }) {
 function Step1({ data, set }) {
   return (
     <>
-      <Field label="Gewerk / Branche" required hint="Wählen Sie die Hauptbranche Ihres Betriebs.">
-        <Select value={data.gewerk} onChange={v => set('gewerk', v)} options={GEWERK_OPTIONS} />
+      <Field label="Gewerk / Branche" required hint="Tippen Sie den Anfang Ihres Gewerks ein und waehlen Sie aus der Liste.">
+        <WZSearch value={data.gewerk} onChange={v => set('gewerk', v)} placeholder="Gewerk suchen, z.B. Sanitaer, Elektriker..." />
       </Field>
       <Field label="Leistungen" required hint="Was bieten Sie an? Bitte alle Leistungen auflisten.">
         <Textarea

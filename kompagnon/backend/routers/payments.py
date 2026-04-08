@@ -29,37 +29,44 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.co
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
 PACKAGE_NAMES = {
-    "starter":   "Starter (5 Seiten · 1.500 EUR)",
-    "kompagnon": "KOMPAGNON (8 Seiten · 2.000 EUR)",
-    "premium":   "Premium (12 Seiten · 2.800 EUR)",
-}
-
-PACKAGES = {
-    "starter": {
-        "name": "Starter",
-        "price": 150000,
-        "description": "5 Seiten, SEO Basic, Mobiloptimierung, 14 Tage",
-    },
-    "kompagnon": {
-        "name": "Kompagnon",
-        "price": 200000,
-        "description": "8 Seiten, SEO + GEO, Workshop, Nachbetreuung",
-    },
-    "premium": {
-        "name": "Premium",
-        "price": 280000,
-        "description": "12 Seiten, Shop-Ready, Fotoshooting, 3 Monate Betreuung",
-    },
+    "starter":   "Starter (5 Seiten)",
+    "kompagnon": "KOMPAGNON (8 Seiten)",
+    "premium":   "Premium (12 Seiten)",
 }
 
 
 @router.get("/packages")
-def get_packages():
-    return PACKAGES
+def get_packages(db: Session = Depends(get_db)):
+    import json as _j
+    rows = db.execute(text(
+        "SELECT slug,name,price_brutto,price_netto,tax_rate,"
+        "short_desc,delivery_days,highlighted,highlight_label,"
+        "features,payment_type,status "
+        "FROM products WHERE status='live' ORDER BY sort_order ASC"
+    )).mappings().all()
+    result = {}
+    for r in rows:
+        feats = r["features"]
+        if isinstance(feats, str):
+            try: feats = _j.loads(feats)
+            except Exception: feats = []
+        result[r["slug"]] = {
+            "name":        r["name"],
+            "price":       int(float(r["price_brutto"]) * 100),
+            "price_eur":   float(r["price_brutto"]),
+            "netto":       float(r["price_netto"]),
+            "tax":         float(r["tax_rate"]),
+            "description": r["short_desc"] or "",
+            "features":    feats,
+            "delivery_days": r["delivery_days"],
+            "highlighted": r["highlighted"],
+            "highlight_label": r["highlight_label"] or "",
+        }
+    return result
 
 
 @router.post("/create-checkout")
-async def create_checkout(request: Request):
+async def create_checkout(request: Request, db: Session = Depends(get_db)):
     body = await request.json()
     package_id = body.get("package", "kompagnon")
     customer_email = body.get("email", "")
@@ -68,27 +75,41 @@ async def create_checkout(request: Request):
     website_url = body.get("website_url", "")
     phone = body.get("phone", "")
 
-    package = PACKAGES.get(package_id)
-    if not package:
-        raise HTTPException(400, "Ungueltiges Paket")
+    row = db.execute(text(
+        "SELECT * FROM products WHERE slug=:s AND status='live'"
+    ), {"s": package_id}).mappings().first()
+    if not row:
+        raise HTTPException(400, "Ungueltiges oder nicht verfuegbares Paket")
+
+    price_cents = int(float(row["price_brutto"]) * 100)
+    package_name = row["name"]
+    package_desc = row["short_desc"] or ""
 
     if not stripe.api_key:
         raise HTTPException(500, "Stripe nicht konfiguriert")
 
     try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[{
+        if row["stripe_price_id"]:
+            line_items_param = [{
+                "price": row["stripe_price_id"],
+                "quantity": 1,
+            }]
+        else:
+            line_items_param = [{
                 "price_data": {
                     "currency": "eur",
                     "product_data": {
-                        "name": f"KOMPAGNON {package['name']}",
-                        "description": package["description"],
+                        "name": f"KOMPAGNON {package_name}",
+                        "description": package_desc,
                     },
-                    "unit_amount": package["price"],
+                    "unit_amount": price_cents,
                 },
                 "quantity": 1,
-            }],
+            }]
+
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=line_items_param,
             mode="payment",
             customer_email=customer_email or None,
             metadata={

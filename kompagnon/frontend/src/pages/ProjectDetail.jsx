@@ -2591,17 +2591,110 @@ export default function ProjectDetail() {
       )}
 
       {/* ── Live-Daten Tab ─────────────────────────────────────────────────── */}
-      {activeSubTab === 'live-data' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div className="kc-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-            <InfoBlock label="Phase" value={project.status?.replace('phase_', 'Phase ') || '—'} />
-            <InfoBlock label="PageSpeed Mobile" value={project.pagespeed_mobile != null ? `${project.pagespeed_mobile}/100` : '—'} mono />
-            <InfoBlock label="PageSpeed Desktop" value={project.pagespeed_desktop != null ? `${project.pagespeed_desktop}/100` : '—'} mono />
-            <InfoBlock label="Domain erreichbar" value={project.domain_reachable === true ? '✅ Ja' : project.domain_reachable === false ? '❌ Nein' : '—'} />
-            {project.domain_checked_at && <InfoBlock label="Zuletzt geprüft" value={new Date(project.domain_checked_at).toLocaleDateString('de-DE')} />}
+      {activeSubTab === 'live-data' && (() => {
+        const scoreColor = (v) => v == null ? 'var(--text-tertiary)' : v < 50 ? '#E24B4A' : v < 90 ? '#BA7517' : '#1D9E75';
+        const diffMobile = (project.pagespeed_after_mobile != null && project.pagespeed_mobile != null) ? project.pagespeed_after_mobile - project.pagespeed_mobile : null;
+        const diffDesktop = (project.pagespeed_after_desktop != null && project.pagespeed_desktop != null) ? project.pagespeed_after_desktop - project.pagespeed_desktop : null;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Live-Daten */}
+            <div className="kc-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+              <InfoBlock label="Phase" value={project.status?.replace('phase_', 'Phase ') || '\u2014'} />
+              <InfoBlock label="Domain erreichbar" value={project.domain_reachable === true ? '\u2705 Ja' : project.domain_reachable === false ? '\u274c Nein' : '\u2014'} />
+              {project.domain_checked_at && <InfoBlock label="Zuletzt geprueft" value={new Date(project.domain_checked_at).toLocaleDateString('de-DE')} />}
+            </div>
+
+            {/* Digitale Abnahme */}
+            <div className="kc-card">
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Digitale Abnahme</div>
+              {project.abnahme_datum ? (
+                <div style={{ background: 'var(--status-success-bg)', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 13, color: 'var(--status-success-text)', fontWeight: 500 }}>
+                  &#10003; Abgenommen am {new Date(project.abnahme_datum).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} um {new Date(project.abnahme_datum).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr von {project.abnahme_durch || 'Kunde'}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <button onClick={async () => {
+                    try {
+                      await fetch(`${API_BASE_URL}/api/projects/${project.id}/freigabe-email`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+                      toast.success('E-Mail wurde gesendet');
+                    } catch { toast.error('Fehler beim Senden'); }
+                  }} style={{ padding: '8px 18px', border: 'none', borderRadius: 'var(--radius-md)', background: '#008eaa', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', alignSelf: 'flex-start' }}>
+                    Freigabe-E-Mail senden
+                  </button>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Kunde erhaelt E-Mail mit Abnahme-Link</div>
+                </div>
+              )}
+            </div>
+
+            {/* Vorher / Nachher Vergleich */}
+            <div className="kc-card">
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>PageSpeed Vorher / Nachher</div>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                {/* Vorher */}
+                <div style={{ flex: 1, minWidth: 180, background: 'var(--bg-app)', borderRadius: 12, padding: 20, textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>Vorher</div>
+                  <div style={{ fontSize: 42, fontWeight: 900, color: scoreColor(project.pagespeed_mobile), lineHeight: 1 }}>{project.pagespeed_mobile ?? '\u2014'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>Mobil</div>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: scoreColor(project.pagespeed_desktop), lineHeight: 1, marginTop: 12 }}>{project.pagespeed_desktop ?? '\u2014'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>Desktop</div>
+                </div>
+
+                {/* Differenz */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, minWidth: 80 }}>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: diffMobile != null ? (diffMobile >= 0 ? 'var(--status-success-text)' : 'var(--status-danger-text)') : 'var(--text-tertiary)' }}>
+                    {diffMobile != null ? `${diffMobile > 0 ? '+' : ''}${diffMobile}` : '\u2014'}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Mobil</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: diffDesktop != null ? (diffDesktop >= 0 ? 'var(--status-success-text)' : 'var(--status-danger-text)') : 'var(--text-tertiary)' }}>
+                    {diffDesktop != null ? `${diffDesktop > 0 ? '+' : ''}${diffDesktop}` : '\u2014'}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Desktop</div>
+                </div>
+
+                {/* Nachher */}
+                <div style={{ flex: 1, minWidth: 180, background: 'rgba(0,142,170,0.06)', border: '1px solid rgba(0,142,170,0.15)', borderRadius: 12, padding: 20, textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: '#008eaa', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12, fontWeight: 600 }}>Nachher</div>
+                  <input type="number" placeholder="\u2014" value={project.pagespeed_after_mobile ?? ''} onChange={async (e) => {
+                    const v = e.target.value ? parseInt(e.target.value) : null;
+                    setProject(p => ({ ...p, pagespeed_after_mobile: v }));
+                    try { await fetch(`${API_BASE_URL}/api/projects/${project.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ pagespeed_after_mobile: v }) }); } catch {}
+                  }} style={{ width: 80, fontSize: 36, fontWeight: 900, color: scoreColor(project.pagespeed_after_mobile), textAlign: 'center', border: '1px solid var(--border-light)', borderRadius: 8, padding: '4px 8px', background: 'var(--bg-surface)', fontFamily: 'var(--font-sans)' }} />
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>Mobil</div>
+                  <input type="number" placeholder="\u2014" value={project.pagespeed_after_desktop ?? ''} onChange={async (e) => {
+                    const v = e.target.value ? parseInt(e.target.value) : null;
+                    setProject(p => ({ ...p, pagespeed_after_desktop: v }));
+                    try { await fetch(`${API_BASE_URL}/api/projects/${project.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ pagespeed_after_desktop: v }) }); } catch {}
+                  }} style={{ width: 80, fontSize: 24, fontWeight: 700, color: scoreColor(project.pagespeed_after_desktop), textAlign: 'center', border: '1px solid var(--border-light)', borderRadius: 8, padding: '4px 8px', background: 'var(--bg-surface)', fontFamily: 'var(--font-sans)', marginTop: 12 }} />
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>Desktop</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Screenshots */}
+            <div className="kc-card">
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>Screenshots</div>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 8 }}>Vorher</div>
+                  {project.screenshot_url_before ? (
+                    <img src={project.screenshot_url_before} alt="Vorher" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border-light)' }} />
+                  ) : (
+                    <div style={{ height: 180, background: 'var(--bg-app)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 12 }}>Kein Screenshot</div>
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 8 }}>Nachher</div>
+                  {project.screenshot_after_url ? (
+                    <img src={project.screenshot_after_url} alt="Nachher" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border-light)' }} />
+                  ) : (
+                    <div style={{ height: 180, background: 'var(--bg-app)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 12 }}>Kein Screenshot</div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Hosting-Zugangsdaten Tab ────────────────────────────────────────── */}
       {activeSubTab === 'hosting-keys' && (

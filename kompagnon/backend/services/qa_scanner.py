@@ -252,6 +252,12 @@ async def ai_evaluate_qa(scan: dict) -> dict:
 Analysiere diese automatisch gesammelten Website-Daten und
 bewerte 6 Kategorien sowie eine Go-Live-Empfehlung.
 
+WICHTIG: Antworte AUSSCHLIESSLICH mit validem JSON.
+- Kein Text vor oder nach dem JSON
+- Keine Markdown-Backticks
+- Schließe IMMER alle JSON-Objekte und Arrays korrekt ab
+- Halte Listen kurz (max 3-5 Einträge pro Array), damit die Antwort vollständig bleibt
+
 WEBSITE: {scan.get("url")}
 BETRIEB: {scan.get("company")} | Branche: {scan.get("trade")}
 TITLE: {scan.get("title")}
@@ -262,10 +268,10 @@ TECHNISCHE CHECKS:
 {checks}
 
 HTML-AUSSCHNITT (Startseite):
-{scan.get("html_snippet", "")[:3000]}
+{scan.get("html_snippet", "")[:2000]}
 
 Bewerte ALLE folgenden Punkte im JSON-Format.
-Antworte NUR mit validem JSON, keine Erklärungen außerhalb:
+Antworte NUR mit validem JSON:
 
 {{
   "kategorien": {{
@@ -339,33 +345,20 @@ PageSpeed-Daten werden separat als Wert übergeben wenn vorhanden.
     try:
         resp = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=4096,
+            max_tokens=8000,
             messages=[{"role": "user", "content": prompt}],
         )
-        import json, re
-        text = resp.content[0].text.strip()
-
-        # JSON aus Markdown-Code-Block extrahieren
-        if "```" in text:
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-            text = text.strip()
-
-        # Falls JSON abgeschnitten wurde (stop_reason == "max_tokens"),
-        # versuche die fehlenden Klammern zu schließen
+        raw_text = resp.content[0].text
         stop = getattr(resp, 'stop_reason', None)
-        if stop == 'max_tokens' or (text and text[-1] not in ('}', ']')):
-            # Zähle offene/geschlossene Klammern
-            opens = text.count('{') - text.count('}')
-            opens_arr = text.count('[') - text.count(']')
-            # Abschneiden bei letztem vollständigen Wert
-            # Entferne unvollständigen String am Ende
-            text = re.sub(r',\s*"[^"]*$', '', text)
-            text = re.sub(r',\s*$', '', text)
-            text += ']' * opens_arr + '}' * opens
+        logger.info(f"QA KI-Antwort: {len(raw_text)} Zeichen, stop_reason={stop}")
 
-        return json.loads(text)
+        result = _safe_parse_ki_json(raw_text)
+
+        if result.get("_parse_error"):
+            logger.warning(f"QA JSON-Reparatur: {result['_parse_error']}")
+            logger.warning(f"Rohantwort Ende: ...{raw_text[-300:]}")
+
+        return result
     except Exception as e:
         logger.error(f"QA KI-Auswertung Fehler: {e}")
         return {
@@ -376,4 +369,73 @@ PageSpeed-Daten werden separat als Wert übergeben wenn vorhanden.
             "kritische_blocker": [],
             "top_empfehlungen": [],
             "ki_zusammenfassung": f"Fehler: {e}",
+        }
+
+
+def _safe_parse_ki_json(raw_text: str) -> dict:
+    """
+    Parst KI-Antwort robust:
+    - Entfernt Markdown-Backticks
+    - Extrahiert JSON auch wenn Text davor/danach steht
+    - Repariert unvollständiges JSON (abgeschnittene Antwort)
+    """
+    import json, re
+
+    if not raw_text or not raw_text.strip():
+        return {"_parse_error": "Leere KI-Antwort", "kategorien": {},
+                "gesamt_score": 0, "golive_empfehlung": False,
+                "golive_begruendung": "Leere Antwort",
+                "kritische_blocker": [], "top_empfehlungen": [],
+                "ki_zusammenfassung": "KI-Antwort war leer"}
+
+    text = raw_text.strip()
+
+    # Markdown-Backticks entfernen
+    text = re.sub(r'^```json\s*', '', text)
+    text = re.sub(r'^```\s*', '', text)
+    text = re.sub(r'\s*```$', '', text)
+    text = text.strip()
+
+    # Versuch 1: Direkt parsen
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Versuch 2: Größten JSON-Block aus Text extrahieren
+    json_match = re.search(r'\{.*\}', text, re.DOTALL)
+    if json_match:
+        try:
+            return json.loads(json_match.group())
+        except json.JSONDecodeError:
+            pass
+
+    # Versuch 3: Unvollständiges JSON reparieren
+    try:
+        fixed = text
+        # Unvollständigen String am Ende abschneiden
+        if fixed.count('"') % 2 != 0:
+            fixed = fixed[:fixed.rfind('"') + 1]
+        # Unvollständige Schlüssel-Wert-Paare entfernen
+        fixed = re.sub(r',\s*"[^"]*":\s*"?[^"}\]]*$', '', fixed)
+        fixed = re.sub(r',\s*$', '', fixed)
+        # Fehlende Klammern schließen
+        open_brackets = fixed.count('[') - fixed.count(']')
+        open_braces = fixed.count('{') - fixed.count('}')
+        fixed += ']' * max(0, open_brackets)
+        fixed += '}' * max(0, open_braces)
+
+        result = json.loads(fixed)
+        result['_parse_error'] = 'JSON war unvollständig und wurde repariert'
+        return result
+    except json.JSONDecodeError as e:
+        return {
+            "_parse_error": f"JSON nicht parsbar: {e}",
+            "kategorien": {},
+            "gesamt_score": 0,
+            "golive_empfehlung": False,
+            "golive_begruendung": "JSON-Parse fehlgeschlagen",
+            "kritische_blocker": [],
+            "top_empfehlungen": [],
+            "ki_zusammenfassung": f"KI-Antwort konnte nicht ausgewertet werden ({len(raw_text)} Zeichen)",
         }

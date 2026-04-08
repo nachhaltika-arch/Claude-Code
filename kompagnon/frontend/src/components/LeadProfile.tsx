@@ -361,7 +361,7 @@ const LeadProfile: React.FC<LeadProfileProps> = ({ lead, onBack, onEdit, onNavig
       <div className="border-b border-slate-200">
         <div className="flex gap-6">
           <TabBtn label="Uebersicht" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
-          <TabBtn label="Mockup" active={activeTab === 'mockup'} onClick={() => setActiveTab('mockup')} />
+          <TabBtn label="Design" active={activeTab === 'mockup'} onClick={() => setActiveTab('mockup')} />
         </div>
       </div>
 
@@ -405,10 +405,10 @@ const LeadProfile: React.FC<LeadProfileProps> = ({ lead, onBack, onEdit, onNavig
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide">KI-Mockup generieren</h3>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide">KI-Design generieren</h3>
                 <p className="text-sm text-slate-400 mt-1">
                   {briefing
-                    ? 'Briefing-Daten werden automatisch an den Mockup-Designer uebergeben.'
+                    ? 'Briefing-Daten werden automatisch an den Design-Editor uebergeben.'
                     : 'Ohne Briefing werden nur die Basisdaten verwendet. Fuer bessere Ergebnisse zuerst ein Briefing erstellen.'}
                 </p>
               </div>
@@ -467,7 +467,7 @@ const LeadProfile: React.FC<LeadProfileProps> = ({ lead, onBack, onEdit, onNavig
               {mockupResult.startsWith('<') ? (
                 <iframe
                   srcDoc={mockupResult}
-                  title="Mockup Vorschau"
+                  title="Design Vorschau"
                   sandbox=""
                   className="w-full border-0"
                   style={{ height: '500px' }}

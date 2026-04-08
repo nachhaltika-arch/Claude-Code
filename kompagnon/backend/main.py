@@ -55,6 +55,7 @@ from routers import (
     tickets_router,
     cms_connect_router,
     portal_router,
+    newsletter_router,
 )
 
 # Import scheduler
@@ -402,6 +403,12 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS top_problems TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS industry VARCHAR",
         # ── ORM-Felder die in älteren DBs fehlen können (f405-Fix) ──────────
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS actual_hours FLOAT DEFAULT 0.0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS hourly_rate FLOAT DEFAULT 45.0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS ai_tool_costs FLOAT DEFAULT 50.0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS margin_percent FLOAT DEFAULT 0.0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scope_creep_flags INTEGER DEFAULT 0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS target_go_live TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_approved_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS review_received BOOLEAN DEFAULT false",
@@ -646,10 +653,108 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS actual_go_live TIMESTAMP",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS website_url VARCHAR",
-        # Go-Live Automation — additional project columns
-        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_email VARCHAR",
+        # ── Newsletter tables ──────────────────────────────────────────────
+        """CREATE TABLE IF NOT EXISTS newsletters (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            subject VARCHAR(255) NOT NULL,
+            preview_text VARCHAR(255),
+            html_content TEXT,
+            json_content JSONB,
+            status VARCHAR(50) DEFAULT 'draft',
+            brevo_campaign_id BIGINT,
+            scheduled_at TIMESTAMP WITH TIME ZONE,
+            sent_at TIMESTAMP WITH TIME ZONE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS newsletter_lists (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            brevo_list_id BIGINT,
+            description TEXT,
+            source VARCHAR(50) DEFAULT 'manual',
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS newsletter_contacts (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) NOT NULL,
+            first_name VARCHAR(100),
+            last_name VARCHAR(100),
+            list_id INTEGER REFERENCES newsletter_lists(id),
+            crm_user_id INTEGER,
+            status VARCHAR(50) DEFAULT 'subscribed',
+            brevo_contact_id BIGINT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )""",
+        # ── Crawl tables ───────────────────────────────────────────────
+        """CREATE TABLE IF NOT EXISTS crawl_jobs (
+            id SERIAL PRIMARY KEY,
+            customer_id INTEGER,
+            status VARCHAR(20) DEFAULT 'pending',
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            total_urls INTEGER DEFAULT 0
+        )""",
+        """CREATE TABLE IF NOT EXISTS crawl_results (
+            id SERIAL PRIMARY KEY,
+            customer_id INTEGER,
+            job_id INTEGER REFERENCES crawl_jobs(id) ON DELETE CASCADE,
+            url VARCHAR(2000) NOT NULL,
+            status_code INTEGER,
+            depth INTEGER DEFAULT 0,
+            load_time NUMERIC(8,3),
+            crawled_at TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_crawl_jobs_customer ON crawl_jobs(customer_id)",
+        "CREATE INDEX IF NOT EXISTS idx_crawl_results_job ON crawl_results(job_id)",
+        # ── Webhook log ────────────────────────────────────────────────
+        """CREATE TABLE IF NOT EXISTS webhook_log (
+            id SERIAL PRIMARY KEY,
+            source VARCHAR(50),
+            email VARCHAR(255),
+            company VARCHAR(255),
+            created_at TIMESTAMP DEFAULT NOW()
+        )""",
+        # ── Digitale Abnahme + PageSpeed After ─────────────────────
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_datum TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_durch VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_mobile INTEGER",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_desktop INTEGER",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_after_url VARCHAR",
+        # ── Retainer + Invoices ────────────────────────────────────
+        """CREATE TABLE IF NOT EXISTS retainer_contracts (
+            id SERIAL PRIMARY KEY,
+            project_id INTEGER,
+            lead_id INTEGER,
+            package_name VARCHAR DEFAULT 'SEO-Pflege',
+            price_net NUMERIC(10,2) DEFAULT 89.00,
+            billing_cycle VARCHAR DEFAULT 'monthly',
+            start_date DATE,
+            next_billing_date DATE,
+            status VARCHAR DEFAULT 'aktiv',
+            customer_email VARCHAR,
+            customer_name VARCHAR,
+            created_at TIMESTAMP DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS invoices (
+            id SERIAL PRIMARY KEY,
+            retainer_id INTEGER,
+            project_id INTEGER,
+            invoice_number VARCHAR UNIQUE,
+            amount_net NUMERIC(10,2),
+            tax_rate NUMERIC(5,2) DEFAULT 19.00,
+            amount_gross NUMERIC(10,2),
+            status VARCHAR DEFAULT 'offen',
+            due_date DATE,
+            paid_at TIMESTAMP,
+            customer_email VARCHAR,
+            customer_name VARCHAR,
+            line_item VARCHAR DEFAULT 'Website-Pflege & SEO-Paket',
+            created_at TIMESTAMP DEFAULT NOW()
+        )""",
+        # Go-Live Automation — additional project columns
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_email VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS golive_audit_id INTEGER",
         # QA-Scanner Ergebnisse
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_result JSONB",
@@ -667,10 +772,7 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_checklist_json TEXT",
         # Abnahme & Go-Live Nachher-Daten
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS gbp_checklist_json TEXT",
-        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_datum TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS abnahme_durch VARCHAR(200)",
-        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_mobile INTEGER",
-        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pagespeed_after_desktop INTEGER",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_after TEXT",
         # Zugangsdaten-Safe
         """CREATE TABLE IF NOT EXISTS project_credentials (
@@ -689,30 +791,43 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_rating FLOAT",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_ratings_total INTEGER",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_checked_at TIMESTAMP",
-        # Produkt-Katalog
+        # ── Products ──────────────────────────────────────────────
         """CREATE TABLE IF NOT EXISTS products (
-            id                SERIAL PRIMARY KEY,
-            slug              VARCHAR(100) UNIQUE NOT NULL,
-            name              VARCHAR(200) NOT NULL,
-            short_desc        TEXT,
-            long_desc         TEXT,
-            price_brutto      NUMERIC(10,2) NOT NULL DEFAULT 0,
-            price_netto       NUMERIC(10,2) NOT NULL DEFAULT 0,
-            tax_rate          NUMERIC(5,2)  NOT NULL DEFAULT 19.0,
-            payment_type      VARCHAR(50)   NOT NULL DEFAULT 'once',
-            delivery_days     INTEGER       DEFAULT 14,
-            highlighted       BOOLEAN       DEFAULT false,
-            highlight_label   VARCHAR(100)  DEFAULT 'Empfehlung',
-            features          JSONB         DEFAULT '[]',
-            checkout_fields   JSONB         DEFAULT '[]',
-            webhook_actions   JSONB         DEFAULT '[]',
-            status            VARCHAR(50)   NOT NULL DEFAULT 'draft',
-            stripe_price_id   VARCHAR(200),
+            id SERIAL PRIMARY KEY,
+            slug VARCHAR(100) UNIQUE NOT NULL,
+            name VARCHAR(200) NOT NULL,
+            short_desc TEXT,
+            long_desc TEXT,
+            price_brutto NUMERIC(10,2) NOT NULL DEFAULT 0,
+            price_netto NUMERIC(10,2) NOT NULL DEFAULT 0,
+            tax_rate NUMERIC(5,2) NOT NULL DEFAULT 19.0,
+            payment_type VARCHAR(50) NOT NULL DEFAULT 'once',
+            delivery_days INTEGER DEFAULT 14,
+            highlighted BOOLEAN DEFAULT false,
+            highlight_label VARCHAR(100) DEFAULT 'Empfehlung',
+            features JSONB DEFAULT '[]',
+            checkout_fields JSONB DEFAULT '[]',
+            webhook_actions JSONB DEFAULT '[]',
+            status VARCHAR(50) NOT NULL DEFAULT 'draft',
+            stripe_price_id VARCHAR(200),
             stripe_product_id VARCHAR(200),
-            sort_order        INTEGER       DEFAULT 0,
-            created_at        TIMESTAMP     DEFAULT NOW(),
-            updated_at        TIMESTAMP     DEFAULT NOW()
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
         )""",
+        # Products schema upgrade (for existing deployments)
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS short_desc TEXT",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS long_desc TEXT",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS price_brutto NUMERIC(10,2) DEFAULT 0",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS price_netto NUMERIC(10,2) DEFAULT 0",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS tax_rate NUMERIC(5,2) DEFAULT 19.0",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS payment_type VARCHAR(50) DEFAULT 'once'",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS delivery_days INTEGER DEFAULT 14",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS highlighted BOOLEAN DEFAULT false",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS highlight_label VARCHAR(100) DEFAULT 'Empfehlung'",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS features JSONB DEFAULT '[]'",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS checkout_fields JSONB DEFAULT '[]'",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS webhook_actions JSONB DEFAULT '[]'",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -943,6 +1058,81 @@ def _create_default_admin():
     except Exception as e:
         logger.warning(f"Produkt-Seed Fehler: {e}")
 
+    # ── Produkte seeden (nur wenn Tabelle leer) ──────────────
+    try:
+        from database import SessionLocal
+        from sqlalchemy import text as _t
+        _db3 = SessionLocal()
+        count = _db3.execute(_t("SELECT COUNT(*) FROM products")).scalar()
+        if count == 0:
+            import json as _j
+            SEED = [
+                {
+                    "slug": "starter", "name": "Starter-Paket", "sort_order": 1,
+                    "short_desc": "5 Seiten, SEO Basic, Mobiloptimierung",
+                    "price_brutto": 1500.00, "price_netto": 1260.50, "tax_rate": 19,
+                    "payment_type": "once", "delivery_days": 14, "status": "live",
+                    "features": ["5-seitige WordPress-Website", "Mobile-First Design",
+                                 "SEO-Grundoptimierung", "SSL-Zertifikat & DSGVO-konform",
+                                 "Kontaktformular", "30 Tage Support"],
+                    "checkout_fields": ["name", "company", "email", "phone"],
+                    "webhook_actions": ["create_lead", "create_user", "create_project",
+                                        "send_welcome_email", "send_pdf"],
+                },
+                {
+                    "slug": "kompagnon", "name": "KOMPAGNON-Paket", "sort_order": 2,
+                    "short_desc": "8 Seiten, SEO + GEO, Workshop, Nachbetreuung",
+                    "price_brutto": 2000.00, "price_netto": 1680.67, "tax_rate": 19,
+                    "payment_type": "once", "delivery_days": 14, "status": "live",
+                    "highlighted": True, "highlight_label": "Empfehlung",
+                    "features": ["8-seitige WordPress-Website", "SEO + GEO-Optimierung",
+                                 "Strategy Workshop (60 Min.)", "Schema Markup & KI-Optimierung",
+                                 "Google Business Verknuepfung", "30 Tage Support"],
+                    "checkout_fields": ["name", "company", "email", "phone"],
+                    "webhook_actions": ["create_lead", "create_user", "create_project",
+                                        "send_welcome_email", "send_pdf"],
+                },
+                {
+                    "slug": "premium", "name": "Premium-Paket", "sort_order": 3,
+                    "short_desc": "12 Seiten, Shop-Ready, Fotoshooting",
+                    "price_brutto": 2800.00, "price_netto": 2352.94, "tax_rate": 19,
+                    "payment_type": "once", "delivery_days": 21, "status": "live",
+                    "features": ["12-seitige WordPress-Website", "Individual-Design nach CI",
+                                 "SEO + GEO + KI-Volloptimierung", "Strategy Workshop (90 Min.)",
+                                 "Professioneller Fotoshooting-Tag", "Google Ads Einrichtung",
+                                 "3 Monate Support"],
+                    "checkout_fields": ["name", "company", "email", "phone"],
+                    "webhook_actions": ["create_lead", "create_user", "create_project",
+                                        "send_welcome_email", "send_pdf"],
+                },
+            ]
+            for p in SEED:
+                _db3.execute(_t("""
+                    INSERT INTO products
+                    (slug, name, short_desc, price_brutto, price_netto,
+                     tax_rate, payment_type, delivery_days, status,
+                     highlighted, highlight_label, features,
+                     checkout_fields, webhook_actions, sort_order)
+                    VALUES (:slug, :name, :sd, :pb, :pn, :tr, :pt, :dd,
+                     :status, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :so)
+                """), {
+                    "slug": p["slug"], "name": p["name"], "sd": p["short_desc"],
+                    "pb": p["price_brutto"], "pn": p["price_netto"],
+                    "tr": p["tax_rate"], "pt": p["payment_type"],
+                    "dd": p["delivery_days"], "status": p["status"],
+                    "hl": p.get("highlighted", False),
+                    "hll": p.get("highlight_label", ""),
+                    "feat": _j.dumps(p["features"]),
+                    "cf": _j.dumps(p["checkout_fields"]),
+                    "wa": _j.dumps(p["webhook_actions"]),
+                    "so": p["sort_order"],
+                })
+            _db3.commit()
+            logger.info("✓ 3 Produkte geseedet")
+        _db3.close()
+    except Exception as e:
+        logger.warning(f"Produkt-Seed Fehler: {e}")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -951,7 +1141,6 @@ async def lifespan(app: FastAPI):
     # Uploads-Ordner — das einzige was synchron laufen muss
     try:
         os.makedirs("uploads", exist_ok=True)
-        logger.info("✓ uploads/ Ordner bereit")
     except Exception as e:
         logger.warning(f"⚠ uploads: {e}")
 
@@ -1034,14 +1223,25 @@ app = FastAPI(
 )
 
 # CORS Middleware — must be before all routers
+# Build allowed origins from environment or use sensible defaults.
+# NOTE: allow_credentials=True requires explicit origins (not "*").
+_cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
+_cors_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()] if _cors_origins_env else []
+
+# Always include known origins
+_default_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:5173",
+    "https://kompagnon-frontend.onrender.com",
+]
+for _o in _default_origins:
+    if _o not in _cors_origins:
+        _cors_origins.append(_o)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "https://kompagnon-frontend.onrender.com",
-        "*",
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1067,6 +1267,7 @@ app.include_router(scraper_router)
 app.include_router(settings_router)
 app.include_router(payments_router)
 app.include_router(tickets_router)
+app.include_router(newsletter_router)
 
 from routers import briefings
 app.include_router(briefings.router)      # GET /api/briefings/{lead_id} + POST + PUT
@@ -1125,6 +1326,13 @@ app.include_router(templates_router.router)
 
 from routers import messages as messages_router
 app.include_router(messages_router.router)
+
+from routers import webhooks
+app.include_router(webhooks.router)
+
+from routers import retainer
+app.include_router(retainer.router)
+
 
 from routers.products import router as products_router
 app.include_router(products_router)

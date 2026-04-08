@@ -58,7 +58,13 @@ import QRGenerator from './pages/QRGenerator';
 import TemplateLibrary from './pages/TemplateLibrary';
 import TemplateEditor from './pages/TemplateEditor';
 import NewsletterDesigner from './components/NewsletterDesigner';
+import Newsletter from './pages/Newsletter';
 import PortalLogin from './pages/PortalLogin';
+import WebhookDashboard from './pages/WebhookDashboard';
+import RetainerDashboard from './pages/RetainerDashboard';
+import Abnahme from './pages/Abnahme';
+import ProductManager from './pages/ProductManager';
+import ProductEditor from './pages/ProductEditor';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -138,6 +144,7 @@ function App() {
           <Route path="/checkout/:package" element={<Checkout />} />
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
           <Route path="/kampagne/:slug" element={<KampagneLandingPage />} />
+          <Route path="/abnahme/:projectId" element={<Abnahme />} />
 
           {/* App — authenticated, with Navbar/Sidebar */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
@@ -164,7 +171,13 @@ function App() {
             <Route path="product" element={<PrivateRoute roles={['admin']}><ProductDevelopment /></PrivateRoute>} />
             <Route path="product-editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
             <Route path="qr-generator" element={<PrivateRoute roles={['admin']}><QRGenerator /></PrivateRoute>} />
-            <Route path="newsletter" element={<PrivateRoute><NewsletterDesigner /></PrivateRoute>} />
+            <Route path="webhooks" element={<PrivateRoute roles={['admin']}><WebhookDashboard /></PrivateRoute>} />
+            <Route path="retainer" element={<PrivateRoute roles={['admin']}><RetainerDashboard /></PrivateRoute>} />
+            <Route path="products" element={<PrivateRoute roles={['admin']}><ProductManager /></PrivateRoute>} />
+            <Route path="products/editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
+            <Route path="product-editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
+            <Route path="newsletter" element={<PrivateRoute><Newsletter /></PrivateRoute>} />
+            <Route path="newsletter/editor/:id" element={<PrivateRoute><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}
             <Route path="courses" element={<PrivateRoute roles={['admin', 'auditor']}><Courses /></PrivateRoute>} />
             <Route path="portal" element={<PrivateRoute roles={['kunde']}><KundenPortal /></PrivateRoute>} />

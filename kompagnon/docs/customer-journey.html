@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KOMPAGNON — Customer Journey</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fa; color: #1a1a1a; padding: 24px; }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #888; margin-bottom: 20px; }
+  .legend { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .badge-live { background: #E1F5EE; color: #0F6E56; }
+  .badge-planned { background: #E6F1FB; color: #185FA5; }
+  .badge-partial { background: #FAEEDA; color: #854F0B; }
+  .badge-missing { background: #FCEBEB; color: #A32D2D; }
+  .example-intro { background: #fff; border-left: 3px solid #008eaa; border-radius: 0 8px 8px 0; padding: 10px 14px; margin-bottom: 20px; font-size: 13px; color: #555; line-height: 1.5; border: 0.5px solid #e5e7eb; border-left: 3px solid #008eaa; }
+  .example-intro strong { color: #1a1a1a; font-size: 14px; }
+  .phase-card { background: #fff; border: 0.5px solid #e5e7eb; border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
+  .phase-top { padding: 12px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; }
+  .phase-top:hover { background: #f9fafb; }
+  .phase-header { display: flex; align-items: center; gap: 10px; }
+  .phase-num { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; flex-shrink: 0; }
+  .phase-title { font-size: 14px; font-weight: 500; }
+  .phase-subtitle { font-size: 12px; color: #888; }
+  .phase-body { padding: 0 16px 14px; border-top: 0.5px solid #e5e7eb; display: none; }
+  .phase-body.open { display: block; }
+  .row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .col { flex: 1; min-width: 200px; }
+  .col-label { font-size: 11px; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+  .step { background: #f8f9fa; border-radius: 6px; padding: 6px 8px; margin-bottom: 4px; font-size: 12px; color: #333; display: flex; align-items: flex-start; gap: 7px; line-height: 1.4; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+  .example-box { background: #f0f9ff; border-left: 3px solid #008eaa; border-radius: 0 6px 6px 0; padding: 8px 12px; margin-top: 12px; font-size: 12px; color: #555; line-height: 1.6; }
+  .example-box strong { color: #008eaa; }
+  .actor-row { display: flex; gap: 6px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .actor { font-size: 11px; padding: 2px 8px; border-radius: 20px; border: 0.5px solid #e5e7eb; }
+  .actor-david { background: #E6F1FB; color: #185FA5; }
+  .actor-system { background: #E1F5EE; color: #0F6E56; }
+  .actor-kunde { background: #FAEEDA; color: #854F0B; }
+  .connector { height: 18px; display: flex; align-items: center; padding-left: 31px; }
+  .connector::before { content: ""; width: 1px; height: 100%; background: #e5e7eb; }
+  .chevron { font-size: 11px; color: #aaa; transition: transform 0.2s; display: inline-block; }
+  .chevron.open { transform: rotate(90deg); }
+  .right { display: flex; align-items: center; gap: 8px; }
+</style>
+</head>
+<body>
+
+<h1>KOMPAGNON — Customer Journey</h1>
+<p class="subtitle">Aktueller Stand + geplante Features · Stand April 2026</p>
+
+<div class="legend">
+  <span class="badge badge-live">✓ Live implementiert</span>
+  <span class="badge badge-partial">◑ Teilweise</span>
+  <span class="badge badge-planned">◷ Geplant</span>
+  <span class="badge badge-missing">✕ Fehlt noch</span>
+</div>
+
+<div class="example-intro">
+  <strong>Beispiel-Kunde: Sanitär Becker GmbH, Koblenz</strong><br>
+  Inhabergeführter Sanitär- und Heizungsbetrieb · 8 Mitarbeiter · bestehende Website veraltet · kein Google-Auftritt · Ziel: neue Website + lokale Sichtbarkeit
+</div>
+
+<!-- Phase 0 -->
+<div class="phase-card">
+  <div class="phase-top" onclick="toggle(this)">
+    <div class="phase-header">
+      <div class="phase-num" style="background:#E6F1FB;color:#185FA5;">0</div>
+      <div><div class="phase-title">Lead-Akquise</div><div class="phase-subtitle">Erstkontakt → Nutzerkartei</div></div>
+    </div>
+    <div class="right"><span class="badge badge-live">Live</span><span class="chevron">▶</span></div>
+  </div>
+  <div class="phase-body open">
+    <div class="row">
+      <div class="col">
+        <div class="col-label">So läuft es jetzt</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>HWK-Scraper importiert Sanitär-Betriebe aus Koblenz automatisch</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Domain-Check: Website erreichbar? Parking? Redirect?</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Nutzerkartei angelegt mit Firma, URL, Stadt, Gewerk</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>KI-Agent analysiert Website automatisch (Score 0–100)</div>
+      </div>
+      <div class="col">
+        <div class="col-label">Was noch fehlt</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>Webhook für Facebook/LinkedIn Lead Ads</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>QR-Postkarte → automatischer Lead-Eingang</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>KI-Telefon Vapi/Bland → Lead-Erstellung</div>
+      </div>
+    </div>
+    <div class="example-box"><strong>Becker GmbH:</strong> HWK-Scraper findet 47 Sanitär-Betriebe in PLZ 56xxx. Becker wird importiert mit URL sanitaer-becker.de · Score: 23/100 · Audit: kein SSL, kein Impressum, PageSpeed Mobil 31. → Automatisch in Vertriebspipeline als "Neu"</div>
+    <div class="actor-row">
+      <span style="font-size:11px;color:#888">Wer handelt:</span>
+      <span class="actor actor-system">🤖 System automatisch</span>
+      <span class="actor actor-david">David bei Qualitäts-Check</span>
+    </div>
+  </div>
+</div>
+
+<div class="connector"></div>
+
+<!-- Phase 1 -->
+<div class="phase-card">
+  <div class="phase-top" onclick="toggle(this)">
+    <div class="phase-header">
+      <div class="phase-num" style="background:#E6F1FB;color:#185FA5;">1</div>
+      <div><div class="phase-title">Vertrieb & Angebot</div><div class="phase-subtitle">Kontakt → Gewonnen</div></div>
+    </div>
+    <div class="right"><span class="badge badge-live">Live</span><span class="chevron">▶</span></div>
+  </div>
+  <div class="phase-body">
+    <div class="row">
+      <div class="col">
+        <div class="col-label">So läuft es jetzt</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Vertriebspipeline Kanban: Neu → Kontaktiert → Qualifiziert → Angebot → Gewonnen</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Audit-Report als PDF für Erstkontakt</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Status auf "Gewonnen" → automatisch Projekt anlegen Dialog</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Stripe Checkout für Online-Zahlung</div>
+      </div>
+      <div class="col">
+        <div class="col-label">Was noch fehlt</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>E-Mail-Sequenz (automatische Follow-ups)</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>Automatisches Angebots-PDF aus Audit</div>
+      </div>
+    </div>
+    <div class="example-box"><strong>Becker GmbH:</strong> David ruft an, zeigt Audit-Report (Score 23, 5 kritische Probleme). Angebot: Kompagnon-Paket 2.490€. Becker zahlt per Stripe → Status "Gewonnen" → Projekt #7 wird automatisch angelegt.</div>
+    <div class="actor-row">
+      <span style="font-size:11px;color:#888">Wer handelt:</span>
+      <span class="actor actor-david">David (Telefon + Angebot)</span>
+      <span class="actor actor-kunde">Becker GmbH (Zahlung)</span>
+      <span class="actor actor-system">🤖 Stripe + Projekt-Anlage</span>
+    </div>
+  </div>
+</div>
+
+<div class="connector"></div>
+
+<!-- Phase 2 -->
+<div class="phase-card">
+  <div class="phase-top" onclick="toggle(this)">
+    <div class="phase-header">
+      <div class="phase-num" style="background:#E1F5EE;color:#0F6E56;">2</div>
+      <div><div class="phase-title">Onboarding</div><div class="phase-subtitle">Daten sammeln · Briefing · Null-Stand</div></div>
+    </div>
+    <div class="right"><span class="badge badge-partial">Teilweise</span><span class="chevron">▶</span></div>
+  </div>
+  <div class="phase-body">
+    <div class="row">
+      <div class="col">
+        <div class="col-label">So läuft es jetzt</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Projektkarte angelegt mit 8 Prozessschritten</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Null-Übersicht: PageSpeed, Audit-Score, Status, Marge</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Website-Text scannen (Inhalt der alten Seite extrahieren)</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Brand Design scrapen (Farben, Fonts, Logo)</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>Briefing-Wizard (Frontend ok, Backend-Router folgt)</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>Hosting-Fragebogen (Platzhalter vorhanden)</div>
+      </div>
+      <div class="col">
+        <div class="col-label">Was noch fehlt</div>
+        <div class="step"><div class="dot" style="background:#E24B4A"></div>Kundenportal: Kunde füllt Briefing selbst aus</div>
+        <div class="step"><div class="dot" style="background:#E24B4A"></div>Automatische E-Mail an Kunden nach Projektstart</div>
+        <div class="step"><div class="dot" style="background:#E24B4A"></div>Erinnerung wenn Unterlagen fehlen (Logo, Fotos)</div>
+      </div>
+    </div>
+    <div class="example-box"><strong>Becker GmbH:</strong> David öffnet Projektkarte, startet Briefing-Wizard. Becker: Sanitär + Heizung, Privatkunden Koblenz, USP "24h Notdienst", 5 Seiten gewünscht. Altes Website-HTML wird gescannt. Logo kommt per E-Mail. Hosting: IONOS.</div>
+    <div class="actor-row">
+      <span style="font-size:11px;color:#888">Wer handelt:</span>
+      <span class="actor actor-david">David (Wizard ausfüllen)</span>
+      <span class="actor actor-system">🤖 Scraper automatisch</span>
+      <span class="actor actor-kunde">Becker GmbH (Logo liefern)</span>
+    </div>
+  </div>
+</div>
+
+<div class="connector"></div>
+
+<!-- Phase 3 -->
+<div class="phase-card">
+  <div class="phase-top" onclick="toggle(this)">
+    <div class="phase-header">
+      <div class="phase-num" style="background:#E1F5EE;color:#0F6E56;">3</div>
+      <div><div class="phase-title">Content & KI-Texte</div><div class="phase-subtitle">Texte · Sitemap · KI-Entwurf</div></div>
+    </div>
+    <div class="right"><span class="badge badge-partial">Teilweise</span><span class="chevron">▶</span></div>
+  </div>
+  <div class="phase-body">
+    <div class="row">
+      <div class="col">
+        <div class="col-label">So läuft es jetzt</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>KI-Content-Agent: Hero, Über uns, Leistungen, FAQ, Meta</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>KI-SEO-Agent: JSON-LD Schema, robots.txt, Sitemap</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>KI-Zielgruppenanalyse + Wettbewerbsanalyse</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>GrapesJS Website Designer (fast fertig)</div>
+      </div>
+      <div class="col">
+        <div class="col-label">Was noch fehlt</div>
+        <div class="step"><div class="dot" style="background:#E24B4A"></div>Sitemap-Planer (geplant, nicht implementiert)</div>
+        <div class="step"><div class="dot" style="background:#E24B4A"></div>Content-Freigabe durch Kunden im Portal</div>
+        <div class="step"><div class="dot" style="background:#E24B4A"></div>Fotos hochladen + zuweisen zu Seiten</div>
+      </div>
+    </div>
+    <div class="example-box"><strong>Becker GmbH:</strong> KI generiert Hero-Text "Ihr Sanitär-Notdienst in Koblenz – 24h erreichbar". Leistungsseite: Heizungswartung, Badezimmersanierung, Rohrbruch-Notdienst. FAQ: 8 Fragen KI-generiert. Local SEO: JSON-LD mit Service-Radius 30km.</div>
+    <div class="actor-row">
+      <span style="font-size:11px;color:#888">Wer handelt:</span>
+      <span class="actor actor-system">🤖 KI-Agents automatisch</span>
+      <span class="actor actor-david">David (Freigabe + Anpassen)</span>
+    </div>
+  </div>
+</div>
+
+<div class="connector"></div>
+
+<!-- Phase 4 -->
+<div class="phase-card">
+  <div class="phase-top" onclick="toggle(this)">
+    <div class="phase-header">
+      <div class="phase-num" style="background:#FAEEDA;color:#854F0B;">4</div>
+      <div><div class="phase-title">Technik & Design</div><div class="phase-subtitle">Netlify · WordPress · GrapesJS</div></div>
+    </div>
+    <div class="right"><span class="badge badge-missing">Fehlt noch</span><span class="chevron">▶</span></div>
+  </div>
+  <div class="phase-body">
+    <div class="row">
+      <div class="col">
+        <div class="col-label">So läuft es jetzt</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>GrapesJS Editor in Projektkarte (Build-Fehler, fast fertig)</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>Netlify / WP Karte im Technik-Tab (Platzhalter)</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Mockup-HTML speicherbar in Projekttabelle</div>
+      </div>
+      <div class="col">
+        <div class="col-label">Was noch fehlt</div>
+        <div class="step"><div class="dot" style="background:#E24B4A"></div>Netlify Deploy Button (API-Integration)</div>
+        <div class="step"><div class="dot" style="background:#E24B4A"></div>WordPress REST API Export</div>
+        <div class="step"><div class="dot" style="background:#E24B4A"></div>Design-Freigabe durch Kunden</div>
+        <div class="step"><div class="dot" style="background:#E24B4A"></div>SSL-Zertifikat automatisch (Let's Encrypt)</div>
+      </div>
+    </div>
+    <div class="example-box"><strong>Becker GmbH (geplant):</strong> David öffnet GrapesJS, wählt KOMPAGNON Hero-Block, passt Farben an Beckers CI an (Blau #1a3c6b). Klick "Deploy auf Netlify" → preview.sanitaer-becker-neu.netlify.app ist live. Becker erhält Vorschau-Link.</div>
+    <div class="actor-row">
+      <span style="font-size:11px;color:#888">Wer handelt:</span>
+      <span class="actor actor-david">David (Design + Deploy)</span>
+      <span class="actor actor-system">🤖 Netlify automatisch</span>
+      <span class="actor actor-kunde">Becker GmbH (Freigabe)</span>
+    </div>
+  </div>
+</div>
+
+<div class="connector"></div>
+
+<!-- Phase 5 -->
+<div class="phase-card">
+  <div class="phase-top" onclick="toggle(this)">
+    <div class="phase-header">
+      <div class="phase-num" style="background:#E1F5EE;color:#0F6E56;">5</div>
+      <div><div class="phase-title">Go Live</div><div class="phase-subtitle">DNS · Abnahme · Go-Live E-Mail</div></div>
+    </div>
+    <div class="right"><span class="badge badge-partial">Teilweise</span><span class="chevron">▶</span></div>
+  </div>
+  <div class="phase-body">
+    <div class="row">
+      <div class="col">
+        <div class="col-label">So läuft es jetzt</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Go-Live E-Mail an Kunden automatisch bei Phase 6</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>PageSpeed-After Messung automatisch</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Audit automatisch nach Go Live</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Go-Live Datum wird gesetzt</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>DNS-Einstellungen Formular (Platzhalter)</div>
+      </div>
+      <div class="col">
+        <div class="col-label">Was noch fehlt</div>
+        <div class="step"><div class="dot" style="background:#E24B4A"></div>Digitale Abnahme durch Kunden (Klick + Zeitstempel)</div>
+        <div class="step"><div class="dot" style="background:#E24B4A"></div>Screenshot vorher/nachher Vergleich</div>
+        <div class="step"><div class="dot" style="background:#E24B4A"></div>Zertifikat Homepage Standard mit Siegelbild</div>
+      </div>
+    </div>
+    <div class="example-box"><strong>Becker GmbH:</strong> David trägt DNS A-Record ein: sanitaer-becker.de → Netlify IP. Propagation ~2h. David setzt Phase auf 6 → System misst PageSpeed: vorher 31 / nachher 87 Mobil. E-Mail: "Ihre Website ist live 🚀 – Score: 87". Audit: Bronze → Silber.</div>
+    <div class="actor-row">
+      <span style="font-size:11px;color:#888">Wer handelt:</span>
+      <span class="actor actor-david">David (DNS eintragen)</span>
+      <span class="actor actor-kunde">Becker GmbH (Freigabe)</span>
+      <span class="actor actor-system">🤖 Auto-Audit + E-Mail</span>
+    </div>
+  </div>
+</div>
+
+<div class="connector"></div>
+
+<!-- Phase 6 -->
+<div class="phase-card">
+  <div class="phase-top" onclick="toggle(this)">
+    <div class="phase-header">
+      <div class="phase-num" style="background:#E6F1FB;color:#185FA5;">6</div>
+      <div><div class="phase-title">Post-Launch (30 Tage)</div><div class="phase-subtitle">Follow-ups · Bewertung · Upsell</div></div>
+    </div>
+    <div class="right"><span class="badge badge-live">Live</span><span class="chevron">▶</span></div>
+  </div>
+  <div class="phase-body">
+    <div class="row">
+      <div class="col">
+        <div class="col-label">So läuft es jetzt</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Tag 5: "Wie läuft die neue Website?" E-Mail</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Tag 14: Funktionscheck E-Mail</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Tag 21: Google-Bewertung anfragen</div>
+        <div class="step"><div class="dot" style="background:#1D9E75"></div>Tag 30: GEO-Check + Upsell-Angebot</div>
+      </div>
+      <div class="col">
+        <div class="col-label">Was noch fehlt</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>Retainer-Modul (monatliche Abrechnung)</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>Bestandskundenpflege Dashboard</div>
+        <div class="step"><div class="dot" style="background:#BA7517"></div>Jahres-Audit automatisch</div>
+      </div>
+    </div>
+    <div class="example-box"><strong>Becker GmbH:</strong> Tag 5: Willkommens-E-Mail. Tag 21: "Wir würden uns über eine Google-Bewertung freuen." Becker gibt 5 Sterne. Tag 30: Upsell "Monatliches SEO-Paket für 89€/Monat" → Becker bucht Retainer.</div>
+    <div class="actor-row">
+      <span style="font-size:11px;color:#888">Wer handelt:</span>
+      <span class="actor actor-system">🤖 Scheduler automatisch</span>
+      <span class="actor actor-kunde">Becker GmbH (Bewertung)</span>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggle(el) {
+  const body = el.nextElementSibling;
+  const chevron = el.querySelector('.chevron');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+}
+</script>
+</body>
+</html>

@@ -172,6 +172,26 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
             from services.lead_enrichment import enrich_lead_sync
             background_tasks.add_task(enrich_lead_sync, lead_id)
 
+        # Google Business Profile check (non-blocking)
+        def _gbp_check(lid, company, city):
+            import asyncio
+            from services.google_business import check_google_business
+            from database import SessionLocal
+            try:
+                gbp = asyncio.run(check_google_business(company, city))
+                s = SessionLocal()
+                s.execute(text(
+                    "UPDATE leads SET gbp_place_id=:pid, gbp_claimed=:c, "
+                    "gbp_rating=:r, gbp_ratings_total=:rt WHERE id=:id"
+                ), {"pid": gbp["place_id"], "c": gbp["claimed"],
+                    "r": gbp["rating"], "rt": gbp["ratings_total"], "id": lid})
+                s.commit()
+                s.close()
+            except Exception:
+                pass
+        background_tasks.add_task(_gbp_check, lead_id,
+                                  lead.company_name or '', lead.city or '')
+
         return {
             'id': row[0],
             'company_name': row[1] or '',

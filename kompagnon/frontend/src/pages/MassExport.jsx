@@ -30,7 +30,7 @@ export default function MassExport() {
   };
 
   return (
-    <div style={{ maxWidth: 600 }}>
+    <div style={{ width: '100%', boxSizing: 'border-box' }}>
       <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8 }}>Massen-Export</h1>
       <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24 }}>Alle Leads als CSV-Datei exportieren.</p>
 

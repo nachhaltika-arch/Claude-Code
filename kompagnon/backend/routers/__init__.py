@@ -17,6 +17,7 @@ from .tickets import router as tickets_router
 from .scraper import router as scraper_router
 from .cms_connect import router as cms_connect_router
 from .portal import router as portal_router
+from .newsletter import router as newsletter_router
 
 __all__ = [
     "cms_connect_router",
@@ -37,4 +38,5 @@ __all__ = [
     "settings_router",
     "payments_router",
     "tickets_router",
+    "newsletter_router",
 ]

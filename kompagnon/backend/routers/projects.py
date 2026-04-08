@@ -31,7 +31,8 @@ def _get_fernet():
             "CREDENTIALS_KEY nicht gesetzt — nutze unsicheren Fallback. "
             "Bitte in Render Environment setzen."
         )
-        key = "dGhpc2lzYWZha2Vfa2V5Zm9yZGV2b25seXVzZTEyMw=="
+        # Valid 32-byte Fernet key (dev-only fallback — set CREDENTIALS_KEY on Render!)
+        key = "a29tcGFnbm9uLWRldi1mYWxsYmFjay1rZXktMjAyNiE="
     try:
         return Fernet(key.encode() if isinstance(key, str) else key)
     except Exception as e:

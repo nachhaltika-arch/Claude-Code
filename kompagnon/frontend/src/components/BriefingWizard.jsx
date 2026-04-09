@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import API_BASE_URL from '../config';
 import WZSearch from './WZSearch';
 import { useScreenSize } from '../utils/responsive';
@@ -539,135 +540,254 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
     }
   };
 
-  return (
-    /* Overlay — fills content area beside sidebar (not on mobile) */
-    <div style={{
-      position: 'fixed',
-      top: 0, right: 0, bottom: 0,
-      left: isMobile ? 0 : 'var(--sidebar-width, 220px)',
-      zIndex: 2000,
-      background: 'var(--bg-app)',
-      display: 'flex', flexDirection: 'column',
-    }}>
+  const panelStyle = isMobile
+    ? {
+        position: 'fixed', left: 0, right: 0, bottom: 0,
+        top: 'auto', transform: 'none',
+        width: '100%', maxWidth: '100%', maxHeight: '92vh',
+        borderRadius: '20px 20px 0 0',
+        animation: 'bwSlideUpMobile 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)',
+      }
+    : {
+        position: 'fixed', top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '100%', maxWidth: 680, maxHeight: '90vh',
+        borderRadius: 20,
+        animation: 'bwSlideUp 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)',
+      };
 
-      {/* Panel — fills the full content area */}
-      <div style={{
-        background: 'var(--bg-surface)',
-        width: '100%', height: '100%',
-        display: 'flex', flexDirection: 'column',
-        overflow: 'hidden',
-      }}>
+  return createPortal(
+    <>
+      {/* ── Overlay ── */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.55)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          zIndex: 2000,
+          animation: 'bwFadeIn 0.2s ease',
+        }}
+      />
 
-        {/* Header */}
+      {/* ── Modal-Box ── */}
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          ...panelStyle,
+          zIndex: 2001,
+          background: 'var(--bg-surface)',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.12)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        {/* ── Header ── */}
         <div style={{
+          padding: '20px 28px 16px',
           borderBottom: '1px solid var(--border-light)',
-          paddingBottom: 16,
           flexShrink: 0,
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 16,
           background: 'var(--bg-surface)',
         }}>
-          <div style={{
-            display: 'flex', alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '18px 32px 14px',
-            maxWidth: 1200, margin: '0 auto', width: '100%', boxSizing: 'border-box',
-          }}>
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, marginBottom: 3 }}>
-                Website-Briefing
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
-                {leadData?.company_name || `Lead #${leadId}`}
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              style={{
-                background: 'var(--bg-app)', border: '1px solid var(--border-light)',
-                borderRadius: 'var(--radius-md)', fontSize: 18,
-                cursor: 'pointer', color: 'var(--text-secondary)',
-                width: 36, height: 36, display: 'flex',
-                alignItems: 'center', justifyContent: 'center', padding: 0,
-              }}
-              title="Schließen"
-            >
-              ×
-            </button>
-          </div>
-          <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', padding: '0 32px', boxSizing: 'border-box' }}>
-            <ProgressBar step={step} />
-          </div>
-        </div>
-
-        {/* Body — scrollable, centered max-width */}
-        <div style={{
-          flex: 1, overflowY: 'auto',
-          background: 'var(--bg-app)',
-        }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 32px 20px', width: '100%', boxSizing: 'border-box' }}>
+          <div>
             <div style={{
-              fontSize: 20, fontWeight: 700, color: 'var(--text-primary)',
-              marginBottom: 24,
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: '0.08em',
+              color: TEAL,
+              textTransform: 'uppercase',
+              marginBottom: 4,
+            }}>
+              Website-Briefing · Lead #{leadId}
+            </div>
+            <div style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              lineHeight: 1.2,
             }}>
               {STEPS[step]}
             </div>
-            {renderStep()}
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              flexShrink: 0,
+              width: 32, height: 32,
+              borderRadius: 8,
+              border: '1px solid var(--border-light)',
+              background: 'var(--bg-app)',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--text-secondary)',
+              fontSize: 18, lineHeight: 1,
+              transition: 'background 0.15s',
+              fontFamily: 'var(--font-sans)',
+              padding: 0,
+            }}
+            title="Schließen"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* ── Stepper / Progress ── */}
+        <div style={{
+          padding: '12px 28px 14px',
+          flexShrink: 0,
+          borderBottom: '1px solid var(--border-light)',
+          background: 'var(--bg-surface)',
+        }}>
+          <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+            {STEPS.map((label, i) => (
+              <div
+                key={i}
+                title={label}
+                style={{
+                  flex: 1,
+                  height: 5,
+                  borderRadius: 3,
+                  background: i <= step ? TEAL : 'var(--border-light)',
+                  opacity: i <= step ? 1 : 0.5,
+                  transition: 'background 0.3s, opacity 0.3s',
+                }}
+              />
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            {STEPS.map((label, i) => (
+              <div key={i} style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 3,
+                flex: 1,
+                minWidth: 0,
+              }}>
+                <div style={{
+                  width: 22, height: 22,
+                  borderRadius: '50%',
+                  background: i <= step ? TEAL : 'var(--border-light)',
+                  color: i <= step ? '#fff' : 'var(--text-tertiary)',
+                  fontSize: 10, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.3s',
+                }}>
+                  {i < step ? '✓' : i + 1}
+                </div>
+                <span style={{
+                  fontSize: 9,
+                  color: i === step ? TEAL : 'var(--text-tertiary)',
+                  fontWeight: i === step ? 600 : 400,
+                  whiteSpace: 'nowrap',
+                  maxWidth: 70,
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}>
+                  {label}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Footer */}
+        {/* ── Scrollbarer Formular-Bereich ── */}
         <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '24px 28px',
+          background: 'var(--bg-app)',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'var(--border-light) transparent',
+        }}>
+          {renderStep()}
+        </div>
+
+        {/* ── Footer / Navigation ── */}
+        <div style={{
+          padding: '16px 28px',
           borderTop: '1px solid var(--border-light)',
           flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           background: 'var(--bg-surface)',
         }}>
-          <div style={{
-            maxWidth: 1200, margin: '0 auto',
-            padding: '18px 32px',
-            display: 'flex', alignItems: 'center',
-            justifyContent: 'space-between',
-            width: '100%', boxSizing: 'border-box',
-          }}>
           <button
             onClick={handleBack}
             style={{
-              padding: '10px 20px', borderRadius: 'var(--radius-md)',
-              border: '1.5px solid var(--border-light)',
-              background: 'var(--bg-app)', color: 'var(--text-secondary)',
-              fontSize: 14, fontWeight: 500,
-              cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)',
+              padding: '10px 20px',
+              borderRadius: 10,
+              border: '1px solid var(--border-light)',
+              background: 'var(--bg-app)',
+              color: 'var(--text-secondary)',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              transition: 'all 0.15s',
             }}
           >
             {step === 0 ? 'Abbrechen' : '← Zurück'}
           </button>
 
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+          <span style={{
+            fontSize: 13,
+            color: 'var(--text-tertiary)',
+            fontWeight: 500,
+          }}>
             {step + 1} / {STEPS.length}
-          </div>
+          </span>
 
-          {step < STEPS.length - 1 && (
+          {step < STEPS.length - 1 ? (
             <button
               onClick={handleNext}
               disabled={!canNext()}
               style={{
-                padding: '10px 24px', borderRadius: 'var(--radius-md)',
+                padding: '10px 24px',
+                borderRadius: 10,
                 border: 'none',
-                background: canNext() ? 'var(--brand-primary)' : 'var(--border-light)',
+                background: canNext() ? TEAL : 'var(--border-light)',
                 color: canNext() ? '#fff' : 'var(--text-tertiary)',
-                fontSize: 14, fontWeight: 600,
+                fontSize: 14,
+                fontWeight: 600,
                 cursor: canNext() ? 'pointer' : 'not-allowed',
-                fontFamily: 'var(--font-sans, system-ui)',
-                transition: 'background 0.15s',
+                fontFamily: 'var(--font-sans)',
+                transition: 'all 0.15s',
               }}
             >
               Weiter →
             </button>
-          )}
-          {step === STEPS.length - 1 && (
+          ) : (
             <div style={{ width: 120 }} />
           )}
-          </div>
         </div>
       </div>
-    </div>
+
+      {/* ── CSS Animationen ── */}
+      <style>{`
+        @keyframes bwFadeIn {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes bwSlideUp {
+          from { opacity: 0; transform: translate(-50%, calc(-50% + 24px)); }
+          to   { opacity: 1; transform: translate(-50%, -50%); }
+        }
+        @keyframes bwSlideUpMobile {
+          from { transform: translateY(100%); }
+          to   { transform: translateY(0); }
+        }
+      `}</style>
+    </>,
+    document.body
   );
 }

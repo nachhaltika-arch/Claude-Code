@@ -951,6 +951,19 @@ export default function ProjectDetail() {
 
   useEffect(() => { if (project?.lead_id) loadAudits(); }, [project?.lead_id]); // eslint-disable-line
 
+  // Load cached scrape-full data on project mount (no network scrape)
+  useEffect(() => {
+    if (!project?.id) return;
+    fetch(`${API_BASE_URL}/api/projects/${project.id}/scrape-full`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data && data.seo) setScrapeStatus(data);
+      })
+      .catch(() => {});
+  }, [project?.id]); // eslint-disable-line
+
   const loadWebsiteContent = useCallback(async () => {
     if (!project?.lead_id) return;
     try {
@@ -2608,7 +2621,14 @@ export default function ProjectDetail() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>🌐 Website-Content</div>
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>SEO, Texte, Assets und Links</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                  SEO, Texte, Assets und Links
+                  {fullAnalysis?._cached_at && (
+                    <span style={{ marginLeft: 8, color: 'var(--text-tertiary)' }}>
+                      · Zuletzt: {fullAnalysis._cached_at.replace('T', ' ')}
+                    </span>
+                  )}
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button disabled={contentLoading} onClick={async () => {

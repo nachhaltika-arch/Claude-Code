@@ -172,6 +172,10 @@ class Project(Base):
     pagespeed_after_mobile = Column(Integer)
     pagespeed_after_desktop = Column(Integer)
 
+    # Scrape Cache (persistierte Scraper-Ergebnisse)
+    scrape_full_data = Column(Text)      # JSON: SEO + text + assets + links
+    scrape_full_at   = Column(DateTime)  # Zeitpunkt des letzten Scrapes
+
     # Screenshots before/after
     screenshot_before       = Column(Text)
     screenshot_before_date  = Column(DateTime)

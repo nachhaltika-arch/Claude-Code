@@ -759,6 +759,9 @@ def _run_migrations():
         # QA-Scanner Ergebnisse
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_result JSONB",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_score INTEGER",
+        # Scrape Cache
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scrape_full_data TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scrape_full_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_golive_ok BOOLEAN",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_run_at TIMESTAMP",
         # Auftragsbestätigung PDF

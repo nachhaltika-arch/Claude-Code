@@ -86,7 +86,9 @@ async def scrape_full_analysis(
     db: Session = Depends(get_db),
     _=Depends(require_any_auth),
 ):
-    """Single-page full analysis: SEO, text, assets, links, contact."""
+    """Single-page full analysis: SEO, text, assets, links, contact.
+    Persists result in projects.scrape_full_data for fast GET later.
+    """
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
@@ -97,7 +99,38 @@ async def scrape_full_analysis(
         url = "https://" + url
     from services.content_scraper import scrape_page_full
     result = await scrape_page_full(url)
+
+    # Persist in DB
+    try:
+        project.scrape_full_data = json.dumps(result, ensure_ascii=False)
+        project.scrape_full_at   = datetime.utcnow()
+        db.commit()
+    except Exception as e:
+        logger.warning(f"scrape-full persist error project {project_id}: {e}")
+        db.rollback()
+
     return result
+
+
+@router.get("/{project_id}/scrape-full")
+def get_scrape_full_cached(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Returns cached scrape-full result. Fast, no network call."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+    if not project.scrape_full_data:
+        return {"status": "no_cache", "message": "Noch kein Scrape durchgeführt"}
+    try:
+        data = json.loads(project.scrape_full_data)
+    except json.JSONDecodeError as e:
+        logger.error(f"scrape_full_data parse error project {project_id}: {e}")
+        return {"status": "parse_error", "message": str(e)}
+    data["_cached_at"] = str(project.scrape_full_at)[:19] if project.scrape_full_at else None
+    return data
 
 
 @router.post("/{project_id}/scrape")

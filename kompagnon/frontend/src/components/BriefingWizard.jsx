@@ -540,82 +540,99 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
   };
 
   return (
-    /* Overlay */
+    /* Overlay — fills content area beside sidebar (not on mobile) */
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 2000,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
-      padding: isMobile ? 0 : '16px',
-    }} onClick={e => e.target === e.currentTarget && onClose?.()}>
+      position: 'fixed',
+      top: 0, right: 0, bottom: 0,
+      left: isMobile ? 0 : 'var(--sidebar-width, 220px)',
+      zIndex: 2000,
+      background: 'var(--bg-app)',
+      display: 'flex', flexDirection: 'column',
+    }}>
 
-      {/* Panel */}
+      {/* Panel — fills the full content area */}
       <div style={{
-        background: '#fff', borderRadius: isMobile ? '16px 16px 0 0' : 16,
-        width: '100%', maxWidth: 700,
-        maxHeight: isMobile ? '94vh' : '92vh',
+        background: 'var(--bg-surface)',
+        width: '100%', height: '100%',
         display: 'flex', flexDirection: 'column',
-        boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
         overflow: 'hidden',
       }}>
 
         {/* Header */}
         <div style={{
-          borderBottom: '1px solid #EEF2F4',
+          borderBottom: '1px solid var(--border-light)',
           paddingBottom: 16,
           flexShrink: 0,
+          background: 'var(--bg-surface)',
         }}>
           <div style={{
             display: 'flex', alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '16px 24px 12px',
+            padding: '18px 32px 14px',
+            maxWidth: 1200, margin: '0 auto', width: '100%', boxSizing: 'border-box',
           }}>
             <div>
-              <div style={{ fontSize: 11, color: '#8A9BA8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>
+              <div style={{ fontSize: 11, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, marginBottom: 3 }}>
                 Website-Briefing
               </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#1A2C32' }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
                 {leadData?.company_name || `Lead #${leadId}`}
               </div>
             </div>
             <button
               onClick={onClose}
-              style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#8A9BA8', lineHeight: 1, padding: 4 }}
+              style={{
+                background: 'var(--bg-app)', border: '1px solid var(--border-light)',
+                borderRadius: 'var(--radius-md)', fontSize: 18,
+                cursor: 'pointer', color: 'var(--text-secondary)',
+                width: 36, height: 36, display: 'flex',
+                alignItems: 'center', justifyContent: 'center', padding: 0,
+              }}
+              title="Schließen"
             >
               ×
             </button>
           </div>
-          <ProgressBar step={step} />
+          <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', padding: '0 32px', boxSizing: 'border-box' }}>
+            <ProgressBar step={step} />
+          </div>
         </div>
 
-        {/* Body — scrollable */}
+        {/* Body — scrollable, centered max-width */}
         <div style={{
           flex: 1, overflowY: 'auto',
-          padding: '24px 24px 8px',
+          background: 'var(--bg-app)',
         }}>
-          <div style={{
-            fontSize: 18, fontWeight: 700, color: '#1A2C32',
-            marginBottom: 20,
-          }}>
-            {STEPS[step]}
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 32px 20px', width: '100%', boxSizing: 'border-box' }}>
+            <div style={{
+              fontSize: 20, fontWeight: 700, color: 'var(--text-primary)',
+              marginBottom: 24,
+            }}>
+              {STEPS[step]}
+            </div>
+            {renderStep()}
           </div>
-          {renderStep()}
         </div>
 
         {/* Footer */}
         <div style={{
-          borderTop: '1px solid #EEF2F4',
-          padding: '16px 24px',
-          display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between',
+          borderTop: '1px solid var(--border-light)',
           flexShrink: 0,
-          background: '#FAFCFD',
+          background: 'var(--bg-surface)',
         }}>
+          <div style={{
+            maxWidth: 1200, margin: '0 auto',
+            padding: '18px 32px',
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%', boxSizing: 'border-box',
+          }}>
           <button
             onClick={handleBack}
             style={{
-              padding: '10px 20px', borderRadius: 8,
-              border: '1.5px solid #DDE4E8',
-              background: '#fff', color: '#5A7080',
+              padding: '10px 20px', borderRadius: 'var(--radius-md)',
+              border: '1.5px solid var(--border-light)',
+              background: 'var(--bg-app)', color: 'var(--text-secondary)',
               fontSize: 14, fontWeight: 500,
               cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)',
             }}
@@ -623,7 +640,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
             {step === 0 ? 'Abbrechen' : '← Zurück'}
           </button>
 
-          <div style={{ fontSize: 12, color: '#8A9BA8' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             {step + 1} / {STEPS.length}
           </div>
 
@@ -632,10 +649,10 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
               onClick={handleNext}
               disabled={!canNext()}
               style={{
-                padding: '10px 24px', borderRadius: 8,
+                padding: '10px 24px', borderRadius: 'var(--radius-md)',
                 border: 'none',
-                background: canNext() ? TEAL : '#DDE4E8',
-                color: canNext() ? '#fff' : '#8A9BA8',
+                background: canNext() ? 'var(--brand-primary)' : 'var(--border-light)',
+                color: canNext() ? '#fff' : 'var(--text-tertiary)',
                 fontSize: 14, fontWeight: 600,
                 cursor: canNext() ? 'pointer' : 'not-allowed',
                 fontFamily: 'var(--font-sans, system-ui)',
@@ -648,6 +665,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
           {step === STEPS.length - 1 && (
             <div style={{ width: 120 }} />
           )}
+          </div>
         </div>
       </div>
     </div>

@@ -12,7 +12,7 @@ import logging
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import text
@@ -1148,24 +1148,19 @@ async def lifespan(app: FastAPI):
     logger.info("✅ Port wird geöffnet...")
 
     async def _background_init():
-        """Alle DB-Operationen laufen NACH dem Start im Hintergrund.
-        Jeder Schritt hat seinen eigenen Timeout und blockiert die anderen nicht.
+        """Sequenzielle Initialisierung mit DB-Retry für Render Free Tier.
+
+        PHASE 1: DB-Verbindung herstellen (3 Versuche à 45s)
+        PHASE 2: Migrations (60s)
+        PHASE 3: DB init (30s)
+        PHASE 4: Default admin + Academy seed (10s je)
+        PHASE 5: Scheduler ZULETZT (nach DB ready)
         """
         import time
         start = time.time()
-        await asyncio.sleep(3)  # 3 Sekunden warten bis Server stabil ist
+        await asyncio.sleep(3)  # 3s warten bis Server stabil ist
         logger.info("🔄 Hintergrund-Init gestartet...")
-        loop = asyncio.get_event_loop()
 
-        def _run_step(fn):
-            """Helper: run a sync function and return None on success, exception on error."""
-            try:
-                fn()
-                return None
-            except Exception as e:
-                return e
-
-        # Steps: (name, sync_function, timeout_seconds)
         def _academy_seed():
             from routers.academy import seed_academy_courses
             from database import SessionLocal
@@ -1175,27 +1170,69 @@ async def lifespan(app: FastAPI):
             finally:
                 _db.close()
 
-        steps = [
-            ("Migrations",       _run_migrations,         10.0),
-            ("DB init",          init_db,                 8.0),
-            ("Default admin",    _create_default_admin,   5.0),
-            ("Academy seed",     _academy_seed,           5.0),
-            ("Scheduler",        start_scheduler,         5.0),
-        ]
+        def _ping_db():
+            """Simple DB ping to ensure connection is ready."""
+            from sqlalchemy import text
+            from database import SessionLocal
+            _db = SessionLocal()
+            try:
+                _db.execute(text("SELECT 1"))
+                _db.commit()
+            finally:
+                _db.close()
 
         with ThreadPoolExecutor(max_workers=1) as pool:
-            for name, fn, timeout in steps:
+            loop = asyncio.get_event_loop()
+
+            async def _run(fn, timeout):
+                def _wrap():
+                    try:
+                        fn()
+                        return None
+                    except Exception as ex:
+                        return ex
+                return await asyncio.wait_for(loop.run_in_executor(pool, _wrap), timeout=timeout)
+
+            # PHASE 1: DB connection with retry
+            db_ready = False
+            for attempt in range(1, 4):
+                step_start = time.time()
+                logger.info(f"  DB-Verbindung Versuch {attempt}/3...")
+                try:
+                    result = await _run(_ping_db, 45.0)
+                    if result is None:
+                        db_ready = True
+                        logger.info(f"  ✓ DB verbunden ({time.time() - step_start:.1f}s)")
+                        break
+                    logger.warning(f"  ⚠ DB-Versuch {attempt}: {result}")
+                except asyncio.TimeoutError:
+                    logger.warning(f"  ⚠ DB-Versuch {attempt} Timeout nach 45s")
+                except Exception as e:
+                    logger.warning(f"  ⚠ DB-Versuch {attempt} Fehler: {e}")
+                if attempt < 3:
+                    await asyncio.sleep(2)
+
+            if not db_ready:
+                logger.error(f"❌ DB-Verbindung fehlgeschlagen — Server läuft ohne DB (Scheduler übersprungen)")
+                return
+
+            # PHASE 2-5: Each step isolated
+            phases = [
+                ("Migrations",    _run_migrations,       60.0),
+                ("DB init",       init_db,               30.0),
+                ("Default admin", _create_default_admin, 10.0),
+                ("Academy seed",  _academy_seed,         10.0),
+                ("Scheduler",     start_scheduler,       15.0),
+            ]
+            for name, fn, timeout in phases:
                 step_start = time.time()
                 try:
-                    result = await asyncio.wait_for(
-                        loop.run_in_executor(pool, _run_step, fn),
-                        timeout=timeout,
-                    )
+                    result = await _run(fn, timeout)
                     dt = time.time() - step_start
                     if result is None:
                         logger.info(f"  ✓ {name} ({dt:.1f}s)")
                     else:
-                        logger.warning(f"  ⚠ {name} Fehler: {result} ({dt:.1f}s)")
+                        logger.warning(f"  ⚠ {name} Fehler: {result}")
                 except asyncio.TimeoutError:
                     logger.warning(f"  ⚠ {name} Timeout nach {timeout}s — übersprungen")
                 except Exception as e:
@@ -1388,6 +1425,40 @@ def health_check():
         }
     except Exception as e:
         return {"status": "degraded", "database": db_status, "detail": str(e)}
+
+
+@app.get("/api/scheduler/status")
+def scheduler_status():
+    """Check if scheduler is running and list active jobs."""
+    try:
+        scheduler = get_scheduler()
+        return {
+            "running": scheduler.scheduler.running,
+            "jobs": [
+                {
+                    "id": job.id,
+                    "next_run": str(job.next_run_time) if job.next_run_time else None,
+                }
+                for job in scheduler.scheduler.get_jobs()
+            ],
+        }
+    except Exception as e:
+        return {"running": False, "error": str(e)}
+
+
+@app.post("/api/scheduler/restart")
+def scheduler_restart():
+    """Manually (re)start the scheduler — useful if background_init failed."""
+    try:
+        start_scheduler()
+        scheduler = get_scheduler()
+        return {
+            "status": "ok",
+            "running": scheduler.scheduler.running,
+            "job_count": len(scheduler.scheduler.get_jobs()),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Scheduler-Neustart fehlgeschlagen: {e}")
 
 
 @app.get("/robots.txt", response_class=PlainTextResponse)

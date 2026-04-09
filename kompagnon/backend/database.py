@@ -21,15 +21,16 @@ else:
         DATABASE_URL,
         pool_pre_ping=True,
         pool_recycle=300,
-        pool_size=3,          # Lean for Render free tier
-        max_overflow=5,
-        pool_timeout=10,
+        pool_size=2,              # Lean for Render free tier
+        max_overflow=3,
+        pool_timeout=60,          # Wait up to 60s for free connection
         connect_args={
-            "connect_timeout": 5,  # Fast fail on cold DB
+            "connect_timeout": 30,   # Free tier DB can take up to 30s to wake
             "keepalives": 1,
             "keepalives_idle": 30,
             "keepalives_interval": 5,
             "keepalives_count": 3,
+            "options": "-c statement_timeout=30000",  # 30s query timeout
         },
     )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

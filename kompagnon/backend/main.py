@@ -292,6 +292,29 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_source VARCHAR(200)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_medium VARCHAR(200)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_campaign VARCHAR(200)",
+        # Trackdesk / Affiliate Partner Tracking
+        """CREATE TABLE IF NOT EXISTS affiliate_conversions (
+            id                SERIAL PRIMARY KEY,
+            trackdesk_id      VARCHAR(200) UNIQUE,
+            event_type        VARCHAR(100),
+            affiliate_id      VARCHAR(200),
+            affiliate_email   VARCHAR(500),
+            affiliate_name    VARCHAR(500),
+            customer_email    VARCHAR(500),
+            customer_name     VARCHAR(500),
+            conversion_value  NUMERIC(12,2),
+            commission_value  NUMERIC(12,2),
+            currency          VARCHAR(10) DEFAULT 'EUR',
+            status            VARCHAR(100),
+            lead_id           INTEGER REFERENCES leads(id) ON DELETE SET NULL,
+            raw_payload       TEXT,
+            received_at       TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_affiliate_conversions_lead ON affiliate_conversions(lead_id)",
+        "CREATE INDEX IF NOT EXISTS idx_affiliate_conversions_affiliate ON affiliate_conversions(affiliate_id)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS affiliate_id VARCHAR(200)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS affiliate_name VARCHAR(500)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS affiliate_conversion_id INTEGER",
         "CREATE TABLE IF NOT EXISTS lead_domains (id SERIAL PRIMARY KEY, lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE, url VARCHAR(500) NOT NULL, label VARCHAR(100) DEFAULT '', is_primary BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())",
         "CREATE INDEX IF NOT EXISTS idx_lead_domains_lead_id ON lead_domains(lead_id)",
         # Courses table + optional columns
@@ -1483,6 +1506,9 @@ app.include_router(deals_router)
 
 from routers.campaigns import router as campaigns_router
 app.include_router(campaigns_router)
+
+from routers import webhooks_trackdesk as trackdesk_router
+app.include_router(trackdesk_router.router)
 
 
 # Global exception handler — catches unhandled errors

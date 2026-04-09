@@ -4,6 +4,20 @@ import API_BASE_URL from '../config';
 
 const FRONTEND_URL = 'https://kompagnon-frontend.onrender.com';
 
+// Deutschen Namen in URL-sicheren Slug umwandeln
+function generateSlug(name) {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 const STATUS_DOT = {
   live:     { bg: '#1D9E75', label: 'Live' },
   draft:    { bg: '#94a3b8', label: 'Entwurf' },
@@ -131,13 +145,26 @@ export default function ProductEditor() {
     setSaving(true); setMsg('');
     try {
       const isNew = selected === '__new__';
+      if (!product.name?.trim()) {
+        setMsg('Bitte einen Produktnamen eingeben');
+        setSaving(false);
+        return;
+      }
+      // Slug sicherstellen — falls leer, aus Namen generieren
+      const payload = {
+        ...product,
+        slug: (product.slug && product.slug.trim()) || generateSlug(product.name),
+      };
+      // Internes Flag nicht an Backend schicken
+      delete payload._slugManuallyEdited;
+
       const url   = isNew
         ? `${API_BASE_URL}/api/products/`
         : `${API_BASE_URL}/api/products/${selected}`;
       const r = await fetch(url, {
         method: isNew ? 'POST' : 'PUT',
         headers: h,
-        body: JSON.stringify(product),
+        body: JSON.stringify(payload),
       });
       const d = await r.json();
       if (!r.ok) { setMsg(d.detail || 'Fehler'); return; }
@@ -273,22 +300,30 @@ export default function ProductEditor() {
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
         <div style={FIELD}>
-          <label style={LBL}>Slug *</label>
-          <input
-            value={product.slug}
-            onChange={e => set('slug')(e.target.value)}
-            placeholder="z.B. kompagnon"
-            disabled={selected !== '__new__'}
-            style={{ ...INP, opacity: selected !== '__new__' ? 0.6 : 1 }}
-          />
-        </div>
-        <div style={FIELD}>
           <label style={LBL}>Produktname *</label>
           <input
             value={product.name}
-            onChange={e => set('name')(e.target.value)}
+            onChange={e => {
+              const name = e.target.value;
+              setProduct(p => {
+                const autoSlug = generateSlug(name);
+                // Slug nur auto-generieren wenn noch nicht manuell bearbeitet
+                const nextSlug = p._slugManuallyEdited ? p.slug : autoSlug;
+                return { ...p, name, slug: nextSlug };
+              });
+            }}
             placeholder="z.B. KOMPAGNON-Paket"
             style={INP}
+          />
+        </div>
+        <div style={FIELD}>
+          <label style={LBL}>URL-Slug {selected === '__new__' ? '(automatisch aus Name)' : '(nicht änderbar)'}</label>
+          <input
+            value={product.slug}
+            onChange={e => setProduct(p => ({ ...p, slug: e.target.value, _slugManuallyEdited: true }))}
+            placeholder="wird automatisch generiert"
+            disabled={selected !== '__new__'}
+            style={{ ...INP, opacity: selected !== '__new__' ? 0.6 : 1, fontFamily: 'monospace', fontSize: 12 }}
           />
         </div>
       </div>
@@ -793,6 +828,12 @@ export default function ProductEditor() {
       setTimeout(() => {
         setProduct(p => {
           const updated = { ...p, status: 'live' };
+          // Slug sicherstellen + internes Flag entfernen
+          const payload = {
+            ...updated,
+            slug: (updated.slug && updated.slug.trim()) || generateSlug(updated.name || ''),
+          };
+          delete payload._slugManuallyEdited;
           // trigger save with updated product
           setSaving(true); setMsg('');
           const isNew = selected === '__new__';
@@ -802,7 +843,7 @@ export default function ProductEditor() {
           fetch(url, {
             method: isNew ? 'POST' : 'PUT',
             headers: h,
-            body: JSON.stringify(updated),
+            body: JSON.stringify(payload),
           }).then(r => r.json()).then(d => {
             if (d.slug) { setMsg('✓ Produkt ist jetzt Live'); loadProducts(); setSelected(d.slug); }
             else setMsg(d.detail || 'Fehler');

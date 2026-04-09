@@ -23,22 +23,36 @@ def _get_fernet():
     Gibt eine Fernet-Instanz zurück.
     CREDENTIALS_KEY muss ein 32-Byte URL-safe base64 Key sein.
     Generierung: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+    Kein Fallback: wenn CREDENTIALS_KEY fehlt oder ungültig ist,
+    wird eine RuntimeError geworfen — niemals zufällige oder unsichere Keys.
     """
     from cryptography.fernet import Fernet
     key = os.getenv("CREDENTIALS_KEY", "")
     if not key:
-        logger.warning(
-            "CREDENTIALS_KEY nicht gesetzt — nutze unsicheren Fallback. "
-            "Bitte in Render Environment setzen."
+        raise RuntimeError(
+            "CREDENTIALS_KEY Umgebungsvariable nicht gesetzt. "
+            "Bitte in Render.com Environment eintragen. "
+            "Generieren mit: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
         )
-        # Valid 32-byte Fernet key (dev-only fallback — set CREDENTIALS_KEY on Render!)
-        key = "a29tcGFnbm9uLWRldi1mYWxsYmFjay1rZXktMjAyNiE="
     try:
         return Fernet(key.encode() if isinstance(key, str) else key)
     except Exception as e:
-        logger.error(f"Fernet Init Fehler: {e}")
-        from cryptography.fernet import Fernet as F
-        return F(F.generate_key())
+        raise RuntimeError(
+            f"CREDENTIALS_KEY ist ungültig ({e}). "
+            f"Muss ein 32-Byte URL-safe base64-encoded Fernet-Key sein."
+        ) from e
+
+
+def _fernet_available() -> bool:
+    """True wenn CREDENTIALS_KEY gültig gesetzt ist."""
+    try:
+        _get_fernet()
+        return True
+    except Exception:
+        return False
+
+
 from fastapi.responses import FileResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -1859,6 +1873,12 @@ def add_credential(
         try:
             f = _get_fernet()
             encrypted = f.encrypt(password.encode()).decode()
+        except RuntimeError as e:
+            logger.error(f"CREDENTIALS_KEY Fehler: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="Zugangsdaten-Safe nicht verfügbar: CREDENTIALS_KEY nicht konfiguriert. Bitte Administrator kontaktieren.",
+            )
         except Exception as e:
             logger.error(f"Verschluesselung Fehler: {e}")
             raise HTTPException(500, "Verschluesselung fehlgeschlagen")
@@ -1907,7 +1927,14 @@ def get_credentials(
         ORDER BY created_at ASC
     """), {"pid": project_id}).mappings().all()
 
-    f = _get_fernet()
+    try:
+        f = _get_fernet()
+    except RuntimeError as e:
+        logger.error(f"CREDENTIALS_KEY Fehler: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Zugangsdaten-Safe nicht verfügbar: CREDENTIALS_KEY nicht konfiguriert. Bitte Administrator kontaktieren.",
+        )
     result = []
     for r in rows:
         decrypted = ""

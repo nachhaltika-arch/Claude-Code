@@ -61,7 +61,13 @@ def save_cms_connection(
     customer.cms_url = (data.cms_url or "").rstrip("/")
     customer.cms_username = data.cms_username or ""
     if data.cms_password:  # only overwrite if a new password was provided
-        customer.cms_password_encrypted = encrypt_password(data.cms_password)
+        try:
+            customer.cms_password_encrypted = encrypt_password(data.cms_password)
+        except RuntimeError as e:
+            raise HTTPException(
+                status_code=503,
+                detail="CMS-Verschlüsselung nicht verfügbar: CMS_ENCRYPTION_KEY nicht konfiguriert.",
+            )
 
     db.commit()
     return {"ok": True}

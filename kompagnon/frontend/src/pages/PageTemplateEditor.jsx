@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { StudioEditor } from '@grapesjs/studio-sdk/react';
 import '@grapesjs/studio-sdk/style';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 
@@ -12,6 +13,7 @@ export default function PageTemplateEditor() {
   const { id }     = useParams();
   const navigate   = useNavigate();
   const { token }  = useAuth();
+  const { isMobile } = useScreenSize();
   const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
   const authHeaders = { Authorization: `Bearer ${token}` };
 
@@ -85,7 +87,12 @@ export default function PageTemplateEditor() {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 500,
+      position: 'fixed',
+      top: 0,
+      left: isMobile ? 0 : 'var(--sidebar-width)',
+      right: 0,
+      bottom: 0,
+      zIndex: 500,
       display: 'flex', flexDirection: 'column', background: '#fff',
     }}>
       {/* Toolbar */}

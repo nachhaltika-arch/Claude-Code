@@ -5,6 +5,7 @@ import '@grapesjs/studio-sdk/style';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 
 const TOOLBAR_H = 56;
 const LICENSE_KEY = process.env.REACT_APP_GJS_LICENSE_KEY || 'DEV_LICENSE_KEY';
@@ -12,6 +13,7 @@ const LICENSE_KEY = process.env.REACT_APP_GJS_LICENSE_KEY || 'DEV_LICENSE_KEY';
 export default function TemplateEditor() {
   const { id } = useParams();
   const { token } = useAuth();
+  const { isMobile } = useScreenSize();
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
   const editorRef = useRef(null);
   const [name, setName] = useState('');
@@ -82,8 +84,15 @@ export default function TemplateEditor() {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#fff',
-                  display: 'flex', flexDirection: 'column' }}>
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: isMobile ? 0 : 'var(--sidebar-width)',
+      right: 0,
+      bottom: 0,
+      zIndex: 9999, background: '#fff',
+      display: 'flex', flexDirection: 'column',
+    }}>
       <div style={{
         height: TOOLBAR_H, flexShrink: 0, background: '#1A2C32',
         display: 'flex', alignItems: 'center', gap: 12,

@@ -4,6 +4,7 @@ import { useRef, useState, useCallback } from 'react';
 import JSZip from 'jszip';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { useScreenSize } from '../utils/responsive';
 
 const LICENSE_KEY = process.env.REACT_APP_GJS_LICENSE_KEY || 'DEV_LICENSE_KEY';
 
@@ -50,6 +51,7 @@ const loadProjectFromZip = async (file) => {
 export default function WebsiteDesigner({
   projectId, leadId, initialHtml, initialCss, onSave,
 }) {
+  const { isMobile } = useScreenSize();
   const editorRef = useRef(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importing, setImporting]   = useState(false);
@@ -142,8 +144,16 @@ export default function WebsiteDesigner({
   };
 
   return (
-    <div style={{ position: 'relative', display: 'flex',
-                  flexDirection: 'column', height: '100vh' }}>
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: isMobile ? 0 : 'var(--sidebar-width)',
+      right: 0,
+      bottom: 0,
+      zIndex: 500,
+      display: 'flex', flexDirection: 'column',
+      background: '#fff',
+    }}>
       {/* Toolbar */}
       <div style={{ padding: '8px 16px', background: '#1a2332',
                     display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>

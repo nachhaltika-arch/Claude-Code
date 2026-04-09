@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { StudioEditor } from '@grapesjs/studio-sdk/react';
 import '@grapesjs/studio-sdk/style';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 
@@ -12,6 +13,7 @@ export default function GrapesEditor({
   pageId, pageName, initialHtml, onClose, onSave, projectId, netlitySiteId,
 }) {
   const { token } = useAuth();
+  const { isMobile } = useScreenSize();
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
   const authHeaders = { Authorization: `Bearer ${token}` };
   const editorRef = useRef(null);
@@ -151,7 +153,11 @@ export default function GrapesEditor({
 
   return createPortal(
     <div style={{
-      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      position: 'fixed',
+      top: 0,
+      left: isMobile ? 0 : 'var(--sidebar-width)',
+      right: 0,
+      bottom: 0,
       zIndex: 99999, display: 'flex', flexDirection: 'column',
       background: '#1a1a1a', overflow: 'hidden',
     }}>

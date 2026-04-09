@@ -27,8 +27,14 @@ export default function TemplateEditor() {
   const [projectData, setProjectData] = useState(null);
   const [loaded, setLoaded] = useState(false);
 
-  // Template laden
+  // Template laden — beim id-Wechsel Editor-State zurücksetzen,
+  // damit <StudioEditor> aus dem Tree fliegt und mit den neuen
+  // Daten frisch gemountet wird (sonst zeigt jedes Template denselben
+  // Inhalt, weil das Studio SDK `default` nur einmal beim Init liest).
   useEffect(() => {
+    setLoaded(false);
+    setProjectData(null);
+    setName('');
     fetch(`${API_BASE_URL}/api/templates/${id}`, { headers })
       .then(r => r.ok ? r.json() : null)
       .then(tpl => {
@@ -175,6 +181,7 @@ export default function TemplateEditor() {
       <div style={{ flex: 1, overflow: 'hidden' }}>
         {loaded && (
           <StudioEditor
+            key={id}
             options={{
               licenseKey: STUDIO_LICENSE_KEY,
               project: {

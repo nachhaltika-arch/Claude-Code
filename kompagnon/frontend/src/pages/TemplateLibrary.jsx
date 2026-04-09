@@ -236,6 +236,7 @@ export default function TemplateLibrary() {
   if (editingTemplate) {
     return (
       <WebsiteDesigner
+        key={editingTemplate.id}
         initialHtml={editingTemplate.html || ''}
         initialCss={editingTemplate.css || ''}
         onSave={() => setEditingTemplate(null)}

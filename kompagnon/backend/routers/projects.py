@@ -1706,17 +1706,28 @@ async def netlify_set_domain(
     db: Session = Depends(get_db),
     _: object = Depends(require_admin),
 ):
-    """Setzt eine Custom-Domain auf der Netlify-Site (nur Admin)."""
+    """Setzt eine Custom-Domain auf der Netlify-Site, generiert DNS-Guide,
+    sendet E-Mail an Kunden und legt eine Portal-Nachricht an."""
     row = db.execute(
-        text("SELECT netlify_site_id FROM projects WHERE id = :id"),
+        text("SELECT netlify_site_id, netlify_site_url, lead_id FROM projects WHERE id = :id"),
         {"id": project_id},
     ).fetchone()
     if not row or not row[0]:
         raise HTTPException(400, "Keine Netlify-Site vorhanden.")
 
-    site_id = row[0]
-    from services.netlify_service import set_custom_domain
-    result = await set_custom_domain(site_id, body.domain)
+    site_id       = row[0]
+    site_url      = row[1] or ""
+    lead_id       = row[2]
+
+    from services.netlify_service import set_custom_domain, generate_dns_guide
+    try:
+        result = await set_custom_domain(site_id, body.domain)
+    except Exception as e:
+        logger.warning(f"Netlify set_custom_domain Fehler: {e}")
+        result = {"custom_domain": body.domain}
+
+    # DNS-Guide generieren
+    guide = generate_dns_guide(body.domain, site_url)
 
     db.execute(
         text(
@@ -1726,11 +1737,142 @@ async def netlify_set_domain(
         {"domain": body.domain, "id": project_id},
     )
     db.commit()
+
+    # Asynchron: E-Mail + Portal-Nachricht senden (Fehler werden nur geloggt)
+    try:
+        _send_dns_guide_email_and_message(project_id, lead_id, body.domain, guide, db)
+    except Exception as e:
+        logger.warning(f"DNS-Guide E-Mail/Nachricht Fehler: {e}")
+
     return {
-        "custom_domain":       result["custom_domain"],
+        "custom_domain":       result.get("custom_domain", body.domain),
         "required_dns_record": result.get("required_dns_record"),
         "cname_target":        f"{body.domain}.netlify.app",
+        "guide":               guide,
+        "status":              "pending",
     }
+
+
+def _send_dns_guide_email_and_message(project_id, lead_id, domain, guide, db):
+    """Sendet DNS-Guide per E-Mail an den Kunden und legt eine Portal-Nachricht an."""
+    if not lead_id:
+        return
+    lead = db.execute(
+        text("SELECT email, company_name FROM leads WHERE id = :id"),
+        {"id": lead_id},
+    ).fetchone()
+    if not lead:
+        return
+
+    # HTML-Tabelle für die E-Mail
+    records_html = "".join([
+        f"""<tr>
+          <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#2d3748">{r['type']}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-family:monospace">{r['name']}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-family:monospace;color:#008eaa;word-break:break-all">{r['value']}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;color:#718096;font-size:12px">{r['note']}</td>
+        </tr>"""
+        for r in guide["records"]
+    ])
+
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;background:#f7fafc;padding:20px">
+      <div style="background:#008eaa;padding:32px;border-radius:12px 12px 0 0;text-align:center">
+        <h1 style="color:white;margin:0;font-size:24px">Ihre Website ist bereit!</h1>
+        <p style="color:rgba(255,255,255,0.9);margin:8px 0 0;font-size:14px">
+          Nur noch ein Schritt bis zum Go-Live
+        </p>
+      </div>
+      <div style="padding:32px;background:#ffffff">
+        <p style="color:#2d3748">Sehr geehrte Damen und Herren,</p>
+        <p style="color:#4a5568;line-height:1.7">
+          Ihre neue Website für <strong>{lead.company_name or 'Ihr Unternehmen'}</strong> ist fertig und bereit für den Go-Live.
+          Um Ihre Domain <strong>{domain}</strong> mit der Website zu verbinden,
+          tragen Sie bitte folgende Einstellungen bei Ihrem Domain-Anbieter ein:
+        </p>
+
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+          <thead>
+            <tr style="background:#f7fafc">
+              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#718096;text-transform:uppercase;letter-spacing:0.05em">Typ</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#718096;text-transform:uppercase;letter-spacing:0.05em">Name</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#718096;text-transform:uppercase;letter-spacing:0.05em">Wert</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#718096;text-transform:uppercase;letter-spacing:0.05em">Info</th>
+            </tr>
+          </thead>
+          <tbody>{records_html}</tbody>
+        </table>
+
+        <div style="background:#f0fff4;border:1px solid #c6f6d5;border-radius:8px;padding:16px;margin:20px 0">
+          <p style="margin:0;color:#276749;font-size:13px">
+            <strong>Zeitrahmen:</strong> DNS-Änderungen werden innerhalb von 1–48 Stunden aktiv.
+            Wir informieren Sie automatisch sobald Ihre Domain live ist.
+          </p>
+        </div>
+
+        <p style="color:#4a5568;font-size:13px;line-height:1.6">
+          {guide.get('instructions', '')}
+        </p>
+        <p style="color:#4a5568;font-size:13px">
+          Bei Fragen helfen wir Ihnen gerne weiter.
+        </p>
+      </div>
+      <div style="background:#f7fafc;padding:16px;text-align:center;border-radius:0 0 12px 12px;font-size:12px;color:#718096">
+        KOMPAGNON Communications
+      </div>
+    </div>
+    """
+
+    # E-Mail versenden (versucht mehrere Varianten)
+    if lead.email:
+        sent = False
+        try:
+            from services.email import send_email
+            send_email(
+                to_email=lead.email,
+                subject=f"DNS-Einstellungen für {domain} — letzter Schritt vor Go-Live",
+                html_body=html_body,
+            )
+            sent = True
+        except Exception as e1:
+            logger.warning(f"DNS-Guide: services.email fehlgeschlagen: {e1}")
+        if not sent:
+            try:
+                from services.email_service import send_email as send_email2
+                send_email2(
+                    to=lead.email,
+                    subject=f"DNS-Einstellungen für {domain} — letzter Schritt vor Go-Live",
+                    html=html_body,
+                )
+                sent = True
+            except Exception as e2:
+                logger.warning(f"DNS-Guide: services.email_service fehlgeschlagen: {e2}")
+        if sent:
+            logger.info(f"DNS-Guide E-Mail gesendet an {lead.email}")
+
+    # Portal-Nachricht anlegen
+    try:
+        records_text = "\n".join([
+            f"  • {r['type']}  {r['name']}  →  {r['value']}" for r in guide["records"]
+        ])
+        msg = (
+            f"Ihre Website ist bereit! Um {domain} zu verbinden, tragen Sie bitte "
+            f"folgende DNS-Einträge bei Ihrem Domain-Anbieter ein:\n\n"
+            f"{records_text}\n\n"
+            f"Die Änderungen werden innerhalb von 1–48 Stunden aktiv. "
+            f"Sie haben diese Anleitung auch per E-Mail erhalten."
+        )
+        db.execute(text("""
+            INSERT INTO messages (lead_id, channel, content, direction, created_at, sender_role)
+            VALUES (:lead_id, 'in_app', :content, 'outbound', NOW(), 'system')
+        """), {"lead_id": lead_id, "content": msg})
+        db.commit()
+    except Exception as e:
+        logger.warning(f"DNS-Guide Portal-Nachricht Fehler: {e}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 @router.get("/{project_id}/netlify/status")

@@ -107,12 +107,31 @@ def get_portal_me(user=Depends(get_current_user), db: Session = Depends(get_db))
         for n, lbl, desc in PHASE_META
     ]
 
+    # Netlify / DNS-Guide Daten für den Kunden (optional)
+    netlify_info = None
+    try:
+        from services.netlify_service import generate_dns_guide
+        netlify_domain = getattr(project, "netlify_domain", None)
+        netlify_status = getattr(project, "netlify_domain_status", None)
+        netlify_site_url = getattr(project, "netlify_site_url", None)
+        if netlify_domain:
+            netlify_info = {
+                "domain":     netlify_domain,
+                "status":     netlify_status or "pending",
+                "site_url":   netlify_site_url,
+                "ssl_active": bool(getattr(project, "netlify_ssl_active", False)),
+                "guide":      generate_dns_guide(netlify_domain, netlify_site_url or ""),
+            }
+    except Exception:
+        pass
+
     return {
         "project_id": project.id,
         "project_name": project_name,
         "project_status": STATUS_LABEL.get(project.status, "In Bearbeitung"),
         "current_phase": current,
         "phases": phases,
+        "netlify": netlify_info,
     }
 
 

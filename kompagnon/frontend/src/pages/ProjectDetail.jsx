@@ -3135,8 +3135,12 @@ export default function ProjectDetail() {
             });
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             const d = await r.json();
-            setNetlifyDnsGuide({ cname_target: d.cname_target || netlify?.url?.replace('https://', '') || '' });
-            toast.success('Domain verbunden');
+            // Neue Response enthält .guide mit records[]
+            setNetlifyDnsGuide(d.guide || { cname_target: d.cname_target });
+            toast.success('Domain verbunden — DNS-Guide per E-Mail gesendet');
+            // Status reload
+            const s = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers });
+            if (s.ok) setNetlify(await s.json());
           } catch (e) { toast.error('Fehler: ' + e.message); }
         };
 
@@ -3246,29 +3250,58 @@ export default function ProjectDetail() {
                   <button onClick={doSetDomain} style={{ ...btnBlue, whiteSpace: 'nowrap' }}>Domain verbinden</button>
                 </div>
 
-                {netlifyDnsGuide && (
-                  <div style={{ background: '#E6F1FB', border: '1px solid #93c5fd', borderRadius: 8, padding: 16, marginTop: 4 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#185FA5', marginBottom: 10 }}>
-                      DNS-Eintrag beim Domain-Anbieter setzen:
+                {/* Live-Status Banner */}
+                {netlify?.custom_domain && netlify?.ssl && (
+                  <div style={{ marginTop: 12, padding: '14px 16px', background: 'var(--status-success-bg)', border: '1px solid var(--status-success-text)', borderRadius: 10 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-success-text)', marginBottom: 4 }}>
+                      ✓ Website ist live!
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <tbody>
-                        {[
-                          ['Typ',  'CNAME'],
-                          ['Name', 'www'],
-                          ['Ziel', netlifyDnsGuide.cname_target],
-                          ['TTL',  '3600'],
-                        ].map(([k, v]) => (
-                          <tr key={k}>
-                            <td style={{ padding: '4px 12px 4px 0', color: '#185FA5', fontWeight: 600, whiteSpace: 'nowrap' }}>{k}</td>
-                            <td style={{ padding: '4px 0', color: '#1e3a5f', fontFamily: 'monospace' }}>{v}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <button onClick={sendDnsEmail} style={{ marginTop: 12, padding: '7px 16px', background: '#185FA5', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                      ✉️ Anleitung per E-Mail senden
-                    </button>
+                    <a href={`https://${netlify.custom_domain}`} target="_blank" rel="noopener noreferrer"
+                      style={{ fontSize: 13, color: 'var(--brand-primary)', wordBreak: 'break-all' }}>
+                      {netlify.custom_domain} öffnen →
+                    </a>
+                  </div>
+                )}
+
+                {/* Pending Info */}
+                {netlifyDnsGuide && !netlify?.ssl && (
+                  <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-text)', borderRadius: 8, fontSize: 12, color: 'var(--status-warning-text)' }}>
+                    ⏳ DNS wird geprüft — System prüft alle 10 Min. automatisch. E-Mail an Kunden gesendet.
+                  </div>
+                )}
+
+                {/* DNS-Guide Tabelle */}
+                {netlifyDnsGuide && Array.isArray(netlifyDnsGuide.records) && netlifyDnsGuide.records.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>
+                      DNS-Einstellungen für {netlifyDnsGuide.domain}
+                    </div>
+                    <div style={{ background: 'var(--bg-app)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-light)' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr 90px', padding: '9px 14px', background: 'var(--bg-surface)', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <span>Typ</span><span>Name</span><span>Wert</span><span></span>
+                      </div>
+                      {netlifyDnsGuide.records.map((r, i) => (
+                        <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr 90px', padding: '12px 14px', borderTop: '1px solid var(--border-light)', fontSize: 13, alignItems: 'center' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--brand-primary)' }}>{r.type}</span>
+                          <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>{r.name}</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-primary)', wordBreak: 'break-all' }}>{r.value}</span>
+                          <button onClick={() => { navigator.clipboard.writeText(r.value); toast.success('Kopiert'); }}
+                            style={{ fontSize: 11, padding: '4px 10px', border: '1px solid var(--border-light)', borderRadius: 4, background: 'var(--bg-surface)', cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)' }}>
+                            Kopieren
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.6 }}>
+                      DNS-Änderungen werden innerhalb von 1–48 Stunden aktiv. Kunde wurde per E-Mail informiert.
+                    </div>
+                  </div>
+                )}
+
+                {/* Legacy cname_target fallback */}
+                {netlifyDnsGuide && !Array.isArray(netlifyDnsGuide.records) && netlifyDnsGuide.cname_target && (
+                  <div style={{ marginTop: 12, padding: 14, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 8, fontSize: 12 }}>
+                    <strong>CNAME:</strong> www → {netlifyDnsGuide.cname_target}
                   </div>
                 )}
               </div>

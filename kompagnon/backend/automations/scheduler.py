@@ -142,6 +142,63 @@ def job_hwk_scrape_weekly():
 
 # ----- DAILY JOBS -----
 
+def job_check_netlify_dns():
+    """Prüft alle 10 Min. ob Custom Domains mit pending-Status nun auf Netlify zeigen."""
+    from sqlalchemy import text
+    try:
+        from services.netlify_service import check_dns_active
+    except Exception as e:
+        logger.warning(f"Netlify DNS-Check: service import fehlgeschlagen: {e}")
+        return
+
+    db = SessionLocal()
+    try:
+        pending = db.execute(text("""
+            SELECT id, netlify_domain, netlify_site_url, lead_id
+            FROM projects
+            WHERE netlify_domain IS NOT NULL
+              AND netlify_domain_status = 'pending'
+        """)).fetchall()
+
+        for p in pending:
+            try:
+                if check_dns_active(p.netlify_domain, p.netlify_site_url or ""):
+                    db.execute(text("""
+                        UPDATE projects SET
+                          netlify_domain_status = 'active',
+                          netlify_ssl_active    = TRUE,
+                          updated_at            = NOW()
+                        WHERE id = :id
+                    """), {"id": p.id})
+                    # Portal-Benachrichtigung
+                    try:
+                        db.execute(text("""
+                            INSERT INTO messages (lead_id, channel, content, direction, created_at, sender_role)
+                            VALUES (:lead_id, 'in_app', :content, 'outbound', NOW(), 'system')
+                        """), {
+                            "lead_id": p.lead_id,
+                            "content": (
+                                f"🎉 Ihre Website ist jetzt unter {p.netlify_domain} live! "
+                                f"Das SSL-Zertifikat wird automatisch innerhalb weniger Minuten aktiviert."
+                            ),
+                        })
+                    except Exception as me:
+                        logger.warning(f"DNS-Live-Nachricht Fehler Projekt {p.id}: {me}")
+                    logger.info(f"✓ DNS aktiv: {p.netlify_domain} (Projekt {p.id})")
+            except Exception as pe:
+                logger.warning(f"DNS-Check Projekt {p.id} Fehler: {pe}")
+                continue
+        db.commit()
+    except Exception as e:
+        logger.error(f"Netlify DNS-Check Fehler: {e}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
+    finally:
+        db.close()
+
+
 def job_check_overdue_phases():
     """Check projects stuck in phase > 2 days and create a support ticket after 3 days."""
     from sqlalchemy import text
@@ -355,6 +412,12 @@ class CompagnonScheduler:
             job_check_all_domains,
             "interval", hours=6,
             id="domain_check_every_6h",
+            replace_existing=True,
+        )
+        self.scheduler.add_job(
+            job_check_netlify_dns,
+            "interval", minutes=10,
+            id="netlify_dns_check_every_10min",
             replace_existing=True,
         )
         self.scheduler.add_job(

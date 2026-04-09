@@ -204,6 +204,64 @@ async def delete_site(site_id: str) -> bool:
     return True
 
 
+def check_dns_active(domain: str, netlify_site_url: str = "") -> bool:
+    """Prüft ob die Domain bereits auf Netlify zeigt.
+    Netlify load-balancer IPs beginnen mit 75.2 oder 99.83.
+    """
+    import socket
+    clean = (domain or "").lower().strip()
+    if not clean:
+        return False
+    for host in (clean, f"www.{clean}" if not clean.startswith("www.") else clean):
+        try:
+            ip = socket.gethostbyname(host)
+            if ip.startswith("75.2") or ip.startswith("99.83"):
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def generate_dns_guide(domain: str, netlify_site_url: str) -> dict:
+    """Erzeugt die DNS-Einträge die der Kunde bei seinem Anbieter eintragen muss."""
+    clean_domain = (domain or "").lower().strip()
+    if clean_domain.startswith("www."):
+        clean_domain = clean_domain[4:]
+    clean_domain = clean_domain.lstrip(".")
+
+    netlify_host = (netlify_site_url or "").replace("https://", "").replace("http://", "").rstrip("/")
+    if not netlify_host:
+        netlify_host = "<ihre-netlify-subdomain>.netlify.app"
+
+    return {
+        "domain": clean_domain,
+        "netlify_url": netlify_site_url,
+        "records": [
+            {
+                "type":  "A",
+                "name":  "@",
+                "value": "75.2.60.5",
+                "ttl":   "3600",
+                "note":  "Hauptdomain (ohne www)",
+            },
+            {
+                "type":  "CNAME",
+                "name":  "www",
+                "value": netlify_host,
+                "ttl":   "3600",
+                "note":  "www-Subdomain",
+            },
+        ],
+        "instructions": (
+            f"Bitte loggen Sie sich bei Ihrem Domain-Anbieter "
+            f"(z.B. IONOS, Strato, united-domains, GoDaddy) ein und tragen Sie "
+            f"die folgenden DNS-Einträge für '{clean_domain}' ein. "
+            f"Die Änderungen werden innerhalb von 1–48 Stunden aktiv. "
+            f"Wir informieren Sie automatisch, sobald Ihre Website live ist."
+        ),
+    }
+
+
 def generate_redirects(old_urls: list, new_urls: dict) -> str:
     """
     Erzeugt den Inhalt einer Netlify _redirects Datei.

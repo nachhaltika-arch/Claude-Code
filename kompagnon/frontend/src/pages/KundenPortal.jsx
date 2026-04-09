@@ -227,6 +227,59 @@ export default function KundenPortal() {
         ))}
       </div>
 
+      {/* ── DNS-Guide (nur wenn Netlify-Domain gesetzt) ── */}
+      {project?.netlify && project.netlify.domain && (
+        <div style={{
+          ...sectionCard,
+          background: project.netlify.ssl_active
+            ? 'var(--status-success-bg)'
+            : 'var(--status-warning-bg)',
+          border: `1px solid ${project.netlify.ssl_active ? 'var(--status-success-text)' : 'var(--status-warning-text)'}`,
+        }}>
+          {project.netlify.ssl_active ? (
+            <>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-success-text)', marginBottom: 6 }}>
+                🎉 Ihre Website ist jetzt live!
+              </div>
+              <a
+                href={`https://${project.netlify.domain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: 13, color: 'var(--brand-primary)', fontWeight: 600, textDecoration: 'none' }}
+              >
+                {project.netlify.domain} öffnen →
+              </a>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-warning-text)', marginBottom: 6 }}>
+                ⚡ Letzter Schritt: Domain verbinden
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.6 }}>
+                Tragen Sie bitte folgende DNS-Einstellungen bei Ihrem Domain-Anbieter
+                (z.B. IONOS, Strato, united-domains) für <strong>{project.netlify.domain}</strong> ein.
+                Sie haben diese Anleitung auch per E-Mail erhalten.
+              </p>
+              <div style={{ background: 'var(--bg-surface)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-light)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr', padding: '8px 12px', background: 'var(--bg-app)', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <span>Typ</span><span>Name</span><span>Wert</span>
+                </div>
+                {(project.netlify.guide?.records || []).map((r, i) => (
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr', padding: '10px 12px', borderTop: '1px solid var(--border-light)', fontSize: 12, alignItems: 'center' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--brand-primary)' }}>{r.type}</span>
+                    <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>{r.name}</span>
+                    <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)', wordBreak: 'break-all' }}>{r.value}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.5 }}>
+                DNS-Änderungen werden innerhalb von 1–48 Stunden aktiv. Wir benachrichtigen Sie automatisch, sobald Ihre Website live ist.
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* ── Nachrichten ── */}
       <div style={sectionCard}>
         <div style={sectionHead}>💬 Nachrichten</div>

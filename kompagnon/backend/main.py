@@ -315,6 +315,59 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS affiliate_id VARCHAR(200)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS affiliate_name VARCHAR(500)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS affiliate_conversion_id INTEGER",
+        # ── Seiten-Manager (öffentliche Seiten + Templates) ──
+        """CREATE TABLE IF NOT EXISTS public_pages (
+            id              SERIAL PRIMARY KEY,
+            slug            VARCHAR(200) UNIQUE NOT NULL,
+            name            VARCHAR(200) NOT NULL,
+            description     TEXT DEFAULT '',
+            page_type       VARCHAR(50) DEFAULT 'custom',
+            status          VARCHAR(20) DEFAULT 'draft',
+            html_content    TEXT DEFAULT '',
+            grapesjs_data   JSONB DEFAULT '{}',
+            css_content     TEXT DEFAULT '',
+            react_component VARCHAR(100) DEFAULT '',
+            product_id      INTEGER,
+            template_id     INTEGER,
+            meta_title      VARCHAR(200) DEFAULT '',
+            meta_description VARCHAR(300) DEFAULT '',
+            published_at    TIMESTAMP,
+            created_at      TIMESTAMP DEFAULT NOW(),
+            updated_at      TIMESTAMP DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS page_templates (
+            id              SERIAL PRIMARY KEY,
+            name            VARCHAR(200) NOT NULL,
+            description     TEXT DEFAULT '',
+            category        VARCHAR(100) DEFAULT 'allgemein',
+            thumbnail_url   VARCHAR(500) DEFAULT '',
+            grapesjs_data   JSONB DEFAULT '{}',
+            html_content    TEXT DEFAULT '',
+            css_content     TEXT DEFAULT '',
+            is_builtin      BOOLEAN DEFAULT FALSE,
+            sort_order      INTEGER DEFAULT 0,
+            created_at      TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_public_pages_slug ON public_pages(slug)",
+        "CREATE INDEX IF NOT EXISTS idx_public_pages_type ON public_pages(page_type)",
+        # Seed: bekannte öffentliche Seiten vorbelegen
+        """INSERT INTO public_pages (slug, name, page_type, status, react_component)
+           VALUES
+             ('/', 'Landing Page', 'landing', 'live', 'Landing'),
+             ('/paket/starter', 'Paket: Starter', 'paket', 'live', 'PackageStarter'),
+             ('/paket/kompagnon', 'Paket: Kompagnon', 'paket', 'live', 'PackageKompagnon'),
+             ('/paket/premium', 'Paket: Premium', 'paket', 'draft', 'PackagePremium'),
+             ('/checkout', 'Checkout', 'transaktional', 'live', 'Checkout'),
+             ('/checkout/success', 'Checkout Erfolg', 'transaktional', 'draft', 'CheckoutSuccess'),
+             ('/login', 'Login', 'auth', 'live', 'Login'),
+             ('/register', 'Registrierung', 'auth', 'live', 'Register'),
+             ('/reset-password', 'Passwort zurücksetzen', 'auth', 'live', 'ResetPassword'),
+             ('/portal/login', 'Kunden-Portal Login', 'portal', 'live', 'PortalLogin'),
+             ('/impressum', 'Impressum', 'legal', 'live', 'Impressum'),
+             ('/datenschutz', 'Datenschutz', 'legal', 'live', 'Datenschutz'),
+             ('/barrierefreiheit', 'Barrierefreiheit', 'legal', 'live', 'Barrierefreiheit')
+           ON CONFLICT (slug) DO NOTHING
+        """,
         "CREATE TABLE IF NOT EXISTS lead_domains (id SERIAL PRIMARY KEY, lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE, url VARCHAR(500) NOT NULL, label VARCHAR(100) DEFAULT '', is_primary BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())",
         "CREATE INDEX IF NOT EXISTS idx_lead_domains_lead_id ON lead_domains(lead_id)",
         # Courses table + optional columns
@@ -1512,6 +1565,9 @@ app.include_router(trackdesk_router.router)
 
 from routers import assets as assets_router
 app.include_router(assets_router.router)
+
+from routers import pages as public_pages_router
+app.include_router(public_pages_router.router)
 
 
 # Global exception handler — catches unhandled errors

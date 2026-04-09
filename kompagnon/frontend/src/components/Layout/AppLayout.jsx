@@ -110,6 +110,12 @@ const NAV_SECTIONS = [
       { label: 'QR-Generator',       path: '/app/qr-generator',  icon: 'qr',   adminOnly: true },
     ],
   },
+  {
+    title: 'Website',
+    items: [
+      { label: 'Seiten-Manager', path: '/app/pages', icon: 'newspaper', adminOnly: true },
+    ],
+  },
   // Inhalte / Akademie — ausgeblendet, wird später aktiviert
   // {
   //   title: 'Inhalte',
@@ -151,6 +157,7 @@ const PAGE_NAMES = {
   '/app/checklists': 'Checklisten',
   '/app/product':         'Produktentwicklung',
   '/app/product-editor':  'Produkteditor',
+  '/app/pages':           'Seiten-Manager',
 };
 
 const MOBILE_TABS = [

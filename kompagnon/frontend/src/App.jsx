@@ -68,6 +68,8 @@ import Freigaben from './pages/customer/Freigaben';
 import MeineRechnungen from './pages/customer/MeineRechnungen';
 import Deals from './pages/Deals';
 import CampaignManager from './pages/CampaignManager';
+import PageManager from './pages/PageManager';
+import PublicPageEditor from './pages/PublicPageEditor';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -158,6 +160,8 @@ function App() {
             <Route path="sales" element={<Navigate to="/app/deals" replace />} />
             <Route path="deals" element={<PrivateRoute roles={['admin', 'auditor']}><Deals /></PrivateRoute>} />
             <Route path="campaigns" element={<PrivateRoute roles={['admin']}><CampaignManager /></PrivateRoute>} />
+            <Route path="pages" element={<PrivateRoute roles={['admin']}><PageManager /></PrivateRoute>} />
+            <Route path="pages/:pageId/editor" element={<PrivateRoute roles={['admin']}><PublicPageEditor /></PrivateRoute>} />
             <Route path="companies" element={<PrivateRoute roles={['admin', 'auditor']}><Companies /></PrivateRoute>} />
             <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
             <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />

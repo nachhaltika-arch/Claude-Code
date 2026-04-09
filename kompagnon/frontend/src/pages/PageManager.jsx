@@ -58,6 +58,10 @@ export default function PageManager() {
     navigate(`/app/pages/${page.id}/editor`);
   };
 
+  const openTemplateEditor = (tpl) => {
+    navigate(`/app/pages/templates/${tpl.id}/editor`);
+  };
+
   const handleCreatePage = async () => {
     if (!newPage.slug || !newPage.name) {
       toast.error('Slug und Name sind Pflichtfelder');
@@ -330,8 +334,17 @@ export default function PageManager() {
                       )}
                     </div>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button style={{ ...S.btn(true), padding: '5px 10px', fontSize: 11, flex: 1 }}>
-                        Anwenden
+                      <button
+                        onClick={() => openTemplateEditor(tpl)}
+                        disabled={tpl.is_builtin}
+                        title={tpl.is_builtin ? 'Eingebaute Templates sind schreibgeschützt' : 'Template im GrapesJS-Editor bearbeiten'}
+                        style={{
+                          ...S.btn(true),
+                          padding: '5px 10px', fontSize: 11, flex: 1,
+                          opacity: tpl.is_builtin ? 0.5 : 1,
+                          cursor: tpl.is_builtin ? 'not-allowed' : 'pointer',
+                        }}>
+                        ✏️ Bearbeiten
                       </button>
                       {!tpl.is_builtin && (
                         <button

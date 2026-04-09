@@ -129,6 +129,58 @@ async def upload_template(
     return {"id": new_id, "name": name}
 
 
+@router.put("/templates/{template_id}")
+def save_template(
+    template_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Speichert GrapesJS-Daten, HTML, CSS und Meta-Infos eines Templates.
+    Alle Felder optional — nur übergebene werden aktualisiert."""
+    row = db.execute(
+        text("SELECT is_builtin FROM page_templates WHERE id=:id"),
+        {"id": template_id},
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, "Template nicht gefunden")
+    if row.is_builtin:
+        raise HTTPException(400, "Eingebaute Templates können nicht bearbeitet werden")
+
+    updates = []
+    params = {"id": template_id}
+
+    if "grapesjs_data" in body:
+        updates.append("grapesjs_data = :gjs")
+        params["gjs"] = json.dumps(body.get("grapesjs_data") or {})
+    if "html_content" in body:
+        updates.append("html_content = :html")
+        params["html"] = body.get("html_content") or ""
+    if "css_content" in body:
+        updates.append("css_content = :css")
+        params["css"] = body.get("css_content") or ""
+    if "name" in body:
+        updates.append("name = :name")
+        params["name"] = (body.get("name") or "").strip() or "Unbenannt"
+    if "category" in body:
+        updates.append("category = :cat")
+        params["cat"] = body.get("category") or "allgemein"
+    if "description" in body:
+        updates.append("description = :desc")
+        params["desc"] = body.get("description") or ""
+    if "thumbnail_url" in body:
+        updates.append("thumbnail_url = :thumb")
+        params["thumb"] = body.get("thumbnail_url") or ""
+
+    if not updates:
+        return {"success": True, "changed": 0}
+
+    sql = f"UPDATE page_templates SET {', '.join(updates)} WHERE id = :id"
+    db.execute(text(sql), params)
+    db.commit()
+    return {"success": True, "changed": len(updates)}
+
+
 @router.delete("/templates/{template_id}")
 def delete_template(
     template_id: int,

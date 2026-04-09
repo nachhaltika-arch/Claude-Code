@@ -227,6 +227,18 @@ export default function KundenPortal() {
         ))}
       </div>
 
+      {/* ── Website-Versionen zur Auswahl ── */}
+      <WebsiteVersionsSection
+        project={project}
+        token={token}
+        onReload={async () => {
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/portal/me`, { headers: { Authorization: `Bearer ${token}` } });
+            if (res.ok) setProject(await res.json());
+          } catch (_) {}
+        }}
+      />
+
       {/* ── Inspirations-URLs ── */}
       <InspirationsSection project={project} token={token} onSaved={() => {}} />
 
@@ -362,6 +374,118 @@ export default function KundenPortal() {
 
       <div style={{ marginTop: 24, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
         Bei Fragen wende dich an dein KOMPAGNON-Team.
+      </div>
+    </div>
+  );
+}
+
+
+function WebsiteVersionsSection({ project, token, onReload }) {
+  const [selecting, setSelecting] = useState(false);
+  const versions = Array.isArray(project?.versions) ? project.versions : [];
+  if (versions.length === 0) return null;
+
+  const selected = versions.find(v => v.selected);
+
+  const selectVersion = async (versionId) => {
+    setSelecting(true);
+    try {
+      await fetch(`${API_BASE_URL}/api/portal/versions/${versionId}/select`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (onReload) await onReload();
+    } catch (_) {}
+    setSelecting(false);
+  };
+
+  // Wenn bereits eine ausgewählt ist → Bestätigungs-Banner
+  if (selected) {
+    return (
+      <div style={{
+        background: 'var(--status-success-bg)',
+        border: '1px solid var(--status-success-text)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '18px 20px',
+        marginTop: 24,
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-success-text)', marginBottom: 6 }}>
+          ✓ Ihre Auswahl ist gespeichert — Version {selected.version_label}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+          Wir beginnen jetzt mit der Umsetzung Ihrer gewählten Version.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      background: 'var(--bg-surface)',
+      border: '2px solid var(--brand-primary)',
+      borderRadius: 'var(--radius-lg)',
+      padding: '20px 22px',
+      marginTop: 24,
+    }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand-primary)', marginBottom: 4 }}>
+        🎨 Ihre 3 Website-Entwürfe sind bereit!
+      </div>
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.5 }}>
+        Wählen Sie Ihren Favoriten — wir setzen ihn dann für Sie um.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {versions.map(v => {
+          let reasoning = {};
+          try { reasoning = JSON.parse(v.ki_reasoning || '{}'); } catch {}
+          return (
+            <div key={v.id} style={{
+              border: '1px solid var(--border-light)',
+              borderRadius: 'var(--radius-md)',
+              overflow: 'hidden',
+              background: 'var(--bg-app)',
+            }}>
+              <div style={{ height: 200, overflow: 'hidden', position: 'relative', background: 'var(--bg-surface)' }}>
+                <iframe
+                  title={`preview-v${v.id}`}
+                  src={`${API_BASE_URL}/api/portal/versions/${v.id}/preview`}
+                  style={{
+                    width: '200%', height: '400px',
+                    transform: 'scale(0.5)', transformOrigin: 'top left',
+                    border: 'none', pointerEvents: 'none',
+                  }}
+                />
+              </div>
+              <div style={{ padding: '14px 16px' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                  Version {v.version_label}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+                  {reasoning.titel || `Entwurf ${v.version_label}`}
+                </div>
+                {reasoning.beschreibung && (
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>
+                    {reasoning.beschreibung}
+                  </div>
+                )}
+                <button
+                  onClick={() => selectVersion(v.id)}
+                  disabled={selecting}
+                  style={{
+                    width: '100%', padding: '11px',
+                    background: 'var(--brand-primary)', color: '#fff',
+                    border: 'none', borderRadius: 'var(--radius-md)',
+                    fontSize: 13, fontWeight: 600,
+                    cursor: selecting ? 'wait' : 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  {selecting ? 'Wird gespeichert…' : 'Diese Version auswählen →'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

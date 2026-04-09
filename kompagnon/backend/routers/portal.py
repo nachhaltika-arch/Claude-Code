@@ -114,6 +114,27 @@ def get_portal_me(user=Depends(get_current_user), db: Session = Depends(get_db))
         "url_3": getattr(lead, "inspiration_url_3", None) if lead else None,
     }
 
+    # Website-Versionen (KI-Entwürfe zur Auswahl)
+    versions_list = []
+    try:
+        from sqlalchemy import text as _text
+        version_rows = db.execute(_text("""
+            SELECT id, version_label, selected, ki_reasoning, template_id
+            FROM website_versions
+            WHERE project_id = :pid
+            ORDER BY version_label
+        """), {"pid": project.id}).fetchall()
+        for vr in version_rows:
+            versions_list.append({
+                "id":            vr.id,
+                "version_label": vr.version_label,
+                "selected":      bool(vr.selected),
+                "ki_reasoning":  vr.ki_reasoning,
+                "template_id":   vr.template_id,
+            })
+    except Exception:
+        pass
+
     # Netlify / DNS-Guide Daten für den Kunden (optional)
     netlify_info = None
     try:
@@ -141,6 +162,7 @@ def get_portal_me(user=Depends(get_current_user), db: Session = Depends(get_db))
         "phases": phases,
         "netlify": netlify_info,
         "inspirations": inspirations,
+        "versions": versions_list,
     }
 
 
@@ -218,3 +240,68 @@ async def upload_document(
     )
     db.commit()
     return {"ok": True, "filename": safe_name}
+
+
+# ── Website-Versionen (Kunde wählt aus 3 KI-Entwürfen) ──────────────────
+
+@router.post("/versions/{version_id}/select")
+def portal_select_version(
+    version_id: int,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Kunde wählt aus seinem eigenen Projekt eine der 3 Versionen aus."""
+    if not user.lead_id:
+        raise HTTPException(403, "Kein Projekt verknüpft")
+
+    # Prüfe ob version_id zu einem Projekt dieses Kunden gehört
+    row = db.execute(text("""
+        SELECT v.id, v.project_id, p.lead_id
+        FROM website_versions v
+        JOIN projects p ON v.project_id = p.id
+        WHERE v.id = :vid
+    """), {"vid": version_id}).fetchone()
+
+    if not row:
+        raise HTTPException(404, "Version nicht gefunden")
+    if row.lead_id != user.lead_id:
+        raise HTTPException(403, "Kein Zugriff auf diese Version")
+
+    # Alle anderen Versionen dieses Projekts deselektieren, diese auswählen
+    db.execute(
+        text("UPDATE website_versions SET selected=FALSE WHERE project_id = :pid"),
+        {"pid": row.project_id},
+    )
+    db.execute(
+        text("UPDATE website_versions SET selected=TRUE WHERE id = :vid"),
+        {"vid": version_id},
+    )
+    db.commit()
+    return {"selected": version_id, "project_id": row.project_id}
+
+
+@router.get("/versions/{version_id}/preview")
+def portal_version_preview(
+    version_id: int,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """HTML-Preview einer Version — nur wenn sie zum eigenen Projekt gehört."""
+    from fastapi.responses import HTMLResponse
+    row = db.execute(text("""
+        SELECT v.html, v.css, p.lead_id
+        FROM website_versions v
+        JOIN projects p ON v.project_id = p.id
+        WHERE v.id = :vid
+    """), {"vid": version_id}).fetchone()
+    if not row:
+        raise HTTPException(404, "Version nicht gefunden")
+    if row.lead_id != user.lead_id:
+        raise HTTPException(403, "Kein Zugriff auf diese Version")
+    html = row.html or "<p>Kein Inhalt</p>"
+    css  = row.css or ""
+    return HTMLResponse(
+        f"""<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>{css}</style></head><body>{html}</body></html>"""
+    )

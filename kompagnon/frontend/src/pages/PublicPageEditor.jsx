@@ -110,16 +110,19 @@ export default function PublicPageEditor() {
     setImporting(false);
   };
 
-  // ── Als Live schalten ─────────────────────────────────────
-  const publishPage = async () => {
+  // ── Status togglen (Live ↔ Entwurf) ───────────────────────
+  const togglePublish = async () => {
+    const isLive = pageInfo?.status === 'live';
+    const newStatus = isLive ? 'draft' : 'live';
     try {
-      await fetch(`${API_BASE_URL}/api/pages/${pageId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/pages/${pageId}`, {
         method: 'PUT', headers: h,
-        body: JSON.stringify({ status: 'live' }),
+        body: JSON.stringify({ status: newStatus }),
       });
-      setPageInfo(p => p ? { ...p, status: 'live' } : p);
-      toast.success('Seite veröffentlicht ✓');
-    } catch { toast.error('Fehler beim Veröffentlichen'); }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      setPageInfo(p => p ? { ...p, status: newStatus } : p);
+      toast.success(isLive ? 'Auf Entwurf gesetzt' : 'Seite veröffentlicht ✓');
+    } catch { toast.error('Fehler beim Statuswechsel'); }
   };
 
   const tbBtn = {
@@ -197,13 +200,18 @@ export default function PublicPageEditor() {
           </a>
         )}
 
-        {pageInfo?.status !== 'live' && (
-          <button onClick={publishPage} style={{
-            ...tbBtn, background: '#1d9e75', fontWeight: 700,
+        <button
+          onClick={togglePublish}
+          disabled={!pageInfo}
+          title={pageInfo?.status === 'live' ? 'Seite auf Entwurf zurücksetzen' : 'Seite veröffentlichen'}
+          style={{
+            ...tbBtn,
+            background: pageInfo?.status === 'live' ? '#94a3b8' : '#1d9e75',
+            fontWeight: 700,
+            opacity: pageInfo ? 1 : 0.5,
           }}>
-            🚀 Veröffentlichen
-          </button>
-        )}
+          {pageInfo?.status === 'live' ? '📥 Auf Entwurf' : '🚀 Veröffentlichen'}
+        </button>
 
         <button
           onClick={() => navigate('/app/pages')}

@@ -21,11 +21,11 @@ else:
         DATABASE_URL,
         pool_pre_ping=True,
         pool_recycle=300,
-        pool_size=5,
+        pool_size=3,          # Lean for Render free tier
         max_overflow=5,
         pool_timeout=10,
         connect_args={
-            "connect_timeout": 8,
+            "connect_timeout": 5,  # Fast fail on cold DB
             "keepalives": 1,
             "keepalives_idle": 30,
             "keepalives_interval": 5,

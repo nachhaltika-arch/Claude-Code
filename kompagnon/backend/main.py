@@ -1148,52 +1148,61 @@ async def lifespan(app: FastAPI):
     logger.info("✅ Port wird geöffnet...")
 
     async def _background_init():
-        """Alle DB-Operationen laufen NACH dem Start im Hintergrund."""
+        """Alle DB-Operationen laufen NACH dem Start im Hintergrund.
+        Jeder Schritt hat seinen eigenen Timeout und blockiert die anderen nicht.
+        """
+        import time
+        start = time.time()
         await asyncio.sleep(3)  # 3 Sekunden warten bis Server stabil ist
+        logger.info("🔄 Hintergrund-Init gestartet...")
         loop = asyncio.get_event_loop()
 
-        def _db_ops():
+        def _run_step(fn):
+            """Helper: run a sync function and return None on success, exception on error."""
             try:
-                _run_migrations()
-                logger.info("✓ Migrations OK")
+                fn()
+                return None
             except Exception as e:
-                logger.warning(f"⚠ Migrations: {e}")
+                return e
+
+        # Steps: (name, sync_function, timeout_seconds)
+        def _academy_seed():
+            from routers.academy import seed_academy_courses
+            from database import SessionLocal
+            _db = SessionLocal()
             try:
-                init_db()
-                logger.info("✓ DB init OK")
-            except Exception as e:
-                logger.warning(f"⚠ init_db: {e}")
-            try:
-                _create_default_admin()
-                logger.info("✓ Admin OK")
-            except Exception as e:
-                logger.warning(f"⚠ Admin: {e}")
-            try:
-                from routers.academy import seed_academy_courses
-                from database import SessionLocal
-                _db = SessionLocal()
                 seed_academy_courses(_db)
+            finally:
                 _db.close()
-                logger.info("✓ Academy seed OK")
-            except Exception as e:
-                logger.warning(f"⚠ Academy: {e}")
-            try:
-                start_scheduler()
-                logger.info("✓ Scheduler OK")
-            except Exception as e:
-                logger.warning(f"⚠ Scheduler: {e}")
-            logger.info("✅ Hintergrund-Init abgeschlossen")
+
+        steps = [
+            ("Migrations",       _run_migrations,         10.0),
+            ("DB init",          init_db,                 8.0),
+            ("Default admin",    _create_default_admin,   5.0),
+            ("Academy seed",     _academy_seed,           5.0),
+            ("Scheduler",        start_scheduler,         5.0),
+        ]
 
         with ThreadPoolExecutor(max_workers=1) as pool:
-            try:
-                await asyncio.wait_for(
-                    loop.run_in_executor(pool, _db_ops),
-                    timeout=15.0
-                )
-            except asyncio.TimeoutError:
-                logger.warning("⚠ Hintergrund-Init Timeout nach 15s — Server läuft trotzdem")
-            except Exception as e:
-                logger.warning(f"⚠ Hintergrund-Init Fehler: {e}")
+            for name, fn, timeout in steps:
+                step_start = time.time()
+                try:
+                    result = await asyncio.wait_for(
+                        loop.run_in_executor(pool, _run_step, fn),
+                        timeout=timeout,
+                    )
+                    dt = time.time() - step_start
+                    if result is None:
+                        logger.info(f"  ✓ {name} ({dt:.1f}s)")
+                    else:
+                        logger.warning(f"  ⚠ {name} Fehler: {result} ({dt:.1f}s)")
+                except asyncio.TimeoutError:
+                    logger.warning(f"  ⚠ {name} Timeout nach {timeout}s — übersprungen")
+                except Exception as e:
+                    logger.warning(f"  ⚠ {name} unerwarteter Fehler: {e}")
+
+        total = time.time() - start
+        logger.info(f"✅ Hintergrund-Init abgeschlossen in {total:.1f}s")
 
     try:
         task = asyncio.create_task(_background_init())
@@ -1387,6 +1396,7 @@ def robots_txt():
 
 
 @app.get("/")
+@app.head("/")
 def root():
     """API root with documentation link."""
     return {

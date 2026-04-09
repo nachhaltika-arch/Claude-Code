@@ -572,6 +572,20 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS inspiration_url_1 TEXT",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS inspiration_url_2 TEXT",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS inspiration_url_3 TEXT",
+        # Website version generation (KI picks 3 templates)
+        """CREATE TABLE IF NOT EXISTS website_versions (
+            id             SERIAL PRIMARY KEY,
+            project_id     INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+            version_label  VARCHAR(10) DEFAULT 'A',
+            template_id    INTEGER REFERENCES website_templates(id) ON DELETE SET NULL,
+            html           TEXT,
+            css            TEXT,
+            gjs_data       TEXT,
+            ki_reasoning   TEXT,
+            selected       BOOLEAN DEFAULT FALSE,
+            created_at     TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_website_versions_project ON website_versions(project_id)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES website_templates(id) ON DELETE SET NULL",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES website_templates(id) ON DELETE SET NULL",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_before TEXT",

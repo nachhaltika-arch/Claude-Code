@@ -618,6 +618,10 @@ export default function ProjectDetail() {
   const [websiteContent, setWebsiteContent] = useState([]);
   const [contentLoading, setContentLoading] = useState(false);
   const [selectedContentPage, setSelectedContentPage] = useState(null);
+  // Website Versionen (KI-generiert)
+  const [versions, setVersions] = useState([]);
+  const [versionsGenerating, setVersionsGenerating] = useState(false);
+  const [versionsRecommendation, setVersionsRecommendation] = useState('');
   // QA-Scanner
   const [qaResult, setQaResult]   = useState(null);
   const [qaRunning, setQaRunning] = useState(false);
@@ -988,6 +992,17 @@ export default function ProjectDetail() {
       });
     return () => { cancelled = true; };
   }, [project?.id, activeSubTab, activeTab]); // eslint-disable-line
+
+  // Load website versions on project mount
+  useEffect(() => {
+    if (!project?.id) return;
+    fetch(`${API_BASE_URL}/api/projects/${project.id}/versions`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setVersions(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, [project?.id]); // eslint-disable-line
 
   // Load cached crawler results + website content on project mount
   useEffect(() => {
@@ -2670,6 +2685,162 @@ export default function ProjectDetail() {
             <div style={{ textAlign: 'center', padding: 40, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)', fontSize: 13 }}>
               <div style={{ fontSize: 32, marginBottom: 10 }}>🖥️</div>
               Noch kein Hosting-Scan. Klicke oben auf &quot;Hosting scannen&quot;.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Website-Versionen Tab (KI-Entwürfe) ───────────────────────────── */}
+      {(activeSubTab === 'design' || activeTab === 'design') && (
+        <div style={{ maxWidth: 1100 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>🎨 Website-Entwürfe</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                KI wählt 3 passende Templates basierend auf Briefing, Inspirationen und altem Content
+                {versions.length > 0 && (
+                  <span style={{ marginLeft: 8, padding: '2px 8px', background: 'var(--status-info-bg)', color: 'var(--status-info-text)', borderRadius: 4, fontSize: 11, fontWeight: 500 }}>
+                    {versions.length} Entwürfe gespeichert
+                  </span>
+                )}
+              </div>
+            </div>
+            <button
+              disabled={versionsGenerating}
+              onClick={async () => {
+                if (!project?.id) return;
+                setVersionsGenerating(true);
+                try {
+                  const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/generate-versions`, {
+                    method: 'POST', headers: { Authorization: `Bearer ${token}` },
+                  });
+                  if (res.ok) {
+                    const d = await res.json();
+                    setVersionsRecommendation(d.empfehlung || '');
+                    // Reload list
+                    const r2 = await fetch(`${API_BASE_URL}/api/projects/${project.id}/versions`, { headers: { Authorization: `Bearer ${token}` } });
+                    if (r2.ok) setVersions(await r2.json());
+                    toast.success('3 Versionen generiert');
+                  } else {
+                    const err = await res.json().catch(() => ({}));
+                    toast.error(err.detail || 'Generierung fehlgeschlagen');
+                  }
+                } catch (e) { toast.error('Fehler: ' + e.message); }
+                setVersionsGenerating(false);
+              }}
+              style={{
+                padding: '10px 20px',
+                background: versionsGenerating ? 'var(--text-tertiary)' : 'var(--brand-primary)',
+                color: '#fff', border: 'none', borderRadius: 'var(--radius-md)',
+                fontSize: 13, fontWeight: 600, cursor: versionsGenerating ? 'wait' : 'pointer',
+                fontFamily: 'var(--font-sans)',
+              }}
+            >
+              {versionsGenerating ? '🤖 KI generiert…' : versions.length > 0 ? '🔄 Neu generieren' : '🤖 3 Entwürfe generieren'}
+            </button>
+          </div>
+
+          {versionsRecommendation && (
+            <div style={{ padding: '12px 16px', background: 'var(--status-info-bg)', border: '1px solid var(--status-info-text)', borderRadius: 'var(--radius-md)', marginBottom: 16, fontSize: 13, color: 'var(--status-info-text)', lineHeight: 1.5 }}>
+              <strong>KI-Empfehlung:</strong> {versionsRecommendation}
+            </div>
+          )}
+
+          {versions.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 48, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', color: 'var(--text-tertiary)', fontSize: 13 }}>
+              <div style={{ fontSize: 36, marginBottom: 10 }}>🎨</div>
+              Noch keine Entwürfe generiert. Klicke oben auf &quot;3 Entwürfe generieren&quot;.
+              <div style={{ fontSize: 11, marginTop: 8 }}>
+                Voraussetzung: Briefing ausgefüllt + Templates in der Bibliothek
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+              {versions.map(v => {
+                let reasoning = {};
+                try { reasoning = JSON.parse(v.ki_reasoning || '{}'); } catch {}
+                return (
+                  <div key={v.id} style={{
+                    background: 'var(--bg-surface)',
+                    border: v.selected ? '2px solid var(--brand-primary)' : '1px solid var(--border-light)',
+                    borderRadius: 'var(--radius-lg)',
+                    overflow: 'hidden',
+                    display: 'flex', flexDirection: 'column',
+                  }}>
+                    <div style={{ padding: '10px 14px', background: 'var(--bg-app)', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        Version {v.version_label}
+                      </div>
+                      {v.selected && (
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', background: 'var(--brand-primary)', color: '#fff', borderRadius: 4 }}>AUSGEWÄHLT</span>
+                      )}
+                    </div>
+                    <div style={{ height: 260, overflow: 'hidden', position: 'relative', background: 'var(--bg-app)' }}>
+                      <iframe
+                        title={`preview-${v.id}`}
+                        src={`${API_BASE_URL}/api/projects/${project.id}/versions/${v.id}/preview`}
+                        style={{
+                          width: '200%', height: '520px',
+                          transform: 'scale(0.5)', transformOrigin: 'top left',
+                          border: 'none', pointerEvents: 'none',
+                        }}
+                      />
+                    </div>
+                    <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+                        {reasoning.titel || v.template_name || `Entwurf ${v.version_label}`}
+                      </div>
+                      {reasoning.beschreibung && (
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.5 }}>
+                          {reasoning.beschreibung}
+                        </div>
+                      )}
+                      {reasoning.optimierungen && (
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10, lineHeight: 1.5 }}>
+                          <strong>Optimierung:</strong> {reasoning.optimierungen}
+                        </div>
+                      )}
+                      {reasoning.farb_empfehlung && (
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10 }}>
+                          <strong>Farben:</strong> {reasoning.farb_empfehlung}
+                        </div>
+                      )}
+                      <div style={{ marginTop: 'auto', display: 'flex', gap: 8 }}>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await fetch(`${API_BASE_URL}/api/projects/${project.id}/versions/${v.id}/select`, {
+                                method: 'POST', headers: { Authorization: `Bearer ${token}` },
+                              });
+                              setVersions(vs => vs.map(x => ({ ...x, selected: x.id === v.id })));
+                              toast.success(`Version ${v.version_label} ausgewählt`);
+                            } catch { toast.error('Fehler'); }
+                          }}
+                          style={{
+                            flex: 1, padding: '10px',
+                            background: v.selected ? 'var(--status-success-text)' : 'var(--brand-primary)',
+                            color: '#fff', border: 'none', borderRadius: 'var(--radius-md)',
+                            fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                          }}>
+                          {v.selected ? '✓ Ausgewählt' : 'Diese Version wählen'}
+                        </button>
+                        <a
+                          href={`${API_BASE_URL}/api/projects/${project.id}/versions/${v.id}/preview`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: '10px 14px',
+                            background: 'var(--bg-app)', border: '1px solid var(--border-light)',
+                            color: 'var(--text-primary)', borderRadius: 'var(--radius-md)',
+                            fontSize: 12, textDecoration: 'none', fontFamily: 'var(--font-sans)',
+                          }}>
+                          Ganz öffnen
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

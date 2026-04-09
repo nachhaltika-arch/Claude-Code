@@ -1219,9 +1219,12 @@ async def scrape_project_website(
 @router.post("/{project_id}/hosting-scan")
 async def hosting_scan(
     project_id: int,
+    force: bool = False,
     db: Session = Depends(get_db),
 ):
-    """Scannt Hosting, DNS, WHOIS und WordPress-Erkennung für das Projekt."""
+    """Scannt Hosting, DNS, WHOIS und WordPress-Erkennung für das Projekt.
+    Cache: liefert gespeicherten Scan wenn < 12h alt (außer force=true).
+    """
     from services.hosting_scraper import scrape_hosting_info
 
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -1234,6 +1237,38 @@ async def hosting_scan(
 
     if not website_url.startswith("http"):
         website_url = "https://" + website_url
+
+    # ── Cache-Check: 12h TTL ──
+    row = db.execute(text(
+        "SELECT hosting_provider, hosting_org, hosting_ip, hosting_country, "
+        "dns_provider, nameservers, domain_registrar, domain_created, domain_expires, "
+        "server_software, wordpress_hosting, is_wordpress, detected_technologies, "
+        "hosting_checked_at FROM projects WHERE id = :id"
+    ), {"id": project_id}).fetchone()
+
+    if not force and row and row[13]:  # hosting_checked_at
+        age = (datetime.utcnow() - row[13]).total_seconds()
+        if age < 43200:  # 12h
+            logger.info(f"hosting-scan cache hit project {project_id} ({int(age/60)}min alt)")
+            return {
+                "hosting_provider":      row[0],
+                "hosting_org":           row[1],
+                "hosting_ip":            row[2],
+                "hosting_country":       row[3],
+                "dns_provider":          row[4],
+                "nameservers":           row[5],
+                "domain_registrar":      row[6],
+                "domain_created":        row[7],
+                "domain_expires":        row[8],
+                "server_software":       row[9],
+                "wordpress_hosting":     row[10],
+                "is_wordpress":          row[11],
+                "detected_technologies": row[12],
+                "hosting_checked_at":    row[13].isoformat() if row[13] else None,
+                "website_url":           website_url,
+                "_cached":               True,
+                "_cache_age_minutes":    int(age / 60),
+            }
 
     data = await scrape_hosting_info(website_url)
 

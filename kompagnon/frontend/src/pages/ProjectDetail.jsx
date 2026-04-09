@@ -2568,7 +2568,14 @@ export default function ProjectDetail() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <div>
               <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>🖥️ Hosting-Analyse</div>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>Server, DNS, SSL und Technologien</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                Server, DNS, SSL und Technologien
+                {hostingData?._cached && hostingData?._cache_age_minutes != null && (
+                  <span style={{ marginLeft: 8, padding: '2px 8px', background: 'var(--status-info-bg)', color: 'var(--status-info-text)', borderRadius: 4, fontSize: 11, fontWeight: 500 }}>
+                    📦 Cache ({hostingData._cache_age_minutes} min)
+                  </span>
+                )}
+              </div>
             </div>
             <button
               disabled={hostingScanning}
@@ -2576,7 +2583,7 @@ export default function ProjectDetail() {
                 if (!project?.id) return;
                 setHostingScanning(true);
                 try {
-                  const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/hosting-scan`, {
+                  const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/hosting-scan?force=true`, {
                     method: 'POST', headers: { Authorization: `Bearer ${token}` },
                   });
                   if (res.ok) {
@@ -2649,8 +2656,9 @@ export default function ProjectDetail() {
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
                   SEO, Texte, Assets und Links
                   {fullAnalysis?._cached_at && (
-                    <span style={{ marginLeft: 8, color: 'var(--text-tertiary)' }}>
-                      · Zuletzt: {fullAnalysis._cached_at.replace('T', ' ')}
+                    <span style={{ marginLeft: 8, padding: '2px 8px', background: 'var(--status-info-bg)', color: 'var(--status-info-text)', borderRadius: 4, fontSize: 11, fontWeight: 500 }}>
+                      📦 Cache vom {fullAnalysis._cached_at.replace('T', ' ')}
+                      {fullAnalysis._cache_age_minutes != null && ` (${fullAnalysis._cache_age_minutes} min)`}
                     </span>
                   )}
                 </div>
@@ -2660,12 +2668,12 @@ export default function ProjectDetail() {
                   if (!project?.id) return;
                   setContentLoading(true);
                   try {
-                    const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/scrape-full`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+                    const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/scrape-full?force=true`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
                     if (res.ok) setFullAnalysis(await res.json());
                   } catch {}
                   setContentLoading(false);
-                }} style={{ padding: '8px 18px', background: contentLoading ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: contentLoading ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
-                  {contentLoading ? 'Analysiert…' : '🔍 SEO-Analyse'}
+                }} style={{ padding: '8px 18px', background: contentLoading ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: contentLoading ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }} title={fullAnalysis?._cached_at ? `Gecachte Version vom ${fullAnalysis._cached_at}` : 'Neue SEO-Analyse starten'}>
+                  {contentLoading ? 'Analysiert…' : fullAnalysis?.seo ? '🔄 Neu analysieren' : '🔍 SEO-Analyse'}
                 </button>
                 <button disabled={contentLoading} onClick={async () => {
                   if (!project?.lead_id) return;

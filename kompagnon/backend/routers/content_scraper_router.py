@@ -83,11 +83,13 @@ def _run_content_scrape(job_id: int, project_id: int, website_url: str):
 @router.post("/{project_id}/scrape-full")
 async def scrape_full_analysis(
     project_id: int,
+    force: bool = False,
     db: Session = Depends(get_db),
     _=Depends(require_any_auth),
 ):
     """Single-page full analysis: SEO, text, assets, links, contact.
-    Persists result in projects.scrape_full_data for fast GET later.
+    Cache: reuses existing result if < 24h old unless force=true.
+    Persists result in projects.scrape_full_data.
     """
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
@@ -97,14 +99,31 @@ async def scrape_full_analysis(
         raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
     if not url.startswith("http"):
         url = "https://" + url
+
+    # ── Cache-Check: 24h TTL ──
+    if not force and project.scrape_full_data and project.scrape_full_at:
+        age = (datetime.utcnow() - project.scrape_full_at).total_seconds()
+        if age < 86400:  # 24h
+            try:
+                cached = json.loads(project.scrape_full_data)
+                cached["_cached"] = True
+                cached["_cached_at"] = str(project.scrape_full_at)[:19]
+                cached["_cache_age_minutes"] = int(age / 60)
+                logger.info(f"scrape-full cache hit project {project_id} ({int(age/60)}min alt)")
+                return cached
+            except json.JSONDecodeError:
+                pass  # Broken cache → re-scrape
+
+    # ── Fresh scrape ──
     from services.content_scraper import scrape_page_full
     result = await scrape_page_full(url)
 
-    # Persist in DB
+    # ── Persist ──
     try:
         project.scrape_full_data = json.dumps(result, ensure_ascii=False)
         project.scrape_full_at   = datetime.utcnow()
         db.commit()
+        result["_cached"] = False
     except Exception as e:
         logger.warning(f"scrape-full persist error project {project_id}: {e}")
         db.rollback()

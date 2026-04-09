@@ -67,6 +67,7 @@ import SupportTickets from './pages/customer/SupportTickets';
 import Freigaben from './pages/customer/Freigaben';
 import MeineRechnungen from './pages/customer/MeineRechnungen';
 import Deals from './pages/Deals';
+import CampaignManager from './pages/CampaignManager';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -156,6 +157,7 @@ function App() {
             {/* Vertriebspipeline durch Deals ersetzt — alte URL leitet weiter */}
             <Route path="sales" element={<Navigate to="/app/deals" replace />} />
             <Route path="deals" element={<PrivateRoute roles={['admin', 'auditor']}><Deals /></PrivateRoute>} />
+            <Route path="campaigns" element={<PrivateRoute roles={['admin']}><CampaignManager /></PrivateRoute>} />
             <Route path="companies" element={<PrivateRoute roles={['admin', 'auditor']}><Companies /></PrivateRoute>} />
             <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
             <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />

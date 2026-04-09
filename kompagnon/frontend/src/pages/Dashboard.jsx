@@ -16,6 +16,7 @@ export default function Dashboard() {
   const { isMobile } = useScreenSize();
   const [kpis, setKpis] = useState(null);
   const [dealStats, setDealStats] = useState(null);
+  const [campaignStats, setCampaignStats] = useState([]);
   const [leads, setLeads] = useState([]);
   const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,9 +31,11 @@ export default function Dashboard() {
       fetch(`${API_BASE_URL}/api/leads/`, { headers: h }).then(r => r.json()).catch(() => []),
       fetch(`${API_BASE_URL}/api/audit/recent`, { headers: h }).then(r => r.json()).catch(() => []),
       fetch(`${API_BASE_URL}/api/deals/stats`, { headers: h }).then(r => r.json()).catch(() => null),
-    ]).then(async ([kpiData, leadsData, auditData, dealsData]) => {
+      fetch(`${API_BASE_URL}/api/campaigns/stats`, { headers: h }).then(r => r.json()).catch(() => []),
+    ]).then(async ([kpiData, leadsData, auditData, dealsData, campaignData]) => {
       setKpis(kpiData);
       setDealStats(dealsData);
+      setCampaignStats(Array.isArray(campaignData) ? campaignData : []);
       let rows = Array.isArray(leadsData) ? leadsData : [];
       // Fallback: if leads table is empty, try usercards
       if (rows.length === 0) {
@@ -211,6 +214,65 @@ export default function Dashboard() {
           color="var(--status-success-text)"
         />
       </div>
+
+      {/* Leads nach Herkunft */}
+      {campaignStats.length > 0 && (() => {
+        const SRC = {
+          facebook:   { icon: '📘', label: 'Facebook' },
+          linkedin:   { icon: '💼', label: 'LinkedIn' },
+          google_ads: { icon: '🔍', label: 'Google Ads' },
+          briefkarte: { icon: '📬', label: 'Briefkarte' },
+          instagram:  { icon: '📸', label: 'Instagram' },
+          email:      { icon: '✉️', label: 'E-Mail' },
+          postkarte:  { icon: '📬', label: 'Postkarte' },
+          sonstige:   { icon: '📌', label: 'Sonstige' },
+          direkt:     { icon: '🔗', label: 'Direkt' },
+        };
+        const maxCount = Math.max(...campaignStats.map(s => s.lead_count || 0), 1);
+        return (
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+            padding: '18px 22px', border: '1px solid var(--border-light)',
+            width: '100%', boxSizing: 'border-box',
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14, color: 'var(--text-primary)' }}>
+              📊 Leads nach Herkunft
+            </div>
+            {campaignStats.map(stat => {
+              const cfg = SRC[stat.source] || { icon: stat.source_icon || '📌', label: stat.source_label || stat.source };
+              const cnt = stat.lead_count || 0;
+              const won = stat.won_count || 0;
+              const pct = cnt > 0 ? Math.round((won / cnt) * 100) : 0;
+              const widthPct = Math.round((cnt / maxCount) * 100);
+              return (
+                <div key={stat.source} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10,
+                }}>
+                  <span style={{ fontSize: 16, width: 24, flexShrink: 0 }}>{cfg.icon}</span>
+                  <span style={{ fontSize: 12, width: 100, color: 'var(--text-secondary)', flexShrink: 0 }}>{cfg.label}</span>
+                  <div style={{ flex: 1, height: 8, background: 'var(--bg-app)', borderRadius: 4, overflow: 'hidden', minWidth: 50 }}>
+                    <div style={{
+                      width: `${widthPct}%`, height: '100%',
+                      background: 'var(--brand-primary)',
+                      borderRadius: 4, transition: 'width 0.5s ease',
+                    }} />
+                  </div>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', minWidth: 70, textAlign: 'right', flexShrink: 0 }}>
+                    {cnt} Lead{cnt !== 1 ? 's' : ''}
+                  </span>
+                  <span style={{
+                    fontSize: 11,
+                    color: pct > 30 ? 'var(--status-success-text)' : 'var(--text-tertiary)',
+                    minWidth: 42, textAlign: 'right', flexShrink: 0, fontWeight: 600,
+                  }}>
+                    {pct}% ✓
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Zwei-Spalten */}
       <div style={{

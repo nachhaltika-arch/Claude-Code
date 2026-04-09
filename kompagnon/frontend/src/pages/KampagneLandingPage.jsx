@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import API_BASE_URL from '../config';
 
 const PRIMARY = '#008eaa';
@@ -12,6 +12,10 @@ const FREEMAILS = [
 
 export default function KampagneLandingPage() {
   const { slug } = useParams();
+  const [searchParams] = useSearchParams();
+  const utmSource   = searchParams.get('utm_source')   || slug || '';
+  const utmMedium   = searchParams.get('utm_medium')   || '';
+  const utmCampaign = searchParams.get('utm_campaign') || slug || '';
 
   const [email, setEmail]   = useState('');
   const [domain, setDomain] = useState('');
@@ -50,7 +54,10 @@ export default function KampagneLandingPage() {
           domain: domain.trim(),
           email: email.trim(),
           mobil: mobil.trim(),
-          kampagne_quelle: slug || 'postkarte',
+          kampagne_quelle: slug || utmSource || 'postkarte',
+          utm_source:      utmSource,
+          utm_medium:      utmMedium,
+          utm_campaign:    utmCampaign,
         }),
       });
       const data = await res.json();

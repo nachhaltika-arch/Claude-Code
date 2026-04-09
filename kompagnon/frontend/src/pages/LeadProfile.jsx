@@ -1079,6 +1079,37 @@ export default function LeadProfile() {
 
       {/* ÜBERSICHT TAB */}
       {activeTab === 'overview' && (
+        <>
+        {/* Lead-Quelle (nur intern) */}
+        {(lead.utm_source || lead.kampagne_quelle) && (() => {
+          const SOURCE_MAP = {
+            facebook:   { icon: '📘', label: 'Facebook' },
+            linkedin:   { icon: '💼', label: 'LinkedIn' },
+            google_ads: { icon: '🔍', label: 'Google Ads' },
+            briefkarte: { icon: '📬', label: 'Briefkarte' },
+            instagram:  { icon: '📸', label: 'Instagram' },
+            email:      { icon: '✉️', label: 'E-Mail' },
+            postkarte:  { icon: '📬', label: 'Postkarte' },
+            sonstige:   { icon: '📌', label: 'Sonstige' },
+          };
+          const src = lead.utm_source || lead.kampagne_quelle;
+          const cfg = SOURCE_MAP[src] || { icon: '📌', label: src };
+          return (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 14px', background: 'var(--bg-surface)',
+              border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+              fontSize: 12, marginBottom: 12, width: 'fit-content',
+            }}>
+              <span style={{ fontSize: 16 }}>{cfg.icon}</span>
+              <span style={{ color: 'var(--text-tertiary)' }}>Quelle:</span>
+              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{cfg.label}</span>
+              {lead.utm_campaign && (
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>· {lead.utm_campaign}</span>
+              )}
+            </div>
+          );
+        })()}
         <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '340px 1fr' : isTablet ? '280px 1fr' : '1fr', gap: 16, alignItems: 'flex-start', minWidth: 0, width: '100%', overflowX: 'hidden' }}>
 
           {/* Linke Spalte */}
@@ -1442,6 +1473,7 @@ export default function LeadProfile() {
             </Card>
           </div>
         </div>
+        </>
       )}
 
       {/* KONTAKT TAB */}

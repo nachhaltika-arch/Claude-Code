@@ -271,6 +271,27 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS geschaeftsfuehrer VARCHAR",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS whatsapp_nummer VARCHAR(50)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS kampagne_quelle VARCHAR(100)",
+        # Campaign Manager
+        """CREATE TABLE IF NOT EXISTS campaigns (
+            id            SERIAL PRIMARY KEY,
+            name          VARCHAR(500) NOT NULL,
+            slug          VARCHAR(200) UNIQUE NOT NULL,
+            source        VARCHAR(100) NOT NULL,
+            medium        VARCHAR(100),
+            channel       VARCHAR(100),
+            description   TEXT,
+            target_url    VARCHAR(1000) DEFAULT 'https://kompagnon.eu',
+            is_active     BOOLEAN DEFAULT TRUE,
+            created_by    INTEGER,
+            created_at    TIMESTAMP DEFAULT NOW(),
+            archived_at   TIMESTAMP
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_campaigns_slug ON campaigns(slug)",
+        "CREATE INDEX IF NOT EXISTS idx_campaigns_source ON campaigns(source)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS kampagne_id INTEGER",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_source VARCHAR(200)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_medium VARCHAR(200)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_campaign VARCHAR(200)",
         "CREATE TABLE IF NOT EXISTS lead_domains (id SERIAL PRIMARY KEY, lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE, url VARCHAR(500) NOT NULL, label VARCHAR(100) DEFAULT '', is_primary BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())",
         "CREATE INDEX IF NOT EXISTS idx_lead_domains_lead_id ON lead_domains(lead_id)",
         # Courses table + optional columns
@@ -1459,6 +1480,9 @@ app.include_router(products_router)
 
 from routers.deals import router as deals_router
 app.include_router(deals_router)
+
+from routers.campaigns import router as campaigns_router
+app.include_router(campaigns_router)
 
 
 # Global exception handler — catches unhandled errors

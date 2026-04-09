@@ -143,7 +143,8 @@ def job_hwk_scrape_weekly():
 # ----- DAILY JOBS -----
 
 def job_check_overdue_phases():
-    """Check projects stuck in phase > 2 days."""
+    """Check projects stuck in phase > 2 days and create a support ticket after 3 days."""
+    from sqlalchemy import text
     db = SessionLocal()
     try:
         projects = db.query(Project).filter(
@@ -151,10 +152,41 @@ def job_check_overdue_phases():
         ).all()
 
         for project in projects:
-            if project.start_date:
+            try:
+                if not project.start_date:
+                    continue
                 days_in_phase = (datetime.utcnow() - project.start_date).days
-                if days_in_phase > 2:
-                    logger.warning(f"⚠️  Project {project.id} stuck in {project.status} for {days_in_phase} days")
+                if days_in_phase <= 2:
+                    continue
+
+                logger.warning(f"⚠️  Project {project.id} stuck in {project.status} for {days_in_phase} days")
+
+                # Nach 3 Tagen: internes Ticket erstellen (nur einmal pro Projekt+Phase+Tag)
+                if days_in_phase >= 3:
+                    ticket_key = f"stuck-{project.id}-{project.status}-{datetime.utcnow().strftime('%Y%m%d')}"
+                    existing = db.execute(text(
+                        "SELECT id FROM support_tickets WHERE ticket_number = :key LIMIT 1"
+                    ), {"key": ticket_key}).fetchone()
+                    if not existing:
+                        db.execute(text("""
+                            INSERT INTO support_tickets
+                                (ticket_number, type, priority, status, title, description, user_email, user_name)
+                            VALUES
+                                (:nr, 'system', 'medium', 'open', :title, :desc, '', 'System')
+                        """), {
+                            "nr":    ticket_key,
+                            "title": f"Projekt {project.id} feststeckend in {project.status}",
+                            "desc":  f"Projekt {project.id} ({project.company_name or '—'}) ist seit {days_in_phase} Tagen in Phase {project.status}. Bitte prüfen.",
+                        })
+                        db.commit()
+                        logger.info(f"✓ Stuck-Phase Ticket erstellt für Projekt {project.id}")
+            except Exception as e:
+                logger.error(f"Stuck-Phase Check Fehler für Projekt {getattr(project, 'id', '?')}: {e}")
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+                continue
     finally:
         db.close()
 

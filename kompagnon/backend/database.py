@@ -84,6 +84,12 @@ class Lead(Base):
     geschaeftsfuehrer       = Column(String, nullable=True)
     favicon_url             = Column(String(500), default='')
 
+    # E-Mail-Sequenz (Drip-Campaign)
+    sequence_active    = Column(Boolean, default=False, nullable=True)
+    sequence_step      = Column(Integer, default=0,     nullable=True)
+    sequence_paused    = Column(Boolean, default=False, nullable=True)
+    sequence_last_sent = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

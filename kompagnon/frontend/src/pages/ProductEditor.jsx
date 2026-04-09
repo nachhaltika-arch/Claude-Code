@@ -282,7 +282,7 @@ export default function ProductEditor() {
   if (!product) {
     return (
       <div style={{ display: 'flex', gap: 16, height: '100%' }}>
-        <Sidebar />
+        {Sidebar()}
         <div style={{
           flex: 1, display: 'flex', alignItems: 'center',
           justifyContent: 'center', color: '#94a3b8', fontSize: 14,
@@ -947,7 +947,7 @@ export default function ProductEditor() {
 
   return (
     <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-      <Sidebar />
+      {Sidebar()}
 
       {/* ── Editor ── */}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -1052,11 +1052,11 @@ export default function ProductEditor() {
         </div>
 
         {/* Tab content */}
-        {activeTab === 'produktdaten' && <TabProduktdaten />}
-        {activeTab === 'preis'        && <TabPreis />}
-        {activeTab === 'checkout'     && <TabCheckout />}
-        {activeTab === 'assets'       && <TabAssets />}
-        {activeTab === 'checkliste'   && <TabCheckliste />}
+        {activeTab === 'produktdaten' && TabProduktdaten()}
+        {activeTab === 'preis'        && TabPreis()}
+        {activeTab === 'checkout'     && TabCheckout()}
+        {activeTab === 'assets'       && TabAssets()}
+        {activeTab === 'checkliste'   && TabCheckliste()}
       </div>
     </div>
   );

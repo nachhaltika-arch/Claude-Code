@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { StudioEditor } from '@grapesjs/studio-sdk/react';
 import '@grapesjs/studio-sdk/style';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
+import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorConfig';
+import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
-
-const LICENSE_KEY = process.env.REACT_APP_GJS_LICENSE_KEY || 'DEV_LICENSE_KEY';
 
 export default function GrapesEditor({
   pageId, pageName, initialHtml, onClose, onSave, projectId, netlitySiteId,
@@ -17,7 +17,10 @@ export default function GrapesEditor({
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
   const authHeaders = { Authorization: `Bearer ${token}` };
   const editorRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const plugins = useMemo(() => buildStudioPlugins(), []);
   const [netlifyDeploying, setNetlifyDeploying] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   // Scroll sperren solange Editor offen ist
   useEffect(() => {
@@ -151,6 +154,27 @@ export default function GrapesEditor({
     w.document.close();
   };
 
+  const handleManualSave = async () => {
+    const editor = editorRef.current;
+    if (!editor) return toast.error('Editor noch nicht bereit');
+    const project = editor.getProjectData?.() || {};
+    await handleSave({ project, editor });
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = '';
+    if (!file) return;
+    setImporting(true);
+    try {
+      const parsed = await parseTemplateFile(file);
+      if (!parsed.success) throw new Error(parsed.error);
+      applyTemplateToEditor(editorRef.current, parsed);
+      toast.success('Template importiert');
+    } catch (err) { toast.error(err.message || 'Import fehlgeschlagen'); }
+    setImporting(false);
+  };
+
   return createPortal(
     <div style={{
       position: 'fixed',
@@ -165,15 +189,34 @@ export default function GrapesEditor({
       <div style={{
         height: 52, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 16px', background: '#1a2332', color: '#fff', zIndex: 1,
+        padding: '0 16px', background: '#1a2332', color: '#fff', zIndex: 1, gap: 10,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button onClick={onClose} style={{
             background: 'none', border: '1px solid rgba(255,255,255,0.3)',
             color: '#fff', padding: '5px 12px', borderRadius: 6,
             cursor: 'pointer', fontSize: 13,
           }}>← Zurück</button>
           <span style={{ fontSize: 14, fontWeight: 600 }}>{pageName}</span>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".zip,.grapesjs"
+            style={{ display: 'none' }}
+            onChange={handleImportFile}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            style={{
+              background: importing ? '#5b21b6' : '#7c3aed',
+              border: 'none', color: '#fff', padding: '6px 12px',
+              borderRadius: 6, cursor: importing ? 'not-allowed' : 'pointer',
+              fontSize: 12, fontWeight: 600,
+            }}>
+            {importing ? '⏳ Lädt…' : '📂 Template importieren'}
+          </button>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={handlePreview} style={{
@@ -181,6 +224,11 @@ export default function GrapesEditor({
             color: '#fff', padding: '6px 14px', borderRadius: 6,
             cursor: 'pointer', fontSize: 13,
           }}>👁 Vorschau</button>
+          <button onClick={handleManualSave} style={{
+            background: '#16a34a', border: 'none',
+            color: '#fff', padding: '6px 14px', borderRadius: 6,
+            cursor: 'pointer', fontSize: 13, fontWeight: 600,
+          }}>💾 Speichern</button>
           {projectId && netlitySiteId && (
             <button
               onClick={handleNetlifyDeploy}
@@ -197,6 +245,16 @@ export default function GrapesEditor({
               {netlifyDeploying ? '⏳ Wird deployed…' : '🚀 Direkt zu Netlify deployen'}
             </button>
           )}
+          <button
+            onClick={onClose}
+            title="Editor schließen"
+            style={{
+              background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
+              padding: '6px 12px', borderRadius: 6, cursor: 'pointer',
+              fontSize: 14, fontWeight: 600,
+            }}>
+            ✕
+          </button>
         </div>
       </div>
 
@@ -204,7 +262,7 @@ export default function GrapesEditor({
       <div style={{ flex: 1, width: '100%', minHeight: 0 }}>
         <StudioEditor
           options={{
-            licenseKey: LICENSE_KEY,
+            licenseKey: STUDIO_LICENSE_KEY,
             project: {
               type: 'web',
               default: {
@@ -213,7 +271,8 @@ export default function GrapesEditor({
             },
             storage: {
               type: 'self',
-              autosaveChanges: 5,
+              autosaveChanges: 100,
+              autosaveIntervalMs: 10000,
               onSave: handleSave,
               onLoad: handleLoad,
             },
@@ -222,6 +281,7 @@ export default function GrapesEditor({
               onLoad:   onAssetsLoad,
               onUpload: onAssetsUpload,
             } : undefined,
+            plugins,
           }}
           onReady={(editor) => { editorRef.current = editor; }}
         />

@@ -1,13 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { StudioEditor } from '@grapesjs/studio-sdk/react';
 import '@grapesjs/studio-sdk/style';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
+import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorConfig';
+import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
-
-const LICENSE_KEY = process.env.REACT_APP_GJS_LICENSE_KEY || 'DEV_LICENSE_KEY';
 
 export default function PageTemplateEditor() {
   const { id }     = useParams();
@@ -17,8 +17,13 @@ export default function PageTemplateEditor() {
   const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
   const authHeaders = { Authorization: `Bearer ${token}` };
 
+  const editorRef    = useRef(null);
+  const fileInputRef = useRef(null);
+  const plugins = useMemo(() => buildStudioPlugins(), []);
+
   const [tplInfo, setTplInfo] = useState(null);
   const [saving, setSaving]   = useState(false);
+  const [importing, setImporting] = useState(false);
 
   // ── Laden ────────────────────────────────────────────────
   const handleLoad = useCallback(async () => {
@@ -85,6 +90,37 @@ export default function PageTemplateEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, token, tplInfo]);
 
+  // ── Manuelles Speichern ───────────────────────────────────
+  const handleManualSave = async () => {
+    const editor = editorRef.current;
+    if (!editor) return toast.error('Editor noch nicht bereit');
+    const project = editor.getProjectData?.() || {};
+    await handleSave({ project, editor });
+  };
+
+  // ── Template importieren ─────────────────────────────────
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = '';
+    if (!file) return;
+    if (tplInfo?.is_builtin) return toast.error('Eingebaute Templates sind schreibgeschützt');
+    setImporting(true);
+    try {
+      const parsed = await parseTemplateFile(file);
+      if (!parsed.success) throw new Error(parsed.error);
+      applyTemplateToEditor(editorRef.current, parsed);
+      toast.success('Template importiert');
+    } catch (err) { toast.error(err.message || 'Import fehlgeschlagen'); }
+    setImporting(false);
+  };
+
+  const tbBtn = {
+    padding: '6px 12px', background: 'rgba(255,255,255,.15)', color: '#fff',
+    border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600,
+    cursor: 'pointer', fontFamily: 'inherit',
+  };
+  const disabled = tplInfo?.is_builtin;
+
   return (
     <div style={{
       position: 'fixed',
@@ -98,15 +134,31 @@ export default function PageTemplateEditor() {
       {/* Toolbar */}
       <div style={{
         height: 48, background: '#1a2c32', flexShrink: 0,
-        display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px',
+        display: 'flex', alignItems: 'center', gap: 10, padding: '0 16px',
         boxShadow: '0 2px 8px rgba(0,0,0,.25)',
       }}>
-        <button onClick={() => navigate('/app/pages')} style={{
-          padding: '6px 12px', background: 'rgba(255,255,255,.15)', color: '#fff',
-          border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600,
-          cursor: 'pointer', fontFamily: 'inherit',
-        }}>
+        <button onClick={() => navigate('/app/pages')} style={tbBtn}>
           ← Zurück
+        </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".zip,.grapesjs"
+          style={{ display: 'none' }}
+          onChange={handleImportFile}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={importing || disabled}
+          title={disabled ? 'Eingebaute Templates sind schreibgeschützt' : 'Template aus ZIP/.grapesjs importieren'}
+          style={{
+            ...tbBtn,
+            background: '#7c3aed',
+            opacity: (importing || disabled) ? 0.5 : 1,
+            cursor:  (importing || disabled) ? 'not-allowed' : 'pointer',
+          }}>
+          {importing ? '⏳ Lädt…' : '📂 Template importieren'}
         </button>
 
         {tplInfo && (
@@ -136,24 +188,45 @@ export default function PageTemplateEditor() {
         {saving && (
           <span style={{ color: 'rgba(255,255,255,.5)', fontSize: 12 }}>Wird gespeichert…</span>
         )}
+
+        <button
+          onClick={handleManualSave}
+          disabled={saving || disabled}
+          style={{
+            ...tbBtn,
+            background: (saving || disabled) ? '#475569' : '#16a34a',
+            cursor: (saving || disabled) ? 'not-allowed' : 'pointer',
+          }}>
+          💾 Speichern
+        </button>
+
+        <button
+          onClick={() => navigate('/app/pages')}
+          title="Editor schließen"
+          style={{ ...tbBtn, padding: '6px 10px', fontSize: 14 }}>
+          ✕
+        </button>
       </div>
 
       {/* Studio SDK */}
       <div style={{ flex: 1, overflow: 'hidden' }}>
         <StudioEditor
           options={{
-            licenseKey: LICENSE_KEY,
+            licenseKey: STUDIO_LICENSE_KEY,
             project: {
               type: 'web',
               default: { pages: [{ name: 'Template', component: '' }] },
             },
             storage: {
               type: 'self',
-              autosaveChanges: 10,
+              autosaveChanges: 100,
+              autosaveIntervalMs: 10000,
               onSave: handleSave,
               onLoad: handleLoad,
             },
+            plugins,
           }}
+          onReady={(editor) => { editorRef.current = editor; }}
         />
       </div>
     </div>

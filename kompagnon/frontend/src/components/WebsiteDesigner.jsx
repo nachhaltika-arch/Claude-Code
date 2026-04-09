@@ -1,62 +1,23 @@
 import { StudioEditor } from '@grapesjs/studio-sdk/react';
 import '@grapesjs/studio-sdk/style';
-import { useRef, useState, useCallback } from 'react';
-import JSZip from 'jszip';
+import { useRef, useState, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
-
-const LICENSE_KEY = process.env.REACT_APP_GJS_LICENSE_KEY || 'DEV_LICENSE_KEY';
-
-// loadProjectFromZip: identisch zur alten Implementierung, gibt Projekt-/CSS-
-// Daten zurück statt den Editor direkt zu manipulieren.
-const loadProjectFromZip = async (file) => {
-  const ext = file.name.split('.').pop().toLowerCase();
-
-  if (ext === 'grapesjs') {
-    const text = await file.text();
-    try { return { success: true, project: JSON.parse(text), source: 'grapesjs' }; }
-    catch { return { success: false, error: 'Ungültige .grapesjs-Datei' }; }
-  }
-
-  if (ext === 'zip') {
-    try {
-      const zip   = await JSZip.loadAsync(file);
-      const files = Object.keys(zip.files);
-      const gjsFile = files.find(f => f.endsWith('.grapesjs') || f.endsWith('grapesjs.json'));
-      if (gjsFile) {
-        const text    = await zip.files[gjsFile].async('string');
-        return { success: true, project: JSON.parse(text), source: 'zip-grapesjs' };
-      }
-      const htmlFile = files.find(f => f.endsWith('index.html'));
-      const cssFile  = files.find(f => f.endsWith('style.css'));
-      if (htmlFile) {
-        const html = await zip.files[htmlFile].async('string');
-        const css  = cssFile ? await zip.files[cssFile].async('string') : '';
-        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        const bodyHtml  = bodyMatch ? bodyMatch[1].trim() : html;
-        return {
-          success: true,
-          source:  'zip-html',
-          project: { pages: [{ name: 'index', component: bodyHtml }] },
-          css,
-        };
-      }
-      return { success: false, error: 'Keine erkennbare Datei im ZIP' };
-    } catch (e) { return { success: false, error: `ZIP-Fehler: ${e.message}` }; }
-  }
-  return { success: false, error: `Format .${ext} nicht unterstützt.` };
-};
+import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorConfig';
+import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
 
 export default function WebsiteDesigner({
-  projectId, leadId, initialHtml, initialCss, onSave,
+  projectId, leadId, initialHtml, initialCss, onSave, onClose,
 }) {
   const { isMobile } = useScreenSize();
   const editorRef = useRef(null);
+  const plugins = useMemo(() => buildStudioPlugins(), []);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importing, setImporting]   = useState(false);
   const [importMsg, setImportMsg]   = useState('');
   const [importError, setImportError] = useState('');
+  const [saving, setSaving]         = useState(false);
   const fileInputRef = useRef(null);
 
   // Token aus localStorage (AuthContext-kompatibel)
@@ -108,29 +69,36 @@ export default function WebsiteDesigner({
 
   // ── Save-Handler (Studio SDK ruft das on demand auf) ──────
   const handleSave = useCallback(async ({ project, editor }) => {
+    setSaving(true);
     try {
       const html = editor?.getHtml?.() || '';
       const css  = editor?.getCss?.()  || '';
-      if (onSave) onSave(html, css, project);
+      if (onSave) await onSave(html, css, project);
       toast.success('Gespeichert!');
     } catch {
       toast.error('Speichern fehlgeschlagen');
     }
+    setSaving(false);
   }, [onSave]);
 
-  // ── ZIP Import Modal-Handler ──────────────────────────────
+  // ── Manuelles Speichern (Toolbar-Button) ──────────────────
+  const handleManualSave = async () => {
+    const editor = editorRef.current;
+    if (!editor) return toast.error('Editor noch nicht bereit');
+    const project = editor.getProjectData?.() || {};
+    await handleSave({ project, editor });
+  };
+
+  // ── ZIP/.grapesjs Import-Handler (shared parser) ──────────
   const handleImportFile = async (e) => {
     const file = e?.target?.files?.[0];
     if (!file || !editorRef.current) return;
     setImporting(true); setImportMsg(''); setImportError('');
-    const result = await loadProjectFromZip(file);
+    const result = await parseTemplateFile(file);
     setImporting(false);
     if (result.success) {
       try {
-        editorRef.current.loadProjectData(result.project);
-        if (result.css && editorRef.current.setStyle) {
-          editorRef.current.setStyle(result.css);
-        }
+        applyTemplateToEditor(editorRef.current, result);
       } catch (err) {
         setImportError('Editor konnte Projekt nicht laden: ' + err.message);
         return;
@@ -156,9 +124,9 @@ export default function WebsiteDesigner({
     }}>
       {/* Toolbar */}
       <div style={{ padding: '8px 16px', background: '#1a2332',
-                    display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{ color: '#fff', fontWeight: 600 }}>Website Designer</span>
-        <span style={{ color: '#64748b', fontSize: 12 }}>
+        <span style={{ color: '#94a3b8', fontSize: 12 }}>
           {projectId ? `Projekt #${projectId}` : 'Neues Design'}
         </span>
 
@@ -182,7 +150,7 @@ export default function WebsiteDesigner({
             display: 'flex', alignItems: 'center', gap: 6,
           }}
         >
-          {importing ? '⏳ Lädt...' : '📂 Template laden'}
+          {importing ? '⏳ Lädt...' : '📂 Template importieren'}
         </button>
 
         {importMsg && (
@@ -195,13 +163,46 @@ export default function WebsiteDesigner({
             ✗ {importError}
           </span>
         )}
+
+        <div style={{ flex: 1 }} />
+
+        {saving && (
+          <span style={{ color: '#94a3b8', fontSize: 12 }}>Wird gespeichert…</span>
+        )}
+
+        <button
+          onClick={handleManualSave}
+          disabled={saving}
+          style={{
+            padding: '7px 14px',
+            background: saving ? '#475569' : '#16a34a',
+            color: '#fff', border: 'none', borderRadius: 7,
+            fontSize: 12, fontWeight: 600,
+            cursor: saving ? 'not-allowed' : 'pointer',
+          }}>
+          💾 Speichern
+        </button>
+
+        {onClose && (
+          <button
+            onClick={onClose}
+            title="Editor schließen"
+            style={{
+              padding: '7px 12px',
+              background: 'rgba(255,255,255,0.15)',
+              color: '#fff', border: 'none', borderRadius: 7,
+              fontSize: 14, fontWeight: 600, cursor: 'pointer',
+            }}>
+            ✕
+          </button>
+        )}
       </div>
 
       {/* Studio SDK Editor */}
       <div style={{ flex: 1, minHeight: 0 }}>
         <StudioEditor
           options={{
-            licenseKey: LICENSE_KEY,
+            licenseKey: STUDIO_LICENSE_KEY,
             project: {
               type: 'web',
               default: {
@@ -210,7 +211,8 @@ export default function WebsiteDesigner({
             },
             storage: {
               type: 'self',
-              autosaveChanges: 10,
+              autosaveChanges: 100,
+              autosaveIntervalMs: 10000,
               onSave: handleSave,
             },
             assets: {
@@ -224,6 +226,7 @@ export default function WebsiteDesigner({
                 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
               ],
             },
+            plugins,
           }}
           onReady={(editor) => { editorRef.current = editor; }}
         />

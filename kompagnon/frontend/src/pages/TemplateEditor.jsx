@@ -1,23 +1,28 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { StudioEditor } from '@grapesjs/studio-sdk/react';
 import '@grapesjs/studio-sdk/style';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
+import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorConfig';
+import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
 
 const TOOLBAR_H = 56;
-const LICENSE_KEY = process.env.REACT_APP_GJS_LICENSE_KEY || 'DEV_LICENSE_KEY';
 
 export default function TemplateEditor() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { token } = useAuth();
   const { isMobile } = useScreenSize();
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
   const editorRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const plugins = useMemo(() => buildStudioPlugins(), []);
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [projectData, setProjectData] = useState(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -77,6 +82,20 @@ export default function TemplateEditor() {
     window.open(URL.createObjectURL(blob), '_blank');
   };
 
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = '';
+    if (!file) return;
+    setImporting(true);
+    try {
+      const parsed = await parseTemplateFile(file);
+      if (!parsed.success) throw new Error(parsed.error);
+      applyTemplateToEditor(editorRef.current, parsed);
+      toast.success('Template importiert');
+    } catch (err) { toast.error(err.message || 'Import fehlgeschlagen'); }
+    setImporting(false);
+  };
+
   const btnStyle = {
     padding: '8px 16px', border: 'none', borderRadius: 6,
     fontSize: 13, fontWeight: 600, cursor: 'pointer',
@@ -95,7 +114,7 @@ export default function TemplateEditor() {
     }}>
       <div style={{
         height: TOOLBAR_H, flexShrink: 0, background: '#1A2C32',
-        display: 'flex', alignItems: 'center', gap: 12,
+        display: 'flex', alignItems: 'center', gap: 10,
         padding: '0 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
       }}>
         <Link to="/app/settings/templates" style={{
@@ -104,6 +123,24 @@ export default function TemplateEditor() {
         }}>
           ← Zurück
         </Link>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".zip,.grapesjs"
+          style={{ display: 'none' }}
+          onChange={handleImportFile}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={importing}
+          style={{
+            ...btnStyle, background: '#7c3aed', color: '#fff',
+            opacity: importing ? 0.5 : 1,
+          }}>
+          {importing ? '⏳ Lädt…' : '📂 Template importieren'}
+        </button>
+
         <input
           value={name}
           onChange={e => setName(e.target.value)}
@@ -123,21 +160,32 @@ export default function TemplateEditor() {
         }}>
           {saving ? 'Speichert...' : '💾 Speichern'}
         </button>
+        <button
+          onClick={() => navigate('/app/settings/templates')}
+          title="Editor schließen"
+          style={{
+            ...btnStyle, background: 'rgba(255,255,255,0.15)', color: '#fff',
+            padding: '8px 12px',
+          }}>
+          ✕
+        </button>
       </div>
 
       <div style={{ flex: 1, overflow: 'hidden' }}>
         {loaded && (
           <StudioEditor
             options={{
-              licenseKey: LICENSE_KEY,
+              licenseKey: STUDIO_LICENSE_KEY,
               project: {
                 type: 'web',
                 default: projectData || { pages: [{ name: 'index', component: '' }] },
               },
               storage: {
                 type: 'self',
-                autosaveChanges: 0,
+                autosaveChanges: 100,
+                autosaveIntervalMs: 10000,
               },
+              plugins,
             }}
             onReady={(editor) => { editorRef.current = editor; }}
           />

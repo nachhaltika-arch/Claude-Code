@@ -3257,6 +3257,10 @@ export default function ProjectDetail() {
             });
             toast.success('Design gespeichert');
           }}
+          onClose={() => {
+            if (activeSubTab === 'editor') setActiveSubTab('unternehmen');
+            if (activeTab    === 'editor') setActiveTab('overview');
+          }}
         />
       )}
 

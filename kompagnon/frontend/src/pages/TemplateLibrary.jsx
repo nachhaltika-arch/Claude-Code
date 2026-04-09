@@ -239,6 +239,7 @@ export default function TemplateLibrary() {
         initialHtml={editingTemplate.html || ''}
         initialCss={editingTemplate.css || ''}
         onSave={() => setEditingTemplate(null)}
+        onClose={() => setEditingTemplate(null)}
       />
     );
   }

@@ -1672,8 +1672,11 @@ async def netlify_set_domain(
 async def netlify_status(
     project_id: int,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
-    """Ruft den Netlify-Status des Projekts ab."""
+    """Ruft den Netlify-Status des Projekts ab.
+    Gibt IMMER 200 mit status-Feld zurück — nie 404/500 für fehlende Site.
+    """
     row = db.execute(
         text(
             "SELECT netlify_site_id, netlify_site_url, netlify_deploy_id, "
@@ -1682,23 +1685,57 @@ async def netlify_status(
         ),
         {"id": project_id},
     ).fetchone()
-    if not row or not row[0]:
-        raise HTTPException(404, "Keine Netlify-Site für dieses Projekt vorhanden.")
+
+    if not row:
+        return {"connected": False, "status": "project_not_found", "project_id": project_id}
+    if not row[0]:
+        return {
+            "connected": False,
+            "status": "not_connected",
+            "message": "Keine Netlify-Site verbunden",
+            "project_id": project_id,
+        }
+
+    # Check if NETLIFY_API_TOKEN is configured
+    if not os.getenv("NETLIFY_API_TOKEN"):
+        return {
+            "connected": False,
+            "status": "no_token",
+            "message": "NETLIFY_API_TOKEN nicht konfiguriert",
+            "netlify_site_id": row[0],
+            "netlify_site_url": row[1],
+        }
 
     site_id = row[0]
-    from services.netlify_service import get_site_status
-    live = await get_site_status(site_id)
+    try:
+        from services.netlify_service import get_site_status
+        live = await get_site_status(site_id)
+    except Exception as e:
+        logger.error(f"Netlify get_site_status Fehler: {e}")
+        return {
+            "connected": False,
+            "status": "api_error",
+            "message": str(e),
+            "netlify_site_id": row[0],
+            "netlify_site_url": row[1],
+        }
 
     # SSL-Status in DB aktualisieren
     ssl_active = bool(live.get("ssl"))
-    db.execute(
-        text("UPDATE projects SET netlify_ssl_active = :ssl WHERE id = :id"),
-        {"ssl": ssl_active, "id": project_id},
-    )
-    db.commit()
+    try:
+        db.execute(
+            text("UPDATE projects SET netlify_ssl_active = :ssl WHERE id = :id"),
+            {"ssl": ssl_active, "id": project_id},
+        )
+        db.commit()
+    except Exception as e:
+        logger.warning(f"Netlify SSL-Status update Fehler: {e}")
+        db.rollback()
 
     return {
         **live,
+        "connected":             True,
+        "status":                "connected",
         "netlify_site_id":       row[0],
         "netlify_site_url":      row[1],
         "netlify_deploy_id":     row[2],

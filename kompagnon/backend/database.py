@@ -176,6 +176,15 @@ class Project(Base):
     scrape_full_data = Column(Text)      # JSON: SEO + text + assets + links
     scrape_full_at   = Column(DateTime)  # Zeitpunkt des letzten Scrapes
 
+    # Netlify-Integration
+    netlify_site_id       = Column(String(100))
+    netlify_site_url      = Column(String(500))
+    netlify_deploy_id     = Column(String(100))
+    netlify_domain        = Column(String(255))
+    netlify_domain_status = Column(String(50))
+    netlify_ssl_active    = Column(Boolean, default=False)
+    netlify_last_deploy   = Column(DateTime)
+
     # Screenshots before/after
     screenshot_before       = Column(Text)
     screenshot_before_date  = Column(DateTime)

@@ -964,6 +964,31 @@ export default function ProjectDetail() {
       .catch(() => {});
   }, [project?.id]); // eslint-disable-line
 
+  // Load Netlify status ONCE when tab opens — avoids infinite render loop
+  useEffect(() => {
+    if (!project?.id) return;
+    if (activeSubTab !== 'netlify-dns' && activeTab !== 'netlify-dns') return;
+    if (netlify || netlifyLoading) return;
+    setNetlifyLoading(true);
+    let cancelled = false;
+    fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (cancelled) return;
+        // Always set — even empty result — to prevent re-trigger loop
+        setNetlify(d || { connected: false, status: 'not_connected' });
+        setNetlifyLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setNetlify({ connected: false, status: 'error' });
+        setNetlifyLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [project?.id, activeSubTab, activeTab]); // eslint-disable-line
+
   const loadWebsiteContent = useCallback(async () => {
     if (!project?.lead_id) return;
     try {
@@ -3015,14 +3040,8 @@ export default function ProjectDetail() {
 
       {/* ── Netlify-DNS Tab ────────────────────────────────────────────────── */}
       {(activeSubTab === 'netlify-dns' || activeTab === 'netlify-dns') && (() => {
-        // Load status on first open
-        if (!netlify && !netlifyLoading) {
-          setNetlifyLoading(true);
-          fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers })
-            .then(r => r.ok ? r.json() : null)
-            .then(d => { setNetlify(d); setNetlifyLoading(false); })
-            .catch(() => setNetlifyLoading(false));
-        }
+        // NOTE: Do NOT fetch here — side effects in render cause infinite loops.
+        // Status is loaded via useEffect (see loadNetlifyStatus below the tab blocks).
 
         const createSite = async () => {
           setNetlifyLoading(true);

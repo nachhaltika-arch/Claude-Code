@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from database import AuditResult, Lead, get_db
+from database import AuditResult, Lead, get_db, SessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -153,13 +153,16 @@ async def audit_anfrage(
                 db.rollback()
             logger.info(f"kampagne: neuer lead {lead_id} angelegt ({domain})")
 
+        # DB-Verbindung vor externem Scrape freigeben
+        db.close()
+
         # ── b) Audit im Hintergrund starten ──────────────────────────────────
         try:
             from routers.audit import _normalise_url, _run_audit_background
 
             url = _normalise_url(website_url)
 
-            # Scrape für company_name
+            # Scrape für company_name — OHNE offene DB-Verbindung
             company_name = domain
             try:
                 from services.scraper import scrape_website
@@ -168,21 +171,27 @@ async def audit_anfrage(
             except Exception:
                 pass
 
-            audit = AuditResult(
-                lead_id=lead_id,
-                website_url=url,
-                company_name=company_name,
-                contact_name="",
-                city="",
-                trade="",
-                status="pending",
-            )
-            db.add(audit)
-            db.commit()
-            db.refresh(audit)
+            # Neue Session zum Speichern des Audits
+            db2 = SessionLocal()
+            try:
+                audit = AuditResult(
+                    lead_id=lead_id,
+                    website_url=url,
+                    company_name=company_name,
+                    contact_name="",
+                    city="",
+                    trade="",
+                    status="pending",
+                )
+                db2.add(audit)
+                db2.commit()
+                db2.refresh(audit)
+                audit_id = audit.id
+            finally:
+                db2.close()
 
-            background_tasks.add_task(_run_audit_background, audit.id)
-            logger.info(f"kampagne: audit {audit.id} gestartet für lead {lead_id}")
+            background_tasks.add_task(_run_audit_background, audit_id)
+            logger.info(f"kampagne: audit {audit_id} gestartet für lead {lead_id}")
         except Exception as audit_err:
             logger.error(f"kampagne: audit-start fehlgeschlagen: {audit_err}")
             # Audit-Fehler nicht an Benutzer weitergeben — Lead ist bereits gespeichert
@@ -191,5 +200,8 @@ async def audit_anfrage(
 
     except Exception as e:
         logger.error(f"kampagne audit-anfrage error: {type(e).__name__}: {e}")
-        db.rollback()
+        try:
+            db.rollback()
+        except Exception:
+            pass
         return {"success": False, "error": str(e)}

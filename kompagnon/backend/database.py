@@ -21,18 +21,31 @@ else:
         DATABASE_URL,
         pool_pre_ping=True,
         pool_recycle=300,
-        pool_size=2,              # Lean for Render free tier
-        max_overflow=3,
-        pool_timeout=60,          # Wait up to 60s for free connection
+        pool_size=5,          # 5 pro Worker × max 2 Worker = 10 Verbindungen
+        max_overflow=5,       # Burst bis max 20 total — weit unter 97 Limit
+        pool_timeout=20,      # 20s warten dann Fehler (nicht 60s)
+        echo=False,
         connect_args={
-            "connect_timeout": 30,   # Free tier DB can take up to 30s to wake
+            "connect_timeout": 10,
             "keepalives": 1,
             "keepalives_idle": 30,
             "keepalives_interval": 5,
             "keepalives_count": 3,
-            "options": "-c statement_timeout=30000",  # 30s query timeout
+            "options": "-c statement_timeout=30000",  # 30s Query-Timeout
         },
     )
+
+    # Connection Pool Event-Handler für besseres Logging
+    from sqlalchemy import event
+
+    @event.listens_for(engine, "connect")
+    def connect(dbapi_connection, connection_record):
+        pass  # Verbindung etabliert
+
+    @event.listens_for(engine, "checkout")
+    def checkout(dbapi_connection, connection_record, connection_proxy):
+        pass  # Verbindung aus Pool geholt
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -769,16 +782,12 @@ def init_db():
 
 
 def get_db():
-    """Dependency for getting DB session with retry on connection errors."""
+    """DB-Session Dependency — mit sauberem Cleanup."""
     db = SessionLocal()
     try:
         yield db
-    except OperationalError:
-        db.close()
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()

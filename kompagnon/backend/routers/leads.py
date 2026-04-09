@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
-from database import Lead, Project, AuditResult, get_db
+from database import Lead, Project, AuditResult, get_db, SessionLocal
 from routers.auth_router import require_any_auth, get_current_user
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
@@ -1620,6 +1620,9 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
     if not website_url:
         raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
 
+    # DB-Verbindung vor externem PageSpeed-Call freigeben
+    db.close()
+
     api_key = os.getenv("PAGESPEED_API_KEY") or os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
     base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
     params_base = {"url": website_url}
@@ -1644,17 +1647,24 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
         except Exception:
             return None
 
-    lead.pagespeed_mobile_score  = _score(mobile_resp)
-    lead.pagespeed_desktop_score = _score(desktop_resp)
-    lead.pagespeed_lcp_mobile    = _audit(mobile_resp, "largest-contentful-paint")
-    lead.pagespeed_cls_mobile    = _audit(mobile_resp, "cumulative-layout-shift")
-    lead.pagespeed_inp_mobile    = _audit(mobile_resp, "interaction-to-next-paint")
-    lead.pagespeed_fcp_mobile    = _audit(mobile_resp, "first-contentful-paint")
-    lead.pagespeed_checked_at    = datetime.utcnow()
-
-    db.commit()
-    db.refresh(lead)
-    return _pagespeed_payload_lead(lead)
+    # Neue DB-Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        lead = db2.query(Lead).filter(Lead.id == lead_id).first()
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+        lead.pagespeed_mobile_score  = _score(mobile_resp)
+        lead.pagespeed_desktop_score = _score(desktop_resp)
+        lead.pagespeed_lcp_mobile    = _audit(mobile_resp, "largest-contentful-paint")
+        lead.pagespeed_cls_mobile    = _audit(mobile_resp, "cumulative-layout-shift")
+        lead.pagespeed_inp_mobile    = _audit(mobile_resp, "interaction-to-next-paint")
+        lead.pagespeed_fcp_mobile    = _audit(mobile_resp, "first-contentful-paint")
+        lead.pagespeed_checked_at    = datetime.utcnow()
+        db2.commit()
+        db2.refresh(lead)
+        return _pagespeed_payload_lead(lead)
+    finally:
+        db2.close()
 
 
 # ── Lead Domains ─────────────────────────────────────────────────────────────
@@ -1701,18 +1711,32 @@ async def domain_check_lead(lead_id: int, db: Session = Depends(get_db), _=Depen
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
     if not lead.website_url:
         raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
+    website_url = lead.website_url
+
+    # DB-Verbindung vor externem Check freigeben
+    db.close()
+
     from services.domain_checker import check_domain
-    result = await check_domain(lead.website_url)
-    lead.domain_reachable   = result["reachable"]
-    lead.domain_status_code = result.get("status_code")
-    lead.domain_checked_at  = datetime.utcnow()
-    db.commit()
-    return {
-        "reachable":    lead.domain_reachable,
-        "status_code":  lead.domain_status_code,
-        "checked_at":   lead.domain_checked_at.isoformat(),
-        "website_url":  lead.website_url,
-    }
+    result = await check_domain(website_url)
+
+    # Neue Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        lead = db2.query(Lead).filter(Lead.id == lead_id).first()
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+        lead.domain_reachable   = result["reachable"]
+        lead.domain_status_code = result.get("status_code")
+        lead.domain_checked_at  = datetime.utcnow()
+        db2.commit()
+        return {
+            "reachable":    lead.domain_reachable,
+            "status_code":  lead.domain_status_code,
+            "checked_at":   lead.domain_checked_at.isoformat(),
+            "website_url":  lead.website_url,
+        }
+    finally:
+        db2.close()
 
 
 # ── E-Mail-Sequenz-Endpunkte ─────────────────────────────────────────────────

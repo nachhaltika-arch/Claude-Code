@@ -25,7 +25,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import AuditResult, Project, UserCard, User, get_db
+from database import AuditResult, Project, UserCard, User, get_db, SessionLocal
 from routers.auth_router import optional_auth
 
 router = APIRouter(prefix="/api/usercards", tags=["usercards"])
@@ -346,10 +346,14 @@ async def run_usercard_pagespeed(card_id: int, db: Session = Depends(get_db)):
     card = _get_card_or_404(card_id, db)
     if not card.website_url:
         raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
+    website_url = card.website_url
+
+    # DB-Verbindung vor externem PageSpeed-Call freigeben
+    db.close()
 
     api_key = os.getenv("PAGESPEED_API_KEY") or os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
     base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
-    params_base = {"url": card.website_url}
+    params_base = {"url": website_url}
     if api_key:
         params_base["key"] = api_key
 
@@ -371,16 +375,22 @@ async def run_usercard_pagespeed(card_id: int, db: Session = Depends(get_db)):
         except Exception:
             return None
 
-    card.pagespeed_mobile_score  = _score(mobile_resp)
-    card.pagespeed_desktop_score = _score(desktop_resp)
-    card.pagespeed_lcp_mobile    = _audit_val(mobile_resp, "largest-contentful-paint")
-    card.pagespeed_cls_mobile    = _audit_val(mobile_resp, "cumulative-layout-shift")
-    card.pagespeed_inp_mobile    = _audit_val(mobile_resp, "interaction-to-next-paint")
-    card.pagespeed_fcp_mobile    = _audit_val(mobile_resp, "first-contentful-paint")
-    card.pagespeed_checked_at    = datetime.utcnow()
-    db.commit()
-    db.refresh(card)
-    return _pagespeed_payload(card)
+    # Neue Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        card = _get_card_or_404(card_id, db2)
+        card.pagespeed_mobile_score  = _score(mobile_resp)
+        card.pagespeed_desktop_score = _score(desktop_resp)
+        card.pagespeed_lcp_mobile    = _audit_val(mobile_resp, "largest-contentful-paint")
+        card.pagespeed_cls_mobile    = _audit_val(mobile_resp, "cumulative-layout-shift")
+        card.pagespeed_inp_mobile    = _audit_val(mobile_resp, "interaction-to-next-paint")
+        card.pagespeed_fcp_mobile    = _audit_val(mobile_resp, "first-contentful-paint")
+        card.pagespeed_checked_at    = datetime.utcnow()
+        db2.commit()
+        db2.refresh(card)
+        return _pagespeed_payload(card)
+    finally:
+        db2.close()
 
 
 @router.get("/{card_id}")

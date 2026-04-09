@@ -18,7 +18,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from database import AuditResult, Lead, User, get_db
+from database import AuditResult, Lead, User, get_db, SessionLocal
 from email_service import send_audit_done_email
 from routers.auth_router import optional_auth
 
@@ -655,7 +655,10 @@ async def start_audit(
     """Create audit record, auto-scrape website, and run checks in background."""
     url = _normalise_url(req.website_url)
 
-    # Auto-scrape website for company info (fast, < 5s)
+    # DB-Verbindung vor dem externen Scrape-Call freigeben
+    db.close()
+
+    # Auto-scrape website for company info (fast, < 5s) — OHNE offene DB-Verbindung
     scraped = {}
     try:
         from services.scraper import scrape_website
@@ -668,28 +671,33 @@ async def start_audit(
     city = req.city or scraped.get("city", "")
     trade = req.trade or scraped.get("trade", "Sonstiges")
 
-    # Create pending record with scraped data
-    audit = AuditResult(
-        lead_id=req.lead_id,
-        website_url=url,
-        company_name=company_name,
-        contact_name=req.contact_name,
-        city=city,
-        trade=trade,
-        status="pending",
-        scraped_phone=scraped.get("phone", ""),
-        scraped_email=scraped.get("email", ""),
-        scraped_description=scraped.get("meta_description", ""),
-    )
-    db.add(audit)
-    db.commit()
-    db.refresh(audit)
+    # Neue DB-Session nur zum Speichern
+    db2 = SessionLocal()
+    try:
+        audit = AuditResult(
+            lead_id=req.lead_id,
+            website_url=url,
+            company_name=company_name,
+            contact_name=req.contact_name,
+            city=city,
+            trade=trade,
+            status="pending",
+            scraped_phone=scraped.get("phone", ""),
+            scraped_email=scraped.get("email", ""),
+            scraped_description=scraped.get("meta_description", ""),
+        )
+        db2.add(audit)
+        db2.commit()
+        db2.refresh(audit)
+        audit_id = audit.id
+    finally:
+        db2.close()
 
     # Kick off background processing
-    background_tasks.add_task(_run_audit_background, audit.id)
+    background_tasks.add_task(_run_audit_background, audit_id)
 
     return {
-        "id": audit.id,
+        "id": audit_id,
         "status": "pending",
         "scraped": {
             "company_name": company_name,

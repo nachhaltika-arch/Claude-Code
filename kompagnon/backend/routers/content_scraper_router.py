@@ -12,7 +12,7 @@ from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from database import get_db, ProjectScrapeJob, ProjectScrapedPage, Project
+from database import get_db, ProjectScrapeJob, ProjectScrapedPage, Project, SessionLocal
 from routers.auth_router import require_admin, require_any_auth
 
 logger = logging.getLogger(__name__)
@@ -114,19 +114,27 @@ async def scrape_full_analysis(
             except json.JSONDecodeError:
                 pass  # Broken cache → re-scrape
 
+    # DB-Verbindung vor externem Scrape freigeben
+    db.close()
+
     # ── Fresh scrape ──
     from services.content_scraper import scrape_page_full
     result = await scrape_page_full(url)
 
-    # ── Persist ──
+    # ── Persist — neue Session ──
+    db2 = SessionLocal()
     try:
-        project.scrape_full_data = json.dumps(result, ensure_ascii=False)
-        project.scrape_full_at   = datetime.utcnow()
-        db.commit()
+        project = db2.query(Project).filter(Project.id == project_id).first()
+        if project:
+            project.scrape_full_data = json.dumps(result, ensure_ascii=False)
+            project.scrape_full_at   = datetime.utcnow()
+            db2.commit()
         result["_cached"] = False
     except Exception as e:
         logger.warning(f"scrape-full persist error project {project_id}: {e}")
-        db.rollback()
+        db2.rollback()
+    finally:
+        db2.close()
 
     return result
 

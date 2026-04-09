@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from pydantic import BaseModel
-from database import Customer, Project, get_db
+from database import Customer, Project, get_db, SessionLocal
 
 router = APIRouter(prefix="/api/customers", tags=["customers"])
 
@@ -206,6 +206,11 @@ async def run_pagespeed(customer_id: int, db: Session = Depends(get_db)):
     if not website_url:
         raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
 
+    real_customer_id = customer.id
+
+    # DB-Verbindung vor externem PageSpeed-Call freigeben
+    db.close()
+
     api_key = os.getenv("PAGESPEED_API_KEY") or os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
     base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
 
@@ -227,17 +232,24 @@ async def run_pagespeed(customer_id: int, db: Session = Depends(get_db)):
         except Exception:
             return None
 
-    customer.pagespeed_mobile_score  = _score(mobile_resp)
-    customer.pagespeed_desktop_score = _score(desktop_resp)
-    customer.pagespeed_lcp_mobile    = _audit(mobile_resp, "largest-contentful-paint")
-    customer.pagespeed_cls_mobile    = _audit(mobile_resp, "cumulative-layout-shift")
-    customer.pagespeed_inp_mobile    = _audit(mobile_resp, "interaction-to-next-paint")
-    customer.pagespeed_fcp_mobile    = _audit(mobile_resp, "first-contentful-paint")
-    customer.pagespeed_checked_at    = datetime.utcnow()
-
-    db.commit()
-    db.refresh(customer)
-    return _pagespeed_payload(customer)
+    # Neue Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        customer = db2.query(Customer).filter(Customer.id == real_customer_id).first()
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        customer.pagespeed_mobile_score  = _score(mobile_resp)
+        customer.pagespeed_desktop_score = _score(desktop_resp)
+        customer.pagespeed_lcp_mobile    = _audit(mobile_resp, "largest-contentful-paint")
+        customer.pagespeed_cls_mobile    = _audit(mobile_resp, "cumulative-layout-shift")
+        customer.pagespeed_inp_mobile    = _audit(mobile_resp, "interaction-to-next-paint")
+        customer.pagespeed_fcp_mobile    = _audit(mobile_resp, "first-contentful-paint")
+        customer.pagespeed_checked_at    = datetime.utcnow()
+        db2.commit()
+        db2.refresh(customer)
+        return _pagespeed_payload(customer)
+    finally:
+        db2.close()
 
 
 @router.get("/{customer_id}/pagespeed")

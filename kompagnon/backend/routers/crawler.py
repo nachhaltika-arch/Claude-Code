@@ -9,7 +9,7 @@ GET  /api/crawler/content/{customer_id}        → cached content results
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from database import get_db, CrawlJob, CrawlResult
+from database import get_db, CrawlJob, CrawlResult, SessionLocal
 from routers.auth_router import get_current_user, require_admin
 from datetime import datetime
 import logging
@@ -194,12 +194,18 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
         db.execute(text(col_sql))
     db.commit()
 
-    urls = db.query(CrawlResult).filter(
-        CrawlResult.customer_id == customer_id,
-        CrawlResult.status_code == 200,
-    ).limit(50).all()
+    url_list = [
+        r.url for r in db.query(CrawlResult).filter(
+            CrawlResult.customer_id == customer_id,
+            CrawlResult.status_code == 200,
+        ).limit(50).all()
+    ]
 
-    results = []
+    # DB-Verbindung vor den externen HTTP-Calls freigeben
+    db.close()
+
+    entries = []
+    errors = []
     async with httpx.AsyncClient(
         timeout=10.0,
         follow_redirects=True,
@@ -209,11 +215,11 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
             'Accept-Language': 'de-DE,de;q=0.9,en;q=0.7',
         },
     ) as client:
-        for crawl in urls:
+        for crawl_url in url_list:
             try:
-                res = await client.get(crawl.url)
+                res = await client.get(crawl_url)
                 soup = BeautifulSoup(res.text, 'html.parser')
-                base_url = crawl.url
+                base_url = crawl_url
 
                 title = soup.find('title')
                 meta  = soup.find('meta', attrs={'name': 'description'})
@@ -243,9 +249,9 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
                 body_text  = ' '.join(full_text.split())  # compact for word count
                 text_preview = body_text[:300]
 
-                entry = {
+                entries.append({
                     'customer_id':      customer_id,
-                    'url':              crawl.url,
+                    'url':              crawl_url,
                     'title':            title.get_text(strip=True) if title else '',
                     'meta_description': meta.get('content', '') if meta else '',
                     'h1':               h1.get_text(strip=True) if h1 else '',
@@ -256,40 +262,46 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
                     'files':            json.dumps(list(dict.fromkeys(files)), ensure_ascii=False),
                     'word_count':       len(body_text.split()),
                     'scraped_at':       datetime.utcnow(),
-                }
-
-                existing = db.execute(
-                    text("SELECT id FROM website_content_cache WHERE customer_id=:c AND url=:u"),
-                    {"c": customer_id, "u": crawl.url},
-                ).fetchone()
-                if existing:
-                    db.execute(
-                        text(
-                            "UPDATE website_content_cache "
-                            "SET title=:title, meta_description=:meta_description, h1=:h1, "
-                            "h2s=:h2s, text_preview=:text_preview, full_text=:full_text, "
-                            "images=:images, files=:files, word_count=:word_count, "
-                            "scraped_at=:scraped_at WHERE id=:id"
-                        ),
-                        {**entry, 'id': existing[0]},
-                    )
-                else:
-                    db.execute(
-                        text(
-                            "INSERT INTO website_content_cache "
-                            "(customer_id, url, title, meta_description, h1, h2s, "
-                            "text_preview, full_text, images, files, word_count, scraped_at) "
-                            "VALUES (:customer_id, :url, :title, :meta_description, :h1, "
-                            ":h2s, :text_preview, :full_text, :images, :files, :word_count, :scraped_at)"
-                        ),
-                        entry,
-                    )
-                results.append({**entry, 'scraped_at': entry['scraped_at'].isoformat()})
+                })
             except Exception as e:
-                results.append({'url': crawl.url, 'error': str(e)})
+                errors.append({'url': crawl_url, 'error': str(e)})
 
-    db.commit()
-    return {'scraped': len(results), 'results': results}
+    # Neue Session zum Speichern der Ergebnisse
+    db2 = SessionLocal()
+    try:
+        for entry in entries:
+            existing = db2.execute(
+                text("SELECT id FROM website_content_cache WHERE customer_id=:c AND url=:u"),
+                {"c": customer_id, "u": entry['url']},
+            ).fetchone()
+            if existing:
+                db2.execute(
+                    text(
+                        "UPDATE website_content_cache "
+                        "SET title=:title, meta_description=:meta_description, h1=:h1, "
+                        "h2s=:h2s, text_preview=:text_preview, full_text=:full_text, "
+                        "images=:images, files=:files, word_count=:word_count, "
+                        "scraped_at=:scraped_at WHERE id=:id"
+                    ),
+                    {**entry, 'id': existing[0]},
+                )
+            else:
+                db2.execute(
+                    text(
+                        "INSERT INTO website_content_cache "
+                        "(customer_id, url, title, meta_description, h1, h2s, "
+                        "text_preview, full_text, images, files, word_count, scraped_at) "
+                        "VALUES (:customer_id, :url, :title, :meta_description, :h1, "
+                        ":h2s, :text_preview, :full_text, :images, :files, :word_count, :scraped_at)"
+                    ),
+                    entry,
+                )
+        db2.commit()
+    finally:
+        db2.close()
+
+    results = [{**e, 'scraped_at': e['scraped_at'].isoformat()} for e in entries] + errors
+    return {'scraped': len(entries), 'results': results}
 
 
 @router.get('/content/{customer_id}')

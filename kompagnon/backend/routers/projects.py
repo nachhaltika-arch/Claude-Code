@@ -89,7 +89,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
-from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, ProjectScrapeJob, get_db
+from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, ProjectScrapeJob, get_db, SessionLocal
 from services.margin_calculator import MarginCalculator
 from routers.content_scraper_router import _run_content_scrape
 from email_service import send_phase_change_email, send_approval_request_email
@@ -1163,6 +1163,10 @@ async def scrape_project_website(
     url = lead.website_url
     if not url.startswith("http"):
         url = "https://" + url
+    lead_id = lead.id
+
+    # DB-Verbindung vor dem externen Scrape-Call freigeben
+    db.close()
 
     try:
         async with httpx.AsyncClient(timeout=15.0, headers={
@@ -1183,15 +1187,22 @@ async def scrape_project_website(
         secondary = ('#' + hex_colors[1]) if len(hex_colors) > 1 else None
         font_primary = fonts[0].strip() if fonts else None
 
-        lead.brand_primary_color = primary
-        lead.brand_secondary_color = secondary
-        lead.brand_font_primary = font_primary
-        lead.brand_logo_url = logo_url
-        lead.brand_colors = json.dumps(['#' + c for c in hex_colors])
-        lead.brand_fonts = json.dumps(fonts)
-        lead.brand_scrape_failed = False
-        lead.brand_scraped_at = dt.utcnow()
-        db.commit()
+        # Neue Session zum Speichern
+        db2 = SessionLocal()
+        try:
+            lead = db2.query(Lead).filter(Lead.id == lead_id).first()
+            if lead:
+                lead.brand_primary_color = primary
+                lead.brand_secondary_color = secondary
+                lead.brand_font_primary = font_primary
+                lead.brand_logo_url = logo_url
+                lead.brand_colors = json.dumps(['#' + c for c in hex_colors])
+                lead.brand_fonts = json.dumps(fonts)
+                lead.brand_scrape_failed = False
+                lead.brand_scraped_at = dt.utcnow()
+                db2.commit()
+        finally:
+            db2.close()
 
         return {
             "success": True,
@@ -1206,8 +1217,16 @@ async def scrape_project_website(
         }
 
     except Exception as e:
-        lead.brand_scrape_failed = True
-        db.commit()
+        db2 = SessionLocal()
+        try:
+            lead = db2.query(Lead).filter(Lead.id == lead_id).first()
+            if lead:
+                lead.brand_scrape_failed = True
+                db2.commit()
+        except Exception:
+            db2.rollback()
+        finally:
+            db2.close()
         return {
             "success": False,
             "scrape_failed": True,
@@ -1270,42 +1289,50 @@ async def hosting_scan(
                 "_cache_age_minutes":    int(age / 60),
             }
 
+    # DB-Verbindung vor externem hosting scrape freigeben
+    db.close()
+
     data = await scrape_hosting_info(website_url)
 
-    db.execute(text("""
-        UPDATE projects SET
-            hosting_provider    = :hosting_provider,
-            hosting_org         = :hosting_org,
-            hosting_ip          = :hosting_ip,
-            hosting_country     = :hosting_country,
-            dns_provider        = :dns_provider,
-            nameservers         = :nameservers,
-            domain_registrar    = :domain_registrar,
-            domain_created      = :domain_created,
-            domain_expires      = :domain_expires,
-            server_software     = :server_software,
-            wordpress_hosting        = :wordpress_hosting,
-            is_wordpress             = :is_wordpress,
-            detected_technologies    = :detected_technologies,
-            hosting_checked_at       = NOW()
-        WHERE id = :project_id
-    """), {
-        "project_id":            project_id,
-        "hosting_provider":      data.get("hosting_provider"),
-        "hosting_org":           data.get("hosting_org"),
-        "hosting_ip":            data.get("ip_address"),
-        "hosting_country":       data.get("country"),
-        "dns_provider":          data.get("dns_provider"),
-        "nameservers":           ",".join(data.get("nameservers") or []) or None,
-        "domain_registrar":      data.get("registrar"),
-        "domain_created":        data.get("domain_created"),
-        "domain_expires":        data.get("domain_expires"),
-        "server_software":       data.get("server_software"),
-        "wordpress_hosting":     data.get("wordpress_hosting"),
-        "is_wordpress":          data.get("is_wordpress"),
-        "detected_technologies": ",".join(data.get("detected_technologies") or []) or None,
-    })
-    db.commit()
+    # Neue Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        db2.execute(text("""
+            UPDATE projects SET
+                hosting_provider    = :hosting_provider,
+                hosting_org         = :hosting_org,
+                hosting_ip          = :hosting_ip,
+                hosting_country     = :hosting_country,
+                dns_provider        = :dns_provider,
+                nameservers         = :nameservers,
+                domain_registrar    = :domain_registrar,
+                domain_created      = :domain_created,
+                domain_expires      = :domain_expires,
+                server_software     = :server_software,
+                wordpress_hosting        = :wordpress_hosting,
+                is_wordpress             = :is_wordpress,
+                detected_technologies    = :detected_technologies,
+                hosting_checked_at       = NOW()
+            WHERE id = :project_id
+        """), {
+            "project_id":            project_id,
+            "hosting_provider":      data.get("hosting_provider"),
+            "hosting_org":           data.get("hosting_org"),
+            "hosting_ip":            data.get("ip_address"),
+            "hosting_country":       data.get("country"),
+            "dns_provider":          data.get("dns_provider"),
+            "nameservers":           ",".join(data.get("nameservers") or []) or None,
+            "domain_registrar":      data.get("registrar"),
+            "domain_created":        data.get("domain_created"),
+            "domain_expires":        data.get("domain_expires"),
+            "server_software":       data.get("server_software"),
+            "wordpress_hosting":     data.get("wordpress_hosting"),
+            "is_wordpress":          data.get("is_wordpress"),
+            "detected_technologies": ",".join(data.get("detected_technologies") or []) or None,
+        })
+        db2.commit()
+    finally:
+        db2.close()
 
     from datetime import datetime
     return {
@@ -1474,6 +1501,9 @@ async def domain_check_project(
     if not url.startswith("http"):
         url = "https://" + url
 
+    # DB-Verbindung vor externen Checks freigeben
+    db.close()
+
     from urllib.parse import urlparse
     import socket
     import ssl
@@ -1532,14 +1562,19 @@ async def domain_check_project(
     except Exception:
         result["ssl"] = "none_or_error"
 
-    # Persist reachability to project
+    # Persist reachability to project — neue Session
+    db2 = SessionLocal()
     try:
-        project.domain_reachable   = result["reachable"]
-        project.domain_status_code = result.get("status_code")
-        project.domain_checked_at  = datetime.utcnow()
-        db.commit()
+        project = db2.query(Project).filter(Project.id == project_id).first()
+        if project:
+            project.domain_reachable   = result["reachable"]
+            project.domain_status_code = result.get("status_code")
+            project.domain_checked_at  = datetime.utcnow()
+            db2.commit()
     except Exception:
-        pass
+        db2.rollback()
+    finally:
+        db2.close()
 
     return result
 
@@ -1651,17 +1686,25 @@ async def netlify_create_site(
         or f"projekt-{project_id}"
     )
 
+    # DB-Verbindung vor externem Netlify-API-Call freigeben
+    db.close()
+
     from services.netlify_service import create_site
     result = await create_site(company)
 
-    db.execute(
-        text(
-            "UPDATE projects SET netlify_site_id = :sid, netlify_site_url = :url "
-            "WHERE id = :id"
-        ),
-        {"sid": result["site_id"], "url": result["site_url"], "id": project_id},
-    )
-    db.commit()
+    # Neue Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        db2.execute(
+            text(
+                "UPDATE projects SET netlify_site_id = :sid, netlify_site_url = :url "
+                "WHERE id = :id"
+            ),
+            {"sid": result["site_id"], "url": result["site_url"], "id": project_id},
+        )
+        db2.commit()
+    finally:
+        db2.close()
     return {"site_id": result["site_id"], "site_url": result["site_url"]}
 
 
@@ -1681,17 +1724,26 @@ async def netlify_deploy(
         raise HTTPException(400, "Keine Netlify-Site vorhanden. Zuerst Site anlegen.")
 
     site_id = row[0]
+
+    # DB-Verbindung vor externem Netlify-Deploy freigeben
+    db.close()
+
     from services.netlify_service import deploy_html
     result = await deploy_html(site_id, body.html, body.css, body.redirects)
 
-    db.execute(
-        text(
-            "UPDATE projects SET netlify_deploy_id = :did, netlify_last_deploy = :ts "
-            "WHERE id = :id"
-        ),
-        {"did": result["deploy_id"], "ts": datetime.utcnow(), "id": project_id},
-    )
-    db.commit()
+    # Neue Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        db2.execute(
+            text(
+                "UPDATE projects SET netlify_deploy_id = :did, netlify_last_deploy = :ts "
+                "WHERE id = :id"
+            ),
+            {"did": result["deploy_id"], "ts": datetime.utcnow(), "id": project_id},
+        )
+        db2.commit()
+    finally:
+        db2.close()
     return {
         "deploy_id":  result["deploy_id"],
         "deploy_url": result["deploy_url"],
@@ -1719,6 +1771,9 @@ async def netlify_set_domain(
     site_url      = row[1] or ""
     lead_id       = row[2]
 
+    # DB-Verbindung vor externem Netlify-Call freigeben
+    db.close()
+
     from services.netlify_service import set_custom_domain, generate_dns_guide
     try:
         result = await set_custom_domain(site_id, body.domain)
@@ -1729,20 +1784,25 @@ async def netlify_set_domain(
     # DNS-Guide generieren
     guide = generate_dns_guide(body.domain, site_url)
 
-    db.execute(
-        text(
-            "UPDATE projects SET netlify_domain = :domain, netlify_domain_status = 'pending' "
-            "WHERE id = :id"
-        ),
-        {"domain": body.domain, "id": project_id},
-    )
-    db.commit()
-
-    # Asynchron: E-Mail + Portal-Nachricht senden (Fehler werden nur geloggt)
+    # Neue Session zum Speichern + Mail/Nachricht
+    db2 = SessionLocal()
     try:
-        _send_dns_guide_email_and_message(project_id, lead_id, body.domain, guide, db)
-    except Exception as e:
-        logger.warning(f"DNS-Guide E-Mail/Nachricht Fehler: {e}")
+        db2.execute(
+            text(
+                "UPDATE projects SET netlify_domain = :domain, netlify_domain_status = 'pending' "
+                "WHERE id = :id"
+            ),
+            {"domain": body.domain, "id": project_id},
+        )
+        db2.commit()
+
+        # Asynchron: E-Mail + Portal-Nachricht senden (Fehler werden nur geloggt)
+        try:
+            _send_dns_guide_email_and_message(project_id, lead_id, body.domain, guide, db2)
+        except Exception as e:
+            logger.warning(f"DNS-Guide E-Mail/Nachricht Fehler: {e}")
+    finally:
+        db2.close()
 
     return {
         "custom_domain":       result.get("custom_domain", body.domain),
@@ -2104,6 +2164,16 @@ Antworte als JSON:
 }}
 """
 
+    # Template-Infos als einfache dicts speichern (für Fallback nach DB-Close)
+    templates_data = [
+        {"id": t.id, "name": t.name, "style_tags": t.style_tags}
+        for t in templates
+    ]
+    available_ids = {t["id"] for t in templates_data}
+
+    # DB-Verbindung vor dem externen Claude-Call freigeben
+    db.close()
+
     # Fallback ohne KI: zufällig 3 Templates
     result = None
     try:
@@ -2124,14 +2194,14 @@ Antworte als JSON:
     except Exception as e:
         logger.warning(f"KI-Versionierung Fehler, nutze Zufallsauswahl: {e}")
         # Fallback: zufällig 3 Templates
-        chosen = templates[:3]
+        chosen = templates_data[:3]
         labels = ["A", "B", "C"]
         result = {
             "versions": [
                 {
                     "label": labels[i],
-                    "template_id": t.id,
-                    "titel":        f"Version {labels[i]}: {t.name}",
+                    "template_id": t["id"],
+                    "titel":        f"Version {labels[i]}: {t['name']}",
                     "beschreibung": "Automatische Auswahl (KI nicht verfügbar).",
                     "optimierungen": "",
                     "farb_empfehlung": "",
@@ -2142,48 +2212,53 @@ Antworte als JSON:
             "gesamt_empfehlung": "KI war nicht verfügbar — 3 Templates zufällig gewählt.",
         }
 
-    # Alte Versionen löschen
-    db.execute(text("DELETE FROM website_versions WHERE project_id = :id"), {"id": project_id})
+    # Neue Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        # Alte Versionen löschen
+        db2.execute(text("DELETE FROM website_versions WHERE project_id = :id"), {"id": project_id})
 
-    # 3 Versionen speichern
-    saved = []
-    template_ids_in_result = {int(v.get("template_id", 0)) for v in result.get("versions", []) if v.get("template_id")}
-    available_ids = {t.id for t in templates}
+        # 3 Versionen speichern
+        saved = []
+        template_ids_in_result = {int(v.get("template_id", 0)) for v in result.get("versions", []) if v.get("template_id")}
 
-    for v in result.get("versions", [])[:3]:
-        tid = v.get("template_id")
-        # Absicherung: falls KI eine falsche ID vorschlägt, nimm ein zufälliges verfügbares
-        if not tid or tid not in available_ids:
-            tid = next(iter(available_ids - template_ids_in_result), next(iter(available_ids)))
-            template_ids_in_result.add(tid)
+        for v in result.get("versions", [])[:3]:
+            tid = v.get("template_id")
+            # Absicherung: falls KI eine falsche ID vorschlägt, nimm ein zufälliges verfügbares
+            if not tid or tid not in available_ids:
+                tid = next(iter(available_ids - template_ids_in_result), next(iter(available_ids)))
+                template_ids_in_result.add(tid)
 
-        tpl = db.execute(text(
-            "SELECT html_content, css_content, grapes_data FROM website_templates WHERE id = :id"
-        ), {"id": tid}).fetchone()
+            tpl = db2.execute(text(
+                "SELECT html_content, css_content, grapes_data FROM website_templates WHERE id = :id"
+            ), {"id": tid}).fetchone()
 
-        row = db.execute(text("""
-            INSERT INTO website_versions
-              (project_id, version_label, template_id, html, css, gjs_data, ki_reasoning)
-            VALUES (:pid, :label, :tid, :html, :css, :gjs, :reasoning)
-            RETURNING id
-        """), {
-            "pid":       project_id,
-            "label":     v.get("label", "A"),
-            "tid":       tid,
-            "html":      (tpl.html_content if tpl else "") or "",
-            "css":       (tpl.css_content if tpl else "") or "",
-            "gjs":       _json.dumps(tpl.grapes_data) if (tpl and tpl.grapes_data) else None,
-            "reasoning": _json.dumps({
-                "titel":             v.get("titel"),
-                "beschreibung":      v.get("beschreibung"),
-                "optimierungen":     v.get("optimierungen"),
-                "farb_empfehlung":   v.get("farb_empfehlung"),
-                "zielgruppe":        v.get("zielgruppen_ansprache"),
-            }, ensure_ascii=False),
-        })
-        saved.append({"version": v.get("label", "A"), "id": row.fetchone()[0]})
+            row = db2.execute(text("""
+                INSERT INTO website_versions
+                  (project_id, version_label, template_id, html, css, gjs_data, ki_reasoning)
+                VALUES (:pid, :label, :tid, :html, :css, :gjs, :reasoning)
+                RETURNING id
+            """), {
+                "pid":       project_id,
+                "label":     v.get("label", "A"),
+                "tid":       tid,
+                "html":      (tpl.html_content if tpl else "") or "",
+                "css":       (tpl.css_content if tpl else "") or "",
+                "gjs":       _json.dumps(tpl.grapes_data) if (tpl and tpl.grapes_data) else None,
+                "reasoning": _json.dumps({
+                    "titel":             v.get("titel"),
+                    "beschreibung":      v.get("beschreibung"),
+                    "optimierungen":     v.get("optimierungen"),
+                    "farb_empfehlung":   v.get("farb_empfehlung"),
+                    "zielgruppe":        v.get("zielgruppen_ansprache"),
+                }, ensure_ascii=False),
+            })
+            saved.append({"version": v.get("label", "A"), "id": row.fetchone()[0]})
 
-    db.commit()
+        db2.commit()
+    finally:
+        db2.close()
+
     return {
         "versions":     saved,
         "empfehlung":   result.get("gesamt_empfehlung"),
@@ -2821,6 +2896,10 @@ async def go_live_pagespeed(
         raise HTTPException(400, "Keine Website-URL hinterlegt")
 
     url     = row[0]
+
+    # DB-Verbindung vor externen PageSpeed + Screenshot Calls freigeben
+    db.close()
+
     api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
     base    = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
     params  = {"url": url}
@@ -2855,19 +2934,24 @@ async def go_live_pagespeed(
     except Exception as e:
         logger.warning(f"Go-Live Screenshot Fehler: {e}")
 
-    db.execute(text("""
-        UPDATE projects SET
-          pagespeed_after_mobile=:mob,
-          pagespeed_after_desktop=:desk,
-          screenshot_after=:sc
-        WHERE id=:id
-    """), {
-        "mob":  mob_score,
-        "desk": desk_score,
-        "sc":   screenshot_after,
-        "id":   project_id,
-    })
-    db.commit()
+    # Neue Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        db2.execute(text("""
+            UPDATE projects SET
+              pagespeed_after_mobile=:mob,
+              pagespeed_after_desktop=:desk,
+              screenshot_after=:sc
+            WHERE id=:id
+        """), {
+            "mob":  mob_score,
+            "desk": desk_score,
+            "sc":   screenshot_after,
+            "id":   project_id,
+        })
+        db2.commit()
+    finally:
+        db2.close()
 
     return {
         "success":                 True,

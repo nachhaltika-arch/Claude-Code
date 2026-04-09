@@ -1510,6 +1510,9 @@ app.include_router(campaigns_router)
 from routers import webhooks_trackdesk as trackdesk_router
 app.include_router(trackdesk_router.router)
 
+from routers import assets as assets_router
+app.include_router(assets_router.router)
+
 
 # Global exception handler — catches unhandled errors
 @app.exception_handler(Exception)

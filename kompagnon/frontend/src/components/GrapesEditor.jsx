@@ -1,80 +1,118 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import grapesjs from 'grapesjs';
-import 'grapesjs/dist/css/grapes.min.css';
-import gjsPresetWebpage from 'grapesjs-preset-webpage';
-import gjsBlocksBasic from 'grapesjs-blocks-basic';
+import { StudioEditor } from '@grapesjs/studio-sdk/react';
+import '@grapesjs/studio-sdk/style';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 
-export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, onSave, projectId, netlitySiteId }) {
-  const editorRef = useRef(null);
-  const containerRef = useRef(null);
+const LICENSE_KEY = process.env.REACT_APP_GJS_LICENSE_KEY || 'DEV_LICENSE_KEY';
+
+export default function GrapesEditor({
+  pageId, pageName, initialHtml, onClose, onSave, projectId, netlitySiteId,
+}) {
   const { token } = useAuth();
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+  const authHeaders = { Authorization: `Bearer ${token}` };
+  const editorRef = useRef(null);
   const [netlifyDeploying, setNetlifyDeploying] = useState(false);
 
-  // Lock body scroll while editor is open
+  // Scroll sperren solange Editor offen ist
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  useEffect(() => {
-    if (editorRef.current || !containerRef.current) return;
-    const editor = grapesjs.init({
-      container: containerRef.current,
-      height: '100%',
-      width: '100%',
-      storageManager: false,
-      plugins: [gjsPresetWebpage, gjsBlocksBasic],
-      pluginsOpts: {
-        [gjsPresetWebpage]: { blocks: ['link-block', 'quote', 'text-basic'] },
-        [gjsBlocksBasic]: { blocks: ['column1','column2','column3','text','link','image','video'], flexGrid: true },
-      },
-      deviceManager: { devices: [
-        { id: 'desktop', name: 'Desktop', width: '' },
-        { id: 'tablet', name: 'Tablet', width: '768px', widthMedia: '992px' },
-        { id: 'mobile', name: 'Mobil', width: '375px', widthMedia: '575px' },
-      ]},
-    });
-    if (initialHtml && typeof initialHtml === 'string' && initialHtml.trim().startsWith('<')) {
-      editor.setComponents(initialHtml);
-    }
-    fetch(`${API_BASE_URL}/api/pages/${pageId}/editor`, { headers })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.html) editor.setComponents(data.html); if (data?.css) editor.setStyle(data.css); })
-      .catch(() => {});
-    editorRef.current = editor;
-    return () => { if (editorRef.current) { editorRef.current.destroy(); editorRef.current = null; } };
-  }, [pageId]); // eslint-disable-line
-
-  const save = async () => {
-    if (!editorRef.current) return;
-    const html = editorRef.current.getHtml();
-    const css = editorRef.current.getCss();
+  // ── Save: HTML+CSS+gjsData an /api/pages/{id}/editor ──────
+  const handleSave = useCallback(async ({ project, editor }) => {
     try {
+      const html = editor?.getHtml?.() || '';
+      const css  = editor?.getCss?.()  || '';
       await fetch(`${API_BASE_URL}/api/pages/${pageId}/editor`, {
-        method: 'POST', headers,
-        body: JSON.stringify({ html, css, gjsData: editorRef.current.getProjectData() }),
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ html, css, gjsData: project }),
       });
       toast.success('Gespeichert!');
       if (onSave) onSave({ html, css });
-    } catch { toast.error('Fehler beim Speichern'); }
-  };
+    } catch {
+      toast.error('Speichern fehlgeschlagen');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageId, token, onSave]);
 
-  const preview = () => {
-    if (!editorRef.current) return;
-    const w = window.open('', '_blank');
-    w.document.write(`<!DOCTYPE html><html><head><style>${editorRef.current.getCss()}</style></head><body>${editorRef.current.getHtml()}</body></html>`);
-    w.document.close();
-  };
+  // ── Load: bestehende Editor-Daten vom Backend ──────────────
+  const handleLoad = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/pages/${pageId}/editor`,
+        { headers: authHeaders },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.gjsData && Object.keys(data.gjsData).length > 0) {
+          return { project: data.gjsData };
+        }
+        if (data?.html) {
+          return {
+            project: {
+              pages: [{ name: pageName || 'Seite', component: data.html }],
+            },
+          };
+        }
+      }
+    } catch { /* fall through */ }
+    return {
+      project: {
+        pages: [{ name: pageName || 'Seite', component: initialHtml || '' }],
+      },
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageId, pageName, initialHtml, token]);
 
-  const netlifyDeploy = async () => {
+  // ── Asset Manager (optional, nur wenn projectId gesetzt) ──
+  const onAssetsLoad = useCallback(async () => {
+    if (!projectId) return { assets: [] };
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/assets/project/${projectId}`,
+        { headers: authHeaders },
+      );
+      const data = await res.json();
+      const assets = (data.assets || []).map(a => ({
+        type: 'image',
+        src:  a.src.startsWith('http') ? a.src : `${API_BASE_URL}${a.src}`,
+        name: a.name,
+      }));
+      return { assets };
+    } catch { return { assets: [] }; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, token]);
+
+  const onAssetsUpload = useCallback(async ({ files }) => {
+    if (!projectId || !files?.length) return { data: [] };
+    const fd = new FormData();
+    fd.append('file', files[0]);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/assets/project/${projectId}/upload`,
+        { method: 'POST', headers: authHeaders, body: fd },
+      );
+      const data = await res.json();
+      const normalized = (data.data || []).map(d => ({
+        ...d,
+        src: d.src.startsWith('http') ? d.src : `${API_BASE_URL}${d.src}`,
+      }));
+      return { data: normalized };
+    } catch { return { data: [] }; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, token]);
+
+  // ── Netlify Deploy ────────────────────────────────────────
+  const handleNetlifyDeploy = async () => {
     if (!editorRef.current || !projectId) return;
-    const html = editorRef.current.getHtml();
-    const css  = editorRef.current.getCss();
+    const html = editorRef.current.getHtml() || '';
+    const css  = editorRef.current.getCss()  || '';
     setNetlifyDeploying(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}/netlify/deploy`, {
@@ -102,54 +140,86 @@ export default function GrapesEditor({ pageId, pageName, initialHtml, onClose, o
     }
   };
 
+  const handlePreview = () => {
+    if (!editorRef.current) return;
+    const html = editorRef.current.getHtml() || '';
+    const css  = editorRef.current.getCss()  || '';
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}</body></html>`);
+    w.document.close();
+  };
+
   return createPortal(
     <div style={{
-      position: 'fixed',
-      top: 0, left: 0,
-      width: '100vw',
-      height: '100vh',
-      zIndex: 99999,
-      display: 'flex',
-      flexDirection: 'column',
-      background: '#1a1a1a',
-      overflow: 'hidden',
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      zIndex: 99999, display: 'flex', flexDirection: 'column',
+      background: '#1a1a1a', overflow: 'hidden',
     }}>
       {/* Toolbar */}
       <div style={{
-        height: 52,
-        flexShrink: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 16px',
-        background: '#1a2332',
-        color: '#fff',
-        zIndex: 1,
+        height: 52, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px', background: '#1a2332', color: '#fff', zIndex: 1,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={onClose} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>← Zurück</button>
+          <button onClick={onClose} style={{
+            background: 'none', border: '1px solid rgba(255,255,255,0.3)',
+            color: '#fff', padding: '5px 12px', borderRadius: 6,
+            cursor: 'pointer', fontSize: 13,
+          }}>← Zurück</button>
           <span style={{ fontSize: 14, fontWeight: 600 }}>{pageName}</span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={preview} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>👁 Vorschau</button>
+          <button onClick={handlePreview} style={{
+            background: 'none', border: '1px solid rgba(255,255,255,0.3)',
+            color: '#fff', padding: '6px 14px', borderRadius: 6,
+            cursor: 'pointer', fontSize: 13,
+          }}>👁 Vorschau</button>
           {projectId && netlitySiteId && (
             <button
-              onClick={netlifyDeploy}
+              onClick={handleNetlifyDeploy}
               disabled={netlifyDeploying}
-              style={{ background: netlifyDeploying ? '#166534' : '#16a34a', border: 'none', color: '#fff', padding: '6px 16px', borderRadius: 6, cursor: netlifyDeploying ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, opacity: netlifyDeploying ? 0.8 : 1 }}
+              style={{
+                background: netlifyDeploying ? '#166534' : '#16a34a',
+                border: 'none', color: '#fff', padding: '6px 16px',
+                borderRadius: 6,
+                cursor: netlifyDeploying ? 'not-allowed' : 'pointer',
+                fontSize: 13, fontWeight: 600,
+                opacity: netlifyDeploying ? 0.8 : 1,
+              }}
             >
               {netlifyDeploying ? '⏳ Wird deployed…' : '🚀 Direkt zu Netlify deployen'}
             </button>
           )}
-          <button onClick={save} style={{ background: '#0d6efd', border: 'none', color: '#fff', padding: '6px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>💾 Speichern</button>
         </div>
       </div>
-      {/* Canvas */}
-      <div ref={containerRef} style={{
-        flex: 1,
-        width: '100%',
-        minHeight: 0,
-      }} />
+
+      {/* Studio SDK Canvas */}
+      <div style={{ flex: 1, width: '100%', minHeight: 0 }}>
+        <StudioEditor
+          options={{
+            licenseKey: LICENSE_KEY,
+            project: {
+              type: 'web',
+              default: {
+                pages: [{ name: pageName || 'Seite', component: initialHtml || '' }],
+              },
+            },
+            storage: {
+              type: 'self',
+              autosaveChanges: 5,
+              onSave: handleSave,
+              onLoad: handleLoad,
+            },
+            assets: projectId ? {
+              storageType: 'self',
+              onLoad:   onAssetsLoad,
+              onUpload: onAssetsUpload,
+            } : undefined,
+          }}
+          onReady={(editor) => { editorRef.current = editor; }}
+        />
+      </div>
     </div>,
     document.body
   );

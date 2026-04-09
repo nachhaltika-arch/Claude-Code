@@ -230,7 +230,7 @@ export default function Dashboard() {
               Aktuelle Leads
             </span>
             <button
-              onClick={() => navigate('/app/sales')}
+              onClick={() => navigate('/app/deals')}
               style={{
                 fontSize: 11, color: 'var(--brand-primary)', background: 'none',
                 border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)',

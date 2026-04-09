@@ -42,7 +42,6 @@ import AcademyAdminLesson from './pages/AcademyAdminLesson';
 import AcademyEdit from './pages/AcademyEdit';
 import AcademyModuleEdit from './pages/AcademyModuleEdit';
 import AcademyCertificate from './pages/AcademyCertificate';
-import SalesPipeline from './pages/SalesPipeline';
 import Companies from './pages/Companies';
 import CustomerDashboard from './pages/CustomerDashboard';
 import Courses from './pages/Courses';
@@ -154,7 +153,8 @@ function App() {
             <Route index element={<Navigate to="/app/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardRoute />} />
             <Route path="usercards/:id" element={<PrivateRoute><CustomerDashboard /></PrivateRoute>} />
-            <Route path="sales" element={<PrivateRoute roles={['admin', 'auditor']}><SalesPipeline /></PrivateRoute>} />
+            {/* Vertriebspipeline durch Deals ersetzt — alte URL leitet weiter */}
+            <Route path="sales" element={<Navigate to="/app/deals" replace />} />
             <Route path="deals" element={<PrivateRoute roles={['admin', 'auditor']}><Deals /></PrivateRoute>} />
             <Route path="companies" element={<PrivateRoute roles={['admin', 'auditor']}><Companies /></PrivateRoute>} />
             <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />

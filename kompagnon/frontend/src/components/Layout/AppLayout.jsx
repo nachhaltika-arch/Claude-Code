@@ -85,13 +85,12 @@ const NAV_SECTIONS = [
   {
     title: 'Sales',
     items: [
-      { label: 'Vertriebspipeline', path: '/app/sales',     icon: 'chart' },
-      { label: 'Deals',             path: '/app/deals',     icon: 'chart' },
-      { label: 'Unternehmen',       path: '/app/companies', icon: 'users', activePaths: ['/app/companies', '/app/leads/'] },
-      { label: 'Domain Import',     path: '/app/import',    icon: 'users' },
-      { label: 'Export',            path: '/app/export',    icon: 'docCheck' },
-      { label: 'Website Audit',     path: '/app/audit',     icon: 'docCheck' },
-      { label: 'Newsletter',         path: '/app/newsletter', icon: 'newspaper' },
+      { label: 'Deals',        path: '/app/deals',     icon: 'chart' },
+      { label: 'Unternehmen',  path: '/app/companies', icon: 'users', activePaths: ['/app/companies', '/app/leads/'] },
+      { label: 'Domain Import', path: '/app/import',   icon: 'users' },
+      { label: 'Export',        path: '/app/export',   icon: 'docCheck' },
+      { label: 'Website Audit', path: '/app/audit',    icon: 'docCheck' },
+      { label: 'Newsletter',    path: '/app/newsletter', icon: 'newspaper' },
     ],
   },
   {
@@ -130,6 +129,7 @@ const NAV_SECTIONS = [
 const PAGE_NAMES = {
   '/app/dashboard': 'Dashboard',
   '/app/portal': 'Mein Projekt',
+  '/app/deals': 'Deals',
   '/app/sales': 'Vertriebspipeline',
   '/app/leads': 'Projektpipeline',
   '/app/customers': 'Kunden',
@@ -153,7 +153,7 @@ const PAGE_NAMES = {
 
 const MOBILE_TABS = [
   { label: 'Dashboard', path: '/app/dashboard', icon: 'grid' },
-  { label: 'Vertrieb', path: '/app/sales', icon: 'chart' },
+  { label: 'Deals', path: '/app/deals', icon: 'chart' },
   { label: 'Projekte', path: '/app/leads', icon: 'users' },
   { label: 'Audit', path: '/app/audit', icon: 'docCheck' },
   { label: 'Tickets', path: '/app/tickets', icon: 'key' },

@@ -136,24 +136,24 @@ export default function Landing() {
                 onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = C.primary; }}>
                 Anmelden
               </button>
-              <button onClick={() => nav('/register')}
+              <button onClick={() => nav('/checkout/kompagnon')}
                 style={{ background: C.accent, color: '#fff', border: 'none',
                   borderRadius: 6, padding: '8px 20px', fontSize: 14,
                   fontWeight: 700, cursor: 'pointer', transition: 'filter .15s' }}
                 onMouseEnter={e => e.target.style.filter = 'brightness(1.1)'}
                 onMouseLeave={e => e.target.style.filter = 'none'}>
-                Kostenlos starten
+                Website anfragen
               </button>
             </nav>
           )}
 
           {/* Mobile: kompakter Button */}
           {isMobile && (
-            <button onClick={() => nav('/register')}
+            <button onClick={() => nav('/checkout/kompagnon')}
               style={{ background: C.accent, color: '#fff', border: 'none',
                 borderRadius: 6, padding: '8px 14px', fontSize: 13,
                 fontWeight: 700, cursor: 'pointer' }}>
-              Starten
+              Anfragen
             </button>
           )}
         </div>
@@ -522,7 +522,7 @@ export default function Landing() {
           {[
             ['Leistungen', ['Webdesign','KI-Texte','SEO','Rechtssicher','Portal']],
             ['Pakete', ['Starter 1.500€','Kompagnon 3.500€','Premium','Förderung']],
-            ['Rechtliches', ['Impressum','Datenschutz','Barrierefreiheit','AGB']],
+            ['Rechtliches', ['Impressum','Datenschutz','Barrierefreiheit']],
           ].map(([title, links]) => (
             <div key={title} style={{ marginBottom: isMobile ? 20 : 0 }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em',

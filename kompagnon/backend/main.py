@@ -561,6 +561,13 @@ def _run_migrations():
           created_at     TIMESTAMP DEFAULT NOW(),
           updated_at     TIMESTAMP DEFAULT NOW()
         )""",
+        # Template library extension columns
+        "ALTER TABLE website_templates ADD COLUMN IF NOT EXISTS slug VARCHAR(200)",
+        "ALTER TABLE website_templates ADD COLUMN IF NOT EXISTS style_tags TEXT",
+        "ALTER TABLE website_templates ADD COLUMN IF NOT EXISTS gewerk_tags TEXT",
+        "ALTER TABLE website_templates ADD COLUMN IF NOT EXISTS source_file VARCHAR(500)",
+        "ALTER TABLE website_templates ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_website_templates_slug ON website_templates(slug)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES website_templates(id) ON DELETE SET NULL",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES website_templates(id) ON DELETE SET NULL",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_before TEXT",
@@ -1415,6 +1422,9 @@ app.include_router(branddesign_router)
 
 from routers import templates as templates_router
 app.include_router(templates_router.router)
+
+from routers import website_templates as website_templates_router
+app.include_router(website_templates_router.router)
 
 from routers import messages as messages_router
 app.include_router(messages_router.router)

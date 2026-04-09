@@ -831,6 +831,35 @@ def _run_migrations():
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS features JSONB DEFAULT '[]'",
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS checkout_fields JSONB DEFAULT '[]'",
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS webhook_actions JSONB DEFAULT '[]'",
+        # ── Deals (CRM-Pipeline) ──────────────────────────────────
+        """CREATE TABLE IF NOT EXISTS deals (
+            id            SERIAL PRIMARY KEY,
+            title         VARCHAR(500) NOT NULL,
+            company_id    INTEGER REFERENCES leads(id) ON DELETE SET NULL,
+            status        VARCHAR(50) DEFAULT 'neu',
+            total_value   NUMERIC(12,2) DEFAULT 0,
+            currency      VARCHAR(3) DEFAULT 'EUR',
+            notes         TEXT,
+            assigned_to   INTEGER,
+            won_at        TIMESTAMP,
+            lost_at       TIMESTAMP,
+            created_at    TIMESTAMP DEFAULT NOW(),
+            updated_at    TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_deals_company ON deals(company_id)",
+        "CREATE INDEX IF NOT EXISTS idx_deals_status ON deals(status)",
+        """CREATE TABLE IF NOT EXISTS deal_items (
+            id          SERIAL PRIMARY KEY,
+            deal_id     INTEGER REFERENCES deals(id) ON DELETE CASCADE,
+            position    VARCHAR(500) NOT NULL,
+            quantity    NUMERIC(10,2) DEFAULT 1,
+            unit_price  NUMERIC(12,2) DEFAULT 0,
+            total_price NUMERIC(12,2) DEFAULT 0,
+            product_id  INTEGER,
+            sort_order  INTEGER DEFAULT 0
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_deal_items_deal ON deal_items(deal_id)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS deal_id INTEGER",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -1173,6 +1202,15 @@ async def lifespan(app: FastAPI):
             finally:
                 _db.close()
 
+        def _deals_migration():
+            from routers.deals import migrate_leads_to_deals
+            from database import SessionLocal
+            _db = SessionLocal()
+            try:
+                migrate_leads_to_deals(_db)
+            finally:
+                _db.close()
+
         def _ping_db():
             """Simple DB ping to ensure connection is ready."""
             from sqlalchemy import text
@@ -1225,6 +1263,7 @@ async def lifespan(app: FastAPI):
                 ("DB init",       init_db,               30.0),
                 ("Default admin", _create_default_admin, 10.0),
                 ("Academy seed",  _academy_seed,         10.0),
+                ("Deals migration", _deals_migration,    15.0),
                 ("Scheduler",     start_scheduler,       15.0),
             ]
             for name, fn, timeout in phases:
@@ -1389,6 +1428,9 @@ app.include_router(retainer.router)
 
 from routers.products import router as products_router
 app.include_router(products_router)
+
+from routers.deals import router as deals_router
+app.include_router(deals_router)
 
 
 # Global exception handler — catches unhandled errors

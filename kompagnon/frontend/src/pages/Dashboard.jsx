@@ -15,6 +15,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { isMobile } = useScreenSize();
   const [kpis, setKpis] = useState(null);
+  const [dealStats, setDealStats] = useState(null);
   const [leads, setLeads] = useState([]);
   const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,8 +29,10 @@ export default function Dashboard() {
       fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h }).then(r => r.json()).catch(() => null),
       fetch(`${API_BASE_URL}/api/leads/`, { headers: h }).then(r => r.json()).catch(() => []),
       fetch(`${API_BASE_URL}/api/audit/recent`, { headers: h }).then(r => r.json()).catch(() => []),
-    ]).then(async ([kpiData, leadsData, auditData]) => {
+      fetch(`${API_BASE_URL}/api/deals/stats`, { headers: h }).then(r => r.json()).catch(() => null),
+    ]).then(async ([kpiData, leadsData, auditData, dealsData]) => {
       setKpis(kpiData);
+      setDealStats(dealsData);
       let rows = Array.isArray(leadsData) ? leadsData : [];
       // Fallback: if leads table is empty, try usercards
       if (rows.length === 0) {
@@ -143,6 +146,47 @@ export default function Dashboard() {
             setOnboardingChecked(true);
           }}
         />
+      )}
+
+      {/* Deal-Metriken */}
+      {dealStats && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 12,
+          minWidth: 0, width: '100%',
+        }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: '18px 22px', border: '1px solid var(--border-light)' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+              💰 Heute gewonnen
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--status-success-text)' }}>
+              {Number(dealStats.won_today).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+              {dealStats.deals_won_today} Deal{dealStats.deals_won_today !== 1 ? 's' : ''}
+            </div>
+          </div>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: '18px 22px', border: '1px solid var(--border-light)' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+              📅 Diesen Monat
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--status-success-text)' }}>
+              {Number(dealStats.won_this_month).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+            </div>
+          </div>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: '18px 22px', border: '1px solid var(--border-light)' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+              💼 Pipeline offen
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--brand-primary)' }}>
+              {Number(dealStats.pipeline_value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+              {dealStats.deals_open} offene Deal{dealStats.deals_open !== 1 ? 's' : ''}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* KPI Grid */}

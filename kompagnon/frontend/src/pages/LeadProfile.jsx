@@ -60,6 +60,7 @@ const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
 
 const TABS = [
   { id: 'overview',   label: 'Übersicht',   icon: '⊞' },
+  { id: 'deals',      label: 'Deals',       icon: '💼' },
   { id: 'messages',   label: 'Nachrichten', icon: '💬' },
   { id: 'contact',    label: 'Kontakt',     icon: '👤' },
   { id: 'audits',     label: 'Audits',      icon: '✓' },
@@ -182,6 +183,9 @@ export default function LeadProfile() {
   const [allTemplates, setAllTemplates] = useState([]);
   // Domain-Check
   const [domainLoading, setDomainLoading] = useState(false);
+  // Deals
+  const [companyDeals, setCompanyDeals] = useState([]);
+  const [dealsLoading, setDealsLoading] = useState(false);
   // Nachrichten
   const [messages, setMessages] = useState([]);
   const [msgLoading, setMsgLoading] = useState(false);
@@ -227,6 +231,18 @@ export default function LeadProfile() {
     const interval = setInterval(loadMessages, 30000);
     return () => clearInterval(interval);
   }, [activeTab, leadId]); // eslint-disable-line
+
+  // Load deals for this company when deals tab opens
+  useEffect(() => {
+    if (activeTab !== 'deals' || !leadId) return;
+    setDealsLoading(true);
+    fetch(`${API_BASE_URL}/api/deals/?company_id=${leadId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => { setCompanyDeals(Array.isArray(d) ? d : []); setDealsLoading(false); })
+      .catch(() => setDealsLoading(false));
+  }, [activeTab, leadId, token]);
 
   useEffect(() => {
     if (activeTab === 'emails') loadEmailData();
@@ -1692,6 +1708,77 @@ export default function LeadProfile() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <HomepageChecklist auditData={latestAudit} />
           <SecurityChecklist auditData={latestAudit} />
+        </div>
+      )}
+
+      {/* DEALS TAB */}
+      {activeTab === 'deals' && (
+        <div style={{ maxWidth: 900 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>💼 Deals</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                {companyDeals.length} Deal{companyDeals.length !== 1 ? 's' : ''} · Gesamt{' '}
+                {companyDeals.reduce((s, d) => s + (d.total_value || 0), 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+              </div>
+            </div>
+            <a
+              href="/app/deals"
+              style={{
+                padding: '9px 18px', background: 'var(--brand-primary)', color: '#fff',
+                border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600,
+                textDecoration: 'none', fontFamily: 'var(--font-sans)',
+              }}
+            >
+              Zur Deal-Pipeline →
+            </a>
+          </div>
+
+          {dealsLoading && (
+            <div style={{ color: 'var(--text-tertiary)', fontSize: 13, padding: 20 }}>Deals werden geladen…</div>
+          )}
+
+          {!dealsLoading && companyDeals.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 48, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>💼</div>
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
+                Noch keine Deals für dieses Unternehmen.
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                Lege einen neuen Deal in der <a href="/app/deals" style={{ color: 'var(--brand-primary)' }}>Deal-Pipeline</a> an.
+              </div>
+            </div>
+          )}
+
+          {companyDeals.map(deal => (
+            <div key={deal.id} style={{
+              padding: '14px 18px', borderRadius: 'var(--radius-lg)', marginBottom: 10,
+              background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{deal.title}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                  {deal.created_at?.slice(0, 10)}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 4,
+                  background: deal.status === 'gewonnen' ? 'var(--status-success-bg)'
+                    : deal.status === 'verloren' ? 'var(--status-danger-bg)' : 'var(--status-info-bg)',
+                  color: deal.status === 'gewonnen' ? 'var(--status-success-text)'
+                    : deal.status === 'verloren' ? 'var(--status-danger-text)' : 'var(--status-info-text)',
+                  textTransform: 'capitalize',
+                }}>
+                  {deal.status?.replace('_', ' ')}
+                </span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--brand-primary)', minWidth: 110, textAlign: 'right' }}>
+                  {Number(deal.total_value || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

@@ -86,6 +86,7 @@ const NAV_SECTIONS = [
     title: 'Sales',
     items: [
       { label: 'Vertriebspipeline', path: '/app/sales',     icon: 'chart' },
+      { label: 'Deals',             path: '/app/deals',     icon: 'chart' },
       { label: 'Unternehmen',       path: '/app/companies', icon: 'users', activePaths: ['/app/companies', '/app/leads/'] },
       { label: 'Domain Import',     path: '/app/import',    icon: 'users' },
       { label: 'Export',            path: '/app/export',    icon: 'docCheck' },

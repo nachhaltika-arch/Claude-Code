@@ -67,6 +67,7 @@ import ProductManager from './pages/ProductManager';
 import SupportTickets from './pages/customer/SupportTickets';
 import Freigaben from './pages/customer/Freigaben';
 import MeineRechnungen from './pages/customer/MeineRechnungen';
+import Deals from './pages/Deals';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -154,6 +155,7 @@ function App() {
             <Route path="dashboard" element={<DashboardRoute />} />
             <Route path="usercards/:id" element={<PrivateRoute><CustomerDashboard /></PrivateRoute>} />
             <Route path="sales" element={<PrivateRoute roles={['admin', 'auditor']}><SalesPipeline /></PrivateRoute>} />
+            <Route path="deals" element={<PrivateRoute roles={['admin', 'auditor']}><Deals /></PrivateRoute>} />
             <Route path="companies" element={<PrivateRoute roles={['admin', 'auditor']}><Companies /></PrivateRoute>} />
             <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
             <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />

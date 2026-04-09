@@ -71,6 +71,9 @@ class LeadUpdate(BaseModel):
     ceo_last_name: Optional[str] = None
     wz_code: Optional[str] = None
     wz_title: Optional[str] = None
+    inspiration_url_1: Optional[str] = None
+    inspiration_url_2: Optional[str] = None
+    inspiration_url_3: Optional[str] = None
 
 
 class LeadResponse(BaseModel):

@@ -209,6 +209,28 @@ function Step2({ data, set }) {
 }
 
 function Step3({ data, set }) {
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
+  const loadSuggestions = async () => {
+    setLoadingSuggestions(true);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/website-templates/suggestions?gewerk=${encodeURIComponent(data.gewerk || '')}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('kompagnon_token') || localStorage.getItem('token') || ''}` } }
+      );
+      if (res.ok) {
+        const d = await res.json();
+        const list = d.suggestions || [];
+        if (list[0]) set('inspiration_url_1', list[0]);
+        if (list[1]) set('inspiration_url_2', list[1]);
+        if (list[2]) set('inspiration_url_3', list[2]);
+      }
+    } catch (e) { /* ignore */ }
+    setLoadingSuggestions(false);
+  };
+
+  const noneSet = !data.inspiration_url_1 && !data.inspiration_url_2 && !data.inspiration_url_3;
+
   return (
     <>
       <Field label="Alleinstellungsmerkmal (USP)" required hint="Was macht Ihren Betrieb besonders? Warum sollte ein Kunde Sie wählen und nicht den Mitbewerb?">
@@ -226,13 +248,46 @@ function Step3({ data, set }) {
           placeholder="z.B. Firma Müller, Installateure Schmidt GmbH …"
         />
       </Field>
-      <Field label="Vorbilder / Inspiration" hint="Gibt es Websites, die Ihnen gefallen? URL(s) eintragen.">
+      <Field label="Inspirations-Website 1" hint="Welche Websites gefallen Ihnen?">
         <Input
-          value={data.vorbilder}
-          onChange={v => set('vorbilder', v)}
-          placeholder="z.B. https://www.beispiel.de, https://andereseite.de"
+          value={data.inspiration_url_1}
+          onChange={v => set('inspiration_url_1', v)}
+          placeholder="https://www.beispiel.de"
         />
       </Field>
+      <Field label="Inspirations-Website 2">
+        <Input
+          value={data.inspiration_url_2}
+          onChange={v => set('inspiration_url_2', v)}
+          placeholder="https://www.anderes-beispiel.de"
+        />
+      </Field>
+      <Field label="Inspirations-Website 3">
+        <Input
+          value={data.inspiration_url_3}
+          onChange={v => set('inspiration_url_3', v)}
+          placeholder="https://www.noch-eine.de"
+        />
+      </Field>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8, lineHeight: 1.6 }}>
+        Keine Idee? Kein Problem — wir machen Vorschläge passend zu Ihrer Branche.
+      </div>
+      {noneSet && (
+        <button
+          type="button"
+          onClick={loadSuggestions}
+          disabled={loadingSuggestions}
+          style={{
+            marginTop: 10, padding: '9px 18px',
+            background: 'var(--bg-app)', color: 'var(--brand-primary)',
+            border: '1px solid var(--brand-primary)', borderRadius: 'var(--radius-md)',
+            fontSize: 12, fontWeight: 600, cursor: loadingSuggestions ? 'wait' : 'pointer',
+            fontFamily: 'var(--font-sans)',
+          }}
+        >
+          {loadingSuggestions ? 'Lädt…' : 'Branchenpassende Vorschläge laden'}
+        </button>
+      )}
     </>
   );
 }
@@ -451,6 +506,9 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
     usp:               leadData?.usp               || '',
     mitbewerber:       leadData?.mitbewerber       || '',
     vorbilder:         leadData?.vorbilder         || '',
+    inspiration_url_1: leadData?.inspiration_url_1 || '',
+    inspiration_url_2: leadData?.inspiration_url_2 || '',
+    inspiration_url_3: leadData?.inspiration_url_3 || '',
     // Step 4
     farben:            leadData?.farben            || '',
     stil:              leadData?.stil              || '',
@@ -490,6 +548,9 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
         usp:               data.usp,
         mitbewerber:       data.mitbewerber,
         vorbilder:         data.vorbilder,
+        inspiration_url_1: data.inspiration_url_1,
+        inspiration_url_2: data.inspiration_url_2,
+        inspiration_url_3: data.inspiration_url_3,
         farben:            data.farben,
         stil:              data.stil,
         wunschseiten:      data.wunschseiten.join(', '),
@@ -509,6 +570,18 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || `Fehler ${res.status}`);
       }
+      // Additionally persist inspiration URLs on the lead itself
+      try {
+        await fetch(`${API_BASE_URL}/api/leads/${leadId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            inspiration_url_1: data.inspiration_url_1 || null,
+            inspiration_url_2: data.inspiration_url_2 || null,
+            inspiration_url_3: data.inspiration_url_3 || null,
+          }),
+        });
+      } catch (_) { /* non-fatal */ }
       // Open PDF in new tab
       window.open(`${API_BASE_URL}/api/briefings/${leadId}/pdf`, '_blank');
       if (onComplete) onComplete(data);

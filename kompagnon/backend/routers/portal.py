@@ -107,6 +107,13 @@ def get_portal_me(user=Depends(get_current_user), db: Session = Depends(get_db))
         for n, lbl, desc in PHASE_META
     ]
 
+    # Inspiration URLs aus Lead (für Portal-Anzeige)
+    inspirations = {
+        "url_1": getattr(lead, "inspiration_url_1", None) if lead else None,
+        "url_2": getattr(lead, "inspiration_url_2", None) if lead else None,
+        "url_3": getattr(lead, "inspiration_url_3", None) if lead else None,
+    }
+
     # Netlify / DNS-Guide Daten für den Kunden (optional)
     netlify_info = None
     try:
@@ -127,11 +134,13 @@ def get_portal_me(user=Depends(get_current_user), db: Session = Depends(get_db))
 
     return {
         "project_id": project.id,
+        "lead_id": user.lead_id,
         "project_name": project_name,
         "project_status": STATUS_LABEL.get(project.status, "In Bearbeitung"),
         "current_phase": current,
         "phases": phases,
         "netlify": netlify_info,
+        "inspirations": inspirations,
     }
 
 

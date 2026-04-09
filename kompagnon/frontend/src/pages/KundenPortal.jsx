@@ -227,6 +227,9 @@ export default function KundenPortal() {
         ))}
       </div>
 
+      {/* ── Inspirations-URLs ── */}
+      <InspirationsSection project={project} token={token} onSaved={() => {}} />
+
       {/* ── DNS-Guide (nur wenn Netlify-Domain gesetzt) ── */}
       {project?.netlify && project.netlify.domain && (
         <div style={{
@@ -359,6 +362,86 @@ export default function KundenPortal() {
 
       <div style={{ marginTop: 24, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
         Bei Fragen wende dich an dein KOMPAGNON-Team.
+      </div>
+    </div>
+  );
+}
+
+
+function InspirationsSection({ project, token }) {
+  const [urls, setUrls] = useState({ 1: '', 2: '', 3: '' });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (project?.inspirations) {
+      setUrls({
+        1: project.inspirations.url_1 || '',
+        2: project.inspirations.url_2 || '',
+        3: project.inspirations.url_3 || '',
+      });
+    }
+  }, [project?.inspirations]);
+
+  const save = async () => {
+    if (!project?.lead_id) return;
+    setSaving(true);
+    try {
+      await fetch(`${API_BASE_URL}/api/leads/${project.lead_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          inspiration_url_1: urls[1] || null,
+          inspiration_url_2: urls[2] || null,
+          inspiration_url_3: urls[3] || null,
+        }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) { /* ignore */ }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{
+      background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+      borderRadius: 'var(--radius-lg)', padding: '18px 20px', marginTop: 24,
+    }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+        Ihre Inspirationen
+      </div>
+      <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 14, lineHeight: 1.5 }}>
+        Welche Websites gefallen Ihnen? (bis zu 3 URLs — optional). Wir nutzen sie als Referenz für Ihren Entwurf.
+      </p>
+      {[1, 2, 3].map(n => (
+        <div key={n} style={{ marginBottom: 10 }}>
+          <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+            Website {n}
+          </label>
+          <input
+            value={urls[n]}
+            onChange={e => setUrls(p => ({ ...p, [n]: e.target.value }))}
+            placeholder="https://www.beispiel.de"
+            style={{
+              width: '100%', boxSizing: 'border-box', padding: '9px 12px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-light)',
+              background: 'var(--bg-app)', color: 'var(--text-primary)',
+              fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none',
+            }}
+          />
+        </div>
+      ))}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
+        <button onClick={save} disabled={saving} style={{
+          padding: '8px 20px', borderRadius: 'var(--radius-md)',
+          background: 'var(--brand-primary)', color: 'white',
+          border: 'none', fontSize: 13, fontWeight: 600,
+          cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)',
+        }}>
+          {saving ? 'Speichern…' : 'Speichern'}
+        </button>
+        {saved && <span style={{ fontSize: 12, color: 'var(--status-success-text)' }}>✓ Gespeichert</span>}
       </div>
     </div>
   );

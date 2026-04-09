@@ -568,6 +568,10 @@ def _run_migrations():
         "ALTER TABLE website_templates ADD COLUMN IF NOT EXISTS source_file VARCHAR(500)",
         "ALTER TABLE website_templates ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0",
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_website_templates_slug ON website_templates(slug)",
+        # Inspiration URLs for briefing + portal
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS inspiration_url_1 TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS inspiration_url_2 TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS inspiration_url_3 TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES website_templates(id) ON DELETE SET NULL",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES website_templates(id) ON DELETE SET NULL",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_before TEXT",

@@ -76,40 +76,41 @@ export default function GrapesEditor({
   }, [pageId, pageName, initialHtml, token]);
 
   // ── Asset Manager (optional, nur wenn projectId gesetzt) ──
+  // Studio SDK erwartet ein Array zurück: [{ src, type?, name? }]
   const onAssetsLoad = useCallback(async () => {
-    if (!projectId) return { assets: [] };
+    if (!projectId) return [];
     try {
       const res = await fetch(
         `${API_BASE_URL}/api/assets/project/${projectId}`,
         { headers: authHeaders },
       );
+      if (!res.ok) return [];
       const data = await res.json();
-      const assets = (data.assets || []).map(a => ({
+      return (data.assets || []).map(a => ({
         type: 'image',
         src:  a.src.startsWith('http') ? a.src : `${API_BASE_URL}${a.src}`,
         name: a.name,
       }));
-      return { assets };
-    } catch { return { assets: [] }; }
+    } catch { return []; }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, token]);
 
   const onAssetsUpload = useCallback(async ({ files }) => {
-    if (!projectId || !files?.length) return { data: [] };
+    if (!projectId || !files?.length) return [];
     const fd = new FormData();
-    fd.append('file', files[0]);
+    for (const f of files) fd.append('file', f);
     try {
       const res = await fetch(
         `${API_BASE_URL}/api/assets/project/${projectId}/upload`,
         { method: 'POST', headers: authHeaders, body: fd },
       );
+      if (!res.ok) return [];
       const data = await res.json();
-      const normalized = (data.data || []).map(d => ({
+      return (data.data || data.assets || []).map(d => ({
         ...d,
         src: d.src.startsWith('http') ? d.src : `${API_BASE_URL}${d.src}`,
       }));
-      return { data: normalized };
-    } catch { return { data: [] }; }
+    } catch { return []; }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, token]);
 

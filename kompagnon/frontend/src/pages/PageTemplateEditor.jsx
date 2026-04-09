@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { StudioEditor } from '@grapesjs/studio-sdk/react';
 import '@grapesjs/studio-sdk/style';
@@ -121,7 +122,7 @@ export default function PageTemplateEditor() {
   };
   const disabled = tplInfo?.is_builtin;
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed',
       top: 0,
@@ -229,6 +230,7 @@ export default function PageTemplateEditor() {
           onReady={(editor) => { editorRef.current = editor; }}
         />
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

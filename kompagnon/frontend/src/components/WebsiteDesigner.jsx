@@ -1,6 +1,7 @@
 import { StudioEditor } from '@grapesjs/studio-sdk/react';
 import '@grapesjs/studio-sdk/style';
 import { useRef, useState, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
@@ -25,44 +26,46 @@ export default function WebsiteDesigner({
   const authHeaders = { Authorization: `Bearer ${token}` };
 
   // ── Asset Manager: Bilder aus Backend laden ───────────────
+  // Studio SDK erwartet ein Array zurück: [{ src, type?, name? }]
   const onAssetsLoad = useCallback(async () => {
-    if (!projectId) return { assets: [] };
+    if (!projectId) return [];
     try {
       const res = await fetch(
         `${API_BASE_URL}/api/assets/project/${projectId}`,
         { headers: authHeaders },
       );
+      if (!res.ok) return [];
       const data = await res.json();
-      const assets = (data.assets || []).map(a => ({
+      return (data.assets || []).map(a => ({
         type: 'image',
         src:  a.src.startsWith('http') ? a.src : `${API_BASE_URL}${a.src}`,
         name: a.name,
       }));
-      return { assets };
     } catch {
-      return { assets: [] };
+      return [];
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   // ── Asset Manager: Bild hochladen ─────────────────────────
+  // Studio SDK erwartet ein Array zurück: [{ src }]
   const onAssetsUpload = useCallback(async ({ files }) => {
-    if (!projectId || !files?.length) return { data: [] };
+    if (!projectId || !files?.length) return [];
     const fd = new FormData();
-    fd.append('file', files[0]);
+    for (const f of files) fd.append('file', f);
     try {
       const res = await fetch(
         `${API_BASE_URL}/api/assets/project/${projectId}/upload`,
         { method: 'POST', headers: authHeaders, body: fd },
       );
+      if (!res.ok) return [];
       const data = await res.json();
-      const normalized = (data.data || []).map(d => ({
+      return (data.data || data.assets || []).map(d => ({
         ...d,
         src: d.src.startsWith('http') ? d.src : `${API_BASE_URL}${d.src}`,
       }));
-      return { data: normalized };
     } catch {
-      return { data: [] };
+      return [];
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
@@ -111,7 +114,7 @@ export default function WebsiteDesigner({
     if (e?.target) e.target.value = '';
   };
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed',
       top: 0,
@@ -317,6 +320,7 @@ export default function WebsiteDesigner({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

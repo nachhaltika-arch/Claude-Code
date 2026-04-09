@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { StudioEditor } from '@grapesjs/studio-sdk/react';
 import '@grapesjs/studio-sdk/style';
@@ -102,7 +103,7 @@ export default function TemplateEditor() {
     fontFamily: 'var(--font-sans, system-ui)',
   };
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed',
       top: 0,
@@ -191,6 +192,7 @@ export default function TemplateEditor() {
           />
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

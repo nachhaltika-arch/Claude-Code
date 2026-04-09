@@ -989,6 +989,43 @@ export default function ProjectDetail() {
     return () => { cancelled = true; };
   }, [project?.id, activeSubTab, activeTab]); // eslint-disable-line
 
+  // Load cached crawler results + website content on project mount
+  useEffect(() => {
+    if (!project?.lead_id) return;
+    let cancelled = false;
+    const h = { Authorization: `Bearer ${token}` };
+
+    // 1. Crawler status + results from crawl_jobs / crawl_results
+    fetch(`${API_BASE_URL}/api/crawler/status/${project.lead_id}`, { headers: h })
+      .then(r => r.ok ? r.json() : null)
+      .then(status => {
+        if (cancelled || !status) return;
+        if (status.status && status.status !== 'none') setCrawlJob(status);
+        // Load URL list if a completed job exists
+        if (status.status === 'completed' || status.total_urls > 0) {
+          return fetch(`${API_BASE_URL}/api/crawler/results/${project.lead_id}`, { headers: h })
+            .then(r => r.ok ? r.json() : null)
+            .then(d => {
+              if (cancelled || !d) return;
+              setCrawlResults(Array.isArray(d.results) ? d.results : []);
+            });
+        }
+      })
+      .catch(() => {});
+
+    // 2. Website content from website_content_cache
+    fetch(`${API_BASE_URL}/api/crawler/content/${project.lead_id}`, { headers: h })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (cancelled || !data) return;
+        const items = Array.isArray(data) ? data : (data.results || []);
+        if (items.length > 0) setWebsiteContent(items);
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [project?.lead_id]); // eslint-disable-line
+
   const loadWebsiteContent = useCallback(async () => {
     if (!project?.lead_id) return;
     try {
@@ -2482,6 +2519,11 @@ export default function ProjectDetail() {
               <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>🕷️ Website-Crawler</div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
                 Erfasst alle URLs der Kunden-Website
+                {crawlJob?.completed_at && (
+                  <span style={{ marginLeft: 8, padding: '2px 8px', background: 'var(--status-info-bg)', color: 'var(--status-info-text)', borderRadius: 4, fontSize: 11, fontWeight: 500 }}>
+                    📦 Gespeichert: {String(crawlJob.completed_at).replace('T', ' ').slice(0, 16)}
+                  </span>
+                )}
               </div>
             </div>
             <button
@@ -2511,7 +2553,7 @@ export default function ProjectDetail() {
                 } catch { setCrawlLoading(false); }
               }}
               style={{ padding: '8px 18px', background: crawlLoading ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: crawlLoading ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}
-            >{crawlLoading ? 'Crawlt…' : 'Crawl starten'}</button>
+            >{crawlLoading ? 'Crawlt…' : crawlResults.length > 0 ? '🔄 Neu crawlen' : 'Crawl starten'}</button>
           </div>
           {crawlJob && (
             <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
@@ -2684,8 +2726,9 @@ export default function ProjectDetail() {
                     if (res.ok) setWebsiteContent(await res.json());
                   } catch {}
                   setContentLoading(false);
-                }} style={{ padding: '8px 18px', background: contentLoading ? 'var(--text-tertiary)' : 'var(--bg-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: contentLoading ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
-                  Multi-Page Scrape
+                }} style={{ padding: '8px 18px', background: contentLoading ? 'var(--text-tertiary)' : 'var(--bg-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: contentLoading ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}
+                  title={websiteContent.length > 0 ? `${websiteContent.length} Seiten gespeichert` : 'Alle Seiten crawlen und Inhalte extrahieren'}>
+                  {websiteContent.length > 0 ? '🔄 Multi-Page neu' : 'Multi-Page Scrape'}
                 </button>
               </div>
             </div>

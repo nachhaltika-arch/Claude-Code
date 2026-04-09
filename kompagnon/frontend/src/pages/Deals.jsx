@@ -20,7 +20,31 @@ export default function Deals() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingDeal, setEditingDeal] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const h = { Authorization: `Bearer ${token}` };
+
+  const handleDeleteDeal = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/deals/${deleteConfirm.id}`, {
+        method: 'DELETE', headers: h,
+      });
+      if (!res.ok) throw new Error('Löschen fehlgeschlagen');
+      toast.success(`Deal "${deleteConfirm.title}" gelöscht`);
+      setDeleteConfirm(null);
+      // Auch das Edit-Modal schließen falls es offen ist für genau diesen Deal
+      if (editingDeal?.id === deleteConfirm.id) {
+        setShowModal(false);
+        setEditingDeal(null);
+      }
+      loadDeals();
+    } catch (e) {
+      toast.error(e.message);
+    }
+    setDeleting(false);
+  };
 
   const loadDeals = useCallback(async () => {
     setLoading(true);
@@ -129,6 +153,7 @@ export default function Deals() {
                       padding: '12px 14px',
                       cursor: 'pointer',
                       transition: 'all 0.15s',
+                      position: 'relative',
                     }}
                     onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--brand-primary)'}
                     onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-light)'}
@@ -138,7 +163,7 @@ export default function Deals() {
                         {deal.company_name}
                       </div>
                     )}
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 6, lineHeight: 1.3 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 6, lineHeight: 1.3, paddingRight: 20 }}>
                       {deal.title}
                     </div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand-primary)' }}>
@@ -149,6 +174,38 @@ export default function Deals() {
                         {deal.created_at.slice(0, 10)}
                       </div>
                     )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteConfirm({ id: deal.id, title: deal.title });
+                      }}
+                      title="Deal löschen"
+                      style={{
+                        position: 'absolute', top: 8, right: 8,
+                        width: 22, height: 22,
+                        background: 'none', border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--text-tertiary)',
+                        fontSize: 14, lineHeight: 1,
+                        borderRadius: 4,
+                        opacity: 0.5,
+                        transition: 'opacity 0.15s, background 0.15s, color 0.15s',
+                        fontFamily: 'var(--font-sans)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.opacity = '1';
+                        e.currentTarget.style.background = 'var(--status-danger-bg)';
+                        e.currentTarget.style.color = 'var(--status-danger-text)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.opacity = '0.5';
+                        e.currentTarget.style.background = 'none';
+                        e.currentTarget.style.color = 'var(--text-tertiary)';
+                      }}
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
@@ -163,14 +220,113 @@ export default function Deals() {
           deal={editingDeal}
           onClose={() => { setShowModal(false); setEditingDeal(null); }}
           onSaved={() => { setShowModal(false); setEditingDeal(null); loadDeals(); }}
+          onRequestDelete={() => setDeleteConfirm({ id: editingDeal.id, title: editingDeal.title || 'Dieser Deal' })}
         />
+      )}
+
+      {/* Delete-Confirmation Dialog */}
+      {deleteConfirm && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: 0, right: 0, bottom: 0, left: 0,
+            zIndex: 2100,
+            background: 'rgba(15, 28, 32, 0.55)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 20,
+            animation: 'dealOverlayIn 0.18s ease',
+          }}
+          onClick={() => !deleting && setDeleteConfirm(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              background: 'var(--bg-surface)',
+              borderRadius: 16,
+              padding: '28px 32px',
+              maxWidth: 400,
+              width: '100%',
+              textAlign: 'center',
+              boxShadow: '0 32px 80px rgba(0,0,0,0.28), 0 8px 24px rgba(0,0,0,0.14)',
+              animation: 'dealModalIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            }}
+          >
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%',
+              background: 'var(--status-danger-bg)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 26, margin: '0 auto 16px',
+            }}>
+              🗑️
+            </div>
+            <h3 style={{
+              fontSize: 17, fontWeight: 700,
+              color: 'var(--text-primary)', margin: '0 0 8px',
+              fontFamily: 'var(--font-sans)',
+            }}>
+              Deal löschen?
+            </h3>
+            <p style={{
+              fontSize: 13, color: 'var(--text-primary)',
+              margin: '0 0 6px', lineHeight: 1.55,
+              fontFamily: 'var(--font-sans)',
+            }}>
+              <strong>{deleteConfirm.title}</strong>
+            </p>
+            <p style={{
+              fontSize: 12, color: 'var(--text-tertiary)',
+              margin: '0 0 24px', lineHeight: 1.6,
+              fontFamily: 'var(--font-sans)',
+            }}>
+              Alle Positionen werden ebenfalls gelöscht.
+              Diese Aktion kann nicht rückgängig gemacht werden.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleting}
+                style={{
+                  flex: 1, padding: '10px 0',
+                  background: 'var(--bg-app)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-medium)',
+                  borderRadius: 8, fontSize: 13, fontWeight: 500,
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleDeleteDeal}
+                disabled={deleting}
+                style={{
+                  flex: 1, padding: '10px 0',
+                  background: 'var(--status-danger-text)',
+                  color: '#fff',
+                  border: 'none', borderRadius: 8,
+                  fontSize: 13, fontWeight: 700,
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                  opacity: deleting ? 0.6 : 1,
+                }}
+              >
+                {deleting ? 'Löschen…' : 'Ja, löschen'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
 }
 
 
-function DealModal({ deal, onClose, onSaved }) {
+function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
   const { token } = useAuth();
   const [form, setForm] = useState(deal);
   const [companies, setCompanies] = useState([]);
@@ -245,13 +401,10 @@ function DealModal({ deal, onClose, onSaved }) {
     setSaving(false);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!isEdit) return;
-    if (!window.confirm('Deal wirklich löschen?')) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/deals/${deal.id}`, { method: 'DELETE', headers: h });
-      if (res.ok) { toast.success('Deal gelöscht'); onSaved(); }
-    } catch {}
+    // Delegate to parent confirmation dialog
+    if (onRequestDelete) onRequestDelete();
   };
 
   const createProject = async () => {

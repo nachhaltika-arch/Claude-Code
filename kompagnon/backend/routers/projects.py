@@ -13,9 +13,39 @@ GET /api/projects/{id}/margin - Get margin
 import logging
 import threading
 import os
+import json as _json_mod
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 logger = logging.getLogger(__name__)
+
+
+def safe_json_parse(raw, default=None):
+    """Gibt ein Python-Objekt zurück egal ob die DB den Wert als String
+    oder bereits als dict/list liefert (PostgreSQL JSONB-Spalten kommen
+    oft schon geparst zurück).
+
+    - None / leer     → default
+    - dict / list     → direkt zurück
+    - str/bytes       → json.loads()
+    - JSONDecodeError → default (mit Log)
+    - Sonst           → default
+    """
+    if raw is None or raw == "":
+        return default
+    if isinstance(raw, (dict, list)):
+        return raw
+    if isinstance(raw, (bytes, bytearray)):
+        try:
+            raw = raw.decode("utf-8")
+        except Exception:
+            return default
+    if isinstance(raw, str):
+        try:
+            return _json_mod.loads(raw)
+        except _json_mod.JSONDecodeError as e:
+            logger.warning(f"safe_json_parse: {e} (len={len(raw)}, tail={raw[-80:]!r})")
+            return default
+    return default
 
 
 def _get_fernet():
@@ -1856,33 +1886,37 @@ async def run_project_qa(project_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{project_id}/qa/result")
 def get_qa_result(project_id: int, db: Session = Depends(get_db)):
-    """Gibt das zuletzt gespeicherte QA-Ergebnis zurück."""
-    import json as _json
-
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
-        return {"status": "no_result", "message": "Projekt nicht gefunden"}
-    if not project.qa_result:
-        return {"status": "no_result", "message": "Noch kein QA-Scan für dieses Projekt"}
-
+    """Gibt das zuletzt gespeicherte QA-Ergebnis zurück.
+    Funktioniert egal ob qa_result als Text-JSON oder JSONB-Dict kommt.
+    """
     try:
-        parsed = _json.loads(project.qa_result)
-    except _json.JSONDecodeError as e:
-        logger.error(f"QA Result JSON Parse Fehler Projekt {project_id}: {e}")
-        logger.error(f"JSON Länge: {len(project.qa_result)}, Ende: ...{project.qa_result[-200:]}")
-        return {
-            "status": "parse_error",
-            "message": f"QA-Ergebnis konnte nicht gelesen werden: {e}",
-            "score": project.qa_score,
-            "run_at": str(project.qa_run_at)[:16] if project.qa_run_at else None,
-        }
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project:
+            return {"status": "no_result", "message": "Projekt nicht gefunden"}
+        if not project.qa_result:
+            return {"status": "no_result", "message": "Noch kein QA-Scan für dieses Projekt"}
 
-    return {
-        "score": project.qa_score,
-        "golive_ok": project.qa_golive_ok,
-        "run_at": str(project.qa_run_at)[:16] if project.qa_run_at else None,
-        "result": parsed,
-    }
+        parsed = safe_json_parse(project.qa_result, default=None)
+        if parsed is None:
+            return {
+                "status": "parse_error",
+                "message": "QA-Ergebnis konnte nicht gelesen werden",
+                "score": project.qa_score,
+                "run_at": str(project.qa_run_at)[:16] if project.qa_run_at else None,
+            }
+
+        return {
+            "score": project.qa_score,
+            "golive_ok": project.qa_golive_ok,
+            "run_at": str(project.qa_run_at)[:16] if project.qa_run_at else None,
+            "result": parsed,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        logger.error(f"QA-Result unerwarteter Fehler: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/{project_id}/credentials")
@@ -2043,12 +2077,7 @@ def get_sitemap(
     ).fetchone()
     if not row:
         raise HTTPException(404, "Projekt nicht gefunden")
-    seiten = []
-    if row[0]:
-        try:
-            seiten = json.loads(row[0])
-        except Exception:
-            seiten = []
+    seiten = safe_json_parse(row[0], default=[])
     return {
         "seiten":           seiten,
         "sitemap_freigabe": str(row[1])[:16] if row[1] else None,
@@ -2139,12 +2168,7 @@ def request_approval(
     customer_email = row[2] or ""
     company_name   = row[3] or "Kunde"
 
-    freigaben = {}
-    if row[1]:
-        try:
-            freigaben = json.loads(row[1])
-        except Exception:
-            freigaben = {}
+    freigaben = safe_json_parse(row[1], default={}) or {}
 
     now_str = datetime.utcnow().strftime("%d.%m.%Y %H:%M")
 
@@ -2231,12 +2255,7 @@ def confirm_approval(
     if not row:
         raise HTTPException(404, "Nicht gefunden")
 
-    freigaben = {}
-    if row[0]:
-        try:
-            freigaben = json.loads(row[0])
-        except Exception:
-            freigaben = {}
+    freigaben = safe_json_parse(row[0], default={}) or {}
 
     now_str = datetime.utcnow().strftime("%d.%m.%Y %H:%M")
     if seite_id in freigaben:

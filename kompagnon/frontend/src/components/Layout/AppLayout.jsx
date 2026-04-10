@@ -75,6 +75,16 @@ const icons = {
       <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3"/><path d="M10.5 11.5L14 8l-3.5-3.5"/><path d="M14 8H6"/>
     </svg>
   ),
+  menu: (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+      <line x1="3" y1="5" x2="15" y2="5"/><line x1="3" y1="9" x2="15" y2="9"/><line x1="3" y1="13" x2="15" y2="13"/>
+    </svg>
+  ),
+  gear: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/>
+    </svg>
+  ),
 };
 
 // ── Nav structure ──────────────────────────────────────────────
@@ -164,12 +174,36 @@ const PAGE_NAMES = {
   '/app/pages':           'Seiten-Manager',
 };
 
-const MOBILE_TABS = [
-  { label: 'Dashboard', path: '/app/dashboard', icon: 'grid' },
-  { label: 'Deals', path: '/app/deals', icon: 'chart' },
-  { label: 'Projekte', path: '/app/leads', icon: 'users' },
-  { label: 'Audit', path: '/app/audit', icon: 'docCheck' },
-  { label: 'Tickets', path: '/app/tickets', icon: 'key' },
+function getMobileTabs(role, leadId) {
+  if (role === 'kunde') {
+    return [
+      { label: 'Start', path: '/app/dashboard', icon: 'grid' },
+      { label: 'Mein Projekt', path: leadId ? `/app/leads/${leadId}` : '/app/dashboard', icon: 'users' },
+      { label: 'Einstellungen', path: '/app/settings', icon: 'gear' },
+    ];
+  }
+  return [
+    { label: 'Dashboard', path: '/app/dashboard', icon: 'grid' },
+    { label: 'Projekte', path: '/app/projects', icon: 'users' },
+    { label: 'Vertrieb', path: '/app/deals', icon: 'chart' },
+    { label: 'Audit', path: '/app/audit', icon: 'docCheck' },
+    { label: 'Mehr', path: '__more__', icon: 'menu' },
+  ];
+}
+
+const MORE_ITEMS = [
+  { label: 'Unternehmen', path: '/app/companies', icon: '🏢' },
+  { label: 'Newsletter', path: '/app/newsletter', icon: '📧' },
+  { label: 'Tickets', path: '/app/tickets', icon: '🎫' },
+  { label: 'Akademie', path: '/app/academy', icon: '🎓' },
+  { label: 'Einstellungen', path: '/app/settings', icon: '⚙️' },
+  { label: 'Profil', path: '/app/profile', icon: '👤' },
+];
+
+const MORE_ITEMS_ADMIN = [
+  ...MORE_ITEMS,
+  { label: 'Produkteditor', path: '/app/product-editor', icon: '🛒' },
+  { label: 'Domain Import', path: '/app/import', icon: '⬆️' },
 ];
 
 // ── Sidebar ────────────────────────────────────────────────────
@@ -479,39 +513,93 @@ function Topbar({ breadcrumbs = [], ctaLabel, ctaAction }) {
 function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  const role = user?.role || 'nutzer';
+  const tabs = getMobileTabs(role, user?.lead_id);
+  const moreItems = role === 'admin' ? MORE_ITEMS_ADMIN : MORE_ITEMS;
+
+  const isActive = (path) => {
+    if (path === '__more__') return false;
+    return location.pathname === path || location.pathname.startsWith(path + '/');
+  };
+
+  const handleTab = (path) => {
+    if (path === '__more__') { setMoreOpen(v => !v); return; }
+    setMoreOpen(false);
+    navigate(path);
+  };
+
+  useEffect(() => { setMoreOpen(false); }, [location.pathname]);
 
   return (
-    <nav style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0,
-      background: 'var(--bg-surface)',
-      borderTop: '1px solid var(--border-light)',
-      display: 'flex', justifyContent: 'space-around',
-      height: 'calc(56px + env(safe-area-inset-bottom))',
-      paddingBottom: 'env(safe-area-inset-bottom)',
-      alignItems: 'flex-start',
-      paddingTop: 8,
-      zIndex: 100,
-    }}>
-      {MOBILE_TABS.map((tab) => {
-        const active = location.pathname === tab.path || location.pathname.startsWith(tab.path + '/');
-        return (
-          <button
-            key={tab.path}
-            onClick={() => navigate(tab.path)}
-            style={{
+    <>
+      {/* Mehr-Drawer */}
+      {moreOpen && (
+        <>
+          <div onClick={() => setMoreOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 98, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(2px)' }} />
+          <div style={{
+            position: 'fixed', bottom: 'calc(56px + env(safe-area-inset-bottom))',
+            left: 0, right: 0, zIndex: 99,
+            background: 'var(--bg-surface)', borderTop: '1px solid var(--border-light)',
+            borderRadius: 'var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0',
+            padding: '16px 16px 8px',
+            boxShadow: '0 -8px 32px rgba(0,0,0,0.12)',
+          }}>
+            <div style={{ width: 36, height: 4, background: 'var(--border-medium)', borderRadius: 2, margin: '-8px auto 16px' }} />
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Weitere Bereiche</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+              {moreItems.map(item => {
+                const active = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                return (
+                  <button key={item.path} onClick={() => { navigate(item.path); setMoreOpen(false); }} style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                    padding: '12px 6px', background: active ? 'var(--brand-primary-light)' : 'var(--bg-app)',
+                    border: active ? '1px solid var(--brand-primary-mid, var(--border-light))' : '1px solid transparent',
+                    borderRadius: 'var(--radius-lg)', cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 72,
+                  }}>
+                    <span style={{ fontSize: 22 }}>{item.icon}</span>
+                    <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? 'var(--brand-primary-dark)' : 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.3 }}>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Bottom Bar */}
+      <nav style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        background: 'var(--bg-surface)', borderTop: '1px solid var(--border-light)',
+        display: 'flex', justifyContent: 'space-around',
+        height: 'calc(56px + env(safe-area-inset-bottom))',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        alignItems: 'flex-start', paddingTop: 8, zIndex: 100,
+      }}>
+        {tabs.map((tab) => {
+          const active = tab.path === '__more__' ? moreOpen : isActive(tab.path);
+          return (
+            <button key={tab.path} onClick={() => handleTab(tab.path)} style={{
               background: 'none', border: 'none',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              padding: '4px 8px', cursor: 'pointer', minWidth: 48,
+              padding: '4px 8px', cursor: 'pointer', minWidth: 48, flex: 1,
               color: active ? 'var(--brand-primary)' : 'var(--text-tertiary)',
               transition: 'color var(--transition-fast)',
-            }}
-          >
-            <span style={{ display: 'flex' }}>{icons[tab.icon]}</span>
-            <span style={{ fontSize: 10, fontWeight: active ? 600 : 400 }}>{tab.label}</span>
-          </button>
-        );
-      })}
-    </nav>
+            }}>
+              <span style={{ display: 'flex', position: 'relative' }}>
+                {icons[tab.icon]}
+                {tab.path === '__more__' && moreOpen && (
+                  <span style={{ position: 'absolute', top: -2, right: -2, width: 6, height: 6, borderRadius: '50%', background: 'var(--brand-primary)' }} />
+                )}
+              </span>
+              <span style={{ fontSize: 10, fontWeight: active ? 700 : 400 }}>{tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    </>
   );
 }
 

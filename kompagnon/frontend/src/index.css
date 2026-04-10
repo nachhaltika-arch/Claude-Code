@@ -46,108 +46,93 @@ input, select, textarea { font-family: inherit; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   LEGACY kc-* VARIABLES (backward compat for pages not yet migrated)
+   LEGACY kc-* ALIASES → modern token system (tokens.css)
+   Alle --kc-* zeigen jetzt auf --brand-*/--text-*/--bg-*
+   Dadurch: automatischer Dark-Mode für alle Legacy-Komponenten.
+   JSX-Dateien können schrittweise migriert werden.
    ══════════════════════════════════════════════════════════════ */
 
 :root {
-  --kc-anthrazit: #002535;
-  --kc-anthrazit-80: #003d52;
-  --kc-anthrazit-20: #a0e0ea;
-  --kc-rot: #008EAA;
-  --kc-rot-hover: #007090;
-  --kc-rot-subtle: #f0fafa;
-  --kc-weiss: #FFFFFF;
-  --kc-hell: #f8fafc;
-  --kc-mittel: #64748b;
-  --kc-rand: #e2e8f0;
-  --kc-text-primaer: #0f172a;
-  --kc-text-sekundaer: #475569;
-  --kc-text-subtil: #64748b;
-  --kc-text-invers: #FFFFFF;
-  --kc-success: #16a34a;
-  --kc-warning: #ea580c;
-  --kc-info: #0284c7;
-  --kc-font-display: 'DM Sans', system-ui, sans-serif;
-  --kc-font-body: 'DM Sans', system-ui, sans-serif;
-  --kc-font-mono: 'DM Mono', monospace;
-  --kc-text-xs: 0.75rem;
-  --kc-text-sm: 0.875rem;
+  /* Farben → brand tokens */
+  --kc-rot:            var(--brand-primary);
+  --kc-rot-hover:      var(--brand-primary-dark);
+  --kc-rot-subtle:     var(--brand-primary-light);
+
+  /* Hintergründe → bg tokens */
+  --kc-weiss:          var(--bg-surface);
+  --kc-hell:           var(--bg-app);
+
+  /* Text → text tokens */
+  --kc-anthrazit:      var(--text-primary);
+  --kc-anthrazit-80:   var(--text-secondary);
+  --kc-anthrazit-20:   var(--text-tertiary);
+  --kc-text-primaer:   var(--text-primary);
+  --kc-text-sekundaer: var(--text-secondary);
+  --kc-text-subtil:    var(--text-tertiary);
+  --kc-text-invers:    var(--text-inverse);
+  --kc-mittel:         var(--text-tertiary);
+
+  /* Rahmen → border tokens */
+  --kc-rand:           var(--border-light);
+
+  /* Status → status tokens */
+  --kc-success:        var(--status-success-text);
+  --kc-warning:        var(--status-warning-text);
+  --kc-info:           var(--status-info-text);
+
+  /* Typografie → font tokens */
+  --kc-font-display: var(--font-sans);
+  --kc-font-body:    var(--font-sans);
+  --kc-font-mono:    var(--font-mono);
+
+  /* Größen → unveränderlich, bleiben als Werte */
+  --kc-text-xs:   0.75rem;
+  --kc-text-sm:   0.875rem;
   --kc-text-base: 1rem;
-  --kc-text-lg: 1.125rem;
-  --kc-text-xl: 1.25rem;
-  --kc-text-2xl: 1.5rem;
-  --kc-text-3xl: 1.875rem;
-  --kc-text-4xl: 2.25rem;
-  --kc-leading-tight: 1.2;
-  --kc-leading-normal: 1.6;
+  --kc-text-lg:   1.125rem;
+  --kc-text-xl:   1.25rem;
+  --kc-text-2xl:  1.5rem;
+  --kc-text-3xl:  1.875rem;
+  --kc-text-4xl:  2.25rem;
+
+  --kc-leading-tight:   1.2;
+  --kc-leading-normal:  1.6;
   --kc-leading-relaxed: 1.75;
-  --kc-tracking-tight: -0.02em;
-  --kc-tracking-normal: 0em;
-  --kc-tracking-wide: 0.05em;
-  --kc-tracking-wider: 0.1em;
-  --kc-space-1: 0.25rem;
-  --kc-space-2: 0.5rem;
-  --kc-space-3: 0.75rem;
-  --kc-space-4: 1rem;
-  --kc-space-6: 1.5rem;
-  --kc-space-8: 2rem;
+
+  --kc-tracking-tight:  -0.02em;
+  --kc-tracking-normal:  0em;
+  --kc-tracking-wide:    0.05em;
+  --kc-tracking-wider:   0.1em;
+
+  --kc-space-1:  0.25rem;
+  --kc-space-2:  0.5rem;
+  --kc-space-3:  0.75rem;
+  --kc-space-4:  1rem;
+  --kc-space-6:  1.5rem;
+  --kc-space-8:  2rem;
   --kc-space-10: 2.5rem;
   --kc-space-12: 3rem;
   --kc-space-16: 4rem;
   --kc-space-20: 5rem;
-  --kc-container-xl: 1280px;
+
+  --kc-container-xl:  1280px;
   --kc-container-pad: clamp(1rem, 5vw, 4rem);
-  --kc-radius-sm: 2px;
-  --kc-radius-md: 6px;
-  --kc-radius-lg: 12px;
+
+  --kc-radius-sm:   2px;
+  --kc-radius-md:   6px;
+  --kc-radius-lg:   12px;
   --kc-radius-full: 9999px;
+
   --kc-transition-fast: 0.15s ease;
   --kc-transition-base: 0.25s ease;
   --kc-transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── kc-* dark mode overrides ──────────────────────────────── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --kc-weiss:          #1a2e35;
-    --kc-hell:           #0f1c20;
-    --kc-rot:            #40c4df;
-    --kc-rot-hover:      #30a0b8;
-    --kc-rot-subtle:     #0f2a35;
-    --kc-anthrazit:      #f0f4f5;
-    --kc-text-primaer:   #f0f4f5;
-    --kc-text-sekundaer: #a8c0c8;
-    --kc-text-subtil:    #6a8f9a;
-    --kc-rand:           rgba(64, 196, 223, 0.20);
-    --kc-mittel:         #6a8f9a;
-  }
-}
-[data-theme="dark"] {
-  --kc-weiss:          #1a2e35;
-  --kc-hell:           #0f1c20;
-  --kc-rot:            #40c4df;
-  --kc-rot-hover:      #30a0b8;
-  --kc-rot-subtle:     #0f2a35;
-  --kc-anthrazit:      #f0f4f5;
-  --kc-text-primaer:   #f0f4f5;
-  --kc-text-sekundaer: #a8c0c8;
-  --kc-text-subtil:    #6a8f9a;
-  --kc-rand:           rgba(64, 196, 223, 0.20);
-  --kc-mittel:         #6a8f9a;
-}
-[data-theme="light"] {
-  --kc-weiss:          #FFFFFF;
-  --kc-hell:           #f8fafc;
-  --kc-rot:            #008EAA;
-  --kc-rot-hover:      #007090;
-  --kc-rot-subtle:     #f0fafa;
-  --kc-anthrazit:      #002535;
-  --kc-text-primaer:   #0f172a;
-  --kc-text-sekundaer: #475569;
-  --kc-text-subtil:    #64748b;
-  --kc-rand:           #e2e8f0;
-  --kc-mittel:         #64748b;
-}
+/*
+  KEIN separater Dark-Mode-Override für --kc-* mehr nötig.
+  Da alle --kc-* auf --bg-*/--text-*/--brand-* zeigen,
+  übernimmt tokens.css automatisch die Dark-Mode-Werte.
+*/
 
 /* ── Global form element styles ────────────────────────────── */
 input, select, textarea {

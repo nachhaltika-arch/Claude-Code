@@ -631,6 +631,8 @@ export default function ProjectDetail() {
   const [crawlJob, setCrawlJob] = useState(null);
   const [crawlResults, setCrawlResults] = useState([]);
   const [crawlLoading, setCrawlLoading] = useState(false);
+  const [crawlElapsed, setCrawlElapsed] = useState(0);
+  const crawlIntervalRef = useRef(null);
   const [crawlSort, setCrawlSort] = useState({ col: 'crawled_at', asc: true });
   const [crawlExpandedRow, setCrawlExpandedRow] = useState(null);
   // Sitemap
@@ -3009,32 +3011,64 @@ export default function ProjectDetail() {
             <button
               disabled={crawlLoading}
               onClick={async () => {
-                if (!project?.lead_id) return;
+                if (!project?.lead_id || crawlLoading) return;
                 setCrawlLoading(true);
+                setCrawlElapsed(0);
+                let elapsed = 0;
+                if (crawlIntervalRef.current) clearInterval(crawlIntervalRef.current);
+                crawlIntervalRef.current = setInterval(() => { elapsed += 1; setCrawlElapsed(elapsed); }, 1000);
                 try {
                   const lead = await fetch(`${API_BASE_URL}/api/leads/${project.lead_id}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
                   const url = lead.website_url || '';
-                  if (!url) { setCrawlLoading(false); return; }
+                  if (!url) { setCrawlLoading(false); clearInterval(crawlIntervalRef.current); return; }
                   await fetch(`${API_BASE_URL}/api/crawler/start/${project.lead_id}`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                     body: JSON.stringify({ url, max_pages: 50 }),
                   });
-                  // Poll status
                   const poll = setInterval(async () => {
                     const s = await fetch(`${API_BASE_URL}/api/crawler/status/${project.lead_id}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+                    setCrawlJob(s);
                     if (s.status === 'completed' || s.status === 'failed') {
                       clearInterval(poll);
-                      setCrawlJob(s);
+                      clearInterval(crawlIntervalRef.current);
                       setCrawlLoading(false);
                       const res = await fetch(`${API_BASE_URL}/api/crawler/results/${project.lead_id}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
                       setCrawlResults(res.results || []);
                     }
                   }, 3000);
-                } catch { setCrawlLoading(false); }
+                } catch { setCrawlLoading(false); clearInterval(crawlIntervalRef.current); }
               }}
-              style={{ padding: '8px 18px', background: crawlLoading ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: crawlLoading ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}
-            >{crawlLoading ? 'Crawlt…' : crawlResults.length > 0 ? '🔄 Neu crawlen' : 'Crawl starten'}</button>
+              style={{ padding: '8px 18px', background: crawlLoading ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: crawlLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}
+            >{crawlLoading ? (<><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.7s linear infinite' }} />Analysiert…</>) : crawlResults.length > 0 ? '🔄 Neu crawlen' : 'Crawl starten'}</button>
           </div>
+
+          {/* Progress Box */}
+          {crawlLoading && (() => {
+            const elapsed = crawlJob?.duration_seconds ?? crawlElapsed;
+            const found = crawlJob?.total_urls || 0;
+            const phase = elapsed < 5 ? { icon: '🔌', text: 'Verbindung wird aufgebaut…' }
+              : elapsed < 15 ? { icon: '🏠', text: 'Startseite wird analysiert…' }
+              : elapsed < 30 ? { icon: '🔗', text: `Links werden entdeckt — ${found} URLs bisher` }
+              : elapsed < 45 ? { icon: '📄', text: `Unterseiten durchsucht — ${found} URLs gecrawlt` }
+              : { icon: '⚡', text: `Tiefe Analyse — ${found} URLs, Abschluss in Kürze` };
+            return (
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--brand-primary-light)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--brand-primary-dark)', fontWeight: 500 }}>
+                  <span style={{ fontSize: 18 }}>{phase.icon}</span><span>{phase.text}</span>
+                </div>
+                <div>
+                  <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${Math.min(95, (elapsed / 44) * 100)}%`, background: 'var(--brand-primary)', borderRadius: 3, transition: 'width 1s linear' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 5 }}>
+                    <span>{found > 0 ? `${found} URLs gefunden` : 'Suche läuft…'}</span>
+                    <span>{elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {crawlJob && (
             <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
               <div style={{ padding: '8px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12 }}>

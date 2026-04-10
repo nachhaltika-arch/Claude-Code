@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -156,6 +156,8 @@ export default function LeadProfile() {
   const [crawlJob, setCrawlJob] = useState(null);
   const [crawlResults, setCrawlResults] = useState([]);
   const [crawlLoading, setCrawlLoading] = useState(false);
+  const [crawlElapsed, setCrawlElapsed] = useState(0);
+  const crawlIntervalRef = useRef(null);
   const [crawlSort, setCrawlSort] = useState({ col: 'crawled_at', asc: true });
   const [crawlExpandedRow, setCrawlExpandedRow] = useState(null);
   // Domains
@@ -2069,21 +2071,25 @@ export default function LeadProfile() {
         };
         const startCrawl = () => {
           const url = lead?.website_url;
-          if (!url) return;
+          if (!url || crawlLoading || crawlJob?.status === 'running') return;
           setCrawlLoading(true);
+          setCrawlElapsed(0);
+          let elapsed = 0;
+          if (crawlIntervalRef.current) clearInterval(crawlIntervalRef.current);
+          crawlIntervalRef.current = setInterval(() => { elapsed += 1; setCrawlElapsed(elapsed); }, 1000);
           fetch(`${API_BASE_URL}/api/crawler/start/${leadId}`, {
             method: 'POST', headers: h,
             body: JSON.stringify({ url, max_pages: 50 }),
           }).then(r => r.json()).then(d => {
             setCrawlJob(d);
             setCrawlResults([]);
-            // Poll while running
             const interval = setInterval(() => {
               fetch(`${API_BASE_URL}/api/crawler/status/${leadId}`, { headers: h })
                 .then(r => r.json()).then(status => {
                   setCrawlJob(status);
                   if (status.status === 'completed' || status.status === 'failed') {
                     clearInterval(interval);
+                    clearInterval(crawlIntervalRef.current);
                     setCrawlLoading(false);
                     if (status.status === 'completed') {
                       fetch(`${API_BASE_URL}/api/crawler/results/${leadId}`, { headers: h })
@@ -2092,7 +2098,7 @@ export default function LeadProfile() {
                   }
                 });
             }, 3000);
-          }).catch(e => { console.error(e); setCrawlLoading(false); });
+          }).catch(e => { console.error(e); setCrawlLoading(false); clearInterval(crawlIntervalRef.current); });
         };
 
         if (!crawlJob && !crawlLoading) loadCrawlStatus();
@@ -2127,14 +2133,55 @@ export default function LeadProfile() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🕷️ Website-Crawler</div>
               <button onClick={startCrawl} disabled={crawlLoading || crawlJob?.status === 'running'} style={{
-                padding: '8px 18px', background: '#16a34a', color: 'white',
+                padding: '8px 18px', background: (crawlLoading || crawlJob?.status === 'running') ? 'var(--border-medium)' : '#16a34a', color: 'white',
                 border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 700,
-                cursor: crawlLoading || crawlJob?.status === 'running' ? 'not-allowed' : 'pointer',
-                fontFamily: 'var(--font-sans)', opacity: crawlLoading || crawlJob?.status === 'running' ? 0.7 : 1,
+                cursor: (crawlLoading || crawlJob?.status === 'running') ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6,
               }}>
-                {crawlJob?.status === 'running' ? '⏳ Läuft…' : '▶ Crawler starten'}
+                {(crawlLoading || crawlJob?.status === 'running') ? (
+                  <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.7s linear infinite' }} />Analysiert…</>
+                ) : '▶ Crawler starten'}
               </button>
             </div>
+
+            {/* Progress Box — nur während Crawler läuft */}
+            {(crawlJob?.status === 'running' || (crawlLoading && !crawlJob)) && (() => {
+              const elapsed = crawlJob?.duration_seconds ?? crawlElapsed;
+              const found = crawlJob?.total_urls || 0;
+              const phase = elapsed < 5 ? { icon: '🔌', text: 'Verbindung wird aufgebaut…' }
+                : elapsed < 15 ? { icon: '🏠', text: 'Startseite wird analysiert…' }
+                : elapsed < 30 ? { icon: '🔗', text: `Links werden entdeckt — ${found} URLs bisher` }
+                : elapsed < 45 ? { icon: '📄', text: `Unterseiten durchsucht — ${found} URLs gecrawlt` }
+                : { icon: '⚡', text: `Tiefe Analyse — ${found} URLs, Abschluss in Kürze` };
+              return (
+                <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--brand-primary-mid, var(--border-light))', borderRadius: 'var(--radius-lg)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--brand-primary-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Crawler analysiert {lead?.website_url?.replace(/^https?:\/\//, '').split('/')[0]}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Seiten werden automatisch entdeckt und analysiert</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--brand-primary-light)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--brand-primary-dark)', fontWeight: 500 }}>
+                    <span style={{ fontSize: 18 }}>{phase.icon}</span><span>{phase.text}</span>
+                  </div>
+                  <div>
+                    <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${Math.min(95, (elapsed / 44) * 100)}%`, background: 'var(--brand-primary)', borderRadius: 3, transition: 'width 1s linear' }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 5 }}>
+                      <span>{found > 0 ? `${found} URLs gefunden` : 'Suche läuft…'}</span>
+                      <span>{elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`}</span>
+                    </div>
+                  </div>
+                  {elapsed > 35 && (
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', padding: '8px 12px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                      Große Websites dauern bis zu 60 Sekunden. Die Analyse läuft im Hintergrund — kein erneuter Klick nötig.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Status cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>

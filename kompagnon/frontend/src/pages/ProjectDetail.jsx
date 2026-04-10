@@ -691,7 +691,10 @@ export default function ProjectDetail() {
   useEffect(() => {
     if (activeTab === 'zugangsdaten') loadCreds();
     if (activeTab === 'postlaunch')   loadGbpData();
-  }, [activeTab]); // eslint-disable-line
+    if ((activeTab === 'sitemap' || activeSubTab === 'sitemap') && project?.lead_id && !sitemapLoaded) {
+      loadSitemapPages();
+    }
+  }, [activeTab, activeSubTab]); // eslint-disable-line
 
   const saveCred = async () => {
     if (!credForm.label.trim()) {
@@ -1998,14 +2001,297 @@ export default function ProjectDetail() {
         <PageSpeedSection leadId={project.lead_id} />
       )}
 
-      {/* ── Sitemap Tab ─────────────────────────────────────────────────────── */}
-      {activeTab === 'sitemap' && (
-        <div className="kc-card" style={{ padding: '20px' }}>
-          <SitemapPlaner
-            projectId={id}
-            leadId={project.lead_id}
-            token={localStorage.getItem('kompagnon_token')}
-          />
+      {/* ── Sitemap Tab — vollständiger Sitemap-Manager ───────────────── */}
+      {(activeSubTab === 'sitemap' || activeTab === 'sitemap') && project?.lead_id && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* ── HEADER-AKTIONEN ── */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                Website-Seiten
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                {sitemapPages.filter(p => !p.ist_pflichtseite).length} Inhaltsseiten ·{' '}
+                {sitemapPages.filter(p => p.ist_pflichtseite).length} Pflichtseiten
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setKiConfirm(true)}
+                disabled={kiGenerating}
+                style={{
+                  padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border-light)',
+                  background: 'var(--bg-surface)', color: 'var(--text-primary)',
+                  fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                {kiGenerating ? '⏳ KI generiert…' : '🤖 KI-Sitemap'}
+              </button>
+              <button
+                onClick={() => setAddPageOpen(true)}
+                style={{
+                  padding: '7px 14px', borderRadius: 8, border: 'none',
+                  background: '#008eaa', color: 'white',
+                  fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                + Seite hinzufügen
+              </button>
+            </div>
+          </div>
+
+          {/* ── KI-BESTÄTIGUNG ── */}
+          {kiConfirm && (
+            <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 8, padding: '12px 16px', fontSize: 13 }}>
+              ⚠️ KI-Sitemap überschreibt alle bestehenden Seiten. Fortfahren?{' '}
+              <button onClick={generateKI} style={{ marginLeft: 12, padding: '4px 12px', background: '#ffc107', border: 'none', borderRadius: 6, fontWeight: 700, cursor: 'pointer' }}>Ja, generieren</button>
+              <button onClick={() => setKiConfirm(false)} style={{ marginLeft: 8, padding: '4px 12px', background: 'transparent', border: '1px solid #999', borderRadius: 6, cursor: 'pointer' }}>Abbrechen</button>
+            </div>
+          )}
+
+          {/* ── SEITEN LISTE + DETAIL (zweispaltig) ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: selectedPageId ? '1fr 360px' : '1fr', gap: 16, alignItems: 'start' }}>
+
+            {/* LINKE SPALTE: Seitenliste */}
+            <div style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border-light)', borderRadius: 12, overflow: 'hidden' }}>
+              {/* Tabellen-Header */}
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 100px 160px 140px', gap: 8, padding: '8px 16px', background: 'var(--bg-app)', borderBottom: '0.5px solid var(--border-light)', fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                <div>Seite</div>
+                <div>Typ</div>
+                <div>Ziel-Keyword</div>
+                <div>Aktion</div>
+              </div>
+
+              {sitemapLoading && (
+                <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>Seiten werden geladen…</div>
+              )}
+
+              {!sitemapLoading && sitemapPages.length === 0 && (
+                <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
+                  Noch keine Seiten. Klicke auf „+ Seite hinzufügen" oder nutze die KI-Sitemap.
+                </div>
+              )}
+
+              {!sitemapLoading && sitemapPages
+                .slice()
+                .sort((a, b) => a.position - b.position)
+                .map((page, idx, arr) => {
+                  const isSelected = selectedPageId === page.id;
+                  const isPflicht = page.ist_pflichtseite;
+                  return (
+                    <div
+                      key={page.id}
+                      onClick={() => setSelectedPageId(isSelected ? null : page.id)}
+                      draggable={!isPflicht}
+                      onDragStart={(e) => onDragStart(e, page.id)}
+                      onDragOver={(e) => onDragOver(e, page.id)}
+                      onDrop={(e) => onDrop(e, page.id)}
+                      onDragEnd={onDragEnd}
+                      style={{
+                        display: 'grid', gridTemplateColumns: '2fr 100px 160px 140px',
+                        gap: 8, padding: '10px 16px', alignItems: 'center',
+                        borderBottom: idx < arr.length - 1 ? '0.5px solid var(--border-light)' : 'none',
+                        background: isSelected ? 'var(--bg-active, rgba(0,142,170,0.06))' : dragOverPageId === page.id ? 'var(--bg-hover)' : 'transparent',
+                        cursor: 'pointer', transition: 'background 0.1s',
+                      }}
+                    >
+                      {/* Name */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {!isPflicht && <span style={{ cursor: 'grab', color: 'var(--text-tertiary)', fontSize: 14 }}>⠿</span>}
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {isPflicht ? '🔒 ' : ''}{page.page_name}
+                          </div>
+                          {page.zweck && (
+                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{page.zweck}</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Typ */}
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{page.page_type}</div>
+
+                      {/* Keyword */}
+                      <div style={{ fontSize: 11, color: page.ziel_keyword ? 'var(--text-primary)' : 'var(--text-tertiary)', fontStyle: page.ziel_keyword ? 'normal' : 'italic' }}>
+                        {page.ziel_keyword || '– kein Keyword –'}
+                      </div>
+
+                      {/* Aktionen */}
+                      <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => setEditingPage(page)}
+                          style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', fontSize: 11, fontWeight: 600, cursor: 'pointer', color: 'var(--text-primary)' }}
+                          title="Im GrapesJS-Editor bearbeiten"
+                        >
+                          🖊️ Bearbeiten
+                        </button>
+                        {!isPflicht && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Seite "${page.page_name}" löschen?`)) deleteSitemapPage(page.id);
+                            }}
+                            style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'transparent', fontSize: 11, cursor: 'pointer', color: '#dc2626' }}
+                            title="Seite löschen"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {/* RECHTE SPALTE: Detail-Panel */}
+            {selectedPageId && (() => {
+              const page = sitemapPages.find(p => p.id === selectedPageId);
+              if (!page) return null;
+              return (
+                <div style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border-light)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {page.page_name}
+                  </div>
+
+                  {/* Seitenname */}
+                  {!page.ist_pflichtseite && (
+                    <div>
+                      <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Seitenname</label>
+                      <input
+                        defaultValue={page.page_name}
+                        key={`name-${page.id}`}
+                        onBlur={e => {
+                          if (e.target.value !== page.page_name) {
+                            fetch(`${API_BASE_URL}/api/sitemap/pages/${page.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ page_name: e.target.value }) })
+                              .then(r => r.ok ? r.json() : null)
+                              .then(updated => { if (updated) setSitemapPages(prev => prev.map(p => p.id === updated.id ? updated : p)); });
+                          }
+                        }}
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light)', borderRadius: 6, fontSize: 13, fontFamily: 'var(--font-sans)', color: 'var(--text-primary)', background: 'var(--bg-app)', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Seitentyp */}
+                  {!page.ist_pflichtseite && (
+                    <div>
+                      <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Typ</label>
+                      <select
+                        defaultValue={page.page_type}
+                        key={`type-${page.id}`}
+                        onChange={e => {
+                          fetch(`${API_BASE_URL}/api/sitemap/pages/${page.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ page_type: e.target.value }) })
+                            .then(r => r.ok ? r.json() : null)
+                            .then(updated => { if (updated) setSitemapPages(prev => prev.map(p => p.id === updated.id ? updated : p)); });
+                        }}
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light)', borderRadius: 6, fontSize: 13, background: 'var(--bg-app)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
+                      >
+                        {['info','landing','leistung','kontakt','blog','rechtlich'].map(t => (
+                          <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Ziel-Keyword */}
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Ziel-Keyword (SEO)</label>
+                    <input
+                      defaultValue={page.ziel_keyword}
+                      key={`kw-${page.id}`}
+                      placeholder="z.B. Sanitär Koblenz"
+                      onBlur={e => {
+                        fetch(`${API_BASE_URL}/api/sitemap/pages/${page.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ ziel_keyword: e.target.value }) })
+                          .then(r => r.ok ? r.json() : null)
+                          .then(updated => { if (updated) setSitemapPages(prev => prev.map(p => p.id === updated.id ? updated : p)); });
+                      }}
+                      style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light)', borderRadius: 6, fontSize: 13, fontFamily: 'var(--font-sans)', color: 'var(--text-primary)', background: 'var(--bg-app)', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  {/* Zweck / Notizen */}
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Zweck / Notizen</label>
+                    <textarea
+                      defaultValue={page.zweck}
+                      key={`zweck-${page.id}`}
+                      rows={3}
+                      placeholder="Wofür ist diese Seite? Was soll der Besucher tun?"
+                      onBlur={e => {
+                        fetch(`${API_BASE_URL}/api/sitemap/pages/${page.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ zweck: e.target.value }) })
+                          .then(r => r.ok ? r.json() : null)
+                          .then(updated => { if (updated) setSitemapPages(prev => prev.map(p => p.id === updated.id ? updated : p)); });
+                      }}
+                      style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light)', borderRadius: 6, fontSize: 13, fontFamily: 'var(--font-sans)', color: 'var(--text-primary)', background: 'var(--bg-app)', resize: 'vertical', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  {/* Editor-Button */}
+                  <button
+                    onClick={() => setEditingPage(page)}
+                    style={{ padding: '10px', borderRadius: 8, border: 'none', background: '#008eaa', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                  >
+                    🖊️ Im GrapesJS-Editor bearbeiten
+                  </button>
+
+                  {page.gjs_html && (
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textAlign: 'center' }}>
+                      ✓ Seite hat Inhalt im Editor
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* ── SEITE HINZUFÜGEN FORMULAR ── */}
+          {addPageOpen && (
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 12, padding: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14, color: 'var(--text-primary)' }}>Neue Seite hinzufügen</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: 10, marginBottom: 12 }}>
+                <input
+                  placeholder="Seitenname (z.B. Leistungen)"
+                  value={addPageForm.page_name}
+                  onChange={e => setAddPageForm(f => ({ ...f, page_name: e.target.value }))}
+                  style={{ padding: '8px 10px', border: '1px solid var(--border-light)', borderRadius: 6, fontSize: 13, fontFamily: 'var(--font-sans)', color: 'var(--text-primary)', background: 'var(--bg-app)' }}
+                />
+                <select
+                  value={addPageForm.page_type}
+                  onChange={e => setAddPageForm(f => ({ ...f, page_type: e.target.value }))}
+                  style={{ padding: '8px 10px', border: '1px solid var(--border-light)', borderRadius: 6, fontSize: 13, background: 'var(--bg-app)', color: 'var(--text-primary)' }}
+                >
+                  {['info','landing','leistung','kontakt','blog'].map(t => (
+                    <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={createSitemapPage} disabled={addPageSaving || !addPageForm.page_name.trim()} style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#008eaa', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  {addPageSaving ? '…' : 'Seite anlegen'}
+                </button>
+                <button onClick={() => setAddPageOpen(false)} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'transparent', fontSize: 12, cursor: 'pointer', color: 'var(--text-primary)' }}>
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── GRAPESJS EDITOR (fullscreen portal) ── */}
+          {editingPage && (
+            <GrapesEditor
+              key={editingPage.id}
+              pageId={editingPage.id}
+              pageName={editingPage.page_name}
+              initialHtml={editingPage.mockup_html || ''}
+              onClose={() => setEditingPage(null)}
+              onSave={({ html }) => {
+                setSitemapPages(prev => prev.map(p => p.id === editingPage.id ? { ...p, mockup_html: html, gjs_html: html } : p));
+                setEditingPage(null);
+                toast.success(`"${editingPage.page_name}" gespeichert`);
+              }}
+              projectId={id}
+            />
+          )}
         </div>
       )}
 

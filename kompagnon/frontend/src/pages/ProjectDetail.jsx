@@ -1703,45 +1703,93 @@ export default function ProjectDetail() {
       {/* ── Phasen-Navigation (Ebene 1) ─────────────────────────────────────── */}
       <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {/* Phasenleiste */}
-        <div ref={phaseScrollRef} style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', scrollSnapType: isMobile ? 'x proximity' : 'none' }}>
+        <div style={{
+          display: 'flex',
+          borderBottom: '1px solid var(--border-light)',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          background: 'var(--bg-app)',
+        }}>
           {PHASE_NAMES.map((phaseName, idx) => {
             const currentNum = parseInt((project.status || '').replace('phase_', '')) || 1;
             const phaseNum   = idx + 1;
             const isDone     = phaseNum < currentNum;
             const isActive   = phaseName === activePhase;
             const isCurrent  = phaseNum === currentNum;
+
             return (
-              <React.Fragment key={phaseName}>
-                {idx > 0 && (
-                  <div style={{ alignSelf: 'center', height: 1, width: 8, flexShrink: 0, background: isDone ? 'var(--status-success-text)' : 'var(--border-light)', opacity: 0.6 }} />
-                )}
-                <button data-active={isActive} aria-label={`Phase ${phaseNum}: ${PHASE_LABELS[phaseName]}${isDone ? ' (abgeschlossen)' : isActive ? ' (aktiv)' : ''}`} aria-current={isActive ? 'step' : undefined} onClick={() => {
+              <button
+                key={phaseName}
+                onClick={() => {
                   setActivePhase(phaseName);
                   const firstTool = PHASE_TOOLS[phaseName]?.[0]?.id;
-                  if (firstTool) setActiveTab(SUB_TAB_MAP[firstTool] || firstTool);
-                }} style={{
-                  flex: isMobile ? '0 0 auto' : 1, minWidth: isMobile ? 56 : 60, padding: isMobile ? '8px 2px 6px' : '8px 4px 6px', border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                  borderRadius: 0, transition: 'background var(--transition-fast)',
-                  opacity: isActive ? 1 : 0.65,
+                  if (firstTool) {
+                    setActiveTab(SUB_TAB_MAP[firstTool] || firstTool);
+                    setActiveSubTab(TOOL_SUBTAB_MAP[firstTool] || firstTool);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: 90,
+                  padding: '12px 8px 10px',
+                  border: 'none',
+                  borderBottom: isActive
+                    ? '3px solid var(--brand-primary)'
+                    : isCurrent
+                    ? '3px solid var(--status-success-text)'
+                    : '3px solid transparent',
+                  background: isActive ? 'var(--bg-active, var(--bg-elevated))' : 'transparent',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 6,
+                  transition: 'all 0.15s',
+                  position: 'relative',
+                  fontFamily: 'var(--font-sans)',
+                }}
+                onMouseEnter={e => {
+                  if (!isActive) e.currentTarget.style.background = 'var(--bg-elevated)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = isActive ? 'var(--bg-active, var(--bg-elevated))' : 'transparent';
+                }}
+              >
+                {/* Phasen-Kreis */}
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                  background: isDone ? 'var(--status-success-text)' : isActive ? 'var(--brand-primary)' : isCurrent ? 'var(--status-success-bg)' : 'var(--bg-elevated)',
+                  border: isCurrent && !isActive ? '2px solid var(--status-success-text)' : isActive ? '2px solid var(--brand-primary)' : '2px solid transparent',
+                  color: isDone || isActive ? '#fff' : isCurrent ? 'var(--status-success-text)' : 'var(--text-tertiary)',
+                  fontSize: 12, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.15s',
                 }}>
-                  <div style={{
-                    width: 20, height: 20, borderRadius: '50%',
-                    background: isDone ? 'var(--status-success-text)' : isActive ? 'var(--brand-primary)' : 'var(--border-light)',
-                    color: (isDone || isActive) ? 'var(--text-inverse)' : 'var(--text-tertiary)',
-                    fontSize: 10, fontWeight: 600,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>{isDone ? '✓' : phaseNum}</div>
+                  {isDone ? '\u2713' : phaseNum}
+                </div>
+
+                {/* Phasen-Label */}
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: isActive || isCurrent ? 700 : 400,
+                  color: isActive ? 'var(--brand-primary)' : isCurrent ? 'var(--status-success-text)' : isDone ? 'var(--text-secondary)' : 'var(--text-tertiary)',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {PHASE_LABELS[phaseName]}
+                </span>
+
+                {/* Aktiv-Badge */}
+                {isCurrent && (
                   <span style={{
-                    fontSize: 10,
-                    fontWeight: isActive ? 600 : 400,
-                    color: isActive ? 'var(--brand-primary)' : 'var(--text-tertiary)',
-                    whiteSpace: 'nowrap',
-                  }}>{PHASE_LABELS[phaseName]}</span>
-                </button>
-              </React.Fragment>
+                    position: 'absolute', top: 4, right: 6,
+                    fontSize: 8, fontWeight: 700, padding: '1px 5px',
+                    background: 'var(--status-success-text)', color: '#fff',
+                    borderRadius: 99, textTransform: 'uppercase', letterSpacing: '.04em',
+                  }}>
+                    Aktiv
+                  </span>
+                )}
+              </button>
             );
           })}
         </div>

@@ -194,6 +194,39 @@ def download_file(
 
 # ── DELETE /api/files/{file_id} ───────────────────────────────
 
+@router.get("/{lead_id}/grapesjs-assets")
+def get_grapesjs_assets(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Gibt alle Bild-Dateien eines Leads als GrapesJS-Asset-Objekte zurück."""
+    rows = db.execute(
+        text("""
+            SELECT id, original_filename, file_type
+            FROM project_files
+            WHERE lead_id = :lid
+              AND file_type IN ('logo', 'foto')
+              AND LOWER(COALESCE(
+                SUBSTRING(original_filename FROM '\\.([^.]+)$'), ''
+              )) IN ('jpg','jpeg','png','gif','svg','webp')
+            ORDER BY uploaded_at DESC
+        """),
+        {"lid": lead_id},
+    ).fetchall()
+
+    base_url = os.getenv("API_BASE_URL", "https://claude-code-znq2.onrender.com")
+    return [
+        {
+            "type": "image",
+            "src": f"{base_url}/api/files/download/{r[0]}",
+            "name": r[1] or f"datei-{r[0]}",
+            "category": "Logo" if r[2] == "logo" else "Fotos",
+        }
+        for r in rows
+    ]
+
+
 @router.delete("/{file_id}")
 def delete_file(
     file_id: int,

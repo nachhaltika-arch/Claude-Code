@@ -10,7 +10,7 @@ import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 
 export default function GrapesEditor({
-  pageId, pageName, initialHtml, onClose, onSave, projectId, netlitySiteId,
+  pageId, pageName, initialHtml, onClose, onSave, projectId, netlitySiteId, leadId,
 }) {
   const { token } = useAuth();
   const { isMobile } = useScreenSize();
@@ -78,22 +78,34 @@ export default function GrapesEditor({
   // ── Asset Manager (optional, nur wenn projectId gesetzt) ──
   // Studio SDK erwartet ein Array zurück: [{ src, type?, name? }]
   const onAssetsLoad = useCallback(async () => {
-    if (!projectId) return [];
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/assets/project/${projectId}`,
-        { headers: authHeaders },
-      );
-      if (!res.ok) return [];
-      const data = await res.json();
-      return (data.assets || []).map(a => ({
-        type: 'image',
-        src:  a.src.startsWith('http') ? a.src : `${API_BASE_URL}${a.src}`,
-        name: a.name,
-      }));
-    } catch { return []; }
+    const allAssets = [];
+    // 1. Project assets
+    if (projectId) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/assets/project/${projectId}`, { headers: authHeaders });
+        if (res.ok) {
+          const data = await res.json();
+          (data.assets || []).forEach(a => allAssets.push({
+            type: 'image',
+            src: a.src.startsWith('http') ? a.src : `${API_BASE_URL}${a.src}`,
+            name: a.name,
+          }));
+        }
+      } catch { /* silent */ }
+    }
+    // 2. Customer portal uploads (logos, photos)
+    if (leadId) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/files/${leadId}/grapesjs-assets`, { headers: authHeaders });
+        if (res.ok) {
+          const portalAssets = await res.json();
+          if (Array.isArray(portalAssets)) allAssets.push(...portalAssets);
+        }
+      } catch { /* silent */ }
+    }
+    return allAssets;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, token]);
+  }, [projectId, leadId, token]);
 
   const onAssetsUpload = useCallback(async ({ files }) => {
     if (!projectId || !files?.length) return [];

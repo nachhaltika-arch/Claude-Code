@@ -2516,6 +2516,7 @@ export default function ProjectDetail() {
                 toast.success(`"${editingPage.page_name}" gespeichert`);
               }}
               projectId={id}
+              leadId={project.lead_id}
             /></Suspense>
           )}
         </div>
@@ -4896,6 +4897,7 @@ export default function ProjectDetail() {
           }}
           projectId={project.id}
           netlitySiteId={project.netlify_site_id || null}
+          leadId={project.lead_id}
         /></Suspense>
       )}
     </div>

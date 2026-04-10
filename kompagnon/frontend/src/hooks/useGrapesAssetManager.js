@@ -157,5 +157,26 @@ export function useGrapesAssetManager({ leadId, projectId, token } = {}) {
     return () => document.removeEventListener('paste', handlePaste);
   }, [uploadSingleFile]);
 
-  return { onAssetsLoad, onAssetsUpload, assetCount, editorRef };
+  // Manual refresh: re-fetch all assets and inject into running editor
+  const refreshAssets = useCallback(async () => {
+    const fresh = await onAssetsLoad();
+    if (editorRef.current) {
+      try {
+        const am = editorRef.current.AssetManager;
+        fresh.forEach(a => { if (!am?.get?.(a.src)) am?.add?.(a); });
+      } catch { /* Studio SDK may differ */ }
+    }
+    return fresh;
+  }, [onAssetsLoad]);
+
+  // Auto-refresh every 60s while editor is open
+  useEffect(() => {
+    if (!leadId) return;
+    const interval = setInterval(() => {
+      if (editorRef.current) refreshAssets();
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [leadId, refreshAssets]);
+
+  return { onAssetsLoad, onAssetsUpload, assetCount, editorRef, refreshAssets };
 }

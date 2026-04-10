@@ -44,7 +44,8 @@ export default function WebsiteDesigner({
   const authHeaders = { Authorization: `Bearer ${token}` };
 
   // ── Asset Manager — zentraler Hook ──
-  const { onAssetsLoad, onAssetsUpload, editorRef: assetEditorRef } = useGrapesAssetManager({ leadId, projectId, token });
+  const { onAssetsLoad, onAssetsUpload, editorRef: assetEditorRef, refreshAssets, assetCount } = useGrapesAssetManager({ leadId, projectId, token });
+  const [assetsRefreshing, setAssetsRefreshing] = useState(false);
 
   // ── Save-Handler (Studio SDK ruft das on demand auf) ──────
   const handleSave = useCallback(async ({ project, editor }) => {
@@ -144,6 +145,28 @@ export default function WebsiteDesigner({
         )}
 
         <div style={{ flex: 1 }} />
+
+        {/* Asset refresh + count */}
+        <button
+          onClick={async () => { setAssetsRefreshing(true); await refreshAssets(); setAssetsRefreshing(false); }}
+          disabled={assetsRefreshing}
+          title="Neue Kunden-Uploads laden"
+          style={{
+            background: 'none', border: '1px solid rgba(255,255,255,0.2)',
+            color: assetsRefreshing ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.6)',
+            borderRadius: 4, padding: '4px 8px', cursor: assetsRefreshing ? 'not-allowed' : 'pointer',
+            fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)',
+          }}
+        >
+          <span style={{ display: 'inline-block', animation: assetsRefreshing ? 'spin 0.8s linear infinite' : 'none' }}>↻</span>
+          {assetCount > 0 ? `${assetCount} Bilder` : 'Assets'}
+        </button>
+
+        {/* Paste hint */}
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <kbd style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 3, padding: '1px 4px', fontFamily: 'monospace', fontSize: 9 }}>⌘V</kbd>
+          Bild
+        </span>
 
         {saving && (
           <span style={{ color: '#94a3b8', fontSize: 12 }}>Wird gespeichert…</span>

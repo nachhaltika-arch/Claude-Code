@@ -65,11 +65,16 @@ export default function SalesPipeline() {
     finally { setLoading(false); }
   };
 
-  const saveStatus = async (leadId, status) => {
+  const saveStatus = async (leadId, newStatus) => {
+    const previousStatus = leads.find(l => l.id === leadId)?.status;
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
     try {
-      await fetch(`${API_BASE_URL}/api/leads/${leadId}`, { method: 'PATCH', headers: h, body: JSON.stringify({ status }) });
-      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status } : l));
-    } catch {}
+      const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}`, { method: 'PATCH', headers: h, body: JSON.stringify({ status: newStatus }) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch {
+      if (previousStatus !== undefined) setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: previousStatus } : l));
+      toast.error('Status konnte nicht geändert werden — bitte erneut versuchen');
+    }
   };
 
   const updateStatus = (leadId, status) => {
@@ -96,11 +101,17 @@ export default function SalesPipeline() {
   };
 
   const deleteLead = async (leadId) => {
+    const deletedLead = leads.find(l => l.id === leadId);
+    setLeads(prev => prev.filter(l => l.id !== leadId));
+    setDeleteConfirm(null);
     try {
-      await fetch(`${API_BASE_URL}/api/leads/${leadId}`, { method: 'DELETE', headers: h });
-      setLeads(prev => prev.filter(l => l.id !== leadId));
-      setDeleteConfirm(null);
-    } catch {}
+      const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}`, { method: 'DELETE', headers: h });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast.success('Lead gelöscht');
+    } catch {
+      if (deletedLead) setLeads(prev => [...prev, deletedLead].sort((a, b) => (b.analysis_score || 0) - (a.analysis_score || 0)));
+      toast.error('Lead konnte nicht gelöscht werden — bitte erneut versuchen');
+    }
   };
 
   const handleDragStart = (e, lead) => { setDragging(lead); e.dataTransfer.effectAllowed = 'move'; };

@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useScreenSize } from '../../utils/responsive';
 import { useTheme } from '../../context/ThemeContext';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { usePullToRefresh } from '../../hooks/useTouch';
+import PullIndicator from '../ui/PullIndicator';
 import CommandPalette from '../CommandPalette';
 import ShortcutHelp from '../ShortcutHelp';
 import API_BASE_URL from '../../config';
@@ -621,6 +623,12 @@ export default function AppLayout() {
   const goDashboard = useCallback(() => navigate('/app/dashboard'), [navigate]);
   const toggleHelp = useCallback(() => setShortcutHelpOpen(p => !p), []);
 
+  const handleRefresh = useCallback(async () => {
+    window.dispatchEvent(new CustomEvent('kompagnon:refresh'));
+    await new Promise(r => setTimeout(r, 800));
+  }, []);
+  const { containerRef: mainRef } = usePullToRefresh(handleRefresh, { disabled: !isMobile, threshold: 72 });
+
   useKeyboardShortcuts([
     { key: 'k', meta: true, action: togglePalette },
     { key: ',', meta: true, action: goSettings },
@@ -822,13 +830,17 @@ export default function AppLayout() {
         )}
 
         {/* Content */}
-        <main style={{
-          flex: 1, overflowY: 'auto', overflowX: 'hidden',
-          minWidth: 0,
-          padding: isMobile ? 16 : '20px 28px',
-          paddingTop: isMobile ? 72 : undefined,
-          paddingBottom: isMobile ? 80 : 20,
-        }}>
+        <main
+          ref={mainRef}
+          style={{
+            flex: 1, overflowY: 'auto', overflowX: 'hidden',
+            minWidth: 0, position: 'relative',
+            padding: isMobile ? 16 : '20px 28px',
+            paddingTop: isMobile ? 72 : undefined,
+            paddingBottom: isMobile ? 80 : 20,
+          }}
+        >
+          {isMobile && <PullIndicator />}
           <div key={location.pathname} className="page-enter" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
             <Outlet />
           </div>

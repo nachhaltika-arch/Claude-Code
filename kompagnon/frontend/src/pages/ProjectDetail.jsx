@@ -18,6 +18,7 @@ import GrapesEditor from '../components/GrapesEditor';
 import KiReportPanel from '../components/KiReportPanel';
 import MoodboardPanel from '../components/MoodboardPanel';
 import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
+import { useSwipeNavigation } from '../hooks/useTouch';
 import { parseApiError } from '../utils/apiError';
 import WebsiteDesigner from '../components/WebsiteDesigner';
 import ContentManager from '../components/ContentManager';
@@ -626,6 +627,25 @@ export default function ProjectDetail() {
   useEscapeKey(() => setShowEdit(false), showEdit);
   useEscapeKey(() => setShowApproval(false), showApproval);
   useEscapeKey(() => setShowBriefingWizard(false), showBriefingWizard);
+
+  // Swipe between tool tiles on mobile
+  const tools = PHASE_TOOLS[activePhase] || [];
+  const currentToolIdx = tools.findIndex(t => {
+    const mapped = TOOL_SUBTAB_MAP[t.id] || SUB_TAB_MAP[t.id] || t.id;
+    return mapped === activeSubTab || mapped === activeTab;
+  });
+  const swipeRef = useSwipeNavigation({
+    disabled: !isMobile,
+    onSwipeLeft: () => {
+      const next = tools[currentToolIdx + 1];
+      if (next) { setActiveTab(SUB_TAB_MAP[next.id] || next.id); setActiveSubTab(TOOL_SUBTAB_MAP[next.id] || next.id); }
+    },
+    onSwipeRight: () => {
+      const prev = tools[currentToolIdx - 1];
+      if (prev) { setActiveTab(SUB_TAB_MAP[prev.id] || prev.id); setActiveSubTab(TOOL_SUBTAB_MAP[prev.id] || prev.id); }
+    },
+    threshold: 60,
+  });
 
   // Checklists (lazy audit load)
   const [latestAudit, setLatestAudit] = useState(null);

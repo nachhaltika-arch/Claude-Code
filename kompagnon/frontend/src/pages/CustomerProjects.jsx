@@ -146,6 +146,13 @@ export default function CustomerProjects() {
     })();
   }, []); // eslint-disable-line
 
+  // Pull-to-refresh support
+  useEffect(() => {
+    const onRefresh = () => window.location.reload();
+    window.addEventListener('kompagnon:refresh', onRefresh);
+    return () => window.removeEventListener('kompagnon:refresh', onRefresh);
+  }, []);
+
   const filtered = projects.filter(p => {
     const lead = leadsMap[p.lead_id];
     const name = (lead?.company_name || p.company_name || '').toLowerCase();

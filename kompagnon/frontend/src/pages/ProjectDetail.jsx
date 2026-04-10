@@ -1792,6 +1792,12 @@ export default function ProjectDetail() {
           );
         })}
 
+      </div>
+      )}
+
+      {/* ── Render-Bloecke fuer Analyse + Go Live Tabs ──────────────────────── */}
+      {(mainTab === 'analyse' || mainTab === 'golive') && (<>
+
       {/* ── Overview Tab ────────────────────────────────────────────────────── */}
       {activeTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -4762,8 +4768,7 @@ export default function ProjectDetail() {
         </div>
       )}
 
-      </div>
-      )}
+      </>)}
 
       {/* ── CONTENT TAB ── */}
       {mainTab === 'content' && (

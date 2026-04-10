@@ -1,6 +1,6 @@
 import { StudioEditor } from '@grapesjs/studio-sdk/react';
 import '@grapesjs/studio-sdk/style';
-import { useRef, useState, useCallback, useMemo } from 'react';
+import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
@@ -14,6 +14,19 @@ export default function WebsiteDesigner({
   const { isMobile } = useScreenSize();
   const editorRef = useRef(null);
   const plugins = useMemo(() => buildStudioPlugins(), []);
+
+  // Listen for assets from ProjectFilesSection "→ Editor" button
+  useEffect(() => {
+    const onAssetAdd = (e) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const { src, name, category } = e.detail || {};
+      if (!src) return;
+      try { editor.AssetManager?.add({ type: 'image', src, name: name || src, category }); } catch { /* silent */ }
+    };
+    window.addEventListener('kompagnon:asset-add', onAssetAdd);
+    return () => window.removeEventListener('kompagnon:asset-add', onAssetAdd);
+  }, []);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importing, setImporting]   = useState(false);
   const [importMsg, setImportMsg]   = useState('');

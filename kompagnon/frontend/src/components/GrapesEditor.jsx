@@ -28,6 +28,19 @@ export default function GrapesEditor({
     return () => { document.body.style.overflow = ''; };
   }, []);
 
+  // Listen for assets from ProjectFilesSection "→ Editor" button
+  useEffect(() => {
+    const onAssetAdd = (e) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const { src, name, category } = e.detail || {};
+      if (!src) return;
+      try { editor.AssetManager?.add({ type: 'image', src, name: name || src, category }); } catch { /* silent */ }
+    };
+    window.addEventListener('kompagnon:asset-add', onAssetAdd);
+    return () => window.removeEventListener('kompagnon:asset-add', onAssetAdd);
+  }, []);
+
   // ── Save: HTML+CSS+gjsData an /api/pages/{id}/editor ──────
   const handleSave = useCallback(async ({ project, editor }) => {
     try {

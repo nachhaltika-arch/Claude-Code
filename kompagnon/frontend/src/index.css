@@ -616,3 +616,9 @@ input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
 .sk-line-sm { height: 10px; border-radius: 3px; }
 .sk-circle  { border-radius: 50%; }
 .sk-pill    { border-radius: 20px; }
+
+/* ── Mobile scroll — hide scrollbar for touch-snap areas ─── */
+@media (max-width: 767px) {
+  .phase-scroll::-webkit-scrollbar,
+  .tool-scroll::-webkit-scrollbar { display: none; }
+}

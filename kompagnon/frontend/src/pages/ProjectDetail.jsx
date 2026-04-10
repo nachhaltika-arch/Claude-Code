@@ -601,6 +601,7 @@ export default function ProjectDetail() {
   const navigate       = useNavigate();
   const { token, user } = useAuth();
   const { isMobile }   = useScreenSize();
+  const phaseScrollRef = useRef(null);
   const headers          = token ? { Authorization: `Bearer ${token}` } : {};
   const hdr              = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
   const isAdmin          = user?.role === 'admin';
@@ -783,6 +784,13 @@ export default function ProjectDetail() {
       loadSitemapPages();
     }
   }, [activeTab, activeSubTab]); // eslint-disable-line
+
+  // Auto-scroll aktive Phase auf Mobile in den sichtbaren Bereich
+  useEffect(() => {
+    if (!phaseScrollRef.current || !isMobile) return;
+    const activeBtn = phaseScrollRef.current.querySelector('[data-active="true"]');
+    if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }, [activePhase, isMobile]);
 
   const saveCred = async () => {
     if (!credForm.label.trim()) {
@@ -1593,7 +1601,7 @@ export default function ProjectDetail() {
       {/* ── Phasen-Navigation (Ebene 1) ─────────────────────────────────────── */}
       <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {/* Phasenleiste */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', overflowX: 'auto', scrollbarWidth: 'none' }}>
+        <div ref={phaseScrollRef} style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', scrollSnapType: isMobile ? 'x proximity' : 'none' }}>
           {PHASE_NAMES.map((phaseName, idx) => {
             const currentNum = parseInt((project.status || '').replace('phase_', '')) || 1;
             const phaseNum   = idx + 1;
@@ -1605,12 +1613,12 @@ export default function ProjectDetail() {
                 {idx > 0 && (
                   <div style={{ alignSelf: 'center', height: 1, width: 8, flexShrink: 0, background: isDone ? 'var(--status-success-text)' : 'var(--border-light)', opacity: 0.6 }} />
                 )}
-                <button onClick={() => {
+                <button data-active={isActive} onClick={() => {
                   setActivePhase(phaseName);
                   const firstTool = PHASE_TOOLS[phaseName]?.[0]?.id;
                   if (firstTool) setActiveTab(SUB_TAB_MAP[firstTool] || firstTool);
                 }} style={{
-                  flex: 1, minWidth: 60, padding: '8px 4px 6px', border: 'none',
+                  flex: isMobile ? '0 0 auto' : 1, minWidth: isMobile ? 56 : 60, padding: isMobile ? '8px 2px 6px' : '8px 4px 6px', border: 'none',
                   background: 'transparent',
                   cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
                   borderRadius: 0, transition: 'background var(--transition-fast)',
@@ -1652,19 +1660,20 @@ export default function ProjectDetail() {
           }}>
             {PHASE_LABELS[activePhase]} — Werkzeuge
           </div>
-          {/* Pfeil links */}
+          {/* Pfeil links — nur Desktop */}
           <button onClick={() => scrollRef.current?.scrollBy({ left: -160, behavior: 'smooth' })} style={{
             position: 'absolute', left: 0, top: 0, bottom: 0, width: 32, zIndex: 2,
             background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
             borderRadius: 'var(--radius-md) 0 0 var(--radius-md)',
             cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            display: isMobile ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
           }}>‹</button>
 
           {/* Scrollbarer Container */}
           <div ref={scrollRef} style={{
             display: 'flex', gap: 8, overflowX: 'auto', scrollBehavior: 'smooth',
-            padding: '0 40px', scrollbarWidth: 'none', msOverflowStyle: 'none',
+            padding: isMobile ? '0 12px' : '0 40px', scrollbarWidth: 'none', msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch', scrollSnapType: isMobile ? 'x mandatory' : 'none',
           }}>
             {(PHASE_TOOLS[activePhase] || []).map(tool => {
               const isActive = TOOL_SUBTAB_MAP[tool.id]
@@ -1691,7 +1700,8 @@ export default function ProjectDetail() {
                     }
                   }}
                   style={{
-                    flex: '0 0 140px', minWidth: 140, minHeight: 80,
+                    flex: isMobile ? '0 0 100px' : '0 0 140px', minWidth: isMobile ? 100 : 140, minHeight: isMobile ? 72 : 80,
+                    scrollSnapAlign: isMobile ? 'start' : undefined,
                     background: isActive ? 'var(--brand-primary-light)' : 'var(--bg-surface)',
                     border: '1px solid var(--border-light)',
                     borderTop: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent',
@@ -1736,13 +1746,13 @@ export default function ProjectDetail() {
             })}
           </div>
 
-          {/* Pfeil rechts */}
+          {/* Pfeil rechts — nur Desktop */}
           <button onClick={() => scrollRef.current?.scrollBy({ left: 160, behavior: 'smooth' })} style={{
             position: 'absolute', right: 0, top: 0, bottom: 0, width: 32, zIndex: 2,
             background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
             borderRadius: '0 var(--radius-md) var(--radius-md) 0',
             cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            display: isMobile ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
           }}>›</button>
         </div>
       </div>
@@ -2731,7 +2741,7 @@ export default function ProjectDetail() {
               Neuen Zugang hinzufügen
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 10 }}>
               <div>
                 <label style={LST}>Name / Anbieter *</label>
                 <input
@@ -2753,7 +2763,7 @@ export default function ProjectDetail() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 10 }}>
               <div>
                 <label style={LST}>Benutzername / E-Mail</label>
                 <input
@@ -2868,7 +2878,7 @@ export default function ProjectDetail() {
                   </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8, fontSize: 12 }}>
                   {c.username && (
                     <div>
                       <span style={{ color: '#94a3b8' }}>Benutzer: </span>
@@ -3154,7 +3164,7 @@ export default function ProjectDetail() {
             >{hostingScanning ? 'Scannt…' : 'Hosting scannen'}</button>
           </div>
           {hostingData ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
               {[
                 { label: 'Server', value: hostingData.server_software || '—', icon: '🖥️' },
                 { label: 'IP', value: hostingData.hosting_ip || '—', icon: '🌐' },
@@ -3411,7 +3421,7 @@ export default function ProjectDetail() {
                 {sectionHead('seo', '🔍', 'SEO-Übersicht')}
                 {openSections.seo && (
                   <div style={{ padding: '14px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
                       <div style={{ padding: 10, background: 'var(--bg-app)', borderRadius: 'var(--radius-md)' }}>
                         <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Title</div>
                         <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{fullAnalysis.seo.title || '—'}</div>
@@ -3684,7 +3694,7 @@ export default function ProjectDetail() {
                   {Object.keys(checks).filter(k => typeof checks[k] === 'boolean').length > 0 && (
                     <div style={{ marginBottom: 20 }}>
                       <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 10 }}>Technische Einzelprüfungen</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px 20px', background: 'var(--border-light)', border: '1px solid var(--border-light)', borderRadius: 10, overflow: 'hidden' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1px 20px', background: 'var(--border-light)', border: '1px solid var(--border-light)', borderRadius: 10, overflow: 'hidden' }}>
                         {Object.entries(QA_CHECK_LABELS).filter(([k]) => k in checks && typeof checks[k] === 'boolean').map(([k, label]) => {
                           const raw = checks[k];
                           const ok  = QA_INVERTED.has(k) ? !raw : raw;
@@ -4349,7 +4359,7 @@ export default function ProjectDetail() {
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 0 }}>
 
                 {/* VORHER */}
                 <div style={{ padding: '18px 20px', borderRight: '0.5px solid var(--border-light)' }}>

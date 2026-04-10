@@ -154,7 +154,7 @@ function ProductSidebar({ products, selected, onSelect, onNew, onMoveSort }) {
   );
 }
 
-function TabProduktdaten({ product, onChange, selected, setProduct }) {
+function TabProduktdaten({ product, onChange, selected, setProduct, validationErrors }) {
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
@@ -175,14 +175,42 @@ function TabProduktdaten({ product, onChange, selected, setProduct }) {
           />
         </div>
         <div style={FIELD}>
-          <label style={LBL}>URL-Slug {selected === '__new__' ? '(automatisch aus Name)' : '(nicht änderbar)'}</label>
-          <input
-            value={product.slug}
-            onChange={e => setProduct(p => ({ ...p, slug: e.target.value, _slugManuallyEdited: true }))}
-            placeholder="wird automatisch generiert"
-            disabled={selected !== '__new__'}
-            style={{ ...INP, opacity: selected !== '__new__' ? 0.6 : 1, fontFamily: 'monospace', fontSize: 12 }}
-          />
+          <label style={{ ...LBL, color: validationErrors?.has('slug') ? 'var(--status-danger-text)' : undefined }}>
+            Slug (URL-Bezeichner) * {selected !== '__new__' && '(gesperrt)'}
+          </label>
+          <div style={{ position: 'relative' }}>
+            <input
+              value={product.slug || ''}
+              onChange={e => {
+                const cleaned = e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                setProduct(p => ({ ...p, slug: cleaned, _slugManuallyEdited: true }));
+              }}
+              placeholder="z.B. homepage-standard"
+              disabled={selected !== '__new__'}
+              style={{
+                ...INP,
+                borderColor: validationErrors?.has('slug') ? 'var(--status-danger-text)' : undefined,
+                opacity: selected !== '__new__' ? 0.6 : 1,
+                fontFamily: 'monospace', fontSize: 12,
+                cursor: selected !== '__new__' ? 'not-allowed' : 'text',
+                paddingRight: !product.slug && product.name && selected === '__new__' ? 80 : undefined,
+              }}
+            />
+            {!product.slug && product.name && selected === '__new__' && (
+              <button
+                onClick={() => setProduct(p => ({ ...p, slug: generateSlug(p.name), _slugManuallyEdited: true }))}
+                style={{
+                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                  padding: '3px 8px', borderRadius: 5, border: 'none',
+                  background: 'var(--brand-primary)', color: 'white',
+                  fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                }}
+              >Auto</button>
+            )}
+          </div>
+          <div style={{ fontSize: 11, color: validationErrors?.has('slug') ? 'var(--status-danger-text)' : 'var(--text-tertiary)', marginTop: 4 }}>
+            {validationErrors?.has('slug') ? 'Pflichtfeld — nur Kleinbuchstaben, Zahlen und Bindestriche' : 'URL: /paket/' + (product.slug || '...')}
+          </div>
         </div>
       </div>
       <div style={FIELD}>
@@ -389,6 +417,7 @@ export default function ProductEditor() {
   const [saving, setSaving]           = useState(false);
   const [msg, setMsg]                 = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [validationErrors, setValidationErrors] = useState(new Set());
   const { token } = useAuth();
 
   const h = {
@@ -444,6 +473,7 @@ export default function ProductEditor() {
 
   const handleChange = useCallback((field, val) => {
     setProduct(p => p ? { ...p, [field]: val } : p);
+    setValidationErrors(prev => { const next = new Set(prev); next.delete(field); return next; });
   }, []);
 
   const deleteProduct = async () => {
@@ -479,23 +509,37 @@ export default function ProductEditor() {
   };
 
   const save = async () => {
+    // ── Client-seitige Validierung ──
+    const errors = [];
+    const errFields = new Set();
+    if (!product.name?.trim()) { errors.push('Produktname fehlt'); errFields.add('name'); }
+    if (!product.slug?.trim()) {
+      errors.push('Slug fehlt — bitte einen URL-Bezeichner eingeben (z.B. "homepage-standard")');
+      errFields.add('slug');
+    } else if (!/^[a-z0-9-]+$/.test(product.slug.trim())) {
+      errors.push('Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten');
+      errFields.add('slug');
+    }
+    if (!product.price_brutto || parseFloat(product.price_brutto) <= 0) {
+      errors.push('Preis fehlt oder ist 0');
+      errFields.add('price_brutto');
+    }
+    if (errors.length > 0) {
+      setMsg(errors.join(' · '));
+      setValidationErrors(errFields);
+      return;
+    }
+    setValidationErrors(new Set());
     setSaving(true); setMsg('');
     try {
       const isNew = selected === '__new__';
-      if (!product.name?.trim()) {
-        setMsg('Bitte einen Produktnamen eingeben');
-        setSaving(false);
-        return;
-      }
-      // Slug sicherstellen — falls leer, aus Namen generieren
       const payload = {
         ...product,
         slug: (product.slug && product.slug.trim()) || generateSlug(product.name),
       };
-      // Internes Flag nicht an Backend schicken
       delete payload._slugManuallyEdited;
 
-      const url   = isNew
+      const url = isNew
         ? `${API_BASE_URL}/api/products/`
         : `${API_BASE_URL}/api/products/${selected}`;
       const r = await fetch(url, {
@@ -504,7 +548,17 @@ export default function ProductEditor() {
         body: JSON.stringify(payload),
       });
       const d = await r.json();
-      if (!r.ok) { setMsg(d.detail || 'Fehler'); return; }
+      if (!r.ok) {
+        const raw = d.detail || '';
+        const friendly = {
+          'Slug fehlt':            'Bitte einen Slug eingeben (z.B. "homepage-standard")',
+          'Slug bereits vergeben': 'Dieser Slug ist bereits belegt — bitte einen anderen wählen',
+          'Name fehlt':            'Produktname ist erforderlich',
+          'Ungültiger Slug':       'Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten',
+        };
+        setMsg(friendly[raw] || `Fehler: ${raw || 'Unbekannter Fehler'}`);
+        return;
+      }
       setMsg('✓ Gespeichert');
       await loadProducts();
       setSelected(d.slug);
@@ -618,7 +672,7 @@ export default function ProductEditor() {
         </div>
 
         {/* Tab content — rendered as JSX components (stable identity) */}
-        {activeTab === 'produktdaten' && <TabProduktdaten product={product} onChange={handleChange} selected={selected} setProduct={setProduct} />}
+        {activeTab === 'produktdaten' && <TabProduktdaten product={product} onChange={handleChange} selected={selected} setProduct={setProduct} validationErrors={validationErrors} />}
         {activeTab === 'preis'        && <TabPreis product={product} onChange={handleChange} selected={selected} headers={h} setProduct={setProduct} API_BASE_URL={API_BASE_URL} />}
         {activeTab === 'checkout'     && <TabCheckout product={product} onChange={handleChange} />}
         {activeTab === 'assets'       && <TabAssets product={product} />}

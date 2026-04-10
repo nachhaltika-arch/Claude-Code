@@ -26,6 +26,29 @@ def _set(obj, attr: str, value) -> None:
         pass
 
 
+def _detect_google_analytics(html: str) -> dict:
+    """
+    Durchsucht HTML-Quelltext nach Google Analytics / Tag Manager Codes.
+    Gibt dict zurück: { status, type, measurement_id }
+    """
+    # GA4 — Measurement ID (G-XXXXXXXXXX)
+    ga4_matches = re.findall(r'["\']?(G-[A-Z0-9]{6,12})["\']?', html)
+    if ga4_matches:
+        return {"status": "vorhanden", "type": "GA4", "measurement_id": ga4_matches[0]}
+
+    # Universal Analytics (alt) — UA-XXXXXXXX-X
+    ua_matches = re.findall(r'["\']?(UA-\d{6,10}-\d+)["\']?', html)
+    if ua_matches:
+        return {"status": "vorhanden_alt", "type": "UA", "measurement_id": ua_matches[0]}
+
+    # Google Tag Manager — GTM-XXXXXXX
+    gtm_matches = re.findall(r'["\']?(GTM-[A-Z0-9]{5,8})["\']?', html)
+    if gtm_matches:
+        return {"status": "gtm", "type": "GTM", "measurement_id": gtm_matches[0]}
+
+    return {"status": "nicht_vorhanden", "type": None, "measurement_id": None}
+
+
 # ── Endpoint 1 — GET brand data ───────────────────────────────────────────────
 
 @router.get("/{lead_id}")
@@ -56,6 +79,10 @@ def get_brand_data(lead_id: int, db: Session = Depends(get_db)):
         "brand_notes":     getattr(lead, 'brand_notes',          None),
         "pdf_filename":    getattr(lead, 'brand_pdf_filename',   None),
         "scraped_at":      str(getattr(lead, 'brand_scraped_at', '') or '')[:16] or None,
+        "ga_status":         getattr(lead, 'ga_status', 'unbekannt'),
+        "ga_type":           getattr(lead, 'ga_type', None),
+        "ga_measurement_id": getattr(lead, 'ga_measurement_id', None),
+        "ga_checked_at":     str(getattr(lead, 'ga_checked_at', '') or '')[:16] or None,
     }
 
 
@@ -85,6 +112,13 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
             resp = await client.get(website_url)
             resp.raise_for_status()
             html_text = resp.text
+
+        # ── Google Analytics erkennen ──
+        ga_result = _detect_google_analytics(html_text)
+        _set(lead, 'ga_status',         ga_result['status'])
+        _set(lead, 'ga_type',           ga_result['type'])
+        _set(lead, 'ga_measurement_id', ga_result['measurement_id'])
+        _set(lead, 'ga_checked_at',     datetime.utcnow())
 
         # Colors
         hex_colors = re.findall(r'#([0-9a-fA-F]{6})', html_text)
@@ -255,3 +289,49 @@ def download_brand_pdf(lead_id: int, db: Session = Depends(get_db)):
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ── Endpoint 6 — Check Google Analytics ──────────────────────────────────────
+
+@router.post("/{lead_id}/check-ga")
+async def check_google_analytics(lead_id: int, db: Session = Depends(get_db)):
+    """
+    Holt die Startseite der Kundendomain und prüft auf GA/GTM-Codes.
+    Schnell (~2 Sek.), kein vollständiger Scrape.
+    """
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+
+    website_url = getattr(lead, 'website_url', '') or ''
+    if not website_url:
+        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
+
+    if not website_url.startswith('http'):
+        website_url = 'https://' + website_url
+
+    try:
+        async with httpx.AsyncClient(
+            headers={'User-Agent': 'Mozilla/5.0'},
+            timeout=10.0,
+            follow_redirects=True,
+        ) as client:
+            resp = await client.get(website_url)
+            html_text = resp.text
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Website nicht erreichbar: {str(e)[:100]}")
+
+    ga_result = _detect_google_analytics(html_text)
+
+    _set(lead, 'ga_status',         ga_result['status'])
+    _set(lead, 'ga_type',           ga_result['type'])
+    _set(lead, 'ga_measurement_id', ga_result['measurement_id'])
+    _set(lead, 'ga_checked_at',     datetime.utcnow())
+    db.commit()
+
+    return {
+        "lead_id":        lead_id,
+        "website_url":    website_url,
+        **ga_result,
+        "ga_checked_at":  datetime.utcnow().strftime('%Y-%m-%d %H:%M'),
+    }

@@ -669,6 +669,11 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS inspiration_url_1 TEXT",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS inspiration_url_2 TEXT",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS inspiration_url_3 TEXT",
+        # Google Analytics detection
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ga_status VARCHAR(30) DEFAULT 'unbekannt'",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ga_measurement_id VARCHAR(50)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ga_type VARCHAR(20)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ga_checked_at TIMESTAMP",
         # Website version generation (KI picks 3 templates)
         """CREATE TABLE IF NOT EXISTS website_versions (
             id             SERIAL PRIMARY KEY,

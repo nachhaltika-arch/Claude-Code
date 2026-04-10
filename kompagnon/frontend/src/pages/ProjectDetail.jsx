@@ -98,6 +98,76 @@ const PHASE_MENU = {
   8: { label: 'Fertig',      tabs: [{ id: 'live-data', label: '🌐 Fertig' }] },
 };
 
+// ── GA-Status-Karte (eigenständige Komponente wegen Hooks) ──
+function GaStatusCard({ leadId, headers: h, API_BASE_URL: baseUrl }) {
+  const [gaData, setGaData] = React.useState(null);
+  const [gaChecking, setGaChecking] = React.useState(false);
+
+  const checkGa = async () => {
+    setGaChecking(true);
+    try {
+      const res = await fetch(`${baseUrl}/api/branddesign/${leadId}/check-ga`, { method: 'POST', headers: h });
+      if (res.ok) setGaData(await res.json());
+    } catch { /* silent */ }
+    finally { setGaChecking(false); }
+  };
+
+  const statusConfig = {
+    'vorhanden':       { icon: '✅', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', text: 'Google Analytics 4 vorhanden' },
+    'vorhanden_alt':   { icon: '⚠️', color: '#d97706', bg: '#fff7ed', border: '#fed7aa', text: 'Altes Universal Analytics — Migration empfohlen' },
+    'gtm':             { icon: '🏷️', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', text: 'Google Tag Manager gefunden' },
+    'nicht_vorhanden': { icon: '❌', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', text: 'Kein Google Analytics gefunden' },
+    'unbekannt':       { icon: '❓', color: '#6b7280', bg: 'var(--bg-app)', border: 'var(--border-light)', text: 'Noch nicht geprüft' },
+  };
+
+  const status = gaData?.status || 'unbekannt';
+  const cfg = statusConfig[status] || statusConfig['unbekannt'];
+
+  return (
+    <div style={{
+      padding: '14px 18px', borderRadius: 10, marginBottom: 16,
+      background: cfg.bg, border: `1px solid ${cfg.border}`,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      flexWrap: 'wrap', gap: 12,
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)' }}>
+          Google Analytics Status
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 18 }}>{cfg.icon}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: cfg.color }}>{cfg.text}</span>
+        </div>
+        {gaData?.measurement_id && (
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'monospace', marginTop: 2 }}>
+            {gaData.type}: <strong>{gaData.measurement_id}</strong>
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={checkGa} disabled={gaChecking} style={{
+          padding: '7px 16px', borderRadius: 7, border: '1px solid var(--border-light)',
+          background: 'white', fontSize: 12, fontWeight: 600,
+          cursor: gaChecking ? 'not-allowed' : 'pointer', color: 'var(--text-primary)',
+          fontFamily: 'inherit',
+        }}>
+          {gaChecking ? '⏳ Prüft…' : 'GA jetzt prüfen'}
+        </button>
+        {status === 'nicht_vorhanden' && (
+          <button disabled style={{
+            padding: '7px 16px', borderRadius: 7, border: 'none',
+            background: '#008eaa', color: 'white', fontSize: 12,
+            fontWeight: 700, cursor: 'not-allowed', opacity: 0.5,
+            fontFamily: 'inherit',
+          }}>
+            + GA4 einrichten (bald)
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const PHASE_TOOLS = {
   'onboarding': [
     { id: 'null-uebersicht', label: 'Null-Übersicht',       icon: '📊', sub: 'Status · Marge · Nachrichten' },
@@ -1857,6 +1927,9 @@ export default function ProjectDetail() {
 
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* GA-Status Karte */}
+            <GaStatusCard leadId={lid} headers={h} API_BASE_URL={API_BASE_URL} />
+
             {/* Status Banner */}
             <div style={{
               padding: '12px 16px', borderRadius: 'var(--radius-lg)', fontSize: 13,

@@ -622,6 +622,7 @@ export default function ProjectDetail() {
   const [activeTab, setActiveTab]     = useState('overview');
   const [activePhase, setActivePhase] = useState('onboarding');
   const [activeSubTab, setActiveSubTab] = useState('unternehmen');
+  const [mainTab, setMainTab]         = useState('analyse');
   const scrollRef = useRef(null);
   const [showEdit, setShowEdit]       = useState(false);
   const [showApproval, setShowApproval] = useState(false);
@@ -1608,6 +1609,23 @@ export default function ProjectDetail() {
     marginBottom: 0,
   };
 
+  // Naechster-Schritt Logik
+  const getNextStep = () => {
+    if (!project) return null;
+    const hasBriefing = briefingData && (briefingData.gewerk || briefingData.leistungen);
+    const hasBrand    = brandData && brandData.primary_color;
+    const hasCrawl    = crawlResults && crawlResults.length > 0;
+    const hasContent  = websiteContent && websiteContent.length > 0;
+    const hasSitemap  = sitemapPages && sitemapPages.length > 0;
+    if (!hasCrawl)    return { tab: 'analyse', label: 'Analyse starten', desc: 'Crawler ausfuehren um Seiten und Inhalte zu erfassen', icon: '🔬', color: 'var(--brand-primary)' };
+    if (!hasBriefing) return { tab: 'analyse', label: 'Briefing ausfuellen', desc: 'Unternehmen und Website-Ziele dokumentieren', icon: '📋', color: '#7c3aed' };
+    if (!hasBrand)    return { tab: 'analyse', label: 'Brand Design scannen', desc: 'Farben und Schriften von der bestehenden Website erfassen', icon: '🎨', color: '#d97706' };
+    if (!hasContent)  return { tab: 'content', label: 'Content aufbereiten', desc: 'Bestehende Inhalte importieren und mit KI ueberarbeiten', icon: '📝', color: '#059669' };
+    if (!hasSitemap)  return { tab: 'content', label: 'Sitemap anlegen', desc: 'Seitenstruktur der neuen Website definieren', icon: '🗺️', color: '#0891b2' };
+    return { tab: 'design', label: 'Design generieren', desc: 'Template waehlen und KI-Entwurf erstellen lassen', icon: '✨', color: '#185FA5' };
+  };
+  const nextStep = getNextStep();
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* ── Header ─────────────────────────────────────────────────────────── */}
@@ -1794,6 +1812,61 @@ export default function ProjectDetail() {
           })}
         </div>
 
+        {/* ── Naechster Schritt ── */}
+        {nextStep && (
+          <div
+            onClick={() => setMainTab(nextStep.tab)}
+            style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', transition: 'background 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-app)'}
+          >
+            <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: nextStep.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+              {nextStep.icon}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>
+                Naechster Schritt
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{nextStep.label}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{nextStep.desc}</div>
+            </div>
+            <div style={{ fontSize: 18, color: 'var(--text-tertiary)', flexShrink: 0 }}>{'\u203A'}</div>
+          </div>
+        )}
+
+        {/* ── Haupt-Tab-Navigation ── */}
+        <div style={{ display: 'flex', borderBottom: '2px solid var(--border-light)', background: 'var(--bg-surface)', padding: '0 16px' }}>
+          {[
+            { id: 'analyse', label: 'Analyse',  icon: '🔍', desc: 'Daten erfassen' },
+            { id: 'content', label: 'Content',  icon: '📝', desc: 'Inhalte aufbereiten' },
+            { id: 'design',  label: 'Design',   icon: '🎨', desc: 'Website gestalten' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setMainTab(tab.id)}
+              style={{
+                flex: 1, padding: '14px 8px 12px', border: 'none',
+                borderBottom: mainTab === tab.id ? '3px solid var(--brand-primary)' : '3px solid transparent',
+                background: 'transparent', cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                fontFamily: 'var(--font-sans)', transition: 'all 0.15s', marginBottom: -2,
+              }}
+              onMouseEnter={e => { if (mainTab !== tab.id) e.currentTarget.style.background = 'var(--bg-app)'; }}
+              onMouseLeave={e => { if (mainTab !== tab.id) e.currentTarget.style.background = 'transparent'; }}
+            >
+              <span style={{ fontSize: 20 }}>{tab.icon}</span>
+              <span style={{ fontSize: 13, fontWeight: mainTab === tab.id ? 700 : 500, color: mainTab === tab.id ? 'var(--brand-primary)' : 'var(--text-secondary)' }}>{tab.label}</span>
+              <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{tab.desc}</span>
+            </button>
+          ))}
+        </div>
+
+      </div>{/* Ende Phasen-Navigation Container */}
+
+      {/* ── ANALYSE TAB ── */}
+      {mainTab === 'analyse' && (
+      <div>
+
         {/* Werkzeug-Kacheln (Ebene 2) */}
         <div style={{
           position: 'relative', padding: '12px 0 10px',
@@ -1907,7 +1980,6 @@ export default function ProjectDetail() {
             display: isMobile ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
           }}>›</button>
         </div>
-      </div>
 
       {/* ── Overview Tab ────────────────────────────────────────────────────── */}
       {activeTab === 'overview' && (
@@ -4879,8 +4951,30 @@ export default function ProjectDetail() {
         </div>
       )}
 
-      {/* ── Null-Übersicht Tab ──────────────────────────────────────────────── */}
-      {/* null-uebersicht removed — now permanently above tool tiles */}
+      </div>
+      )}
+
+      {/* ── CONTENT TAB ── */}
+      {mainTab === 'content' && (
+        <div style={{ padding: '24px 0' }}>
+          <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-tertiary)' }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>📝</div>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Content-Werkstatt</div>
+            <div style={{ fontSize: 13 }}>Wird in Teil 2 implementiert</div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DESIGN TAB ── */}
+      {mainTab === 'design' && (
+        <div style={{ padding: '24px 0' }}>
+          <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-tertiary)' }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🎨</div>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Design-Studio</div>
+            <div style={{ fontSize: 13 }}>Wird in Teil 3 implementiert</div>
+          </div>
+        </div>
+      )}
 
       {/* ── Nachrichten Modal ───────────────────────────────────────────────── */}
       {showNewMessageModal && createPortal(

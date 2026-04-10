@@ -572,3 +572,41 @@ input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
 
 /* ── Modifier: Mono ──────────────────────────────────────────── */
 .ty-mono { font-family: var(--font-mono); }
+
+/* ══════════════════════════════════════════════════════════════
+   LIST ROW UTILITIES — ergonomische Mindestzeilenhöhe (44px)
+   ══════════════════════════════════════════════════════════════ */
+
+.kc-list-row {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-light);
+  transition: background var(--transition-fast);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.kc-list-row:hover {
+  background: var(--bg-hover);
+}
+.kc-list-row:last-child {
+  border-bottom: none;
+}
+.kc-list-row--card {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-sizing: border-box;
+}
+.kc-list-row--card:hover {
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-md);
+}

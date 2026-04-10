@@ -93,7 +93,7 @@ export default function AdminUsers() {
             const badge = ROLE_BADGES[u.role] || ROLE_BADGES.nutzer;
             return (
               <div key={u.id} style={{
-                background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 10, padding: isMobile ? '12px 14px' : '14px 20px',
+                background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 10, padding: isMobile ? '12px 14px' : '14px 20px', minHeight: 44,
                 display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 12,
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>

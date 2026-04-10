@@ -55,16 +55,12 @@ function ProjectListCard({ project, lead, onClick }) {
 
   return (
     <div
+      className="kc-list-row--card"
       onClick={onClick}
       style={{
-        background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
-        borderRadius: 'var(--radius-lg)', padding: '14px 16px', cursor: 'pointer',
-        display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-        transition: 'border-color 0.15s, box-shadow 0.15s',
+        flexWrap: 'wrap', gap: 16,
         borderLeft: ph ? `4px solid ${ph.color}` : undefined,
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = ph?.color || 'var(--border-medium)'; e.currentTarget.style.boxShadow = 'var(--shadow-elevated)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.boxShadow = 'none'; }}
     >
       {/* Avatar */}
       <div style={{

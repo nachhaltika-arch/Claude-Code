@@ -768,6 +768,13 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
           overflow: 'hidden',
         }}
       >
+        {/* Drag Handle — Mobile only */}
+        {isMobile && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 2px', flexShrink: 0 }}>
+            <div style={{ width: 36, height: 4, background: 'var(--border-medium)', borderRadius: 2 }} />
+          </div>
+        )}
+
         {/* ── Header ── */}
         <div style={{
           padding: '20px 28px 16px',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import ModalSheet from '../components/ui/ModalSheet';
 import toast from 'react-hot-toast';
 import { parseApiError } from '../utils/apiError';
 import { apiCall } from '../context/AuthContext';
@@ -119,52 +119,37 @@ export default function AdminUsers() {
       )}
 
       {/* Create User Modal */}
-      {showCreate && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowCreate(false); }}>
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: '28px 32px', maxWidth: 440, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h3 style={{ fontSize: 18, color: 'var(--text-primary)', marginBottom: 20 }}>Neuen Benutzer anlegen</h3>
-            {tempPw ? (
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 14, color: 'var(--status-success-text)', fontWeight: 700, marginBottom: 12 }}>Benutzer angelegt!</div>
-                <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: 16, fontSize: 16, fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>
-                  {tempPw}
-                </div>
-                <p style={{ fontSize: 12, color: '#c07820' }}>Bitte dieses temporaere Passwort sicher weitergeben.</p>
-                <button onClick={() => setShowCreate(false)} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 12, minHeight: 44 }}>
-                  Schliessen
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={createUser} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
-                  <input value={newUser.first_name} onChange={(e) => setNewUser((f) => ({ ...f, first_name: e.target.value }))} placeholder="Vorname" style={inpStyle} />
-                  <input value={newUser.last_name} onChange={(e) => setNewUser((f) => ({ ...f, last_name: e.target.value }))} placeholder="Nachname" style={inpStyle} />
-                </div>
-                <input value={newUser.email} onChange={(e) => setNewUser((f) => ({ ...f, email: e.target.value }))} placeholder="E-Mail" type="email" required style={inpStyle} />
-                <select value={newUser.role} onChange={(e) => setNewUser((f) => ({ ...f, role: e.target.value }))} style={inpStyle}>
-                  <option value="nutzer">Nutzer</option>
-                  <option value="auditor">Auditor</option>
-                  <option value="admin">Admin</option>
-                  <option value="kunde">Kunde</option>
-                </select>
-                {newUser.role === 'auditor' && (
-                  <input value={newUser.position} onChange={(e) => setNewUser((f) => ({ ...f, position: e.target.value }))} placeholder="Position (z.B. Senior Auditor)" style={inpStyle} />
-                )}
-                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <button type="submit" disabled={creating} style={{ flex: 1, background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
-                    {creating ? 'Anlegen...' : 'Benutzer anlegen'}
-                  </button>
-                  <button type="button" onClick={() => setShowCreate(false)} style={{ background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 16px', fontSize: 14, cursor: 'pointer', minHeight: 44 }}>
-                    Abbrechen
-                  </button>
-                </div>
-              </form>
-            )}
+      <ModalSheet open={showCreate} onClose={() => setShowCreate(false)} title={tempPw ? '✓ Benutzer angelegt' : 'Neuen Benutzer anlegen'} maxWidth={440}>
+        {tempPw ? (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 14, color: 'var(--status-success-text)', fontWeight: 700, marginBottom: 12 }}>Benutzer angelegt!</div>
+            <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: 16, fontSize: 16, fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>{tempPw}</div>
+            <p style={{ fontSize: 12, color: 'var(--status-warning-text)' }}>Bitte dieses temporäre Passwort sicher weitergeben.</p>
+            <button onClick={() => setShowCreate(false)} style={{ background: 'var(--brand-primary)', color: 'var(--text-inverse)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 12, minHeight: 44 }}>Schließen</button>
           </div>
-        </div>,
-        document.body
-      )}
+        ) : (
+          <form onSubmit={createUser} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+              <input value={newUser.first_name} onChange={(e) => setNewUser((f) => ({ ...f, first_name: e.target.value }))} placeholder="Vorname" style={inpStyle} />
+              <input value={newUser.last_name} onChange={(e) => setNewUser((f) => ({ ...f, last_name: e.target.value }))} placeholder="Nachname" style={inpStyle} />
+            </div>
+            <input value={newUser.email} onChange={(e) => setNewUser((f) => ({ ...f, email: e.target.value }))} placeholder="E-Mail" type="email" required style={inpStyle} />
+            <select value={newUser.role} onChange={(e) => setNewUser((f) => ({ ...f, role: e.target.value }))} style={inpStyle}>
+              <option value="nutzer">Nutzer</option>
+              <option value="auditor">Auditor</option>
+              <option value="admin">Admin</option>
+              <option value="kunde">Kunde</option>
+            </select>
+            {newUser.role === 'auditor' && (
+              <input value={newUser.position} onChange={(e) => setNewUser((f) => ({ ...f, position: e.target.value }))} placeholder="Position (z.B. Senior Auditor)" style={inpStyle} />
+            )}
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button type="submit" disabled={creating} style={{ flex: 1, background: 'var(--brand-primary)', color: 'var(--text-inverse)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>{creating ? 'Anlegen…' : 'Benutzer anlegen'}</button>
+              <button type="button" onClick={() => setShowCreate(false)} style={{ background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', padding: '10px 16px', fontSize: 14, cursor: 'pointer', minHeight: 44 }}>Abbrechen</button>
+            </div>
+          </form>
+        )}
+      </ModalSheet>
     </div>
   );
 }

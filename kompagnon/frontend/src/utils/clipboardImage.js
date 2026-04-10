@@ -1,3 +1,7 @@
+/**
+ * @deprecated Use useGrapesAssetManager from hooks/useGrapesAssetManager.js instead.
+ * Clipboard paste is now integrated into the hook automatically.
+ */
 import API_BASE_URL from '../config';
 
 /**

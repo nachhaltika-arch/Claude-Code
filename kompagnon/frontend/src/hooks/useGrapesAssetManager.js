@@ -8,8 +8,10 @@
  *
  *   <StudioEditor options={{ assets: { onLoad: onAssetsLoad, onUpload: onAssetsUpload } }} />
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import API_BASE_URL from '../config';
+
+const IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp']);
 
 export function useGrapesAssetManager({ leadId, projectId, token } = {}) {
   const [assetCount, setAssetCount] = useState(0);
@@ -99,5 +101,61 @@ export function useGrapesAssetManager({ leadId, projectId, token } = {}) {
     return results;
   }, [leadId, projectId, token]); // eslint-disable-line
 
-  return { onAssetsLoad, onAssetsUpload, assetCount };
+  // editorRef: set from outside after editor init (editorRef.current = editor)
+  const editorRef = useRef(null);
+
+  // Single-file upload helper for paste
+  const uploadSingleFile = useCallback(async (file) => {
+    if (!file || !IMAGE_MIME.has(file.type)) return null;
+    const name = file.name || `paste-${Date.now()}.png`;
+    if (leadId) {
+      try {
+        const fd = new FormData();
+        fd.append('file', file, name);
+        fd.append('file_type', 'foto');
+        fd.append('note', 'Paste aus Zwischenablage');
+        const res = await fetch(`${API_BASE_URL}/api/files/upload/${leadId}`, { method: 'POST', headers: authHeaders, body: fd });
+        if (res.ok) {
+          const data = await res.json();
+          return { src: `${API_BASE_URL}/api/files/download/${data.id}`, name: data.original_filename || name };
+        }
+      } catch { /* fall through */ }
+    }
+    // Base64 fallback
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => resolve({ src: e.target.result, name });
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  }, [leadId, authHeaders]); // eslint-disable-line
+
+  // Clipboard paste listener (Ctrl+V / Cmd+V)
+  useEffect(() => {
+    const handlePaste = async (e) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const items = Array.from(e.clipboardData?.items || []);
+      const imageItem = items.find(item => IMAGE_MIME.has(item.type));
+      if (!imageItem) return;
+      e.preventDefault();
+      const file = imageItem.getAsFile();
+      if (!file) return;
+      let toast;
+      try { toast = (await import('react-hot-toast')).default; } catch { /* optional */ }
+      const tid = toast?.loading?.('Bild wird eingefügt…');
+      const result = await uploadSingleFile(file);
+      if (result) {
+        try { editor.AssetManager?.add({ type: 'image', ...result }); } catch { /* Studio SDK may differ */ }
+        toast?.success?.(`Bild eingefügt: ${result.name}`, { id: tid });
+        setAssetCount(c => c + 1);
+      } else {
+        toast?.error?.('Bild konnte nicht eingefügt werden', { id: tid });
+      }
+    };
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [uploadSingleFile]);
+
+  return { onAssetsLoad, onAssetsUpload, assetCount, editorRef };
 }

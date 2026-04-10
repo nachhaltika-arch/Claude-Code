@@ -43,28 +43,7 @@ export default function GrapesEditor({
     return () => window.removeEventListener('kompagnon:asset-add', onAssetAdd);
   }, []);
 
-  // Clipboard paste for images
-  useEffect(() => {
-    const handlePaste = async (e) => {
-      const editor = editorRef.current;
-      if (!editor) return;
-      const items = Array.from(e.clipboardData?.items || []);
-      const imageItem = items.find(item => item.type.startsWith('image/'));
-      if (!imageItem) return;
-      e.preventDefault();
-      const file = imageItem.getAsFile();
-      if (!file) return;
-      const tid = toast.loading('Bild wird eingefügt…');
-      try {
-        const auth = token ? { Authorization: `Bearer ${token}` } : {};
-        const { src, name } = await processClipboardImage(file, leadId ?? null, auth);
-        try { editor.AssetManager?.add({ type: 'image', src, name }); } catch { /* silent */ }
-        toast.success(`Bild eingefügt: ${name}`, { id: tid });
-      } catch { toast.error('Bild konnte nicht eingefügt werden', { id: tid }); }
-    };
-    document.addEventListener('paste', handlePaste);
-    return () => document.removeEventListener('paste', handlePaste);
-  }, [leadId, token]);
+  // Clipboard paste is now handled by useGrapesAssetManager hook
 
   // ── Save: HTML+CSS+gjsData an /api/pages/{id}/editor ──────
   const handleSave = useCallback(async ({ project, editor }) => {
@@ -114,7 +93,7 @@ export default function GrapesEditor({
   }, [pageId, pageName, initialHtml, token]);
 
   // ── Asset Manager — zentraler Hook ──
-  const { onAssetsLoad, onAssetsUpload } = useGrapesAssetManager({ leadId, projectId, token });
+  const { onAssetsLoad, onAssetsUpload, editorRef: assetEditorRef } = useGrapesAssetManager({ leadId, projectId, token });
 
   // ── Netlify Deploy ────────────────────────────────────────
   const handleNetlifyDeploy = async () => {
@@ -286,7 +265,7 @@ export default function GrapesEditor({
             } : undefined,
             plugins,
           }}
-          onReady={(editor) => { editorRef.current = editor; }}
+          onReady={(editor) => { editorRef.current = editor; assetEditorRef.current = editor; }}
         />
       </div>
     </div>,

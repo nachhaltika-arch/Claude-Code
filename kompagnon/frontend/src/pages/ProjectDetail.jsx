@@ -189,7 +189,6 @@ const PHASE_TOOLS = {
     { id: 'crawler',         label: 'Crawler',              icon: '🕷️', sub: 'URLs erfasst' },
     { id: 'website-content', label: 'Website-Content',      icon: '🌐', sub: '50 Seiten', badge: '!' },
     { id: 'hosting',         label: 'Hosting-Crawling',     icon: '🖥️', sub: 'Scan' },
-    { id: 'hosting-form',    label: 'Hosting-Fragebogen',   icon: '📋', sub: 'Fragebogen' },
     { id: 'unternehmen',     label: 'Briefing Unternehmen', icon: '🏢', sub: 'Stammdaten' },
     { id: 'briefing',        label: 'Briefing Website',     icon: '📋', sub: 'Fragenkatalog' },
     { id: 'zugangsdaten',    label: 'Zugangsdaten',         icon: '🔑', sub: 'Safe' },
@@ -711,6 +710,7 @@ export default function ProjectDetail() {
   const [designVersionsLoaded, setDesignVersionsLoaded] = useState(false);
   // Hosting-Analyse
   const [hostingData, setHostingData]       = useState(null);
+  const [hostingChecked, setHostingChecked] = useState(false);
   const [hostingLoaded, setHostingLoaded]   = useState(false);
   const [hostingForm, setHostingForm] = useState({
     hosting_provider: '', domain_registrar: '', nameserver1: '', nameserver2: '',
@@ -820,6 +820,18 @@ export default function ProjectDetail() {
     if (activeTab === 'postlaunch')   loadGbpData();
     if ((activeTab === 'sitemap' || activeSubTab === 'sitemap') && project?.lead_id && !sitemapLoaded) {
       loadSitemapPages();
+    }
+    // Load saved hosting data when tab opens
+    if ((activeSubTab === 'hosting-scan' || activeSubTab === 'hosting') && !hostingChecked && project?.id) {
+      setHostingChecked(true);
+      setHostingScanning(true);
+      fetch(`${API_BASE_URL}/api/projects/${project.id}/hosting-info`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.hosting_provider || d?.nameservers || d?.server_software) setHostingData(d); })
+        .catch(() => {})
+        .finally(() => setHostingScanning(false));
     }
   }, [activeTab, activeSubTab]); // eslint-disable-line
 

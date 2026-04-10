@@ -122,7 +122,7 @@ export default function Newsletter() {
   const statusBadge = (status) => {
     const map = {
       draft:     { label: 'Entwurf',   bg: 'var(--bg-app)',            color: 'var(--text-secondary)' },
-      scheduled: { label: 'Geplant',   bg: '#e8f4fd',                  color: '#0369a1' },
+      scheduled: { label: 'Geplant',   bg: 'var(--status-info-bg)',     color: 'var(--status-info-text)' },
       sent:      { label: 'Versendet', bg: 'var(--status-success-bg)', color: 'var(--status-success-text)' },
     };
     const s = map[status] || map.draft;
@@ -145,7 +145,7 @@ export default function Newsletter() {
   // ── Styles ──────────────────────────────────────────────────────
 
   const card = { background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' };
-  const btnPrimary = { background: 'var(--brand-primary)', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
+  const btnPrimary = { background: 'var(--brand-primary)', color: 'var(--text-inverse)', border: 'none', padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
   const btnSecondary = { background: 'transparent', color: 'var(--brand-primary)', border: '1px solid var(--brand-primary)', padding: '6px 14px', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
   const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' };
   const modal = { background: 'var(--bg-surface)', borderRadius: 12, padding: 28, width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 16 };

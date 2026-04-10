@@ -168,12 +168,20 @@ export default function AdminUsers() {
   );
 }
 
-const inpStyle = { width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 16, boxSizing: 'border-box' };
+const inpStyle = {
+  width: '100%', padding: '10px 12px',
+  border: '1px solid var(--border-medium)',
+  borderRadius: 'var(--radius-md)', fontSize: 16,
+  boxSizing: 'border-box',
+  background: 'var(--bg-elevated)',
+  color: 'var(--text-primary)',
+};
 
 function SmallBtn({ onClick, label, danger }) {
   return (
     <button onClick={onClick} style={{
-      background: danger ? '#fdecea' : '#f0f2f8', color: danger ? '#c03030' : 'var(--text-primary)',
+      background: danger ? 'var(--status-danger-bg)' : 'var(--bg-app)',
+      color: danger ? 'var(--status-danger-text)' : 'var(--text-primary)',
       border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', minHeight: 30,
     }}>
       {label}

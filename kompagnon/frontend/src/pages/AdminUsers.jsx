@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
+import { parseApiError } from '../utils/apiError';
 import { apiCall } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
@@ -43,7 +44,7 @@ export default function AdminUsers() {
       setTempPw(data.temp_password);
       toast.success(`Benutzer ${data.user.email} angelegt`);
       loadUsers();
-    } catch (e) { toast.error(e.message); }
+    } catch (e) { toast.error(parseApiError(e)); }
     finally { setCreating(false); }
   };
 
@@ -51,7 +52,7 @@ export default function AdminUsers() {
     try {
       await apiCall(`/api/admin/users/${userId}`, { method: 'PATCH', body: JSON.stringify({ is_active: !isActive }) });
       loadUsers();
-    } catch (e) { toast.error('Fehler'); }
+    } catch (e) { toast.error(parseApiError(e)); }
   };
 
   const deleteUser = async (userId, email) => {
@@ -60,7 +61,7 @@ export default function AdminUsers() {
       const res = await apiCall(`/api/admin/users/${userId}`, { method: 'DELETE' });
       if (res.ok) { toast.success('Geloescht'); loadUsers(); }
       else throw new Error((await res.json()).detail);
-    } catch (e) { toast.error(e.message); }
+    } catch (e) { toast.error(parseApiError(e)); }
   };
 
   const resetPw = async (userId, email) => {
@@ -71,7 +72,7 @@ export default function AdminUsers() {
         toast.success(`Neues Passwort: ${data.temp_password}`);
         alert(`Neues temporaeres Passwort fuer ${email}:\n\n${data.temp_password}\n\nBitte sicher weitergeben.`);
       }
-    } catch (e) { toast.error('Fehler'); }
+    } catch (e) { toast.error(parseApiError(e)); }
   };
 
   return (

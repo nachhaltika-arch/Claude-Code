@@ -18,6 +18,7 @@ import GrapesEditor from '../components/GrapesEditor';
 import KiReportPanel from '../components/KiReportPanel';
 import MoodboardPanel from '../components/MoodboardPanel';
 import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
+import { parseApiError } from '../utils/apiError';
 import WebsiteDesigner from '../components/WebsiteDesigner';
 import ContentManager from '../components/ContentManager';
 import AuditReport from '../components/AuditReport';
@@ -851,7 +852,7 @@ export default function ProjectDetail() {
           [seite.id]: d.email_sent ? '✓ E-Mail gesendet' : '✓ Gespeichert',
         }));
       } else {
-        setApprovalMsg(p => ({ ...p, [seite.id]: d.detail || 'Fehler' }));
+        setApprovalMsg(p => ({ ...p, [seite.id]: parseApiError(d) }));
       }
     } catch {
       setApprovalMsg(p => ({ ...p, [seite.id]: 'Verbindungsfehler' }));
@@ -935,7 +936,7 @@ export default function ProjectDetail() {
       );
       const d = await r.json();
       if (r.ok) { setAbnahmeMsg(`✓ ${d.text}`); await loadProject(); }
-      else      { setAbnahmeMsg(d.detail || 'Fehler'); }
+      else      { setAbnahmeMsg(parseApiError(d)); }
     } catch { setAbnahmeMsg('Verbindungsfehler'); }
     finally { setAbnahmeLoading(false); }
   };
@@ -951,7 +952,7 @@ export default function ProjectDetail() {
       if (r.ok) {
         setPsMsg(`✓ Mobil: ${d.pagespeed_after_mobile ?? '—'} | Desktop: ${d.pagespeed_after_desktop ?? '—'}`);
         await loadProject();
-      } else { setPsMsg(d.detail || 'Fehler'); }
+      } else { setPsMsg(parseApiError(d)); }
     } catch { setPsMsg('Verbindungsfehler'); }
     finally { setPsLoading(false); }
   };
@@ -1026,7 +1027,7 @@ export default function ProjectDetail() {
         { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
       );
       const d = await res.json();
-      if (!res.ok) { setQaError(d.detail || 'Fehler'); return; }
+      if (!res.ok) { setQaError(parseApiError(d)); return; }
       setQaResult(d);
     } catch { setQaError('Verbindungsfehler'); }
     finally { setQaRunning(false); }
@@ -1328,7 +1329,7 @@ export default function ProjectDetail() {
         toast.error('Löschen fehlgeschlagen');
       }
     } catch (e) {
-      toast.error('Fehler: ' + e.message);
+      toast.error(parseApiError(e));
     } finally {
       setDeletingPageId(null);
     }
@@ -1952,7 +1953,7 @@ export default function ProjectDetail() {
             const res = await fetch(`${API_BASE_URL}/api/branddesign/${lid}/scrape`, { method: 'POST', headers: h });
             if (res.ok) setBrandData(await res.json());
             else toast.error('Scraping fehlgeschlagen');
-          } catch { toast.error('Fehler beim Scraping'); }
+          } catch { toast.error('Scraping fehlgeschlagen'); }
           finally { setScraping(false); }
         };
 
@@ -1961,8 +1962,8 @@ export default function ProjectDetail() {
           try {
             const res = await fetch(`${API_BASE_URL}/api/branddesign/${lid}/analyze-screenshot`, { method: 'POST', headers: h });
             if (res.ok) { setBrandData(d => ({ ...d, ...(res.ok ? {} : {}) })); await loadBrandData(); }
-            else { const e = await res.json().catch(() => ({})); toast.error(e.detail || 'Analyse fehlgeschlagen'); }
-          } catch { toast.error('Fehler bei der Analyse'); }
+            else { const e = await res.json().catch(() => ({})); toast.error(parseApiError(e)); }
+          } catch { toast.error('Analyse fehlgeschlagen'); }
           finally { setAnalyzing(false); }
         };
 
@@ -3222,9 +3223,9 @@ export default function ProjectDetail() {
                     toast.success('3 Versionen generiert');
                   } else {
                     const err = await res.json().catch(() => ({}));
-                    toast.error(err.detail || 'Generierung fehlgeschlagen');
+                    toast.error(parseApiError(err));
                   }
-                } catch (e) { toast.error('Fehler: ' + e.message); }
+                } catch (e) { toast.error(parseApiError(e)); }
                 setVersionsGenerating(false);
               }}
               style={{
@@ -3783,7 +3784,7 @@ export default function ProjectDetail() {
             // reload status
             const s = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers });
             setNetlify(s.ok ? await s.json() : null);
-          } catch (e) { toast.error('Fehler: ' + e.message); }
+          } catch (e) { toast.error(parseApiError(e)); }
           finally { setNetlifyLoading(false); }
         };
 
@@ -3821,7 +3822,7 @@ export default function ProjectDetail() {
             // Status reload
             const s = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers });
             if (s.ok) setNetlify(await s.json());
-          } catch (e) { toast.error('Fehler: ' + e.message); }
+          } catch (e) { toast.error(parseApiError(e)); }
         };
 
         const sendDnsEmail = async () => {

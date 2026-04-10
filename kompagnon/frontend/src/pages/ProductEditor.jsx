@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import { parseApiError } from '../utils/apiError';
 
 const FRONTEND_URL = 'https://kompagnon-frontend.onrender.com';
 
@@ -261,8 +262,8 @@ function TabPreis({ product, onChange, selected, headers, setProduct, API_BASE_U
       const r = await fetch(`${apiBase}/api/products/${selected}/stripe-sync`, { method: 'POST', headers });
       const d = await r.json();
       if (r.ok) { setSyncMsg('✓ Stripe synchronisiert'); setProduct(p => ({ ...p, stripe_price_id: d.stripe_price_id })); }
-      else setSyncMsg(d.detail || 'Fehler');
-    } catch { setSyncMsg('Verbindungsfehler'); }
+      else setSyncMsg(parseApiError(d, r.status));
+    } catch (e) { setSyncMsg(parseApiError(e)); }
     finally { setSyncing(false); }
   };
   return (
@@ -563,7 +564,7 @@ export default function ProductEditor() {
       await loadProducts();
       setSelected(d.slug);
       setProduct(d);
-    } catch { setMsg('Verbindungsfehler'); }
+    } catch (e) { setMsg(parseApiError(e)); }
     finally { setSaving(false); }
   };
 
@@ -580,8 +581,8 @@ export default function ProductEditor() {
         fetch(url, { method: isNew ? 'POST' : 'PUT', headers: h, body: JSON.stringify(payload) })
           .then(r => r.json()).then(d => {
             if (d.slug) { setMsg('✓ Produkt ist jetzt Live'); loadProducts(); setSelected(d.slug); }
-            else setMsg(d.detail || 'Fehler');
-          }).catch(() => setMsg('Verbindungsfehler')).finally(() => setSaving(false));
+            else setMsg(parseApiError(d));
+          }).catch((e) => setMsg(parseApiError(e))).finally(() => setSaving(false));
         return updated;
       });
     }, 0);

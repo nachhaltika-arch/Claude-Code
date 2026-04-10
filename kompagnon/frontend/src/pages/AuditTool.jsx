@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { parseApiError } from '../utils/apiError';
 import API_BASE_URL from '../config';
 import AuditReport from '../components/AuditReport';
 import { useScreenSize } from '../utils/responsive';
@@ -102,7 +103,7 @@ export default function AuditTool() {
     } catch (error) {
       clearInterval(stepRef.current);
       stepRef.current = null;
-      const msg = error.response?.data?.detail || 'Audit konnte nicht gestartet werden';
+      const msg = parseApiError(error.response?.data?.detail ?? error.response?.data ?? error, error.response?.status);
       toast.error(msg);
       setStep('form');
     }
@@ -381,7 +382,7 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
       toast.success(`✓ ${leadForm.company_name} wurde als Lead angelegt!`);
       onSaved(newLeadId);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Lead konnte nicht angelegt werden.');
+      toast.error(parseApiError(error.response?.data ?? error, error.response?.status));
     } finally {
       setSaving(false);
     }

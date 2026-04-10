@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { parseApiError } from '../utils/apiError';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -396,7 +397,7 @@ export default function LeadProfile() {
         setShowTemplateModal(false);
         await loadAssignedTemplate();
       }
-    } catch { toast.error('Fehler beim Zuweisen'); }
+    } catch (e) { toast.error(parseApiError(e)); }
   };
 
   const generateDesign = async () => {

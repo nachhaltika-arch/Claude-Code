@@ -185,9 +185,9 @@ function GaStatusCard({ leadId, headers: h, API_BASE_URL: baseUrl }) {
 
 const PHASE_TOOLS = {
   'onboarding': [
+    { id: 'unternehmen',     label: 'Briefing Unternehmen', icon: '🏢', sub: 'Stammdaten' },
     { id: 'audits',          label: 'Audit',                icon: '🔍', sub: 'Bericht' },
     { id: 'analyse',         label: 'Analyse-Zentrale',     icon: '🔬', sub: 'Alle Crawler' },
-    { id: 'unternehmen',     label: 'Briefing Unternehmen', icon: '🏢', sub: 'Stammdaten' },
     { id: 'briefing',        label: 'Briefing Website',     icon: '📋', sub: 'Fragenkatalog' },
     { id: 'zugangsdaten',    label: 'Zugangsdaten',         icon: '🔑', sub: 'Safe' },
     { id: 'branddesign',     label: 'Brand-Design-PDF',     icon: '🎨', sub: 'Dreiseitig' },
@@ -1624,6 +1624,59 @@ export default function ProjectDetail() {
       {/* ── ProjectCard ─────────────────────────────────────────────────────── */}
       <ProjectCard project={project} onDomainCheck={checkDomain} domainChecking={domainChecking} />
 
+      {/* ── Projekt-Uebersicht — Status + Marge ── */}
+      {project && (() => {
+        const phaseNum  = parseInt((project.status || '').replace('phase_', '')) || 1;
+        const phaseName = ['Onboarding','Briefing','Content','Technik','Go Live','QM','Post-Launch','Fertig'][phaseNum - 1] || 'Onboarding';
+        const statusColor = project.status?.includes('abgeschlossen')
+          ? { bg: '#f3f4f6', text: '#6b7280' }
+          : project.status?.includes('pausiert')
+          ? { bg: '#fef3c7', text: '#92400e' }
+          : { bg: '#dcfce7', text: '#166534' };
+        const statusLabel = project.status?.includes('abgeschlossen') ? 'Abgeschlossen'
+          : project.status?.includes('pausiert') ? 'Pausiert' : 'Aktiv';
+        const marginPct   = margin?.margin_percent ?? null;
+        const marginColor = marginPct === null ? 'var(--text-tertiary)'
+          : marginPct < 30 ? '#E24B4A' : marginPct < 50 ? '#BA7517' : '#1D9E75';
+
+        return (
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            {/* Status */}
+            <div style={{ flex: '1 1 220px', padding: '12px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: statusColor.bg, color: statusColor.text }}>
+                  {statusLabel}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                  Phase {phaseNum}/7 {phaseName}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                <span>Start: {project.start_date ? new Date(project.start_date).toLocaleDateString('de-DE') : '\u2013'}</span>
+                <span>Go-Live: {project.target_go_live || project.go_live_date ? new Date(project.target_go_live || project.go_live_date).toLocaleDateString('de-DE') : '\u2013'}</span>
+              </div>
+            </div>
+            {/* Marge */}
+            <div style={{ flex: '1 1 220px', padding: '12px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
+              <div style={{ display: 'flex', gap: 20, alignItems: 'baseline' }}>
+                <div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Fixpreis</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{(project.fixed_price || 0).toFixed(0)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Stunden</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{(project.actual_hours || 0).toFixed(1)}h</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Marge</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: marginColor, fontVariantNumeric: 'tabular-nums' }}>{marginPct !== null ? `${marginPct.toFixed(0)}%` : '\u2013'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Buttons ─────────────────────────────────────────────────────────── */}
       {(() => {
         const btnBase = {
@@ -1694,59 +1747,6 @@ export default function ProjectDetail() {
             );
           })}
         </div>
-
-        {/* ── Projekt-Uebersicht — immer sichtbar ── */}
-        {project && (() => {
-          const phaseNum  = parseInt((project.status || '').replace('phase_', '')) || 1;
-          const phaseName = ['Onboarding','Briefing','Content','Technik','Go Live','QM','Post-Launch','Fertig'][phaseNum - 1] || 'Onboarding';
-          const statusColor = project.status?.includes('abgeschlossen')
-            ? { bg: '#f3f4f6', text: '#6b7280' }
-            : project.status?.includes('pausiert')
-            ? { bg: '#fef3c7', text: '#92400e' }
-            : { bg: '#dcfce7', text: '#166534' };
-          const statusLabel = project.status?.includes('abgeschlossen') ? 'Abgeschlossen'
-            : project.status?.includes('pausiert') ? 'Pausiert' : 'Aktiv';
-          const marginPct   = margin?.margin_percent ?? null;
-          const marginColor = marginPct === null ? 'var(--text-tertiary)'
-            : marginPct < 30 ? '#E24B4A' : marginPct < 50 ? '#BA7517' : '#1D9E75';
-
-          return (
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16, padding: '0 12px' }}>
-              {/* Status */}
-              <div style={{ flex: '1 1 220px', padding: '12px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: statusColor.bg, color: statusColor.text }}>
-                    {statusLabel}
-                  </span>
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                    Phase {phaseNum}/7 · {phaseName}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'var(--text-tertiary)' }}>
-                  <span>Start: {project.start_date ? new Date(project.start_date).toLocaleDateString('de-DE') : '\u2013'}</span>
-                  <span>Go-Live: {project.target_go_live || project.go_live_date ? new Date(project.target_go_live || project.go_live_date).toLocaleDateString('de-DE') : '\u2013'}</span>
-                </div>
-              </div>
-              {/* Marge */}
-              <div style={{ flex: '1 1 220px', padding: '12px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
-                <div style={{ display: 'flex', gap: 20, alignItems: 'baseline' }}>
-                  <div>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Fixpreis</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{(project.fixed_price || 0).toFixed(0)}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Stunden</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{(project.actual_hours || 0).toFixed(1)}h</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Marge</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: marginColor, fontVariantNumeric: 'tabular-nums' }}>{marginPct !== null ? `${marginPct.toFixed(0)}%` : '\u2013'}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
 
         {/* Werkzeug-Kacheln (Ebene 2) */}
         <div style={{

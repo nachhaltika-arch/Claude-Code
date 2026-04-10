@@ -166,9 +166,7 @@ export default function BriefingTab({ lead, isMobile }) {
     if (!lead?.project_id && !lead?.id) return;
     setPrefilling(true);
     try {
-      // Try to find project_id from lead
-      const pid = lead.project_id || lead.id;
-      const res = await fetch(`${API_BASE_URL}/api/projects/${pid}/briefing-prefill`, { method: 'POST', headers: h });
+      const res = await fetch(`${API_BASE_URL}/api/leads/${lead.id}/briefing-prefill`, { method: 'POST', headers: h });
       if (!res.ok) { const err = await res.json().catch(() => ({})); toast.error(err.detail || 'Vorausfüllen fehlgeschlagen'); return; }
       const data = await res.json();
       const updates = {};

@@ -1782,6 +1782,58 @@ def get_email_logs(lead_id: int, db: Session = Depends(get_db)):
 
 
 # ── /api/customers aliases for all /{lead_id}/... endpoints ─────────────────
+@router.post("/{lead_id}/briefing-prefill")
+async def briefing_prefill_from_lead(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Briefing-Vorschlaege aus gecrawltem Website-Content via lead_id."""
+    import json
+    from urllib.parse import urlparse
+
+    rows = db.execute(
+        text("""
+            SELECT url, title, meta_description, h1, h2s, text_preview
+            FROM website_content_cache
+            WHERE customer_id = :lid
+            ORDER BY scraped_at DESC LIMIT 20
+        """),
+        {"lid": lead_id},
+    ).fetchall()
+
+    if not rows:
+        raise HTTPException(400, "Kein Website-Content vorhanden. Bitte zuerst Crawler ausfuehren.")
+
+    all_h2s, page_names, pages_text = [], [], []
+    for row in rows:
+        url, title, meta, h1, h2s_json, preview = row
+        try:
+            all_h2s.extend(json.loads(h2s_json or '[]'))
+        except Exception:
+            pass
+        try:
+            path = urlparse(url).path.strip('/').split('/')[-1]
+            if path and len(path) > 1:
+                name = path.replace('-', ' ').replace('_', ' ').title()
+                if name not in page_names:
+                    page_names.append(name)
+        except Exception:
+            pass
+        if preview:
+            pages_text.append(f"URL: {url}\nH1: {h1 or title}\nVorschau: {preview[:300]}")
+
+    return {
+        "gewerk":        (all_h2s[0] if all_h2s else '')[:80],
+        "leistungen":    ', '.join(set(all_h2s[:8])),
+        "wunschseiten":  ', '.join(page_names[:8]),
+        "einzugsgebiet": '',
+        "usp":           '',
+        "zielgruppe":    '',
+        "source":        "heuristic",
+    }
+
+
 # Registers identical handlers under /api/customers/{lead_id}/... so that
 # frontend calls to either prefix work transparently.
 

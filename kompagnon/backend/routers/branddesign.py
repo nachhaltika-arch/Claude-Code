@@ -65,6 +65,14 @@ def get_brand_data(lead_id: int, db: Session = Depends(get_db)):
         except Exception:
             return []
 
+    design_json = getattr(lead, 'brand_design_json', None)
+    design_data = None
+    if design_json:
+        try:
+            design_data = json.loads(design_json)
+        except Exception:
+            pass
+
     return {
         "lead_id":         lead_id,
         "primary_color":   getattr(lead, 'brand_primary_color',   None),
@@ -83,6 +91,7 @@ def get_brand_data(lead_id: int, db: Session = Depends(get_db)):
         "ga_type":           getattr(lead, 'ga_type', None),
         "ga_measurement_id": getattr(lead, 'ga_measurement_id', None),
         "ga_checked_at":     str(getattr(lead, 'ga_checked_at', '') or '')[:16] or None,
+        "design_data":       design_data,
     }
 
 
@@ -238,8 +247,97 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
                 logo_url = src if src.startswith('http') else urljoin(base, src)
                 break
 
-    except Exception as exc:
+    except Exception:
         scrape_failed = True
+        html_text = ''
+
+    # ── Design-DNA Extraktion ─────────────────────────────────────────
+    design_data = None
+    if html_text and not scrape_failed:
+        # Border-Radius
+        radius_values = re.findall(r'border-radius:\s*([\d]+)px', html_text)
+        if radius_values:
+            avg_radius = sum(int(v) for v in radius_values) / len(radius_values)
+            border_radius_style = "scharf" if avg_radius < 4 else "leicht" if avg_radius < 10 else "abgerundet" if avg_radius < 20 else "rund"
+            border_radius_px = round(avg_radius)
+        else:
+            border_radius_style, border_radius_px = "unbekannt", 8
+
+        # Schatten
+        shadow_count = len(re.findall(r'box-shadow', html_text))
+        shadow_level = 0 if shadow_count == 0 else 1 if shadow_count < 3 else 2 if shadow_count < 8 else 3
+        shadow_label = ["Kein Schatten", "Leicht", "Mittel", "Stark"][shadow_level]
+
+        # Button-Stil
+        button_style = "filled"
+        if re.search(r'button[^{]*\{[^}]*background:\s*transparent', html_text, re.IGNORECASE | re.DOTALL):
+            button_style = "ghost"
+        elif re.search(r'button[^{]*\{[^}]*border[^}]*transparent', html_text, re.IGNORECASE | re.DOTALL):
+            button_style = "outline"
+
+        # Abstands-Dichte
+        padding_values = [int(v) for v in re.findall(r'padding:\s*([\d]+)px', html_text) if int(v) < 200]
+        spacing_density = "normal"
+        if padding_values:
+            avg_padding = sum(padding_values) / len(padding_values)
+            spacing_density = "kompakt" if avg_padding < 12 else "normal" if avg_padding < 24 else "luftig"
+
+        # Farbrollen klassifizieren
+        color_roles = {"primary": all_colors[0] if all_colors else None, "secondary": all_colors[1] if len(all_colors) > 1 else None, "accent": None, "background": None, "text": None, "all": all_colors[:12]}
+        for color in all_colors:
+            try:
+                r_v, g_v, b_v = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
+                brightness = (r_v * 299 + g_v * 587 + b_v * 114) / 1000
+                if brightness > 220 and not color_roles["background"]:
+                    color_roles["background"] = color
+                elif brightness < 60 and not color_roles["text"]:
+                    color_roles["text"] = color
+            except Exception:
+                pass
+
+        design_data = {
+            "colors": color_roles, "fonts": all_fonts[:6],
+            "border_radius_px": border_radius_px, "border_radius_style": border_radius_style,
+            "shadow_level": shadow_level, "shadow_label": shadow_label,
+            "button_style": button_style, "spacing_density": spacing_density,
+            "style_keyword": None, "style_beschreibung": None,
+            "farb_stimmung": None, "design_brief": None,
+        }
+
+        # Claude Design-Brief
+        api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        if api_key:
+            try:
+                prompt = (
+                    f"Analysiere diese Design-Daten einer Website und erstelle einen Design-Brief.\n"
+                    f"Website: {website_url}\nFarben: {json.dumps(color_roles)}\n"
+                    f"Schriften: {all_fonts[:4]}\nEcken: {border_radius_style} ({border_radius_px}px)\n"
+                    f"Schatten: {shadow_label}\nButton: {button_style}\nAbstaende: {spacing_density}\n\n"
+                    "Antworte NUR als JSON:\n"
+                    '{"style_keyword":"<Modern|Klassisch|Verspielt|Industriell|Premium|Bodenstaendig|Digital|Traditionell>",'
+                    '"style_beschreibung":"<2 Saetze>","farb_stimmung":"<Warm|Kuehl|Neutral|Kontrastreich>",'
+                    '"design_brief":{"fuer_ki_prompt":"<80-120 Woerter: Beschreibung fuer KI-Template-Erstellung>",'
+                    '"primaerfarbe":"<Hex>","akzentfarbe":"<Hex>","hintergrundfarbe":"<Hex>","textfarbe":"<Hex>",'
+                    '"heading_font":"<Font>","body_font":"<Font>","radius_token":"<scharf|leicht|abgerundet|rund>",'
+                    '"shadow_token":"<ohne|leicht|mittel|stark>","dichte":"<kompakt|normal|luftig>"}}'
+                )
+                async with httpx.AsyncClient(timeout=30.0) as ai_client:
+                    ai_resp = await ai_client.post(
+                        "https://api.anthropic.com/v1/messages",
+                        headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                        json={"model": "claude-sonnet-4-20250514", "max_tokens": 800, "messages": [{"role": "user", "content": prompt}]},
+                    )
+                if ai_resp.status_code == 200:
+                    content = ai_resp.json()["content"][0]["text"].strip()
+                    content = re.sub(r'^```json\s*', '', content)
+                    content = re.sub(r'\s*```$', '', content)
+                    claude_data = json.loads(content)
+                    design_data["style_keyword"] = claude_data.get("style_keyword")
+                    design_data["style_beschreibung"] = claude_data.get("style_beschreibung")
+                    design_data["farb_stimmung"] = claude_data.get("farb_stimmung")
+                    design_data["design_brief"] = claude_data.get("design_brief")
+            except Exception:
+                pass
 
     # Persist
     now = datetime.utcnow()
@@ -252,6 +350,9 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
     _set(lead, 'brand_fonts',           json.dumps(all_fonts))
     _set(lead, 'brand_scrape_failed',   scrape_failed)
     _set(lead, 'brand_scraped_at',      now)
+    if design_data:
+        _set(lead, 'brand_design_json', json.dumps(design_data, ensure_ascii=False))
+        _set(lead, 'brand_design_style', design_data.get("style_keyword"))
     db.commit()
 
     return {
@@ -264,6 +365,7 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
         "all_fonts":       all_fonts,
         "scrape_failed":   scrape_failed,
         "scraped_at":      str(now)[:16],
+        "design_data":     design_data,
     }
 
 

@@ -660,6 +660,7 @@ function HeadingRow({ level, text, color, indent }) {
 function ProjectSummaryPanel({ leadId, headers, stepResults }) {
   const [pagespeed, setPagespeed] = useState(null);
   const [brand, setBrand]         = useState(null);
+  const [designData, setDesignData] = useState(null);
 
   useEffect(() => {
     if (!leadId) return;
@@ -669,7 +670,7 @@ function ProjectSummaryPanel({ leadId, headers, stepResults }) {
       .catch(() => {});
     fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setBrand(d); })
+      .then(d => { if (d) { setBrand(d); if (d.design_data) setDesignData(d.design_data); } })
       .catch(() => {});
   }, [leadId]); // eslint-disable-line
 
@@ -705,81 +706,122 @@ function ProjectSummaryPanel({ leadId, headers, stepResults }) {
             ].map(({ label, score }) => {
               const c = scoreColor(score);
               return (
-                <div key={label} style={{
-                  flex: 1, borderRadius: 6, padding: '6px 8px', textAlign: 'center',
-                  background: c.bg,
-                }}>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: c.text, lineHeight: 1 }}>
-                    {score ?? '\u2014'}
-                  </div>
-                  <div style={{ fontSize: 9, color: c.text, opacity: 0.7, marginTop: 2 }}>
-                    {label}
-                  </div>
+                <div key={label} style={{ flex: 1, borderRadius: 6, padding: '6px 8px', textAlign: 'center', background: c.bg }}>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: c.text, lineHeight: 1 }}>{score ?? '\u2014'}</div>
+                  <div style={{ fontSize: 9, color: c.text, opacity: 0.7, marginTop: 2 }}>{label}</div>
                 </div>
               );
             })}
           </div>
         ) : (
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-            Noch nicht gemessen
-          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Noch nicht gemessen</div>
         )}
       </div>
 
       {/* Google Analytics */}
       <div>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
-          Google Analytics
-        </div>
+        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>Google Analytics</div>
         {gaResult != null ? (
-          <div style={{
-            fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 6,
-            background: gaResult.ga_found ? '#EAF4E0' : '#FEF3DC',
-            color: gaResult.ga_found ? '#2D6A0A' : '#8A5C00',
-          }}>
+          <div style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 6, background: gaResult.ga_found ? '#EAF4E0' : '#FEF3DC', color: gaResult.ga_found ? '#2D6A0A' : '#8A5C00' }}>
             {gaResult.ga_found ? 'GA4 erkannt' : 'Kein GA4 gefunden'}
           </div>
         ) : (
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-            Analyse ausstehend
-          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Analyse ausstehend</div>
         )}
       </div>
 
-      {/* Brand Design */}
+      {/* Brand Design Board */}
       <div>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
+        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>
           Brand Design
+          {designData?.style_keyword && (
+            <span style={{ marginLeft: 8, fontWeight: 600, color: 'var(--brand-primary)', textTransform: 'none', letterSpacing: 0 }}>
+              {designData.style_keyword}
+            </span>
+          )}
         </div>
-        {brand?.primary_color ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-              {[brand.primary_color, brand.secondary_color].filter(Boolean).map((color, i) => (
-                <div
-                  key={i}
-                  title={color}
-                  style={{ width: 20, height: 20, borderRadius: 4, background: color, border: '1px solid var(--border-light)', flexShrink: 0 }}
-                />
-              ))}
-              {(brand.all_colors || []).slice(2, 6).map((color, i) => (
-                <div
-                  key={`extra${i}`}
-                  title={color}
-                  style={{ width: 14, height: 14, borderRadius: 3, background: color, border: '1px solid var(--border-light)', flexShrink: 0 }}
-                />
-              ))}
+
+        {designData ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+            {/* Farb-Palette */}
+            <div>
+              <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 4 }}>Farben</div>
+              <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 4 }}>
+                {[
+                  { color: designData.colors?.primary,    label: 'P' },
+                  { color: designData.colors?.secondary,  label: 'S' },
+                  { color: designData.colors?.accent,     label: 'A' },
+                  { color: designData.colors?.background, label: 'BG' },
+                  { color: designData.colors?.text,       label: 'T' },
+                  ...(designData.colors?.all || [])
+                    .filter(c => ![designData.colors?.primary, designData.colors?.secondary, designData.colors?.accent, designData.colors?.background, designData.colors?.text].includes(c))
+                    .slice(0, 6).map(c => ({ color: c, label: '' })),
+                ].filter(e => e.color).map(({ color, label }, i) => (
+                  <div key={i} title={`${label ? label + ': ' : ''}${color}`} onClick={() => navigator.clipboard?.writeText(color)} style={{ flexShrink: 0, cursor: 'pointer' }}>
+                    <div style={{ width: label ? 28 : 20, height: label ? 28 : 20, borderRadius: 4, background: color, border: '1px solid var(--border-light)' }} />
+                    {label && <div style={{ fontSize: 8, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 2 }}>{label}</div>}
+                  </div>
+                ))}
+              </div>
             </div>
-            {brand.font_primary && (
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <span style={{ color: 'var(--text-tertiary)' }}>Schrift: </span>
-                {brand.font_primary}
+
+            {/* Schrift-Vorschau */}
+            {designData.fonts?.length > 0 && (
+              <div>
+                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 4 }}>Schriften</div>
+                {designData.fonts.slice(0, 2).map((font, i) => (
+                  <div key={i} style={{ fontSize: i === 0 ? 13 : 11, fontWeight: i === 0 ? 700 : 400, color: 'var(--text-primary)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>
+                    {font}
+                  </div>
+                ))}
               </div>
             )}
+
+            {/* Design-DNA Chips */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {[
+                designData.border_radius_style && designData.border_radius_style !== 'unbekannt' && `${designData.border_radius_style}`,
+                designData.shadow_label && `${designData.shadow_label}`,
+                designData.button_style && `btn: ${designData.button_style}`,
+                designData.spacing_density && `${designData.spacing_density}`,
+                designData.farb_stimmung && `${designData.farb_stimmung}`,
+              ].filter(Boolean).map((chip, i) => (
+                <span key={i} style={{ fontSize: 9, padding: '2px 6px', background: 'var(--bg-elevated)', border: '1px solid var(--border-light)', borderRadius: 4, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                  {chip}
+                </span>
+              ))}
+            </div>
+
+            {/* KI Design Brief */}
+            {designData.design_brief?.fuer_ki_prompt && (
+              <details style={{ fontSize: 10 }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--brand-primary)', fontWeight: 600, fontSize: 10 }}>
+                  KI-Design-Brief
+                </summary>
+                <div style={{ marginTop: 6, padding: '8px 10px', background: 'var(--bg-app)', borderRadius: 6, fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.6, border: '1px solid var(--border-light)' }}>
+                  {designData.design_brief.fuer_ki_prompt}
+                </div>
+                <button onClick={() => navigator.clipboard?.writeText(designData.design_brief.fuer_ki_prompt)}
+                  style={{ marginTop: 4, fontSize: 10, padding: '3px 8px', background: 'none', border: '1px solid var(--border-light)', borderRadius: 4, cursor: 'pointer', color: 'var(--brand-primary)', fontFamily: 'var(--font-sans)' }}>
+                  Kopieren
+                </button>
+              </details>
+            )}
+
+            {!designData.design_brief && designData.style_beschreibung && (
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.5, fontStyle: 'italic' }}>{designData.style_beschreibung}</div>
+            )}
+          </div>
+        ) : brand?.primary_color ? (
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[brand.primary_color, brand.secondary_color].filter(Boolean).map((c, i) => (
+              <div key={i} style={{ width: 20, height: 20, borderRadius: 4, background: c, border: '1px solid var(--border-light)' }} />
+            ))}
+            {brand.font_primary && <span style={{ fontSize: 10, color: 'var(--text-secondary)', marginLeft: 4 }}>{brand.font_primary}</span>}
           </div>
         ) : (
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-            Noch nicht gescrapt
-          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Brand-Scan starten</div>
         )}
       </div>
     </div>

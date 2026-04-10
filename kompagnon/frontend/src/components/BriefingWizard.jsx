@@ -32,6 +32,33 @@ const SEITEN_OPTIONS = [
   'Kontakt', 'Blog / News', 'Stellenangebote', 'FAQ',
 ];
 
+// ── Draft-Persistenz ──────────────────────────────────────────────────────────
+
+const DRAFT_KEY = (leadId) => `briefing_draft_${leadId}`;
+
+function saveDraft(leadId, data, step) {
+  try { localStorage.setItem(DRAFT_KEY(leadId), JSON.stringify({ data, step, savedAt: new Date().toISOString() })); } catch { }
+}
+
+function loadDraft(leadId) {
+  try { const raw = localStorage.getItem(DRAFT_KEY(leadId)); return raw ? JSON.parse(raw) : null; } catch { return null; }
+}
+
+function clearDraft(leadId) {
+  try { localStorage.removeItem(DRAFT_KEY(leadId)); } catch { }
+}
+
+function formatDraftAge(isoString) {
+  if (!isoString) return '';
+  const diff = Date.now() - new Date(isoString).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return 'gerade eben';
+  if (min < 60) return `vor ${min} Minuten`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `vor ${h} Stunden`;
+  return `vor ${Math.floor(h / 24)} Tagen`;
+}
+
 // ── Shared field components ──────────────────────────────────────────────────
 
 function FieldLabel({ children, required, hasError }) {
@@ -499,9 +526,12 @@ function Step6({ data, saving, error, onSaveAndPdf }) {
 
 export default function BriefingWizard({ leadId, leadData, onClose, onComplete }) {
   const { isMobile } = useScreenSize();
-  const [step, setStep] = useState(0);
+  const existingDraft = loadDraft(leadId);
+
+  const [step, setStep] = useState(existingDraft?.step ?? 0);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [draftBanner, setDraftBanner] = useState(existingDraft ? formatDraftAge(existingDraft.savedAt) : null);
   const firstFieldRef = useRef(null);
 
   // Esc schließt den Wizard
@@ -518,28 +548,30 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
     return () => clearTimeout(t);
   }, [step]);
 
-  const [data, setData] = useState({
-    // Step 1
+  // Draft-Banner nach 5 Sekunden ausblenden
+  useEffect(() => {
+    if (!draftBanner) return;
+    const t = setTimeout(() => setDraftBanner(null), 5000);
+    return () => clearTimeout(t);
+  }, [draftBanner]);
+
+  const defaultData = {
     gewerk:            leadData?.gewerk            || '',
     wz_code:           leadData?.wz_code           || '',
     wz_title:          leadData?.wz_title          || '',
     leistungen:        leadData?.leistungen        || '',
     einzugsgebiet:     leadData?.einzugsgebiet     || '',
-    // Step 2
     zielgruppe:        leadData?.zielgruppe        || '',
     typischerKunde:    leadData?.typischerKunde    || '',
     haeufigeAnfrage:   leadData?.haeufigeAnfrage   || '',
-    // Step 3
     usp:               leadData?.usp               || '',
     mitbewerber:       leadData?.mitbewerber       || '',
     vorbilder:         leadData?.vorbilder         || '',
     inspiration_url_1: leadData?.inspiration_url_1 || '',
     inspiration_url_2: leadData?.inspiration_url_2 || '',
     inspiration_url_3: leadData?.inspiration_url_3 || '',
-    // Step 4
     farben:            leadData?.farben            || '',
     stil:              leadData?.stil              || '',
-    // Step 5
     wunschseiten:      leadData?.wunschseiten
       ? (Array.isArray(leadData.wunschseiten)
           ? leadData.wunschseiten
@@ -548,9 +580,14 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
     logo_vorhanden:    leadData?.logo_vorhanden    ?? false,
     fotos_vorhanden:   leadData?.fotos_vorhanden   ?? false,
     sonstige_hinweise: leadData?.sonstige_hinweise || '',
-  });
+  };
+
+  const [data, setData] = useState(() => existingDraft?.data || defaultData);
 
   const set = (key, val) => setData(d => ({ ...d, [key]: val }));
+
+  // Auto-Save Draft bei jeder Änderung
+  useEffect(() => { saveDraft(leadId, data, step); }, [data, step, leadId]);
 
   const [touched, setTouched] = useState({});
   const touch = (field) => setTouched(prev => ({ ...prev, [field]: true }));
@@ -625,6 +662,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
         });
       } catch (_) { /* non-fatal */ }
       // Open PDF in new tab
+      clearDraft(leadId);
       window.open(`${API_BASE_URL}/api/briefings/${leadId}/pdf`, '_blank');
       if (onComplete) onComplete(data);
     } catch (e) {
@@ -815,6 +853,23 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
             ))}
           </div>
         </div>
+
+        {/* Draft-Banner */}
+        {draftBanner && (
+          <div style={{
+            margin: '10px 24px 0', padding: '8px 14px',
+            background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-text)',
+            borderRadius: 'var(--radius-md, 6px)', fontSize: 12,
+            color: 'var(--status-warning-text)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          }}>
+            <span>Entwurf {draftBanner} wiederhergestellt{existingDraft?.step > 0 ? ` — Schritt ${existingDraft.step + 1}` : ''}</span>
+            <button
+              onClick={() => { clearDraft(leadId); setDraftBanner(null); setData(defaultData); setStep(0); }}
+              style={{ background: 'none', border: 'none', fontSize: 11, fontWeight: 600, color: 'var(--status-warning-text)', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'var(--font-sans)' }}
+            >Verwerfen</button>
+          </div>
+        )}
 
         {/* ── Scrollbarer Formular-Bereich ── */}
         <div style={{

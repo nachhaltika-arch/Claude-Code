@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -6,24 +6,25 @@ import toast from 'react-hot-toast';
 import PhaseTracker from '../components/PhaseTracker';
 import MarginBadge from '../components/MarginBadge';
 import ProjectCard from '../components/ProjectCard';
-import BriefingTab from '../components/BriefingTab';
-import BriefingWizard from '../components/BriefingWizard';
+// Lazy-loaded: heavy components loaded on demand
+const BriefingTab = lazy(() => import('../components/BriefingTab'));
+const BriefingWizard = lazy(() => import('../components/BriefingWizard'));
 import WZSearch from '../components/WZSearch';
 import ProjectFilesSection from '../components/ProjectFilesSection';
 import HomepageChecklist from '../components/HomepageChecklist';
 import SecurityChecklist from '../components/SecurityChecklist';
 import PageSpeedSection from '../components/PageSpeedSection';
-import SitemapPlaner from '../components/SitemapPlaner';
-import GrapesEditor from '../components/GrapesEditor';
+const SitemapPlaner = lazy(() => import('../components/SitemapPlaner'));
+const GrapesEditor = lazy(() => import('../components/GrapesEditor'));
 import KiReportPanel from '../components/KiReportPanel';
 import MoodboardPanel from '../components/MoodboardPanel';
 import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useSwipeNavigation } from '../hooks/useTouch';
 import { parseApiError } from '../utils/apiError';
-import WebsiteDesigner from '../components/WebsiteDesigner';
-import ContentManager from '../components/ContentManager';
-import AuditReport from '../components/AuditReport';
-import QAChecklist from '../components/QAChecklist';
+const WebsiteDesigner = lazy(() => import('../components/WebsiteDesigner'));
+const ContentManager = lazy(() => import('../components/ContentManager'));
+const AuditReport = lazy(() => import('../components/AuditReport'));
+const QAChecklist = lazy(() => import('../components/QAChecklist'));
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
@@ -100,6 +101,16 @@ const PHASE_MENU = {
   7: { label: 'Post-Launch', tabs: [{ id: 'trustpilot', label: '⭐ Trustpilot' }] },
   8: { label: 'Fertig',      tabs: [{ id: 'live-data', label: '🌐 Fertig' }] },
 };
+
+// ── Lazy-Loading Fallback ──
+function TabFallback() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', gap: 12, color: 'var(--text-tertiary)', fontSize: 13 }}>
+      <div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+      Lade Bereich…
+    </div>
+  );
+}
 
 // ── GA-Status-Karte (eigenständige Komponente wegen Hooks) ──
 function GaStatusCard({ leadId, headers: h, API_BASE_URL: baseUrl }) {
@@ -1939,7 +1950,7 @@ export default function ProjectDetail() {
       {/* ── Briefing Tab ────────────────────────────────────────────────────── */}
       {activeTab === 'briefing' && (
         briefingLead
-          ? <BriefingTab lead={briefingLead} isMobile={isMobile} />
+          ? <Suspense fallback={<TabFallback />}><BriefingTab lead={briefingLead} isMobile={isMobile} /></Suspense>
           : <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
               justifyContent: 'center', padding: '48px 20px',
@@ -2486,7 +2497,7 @@ export default function ProjectDetail() {
 
           {/* ── GRAPESJS EDITOR (fullscreen portal) ── */}
           {editingPage && (
-            <GrapesEditor
+            <Suspense fallback={<TabFallback />}><GrapesEditor
               key={editingPage.id}
               pageId={editingPage.id}
               pageName={editingPage.page_name}
@@ -2502,7 +2513,7 @@ export default function ProjectDetail() {
                 toast.success(`"${editingPage.page_name}" gespeichert`);
               }}
               projectId={id}
-            />
+            /></Suspense>
           )}
         </div>
       )}
@@ -3017,7 +3028,7 @@ export default function ProjectDetail() {
               <div onClick={e => e.stopPropagation()}
                 style={{ maxWidth: 900, width: '100%', background: 'var(--bg-surface)',
                 borderRadius: 'var(--radius-xl)', overflow: 'hidden' }}>
-                <AuditReport auditData={openAudit} onClose={() => setOpenAudit(null)} />
+                <Suspense fallback={<TabFallback />}><AuditReport auditData={openAudit} onClose={() => setOpenAudit(null)} /></Suspense>
               </div>
             </div>
           )}
@@ -4213,23 +4224,23 @@ export default function ProjectDetail() {
 
       {/* ── Sitemap Planer Modal ────────────────────────────────────────────── */}
       {showSitemapPlaner && project.lead_id && (
-        <SitemapPlaner
+        <Suspense fallback={<TabFallback />}><SitemapPlaner
           leadId={project.lead_id}
           leadData={project}
           onClose={() => { setShowSitemapPlaner(false); loadSitemapPages(); }}
-        />
+        /></Suspense>
       )}
 
       {/* ── QA-Checkliste Tab ───────────────────────────────────────────────── */}
       {activeTab === 'qa' && (
         <div className="kc-card">
-          <QAChecklist
+          <Suspense fallback={<TabFallback />}><QAChecklist
             projectId={id}
             token={localStorage.getItem('kompagnon_token')}
             qaChecklistJson={project.qa_checklist_json}
             pagespeedMobile={project.pagespeed_mobile}
             pagespeedDesktop={project.pagespeed_desktop}
-          />
+          /></Suspense>
         </div>
       )}
 
@@ -4852,27 +4863,27 @@ export default function ProjectDetail() {
 
       {/* ── Briefing Wizard ─────────────────────────────────────────────────── */}
       {showBriefingWizard && (
-        <BriefingWizard
+        <Suspense fallback={<TabFallback />}><BriefingWizard
           leadId={project.lead_id}
           leadData={briefingData}
           onClose={() => setShowBriefingWizard(false)}
           onComplete={() => setShowBriefingWizard(false)}
-        />
+        /></Suspense>
       )}
 
       {/* ── Content Manager ─────────────────────────────────────────────────── */}
       {showContentManager && project.lead_id && (
-        <ContentManager
+        <Suspense fallback={<TabFallback />}><ContentManager
           leadId={project.lead_id}
           leadName={project.company_name}
           token={token}
           onClose={() => { setShowContentManager(false); setContentSummary([]); }}
-        />
+        /></Suspense>
       )}
 
       {/* ── GrapesJS Editor ─────────────────────────────────────────────────── */}
       {editingPage && (
-        <GrapesEditor
+        <Suspense fallback={<TabFallback />}><GrapesEditor
           key={editingPage.id}
           pageId={editingPage.id}
           pageName={editingPage.page_name}
@@ -4889,7 +4900,7 @@ export default function ProjectDetail() {
           }}
           projectId={project.id}
           netlitySiteId={project.netlify_site_id || null}
-        />
+        /></Suspense>
       )}
     </div>
   );

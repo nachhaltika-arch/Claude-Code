@@ -186,9 +186,9 @@ const PHASE_TOOLS = {
   'onboarding': [
     { id: 'null-uebersicht', label: 'Null-Übersicht',       icon: '📊', sub: 'Status · Marge · Nachrichten' },
     { id: 'audits',          label: 'Audit',                icon: '🔍', sub: 'Bericht' },
+    { id: 'crawler',         label: 'Crawler',              icon: '🕷️', sub: 'URLs erfasst' },
     { id: 'unternehmen',     label: 'Briefing Unternehmen', icon: '🏢', sub: 'Stammdaten' },
     { id: 'briefing',        label: 'Briefing Website',     icon: '📋', sub: 'Fragenkatalog' },
-    { id: 'crawler',         label: 'Crawler',              icon: '🕷️', sub: 'URLs erfasst' },
     { id: 'website-content', label: 'Website-Content',      icon: '🌐', sub: '50 Seiten', badge: '!' },
     { id: 'hosting',         label: 'Hosting-Crawling',     icon: '🖥️', sub: 'Scan' },
     { id: 'hosting-form',    label: 'Hosting-Fragebogen',   icon: '📋', sub: 'Fragebogen' },

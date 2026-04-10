@@ -752,6 +752,9 @@ export default function ProjectDetail() {
   // Netlify
   const [netlify, setNetlify] = useState(null);
   const [netlifyLoading, setNetlifyLoading] = useState(false);
+  const [netlifyError, setNetlifyError] = useState(null);
+  const [netlifyChecked, setNetlifyChecked] = useState(false);
+  const netlifyFetchRef = useRef(false);
   const [deployHtml, setDeployHtml] = useState('');
   const [netlifyDomain, setNetlifyDomain] = useState('');
   const [netlifyDnsGuide, setNetlifyDnsGuide] = useState(null); // { cname_target }
@@ -1098,30 +1101,28 @@ export default function ProjectDetail() {
       .catch(() => {});
   }, [project?.id]); // eslint-disable-line
 
-  // Load Netlify status ONCE when tab opens — avoids infinite render loop
+  // Load Netlify status ONCE when tab opens — race-condition-safe
   useEffect(() => {
-    if (!project?.id) return;
-    if (activeSubTab !== 'netlify-dns' && activeTab !== 'netlify-dns') return;
-    if (netlify || netlifyLoading) return;
+    const isNetlifyTab = activeSubTab === 'netlify-dns' || activeTab === 'netlify-dns';
+    if (!isNetlifyTab || !project?.id || netlifyChecked || netlifyFetchRef.current) return;
+    netlifyFetchRef.current = true;
     setNetlifyLoading(true);
+    setNetlifyError(null);
     let cancelled = false;
     fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
+      .then(async r => {
         if (cancelled) return;
-        // Always set — even empty result — to prevent re-trigger loop
-        setNetlify(d || { connected: false, status: 'not_connected' });
-        setNetlifyLoading(false);
+        if (r.status === 404) { setNetlify(null); setNetlifyChecked(true); return; }
+        if (!r.ok) { const err = await r.json().catch(() => ({})); throw new Error(err.detail || `HTTP ${r.status}`); }
+        const data = await r.json();
+        if (!cancelled) { setNetlify(data); setNetlifyChecked(true); }
       })
-      .catch(() => {
-        if (cancelled) return;
-        setNetlify({ connected: false, status: 'error' });
-        setNetlifyLoading(false);
-      });
+      .catch(e => { if (!cancelled) { setNetlifyError(e.message || 'Netlify-Status konnte nicht geladen werden'); setNetlifyChecked(true); } })
+      .finally(() => { if (!cancelled) { setNetlifyLoading(false); netlifyFetchRef.current = false; } });
     return () => { cancelled = true; };
-  }, [project?.id, activeSubTab, activeTab]); // eslint-disable-line
+  }, [activeSubTab, activeTab, project?.id, netlifyChecked]); // eslint-disable-line
 
   // Load website versions on project mount
   useEffect(() => {
@@ -3820,11 +3821,9 @@ export default function ProjectDetail() {
           setNetlifyLoading(true);
           try {
             const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/create-site`, { method: 'POST', headers });
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            if (!r.ok) { const err = await r.json().catch(() => ({})); throw new Error(err.detail || `HTTP ${r.status}`); }
             toast.success('Netlify-Site angelegt');
-            // reload status
-            const s = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers });
-            setNetlify(s.ok ? await s.json() : null);
+            setNetlifyChecked(false); netlifyFetchRef.current = false; // trigger useEffect reload
           } catch (e) { toast.error(parseApiError(e)); }
           finally { setNetlifyLoading(false); }
         };
@@ -3919,13 +3918,8 @@ export default function ProjectDetail() {
                       Letzter Deploy: {new Date(netlify.netlify_last_deploy).toLocaleString('de-DE')}
                     </div>
                   )}
-                  <button onClick={async () => {
-                    setNetlifyLoading(true);
-                    const s = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers });
-                    setNetlify(s.ok ? await s.json() : null);
-                    setNetlifyLoading(false);
-                  }} disabled={netlifyLoading} style={{ ...btnBlue, background: 'var(--bg-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', width: 'fit-content' }}>
-                    🔄 Status aktualisieren
+                  <button onClick={() => { setNetlifyChecked(false); netlifyFetchRef.current = false; setNetlify(null); }} disabled={netlifyLoading} style={{ ...btnBlue, background: 'var(--bg-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', width: 'fit-content' }}>
+                    {netlifyLoading ? '⏳ Lädt…' : '🔄 Status aktualisieren'}
                   </button>
                 </div>
               )}

@@ -7,6 +7,7 @@ import { useScreenSize } from '../utils/responsive';
 import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorConfig';
 import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
 import { processClipboardImage } from '../utils/clipboardImage';
+import { useGrapesAssetManager } from '../hooks/useGrapesAssetManager';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 
@@ -112,56 +113,8 @@ export default function GrapesEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageId, pageName, initialHtml, token]);
 
-  // ── Asset Manager (optional, nur wenn projectId gesetzt) ──
-  // Studio SDK erwartet ein Array zurück: [{ src, type?, name? }]
-  const onAssetsLoad = useCallback(async () => {
-    const allAssets = [];
-    // 1. Project assets
-    if (projectId) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/assets/project/${projectId}`, { headers: authHeaders });
-        if (res.ok) {
-          const data = await res.json();
-          (data.assets || []).forEach(a => allAssets.push({
-            type: 'image',
-            src: a.src.startsWith('http') ? a.src : `${API_BASE_URL}${a.src}`,
-            name: a.name,
-          }));
-        }
-      } catch { /* silent */ }
-    }
-    // 2. Customer portal uploads (logos, photos)
-    if (leadId) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/files/${leadId}/grapesjs-assets`, { headers: authHeaders });
-        if (res.ok) {
-          const portalAssets = await res.json();
-          if (Array.isArray(portalAssets)) allAssets.push(...portalAssets);
-        }
-      } catch { /* silent */ }
-    }
-    return allAssets;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, leadId, token]);
-
-  const onAssetsUpload = useCallback(async ({ files }) => {
-    if (!projectId || !files?.length) return [];
-    const fd = new FormData();
-    for (const f of files) fd.append('file', f);
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/assets/project/${projectId}/upload`,
-        { method: 'POST', headers: authHeaders, body: fd },
-      );
-      if (!res.ok) return [];
-      const data = await res.json();
-      return (data.data || data.assets || []).map(d => ({
-        ...d,
-        src: d.src.startsWith('http') ? d.src : `${API_BASE_URL}${d.src}`,
-      }));
-    } catch { return []; }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, token]);
+  // ── Asset Manager — zentraler Hook ──
+  const { onAssetsLoad, onAssetsUpload } = useGrapesAssetManager({ leadId, projectId, token });
 
   // ── Netlify Deploy ────────────────────────────────────────
   const handleNetlifyDeploy = async () => {

@@ -4,6 +4,7 @@ import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import { processClipboardImage } from '../utils/clipboardImage';
+import { useGrapesAssetManager } from '../hooks/useGrapesAssetManager';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
 import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorConfig';
@@ -63,50 +64,8 @@ export default function WebsiteDesigner({
   const token = localStorage.getItem('token') || '';
   const authHeaders = { Authorization: `Bearer ${token}` };
 
-  // ── Asset Manager: Bilder aus Backend laden ───────────────
-  // Studio SDK erwartet ein Array zurück: [{ src, type?, name? }]
-  const onAssetsLoad = useCallback(async () => {
-    if (!projectId) return [];
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/assets/project/${projectId}`,
-        { headers: authHeaders },
-      );
-      if (!res.ok) return [];
-      const data = await res.json();
-      return (data.assets || []).map(a => ({
-        type: 'image',
-        src:  a.src.startsWith('http') ? a.src : `${API_BASE_URL}${a.src}`,
-        name: a.name,
-      }));
-    } catch {
-      return [];
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
-
-  // ── Asset Manager: Bild hochladen ─────────────────────────
-  // Studio SDK erwartet ein Array zurück: [{ src }]
-  const onAssetsUpload = useCallback(async ({ files }) => {
-    if (!projectId || !files?.length) return [];
-    const fd = new FormData();
-    for (const f of files) fd.append('file', f);
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/assets/project/${projectId}/upload`,
-        { method: 'POST', headers: authHeaders, body: fd },
-      );
-      if (!res.ok) return [];
-      const data = await res.json();
-      return (data.data || data.assets || []).map(d => ({
-        ...d,
-        src: d.src.startsWith('http') ? d.src : `${API_BASE_URL}${d.src}`,
-      }));
-    } catch {
-      return [];
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+  // ── Asset Manager — zentraler Hook ──
+  const { onAssetsLoad, onAssetsUpload } = useGrapesAssetManager({ leadId, projectId, token });
 
   // ── Save-Handler (Studio SDK ruft das on demand auf) ──────
   const handleSave = useCallback(async ({ project, editor }) => {

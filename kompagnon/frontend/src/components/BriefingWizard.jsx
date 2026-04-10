@@ -34,14 +34,15 @@ const SEITEN_OPTIONS = [
 
 // ── Shared field components ──────────────────────────────────────────────────
 
-function FieldLabel({ children, required }) {
+function FieldLabel({ children, required, hasError }) {
   return (
     <label style={{
       display: 'block', fontSize: 11, fontWeight: 700,
-      color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em',
-      marginBottom: 6,
+      color: hasError ? 'var(--status-danger-text)' : 'var(--text-secondary)',
+      textTransform: 'uppercase', letterSpacing: '0.07em',
+      marginBottom: 6, transition: 'color 0.15s',
     }}>
-      {children}{required && <span style={{ color: TEAL, marginLeft: 2 }}>*</span>}
+      {children}{required && <span style={{ color: hasError ? 'var(--status-danger-text)' : TEAL, marginLeft: 2 }}>*</span>}
     </label>
   );
 }
@@ -63,34 +64,34 @@ const inputBase = {
   transition: 'border-color 0.15s',
 };
 
-function Input({ value, onChange, placeholder, onFocus, onBlur }) {
+function Input({ value, onChange, placeholder, onFocus, onBlur, hasError }) {
   return (
     <input
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      style={inputBase}
-      onFocus={e => { e.target.style.borderColor = TEAL; if (onFocus) onFocus(e); }}
-      onBlur={e => { e.target.style.borderColor = 'var(--border-light)'; if (onBlur) onBlur(e); }}
+      style={{ ...inputBase, borderColor: hasError ? 'var(--status-danger-text)' : undefined, background: hasError ? 'var(--status-danger-bg)' : undefined }}
+      onFocus={e => { e.target.style.borderColor = hasError ? 'var(--status-danger-text)' : TEAL; if (onFocus) onFocus(e); }}
+      onBlur={e => { e.target.style.borderColor = hasError ? 'var(--status-danger-text)' : 'var(--border-light)'; if (onBlur) onBlur(e); }}
     />
   );
 }
 
-function Textarea({ value, onChange, placeholder, rows = 4 }) {
+function Textarea({ value, onChange, placeholder, rows = 4, onBlur, hasError }) {
   return (
     <textarea
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       rows={rows}
-      style={{ ...inputBase, resize: 'vertical', lineHeight: 1.6 }}
-      onFocus={e => e.target.style.borderColor = TEAL}
-      onBlur={e => e.target.style.borderColor = 'var(--border-light)'}
+      style={{ ...inputBase, resize: 'vertical', lineHeight: 1.6, borderColor: hasError ? 'var(--status-danger-text)' : undefined, background: hasError ? 'var(--status-danger-bg)' : undefined }}
+      onFocus={e => e.target.style.borderColor = hasError ? 'var(--status-danger-text)' : TEAL}
+      onBlur={e => { e.target.style.borderColor = hasError ? 'var(--status-danger-text)' : 'var(--border-light)'; if (onBlur) onBlur(e); }}
     />
   );
 }
 
-function Select({ value, onChange, options }) {
+function Select({ value, onChange, options, onBlur, hasError }) {
   return (
     <select
       value={value}
@@ -99,9 +100,11 @@ function Select({ value, onChange, options }) {
         backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238A9BA8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
         paddingRight: 36,
+        borderColor: hasError ? 'var(--status-danger-text)' : undefined,
+        background: hasError ? 'var(--status-danger-bg)' : undefined,
       }}
-      onFocus={e => e.target.style.borderColor = TEAL}
-      onBlur={e => e.target.style.borderColor = 'var(--border-light)'}
+      onFocus={e => e.target.style.borderColor = hasError ? 'var(--status-danger-text)' : TEAL}
+      onBlur={e => { e.target.style.borderColor = hasError ? 'var(--status-danger-text)' : 'var(--border-light)'; if (onBlur) onBlur(e); }}
     >
       <option value="">– bitte wählen –</option>
       {options.map(o => <option key={o} value={o}>{o}</option>)}
@@ -109,12 +112,16 @@ function Select({ value, onChange, options }) {
   );
 }
 
-function Field({ label, required, hint, children }) {
+function Field({ label, required, hint, error, children }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <FieldLabel required={required}>{label}</FieldLabel>
+      <FieldLabel required={required} hasError={!!error}>{label}</FieldLabel>
       {children}
-      {hint && <FieldHint>{hint}</FieldHint>}
+      {error ? (
+        <div style={{ fontSize: 11, color: 'var(--status-danger-text)', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4, lineHeight: 1.4 }}>
+          <span style={{ fontSize: 12 }}>⚠</span>{error}
+        </div>
+      ) : hint ? <FieldHint>{hint}</FieldHint> : null}
     </div>
   );
 }
@@ -151,10 +158,10 @@ function ProgressBar({ step }) {
 
 // ── Step screens ─────────────────────────────────────────────────────────────
 
-function Step1({ data, set, firstRef }) {
+function Step1({ data, set, firstRef, touch, fieldError }) {
   return (
     <div ref={firstRef}>
-      <Field label="Gewerk / Branche" required hint="Wählen Sie die Hauptbranche Ihres Betriebs.">
+      <Field label="Gewerk / Branche" required hint="Wählen Sie die Hauptbranche Ihres Betriebs." error={fieldError('gewerk')}>
         <WZSearch
           value={data.wz_code ? { code: data.wz_code, title: data.wz_title } : null}
           onChange={(entry) => {
@@ -165,10 +172,12 @@ function Step1({ data, set, firstRef }) {
           placeholder="Branche suchen, z.B. 'Elektro', 'Sanitär', 'Maler'..."
         />
       </Field>
-      <Field label="Leistungen" required hint="Was bieten Sie an? Bitte alle Leistungen auflisten.">
+      <Field label="Leistungen" required hint="Was bieten Sie an? Bitte alle Leistungen auflisten." error={fieldError('leistungen')}>
         <Textarea
           value={data.leistungen}
           onChange={v => set('leistungen', v)}
+          onBlur={() => touch('leistungen')}
+          hasError={!!fieldError('leistungen')}
           placeholder={"z.B. Badsanierung, Rohrbruch-Notdienst, Heizungsinstallation …"}
           rows={5}
         />
@@ -184,11 +193,11 @@ function Step1({ data, set, firstRef }) {
   );
 }
 
-function Step2({ data, set, firstRef }) {
+function Step2({ data, set, firstRef, touch, fieldError }) {
   return (
     <div ref={firstRef}>
-      <Field label="Zielgruppe" required hint="Wen sprechen Sie mit Ihrer Website hauptsächlich an?">
-        <Select value={data.zielgruppe} onChange={v => set('zielgruppe', v)} options={ZIELGRUPPE_OPTIONS} />
+      <Field label="Zielgruppe" required hint="Wen sprechen Sie mit Ihrer Website hauptsächlich an?" error={fieldError('zielgruppe')}>
+        <Select value={data.zielgruppe} onChange={v => set('zielgruppe', v)} onBlur={() => touch('zielgruppe')} hasError={!!fieldError('zielgruppe')} options={ZIELGRUPPE_OPTIONS} />
       </Field>
       <Field label="Typischer Kunde" hint="Beschreiben Sie Ihren idealen Kunden.">
         <Textarea
@@ -209,7 +218,7 @@ function Step2({ data, set, firstRef }) {
   );
 }
 
-function Step3({ data, set, firstRef }) {
+function Step3({ data, set, firstRef, touch, fieldError }) {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   const loadSuggestions = async () => {
@@ -234,10 +243,12 @@ function Step3({ data, set, firstRef }) {
 
   return (
     <div ref={firstRef}>
-      <Field label="Alleinstellungsmerkmal (USP)" required hint="Was macht Ihren Betrieb besonders? Warum sollte ein Kunde Sie wählen und nicht den Mitbewerb?">
+      <Field label="Alleinstellungsmerkmal (USP)" required hint="Was macht Ihren Betrieb besonders? Warum sollte ein Kunde Sie wählen und nicht den Mitbewerb?" error={fieldError('usp')}>
         <Textarea
           value={data.usp}
           onChange={v => set('usp', v)}
+          onBlur={() => touch('usp')}
+          hasError={!!fieldError('usp')}
           placeholder={"z.B. 25 Jahre Erfahrung, 24h-Notdienst, Festpreisgarantie, familiengeführt …"}
           rows={5}
         />
@@ -349,7 +360,7 @@ function SeitenCheckbox({ selected, onChange }) {
   );
 }
 
-function Step4({ data, set, firstRef }) {
+function Step4({ data, set, firstRef, touch, fieldError }) {
   return (
     <div ref={firstRef}>
       <Field label="Farbwünsche" hint="Welche Farben passen zu Ihrer Marke oder sollen verwendet werden?">
@@ -359,8 +370,8 @@ function Step4({ data, set, firstRef }) {
           placeholder="z.B. Blau & Weiß, Grün-Töne, keine Vorgabe …"
         />
       </Field>
-      <Field label="Stil" required hint="Welcher Designstil soll Ihre Website prägen?">
-        <Select value={data.stil} onChange={v => set('stil', v)} options={STIL_OPTIONS} />
+      <Field label="Stil" required hint="Welcher Designstil soll Ihre Website prägen?" error={fieldError('stil')}>
+        <Select value={data.stil} onChange={v => set('stil', v)} onBlur={() => touch('stil')} hasError={!!fieldError('stil')} options={STIL_OPTIONS} />
       </Field>
       <Field label="Vorbilder / Inspiration" hint="Gibt es Websites, die Ihnen gefallen? URL(s) eintragen.">
         <Input
@@ -541,6 +552,21 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
 
   const set = (key, val) => setData(d => ({ ...d, [key]: val }));
 
+  const [touched, setTouched] = useState({});
+  const touch = (field) => setTouched(prev => ({ ...prev, [field]: true }));
+  const touchStep = (stepIndex) => {
+    const fields = { 0: ['gewerk', 'leistungen'], 1: ['zielgruppe'], 2: ['usp'], 3: ['stil'], 4: [] };
+    const toTouch = {};
+    (fields[stepIndex] || []).forEach(f => { toTouch[f] = true; });
+    setTouched(prev => ({ ...prev, ...toTouch }));
+  };
+  const fieldError = (field) => {
+    if (!touched[field]) return null;
+    const msgs = { gewerk: 'Bitte Branche auswählen', leistungen: 'Bitte Leistungen eintragen', zielgruppe: 'Bitte Zielgruppe auswählen', usp: 'Bitte USP eintragen', stil: 'Bitte Designstil auswählen' };
+    const empty = { gewerk: !data.gewerk && !data.wz_code, leistungen: !data.leistungen?.trim(), zielgruppe: !data.zielgruppe, usp: !data.usp?.trim(), stil: !data.stil };
+    return empty[field] ? (msgs[field] || 'Pflichtfeld') : null;
+  };
+
   const canNext = () => {
     if (step === 0) return !!(data.gewerk || data.wz_code) && !!data.leistungen.trim();
     if (step === 1) return !!data.zielgruppe;
@@ -609,6 +635,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
   };
 
   const handleNext = () => {
+    if (!canNext()) { touchStep(step); return; }
     if (step < STEPS.length - 1) setStep(s => s + 1);
   };
 
@@ -618,12 +645,13 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
   };
 
   const renderStep = () => {
+    const p = { data, set, touch, fieldError, firstRef: firstFieldRef };
     switch (step) {
-      case 0: return <Step1 data={data} set={set} firstRef={firstFieldRef} />;
-      case 1: return <Step2 data={data} set={set} firstRef={firstFieldRef} />;
-      case 2: return <Step3 data={data} set={set} firstRef={firstFieldRef} />;
-      case 3: return <Step4 data={data} set={set} firstRef={firstFieldRef} />;
-      case 4: return <Step5 data={data} set={set} firstRef={firstFieldRef} />;
+      case 0: return <Step1 {...p} />;
+      case 1: return <Step2 {...p} />;
+      case 2: return <Step3 {...p} />;
+      case 3: return <Step4 {...p} />;
+      case 4: return <Step5 {...p} />;
       case 5: return <Step6 data={data} saving={saving} error={saveError} onSaveAndPdf={handleSaveAndPdf} />;
       default: return null;
     }
@@ -839,18 +867,18 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
           {step < STEPS.length - 1 ? (
             <button
               onClick={handleNext}
-              disabled={!canNext()}
               style={{
                 padding: '10px 24px',
                 borderRadius: 10,
                 border: 'none',
-                background: canNext() ? TEAL : 'var(--border-light)',
-                color: canNext() ? '#fff' : 'var(--text-tertiary)',
+                background: canNext() ? TEAL : 'var(--border-medium)',
+                color: 'var(--text-inverse)',
                 fontSize: 14,
-                fontWeight: 600,
-                cursor: canNext() ? 'pointer' : 'not-allowed',
+                fontWeight: 700,
+                cursor: 'pointer',
                 fontFamily: 'var(--font-sans)',
-                transition: 'all 0.15s',
+                transition: 'background var(--transition-fast)',
+                opacity: canNext() ? 1 : 0.7,
               }}
             >
               Weiter →

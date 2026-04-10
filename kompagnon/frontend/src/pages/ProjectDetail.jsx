@@ -1602,7 +1602,7 @@ export default function ProjectDetail() {
         {/* Werkzeug-Kacheln (Ebene 2) */}
         <div style={{ position: 'relative', padding: '10px 0 8px' }}>
           {/* Pfeil links */}
-          <button onClick={() => scrollRef.current?.scrollBy({ left: -140, behavior: 'smooth' })} style={{
+          <button onClick={() => scrollRef.current?.scrollBy({ left: -160, behavior: 'smooth' })} style={{
             position: 'absolute', left: 0, top: 0, bottom: 0, width: 32, zIndex: 2,
             background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
             borderRadius: 'var(--radius-md) 0 0 var(--radius-md)',
@@ -1620,45 +1620,73 @@ export default function ProjectDetail() {
                 ? activeSubTab === TOOL_SUBTAB_MAP[tool.id]
                 : activeTab === (SUB_TAB_MAP[tool.id] || tool.id);
               return (
-                <div key={tool.id} onClick={() => {
-                  setActiveTab(SUB_TAB_MAP[tool.id] || tool.id);
-                  setActiveSubTab(TOOL_SUBTAB_MAP[tool.id] || tool.id);
-                  if (tool.id === 'unternehmen') setShowBriefingWizard(true);
-                }} style={{
-                  flex: '0 0 120px', minWidth: 120,
-                  background: isActive ? 'var(--brand-primary-light)' : 'var(--bg-surface)',
-                  border: isActive
-                    ? '1.5px solid var(--brand-primary)'
-                    : '1px solid var(--border-light)',
-                  borderRadius: 'var(--radius-lg)',
-                  padding: '12px 10px', cursor: 'pointer', textAlign: 'center',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                  position: 'relative',
-                }}>
+                <button
+                  key={tool.id}
+                  onClick={() => {
+                    setActiveTab(SUB_TAB_MAP[tool.id] || tool.id);
+                    setActiveSubTab(TOOL_SUBTAB_MAP[tool.id] || tool.id);
+                    if (tool.id === 'unternehmen') setShowBriefingWizard(true);
+                  }}
+                  onMouseEnter={e => {
+                    if (!isActive) {
+                      e.currentTarget.style.borderTopColor = 'var(--border-medium)';
+                      e.currentTarget.style.background = 'var(--bg-hover)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive) {
+                      e.currentTarget.style.borderTopColor = 'transparent';
+                      e.currentTarget.style.background = 'var(--bg-surface)';
+                    }
+                  }}
+                  style={{
+                    flex: '0 0 140px', minWidth: 140, minHeight: 80,
+                    background: isActive ? 'var(--brand-primary-light)' : 'var(--bg-surface)',
+                    border: '1px solid var(--border-light)',
+                    borderTop: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '12px 10px 10px', cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                    textAlign: 'center',
+                    transition: 'border-color var(--transition-fast), background var(--transition-fast)',
+                    position: 'relative', fontFamily: 'var(--font-sans)',
+                  }}
+                >
                   {tool.badge && (
                     <span style={{
                       position: 'absolute', top: 6, right: 6,
-                      background: '#E24B4A', color: 'white',
-                      fontSize: 9, fontWeight: 600, borderRadius: 99, padding: '1px 5px',
+                      background: 'var(--status-warning-text)', color: 'white',
+                      fontSize: 9, fontWeight: 700, borderRadius: 'var(--radius-full)',
+                      padding: '1px 5px', lineHeight: 1.4,
                     }}>{tool.badge}</span>
                   )}
                   <div style={{
-                    width: 38, height: 38, borderRadius: 8, fontSize: 18,
+                    width: 32, height: 32,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: isActive ? 'var(--brand-primary-mid)' : 'var(--bg-app)',
+                    fontSize: 18,
+                    background: isActive ? 'var(--brand-primary)' : 'var(--bg-app)',
+                    borderRadius: 'var(--radius-sm)', flexShrink: 0,
+                    color: isActive ? 'white' : 'var(--text-secondary)',
+                    transition: 'background var(--transition-fast), color var(--transition-fast)',
                   }}>{tool.icon}</div>
                   <div style={{
-                    fontSize: 11, fontWeight: 500,
+                    fontSize: 11, fontWeight: isActive ? 700 : 500,
                     color: isActive ? 'var(--brand-primary-dark)' : 'var(--text-primary)',
+                    lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden',
+                    textOverflow: 'ellipsis', maxWidth: '100%',
                   }}>{tool.label}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{tool.sub}</div>
-                </div>
+                  <div style={{
+                    fontSize: 10,
+                    color: isActive ? 'var(--brand-primary)' : 'var(--text-tertiary)',
+                    lineHeight: 1.2,
+                  }}>{tool.sub}</div>
+                </button>
               );
             })}
           </div>
 
           {/* Pfeil rechts */}
-          <button onClick={() => scrollRef.current?.scrollBy({ left: 140, behavior: 'smooth' })} style={{
+          <button onClick={() => scrollRef.current?.scrollBy({ left: 160, behavior: 'smooth' })} style={{
             position: 'absolute', right: 0, top: 0, bottom: 0, width: 32, zIndex: 2,
             background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
             borderRadius: '0 var(--radius-md) var(--radius-md) 0',

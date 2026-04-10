@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import EmptyState from '../components/ui/EmptyState';
 
 const PHASES = [
   { id: 'phase_1', label: 'Onboarding',  color: '#008EAA' },
@@ -212,11 +213,13 @@ export default function CustomerProjects() {
 
       {/* Empty state */}
       {!loading && filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-tertiary)' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{projects.length === 0 ? 'Noch keine Projekte' : 'Keine Treffer'}</div>
-          <div style={{ fontSize: 13 }}>Suche anpassen oder Filter zurücksetzen.</div>
-        </div>
+        <EmptyState
+          icon="📋"
+          title={search ? `Keine Projekte für „${search}"` : 'Noch keine Projekte'}
+          description={search ? 'Passe den Suchbegriff an oder entferne den Filter.' : 'Wenn ein Lead als „Gewonnen" markiert wird, erscheint hier automatisch ein Projekt.'}
+          action={!search ? { label: '→ Zur Lead-Pipeline', onClick: () => navigate('/app/leads') } : undefined}
+          secondaryAction={search ? { label: 'Filter zurücksetzen', onClick: () => setSearch('') } : undefined}
+        />
       )}
 
       {/* List */}

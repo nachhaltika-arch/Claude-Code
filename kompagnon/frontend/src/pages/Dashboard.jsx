@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import Card from '../components/ui/Card';
+import EmptyState from '../components/ui/EmptyState';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import API_BASE_URL from '../config';
@@ -384,9 +385,7 @@ export default function Dashboard() {
               {[1,2,3].map(i => <Skeleton key={i} height={48} />)}
             </div>
           ) : audits.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 12px', color: 'var(--text-tertiary)', fontSize: 13 }}>
-              Noch keine Audits
-            </div>
+            <EmptyState icon="📊" title="Noch keine Audits" description="Starte dein erstes Website-Audit um Optimierungspotenziale zu entdecken." action={{ label: 'Erstes Audit starten', onClick: () => navigate('/app/audit') }} compact />
           ) : (
             audits.map((audit, i) => {
               const score = audit.total_score || 0;

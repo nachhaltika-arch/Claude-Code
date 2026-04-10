@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { parseApiError } from '../utils/apiError';
+import EmptyState from '../components/ui/EmptyState';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -1011,7 +1012,7 @@ export default function LeadProfile() {
                 <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: 32 }}>Nachrichten werden geladen…</div>
               )}
               {!msgLoading && messages.length === 0 && (
-                <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: 32 }}>Noch keine Nachrichten. Schreib die erste Nachricht!</div>
+                <EmptyState icon="💬" title="Noch keine Nachrichten" description="Schreibe die erste Nachricht an den Kunden — sie erscheint direkt im Kundenportal." action={{ label: '+ Erste Nachricht schreiben', onClick: () => setShowNewMessageModal(true) }} compact />
               )}
               {grouped.map((item, i) => {
                 if (item.type === 'sep') return (

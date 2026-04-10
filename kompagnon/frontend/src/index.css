@@ -624,6 +624,12 @@ button[aria-pressed]:focus-visible {
 .sk-circle  { border-radius: 50%; }
 .sk-pill    { border-radius: 20px; }
 
+/* ── Placeholder — decorative, exempt from WCAG 4.5:1 ────── */
+::placeholder {
+  color: var(--text-placeholder, #8fa8b0);
+  opacity: 1;
+}
+
 /* ── Mobile scroll — hide scrollbar for touch-snap areas ─── */
 @media (max-width: 767px) {
   .phase-scroll::-webkit-scrollbar,

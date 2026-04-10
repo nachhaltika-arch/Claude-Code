@@ -9,7 +9,8 @@
 
   --text-primary:     #0f1c20;
   --text-secondary:   #4a6470;
-  --text-tertiary:    #8fa8b0;
+  --text-tertiary:    #5e7a84;
+  --text-placeholder: #8fa8b0;
   --text-inverse:     #ffffff;
   --text-brand:       #006880;
 
@@ -227,7 +228,8 @@
 
   --text-primary:     #0f1c20;
   --text-secondary:   #4a6470;
-  --text-tertiary:    #8fa8b0;
+  --text-tertiary:    #5e7a84;
+  --text-placeholder: #8fa8b0;
   --text-inverse:     #ffffff;
   --text-brand:       #006880;
 

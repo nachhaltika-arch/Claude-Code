@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useScreenSize } from '../../utils/responsive';
 import { useTheme } from '../../context/ThemeContext';
+import API_BASE_URL from '../../config';
 import Logo from '../Logo';
 import KompagnonLogo from '../KompagnonLogo';
 
@@ -406,7 +407,8 @@ function SidebarNav({ badges }) {
 
 // ── Topbar ─────────────────────────────────────────────────────
 
-function Topbar({ pageName, ctaLabel, ctaAction }) {
+function Topbar({ breadcrumbs = [], ctaLabel, ctaAction }) {
+  const navigate = useNavigate();
   return (
     <header style={{
       height: 52,
@@ -417,19 +419,50 @@ function Topbar({ pageName, ctaLabel, ctaAction }) {
       position: 'sticky', top: 0, zIndex: 30,
       flexShrink: 0,
     }}>
-      <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)' }}>
-        {pageName}
-      </span>
+      {/* Breadcrumb */}
+      <nav style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+        {breadcrumbs.map((crumb, i) => {
+          const isLast = i === breadcrumbs.length - 1;
+          return (
+            <React.Fragment key={i}>
+              {i > 0 && (
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 13, flexShrink: 0, userSelect: 'none' }}>›</span>
+              )}
+              {isLast ? (
+                <span style={{
+                  fontSize: 14, fontWeight: 600, color: 'var(--text-primary)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {crumb.label}
+                </span>
+              ) : (
+                <button
+                  onClick={() => crumb.path && navigate(crumb.path)}
+                  className="kc-btn-ghost"
+                  style={{
+                    background: 'none', border: 'none', padding: 0,
+                    fontSize: 14, fontWeight: 400, color: 'var(--text-tertiary)',
+                    cursor: crumb.path ? 'pointer' : 'default',
+                    fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0,
+                  }}
+                >
+                  {crumb.label}
+                </button>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </nav>
       {ctaLabel && (
         <button
           onClick={ctaAction}
+          className="kc-btn-primary"
           style={{
             background: 'var(--brand-primary)', color: 'var(--text-inverse)',
             border: 'none', padding: '6px 14px', borderRadius: 'var(--radius-md)',
             fontSize: 13, fontWeight: 500, cursor: 'pointer',
-            fontFamily: 'var(--font-sans)',
+            fontFamily: 'var(--font-sans)', flexShrink: 0,
           }}
-          className="kc-btn-primary"
         >
           {ctaLabel}
         </button>
@@ -483,17 +516,75 @@ function BottomNav() {
 
 export default function AppLayout() {
   const { isMobile } = useScreenSize();
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [badges] = useState({ pipeline: 0, audits: 0 });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const pageName = location.pathname.match(/^\/app\/leads\/\d+/) ? 'Nutzerkartei'
-    : PAGE_NAMES[location.pathname]
-    || Object.entries(PAGE_NAMES).find(([p]) => location.pathname.startsWith(p + '/'))?.[1]
-    || 'KOMPAGNON';
+  const [projectName, setProjectName] = useState(null);
+  const [leadName, setLeadName] = useState(null);
+
+  useEffect(() => {
+    const projectMatch = location.pathname.match(/^\/app\/projects\/(\d+)/);
+    const leadMatch = location.pathname.match(/^\/app\/leads\/(\d+)/);
+    if (projectMatch) {
+      setProjectName(null);
+      fetch(`${API_BASE_URL}/api/projects/${projectMatch[1]}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.company_name) setProjectName(d.company_name); })
+        .catch(() => {});
+    } else if (leadMatch) {
+      setLeadName(null);
+      fetch(`${API_BASE_URL}/api/leads/${leadMatch[1]}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.company_name || d?.display_name) setLeadName(d.display_name || d.company_name); })
+        .catch(() => {});
+    } else {
+      setProjectName(null);
+      setLeadName(null);
+    }
+  }, [location.pathname, token]);
+
+  const breadcrumbs = (() => {
+    const path = location.pathname;
+    const projectMatch = path.match(/^\/app\/projects\/(\d+)/);
+    if (projectMatch) {
+      return [
+        { label: 'Kundenprojekte', path: '/app/projects' },
+        { label: projectName || `Projekt #${projectMatch[1]}` },
+      ];
+    }
+    const leadMatch = path.match(/^\/app\/leads\/(\d+)/);
+    if (leadMatch) {
+      return [
+        { label: 'Unternehmen', path: '/app/companies' },
+        { label: leadName || `Lead #${leadMatch[1]}` },
+      ];
+    }
+    if (path.startsWith('/app/settings/')) {
+      const sub = PAGE_NAMES[path] || 'Einstellungen';
+      return [
+        { label: 'Einstellungen', path: '/app/settings' },
+        { label: sub },
+      ];
+    }
+    if (path.startsWith('/app/academy/') || path.startsWith('/app/akademie/')) {
+      return [
+        { label: 'Akademie', path: '/app/academy' },
+        { label: PAGE_NAMES[path] || 'Kurs' },
+      ];
+    }
+    const label = PAGE_NAMES[path]
+      || Object.entries(PAGE_NAMES).find(([p]) => path.startsWith(p + '/'))?.[1]
+      || 'KOMPAGNON';
+    return [{ label }];
+  })();
 
   const ctaMap = {
     '/app/dashboard': null,
@@ -519,7 +610,7 @@ export default function AppLayout() {
         {/* Topbar — desktop only */}
         {!isMobile && (
           <Topbar
-            pageName={pageName}
+            breadcrumbs={breadcrumbs}
             ctaLabel={cta?.label}
             ctaAction={cta?.action}
           />

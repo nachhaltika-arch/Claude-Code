@@ -208,7 +208,7 @@ function SidebarNav({ badges }) {
         {user?.role === 'kunde' ? (
           /* ── Kunde: only these four items ── */
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-tertiary)', opacity: 0.4, letterSpacing: '0.1em', padding: '0 10px', marginBottom: 4 }}>
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', padding: '0 10px', marginBottom: 4 }}>
               Mein Bereich
             </div>
             {[
@@ -244,8 +244,8 @@ function SidebarNav({ badges }) {
             return (
               <div key={section.title} style={{ marginBottom: 20 }}>
                 <div style={{
-                  fontSize: 10, fontWeight: 500, color: 'var(--text-tertiary)',
-                  opacity: 0.4, letterSpacing: '0.1em', padding: '0 10px', marginBottom: 4,
+                  fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)',
+                  padding: '0 10px', marginBottom: 4,
                 }}>
                   {section.title}
                 </div>

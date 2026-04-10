@@ -241,6 +241,7 @@ textarea::placeholder {
 }
 @keyframes crawlHintIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes scanPulse { 0% { width: 30%; } 100% { width: 90%; } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
 /* Academy card hover */
 .academy-card { transition: box-shadow 0.3s ease, transform 0.2s ease; cursor: pointer; }

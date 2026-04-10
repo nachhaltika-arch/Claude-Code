@@ -185,48 +185,6 @@ function GaStatusCard({ leadId, headers: h, API_BASE_URL: baseUrl }) {
   );
 }
 
-const PHASE_TOOLS = {
-  'onboarding': [
-    { id: 'unternehmen',     label: 'Briefing Unternehmen', icon: '🏢', sub: 'Stammdaten' },
-    { id: 'audits',          label: 'Audit',                icon: '🔍', sub: 'Bericht' },
-    { id: 'analyse',         label: 'Analyse-Zentrale',     icon: '🔬', sub: 'Alle Crawler' },
-    { id: 'briefing',        label: 'Briefing Website',     icon: '📋', sub: 'Fragenkatalog' },
-    { id: 'zugangsdaten',    label: 'Zugangsdaten',         icon: '🔑', sub: 'Safe' },
-  ],
-  'briefing': [
-    { id: 'ki-report',       label: 'Report erstellen',     icon: '🤖', sub: 'KI-Analyse' },
-  ],
-  'content': [
-    { id: 'moodboard',       label: 'Moodboard',            icon: '🎨', sub: 'Stilrichtung' },
-    { id: 'design',          label: 'Design',               icon: '✏️', sub: 'Entwürfe' },
-    { id: 'content',         label: 'Content neu',          icon: '📝', sub: 'Texte & Medien' },
-    { id: 'sitemap',         label: 'Website neu',          icon: '🗺️', sub: 'Seitenstruktur' },
-    { id: 'preview',         label: 'Vorschau',             icon: '👁',  sub: 'Vorschau' },
-    { id: 'editor',          label: 'Editor',               icon: '🖊️', sub: 'GrapesJS' },
-  ],
-  'technik': [
-    { id: 'netlify-dns',     label: 'Netlify / WP',         icon: '🚀', sub: 'Installieren' },
-    { id: 'dns',             label: 'DNS-Einstellungen',    icon: '🌍', sub: 'Beim Kunden' },
-    { id: 'qa',              label: 'QA-Checkliste',        icon: '✓',  sub: 'Go-Live-Check' },
-  ],
-  'go-live': [
-    { id: 'checklists',      label: 'Go-Live',              icon: '🚀', sub: 'Checkliste' },
-    { id: 'golive',          label: 'Abnahme & Vergleich',  icon: '✅', sub: 'Vorher/Nachher' },
-  ],
-  'qm': [
-    { id: 'checklists',      label: 'Checkliste QM',        icon: '✅', sub: 'QA-Prüfung' },
-    { id: 'qa-scan',         label: 'KI-QA-Scan',           icon: '🤖', sub: 'Qualitätsprüfung' },
-  ],
-  'post-launch': [
-    { id: 'trustpilot',      label: 'Trustpilot',           icon: '⭐', sub: 'Bewertungen' },
-    { id: 'postlaunch',      label: 'Post-Launch',          icon: '📈', sub: 'QR + GBP' },
-  ],
-  'fertig': [
-    { id: 'live-data',          label: 'Fertige Website',   icon: '🌐', sub: 'Live' },
-    { id: 'upsell',             label: 'Up-Sales',          icon: '💼', sub: 'Upsell-Produkte' },
-    { id: 'website-vergleich',  label: 'Website-Vergleich', icon: '📸', sub: 'Vorher/Nachher' },
-  ],
-};
 const PHASE_NAMES = ['onboarding','briefing','content','technik','go-live','qm','post-launch','fertig'];
 const PHASE_LABELS = {
   'onboarding':  'Onboarding',
@@ -622,7 +580,6 @@ export default function ProjectDetail() {
   const [margin, setMargin]           = useState(null);
   const [loading, setLoading]         = useState(true);
   const [activeTab, setActiveTab]     = useState('overview');
-  const [activePhase, setActivePhase] = useState('onboarding');
   const [activeSubTab, setActiveSubTab] = useState('unternehmen');
   const [mainTab, setMainTab]         = useState('analyse');
   const scrollRef = useRef(null);
@@ -640,20 +597,17 @@ export default function ProjectDetail() {
   useEscapeKey(() => setShowBriefingWizard(false), showBriefingWizard);
 
   // Swipe between tool tiles on mobile
-  const tools = PHASE_TOOLS[activePhase] || [];
-  const currentToolIdx = tools.findIndex(t => {
-    const mapped = TOOL_SUBTAB_MAP[t.id] || SUB_TAB_MAP[t.id] || t.id;
-    return mapped === activeSubTab || mapped === activeTab;
-  });
+  const ANALYSE_TOOLS = ['unternehmen', 'briefing', 'audits', 'analyse', 'zugangsdaten'];
+  const currentToolIdx = ANALYSE_TOOLS.indexOf(activeSubTab);
   const swipeRef = useSwipeNavigation({
     disabled: !isMobile,
     onSwipeLeft: () => {
-      const next = tools[currentToolIdx + 1];
-      if (next) { setActiveTab(SUB_TAB_MAP[next.id] || next.id); setActiveSubTab(TOOL_SUBTAB_MAP[next.id] || next.id); }
+      const next = ANALYSE_TOOLS[currentToolIdx + 1];
+      if (next) { setActiveTab(SUB_TAB_MAP[next] || next); setActiveSubTab(TOOL_SUBTAB_MAP[next] || next); }
     },
     onSwipeRight: () => {
-      const prev = tools[currentToolIdx - 1];
-      if (prev) { setActiveTab(SUB_TAB_MAP[prev.id] || prev.id); setActiveSubTab(TOOL_SUBTAB_MAP[prev.id] || prev.id); }
+      const prev = ANALYSE_TOOLS[currentToolIdx - 1];
+      if (prev) { setActiveTab(SUB_TAB_MAP[prev] || prev); setActiveSubTab(TOOL_SUBTAB_MAP[prev] || prev); }
     },
     threshold: 60,
   });
@@ -838,13 +792,6 @@ export default function ProjectDetail() {
         .finally(() => setHostingScanning(false));
     }
   }, [activeTab, activeSubTab]); // eslint-disable-line
-
-  // Auto-scroll aktive Phase auf Mobile in den sichtbaren Bereich
-  useEffect(() => {
-    if (!phaseScrollRef.current || !isMobile) return;
-    const activeBtn = phaseScrollRef.current.querySelector('[data-active="true"]');
-    if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-  }, [activePhase, isMobile]);
 
   const saveCred = async () => {
     if (!credForm.label.trim()) {
@@ -1232,15 +1179,11 @@ export default function ProjectDetail() {
     } catch (e) { console.error(e); }
   }, [project?.lead_id, briefingLead]); // eslint-disable-line
 
-  // Sync activePhase from project status on load
+  // Set initial tab on project load
   useEffect(() => {
     if (project) {
-      // Map numeric phase status → string phase name
-      const phaseNum = parseInt((project.status || '').replace('phase_', '')) || 1;
-      const phaseName = PHASE_NAMES[phaseNum - 1] || 'onboarding';
-      setActivePhase(phaseName);
-      const firstTool = PHASE_TOOLS[phaseName]?.[0]?.id || 'overview';
-      setActiveTab(SUB_TAB_MAP[firstTool] || firstTool);
+      setActiveTab('overview');
+      setActiveSubTab('unternehmen');
     }
   }, [project?.id]); // eslint-disable-line
 
@@ -1720,268 +1663,123 @@ export default function ProjectDetail() {
         );
       })()}
 
-      {/* ── Phasen-Navigation (Ebene 1) ─────────────────────────────────────── */}
-      <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-        {/* Phasenleiste */}
-        <div style={{
-          display: 'flex',
-          borderBottom: '1px solid var(--border-light)',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
-          background: 'var(--bg-app)',
-        }}>
-          {PHASE_NAMES.map((phaseName, idx) => {
-            const currentNum = parseInt((project.status || '').replace('phase_', '')) || 1;
-            const phaseNum   = idx + 1;
-            const isDone     = phaseNum < currentNum;
-            const isActive   = phaseName === activePhase;
-            const isCurrent  = phaseNum === currentNum;
+      {/* ── Status-Zeile ──────────────────────────────────────────────────── */}
+      {(() => {
+        const currentNum  = parseInt((project.status || '').replace('phase_', '')) || 1;
+        const phaseName   = PHASE_LABELS[PHASE_NAMES[currentNum - 1]] || 'Onboarding';
+        const marginPct   = margin?.margin_percent ?? null;
+        const marginColor = marginPct === null ? 'var(--text-tertiary)' : marginPct < 30 ? '#E24B4A' : marginPct < 50 ? '#BA7517' : '#1D9E75';
 
-            return (
-              <button
-                key={phaseName}
-                onClick={() => {
-                  setActivePhase(phaseName);
-                  const firstTool = PHASE_TOOLS[phaseName]?.[0]?.id;
-                  if (firstTool) {
-                    setActiveTab(SUB_TAB_MAP[firstTool] || firstTool);
-                    setActiveSubTab(TOOL_SUBTAB_MAP[firstTool] || firstTool);
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  minWidth: 90,
-                  padding: '12px 8px 10px',
-                  border: 'none',
-                  borderBottom: isActive
-                    ? '3px solid var(--brand-primary)'
-                    : isCurrent
-                    ? '3px solid var(--status-success-text)'
-                    : '3px solid transparent',
-                  background: isActive ? 'var(--bg-active, var(--bg-elevated))' : 'transparent',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 6,
-                  transition: 'all 0.15s',
-                  position: 'relative',
-                  fontFamily: 'var(--font-sans)',
-                }}
-                onMouseEnter={e => {
-                  if (!isActive) e.currentTarget.style.background = 'var(--bg-elevated)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = isActive ? 'var(--bg-active, var(--bg-elevated))' : 'transparent';
-                }}
-              >
-                {/* Phasen-Kreis */}
-                <div style={{
-                  width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                  background: isDone ? 'var(--status-success-text)' : isActive ? 'var(--brand-primary)' : isCurrent ? 'var(--status-success-bg)' : 'var(--bg-elevated)',
-                  border: isCurrent && !isActive ? '2px solid var(--status-success-text)' : isActive ? '2px solid var(--brand-primary)' : '2px solid transparent',
-                  color: isDone || isActive ? '#fff' : isCurrent ? 'var(--status-success-text)' : 'var(--text-tertiary)',
-                  fontSize: 12, fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.15s',
-                }}>
-                  {isDone ? '\u2713' : phaseNum}
-                </div>
-
-                {/* Phasen-Label */}
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: isActive || isCurrent ? 700 : 400,
-                  color: isActive ? 'var(--brand-primary)' : isCurrent ? 'var(--status-success-text)' : isDone ? 'var(--text-secondary)' : 'var(--text-tertiary)',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {PHASE_LABELS[phaseName]}
-                </span>
-
-                {/* Aktiv-Badge */}
-                {isCurrent && (
-                  <span style={{
-                    position: 'absolute', top: 4, right: 6,
-                    fontSize: 8, fontWeight: 700, padding: '1px 5px',
-                    background: 'var(--status-success-text)', color: '#fff',
-                    borderRadius: 99, textTransform: 'uppercase', letterSpacing: '.04em',
-                  }}>
-                    Aktiv
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ── Naechster Schritt ── */}
-        {nextStep && (
-          <div
-            onClick={() => setMainTab(nextStep.tab)}
-            style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', transition: 'background 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-app)'}
-          >
-            <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: nextStep.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
-              {nextStep.icon}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>
-                Naechster Schritt
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', padding: '10px 0', marginBottom: 4 }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '4px 12px', borderRadius: 99,
+              background: 'var(--status-success-bg)', border: '1px solid var(--status-success-text)',
+              fontSize: 12, fontWeight: 700, color: 'var(--status-success-text)',
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--status-success-text)', display: 'inline-block', animation: 'pulse 2s infinite' }} />
+              Phase {currentNum}/8 {phaseName}
+            </span>
+            <div style={{ flex: 1, minWidth: 200, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ flex: 1, height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', borderRadius: 3, width: `${Math.round((currentNum / 8) * 100)}%`, background: 'linear-gradient(90deg, var(--status-success-text), var(--brand-primary))', transition: 'width 0.5s ease' }} />
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{nextStep.label}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{nextStep.desc}</div>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 }}>{Math.round((currentNum / 8) * 100)}%</span>
             </div>
-            <div style={{ fontSize: 18, color: 'var(--text-tertiary)', flexShrink: 0 }}>{'\u203A'}</div>
+            {marginPct !== null && <span style={{ fontSize: 12, fontWeight: 700, color: marginColor }}>Marge: {Math.round(marginPct)}%</span>}
+            {project.fixed_price > 0 && <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{project.fixed_price.toLocaleString('de-DE')} EUR</span>}
           </div>
-        )}
+        );
+      })()}
 
-        {/* ── Haupt-Tab-Navigation ── */}
-        <div style={{ display: 'flex', borderBottom: '2px solid var(--border-light)', background: 'var(--bg-surface)', padding: '0 16px' }}>
-          {[
-            { id: 'analyse', label: 'Analyse',  icon: '🔍', desc: 'Daten erfassen' },
-            { id: 'content', label: 'Content',  icon: '📝', desc: 'Inhalte aufbereiten' },
-            { id: 'design',  label: 'Design',   icon: '🎨', desc: 'Website gestalten' },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setMainTab(tab.id)}
-              style={{
-                flex: 1, padding: '14px 8px 12px', border: 'none',
-                borderBottom: mainTab === tab.id ? '3px solid var(--brand-primary)' : '3px solid transparent',
-                background: 'transparent', cursor: 'pointer',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                fontFamily: 'var(--font-sans)', transition: 'all 0.15s', marginBottom: -2,
-              }}
-              onMouseEnter={e => { if (mainTab !== tab.id) e.currentTarget.style.background = 'var(--bg-app)'; }}
-              onMouseLeave={e => { if (mainTab !== tab.id) e.currentTarget.style.background = 'transparent'; }}
+      {/* ── 3-Tab-Navigation ─────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: 16 }}>
+        {[
+          { id: 'analyse', label: 'Analyse', icon: '🔍', desc: 'Daten erfassen', steps: ['Briefing', 'Audit', 'Crawler', 'Brand', 'Zugaenge'] },
+          { id: 'content', label: 'Content', icon: '📝', desc: 'Inhalte aufbereiten', steps: ['Sitemap', 'Content', 'KI'] },
+          { id: 'design',  label: 'Design',  icon: '🎨', desc: 'Website gestalten', steps: ['Template', 'Brand', 'KI', 'Editor'] },
+        ].map((tab, i) => {
+          const isActive = mainTab === tab.id;
+          return (
+            <button key={tab.id} onClick={() => setMainTab(tab.id)} style={{
+              flex: 1, padding: '16px 12px 14px', border: 'none',
+              borderRight: i < 2 ? '1px solid var(--border-light)' : 'none',
+              borderBottom: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent',
+              background: isActive ? 'var(--bg-active, var(--bg-elevated))' : 'transparent',
+              cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              fontFamily: 'var(--font-sans)', transition: 'background 0.15s', position: 'relative',
+            }}
+              onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+              onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
             >
-              <span style={{ fontSize: 20 }}>{tab.icon}</span>
-              <span style={{ fontSize: 13, fontWeight: mainTab === tab.id ? 700 : 500, color: mainTab === tab.id ? 'var(--brand-primary)' : 'var(--text-secondary)' }}>{tab.label}</span>
-              <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{tab.desc}</span>
+              <span style={{ fontSize: 24 }}>{tab.icon}</span>
+              <span style={{ fontSize: 14, fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--brand-primary)' : 'var(--text-primary)' }}>{tab.label}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{tab.desc}</span>
+              <div style={{ display: 'flex', gap: 3, marginTop: 4 }}>
+                {tab.steps.map((_, si) => (
+                  <div key={si} style={{ width: 6, height: 6, borderRadius: '50%', background: isActive ? 'var(--brand-primary)' : 'var(--border-medium)', opacity: isActive ? 0.4 + (si === 0 ? 0.6 : 0) : 0.3 }} />
+                ))}
+              </div>
             </button>
-          ))}
-        </div>
-
-      </div>{/* Ende Phasen-Navigation Container */}
+          );
+        })}
+      </div>
 
       {/* ── ANALYSE TAB ── */}
       {mainTab === 'analyse' && (
-      <div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-        {/* Werkzeug-Kacheln (Ebene 2) */}
-        <div style={{
-          position: 'relative', padding: '12px 0 10px',
-          borderTop: '2px solid var(--border-light)',
-          background: 'var(--bg-app)',
-        }}>
-          {/* Kontextlabel */}
+        {/* Naechster-Schritt-Banner */}
+        {nextStep && nextStep.tab === 'analyse' && (
           <div style={{
-            position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
-            background: 'var(--bg-app)', padding: '0 10px',
-            fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)',
-            textTransform: 'uppercase', letterSpacing: '0.08em',
-            whiteSpace: 'nowrap', zIndex: 3,
+            padding: '12px 16px', background: 'var(--bg-active, var(--bg-elevated))',
+            border: '1px solid var(--brand-primary-mid, var(--border-light))',
+            borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4,
           }}>
-            {PHASE_LABELS[activePhase]} — Werkzeuge
+            <span style={{ fontSize: 20 }}>{nextStep.icon}</span>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Empfohlener naechster Schritt</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{nextStep.label}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{nextStep.desc}</div>
+            </div>
           </div>
-          {/* Pfeil links — nur Desktop */}
-          <button aria-label="Kacheln nach links scrollen" onClick={() => scrollRef.current?.scrollBy({ left: -160, behavior: 'smooth' })} style={{
-            position: 'absolute', left: 0, top: 0, bottom: 0, width: 32, zIndex: 2,
-            background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
-            borderRadius: 'var(--radius-md) 0 0 var(--radius-md)',
-            cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)',
-            display: isMobile ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>‹</button>
+        )}
 
-          {/* Scrollbarer Container */}
-          <div ref={scrollRef} style={{
-            display: 'flex', gap: 8, overflowX: 'auto', scrollBehavior: 'smooth',
-            padding: isMobile ? '0 12px' : '0 40px', scrollbarWidth: 'none', msOverflowStyle: 'none',
-            WebkitOverflowScrolling: 'touch', scrollSnapType: isMobile ? 'x mandatory' : 'none',
-          }}>
-            {(PHASE_TOOLS[activePhase] || []).map(tool => {
-              const isActive = TOOL_SUBTAB_MAP[tool.id]
-                ? activeSubTab === TOOL_SUBTAB_MAP[tool.id]
-                : activeTab === (SUB_TAB_MAP[tool.id] || tool.id);
-              return (
-                <button
-                  key={tool.id}
-                  aria-label={`${tool.label}: ${tool.sub}`}
-                  aria-pressed={isActive}
-                  onClick={() => {
-                    setActiveTab(SUB_TAB_MAP[tool.id] || tool.id);
-                    setActiveSubTab(TOOL_SUBTAB_MAP[tool.id] || tool.id);
-                    if (tool.id === 'unternehmen') setShowBriefingWizard(true);
-                  }}
-                  onMouseEnter={e => {
-                    if (!isActive) {
-                      e.currentTarget.style.borderTopColor = 'var(--border-medium)';
-                      e.currentTarget.style.background = 'var(--bg-hover)';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!isActive) {
-                      e.currentTarget.style.borderTopColor = 'transparent';
-                      e.currentTarget.style.background = 'var(--bg-surface)';
-                    }
-                  }}
-                  style={{
-                    flex: isMobile ? '0 0 100px' : '0 0 140px', minWidth: isMobile ? 100 : 140, minHeight: isMobile ? 72 : 80,
-                    scrollSnapAlign: isMobile ? 'start' : undefined,
-                    background: isActive ? 'var(--brand-primary-light)' : 'var(--bg-surface)',
-                    border: '1px solid var(--border-light)',
-                    borderTop: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '12px 10px 10px', cursor: 'pointer',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                    textAlign: 'center',
-                    transition: 'border-color var(--transition-fast), background var(--transition-fast)',
-                    position: 'relative', fontFamily: 'var(--font-sans)',
-                  }}
-                >
-                  {tool.badge && (
-                    <span style={{
-                      position: 'absolute', top: 6, right: 6,
-                      background: 'var(--status-warning-text)', color: 'white',
-                      fontSize: 9, fontWeight: 700, borderRadius: 'var(--radius-full)',
-                      padding: '1px 5px', lineHeight: 1.4,
-                    }}>{tool.badge}</span>
-                  )}
-                  <div style={{
-                    width: 32, height: 32,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 18,
-                    background: isActive ? 'var(--brand-primary)' : 'var(--bg-app)',
-                    borderRadius: 'var(--radius-sm)', flexShrink: 0,
-                    color: isActive ? 'white' : 'var(--text-secondary)',
-                    transition: 'background var(--transition-fast), color var(--transition-fast)',
-                  }}>{tool.icon}</div>
-                  <div style={{
-                    fontSize: 11, fontWeight: isActive ? 700 : 500,
-                    color: isActive ? 'var(--brand-primary-dark)' : 'var(--text-primary)',
-                    lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden',
-                    textOverflow: 'ellipsis', maxWidth: '100%',
-                  }}>{tool.label}</div>
-                  <div style={{
-                    fontSize: 10,
-                    color: isActive ? 'var(--brand-primary)' : 'var(--text-tertiary)',
-                    lineHeight: 1.2,
-                  }}>{tool.sub}</div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Pfeil rechts — nur Desktop */}
-          <button aria-label="Kacheln nach rechts scrollen" onClick={() => scrollRef.current?.scrollBy({ left: 160, behavior: 'smooth' })} style={{
-            position: 'absolute', right: 0, top: 0, bottom: 0, width: 32, zIndex: 2,
-            background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
-            borderRadius: '0 var(--radius-md) var(--radius-md) 0',
-            cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)',
-            display: isMobile ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>›</button>
-        </div>
+        {/* Vertikale Werkzeug-Navigation */}
+        {[
+          { id: 'unternehmen', label: 'Briefing Unternehmen', icon: '🏢', desc: 'Stammdaten, Leistungen, USP, Zielgruppe' },
+          { id: 'briefing',    label: 'Briefing Website',     icon: '📋', desc: 'Ziele, Design, Seiten, Assets, Zeitplan' },
+          { id: 'audits',      label: 'Website-Audit',        icon: '🔍', desc: 'Technische Analyse, Score, Probleme' },
+          { id: 'analyse',     label: 'Analyse-Zentrale',     icon: '🔬', desc: 'Crawler, Brand Design, PageSpeed, GA' },
+          { id: 'zugangsdaten',label: 'Zugangsdaten',         icon: '🔑', desc: 'Hosting, FTP, CMS-Zugaenge' },
+        ].map(tool => {
+          const toolSub = TOOL_SUBTAB_MAP[tool.id] || tool.id;
+          const isToolActive = activeSubTab === toolSub;
+          return (
+            <div key={tool.id} onClick={() => {
+              setActiveSubTab(toolSub);
+              setActiveTab(SUB_TAB_MAP[tool.id] || tool.id);
+              if (tool.id === 'unternehmen') setShowBriefingWizard(true);
+            }} style={{
+              display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
+              background: isToolActive ? 'var(--bg-active, var(--bg-elevated))' : 'var(--bg-surface)',
+              border: `1px solid ${isToolActive ? 'var(--brand-primary-mid, var(--border-medium))' : 'var(--border-light)'}`,
+              borderLeft: `4px solid ${isToolActive ? 'var(--brand-primary)' : 'transparent'}`,
+              borderRadius: 'var(--radius-lg)', cursor: 'pointer', transition: 'all 0.15s',
+            }}
+              onMouseEnter={e => { if (!isToolActive) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+              onMouseLeave={e => { if (!isToolActive) e.currentTarget.style.background = 'var(--bg-surface)'; }}
+            >
+              <span style={{ fontSize: 22, flexShrink: 0 }}>{tool.icon}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: isToolActive ? 700 : 500, color: isToolActive ? 'var(--brand-primary)' : 'var(--text-primary)' }}>{tool.label}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{tool.desc}</div>
+              </div>
+              <span style={{ fontSize: 16, color: 'var(--text-tertiary)' }}>{'\u203A'}</span>
+            </div>
+          );
+        })}
 
       {/* ── Overview Tab ────────────────────────────────────────────────────── */}
       {activeTab === 'overview' && (

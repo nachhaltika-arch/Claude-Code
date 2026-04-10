@@ -1171,6 +1171,9 @@ export default function CustomerDetail() {
   const [brandLoaded, setBrandLoaded] = useState(false);
   const [scraping, setScraping]     = useState(false);
   const [analyzing, setAnalyzing]   = useState(false);
+  const [scanRunning, setScanRunning] = useState(false);
+  const [scanStep, setScanStep] = useState(-1);
+  const [scanResults, setScanResults] = useState([]);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/leads/${customerId}`, { headers: h })
@@ -2058,6 +2061,99 @@ export default function CustomerDetail() {
                 <input type="file" accept=".pdf" onChange={uploadPdf} style={{ display: 'none' }} />
               </label>
             </div>
+
+            {/* Alles scannen — sequential carousel */}
+            {(() => {
+              const SCAN_STEPS = [
+                { key: 'scrape',    label: 'Brand Scrape',    icon: '🌐', endpoint: () => fetch(`${API_BASE_URL}/api/branddesign/${lid}/scrape`, { method: 'POST', headers: h }).then(r => { if (r.ok) return r.json(); throw new Error(); }) },
+                { key: 'fonts',     label: 'Font-Recherche',  icon: '🔤', endpoint: () => fetch(`${API_BASE_URL}/api/branddesign/${lid}/suggest-fonts`, { method: 'POST', headers: h }).then(r => { if (r.ok) return r.json(); throw new Error(); }) },
+                { key: 'crawler',   label: 'Website-Crawler', icon: '🕷️', endpoint: async () => {
+                  await fetch(`${API_BASE_URL}/api/crawler/start/${lid}`, { method: 'POST', headers: h });
+                  for (let i = 0; i < 30; i++) {
+                    await new Promise(r => setTimeout(r, 2000));
+                    const s = await fetch(`${API_BASE_URL}/api/crawler/status/${lid}`, { headers: h }).then(r => r.json());
+                    if (s.status === 'completed' || s.status === 'done') return s;
+                    if (s.status === 'failed' || s.status === 'error') throw new Error('Crawler failed');
+                  }
+                  return { status: 'timeout' };
+                }},
+                { key: 'pagespeed', label: 'PageSpeed',       icon: '⚡', endpoint: () => fetch(`${API_BASE_URL}/api/leads/${lid}/pagespeed`, { method: 'POST', headers: h }).then(r => { if (r.ok) return r.json(); throw new Error(); }) },
+              ];
+
+              const runAllScans = async () => {
+                setScanRunning(true);
+                setScanResults([]);
+                for (let i = 0; i < SCAN_STEPS.length; i++) {
+                  setScanStep(i);
+                  try {
+                    const result = await SCAN_STEPS[i].endpoint();
+                    setScanResults(prev => [...prev, { key: SCAN_STEPS[i].key, ok: true, data: result }]);
+                    if (SCAN_STEPS[i].key === 'scrape' && result) setBrandData(result);
+                  } catch {
+                    setScanResults(prev => [...prev, { key: SCAN_STEPS[i].key, ok: false }]);
+                  }
+                }
+                setScanStep(-1);
+                setScanRunning(false);
+                toast.success('Alle Scans abgeschlossen');
+                loadBrandData();
+              };
+
+              return (
+                <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '14px 16px', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: scanRunning || scanResults.length > 0 ? 14 : 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Komplett-Scan</div>
+                    <button onClick={runAllScans} disabled={scanRunning} style={{
+                      padding: '7px 16px', fontSize: 12, fontWeight: 700,
+                      background: scanRunning ? 'var(--border-medium)' : 'linear-gradient(135deg, #008EAA 0%, #006B80 100%)',
+                      color: '#fff', border: 'none', borderRadius: 'var(--radius-md)',
+                      cursor: scanRunning ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}>
+                      {scanRunning ? '⏳ Läuft…' : '🚀 Alles scannen'}
+                    </button>
+                  </div>
+
+                  {(scanRunning || scanResults.length > 0) && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {SCAN_STEPS.map((step, i) => {
+                        const result = scanResults.find(r => r.key === step.key);
+                        const isActive = scanRunning && scanStep === i;
+                        const isDone = !!result;
+                        const isFailed = result && !result.ok;
+                        const isPending = !isDone && !isActive;
+                        return (
+                          <div key={step.key} style={{
+                            flex: '1 1 0', minWidth: isMobile ? '45%' : 120,
+                            padding: '10px 12px', borderRadius: 'var(--radius-md)',
+                            border: `2px solid ${isActive ? '#008EAA' : isDone ? (isFailed ? '#e74c3c' : '#3B6D11') : 'var(--border-light)'}`,
+                            background: isActive ? '#E6F6FA' : isDone ? (isFailed ? '#FEF2F2' : '#EAF4E0') : 'var(--bg-surface)',
+                            transition: 'all 0.3s ease',
+                            opacity: isPending && scanRunning ? 0.5 : 1,
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                              <span style={{ fontSize: 16 }}>{isDone ? (isFailed ? '❌' : '✅') : isActive ? '⏳' : step.icon}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{step.label}</span>
+                            </div>
+                            {isActive && (
+                              <div style={{ height: 3, borderRadius: 2, background: 'var(--border-light)', overflow: 'hidden' }}>
+                                <div style={{
+                                  height: '100%', width: '60%', borderRadius: 2,
+                                  background: '#008EAA',
+                                  animation: 'scanPulse 1.2s ease-in-out infinite alternate',
+                                }} />
+                              </div>
+                            )}
+                            {isDone && !isFailed && <div style={{ fontSize: 10, color: '#3B6D11', marginTop: 2 }}>Fertig</div>}
+                            {isFailed && <div style={{ fontSize: 10, color: '#e74c3c', marginTop: 2 }}>Fehlgeschlagen</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Color palette */}
             {brandData?.primary_color && (

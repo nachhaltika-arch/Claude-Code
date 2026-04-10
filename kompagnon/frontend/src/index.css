@@ -240,6 +240,7 @@ textarea::placeholder {
   animation: page-enter 150ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 @keyframes crawlHintIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes scanPulse { 0% { width: 30%; } 100% { width: 90%; } }
 
 /* Academy card hover */
 .academy-card { transition: box-shadow 0.3s ease, transform 0.2s ease; cursor: pointer; }

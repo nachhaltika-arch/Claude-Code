@@ -700,6 +700,10 @@ export default function ProjectDetail() {
   const [expandedScrape, setExpandedScrape]   = useState({});
   // BrandDesign
   const [brandData, setBrandData]   = useState(null);
+  const [brandEdits, setBrandEdits] = useState({});
+  const [brandSaving, setBrandSaving] = useState(false);
+  const [fontSuggestions, setFontSuggestions] = useState([]);
+  const [loadingFonts, setLoadingFonts] = useState(false);
   const [scraping, setScraping]     = useState(false);
   const [analyzing, setAnalyzing]   = useState(false);
   // Design versions
@@ -2039,11 +2043,6 @@ export default function ProjectDetail() {
         const allColors = brandData?.all_colors || [];
         const fonts = brandData?.all_fonts || [];
         const hasBrand = brandData && (brandData.primary_color || brandData.font_primary);
-
-        const [brandEdits, setBrandEdits] = React.useState({});
-        const [brandSaving, setBrandSaving] = React.useState(false);
-        const [fontSuggestions, setFontSuggestions] = React.useState([]);
-        const [loadingFonts, setLoadingFonts] = React.useState(false);
 
         const setEdit = (field, value) => {
           setBrandEdits(prev => ({ ...prev, [field]: value }));

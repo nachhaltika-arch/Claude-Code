@@ -838,6 +838,13 @@ def _run_migrations():
         )""",
         "CREATE INDEX IF NOT EXISTS idx_crawl_jobs_customer ON crawl_jobs(customer_id)",
         "CREATE INDEX IF NOT EXISTS idx_crawl_results_job ON crawl_results(job_id)",
+        "CREATE INDEX IF NOT EXISTS idx_crawl_results_customer_id ON crawl_results(customer_id)",
+        # ── Performance-Indizes fuer haeufige Sortierungen ──────────
+        "CREATE INDEX IF NOT EXISTS idx_leads_created_at ON leads(created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_projects_id ON projects(id DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)",
+        "CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)",
+        "CREATE INDEX IF NOT EXISTS idx_audit_results_lead_id ON audit_results(lead_id, created_at DESC)",
         # ── Webhook log ────────────────────────────────────────────────
         """CREATE TABLE IF NOT EXISTS webhook_log (
             id SERIAL PRIMARY KEY,

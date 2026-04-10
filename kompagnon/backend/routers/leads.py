@@ -222,7 +222,7 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
 def list_leads(
     status: str = Query(None),
     skip: int = Query(0),
-    limit: int = Query(200),
+    limit: int = Query(100),
     db: Session = Depends(get_db),
 ):
     """List all leads with latest audit level, optionally filtered by status."""

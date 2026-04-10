@@ -340,7 +340,7 @@ def seed_projects(db: Session = Depends(get_db)):
 def list_projects(
     status: str = Query(None),
     skip: int = Query(0),
-    limit: int = Query(200),
+    limit: int = Query(100),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):

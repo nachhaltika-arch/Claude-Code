@@ -1645,7 +1645,7 @@ export default function ProjectDetail() {
                 {idx > 0 && (
                   <div style={{ alignSelf: 'center', height: 1, width: 8, flexShrink: 0, background: isDone ? 'var(--status-success-text)' : 'var(--border-light)', opacity: 0.6 }} />
                 )}
-                <button data-active={isActive} onClick={() => {
+                <button data-active={isActive} aria-label={`Phase ${phaseNum}: ${PHASE_LABELS[phaseName]}${isDone ? ' (abgeschlossen)' : isActive ? ' (aktiv)' : ''}`} aria-current={isActive ? 'step' : undefined} onClick={() => {
                   setActivePhase(phaseName);
                   const firstTool = PHASE_TOOLS[phaseName]?.[0]?.id;
                   if (firstTool) setActiveTab(SUB_TAB_MAP[firstTool] || firstTool);
@@ -1693,7 +1693,7 @@ export default function ProjectDetail() {
             {PHASE_LABELS[activePhase]} — Werkzeuge
           </div>
           {/* Pfeil links — nur Desktop */}
-          <button onClick={() => scrollRef.current?.scrollBy({ left: -160, behavior: 'smooth' })} style={{
+          <button aria-label="Kacheln nach links scrollen" onClick={() => scrollRef.current?.scrollBy({ left: -160, behavior: 'smooth' })} style={{
             position: 'absolute', left: 0, top: 0, bottom: 0, width: 32, zIndex: 2,
             background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
             borderRadius: 'var(--radius-md) 0 0 var(--radius-md)',
@@ -1714,6 +1714,8 @@ export default function ProjectDetail() {
               return (
                 <button
                   key={tool.id}
+                  aria-label={`${tool.label}: ${tool.sub}`}
+                  aria-pressed={isActive}
                   onClick={() => {
                     setActiveTab(SUB_TAB_MAP[tool.id] || tool.id);
                     setActiveSubTab(TOOL_SUBTAB_MAP[tool.id] || tool.id);
@@ -1779,7 +1781,7 @@ export default function ProjectDetail() {
           </div>
 
           {/* Pfeil rechts — nur Desktop */}
-          <button onClick={() => scrollRef.current?.scrollBy({ left: 160, behavior: 'smooth' })} style={{
+          <button aria-label="Kacheln nach rechts scrollen" onClick={() => scrollRef.current?.scrollBy({ left: 160, behavior: 'smooth' })} style={{
             position: 'absolute', right: 0, top: 0, bottom: 0, width: 32, zIndex: 2,
             background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
             borderRadius: '0 var(--radius-md) var(--radius-md) 0',

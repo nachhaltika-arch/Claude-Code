@@ -93,7 +93,7 @@ export default function Sidebar() {
                 borderLeft: active ? '3px solid #0d6efd' : '3px solid transparent',
                 fontWeight: active ? 600 : 400, fontSize: 14,
               }}>
-                <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
+                <span style={{ fontSize: 18, flexShrink: 0 }} aria-hidden="true">{item.icon}</span>
                 {item.label}
               </button>
             );
@@ -176,7 +176,7 @@ export default function Sidebar() {
               borderLeft: active ? `3px solid ${currentArea.color}` : '3px solid transparent',
               fontWeight: active ? 600 : 400, fontSize: 14, transition: 'all 0.15s',
             }}>
-              <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
+              <span style={{ fontSize: 18, flexShrink: 0 }} aria-hidden="true">{item.icon}</span>
               {item.label}
             </button>
           );

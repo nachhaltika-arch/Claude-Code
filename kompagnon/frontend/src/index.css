@@ -413,6 +413,13 @@ input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
 .kc-nav-item:focus-visible {
   outline: 2px solid var(--brand-primary);
   outline-offset: -2px;
+  background: var(--bg-hover);
+}
+
+/* Tool tile focus ring */
+button[aria-pressed]:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
 }
 
 /* ── Primary Button ───────────────────────────────────────────── */

@@ -687,6 +687,8 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES website_templates(id) ON DELETE SET NULL",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_before TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_before_date TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS moodboard_data TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS moodboard_updated_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_after TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_after_date TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_url_before VARCHAR",

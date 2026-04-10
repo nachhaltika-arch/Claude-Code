@@ -3371,3 +3371,92 @@ Erstelle einen JSON-Report mit GENAU dieser Struktur (nur JSON, kein Markdown):
 
     except Exception as e:
         raise HTTPException(500, f"KI-Report fehlgeschlagen: {str(e)[:200]}")
+
+
+@router.post("/{project_id}/moodboard")
+async def save_moodboard(
+    project_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Speichert die Moodboard-Auswahl zum Projekt."""
+    import json as _json
+    db.execute(
+        text("""
+            UPDATE projects SET
+              moodboard_data = :data,
+              moodboard_updated_at = NOW()
+            WHERE id = :id
+        """),
+        {"data": _json.dumps(body, ensure_ascii=False), "id": project_id},
+    )
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/{project_id}/moodboard/preview")
+async def generate_moodboard_preview(
+    project_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Lässt Claude eine Moodboard-Beschreibung + Farbpalette generieren."""
+    import httpx, json, re
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    # DB-Verbindung vor externem Call freigeben
+    db.close()
+
+    stilrichtung = body.get("stilrichtung", "")
+    farbstimmung = body.get("farbstimmung", "")
+    typografie   = body.get("typografie", "")
+    bildsprache  = body.get("bildsprache", [])
+    notizen      = body.get("notizen", "")
+
+    prompt = f"""Du bist ein Website-Designer für Handwerksbetriebe. Erstelle auf Basis dieser Moodboard-Auswahl eine konkrete Designbeschreibung und Farbpalette.
+
+Stilrichtung: {stilrichtung}
+Farbstimmung: {farbstimmung}
+Typografie: {typografie}
+Bildsprache: {', '.join(bildsprache) if bildsprache else 'nicht festgelegt'}
+Besondere Wünsche: {notizen or 'keine'}
+
+Antworte NUR mit diesem JSON (kein Markdown, keine Erklärungen):
+{{
+  "description": "<3-4 Sätze: Wie wird die Website aussehen, welche Atmosphäre entsteht, was macht sie besonders>",
+  "color_palette": [
+    {{"hex": "#FARBCODE", "role": "Primärfarbe"}},
+    {{"hex": "#FARBCODE", "role": "Sekundärfarbe"}},
+    {{"hex": "#FARBCODE", "role": "Akzentfarbe"}},
+    {{"hex": "#FARBCODE", "role": "Hintergrund"}},
+    {{"hex": "#FARBCODE", "role": "Text"}}
+  ]
+}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 600,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+        resp.raise_for_status()
+        content = resp.json()["content"][0]["text"].strip()
+        content = re.sub(r'^```json\s*', '', content)
+        content = re.sub(r'\s*```$', '', content)
+        return json.loads(content)
+    except Exception as e:
+        raise HTTPException(500, f"Preview-Generierung fehlgeschlagen: {str(e)[:200]}")

@@ -16,6 +16,7 @@ import PageSpeedSection from '../components/PageSpeedSection';
 import SitemapPlaner from '../components/SitemapPlaner';
 import GrapesEditor from '../components/GrapesEditor';
 import KiReportPanel from '../components/KiReportPanel';
+import MoodboardPanel from '../components/MoodboardPanel';
 import WebsiteDesigner from '../components/WebsiteDesigner';
 import ContentManager from '../components/ContentManager';
 import AuditReport from '../components/AuditReport';
@@ -115,9 +116,10 @@ const PHASE_TOOLS = {
     { id: 'ki-report',       label: 'Report erstellen',     icon: '🤖', sub: 'KI-Analyse' },
   ],
   'content': [
-    { id: 'sitemap',         label: 'Website neu',          icon: '🗺️', sub: 'Seitenstruktur' },
+    { id: 'moodboard',       label: 'Moodboard',            icon: '🎨', sub: 'Stilrichtung' },
+    { id: 'design',          label: 'Design',               icon: '✏️', sub: 'Entwürfe' },
     { id: 'content',         label: 'Content neu',          icon: '📝', sub: 'Texte & Medien' },
-    { id: 'design',          label: 'Design',               icon: '🎨', sub: 'Entwürfe' },
+    { id: 'sitemap',         label: 'Website neu',          icon: '🗺️', sub: 'Seitenstruktur' },
     { id: 'preview',         label: 'Vorschau',             icon: '👁',  sub: 'Vorschau' },
     { id: 'editor',          label: 'Editor',               icon: '🖊️', sub: 'GrapesJS' },
   ],
@@ -181,12 +183,14 @@ const SUB_TAB_MAP = {
   'dns':                'hosting',
   'website-vergleich':  'overview',
   'ki-report':          'ki-report',
+  'moodboard':          'moodboard',
 };
 
 // Maps tool tile ID → which activeSubTab value to set (for content blocks keyed on activeSubTab)
 const TOOL_SUBTAB_MAP = {
   'audits':             'audit',
   'ki-report':          'ki-report',
+  'moodboard':          'moodboard',
   'crawler':            'crawler',
   'website-content':    'webcontent',
   'hosting':            'hosting-scan',
@@ -1774,6 +1778,15 @@ export default function ProjectDetail() {
       {/* ── KI-Report Tab ─────────────────────────────────────────────────────── */}
       {(activeSubTab === 'ki-report' || activeTab === 'ki-report') && (
         <KiReportPanel
+          projectId={id}
+          leadId={project.lead_id}
+          token={token}
+        />
+      )}
+
+      {/* ── Moodboard Tab ─────────────────────────────────────────────────────── */}
+      {(activeSubTab === 'moodboard' || activeTab === 'moodboard') && project?.lead_id && (
+        <MoodboardPanel
           projectId={id}
           leadId={project.lead_id}
           token={token}

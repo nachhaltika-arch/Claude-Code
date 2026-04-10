@@ -160,8 +160,9 @@ function TabProduktdaten({ product, onChange, selected, setProduct, validationEr
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
         <div style={FIELD}>
-          <label style={LBL}>Produktname *</label>
+          <label htmlFor="prod-name" style={LBL}>Produktname *</label>
           <input
+            id="prod-name"
             value={product.name}
             onChange={e => {
               const name = e.target.value;
@@ -215,12 +216,12 @@ function TabProduktdaten({ product, onChange, selected, setProduct, validationEr
         </div>
       </div>
       <div style={FIELD}>
-        <label style={LBL}>Kurzbeschreibung</label>
-        <input value={product.short_desc || ''} onChange={e => onChange('short_desc', e.target.value)} placeholder="Wird in der Preisübersicht angezeigt" style={INP} />
+        <label htmlFor="prod-short" style={LBL}>Kurzbeschreibung</label>
+        <input id="prod-short" value={product.short_desc || ''} onChange={e => onChange('short_desc', e.target.value)} placeholder="Wird in der Preisübersicht angezeigt" style={INP} />
       </div>
       <div style={FIELD}>
-        <label style={LBL}>Langbeschreibung</label>
-        <textarea rows={4} value={product.long_desc || ''} onChange={e => onChange('long_desc', e.target.value)} placeholder="Ausführliche Produktbeschreibung" style={{ ...INP, resize: 'vertical' }} />
+        <label htmlFor="prod-long" style={LBL}>Langbeschreibung</label>
+        <textarea id="prod-long" rows={4} value={product.long_desc || ''} onChange={e => onChange('long_desc', e.target.value)} placeholder="Ausführliche Produktbeschreibung" style={{ ...INP, resize: 'vertical' }} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 80px', gap: 14, marginBottom: 14 }}>
         <div style={FIELD}><label style={LBL}>Zahlungsart</label><select value={product.payment_type || 'once'} onChange={e => onChange('payment_type', e.target.value)} style={INP}><option value="once">Einmalig</option><option value="monthly">Monatlich</option><option value="yearly">Jährlich</option></select></div>

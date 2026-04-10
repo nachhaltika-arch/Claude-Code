@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import API_BASE_URL from '../config';
 import WZSearch from './WZSearch';
@@ -91,9 +91,10 @@ const inputBase = {
   transition: 'border-color 0.15s',
 };
 
-function Input({ value, onChange, placeholder, onFocus, onBlur, hasError }) {
+function Input({ value, onChange, placeholder, onFocus, onBlur, hasError, id }) {
   return (
     <input
+      id={id}
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
@@ -104,7 +105,7 @@ function Input({ value, onChange, placeholder, onFocus, onBlur, hasError }) {
   );
 }
 
-function Textarea({ value, onChange, placeholder, rows = 4, onBlur, hasError, minLength, maxLength }) {
+function Textarea({ value, onChange, placeholder, rows = 4, onBlur, hasError, minLength, maxLength, id }) {
   const len = (value || '').length;
   const tooLong = maxLength && len > maxLength;
   const tooShort = minLength && len > 0 && len < minLength;
@@ -112,6 +113,7 @@ function Textarea({ value, onChange, placeholder, rows = 4, onBlur, hasError, mi
   return (
     <div style={{ position: 'relative' }}>
       <textarea
+        id={id}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
@@ -135,9 +137,10 @@ function Textarea({ value, onChange, placeholder, rows = 4, onBlur, hasError, mi
   );
 }
 
-function Select({ value, onChange, options, onBlur, hasError }) {
+function Select({ value, onChange, options, onBlur, hasError, id }) {
   return (
     <select
+      id={id}
       value={value}
       onChange={e => onChange(e.target.value)}
       style={{ ...inputBase, cursor: 'pointer', appearance: 'none',
@@ -157,10 +160,22 @@ function Select({ value, onChange, options, onBlur, hasError }) {
 }
 
 function Field({ label, required, hint, error, charInfo, children }) {
+  const id = useId();
+  const childWithId = React.Children.map(children, (child, i) => {
+    if (i === 0 && React.isValidElement(child)) return React.cloneElement(child, { id });
+    return child;
+  });
   return (
     <div style={{ marginBottom: 20 }}>
-      <FieldLabel required={required} hasError={!!error}>{label}</FieldLabel>
-      {children}
+      <label htmlFor={id} style={{
+        display: 'block', fontSize: 11, fontWeight: 700,
+        color: error ? 'var(--status-danger-text)' : 'var(--text-secondary)',
+        textTransform: 'uppercase', letterSpacing: '0.07em',
+        marginBottom: 6, cursor: 'pointer', transition: 'color 0.15s',
+      }}>
+        {label}{required && <span style={{ color: error ? 'var(--status-danger-text)' : TEAL, marginLeft: 2 }}>*</span>}
+      </label>
+      {childWithId}
       {error ? (
         <div style={{ fontSize: 11, color: 'var(--status-danger-text)', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4, lineHeight: 1.4 }}>
           <span style={{ fontSize: 12 }}>⚠</span>{error}

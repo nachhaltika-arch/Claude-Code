@@ -1334,7 +1334,6 @@ async def hosting_scan(
     finally:
         db2.close()
 
-    from datetime import datetime
     return {
         "hosting_provider":      data.get("hosting_provider"),
         "hosting_org":           data.get("hosting_org"),

@@ -190,8 +190,6 @@ const PHASE_TOOLS = {
     { id: 'analyse',         label: 'Analyse-Zentrale',     icon: '🔬', sub: 'Alle Crawler' },
     { id: 'briefing',        label: 'Briefing Website',     icon: '📋', sub: 'Fragenkatalog' },
     { id: 'zugangsdaten',    label: 'Zugangsdaten',         icon: '🔑', sub: 'Safe' },
-    { id: 'branddesign',     label: 'Brand-Design-PDF',     icon: '🎨', sub: 'Dreiseitig' },
-    { id: 'pagespeed',       label: 'Page-Speed',           icon: '⚡', sub: 'Score' },
   ],
   'briefing': [
     { id: 'ki-report',       label: 'Report erstellen',     icon: '🤖', sub: 'KI-Analyse' },

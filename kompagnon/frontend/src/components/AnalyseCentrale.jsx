@@ -155,6 +155,10 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
   const [pages, setPages]             = useState([]);
   const [pagesLoading, setPagesLoading] = useState(false);
   const [hostingData, setHostingData] = useState(null);
+  const [selectedPage, setSelectedPage] = useState(null);
+  const [search, setSearch]             = useState('');
+  const [sortBy, setSortBy]             = useState('url');
+  const [showFullText, setShowFullText] = useState(false);
 
   const steps = buildSteps(projectId, leadId, websiteUrl, headers);
 
@@ -170,7 +174,12 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
         fetch(`${API_BASE_URL}/api/crawler/content/${leadId}`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API_BASE_URL}/api/projects/${projectId}/hosting-info`, { headers }).then(r => r.ok ? r.json() : null),
       ]);
-      if (contentRes.status === 'fulfilled') setPages(contentRes.value || []);
+      if (contentRes.status === 'fulfilled') {
+        setPages(contentRes.value || []);
+        if (contentRes.value?.length > 0 && !selectedPage) {
+          setSelectedPage(contentRes.value[0]);
+        }
+      }
       if (hostingRes.status === 'fulfilled') setHostingData(hostingRes.value);
     } catch { /* silent */ }
     finally { setPagesLoading(false); }
@@ -312,28 +321,285 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
         })}
       </div>
 
-      {/* ── Seiten-Board ── */}
+      {/* ── Seiten-Board (Master-Detail) ── */}
       {pages.length > 0 && (
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          {/* Board-Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-              Seiten-Board — {pages.length} Seiten
+              {pages.length} Seiten analysiert
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-              Karte anklicken fuer Volltext. Horizontal scrollen.
-            </div>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="URL oder Titel suchen..."
+              style={{
+                flex: 1, minWidth: 180, padding: '6px 10px', fontSize: 12,
+                border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-app)', color: 'var(--text-primary)',
+                fontFamily: 'var(--font-sans)', outline: 'none',
+              }}
+            />
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+              style={{
+                padding: '6px 10px', fontSize: 12,
+                border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-app)', color: 'var(--text-primary)',
+                fontFamily: 'var(--font-sans)', cursor: 'pointer',
+              }}
+            >
+              <option value="url">Sortieren: URL</option>
+              <option value="words">Sortieren: Woerter</option>
+              <option value="images">Sortieren: Bilder</option>
+            </select>
           </div>
 
-          <div style={{
-            display: 'flex', gap: 16, overflowX: 'auto',
-            paddingBottom: 16, paddingTop: 4,
-            scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch',
-            alignItems: 'flex-start',
-          }}>
-            {pages.map((page, i) => (
-              <PageCard key={i} page={page} />
-            ))}
-          </div>
+          {/* Master-Detail Split */}
+          {(() => {
+            const filtered = pages
+              .filter(p => !search || p.url?.toLowerCase().includes(search.toLowerCase()) || p.title?.toLowerCase().includes(search.toLowerCase()) || p.h1?.toLowerCase().includes(search.toLowerCase()))
+              .sort((a, b) => {
+                if (sortBy === 'words')  return (b.word_count || 0) - (a.word_count || 0);
+                if (sortBy === 'images') return ((Array.isArray(b.images) ? b.images.length : 0)) - ((Array.isArray(a.images) ? a.images.length : 0));
+                return (a.url || '').localeCompare(b.url || '');
+              });
+
+            const sel = selectedPage;
+
+            return (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '280px 1fr',
+                gap: 0,
+                border: '1px solid var(--border-light)',
+                borderRadius: 'var(--radius-lg)',
+                overflow: 'hidden',
+                minHeight: 480,
+                maxHeight: 680,
+              }}>
+
+                {/* LINKE LISTE */}
+                <div style={{
+                  borderRight: '1px solid var(--border-light)',
+                  overflowY: 'auto',
+                  background: 'var(--bg-app)',
+                }}>
+                  {filtered.length === 0 ? (
+                    <div style={{ padding: 20, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
+                      Keine Seiten gefunden
+                    </div>
+                  ) : filtered.map((page, i) => {
+                    const isSelected = sel?.url === page.url;
+                    const imgCount   = Array.isArray(page.images) ? page.images.length : 0;
+                    let path = page.url;
+                    try { path = new URL(page.url).pathname || '/'; } catch { /* keep */ }
+
+                    return (
+                      <div
+                        key={i}
+                        onClick={() => { setSelectedPage(page); setShowFullText(false); }}
+                        style={{
+                          padding: '10px 14px',
+                          borderBottom: '1px solid var(--border-light)',
+                          cursor: 'pointer',
+                          background: isSelected ? 'var(--bg-active, var(--bg-elevated))' : 'transparent',
+                          borderLeft: `3px solid ${isSelected ? 'var(--brand-primary)' : 'transparent'}`,
+                          transition: 'background 0.12s',
+                        }}
+                        onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+                        onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        <div style={{
+                          fontSize: 11, fontWeight: 700,
+                          color: isSelected ? 'var(--brand-primary)' : 'var(--text-primary)',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          marginBottom: 3,
+                        }}>
+                          {path === '/' ? 'Startseite' : path}
+                        </div>
+                        {(page.title || page.h1) && (
+                          <div style={{
+                            fontSize: 11, color: 'var(--text-secondary)',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            marginBottom: 5,
+                          }}>
+                            {page.title || page.h1}
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          {page.word_count > 0 && (
+                            <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{page.word_count} W</span>
+                          )}
+                          {imgCount > 0 && (
+                            <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{imgCount} Img</span>
+                          )}
+                          {(Array.isArray(page.h2s) ? page.h2s.length : 0) > 0 && (
+                            <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>H2: {page.h2s.length}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* RECHTES DETAIL */}
+                {sel ? (
+                  <div style={{ overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+                    {/* URL */}
+                    <div>
+                      <DetailLabel>URL</DetailLabel>
+                      <a href={sel.url} target="_blank" rel="noreferrer"
+                        style={{ fontSize: 12, color: 'var(--brand-primary)', textDecoration: 'none', wordBreak: 'break-all', lineHeight: 1.5 }}>
+                        {sel.url}
+                      </a>
+                    </div>
+
+                    {/* Seitentitel */}
+                    {(sel.title || sel.h1) && (
+                      <div>
+                        <DetailLabel>Seitentitel</DetailLabel>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                          {sel.title || sel.h1}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Headings */}
+                    <div>
+                      <DetailLabel>Headings</DetailLabel>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {sel.h1 && <HeadingRow level="H1" text={sel.h1} color="var(--brand-primary)" indent={0} />}
+                        {(Array.isArray(sel.h2s) ? sel.h2s : []).map((h, j) =>
+                          <HeadingRow key={`h2${j}`} level="H2" text={h} color="var(--text-primary)" indent={16} />
+                        )}
+                        {(Array.isArray(sel.h3s) ? sel.h3s : []).map((h, j) =>
+                          <HeadingRow key={`h3${j}`} level="H3" text={h} color="var(--text-secondary)" indent={32} />
+                        )}
+                        {!sel.h1 && !sel.h2s?.length && !sel.h3s?.length && (
+                          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Keine Headings</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Meta */}
+                    {sel.meta_description && (
+                      <div>
+                        <DetailLabel>Meta-Description</DetailLabel>
+                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, fontStyle: 'italic' }}>
+                          {sel.meta_description}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Volltext */}
+                    {sel.full_text && (
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                          <DetailLabel style={{ marginBottom: 0 }}>Volltext - {sel.word_count || 0} Woerter</DetailLabel>
+                          <button
+                            onClick={() => setShowFullText(v => !v)}
+                            style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', padding: 0 }}
+                          >
+                            {showFullText ? '\u25B2 Weniger' : '\u25BC Volltext anzeigen'}
+                          </button>
+                        </div>
+                        <div style={{
+                          fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.75,
+                          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                          background: 'var(--bg-app)', borderRadius: 8, padding: '12px 14px',
+                          maxHeight: showFullText ? 600 : 100,
+                          overflowY: showFullText ? 'auto' : 'hidden',
+                          position: 'relative', transition: 'max-height 0.3s',
+                        }}>
+                          {sel.full_text}
+                          {!showFullText && (
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 36, background: 'linear-gradient(transparent, var(--bg-app))', borderRadius: '0 0 8px 8px' }} />
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Assets */}
+                    {(Array.isArray(sel.images) && sel.images.length > 0) && (
+                      <div>
+                        <DetailLabel>Assets - {sel.images.length} Bilder</DetailLabel>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {sel.images.slice(0, 12).map((src, j) => {
+                            const imgSrc = typeof src === 'string' ? src : src?.src || '';
+                            return (
+                              <div key={j} title={imgSrc} style={{ width: 56, height: 56, borderRadius: 8, border: '1px solid var(--border-light)', overflow: 'hidden', background: 'var(--bg-app)', flexShrink: 0 }}>
+                                <img src={imgSrc} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                  onError={e => { e.target.parentNode.style.display = 'none'; }} />
+                              </div>
+                            );
+                          })}
+                          {sel.images.length > 12 && (
+                            <div style={{ width: 56, height: 56, borderRadius: 8, background: 'var(--bg-app)', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 700 }}>
+                              +{sel.images.length - 12}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Links */}
+                    {((Array.isArray(sel.links_internal) && sel.links_internal.length > 0) ||
+                      (Array.isArray(sel.links_external) && sel.links_external.length > 0)) && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                        {sel.links_internal?.length > 0 && (
+                          <div>
+                            <DetailLabel>Interne Links ({sel.links_internal.length})</DetailLabel>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                              {sel.links_internal.slice(0, 15).map((link, j) => {
+                                let label = link;
+                                try { label = new URL(link).pathname || '/'; } catch { /* keep */ }
+                                return (
+                                  <a key={j} href={link} target="_blank" rel="noreferrer"
+                                    style={{ fontSize: 11, color: 'var(--brand-primary)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', padding: '1px 0' }}>
+                                    {label}
+                                  </a>
+                                );
+                              })}
+                              {sel.links_internal.length > 15 && (
+                                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>+ {sel.links_internal.length - 15} weitere</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {sel.links_external?.length > 0 && (
+                          <div>
+                            <DetailLabel>Externe Links ({sel.links_external.length})</DetailLabel>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                              {sel.links_external.slice(0, 12).map((link, j) => {
+                                let label = link;
+                                try { label = new URL(link).hostname; } catch { /* keep */ }
+                                return (
+                                  <a key={j} href={link} target="_blank" rel="noreferrer"
+                                    style={{ fontSize: 11, color: 'var(--text-secondary)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', padding: '1px 0' }}>
+                                    {label}
+                                  </a>
+                                );
+                              })}
+                              {sel.links_external.length > 12 && (
+                                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>+ {sel.links_external.length - 12} weitere</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
+                    Seite aus der Liste auswaehlen
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -354,215 +620,27 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
   );
 }
 
-// ── PageCard ─────────────────────────────────────────────────────────────────
-
-function PageCard({ page }) {
-  const [expanded, setExpanded] = useState(false);
-  const [showFullText, setShowFullText] = useState(false);
-
-  const h2s      = Array.isArray(page.h2s)            ? page.h2s            : [];
-  const h3s      = Array.isArray(page.h3s)            ? page.h3s            : [];
-  const images   = Array.isArray(page.images)         ? page.images         : [];
-  const intLinks = Array.isArray(page.links_internal) ? page.links_internal : [];
-  const extLinks = Array.isArray(page.links_external) ? page.links_external : [];
-
-  let path = page.url;
-  try { path = new URL(page.url).pathname || '/'; } catch { /* keep */ }
-
-  return (
-    <div style={{
-      flexShrink: 0,
-      width: expanded ? 380 : 220,
-      border: `1px solid ${expanded ? 'var(--brand-primary-mid, #008EAA)' : 'var(--border-light)'}`,
-      borderRadius: 12, background: 'var(--bg-surface)',
-      overflow: 'hidden', transition: 'width 0.25s, border-color 0.2s',
-      boxShadow: expanded ? '0 4px 16px rgba(0,142,170,0.1)' : '0 1px 4px rgba(0,0,0,0.05)',
-      alignSelf: 'flex-start',
-    }}>
-
-      {/* Kompakt-Header */}
-      <div
-        onClick={() => setExpanded(v => !v)}
-        style={{
-          padding: '12px 14px', cursor: 'pointer',
-          background: expanded ? 'var(--brand-primary-light, #E6F6FA)' : 'var(--bg-app)',
-          borderBottom: expanded ? '1px solid var(--brand-primary-mid, #008EAA)' : '1px solid var(--border-light)',
-          transition: 'background 0.2s',
-        }}
-      >
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>
-          {path === '/' ? 'Startseite' : path}
-        </div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.4, marginBottom: 4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-          {page.title || page.h1 || '(kein Titel)'}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          {page.word_count > 0 && <span style={miniBadge}>{page.word_count} Woerter</span>}
-          {h2s.length > 0      && <span style={miniBadge}>H2: {h2s.length}</span>}
-          {images.length > 0   && <span style={miniBadge}>{images.length} Img</span>}
-          {(intLinks.length + extLinks.length) > 0 && (
-            <span style={miniBadge}>{intLinks.length + extLinks.length} Links</span>
-          )}
-          <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--brand-primary)', fontWeight: 600 }}>
-            {expanded ? '\u25B2' : '\u25BC'}
-          </span>
-        </div>
-      </div>
-
-      {/* Erweiterte Ansicht */}
-      {expanded && (
-        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 14, maxHeight: 640, overflowY: 'auto' }}>
-
-          {/* URL */}
-          <div>
-            <SectionLabel>URL</SectionLabel>
-            <a href={page.url} target="_blank" rel="noreferrer"
-              onClick={e => e.stopPropagation()}
-              style={{ fontSize: 11, color: 'var(--brand-primary)', textDecoration: 'none', wordBreak: 'break-all', lineHeight: 1.5 }}>
-              {page.url}
-            </a>
-          </div>
-
-          {/* Headings H1 > H2 > H3 */}
-          <div>
-            <SectionLabel>Headings</SectionLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {page.h1 && <HeadingRow level="H1" text={page.h1} color="var(--brand-primary)" indent={0} />}
-              {h2s.map((h, j) => <HeadingRow key={`h2${j}`} level="H2" text={h} color="var(--text-primary)" indent={12} />)}
-              {h3s.map((h, j) => <HeadingRow key={`h3${j}`} level="H3" text={h} color="var(--text-secondary)" indent={24} />)}
-              {!page.h1 && h2s.length === 0 && h3s.length === 0 && (
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Keine Headings</div>
-              )}
-            </div>
-          </div>
-
-          {/* Meta-Description */}
-          {page.meta_description && (
-            <div>
-              <SectionLabel>Meta-Description</SectionLabel>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontStyle: 'italic' }}>
-                {page.meta_description}
-              </div>
-            </div>
-          )}
-
-          {/* Volltext */}
-          {page.full_text && (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <SectionLabel style={{ marginBottom: 0 }}>Volltext - {page.word_count || 0} Woerter</SectionLabel>
-                <button onClick={() => setShowFullText(v => !v)}
-                  style={{ fontSize: 10, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', padding: 0 }}>
-                  {showFullText ? '\u25B2 Weniger' : '\u25BC Volltext'}
-                </button>
-              </div>
-              <div style={{
-                fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7,
-                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                background: 'var(--bg-app)', borderRadius: 6, padding: '8px 10px',
-                maxHeight: showFullText ? 400 : 72, overflowY: showFullText ? 'auto' : 'hidden',
-                position: 'relative', transition: 'max-height 0.3s',
-              }}>
-                {page.full_text}
-                {!showFullText && (
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 28, background: 'linear-gradient(transparent, var(--bg-app))' }} />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Assets */}
-          {images.length > 0 && (
-            <div>
-              <SectionLabel>Assets - {images.length} Bilder</SectionLabel>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {images.slice(0, 10).map((src, j) => {
-                  const imgSrc = typeof src === 'string' ? src : src?.src || '';
-                  return (
-                    <div key={j} title={imgSrc} style={{ width: 44, height: 44, borderRadius: 6, border: '1px solid var(--border-light)', overflow: 'hidden', background: 'var(--bg-app)', flexShrink: 0 }}>
-                      <img src={imgSrc} alt="" loading="lazy"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={e => { e.target.parentNode.style.display = 'none'; }} />
-                    </div>
-                  );
-                })}
-                {images.length > 10 && (
-                  <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--bg-app)', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600 }}>
-                    +{images.length - 10}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Links */}
-          {(intLinks.length > 0 || extLinks.length > 0) && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {intLinks.length > 0 && (
-                <div>
-                  <SectionLabel>Interne Links ({intLinks.length})</SectionLabel>
-                  {intLinks.slice(0, 12).map((link, j) => {
-                    let label = link;
-                    try { label = new URL(link).pathname || '/'; } catch { /* keep */ }
-                    return (
-                      <a key={j} href={link} target="_blank" rel="noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        style={{ display: 'block', fontSize: 11, color: 'var(--brand-primary)', textDecoration: 'none', padding: '2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {label}
-                      </a>
-                    );
-                  })}
-                  {intLinks.length > 12 && <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>+ {intLinks.length - 12} weitere</div>}
-                </div>
-              )}
-              {extLinks.length > 0 && (
-                <div>
-                  <SectionLabel>Externe Links ({extLinks.length})</SectionLabel>
-                  {extLinks.slice(0, 8).map((link, j) => {
-                    let label = link;
-                    try { label = new URL(link).hostname; } catch { /* keep */ }
-                    return (
-                      <a key={j} href={link} target="_blank" rel="noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', textDecoration: 'none', padding: '2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {label}
-                      </a>
-                    );
-                  })}
-                  {extLinks.length > 8 && <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>+ {extLinks.length - 8} weitere</div>}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-const miniBadge = {
-  fontSize: 9, fontWeight: 600, padding: '2px 5px',
-  background: 'var(--bg-elevated)', color: 'var(--text-tertiary)',
-  border: '1px solid var(--border-light)', borderRadius: 4,
-};
-
 // ── Hilfskomponenten ─────────────────────────────────────────────────────────
 
-function SectionLabel({ children, style }) {
+function DetailLabel({ children, style }) {
   return (
-    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6, ...style }}>
+    <div style={{
+      fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)',
+      textTransform: 'uppercase', letterSpacing: '.08em',
+      marginBottom: 8, ...style,
+    }}>
       {children}
     </div>
   );
 }
 
-function HeadingRow({ level, text, color, indent = 0 }) {
+function HeadingRow({ level, text, color, indent }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, paddingLeft: indent }}>
-      <span style={{ fontSize: 9, fontWeight: 800, color, flexShrink: 0, marginTop: 2, opacity: 0.7, letterSpacing: '.04em' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, paddingLeft: indent }}>
+      <span style={{ fontSize: 9, fontWeight: 800, color, opacity: 0.6, flexShrink: 0, marginTop: 3, letterSpacing: '.04em', minWidth: 20 }}>
         {level}
       </span>
-      <span style={{ fontSize: 12, color, lineHeight: 1.5 }}>{text}</span>
+      <span style={{ fontSize: 13, color, lineHeight: 1.5 }}>{text}</span>
     </div>
   );
 }

@@ -17,6 +17,8 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
   const [selectedPage, setSelectedPage]         = useState(null);
   const [generating, setGenerating]             = useState(false);
   const [designResult, setDesignResult]         = useState(null);
+  const [linkReport, setLinkReport]             = useState([]);
+  const [linkSummary, setLinkSummary]           = useState(null);
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
@@ -64,9 +66,26 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
         await new Promise(r => setTimeout(r, 2000));
         const poll = await fetch(`${API_BASE_URL}/api/agents/jobs/${job_id}`, { headers }).then(r => r.json());
         if (poll.status === 'done') {
-          setDesignResult(poll.result_html || poll.result);
+          const rawHtml = poll.result_html || poll.result;
+          // Auto-resolve links
+          try {
+            const linkRes = await fetch(`${API_BASE_URL}/api/projects/${project.id}/resolve-links`, {
+              method: 'POST', headers,
+              body: JSON.stringify({ html: rawHtml, page_id: selectedPage?.id }),
+            });
+            if (linkRes.ok) {
+              const linkData = await linkRes.json();
+              setDesignResult(linkData.html);
+              setLinkReport(linkData.link_report || []);
+              setLinkSummary(linkData.summary || null);
+            } else {
+              setDesignResult(rawHtml);
+            }
+          } catch {
+            setDesignResult(rawHtml);
+          }
           setStep(4);
-          toast.success('Design-Entwurf fertig!');
+          toast.success('Design fertig — Links automatisch aufgeloest!');
           break;
         }
         if (poll.status === 'error') throw new Error(poll.error || 'Fehler');
@@ -291,6 +310,48 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                 title="Design-Vorschau"
               />
             </div>
+
+            {/* Link-Validator */}
+            {linkReport.length > 0 && (
+              <div style={{ marginTop: 16, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Link-Check</div>
+                  {linkSummary && (
+                    <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
+                      <span style={{ color: 'var(--status-success-text)', fontWeight: 600 }}>{linkSummary.ok} OK</span>
+                      {linkSummary.auto_fixed > 0 && <span style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>{linkSummary.auto_fixed} korrigiert</span>}
+                      {linkSummary.unresolved > 0 && <span style={{ color: 'var(--status-warning-text)', fontWeight: 600 }}>{linkSummary.unresolved} offen</span>}
+                    </div>
+                  )}
+                </div>
+                <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 90px', gap: 0, padding: '8px 18px', background: 'var(--bg-app)', fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '1px solid var(--border-light)', position: 'sticky', top: 0 }}>
+                    <div>Link-Text</div><div>Ziel-URL</div><div>Status</div>
+                  </div>
+                  {linkReport.map((link, i) => (
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 160px 90px', gap: 0, padding: '9px 18px', borderBottom: '1px solid var(--border-light)', background: link.status === 'unresolved' ? 'var(--status-warning-bg)' : 'transparent' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginRight: 6 }}>{link.tag}</span>{link.text || '(kein Text)'}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.href || '\u2014'}</div>
+                      <div>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                          background: link.status === 'ok' ? 'var(--status-success-bg)' : link.status === 'auto_fixed' ? 'rgba(0,142,170,0.12)' : 'var(--status-warning-bg)',
+                          color: link.status === 'ok' ? 'var(--status-success-text)' : link.status === 'auto_fixed' ? 'var(--brand-primary)' : 'var(--status-warning-text)',
+                        }}>
+                          {link.status === 'ok' ? 'OK' : link.status === 'auto_fixed' ? 'Korrigiert' : 'Offen'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {linkSummary?.unresolved > 0 && (
+                  <div style={{ padding: '10px 18px', borderTop: '1px solid var(--border-light)', fontSize: 12, color: 'var(--status-warning-text)', background: 'var(--status-warning-bg)' }}>
+                    {linkSummary.unresolved} Links nicht automatisch aufloesbar — manuell im Editor pruefen.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

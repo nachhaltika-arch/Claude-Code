@@ -3664,3 +3664,133 @@ async def generate_page_content(
         raise HTTPException(500, f"KI-Antwort nicht parsebar: {str(e)[:100]}")
     except Exception as e:
         raise HTTPException(500, f"Content-Generierung fehlgeschlagen: {str(e)[:200]}")
+
+
+# ── Link-Resolver ─────────────────────────────────────────────────────────────
+
+import re as _re
+
+def _make_slug(name: str) -> str:
+    slug = name.lower().strip()
+    slug = slug.replace('ae', 'ae').replace('oe', 'oe').replace('ue', 'ue').replace('ss', 'ss')
+    slug = _re.sub(r'[^a-z0-9]+', '-', slug).strip('-')
+    SLUG_MAP = {
+        'startseite': '', 'home': '', 'impressum': 'impressum',
+        'datenschutz': 'datenschutz', 'datenschutzerklaerung': 'datenschutz',
+        'agb': 'agb', 'kontakt': 'kontakt', 'contact': 'kontakt',
+        'ueber-uns': 'ueber-uns', 'uber-uns': 'ueber-uns', 'about': 'ueber-uns',
+        'leistungen': 'leistungen', 'services': 'leistungen',
+        'referenzen': 'referenzen', 'galerie': 'galerie',
+        'blog': 'blog', 'news': 'news', 'karriere': 'karriere',
+        'jobs': 'karriere', 'stellenangebote': 'karriere',
+        'preise': 'preise', 'pricing': 'preise',
+    }
+    return SLUG_MAP.get(slug, slug)
+
+
+def _build_sitemap_register(project_id: int, db) -> list:
+    rows = db.execute(
+        text("SELECT id, page_name, page_type, COALESCE(slug, '') as slug FROM sitemap_pages WHERE project_id = :pid ORDER BY sort_order, id"),
+        {"pid": project_id},
+    ).fetchall()
+    result = []
+    for row in rows:
+        page_id, name, ptype, slug = row
+        if not slug:
+            slug = _make_slug(name)
+            db.execute(text("UPDATE sitemap_pages SET slug = :slug WHERE id = :id"), {"slug": slug, "id": page_id})
+        result.append({"id": page_id, "name": name, "type": ptype, "slug": slug, "path": f"/{slug}" if slug else "/"})
+    db.commit()
+    return result
+
+
+def _resolve_links(html: str, sitemap: list, phone: str = "", email: str = "") -> tuple:
+    if not html:
+        return html, []
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, 'html.parser')
+    report = []
+    path_map = {}
+    for page in sitemap:
+        for kw in [page['name'].lower(), page['slug'].lower(), page['type'].lower()]:
+            if kw:
+                path_map[kw] = page['path']
+    extras = {
+        'kontakt': '/kontakt', 'contact': '/kontakt', 'anfrage': '/kontakt',
+        'angebot': '/kontakt', 'beratung': '/kontakt', 'termin': '/kontakt',
+        'impressum': '/impressum', 'datenschutz': '/datenschutz', 'agb': '/agb',
+        'leistungen': '/leistungen', 'services': '/leistungen',
+        'referenzen': '/referenzen', 'galerie': '/galerie',
+        'startseite': '/', 'home': '/', 'mehr erfahren': '/leistungen',
+        'jetzt anfragen': '/kontakt', 'kostenlos': '/kontakt',
+    }
+    if phone:
+        extras['anrufen'] = f'tel:{phone}'
+    if email:
+        extras['e-mail'] = f'mailto:{email}'
+        extras['email'] = f'mailto:{email}'
+    path_map.update(extras)
+
+    def _find(text):
+        t = text.lower().strip()
+        if t in path_map:
+            return path_map[t]
+        for kw, p in path_map.items():
+            if kw in t or t in kw:
+                return p
+        return None
+
+    for tag in soup.find_all(['a', 'button']):
+        txt = tag.get_text(strip=True)
+        href = tag.get('href', '')
+        is_broken = not href or href in ['#', '#!', 'javascript:void(0)', 'javascript:;'] or href.startswith('http://example') or href == 'URL_HIER'
+        resolved = _find(txt)
+        if is_broken and resolved:
+            if tag.name == 'a':
+                tag['href'] = resolved
+            else:
+                tag['onclick'] = f"window.location.href='{resolved}'"
+            status = 'auto_fixed'
+        elif is_broken:
+            status = 'unresolved'
+        else:
+            status = 'ok'
+        report.append({'text': txt[:50], 'tag': tag.name, 'original': href, 'resolved': resolved, 'href': tag.get('href', tag.get('onclick', '')), 'status': status})
+
+    return str(soup), report
+
+
+@router.post("/{project_id}/resolve-links")
+async def resolve_project_links(
+    project_id: int, data: dict,
+    db: Session = Depends(get_db), _=Depends(require_any_auth),
+):
+    html = data.get("html", "")
+    page_id = data.get("page_id")
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    lead = project.lead
+    phone = getattr(lead, 'phone', '') or ''
+    email = getattr(lead, 'email', '') or ''
+    sitemap = _build_sitemap_register(project_id, db)
+    fixed_html, link_report = _resolve_links(html, sitemap, phone, email)
+    auto_fixed = sum(1 for r in link_report if r['status'] == 'auto_fixed')
+    unresolved = sum(1 for r in link_report if r['status'] == 'unresolved')
+    return {
+        "html": fixed_html,
+        "link_report": link_report,
+        "summary": {
+            "total": len(link_report),
+            "ok": sum(1 for r in link_report if r['status'] == 'ok'),
+            "auto_fixed": auto_fixed,
+            "unresolved": unresolved,
+        },
+    }
+
+
+@router.get("/{project_id}/sitemap-register")
+def get_sitemap_register(
+    project_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth),
+):
+    return _build_sitemap_register(project_id, db)

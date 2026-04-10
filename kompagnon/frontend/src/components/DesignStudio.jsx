@@ -55,7 +55,9 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
         }
       );
       if (!res.ok) throw new Error('Generierung fehlgeschlagen');
-      const { job_id } = await res.json();
+      const data = await res.json();
+      const job_id = data?.job_id;
+      if (!job_id) throw new Error(data?.detail || 'Kein Job gestartet — job_id fehlt in der Antwort');
 
       const deadline = Date.now() + 120_000;
       while (Date.now() < deadline) {

@@ -15,6 +15,7 @@ import SecurityChecklist from '../components/SecurityChecklist';
 import PageSpeedSection from '../components/PageSpeedSection';
 import SitemapPlaner from '../components/SitemapPlaner';
 import GrapesEditor from '../components/GrapesEditor';
+import KiReportPanel from '../components/KiReportPanel';
 import WebsiteDesigner from '../components/WebsiteDesigner';
 import ContentManager from '../components/ContentManager';
 import AuditReport from '../components/AuditReport';
@@ -101,6 +102,7 @@ const PHASE_TOOLS = {
     { id: 'null-uebersicht', label: 'Null-Übersicht',       icon: '📊', sub: 'Status · Marge · Nachrichten' },
     { id: 'audits',          label: 'Audit',                icon: '🔍', sub: 'Bericht' },
     { id: 'unternehmen',     label: 'Briefing Unternehmen', icon: '🏢', sub: 'Stammdaten' },
+    { id: 'briefing',        label: 'Briefing Website',     icon: '📋', sub: 'Fragenkatalog' },
     { id: 'crawler',         label: 'Crawler',              icon: '🕷️', sub: 'URLs erfasst' },
     { id: 'website-content', label: 'Website-Content',      icon: '🌐', sub: '50 Seiten', badge: '!' },
     { id: 'hosting',         label: 'Hosting-Crawling',     icon: '🖥️', sub: 'Scan' },
@@ -110,7 +112,7 @@ const PHASE_TOOLS = {
     { id: 'pagespeed',       label: 'Page-Speed',           icon: '⚡', sub: 'Score' },
   ],
   'briefing': [
-    { id: 'briefing',        label: 'Briefing-Webseite',    icon: '📋', sub: 'Fragenkatalog' },
+    { id: 'ki-report',       label: 'Report erstellen',     icon: '🤖', sub: 'KI-Analyse' },
   ],
   'content': [
     { id: 'sitemap',         label: 'Website neu',          icon: '🗺️', sub: 'Seitenstruktur' },
@@ -145,7 +147,7 @@ const PHASE_TOOLS = {
 const PHASE_NAMES = ['onboarding','briefing','content','technik','go-live','qm','post-launch','fertig'];
 const PHASE_LABELS = {
   'onboarding':  'Onboarding',
-  'briefing':    'Briefing',
+  'briefing':    'Report erstellen',
   'content':     'Content',
   'technik':     'Technik',
   'go-live':     'Go Live',
@@ -178,11 +180,13 @@ const SUB_TAB_MAP = {
   'golive-prep':        'overview',
   'dns':                'hosting',
   'website-vergleich':  'overview',
+  'ki-report':          'ki-report',
 };
 
 // Maps tool tile ID → which activeSubTab value to set (for content blocks keyed on activeSubTab)
 const TOOL_SUBTAB_MAP = {
   'audits':             'audit',
+  'ki-report':          'ki-report',
   'crawler':            'crawler',
   'website-content':    'webcontent',
   'hosting':            'hosting-scan',
@@ -1765,6 +1769,15 @@ export default function ProjectDetail() {
               <div style={{ fontSize: 13 }}>Briefing wird geladen...</div>
               {(() => { loadBriefingLead(); return null; })()}
             </div>
+      )}
+
+      {/* ── KI-Report Tab ─────────────────────────────────────────────────────── */}
+      {(activeSubTab === 'ki-report' || activeTab === 'ki-report') && (
+        <KiReportPanel
+          projectId={id}
+          leadId={project.lead_id}
+          token={token}
+        />
       )}
 
       {/* ── BrandDesign Tab ─────────────────────────────────────────────────── */}

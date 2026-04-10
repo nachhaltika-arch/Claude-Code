@@ -93,7 +93,7 @@ from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, Pr
 from services.margin_calculator import MarginCalculator
 from routers.content_scraper_router import _run_content_scrape
 from email_service import send_phase_change_email, send_approval_request_email
-from routers.auth_router import require_admin, get_current_user
+from routers.auth_router import require_admin, require_any_auth, get_current_user
 from automations.scheduler import (
     get_scheduler,
     job_tag_5_followup,
@@ -3183,3 +3183,191 @@ def save_gbp_checklist(
     )
     db.commit()
     return {"success": True}
+
+
+@router.post("/{project_id}/ki-report")
+async def generate_ki_report(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """
+    Sammelt alle Onboarding-Daten und lässt Claude einen strukturierten
+    Report mit Lückenanalyse erstellen.
+    """
+    import httpx, json, re
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    lead_id = project.lead_id
+    if not lead_id:
+        raise HTTPException(400, "Kein Lead verknüpft")
+
+    # ── Alle verfügbaren Onboarding-Daten sammeln ──
+    data_parts = []
+
+    # 1. Lead-Basisdaten
+    lead = db.execute(
+        text("""
+            SELECT company_name, website_url, email, phone, city,
+                   trade, wz_code, wz_title, brand_primary_color,
+                   brand_secondary_color, brand_font_primary, brand_design_style
+            FROM leads WHERE id = :lid
+        """),
+        {"lid": lead_id},
+    ).fetchone()
+    if lead:
+        data_parts.append(f"""## Unternehmensdaten
+Firma: {lead.company_name or '–'}
+Website: {lead.website_url or '–'}
+E-Mail: {lead.email or '–'}
+Telefon: {lead.phone or '–'}
+Stadt: {lead.city or '–'}
+Gewerk: {lead.trade or '–'}
+WZ-Code: {lead.wz_code or '–'} — {lead.wz_title or '–'}
+Primärfarbe: {lead.brand_primary_color or '–'}
+Sekundärfarbe: {lead.brand_secondary_color or '–'}
+Schriftart: {lead.brand_font_primary or '–'}
+Designstil: {lead.brand_design_style or '–'}""")
+
+    # 2. Briefing-Daten
+    briefing = db.execute(
+        text("""
+            SELECT gewerk, leistungen, einzugsgebiet, zielgruppe,
+                   usp, mitbewerber, wunschseiten, farben, stil,
+                   sonstige_hinweise, logo_vorhanden, fotos_vorhanden
+            FROM briefings WHERE lead_id = :lid
+            ORDER BY id DESC LIMIT 1
+        """),
+        {"lid": lead_id},
+    ).fetchone()
+    if briefing:
+        data_parts.append(f"""## Briefing-Daten
+Gewerk: {briefing.gewerk or '–'}
+Leistungen: {briefing.leistungen or '–'}
+Einzugsgebiet: {briefing.einzugsgebiet or '–'}
+Zielgruppe: {briefing.zielgruppe or '–'}
+USP: {briefing.usp or '–'}
+Mitbewerber: {briefing.mitbewerber or '–'}
+Wunschseiten: {briefing.wunschseiten or '–'}
+Farben: {briefing.farben or '–'}
+Stil: {briefing.stil or '–'}
+Sonstige Hinweise: {briefing.sonstige_hinweise or '–'}
+Logo vorhanden: {'Ja' if briefing.logo_vorhanden else 'Nein'}
+Fotos vorhanden: {'Ja' if briefing.fotos_vorhanden else 'Nein'}""")
+
+    # 3. Letzter Audit
+    audit = db.execute(
+        text("""
+            SELECT score, ai_summary
+            FROM audits WHERE lead_id = :lid
+            ORDER BY created_at DESC LIMIT 1
+        """),
+        {"lid": lead_id},
+    ).fetchone()
+    if audit:
+        data_parts.append(f"""## Audit
+Score: {audit.score or '–'}/100
+Zusammenfassung: {audit.ai_summary or '–'}""")
+
+    # 4. PageSpeed
+    pagespeed = db.execute(
+        text("""
+            SELECT mobile_score, desktop_score
+            FROM pagespeed_results WHERE lead_id = :lid
+            ORDER BY created_at DESC LIMIT 1
+        """),
+        {"lid": lead_id},
+    ).fetchone()
+    if pagespeed:
+        data_parts.append(f"""## PageSpeed
+Mobil: {pagespeed.mobile_score or '–'}/100
+Desktop: {pagespeed.desktop_score or '–'}/100""")
+
+    # 5. Crawler — Seitenanzahl
+    crawler_count = db.execute(
+        text("SELECT COUNT(*) FROM crawler_results WHERE lead_id = :lid"),
+        {"lid": lead_id},
+    ).scalar()
+    if crawler_count:
+        data_parts.append(f"## Crawler\nGecrawlte Seiten: {crawler_count}")
+
+    # 6. Sitemap-Seiten
+    sitemap_pages = db.execute(
+        text("SELECT page_name, page_type, ziel_keyword FROM sitemap_pages WHERE lead_id = :lid AND ist_pflichtseite = false ORDER BY position"),
+        {"lid": lead_id},
+    ).fetchall()
+    if sitemap_pages:
+        seiten_text = "\n".join([
+            f"- {p.page_name} ({p.page_type}){' → ' + p.ziel_keyword if p.ziel_keyword else ''}"
+            for p in sitemap_pages
+        ])
+        data_parts.append(f"## Geplante Seiten (Sitemap)\n{seiten_text}")
+
+    if not data_parts:
+        raise HTTPException(400, "Keine Onboarding-Daten vorhanden. Bitte zuerst Audit, Briefing und Crawler ausführen.")
+
+    all_data = "\n\n".join(data_parts)
+
+    # DB-Verbindung vor externem API-Call freigeben
+    db.close()
+
+    # ── KI-Analyse via Claude ──
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    prompt = f"""Du bist ein Website-Stratege bei KOMPAGNON. Analysiere die folgenden Onboarding-Daten eines Kunden und erstelle einen strukturierten Report.
+
+{all_data}
+
+Erstelle einen JSON-Report mit GENAU dieser Struktur (nur JSON, kein Markdown):
+{{
+  "completeness_score": <0-100, wie vollständig sind die Daten>,
+  "data_points_count": <Anzahl vorhandener Datenpunkte>,
+  "gaps_count": <Anzahl fehlender wichtiger Informationen>,
+  "summary": "<3-5 Sätze: Wer ist der Kunde, was macht er, wo steht er>",
+  "available_data": [
+    "<Was vorhanden ist, z.B. 'Briefing mit USP und Zielgruppe'>",
+    "<weiterer Punkt>"
+  ],
+  "gaps": [
+    {{
+      "field": "<Name des fehlenden Feldes, z.B. 'Fotos/Bildmaterial'>",
+      "impact": "<Warum das fehlt ist ein Problem für die Content-Erstellung>",
+      "action": "<Was konkret getan werden kann>"
+    }}
+  ],
+  "recommendation": "<1-2 Sätze: Kann man jetzt mit Content-Erstellung beginnen oder was fehlt noch>",
+  "content_brief": "<Kompakter Steckbrief in 10-15 Zeilen für die spätere Content-KI: Firma, Gewerk, USP, Zielgruppe, Leistungen, Keyword-Fokus, Tonalität>"
+}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 2000,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+        resp.raise_for_status()
+        content = resp.json()["content"][0]["text"].strip()
+
+        # JSON parsen — eventuelle Markdown-Backticks entfernen
+        content = re.sub(r'^```json\s*', '', content)
+        content = re.sub(r'\s*```$', '', content)
+        report_data = json.loads(content)
+
+        return report_data
+
+    except Exception as e:
+        raise HTTPException(500, f"KI-Report fehlgeschlagen: {str(e)[:200]}")

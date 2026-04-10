@@ -142,14 +142,6 @@ function buildSteps(projectId, leadId, websiteUrl, headers) {
   ];
 }
 
-// Shared badge style
-const badge = {
-  fontSize: 10, fontWeight: 600,
-  background: 'var(--bg-app)', color: 'var(--text-secondary)',
-  border: '1px solid var(--border-light)',
-  borderRadius: 4, padding: '2px 6px',
-};
-
 // ── Haupt-Komponente ─────────────────────────────────────────────────────────
 
 export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }) {
@@ -163,7 +155,6 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
   const [pages, setPages]             = useState([]);
   const [pagesLoading, setPagesLoading] = useState(false);
   const [hostingData, setHostingData] = useState(null);
-  const [expanded, setExpanded]       = useState(null);
 
   const steps = buildSteps(projectId, leadId, websiteUrl, headers);
 
@@ -324,92 +315,24 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
       {/* ── Seiten-Board ── */}
       {pages.length > 0 && (
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
-            Seiten-Board — {pages.length} Seiten analysiert
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+              Seiten-Board — {pages.length} Seiten
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              Karte anklicken fuer Volltext. Horizontal scrollen.
+            </div>
           </div>
 
           <div style={{
-            display: 'flex', gap: 12, overflowX: 'auto',
-            paddingBottom: 12,
-            scrollbarWidth: 'thin',
-            WebkitOverflowScrolling: 'touch',
+            display: 'flex', gap: 16, overflowX: 'auto',
+            paddingBottom: 16, paddingTop: 4,
+            scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch',
+            alignItems: 'flex-start',
           }}>
-            {pages.map((page, i) => {
-              const isExpanded = expanded === i;
-              const h2s = Array.isArray(page.h2s) ? page.h2s : [];
-              const imgs = Array.isArray(page.images) ? page.images : [];
-              const path = (() => { try { return new URL(page.url).pathname || '/'; } catch { return page.url; } })();
-
-              return (
-                <div
-                  key={i}
-                  onClick={() => setExpanded(isExpanded ? null : i)}
-                  style={{
-                    flexShrink: 0,
-                    width: isExpanded ? 380 : 220,
-                    borderRadius: 12,
-                    border: `1px solid ${isExpanded ? 'var(--brand-primary-mid, #008EAA)' : 'var(--border-light)'}`,
-                    background: 'var(--bg-surface)',
-                    padding: 14,
-                    cursor: 'pointer',
-                    transition: 'all 0.25s',
-                    boxShadow: isExpanded ? '0 4px 16px rgba(0,142,170,0.12)' : '0 1px 4px rgba(0,0,0,0.06)',
-                  }}
-                >
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {path}
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                    {page.h1 || page.title || '(kein Titel)'}
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
-                    {page.word_count > 0 && (
-                      <span style={badge}>{page.word_count} W</span>
-                    )}
-                    {imgs.length > 0 && (
-                      <span style={badge}>{imgs.length} Img</span>
-                    )}
-                    {h2s.length > 0 && (
-                      <span style={badge}>H2: {h2s.length}</span>
-                    )}
-                  </div>
-
-                  {page.meta_description && (
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8, lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: isExpanded ? 4 : 2, WebkitBoxOrient: 'vertical' }}>
-                      {page.meta_description}
-                    </div>
-                  )}
-
-                  {isExpanded && (
-                    <>
-                      {h2s.length > 0 && (
-                        <div style={{ marginBottom: 10 }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>H2-Headings</div>
-                          {h2s.slice(0, 5).map((h, j) => (
-                            <div key={j} style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '2px 0', borderLeft: '2px solid var(--border-light)', paddingLeft: 8, marginBottom: 3 }}>{h}</div>
-                          ))}
-                        </div>
-                      )}
-
-                      {page.text_preview && (
-                        <div style={{ marginBottom: 10 }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Text-Vorschau</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{page.text_preview.slice(0, 200)}...</div>
-                        </div>
-                      )}
-
-                      <a href={page.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11, color: 'var(--brand-primary)', textDecoration: 'none' }}>
-                        Seite oeffnen
-                      </a>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
-            Karte anklicken fuer Details. Horizontal scrollen fuer alle Seiten.
+            {pages.map((page, i) => (
+              <PageCard key={i} page={page} />
+            ))}
           </div>
         </div>
       )}
@@ -427,6 +350,219 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
           <div>Alle Analysen starten um Daten zu erfassen.</div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── PageCard ─────────────────────────────────────────────────────────────────
+
+function PageCard({ page }) {
+  const [expanded, setExpanded] = useState(false);
+  const [showFullText, setShowFullText] = useState(false);
+
+  const h2s      = Array.isArray(page.h2s)            ? page.h2s            : [];
+  const h3s      = Array.isArray(page.h3s)            ? page.h3s            : [];
+  const images   = Array.isArray(page.images)         ? page.images         : [];
+  const intLinks = Array.isArray(page.links_internal) ? page.links_internal : [];
+  const extLinks = Array.isArray(page.links_external) ? page.links_external : [];
+
+  let path = page.url;
+  try { path = new URL(page.url).pathname || '/'; } catch { /* keep */ }
+
+  return (
+    <div style={{
+      flexShrink: 0,
+      width: expanded ? 380 : 220,
+      border: `1px solid ${expanded ? 'var(--brand-primary-mid, #008EAA)' : 'var(--border-light)'}`,
+      borderRadius: 12, background: 'var(--bg-surface)',
+      overflow: 'hidden', transition: 'width 0.25s, border-color 0.2s',
+      boxShadow: expanded ? '0 4px 16px rgba(0,142,170,0.1)' : '0 1px 4px rgba(0,0,0,0.05)',
+      alignSelf: 'flex-start',
+    }}>
+
+      {/* Kompakt-Header */}
+      <div
+        onClick={() => setExpanded(v => !v)}
+        style={{
+          padding: '12px 14px', cursor: 'pointer',
+          background: expanded ? 'var(--brand-primary-light, #E6F6FA)' : 'var(--bg-app)',
+          borderBottom: expanded ? '1px solid var(--brand-primary-mid, #008EAA)' : '1px solid var(--border-light)',
+          transition: 'background 0.2s',
+        }}
+      >
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>
+          {path === '/' ? 'Startseite' : path}
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.4, marginBottom: 4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+          {page.title || page.h1 || '(kein Titel)'}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          {page.word_count > 0 && <span style={miniBadge}>{page.word_count} Woerter</span>}
+          {h2s.length > 0      && <span style={miniBadge}>H2: {h2s.length}</span>}
+          {images.length > 0   && <span style={miniBadge}>{images.length} Img</span>}
+          {(intLinks.length + extLinks.length) > 0 && (
+            <span style={miniBadge}>{intLinks.length + extLinks.length} Links</span>
+          )}
+          <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--brand-primary)', fontWeight: 600 }}>
+            {expanded ? '\u25B2' : '\u25BC'}
+          </span>
+        </div>
+      </div>
+
+      {/* Erweiterte Ansicht */}
+      {expanded && (
+        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 14, maxHeight: 640, overflowY: 'auto' }}>
+
+          {/* URL */}
+          <div>
+            <SectionLabel>URL</SectionLabel>
+            <a href={page.url} target="_blank" rel="noreferrer"
+              onClick={e => e.stopPropagation()}
+              style={{ fontSize: 11, color: 'var(--brand-primary)', textDecoration: 'none', wordBreak: 'break-all', lineHeight: 1.5 }}>
+              {page.url}
+            </a>
+          </div>
+
+          {/* Headings H1 > H2 > H3 */}
+          <div>
+            <SectionLabel>Headings</SectionLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {page.h1 && <HeadingRow level="H1" text={page.h1} color="var(--brand-primary)" indent={0} />}
+              {h2s.map((h, j) => <HeadingRow key={`h2${j}`} level="H2" text={h} color="var(--text-primary)" indent={12} />)}
+              {h3s.map((h, j) => <HeadingRow key={`h3${j}`} level="H3" text={h} color="var(--text-secondary)" indent={24} />)}
+              {!page.h1 && h2s.length === 0 && h3s.length === 0 && (
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Keine Headings</div>
+              )}
+            </div>
+          </div>
+
+          {/* Meta-Description */}
+          {page.meta_description && (
+            <div>
+              <SectionLabel>Meta-Description</SectionLabel>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontStyle: 'italic' }}>
+                {page.meta_description}
+              </div>
+            </div>
+          )}
+
+          {/* Volltext */}
+          {page.full_text && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <SectionLabel style={{ marginBottom: 0 }}>Volltext - {page.word_count || 0} Woerter</SectionLabel>
+                <button onClick={() => setShowFullText(v => !v)}
+                  style={{ fontSize: 10, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', padding: 0 }}>
+                  {showFullText ? '\u25B2 Weniger' : '\u25BC Volltext'}
+                </button>
+              </div>
+              <div style={{
+                fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7,
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                background: 'var(--bg-app)', borderRadius: 6, padding: '8px 10px',
+                maxHeight: showFullText ? 400 : 72, overflowY: showFullText ? 'auto' : 'hidden',
+                position: 'relative', transition: 'max-height 0.3s',
+              }}>
+                {page.full_text}
+                {!showFullText && (
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 28, background: 'linear-gradient(transparent, var(--bg-app))' }} />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Assets */}
+          {images.length > 0 && (
+            <div>
+              <SectionLabel>Assets - {images.length} Bilder</SectionLabel>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {images.slice(0, 10).map((src, j) => {
+                  const imgSrc = typeof src === 'string' ? src : src?.src || '';
+                  return (
+                    <div key={j} title={imgSrc} style={{ width: 44, height: 44, borderRadius: 6, border: '1px solid var(--border-light)', overflow: 'hidden', background: 'var(--bg-app)', flexShrink: 0 }}>
+                      <img src={imgSrc} alt="" loading="lazy"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={e => { e.target.parentNode.style.display = 'none'; }} />
+                    </div>
+                  );
+                })}
+                {images.length > 10 && (
+                  <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--bg-app)', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                    +{images.length - 10}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Links */}
+          {(intLinks.length > 0 || extLinks.length > 0) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {intLinks.length > 0 && (
+                <div>
+                  <SectionLabel>Interne Links ({intLinks.length})</SectionLabel>
+                  {intLinks.slice(0, 12).map((link, j) => {
+                    let label = link;
+                    try { label = new URL(link).pathname || '/'; } catch { /* keep */ }
+                    return (
+                      <a key={j} href={link} target="_blank" rel="noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        style={{ display: 'block', fontSize: 11, color: 'var(--brand-primary)', textDecoration: 'none', padding: '2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {label}
+                      </a>
+                    );
+                  })}
+                  {intLinks.length > 12 && <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>+ {intLinks.length - 12} weitere</div>}
+                </div>
+              )}
+              {extLinks.length > 0 && (
+                <div>
+                  <SectionLabel>Externe Links ({extLinks.length})</SectionLabel>
+                  {extLinks.slice(0, 8).map((link, j) => {
+                    let label = link;
+                    try { label = new URL(link).hostname; } catch { /* keep */ }
+                    return (
+                      <a key={j} href={link} target="_blank" rel="noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', textDecoration: 'none', padding: '2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {label}
+                      </a>
+                    );
+                  })}
+                  {extLinks.length > 8 && <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>+ {extLinks.length - 8} weitere</div>}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const miniBadge = {
+  fontSize: 9, fontWeight: 600, padding: '2px 5px',
+  background: 'var(--bg-elevated)', color: 'var(--text-tertiary)',
+  border: '1px solid var(--border-light)', borderRadius: 4,
+};
+
+// ── Hilfskomponenten ─────────────────────────────────────────────────────────
+
+function SectionLabel({ children, style }) {
+  return (
+    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6, ...style }}>
+      {children}
+    </div>
+  );
+}
+
+function HeadingRow({ level, text, color, indent = 0 }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, paddingLeft: indent }}>
+      <span style={{ fontSize: 9, fontWeight: 800, color, flexShrink: 0, marginTop: 2, opacity: 0.7, letterSpacing: '.04em' }}>
+        {level}
+      </span>
+      <span style={{ fontSize: 12, color, lineHeight: 1.5 }}>{text}</span>
     </div>
   );
 }

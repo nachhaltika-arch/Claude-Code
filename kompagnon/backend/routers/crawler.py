@@ -190,6 +190,9 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
         "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS full_text TEXT",
         "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS images TEXT",
         "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS files TEXT",
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS h3s TEXT DEFAULT '[]'",
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS links_internal TEXT DEFAULT '[]'",
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS links_external TEXT DEFAULT '[]'",
     ]:
         db.execute(text(col_sql))
     db.commit()
@@ -225,6 +228,7 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
                 meta  = soup.find('meta', attrs={'name': 'description'})
                 h1    = soup.find('h1')
                 h2s   = [h.get_text(strip=True) for h in soup.find_all('h2')[:5]]
+                h3s   = [h.get_text(strip=True) for h in soup.find_all('h3')[:8]]
 
                 # Extract image URLs (src attributes)
                 images = []
@@ -242,6 +246,25 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
                     if any(ext.endswith(fe) for fe in FILE_EXTENSIONS):
                         files.append(urljoin(base_url, href))
 
+                # Interne und externe Links trennen
+                from urllib.parse import urlparse as _urlparse
+                base_domain = _urlparse(base_url).netloc
+                links_internal = []
+                links_external = []
+                for a_tag in soup.find_all('a', href=True):
+                    href = a_tag['href'].strip()
+                    if not href or href.startswith('#') or href.startswith('mailto:') or href.startswith('tel:'):
+                        continue
+                    if href.startswith('/') or base_domain in href:
+                        full = urljoin(base_url, href)
+                        if full not in links_internal:
+                            links_internal.append(full)
+                    elif href.startswith('http'):
+                        if href not in links_external:
+                            links_external.append(href)
+                links_internal = links_internal[:30]
+                links_external = links_external[:20]
+
                 # Remove noise tags, then extract full text
                 for tag in soup(['script', 'style', 'nav', 'footer', 'header']):
                     tag.decompose()
@@ -256,10 +279,13 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
                     'meta_description': meta.get('content', '') if meta else '',
                     'h1':               h1.get_text(strip=True) if h1 else '',
                     'h2s':              json.dumps(h2s, ensure_ascii=False),
+                    'h3s':              json.dumps(h3s, ensure_ascii=False),
                     'text_preview':     text_preview,
                     'full_text':        full_text,
                     'images':           json.dumps(list(dict.fromkeys(images)), ensure_ascii=False),
                     'files':            json.dumps(list(dict.fromkeys(files)), ensure_ascii=False),
+                    'links_internal':   json.dumps(links_internal, ensure_ascii=False),
+                    'links_external':   json.dumps(links_external, ensure_ascii=False),
                     'word_count':       len(body_text.split()),
                     'scraped_at':       datetime.utcnow(),
                 })
@@ -277,10 +303,11 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
             if existing:
                 db2.execute(
                     text(
-                        "UPDATE website_content_cache "
-                        "SET title=:title, meta_description=:meta_description, h1=:h1, "
-                        "h2s=:h2s, text_preview=:text_preview, full_text=:full_text, "
-                        "images=:images, files=:files, word_count=:word_count, "
+                        "UPDATE website_content_cache SET "
+                        "title=:title, meta_description=:meta_description, h1=:h1, "
+                        "h2s=:h2s, h3s=:h3s, text_preview=:text_preview, full_text=:full_text, "
+                        "images=:images, files=:files, links_internal=:links_internal, "
+                        "links_external=:links_external, word_count=:word_count, "
                         "scraped_at=:scraped_at WHERE id=:id"
                     ),
                     {**entry, 'id': existing[0]},
@@ -289,10 +316,12 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
                 db2.execute(
                     text(
                         "INSERT INTO website_content_cache "
-                        "(customer_id, url, title, meta_description, h1, h2s, "
-                        "text_preview, full_text, images, files, word_count, scraped_at) "
+                        "(customer_id, url, title, meta_description, h1, h2s, h3s, "
+                        "text_preview, full_text, images, files, links_internal, links_external, "
+                        "word_count, scraped_at) "
                         "VALUES (:customer_id, :url, :title, :meta_description, :h1, "
-                        ":h2s, :text_preview, :full_text, :images, :files, :word_count, :scraped_at)"
+                        ":h2s, :h3s, :text_preview, :full_text, :images, :files, "
+                        ":links_internal, :links_external, :word_count, :scraped_at)"
                     ),
                     entry,
                 )
@@ -315,7 +344,10 @@ def get_content(customer_id: int, db: Session = Depends(get_db)):
             "text_preview, word_count, scraped_at, "
             "COALESCE(full_text, '') as full_text, "
             "COALESCE(images, '[]') as images, "
-            "COALESCE(files, '[]') as files "
+            "COALESCE(files, '[]') as files, "
+            "COALESCE(h3s, '[]') as h3s, "
+            "COALESCE(links_internal, '[]') as links_internal, "
+            "COALESCE(links_external, '[]') as links_external "
             "FROM website_content_cache WHERE customer_id = :c ORDER BY scraped_at DESC"
         ),
         {"c": customer_id},
@@ -340,5 +372,8 @@ def get_content(customer_id: int, db: Session = Depends(get_db)):
             'full_text':        r[10],
             'images':           _parse(r[11]),
             'files':            _parse(r[12]),
+            'h3s':              _parse(r[13]),
+            'links_internal':   _parse(r[14]),
+            'links_external':   _parse(r[15]),
         })
     return result

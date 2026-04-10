@@ -122,15 +122,40 @@ export default function BriefingTab({ lead, isMobile }) {
       const res = await fetch(`${API_BASE_URL}/api/briefings/${lead.id}`, { headers: h });
       if (res.ok) {
         const data = await res.json();
-        // Auto-fill from contact data
         const autoFilled = { ...data };
-        if (!autoFilled.projektrahmen?.kunde) {
-          autoFilled.projektrahmen = {
-            ...(autoFilled.projektrahmen || {}),
-            kunde: lead.display_name || lead.company_name || '',
-            url_aktuell: lead.website_url || '',
-          };
+
+        // Schicht 1 — Stammdaten aus Lead auto-fill
+        autoFilled.projektrahmen = {
+          ...(autoFilled.projektrahmen || {}),
+          kunde:       autoFilled.projektrahmen?.kunde || lead.display_name || lead.company_name || '',
+          url_aktuell: autoFilled.projektrahmen?.url_aktuell || lead.website_url || '',
+          branche:     autoFilled.projektrahmen?.branche || lead.trade || '',
+          ansprechpartner: autoFilled.projektrahmen?.ansprechpartner || lead.contact_name || '',
+        };
+
+        // Schicht 2 — Flat Wizard-Felder in JSON-Sektionen uebernehmen (nur leere Felder)
+        const fill = (section, key, flatKey) => {
+          if (!autoFilled[section]?.[key] && data[flatKey]) {
+            autoFilled[section] = { ...(autoFilled[section] || {}), [key]: data[flatKey] };
+          }
+        };
+        fill('wettbewerb', 'usp', 'usp');
+        fill('wettbewerb', 'mitbewerber', 'mitbewerber');
+        fill('wettbewerb', 'vorbilder', 'vorbilder');
+        fill('branding', 'stil', 'stil');
+        fill('branding', 'farben', 'farben');
+        fill('positionierung', 'hauptziel', 'leistungen');
+        fill('zielgruppe', 'region', 'einzugsgebiet');
+        fill('inhalte', 'seiten', 'wunschseiten');
+
+        // Schicht 3 — Projekt-Flags in Assets-Sektion
+        if (data.logo_vorhanden && !autoFilled.funktionen?.logo) {
+          autoFilled.funktionen = { ...(autoFilled.funktionen || {}), logo: 'Ja, als Vektordatei (SVG/AI/EPS)' };
         }
+        if (data.fotos_vorhanden && !autoFilled.funktionen?.fotos) {
+          autoFilled.funktionen = { ...(autoFilled.funktionen || {}), fotos: 'Ja, professionelle Fotos' };
+        }
+
         setLocalData(autoFilled);
       }
     } catch (e) { console.error(e); }
@@ -429,10 +454,12 @@ export default function BriefingTab({ lead, isMobile }) {
               <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {currentSection.fields.map(field => {
                   const val = (localData[activeSection] || {})[field.key] || '';
-                  const inputStyle = { width: '100%', padding: isMobile ? '12px' : '9px 12px', minHeight: isMobile ? 44 : undefined, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box' };
+                  const ph = field.placeholder || `${field.label}...`;
+                  const inputStyle = { width: '100%', padding: isMobile ? '12px' : '9px 12px', minHeight: isMobile ? 44 : undefined, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box', outline: 'none' };
                   return (
                     <div key={field.key}>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 5 }}>{field.label}</label>
+                      {field.hint && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6, lineHeight: 1.5 }}>{field.hint}</div>}
                       {field.options ? (
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {field.options.map(opt => (
@@ -445,13 +472,12 @@ export default function BriefingTab({ lead, isMobile }) {
                           ))}
                         </div>
                       ) : field.type === 'textarea' ? (
-                        <textarea value={val} onChange={e => updateField(activeSection, field.key, e.target.value)} rows={3}
-                          placeholder={`${field.label}...`}
+                        <textarea value={val} onChange={e => updateField(activeSection, field.key, e.target.value)}
+                          rows={field.rows || 3} placeholder={ph}
                           style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5, minHeight: isMobile ? 88 : undefined }} />
                       ) : (
                         <input type={field.type || 'text'} value={val} onChange={e => updateField(activeSection, field.key, e.target.value)}
-                          placeholder={`${field.label}...`}
-                          style={inputStyle} />
+                          placeholder={ph} style={inputStyle} />
                       )}
                     </div>
                   );

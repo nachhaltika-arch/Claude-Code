@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorConfig';
 import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
+import { processClipboardImage } from '../utils/clipboardImage';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 
@@ -40,6 +41,29 @@ export default function GrapesEditor({
     window.addEventListener('kompagnon:asset-add', onAssetAdd);
     return () => window.removeEventListener('kompagnon:asset-add', onAssetAdd);
   }, []);
+
+  // Clipboard paste for images
+  useEffect(() => {
+    const handlePaste = async (e) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const items = Array.from(e.clipboardData?.items || []);
+      const imageItem = items.find(item => item.type.startsWith('image/'));
+      if (!imageItem) return;
+      e.preventDefault();
+      const file = imageItem.getAsFile();
+      if (!file) return;
+      const tid = toast.loading('Bild wird eingefügt…');
+      try {
+        const auth = token ? { Authorization: `Bearer ${token}` } : {};
+        const { src, name } = await processClipboardImage(file, leadId ?? null, auth);
+        try { editor.AssetManager?.add({ type: 'image', src, name }); } catch { /* silent */ }
+        toast.success(`Bild eingefügt: ${name}`, { id: tid });
+      } catch { toast.error('Bild konnte nicht eingefügt werden', { id: tid }); }
+    };
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [leadId, token]);
 
   // ── Save: HTML+CSS+gjsData an /api/pages/{id}/editor ──────
   const handleSave = useCallback(async ({ project, editor }) => {

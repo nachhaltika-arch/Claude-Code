@@ -3,6 +3,7 @@ import '@grapesjs/studio-sdk/style';
 import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
+import { processClipboardImage } from '../utils/clipboardImage';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
 import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorConfig';
@@ -27,6 +28,30 @@ export default function WebsiteDesigner({
     window.addEventListener('kompagnon:asset-add', onAssetAdd);
     return () => window.removeEventListener('kompagnon:asset-add', onAssetAdd);
   }, []);
+
+  // Clipboard paste for images (Ctrl+V / Cmd+V)
+  useEffect(() => {
+    const handlePaste = async (e) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const items = Array.from(e.clipboardData?.items || []);
+      const imageItem = items.find(item => item.type.startsWith('image/'));
+      if (!imageItem) return;
+      e.preventDefault();
+      const file = imageItem.getAsFile();
+      if (!file) return;
+      const tid = toast.loading('Bild wird eingefügt…');
+      try {
+        const auth = localStorage.getItem('kompagnon_token') ? { Authorization: `Bearer ${localStorage.getItem('kompagnon_token')}` } : {};
+        const { src, name } = await processClipboardImage(file, leadId ?? null, auth);
+        try { editor.AssetManager?.add({ type: 'image', src, name }); } catch { /* silent */ }
+        toast.success(`Bild eingefügt: ${name}`, { id: tid });
+      } catch { toast.error('Bild konnte nicht eingefügt werden', { id: tid }); }
+    };
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [leadId]);
+
   const [showImportModal, setShowImportModal] = useState(false);
   const [importing, setImporting]   = useState(false);
   const [importMsg, setImportMsg]   = useState('');

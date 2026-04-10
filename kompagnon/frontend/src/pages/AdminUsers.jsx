@@ -30,7 +30,7 @@ export default function AdminUsers() {
     try {
       const res = await apiCall('/api/admin/users');
       if (res.ok) setUsers(await res.json());
-    } catch (e) { toast.error('Benutzer konnten nicht geladen werden'); }
+    } catch (e) { toast.error('Benutzerliste konnte nicht geladen werden — bitte Seite neu laden'); }
     finally { setLoading(false); }
   };
 
@@ -59,7 +59,7 @@ export default function AdminUsers() {
     if (!window.confirm(`Benutzer ${email} wirklich loeschen?`)) return;
     try {
       const res = await apiCall(`/api/admin/users/${userId}`, { method: 'DELETE' });
-      if (res.ok) { toast.success('Geloescht'); loadUsers(); }
+      if (res.ok) { toast.success('Benutzer wurde gelöscht'); loadUsers(); }
       else throw new Error((await res.json()).detail);
     } catch (e) { toast.error(parseApiError(e)); }
   };

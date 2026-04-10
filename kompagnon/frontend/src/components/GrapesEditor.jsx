@@ -41,7 +41,7 @@ export default function GrapesEditor({
       toast.success('Gespeichert!');
       if (onSave) onSave({ html, css });
     } catch {
-      toast.error('Speichern fehlgeschlagen');
+      toast.error('Seite konnte nicht gespeichert werden — bitte erneut versuchen');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageId, token, onSave]);
@@ -140,7 +140,7 @@ export default function GrapesEditor({
         </span>
       );
     } catch {
-      toast.error('Deploy fehlgeschlagen — bitte HTML prüfen');
+      toast.error('Netlify-Deploy fehlgeschlagen — HTML auf Vollständigkeit prüfen');
     } finally {
       setNetlifyDeploying(false);
     }

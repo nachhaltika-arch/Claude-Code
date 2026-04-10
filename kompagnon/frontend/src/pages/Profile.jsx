@@ -23,22 +23,22 @@ export default function Profile() {
     setSaving(true);
     try {
       const res = await apiCall('/api/auth/me', { method: 'PATCH', body: JSON.stringify(form) });
-      if (res.ok) toast.success('Profil gespeichert');
+      if (res.ok) toast.success('Profildaten aktualisiert');
       else throw new Error((await res.json()).detail);
-    } catch (e) { toast.error(e.message); }
+    } catch (e) { toast.error(e.message || 'Profil konnte nicht gespeichert werden'); }
     finally { setSaving(false); }
   };
 
   const changePassword = async (e) => {
     e.preventDefault();
-    if (pwForm.new_password !== pwForm.new_password2) { toast.error('Passwoerter stimmen nicht ueberein'); return; }
+    if (pwForm.new_password !== pwForm.new_password2) { toast.error('Die beiden Passwörter stimmen nicht überein'); return; }
     setSaving(true);
     try {
       const res = await apiCall('/api/auth/change-password', {
         method: 'POST',
         body: JSON.stringify({ current_password: pwForm.current_password, new_password: pwForm.new_password }),
       });
-      if (res.ok) { toast.success('Passwort geaendert'); setPwForm({ current_password: '', new_password: '', new_password2: '' }); }
+      if (res.ok) { toast.success('Passwort erfolgreich geändert'); setPwForm({ current_password: '', new_password: '', new_password2: '' }); }
       else throw new Error((await res.json()).detail);
     } catch (e) { toast.error(e.message); }
     finally { setSaving(false); }

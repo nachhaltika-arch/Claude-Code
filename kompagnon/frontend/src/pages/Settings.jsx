@@ -29,8 +29,8 @@ function ProfileTab() {
     setSaving(true);
     try {
       const res = await apiCall('/api/auth/me', { method: 'PATCH', body: JSON.stringify(form) });
-      if (res.ok) toast.success('Profil gespeichert');
-      else toast.error((await res.json()).detail || 'Fehler');
+      if (res.ok) toast.success('Profildaten gespeichert');
+      else { const d = await res.json().catch(() => ({})); toast.error(d.detail || 'Profil konnte nicht gespeichert werden'); }
     } catch (e) { toast.error(e.message); }
     finally { setSaving(false); }
   };
@@ -69,7 +69,7 @@ function SignatureSection() {
     const url = canvasRef.current.toDataURL('image/png');
     const res = await apiCall('/api/auth/me/signature', { method: 'POST', body: JSON.stringify({ signature_data: url }) });
     if (res.ok) toast.success('Unterschrift gespeichert');
-    else toast.error('Fehler');
+    else toast.error('Aktion fehlgeschlagen — bitte erneut versuchen');
   };
 
   useEffect(() => { if (canvasRef.current) { const ctx = canvasRef.current.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 400, 150); } }, []);
@@ -97,11 +97,11 @@ function SecurityTab() {
 
   const changePw = async (e) => {
     e.preventDefault();
-    if (pw.new_password !== pw.confirm) { toast.error('Passwoerter stimmen nicht ueberein'); return; }
+    if (pw.new_password !== pw.confirm) { toast.error('Die beiden Passwörter stimmen nicht überein'); return; }
     setSaving(true);
     try {
       const res = await apiCall('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password: pw.current_password, new_password: pw.new_password }) });
-      if (res.ok) { toast.success('Passwort geaendert'); setPw({ current_password: '', new_password: '', confirm: '' }); }
+      if (res.ok) { toast.success('Passwort erfolgreich geändert'); setPw({ current_password: '', new_password: '', confirm: '' }); }
       else toast.error((await res.json()).detail || 'Fehler');
     } finally { setSaving(false); }
   };
@@ -142,8 +142,8 @@ function SystemTab() {
     setSaving(true);
     try {
       const res = await apiCall('/api/admin/settings', { method: 'PATCH', body: JSON.stringify({ settings }) });
-      if (res.ok) toast.success('Gespeichert');
-      else toast.error('Fehler');
+      if (res.ok) toast.success('Einstellungen gespeichert');
+      else toast.error('Aktion fehlgeschlagen — bitte erneut versuchen');
     } finally { setSaving(false); }
   };
 
@@ -206,7 +206,7 @@ function NotificationsTab() {
             {label}
           </label>
         ))}
-        <Btn onClick={() => toast.success('Gespeichert')} style={{ marginTop: 12 }}>Speichern</Btn>
+        <Btn onClick={() => toast.success('Einstellungen gespeichert')} style={{ marginTop: 12 }}>Speichern</Btn>
       </Card>
       {user?.role === 'admin' && (
         <Card title="SMTP-Einstellungen" icon="⚙️">
@@ -216,7 +216,7 @@ function NotificationsTab() {
           <Field label="Passwort" type="password" value={smtp.password} onChange={(v) => setSmtp((s) => ({ ...s, password: v }))} />
           <Field label="Absender-Name" value={smtp.from_name} onChange={(v) => setSmtp((s) => ({ ...s, from_name: v }))} placeholder="KOMPAGNON" />
           <Field label="Absender-E-Mail" value={smtp.from_email} onChange={(v) => setSmtp((s) => ({ ...s, from_email: v }))} placeholder="noreply@kompagnon.de" />
-          <Btn onClick={() => toast.success('Gespeichert')} style={{ marginTop: 4 }}>Speichern</Btn>
+          <Btn onClick={() => toast.success('Einstellungen gespeichert')} style={{ marginTop: 4 }}>Speichern</Btn>
           <div style={{ marginTop: 20 }}>
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>SMTP Test-E-Mail</label>
             <div style={{ display: 'flex', gap: 8 }}>

@@ -237,12 +237,19 @@ function App() {
         <FeedbackButton />
         <Toaster
           position="top-right"
+          gutter={8}
           toastOptions={{
+            duration: 4000,
             style: {
               fontFamily: 'var(--font-sans)',
               fontSize: 13,
               borderRadius: 'var(--radius-md)',
+              maxWidth: 420,
+              padding: '12px 16px',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
             },
+            success: { duration: 3000 },
+            error: { duration: 6000 },
           }}
         />
       </AuthProvider>

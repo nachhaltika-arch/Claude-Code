@@ -292,10 +292,10 @@ function EditModal({ project, lead, latestAudit, token, onClose, onSaved }) {
         form,
         { headers: { Authorization: `Bearer ${token}` } },
       );
-      toast.success('Projektdaten gespeichert');
+      toast.success('Projektdaten aktualisiert');
       onSaved();
     } catch {
-      toast.error('Speichern fehlgeschlagen');
+      toast.error('Speichern fehlgeschlagen — bitte Seite neu laden und erneut versuchen');
     } finally {
       setSaving(false);
     }
@@ -1156,8 +1156,8 @@ export default function ProjectDetail() {
         { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
       );
       await loadWebsiteContent();
-      toast.success('Content von allen Seiten gescrapt!');
-    } catch (e) { toast.error('Scraping fehlgeschlagen'); }
+      toast.success('Website-Inhalte von allen Seiten importiert');
+    } catch (e) { toast.error('Scraping fehlgeschlagen — bitte Website-URL prüfen'); }
     finally { setContentLoading(false); }
   };
 
@@ -1783,8 +1783,8 @@ export default function ProjectDetail() {
                 if (res.ok) {
                   const data = await res.json();
                   setScreenshots(s => ({ ...s, before: { data: data.screenshot_url, date: new Date().toISOString(), url: project.website_url } }));
-                } else toast.error('Screenshot fehlgeschlagen');
-              } catch { toast.error('Screenshot fehlgeschlagen'); }
+                } else toast.error('Screenshot konnte nicht erstellt werden');
+              } catch { toast.error('Screenshot konnte nicht erstellt werden'); }
               finally { setTakingBefore(false); }
             };
 
@@ -1796,8 +1796,8 @@ export default function ProjectDetail() {
                   const data = await res.json();
                   const afterUrl = newWebsiteUrl || project.website_url;
                   setScreenshots(s => ({ ...s, after: { data: data.screenshot_url, date: new Date().toISOString(), url: afterUrl } }));
-                } else toast.error('Screenshot fehlgeschlagen');
-              } catch { toast.error('Screenshot fehlgeschlagen'); }
+                } else toast.error('Screenshot konnte nicht erstellt werden');
+              } catch { toast.error('Screenshot konnte nicht erstellt werden'); }
               finally { setTakingAfter(false); }
             };
 
@@ -1805,7 +1805,7 @@ export default function ProjectDetail() {
               try {
                 await fetch(`${API_BASE_URL}/api/projects/${project.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ new_website_url: newWebsiteUrl }) });
                 toast.success('URL gespeichert');
-              } catch { toast.error('Speichern fehlgeschlagen'); }
+              } catch { toast.error('Speichern fehlgeschlagen — bitte Seite neu laden und erneut versuchen'); }
             };
 
             const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
@@ -1952,8 +1952,8 @@ export default function ProjectDetail() {
           try {
             const res = await fetch(`${API_BASE_URL}/api/branddesign/${lid}/scrape`, { method: 'POST', headers: h });
             if (res.ok) setBrandData(await res.json());
-            else toast.error('Scraping fehlgeschlagen');
-          } catch { toast.error('Scraping fehlgeschlagen'); }
+            else toast.error('Scraping fehlgeschlagen — bitte Website-URL prüfen');
+          } catch { toast.error('Scraping fehlgeschlagen — bitte Website-URL prüfen'); }
           finally { setScraping(false); }
         };
 
@@ -1963,7 +1963,7 @@ export default function ProjectDetail() {
             const res = await fetch(`${API_BASE_URL}/api/branddesign/${lid}/analyze-screenshot`, { method: 'POST', headers: h });
             if (res.ok) { setBrandData(d => ({ ...d, ...(res.ok ? {} : {}) })); await loadBrandData(); }
             else { const e = await res.json().catch(() => ({})); toast.error(parseApiError(e)); }
-          } catch { toast.error('Analyse fehlgeschlagen'); }
+          } catch { toast.error('Analyse fehlgeschlagen — bitte erneut versuchen'); }
           finally { setAnalyzing(false); }
         };
 
@@ -3314,7 +3314,7 @@ export default function ProjectDetail() {
                               });
                               setVersions(vs => vs.map(x => ({ ...x, selected: x.id === v.id })));
                               toast.success(`Version ${v.version_label} ausgewählt`);
-                            } catch { toast.error('Fehler'); }
+                            } catch { toast.error('Aktion fehlgeschlagen — bitte erneut versuchen'); }
                           }}
                           style={{
                             flex: 1, padding: '10px',

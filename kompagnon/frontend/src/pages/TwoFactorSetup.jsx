@@ -28,7 +28,7 @@ export default function TwoFactorSetup() {
   };
 
   const verifySetup = async () => {
-    if (code.length !== 6) { toast.error('Bitte 6-stelligen Code eingeben'); return; }
+    if (code.length !== 6) { toast.error('Der Code muss genau 6 Ziffern haben — bitte Authenticator-App prüfen'); return; }
     setLoading(true);
     try {
       const res = await apiCall('/api/auth/2fa/verify-setup', { method: 'POST', body: JSON.stringify({ totp_code: code }) });
@@ -36,14 +36,14 @@ export default function TwoFactorSetup() {
       if (!res.ok) throw new Error(data.detail);
       setBackupCodes(data.backup_codes);
       setStep('backup');
-      toast.success('2FA erfolgreich aktiviert!');
+      toast.success('✓ Zwei-Faktor-Authentifizierung aktiviert — Backup-Codes sicher aufbewahren');
     } catch (e) { toast.error(e.message); }
     finally { setLoading(false); }
   };
 
   const copyBackupCodes = () => {
     navigator.clipboard.writeText(backupCodes.join('\n'));
-    toast.success('Backup-Codes kopiert');
+    toast.success('Backup-Codes in Zwischenablage kopiert — sicher aufbewahren!');
   };
 
   const downloadBackupCodes = () => {

@@ -46,7 +46,7 @@ export default function PageSpeedSection({ leadId }) {
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers })
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data && data.checked_at) setPs(data); })
+      .then(data => { if (data && (data.checked_at || data.mobile_score != null)) setPs(data); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [leadId]); // eslint-disable-line

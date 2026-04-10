@@ -375,17 +375,20 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
                 gap: 0,
                 border: '1px solid var(--border-light)',
                 borderRadius: 'var(--radius-lg)',
-                overflow: 'hidden',
-                minHeight: 480,
-                maxHeight: 680,
+                height: 680,
               }}>
 
-                {/* LINKE LISTE */}
+                {/* LINKE SPALTE */}
                 <div style={{
                   borderRight: '1px solid var(--border-light)',
-                  overflowY: 'auto',
                   background: 'var(--bg-app)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  borderRadius: 'var(--radius-lg) 0 0 var(--radius-lg)',
                 }}>
+                  {/* Scrollbare Seiten-Liste */}
+                  <div style={{ flex: 1, overflowY: 'auto' }}>
                   {filtered.length === 0 ? (
                     <div style={{ padding: 20, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
                       Keine Seiten gefunden
@@ -442,6 +445,13 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
                       </div>
                     );
                   })}
+                  </div>
+                  {/* Zusammenfassung */}
+                  <ProjectSummaryPanel
+                    leadId={leadId}
+                    headers={headers}
+                    stepResults={stepResults}
+                  />
                 </div>
 
                 {/* RECHTES DETAIL */}
@@ -641,6 +651,137 @@ function HeadingRow({ level, text, color, indent }) {
         {level}
       </span>
       <span style={{ fontSize: 13, color, lineHeight: 1.5 }}>{text}</span>
+    </div>
+  );
+}
+
+// ── Projekt-Zusammenfassung (linke Spalte unten) ─────────────────────────────
+
+function ProjectSummaryPanel({ leadId, headers, stepResults }) {
+  const [pagespeed, setPagespeed] = useState(null);
+  const [brand, setBrand]         = useState(null);
+
+  useEffect(() => {
+    if (!leadId) return;
+    fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.mobile_score != null) setPagespeed(d); })
+      .catch(() => {});
+    fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setBrand(d); })
+      .catch(() => {});
+  }, [leadId]); // eslint-disable-line
+
+  const gaResult = stepResults?.analytics;
+
+  const scoreColor = (s) => {
+    if (s == null) return { bg: 'var(--bg-elevated)', text: 'var(--text-tertiary)' };
+    if (s >= 90) return { bg: '#EAF4E0', text: '#2D6A0A' };
+    if (s >= 50) return { bg: '#FEF3DC', text: '#8A5C00' };
+    return { bg: '#FDEAEA', text: '#C0392B' };
+  };
+
+  return (
+    <div style={{
+      borderTop: '1px solid var(--border-light)',
+      background: 'var(--bg-surface)',
+      padding: '12px 14px',
+      flexShrink: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 10,
+    }}>
+      {/* PageSpeed */}
+      <div>
+        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
+          PageSpeed
+        </div>
+        {pagespeed ? (
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[
+              { label: 'Mobil',   score: pagespeed.mobile_score },
+              { label: 'Desktop', score: pagespeed.desktop_score },
+            ].map(({ label, score }) => {
+              const c = scoreColor(score);
+              return (
+                <div key={label} style={{
+                  flex: 1, borderRadius: 6, padding: '6px 8px', textAlign: 'center',
+                  background: c.bg,
+                }}>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: c.text, lineHeight: 1 }}>
+                    {score ?? '\u2014'}
+                  </div>
+                  <div style={{ fontSize: 9, color: c.text, opacity: 0.7, marginTop: 2 }}>
+                    {label}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
+            Noch nicht gemessen
+          </div>
+        )}
+      </div>
+
+      {/* Google Analytics */}
+      <div>
+        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
+          Google Analytics
+        </div>
+        {gaResult != null ? (
+          <div style={{
+            fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 6,
+            background: gaResult.ga_found ? '#EAF4E0' : '#FEF3DC',
+            color: gaResult.ga_found ? '#2D6A0A' : '#8A5C00',
+          }}>
+            {gaResult.ga_found ? 'GA4 erkannt' : 'Kein GA4 gefunden'}
+          </div>
+        ) : (
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
+            Analyse ausstehend
+          </div>
+        )}
+      </div>
+
+      {/* Brand Design */}
+      <div>
+        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
+          Brand Design
+        </div>
+        {brand?.primary_color ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+              {[brand.primary_color, brand.secondary_color].filter(Boolean).map((color, i) => (
+                <div
+                  key={i}
+                  title={color}
+                  style={{ width: 20, height: 20, borderRadius: 4, background: color, border: '1px solid var(--border-light)', flexShrink: 0 }}
+                />
+              ))}
+              {(brand.all_colors || []).slice(2, 6).map((color, i) => (
+                <div
+                  key={`extra${i}`}
+                  title={color}
+                  style={{ width: 14, height: 14, borderRadius: 3, background: color, border: '1px solid var(--border-light)', flexShrink: 0 }}
+                />
+              ))}
+            </div>
+            {brand.font_primary && (
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ color: 'var(--text-tertiary)' }}>Schrift: </span>
+                {brand.font_primary}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
+            Noch nicht gescrapt
+          </div>
+        )}
+      </div>
     </div>
   );
 }

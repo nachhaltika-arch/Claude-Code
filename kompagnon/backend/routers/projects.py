@@ -1751,6 +1751,126 @@ async def netlify_deploy(
     }
 
 
+@router.post("/{project_id}/netlify/deploy-all-pages")
+async def netlify_deploy_all_pages(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """
+    Deployt alle gespeicherten Seiten des Projekts als Multi-Page-Site auf Netlify.
+    Jede Seite bekommt ihren eigenen Pfad (z.B. /leistungen/index.html).
+    """
+    import io
+    import re
+    import zipfile
+
+    row = db.execute(
+        text("SELECT netlify_site_id, lead_id FROM projects WHERE id = :id"),
+        {"id": project_id},
+    ).fetchone()
+    if not row or not row[0]:
+        raise HTTPException(400, "Keine Netlify-Site vorhanden. Zuerst Site anlegen.")
+    if not row[1]:
+        raise HTTPException(400, "Kein Lead verknüpft")
+
+    site_id = row[0]
+    lead_id = row[1]
+
+    pages = db.execute(
+        text("""
+            SELECT page_name, gjs_html, gjs_css, position
+            FROM sitemap_pages
+            WHERE lead_id = :lid AND gjs_html IS NOT NULL AND gjs_html != ''
+            ORDER BY position
+        """),
+        {"lid": lead_id},
+    ).fetchall()
+
+    if not pages:
+        raise HTTPException(400, "Keine Seiten mit Inhalt. Bitte zuerst Seiten im Editor speichern.")
+
+    # DB-Verbindung vor externem API-Call freigeben
+    db.close()
+
+    def slugify(name):
+        s = name.lower()
+        s = s.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+        s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+        return s or "seite"
+
+    def build_html(name, html, css):
+        return (
+            f"<!DOCTYPE html><html lang=\"de\"><head><meta charset=\"UTF-8\">"
+            f"<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">"
+            f"<title>{name}</title><style>{css}</style></head>"
+            f"<body>{html}</body></html>"
+        )
+
+    buf = io.BytesIO()
+    used_slugs = {}
+    redirects_lines = []
+
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for page in pages:
+            slug = slugify(page.page_name)
+            if slug in used_slugs:
+                used_slugs[slug] += 1
+                slug = f"{slug}-{used_slugs[slug]}"
+            else:
+                used_slugs[slug] = 0
+
+            html_content = build_html(page.page_name, page.gjs_html or "", page.gjs_css or "")
+
+            is_home = page.position == 0 or slug in ("startseite", "home", "index")
+            if is_home:
+                zf.writestr("index.html", html_content)
+            else:
+                zf.writestr(f"{slug}/index.html", html_content)
+                redirects_lines.append(f"/{slug}  /{slug}/index.html  200")
+
+        redirects_lines.append("/*  /index.html  200")
+        zf.writestr("_redirects", "\n".join(redirects_lines))
+        zf.writestr("_headers", "/*\n  X-Frame-Options: DENY\n  X-Content-Type-Options: nosniff")
+
+    zip_bytes = buf.getvalue()
+
+    deploy_headers = {
+        "Authorization": f"Bearer {os.getenv('NETLIFY_API_TOKEN', '')}",
+        "Content-Type": "application/zip",
+    }
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        resp = await client.post(
+            f"https://api.netlify.com/api/v1/sites/{site_id}/deploys",
+            headers=deploy_headers,
+            content=zip_bytes,
+        )
+
+    if not resp.is_success:
+        raise HTTPException(500, f"Netlify Deploy Fehler: {resp.text[:200]}")
+
+    data = resp.json()
+    deploy_url = data.get("deploy_ssl_url") or data.get("deploy_url") or ""
+
+    db2 = SessionLocal()
+    try:
+        db2.execute(
+            text("UPDATE projects SET netlify_deploy_id = :did, netlify_last_deploy = :ts WHERE id = :id"),
+            {"did": data["id"], "ts": datetime.utcnow(), "id": project_id},
+        )
+        db2.commit()
+    finally:
+        db2.close()
+
+    return {
+        "deploy_id": data["id"],
+        "deploy_url": deploy_url,
+        "pages_count": len(pages),
+        "state": data.get("state", "unknown"),
+    }
+
+
 @router.post("/{project_id}/netlify/set-domain")
 async def netlify_set_domain(
     project_id: int,

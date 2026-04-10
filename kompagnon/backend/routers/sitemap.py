@@ -154,6 +154,7 @@ def _serialize(p: SitemapPage) -> dict:
         "notizen":      p.notizen or "",
         "status":           p.status or "geplant",
         "mockup_html":      p.mockup_html or "",
+        "gjs_html":         p.gjs_html or "",
         "ist_pflichtseite": bool(p.ist_pflichtseite),
         "created_at":       str(p.created_at)[:16] if p.created_at else "",
     }

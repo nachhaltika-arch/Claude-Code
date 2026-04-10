@@ -3670,10 +3670,106 @@ export default function ProjectDetail() {
               )}
             </div>
 
-            {/* ── BEREICH 2: Deployen ── */}
+            {/* ── BEREICH: Alle Seiten exportieren / deployen ── */}
+            <div style={card}>
+              <div style={cardTitle}>📦 Alle Seiten — Export & Deploy</div>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 16px' }}>
+                Exportiert alle im GrapesJS-Editor gespeicherten Seiten dieses Projekts.
+                Jede Seite wird als eigene HTML-Datei mit korrektem URL-Pfad angelegt.
+              </p>
+
+              {sitemapPages.filter(p => p.gjs_html).length === 0 ? (
+                <div style={{ padding: '12px 14px', background: '#fef9c3', borderRadius: 8, fontSize: 13, color: '#854d0e', marginBottom: 12 }}>
+                  ⚠️ Noch keine Seiten mit Inhalt. Bitte zuerst Seiten im Tab „Website neu" im GrapesJS-Editor bearbeiten und speichern.
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                  {sitemapPages.filter(p => p.gjs_html).length} Seiten bereit:&nbsp;
+                  {sitemapPages.filter(p => p.gjs_html).map(p => p.page_name).join(', ')}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {/* ZIP Download */}
+                <button
+                  onClick={async () => {
+                    try {
+                      const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/export-zip`, { headers });
+                      if (!r.ok) { const err = await r.json().catch(() => ({})); throw new Error(err.detail || `HTTP ${r.status}`); }
+                      const blob = await r.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = r.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1] || 'website-export.zip';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      toast.success('ZIP heruntergeladen');
+                    } catch (e) { toast.error(e.message || 'Download fehlgeschlagen'); }
+                  }}
+                  style={{
+                    padding: '10px 18px', borderRadius: 8,
+                    background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+                    color: 'var(--text-primary)', fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  ⬇️ Als ZIP herunterladen
+                </button>
+
+                {/* Multi-Page Netlify Deploy */}
+                {netlify && (
+                  <button
+                    onClick={async () => {
+                      setNetlifyDeploying(true);
+                      setNetlifyDeployResult(null);
+                      try {
+                        const r = await fetch(
+                          `${API_BASE_URL}/api/projects/${project.id}/netlify/deploy-all-pages`,
+                          { method: 'POST', headers }
+                        );
+                        if (!r.ok) {
+                          const err = await r.json().catch(() => ({}));
+                          throw new Error(err.detail || `HTTP ${r.status}`);
+                        }
+                        const d = await r.json();
+                        setNetlifyDeployResult(d);
+                        toast.success(`✓ ${d.pages_count} Seiten deployed!`);
+                      } catch (e) {
+                        toast.error('Deploy fehlgeschlagen: ' + e.message);
+                      } finally {
+                        setNetlifyDeploying(false);
+                      }
+                    }}
+                    disabled={netlifyDeploying}
+                    style={{
+                      padding: '10px 18px', borderRadius: 8, border: 'none',
+                      background: netlifyDeploying ? '#94a3b8' : '#16a34a',
+                      color: 'white', fontSize: 13, fontWeight: 600,
+                      cursor: netlifyDeploying ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      fontFamily: 'var(--font-sans)',
+                    }}
+                  >
+                    {netlifyDeploying ? '⏳ Deploy läuft…' : '🚀 Alle Seiten zu Netlify deployen'}
+                  </button>
+                )}
+              </div>
+
+              {netlifyDeployResult && netlifyDeployResult.pages_count && (
+                <div style={{ marginTop: 12, padding: '10px 14px', background: '#dcfce7', borderRadius: 8, fontSize: 13, color: '#166534' }}>
+                  ✓ {netlifyDeployResult.pages_count} Seiten deployed
+                  {netlifyDeployResult.deploy_url && (
+                    <> · <a href={netlifyDeployResult.deploy_url} target="_blank" rel="noopener noreferrer" style={{ color: '#16a34a', fontWeight: 700 }}>Live ansehen →</a></>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── BEREICH 2: Deployen (einzelne Seite / Textfeld) ── */}
             {netlify && (
               <div style={card}>
-                <div style={cardTitle}>🚀 Deployen</div>
+                <div style={cardTitle}>🚀 Einzelne Seite deployen (manuell)</div>
                 <textarea
                   value={deployHtml}
                   onChange={e => setDeployHtml(e.target.value)}

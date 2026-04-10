@@ -94,7 +94,7 @@ def create_product(data: dict, db: Session = Depends(get_db),
           delivery_days, highlighted, highlight_label,
           features, checkout_fields, webhook_actions, status, sort_order)
         VALUES (:slug, :name, :sd, :ld, :pb, :pn, :tr, :pt,
-          :dd, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :status, :so)
+          :dd, :hl, :hll, CAST(:feat AS jsonb), CAST(:cf AS jsonb), CAST(:wa AS jsonb), :status, :so)
     """), {
         "slug":   slug,
         "name":   data.get("name", ""),
@@ -144,7 +144,7 @@ def update_product(slug: str, data: dict,
             params[p] = data[k]
     for f in ["features", "checkout_fields", "webhook_actions"]:
         if f in data:
-            fields.append(f"{f}=:{f}::jsonb")
+            fields.append(f"{f}=CAST(:{f} AS jsonb)")
             params[f] = json.dumps(data[f])
     if not fields:
         return get_product(slug, db)

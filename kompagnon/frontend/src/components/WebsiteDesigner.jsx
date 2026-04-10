@@ -126,10 +126,10 @@ export default function WebsiteDesigner({
       background: '#fff',
     }}>
       {/* Toolbar */}
-      <div style={{ padding: '8px 16px', background: '#1a2332',
+      <div style={{ padding: '8px 16px', background: 'var(--bg-sidebar)',
                     display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <span style={{ color: '#fff', fontWeight: 600 }}>Website Designer</span>
-        <span style={{ color: '#94a3b8', fontSize: 12 }}>
+        <span style={{ color: 'var(--text-inverse)', fontWeight: 600 }}>Website Designer</span>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
           {projectId ? `Projekt #${projectId}` : 'Neues Design'}
         </span>
 
@@ -277,7 +277,7 @@ export default function WebsiteDesigner({
               ) : (
                 <>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>📦</div>
-                  <p style={{ margin: 0, fontSize: 14, color: '#64748b' }}>
+                  <p style={{ margin: 0, fontSize: 14, color: 'var(--text-tertiary)' }}>
                     ZIP oder .grapesjs hier ablegen oder klicken
                   </p>
                 </>
@@ -300,7 +300,7 @@ export default function WebsiteDesigner({
                 style={{
                   padding: '8px 20px', border: '1px solid #cbd5e1',
                   borderRadius: 6, background: 'transparent',
-                  color: '#64748b', cursor: 'pointer',
+                  color: 'var(--text-tertiary)', cursor: 'pointer',
                 }}
               >
                 Abbrechen

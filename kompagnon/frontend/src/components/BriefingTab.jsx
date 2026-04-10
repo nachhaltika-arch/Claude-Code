@@ -361,13 +361,13 @@ export default function BriefingTab({ lead, isMobile }) {
                     Wettbewerbsanalyse für Region "{lead.city || '—'}" + 50 km Umkreis
                   </div>
                   <button onClick={runWettbewerbsanalyse} disabled={loadingWettbewerb} style={{
-                    padding: '9px 18px', background: loadingWettbewerb ? 'var(--bg-surface)' : '#d4a017',
+                    padding: '9px 18px', background: loadingWettbewerb ? 'var(--bg-surface)' : 'var(--status-warning-text)',
                     color: loadingWettbewerb ? 'var(--text-tertiary)' : 'white', border: '1px solid var(--border-medium)',
                     borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,
                     cursor: loadingWettbewerb ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                   }}>
-                    {loadingWettbewerb ? <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: '#d4a017', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Analyse läuft...</> : '🔍 KI-Wettbewerbsanalyse starten'}
+                    {loadingWettbewerb ? <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--status-warning-text)', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Analyse läuft...</> : '🔍 KI-Wettbewerbsanalyse starten'}
                   </button>
                   {localData.wettbewerb?.analyse && (
                     <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>

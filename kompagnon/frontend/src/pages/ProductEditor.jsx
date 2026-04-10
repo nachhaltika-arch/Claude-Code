@@ -35,7 +35,7 @@ const TABS = [
 // ── Shared style helpers ─────────────────────────────────────────────────────
 const LBL = {
   display: 'block', fontSize: 11, fontWeight: 600,
-  color: '#64748b', textTransform: 'uppercase',
+  color: 'var(--text-tertiary)', textTransform: 'uppercase',
   letterSpacing: '.06em', marginBottom: 5,
 };
 const INP = {
@@ -197,7 +197,7 @@ export default function ProductEditor() {
           onClick={newProduct}
           style={{
             padding: '4px 10px', borderRadius: 6, border: 'none',
-            background: '#008eaa', color: 'white',
+            background: 'var(--brand-primary)', color: 'white',
             fontSize: 11, fontWeight: 600, cursor: 'pointer',
           }}
         >
@@ -420,7 +420,7 @@ export default function ProductEditor() {
       {/* Features */}
       <div>
         <div style={{
-          fontSize: 12, fontWeight: 600, color: '#64748b',
+          fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
           textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10,
         }}>
           Leistungsumfang
@@ -456,7 +456,7 @@ export default function ProductEditor() {
           style={{
             padding: '7px 14px', borderRadius: 7,
             border: '1.5px dashed var(--border-light)',
-            background: 'transparent', color: '#64748b',
+            background: 'transparent', color: 'var(--text-tertiary)',
             fontSize: 12, cursor: 'pointer', marginTop: 4,
           }}
         >
@@ -533,7 +533,7 @@ export default function ProductEditor() {
           borderRadius: 10, padding: 16,
         }}>
           <div style={{
-            fontSize: 12, fontWeight: 600, color: '#64748b',
+            fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
             textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14,
           }}>
             Stripe-Verknüpfung
@@ -631,7 +631,7 @@ export default function ProductEditor() {
         {/* Checkout fields */}
         <div>
           <div style={{
-            fontSize: 12, fontWeight: 600, color: '#64748b',
+            fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
             textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12,
           }}>
             Checkout-Felder
@@ -647,7 +647,7 @@ export default function ProductEditor() {
                   ? '#e6f1fb' : 'transparent',
                 border: '1px solid',
                 borderColor: (product.checkout_fields || []).includes(opt.value)
-                  ? '#008eaa44' : 'var(--border-light)',
+                  ? 'var(--brand-primary-light)' : 'var(--border-light)',
                 fontSize: 13,
               }}
             >
@@ -655,7 +655,7 @@ export default function ProductEditor() {
                 type="checkbox"
                 checked={(product.checkout_fields || []).includes(opt.value)}
                 onChange={() => toggleArrayItem('checkout_fields', opt.value)}
-                style={{ accentColor: '#008eaa' }}
+                style={{ accentColor: 'var(--brand-primary)' }}
               />
               {opt.label}
             </label>
@@ -665,7 +665,7 @@ export default function ProductEditor() {
         {/* Webhook actions */}
         <div>
           <div style={{
-            fontSize: 12, fontWeight: 600, color: '#64748b',
+            fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
             textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12,
           }}>
             Nach dem Kauf ausführen
@@ -681,7 +681,7 @@ export default function ProductEditor() {
                   ? '#e6f1fb' : 'transparent',
                 border: '1px solid',
                 borderColor: (product.webhook_actions || []).includes(opt.value)
-                  ? '#008eaa44' : 'var(--border-light)',
+                  ? 'var(--brand-primary-light)' : 'var(--border-light)',
                 fontSize: 13,
               }}
             >
@@ -689,7 +689,7 @@ export default function ProductEditor() {
                 type="checkbox"
                 checked={(product.webhook_actions || []).includes(opt.value)}
                 onChange={() => toggleArrayItem('webhook_actions', opt.value)}
-                style={{ accentColor: '#008eaa' }}
+                style={{ accentColor: 'var(--brand-primary)' }}
               />
               {opt.label}
             </label>
@@ -739,7 +739,7 @@ export default function ProductEditor() {
 
     const statusColor = (s) => {
       if (s === 'live' || s === 'Bereit' || s === 'verknüpft') return { bg: '#dcfce7', color: '#166534' };
-      return { bg: '#f1f5f9', color: '#64748b' };
+      return { bg: '#f1f5f9', color: 'var(--text-tertiary)' };
     };
 
     return (
@@ -774,7 +774,7 @@ export default function ProductEditor() {
 
         {/* Asset status grid */}
         <div style={{
-          fontSize: 12, fontWeight: 600, color: '#64748b',
+          fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
           textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12,
         }}>
           Asset-Status
@@ -866,7 +866,7 @@ export default function ProductEditor() {
         }}>
           <div style={{
             width: 44, height: 44, borderRadius: '50%',
-            background: doneCount >= 6 ? '#1D9E75' : '#008eaa',
+            background: doneCount >= 6 ? '#1D9E75' : 'var(--brand-primary)',
             color: 'white', display: 'flex', alignItems: 'center',
             justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0,
           }}>
@@ -876,7 +876,7 @@ export default function ProductEditor() {
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
               {doneCount} von {items.length} erledigt
             </div>
-            <div style={{ fontSize: 12, color: '#64748b' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
               {doneCount < 5 ? 'Noch nicht bereit für Live' :
                doneCount < items.length ? 'Fast fertig — gut gemacht!' :
                'Alles erledigt!'}
@@ -886,7 +886,7 @@ export default function ProductEditor() {
           <div style={{ flex: 1, height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{
               height: '100%', borderRadius: 3,
-              background: doneCount >= 6 ? '#1D9E75' : '#008eaa',
+              background: doneCount >= 6 ? '#1D9E75' : 'var(--brand-primary)',
               width: `${(doneCount / items.length) * 100}%`,
               transition: 'width 0.3s',
             }} />
@@ -994,7 +994,7 @@ export default function ProductEditor() {
                     style={{
                       padding: '6px 12px', borderRadius: 7,
                       border: '1px solid var(--border-light)',
-                      background: 'transparent', color: '#64748b',
+                      background: 'transparent', color: 'var(--text-tertiary)',
                       fontSize: 12, cursor: 'pointer',
                     }}
                   >Abbrechen</button>
@@ -1017,7 +1017,7 @@ export default function ProductEditor() {
               disabled={saving}
               style={{
                 padding: '8px 20px', borderRadius: 8, border: 'none',
-                background: saving ? '#94a3b8' : '#008eaa',
+                background: saving ? '#94a3b8' : 'var(--brand-primary)',
                 color: 'white', fontSize: 13, fontWeight: 600,
                 cursor: saving ? 'not-allowed' : 'pointer',
               }}
@@ -1040,7 +1040,7 @@ export default function ProductEditor() {
               style={{
                 padding: '8px 14px', border: 'none', background: 'transparent',
                 fontSize: 12, fontWeight: activeTab === t.id ? 600 : 400,
-                color: activeTab === t.id ? '#008eaa' : '#64748b',
+                color: activeTab === t.id ? 'var(--brand-primary)' : '#64748b',
                 borderBottom: activeTab === t.id ? '2px solid #008eaa' : '2px solid transparent',
                 cursor: 'pointer', fontFamily: 'inherit',
                 marginBottom: -1.5, transition: 'all 0.15s',

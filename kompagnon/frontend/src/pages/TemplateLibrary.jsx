@@ -271,7 +271,7 @@ export default function TemplateLibrary() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid #e0e0e0', marginBottom: 28 }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid var(--border-light)', marginBottom: 28 }}>
         {tabs.map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
             padding: '10px 22px', border: 'none', background: 'transparent', cursor: 'pointer',
@@ -289,25 +289,25 @@ export default function TemplateLibrary() {
       {(activeTab === 'all' || activeTab === 'local') && (
         <>
           {activeTab === 'all' && (
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#555', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Lokale Vorlagen
             </h2>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18, marginBottom: activeTab === 'all' ? 36 : 0 }}>
             {visibleLocalTemplates.map(tpl => {
-              const badge = CATEGORY_COLORS[tpl.category] || { bg: '#f0f0f0', color: '#555' };
+              const badge = CATEGORY_COLORS[tpl.category] || { bg: '#f0f0f0', color: 'var(--text-secondary)' };
               return (
-                <div key={tpl.id} style={{ border: '1px solid #e0e0e0', borderRadius: 12, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div key={tpl.id} style={{ border: '1px solid var(--border-light)', borderRadius: 12, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                   {/* Color stripe */}
                   <div style={{ height: 6, background: badge.color, opacity: 0.7 }} />
                   <div style={{ padding: '18px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ fontWeight: 700, fontSize: 15, color: '#1a2332' }}>{tpl.name}</div>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{tpl.name}</div>
                       <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: badge.bg, color: badge.color, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
                         {tpl.category}
                       </span>
                     </div>
-                    <p style={{ fontSize: 13, color: '#666', lineHeight: 1.5, flex: 1 }}>{tpl.description}</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, flex: 1 }}>{tpl.description}</p>
                     <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
                       <button
                         onClick={() => setEditingTemplate(tpl)}
@@ -335,14 +335,14 @@ export default function TemplateLibrary() {
       {(activeTab === 'all' || activeTab === 'saved') && (
         <>
           {activeTab === 'all' && (
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#555', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Gespeicherte Templates
             </h2>
           )}
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>Lade Templates...</div>
+            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)' }}>Lade Templates...</div>
           ) : apiTemplates.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 48, color: '#888', background: '#f8f9fa', borderRadius: 12, border: '1px dashed #dee2e6' }}>
+            <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-tertiary)', background: '#f8f9fa', borderRadius: 12, border: '1px dashed #dee2e6' }}>
               <div style={{ fontSize: 40, marginBottom: 10 }}>🗂️</div>
               <div style={{ fontWeight: 600, marginBottom: 6 }}>Noch keine gespeicherten Templates</div>
               <div style={{ fontSize: 13 }}>Lade ein ZIP hoch oder importiere eine URL.</div>
@@ -350,14 +350,14 @@ export default function TemplateLibrary() {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18 }}>
               {apiTemplates.map(tpl => (
-                <div key={tpl.id} style={{ border: '1px solid #e0e0e0', borderRadius: 12, padding: 20, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                <div key={tpl.id} style={{ border: '1px solid var(--border-light)', borderRadius: 12, padding: 20, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{tpl.name}</div>
                     <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 10, background: tpl.source === 'url' ? '#e3f2fd' : '#e8f5e9', color: tpl.source === 'url' ? '#1565c0' : '#2e7d32', fontWeight: 600 }}>
                       {tpl.source === 'url' ? '🌐 URL' : '📁 ZIP'}
                     </span>
                   </div>
-                  {tpl.category && <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>{tpl.category}</div>}
+                  {tpl.category && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6 }}>{tpl.category}</div>}
                   {tpl.created_at && <div style={{ fontSize: 11, color: '#aaa', marginBottom: 14 }}>{new Date(tpl.created_at).toLocaleDateString('de-DE')}</div>}
                   <div style={{ display: 'flex', gap: 8 }}>
                     <Link to={`/app/settings/templates/${tpl.id}`} style={{ flex: 1, padding: '8px 12px', background: '#f0f0f0', color: '#333', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 13, textAlign: 'center', textDecoration: 'none', display: 'block' }}>
@@ -385,7 +385,7 @@ export default function TemplateLibrary() {
             <button onClick={handleZipUpload} disabled={uploading} style={{ padding: '11px', background: uploading ? '#ccc' : '#0d6efd', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: uploading ? 'not-allowed' : 'pointer' }}>
               {uploading ? 'Wird hochgeladen...' : 'Hochladen'}
             </button>
-            <button onClick={() => setShowZipModal(false)} style={{ padding: '9px', background: '#f5f5f5', color: '#555', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Abbrechen</button>
+            <button onClick={() => setShowZipModal(false)} style={{ padding: '9px', background: '#f5f5f5', color: 'var(--text-secondary)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Abbrechen</button>
           </div>
         </div>
       )}
@@ -404,7 +404,7 @@ export default function TemplateLibrary() {
             <button onClick={handleUrlImport} disabled={uploading} style={{ padding: '11px', background: uploading ? '#ccc' : '#6f42c1', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: uploading ? 'not-allowed' : 'pointer' }}>
               {uploading ? 'KI rekonstruiert (~10 Sek)...' : 'Importieren'}
             </button>
-            <button onClick={() => setShowUrlModal(false)} style={{ padding: '9px', background: '#f5f5f5', color: '#555', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Abbrechen</button>
+            <button onClick={() => setShowUrlModal(false)} style={{ padding: '9px', background: '#f5f5f5', color: 'var(--text-secondary)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Abbrechen</button>
           </div>
         </div>
       )}

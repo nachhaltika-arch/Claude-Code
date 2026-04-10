@@ -37,11 +37,11 @@ const STATUS_MAP = {
 };
 
 const LEVEL_COLORS = {
-  'Homepage Standard Platin': '#4a90d9',
-  'Homepage Standard Gold': '#b8860b',
-  'Homepage Standard Silber': '#708090',
+  'Homepage Standard Platin': 'var(--status-info-text)',
+  'Homepage Standard Gold':   '#b8860b',
+  'Homepage Standard Silber': 'var(--text-tertiary)',
   'Homepage Standard Bronze': '#cd7f32',
-  'Nicht konform': 'var(--status-danger-text)',
+  'Nicht konform':            'var(--status-danger-text)',
 };
 
 const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
@@ -49,7 +49,7 @@ const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
   const date = checkedAt ? new Date(checkedAt).toLocaleDateString('de-DE') : null;
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: reachable === null ? '#f3f4f6' : reachable ? '#dcfce7' : '#fee2e2', color: reachable === null ? '#6b7280' : reachable ? '#166534' : '#991b1b' }}>
+      <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: reachable === null ? 'var(--status-neutral-bg)' : reachable ? 'var(--status-success-bg)' : 'var(--status-danger-bg)', color: reachable === null ? 'var(--status-neutral-text)' : reachable ? 'var(--status-success-text)' : 'var(--status-danger-text)' }}>
         {reachable === null ? '● Nicht geprüft' : reachable ? '✓ Erreichbar' : '✗ Nicht erreichbar'}
       </span>
       {date && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{date}</span>}

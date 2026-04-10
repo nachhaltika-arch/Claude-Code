@@ -17,6 +17,7 @@ import SitemapPlaner from '../components/SitemapPlaner';
 import GrapesEditor from '../components/GrapesEditor';
 import KiReportPanel from '../components/KiReportPanel';
 import MoodboardPanel from '../components/MoodboardPanel';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import WebsiteDesigner from '../components/WebsiteDesigner';
 import ContentManager from '../components/ContentManager';
 import AuditReport from '../components/AuditReport';
@@ -618,6 +619,12 @@ export default function ProjectDetail() {
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
   const [newMessageText, setNewMessageText] = useState('');
   const [briefingData, setBriefingData] = useState(null);
+  // Esc-Shortcuts für Modals
+  useEscapeKey(() => setShowNewMessageModal(false), showNewMessageModal);
+  useEscapeKey(() => setShowEdit(false), showEdit);
+  useEscapeKey(() => setShowApproval(false), showApproval);
+  useEscapeKey(() => setShowBriefingWizard(false), showBriefingWizard);
+
   // Checklists (lazy audit load)
   const [latestAudit, setLatestAudit] = useState(null);
   // Crawler

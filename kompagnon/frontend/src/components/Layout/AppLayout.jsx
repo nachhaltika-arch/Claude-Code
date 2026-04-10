@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useScreenSize } from '../../utils/responsive';
 import { useTheme } from '../../context/ThemeContext';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import CommandPalette from '../CommandPalette';
+import ShortcutHelp from '../ShortcutHelp';
 import API_BASE_URL from '../../config';
 import Logo from '../Logo';
 import KompagnonLogo from '../KompagnonLogo';
@@ -522,6 +525,20 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const [badges] = useState({ pipeline: 0, audits: 0 });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
+
+  const togglePalette = useCallback(() => setPaletteOpen(p => !p), []);
+  const goSettings = useCallback(() => navigate('/app/settings'), [navigate]);
+  const goDashboard = useCallback(() => navigate('/app/dashboard'), [navigate]);
+  const toggleHelp = useCallback(() => setShortcutHelpOpen(p => !p), []);
+
+  useKeyboardShortcuts([
+    { key: 'k', meta: true, action: togglePalette },
+    { key: ',', meta: true, action: goSettings },
+    { key: 'h', meta: true, action: goDashboard },
+    { key: '?', action: toggleHelp },
+  ]);
 
   const [projectName, setProjectName] = useState(null);
   const [leadName, setLeadName] = useState(null);
@@ -732,6 +749,10 @@ export default function AppLayout() {
 
       {/* Bottom nav — mobile only */}
       {isMobile && user && <BottomNav />}
+
+      {/* Global Overlays */}
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <ShortcutHelp open={shortcutHelpOpen} onClose={() => setShortcutHelpOpen(false)} />
     </div>
   );
 }

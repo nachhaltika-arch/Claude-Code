@@ -98,6 +98,8 @@ export default function BriefingTab({ lead, isMobile }) {
   const [saved, setSaved] = useState(false);
   const [loadingZielgruppe, setLoadingZielgruppe] = useState(false);
   const [loadingWettbewerb, setLoadingWettbewerb] = useState(false);
+  const [prefilling, setPrefilling] = useState(false);
+  const [prefillDone, setPrefillDone] = useState(false);
 
   useEffect(() => { loadBriefing(); }, [lead.id]); // eslint-disable-line
 
@@ -157,6 +159,27 @@ export default function BriefingTab({ lead, isMobile }) {
       }
     } catch (e) { console.error(e); }
     finally { setLoadingZielgruppe(false); }
+  };
+
+  const prefillFromWebsite = async () => {
+    if (!lead?.project_id && !lead?.id) return;
+    setPrefilling(true);
+    try {
+      // Try to find project_id from lead
+      const pid = lead.project_id || lead.id;
+      const res = await fetch(`${API_BASE_URL}/api/projects/${pid}/briefing-prefill`, { method: 'POST', headers: h });
+      if (!res.ok) { const err = await res.json().catch(() => ({})); toast.error(err.detail || 'Vorausfüllen fehlgeschlagen'); return; }
+      const data = await res.json();
+      const updates = {};
+      for (const field of ['gewerk', 'leistungen', 'einzugsgebiet', 'usp', 'wunschseiten', 'zielgruppe']) {
+        if (data[field] && !localData[field]?.trim?.()) updates[field] = data[field];
+      }
+      if (Object.keys(updates).length === 0) { toast('Alle Felder bereits ausgefüllt', { icon: 'ℹ️' }); return; }
+      setLocalData(prev => ({ ...prev, ...updates }));
+      setPrefillDone(true);
+      toast.success(`${Object.keys(updates).length} Felder aus Website vorausgefüllt`);
+    } catch { toast.error('Verbindungsfehler beim Vorausfüllen'); }
+    finally { setPrefilling(false); }
   };
 
   const runWettbewerbsanalyse = async () => {
@@ -219,6 +242,18 @@ export default function BriefingTab({ lead, isMobile }) {
           <div style={{ width: `${progress}%`, height: '100%', background: progress >= 80 ? 'var(--status-success-text)' : progress >= 40 ? 'var(--status-warning-text)' : 'var(--brand-primary)', borderRadius: 3, transition: 'width 0.4s ease' }} />
         </div>
       </div>
+
+      {/* Prefill from website button */}
+      <button onClick={prefillFromWebsite} disabled={prefilling} style={{
+        padding: '8px 16px', background: prefillDone ? 'var(--status-success-bg)' : 'var(--brand-primary-light)',
+        color: prefillDone ? 'var(--status-success-text)' : 'var(--brand-primary-dark)',
+        border: `1px solid ${prefillDone ? 'var(--status-success-text)' : 'var(--brand-primary-mid, var(--border-light))'}`,
+        borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,
+        cursor: prefilling ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
+        display: 'flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+      }}>
+        {prefilling ? (<><span style={{ width: 12, height: 12, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Analysiere Website…</>) : prefillDone ? '✓ Vorausgefüllt' : '🔍 Aus Website vorausfüllen'}
+      </button>
 
       {/* ── MOBILE: Step counter + progress bar ── */}
       {isMobile && (

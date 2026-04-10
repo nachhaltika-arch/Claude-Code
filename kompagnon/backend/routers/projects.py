@@ -3465,3 +3465,105 @@ Antworte NUR mit diesem JSON (kein Markdown, keine Erklärungen):
         return json.loads(content)
     except Exception as e:
         raise HTTPException(500, f"Preview-Generierung fehlgeschlagen: {str(e)[:200]}")
+
+
+@router.post("/{project_id}/briefing-prefill")
+async def briefing_prefill_from_content(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Analysiert gecrawlten Website-Content und gibt Briefing-Vorschläge zurück."""
+    import os, httpx, json, re
+    from urllib.parse import urlparse
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    lead_id = project.lead_id
+    if not lead_id:
+        raise HTTPException(400, "Kein Lead verknüpft")
+
+    rows = db.execute(
+        text("""
+            SELECT url, title, meta_description, h1, h2s, text_preview
+            FROM website_content_cache
+            WHERE customer_id = :lid ORDER BY scraped_at DESC LIMIT 20
+        """),
+        {"lid": lead_id},
+    ).fetchall()
+
+    if not rows:
+        raise HTTPException(400, "Kein Website-Content vorhanden. Bitte zuerst Crawler + Content-Scraping ausführen.")
+
+    # Kontaktdaten
+    try:
+        contact = db.execute(
+            text("SELECT contact_phone, contact_email, contact_address FROM project_scraped_pages WHERE project_id = :pid LIMIT 1"),
+            {"pid": project_id},
+        ).fetchone()
+    except Exception:
+        contact = None
+
+    pages_text = []
+    all_h2s = []
+    all_titles = []
+    page_names = []
+
+    for row in rows:
+        url, title, meta, h1, h2s_json, preview = row
+        all_titles.append(title or h1 or '')
+        try:
+            h2s = json.loads(h2s_json or '[]')
+            all_h2s.extend(h2s)
+        except Exception:
+            pass
+        if preview:
+            pages_text.append(f"URL: {url}\nH1: {h1 or title}\nVorschau: {preview[:400]}")
+        try:
+            path = urlparse(url).path.strip('/').split('/')[-1]
+            if path and len(path) > 1:
+                name = path.replace('-', ' ').replace('_', ' ').title()
+                if name not in page_names:
+                    page_names.append(name)
+        except Exception:
+            pass
+
+    wunschseiten = ', '.join(page_names[:8])
+
+    def heuristic():
+        return {
+            "gewerk": (all_titles[0] if all_titles else '')[:80],
+            "leistungen": '\n'.join(set(all_h2s[:10])),
+            "einzugsgebiet": (contact[2] if contact and contact[2] else ''),
+            "wunschseiten": wunschseiten,
+            "source": "heuristic",
+        }
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return heuristic()
+
+    content_summary = "\n---\n".join(pages_text[:8])
+    prompt = f"""Analysiere diesen Website-Content eines Handwerksbetriebs.
+{content_summary}
+
+Gib NUR JSON zurück:
+{{"gewerk":"<max 60 Zeichen>","leistungen":"<kommagetrennt, max 300>","einzugsgebiet":"<Stadt/Region>","usp":"<max 200>","wunschseiten":"{wunschseiten}","zielgruppe":"Privatkunden|Gewerbekunden|Beides"}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514", "max_tokens": 600, "messages": [{"role": "user", "content": prompt}]},
+            )
+        resp.raise_for_status()
+        txt = resp.json()["content"][0]["text"].strip()
+        txt = re.sub(r'^```json\s*', '', txt)
+        txt = re.sub(r'\s*```$', '', txt)
+        result = json.loads(txt)
+        result["source"] = "claude"
+        return result
+    except Exception:
+        return heuristic()

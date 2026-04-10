@@ -20,6 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import AnalyseCentrale from '../components/AnalyseCentrale';
+import ContentWerkstatt from '../components/ContentWerkstatt';
 
 // Lazy-loaded: heavy components loaded on demand
 const BriefingTab = lazy(() => import('../components/BriefingTab'));
@@ -4956,13 +4957,13 @@ export default function ProjectDetail() {
 
       {/* ── CONTENT TAB ── */}
       {mainTab === 'content' && (
-        <div style={{ padding: '24px 0' }}>
-          <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-tertiary)' }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>📝</div>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Content-Werkstatt</div>
-            <div style={{ fontSize: 13 }}>Wird in Teil 2 implementiert</div>
-          </div>
-        </div>
+        <ContentWerkstatt
+          project={project}
+          sitemapPages={sitemapPages}
+          token={token}
+          leadId={project.lead_id}
+          websiteContent={websiteContent}
+        />
       )}
 
       {/* ── DESIGN TAB ── */}

@@ -3566,3 +3566,101 @@ Gib NUR JSON zurück:
         return result
     except Exception:
         return heuristic()
+
+
+@router.post("/{project_id}/content-workshop/{page_id}")
+async def generate_page_content(
+    project_id: int,
+    page_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Generiert KI-Content fuer eine Sitemap-Seite basierend auf Crawler-Daten + Briefing."""
+    import os, httpx, json, re
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    lead_id = project.lead_id
+
+    page = db.execute(
+        text("SELECT page_name, page_type, ziel_keyword, zweck FROM sitemap_pages WHERE id = :id"),
+        {"id": page_id},
+    ).fetchone()
+    if not page:
+        raise HTTPException(404, "Seite nicht gefunden")
+
+    page_name, page_type, keyword, zweck = page
+
+    briefing = db.execute(
+        text("SELECT gewerk, leistungen, einzugsgebiet, usp, zielgruppe FROM briefings WHERE lead_id = :lid LIMIT 1"),
+        {"lid": lead_id},
+    ).fetchone()
+
+    crawled = db.execute(
+        text(
+            "SELECT url, h1, h2s, text_preview, full_text "
+            "FROM website_content_cache "
+            "WHERE customer_id = :lid "
+            "AND (url ILIKE :name OR h1 ILIKE :name OR title ILIKE :name) "
+            "ORDER BY scraped_at DESC LIMIT 1"
+        ),
+        {"lid": lead_id, "name": f"%{page_name.lower().replace(' ', '%')}%"},
+    ).fetchone()
+
+    old_content = ""
+    if crawled:
+        old_content = f"URL: {crawled[0]}\nH1: {crawled[1]}\n"
+        try:
+            h2s = json.loads(crawled[2] or '[]')
+            if h2s:
+                old_content += "H2: " + " | ".join(h2s[:5]) + "\n"
+        except Exception:
+            pass
+        old_content += f"Text: {(crawled[4] or crawled[3] or '')[:1500]}"
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    gewerk     = briefing[0] if briefing else "Handwerksbetrieb"
+    leistungen = briefing[1] if briefing else ""
+    region     = briefing[2] if briefing else ""
+    usp        = briefing[3] if briefing else ""
+    zielgruppe = briefing[4] if briefing else "Privatkunden"
+
+    old_section = f"\nBestehender Content:\n{old_content}" if old_content else "\nKein bestehender Content — komplett neu schreiben."
+
+    prompt = (
+        f"Du bist ein professioneller Webtexter fuer lokale Unternehmen.\n"
+        f"Schreibe den Content fuer die Seite \"{page_name}\" ({page_type}).\n\n"
+        f"Unternehmen: {gewerk}\nLeistungen: {leistungen}\nRegion: {region}\nUSP: {usp}\nZielgruppe: {zielgruppe}\n"
+        f"Seite: {page_name}\nZweck: {zweck or 'Informieren und ueberzeugen'}\nKeyword: {keyword or 'nicht definiert'}\n"
+        f"{old_section}\n\n"
+        "Antworte NUR als JSON:\n"
+        '{"headline":"<H1 max 60 Zeichen>","subheadline":"<max 100 Zeichen>","intro":"<2-3 Saetze>",'
+        '"sections":[{"titel":"<H2>","text":"<3-5 Saetze>"}],'
+        '"cta":"<Call-to-Action>","meta_title":"<max 60>","meta_description":"<max 155>"}'
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=45.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514", "max_tokens": 1500, "messages": [{"role": "user", "content": prompt}]},
+            )
+        resp.raise_for_status()
+        content = resp.json()["content"][0]["text"].strip()
+        content = re.sub(r'^```json\s*', '', content)
+        content = re.sub(r'\s*```$', '', content)
+        result = json.loads(content)
+        result["old_content"] = old_content
+        result["page_name"] = page_name
+        result["page_id"] = page_id
+        return result
+    except json.JSONDecodeError as e:
+        raise HTTPException(500, f"KI-Antwort nicht parsebar: {str(e)[:100]}")
+    except Exception as e:
+        raise HTTPException(500, f"Content-Generierung fehlgeschlagen: {str(e)[:200]}")

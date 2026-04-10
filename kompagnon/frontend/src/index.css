@@ -480,3 +480,95 @@ input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   TYPOGRAPHY SYSTEM
+   Semantische Klassen statt roher px-Werte.
+   Mapping: 10px→micro, 11px→caption/label, 13px→body-sm,
+            15px→body, 17px→heading, 24px+→display
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Display — große KPI-Zahlen, Hero-Überschriften ──────────── */
+.ty-display {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  line-height: var(--leading-2xl);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+/* ── Heading — Karten-Titel, Abschnittsköpfe ─────────────────── */
+.ty-heading {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: var(--leading-lg);
+  color: var(--text-primary);
+}
+
+/* ── Subheading — untergeordnete Überschriften ───────────────── */
+.ty-subheading {
+  font-size: var(--text-base);
+  font-weight: 600;
+  line-height: var(--leading-base);
+  color: var(--text-primary);
+}
+
+/* ── Body — Standard-Fließtext ───────────────────────────────── */
+.ty-body {
+  font-size: var(--text-base);
+  font-weight: 400;
+  line-height: var(--leading-base);
+  color: var(--text-primary);
+}
+
+/* ── Body Small — sekundärer Text in Karten, Tabellen ───────── */
+.ty-body-sm {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: var(--leading-sm);
+  color: var(--text-secondary);
+}
+
+/* ── Label — Beschriftungen, Tabellenköpfe ───────────────────── */
+.ty-label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* ── Caption — Zeitstempel, Metadaten, Hilfstexte ────────────── */
+.ty-caption {
+  font-size: var(--text-xs);
+  font-weight: 400;
+  line-height: var(--leading-sm);
+  color: var(--text-tertiary);
+}
+
+/* ── Micro — Badges, Status-Pillen ───────────────────────────── */
+.ty-micro {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Modifier: Textfarben ────────────────────────────────────── */
+.ty-muted     { color: var(--text-tertiary) !important; }
+.ty-secondary { color: var(--text-secondary) !important; }
+.ty-brand     { color: var(--brand-primary) !important; }
+.ty-danger    { color: var(--status-danger-text) !important; }
+.ty-success   { color: var(--status-success-text) !important; }
+.ty-warning   { color: var(--status-warning-text) !important; }
+
+/* ── Modifier: Gewicht ───────────────────────────────────────── */
+.ty-medium   { font-weight: 500 !important; }
+.ty-semibold { font-weight: 600 !important; }
+.ty-bold     { font-weight: 700 !important; }
+
+/* ── Modifier: Mono ──────────────────────────────────────────── */
+.ty-mono { font-family: var(--font-mono); }

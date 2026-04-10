@@ -623,6 +623,21 @@ export default function AppLayout() {
   const goDashboard = useCallback(() => navigate('/app/dashboard'), [navigate]);
   const toggleHelp = useCallback(() => setShortcutHelpOpen(p => !p), []);
 
+  // Keepalive: Backend alle 12 Minuten pingen (verhindert Render.com Kaltstart)
+  const [slowApi, setSlowApi] = useState(false);
+  const slowApiTimer = useRef(null);
+  useEffect(() => {
+    if (!user) return;
+    const ping = async () => {
+      slowApiTimer.current = setTimeout(() => setSlowApi(true), 5000);
+      try { await fetch(`${API_BASE_URL}/api/health`); } catch { /* silent */ }
+      finally { clearTimeout(slowApiTimer.current); setSlowApi(false); }
+    };
+    ping();
+    const interval = setInterval(ping, 12 * 60 * 1000);
+    return () => { clearInterval(interval); clearTimeout(slowApiTimer.current); };
+  }, [user]); // eslint-disable-line
+
   const handleRefresh = useCallback(async () => {
     window.dispatchEvent(new CustomEvent('kompagnon:refresh'));
     await new Promise(r => setTimeout(r, 800));
@@ -840,6 +855,26 @@ export default function AppLayout() {
             paddingBottom: isMobile ? 80 : 20,
           }}
         >
+          {/* Kaltstart-Banner */}
+          {slowApi && (
+            <div style={{
+              position: 'fixed', zIndex: 200,
+              ...(isMobile
+                ? { top: 64, left: 16, right: 16 }
+                : { bottom: 24, right: 24, maxWidth: 320 }),
+              background: 'var(--status-warning-bg)',
+              border: '1px solid var(--status-warning-text)',
+              borderRadius: 'var(--radius-md)',
+              padding: '10px 14px',
+              display: 'flex', alignItems: 'center', gap: 10,
+              fontSize: 12, color: 'var(--status-warning-text)', fontWeight: 500,
+              boxShadow: 'var(--shadow-md)',
+              animation: 'bwFadeIn 0.3s ease',
+            }}>
+              <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid var(--status-warning-text)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+              Server startet — bitte 30–60 Sekunden warten
+            </div>
+          )}
           {isMobile && <PullIndicator />}
           <div key={location.pathname} className="page-enter" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
             <Outlet />

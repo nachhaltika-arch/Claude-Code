@@ -15,6 +15,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
+from datetime import datetime
 from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
@@ -1593,6 +1594,16 @@ async def global_exception_handler(request, exc):
 
 
 # Health check endpoint
+@app.get("/api/health")
+async def api_health():
+    """Lightweight keepalive — no DB call, responds instantly."""
+    return {"status": "ok", "timestamp": datetime.utcnow().isoformat(), "service": "kompagnon-backend"}
+
+@app.get("/api/ping")
+async def api_ping():
+    """Ultra-lightweight keepalive alias."""
+    return "pong"
+
 @app.get("/health")
 def health_check():
     """Check if backend and database are running."""

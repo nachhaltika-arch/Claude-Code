@@ -21,6 +21,7 @@ import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import AnalyseCentrale from '../components/AnalyseCentrale';
 import ContentWerkstatt from '../components/ContentWerkstatt';
+import DesignStudio from '../components/DesignStudio';
 
 // Lazy-loaded: heavy components loaded on demand
 const BriefingTab = lazy(() => import('../components/BriefingTab'));
@@ -4968,13 +4969,13 @@ export default function ProjectDetail() {
 
       {/* ── DESIGN TAB ── */}
       {mainTab === 'design' && (
-        <div style={{ padding: '24px 0' }}>
-          <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-tertiary)' }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>🎨</div>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Design-Studio</div>
-            <div style={{ fontSize: 13 }}>Wird in Teil 3 implementiert</div>
-          </div>
-        </div>
+        <DesignStudio
+          project={project}
+          leadId={project.lead_id}
+          token={token}
+          brandData={brandData}
+          sitemapPages={sitemapPages}
+        />
       )}
 
       {/* ── Nachrichten Modal ───────────────────────────────────────────────── */}

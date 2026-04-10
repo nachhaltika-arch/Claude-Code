@@ -390,3 +390,93 @@ input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
   .kc-grid-3 { grid-template-columns: 1fr !important; }
   .kc-grid-4 { grid-template-columns: 1fr 1fr !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   INTERACTIVE STATE UTILITIES
+   Einheitliche Hover/Active/Disabled-Zustände für alle Buttons.
+   Verwendung: className="kc-nav-item" statt onMouseEnter/Leave
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar Nav-Item ─────────────────────────────────────────── */
+.kc-nav-item {
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.kc-nav-item:hover:not(.kc-nav-item--active) {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+.kc-nav-item--active {
+  background: var(--bg-active);
+  color: var(--brand-primary);
+  font-weight: 500;
+}
+.kc-nav-item:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: -2px;
+}
+
+/* ── Primary Button ───────────────────────────────────────────── */
+.kc-btn-primary {
+  transition: background var(--transition-fast), opacity var(--transition-fast);
+}
+.kc-btn-primary:hover:not(:disabled) {
+  background: var(--brand-primary-dark) !important;
+}
+.kc-btn-primary:active:not(:disabled) {
+  opacity: 0.88;
+}
+.kc-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.kc-btn-primary:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* ── Ghost Button (transparenter Hintergrund) ─────────────────── */
+.kc-btn-ghost {
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.kc-btn-ghost:hover:not(:disabled) {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+.kc-btn-ghost:active:not(:disabled) {
+  background: var(--bg-active) !important;
+}
+.kc-btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.kc-btn-ghost:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* ── Danger Ghost Button ──────────────────────────────────────── */
+.kc-btn-danger-ghost {
+  transition: background var(--transition-fast);
+}
+.kc-btn-danger-ghost:hover:not(:disabled) {
+  background: var(--status-danger-bg) !important;
+}
+.kc-btn-danger-ghost:focus-visible {
+  outline: 2px solid var(--status-danger-text);
+  outline-offset: 2px;
+}
+
+/* ── Small utility button ─────────────────────────────────────── */
+.kc-btn-sm {
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+}
+.kc-btn-sm:hover:not(:disabled) {
+  opacity: 0.85;
+}
+.kc-btn-sm:active:not(:disabled) {
+  opacity: 0.7;
+}
+.kc-btn-sm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

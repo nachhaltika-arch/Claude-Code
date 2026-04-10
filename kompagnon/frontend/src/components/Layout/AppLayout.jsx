@@ -222,16 +222,13 @@ function SidebarNav({ badges }) {
             ].map((item) => {
               const active = isActive(item.path);
               return (
-                <button key={item.path} onClick={() => navigate(item.path)} style={{
+                <button key={item.path} onClick={() => navigate(item.path)}
+                className={`kc-nav-item${active ? ' kc-nav-item--active' : ''}`}
+                style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '7px 10px', background: active ? 'var(--bg-active)' : 'transparent',
-                  border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer',
-                  color: active ? 'var(--brand-primary)' : 'var(--text-secondary)', textAlign: 'left',
-                  fontWeight: active ? 500 : 400, fontSize: 13, fontFamily: 'var(--font-sans)',
-                  transition: 'background var(--transition-fast), color var(--transition-fast)',
+                  padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer', textAlign: 'left', fontSize: 13, fontFamily: 'var(--font-sans)',
                 }}
-                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}}
-                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}}
                 >
                   <span style={{ fontSize: 16, flexShrink: 0 }}>{item.icon}</span>
                   {item.label}
@@ -263,13 +260,8 @@ function SidebarNav({ badges }) {
                         padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-md)',
                         cursor: 'pointer', fontSize: 13, textAlign: 'left',
                         fontFamily: 'var(--font-sans)',
-                        background: active ? 'var(--bg-active)' : 'transparent',
-                        color: active ? 'var(--brand-primary)' : 'var(--text-secondary)',
-                        fontWeight: active ? 500 : 400,
-                        transition: 'background var(--transition-fast), color var(--transition-fast)',
                       }}
-                      onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}}
-                      onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}}
+                      className={`kc-nav-item${active ? ' kc-nav-item--active' : ''}`}
                     >
                       <span>{item.label}</span>
                       {item.badgeKey && badges[item.badgeKey] > 0 && (
@@ -302,12 +294,9 @@ function SidebarNav({ badges }) {
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                 padding: '6px 8px', border: 'none', borderRadius: 'var(--radius-md)',
-                background: 'transparent', cursor: 'pointer',
-                color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)',
-                transition: 'background var(--transition-fast), color var(--transition-fast)',
+                cursor: 'pointer', fontFamily: 'var(--font-sans)',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+              className="kc-btn-ghost"
             >
               <span style={{ fontSize: 16, display: 'flex', flexShrink: 0 }}>
                 {theme === 'dark' ? '☀️' : '🌙'}
@@ -387,12 +376,9 @@ function SidebarNav({ badges }) {
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 8,
                     padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-sm)',
-                    background: 'transparent', cursor: 'pointer', fontSize: 13,
-                    color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)',
-                    transition: 'background var(--transition-fast)',
+                    cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  className="kc-btn-ghost"
                 >
                   Profil
                 </button>
@@ -401,12 +387,10 @@ function SidebarNav({ badges }) {
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 8,
                     padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-sm)',
-                    background: 'transparent', cursor: 'pointer', fontSize: 13,
+                    cursor: 'pointer', fontSize: 13,
                     color: 'var(--status-danger-text)', fontFamily: 'var(--font-sans)',
-                    transition: 'background var(--transition-fast)',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--status-danger-bg)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  className="kc-btn-danger-ghost"
                 >
                   {icons.logout}
                   <span>Abmelden</span>
@@ -444,10 +428,8 @@ function Topbar({ pageName, ctaLabel, ctaAction }) {
             border: 'none', padding: '6px 14px', borderRadius: 'var(--radius-md)',
             fontSize: 13, fontWeight: 500, cursor: 'pointer',
             fontFamily: 'var(--font-sans)',
-            transition: 'background var(--transition-fast)',
           }}
-          onMouseEnter={e => e.currentTarget.style.background = 'var(--brand-primary-dark)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'var(--brand-primary)'}
+          className="kc-btn-primary"
         >
           {ctaLabel}
         </button>

@@ -55,18 +55,14 @@ export default function SettingsLayout() {
           {items.map((item) => {
             const active = location.pathname === item.path;
             return (
-              <button key={item.path} onClick={() => navigate(item.path)} style={{
+              <button key={item.path} onClick={() => navigate(item.path)}
+              className={`kc-nav-item${active ? ' kc-nav-item--active' : ''}`}
+              style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 8,
                 padding: '7px 12px', borderRadius: 'var(--radius-md)',
-                background: active ? 'var(--bg-active)' : 'transparent',
-                border: 'none',
-                color: active ? 'var(--brand-primary)' : 'var(--text-secondary)',
-                fontWeight: active ? 500 : 400, fontSize: 13, cursor: 'pointer',
+                border: 'none', fontSize: 13, cursor: 'pointer',
                 textAlign: 'left', fontFamily: 'var(--font-sans)',
-                transition: 'background 0.1s, color 0.1s',
               }}
-              onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}}
-              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}}
               >
                 <span style={{ fontSize: 14 }}>{item.icon}</span> {item.label}
               </button>

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import API_BASE_URL from '../config';
 import WZSearch from './WZSearch';
 import { useScreenSize } from '../utils/responsive';
+import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 
 const TEAL   = 'var(--brand-primary)';
 const STEPS  = [
@@ -150,9 +151,9 @@ function ProgressBar({ step }) {
 
 // ── Step screens ─────────────────────────────────────────────────────────────
 
-function Step1({ data, set }) {
+function Step1({ data, set, firstRef }) {
   return (
-    <>
+    <div ref={firstRef}>
       <Field label="Gewerk / Branche" required hint="Wählen Sie die Hauptbranche Ihres Betriebs.">
         <WZSearch
           value={data.wz_code ? { code: data.wz_code, title: data.wz_title } : null}
@@ -179,13 +180,13 @@ function Step1({ data, set }) {
           placeholder="z.B. Koblenz und Umgebung, ca. 40 km Radius"
         />
       </Field>
-    </>
+    </div>
   );
 }
 
-function Step2({ data, set }) {
+function Step2({ data, set, firstRef }) {
   return (
-    <>
+    <div ref={firstRef}>
       <Field label="Zielgruppe" required hint="Wen sprechen Sie mit Ihrer Website hauptsächlich an?">
         <Select value={data.zielgruppe} onChange={v => set('zielgruppe', v)} options={ZIELGRUPPE_OPTIONS} />
       </Field>
@@ -204,11 +205,11 @@ function Step2({ data, set }) {
           placeholder="z.B. Kostenanfrage Heizungstausch, Notdienst Rohrbruch …"
         />
       </Field>
-    </>
+    </div>
   );
 }
 
-function Step3({ data, set }) {
+function Step3({ data, set, firstRef }) {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   const loadSuggestions = async () => {
@@ -232,7 +233,7 @@ function Step3({ data, set }) {
   const noneSet = !data.inspiration_url_1 && !data.inspiration_url_2 && !data.inspiration_url_3;
 
   return (
-    <>
+    <div ref={firstRef}>
       <Field label="Alleinstellungsmerkmal (USP)" required hint="Was macht Ihren Betrieb besonders? Warum sollte ein Kunde Sie wählen und nicht den Mitbewerb?">
         <Textarea
           value={data.usp}
@@ -288,7 +289,7 @@ function Step3({ data, set }) {
           {loadingSuggestions ? 'Lädt…' : 'Branchenpassende Vorschläge laden'}
         </button>
       )}
-    </>
+    </div>
   );
 }
 
@@ -348,9 +349,9 @@ function SeitenCheckbox({ selected, onChange }) {
   );
 }
 
-function Step4({ data, set }) {
+function Step4({ data, set, firstRef }) {
   return (
-    <>
+    <div ref={firstRef}>
       <Field label="Farbwünsche" hint="Welche Farben passen zu Ihrer Marke oder sollen verwendet werden?">
         <Input
           value={data.farben}
@@ -368,13 +369,13 @@ function Step4({ data, set }) {
           placeholder="z.B. https://www.beispiel.de, https://andereseite.de"
         />
       </Field>
-    </>
+    </div>
   );
 }
 
-function Step5({ data, set }) {
+function Step5({ data, set, firstRef }) {
   return (
-    <>
+    <div ref={firstRef}>
       <Field label="Gewünschte Seiten" hint="Welche Seiten soll Ihre neue Website enthalten?">
         <SeitenCheckbox
           selected={data.wunschseiten}
@@ -395,7 +396,7 @@ function Step5({ data, set }) {
           rows={4}
         />
       </Field>
-    </>
+    </div>
   );
 }
 
@@ -490,6 +491,21 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const firstFieldRef = useRef(null);
+
+  // Esc schließt den Wizard
+  useEscapeKey(onClose, true);
+
+  // Auto-Focus auf erstes Feld bei Schritt-Wechsel
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (firstFieldRef.current) {
+        const el = firstFieldRef.current.querySelector('input,textarea,select');
+        el?.focus();
+      }
+    }, 120);
+    return () => clearTimeout(t);
+  }, [step]);
 
   const [data, setData] = useState({
     // Step 1
@@ -603,11 +619,11 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
 
   const renderStep = () => {
     switch (step) {
-      case 0: return <Step1 data={data} set={set} />;
-      case 1: return <Step2 data={data} set={set} />;
-      case 2: return <Step3 data={data} set={set} />;
-      case 3: return <Step4 data={data} set={set} />;
-      case 4: return <Step5 data={data} set={set} />;
+      case 0: return <Step1 data={data} set={set} firstRef={firstFieldRef} />;
+      case 1: return <Step2 data={data} set={set} firstRef={firstFieldRef} />;
+      case 2: return <Step3 data={data} set={set} firstRef={firstFieldRef} />;
+      case 3: return <Step4 data={data} set={set} firstRef={firstFieldRef} />;
+      case 4: return <Step5 data={data} set={set} firstRef={firstFieldRef} />;
       case 5: return <Step6 data={data} saving={saving} error={saveError} onSaveAndPdf={handleSaveAndPdf} />;
       default: return null;
     }

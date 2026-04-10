@@ -610,3 +610,9 @@ input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
   border-color: var(--border-medium);
   box-shadow: var(--shadow-md);
 }
+
+/* ── Skeleton Utilities ─────────────────────────────────────── */
+.sk-line    { height: 13px; border-radius: 4px; }
+.sk-line-sm { height: 10px; border-radius: 3px; }
+.sk-circle  { border-radius: 50%; }
+.sk-pill    { border-radius: 20px; }

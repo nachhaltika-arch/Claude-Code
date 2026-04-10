@@ -739,9 +739,32 @@ export default function LeadProfile() {
 
   // LOADING STATE
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: 12 }}>
-      <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
-      <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Kundenkartei wird geladen...</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-lg)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14, opacity: 0.5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div className="skeleton" style={{ width: 56, height: 56, borderRadius: '50%' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+            <div className="skeleton" style={{ height: 20, width: '40%', borderRadius: 4 }} />
+            <div className="skeleton" style={{ height: 12, width: '25%', borderRadius: 3 }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[1,2,3,4,5].map(i => (<div key={i} className="skeleton" style={{ height: 32, width: 90, borderRadius: 'var(--radius-md)' }} />))}
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {[1,2].map(col => (
+          <div key={col} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="skeleton" style={{ height: 13, width: '50%', borderRadius: 4 }} />
+            {[1,2,3,4].map(i => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div className="skeleton" style={{ height: 9, width: '40%', borderRadius: 3 }} />
+                <div className="skeleton" style={{ height: 13, width: `${50 + i * 10}%`, borderRadius: 3 }} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 

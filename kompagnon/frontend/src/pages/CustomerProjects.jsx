@@ -193,10 +193,20 @@ export default function CustomerProjects() {
         )}
       </div>
 
-      {/* Loading */}
+      {/* Loading Skeleton */}
       {loading && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="skeleton" style={{ height: 40, borderRadius: 'var(--radius-md)' }} />
+          {[1,2,3,4,5].map(i => (
+            <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, minHeight: 64 }}>
+              <div className="skeleton" style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div className="skeleton" style={{ height: 13, width: '55%', borderRadius: 4 }} />
+                <div className="skeleton" style={{ height: 10, width: '35%', borderRadius: 4 }} />
+              </div>
+              <div className="skeleton" style={{ height: 22, width: 80, borderRadius: 20 }} />
+            </div>
+          ))}
         </div>
       )}
 

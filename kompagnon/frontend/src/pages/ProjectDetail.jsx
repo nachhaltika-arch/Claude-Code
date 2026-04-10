@@ -1183,10 +1183,36 @@ export default function ProjectDetail() {
 
   if (loading || !project) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div className="skeleton" style={{ height: 40, width: 300 }} />
-        <div className="skeleton" style={{ height: 60 }} />
-        <div className="skeleton" style={{ height: 200 }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="skeleton" style={{ height: 11, width: 120, borderRadius: 4 }} />
+            <div className="skeleton" style={{ height: 28, width: 260, borderRadius: 6 }} />
+          </div>
+          <div className="skeleton" style={{ height: 36, width: 100, borderRadius: 'var(--radius-md)' }} />
+        </div>
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', gap: 8, padding: '12px 16px', borderBottom: '1px solid var(--border-light)' }}>
+            {[1,2,3,4,5,6,7,8].map(i => (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                <div className="skeleton" style={{ width: 20, height: 20, borderRadius: '50%' }} />
+                <div className="skeleton" style={{ height: 9, width: '80%', borderRadius: 3 }} />
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8, padding: '12px 16px', overflowX: 'hidden' }}>
+            {[1,2,3,4,5].map(i => (
+              <div key={i} style={{ flex: '0 0 140px', height: 80, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <div className="skeleton" style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)' }} />
+                <div className="skeleton" style={{ height: 10, width: '80%', borderRadius: 3 }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="skeleton" style={{ height: 16, width: '40%', borderRadius: 4 }} />
+          {[1,2,3].map(i => (<div key={i} className="skeleton" style={{ height: 12, width: `${70 + i * 8}%`, borderRadius: 3 }} />))}
+        </div>
       </div>
     );
   }

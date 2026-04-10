@@ -3,9 +3,9 @@ import '@grapesjs/studio-sdk/style';
 import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
-import { processClipboardImage } from '../utils/clipboardImage';
+// processClipboardImage now handled by useGrapesAssetManager hook
 import { useGrapesAssetManager } from '../hooks/useGrapesAssetManager';
-import API_BASE_URL from '../config';
+// API_BASE_URL now handled by useGrapesAssetManager hook
 import { useScreenSize } from '../utils/responsive';
 import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorConfig';
 import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
@@ -41,7 +41,6 @@ export default function WebsiteDesigner({
 
   // Token aus localStorage (AuthContext-kompatibel)
   const token = localStorage.getItem('token') || '';
-  const authHeaders = { Authorization: `Bearer ${token}` };
 
   // ── Asset Manager — zentraler Hook ──
   const { onAssetsLoad, onAssetsUpload, editorRef: assetEditorRef, refreshAssets, assetCount } = useGrapesAssetManager({ leadId, projectId, token });

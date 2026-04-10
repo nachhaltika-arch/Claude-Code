@@ -8,14 +8,14 @@
  *
  *   <StudioEditor options={{ assets: { onLoad: onAssetsLoad, onUpload: onAssetsUpload } }} />
  */
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import API_BASE_URL from '../config';
 
 const IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp']);
 
 export function useGrapesAssetManager({ leadId, projectId, token } = {}) {
   const [assetCount, setAssetCount] = useState(0);
-  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+  const authHeaders = useMemo(() => token ? { Authorization: `Bearer ${token}` } : {}, [token]);
 
   // onLoad: merge project assets + portal uploads + crawled images
   const onAssetsLoad = useCallback(async () => {

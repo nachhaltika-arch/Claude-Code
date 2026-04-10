@@ -45,12 +45,8 @@ input, select, textarea { font-family: inherit; }
   outline-offset: 2px;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   LEGACY kc-* ALIASES → modern token system (tokens.css)
-   Alle --kc-* zeigen jetzt auf --brand-*/--text-*/--bg-*
-   Dadurch: automatischer Dark-Mode für alle Legacy-Komponenten.
-   JSX-Dateien können schrittweise migriert werden.
-   ══════════════════════════════════════════════════════════════ */
+/* LEGACY kc-* ALIASES - point to modern token system (tokens.css)
+   All kc-* now reference brand/text/bg tokens for automatic dark mode. */
 
 :root {
   /* Farben → brand tokens */
@@ -128,11 +124,7 @@ input, select, textarea { font-family: inherit; }
   --kc-transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/*
-  KEIN separater Dark-Mode-Override für --kc-* mehr nötig.
-  Da alle --kc-* auf --bg-*/--text-*/--brand-* zeigen,
-  übernimmt tokens.css automatisch die Dark-Mode-Werte.
-*/
+/* Dark mode overrides for kc-* removed - tokens.css handles them automatically. */
 
 /* ── Global form element styles ────────────────────────────── */
 input, select, textarea {

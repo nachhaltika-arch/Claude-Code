@@ -6,29 +6,29 @@ import toast from 'react-hot-toast';
 import PhaseTracker from '../components/PhaseTracker';
 import MarginBadge from '../components/MarginBadge';
 import ProjectCard from '../components/ProjectCard';
-// Lazy-loaded: heavy components loaded on demand
-const BriefingTab = lazy(() => import('../components/BriefingTab'));
-const BriefingWizard = lazy(() => import('../components/BriefingWizard'));
 import WZSearch from '../components/WZSearch';
 import ProjectFilesSection from '../components/ProjectFilesSection';
 import HomepageChecklist from '../components/HomepageChecklist';
 import SecurityChecklist from '../components/SecurityChecklist';
 import PageSpeedSection from '../components/PageSpeedSection';
-const SitemapPlaner = lazy(() => import('../components/SitemapPlaner'));
-const GrapesEditor = lazy(() => import('../components/GrapesEditor'));
 import KiReportPanel from '../components/KiReportPanel';
 import MoodboardPanel from '../components/MoodboardPanel';
 import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useSwipeNavigation } from '../hooks/useTouch';
 import { parseApiError } from '../utils/apiError';
+import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
+import API_BASE_URL from '../config';
+
+// Lazy-loaded: heavy components loaded on demand
+const BriefingTab = lazy(() => import('../components/BriefingTab'));
+const BriefingWizard = lazy(() => import('../components/BriefingWizard'));
+const SitemapPlaner = lazy(() => import('../components/SitemapPlaner'));
+const GrapesEditor = lazy(() => import('../components/GrapesEditor'));
 const WebsiteDesigner = lazy(() => import('../components/WebsiteDesigner'));
 const ContentManager = lazy(() => import('../components/ContentManager'));
 const AuditReport = lazy(() => import('../components/AuditReport'));
 const QAChecklist = lazy(() => import('../components/QAChecklist'));
-import { useAuth } from '../context/AuthContext';
-import { useScreenSize } from '../utils/responsive';
-
-import API_BASE_URL from '../config';
 
 // ── HTML builder ─────────────────────────────────────────────────────────────
 const buildHtmlFromContent = (content) => {

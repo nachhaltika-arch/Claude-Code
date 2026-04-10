@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useScreenSize } from '../../utils/responsive';
@@ -756,7 +756,7 @@ export default function AppLayout() {
               <KompagnonLogo height={36} variant={theme === 'dark' ? 'white' : 'color'} />
             </div>
             <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
-              {pageName}
+              {breadcrumbs[breadcrumbs.length - 1]?.label || 'KOMPAGNON'}
             </span>
             {/* User avatar + dropdown */}
             <div style={{ position: 'relative' }}>

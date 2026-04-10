@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorConfig';
 import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
-import { processClipboardImage } from '../utils/clipboardImage';
+// processClipboardImage now handled by useGrapesAssetManager hook
 import { useGrapesAssetManager } from '../hooks/useGrapesAssetManager';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';

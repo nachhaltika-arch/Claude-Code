@@ -1699,12 +1699,13 @@ export default function ProjectDetail() {
           { id: 'analyse', label: 'Analyse', icon: '🔍', desc: 'Daten erfassen', steps: ['Briefing', 'Audit', 'Crawler', 'Brand', 'Zugaenge'] },
           { id: 'content', label: 'Content', icon: '📝', desc: 'Inhalte aufbereiten', steps: ['Sitemap', 'Content', 'KI'] },
           { id: 'design',  label: 'Design',  icon: '🎨', desc: 'Website gestalten', steps: ['Template', 'Brand', 'KI', 'Editor'] },
-        ].map((tab, i) => {
+          { id: 'golive',  label: 'Go Live',  icon: '🚀', desc: 'Technik, QA & Launch', steps: ['Netlify', 'DNS', 'QA', 'Abnahme', 'Post-Launch'] },
+        ].map((tab, i, arr) => {
           const isActive = mainTab === tab.id;
           return (
             <button key={tab.id} onClick={() => setMainTab(tab.id)} style={{
               flex: 1, padding: '16px 12px 14px', border: 'none',
-              borderRight: i < 2 ? '1px solid var(--border-light)' : 'none',
+              borderRight: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none',
               borderBottom: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent',
               background: isActive ? 'var(--bg-active, var(--bg-elevated))' : 'transparent',
               cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
@@ -4774,6 +4775,45 @@ export default function ProjectDetail() {
           brandData={brandData}
           sitemapPages={sitemapPages}
         />
+      )}
+
+      {/* ── GO LIVE TAB ── */}
+      {mainTab === 'golive' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            { id: 'netlify-dns', label: 'Netlify / WordPress',   icon: '🚀', desc: 'Hosting einrichten, Deploy' },
+            { id: 'dns',         label: 'DNS-Einstellungen',     icon: '🌍', desc: 'Domain beim Kunden umstellen' },
+            { id: 'qa',          label: 'QA-Checkliste',         icon: '✓',  desc: 'Go-Live-Check vor Veroeffentlichung' },
+            { id: 'qa-scan',     label: 'KI-QA-Scan',            icon: '🤖', desc: 'Automatische Qualitaetspruefung' },
+            { id: 'golive',      label: 'Abnahme & Vergleich',   icon: '✅', desc: 'Vorher/Nachher, finale Freigabe' },
+            { id: 'trustpilot',  label: 'Trustpilot',            icon: '⭐', desc: 'Bewertungen einholen' },
+            { id: 'postlaunch',  label: 'Post-Launch',           icon: '📈', desc: 'QR-Code, Google Business' },
+            { id: 'live-data',   label: 'Fertige Website',       icon: '🌐', desc: 'Live-Daten, Up-Sales' },
+          ].map(tool => {
+            const toolSub = TOOL_SUBTAB_MAP[tool.id] || tool.id;
+            const isActive = activeSubTab === toolSub;
+            return (
+              <div key={tool.id} onClick={() => { setActiveSubTab(toolSub); setActiveTab(SUB_TAB_MAP[tool.id] || tool.id); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
+                  background: isActive ? 'var(--bg-active, var(--bg-elevated))' : 'var(--bg-surface)',
+                  border: `1px solid ${isActive ? 'var(--brand-primary-mid, var(--border-medium))' : 'var(--border-light)'}`,
+                  borderLeft: `4px solid ${isActive ? 'var(--brand-primary)' : 'transparent'}`,
+                  borderRadius: 'var(--radius-lg)', cursor: 'pointer', transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-surface)'; }}
+              >
+                <span style={{ fontSize: 22, flexShrink: 0 }}>{tool.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--brand-primary)' : 'var(--text-primary)' }}>{tool.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{tool.desc}</div>
+                </div>
+                <span style={{ fontSize: 16, color: 'var(--text-tertiary)' }}>{'\u203A'}</span>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* ── Nachrichten Modal ───────────────────────────────────────────────── */}

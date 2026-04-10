@@ -4,7 +4,7 @@ import API_BASE_URL from '../config';
 import WZSearch from './WZSearch';
 import { useScreenSize } from '../utils/responsive';
 
-const TEAL   = '#008EAA';
+const TEAL   = 'var(--brand-primary)';
 const STEPS  = [
   'Betrieb & Leistungen',
   'Zielgruppe & Kunden',
@@ -37,7 +37,7 @@ function FieldLabel({ children, required }) {
   return (
     <label style={{
       display: 'block', fontSize: 11, fontWeight: 700,
-      color: '#5A7080', textTransform: 'uppercase', letterSpacing: '0.07em',
+      color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em',
       marginBottom: 6,
     }}>
       {children}{required && <span style={{ color: TEAL, marginLeft: 2 }}>*</span>}
@@ -47,7 +47,7 @@ function FieldLabel({ children, required }) {
 
 function FieldHint({ children }) {
   return (
-    <div style={{ fontSize: 11, color: '#8A9BA8', marginTop: 4, lineHeight: 1.5 }}>
+    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>
       {children}
     </div>
   );
@@ -55,9 +55,9 @@ function FieldHint({ children }) {
 
 const inputBase = {
   width: '100%', padding: '10px 12px',
-  border: '1.5px solid #DDE4E8', borderRadius: 8,
+  border: '1.5px solid var(--border-light)', borderRadius: 8,
   fontSize: 14, fontFamily: 'var(--font-sans, system-ui)',
-  color: '#1A2C32', background: '#FAFCFD',
+  color: 'var(--text-primary)', background: 'var(--bg-elevated)',
   outline: 'none', boxSizing: 'border-box',
   transition: 'border-color 0.15s',
 };
@@ -70,7 +70,7 @@ function Input({ value, onChange, placeholder, onFocus, onBlur }) {
       placeholder={placeholder}
       style={inputBase}
       onFocus={e => { e.target.style.borderColor = TEAL; if (onFocus) onFocus(e); }}
-      onBlur={e => { e.target.style.borderColor = '#DDE4E8'; if (onBlur) onBlur(e); }}
+      onBlur={e => { e.target.style.borderColor = 'var(--border-light)'; if (onBlur) onBlur(e); }}
     />
   );
 }
@@ -84,7 +84,7 @@ function Textarea({ value, onChange, placeholder, rows = 4 }) {
       rows={rows}
       style={{ ...inputBase, resize: 'vertical', lineHeight: 1.6 }}
       onFocus={e => e.target.style.borderColor = TEAL}
-      onBlur={e => e.target.style.borderColor = '#DDE4E8'}
+      onBlur={e => e.target.style.borderColor = 'var(--border-light)'}
     />
   );
 }
@@ -100,7 +100,7 @@ function Select({ value, onChange, options }) {
         paddingRight: 36,
       }}
       onFocus={e => e.target.style.borderColor = TEAL}
-      onBlur={e => e.target.style.borderColor = '#DDE4E8'}
+      onBlur={e => e.target.style.borderColor = 'var(--border-light)'}
     >
       <option value="">– bitte wählen –</option>
       {options.map(o => <option key={o} value={o}>{o}</option>)}
@@ -130,7 +130,7 @@ function ProgressBar({ step }) {
             title={label}
             style={{
               flex: 1, height: 4, borderRadius: 2,
-              background: i <= step ? TEAL : '#DDE4E8',
+              background: i <= step ? TEAL : 'var(--border-light)',
               transition: 'background 0.3s',
             }}
           />
@@ -140,7 +140,7 @@ function ProgressBar({ step }) {
         <span style={{ fontSize: 13, fontWeight: 700, color: TEAL }}>
           Schritt {step + 1} von {STEPS.length}
         </span>
-        <span style={{ fontSize: 12, color: '#8A9BA8' }}>
+        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
           {STEPS[step]}
         </span>
       </div>
@@ -302,9 +302,9 @@ function Toggle({ value, onChange, labelOn = 'Ja', labelOff = 'Nein' }) {
           onClick={() => onChange(opt)}
           style={{
             padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-            border: `1.5px solid ${value === opt ? TEAL : '#DDE4E8'}`,
-            background: value === opt ? TEAL : '#fff',
-            color: value === opt ? '#fff' : '#5A7080',
+            border: `1.5px solid ${value === opt ? 'var(--brand-primary)' : 'var(--border-light)'}`,
+            background: value === opt ? 'var(--brand-primary)' : 'var(--bg-surface)',
+            color: value === opt ? 'var(--text-inverse)' : 'var(--text-secondary)',
             cursor: 'pointer', transition: 'all 0.15s',
             fontFamily: 'var(--font-sans, system-ui)',
           }}
@@ -332,9 +332,9 @@ function SeitenCheckbox({ selected, onChange }) {
             onClick={() => toggle(page)}
             style={{
               padding: '7px 14px', borderRadius: 8, fontSize: 13,
-              border: `1.5px solid ${active ? TEAL : '#DDE4E8'}`,
-              background: active ? '#E6F5F8' : '#FAFCFD',
-              color: active ? TEAL : '#5A7080',
+              border: `1.5px solid ${active ? 'var(--brand-primary)' : 'var(--border-light)'}`,
+              background: active ? 'var(--brand-primary-light)' : 'var(--bg-elevated)',
+              color: active ? 'var(--brand-primary)' : 'var(--text-secondary)',
               fontWeight: active ? 700 : 400,
               cursor: 'pointer', transition: 'all 0.15s',
               fontFamily: 'var(--font-sans, system-ui)',
@@ -406,10 +406,10 @@ function SummaryRow({ label, value }) {
     : (value || '–');
   return (
     <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
-      <div style={{ width: 160, flexShrink: 0, fontSize: 12, fontWeight: 700, color: '#5A7080', textTransform: 'uppercase', letterSpacing: '0.06em', paddingTop: 2 }}>
+      <div style={{ width: 160, flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', paddingTop: 2 }}>
         {label}
       </div>
-      <div style={{ fontSize: 13, color: '#1A2C32', lineHeight: 1.5, flex: 1 }}>{display}</div>
+      <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5, flex: 1 }}>{display}</div>
     </div>
   );
 }
@@ -432,7 +432,7 @@ function SummarySection({ title, children }) {
 function Step6({ data, saving, error, onSaveAndPdf }) {
   return (
     <>
-      <div style={{ marginBottom: 16, fontSize: 13, color: '#5A7080' }}>
+      <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)' }}>
         Bitte prüfen Sie alle Angaben. Mit „Speichern & PDF" wird das Briefing gespeichert und als PDF heruntergeladen.
       </div>
       <SummarySection title="Betrieb & Leistungen">
@@ -461,7 +461,7 @@ function Step6({ data, saving, error, onSaveAndPdf }) {
         <SummaryRow label="Sonstige Hinweise" value={data.sonstige_hinweise} />
       </SummarySection>
       {error && (
-        <div style={{ background: '#FFF0F0', border: '1px solid #FFBDBD', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#C0392B', marginTop: 8 }}>
+        <div style={{ background: 'var(--status-danger-bg)', border: '1px solid var(--status-danger-border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--status-danger-text)', marginTop: 8 }}>
           {error}
         </div>
       )}
@@ -470,8 +470,8 @@ function Step6({ data, saving, error, onSaveAndPdf }) {
         disabled={saving}
         style={{
           width: '100%', marginTop: 12, padding: '13px 0', borderRadius: 10,
-          border: 'none', background: saving ? '#DDE4E8' : TEAL,
-          color: saving ? '#8A9BA8' : '#fff', fontSize: 15, fontWeight: 700,
+          border: 'none', background: saving ? 'var(--border-light)' : TEAL,
+          color: saving ? 'var(--text-tertiary)' : 'var(--text-inverse)', fontSize: 15, fontWeight: 700,
           cursor: saving ? 'not-allowed' : 'pointer',
           fontFamily: 'var(--font-sans, system-ui)',
           transition: 'background 0.15s',

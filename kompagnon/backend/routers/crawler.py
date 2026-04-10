@@ -272,16 +272,19 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
                 body_text  = ' '.join(full_text.split())  # compact for word count
                 text_preview = body_text[:300]
 
+                def _clean(t):
+                    return t.replace('\x00', '').replace('\u0000', '') if t else t
+
                 entries.append({
                     'customer_id':      customer_id,
                     'url':              crawl_url,
-                    'title':            title.get_text(strip=True) if title else '',
-                    'meta_description': meta.get('content', '') if meta else '',
-                    'h1':               h1.get_text(strip=True) if h1 else '',
-                    'h2s':              json.dumps(h2s, ensure_ascii=False),
-                    'h3s':              json.dumps(h3s, ensure_ascii=False),
-                    'text_preview':     text_preview,
-                    'full_text':        full_text,
+                    'title':            _clean(title.get_text(strip=True) if title else ''),
+                    'meta_description': _clean(meta.get('content', '') if meta else ''),
+                    'h1':               _clean(h1.get_text(strip=True) if h1 else ''),
+                    'h2s':              json.dumps([_clean(h) for h in h2s], ensure_ascii=False),
+                    'h3s':              json.dumps([_clean(h) for h in h3s], ensure_ascii=False),
+                    'text_preview':     _clean(text_preview),
+                    'full_text':        _clean(full_text),
                     'images':           json.dumps(list(dict.fromkeys(images)), ensure_ascii=False),
                     'files':            json.dumps(list(dict.fromkeys(files)), ensure_ascii=False),
                     'links_internal':   json.dumps(links_internal, ensure_ascii=False),

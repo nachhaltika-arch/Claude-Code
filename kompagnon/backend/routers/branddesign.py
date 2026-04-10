@@ -86,6 +86,76 @@ def get_brand_data(lead_id: int, db: Session = Depends(get_db)):
     }
 
 
+# ── Endpoint 1b — Manual save ─────────────────────────────────────────────────
+
+@router.put("/{lead_id}")
+def update_brand_design(lead_id: int, body: dict, db: Session = Depends(get_db)):
+    """Manuelle Branddesign-Felder speichern."""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+    mapping = {
+        "primary_color": "brand_primary_color",
+        "secondary_color": "brand_secondary_color",
+        "font_primary": "brand_font_primary",
+        "font_secondary": "brand_font_secondary",
+        "design_style": "brand_design_style",
+        "brand_notes": "brand_notes",
+        "logo_url": "brand_logo_url",
+    }
+    updated = []
+    for body_field, lead_attr in mapping.items():
+        if body_field in body:
+            _set(lead, lead_attr, body[body_field])
+            updated.append(body_field)
+    if updated:
+        _set(lead, 'brand_scraped_at', datetime.utcnow())
+        db.commit()
+    return {"saved": True, "updated_fields": updated}
+
+
+# ── Endpoint 1c — Font suggestions ────────────────────────────────────────────
+
+@router.post("/{lead_id}/suggest-fonts")
+async def suggest_fonts(lead_id: int, db: Session = Depends(get_db)):
+    """Schlägt passende Google Fonts basierend auf dem Brand-Stil vor."""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    style = getattr(lead, 'brand_design_style', '') or ''
+    trade = getattr(lead, 'trade', '') or ''
+    existing_fonts = json.loads(getattr(lead, 'brand_fonts', '[]') or '[]')
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        fallback = [
+            {"name": "Inter", "category": "Sans-Serif", "use": "Fließtext"},
+            {"name": "Space Grotesk", "category": "Sans-Serif", "use": "Überschriften"},
+            {"name": "DM Sans", "category": "Sans-Serif", "use": "Interface"},
+        ]
+        return {"suggestions": fallback, "source": "fallback"}
+
+    prompt = f"""Du bist ein Typografie-Experte. Empfiehl 4-6 Google Fonts für einen Handwerksbetrieb.
+Gewerk: {trade or 'unbekannt'}, Stil: {style or 'Modern'}, Fonts bisher: {', '.join(existing_fonts) if existing_fonts else 'keine'}.
+Antworte NUR als JSON-Array: [{{"name":"Font","category":"Sans-Serif|Serif|Display","use":"Überschriften|Fließtext|Interface","reason":"Kurz"}}]"""
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514", "max_tokens": 800, "messages": [{"role": "user", "content": prompt}]},
+            )
+        resp.raise_for_status()
+        content = resp.json()["content"][0]["text"].strip()
+        content = re.sub(r'^```json\s*', '', content)
+        content = re.sub(r'\s*```$', '', content)
+        return {"suggestions": json.loads(content), "source": "claude"}
+    except Exception as e:
+        raise HTTPException(500, f"Font-Recherche fehlgeschlagen: {str(e)[:100]}")
+
+
 # ── Endpoint 2 — Scrape ────────────────────────────────────────────────────────
 
 @router.post("/{lead_id}/scrape")

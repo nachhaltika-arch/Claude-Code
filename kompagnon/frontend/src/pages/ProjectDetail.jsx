@@ -2040,6 +2040,39 @@ export default function ProjectDetail() {
         const fonts = brandData?.all_fonts || [];
         const hasBrand = brandData && (brandData.primary_color || brandData.font_primary);
 
+        const [brandEdits, setBrandEdits] = React.useState({});
+        const [brandSaving, setBrandSaving] = React.useState(false);
+        const [fontSuggestions, setFontSuggestions] = React.useState([]);
+        const [loadingFonts, setLoadingFonts] = React.useState(false);
+
+        const setEdit = (field, value) => {
+          setBrandEdits(prev => ({ ...prev, [field]: value }));
+          setBrandData(prev => ({ ...prev, [field]: value }));
+        };
+
+        const saveBrandDesign = async () => {
+          if (Object.keys(brandEdits).length === 0) return;
+          setBrandSaving(true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/branddesign/${lid}`, {
+              method: 'PUT', headers: { ...h, 'Content-Type': 'application/json' },
+              body: JSON.stringify(brandEdits),
+            });
+            if (res.ok) { toast.success('Brand Design gespeichert'); setBrandEdits({}); }
+            else toast.error('Speichern fehlgeschlagen');
+          } catch { toast.error('Verbindungsfehler'); }
+          finally { setBrandSaving(false); }
+        };
+
+        const suggestFonts = async () => {
+          setLoadingFonts(true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/branddesign/${lid}/suggest-fonts`, { method: 'POST', headers: h });
+            if (res.ok) { const data = await res.json(); setFontSuggestions(data.suggestions || []); }
+          } catch { toast.error('Font-Recherche fehlgeschlagen'); }
+          finally { setLoadingFonts(false); }
+        };
+
         const btnStyle = (active) => ({
           flex: 1, minWidth: 140, padding: '9px 14px', borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-light)', background: active ? '#008EAA' : 'var(--bg-surface)',
@@ -2104,26 +2137,47 @@ export default function ProjectDetail() {
               </div>
             )}
 
-            {/* Fonts */}
-            {fonts.length > 0 && (
-              <div className="kc-card">
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>🔤 Schriften</div>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  {fonts.map((font, i) => (
-                    <div key={i} style={{
-                      padding: '10px 16px', background: 'var(--bg-app)', border: '1px solid var(--border-light)',
-                      borderRadius: 'var(--radius-md)', fontFamily: font,
-                    }}>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4, fontFamily: 'var(--font-sans)' }}>
-                        {i === 0 ? 'Primär' : 'Sekundär'}
+            {/* Fonts — editable + research */}
+            <div className="kc-card">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>🔤 Schriftarten</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={suggestFonts} disabled={loadingFonts} style={{ padding: '5px 10px', fontSize: 11, fontWeight: 600, background: 'var(--brand-primary-light)', color: 'var(--brand-primary-dark)', border: '1px solid var(--brand-primary-mid, var(--border-light))', borderRadius: 'var(--radius-md)', cursor: loadingFonts ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    {loadingFonts ? '⏳ Suche…' : '🔍 Fonts recherchieren'}
+                  </button>
+                  {Object.keys(brandEdits).length > 0 && (
+                    <button onClick={saveBrandDesign} disabled={brandSaving} style={{ padding: '5px 10px', fontSize: 11, fontWeight: 700, background: brandSaving ? 'var(--border-medium)' : 'var(--status-success-text)', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', cursor: brandSaving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      {brandSaving ? '⏳…' : '💾 Speichern'}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: fontSuggestions.length > 0 ? 14 : 0 }}>
+                {['font_primary', 'font_secondary'].map((field, i) => (
+                  <div key={field} style={{ flex: 1, minWidth: 180 }}>
+                    <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4, display: 'block' }}>
+                      {i === 0 ? 'Primär-Schrift' : 'Sekundär-Schrift'}
+                    </label>
+                    <input value={brandData?.[field] || ''} onChange={e => setEdit(field, e.target.value)} placeholder="z.B. Inter, Open Sans" style={{ width: '100%', padding: '8px 10px', fontSize: 13, border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: brandData?.[field] || 'inherit', boxSizing: 'border-box' }} />
+                  </div>
+                ))}
+              </div>
+              {fontSuggestions.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>KI-Empfehlungen — klicken zum Übernehmen</div>
+                  {fontSuggestions.map((font, i) => (
+                    <div key={i} onClick={() => setEdit(!brandData?.font_primary ? 'font_primary' : 'font_secondary', font.name)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', marginBottom: 4, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', cursor: 'pointer' }}>
+                      <div>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{font.name}</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 8 }}>{font.category} · {font.use}</span>
+                        {font.reason && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{font.reason}</div>}
                       </div>
-                      <div style={{ fontSize: 16, fontWeight: 600 }}>{font}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Aa Bb Cc 123</div>
+                      <span style={{ fontSize: 11, color: 'var(--brand-primary)', fontWeight: 600, flexShrink: 0 }}>Übernehmen →</span>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Design Style + Notes */}
             {(brandData?.design_style || brandData?.brand_notes) && (

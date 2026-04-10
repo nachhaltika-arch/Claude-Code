@@ -993,11 +993,6 @@ export default function ProjectDetail() {
         .then(r => r.ok ? r.json() : null)
         .then(d => { if (d) { setScreenshots(d); setScreenshotsLoaded(true); } })
         .catch(() => {});
-      // Auto domain-check im Hintergrund
-      fetch(`${API_BASE_URL}/api/projects/${id}/domain-check`, { method: 'POST', headers })
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d) setProject(prev => ({ ...prev, domain_reachable: d.reachable, domain_status_code: d.status_code, domain_checked_at: d.checked_at })); })
-        .catch(() => {});
     } catch {
       toast.error('Projekt konnte nicht geladen werden.');
     } finally {
@@ -1026,7 +1021,7 @@ export default function ProjectDetail() {
     } catch {}
   };
 
-  useEffect(() => { loadQa(); }, [id]); // eslint-disable-line
+  useEffect(() => { if (activeTab === 'qa-scan' || activeTab === 'qa') loadQa(); }, [id, activeTab]); // eslint-disable-line
 
   const runQa = async () => {
     setQaRunning(true); setQaError('');
@@ -1053,7 +1048,7 @@ export default function ProjectDetail() {
     } catch (e) { console.error(e); }
   }, [project?.lead_id]); // eslint-disable-line
 
-  useEffect(() => { if (project?.lead_id) loadAudits(); }, [project?.lead_id]); // eslint-disable-line
+  useEffect(() => { if (project?.lead_id && activeSubTab === 'audit') loadAudits(); }, [project?.lead_id, activeSubTab]); // eslint-disable-line
 
   // Load cached scrape-full data on project mount (no network scrape)
   useEffect(() => {
@@ -1178,6 +1173,20 @@ export default function ProjectDetail() {
       if (res.ok) setBriefingLead(await res.json());
     } catch (e) { console.error(e); }
   }, [project?.lead_id, briefingLead]); // eslint-disable-line
+
+  // Auto-load briefing lead when briefing tab is opened
+  useEffect(() => {
+    if (activeTab === 'briefing' && !briefingLead && project?.lead_id) {
+      loadBriefingLead();
+    }
+  }, [activeTab, briefingLead, project?.lead_id, loadBriefingLead]); // eslint-disable-line
+
+  // Auto-load brand data when branddesign tab is opened
+  useEffect(() => {
+    if (activeTab === 'branddesign' && !brandData && project?.lead_id) {
+      loadBrandData();
+    }
+  }, [activeTab, brandData, project?.lead_id]); // eslint-disable-line
 
   // Set initial tab on project load
   useEffect(() => {
@@ -1971,7 +1980,6 @@ export default function ProjectDetail() {
                 borderTopColor: 'var(--brand-primary)',
                 animation: 'spin 0.8s linear infinite', marginBottom: 12 }} />
               <div style={{ fontSize: 13 }}>Briefing wird geladen...</div>
-              {(() => { loadBriefingLead(); return null; })()}
             </div>
       )}
 
@@ -1996,7 +2004,6 @@ export default function ProjectDetail() {
       {/* ── BrandDesign Tab ─────────────────────────────────────────────────── */}
       {activeTab === 'branddesign' && (() => {
         const lid = project.lead_id;
-        if (!brandData) loadBrandData();
 
         const scrapeWebsite = async () => {
           setScraping(true);

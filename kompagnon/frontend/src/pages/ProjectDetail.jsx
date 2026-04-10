@@ -1555,7 +1555,7 @@ export default function ProjectDetail() {
       })()}
 
       {/* ── Phasen-Navigation (Ebene 1) ─────────────────────────────────────── */}
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {/* Phasenleiste */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', overflowX: 'auto', scrollbarWidth: 'none' }}>
           {PHASE_NAMES.map((phaseName, idx) => {
@@ -1567,30 +1567,31 @@ export default function ProjectDetail() {
             return (
               <React.Fragment key={phaseName}>
                 {idx > 0 && (
-                  <div style={{ alignSelf: 'center', height: 2, width: 12, flexShrink: 0, background: isDone ? '#1D9E75' : 'var(--border-light)' }} />
+                  <div style={{ alignSelf: 'center', height: 1, width: 8, flexShrink: 0, background: isDone ? 'var(--status-success-text)' : 'var(--border-light)', opacity: 0.6 }} />
                 )}
                 <button onClick={() => {
                   setActivePhase(phaseName);
                   const firstTool = PHASE_TOOLS[phaseName]?.[0]?.id;
                   if (firstTool) setActiveTab(SUB_TAB_MAP[firstTool] || firstTool);
                 }} style={{
-                  flex: 1, minWidth: 70, padding: '10px 4px 8px', border: 'none',
-                  borderBottom: isActive ? '3px solid #185FA5' : '3px solid transparent',
-                  background: isActive ? '#E6F1FB' : 'transparent',
-                  cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                  borderRadius: 0, transition: 'all 0.15s',
+                  flex: 1, minWidth: 60, padding: '8px 4px 6px', border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                  borderRadius: 0, transition: 'background var(--transition-fast)',
+                  opacity: isActive ? 1 : 0.65,
                 }}>
                   <div style={{
-                    width: 24, height: 24, borderRadius: '50%',
-                    background: isDone ? '#1D9E75' : isCurrent ? '#185FA5' : '#e2e8f0',
-                    color: (isDone || isCurrent) ? '#fff' : '#64748b',
-                    fontSize: 11, fontWeight: 600,
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: isDone ? 'var(--status-success-text)' : isActive ? 'var(--brand-primary)' : 'var(--border-light)',
+                    color: (isDone || isActive) ? 'var(--text-inverse)' : 'var(--text-tertiary)',
+                    fontSize: 10, fontWeight: 600,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
                   }}>{isDone ? '✓' : phaseNum}</div>
                   <span style={{
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: isActive ? 600 : 400,
-                    color: isActive ? '#185FA5' : isDone ? '#1D9E75' : '#64748b',
+                    color: isActive ? 'var(--brand-primary)' : 'var(--text-tertiary)',
                     whiteSpace: 'nowrap',
                   }}>{PHASE_LABELS[phaseName]}</span>
                 </button>
@@ -1600,7 +1601,21 @@ export default function ProjectDetail() {
         </div>
 
         {/* Werkzeug-Kacheln (Ebene 2) */}
-        <div style={{ position: 'relative', padding: '10px 0 8px' }}>
+        <div style={{
+          position: 'relative', padding: '12px 0 10px',
+          borderTop: '2px solid var(--border-light)',
+          background: 'var(--bg-app)',
+        }}>
+          {/* Kontextlabel */}
+          <div style={{
+            position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
+            background: 'var(--bg-app)', padding: '0 10px',
+            fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)',
+            textTransform: 'uppercase', letterSpacing: '0.08em',
+            whiteSpace: 'nowrap', zIndex: 3,
+          }}>
+            {PHASE_LABELS[activePhase]} — Werkzeuge
+          </div>
           {/* Pfeil links */}
           <button onClick={() => scrollRef.current?.scrollBy({ left: -160, behavior: 'smooth' })} style={{
             position: 'absolute', left: 0, top: 0, bottom: 0, width: 32, zIndex: 2,

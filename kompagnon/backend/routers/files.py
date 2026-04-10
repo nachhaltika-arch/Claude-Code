@@ -197,10 +197,18 @@ def download_file(
 @router.get("/{lead_id}/grapesjs-assets")
 def get_grapesjs_assets(
     lead_id: int,
+    include_crawled: bool = True,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Gibt alle Bild-Dateien eines Leads als GrapesJS-Asset-Objekte zurück."""
+    """Gibt alle Bild-Assets für GrapesJS zurück: Uploads + gecrawlte Bilder."""
+    import json as _json
+    from urllib.parse import urlparse
+
+    base_url = os.getenv("API_BASE_URL", "https://claude-code-znq2.onrender.com")
+    assets = []
+
+    # 1. Hochgeladene Dateien (logo, foto)
     rows = db.execute(
         text("""
             SELECT id, original_filename, file_type
@@ -215,16 +223,61 @@ def get_grapesjs_assets(
         {"lid": lead_id},
     ).fetchall()
 
-    base_url = os.getenv("API_BASE_URL", "https://claude-code-znq2.onrender.com")
-    return [
-        {
+    for r in rows:
+        assets.append({
             "type": "image",
             "src": f"{base_url}/api/files/download/{r[0]}",
             "name": r[1] or f"datei-{r[0]}",
-            "category": "Logo" if r[2] == "logo" else "Fotos",
-        }
-        for r in rows
-    ]
+            "category": "Uploads: Logo" if r[2] == "logo" else "Uploads: Fotos",
+        })
+
+    # 2. Gecrawlte Bilder von der bestehenden Website
+    if include_crawled:
+        IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'}
+        EXCLUDE = ['favicon', 'tracking', 'pixel', 'analytics', 'beacon', 'sprite', 'icon-', '-icon', 'placeholder', '1x1']
+
+        try:
+            cache_rows = db.execute(
+                text("""
+                    SELECT url, images FROM website_content_cache
+                    WHERE customer_id = :lid AND images IS NOT NULL AND images != '[]'
+                    ORDER BY scraped_at DESC
+                """),
+                {"lid": lead_id},
+            ).fetchall()
+        except Exception:
+            cache_rows = []
+
+        seen = set()
+        for page_url, images_json in cache_rows:
+            try:
+                image_urls = _json.loads(images_json or '[]')
+            except Exception:
+                continue
+            try:
+                path = urlparse(page_url).path.strip('/')
+                category = f"Website: {path.split('/')[-1] or 'Startseite'}"[:40]
+            except Exception:
+                category = "Alte Website"
+            for img_url in image_urls:
+                if not isinstance(img_url, str) or not img_url.startswith('http'):
+                    continue
+                if img_url in seen:
+                    continue
+                seen.add(img_url)
+                path_lower = urlparse(img_url).path.lower()
+                if not any(path_lower.endswith(ext) for ext in IMAGE_EXTS):
+                    continue
+                if any(p in img_url.lower() for p in EXCLUDE):
+                    continue
+                assets.append({
+                    "type": "image",
+                    "src": img_url,
+                    "name": urlparse(img_url).path.split('/')[-1] or 'Bild',
+                    "category": category,
+                })
+
+    return assets
 
 
 @router.delete("/{file_id}")

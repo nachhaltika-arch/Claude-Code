@@ -127,6 +127,36 @@ const GbpBadge = ({ lead }) => {
   );
 };
 
+function CrawledImagesGallery({ leadId, headers }) {
+  const [images, setImages] = useState([]);
+  const [showAll, setShowAll] = useState(false);
+  useEffect(() => {
+    if (!leadId) return;
+    fetch(`${API_BASE_URL}/api/files/${leadId}/grapesjs-assets?include_crawled=true`, { headers })
+      .then(r => r.ok ? r.json() : [])
+      .then(assets => setImages((Array.isArray(assets) ? assets : []).filter(a => a.category?.startsWith('Website:'))))
+      .catch(() => {});
+  }, [leadId]); // eslint-disable-line
+  if (images.length === 0) return null;
+  const visible = showAll ? images : images.slice(0, 12);
+  return (
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 16, marginTop: 8 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>{images.length} Bilder von der Website gecrawlt</span>
+        {images.length > 12 && <button onClick={() => setShowAll(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--brand-primary)', fontFamily: 'var(--font-sans)' }}>{showAll ? 'Weniger' : `Alle ${images.length}`}</button>}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 6 }}>
+        {visible.map((img, i) => (
+          <div key={i} title={img.name} style={{ position: 'relative', paddingBottom: '75%', background: 'var(--bg-app)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: '1px solid var(--border-light)' }}>
+            <img src={img.src} alt={img.name} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.parentNode.style.display = 'none'; }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10 }}>Diese Bilder sind im GrapesJS-Editor unter „Website: ..." verfügbar.</div>
+    </div>
+  );
+}
+
 export default function LeadProfile() {
   const { leadId } = useParams();
   const navigate = useNavigate();
@@ -2201,6 +2231,9 @@ export default function LeadProfile() {
             </div>
 
             {/* Status bar chart */}
+            {/* Gecrawlte Bilder Galerie */}
+            <CrawledImagesGallery leadId={leadId} headers={h} />
+
             {crawlResults.length > 0 && (
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>URLs nach Status-Code</div>

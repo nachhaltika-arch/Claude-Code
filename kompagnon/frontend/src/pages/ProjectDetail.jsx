@@ -1703,7 +1703,17 @@ export default function ProjectDetail() {
         ].map((tab, i, arr) => {
           const isActive = mainTab === tab.id;
           return (
-            <button key={tab.id} onClick={() => setMainTab(tab.id)} style={{
+            <button key={tab.id} onClick={() => {
+              setMainTab(tab.id);
+              if (tab.id === 'content' && !sitemapLoaded && project?.lead_id) {
+                setSitemapLoading(true);
+                fetch(`${API_BASE_URL}/api/sitemap/${id}`, { headers })
+                  .then(r => r.ok ? r.json() : [])
+                  .then(data => { setSitemapPages(Array.isArray(data) ? data : []); setSitemapLoaded(true); })
+                  .catch(() => {})
+                  .finally(() => setSitemapLoading(false));
+              }
+            }} style={{
               flex: 1, padding: '16px 12px 14px', border: 'none',
               borderRight: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none',
               borderBottom: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent',
@@ -4760,6 +4770,7 @@ export default function ProjectDetail() {
         <ContentWerkstatt
           project={project}
           sitemapPages={sitemapPages}
+          sitemapLoading={sitemapLoading}
           token={token}
           leadId={project.lead_id}
           websiteContent={websiteContent}

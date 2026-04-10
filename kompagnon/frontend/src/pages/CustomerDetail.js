@@ -2389,12 +2389,17 @@ export default function CustomerDetail() {
       {/* GrapesJS Editor Modal */}
       {editingPage && (
         <GrapesEditor
+          key={editingPage.id}
           pageId={editingPage.id}
           pageName={editingPage.page_name}
-          initialHtml={editingPage.mockup_html || ''}
+          initialHtml={editingPage.gjs_html || editingPage.mockup_html || ''}
           onClose={() => setEditingPage(null)}
-          onSave={({ html }) => {
-            setSitemapPages(prev => prev.map(p => p.id === editingPage.id ? { ...p, mockup_html: html } : p));
+          onSave={({ html, css }) => {
+            setSitemapPages(prev => prev.map(p =>
+              p.id === editingPage.id
+                ? { ...p, gjs_html: html, gjs_css: css || '', mockup_html: html }
+                : p
+            ));
             setEditingPage(null);
           }}
         />

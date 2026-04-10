@@ -267,7 +267,7 @@ export default function GrapesEditor({
             project: {
               type: 'web',
               default: {
-                pages: [{ name: pageName || 'Seite', component: initialHtml || '' }],
+                pages: [{ name: pageName || 'Seite', component: '' }],
               },
             },
             storage: {

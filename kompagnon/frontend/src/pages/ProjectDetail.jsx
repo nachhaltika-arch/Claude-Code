@@ -2282,10 +2282,14 @@ export default function ProjectDetail() {
               key={editingPage.id}
               pageId={editingPage.id}
               pageName={editingPage.page_name}
-              initialHtml={editingPage.mockup_html || ''}
+              initialHtml={editingPage.gjs_html || editingPage.mockup_html || ''}
               onClose={() => setEditingPage(null)}
-              onSave={({ html }) => {
-                setSitemapPages(prev => prev.map(p => p.id === editingPage.id ? { ...p, mockup_html: html, gjs_html: html } : p));
+              onSave={({ html, css }) => {
+                setSitemapPages(prev => prev.map(p =>
+                  p.id === editingPage.id
+                    ? { ...p, gjs_html: html, gjs_css: css || '', mockup_html: html }
+                    : p
+                ));
                 setEditingPage(null);
                 toast.success(`"${editingPage.page_name}" gespeichert`);
               }}
@@ -3525,29 +3529,35 @@ export default function ProjectDetail() {
         </div>
       )}
 
-      {/* ── Editor Tab ─────────────────────────────────────────────────────── */}
+      {/* ── Editor Tab — Hinweis: Seiten werden jetzt individuell bearbeitet ── */}
       {(activeSubTab === 'editor' || activeTab === 'editor') && (
-        <WebsiteDesigner
-          projectId={id}
-          leadId={project.lead_id}
-          initialHtml={project.mockup_html || ''}
-          initialCss={project.mockup_css || ''}
-          onSave={async (html, css) => {
-            await fetch(`${API_BASE_URL}/api/projects/${id}`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${localStorage.getItem('kompagnon_token')}`,
-              },
-              body: JSON.stringify({ mockup_html: html, mockup_css: css }),
-            });
-            toast.success('Design gespeichert');
-          }}
-          onClose={() => {
-            if (activeSubTab === 'editor') setActiveSubTab('unternehmen');
-            if (activeTab    === 'editor') setActiveTab('overview');
-          }}
-        />
+        <div style={{
+          padding: 32, background: 'var(--bg-surface)',
+          border: '0.5px solid var(--border-light)', borderRadius: 12,
+          textAlign: 'center', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', gap: 16,
+        }}>
+          <div style={{ fontSize: 32 }}>🖊️</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+            Seiten werden jetzt individuell bearbeitet
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', maxWidth: 480, lineHeight: 1.7 }}>
+            Jede Seite hat ihren eigenen Editor. Wechsle zum Tab{' '}
+            <strong>„Website neu"</strong> (Phase Content), wähle eine Seite aus
+            der Liste und klicke auf <strong>„🖊️ Bearbeiten"</strong>.
+            So wird jede Seite getrennt gespeichert und bleibt dem Kunden zugeordnet.
+          </div>
+          <button
+            onClick={() => setActiveSubTab('sitemap')}
+            style={{
+              padding: '10px 24px', borderRadius: 8, border: 'none',
+              background: '#008eaa', color: 'white',
+              fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            → Zu „Website neu" wechseln
+          </button>
+        </div>
       )}
 
       {/* ── Netlify-DNS Tab ────────────────────────────────────────────────── */}
@@ -4623,15 +4633,19 @@ export default function ProjectDetail() {
       {/* ── GrapesJS Editor ─────────────────────────────────────────────────── */}
       {editingPage && (
         <GrapesEditor
+          key={editingPage.id}
           pageId={editingPage.id}
           pageName={editingPage.page_name}
-          initialHtml={editingPage.mockup_html || ''}
+          initialHtml={editingPage.gjs_html || editingPage.mockup_html || ''}
           onClose={() => setEditingPage(null)}
-          onSave={({ html }) => {
+          onSave={({ html, css }) => {
             setSitemapPages(prev => prev.map(p =>
-              p.id === editingPage.id ? { ...p, mockup_html: html } : p
+              p.id === editingPage.id
+                ? { ...p, gjs_html: html, gjs_css: css || '', mockup_html: html }
+                : p
             ));
             setEditingPage(null);
+            toast.success(`"${editingPage.page_name}" gespeichert`);
           }}
           projectId={project.id}
           netlitySiteId={project.netlify_site_id || null}

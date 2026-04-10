@@ -104,17 +104,34 @@ function Input({ value, onChange, placeholder, onFocus, onBlur, hasError }) {
   );
 }
 
-function Textarea({ value, onChange, placeholder, rows = 4, onBlur, hasError }) {
+function Textarea({ value, onChange, placeholder, rows = 4, onBlur, hasError, minLength, maxLength }) {
+  const len = (value || '').length;
+  const tooLong = maxLength && len > maxLength;
+  const tooShort = minLength && len > 0 && len < minLength;
+  const counterColor = len === 0 ? 'var(--text-tertiary)' : tooLong ? 'var(--status-danger-text)' : !tooShort ? 'var(--status-success-text)' : 'var(--text-tertiary)';
   return (
-    <textarea
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-      style={{ ...inputBase, resize: 'vertical', lineHeight: 1.6, borderColor: hasError ? 'var(--status-danger-text)' : undefined, background: hasError ? 'var(--status-danger-bg)' : undefined }}
-      onFocus={e => e.target.style.borderColor = hasError ? 'var(--status-danger-text)' : TEAL}
-      onBlur={e => { e.target.style.borderColor = hasError ? 'var(--status-danger-text)' : 'var(--border-light)'; if (onBlur) onBlur(e); }}
-    />
+    <div style={{ position: 'relative' }}>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        maxLength={maxLength ? maxLength + 50 : undefined}
+        style={{
+          ...inputBase, resize: 'vertical', lineHeight: 1.6,
+          borderColor: hasError ? 'var(--status-danger-text)' : tooLong ? 'var(--status-warning-text)' : undefined,
+          background: hasError ? 'var(--status-danger-bg)' : undefined,
+          paddingBottom: (minLength || maxLength) ? 24 : undefined,
+        }}
+        onFocus={e => e.target.style.borderColor = hasError ? 'var(--status-danger-text)' : TEAL}
+        onBlur={e => { e.target.style.borderColor = hasError ? 'var(--status-danger-text)' : tooLong ? 'var(--status-warning-text)' : 'var(--border-light)'; if (onBlur) onBlur(e); }}
+      />
+      {(minLength || maxLength) && (
+        <div style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 10, fontWeight: 600, color: counterColor, pointerEvents: 'none', userSelect: 'none', transition: 'color 0.2s' }}>
+          {len}{maxLength ? `/${maxLength}` : ''}{minLength && len < minLength ? ` (min. ${minLength})` : ''}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -139,7 +156,7 @@ function Select({ value, onChange, options, onBlur, hasError }) {
   );
 }
 
-function Field({ label, required, hint, error, children }) {
+function Field({ label, required, hint, error, charInfo, children }) {
   return (
     <div style={{ marginBottom: 20 }}>
       <FieldLabel required={required} hasError={!!error}>{label}</FieldLabel>
@@ -148,7 +165,13 @@ function Field({ label, required, hint, error, children }) {
         <div style={{ fontSize: 11, color: 'var(--status-danger-text)', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4, lineHeight: 1.4 }}>
           <span style={{ fontSize: 12 }}>⚠</span>{error}
         </div>
-      ) : hint ? <FieldHint>{hint}</FieldHint> : null}
+      ) : hint ? (
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>
+          {hint}{charInfo && <span style={{ color: 'var(--brand-primary)', marginLeft: 6 }}> · {charInfo}</span>}
+        </div>
+      ) : charInfo ? (
+        <div style={{ fontSize: 11, color: 'var(--brand-primary)', marginTop: 4 }}>{charInfo}</div>
+      ) : null}
     </div>
   );
 }
@@ -199,12 +222,13 @@ function Step1({ data, set, firstRef, touch, fieldError }) {
           placeholder="Branche suchen, z.B. 'Elektro', 'Sanitär', 'Maler'..."
         />
       </Field>
-      <Field label="Leistungen" required hint="Was bieten Sie an? Bitte alle Leistungen auflisten." error={fieldError('leistungen')}>
+      <Field label="Leistungen" required hint="Was bieten Sie an? Bitte alle Leistungen auflisten." error={fieldError('leistungen')} charInfo="Empfohlen: mind. 50 Zeichen">
         <Textarea
           value={data.leistungen}
           onChange={v => set('leistungen', v)}
           onBlur={() => touch('leistungen')}
           hasError={!!fieldError('leistungen')}
+          minLength={50}
           placeholder={"z.B. Badsanierung, Rohrbruch-Notdienst, Heizungsinstallation …"}
           rows={5}
         />
@@ -226,10 +250,11 @@ function Step2({ data, set, firstRef, touch, fieldError }) {
       <Field label="Zielgruppe" required hint="Wen sprechen Sie mit Ihrer Website hauptsächlich an?" error={fieldError('zielgruppe')}>
         <Select value={data.zielgruppe} onChange={v => set('zielgruppe', v)} onBlur={() => touch('zielgruppe')} hasError={!!fieldError('zielgruppe')} options={ZIELGRUPPE_OPTIONS} />
       </Field>
-      <Field label="Typischer Kunde" hint="Beschreiben Sie Ihren idealen Kunden.">
+      <Field label="Typischer Kunde" hint="Beschreiben Sie Ihren idealen Kunden." charInfo="Empfohlen: mind. 30 Zeichen">
         <Textarea
           value={data.typischerKunde}
           onChange={v => set('typischerKunde', v)}
+          minLength={30}
           placeholder={"z.B. Eigenheimbesitzer, 40–60 Jahre, plant Badsanierung im nächsten Jahr …"}
           rows={4}
         />
@@ -270,12 +295,14 @@ function Step3({ data, set, firstRef, touch, fieldError }) {
 
   return (
     <div ref={firstRef}>
-      <Field label="Alleinstellungsmerkmal (USP)" required hint="Was macht Ihren Betrieb besonders? Warum sollte ein Kunde Sie wählen und nicht den Mitbewerb?" error={fieldError('usp')}>
+      <Field label="Alleinstellungsmerkmal (USP)" required hint="Was macht Ihren Betrieb besonders?" error={fieldError('usp')} charInfo="Empfohlen: 40–300 Zeichen">
         <Textarea
           value={data.usp}
           onChange={v => set('usp', v)}
           onBlur={() => touch('usp')}
           hasError={!!fieldError('usp')}
+          minLength={40}
+          maxLength={300}
           placeholder={"z.B. 25 Jahre Erfahrung, 24h-Notdienst, Festpreisgarantie, familiengeführt …"}
           rows={5}
         />
@@ -426,10 +453,11 @@ function Step5({ data, set, firstRef }) {
       <Field label="Fotos / Bilder vorhanden?" hint="Haben Sie Fotos Ihres Betriebs, Teams oder Ihrer Arbeit?">
         <Toggle value={data.fotos_vorhanden} onChange={v => set('fotos_vorhanden', v)} />
       </Field>
-      <Field label="Sonstige Hinweise" hint="Gibt es weitere Wünsche, Anforderungen oder wichtige Informationen?">
+      <Field label="Sonstige Hinweise" hint="Gibt es weitere Wünsche, Anforderungen oder wichtige Informationen?" charInfo="Max. 500 Zeichen">
         <Textarea
           value={data.sonstige_hinweise}
           onChange={v => set('sonstige_hinweise', v)}
+          maxLength={500}
           placeholder="Weitere Hinweise, besondere Anforderungen …"
           rows={4}
         />

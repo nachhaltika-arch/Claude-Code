@@ -3258,50 +3258,46 @@ Sonstige Hinweise: {briefing.sonstige_hinweise or '–'}
 Logo vorhanden: {'Ja' if briefing.logo_vorhanden else 'Nein'}
 Fotos vorhanden: {'Ja' if briefing.fotos_vorhanden else 'Nein'}""")
 
-    # 3. Letzter Audit
+    # 3. Letzter Audit (Tabelle: audit_results)
     try:
         audit = db.execute(
             text("""
-                SELECT score, ai_summary
-                FROM audits WHERE lead_id = :lid
+                SELECT total_score, ai_summary
+                FROM audit_results WHERE lead_id = :lid
                 ORDER BY created_at DESC LIMIT 1
             """),
             {"lid": lead_id},
         ).fetchone()
         if audit:
             data_parts.append(f"""## Audit
-Score: {audit.score or '–'}/100
-Zusammenfassung: {audit.ai_summary or '–'}""")
+Score: {audit[0] or '–'}/100
+Zusammenfassung: {audit[1] or '–'}""")
     except Exception:
-        pass  # Tabelle existiert ggf. nicht
+        pass
 
-    # 4. PageSpeed
+    # 4. PageSpeed (aus leads-Tabelle, nicht separate Tabelle)
     try:
-        pagespeed = db.execute(
-            text("""
-                SELECT mobile_score, desktop_score
-                FROM pagespeed_results WHERE lead_id = :lid
-                ORDER BY created_at DESC LIMIT 1
-            """),
+        ps = db.execute(
+            text("SELECT pagespeed_mobile_score, pagespeed_desktop_score FROM leads WHERE id = :lid"),
             {"lid": lead_id},
         ).fetchone()
-        if pagespeed:
+        if ps and (ps[0] or ps[1]):
             data_parts.append(f"""## PageSpeed
-Mobil: {pagespeed[0] or '–'}/100
-Desktop: {pagespeed[1] or '–'}/100""")
+Mobil: {ps[0] or '–'}/100
+Desktop: {ps[1] or '–'}/100""")
     except Exception:
-        pass  # Tabelle existiert ggf. nicht
+        pass
 
-    # 5. Crawler — Seitenanzahl
+    # 5. Crawler (Tabelle: crawl_results, Spalte: customer_id)
     try:
         crawler_count = db.execute(
-            text("SELECT COUNT(*) FROM crawler_results WHERE lead_id = :lid"),
+            text("SELECT COUNT(*) FROM crawl_results WHERE customer_id = :lid"),
             {"lid": lead_id},
         ).scalar()
         if crawler_count:
             data_parts.append(f"## Crawler\nGecrawlte Seiten: {crawler_count}")
     except Exception:
-        pass  # Tabelle existiert ggf. nicht
+        pass
 
     # 6. Sitemap-Seiten
     sitemap_pages = db.execute(

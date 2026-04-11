@@ -239,7 +239,7 @@ async def suggest_field(
         "usp": "Finde Alleinstellungsmerkmale (USP). Max 3 Saetze.",
         "mitbewerber": "Werden Mitbewerber erwaehnt? Falls nein: Keine Angaben gefunden.",
         "vorbilder": "Werden andere Websites erwaehnt? Falls nein: Keine Angaben gefunden.",
-        "farben": "Welche Farbstimmung transportiert der Content? Kurze Beschreibung.",
+        "farben": "Welche Farben verwendet die Website? Antworte NUR mit Farbnamen oder Hex-Codes, z.B. 'Blau (#0056b3), Weiss, Grau'. Max 80 Zeichen, keine Analyse.",
         "stil": "Welchen Stil hat die Website? Waehle: Modern, Klassisch, Freundlich, Handwerklich, oder Premium. NUR ein Wort.",
         "wunschseiten": "Welche Seiten hat die aktuelle Website? Liste Hauptseiten auf, eine pro Zeile.",
         "sonstige_hinweise": "Besondere Informationen, Zertifikate, Auszeichnungen? Max 3 Saetze.",

@@ -552,6 +552,11 @@ def _run_migrations():
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS farben VARCHAR(100)",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS wunschseiten TEXT",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS stil VARCHAR(50)",
+        # Widen VARCHAR columns to TEXT for KI-generated content
+        "ALTER TABLE briefings ALTER COLUMN gewerk TYPE TEXT",
+        "ALTER TABLE briefings ALTER COLUMN farben TYPE TEXT",
+        "ALTER TABLE briefings ALTER COLUMN stil TYPE TEXT",
+        "ALTER TABLE briefings ALTER COLUMN einzugsgebiet TYPE TEXT",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS logo_vorhanden BOOLEAN DEFAULT false",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS fotos_vorhanden BOOLEAN DEFAULT false",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS sonstige_hinweise TEXT",

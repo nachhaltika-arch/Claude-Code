@@ -106,6 +106,8 @@ export default function ProzessFlow({
     } catch { /* silent */ }
   };
 
+  const leadId = project?.lead_id || lead?.id;
+
   const prozessDaten = {
     briefing: localBriefing,
     latestAudit,
@@ -281,7 +283,7 @@ export default function ProzessFlow({
           {/* Inhalt */}
           <SchrittInhalt
             schritt={aktivObj} project={project} lead={lead}
-            token={token} headers={headers}
+            leadId={leadId} token={token} headers={headers}
             briefing={briefing} latestAudit={latestAudit}
             sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
             websiteContent={websiteContent} brandData={brandData}
@@ -293,7 +295,7 @@ export default function ProzessFlow({
   );
 }
 
-function SchrittInhalt({ schritt, project, lead, token, headers,
+function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
   briefing, latestAudit, sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult }) {
 
@@ -339,7 +341,7 @@ function SchrittInhalt({ schritt, project, lead, token, headers,
       return (
         <div>
           {sitemapPages.length === 0 && (
-            <SitemapKiVorschlag project={project} leadId={project.lead_id} headers={headers} />
+            <SitemapKiVorschlag project={project} leadId={leadId} headers={headers} />
           )}
           {sitemapLoading ? <Spinner /> : (
             <div style={pad}>
@@ -371,11 +373,22 @@ function SchrittInhalt({ schritt, project, lead, token, headers,
       );
 
     case 'DesignStudio':
+      return (
+        <DesignStudioEmbed
+          project={project}
+          leadId={leadId}
+          token={token}
+          headers={headers}
+          brandData={brandData}
+          sitemapPages={sitemapPages}
+        />
+      );
+
     case 'Editor':
       return (
         <DesignStudio
           project={project}
-          leadId={project.lead_id}
+          leadId={leadId}
           token={token}
           brandData={brandData}
           sitemapPages={sitemapPages}
@@ -448,30 +461,37 @@ function Spinner() {
 }
 
 function SitemapKiVorschlag({ project, leadId, headers }) {
-  const [loading, setLoading]     = useState(false);
-  const [done, setDone]           = useState(false);
-  const [error, setError]         = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [done, setDone]       = useState(false);
+  const [error, setError]     = useState(null);
 
-  if (done) return null;
+  const generate = async () => {
+    if (!leadId) { setError('Keine Lead-ID verfuegbar.'); return; }
+    setLoading(true); setError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/generate`, { method: 'POST', headers });
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || `HTTP ${res.status}`);
+      setDone(true);
+      setTimeout(() => window.location.reload(), 800);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  if (done) return (
+    <div style={{ padding: '12px 18px', background: 'var(--status-success-bg)', borderRadius: 8, fontSize: 13, color: 'var(--status-success-text)', marginBottom: 12 }}>
+      Sitemap wurde generiert — wird geladen...
+    </div>
+  );
 
   return (
     <div style={{ margin: '0 20px 16px', padding: '14px 18px', background: 'rgba(0,142,170,.06)', border: '1px solid rgba(0,142,170,.25)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 14 }}>
       <span style={{ fontSize: 28, flexShrink: 0 }}>🤖</span>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>Noch keine Sitemap vorhanden</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>Noch keine Sitemap — KI-Vorschlag erstellen?</div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Claude analysiert Briefing und gecrawlte Seiten und erstellt eine passende Seitenstruktur.</div>
-        {error && <div style={{ fontSize: 11, color: 'var(--status-danger-text)', marginTop: 4 }}>{error}</div>}
+        {error && <div style={{ fontSize: 11, color: 'var(--status-danger-text)', marginTop: 6 }}>{error}</div>}
       </div>
-      <button onClick={async () => {
-        setLoading(true); setError(null);
-        try {
-          const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/sitemap-suggest`, { method: 'POST', headers });
-          if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Fehler');
-          setDone(true);
-          window.dispatchEvent(new CustomEvent('kompagnon:sitemap-updated'));
-        } catch (e) { setError(e.message); }
-        finally { setLoading(false); }
-      }} disabled={loading}
+      <button onClick={generate} disabled={loading}
         style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: loading ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
         {loading ? (<><span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Wird erstellt...</>) : 'KI-Sitemap erstellen'}
       </button>
@@ -695,6 +715,136 @@ function ZugangsdatenEmbed({ project, headers }) {
 
       {creds.length === 0 && !showForm && (
         <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)', fontSize: 13 }}>Noch keine Zugangsdaten gespeichert.</div>
+      )}
+    </div>
+  );
+}
+
+function DesignStudioEmbed({ project, leadId, token, headers, brandData, sitemapPages }) {
+  const [selectedPage, setSelectedPage] = useState(null);
+  const [generating, setGenerating]     = useState(false);
+  const [generatedHtml, setGeneratedHtml] = useState(null);
+  const [error, setError]               = useState('');
+  const [dbTemplates, setDbTemplates]   = useState([]);
+  const [selectedTpl, setSelectedTpl]   = useState(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/templates/`, { headers })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setDbTemplates(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, []); // eslint-disable-line
+
+  const PRESETS = [
+    { id: 'modern', label: 'Modern Clean', color: '#008EAA', desc: 'Minimalistisch, viel Weissraum' },
+    { id: 'bold', label: 'Handwerk Bold', color: '#C0392B', desc: 'Kraftvoll, markant' },
+    { id: 'trust', label: 'Service & Trust', color: '#2C3E50', desc: 'Serioes, vertrauenswuerdig' },
+    { id: 'friendly', label: 'Local Friendly', color: '#27AE60', desc: 'Warm, freundlich, lokal' },
+    { id: 'premium', label: 'Premium Dark', color: '#1A1A2E', desc: 'Hochwertig, dunkel' },
+  ];
+
+  const colors = brandData ? [
+    { role: 'Primaer', hex: brandData.primary_color || '#008EAA' },
+    { role: 'Sekundaer', hex: brandData.secondary_color || '#004F59' },
+  ].filter(c => c.hex) : [];
+
+  const fonts = brandData?.all_fonts || [];
+
+  const generate = async () => {
+    if (!selectedPage) { setError('Bitte Seite auswaehlen'); return; }
+    setGenerating(true); setError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/design-json/${selectedPage.id}`, { method: 'POST', headers });
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Fehler');
+      const { blocks, brand } = await res.json();
+      const { renderPage } = await import('../grapesjs/handwerk-blocks');
+      setGeneratedHtml(renderPage(blocks, brand));
+    } catch (e) { setError(e.message); }
+    finally { setGenerating(false); }
+  };
+
+  return (
+    <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {colors.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Brand-Farben</div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {colors.map(c => (
+              <div key={c.role} style={{ textAlign: 'center' }}>
+                <div style={{ width: 52, height: 52, borderRadius: 10, background: c.hex, border: '1px solid var(--border-light)', marginBottom: 4 }} />
+                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600 }}>{c.role}</div>
+                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{c.hex}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {fonts.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Schriftarten</div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {fonts.slice(0,4).map((f, i) => (
+              <div key={i} style={{ padding: '10px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 8 }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>Aa</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{f}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Stil-Vorlage waehlen</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 10 }}>
+          {PRESETS.map(p => (
+            <div key={p.id} onClick={() => setSelectedTpl(p.id)}
+              style={{ padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
+                border: `2px solid ${selectedTpl === p.id ? p.color : 'var(--border-light)'}`,
+                background: selectedTpl === p.id ? `${p.color}12` : 'var(--bg-surface)', transition: 'all .15s' }}>
+              <div style={{ width: '100%', height: 6, borderRadius: 3, background: p.color, marginBottom: 8 }} />
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>{p.label}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{p.desc}</div>
+            </div>
+          ))}
+          {dbTemplates.map(t => (
+            <div key={`db-${t.id}`} onClick={() => setSelectedTpl(`db-${t.id}`)}
+              style={{ padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
+                border: `2px solid ${selectedTpl === `db-${t.id}` ? 'var(--brand-primary)' : 'var(--border-light)'}`,
+                background: selectedTpl === `db-${t.id}` ? 'var(--bg-active)' : 'var(--bg-surface)' }}>
+              <div style={{ fontSize: 11, color: 'var(--brand-primary)', fontWeight: 700, marginBottom: 4 }}>Gespeichert</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{t.name}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 20 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>KI-Design generieren</div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <select value={selectedPage?.id || ''} onChange={e => { const p = sitemapPages.find(s => String(s.id) === e.target.value); setSelectedPage(p || null); }}
+            style={{ flex: 1, minWidth: 180, padding: '9px 12px', fontSize: 13, border: '1px solid var(--border-light)', borderRadius: 8, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)' }}>
+            <option value="">Seite waehlen...</option>
+            {sitemapPages.map(p => <option key={p.id} value={p.id}>{p.page_name}</option>)}
+          </select>
+          <button onClick={generate} disabled={generating || !selectedPage || !selectedTpl}
+            style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: (generating || !selectedPage || !selectedTpl) ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: (generating || !selectedPage || !selectedTpl) ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {generating ? (<><span style={{ width:14, height:14, border:'2px solid rgba(255,255,255,.3)', borderTopColor:'#fff', borderRadius:'50%', animation:'spin .8s linear infinite', display:'inline-block' }} />Generiert...</>) : 'Design generieren'}
+          </button>
+        </div>
+        {!selectedTpl && <div style={{ fontSize: 11, color: 'var(--status-warning-text)', marginTop: 6 }}>Bitte zuerst eine Stil-Vorlage waehlen</div>}
+        {error && <div style={{ fontSize: 12, color: 'var(--status-danger-text)', marginTop: 8 }}>{error}</div>}
+      </div>
+
+      {generatedHtml && (
+        <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Vorschau</div>
+          <iframe srcDoc={generatedHtml} style={{ width: '100%', height: 500, border: '1px solid var(--border-light)', borderRadius: 8 }} title="Design-Vorschau" />
+          <button onClick={() => window.dispatchEvent(new CustomEvent('kompagnon:open-editor', { detail: { html: generatedHtml } }))}
+            style={{ marginTop: 10, padding: '10px 20px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+            Im Editor oeffnen
+          </button>
+        </div>
       )}
     </div>
   );

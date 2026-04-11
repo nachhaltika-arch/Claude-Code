@@ -12,7 +12,7 @@ const PHASEN = [
     schritte: [
       { id: 'briefing-unternehmen', nr: 1, label: 'Briefing Unternehmen', desc: 'Stammdaten, Leistungen, USP erfassen', icon: '🏢', component: 'BriefingUnternehmen',
         istFertig: (d) => !!(d.briefing?.gewerk && d.briefing?.leistungen?.trim()),
-        wasFehlts: (d) => { const f = []; if (!d.briefing?.gewerk) f.push('Gewerk / Branche'); if (!d.briefing?.leistungen?.trim()) f.push('Leistungen'); return f; },
+        wasFehlts: (d) => { if (!d.briefing?.gewerk && !d.briefing?.leistungen) return []; const f = []; if (!d.briefing?.gewerk) f.push('Gewerk / Branche'); if (!d.briefing?.leistungen?.trim()) f.push('Leistungen'); return f; },
         fertigText: (d) => d.briefing?.gewerk || 'Ausgefuellt' },
       { id: 'audit', nr: 2, label: 'Website-Audit', desc: 'Technische Analyse der bestehenden Website', icon: '🔍', component: 'Audit',
         istFertig: (d) => !!(d.latestAudit?.total_score > 0),
@@ -252,8 +252,8 @@ export default function ProzessFlow({
             </div>
           </div>
 
-          {/* Fehlende Felder */}
-          {!aktivObj.istFertig(prozessDaten) && aktivObj.wasFehlts && (() => {
+          {/* Fehlende Felder — nicht fuer Schritte mit eingebettetem Formular */}
+          {!aktivObj.istFertig(prozessDaten) && !['BriefingUnternehmen','BriefingWebsite','ContentWerkstatt','DesignStudio','AnalyseZentrale'].includes(aktivObj.component) && aktivObj.wasFehlts && (() => {
             const fehlende = aktivObj.wasFehlts(prozessDaten);
             if (!fehlende || fehlende.length === 0) return null;
             return (

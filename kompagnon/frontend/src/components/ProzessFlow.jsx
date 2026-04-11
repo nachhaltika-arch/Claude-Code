@@ -3,6 +3,7 @@ import AnalyseCentrale from './AnalyseCentrale';
 import ContentWerkstatt from './ContentWerkstatt';
 import DesignStudio from './DesignStudio';
 import BriefingTab from './BriefingTab';
+import BriefingWizard from './BriefingWizard';
 
 const PHASEN = [
   {
@@ -259,6 +260,17 @@ function SchrittInhalt({ schritt, project, lead, token, headers,
   switch (schritt.component) {
 
     case 'BriefingUnternehmen':
+      return lead ? (
+        <div style={pad}>
+          <BriefingWizard
+            leadId={lead.id}
+            leadData={briefing}
+            onClose={() => {}}
+            onComplete={() => {}}
+          />
+        </div>
+      ) : <Spinner />;
+
     case 'BriefingWebsite':
       return lead
         ? <div style={pad}><BriefingTab lead={lead} token={token} /></div>

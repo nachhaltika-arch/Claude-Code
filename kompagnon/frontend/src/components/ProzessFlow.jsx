@@ -437,35 +437,53 @@ function Spinner() {
 }
 
 function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
-  const [editId, setEditId]       = useState(null);
-  const [editName, setEditName]   = useState('');
-  const [editType, setEditType]   = useState('');
-  const [addOpen, setAddOpen]     = useState(false);
-  const [addName, setAddName]     = useState('');
-  const [addType, setAddType]     = useState('info');
-  const [addParent, setAddParent] = useState('');
-  const [saving, setSaving]       = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+  const [addOpen, setAddOpen]       = useState(false);
+  const [addName, setAddName]       = useState('');
+  const [addType, setAddType]       = useState('info');
+  const [addParent, setAddParent]   = useState('');
+  const [saving, setSaving]         = useState(false);
+  const [editField, setEditField]   = useState(null); // { field, value }
 
   const contentPages = pages.filter(p => !p.ist_pflichtseite);
   const pflichtPages = pages.filter(p => p.ist_pflichtseite);
-  const PAGE_TYPES = ['startseite', 'leistung', 'info', 'vertrauen', 'conversion'];
+  const allPages     = [...contentPages, ...pflichtPages];
+  const selected     = allPages.find(p => p.id === selectedId);
 
-  const deletePage = async (id) => {
-    await fetch(`${API_BASE_URL}/api/sitemap/pages/${id}`, { method: 'DELETE', headers });
+  const PAGE_TYPES = ['startseite', 'leistung', 'info', 'vertrauen', 'conversion', 'rechtlich'];
+  const STATUSES = [
+    { value: 'geplant',      label: 'Geplant',       color: 'var(--text-tertiary)',       bg: 'var(--bg-elevated)' },
+    { value: 'in_arbeit',    label: 'In Arbeit',     color: '#854D0E',                    bg: '#FEF9C3' },
+    { value: 'entwurf',      label: 'Entwurf',       color: '#7c3aed',                    bg: '#f3e8ff' },
+    { value: 'review',       label: 'Zur Pruefung',  color: '#008EAA',                    bg: '#E6F6FA' },
+    { value: 'freigegeben',  label: 'Freigegeben',   color: '#059669',                    bg: '#dcfce7' },
+  ];
+
+  const makeSlug = (name) => name.toLowerCase().replace(/[äa]/g,'ae').replace(/[öo]/g,'oe').replace(/[üu]/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const pagePath = (p) => {
+    if (!p) return '/';
+    const slug = makeSlug(p.page_name);
+    if (p.page_type === 'startseite') return '/';
+    if (p.parent_id) {
+      const parent = allPages.find(pp => pp.id === p.parent_id);
+      return parent ? `/${makeSlug(parent.page_name)}/${slug}` : `/${slug}`;
+    }
+    return `/${slug}`;
+  };
+
+  const jsonHeaders = { ...headers, 'Content-Type': 'application/json' };
+
+  const savePage = async (id, data) => {
+    setSaving(true);
+    await fetch(`${API_BASE_URL}/api/sitemap/pages/${id}`, { method: 'PUT', headers: jsonHeaders, body: JSON.stringify(data) });
+    setSaving(false);
+    setEditField(null);
     onReload();
   };
 
-  const startEdit = (p) => { setEditId(p.id); setEditName(p.page_name); setEditType(p.page_type || 'info'); };
-
-  const saveEdit = async () => {
-    if (!editName.trim()) return;
-    setSaving(true);
-    await fetch(`${API_BASE_URL}/api/sitemap/pages/${editId}`, {
-      method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ page_name: editName.trim(), page_type: editType }),
-    });
-    setEditId(null);
-    setSaving(false);
+  const deletePage = async (id) => {
+    if (selectedId === id) setSelectedId(null);
+    await fetch(`${API_BASE_URL}/api/sitemap/pages/${id}`, { method: 'DELETE', headers });
     onReload();
   };
 
@@ -473,7 +491,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
     if (!addName.trim()) return;
     setSaving(true);
     await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pages`, {
-      method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+      method: 'POST', headers: jsonHeaders,
       body: JSON.stringify({ page_name: addName.trim(), page_type: addType, parent_id: addParent ? Number(addParent) : null, position: contentPages.length }),
     });
     setAddName(''); setAddType('info'); setAddParent(''); setAddOpen(false);
@@ -485,10 +503,9 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
     if (idx === 0) return;
     const reordered = [...contentPages];
     [reordered[idx - 1], reordered[idx]] = [reordered[idx], reordered[idx - 1]];
-    const items = reordered.map((p, i) => ({ id: p.id, position: i, parent_id: p.parent_id || null }));
     await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/reorder`, {
-      method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify(items),
+      method: 'PUT', headers: jsonHeaders,
+      body: JSON.stringify(reordered.map((p, i) => ({ id: p.id, position: i, parent_id: p.parent_id || null }))),
     });
     onReload();
   };
@@ -497,92 +514,248 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
     if (idx >= contentPages.length - 1) return;
     const reordered = [...contentPages];
     [reordered[idx], reordered[idx + 1]] = [reordered[idx + 1], reordered[idx]];
-    const items = reordered.map((p, i) => ({ id: p.id, position: i, parent_id: p.parent_id || null }));
     await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/reorder`, {
-      method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify(items),
+      method: 'PUT', headers: jsonHeaders,
+      body: JSON.stringify(reordered.map((p, i) => ({ id: p.id, position: i, parent_id: p.parent_id || null }))),
     });
     onReload();
   };
 
-  const inputStyle = { padding: '6px 10px', fontSize: 12, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', outline: 'none' };
-  const btnSmall = { padding: '4px 8px', fontSize: 11, border: 'none', borderRadius: 4, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
+  const uploadTemplate = async (pageId, file) => {
+    const text = await file.text();
+    await savePage(pageId, { mockup_html: text });
+  };
+
+  const statusOf = (s) => STATUSES.find(st => st.value === s) || STATUSES[0];
+  const inputStyle = { width: '100%', padding: '7px 10px', fontSize: 12, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' };
+  const btnSm = { padding: '4px 8px', fontSize: 11, border: 'none', borderRadius: 4, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
 
   return (
-    <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-          {pages.length} Seiten definiert
-        </div>
-        <button onClick={() => setAddOpen(!addOpen)}
-          style={{ ...btnSmall, background: 'var(--brand-primary)', color: '#fff', fontWeight: 700, padding: '6px 14px' }}>
-          + Seite hinzufuegen
-        </button>
-      </div>
+    <div style={{ display: 'flex', minHeight: 480 }}>
 
-      {/* Neue Seite anlegen */}
-      {addOpen && (
-        <div style={{ padding: 14, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 8, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <input value={addName} onChange={e => setAddName(e.target.value)} placeholder="Seitenname..." style={{ ...inputStyle, flex: 1, minWidth: 150 }} />
-            <select value={addType} onChange={e => setAddType(e.target.value)} style={inputStyle}>
-              {PAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <select value={addParent} onChange={e => setAddParent(e.target.value)} style={inputStyle}>
-              <option value="">Hauptseite</option>
-              {contentPages.map(p => <option key={p.id} value={p.id}>↳ Unterseite von: {p.page_name}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={addPage} disabled={saving || !addName.trim()} style={{ ...btnSmall, background: '#059669', color: '#fff', fontWeight: 700, padding: '6px 16px' }}>Anlegen</button>
-            <button onClick={() => setAddOpen(false)} style={{ ...btnSmall, background: 'var(--border-light)', color: 'var(--text-secondary)' }}>Abbrechen</button>
-          </div>
+      {/* ── Linke Spalte: Seitenliste ── */}
+      <div style={{ width: 300, borderRight: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{allPages.length} Seiten</span>
+          <button onClick={() => setAddOpen(!addOpen)} style={{ ...btnSm, background: 'var(--brand-primary)', color: '#fff', fontWeight: 700, padding: '5px 12px' }}>+ Neu</button>
         </div>
-      )}
 
-      {/* Inhaltsseiten */}
-      {contentPages.map((p, idx) => (
-        <div key={p.id} style={{ padding: '10px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
-          {editId === p.id ? (
-            <>
-              <input value={editName} onChange={e => setEditName(e.target.value)} style={{ ...inputStyle, flex: 1 }} autoFocus onKeyDown={e => e.key === 'Enter' && saveEdit()} />
-              <select value={editType} onChange={e => setEditType(e.target.value)} style={inputStyle}>
+        {addOpen && (
+          <div style={{ padding: 12, borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <input value={addName} onChange={e => setAddName(e.target.value)} placeholder="Seitenname..." style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && addPage()} />
+            <div style={{ display: 'flex', gap: 6 }}>
+              <select value={addType} onChange={e => setAddType(e.target.value)} style={{ ...inputStyle, flex: 1 }}>
                 {PAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
-              <button onClick={saveEdit} disabled={saving} style={{ ...btnSmall, background: '#059669', color: '#fff' }}>✓</button>
-              <button onClick={() => setEditId(null)} style={{ ...btnSmall, background: 'var(--border-light)', color: 'var(--text-secondary)' }}>✕</button>
-            </>
-          ) : (
+              <select value={addParent} onChange={e => setAddParent(e.target.value)} style={{ ...inputStyle, flex: 1 }}>
+                <option value="">Hauptseite</option>
+                {contentPages.map(p => <option key={p.id} value={p.id}>↳ {p.page_name}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={addPage} disabled={saving || !addName.trim()} style={{ ...btnSm, background: '#059669', color: '#fff', fontWeight: 700, padding: '5px 14px' }}>Anlegen</button>
+              <button onClick={() => setAddOpen(false)} style={{ ...btnSm, background: 'var(--border-light)', color: 'var(--text-secondary)' }}>Abb.</button>
+            </div>
+          </div>
+        )}
+
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {contentPages.map((p, idx) => {
+            const st = statusOf(p.status);
+            const isSel = selectedId === p.id;
+            return (
+              <div key={p.id} onClick={() => setSelectedId(p.id)} style={{
+                padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border-light)',
+                background: isSel ? `${st.bg}` : 'transparent',
+                borderLeft: isSel ? `3px solid ${st.color}` : '3px solid transparent',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                  {p.parent_id && <span style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>↳</span>}
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.page_name}</span>
+                  <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                    <button onClick={e => { e.stopPropagation(); moveUp(idx); }} disabled={idx === 0} style={{ ...btnSm, background: 'transparent', color: idx === 0 ? 'var(--border-light)' : 'var(--text-tertiary)', fontSize: 12, padding: '2px 4px' }}>↑</button>
+                    <button onClick={e => { e.stopPropagation(); moveDown(idx); }} disabled={idx >= contentPages.length - 1} style={{ ...btnSm, background: 'transparent', color: idx >= contentPages.length - 1 ? 'var(--border-light)' : 'var(--text-tertiary)', fontSize: 12, padding: '2px 4px' }}>↓</button>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{pagePath(p)}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 9, padding: '1px 6px', borderRadius: 99, background: st.bg, color: st.color, fontWeight: 600, flexShrink: 0 }}>{st.label}</span>
+                </div>
+              </div>
+            );
+          })}
+
+          {pflichtPages.length > 0 && (
             <>
-              {p.parent_id && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginRight: -4 }}>↳</span>}
-              <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', flex: 1, cursor: 'pointer' }} onClick={() => startEdit(p)}>
-                {p.page_name}
-              </span>
-              <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: 'var(--bg-elevated)', color: 'var(--text-tertiary)' }}>{p.page_type}</span>
-              {p.ziel_keyword && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>{p.ziel_keyword}</span>}
-              <button onClick={() => moveUp(idx)} disabled={idx === 0} title="Nach oben" style={{ ...btnSmall, background: 'transparent', color: idx === 0 ? 'var(--border-light)' : 'var(--text-tertiary)', fontSize: 14 }}>↑</button>
-              <button onClick={() => moveDown(idx)} disabled={idx >= contentPages.length - 1} title="Nach unten" style={{ ...btnSmall, background: 'transparent', color: idx >= contentPages.length - 1 ? 'var(--border-light)' : 'var(--text-tertiary)', fontSize: 14 }}>↓</button>
-              <button onClick={() => startEdit(p)} title="Bearbeiten" style={{ ...btnSmall, background: 'transparent', color: 'var(--brand-primary)', fontSize: 12 }}>✎</button>
-              <button onClick={() => deletePage(p.id)} title="Loeschen" style={{ ...btnSmall, background: 'transparent', color: 'var(--status-danger-text)', fontSize: 12 }}>✕</button>
+              <div style={{ padding: '8px 14px', fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-app)' }}>Pflichtseiten</div>
+              {pflichtPages.map(p => (
+                <div key={p.id} onClick={() => setSelectedId(p.id)} style={{
+                  padding: '8px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border-light)',
+                  background: selectedId === p.id ? 'var(--bg-app)' : 'transparent', opacity: 0.7,
+                }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{p.page_name} 🔒</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{pagePath(p)}</div>
+                </div>
+              ))}
             </>
           )}
         </div>
-      ))}
+      </div>
 
-      {/* Pflichtseiten (nicht editierbar) */}
-      {pflichtPages.length > 0 && (
-        <div style={{ marginTop: 8 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>
-            Pflichtseiten (automatisch)
-          </div>
-          {pflichtPages.map(p => (
-            <div key={p.id} style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8, opacity: 0.6 }}>
-              <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{p.page_name}</span>
-              <span style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>🔒</span>
+      {/* ── Rechte Spalte: Detail-Panel ── */}
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        {selected ? (
+          <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{selected.page_name}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace', marginTop: 2 }}>{pagePath(selected)}</div>
+              </div>
+              {!selected.ist_pflichtseite && (
+                <button onClick={() => deletePage(selected.id)} style={{ ...btnSm, color: 'var(--status-danger-text)', background: 'var(--status-danger-bg)', padding: '5px 12px' }}>Loeschen</button>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+
+            {/* Status */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Status</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {STATUSES.map(st => (
+                  <button key={st.value} onClick={() => savePage(selected.id, { status: st.value })}
+                    style={{
+                      padding: '6px 14px', borderRadius: 99, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                      background: selected.status === st.value ? st.color : st.bg,
+                      color: selected.status === st.value ? '#fff' : st.color,
+                      border: `1px solid ${st.color}`, transition: 'all .15s',
+                    }}>
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Felder-Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+              {/* Seitenname */}
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Seitenname</div>
+                {editField?.field === 'page_name' ? (
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <input value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { page_name: editField.value })} />
+                    <button onClick={() => savePage(selected.id, { page_name: editField.value })} style={{ ...btnSm, background: '#059669', color: '#fff' }}>✓</button>
+                  </div>
+                ) : (
+                  <div onClick={() => !selected.ist_pflichtseite && setEditField({ field: 'page_name', value: selected.page_name })} style={{ fontSize: 13, color: 'var(--text-primary)', cursor: selected.ist_pflichtseite ? 'default' : 'pointer', padding: '4px 0' }}>{selected.page_name}</div>
+                )}
+              </div>
+
+              {/* Seitentyp */}
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Typ</div>
+                <select value={selected.page_type} onChange={e => savePage(selected.id, { page_type: e.target.value })} disabled={selected.ist_pflichtseite} style={inputStyle}>
+                  {PAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+
+              {/* Keyword */}
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Ziel-Keyword</div>
+                {editField?.field === 'ziel_keyword' ? (
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <input value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { ziel_keyword: editField.value })} />
+                    <button onClick={() => savePage(selected.id, { ziel_keyword: editField.value })} style={{ ...btnSm, background: '#059669', color: '#fff' }}>✓</button>
+                  </div>
+                ) : (
+                  <div onClick={() => setEditField({ field: 'ziel_keyword', value: selected.ziel_keyword || '' })} style={{ fontSize: 12, color: selected.ziel_keyword ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', padding: '4px 0', fontStyle: selected.ziel_keyword ? 'normal' : 'italic' }}>{selected.ziel_keyword || 'Klicken zum Setzen...'}</div>
+                )}
+              </div>
+
+              {/* CTA */}
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>CTA</div>
+                {editField?.field === 'cta_text' ? (
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <input value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} style={inputStyle} autoFocus onKeyDown={e => e.key === 'Enter' && savePage(selected.id, { cta_text: editField.value })} />
+                    <button onClick={() => savePage(selected.id, { cta_text: editField.value })} style={{ ...btnSm, background: '#059669', color: '#fff' }}>✓</button>
+                  </div>
+                ) : (
+                  <div onClick={() => setEditField({ field: 'cta_text', value: selected.cta_text || '' })} style={{ fontSize: 12, color: selected.cta_text ? 'var(--text-primary)' : 'var(--text-tertiary)', cursor: 'pointer', padding: '4px 0', fontStyle: selected.cta_text ? 'normal' : 'italic' }}>{selected.cta_text || 'Klicken zum Setzen...'}</div>
+                )}
+              </div>
+            </div>
+
+            {/* Zweck */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Zweck / Beschreibung</div>
+              {editField?.field === 'zweck' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <textarea value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} autoFocus />
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button onClick={() => savePage(selected.id, { zweck: editField.value })} style={{ ...btnSm, background: '#059669', color: '#fff', fontWeight: 700 }}>Speichern</button>
+                    <button onClick={() => setEditField(null)} style={{ ...btnSm, background: 'var(--border-light)', color: 'var(--text-secondary)' }}>Abb.</button>
+                  </div>
+                </div>
+              ) : (
+                <div onClick={() => setEditField({ field: 'zweck', value: selected.zweck || '' })} style={{ fontSize: 12, color: selected.zweck ? 'var(--text-secondary)' : 'var(--text-tertiary)', cursor: 'pointer', lineHeight: 1.5, padding: '4px 0', fontStyle: selected.zweck ? 'normal' : 'italic' }}>{selected.zweck || 'Klicken zum Beschreiben...'}</div>
+              )}
+            </div>
+
+            {/* Notizen */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Notizen</div>
+              {editField?.field === 'notizen' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <textarea value={editField.value} onChange={e => setEditField({ ...editField, value: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} autoFocus />
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button onClick={() => savePage(selected.id, { notizen: editField.value })} style={{ ...btnSm, background: '#059669', color: '#fff', fontWeight: 700 }}>Speichern</button>
+                    <button onClick={() => setEditField(null)} style={{ ...btnSm, background: 'var(--border-light)', color: 'var(--text-secondary)' }}>Abb.</button>
+                  </div>
+                </div>
+              ) : (
+                <div onClick={() => setEditField({ field: 'notizen', value: selected.notizen || '' })} style={{ fontSize: 12, color: selected.notizen ? 'var(--text-secondary)' : 'var(--text-tertiary)', cursor: 'pointer', lineHeight: 1.5, padding: '4px 0', fontStyle: selected.notizen ? 'normal' : 'italic' }}>{selected.notizen || 'Klicken fuer Notizen...'}</div>
+              )}
+            </div>
+
+            {/* Template Upload */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>HTML-Template</div>
+              {selected.mockup_html ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ fontSize: 11, color: 'var(--status-success-text)', background: 'var(--status-success-bg)', padding: '6px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>✓</span> Template vorhanden ({Math.round(selected.mockup_html.length / 1024)} KB)
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <label style={{ ...btnSm, background: 'var(--brand-primary)', color: '#fff', fontWeight: 600, padding: '5px 14px', cursor: 'pointer', display: 'inline-block' }}>
+                      Ersetzen
+                      <input type="file" accept=".html,.htm" style={{ display: 'none' }} onChange={e => e.target.files[0] && uploadTemplate(selected.id, e.target.files[0])} />
+                    </label>
+                    <button onClick={() => savePage(selected.id, { mockup_html: '' })} style={{ ...btnSm, color: 'var(--status-danger-text)', background: 'var(--status-danger-bg)', padding: '5px 12px' }}>Entfernen</button>
+                  </div>
+                </div>
+              ) : (
+                <label style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  padding: '16px 20px', border: '2px dashed var(--border-light)', borderRadius: 8,
+                  cursor: 'pointer', background: 'var(--bg-app)', color: 'var(--text-tertiary)', fontSize: 12,
+                  transition: 'border-color .2s',
+                }}>
+                  <span style={{ fontSize: 20 }}>📄</span>
+                  HTML-Template hochladen (.html)
+                  <input type="file" accept=".html,.htm" style={{ display: 'none' }} onChange={e => e.target.files[0] && uploadTemplate(selected.id, e.target.files[0])} />
+                </label>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 40 }}>
+            <div style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>🗺️</div>
+              <div style={{ fontSize: 13 }}>Seite auswaehlen zum Bearbeiten</div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

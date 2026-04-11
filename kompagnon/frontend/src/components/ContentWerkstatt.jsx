@@ -21,6 +21,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
   const [queueRunning, setQueueRunning]         = useState(false);
   const [queueDone, setQueueDone]               = useState(0);
   const [queueStop, setQueueStop]               = useState(false);
+  const [saveStatus, setSaveStatus]             = useState('idle');
   const [queueCurrentPage, setQueueCurrentPage] = useState('');
   const queueStopRef = useRef(false);
 
@@ -66,6 +67,39 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
     setQueueCurrentPage('');
     if (!queueStopRef.current) toast.success('Alle Seiten generiert!');
   };
+
+  const saveCurrentContent = async (pageId) => {
+    if (!pageId) return;
+    const edited = editedContent[pageId];
+    const base = pageContent[pageId];
+    if (!edited && !newContent[pageId]) return;
+    setSaveStatus('saving');
+    try {
+      await fetch(`${API_BASE_URL}/api/projects/${project.id}/page-content/${pageId}`, {
+        method: 'PUT', headers,
+        body: JSON.stringify({ content: { ...(base || {}), ...(edited || {}) }, new_content: newContent[pageId] || '' }),
+      });
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2500);
+    } catch {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
+  };
+
+  const handlePageSelect = async (page) => {
+    if (selectedPage && selectedPage.id !== page.id) {
+      await saveCurrentContent(selectedPage.id);
+    }
+    setSelectedPage(page);
+  };
+
+  // Auto-save every 30s
+  useEffect(() => {
+    if (!selectedPage) return;
+    const interval = setInterval(() => saveCurrentContent(selectedPage.id), 30000);
+    return () => clearInterval(interval);
+  }, [selectedPage?.id, editedContent, newContent]); // eslint-disable-line
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -216,7 +250,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                 const hasContent = !!pageContent[page.id];
                 const isSelected = selectedPage?.id === page.id;
                 return (
-                  <div key={page.id} onClick={() => setSelectedPage(page)}
+                  <div key={page.id} onClick={() => handlePageSelect(page)}
                     style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', background: isSelected ? 'var(--bg-active, var(--bg-elevated))' : 'transparent', borderLeft: `3px solid ${isSelected ? 'var(--brand-primary)' : 'transparent'}` }}
                     onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                     onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>
@@ -242,6 +276,11 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                   style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: generating ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
                   {generating ? (<><span style={{ width: 11, height: 11, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Generiert...</>) : pageContent[selectedPage.id] ? 'Neu generieren' : 'KI generieren'}
                 </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, minWidth: 90 }}>
+                  {saveStatus === 'saving' && (<><span style={{ width: 10, height: 10, border: '1.5px solid var(--border-medium)', borderTopColor: 'var(--brand-primary)', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} /><span style={{ color: 'var(--text-tertiary)' }}>Speichert...</span></>)}
+                  {saveStatus === 'saved' && <span style={{ color: 'var(--status-success-text)', fontWeight: 600 }}>Gespeichert</span>}
+                  {saveStatus === 'error' && <span style={{ color: 'var(--status-danger-text)' }}>Speicherfehler</span>}
+                </div>
               </div>
 
               <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>

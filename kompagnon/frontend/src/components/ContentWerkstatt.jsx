@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 
@@ -18,6 +18,15 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
   const [newContent, setNewContent]     = useState({});
   const [suggestedSitemap, setSuggestedSitemap] = useState(null);
   const [suggesting, setSuggesting]             = useState(false);
+  const [queueRunning, setQueueRunning]         = useState(false);
+  const [queueDone, setQueueDone]               = useState(0);
+  const [queueStop, setQueueStop]               = useState(false);
+  const [queueCurrentPage, setQueueCurrentPage] = useState('');
+  const queueStopRef = useRef(false);
+
+  useEffect(() => {
+    if (queueStop) { queueStopRef.current = true; setQueueStop(false); }
+  }, [queueStop]);
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
@@ -37,6 +46,26 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
 
   const getField = (pageId, field) => editedContent[pageId]?.[field] ?? pageContent[pageId]?.[field] ?? '';
   const setEdit = (pageId, field, value) => setEditedContent(prev => ({ ...prev, [pageId]: { ...(prev[pageId] || {}), [field]: value } }));
+
+  const generateAllContent = async () => {
+    if (sitemapPages.length === 0) return;
+    setQueueRunning(true);
+    setQueueDone(0);
+    queueStopRef.current = false;
+    for (let i = 0; i < sitemapPages.length; i++) {
+      if (queueStopRef.current) { toast('Generierung gestoppt', { icon: '\u25A0' }); break; }
+      const page = sitemapPages[i];
+      setQueueCurrentPage(page.page_name);
+      try { await generateContent(page); } catch { /* weiter */ }
+      setQueueDone(i + 1);
+      if (i < sitemapPages.length - 1 && !queueStopRef.current) {
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+    setQueueRunning(false);
+    setQueueCurrentPage('');
+    if (!queueStopRef.current) toast.success('Alle Seiten generiert!');
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -153,11 +182,23 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                   </div>
                 );
               })}
+              {/* Queue-Fortschritt */}
+              {queueRunning && (
+                <div style={{ padding: '12px 16px', background: 'var(--bg-active, var(--bg-elevated))', borderTop: '1px solid var(--border-light)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-primary)' }}>Content generieren — {queueDone}/{sitemapPages.length}</span>
+                    <button onClick={() => setQueueStop(true)} style={{ fontSize: 11, color: 'var(--status-danger-text)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>Stopp</button>
+                  </div>
+                  <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
+                    <div style={{ height: '100%', width: `${Math.round((queueDone / sitemapPages.length) * 100)}%`, background: 'var(--brand-primary)', borderRadius: 3, transition: 'width .3s ease' }} />
+                  </div>
+                  {queueCurrentPage && <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Aktuell: {queueCurrentPage}</div>}
+                </div>
+              )}
               <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-light)', display: 'flex', gap: 10 }}>
-                <button onClick={async () => { for (const page of sitemapPages) { await generateContent(page); await new Promise(r => setTimeout(r, 500)); } }}
-                  disabled={generating || sitemapPages.length === 0}
-                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {generating ? (<><span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Generiert...</>) : `Alle ${sitemapPages.length} Seiten generieren`}
+                <button onClick={generateAllContent} disabled={queueRunning || sitemapPages.length === 0}
+                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: queueRunning ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: queueRunning ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {queueRunning ? (<><span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />{queueDone}/{sitemapPages.length}...</>) : `Alle ${sitemapPages.length} Seiten generieren`}
                 </button>
               </div>
             </div>

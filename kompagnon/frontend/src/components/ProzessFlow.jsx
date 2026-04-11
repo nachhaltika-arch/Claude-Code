@@ -361,18 +361,12 @@ function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
             <SitemapKiVorschlag project={project} leadId={leadId} headers={headers} onGenerated={onSitemapReload} />
           )}
           {sitemapLoading ? <Spinner /> : (
-            <div style={pad}>
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
-                {sitemapPages.length > 0 ? `${sitemapPages.length} Seiten definiert.` : 'KI-Vorschlag nutzen oder manuell anlegen.'}
-              </div>
-              {sitemapPages.map(p => (
-                <div key={p.id} style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-light)', display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', flex: 1 }}>{p.page_name}</span>
-                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{p.page_type}</span>
-                  {p.ziel_keyword && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>{p.ziel_keyword}</span>}
-                </div>
-              ))}
-            </div>
+            <SitemapEditorEmbed
+              pages={sitemapPages}
+              leadId={leadId}
+              headers={headers}
+              onReload={onSitemapReload}
+            />
           )}
         </div>
       );
@@ -438,6 +432,157 @@ function Spinner() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
       <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin .8s linear infinite' }} />
+    </div>
+  );
+}
+
+function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
+  const [editId, setEditId]       = useState(null);
+  const [editName, setEditName]   = useState('');
+  const [editType, setEditType]   = useState('');
+  const [addOpen, setAddOpen]     = useState(false);
+  const [addName, setAddName]     = useState('');
+  const [addType, setAddType]     = useState('info');
+  const [addParent, setAddParent] = useState('');
+  const [saving, setSaving]       = useState(false);
+
+  const contentPages = pages.filter(p => !p.ist_pflichtseite);
+  const pflichtPages = pages.filter(p => p.ist_pflichtseite);
+  const PAGE_TYPES = ['startseite', 'leistung', 'info', 'vertrauen', 'conversion'];
+
+  const deletePage = async (id) => {
+    await fetch(`${API_BASE_URL}/api/sitemap/pages/${id}`, { method: 'DELETE', headers });
+    onReload();
+  };
+
+  const startEdit = (p) => { setEditId(p.id); setEditName(p.page_name); setEditType(p.page_type || 'info'); };
+
+  const saveEdit = async () => {
+    if (!editName.trim()) return;
+    setSaving(true);
+    await fetch(`${API_BASE_URL}/api/sitemap/pages/${editId}`, {
+      method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ page_name: editName.trim(), page_type: editType }),
+    });
+    setEditId(null);
+    setSaving(false);
+    onReload();
+  };
+
+  const addPage = async () => {
+    if (!addName.trim()) return;
+    setSaving(true);
+    await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pages`, {
+      method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ page_name: addName.trim(), page_type: addType, parent_id: addParent ? Number(addParent) : null, position: contentPages.length }),
+    });
+    setAddName(''); setAddType('info'); setAddParent(''); setAddOpen(false);
+    setSaving(false);
+    onReload();
+  };
+
+  const moveUp = async (idx) => {
+    if (idx === 0) return;
+    const reordered = [...contentPages];
+    [reordered[idx - 1], reordered[idx]] = [reordered[idx], reordered[idx - 1]];
+    const items = reordered.map((p, i) => ({ id: p.id, position: i, parent_id: p.parent_id || null }));
+    await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/reorder`, {
+      method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(items),
+    });
+    onReload();
+  };
+
+  const moveDown = async (idx) => {
+    if (idx >= contentPages.length - 1) return;
+    const reordered = [...contentPages];
+    [reordered[idx], reordered[idx + 1]] = [reordered[idx + 1], reordered[idx]];
+    const items = reordered.map((p, i) => ({ id: p.id, position: i, parent_id: p.parent_id || null }));
+    await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/reorder`, {
+      method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(items),
+    });
+    onReload();
+  };
+
+  const inputStyle = { padding: '6px 10px', fontSize: 12, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', outline: 'none' };
+  const btnSmall = { padding: '4px 8px', fontSize: 11, border: 'none', borderRadius: 4, cursor: 'pointer', fontFamily: 'var(--font-sans)' };
+
+  return (
+    <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+          {pages.length} Seiten definiert
+        </div>
+        <button onClick={() => setAddOpen(!addOpen)}
+          style={{ ...btnSmall, background: 'var(--brand-primary)', color: '#fff', fontWeight: 700, padding: '6px 14px' }}>
+          + Seite hinzufuegen
+        </button>
+      </div>
+
+      {/* Neue Seite anlegen */}
+      {addOpen && (
+        <div style={{ padding: 14, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 8, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <input value={addName} onChange={e => setAddName(e.target.value)} placeholder="Seitenname..." style={{ ...inputStyle, flex: 1, minWidth: 150 }} />
+            <select value={addType} onChange={e => setAddType(e.target.value)} style={inputStyle}>
+              {PAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <select value={addParent} onChange={e => setAddParent(e.target.value)} style={inputStyle}>
+              <option value="">Hauptseite</option>
+              {contentPages.map(p => <option key={p.id} value={p.id}>↳ Unterseite von: {p.page_name}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={addPage} disabled={saving || !addName.trim()} style={{ ...btnSmall, background: '#059669', color: '#fff', fontWeight: 700, padding: '6px 16px' }}>Anlegen</button>
+            <button onClick={() => setAddOpen(false)} style={{ ...btnSmall, background: 'var(--border-light)', color: 'var(--text-secondary)' }}>Abbrechen</button>
+          </div>
+        </div>
+      )}
+
+      {/* Inhaltsseiten */}
+      {contentPages.map((p, idx) => (
+        <div key={p.id} style={{ padding: '10px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+          {editId === p.id ? (
+            <>
+              <input value={editName} onChange={e => setEditName(e.target.value)} style={{ ...inputStyle, flex: 1 }} autoFocus onKeyDown={e => e.key === 'Enter' && saveEdit()} />
+              <select value={editType} onChange={e => setEditType(e.target.value)} style={inputStyle}>
+                {PAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <button onClick={saveEdit} disabled={saving} style={{ ...btnSmall, background: '#059669', color: '#fff' }}>✓</button>
+              <button onClick={() => setEditId(null)} style={{ ...btnSmall, background: 'var(--border-light)', color: 'var(--text-secondary)' }}>✕</button>
+            </>
+          ) : (
+            <>
+              {p.parent_id && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginRight: -4 }}>↳</span>}
+              <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', flex: 1, cursor: 'pointer' }} onClick={() => startEdit(p)}>
+                {p.page_name}
+              </span>
+              <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: 'var(--bg-elevated)', color: 'var(--text-tertiary)' }}>{p.page_type}</span>
+              {p.ziel_keyword && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>{p.ziel_keyword}</span>}
+              <button onClick={() => moveUp(idx)} disabled={idx === 0} title="Nach oben" style={{ ...btnSmall, background: 'transparent', color: idx === 0 ? 'var(--border-light)' : 'var(--text-tertiary)', fontSize: 14 }}>↑</button>
+              <button onClick={() => moveDown(idx)} disabled={idx >= contentPages.length - 1} title="Nach unten" style={{ ...btnSmall, background: 'transparent', color: idx >= contentPages.length - 1 ? 'var(--border-light)' : 'var(--text-tertiary)', fontSize: 14 }}>↓</button>
+              <button onClick={() => startEdit(p)} title="Bearbeiten" style={{ ...btnSmall, background: 'transparent', color: 'var(--brand-primary)', fontSize: 12 }}>✎</button>
+              <button onClick={() => deletePage(p.id)} title="Loeschen" style={{ ...btnSmall, background: 'transparent', color: 'var(--status-danger-text)', fontSize: 12 }}>✕</button>
+            </>
+          )}
+        </div>
+      ))}
+
+      {/* Pflichtseiten (nicht editierbar) */}
+      {pflichtPages.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>
+            Pflichtseiten (automatisch)
+          </div>
+          {pflichtPages.map(p => (
+            <div key={p.id} style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8, opacity: 0.6 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{p.page_name}</span>
+              <span style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>🔒</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

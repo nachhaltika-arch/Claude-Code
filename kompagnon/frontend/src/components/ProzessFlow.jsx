@@ -267,6 +267,7 @@ function SchrittInhalt({ schritt, project, lead, token, headers,
             leadData={briefing}
             onClose={() => {}}
             onComplete={() => {}}
+            embedded
           />
         </div>
       ) : <Spinner />;

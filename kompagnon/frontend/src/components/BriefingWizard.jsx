@@ -567,7 +567,7 @@ function Step6({ data, saving, error, onSaveAndPdf }) {
 
 // ── Wizard ───────────────────────────────────────────────────────────────────
 
-export default function BriefingWizard({ leadId, leadData, onClose, onComplete }) {
+export default function BriefingWizard({ leadId, leadData, onClose, onComplete, embedded = false }) {
   const { isMobile } = useScreenSize();
   const existingDraft = loadDraft(leadId);
 
@@ -763,6 +763,42 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
         borderRadius: 20,
         animation: 'bwSlideUp 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)',
       };
+
+  // ── Embedded: render inline without portal ──
+  if (embedded) {
+    return (
+      <div style={{ borderRadius: 12, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', overflow: 'hidden', maxHeight: 600 }}>
+        {/* Header */}
+        <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-surface)', flexShrink: 0 }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', color: TEAL, textTransform: 'uppercase' }}>Schritt {step + 1} von {STEPS.length}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>{STEPS[step]}</div>
+          </div>
+        </div>
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+          {renderStep()}
+        </div>
+        {/* Footer */}
+        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <button onClick={handleBack} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-light)', background: 'var(--bg-app)', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+            {step === 0 ? 'Abbrechen' : 'Zurueck'}
+          </button>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{step + 1} / {STEPS.length}</span>
+          {step < STEPS.length - 1 ? (
+            <button onClick={handleNext} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: canNext() ? TEAL : 'var(--border-medium)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              Weiter
+            </button>
+          ) : (
+            <button onClick={handleSaveAndPdf} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: saving ? 'var(--border-medium)' : '#059669', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+              {saving ? 'Speichert...' : 'Speichern'}
+            </button>
+          )}
+        </div>
+        {saveError && <div style={{ padding: '8px 20px', fontSize: 12, color: 'var(--status-danger-text)', background: 'var(--status-danger-bg)' }}>{saveError}</div>}
+      </div>
+    );
+  }
 
   return createPortal(
     <>

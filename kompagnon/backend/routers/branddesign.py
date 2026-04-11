@@ -10,9 +10,10 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from database import get_db, Lead
-import httpx, re, os, json, anthropic
+import httpx, re, os, json, anthropic, logging
 from datetime import datetime
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/branddesign", tags=["branddesign"])
 
 
@@ -75,22 +76,22 @@ def get_brand_data(lead_id: int, db: Session = Depends(get_db)):
 
     return {
         "lead_id":         lead_id,
-        "primary_color":   getattr(lead, 'brand_primary_color',   None),
-        "secondary_color": getattr(lead, 'brand_secondary_color', None),
-        "font_primary":    getattr(lead, 'brand_font_primary',    None),
-        "font_secondary":  getattr(lead, 'brand_font_secondary',  None),
-        "logo_url":        getattr(lead, 'brand_logo_url',        None),
-        "all_colors":      _j(getattr(lead, 'brand_colors', None)),
-        "all_fonts":       _j(getattr(lead, 'brand_fonts',  None)),
-        "scrape_failed":   bool(getattr(lead, 'brand_scrape_failed', False)),
-        "design_style":    getattr(lead, 'brand_design_style',   None),
-        "brand_notes":     getattr(lead, 'brand_notes',          None),
-        "pdf_filename":    getattr(lead, 'brand_pdf_filename',   None),
-        "scraped_at":      str(getattr(lead, 'brand_scraped_at', '') or '')[:16] or None,
-        "ga_status":         getattr(lead, 'ga_status', 'unbekannt'),
-        "ga_type":           getattr(lead, 'ga_type', None),
-        "ga_measurement_id": getattr(lead, 'ga_measurement_id', None),
-        "ga_checked_at":     str(getattr(lead, 'ga_checked_at', '') or '')[:16] or None,
+        "primary_color":   lead.brand_primary_color,
+        "secondary_color": lead.brand_secondary_color,
+        "font_primary":    lead.brand_font_primary,
+        "font_secondary":  lead.brand_font_secondary,
+        "logo_url":        lead.brand_logo_url,
+        "all_colors":      _j(lead.brand_colors),
+        "all_fonts":       _j(lead.brand_fonts),
+        "scrape_failed":   bool(lead.brand_scrape_failed or False),
+        "design_style":    lead.brand_design_style,
+        "brand_notes":     lead.brand_notes,
+        "pdf_filename":    lead.brand_pdf_filename,
+        "scraped_at":      str(lead.brand_scraped_at or '')[:16] or None,
+        "ga_status":         lead.ga_status or 'unbekannt',
+        "ga_type":           lead.ga_type,
+        "ga_measurement_id": lead.ga_measurement_id,
+        "ga_checked_at":     str(lead.ga_checked_at or '')[:16] or None,
         "design_data":       design_data,
     }
 
@@ -184,13 +185,14 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
 
     try:
         async with httpx.AsyncClient(
-            headers={'User-Agent': 'Mozilla/5.0'},
-            timeout=10.0,
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
+            timeout=30.0,
             follow_redirects=True,
         ) as client:
             resp = await client.get(website_url)
             resp.raise_for_status()
             html_text = resp.text
+        logger.info(f"Brand scrape OK for {website_url}: {len(html_text)} chars")
 
         # ── Google Analytics erkennen ──
         ga_result = _detect_google_analytics(html_text)
@@ -247,9 +249,10 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
                 logo_url = src if src.startswith('http') else urljoin(base, src)
                 break
 
-    except Exception:
+    except Exception as e:
         scrape_failed = True
         html_text = ''
+        logger.error(f"Brand scrape failed for {website_url}: {e}")
 
     # ── Design-DNA Extraktion ─────────────────────────────────────────
     design_data = None
@@ -341,19 +344,25 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
 
     # Persist
     now = datetime.utcnow()
-    _set(lead, 'brand_primary_color',   primary_color)
-    _set(lead, 'brand_secondary_color', secondary_color)
-    _set(lead, 'brand_font_primary',    font_primary)
-    _set(lead, 'brand_font_secondary',  font_secondary)
-    _set(lead, 'brand_logo_url',        logo_url)
-    _set(lead, 'brand_colors',          json.dumps(all_colors))
-    _set(lead, 'brand_fonts',           json.dumps(all_fonts))
-    _set(lead, 'brand_scrape_failed',   scrape_failed)
-    _set(lead, 'brand_scraped_at',      now)
+    lead.brand_primary_color   = primary_color
+    lead.brand_secondary_color = secondary_color
+    lead.brand_font_primary    = font_primary
+    lead.brand_font_secondary  = font_secondary
+    lead.brand_logo_url        = logo_url
+    lead.brand_colors          = json.dumps(all_colors)
+    lead.brand_fonts           = json.dumps(all_fonts)
+    lead.brand_scrape_failed   = scrape_failed
+    lead.brand_scraped_at      = now
     if design_data:
-        _set(lead, 'brand_design_json', json.dumps(design_data, ensure_ascii=False))
-        _set(lead, 'brand_design_style', design_data.get("style_keyword"))
-    db.commit()
+        lead.brand_design_json  = json.dumps(design_data, ensure_ascii=False)
+        lead.brand_design_style = design_data.get("style_keyword")
+    try:
+        db.commit()
+        logger.info(f"Brand data saved for lead {lead_id}: primary={primary_color}, fonts={len(all_fonts)}")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Brand save failed for lead {lead_id}: {e}")
+        raise HTTPException(500, f"Speichern fehlgeschlagen: {str(e)[:100]}")
 
     return {
         "primary_color":   primary_color,

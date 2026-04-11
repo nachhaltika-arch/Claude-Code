@@ -20,8 +20,11 @@ import csv
 import httpx
 import io
 import json
+import logging
 import os
 import uuid
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
 

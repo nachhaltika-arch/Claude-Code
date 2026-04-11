@@ -16,6 +16,8 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
   const [pageContent, setPageContent]   = useState({});
   const [editedContent, setEditedContent] = useState({});
   const [newContent, setNewContent]     = useState({});
+  const [suggestedSitemap, setSuggestedSitemap] = useState(null);
+  const [suggesting, setSuggesting]             = useState(false);
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
@@ -76,10 +78,55 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
               <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin .8s linear infinite' }} />
             </div>
           ) : sitemapPages.length === 0 ? (
-            <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)' }}>
-              <div style={{ fontSize: 32, marginBottom: 10 }}>🗺️</div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Noch keine Sitemap angelegt</div>
-              <div style={{ fontSize: 12, marginBottom: 16 }}>Definiere zuerst die Seitenstruktur der neuen Website.</div>
+            <div>
+              <div style={{ padding: '16px 18px', background: 'var(--bg-app)', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>KI-Sitemap generieren</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Claude analysiert die gecrawlten Seiten und schlaegt eine Struktur vor</div>
+                </div>
+                <button onClick={async () => {
+                  setSuggesting(true);
+                  try {
+                    const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/sitemap-suggest`, { method: 'POST', headers });
+                    if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Fehler');
+                    const { suggested_pages } = await res.json();
+                    setSuggestedSitemap(suggested_pages);
+                    toast.success(`${suggested_pages.length} Seiten vorgeschlagen`);
+                  } catch (e) { toast.error(e.message); }
+                  finally { setSuggesting(false); }
+                }} disabled={suggesting}
+                  style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: suggesting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                  {suggesting ? 'Analysiert...' : 'KI-Sitemap vorschlagen'}
+                </button>
+              </div>
+              {suggestedSitemap ? (
+                <div style={{ padding: '14px 18px', background: 'rgba(0,142,170,.05)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-primary)', marginBottom: 8 }}>Vorschlag — {suggestedSitemap.length} Seiten</div>
+                  {suggestedSitemap.map((p, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 10, padding: '4px 0', borderBottom: '1px solid var(--border-light)', fontSize: 11 }}>
+                      <span style={{ color: 'var(--text-primary)', flex: 1 }}>{p.page_name}</span>
+                      <span style={{ color: 'var(--text-tertiary)' }}>{p.page_type}</span>
+                      <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>{p.ziel_keyword}</span>
+                    </div>
+                  ))}
+                  <button onClick={async () => {
+                    for (const p of suggestedSitemap) {
+                      await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id || leadId}`,
+                        { method: 'POST', headers, body: JSON.stringify({ page_name: p.page_name, page_type: p.page_type, slug: p.slug, ziel_keyword: p.ziel_keyword, zweck: p.zweck }) });
+                    }
+                    setSuggestedSitemap(null);
+                    toast.success('Sitemap uebernommen!');
+                  }} style={{ marginTop: 10, padding: '7px 14px', borderRadius: 6, border: 'none', background: '#059669', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    Uebernehmen
+                  </button>
+                </div>
+              ) : (
+                <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                  <div style={{ fontSize: 32, marginBottom: 10 }}>🗺️</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Noch keine Sitemap angelegt</div>
+                  <div style={{ fontSize: 12 }}>KI-Vorschlag generieren oder manuell im Analyse-Tab anlegen.</div>
+                </div>
+              )}
             </div>
           ) : (
             <div>

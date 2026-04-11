@@ -250,11 +250,171 @@ export default function ProzessFlow({
   );
 }
 
-function SchrittInhalt({ schritt }) {
+function SchrittInhalt({ schritt, project, lead, token, headers,
+  briefing, latestAudit, sitemapPages, sitemapLoading,
+  websiteContent, brandData, netlify, qaResult }) {
+
+  const pad = { padding: '20px 24px' };
+
+  switch (schritt.component) {
+
+    case 'BriefingUnternehmen':
+    case 'BriefingWebsite':
+      return lead
+        ? <div style={pad}><BriefingTab lead={lead} token={token} /></div>
+        : <Spinner />;
+
+    case 'AnalyseZentrale':
+      return (
+        <AnalyseCentrale
+          projectId={project.id}
+          leadId={project.lead_id}
+          websiteUrl={lead?.website_url || project.website_url}
+          token={token}
+        />
+      );
+
+    case 'Audit':
+      return (
+        <div style={pad}>
+          {latestAudit ? (
+            <div style={{ background: 'var(--status-success-bg)', border: '1px solid var(--status-success-text)', borderRadius: 8, padding: '14px 18px' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--status-success-text)' }}>
+                Audit vorhanden — Score: {latestAudit.total_score}/100
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>{latestAudit.level}</div>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '32px 20px', color: 'var(--text-tertiary)' }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
+              <div style={{ fontSize: 13 }}>Noch kein Audit — bitte Audit starten.</div>
+            </div>
+          )}
+        </div>
+      );
+
+    case 'Zugangsdaten':
+      return (
+        <div style={pad}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            Hosting-, FTP- und CMS-Zugaenge sicher speichern.
+          </div>
+        </div>
+      );
+
+    case 'Sitemap':
+      return sitemapLoading
+        ? <Spinner />
+        : (
+          <div style={pad}>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+              {sitemapPages.length > 0
+                ? `${sitemapPages.length} Seiten definiert.`
+                : 'Noch keine Sitemap — bitte Seitenstruktur anlegen.'}
+            </div>
+            {sitemapPages.map(p => (
+              <div key={p.id} style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-light)', display: 'flex', gap: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>{p.page_name}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{p.page_type}</span>
+              </div>
+            ))}
+          </div>
+        );
+
+    case 'ContentWerkstatt':
+      return (
+        <ContentWerkstatt
+          project={project}
+          sitemapPages={sitemapPages}
+          sitemapLoading={sitemapLoading}
+          token={token}
+          leadId={project.lead_id}
+          websiteContent={websiteContent}
+        />
+      );
+
+    case 'Assets':
+      return (
+        <div style={pad}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            {(websiteContent || []).length} gecrawlte Seiten · {sitemapPages.length} Sitemap-Seiten
+          </div>
+        </div>
+      );
+
+    case 'DesignStudio':
+    case 'Editor':
+      return (
+        <DesignStudio
+          project={project}
+          leadId={project.lead_id}
+          token={token}
+          brandData={brandData}
+          sitemapPages={sitemapPages}
+        />
+      );
+
+    case 'Netlify':
+      return (
+        <div style={pad}>
+          {netlify ? (
+            <div style={{ background: 'var(--status-success-bg)', border: '1px solid var(--status-success-text)', borderRadius: 8, padding: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--status-success-text)' }}>{netlify.url}</div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Netlify noch nicht eingerichtet.</div>
+          )}
+        </div>
+      );
+
+    case 'DNS':
+      return (
+        <div style={pad}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            CNAME beim Domain-Anbieter von {lead?.company_name || 'Kunde'} setzen.
+          </div>
+        </div>
+      );
+
+    case 'QA':
+      return (
+        <div style={pad}>
+          {qaResult
+            ? <div style={{ fontSize: 13, color: 'var(--status-success-text)' }}>QA abgeschlossen</div>
+            : <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>QA noch nicht durchgefuehrt.</div>}
+        </div>
+      );
+
+    case 'Abnahme':
+      return (
+        <div style={{ ...pad, textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🏁</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+            Bereit fuer Go Live!
+          </div>
+          {netlify?.url && (
+            <a href={netlify.url} target="_blank" rel="noreferrer"
+              style={{ fontSize: 13, color: 'var(--brand-primary)' }}>
+              {netlify.url}
+            </a>
+          )}
+        </div>
+      );
+
+    default:
+      return (
+        <div style={{ ...pad, textAlign: 'center', color: 'var(--text-tertiary)' }}>
+          <div style={{ fontSize: 32 }}>{schritt.icon}</div>
+          <div style={{ fontSize: 13, marginTop: 8 }}>{schritt.desc}</div>
+        </div>
+      );
+  }
+}
+
+function Spinner() {
   return (
-    <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-tertiary)' }}>
-      <div style={{ fontSize: 32 }}>{schritt.icon}</div>
-      <div style={{ fontSize: 13, marginTop: 8 }}>{schritt.label} — Inhalt folgt in Teil 3</div>
+    <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+      <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin .8s linear infinite' }} />
     </div>
   );
 }

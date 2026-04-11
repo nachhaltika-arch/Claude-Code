@@ -317,15 +317,7 @@ function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
 
     case 'BriefingUnternehmen':
       return lead ? (
-        <div style={pad}>
-          <BriefingWizard
-            leadId={lead.id}
-            leadData={localBriefing}
-            onClose={() => {}}
-            onComplete={reloadBriefing}
-            embedded
-          />
-        </div>
+        <BriefingUnternehmenEmbed lead={lead} localBriefing={localBriefing} reloadBriefing={reloadBriefing} />
       ) : <Spinner />;
 
     case 'BriefingWebsite':
@@ -433,6 +425,72 @@ function Spinner() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
       <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin .8s linear infinite' }} />
+    </div>
+  );
+}
+
+function BriefingUnternehmenEmbed({ lead, localBriefing, reloadBriefing }) {
+  const [editing, setEditing] = useState(false);
+  const b = localBriefing;
+  const hasDaten = !!(b?.gewerk || b?.leistungen || b?.usp);
+
+  if (editing || !hasDaten) {
+    return (
+      <div style={{ padding: '20px 24px' }}>
+        {hasDaten && (
+          <button onClick={() => setEditing(false)}
+            style={{ marginBottom: 12, padding: '5px 14px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+            Zurueck zur Uebersicht
+          </button>
+        )}
+        <BriefingWizard
+          leadId={lead.id}
+          leadData={localBriefing}
+          onClose={() => { if (hasDaten) setEditing(false); }}
+          onComplete={() => { reloadBriefing(); setEditing(false); }}
+          embedded
+        />
+      </div>
+    );
+  }
+
+  const rows = [
+    b.gewerk        && { label: 'Gewerk / Branche', value: b.gewerk },
+    b.wz_title      && { label: 'WZ-Code',          value: `${b.wz_code} — ${b.wz_title}` },
+    b.leistungen    && { label: 'Leistungen',        value: b.leistungen },
+    b.einzugsgebiet && { label: 'Einzugsgebiet',     value: b.einzugsgebiet },
+    b.usp           && { label: 'USP',               value: b.usp },
+    b.zielgruppe    && { label: 'Zielgruppe',        value: typeof b.zielgruppe === 'string' ? b.zielgruppe : b.zielgruppe?.primaer || '' },
+    b.farben        && { label: 'Farben',            value: b.farben },
+    b.stil          && { label: 'Stil',              value: b.stil },
+    b.mitbewerber   && { label: 'Mitbewerber',       value: b.mitbewerber },
+    b.vorbilder     && { label: 'Vorbilder',         value: b.vorbilder },
+    b.sonstige_hinweise && { label: 'Hinweise',      value: b.sonstige_hinweise },
+  ].filter(Boolean);
+
+  return (
+    <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Briefing-Daten</div>
+        <button onClick={() => setEditing(true)}
+          style={{ padding: '6px 16px', borderRadius: 6, border: '1px solid var(--brand-primary)', background: 'transparent', color: 'var(--brand-primary)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+          Bearbeiten
+        </button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
+        {rows.map(({ label, value }) => (
+          <div key={label}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{label}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>{value}</div>
+          </div>
+        ))}
+      </div>
+      {(b.logo_vorhanden || b.fotos_vorhanden) && (
+        <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+          {b.logo_vorhanden && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 99, background: '#dcfce7', color: '#059669', fontWeight: 600 }}>Logo vorhanden</span>}
+          {b.fotos_vorhanden && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 99, background: '#dcfce7', color: '#059669', fontWeight: 600 }}>Fotos vorhanden</span>}
+        </div>
+      )}
     </div>
   );
 }

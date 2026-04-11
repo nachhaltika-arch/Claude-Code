@@ -586,10 +586,37 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
 
   const [data, setData] = useState(() => existingDraft?.data || defaultData);
 
+  // Sync from leadData when it arrives (e.g. after async briefing load)
+  useEffect(() => {
+    if (!leadData) return;
+    setData(prev => {
+      // Only fill empty fields — don't overwrite user edits
+      const hasUserInput = prev.gewerk || prev.leistungen || prev.usp;
+      if (hasUserInput) return prev;
+      const updated = { ...prev };
+      for (const key of Object.keys(prev)) {
+        if (!prev[key] && leadData[key]) {
+          if (key === 'zielgruppe') {
+            updated[key] = typeof leadData[key] === 'string' ? leadData[key] : leadData[key]?.primaer || '';
+          } else if (key === 'wunschseiten') {
+            updated[key] = Array.isArray(leadData[key]) ? leadData[key] : (leadData[key] || '').split(', ').filter(Boolean);
+          } else {
+            updated[key] = leadData[key];
+          }
+        }
+      }
+      return updated;
+    });
+  }, [leadData]); // eslint-disable-line
+
   const set = (key, val) => setData(d => ({ ...d, [key]: val }));
 
-  // Auto-Save Draft bei jeder Änderung
-  useEffect(() => { saveDraft(leadId, data, step); }, [data, step, leadId]);
+  // Auto-Save Draft bei jeder Änderung (nur wenn echte Daten vorhanden)
+  useEffect(() => {
+    if (data.gewerk || data.leistungen || data.usp || data.farben || data.stil) {
+      saveDraft(leadId, data, step);
+    }
+  }, [data, step, leadId]);
 
   const [touched, setTouched] = useState({});
   const touch = (field) => setTouched(prev => ({ ...prev, [field]: true }));

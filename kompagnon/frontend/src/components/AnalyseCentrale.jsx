@@ -281,8 +281,9 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
 
     setCurrentStep(-1);
     setRunning(false);
+    // Gespeicherte Ergebnisse nachladen (Seiten-Board + Panel-Daten aktualisieren)
     await loadSavedResults();
-    toast.success('Alle Analysen abgeschlossen!');
+    toast.success('Alle Analysen abgeschlossen — Ergebnisse gespeichert!');
   };
 
   // ── Gesamtfortschritt ────────────────────────────────────────────────────

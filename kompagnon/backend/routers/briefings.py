@@ -183,3 +183,87 @@ def update_briefing(
     db.commit()
     db.refresh(briefing)
     return _serialize(briefing)
+
+
+@router.post("/{lead_id}/suggest-field")
+async def suggest_field(
+    lead_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Claude analysiert Website-Content und schlaegt Wert fuer ein Briefing-Feld vor."""
+    import os, httpx, re
+    from sqlalchemy import text as sa_text
+
+    field = data.get("field", "")
+    if not field:
+        raise HTTPException(400, "field fehlt")
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    rows = db.execute(
+        sa_text("SELECT url, title, h1, h2s, text_preview, full_text FROM website_content_cache WHERE customer_id = :lid ORDER BY word_count DESC LIMIT 8"),
+        {"lid": lead_id},
+    ).fetchall()
+
+    if not rows:
+        raise HTTPException(400, "Kein Website-Content vorhanden")
+
+    content_parts = []
+    for row in rows:
+        url, title, h1, h2s_json, preview, full_text = row
+        h2s = []
+        try:
+            h2s = json.loads(h2s_json or '[]')
+        except Exception:
+            pass
+        part = f"URL: {url}\nH1: {h1 or title}"
+        if h2s:
+            part += "\nH2: " + " | ".join(h2s[:5])
+        if preview:
+            part += f"\nText: {preview[:400]}"
+        content_parts.append(part)
+
+    website_content = "\n\n---\n\n".join(content_parts)
+
+    FIELD_PROMPTS = {
+        "gewerk": "Erkenne die Hauptbranche/das Gewerk. Antworte NUR mit dem Gewerknamen. Max 40 Zeichen.",
+        "leistungen": "Liste alle konkreten Leistungen auf. Eine pro Zeile. Max 10 Zeilen.",
+        "einzugsgebiet": "Erkenne die Region/Stadt. Antworte mit Stadt und Radius. Max 80 Zeichen.",
+        "zielgruppe": "Primaere Zielgruppe. Antworte NUR mit: Privatkunden, Geschaeftskunden, oder Beides.",
+        "typischerKunde": "Beschreibe den typischen Kunden. 1-2 Saetze.",
+        "haeufigeAnfrage": "Was ist die haeufigste Kundenanfrage? 1 Satz.",
+        "usp": "Finde Alleinstellungsmerkmale (USP). Max 3 Saetze.",
+        "mitbewerber": "Werden Mitbewerber erwaehnt? Falls nein: Keine Angaben gefunden.",
+        "vorbilder": "Werden andere Websites erwaehnt? Falls nein: Keine Angaben gefunden.",
+        "farben": "Welche Farbstimmung transportiert der Content? Kurze Beschreibung.",
+        "stil": "Welchen Stil hat die Website? Waehle: Modern, Klassisch, Freundlich, Handwerklich, oder Premium. NUR ein Wort.",
+        "wunschseiten": "Welche Seiten hat die aktuelle Website? Liste Hauptseiten auf, eine pro Zeile.",
+        "sonstige_hinweise": "Besondere Informationen, Zertifikate, Auszeichnungen? Max 3 Saetze.",
+    }
+
+    field_prompt = FIELD_PROMPTS.get(field)
+    if not field_prompt:
+        raise HTTPException(400, f"Kein Vorschlag fuer Feld: {field}")
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    prompt = f"Du analysierst Website-Content und beantwortest eine Frage.\n\nWEBSITE-CONTENT:\n{website_content}\n\nAUFGABE: {field_prompt}\n\nAntworte NUR mit dem Wert, keine Einleitung."
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514", "max_tokens": 400, "messages": [{"role": "user", "content": prompt}]},
+            )
+        resp.raise_for_status()
+        suggestion = resp.json()["content"][0]["text"].strip()
+        return {"field": field, "suggestion": suggestion}
+    except Exception as e:
+        raise HTTPException(500, f"Vorschlag fehlgeschlagen: {str(e)[:150]}")

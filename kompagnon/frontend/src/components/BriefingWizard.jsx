@@ -4,6 +4,7 @@ import API_BASE_URL from '../config';
 import WZSearch from './WZSearch';
 import { useScreenSize } from '../utils/responsive';
 import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
+import { useAuth } from '../context/AuthContext';
 
 const TEAL   = 'var(--brand-primary)';
 const STEPS  = [
@@ -223,10 +224,10 @@ function ProgressBar({ step }) {
 
 // ── Step screens ─────────────────────────────────────────────────────────────
 
-function Step1({ data, set, firstRef, touch, fieldError }) {
+function Step1({ data, set, firstRef, touch, fieldError, suggestions, onSuggest, onApply }) {
   return (
     <div ref={firstRef}>
-      <Field label="Gewerk / Branche" required hint="Wählen Sie die Hauptbranche Ihres Betriebs." error={fieldError('gewerk')}>
+      <Field label="Gewerk / Branche" required hint="Waehlen Sie die Hauptbranche Ihres Betriebs." error={fieldError('gewerk')}>
         <WZSearch
           value={data.wz_code ? { code: data.wz_code, title: data.wz_title } : null}
           onChange={(entry) => {
@@ -234,8 +235,9 @@ function Step1({ data, set, firstRef, touch, fieldError }) {
             set('wz_title', entry?.title || '');
             set('gewerk', entry?.title || '');
           }}
-          placeholder="Branche suchen, z.B. 'Elektro', 'Sanitär', 'Maler'..."
+          placeholder="Branche suchen, z.B. 'Elektro', 'Sanitaer', 'Maler'..."
         />
+        <SuggestButton field="gewerk" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.gewerk} />
       </Field>
       <Field label="Leistungen" required hint="Was bieten Sie an? Bitte alle Leistungen auflisten." error={fieldError('leistungen')} charInfo="Empfohlen: mind. 50 Zeichen">
         <Textarea
@@ -244,9 +246,10 @@ function Step1({ data, set, firstRef, touch, fieldError }) {
           onBlur={() => touch('leistungen')}
           hasError={!!fieldError('leistungen')}
           minLength={50}
-          placeholder={"z.B. Badsanierung, Rohrbruch-Notdienst, Heizungsinstallation …"}
+          placeholder={"z.B. Badsanierung, Rohrbruch-Notdienst, Heizungsinstallation"}
           rows={5}
         />
+        <SuggestButton field="leistungen" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.leistungen} />
       </Field>
       <Field label="Einzugsgebiet" hint="In welcher Region arbeiten Sie?">
         <Input
@@ -254,38 +257,42 @@ function Step1({ data, set, firstRef, touch, fieldError }) {
           onChange={v => set('einzugsgebiet', v)}
           placeholder="z.B. Koblenz und Umgebung, ca. 40 km Radius"
         />
+        <SuggestButton field="einzugsgebiet" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.einzugsgebiet} />
       </Field>
     </div>
   );
 }
 
-function Step2({ data, set, firstRef, touch, fieldError }) {
+function Step2({ data, set, firstRef, touch, fieldError, suggestions, onSuggest, onApply }) {
   return (
     <div ref={firstRef}>
-      <Field label="Zielgruppe" required hint="Wen sprechen Sie mit Ihrer Website hauptsächlich an?" error={fieldError('zielgruppe')}>
+      <Field label="Zielgruppe" required hint="Wen sprechen Sie mit Ihrer Website an?" error={fieldError('zielgruppe')}>
         <Select value={data.zielgruppe} onChange={v => set('zielgruppe', v)} onBlur={() => touch('zielgruppe')} hasError={!!fieldError('zielgruppe')} options={ZIELGRUPPE_OPTIONS} />
+        <SuggestButton field="zielgruppe" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.zielgruppe} />
       </Field>
       <Field label="Typischer Kunde" hint="Beschreiben Sie Ihren idealen Kunden." charInfo="Empfohlen: mind. 30 Zeichen">
         <Textarea
           value={data.typischerKunde}
           onChange={v => set('typischerKunde', v)}
           minLength={30}
-          placeholder={"z.B. Eigenheimbesitzer, 40–60 Jahre, plant Badsanierung im nächsten Jahr …"}
+          placeholder={"z.B. Eigenheimbesitzer, 40-60 Jahre, plant Badsanierung"}
           rows={4}
         />
+        <SuggestButton field="typischerKunde" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.typischerKunde} />
       </Field>
-      <Field label="Häufigste Anfrage" hint="Was fragen Kunden am häufigsten an?">
+      <Field label="Haeufigste Anfrage" hint="Was fragen Kunden am haeufigsten an?">
         <Input
           value={data.haeufigeAnfrage}
           onChange={v => set('haeufigeAnfrage', v)}
-          placeholder="z.B. Kostenanfrage Heizungstausch, Notdienst Rohrbruch …"
+          placeholder="z.B. Kostenanfrage Heizungstausch, Notdienst Rohrbruch"
         />
+        <SuggestButton field="haeufigeAnfrage" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.haeufigeAnfrage} />
       </Field>
     </div>
   );
 }
 
-function Step3({ data, set, firstRef, touch, fieldError }) {
+function Step3({ data, set, firstRef, touch, fieldError, suggestions, onSuggest, onApply }) {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   const loadSuggestions = async () => {
@@ -310,7 +317,7 @@ function Step3({ data, set, firstRef, touch, fieldError }) {
 
   return (
     <div ref={firstRef}>
-      <Field label="Alleinstellungsmerkmal (USP)" required hint="Was macht Ihren Betrieb besonders?" error={fieldError('usp')} charInfo="Empfohlen: 40–300 Zeichen">
+      <Field label="Alleinstellungsmerkmal (USP)" required hint="Was macht Ihren Betrieb besonders?" error={fieldError('usp')} charInfo="Empfohlen: 40-300 Zeichen">
         <Textarea
           value={data.usp}
           onChange={v => set('usp', v)}
@@ -318,16 +325,18 @@ function Step3({ data, set, firstRef, touch, fieldError }) {
           hasError={!!fieldError('usp')}
           minLength={40}
           maxLength={300}
-          placeholder={"z.B. 25 Jahre Erfahrung, 24h-Notdienst, Festpreisgarantie, familiengeführt …"}
+          placeholder={"z.B. 25 Jahre Erfahrung, 24h-Notdienst, Festpreisgarantie"}
           rows={5}
         />
+        <SuggestButton field="usp" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.usp} />
       </Field>
-      <Field label="Mitbewerber" hint="Nennen Sie 2–3 Mitbewerber in Ihrer Region.">
+      <Field label="Mitbewerber" hint="Nennen Sie 2-3 Mitbewerber in Ihrer Region.">
         <Input
           value={data.mitbewerber}
           onChange={v => set('mitbewerber', v)}
-          placeholder="z.B. Firma Müller, Installateure Schmidt GmbH …"
+          placeholder="z.B. Firma Mueller, Installateure Schmidt GmbH"
         />
+        <SuggestButton field="mitbewerber" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.mitbewerber} />
       </Field>
       <Field label="Inspirations-Website 1" hint="Welche Websites gefallen Ihnen?">
         <Input
@@ -569,13 +578,29 @@ function Step6({ data, saving, error, onSaveAndPdf }) {
 
 export default function BriefingWizard({ leadId, leadData, onClose, onComplete, embedded = false }) {
   const { isMobile } = useScreenSize();
+  const { token } = useAuth();
+  const suggestHeaders = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
   const existingDraft = loadDraft(leadId);
 
   const [step, setStep] = useState(existingDraft?.step ?? 0);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [draftBanner, setDraftBanner] = useState(existingDraft ? formatDraftAge(existingDraft.savedAt) : null);
+  const [suggestions, setSuggestions] = useState({});
   const firstFieldRef = useRef(null);
+
+  const suggestField = async (field) => {
+    setSuggestions(prev => ({ ...prev, [field]: { loading: true, value: null, error: null } }));
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/briefings/${leadId}/suggest-field`, { method: 'POST', headers: suggestHeaders, body: JSON.stringify({ field }) });
+      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.detail || 'Fehler'); }
+      const { suggestion } = await res.json();
+      setSuggestions(prev => ({ ...prev, [field]: { loading: false, value: suggestion, error: null } }));
+    } catch (e) {
+      setSuggestions(prev => ({ ...prev, [field]: { loading: false, value: null, error: e.message } }));
+    }
+  };
+  const applySuggestion = (field) => setSuggestions(prev => ({ ...prev, [field]: { ...prev[field], value: null } }));
 
   // Esc schließt den Wizard
   useEscapeKey(onClose, true);
@@ -736,7 +761,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
   };
 
   const renderStep = () => {
-    const p = { data, set, touch, fieldError, firstRef: firstFieldRef };
+    const p = { data, set, touch, fieldError, firstRef: firstFieldRef, suggestions, onSuggest: suggestField, onApply: applySuggestion };
     switch (step) {
       case 0: return <Step1 {...p} />;
       case 1: return <Step2 {...p} />;
@@ -1057,5 +1082,42 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
       `}</style>
     </>,
     document.body
+  );
+}
+
+function SuggestButton({ field, suggestions, onSuggest, onApply, set, currentValue }) {
+  const s = suggestions?.[field] || {};
+  if (s.loading) return (
+    <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ width: 10, height: 10, border: '1.5px solid #DDE4E8', borderTopColor: '#008EAA', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block' }} />
+      <span style={{ fontSize: 11, color: '#8A9BA8' }}>Website wird analysiert...</span>
+    </div>
+  );
+  if (s.value) return (
+    <div style={{ marginTop: 8, background: '#E8F7FA', border: '1px solid #A8DDE8', borderRadius: 8, padding: '10px 12px' }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: '#008EAA', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Vorschlag aus Website-Content</div>
+      <div style={{ fontSize: 12, color: '#1a2e35', lineHeight: 1.6, marginBottom: 8, whiteSpace: 'pre-wrap' }}>{s.value}</div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="button" onClick={() => { set(field, s.value); onApply(field); }}
+          style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: '#008EAA', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          Uebernehmen
+        </button>
+        <button type="button" onClick={() => { set(field, (currentValue ? currentValue + '\n' : '') + s.value); onApply(field); }}
+          style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #008EAA', background: 'transparent', color: '#008EAA', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          + Ergaenzen
+        </button>
+        <button type="button" onClick={() => onApply(field)}
+          style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: 'transparent', color: '#8A9BA8', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          Ablehnen
+        </button>
+      </div>
+    </div>
+  );
+  if (s.error) return <div style={{ marginTop: 6, fontSize: 11, color: '#C0392B' }}>{s.error}</div>;
+  return (
+    <button type="button" onClick={() => onSuggest(field)}
+      style={{ marginTop: 6, padding: '4px 10px', borderRadius: 6, border: '1px dashed #A8DDE8', background: 'transparent', color: '#008EAA', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      Aus Website vorschlagen
+    </button>
   );
 }

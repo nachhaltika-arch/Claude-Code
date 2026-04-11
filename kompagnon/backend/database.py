@@ -98,6 +98,27 @@ class Lead(Base):
     geschaeftsfuehrer       = Column(String, nullable=True)
     favicon_url             = Column(String(500), default='')
 
+    # Brand Design (stored per-lead from website scrape)
+    brand_primary_color   = Column(String(20), nullable=True)
+    brand_secondary_color = Column(String(20), nullable=True)
+    brand_font_primary    = Column(String(100), nullable=True)
+    brand_font_secondary  = Column(String(100), nullable=True)
+    brand_logo_url        = Column(Text, nullable=True)
+    brand_colors          = Column(Text, nullable=True)
+    brand_fonts           = Column(Text, nullable=True)
+    brand_scrape_failed   = Column(Boolean, default=False, nullable=True)
+    brand_scraped_at      = Column(DateTime, nullable=True)
+    brand_design_json     = Column(Text, nullable=True)
+    brand_design_style    = Column(String(100), nullable=True)
+    brand_notes           = Column(Text, nullable=True)
+    brand_pdf_filename    = Column(String(255), nullable=True)
+
+    # Google Analytics detection
+    ga_status         = Column(String(50), nullable=True)
+    ga_type           = Column(String(50), nullable=True)
+    ga_measurement_id = Column(String(50), nullable=True)
+    ga_checked_at     = Column(DateTime, nullable=True)
+
     # E-Mail-Sequenz (Drip-Campaign)
     sequence_active    = Column(Boolean, default=False, nullable=True)
     sequence_step      = Column(Integer, default=0,     nullable=True)

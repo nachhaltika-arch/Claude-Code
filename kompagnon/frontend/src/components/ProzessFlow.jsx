@@ -399,38 +399,13 @@ function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
       return <NetlifyEmbed project={project} headers={headers} netlify={netlify} />;
 
     case 'DNS':
-      return (
-        <div style={pad}>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-            CNAME beim Domain-Anbieter von {lead?.company_name || 'Kunde'} setzen.
-          </div>
-        </div>
-      );
+      return <DNSEmbed project={project} lead={lead} headers={headers} />;
 
     case 'QA':
-      return (
-        <div style={pad}>
-          {qaResult
-            ? <div style={{ fontSize: 13, color: 'var(--status-success-text)' }}>QA abgeschlossen</div>
-            : <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>QA noch nicht durchgefuehrt.</div>}
-        </div>
-      );
+      return <QAEmbed project={project} headers={headers} qaResult={qaResult} />;
 
     case 'Abnahme':
-      return (
-        <div style={{ ...pad, textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🏁</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
-            Bereit fuer Go Live!
-          </div>
-          {netlify?.url && (
-            <a href={netlify.url} target="_blank" rel="noreferrer"
-              style={{ fontSize: 13, color: 'var(--brand-primary)' }}>
-              {netlify.url}
-            </a>
-          )}
-        </div>
-      );
+      return <AbnahmeEmbed project={project} lead={lead} headers={headers} netlify={netlify} />;
 
     default:
       return (
@@ -972,6 +947,200 @@ function NetlifyEmbed({ project, headers }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function DNSEmbed({ project, lead, headers }) {
+  const [domain, setDomain]       = useState(lead?.website_url?.replace(/https?:\/\/(www\.)?/,'').split('/')[0] || '');
+  const [netlifyUrl, setNetlifyUrl] = useState('');
+  const [sent, setSent]           = useState(false);
+  const [sending, setSending]     = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.url) setNetlifyUrl(d.url.replace('https://', '')); })
+      .catch(() => {});
+  }, []); // eslint-disable-line
+
+  return (
+    <div style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:20 }}>
+      <div style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.7 }}>
+        Der Kunde muss bei seinem Domain-Anbieter einen CNAME-Eintrag setzen, der auf die Netlify-URL zeigt. Das kann 24-48 Stunden dauern.
+      </div>
+
+      <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-light)', borderRadius:10, padding:16 }}>
+        <div style={{ fontSize:11, fontWeight:700, color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:6 }}>Netlify-URL (CNAME-Ziel)</div>
+        <div style={{ fontFamily:'monospace', fontSize:14, color:'var(--text-primary)', padding:'8px 12px', background:'var(--bg-app)', borderRadius:6 }}>
+          {netlifyUrl || '— Erst Schritt 10 (Netlify deploy) abschliessen —'}
+        </div>
+      </div>
+
+      {netlifyUrl && (
+        <div style={{ background:'#E6F1FB', border:'1px solid #93c5fd', borderRadius:10, padding:16 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:'#185FA5', marginBottom:12 }}>DNS-Eintrag beim Domain-Anbieter:</div>
+          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+            <tbody>
+              {[['Typ','CNAME'],['Name','www'],['Ziel',netlifyUrl],['TTL','3600']].map(([k,v]) => (
+                <tr key={k}><td style={{ padding:'6px 16px 6px 0', fontWeight:700, color:'#185FA5', width:80 }}>{k}</td><td style={{ padding:'6px 0', fontFamily:'monospace', color:'#1e3a5f' }}>{v}</td></tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ marginTop:14 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'.07em', marginBottom:6 }}>Domain des Kunden</div>
+            <input value={domain} onChange={e => setDomain(e.target.value)} placeholder="www.kundenwebsite.de"
+              style={{ width:'100%', padding:'8px 12px', fontSize:13, border:'1px solid var(--border-light)', borderRadius:6, background:'var(--bg-app)', color:'var(--text-primary)', fontFamily:'var(--font-sans)', boxSizing:'border-box' }} />
+          </div>
+          <button onClick={async () => {
+            setSending(true);
+            try { await fetch(`${API_BASE_URL}/api/projects/${project.id}/request-approval`, { method:'POST', headers, body: JSON.stringify({ topic:'DNS-Einrichtung', notes:`CNAME: www -> ${netlifyUrl}` }) }); setSent(true); } catch {}
+            finally { setSending(false); }
+          }} disabled={sending || sent || !domain.trim()}
+            style={{ marginTop:12, padding:'9px 18px', borderRadius:8, border:'none', background: sent ? 'var(--status-success-bg)' : '#185FA5', color: sent ? 'var(--status-success-text)' : '#fff', fontSize:12, fontWeight:700, cursor: sent ? 'default' : 'pointer', fontFamily:'var(--font-sans)' }}>
+            {sent ? 'Anleitung gesendet' : sending ? 'Sendet...' : 'Anleitung per E-Mail senden'}
+          </button>
+        </div>
+      )}
+
+      <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-light)', borderRadius:10, padding:16 }}>
+        <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', marginBottom:8 }}>Domain-Erreichbarkeit pruefen</div>
+        <div style={{ fontSize:12, color:'var(--text-secondary)', marginBottom:10 }}>
+          {project.domain_reachable
+            ? <span style={{ color:'var(--status-success-text)' }}>Domain ist erreichbar (HTTP {project.domain_status_code})</span>
+            : <span style={{ color:'var(--text-tertiary)' }}>Noch nicht erreichbar — DNS-Propagation kann bis zu 48h dauern</span>}
+        </div>
+        <button onClick={async () => { await fetch(`${API_BASE_URL}/api/projects/${project.id}/domain-check`, { method:'POST', headers }); window.location.reload(); }}
+          style={{ padding:'7px 16px', borderRadius:6, border:'1px solid var(--border-light)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+          Jetzt pruefen
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function QAEmbed({ project, headers, qaResult: initialResult }) {
+  const [result, setResult]   = useState(initialResult || null);
+  const [running, setRunning] = useState(false);
+  const [error, setError]     = useState('');
+
+  const CHECKS = [
+    { key:'ssl', label:'SSL / HTTPS aktiv' },
+    { key:'impressum', label:'Impressum vorhanden' },
+    { key:'datenschutz', label:'Datenschutz vorhanden' },
+    { key:'kontakt', label:'Kontakt-Formular / Telefon' },
+    { key:'mobile', label:'Mobile-Ansicht korrekt' },
+    { key:'links', label:'Keine defekten Links' },
+    { key:'pagespeed', label:'PageSpeed > 70' },
+  ];
+
+  const run = async () => {
+    setRunning(true); setError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/qa/run`, { method:'POST', headers });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || 'Fehler');
+      setResult(d);
+    } catch (e) { setError(e.message); }
+    finally { setRunning(false); }
+  };
+
+  return (
+    <div style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:16 }}>
+      <button onClick={run} disabled={running}
+        style={{ alignSelf:'flex-start', padding:'10px 22px', borderRadius:8, border:'none', background: running ? 'var(--border-medium)' : 'var(--brand-primary)', color:'#fff', fontSize:13, fontWeight:700, cursor: running ? 'not-allowed' : 'pointer', fontFamily:'var(--font-sans)', display:'flex', alignItems:'center', gap:8 }}>
+        {running ? (<><span style={{ width:14, height:14, border:'2px solid rgba(255,255,255,.3)', borderTopColor:'#fff', borderRadius:'50%', animation:'spin .8s linear infinite', display:'inline-block' }} />QA-Scan laeuft...</>) : result ? 'Erneut scannen' : 'QA-Check starten'}
+      </button>
+      {error && <div style={{ fontSize:12, color:'var(--status-danger-text)', background:'var(--status-danger-bg)', padding:'8px 12px', borderRadius:6 }}>{error}</div>}
+      {result ? (
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {CHECKS.map(c => {
+            const passed = result[c.key] === true || result[c.key] === 'ok';
+            const warn = result[c.key] === 'warn';
+            return (
+              <div key={c.key} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-light)', borderRadius:8 }}>
+                <span style={{ fontSize:16, flexShrink:0 }}>{passed ? '\u2705' : warn ? '\u26A0\uFE0F' : '\u274C'}</span>
+                <span style={{ fontSize:13, color:'var(--text-primary)', flex:1 }}>{c.label}</span>
+                {result[c.key + '_detail'] && <span style={{ fontSize:11, color:'var(--text-tertiary)' }}>{result[c.key + '_detail']}</span>}
+              </div>
+            );
+          })}
+          {result.ai_summary && (
+            <div style={{ marginTop:8, padding:'12px 14px', background:'var(--bg-app)', borderRadius:8, borderLeft:'3px solid var(--brand-primary)', fontSize:12, color:'var(--text-secondary)', lineHeight:1.7 }}>
+              {result.ai_summary}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ textAlign:'center', padding:'32px 0', color:'var(--text-tertiary)', fontSize:13 }}>
+          QA-Scan noch nicht durchgefuehrt. Prueft SSL, Impressum, Datenschutz, Links, Mobile und PageSpeed.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AbnahmeEmbed({ project, lead, headers, netlify }) {
+  const [confirmed, setConfirmed] = useState(project?.status === 'fertig');
+  const [saving, setSaving]       = useState(false);
+
+  const liveUrl = netlify?.url || project?.website_url;
+
+  const goLive = async () => {
+    setSaving(true);
+    try {
+      await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
+        method:'PUT', headers,
+        body: JSON.stringify({ status:'fertig', go_live_date: new Date().toISOString().slice(0,10) }),
+      });
+      setConfirmed(true);
+    } catch {}
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:20 }}>
+      {confirmed ? (
+        <div style={{ textAlign:'center', padding:'32px 20px' }}>
+          <div style={{ fontSize:56, marginBottom:12 }}>🎉</div>
+          <div style={{ fontSize:22, fontWeight:800, color:'var(--text-primary)', marginBottom:8 }}>Website ist live!</div>
+          {liveUrl && <a href={liveUrl} target="_blank" rel="noreferrer" style={{ fontSize:14, color:'var(--brand-primary)', fontWeight:600 }}>{liveUrl}</a>}
+          <div style={{ marginTop:24, display:'flex', flexDirection:'column', gap:10, alignItems:'center' }}>
+            <div style={{ fontSize:13, color:'var(--text-secondary)', fontWeight:600 }}>Naechste Schritte:</div>
+            {['Trustpilot-Bewertung anfragen', 'Google Business Profil aktualisieren', 'Google Analytics einrichten', 'Vorher/Nachher-Screenshot fuer Portfolio'].map(s => (
+              <div key={s} style={{ fontSize:13, color:'var(--text-secondary)' }}>{s}</div>
+            ))}
+          </div>
+        </div>
+      ) : (<>
+        <div>
+          <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', marginBottom:12 }}>Vor der Abnahme pruefen:</div>
+          {[
+            { label:'QA-Check bestanden', done: !!project?.qa_result },
+            { label:'Domain erreichbar', done: !!project?.domain_reachable },
+            { label:'Netlify deployed', done: !!netlify?.url },
+            { label:'Kunde informiert', done: false },
+          ].map(c => (
+            <div key={c.label} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid var(--border-light)' }}>
+              <span style={{ fontSize:16 }}>{c.done ? '\u2705' : '\u25CB'}</span>
+              <span style={{ fontSize:13, color: c.done ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{c.label}</span>
+            </div>
+          ))}
+        </div>
+        {liveUrl && (
+          <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-light)', borderRadius:10, padding:14 }}>
+            <div style={{ fontSize:12, color:'var(--text-tertiary)', marginBottom:4 }}>Live-URL</div>
+            <a href={liveUrl} target="_blank" rel="noreferrer" style={{ fontSize:14, color:'var(--brand-primary)', fontWeight:600 }}>{liveUrl}</a>
+          </div>
+        )}
+        <button onClick={goLive} disabled={saving}
+          style={{ padding:'14px 0', borderRadius:10, border:'none', background: saving ? 'var(--border-medium)' : '#059669', color:'#fff', fontSize:15, fontWeight:700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily:'var(--font-sans)' }}>
+          {saving ? 'Wird gespeichert...' : 'Go Live — Projekt abschliessen'}
+        </button>
+        <div style={{ fontSize:11, color:'var(--text-tertiary)', textAlign:'center' }}>
+          Das Projekt wird als Fertig markiert.
+        </div>
+      </>)}
     </div>
   );
 }

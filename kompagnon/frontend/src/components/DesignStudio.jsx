@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
+import { renderPage } from '../grapesjs/handwerk-blocks';
 
 const TEMPLATE_PRESETS = [
   { id: 'modern-clean',   name: 'Modern Clean',    desc: 'Minimalistisch, viel Weissraum, klare Typografie',    icon: '⬜', style: { borderRadius: 8, shadows: 'leicht', density: 'luftig' },   preview_gradient: 'linear-gradient(135deg, #f8fafc, #e2e8f0)' },
@@ -17,6 +18,8 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
   const [selectedPage, setSelectedPage]         = useState(null);
   const [generating, setGenerating]             = useState(false);
   const [designResult, setDesignResult]         = useState(null);
+  const [designBlocks, setDesignBlocks]         = useState([]);
+  const [designBrand, setDesignBrand]           = useState(null);
   const [linkReport, setLinkReport]             = useState([]);
   const [linkSummary, setLinkSummary]           = useState(null);
 
@@ -34,62 +37,38 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
   const fontPrimary    = brandData?.font_primary    || 'Inter';
 
   const generateDesign = async () => {
-    if (!selectedPage || !selectedTemplate) {
-      toast.error('Bitte Seite und Template auswaehlen');
-      return;
-    }
+    if (!selectedPage) { toast.error('Bitte Seite waehlen'); return; }
     setGenerating(true);
     try {
+      // 1. Block-JSON von Claude holen
       const res = await fetch(
-        `${API_BASE_URL}/api/agents/${project.id}/content`,
-        {
-          method: 'POST', headers,
-          body: JSON.stringify({
-            company_name:   project.company_name || '',
-            page_name:      selectedPage.page_name,
-            template_style: selectedTemplate.id || selectedTemplate.name,
-            brand_primary:  primaryColor,
-            brand_secondary: secondaryColor,
-            brand_font:     fontPrimary,
-            zweck:          selectedPage.zweck || '',
-            ziel_keyword:   selectedPage.ziel_keyword || '',
-          }),
-        }
+        `${API_BASE_URL}/api/projects/${project.id}/design-json/${selectedPage.id}`,
+        { method: 'POST', headers }
       );
-      if (!res.ok) throw new Error('Generierung fehlgeschlagen');
-      const data = await res.json();
-      const job_id = data?.job_id;
-      if (!job_id) throw new Error(data?.detail || 'Kein Job gestartet — job_id fehlt in der Antwort');
-
-      const deadline = Date.now() + 120_000;
-      while (Date.now() < deadline) {
-        await new Promise(r => setTimeout(r, 2000));
-        const poll = await fetch(`${API_BASE_URL}/api/agents/jobs/${job_id}`, { headers }).then(r => r.json());
-        if (poll.status === 'done') {
-          const rawHtml = poll.result_html || poll.result;
-          // Auto-resolve links
-          try {
-            const linkRes = await fetch(`${API_BASE_URL}/api/projects/${project.id}/resolve-links`, {
-              method: 'POST', headers,
-              body: JSON.stringify({ html: rawHtml, page_id: selectedPage?.id }),
-            });
-            if (linkRes.ok) {
-              const linkData = await linkRes.json();
-              setDesignResult(linkData.html);
-              setLinkReport(linkData.link_report || []);
-              setLinkSummary(linkData.summary || null);
-            } else {
-              setDesignResult(rawHtml);
-            }
-          } catch {
-            setDesignResult(rawHtml);
-          }
-          setStep(4);
-          toast.success('Design fertig — Links automatisch aufgeloest!');
-          break;
-        }
-        if (poll.status === 'error') throw new Error(poll.error || 'Fehler');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Generierung fehlgeschlagen');
       }
+      const { blocks, brand } = await res.json();
+
+      // 2. HTML aus Block-Bibliothek rendern
+      const html = renderPage(blocks, brand);
+
+      // 3. Link-Resolver
+      const linkRes = await fetch(
+        `${API_BASE_URL}/api/projects/${project.id}/resolve-links`,
+        { method: 'POST', headers, body: JSON.stringify({ html, page_id: selectedPage.id }) }
+      );
+      const linkData = linkRes.ok ? await linkRes.json() : { html, link_report: [], summary: {} };
+
+      // 4. State setzen
+      setDesignBlocks(blocks);
+      setDesignBrand(brand);
+      setDesignResult(linkData.html);
+      setLinkReport(linkData.link_report || []);
+      setLinkSummary(linkData.summary || {});
+      setStep(4);
+      toast.success(`${blocks.length} Bloecke generiert`);
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -295,7 +274,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                 <button
                   onClick={() => {
                     const page = sitemapPages.find(p => p.id === selectedPage.id);
-                    if (page) window.dispatchEvent(new CustomEvent('kompagnon:open-editor', { detail: { pageId: page.id, html: designResult } }));
+                    if (page) window.dispatchEvent(new CustomEvent('kompagnon:open-editor', { detail: { pageId: page.id, html: designResult, blocks: designBlocks, brand: designBrand } }));
                   }}
                   style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
                 >

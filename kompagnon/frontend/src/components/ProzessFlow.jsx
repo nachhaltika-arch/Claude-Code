@@ -74,7 +74,187 @@ export const ALLE_SCHRITTE = PHASEN.flatMap(p =>
 );
 
 export { PHASEN };
-export default function ProzessFlow(props) {
-  // Implementierung in Teil 2
-  return <div>Wird in Teil 2 implementiert</div>;
+export default function ProzessFlow({
+  project, lead, token, briefing, latestAudit,
+  crawlPages, sitemapPages, sitemapLoading,
+  websiteContent, brandData, netlify, qaResult,
+}) {
+  const [aktiverSchritt, setAktiverSchritt] = useState(null);
+  const [warnung, setWarnung]               = useState(null);
+
+  const prozessDaten = {
+    briefing,
+    latestAudit,
+    crawlPages:      crawlPages || 0,
+    sitemapCount:    sitemapPages?.length || 0,
+    contentCount:    (websiteContent || []).filter(p => p.ki_content).length,
+    credsCount:      0,
+    hasAssets:       (websiteContent || []).some(p => p.images?.length > 0),
+    designVersions:  0,
+    editorSaved:     false,
+    netlifyUrl:      netlify?.url || null,
+    dnsConfigured:   false,
+    qaResult,
+    goLiveConfirmed: false,
+  };
+
+  // Auto-Vorschlag: erster nicht-fertiger Schritt
+  useEffect(() => {
+    if (aktiverSchritt) return;
+    const erster = ALLE_SCHRITTE.find(s => !s.istFertig(prozessDaten));
+    setAktiverSchritt(erster?.id || ALLE_SCHRITTE[ALLE_SCHRITTE.length - 1].id);
+  }, [JSON.stringify(prozessDaten)]); // eslint-disable-line
+
+  const waehleSchritt = useCallback((schritt) => {
+    const idx    = ALLE_SCHRITTE.findIndex(s => s.id === schritt.id);
+    const voriger = idx > 0 ? ALLE_SCHRITTE[idx - 1] : null;
+    if (voriger && !voriger.optional && !voriger.istFertig(prozessDaten)) {
+      setWarnung({ ziel: schritt, fehlt: voriger,
+        text: `Schritt ${voriger.nr} "${voriger.label}" ist noch nicht abgeschlossen.` });
+    } else {
+      setWarnung(null);
+      setAktiverSchritt(schritt.id);
+    }
+  }, [JSON.stringify(prozessDaten)]); // eslint-disable-line
+
+  const aktivObj    = ALLE_SCHRITTE.find(s => s.id === aktiverSchritt);
+  const fertigCount = ALLE_SCHRITTE.filter(s => s.istFertig(prozessDaten)).length;
+  const gesamtPct   = Math.round((fertigCount / ALLE_SCHRITTE.length) * 100);
+  const headers     = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+      {/* Gesamtfortschritt */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1, height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${gesamtPct}%`, background: 'linear-gradient(90deg,#008EAA,#059669)', borderRadius: 3, transition: 'width .5s' }} />
+        </div>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0 }}>
+          {fertigCount}/{ALLE_SCHRITTE.length} · {gesamtPct}%
+        </span>
+      </div>
+
+      {/* Phasen-Fortschrittsleiste */}
+      <div style={{ display: 'flex', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+        {PHASEN.map((phase, pi) => {
+          const phaseFertig = phase.schritte.filter(s => s.istFertig(prozessDaten)).length;
+          const phaseAktiv  = phase.schritte.some(s => s.id === aktiverSchritt);
+          return (
+            <div key={phase.id} style={{
+              flex: 1, borderRight: pi < PHASEN.length - 1 ? '1px solid var(--border-light)' : 'none',
+              padding: '10px 0 8px',
+              background: phaseAktiv ? `${phase.color}12` : 'transparent',
+              borderBottom: phaseAktiv ? `3px solid ${phase.color}` : '3px solid transparent',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginBottom: 8 }}>
+                <span style={{ fontSize: 13 }}>{phase.icon}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: phaseAktiv ? phase.color : 'var(--text-secondary)' }}>{phase.label}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 4 }}>
+                {phase.schritte.map(s => {
+                  const fertig = s.istFertig(prozessDaten);
+                  const aktiv  = s.id === aktiverSchritt;
+                  return (
+                    <button key={s.id} onClick={() => waehleSchritt(s)} title={`${s.nr}. ${s.label}`}
+                      style={{
+                        width: aktiv ? 28 : 20, height: 20,
+                        borderRadius: aktiv ? 10 : '50%', border: 'none', cursor: 'pointer',
+                        background: fertig ? '#059669' : aktiv ? phase.color : s.optional ? 'var(--border-light)' : 'var(--bg-elevated)',
+                        color: fertig || aktiv ? '#fff' : 'var(--text-tertiary)',
+                        fontSize: 9, fontWeight: 700, transition: 'all .2s', padding: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sans)',
+                      }}>
+                      {fertig ? '\u2713' : s.nr}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ textAlign: 'center', marginTop: 5, fontSize: 9, color: 'var(--text-tertiary)' }}>
+                {phaseFertig}/{phase.schritte.length}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Reihenfolge-Warnung */}
+      {warnung && (
+        <div style={{ padding: '12px 16px', background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-text)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 16 }}>⚠️</span>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--status-warning-text)' }}>Empfohlene Reihenfolge</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{warnung.text}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => { setWarnung(null); setAktiverSchritt(warnung.fehlt.id); }}
+              style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: 'var(--status-warning-text)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              Schritt {warnung.fehlt.nr} zuerst
+            </button>
+            <button onClick={() => { setWarnung(null); setAktiverSchritt(warnung.ziel.id); }}
+              style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--status-warning-text)', background: 'transparent', color: 'var(--status-warning-text)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              Trotzdem weiter
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Aktiver Schritt */}
+      {aktivObj && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 14, background: `${aktivObj.phase.color}08` }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: aktivObj.istFertig(prozessDaten) ? '#059669' : aktivObj.phase.color, color: '#fff', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {aktivObj.istFertig(prozessDaten) ? '\u2713' : aktivObj.nr}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: aktivObj.phase.color, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>
+                {aktivObj.phase.label} · Schritt {aktivObj.nr}/{ALLE_SCHRITTE.length}
+                {aktivObj.optional && <span style={{ marginLeft: 8, opacity: .6 }}>Optional</span>}
+                {aktivObj.istFertig(prozessDaten) && <span style={{ marginLeft: 8, background: '#dcfce7', color: '#059669', padding: '1px 6px', borderRadius: 99 }}>Fertig</span>}
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{aktivObj.icon} {aktivObj.label}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                {aktivObj.istFertig(prozessDaten) ? aktivObj.fertigText(prozessDaten) : aktivObj.desc}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              {aktivObj.nr > 1 && (
+                <button onClick={() => { setWarnung(null); setAktiverSchritt(ALLE_SCHRITTE[aktivObj.nr - 2].id); }}
+                  style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  Zurueck
+                </button>
+              )}
+              {aktivObj.nr < ALLE_SCHRITTE.length && (
+                <button onClick={() => waehleSchritt(ALLE_SCHRITTE[aktivObj.nr])}
+                  style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: aktivObj.istFertig(prozessDaten) ? '#059669' : aktivObj.phase.color, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  Weiter
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Inhalt */}
+          <SchrittInhalt
+            schritt={aktivObj} project={project} lead={lead}
+            token={token} headers={headers}
+            briefing={briefing} latestAudit={latestAudit}
+            sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
+            websiteContent={websiteContent} brandData={brandData}
+            netlify={netlify} qaResult={qaResult}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SchrittInhalt({ schritt }) {
+  return (
+    <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-tertiary)' }}>
+      <div style={{ fontSize: 32 }}>{schritt.icon}</div>
+      <div style={{ fontSize: 13, marginTop: 8 }}>{schritt.label} — Inhalt folgt in Teil 3</div>
+    </div>
+  );
 }

@@ -1186,6 +1186,15 @@ export default function ProjectDetail() {
     }
   }, [activeTab, brandData, project?.lead_id]); // eslint-disable-line
 
+  // Auto-load briefing data on project load
+  useEffect(() => {
+    if (!project?.lead_id) return;
+    fetch(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setBriefingData(d); })
+      .catch(() => {});
+  }, [project?.lead_id]); // eslint-disable-line
+
   // Set initial tab on project load
   useEffect(() => {
     if (project) {

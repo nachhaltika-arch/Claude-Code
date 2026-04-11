@@ -745,6 +745,7 @@ def _run_migrations():
         """CREATE INDEX IF NOT EXISTS idx_website_content_cache_customer
            ON website_content_cache(customer_id)""",
         # Netlify-Integration (NETLIFY_API_TOKEN env-Variable erforderlich)
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_token TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_site_id VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_site_url VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_deploy_id VARCHAR",

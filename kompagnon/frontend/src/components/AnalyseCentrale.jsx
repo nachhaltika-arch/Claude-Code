@@ -155,6 +155,8 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
   const [pages, setPages]             = useState([]);
   const [pagesLoading, setPagesLoading] = useState(false);
   const [hostingData, setHostingData] = useState(null);
+  const [savedPagespeed, setSavedPagespeed] = useState(null);
+  const [savedBrand, setSavedBrand]   = useState(null);
   const [selectedPage, setSelectedPage] = useState(null);
   const [search, setSearch]             = useState('');
   const [sortBy, setSortBy]             = useState('url');
@@ -162,29 +164,103 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
 
   const steps = buildSteps(projectId, leadId, websiteUrl, headers);
 
+  // ── Gespeicherte Ergebnisse laden (nur lesen, nichts ausfuehren) ────────
   useEffect(() => {
     if (!leadId) return;
-    loadResults();
+    loadSavedResults();
   }, [leadId]); // eslint-disable-line
 
-  const loadResults = async () => {
+  const loadSavedResults = async () => {
     setPagesLoading(true);
+    const saved = {};
     try {
-      const [contentRes, hostingRes] = await Promise.allSettled([
+      const [contentRes, hostingRes, psRes, brandRes] = await Promise.allSettled([
         fetch(`${API_BASE_URL}/api/crawler/content/${leadId}`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API_BASE_URL}/api/projects/${projectId}/hosting-info`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers }).then(r => r.ok ? r.json() : null),
       ]);
-      if (contentRes.status === 'fulfilled') {
-        setPages(contentRes.value || []);
-        if (contentRes.value?.length > 0 && !selectedPage) {
-          setSelectedPage(contentRes.value[0]);
+
+      // Crawler + Content
+      const content = contentRes.status === 'fulfilled' ? (contentRes.value || []) : [];
+      if (content.length > 0) {
+        setPages(content);
+        if (!selectedPage) setSelectedPage(content[0]);
+        saved['url-crawl'] = { urls: content.length };
+        const scraped = content.filter(p => p.full_text || p.text_preview).length;
+        if (scraped > 0) saved['content-scrape'] = { pages: scraped };
+        // GA check from existing content
+        const GA_PATTERNS = ['gtag/js', 'google-analytics', 'googletagmanager', 'ga4', 'gtm.js'];
+        let gaFound = false;
+        for (const page of content) {
+          const text = (page.full_text || '') + (page.url || '');
+          if (GA_PATTERNS.some(p => text.toLowerCase().includes(p))) { gaFound = true; break; }
         }
+        saved['analytics'] = { ga_found: gaFound };
       }
-      if (hostingRes.status === 'fulfilled') setHostingData(hostingRes.value);
+
+      // Hosting
+      const hosting = hostingRes.status === 'fulfilled' ? hostingRes.value : null;
+      if (hosting?.hosting_provider) {
+        setHostingData(hosting);
+        saved['hosting'] = { provider: hosting.hosting_provider };
+      }
+
+      // PageSpeed
+      const ps = psRes.status === 'fulfilled' ? psRes.value : null;
+      if (ps?.mobile_score != null) {
+        saved['pagespeed'] = { mobile: ps.mobile_score, desktop: ps.desktop_score };
+        setSavedPagespeed(ps);
+      }
+
+      // Brand
+      const brand = brandRes.status === 'fulfilled' ? brandRes.value : null;
+      if (brand?.primary_color) {
+        saved['brand'] = { primary: brand.primary_color, fonts: brand.all_fonts?.length || 0 };
+        setSavedBrand(brand);
+      }
+
+      setStepResults(saved);
     } catch { /* silent */ }
     finally { setPagesLoading(false); }
   };
 
+  // ── Einzelnen Schritt ausfuehren ────────────────────────────────────────
+  const runStep = async (stepIndex) => {
+    const step = steps[stepIndex];
+    if (!websiteUrl) { toast.error('Keine Website-URL im Projekt'); return; }
+    setRunning(true);
+    setCurrentStep(stepIndex);
+    setStepProgress(0);
+    setStepErrors(prev => { const n = { ...prev }; delete n[step.id]; return n; });
+    try {
+      const result = await step.run((pct) => setStepProgress(pct));
+      setStepResults(prev => ({ ...prev, [step.id]: result }));
+      toast.success(`${step.label} abgeschlossen`);
+    } catch (err) {
+      setStepErrors(prev => ({ ...prev, [step.id]: err.message }));
+      toast.error(`${step.label} fehlgeschlagen`);
+    }
+    setCurrentStep(-1);
+    setRunning(false);
+    // Seitenliste aktualisieren nach Crawler/Content
+    if (step.id === 'url-crawl' || step.id === 'content-scrape') {
+      const content = await fetch(`${API_BASE_URL}/api/crawler/content/${leadId}`, { headers }).then(r => r.ok ? r.json() : []).catch(() => []);
+      setPages(content);
+      if (content.length > 0 && !selectedPage) setSelectedPage(content[0]);
+    }
+    // Panel-Daten aktualisieren nach PageSpeed/Brand
+    if (step.id === 'pagespeed') {
+      const ps = await fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null);
+      if (ps) setSavedPagespeed(ps);
+    }
+    if (step.id === 'brand') {
+      const bd = await fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null);
+      if (bd) setSavedBrand(bd);
+    }
+  };
+
+  // ── Alle Schritte ausfuehren ────────────────────────────────────────────
   const runPipeline = async () => {
     if (!websiteUrl) { toast.error('Keine Website-URL im Projekt'); return; }
     setRunning(true);
@@ -205,7 +281,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
 
     setCurrentStep(-1);
     setRunning(false);
-    await loadResults();
+    await loadSavedResults();
     toast.success('Alle Analysen abgeschlossen!');
   };
 
@@ -291,8 +367,8 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
                   {step.label}
                 </span>
                 {isActive && <span style={{ marginLeft: 'auto', width: 12, height: 12, border: '2px solid var(--brand-primary, #008EAA)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
-                {isDone && <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--status-success-text)' }}>&#10003;</span>}
-                {hasError && <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--status-danger-text)' }}>&#10007;</span>}
+                {isDone && !isActive && <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--status-success-text)' }}>&#10003;</span>}
+                {hasError && !isActive && <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--status-danger-text)' }}>&#10007;</span>}
               </div>
 
               {isActive && (
@@ -315,6 +391,24 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
               )}
               {hasError && (
                 <div style={{ marginTop: 6, fontSize: 10, color: 'var(--status-danger-text)' }}>{error}</div>
+              )}
+
+              {/* Einzelner Start-Button pro Schritt */}
+              {!isActive && !running && (
+                <button
+                  onClick={() => runStep(i)}
+                  disabled={!websiteUrl}
+                  style={{
+                    marginTop: 10, width: '100%', padding: '6px 0', borderRadius: 6,
+                    border: isDone ? '1px solid var(--status-success-text)' : '1px solid var(--brand-primary, #008EAA)',
+                    background: isDone ? 'transparent' : 'var(--brand-primary, #008EAA)',
+                    color: isDone ? 'var(--status-success-text)' : '#fff',
+                    fontSize: 11, fontWeight: 700, cursor: websiteUrl ? 'pointer' : 'not-allowed',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  {isDone ? 'Erneut ausfuehren' : 'Starten'}
+                </button>
               )}
             </div>
           );
@@ -451,6 +545,8 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
                     leadId={leadId}
                     headers={headers}
                     stepResults={stepResults}
+                    savedPagespeed={savedPagespeed}
+                    savedBrand={savedBrand}
                   />
                 </div>
 
@@ -657,22 +753,16 @@ function HeadingRow({ level, text, color, indent }) {
 
 // ── Projekt-Zusammenfassung (linke Spalte unten) ─────────────────────────────
 
-function ProjectSummaryPanel({ leadId, headers, stepResults }) {
-  const [pagespeed, setPagespeed] = useState(null);
-  const [brand, setBrand]         = useState(null);
-  const [designData, setDesignData] = useState(null);
+function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespeed, savedBrand }) {
+  const [pagespeed, setPagespeed] = useState(savedPagespeed || null);
+  const [brand, setBrand]         = useState(savedBrand || null);
+  const [designData, setDesignData] = useState(savedBrand?.design_data || null);
 
+  // Sync from parent when saved data arrives
+  useEffect(() => { if (savedPagespeed) setPagespeed(savedPagespeed); }, [savedPagespeed]);
   useEffect(() => {
-    if (!leadId) return;
-    fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.mobile_score != null) setPagespeed(d); })
-      .catch(() => {});
-    fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) { setBrand(d); if (d.design_data) setDesignData(d.design_data); } })
-      .catch(() => {});
-  }, [leadId]); // eslint-disable-line
+    if (savedBrand) { setBrand(savedBrand); if (savedBrand.design_data) setDesignData(savedBrand.design_data); }
+  }, [savedBrand]);
 
   const gaResult = stepResults?.analytics;
 

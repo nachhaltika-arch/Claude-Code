@@ -286,11 +286,27 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
     toast.success('Alle Analysen abgeschlossen — Ergebnisse gespeichert!');
   };
 
+  const [saveStatus, setSaveStatus] = useState(''); // '', 'saving', 'saved'
+
   // ── Gesamtfortschritt ────────────────────────────────────────────────────
   const doneCount  = Object.keys(stepResults).length + Object.keys(stepErrors).length;
   const totalPct   = running
     ? Math.round(((doneCount / steps.length) + (stepProgress / 100 / steps.length)) * 100)
     : doneCount === steps.length ? 100 : 0;
+
+  // ── Manuell speichern / verifizieren ─────────────────────────────────────
+  const saveResults = async () => {
+    setSaveStatus('saving');
+    try {
+      await loadSavedResults();
+      setSaveStatus('saved');
+      toast.success('Ergebnisse gespeichert');
+      setTimeout(() => setSaveStatus(''), 3000);
+    } catch {
+      setSaveStatus('');
+      toast.error('Speichern fehlgeschlagen');
+    }
+  };
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
@@ -306,25 +322,48 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
             {websiteUrl || 'Keine URL hinterlegt'}
           </div>
         </div>
-        <button
-          onClick={runPipeline}
-          disabled={running || !websiteUrl}
-          style={{
-            padding: '11px 24px', borderRadius: 8, border: 'none',
-            background: running || !websiteUrl
-              ? 'var(--border-medium)'
-              : 'linear-gradient(135deg, #008EAA, #006680)',
-            color: 'white', fontSize: 13, fontWeight: 700,
-            cursor: running || !websiteUrl ? 'not-allowed' : 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8,
-            boxShadow: running ? 'none' : '0 2px 10px rgba(0,142,170,0.35)',
-            fontFamily: 'var(--font-sans)',
-          }}
-        >
-          {running ? (
-            <><span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Analysiert...</>
-          ) : 'Alle Analysen starten'}
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <button
+            onClick={runPipeline}
+            disabled={running || !websiteUrl}
+            style={{
+              padding: '11px 24px', borderRadius: 8, border: 'none',
+              background: running || !websiteUrl
+                ? 'var(--border-medium)'
+                : 'linear-gradient(135deg, #008EAA, #006680)',
+              color: 'white', fontSize: 13, fontWeight: 700,
+              cursor: running || !websiteUrl ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8,
+              boxShadow: running ? 'none' : '0 2px 10px rgba(0,142,170,0.35)',
+              fontFamily: 'var(--font-sans)',
+            }}
+          >
+            {running ? (
+              <><span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Analysiert...</>
+            ) : 'Alle Analysen starten'}
+          </button>
+          {doneCount > 0 && !running && (
+            <button
+              onClick={saveResults}
+              disabled={saveStatus === 'saving'}
+              style={{
+                padding: '11px 20px', borderRadius: 8,
+                border: saveStatus === 'saved' ? '1px solid var(--status-success-text)' : '1px solid var(--brand-primary, #008EAA)',
+                background: saveStatus === 'saved' ? 'var(--status-success-bg)' : 'transparent',
+                color: saveStatus === 'saved' ? 'var(--status-success-text)' : 'var(--brand-primary, #008EAA)',
+                fontSize: 13, fontWeight: 700,
+                cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)',
+                display: 'flex', alignItems: 'center', gap: 6,
+                transition: 'all .2s',
+              }}
+            >
+              {saveStatus === 'saving' ? (
+                <><span style={{ width: 12, height: 12, border: '2px solid var(--border-medium)', borderTopColor: 'var(--brand-primary)', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Speichert...</>
+              ) : saveStatus === 'saved' ? '\u2713 Gespeichert' : 'Ergebnisse speichern'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Gesamt-Fortschrittsbalken ── */}

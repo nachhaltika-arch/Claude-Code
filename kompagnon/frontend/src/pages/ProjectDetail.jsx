@@ -1204,6 +1204,12 @@ export default function ProjectDetail() {
       .catch(() => {});
   }, [project?.lead_id]); // eslint-disable-line
 
+  // Auto-load sitemap on project load (needed for ProzessFlow step completion)
+  useEffect(() => {
+    if (!project?.lead_id || sitemapLoaded) return;
+    loadSitemapPages();
+  }, [project?.lead_id]); // eslint-disable-line
+
   // Set initial tab on project load
   useEffect(() => {
     if (project) {
@@ -1679,6 +1685,7 @@ export default function ProjectDetail() {
         briefing={briefingData}
         latestAudit={latestAudit}
         onAuditUpdate={setLatestAudit}
+        onSitemapReload={loadSitemapPages}
         crawlPages={crawlResults?.length || 0}
         sitemapPages={sitemapPages}
         sitemapLoading={sitemapLoading}

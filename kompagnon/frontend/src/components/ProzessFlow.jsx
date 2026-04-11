@@ -88,6 +88,7 @@ export const ALLE_SCHRITTE = PHASEN.flatMap(p =>
 export { PHASEN };
 export default function ProzessFlow({
   project, lead, token, briefing, latestAudit, onAuditUpdate,
+  onSitemapReload,
   crawlPages, sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult,
 }) {
@@ -294,6 +295,7 @@ export default function ProzessFlow({
             briefing={briefing} latestAudit={localLatestAudit}
             localBriefing={localBriefing} reloadBriefing={reloadBriefing}
             onAuditComplete={handleAuditComplete}
+            onSitemapReload={onSitemapReload}
             sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
             websiteContent={websiteContent} brandData={brandData}
             netlify={netlify} qaResult={qaResult}
@@ -306,7 +308,7 @@ export default function ProzessFlow({
 
 function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
   briefing, latestAudit, localBriefing, reloadBriefing, onAuditComplete,
-  sitemapPages, sitemapLoading,
+  onSitemapReload, sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult }) {
 
   const pad = { padding: '20px 24px' };
@@ -351,7 +353,7 @@ function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
       return (
         <div>
           {sitemapPages.length === 0 && (
-            <SitemapKiVorschlag project={project} leadId={leadId} headers={headers} />
+            <SitemapKiVorschlag project={project} leadId={leadId} headers={headers} onGenerated={onSitemapReload} />
           )}
           {sitemapLoading ? <Spinner /> : (
             <div style={pad}>
@@ -435,7 +437,7 @@ function Spinner() {
   );
 }
 
-function SitemapKiVorschlag({ project, leadId, headers }) {
+function SitemapKiVorschlag({ project, leadId, headers, onGenerated }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone]       = useState(false);
   const [error, setError]     = useState(null);
@@ -447,7 +449,7 @@ function SitemapKiVorschlag({ project, leadId, headers }) {
       const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/generate`, { method: 'POST', headers });
       if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || `HTTP ${res.status}`);
       setDone(true);
-      setTimeout(() => window.location.reload(), 800);
+      if (onGenerated) onGenerated();
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   };

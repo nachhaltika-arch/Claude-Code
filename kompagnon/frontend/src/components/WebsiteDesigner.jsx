@@ -9,9 +9,11 @@ import { useGrapesAssetManager } from '../hooks/useGrapesAssetManager';
 import { useScreenSize } from '../utils/responsive';
 import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorConfig';
 import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
+import handwerkPlugin from '../grapesjs/handwerk-plugin';
+import { renderBlock } from '../grapesjs/handwerk-blocks';
 
 export default function WebsiteDesigner({
-  projectId, leadId, initialHtml, initialCss, onSave, onClose,
+  projectId, leadId, initialHtml, initialCss, onSave, onClose, brandData,
 }) {
   const { isMobile } = useScreenSize();
   const editorRef = useRef(null);
@@ -27,7 +29,28 @@ export default function WebsiteDesigner({
       try { editor.AssetManager?.add({ type: 'image', src, name: name || src, category }); } catch { /* silent */ }
     };
     window.addEventListener('kompagnon:asset-add', onAssetAdd);
-    return () => window.removeEventListener('kompagnon:asset-add', onAssetAdd);
+
+    // Listen for open-editor from DesignStudio
+    const onOpenEditor = (e) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const { html, blocks, brand } = e.detail || {};
+      if (blocks && blocks.length > 0 && brand) {
+        editor.setComponents('');
+        blocks.forEach(block => {
+          const blockHtml = renderBlock(block.type, block.data || {}, brand);
+          editor.addComponents(blockHtml);
+        });
+      } else if (html) {
+        editor.setComponents(html);
+      }
+    };
+    window.addEventListener('kompagnon:open-editor', onOpenEditor);
+
+    return () => {
+      window.removeEventListener('kompagnon:asset-add', onAssetAdd);
+      window.removeEventListener('kompagnon:open-editor', onOpenEditor);
+    };
   }, []);
 
   // Clipboard paste is now handled by useGrapesAssetManager hook
@@ -229,7 +252,14 @@ export default function WebsiteDesigner({
             },
             plugins,
           }}
-          onReady={(editor) => { editorRef.current = editor; assetEditorRef.current = editor; }}
+          onReady={(editor) => {
+            editorRef.current = editor;
+            assetEditorRef.current = editor;
+            // Register Handwerk blocks plugin
+            try { handwerkPlugin(editor, { brand: brandData || {} }); } catch (e) { console.warn('Handwerk plugin:', e); }
+            // Ctrl+S save
+            editor.on('kompagnon:save', () => handleManualSave());
+          }}
         />
       </div>
 

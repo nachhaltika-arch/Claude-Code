@@ -293,28 +293,6 @@ function Step2({ data, set, firstRef, touch, fieldError, suggestions, onSuggest,
 }
 
 function Step3({ data, set, firstRef, touch, fieldError, suggestions, onSuggest, onApply }) {
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-
-  const loadSuggestions = async () => {
-    setLoadingSuggestions(true);
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/website-templates/suggestions?gewerk=${encodeURIComponent(data.gewerk || '')}`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem('kompagnon_token') || localStorage.getItem('token') || ''}` } }
-      );
-      if (res.ok) {
-        const d = await res.json();
-        const list = d.suggestions || [];
-        if (list[0]) set('inspiration_url_1', list[0]);
-        if (list[1]) set('inspiration_url_2', list[1]);
-        if (list[2]) set('inspiration_url_3', list[2]);
-      }
-    } catch (e) { /* ignore */ }
-    setLoadingSuggestions(false);
-  };
-
-  const noneSet = !data.inspiration_url_1 && !data.inspiration_url_2 && !data.inspiration_url_3;
-
   return (
     <div ref={firstRef}>
       <Field label="Alleinstellungsmerkmal (USP)" required hint="Was macht Ihren Betrieb besonders?" error={fieldError('usp')} charInfo="Empfohlen: 40-300 Zeichen">
@@ -338,46 +316,6 @@ function Step3({ data, set, firstRef, touch, fieldError, suggestions, onSuggest,
         />
         <SuggestButton field="mitbewerber" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.mitbewerber} />
       </Field>
-      <Field label="Inspirations-Website 1" hint="Welche Websites gefallen Ihnen?">
-        <Input
-          value={data.inspiration_url_1}
-          onChange={v => set('inspiration_url_1', v)}
-          placeholder="https://www.beispiel.de"
-        />
-      </Field>
-      <Field label="Inspirations-Website 2">
-        <Input
-          value={data.inspiration_url_2}
-          onChange={v => set('inspiration_url_2', v)}
-          placeholder="https://www.anderes-beispiel.de"
-        />
-      </Field>
-      <Field label="Inspirations-Website 3">
-        <Input
-          value={data.inspiration_url_3}
-          onChange={v => set('inspiration_url_3', v)}
-          placeholder="https://www.noch-eine.de"
-        />
-      </Field>
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8, lineHeight: 1.6 }}>
-        Keine Idee? Kein Problem — wir machen Vorschläge passend zu Ihrer Branche.
-      </div>
-      {noneSet && (
-        <button
-          type="button"
-          onClick={loadSuggestions}
-          disabled={loadingSuggestions}
-          style={{
-            marginTop: 10, padding: '9px 18px',
-            background: 'var(--bg-app)', color: 'var(--brand-primary)',
-            border: '1px solid var(--brand-primary)', borderRadius: 'var(--radius-md)',
-            fontSize: 12, fontWeight: 600, cursor: loadingSuggestions ? 'wait' : 'pointer',
-            fontFamily: 'var(--font-sans)',
-          }}
-        >
-          {loadingSuggestions ? 'Lädt…' : 'Branchenpassende Vorschläge laden'}
-        </button>
-      )}
     </div>
   );
 }
@@ -438,25 +376,23 @@ function SeitenCheckbox({ selected, onChange }) {
   );
 }
 
-function Step4({ data, set, firstRef, touch, fieldError }) {
+function Step4({ data, set, firstRef, touch, fieldError, showErrors, suggestions, onSuggest, onApply }) {
   return (
     <div ref={firstRef}>
-      <Field label="Farbwünsche" hint="Welche Farben passen zu Ihrer Marke oder sollen verwendet werden?">
-        <Input
-          value={data.farben}
-          onChange={v => set('farben', v)}
-          placeholder="z.B. Blau & Weiß, Grün-Töne, keine Vorgabe …"
-        />
+      <Field label="Farbwuensche" hint="Welche Farben passen zu Ihrer Marke?">
+        <Input value={data.farben} onChange={v => set('farben', v)} placeholder="z.B. Blau & Weiss, Gruen-Toene, keine Vorgabe" />
+        <SuggestButton field="farben" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.farben} />
       </Field>
-      <Field label="Stil" required hint="Welcher Designstil soll Ihre Website prägen?" error={fieldError('stil')}>
+      <Field label="Stil *" required hint="Welcher Designstil soll Ihre Website praegen?" error={fieldError('stil')}>
         <Select value={data.stil} onChange={v => set('stil', v)} onBlur={() => touch('stil')} hasError={!!fieldError('stil')} options={STIL_OPTIONS} />
+        {showErrors && !data.stil && (
+          <div style={{ fontSize: 11, color: '#C0392B', marginTop: 4, fontWeight: 600 }}>Bitte einen Stil auswaehlen um fortzufahren</div>
+        )}
+        <SuggestButton field="stil" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.stil} />
       </Field>
-      <Field label="Vorbilder / Inspiration" hint="Gibt es Websites, die Ihnen gefallen? URL(s) eintragen.">
-        <Input
-          value={data.vorbilder}
-          onChange={v => set('vorbilder', v)}
-          placeholder="z.B. https://www.beispiel.de, https://andereseite.de"
-        />
+      <Field label="Vorbilder / Inspiration" hint="Gibt es Websites die Ihnen gefallen? URL(s) eintragen.">
+        <Input value={data.vorbilder} onChange={v => set('vorbilder', v)} placeholder="z.B. https://www.beispiel.de" />
+        <SuggestButton field="vorbilder" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.vorbilder} />
       </Field>
     </div>
   );
@@ -520,7 +456,7 @@ function SummarySection({ title, children }) {
   );
 }
 
-function Step6({ data, saving, error, onSaveAndPdf }) {
+function Step6({ data, saving, error, onSaveAndPdf, onSaveOnly }) {
   return (
     <>
       <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)' }}>
@@ -556,20 +492,16 @@ function Step6({ data, saving, error, onSaveAndPdf }) {
           {error}
         </div>
       )}
-      <button
-        onClick={onSaveAndPdf}
-        disabled={saving}
-        style={{
-          width: '100%', marginTop: 12, padding: '13px 0', borderRadius: 10,
-          border: 'none', background: saving ? 'var(--border-light)' : TEAL,
-          color: saving ? 'var(--text-tertiary)' : 'var(--text-inverse)', fontSize: 15, fontWeight: 700,
-          cursor: saving ? 'not-allowed' : 'pointer',
-          fontFamily: 'var(--font-sans, system-ui)',
-          transition: 'background 0.15s',
-        }}
-      >
-        {saving ? 'Speichern …' : 'Briefing speichern & PDF herunterladen'}
-      </button>
+      <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+        <button onClick={onSaveOnly} disabled={saving}
+          style={{ flex: 1, padding: '13px 0', borderRadius: 10, border: `1.5px solid ${TEAL}`, background: 'transparent', color: TEAL, fontSize: 14, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          {saving ? 'Speichert...' : 'Nur speichern'}
+        </button>
+        <button onClick={onSaveAndPdf} disabled={saving}
+          style={{ flex: 2, padding: '13px 0', borderRadius: 10, border: 'none', background: saving ? 'var(--border-light)' : TEAL, color: saving ? 'var(--text-tertiary)' : '#fff', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          {saving ? 'Speichern...' : 'Speichern & PDF'}
+        </button>
+      </div>
     </>
   );
 }
@@ -587,6 +519,8 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
   const [saveError, setSaveError] = useState('');
   const [draftBanner, setDraftBanner] = useState(existingDraft ? formatDraftAge(existingDraft.savedAt) : null);
   const [suggestions, setSuggestions] = useState({});
+  const [showErrors, setShowErrors] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState('');
   const firstFieldRef = useRef(null);
 
   const suggestField = async (field) => {
@@ -629,7 +563,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
     wz_title:          leadData?.wz_title          || '',
     leistungen:        leadData?.leistungen        || '',
     einzugsgebiet:     leadData?.einzugsgebiet     || '',
-    zielgruppe:        leadData?.zielgruppe        || '',
+    zielgruppe:        typeof leadData?.zielgruppe === 'string' ? leadData.zielgruppe : leadData?.zielgruppe?.primaer || '',
     typischerKunde:    leadData?.typischerKunde    || '',
     haeufigeAnfrage:   leadData?.haeufigeAnfrage   || '',
     usp:               leadData?.usp               || '',
@@ -750,8 +684,33 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
     }
   };
 
-  const handleNext = () => {
-    if (!canNext()) { touchStep(step); return; }
+  const buildPayload = () => ({
+    gewerk: data.gewerk, wz_code: data.wz_code, wz_title: data.wz_title,
+    leistungen: data.leistungen, einzugsgebiet: data.einzugsgebiet,
+    usp: data.usp, mitbewerber: data.mitbewerber, vorbilder: data.vorbilder,
+    farben: data.farben, stil: data.stil,
+    wunschseiten: Array.isArray(data.wunschseiten) ? data.wunschseiten.join(', ') : data.wunschseiten || '',
+    logo_vorhanden: data.logo_vorhanden, fotos_vorhanden: data.fotos_vorhanden,
+    sonstige_hinweise: data.sonstige_hinweise,
+  });
+
+  const autoSave = async () => {
+    setAutoSaveStatus('saving');
+    try {
+      const t = localStorage.getItem('kompagnon_token');
+      await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        body: JSON.stringify(buildPayload()),
+      });
+      setAutoSaveStatus('saved');
+      setTimeout(() => setAutoSaveStatus(''), 2000);
+    } catch { setAutoSaveStatus('error'); setTimeout(() => setAutoSaveStatus(''), 3000); }
+  };
+
+  const handleNext = async () => {
+    if (!canNext()) { touchStep(step); setShowErrors(true); return; }
+    setShowErrors(false);
+    await autoSave();
     if (step < STEPS.length - 1) setStep(s => s + 1);
   };
 
@@ -760,15 +719,31 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
     else if (onClose) onClose();
   };
 
+  const handleSaveOnly = async () => {
+    setSaving(true); setSaveError('');
+    try {
+      const t = localStorage.getItem('kompagnon_token');
+      const res = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        body: JSON.stringify(buildPayload()),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Fehler');
+      clearDraft(leadId);
+      if (onComplete) onComplete(data);
+    } catch (e) { setSaveError(e.message); }
+    finally { setSaving(false); }
+  };
+
   const renderStep = () => {
-    const p = { data, set, touch, fieldError, firstRef: firstFieldRef, suggestions, onSuggest: suggestField, onApply: applySuggestion };
+    const suggestProps = { suggestions, onSuggest: suggestField, onApply: applySuggestion };
+    const p = { data, set, touch, fieldError, firstRef: firstFieldRef, ...suggestProps };
     switch (step) {
       case 0: return <Step1 {...p} />;
       case 1: return <Step2 {...p} />;
       case 2: return <Step3 {...p} />;
-      case 3: return <Step4 {...p} />;
+      case 3: return <Step4 {...p} showErrors={showErrors} />;
       case 4: return <Step5 {...p} />;
-      case 5: return <Step6 data={data} saving={saving} error={saveError} onSaveAndPdf={handleSaveAndPdf} />;
+      case 5: return <Step6 data={data} saving={saving} error={saveError} onSaveAndPdf={handleSaveAndPdf} onSaveOnly={handleSaveOnly} />;
       default: return null;
     }
   };
@@ -798,6 +773,11 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
           <div>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', color: TEAL, textTransform: 'uppercase' }}>Schritt {step + 1} von {STEPS.length}</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>{STEPS[step]}</div>
+            {leadData?.gewerk ? (
+              <div style={{ fontSize: 11, color: '#1D9E75', marginTop: 2 }}>Bestehendes Briefing wird bearbeitet</div>
+            ) : (
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>Neues Briefing anlegen</div>
+            )}
           </div>
         </div>
         {/* Body */}
@@ -809,7 +789,12 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
           <button onClick={handleBack} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-light)', background: 'var(--bg-app)', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
             {step === 0 ? 'Abbrechen' : 'Zurueck'}
           </button>
-          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{step + 1} / {STEPS.length}</span>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {autoSaveStatus === 'saving' && (<><span style={{ width: 10, height: 10, border: '1.5px solid var(--border-light)', borderTopColor: TEAL, borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block' }} /><span>Speichert...</span></>)}
+            {autoSaveStatus === 'saved' && <span style={{ color: '#1D9E75' }}>Gespeichert</span>}
+            {autoSaveStatus === 'error' && <span style={{ color: '#C0392B' }}>Fehler</span>}
+            {!autoSaveStatus && <span>{step + 1} / {STEPS.length}</span>}
+          </div>
           {step < STEPS.length - 1 ? (
             <button onClick={handleNext} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: canNext() ? TEAL : 'var(--border-medium)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
               Weiter
@@ -829,7 +814,11 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
     <>
       {/* ── Overlay ── */}
       <div
-        onClick={onClose}
+        onClick={async () => {
+          const hasData = !!(data.gewerk || data.leistungen || data.usp);
+          if (hasData && step > 0) { try { await autoSave(); } catch {} }
+          onClose?.();
+        }}
         style={{
           position: 'fixed',
           inset: 0,

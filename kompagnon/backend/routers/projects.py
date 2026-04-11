@@ -3703,9 +3703,13 @@ def _make_slug(name: str) -> str:
 
 
 def _build_sitemap_register(project_id: int, db) -> list:
+    lead_row = db.execute(text("SELECT lead_id FROM projects WHERE id = :pid"), {"pid": project_id}).fetchone()
+    lead_id = lead_row[0] if lead_row else None
+    if not lead_id:
+        return []
     rows = db.execute(
-        text("SELECT id, page_name, page_type, COALESCE(slug, '') as slug FROM sitemap_pages WHERE project_id = :pid ORDER BY sort_order, id"),
-        {"pid": project_id},
+        text("SELECT id, page_name, page_type, '' as slug FROM sitemap_pages WHERE lead_id = :lid ORDER BY position, id"),
+        {"lid": lead_id},
     ).fetchall()
     result = []
     for row in rows:
@@ -3844,8 +3848,8 @@ async def generate_design_json(
     brand = json.loads(brand_json) if brand_json else {}
 
     sitemap = db.execute(
-        text("SELECT page_name, COALESCE(slug,'') as slug FROM sitemap_pages WHERE project_id=:pid ORDER BY sort_order"),
-        {"pid": project_id},
+        text("SELECT page_name, '' as slug FROM sitemap_pages WHERE lead_id=:lid ORDER BY position"),
+        {"lid": lead_id},
     ).fetchall()
     sitemap_list = [{"name": r[0], "path": f"/{r[1]}" if r[1] else "/"} for r in sitemap]
 

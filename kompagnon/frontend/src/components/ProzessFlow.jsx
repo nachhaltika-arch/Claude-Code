@@ -319,23 +319,7 @@ function SchrittInhalt({ schritt, project, lead, token, headers,
       );
 
     case 'Audit':
-      return (
-        <div style={pad}>
-          {latestAudit ? (
-            <div style={{ background: 'var(--status-success-bg)', border: '1px solid var(--status-success-text)', borderRadius: 8, padding: '14px 18px' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--status-success-text)' }}>
-                Audit vorhanden — Score: {latestAudit.total_score}/100
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>{latestAudit.level}</div>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '32px 20px', color: 'var(--text-tertiary)' }}>
-              <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
-              <div style={{ fontSize: 13 }}>Noch kein Audit — bitte Audit starten.</div>
-            </div>
-          )}
-        </div>
-      );
+      return <AuditEmbed project={project} lead={lead} headers={headers} latestAudit={latestAudit} />;
 
     case 'Zugangsdaten':
       return (
@@ -486,6 +470,114 @@ function SitemapKiVorschlag({ project, leadId, headers }) {
         style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: loading ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
         {loading ? (<><span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Wird erstellt...</>) : 'KI-Sitemap erstellen'}
       </button>
+    </div>
+  );
+}
+
+function AuditEmbed({ project, lead, headers, latestAudit }) {
+  const [running, setRunning]   = useState(false);
+  const [progress, setProgress] = useState('');
+  const [error, setError]       = useState('');
+  const [result, setResult]     = useState(latestAudit || null);
+
+  const websiteUrl = lead?.website_url || project?.website_url;
+
+  const scoreColor = (s) =>
+    s >= 85 ? { bg: '#EAF3DE', text: '#27500A' } :
+    s >= 70 ? { bg: '#FEF9C3', text: '#854D0E' } :
+    s >= 50 ? { bg: '#FEF3DC', text: '#8A5C00' } :
+              { bg: '#FDEAEA', text: '#C0392B' };
+
+  const startAudit = async () => {
+    if (!websiteUrl) { setError('Keine Website-URL hinterlegt.'); return; }
+    setRunning(true); setError(''); setProgress('Audit wird gestartet...');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/audit/start`, {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          website_url: websiteUrl, lead_id: project?.lead_id,
+          company_name: lead?.company_name || project?.company_name || '',
+          city: lead?.city || '', trade: lead?.trade || '',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Start fehlgeschlagen');
+      const auditId = data.audit_id || data.id;
+      if (!auditId) throw new Error('Keine Audit-ID erhalten');
+
+      const msgs = ['Website wird analysiert...', 'Performance wird gemessen...', 'Rechtliches wird geprueft...', 'Screenshot wird erstellt...', 'KI-Analyse laeuft...'];
+      let i = 0;
+      const iv = setInterval(() => { i = (i + 1) % msgs.length; setProgress(msgs[i]); }, 4000);
+
+      const deadline = Date.now() + 180000;
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 4000));
+        const poll = await fetch(`${API_BASE_URL}/api/audit/${auditId}`, { headers }).then(r => r.json()).catch(() => ({}));
+        if (poll.status === 'completed') { clearInterval(iv); setResult(poll); setProgress(''); setRunning(false); break; }
+        if (poll.status === 'failed') { clearInterval(iv); throw new Error('Audit fehlgeschlagen'); }
+      }
+    } catch (e) { setError(e.message); setRunning(false); setProgress(''); }
+  };
+
+  return (
+    <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {websiteUrl && (
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+          <span style={{ color: 'var(--text-tertiary)' }}>URL: </span>
+          <a href={websiteUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}>{websiteUrl}</a>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <button onClick={startAudit} disabled={running || !websiteUrl}
+          style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: running || !websiteUrl ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: running || !websiteUrl ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          {running ? (<><span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Laeuft...</>) : result ? 'Neuen Audit starten' : 'Audit starten'}
+        </button>
+        {running && <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic' }}>{progress}</span>}
+        {!websiteUrl && <span style={{ fontSize: 12, color: 'var(--status-warning-text)' }}>Keine Website-URL hinterlegt</span>}
+      </div>
+
+      {error && <div style={{ fontSize: 12, color: 'var(--status-danger-text)', background: 'var(--status-danger-bg)', padding: '8px 12px', borderRadius: 6 }}>{error}</div>}
+
+      {result && !running && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ ...scoreColor(result.total_score), padding: '12px 20px', borderRadius: 10, textAlign: 'center' }}>
+              <div style={{ fontSize: 36, fontWeight: 900, lineHeight: 1, color: scoreColor(result.total_score).text }}>{result.total_score ?? '\u2014'}</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: scoreColor(result.total_score).text, opacity: .7, marginTop: 2 }}>/ 100</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{result.level || '\u2014'}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                {result.created_at ? new Date(result.created_at).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}
+              </div>
+            </div>
+          </div>
+          {result.ai_summary && (
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, background: 'var(--bg-app)', borderRadius: 8, padding: '12px 14px', borderLeft: '3px solid var(--brand-primary)' }}>
+              {result.ai_summary}
+            </div>
+          )}
+          {result.top_problems?.length > 0 && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Wichtigste Probleme</div>
+              {result.top_problems.slice(0, 5).map((p, i) => (
+                <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '4px 0', borderBottom: '1px solid var(--border-light)', display: 'flex', gap: 8 }}>
+                  <span style={{ color: 'var(--status-danger-text)', flexShrink: 0 }}>{'\u2717'}</span>
+                  {typeof p === 'string' ? p : p.label || p.text || JSON.stringify(p)}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!result && !running && (
+        <div style={{ textAlign: 'center', padding: '32px 20px', color: 'var(--text-tertiary)' }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
+          <div style={{ fontSize: 13 }}>Noch kein Audit vorhanden. Klicke auf Audit starten.</div>
+        </div>
+      )}
     </div>
   );
 }

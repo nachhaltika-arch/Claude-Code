@@ -2591,13 +2591,13 @@ def add_credential(
     project_id: int,
     data: dict,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin),
+    current_user=Depends(require_any_auth),
 ):
     label    = (data.get("label") or "").strip()
-    username = (data.get("username") or "").strip()
-    password = (data.get("password") or "").strip()
+    username = (data.get("username") or data.get("benutzername") or "").strip()
+    password = (data.get("password") or data.get("passwort") or "").strip()
     url      = (data.get("url") or "").strip()
-    notes    = (data.get("notes") or "").strip()
+    notes    = (data.get("notes") or data.get("notizen") or "").strip()
 
     if not label:
         raise HTTPException(400, "Label ist Pflichtfeld")
@@ -2621,14 +2621,16 @@ def add_credential(
             logger.error(f"Verschluesselung Fehler: {e}")
             raise HTTPException(500, "Verschluesselung fehlgeschlagen")
 
+    typ = (data.get("typ") or "sonstiges").strip()
     db.execute(text("""
         INSERT INTO project_credentials
-            (project_id, label, username, password_encrypted, url, notes)
+            (project_id, label, typ, username, password_encrypted, url, notes)
         VALUES
-            (:pid, :label, :username, :pw, :url, :notes)
+            (:pid, :label, :typ, :username, :pw, :url, :notes)
     """), {
         "pid":      project_id,
         "label":    label,
+        "typ":      typ,
         "username": username,
         "pw":       encrypted,
         "url":      url,
@@ -2655,10 +2657,10 @@ def add_credential(
 def get_credentials(
     project_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin),
+    current_user=Depends(require_any_auth),
 ):
     rows = db.execute(text("""
-        SELECT id, label, username, password_encrypted,
+        SELECT id, label, COALESCE(typ,'sonstiges') as typ, username, password_encrypted,
                url, notes, created_at
         FROM project_credentials
         WHERE project_id = :pid
@@ -2684,6 +2686,7 @@ def get_credentials(
         result.append({
             "id":         r["id"],
             "label":      r["label"],
+            "typ":        r["typ"] or "sonstiges",
             "username":   r["username"] or "",
             "password":   decrypted,
             "url":        r["url"] or "",
@@ -2698,7 +2701,7 @@ def delete_credential(
     project_id: int,
     cred_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin),
+    current_user=Depends(require_any_auth),
 ):
     db.execute(text("""
         DELETE FROM project_credentials

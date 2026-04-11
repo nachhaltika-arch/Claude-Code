@@ -927,7 +927,8 @@ def _run_migrations():
             notes               TEXT,
             created_at          TIMESTAMP DEFAULT NOW()
         )""",
-        # Google Business Profile
+        "ALTER TABLE project_credentials ADD COLUMN IF NOT EXISTS typ VARCHAR(50) DEFAULT 'sonstiges'",
+        "CREATE INDEX IF NOT EXISTS idx_project_credentials_pid ON project_credentials(project_id)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_place_id VARCHAR",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_claimed BOOLEAN DEFAULT false",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_rating FLOAT",

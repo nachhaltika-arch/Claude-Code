@@ -333,13 +333,7 @@ function SchrittInhalt({ schritt, project, lead, token, headers,
       return <AuditEmbed project={project} lead={lead} headers={headers} latestAudit={latestAudit} />;
 
     case 'Zugangsdaten':
-      return (
-        <div style={pad}>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-            Hosting-, FTP- und CMS-Zugaenge sicher speichern.
-          </div>
-        </div>
-      );
+      return <ZugangsdatenEmbed project={project} headers={headers} />;
 
     case 'Sitemap':
       return (
@@ -588,6 +582,119 @@ function AuditEmbed({ project, lead, headers, latestAudit }) {
           <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
           <div style={{ fontSize: 13 }}>Noch kein Audit vorhanden. Klicke auf Audit starten.</div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function ZugangsdatenEmbed({ project, headers }) {
+  const [creds, setCreds]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [saving, setSaving]     = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm]         = useState({ label: '', typ: 'hosting', username: '', password: '', url: '', notes: '' });
+
+  const TYP_OPTIONS = [
+    { value: 'hosting',   label: 'Hosting / cPanel' },
+    { value: 'ftp',       label: 'FTP / SFTP' },
+    { value: 'cms',       label: 'CMS / WordPress' },
+    { value: 'domain',    label: 'Domain-Registrar' },
+    { value: 'netlify',   label: 'Netlify' },
+    { value: 'email',     label: 'E-Mail / SMTP' },
+    { value: 'sonstiges', label: 'Sonstiges' },
+  ];
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/projects/${project.id}/credentials`, { headers })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setCreds(Array.isArray(d) ? d : []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []); // eslint-disable-line
+
+  const save = async () => {
+    if (!form.label.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/credentials`, { method: 'POST', headers, body: JSON.stringify(form) });
+      if (res.ok) { const neu = await res.json(); setCreds(prev => [...prev, neu]); setForm({ label: '', typ: 'hosting', username: '', password: '', url: '', notes: '' }); setShowForm(false); }
+    } catch {} finally { setSaving(false); }
+  };
+
+  const del = async (id) => {
+    await fetch(`${API_BASE_URL}/api/projects/${project.id}/credentials/${id}`, { method: 'DELETE', headers });
+    setCreds(prev => prev.filter(c => c.id !== id));
+  };
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-app)', borderRadius: 8, padding: '10px 14px', borderLeft: '3px solid var(--brand-primary)' }}>
+        Zugangsdaten werden verschluesselt gespeichert.
+      </div>
+
+      {creds.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {creds.map(c => (
+            <div key={c.id} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '12px 14px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{c.label}</span>
+                  <span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, background: 'var(--bg-elevated)', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                    {TYP_OPTIONS.find(t => t.value === c.typ)?.label || c.typ || 'Sonstiges'}
+                  </span>
+                </div>
+                {c.username && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.username}</div>}
+                {c.url && <a href={c.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--brand-primary)', textDecoration: 'none', display: 'block' }}>{c.url}</a>}
+                {c.notes && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>{c.notes}</div>}
+              </div>
+              <button onClick={() => del(c.id)} style={{ fontSize: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 4 }}>X</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showForm ? (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Neuen Zugang hinzufuegen</div>
+          {[
+            { key: 'label', label: 'Bezeichnung *', placeholder: 'z.B. IONOS cPanel' },
+            { key: 'username', label: 'Benutzername', placeholder: 'user@domain.de' },
+            { key: 'password', label: 'Passwort', placeholder: '', type: 'password' },
+            { key: 'url', label: 'URL / Panel', placeholder: 'https://login.ionos.de' },
+            { key: 'notes', label: 'Notizen', placeholder: 'Weitere Infos' },
+          ].map(f => (
+            <div key={f.key}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>{f.label}</div>
+              <input type={f.type || 'text'} value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder}
+                style={{ width: '100%', padding: '8px 10px', fontSize: 13, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box' }} />
+            </div>
+          ))}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}>Typ</div>
+            <select value={form.typ} onChange={e => setForm(p => ({ ...p, typ: e.target.value }))}
+              style={{ width: '100%', padding: '8px 10px', fontSize: 13, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'var(--font-sans)' }}>
+              {TYP_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: 8, borderRadius: 6, border: '1px solid var(--border-light)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
+            <button onClick={save} disabled={saving || !form.label.trim()}
+              style={{ flex: 2, padding: 8, borderRadius: 6, border: 'none', background: form.label.trim() ? 'var(--brand-primary)' : 'var(--border-medium)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: form.label.trim() ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
+              {saving ? 'Speichert...' : 'Speichern'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setShowForm(true)}
+          style={{ padding: '10px 20px', borderRadius: 8, border: '1.5px dashed var(--border-medium)', background: 'transparent', color: 'var(--brand-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          + Zugang hinzufuegen
+        </button>
+      )}
+
+      {creds.length === 0 && !showForm && (
+        <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)', fontSize: 13 }}>Noch keine Zugangsdaten gespeichert.</div>
       )}
     </div>
   );

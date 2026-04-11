@@ -1615,16 +1615,15 @@ def get_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
 @router.post("/{lead_id}/pagespeed")
 async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
     """Call Google PageSpeed Insights (mobile + desktop), persist results on the lead."""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+    from sqlalchemy import text as sa_text
 
-    website_url = lead.website_url
+    # Schnelle URL-Abfrage per Raw-SQL (vermeidet ORM-Spalten-Timeout)
+    row = db.execute(sa_text("SELECT website_url FROM leads WHERE id = :lid"), {"lid": lead_id}).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+    website_url = row[0]
     if not website_url:
         raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
-
-    # DB-Verbindung vor externem PageSpeed-Call freigeben
-    db.close()
 
     api_key = os.getenv("PAGESPEED_API_KEY") or os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
     base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
@@ -1644,18 +1643,16 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
 
     # Log response status for debugging
     if mobile_resp.status_code != 200:
-        logger.warning(f"PageSpeed mobile response {mobile_resp.status_code} for {website_url}: {mobile_resp.text[:200]}")
+        logger.warning(f"PageSpeed mobile {mobile_resp.status_code} for {website_url}: {mobile_resp.text[:200]}")
     if desktop_resp.status_code != 200:
-        logger.warning(f"PageSpeed desktop response {desktop_resp.status_code} for {website_url}: {desktop_resp.text[:200]}")
+        logger.warning(f"PageSpeed desktop {desktop_resp.status_code} for {website_url}: {desktop_resp.text[:200]}")
 
     def _score(resp) -> int | None:
         try:
             data = resp.json()
             cat = data.get("lighthouseResult", {}).get("categories", {}).get("performance", {})
             raw = cat.get("score")
-            if raw is None:
-                return None
-            return round(raw * 100)
+            return round(raw * 100) if raw is not None else None
         except Exception:
             return None
 
@@ -1672,24 +1669,43 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
     if mobile_score is None and desktop_score is None:
         raise HTTPException(status_code=502, detail="PageSpeed konnte keine Scores ermitteln — Google API hat keine Ergebnisse geliefert")
 
-    # Neue DB-Session zum Speichern
-    db2 = SessionLocal()
+    # Per Raw-SQL speichern (schnell, kein ORM-Overhead, kein Timeout)
     try:
-        lead = db2.query(Lead).filter(Lead.id == lead_id).first()
-        if not lead:
-            raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-        lead.pagespeed_mobile_score  = mobile_score
-        lead.pagespeed_desktop_score = desktop_score
-        lead.pagespeed_lcp_mobile    = _audit(mobile_resp, "largest-contentful-paint")
-        lead.pagespeed_cls_mobile    = _audit(mobile_resp, "cumulative-layout-shift")
-        lead.pagespeed_inp_mobile    = _audit(mobile_resp, "interaction-to-next-paint")
-        lead.pagespeed_fcp_mobile    = _audit(mobile_resp, "first-contentful-paint")
-        lead.pagespeed_checked_at    = datetime.utcnow()
-        db2.commit()
-        db2.refresh(lead)
-        return _pagespeed_payload_lead(lead)
-    finally:
-        db2.close()
+        db.execute(sa_text("""
+            UPDATE leads SET
+                pagespeed_mobile_score  = :mobile,
+                pagespeed_desktop_score = :desktop,
+                pagespeed_lcp_mobile    = :lcp,
+                pagespeed_cls_mobile    = :cls,
+                pagespeed_inp_mobile    = :inp,
+                pagespeed_fcp_mobile    = :fcp,
+                pagespeed_checked_at    = :checked
+            WHERE id = :lid
+        """), {
+            "mobile": mobile_score,
+            "desktop": desktop_score,
+            "lcp": _audit(mobile_resp, "largest-contentful-paint"),
+            "cls": _audit(mobile_resp, "cumulative-layout-shift"),
+            "inp": _audit(mobile_resp, "interaction-to-next-paint"),
+            "fcp": _audit(mobile_resp, "first-contentful-paint"),
+            "checked": datetime.utcnow(),
+            "lid": lead_id,
+        })
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"PageSpeed save failed for lead {lead_id}: {e}")
+        raise HTTPException(500, f"Speichern fehlgeschlagen: {str(e)[:100]}")
+
+    return {
+        "mobile_score": mobile_score,
+        "desktop_score": desktop_score,
+        "lcp_mobile": _audit(mobile_resp, "largest-contentful-paint"),
+        "cls_mobile": _audit(mobile_resp, "cumulative-layout-shift"),
+        "inp_mobile": _audit(mobile_resp, "interaction-to-next-paint"),
+        "fcp_mobile": _audit(mobile_resp, "first-contentful-paint"),
+        "checked_at": datetime.utcnow().isoformat(),
+    }
 
 
 # ── Lead Domains ─────────────────────────────────────────────────────────────

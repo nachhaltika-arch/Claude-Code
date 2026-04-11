@@ -73,7 +73,9 @@ const SECTIONS = [
   { id: 'seo', label: 'SEO & Marketing', icon: '📈', fields: [
     { key: 'keywords', label: 'Fuer welche Suchbegriffe soll die Website gefunden werden?', type: 'textarea', placeholder: 'z.B. "Sanitaer Koblenz", "Heizung installieren Neuwied", "Notdienst Rohrbruch"', rows: 3 },
     { key: 'google_business', label: 'Ist ein Google Business Profil vorhanden?', type: 'text', options: ['Ja, aktiv gepflegt', 'Ja, aber veraltet', 'Nein — wird angelegt', 'Weiss ich nicht'] },
-    { key: 'social_media', label: 'Welche Social-Media-Kanaele sind aktiv?', type: 'textarea', placeholder: 'z.B. Facebook (500 Follower, aktiv), Instagram (kaum genutzt), kein LinkedIn', rows: 2 },
+    { key: 'social_media', label: 'Welche Social-Media-Kanaele sind aktiv?', type: 'checkboxes', options: [
+      'Facebook', 'Instagram', 'LinkedIn', 'YouTube', 'TikTok', 'Pinterest', 'X (Twitter)', 'Xing', 'Google Business', 'WhatsApp Business', 'Keine'
+    ] },
   ]},
 
   // 10. Zeitplan & Sonstiges
@@ -460,7 +462,38 @@ export default function BriefingTab({ lead, isMobile }) {
                     <div key={field.key}>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 5 }}>{field.label}</label>
                       {field.hint && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6, lineHeight: 1.5 }}>{field.hint}</div>}
-                      {field.options ? (
+                      {field.type === 'checkboxes' && field.options ? (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {field.options.map(opt => {
+                            const selected = (val || '').split(', ').filter(Boolean);
+                            const isChecked = selected.includes(opt);
+                            const toggle = () => {
+                              let next;
+                              if (opt === 'Keine') {
+                                next = isChecked ? '' : 'Keine';
+                              } else {
+                                const without = selected.filter(s => s !== 'Keine' && s !== opt);
+                                next = isChecked ? without.join(', ') : [...without, opt].join(', ');
+                              }
+                              updateField(activeSection, field.key, next);
+                            };
+                            return (
+                              <button key={opt} onClick={toggle} style={{
+                                padding: isMobile ? '10px 16px' : '6px 14px', minHeight: isMobile ? 44 : undefined,
+                                background: isChecked ? 'var(--brand-primary)' : 'var(--bg-app)',
+                                color: isChecked ? 'white' : 'var(--text-secondary)',
+                                border: `1px solid ${isChecked ? 'var(--brand-primary)' : 'var(--border-medium)'}`,
+                                borderRadius: 'var(--radius-full)', fontSize: 12, cursor: 'pointer',
+                                fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
+                                display: 'flex', alignItems: 'center', gap: 5,
+                              }}>
+                                <span style={{ fontSize: 11 }}>{isChecked ? '\u2713' : ''}</span>
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : field.options ? (
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {field.options.map(opt => (
                             <button key={opt} onClick={() => updateField(activeSection, field.key, opt)} style={{

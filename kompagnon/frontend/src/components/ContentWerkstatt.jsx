@@ -3,21 +3,18 @@ import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 
 const CONTENT_TABS = [
-  { id: 'sitemap',    label: 'Sitemap',        icon: '🗺️', desc: 'Seitenstruktur' },
   { id: 'inhalte',    label: 'Seiteninhalte',   icon: '📄', desc: 'Texte & KI' },
   { id: 'assets',     label: 'Bilder & Assets', icon: '🖼️', desc: 'Medien je Seite' },
   { id: 'freigaben',  label: 'Freigaben',       icon: '✅', desc: 'Kunden-Freigaben' },
 ];
 
 export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading, token, leadId, websiteContent }) {
-  const [activeTab, setActiveTab]       = useState('sitemap');
+  const [activeTab, setActiveTab]       = useState('inhalte');
   const [selectedPage, setSelectedPage] = useState(null);
   const [generating, setGenerating]     = useState(false);
   const [pageContent, setPageContent]   = useState({});
   const [editedContent, setEditedContent] = useState({});
   const [newContent, setNewContent]     = useState({});
-  const [suggestedSitemap, setSuggestedSitemap] = useState(null);
-  const [suggesting, setSuggesting]             = useState(false);
   const [queueRunning, setQueueRunning]         = useState(false);
   const [queueDone, setQueueDone]               = useState(0);
   const [queueStop, setQueueStop]               = useState(false);
@@ -125,120 +122,6 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
         })}
       </div>
 
-      {/* TAB 1: SITEMAP */}
-      {activeTab === 'sitemap' && (
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Seitenstruktur — {sitemapPages.length} Seiten</div>
-            <button onClick={() => setActiveTab('inhalte')} disabled={sitemapPages.length === 0}
-              style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: sitemapPages.length > 0 ? 'var(--brand-primary)' : 'var(--border-medium)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: sitemapPages.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
-              Zu Seiteninhalten
-            </button>
-          </div>
-
-          {sitemapLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
-              <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin .8s linear infinite' }} />
-            </div>
-          ) : sitemapPages.length === 0 ? (
-            <div>
-              <div style={{ padding: '16px 18px', background: 'var(--bg-app)', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>KI-Sitemap generieren</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Claude analysiert die gecrawlten Seiten und schlaegt eine Struktur vor</div>
-                </div>
-                <button onClick={async () => {
-                  setSuggesting(true);
-                  try {
-                    const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/sitemap-suggest`, { method: 'POST', headers });
-                    if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Fehler');
-                    const { suggested_pages } = await res.json();
-                    setSuggestedSitemap(suggested_pages);
-                    toast.success(`${suggested_pages.length} Seiten vorgeschlagen`);
-                  } catch (e) { toast.error(e.message); }
-                  finally { setSuggesting(false); }
-                }} disabled={suggesting}
-                  style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: suggesting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
-                  {suggesting ? 'Analysiert...' : 'KI-Sitemap vorschlagen'}
-                </button>
-              </div>
-              {suggestedSitemap ? (
-                <div style={{ padding: '14px 18px', background: 'rgba(0,142,170,.05)' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-primary)', marginBottom: 8 }}>Vorschlag — {suggestedSitemap.length} Seiten</div>
-                  {suggestedSitemap.map((p, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 10, padding: '4px 0', borderBottom: '1px solid var(--border-light)', fontSize: 11 }}>
-                      <span style={{ color: 'var(--text-primary)', flex: 1 }}>{p.page_name}</span>
-                      <span style={{ color: 'var(--text-tertiary)' }}>{p.page_type}</span>
-                      <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>{p.ziel_keyword}</span>
-                    </div>
-                  ))}
-                  <button onClick={async () => {
-                    for (const p of suggestedSitemap) {
-                      await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id || leadId}`,
-                        { method: 'POST', headers, body: JSON.stringify({ page_name: p.page_name, page_type: p.page_type, slug: p.slug, ziel_keyword: p.ziel_keyword, zweck: p.zweck }) });
-                    }
-                    setSuggestedSitemap(null);
-                    toast.success('Sitemap uebernommen!');
-                  }} style={{ marginTop: 10, padding: '7px 14px', borderRadius: 6, border: 'none', background: '#059669', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                    Uebernehmen
-                  </button>
-                </div>
-              ) : (
-                <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)' }}>
-                  <div style={{ fontSize: 32, marginBottom: 10 }}>🗺️</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Noch keine Sitemap angelegt</div>
-                  <div style={{ fontSize: 12 }}>KI-Vorschlag generieren oder manuell im Analyse-Tab anlegen.</div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 120px 140px 100px', gap: 0, padding: '8px 16px', background: 'var(--bg-app)', fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: '1px solid var(--border-light)' }}>
-                <div>#</div><div>Seite</div><div>Typ</div><div>Content-Status</div><div>Aktion</div>
-              </div>
-              {sitemapPages.map((page, idx) => {
-                const hasContent = !!pageContent[page.id];
-                return (
-                  <div key={page.id} style={{ display: 'grid', gridTemplateColumns: '40px 1fr 120px 140px 100px', gap: 0, padding: '10px 16px', borderBottom: '1px solid var(--border-light)', alignItems: 'center' }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{idx + 1}</div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{page.page_name}</div>
-                      {page.ziel_keyword && <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Keyword: {page.ziel_keyword}</div>}
-                    </div>
-                    <div><span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontWeight: 600 }}>{page.page_type || 'info'}</span></div>
-                    <div><span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, fontWeight: 600, background: hasContent ? 'var(--status-success-bg)' : 'var(--bg-elevated)', color: hasContent ? 'var(--status-success-text)' : 'var(--text-tertiary)' }}>{hasContent ? 'Generiert' : 'Ausstehend'}</span></div>
-                    <div>
-                      <button onClick={() => { setSelectedPage(page); generateContent(page); }} disabled={generating}
-                        style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--brand-primary)', cursor: generating ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
-                        {hasContent ? 'Neu' : 'KI'}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-              {/* Queue-Fortschritt */}
-              {queueRunning && (
-                <div style={{ padding: '12px 16px', background: 'var(--bg-active, var(--bg-elevated))', borderTop: '1px solid var(--border-light)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-primary)' }}>Content generieren — {queueDone}/{sitemapPages.length}</span>
-                    <button onClick={() => setQueueStop(true)} style={{ fontSize: 11, color: 'var(--status-danger-text)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>Stopp</button>
-                  </div>
-                  <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
-                    <div style={{ height: '100%', width: `${Math.round((queueDone / sitemapPages.length) * 100)}%`, background: 'var(--brand-primary)', borderRadius: 3, transition: 'width .3s ease' }} />
-                  </div>
-                  {queueCurrentPage && <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Aktuell: {queueCurrentPage}</div>}
-                </div>
-              )}
-              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-light)', display: 'flex', gap: 10 }}>
-                <button onClick={generateAllContent} disabled={queueRunning || sitemapPages.length === 0}
-                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: queueRunning ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: queueRunning ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {queueRunning ? (<><span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />{queueDone}/{sitemapPages.length}...</>) : `Alle ${sitemapPages.length} Seiten generieren`}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* TAB 2: SEITENINHALTE — Master-Detail */}
       {activeTab === 'inhalte' && (

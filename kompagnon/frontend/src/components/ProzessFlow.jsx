@@ -4,6 +4,7 @@ import ContentWerkstatt from './ContentWerkstatt';
 import DesignStudio from './DesignStudio';
 import BriefingTab from './BriefingTab';
 import BriefingWizard from './BriefingWizard';
+import API_BASE_URL from '../config';
 
 const PHASEN = [
   {
@@ -38,24 +39,20 @@ const PHASEN = [
         istFertig: (d) => (d.sitemapCount || 0) >= 3,
         wasFehlts: (d) => { const f = 3-(d.sitemapCount||0); return f > 0 ? [`Noch ${f} Seite(n) (mind. 3)`] : []; },
         fertigText: (d) => `${d.sitemapCount} Seiten` },
-      { id: 'content-generieren', nr: 7, label: 'Content generieren', desc: 'KI-Texte je Seite', icon: '🤖', component: 'ContentWerkstatt',
+      { id: 'content-generieren', nr: 7, label: 'Content & Bilder', desc: 'KI-Texte + Bilder je Seite', icon: '🤖', component: 'ContentWerkstatt',
         istFertig: (d) => (d.sitemapCount||0) > 0 && (d.contentCount||0) >= (d.sitemapCount||1),
         wasFehlts: (d) => { if (!d.sitemapCount) return ['Zuerst Sitemap anlegen']; const o = (d.sitemapCount||0)-(d.contentCount||0); return o > 0 ? [`${o}/${d.sitemapCount} Seiten ohne Content`] : []; },
         fertigText: (d) => `${d.contentCount}/${d.sitemapCount} Seiten` },
-      { id: 'bilder', nr: 8, label: 'Bilder & Assets', desc: 'Bilder zuordnen', icon: '🖼️', component: 'Assets', optional: true,
-        istFertig: (d) => !!(d.hasAssets),
-        wasFehlts: () => ['Keine Bilder zugeordnet'],
-        fertigText: () => 'Bilder zugeordnet' },
     ],
   },
   {
     id: 'design', label: 'Design', icon: '🎨', color: '#d97706',
     schritte: [
-      { id: 'design-generieren', nr: 9, label: 'Design generieren', desc: 'Template + KI-Entwurf', icon: '✨', component: 'DesignStudio',
+      { id: 'design-generieren', nr: 8, label: 'Design generieren', desc: 'Template + KI-Entwurf', icon: '✨', component: 'DesignStudio',
         istFertig: (d) => (d.designVersions || 0) >= 1,
         wasFehlts: (d) => (d.designVersions||0) === 0 ? ['Noch kein Design generiert'] : [],
         fertigText: (d) => `${d.designVersions} Version(en)` },
-      { id: 'editor', nr: 10, label: 'Editor nachbearbeiten', desc: 'Feinschliff im GrapesJS', icon: '🖊️', component: 'Editor', optional: true,
+      { id: 'editor', nr: 9, label: 'Editor nachbearbeiten', desc: 'Feinschliff im GrapesJS', icon: '🖊️', component: 'Editor', optional: true,
         istFertig: (d) => !!(d.editorSaved),
         wasFehlts: () => ['Editor nicht geoeffnet'],
         fertigText: () => 'Gespeichert' },
@@ -64,19 +61,19 @@ const PHASEN = [
   {
     id: 'golive', label: 'Go Live', icon: '🚀', color: '#059669',
     schritte: [
-      { id: 'netlify', nr: 11, label: 'Netlify deployen', desc: 'Website veroeffentlichen', icon: '🚀', component: 'Netlify',
+      { id: 'netlify', nr: 10, label: 'Netlify deployen', desc: 'Website veroeffentlichen', icon: '🚀', component: 'Netlify',
         istFertig: (d) => !!(d.netlifyUrl && d.netlifyReady),
         wasFehlts: (d) => { if (!d.netlifyUrl) return ['Netlify nicht angelegt']; if (!d.netlifyReady) return ['Deploy nicht abgeschlossen']; return []; },
         fertigText: (d) => d.netlifyUrl || 'Deployed' },
-      { id: 'dns', nr: 12, label: 'DNS umstellen', desc: 'CNAME beim Domain-Anbieter', icon: '🌍', component: 'DNS',
+      { id: 'dns', nr: 11, label: 'DNS umstellen', desc: 'CNAME beim Domain-Anbieter', icon: '🌍', component: 'DNS',
         istFertig: (d) => !!(d.domainReachable && d.domainStatusCode === 200),
         wasFehlts: (d) => { if (!d.netlifyUrl) return ['Zuerst Netlify deployen']; if (!d.domainReachable) return ['Domain nicht erreichbar']; return []; },
         fertigText: () => 'Domain erreichbar' },
-      { id: 'qa', nr: 13, label: 'QA-Check', desc: 'Links, Mobile, Impressum', icon: '✓', component: 'QA',
+      { id: 'qa', nr: 12, label: 'QA-Check', desc: 'Links, Mobile, Impressum', icon: '✓', component: 'QA',
         istFertig: (d) => !!(d.qaResult),
         wasFehlts: () => ['QA-Scan nicht durchgefuehrt'],
         fertigText: () => 'QA abgeschlossen' },
-      { id: 'abnahme', nr: 14, label: 'Abnahme & Go Live', desc: 'Kundenfreigabe', icon: '🏁', component: 'Abnahme',
+      { id: 'abnahme', nr: 13, label: 'Abnahme & Go Live', desc: 'Kundenfreigabe', icon: '🏁', component: 'Abnahme',
         istFertig: (d) => !!(d.goLiveConfirmed || d.projectStatus === 'fertig'),
         wasFehlts: (d) => { const f = []; if (!d.qaResult) f.push('QA-Check fehlt'); if (!d.domainReachable) f.push('DNS nicht umgestellt'); if (!d.goLiveConfirmed) f.push('Abnahme nicht erteilt'); return f; },
         fertigText: () => 'Live!' },
@@ -350,23 +347,27 @@ function SchrittInhalt({ schritt, project, lead, token, headers,
       );
 
     case 'Sitemap':
-      return sitemapLoading
-        ? <Spinner />
-        : (
-          <div style={pad}>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
-              {sitemapPages.length > 0
-                ? `${sitemapPages.length} Seiten definiert.`
-                : 'Noch keine Sitemap — bitte Seitenstruktur anlegen.'}
-            </div>
-            {sitemapPages.map(p => (
-              <div key={p.id} style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-light)', display: 'flex', gap: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>{p.page_name}</span>
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{p.page_type}</span>
+      return (
+        <div>
+          {sitemapPages.length === 0 && (
+            <SitemapKiVorschlag project={project} leadId={project.lead_id} headers={headers} />
+          )}
+          {sitemapLoading ? <Spinner /> : (
+            <div style={pad}>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                {sitemapPages.length > 0 ? `${sitemapPages.length} Seiten definiert.` : 'KI-Vorschlag nutzen oder manuell anlegen.'}
               </div>
-            ))}
-          </div>
-        );
+              {sitemapPages.map(p => (
+                <div key={p.id} style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-light)', display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', flex: 1 }}>{p.page_name}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{p.page_type}</span>
+                  {p.ziel_keyword && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>{p.ziel_keyword}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
 
     case 'ContentWerkstatt':
       return (
@@ -378,15 +379,6 @@ function SchrittInhalt({ schritt, project, lead, token, headers,
           leadId={project.lead_id}
           websiteContent={websiteContent}
         />
-      );
-
-    case 'Assets':
-      return (
-        <div style={pad}>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-            {(websiteContent || []).length} gecrawlte Seiten · {sitemapPages.length} Sitemap-Seiten
-          </div>
-        </div>
       );
 
     case 'DesignStudio':
@@ -462,6 +454,38 @@ function Spinner() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
       <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin .8s linear infinite' }} />
+    </div>
+  );
+}
+
+function SitemapKiVorschlag({ project, leadId, headers }) {
+  const [loading, setLoading]     = useState(false);
+  const [done, setDone]           = useState(false);
+  const [error, setError]         = useState(null);
+
+  if (done) return null;
+
+  return (
+    <div style={{ margin: '0 20px 16px', padding: '14px 18px', background: 'rgba(0,142,170,.06)', border: '1px solid rgba(0,142,170,.25)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 14 }}>
+      <span style={{ fontSize: 28, flexShrink: 0 }}>🤖</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>Noch keine Sitemap vorhanden</div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Claude analysiert Briefing und gecrawlte Seiten und erstellt eine passende Seitenstruktur.</div>
+        {error && <div style={{ fontSize: 11, color: 'var(--status-danger-text)', marginTop: 4 }}>{error}</div>}
+      </div>
+      <button onClick={async () => {
+        setLoading(true); setError(null);
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/sitemap-suggest`, { method: 'POST', headers });
+          if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Fehler');
+          setDone(true);
+          window.dispatchEvent(new CustomEvent('kompagnon:sitemap-updated'));
+        } catch (e) { setError(e.message); }
+        finally { setLoading(false); }
+      }} disabled={loading}
+        style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: loading ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+        {loading ? (<><span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Wird erstellt...</>) : 'KI-Sitemap erstellen'}
+      </button>
     </div>
   );
 }

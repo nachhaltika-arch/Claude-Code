@@ -1210,6 +1210,12 @@ export default function ProjectDetail() {
     loadSitemapPages();
   }, [project?.lead_id]); // eslint-disable-line
 
+  // Auto-load brand data on project load (needed for ProzessFlow step 3 completion)
+  useEffect(() => {
+    if (!project?.lead_id || brandData) return;
+    loadBrandData();
+  }, [project?.lead_id]); // eslint-disable-line
+
   // Set initial tab on project load
   useEffect(() => {
     if (project) {
@@ -1686,6 +1692,8 @@ export default function ProjectDetail() {
         latestAudit={latestAudit}
         onAuditUpdate={setLatestAudit}
         onSitemapReload={loadSitemapPages}
+        onBrandUpdate={setBrandData}
+        onCrawlUpdate={(count) => setCrawlResults(prev => prev.length >= count ? prev : Array(count).fill({}))}
         crawlPages={crawlResults?.length || 0}
         sitemapPages={sitemapPages}
         sitemapLoading={sitemapLoading}

@@ -148,7 +148,7 @@ function buildSteps(projectId, leadId, websiteUrl, headers) {
 
 // ── Haupt-Komponente ─────────────────────────────────────────────────────────
 
-export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }) {
+export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, onDataUpdate }) {
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
   const [running, setRunning]         = useState(false);
@@ -225,6 +225,14 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
       }
 
       setStepResults(saved);
+      // Notify parent (ProzessFlow) about loaded data for step completion
+      if (onDataUpdate) {
+        onDataUpdate({
+          crawlPages: content.length,
+          brandPrimaryColor: brand?.primary_color || null,
+          brandData: brand,
+        });
+      }
     } catch { /* silent */ }
     finally { setPagesLoading(false); }
   };
@@ -260,7 +268,14 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token }
     }
     if (step.id === 'brand') {
       const bd = await fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null);
-      if (bd) setSavedBrand(bd);
+      if (bd) {
+        setSavedBrand(bd);
+        if (onDataUpdate) onDataUpdate({ brandPrimaryColor: bd.primary_color, brandData: bd });
+      }
+    }
+    // Crawl-Daten nach oben melden
+    if (step.id === 'url-crawl' || step.id === 'content-scrape') {
+      if (onDataUpdate) onDataUpdate({ crawlPages: pages.length });
     }
   };
 

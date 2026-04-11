@@ -88,7 +88,7 @@ export const ALLE_SCHRITTE = PHASEN.flatMap(p =>
 export { PHASEN };
 export default function ProzessFlow({
   project, lead, token, briefing, latestAudit, onAuditUpdate,
-  onSitemapReload,
+  onSitemapReload, onBrandUpdate, onCrawlUpdate,
   crawlPages, sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult,
 }) {
@@ -96,9 +96,20 @@ export default function ProzessFlow({
   const [warnung, setWarnung]               = useState(null);
   const [localBriefing, setLocalBriefing]   = useState(briefing);
   const [localLatestAudit, setLocalLatestAudit] = useState(latestAudit);
+  const [localCrawlPages, setLocalCrawlPages] = useState(crawlPages);
+  const [localBrandColor, setLocalBrandColor] = useState(brandData?.primary_color || null);
 
   useEffect(() => { setLocalBriefing(briefing); }, [briefing]); // eslint-disable-line
   useEffect(() => { setLocalLatestAudit(latestAudit); }, [latestAudit]); // eslint-disable-line
+  useEffect(() => { setLocalCrawlPages(crawlPages); }, [crawlPages]); // eslint-disable-line
+  useEffect(() => { if (brandData?.primary_color) setLocalBrandColor(brandData.primary_color); }, [brandData]); // eslint-disable-line
+
+  const handleAnalyseUpdate = useCallback((data) => {
+    if (data.crawlPages != null) setLocalCrawlPages(data.crawlPages);
+    if (data.brandPrimaryColor) setLocalBrandColor(data.brandPrimaryColor);
+    if (data.brandPrimaryColor && onBrandUpdate) onBrandUpdate(data.brandData);
+    if (data.crawlPages != null && onCrawlUpdate) onCrawlUpdate(data.crawlPages);
+  }, [onBrandUpdate, onCrawlUpdate]);
 
   const handleAuditComplete = useCallback((audit) => {
     setLocalLatestAudit(audit);
@@ -119,8 +130,8 @@ export default function ProzessFlow({
   const prozessDaten = {
     briefing: localBriefing,
     latestAudit: localLatestAudit,
-    crawlPages:       crawlPages || 0,
-    brandPrimaryColor: brandData?.primary_color || null,
+    crawlPages:       localCrawlPages || 0,
+    brandPrimaryColor: localBrandColor || null,
     sitemapCount:     sitemapPages?.length || 0,
     contentCount:     (websiteContent || []).filter(p => p.ki_content).length,
     credsCount:       0,
@@ -296,6 +307,7 @@ export default function ProzessFlow({
             localBriefing={localBriefing} reloadBriefing={reloadBriefing}
             onAuditComplete={handleAuditComplete}
             onSitemapReload={onSitemapReload}
+            onAnalyseUpdate={handleAnalyseUpdate}
             sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
             websiteContent={websiteContent} brandData={brandData}
             netlify={netlify} qaResult={qaResult}
@@ -308,7 +320,7 @@ export default function ProzessFlow({
 
 function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
   briefing, latestAudit, localBriefing, reloadBriefing, onAuditComplete,
-  onSitemapReload, sitemapPages, sitemapLoading,
+  onSitemapReload, onAnalyseUpdate, sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult }) {
 
   const pad = { padding: '20px 24px' };
@@ -332,6 +344,7 @@ function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
           leadId={project.lead_id}
           websiteUrl={lead?.website_url || project.website_url}
           token={token}
+          onDataUpdate={onAnalyseUpdate}
         />
       );
 

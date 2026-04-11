@@ -1629,15 +1629,30 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
     if api_key:
         params_base["key"] = api_key
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        mobile_resp, desktop_resp = await asyncio.gather(
-            client.get(base, params={**params_base, "strategy": "mobile"}),
-            client.get(base, params={**params_base, "strategy": "desktop"}),
-        )
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            mobile_resp, desktop_resp = await asyncio.gather(
+                client.get(base, params={**params_base, "strategy": "mobile"}),
+                client.get(base, params={**params_base, "strategy": "desktop"}),
+            )
+    except Exception as e:
+        logger.error(f"PageSpeed API request failed for {website_url}: {e}")
+        raise HTTPException(status_code=502, detail=f"PageSpeed API nicht erreichbar: {str(e)[:100]}")
+
+    # Log response status for debugging
+    if mobile_resp.status_code != 200:
+        logger.warning(f"PageSpeed mobile response {mobile_resp.status_code} for {website_url}: {mobile_resp.text[:200]}")
+    if desktop_resp.status_code != 200:
+        logger.warning(f"PageSpeed desktop response {desktop_resp.status_code} for {website_url}: {desktop_resp.text[:200]}")
 
     def _score(resp) -> int | None:
         try:
-            return round((resp.json()["categories"]["performance"]["score"] or 0) * 100)
+            data = resp.json()
+            cat = data.get("lighthouseResult", {}).get("categories", {}).get("performance", {})
+            raw = cat.get("score")
+            if raw is None:
+                return None
+            return round(raw * 100)
         except Exception:
             return None
 
@@ -1647,14 +1662,21 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
         except Exception:
             return None
 
+    mobile_score = _score(mobile_resp)
+    desktop_score = _score(desktop_resp)
+    logger.info(f"PageSpeed for {website_url}: mobile={mobile_score}, desktop={desktop_score}")
+
+    if mobile_score is None and desktop_score is None:
+        raise HTTPException(status_code=502, detail="PageSpeed konnte keine Scores ermitteln — Google API hat keine Ergebnisse geliefert")
+
     # Neue DB-Session zum Speichern
     db2 = SessionLocal()
     try:
         lead = db2.query(Lead).filter(Lead.id == lead_id).first()
         if not lead:
             raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-        lead.pagespeed_mobile_score  = _score(mobile_resp)
-        lead.pagespeed_desktop_score = _score(desktop_resp)
+        lead.pagespeed_mobile_score  = mobile_score
+        lead.pagespeed_desktop_score = desktop_score
         lead.pagespeed_lcp_mobile    = _audit(mobile_resp, "largest-contentful-paint")
         lead.pagespeed_cls_mobile    = _audit(mobile_resp, "cumulative-layout-shift")
         lead.pagespeed_inp_mobile    = _audit(mobile_resp, "interaction-to-next-paint")

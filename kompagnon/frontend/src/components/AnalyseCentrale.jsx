@@ -88,9 +88,13 @@ function buildSteps(projectId, leadId, websiteUrl, headers) {
           `${API_BASE_URL}/api/leads/${leadId}/pagespeed`,
           { method: 'POST', headers }
         );
-        setProgress(100);
-        if (!res.ok) throw new Error('PageSpeed-Messung fehlgeschlagen');
+        setProgress(80);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `PageSpeed fehlgeschlagen (HTTP ${res.status})`);
+        }
         const data = await res.json();
+        setProgress(100);
         return { mobile: data.mobile_score, desktop: data.desktop_score };
       },
     },

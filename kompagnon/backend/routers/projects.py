@@ -3794,3 +3794,105 @@ def get_sitemap_register(
     project_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth),
 ):
     return _build_sitemap_register(project_id, db)
+
+
+@router.post("/{project_id}/design-json/{page_id}")
+async def generate_design_json(
+    project_id: int,
+    page_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Claude liefert Block-JSON statt rohem HTML."""
+    import os, httpx, json, re
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    lead    = project.lead
+    lead_id = project.lead_id
+
+    page = db.execute(
+        text("SELECT page_name, page_type, ziel_keyword, zweck FROM sitemap_pages WHERE id=:id"),
+        {"id": page_id},
+    ).fetchone()
+    if not page:
+        raise HTTPException(404, "Seite nicht gefunden")
+    page_name, page_type, keyword, zweck = page
+
+    briefing = db.execute(
+        text("SELECT gewerk, leistungen, einzugsgebiet, usp FROM briefings WHERE lead_id=:lid LIMIT 1"),
+        {"lid": lead_id},
+    ).fetchone()
+
+    brand_json = getattr(lead, 'brand_design_json', None)
+    brand = json.loads(brand_json) if brand_json else {}
+
+    sitemap = db.execute(
+        text("SELECT page_name, COALESCE(slug,'') as slug FROM sitemap_pages WHERE project_id=:pid ORDER BY sort_order"),
+        {"pid": project_id},
+    ).fetchall()
+    sitemap_list = [{"name": r[0], "path": f"/{r[1]}" if r[1] else "/"} for r in sitemap]
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    gewerk  = briefing[0] if briefing else "Handwerksbetrieb"
+    region  = briefing[2] if briefing else ""
+    usp     = briefing[3] if briefing else ""
+    company = getattr(lead, 'company_name', '') or ''
+    phone   = getattr(lead, 'phone', '') or ''
+
+    prompt = (
+        f"Du bist ein Webdesigner der eine Website-Seite als Block-JSON entwirft.\n\n"
+        f"UNTERNEHMEN: {company} | Branche: {gewerk} | Region: {region} | USP: {usp} | Tel: {phone}\n"
+        f"SEITE: {page_name} ({page_type}) | Keyword: {keyword or '—'} | Zweck: {zweck or '—'}\n"
+        f"STIL: {brand.get('style_keyword','Modern')} | {brand.get('design_brief',{}).get('fuer_ki_prompt','')}\n"
+        f"SEITEN FUER LINKS: {json.dumps(sitemap_list, ensure_ascii=False)}\n\n"
+        "VERFUEGBARE BLOECKE: hero, leistungen-grid, usp-balken, ueber-uns, cta-banner, kontakt-form, footer\n\n"
+        "REGELN:\n"
+        "- Startseite: hero + usp-balken + leistungen-grid + cta-banner + footer\n"
+        "- Kontakt: cta-banner + kontakt-form + footer\n"
+        "- Leistung: hero + leistungen-grid + ueber-uns + cta-banner + footer\n"
+        "- Alle internen Links NUR aus der Seiten-Liste\n"
+        f"- Telefon fuer cta2_link: tel:{phone}\n\n"
+        "Antworte NUR als JSON-Array:\n"
+        '[{"type":"hero","data":{"headline":"...","subline":"...","cta_text":"Jetzt anfragen",'
+        f'"cta_link":"/kontakt","cta2_text":"Anrufen","cta2_link":"tel:{phone}"}}}}'
+        ',{"type":"footer","data":{"firma":"' + company + '"}}]'
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514", "max_tokens": 4000,
+                      "messages": [{"role": "user", "content": prompt}]},
+            )
+        resp.raise_for_status()
+        text_resp = resp.json()["content"][0]["text"].strip()
+        text_resp = re.sub(r'^```json\s*', '', text_resp)
+        text_resp = re.sub(r'\s*```$', '', text_resp)
+        blocks = json.loads(text_resp)
+        if not isinstance(blocks, list):
+            raise ValueError("Keine Liste")
+
+        return {
+            "page_id":   page_id,
+            "page_name": page_name,
+            "blocks":    blocks,
+            "brand": {
+                "primary_color":   getattr(lead, 'brand_primary_color',   '#008EAA'),
+                "secondary_color": getattr(lead, 'brand_secondary_color', '#004F59'),
+                "font_primary":    getattr(lead, 'brand_font_primary',    'Inter'),
+                "border_radius":   brand.get('design_brief', {}).get('radius_token', '8px'),
+            }
+        }
+
+    except json.JSONDecodeError as e:
+        raise HTTPException(500, f"JSON-Parse-Fehler: {str(e)[:100]}")
+    except Exception as e:
+        raise HTTPException(500, f"Fehler: {str(e)[:200]}")

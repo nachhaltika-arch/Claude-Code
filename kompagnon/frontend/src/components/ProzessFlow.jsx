@@ -285,6 +285,7 @@ export default function ProzessFlow({
             schritt={aktivObj} project={project} lead={lead}
             leadId={leadId} token={token} headers={headers}
             briefing={briefing} latestAudit={latestAudit}
+            localBriefing={localBriefing} reloadBriefing={reloadBriefing}
             sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
             websiteContent={websiteContent} brandData={brandData}
             netlify={netlify} qaResult={qaResult}
@@ -296,7 +297,8 @@ export default function ProzessFlow({
 }
 
 function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
-  briefing, latestAudit, sitemapPages, sitemapLoading,
+  briefing, latestAudit, localBriefing, reloadBriefing,
+  sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult }) {
 
   const pad = { padding: '20px 24px' };

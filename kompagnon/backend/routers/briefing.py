@@ -28,8 +28,12 @@ def update_briefing(lead_id: int, data: dict, db: Session = Depends(get_db)):
                 setattr(briefing, key, data[key])
 
     briefing.updated_at = datetime.utcnow()
-    db.commit()
-    db.refresh(briefing)
+    try:
+        db.commit()
+        db.refresh(briefing)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(422, f"Speichern fehlgeschlagen: {str(e)[:200]}")
     return _serialize(briefing)
 
 

@@ -107,8 +107,13 @@ def get_briefing(
     if not briefing:
         briefing = Briefing(lead_id=lead_id, status="entwurf")
         db.add(briefing)
-        db.commit()
-        db.refresh(briefing)
+        try:
+            db.commit()
+            db.refresh(briefing)
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Briefing auto-create failed: {e}")
+            raise HTTPException(422, f"Erstellen fehlgeschlagen: {str(e)[:200]}")
     return _serialize(briefing)
 
 
@@ -132,8 +137,13 @@ def create_briefing(
             setattr(briefing, field, val)
 
     briefing.updated_at = datetime.utcnow()
-    db.commit()
-    db.refresh(briefing)
+    try:
+        db.commit()
+        db.refresh(briefing)
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Briefing POST commit failed: {e}")
+        raise HTTPException(422, f"Speichern fehlgeschlagen: {str(e)[:200]}")
     return _serialize(briefing)
 
 
@@ -180,8 +190,13 @@ def update_briefing(
             setattr(briefing, field, data[field])
 
     briefing.updated_at = datetime.utcnow()
-    db.commit()
-    db.refresh(briefing)
+    try:
+        db.commit()
+        db.refresh(briefing)
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Briefing PUT commit failed: {e}")
+        raise HTTPException(422, f"Speichern fehlgeschlagen: {str(e)[:200]}")
     return _serialize(briefing)
 
 

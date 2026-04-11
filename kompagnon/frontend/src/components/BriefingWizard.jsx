@@ -704,9 +704,19 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete }
           }),
         });
       } catch (_) { /* non-fatal */ }
-      // Open PDF in new tab
+      // Open PDF in new tab (with auth)
       clearDraft(leadId);
-      window.open(`${API_BASE_URL}/api/briefings/${leadId}/pdf`, '_blank');
+      try {
+        const pdfRes = await fetch(`${API_BASE_URL}/api/briefings/${leadId}/pdf`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (pdfRes.ok) {
+          const blob = await pdfRes.blob();
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        }
+      } catch (_) { /* PDF download non-fatal */ }
       if (onComplete) onComplete(data);
     } catch (e) {
       setSaveError(e.message || 'Speichern fehlgeschlagen.');

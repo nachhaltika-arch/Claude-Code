@@ -3652,13 +3652,24 @@ async def generate_page_content(
             resp = await client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-20250514", "max_tokens": 1500, "messages": [{"role": "user", "content": prompt}]},
+                json={"model": "claude-sonnet-4-20250514", "max_tokens": 3000, "messages": [{"role": "user", "content": prompt}]},
             )
         resp.raise_for_status()
-        content = resp.json()["content"][0]["text"].strip()
-        content = re.sub(r'^```json\s*', '', content)
-        content = re.sub(r'\s*```$', '', content)
-        result = json.loads(content)
+        raw_text = resp.json()["content"][0]["text"].strip()
+        raw_text = re.sub(r'^```json\s*', '', raw_text)
+        raw_text = re.sub(r'\s*```$', '', raw_text)
+        # JSON repair for truncated responses
+        try:
+            result = json.loads(raw_text)
+        except json.JSONDecodeError:
+            repaired = raw_text.rstrip().rstrip(",")
+            if repaired.count('"') % 2 != 0:
+                repaired += '"'
+            open_brackets = repaired.count('[') - repaired.count(']')
+            repaired += ']' * max(0, open_brackets)
+            open_braces = repaired.count('{') - repaired.count('}')
+            repaired += '}' * max(0, open_braces)
+            result = json.loads(repaired)
         result["old_content"] = old_content
         result["page_name"] = page_name
         result["page_id"] = page_id

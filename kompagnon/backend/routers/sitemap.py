@@ -429,7 +429,7 @@ async def generate_sitemap(
             client = Anthropic(api_key=api_key, max_retries=0, timeout=60.0)
             response = client.messages.create(
                 model="claude-sonnet-4-6",
-                max_tokens=1500,
+                max_tokens=3000,
                 messages=[{"role": "user", "content": prompt}],
             )
             raw = response.content[0].text.strip()
@@ -438,7 +438,22 @@ async def generate_sitemap(
                     line for line in raw.splitlines()
                     if not line.strip().startswith("```")
                 ).strip()
-            raw_pages = json.loads(raw)
+            # Truncated JSON repair: close open strings/objects/arrays
+            try:
+                raw_pages = json.loads(raw)
+            except json.JSONDecodeError:
+                repaired = raw.rstrip().rstrip(",")
+                if not repaired.endswith("]"):
+                    # Close any unterminated string
+                    if repaired.count('"') % 2 != 0:
+                        repaired += '"'
+                    # Close unterminated object
+                    open_braces = repaired.count("{") - repaired.count("}")
+                    repaired += "}" * max(0, open_braces)
+                    # Close array
+                    if not repaired.endswith("]"):
+                        repaired += "]"
+                raw_pages = json.loads(repaired)
             if not isinstance(raw_pages, list) or not raw_pages:
                 raise ValueError("Ungültige Antwortstruktur")
             _insert_pages(lead_id, raw_pages, db)

@@ -87,15 +87,22 @@ export const ALLE_SCHRITTE = PHASEN.flatMap(p =>
 
 export { PHASEN };
 export default function ProzessFlow({
-  project, lead, token, briefing, latestAudit,
+  project, lead, token, briefing, latestAudit, onAuditUpdate,
   crawlPages, sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult,
 }) {
   const [aktiverSchritt, setAktiverSchritt] = useState(null);
   const [warnung, setWarnung]               = useState(null);
   const [localBriefing, setLocalBriefing]   = useState(briefing);
+  const [localLatestAudit, setLocalLatestAudit] = useState(latestAudit);
 
   useEffect(() => { setLocalBriefing(briefing); }, [briefing]); // eslint-disable-line
+  useEffect(() => { setLocalLatestAudit(latestAudit); }, [latestAudit]); // eslint-disable-line
+
+  const handleAuditComplete = useCallback((audit) => {
+    setLocalLatestAudit(audit);
+    if (onAuditUpdate) onAuditUpdate(audit);
+  }, [onAuditUpdate]);
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
@@ -110,7 +117,7 @@ export default function ProzessFlow({
 
   const prozessDaten = {
     briefing: localBriefing,
-    latestAudit,
+    latestAudit: localLatestAudit,
     crawlPages:       crawlPages || 0,
     brandPrimaryColor: brandData?.primary_color || null,
     sitemapCount:     sitemapPages?.length || 0,
@@ -284,8 +291,9 @@ export default function ProzessFlow({
           <SchrittInhalt
             schritt={aktivObj} project={project} lead={lead}
             leadId={leadId} token={token} headers={headers}
-            briefing={briefing} latestAudit={latestAudit}
+            briefing={briefing} latestAudit={localLatestAudit}
             localBriefing={localBriefing} reloadBriefing={reloadBriefing}
+            onAuditComplete={handleAuditComplete}
             sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
             websiteContent={websiteContent} brandData={brandData}
             netlify={netlify} qaResult={qaResult}
@@ -297,7 +305,7 @@ export default function ProzessFlow({
 }
 
 function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
-  briefing, latestAudit, localBriefing, reloadBriefing,
+  briefing, latestAudit, localBriefing, reloadBriefing, onAuditComplete,
   sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult }) {
 
@@ -334,7 +342,7 @@ function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
       );
 
     case 'Audit':
-      return <AuditEmbed project={project} lead={lead} headers={headers} latestAudit={latestAudit} />;
+      return <AuditEmbed project={project} lead={lead} headers={headers} latestAudit={latestAudit} onAuditComplete={onAuditComplete} />;
 
     case 'Zugangsdaten':
       return <ZugangsdatenEmbed project={project} headers={headers} />;
@@ -466,11 +474,14 @@ function SitemapKiVorschlag({ project, leadId, headers }) {
   );
 }
 
-function AuditEmbed({ project, lead, headers, latestAudit }) {
+function AuditEmbed({ project, lead, headers, latestAudit, onAuditComplete }) {
   const [running, setRunning]   = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError]       = useState('');
   const [result, setResult]     = useState(latestAudit || null);
+
+  // Sync from prop when parent loads audit data
+  useEffect(() => { if (latestAudit) setResult(latestAudit); }, [latestAudit]);
 
   const websiteUrl = lead?.website_url || project?.website_url;
 
@@ -505,7 +516,7 @@ function AuditEmbed({ project, lead, headers, latestAudit }) {
       while (Date.now() < deadline) {
         await new Promise(r => setTimeout(r, 4000));
         const poll = await fetch(`${API_BASE_URL}/api/audit/${auditId}`, { headers }).then(r => r.json()).catch(() => ({}));
-        if (poll.status === 'completed') { clearInterval(iv); setResult(poll); setProgress(''); setRunning(false); break; }
+        if (poll.status === 'completed') { clearInterval(iv); setResult(poll); if (onAuditComplete) onAuditComplete(poll); setProgress(''); setRunning(false); break; }
         if (poll.status === 'failed') { clearInterval(iv); throw new Error('Audit fehlgeschlagen'); }
       }
     } catch (e) { setError(e.message); setRunning(false); setProgress(''); }

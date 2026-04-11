@@ -1195,6 +1195,15 @@ export default function ProjectDetail() {
       .catch(() => {});
   }, [project?.lead_id]); // eslint-disable-line
 
+  // Auto-load latestAudit on project load
+  useEffect(() => {
+    if (!project?.lead_id) return;
+    fetch(`${API_BASE_URL}/api/leads/${project.lead_id}/profile`, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setLatestAudit((d.audits || [])[0] || false); })
+      .catch(() => {});
+  }, [project?.lead_id]); // eslint-disable-line
+
   // Set initial tab on project load
   useEffect(() => {
     if (project) {
@@ -1669,6 +1678,7 @@ export default function ProjectDetail() {
         token={token}
         briefing={briefingData}
         latestAudit={latestAudit}
+        onAuditUpdate={setLatestAudit}
         crawlPages={crawlResults?.length || 0}
         sitemapPages={sitemapPages}
         sitemapLoading={sitemapLoading}

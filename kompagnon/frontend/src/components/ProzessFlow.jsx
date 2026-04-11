@@ -93,9 +93,21 @@ export default function ProzessFlow({
 }) {
   const [aktiverSchritt, setAktiverSchritt] = useState(null);
   const [warnung, setWarnung]               = useState(null);
+  const [localBriefing, setLocalBriefing]   = useState(briefing);
+
+  useEffect(() => { setLocalBriefing(briefing); }, [briefing]); // eslint-disable-line
+
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
+  const reloadBriefing = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/briefings/${lead?.id || project?.lead_id}`, { headers });
+      if (res.ok) setLocalBriefing(await res.json());
+    } catch { /* silent */ }
+  };
 
   const prozessDaten = {
-    briefing,
+    briefing: localBriefing,
     latestAudit,
     crawlPages:       crawlPages || 0,
     brandPrimaryColor: brandData?.primary_color || null,
@@ -136,7 +148,6 @@ export default function ProzessFlow({
   const aktivObj    = ALLE_SCHRITTE.find(s => s.id === aktiverSchritt);
   const fertigCount = ALLE_SCHRITTE.filter(s => s.istFertig(prozessDaten)).length;
   const gesamtPct   = Math.round((fertigCount / ALLE_SCHRITTE.length) * 100);
-  const headers     = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -295,9 +306,9 @@ function SchrittInhalt({ schritt, project, lead, token, headers,
         <div style={pad}>
           <BriefingWizard
             leadId={lead.id}
-            leadData={briefing}
+            leadData={localBriefing}
             onClose={() => {}}
-            onComplete={() => {}}
+            onComplete={reloadBriefing}
             embedded
           />
         </div>

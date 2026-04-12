@@ -45,13 +45,20 @@ async def audit_anfrage(
     Öffentlicher Endpunkt für Postkarten-Kampagne.
     Legt Lead an (oder aktualisiert bestehenden) und startet Audit im Hintergrund.
     """
+    domain = req.domain.strip().lower()
+    # Normalize to full URL for audit
+    if not domain.startswith(("http://", "https://")):
+        website_url = f"https://{domain}"
+    else:
+        website_url = domain
+
+    # SSRF-Schutz — öffentlicher Kampagnen-Endpunkt darf keine
+    # internen Hosts / Metadata-Services triggern.
+    # Außerhalb des try/except, damit HTTPException als 400 durchgeht.
+    from services.url_validator import validate_url
+    website_url = validate_url(website_url)
+
     try:
-        domain = req.domain.strip().lower()
-        # Normalize to full URL for audit
-        if not domain.startswith(("http://", "https://")):
-            website_url = f"https://{domain}"
-        else:
-            website_url = domain
 
         # ── UTM-Daten + Kampagne auflösen ────────────────────────────────────
         utm_source   = (req.utm_source   or req.kampagne_quelle or "").strip()

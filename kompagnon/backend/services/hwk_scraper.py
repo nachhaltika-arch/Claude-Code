@@ -276,7 +276,7 @@ class HwkScraperService:
             headers=HEADERS,
             timeout=REQUEST_TIMEOUT,
             follow_redirects=True,
-            verify=False,
+            verify=True,   # SSL-Verifikation aktiv — HWK-Seiten haben gültige Zertifikate
         )
 
     def __del__(self):

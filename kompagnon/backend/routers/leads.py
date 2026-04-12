@@ -436,6 +436,16 @@ async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict
     result = {'url': url, 'status': 'created', 'lead_id': None, 'company_name': clean,
               'audit_status': 'pending', 'impressum_status': 'pending', 'score': None}
 
+    # SSRF-Schutz — Domain-Import darf keine internen IPs auflösen
+    from services.url_validator import validate_url
+    try:
+        url = validate_url(url)
+    except HTTPException as ssrf_err:
+        return {'url': url, 'status': 'failed', 'lead_id': None,
+                'company_name': clean, 'score': None,
+                'audit_status': 'skipped', 'impressum_status': 'skipped',
+                'error': ssrf_err.detail}
+
     # ── Step 1: Duplicate check + Lead creation ──
     existing = _db.query(Lead).filter(Lead.website_url.ilike(f'%{clean}%')).first()
     if existing:
@@ -721,6 +731,10 @@ async def create_public_lead(request: Request, data: dict, db: Session = Depends
         raise HTTPException(400, "Website-URL fehlt")
     if not website_url.startswith('http'):
         website_url = 'https://' + website_url
+
+    # SSRF-Schutz — öffentliches Formular darf keine internen Hosts triggern
+    from services.url_validator import validate_url
+    website_url = validate_url(website_url)
 
     domain = website_url.replace('https://', '').replace('http://', '').replace('www.', '').split('/')[0]
     from sqlalchemy import or_
@@ -1323,6 +1337,15 @@ def import_lead_manual(
 @router.post("/{lead_id}/enrich")
 async def enrich_single_lead(lead_id: int, db: Session = Depends(get_db)):
     """Manually trigger enrichment for a single lead."""
+    # SSRF-Schutz — Lead-URL validieren bevor der Service sie fetcht
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if lead and lead.website_url:
+        from services.url_validator import validate_url
+        url = lead.website_url
+        if not url.startswith('http'):
+            url = 'https://' + url
+        validate_url(url)
+
     from services.lead_enrichment import enrich_lead
     result = await enrich_lead(lead_id, db)
     return result

@@ -459,6 +459,17 @@ def _run_audit_background(audit_id: int):
 
         url = audit.website_url
 
+        # SSRF-Schutz — defensive second-pass auch im Background-Task,
+        # falls die URL aus der DB manipuliert wurde
+        from services.url_validator import validate_url
+        try:
+            url = validate_url(url)
+        except HTTPException as ssrf_err:
+            audit.status = "failed"
+            audit.error_message = f"URL abgelehnt: {ssrf_err.detail}"
+            db.commit()
+            return
+
         # 1. Basic checks
         ssl_ok = _check_ssl(url)
         site = _check_reachable(url)
@@ -653,7 +664,9 @@ async def start_audit(
     db: Session = Depends(get_db),
 ):
     """Create audit record, auto-scrape website, and run checks in background."""
+    from services.url_validator import validate_url
     url = _normalise_url(req.website_url)
+    url = validate_url(url)          # ← SSRF-Check
 
     # DB-Verbindung vor dem externen Scrape-Call freigeben
     db.close()

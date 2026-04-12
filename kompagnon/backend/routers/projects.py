@@ -1165,6 +1165,10 @@ async def scrape_project_website(
         url = "https://" + url
     lead_id = lead.id
 
+    # SSRF-Schutz — blockiert private IPs, Metadata-Services, file://, etc.
+    from services.url_validator import validate_url
+    url = validate_url(url)
+
     # DB-Verbindung vor dem externen Scrape-Call freigeben
     db.close()
 

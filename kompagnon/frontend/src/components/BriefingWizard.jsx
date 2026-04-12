@@ -646,7 +646,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
     setSaving(true);
     setSaveError('');
     try {
-      const token = localStorage.getItem('kompagnon_token');
+      const token = sessionStorage.getItem('kompagnon_token');
       const payload = {
         gewerk:            data.gewerk,
         wz_code:           data.wz_code,
@@ -724,7 +724,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
   const autoSave = async () => {
     setAutoSaveStatus('saving');
     try {
-      const t = localStorage.getItem('kompagnon_token');
+      const t = sessionStorage.getItem('kompagnon_token');
       await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
         body: JSON.stringify(buildPayload()),
@@ -749,7 +749,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
   const handleSaveOnly = async () => {
     setSaving(true); setSaveError('');
     try {
-      const t = localStorage.getItem('kompagnon_token');
+      const t = sessionStorage.getItem('kompagnon_token');
       const res = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
         body: JSON.stringify(buildPayload()),

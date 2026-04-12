@@ -51,7 +51,7 @@ export default function OnboardingWizard({ user, onComplete }) {
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('kompagnon_token')}`,
+            Authorization: `Bearer ${sessionStorage.getItem('kompagnon_token')}`,
           },
           body: fd,
         }
@@ -73,7 +73,7 @@ export default function OnboardingWizard({ user, onComplete }) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('kompagnon_token')}`,
+            Authorization: `Bearer ${sessionStorage.getItem('kompagnon_token')}`,
           },
           body: JSON.stringify({
             lead_id: user.lead_id,

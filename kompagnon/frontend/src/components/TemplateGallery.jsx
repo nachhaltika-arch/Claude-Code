@@ -8,7 +8,7 @@ export default function TemplateGallery({ onSelect, onClose }) {
   const [activeCategory, setActiveCategory] = useState('Alle');
 
   useEffect(() => {
-    const token = localStorage.getItem('kompagnon_token');
+    const token = sessionStorage.getItem('kompagnon_token');
     fetch(`${API_BASE_URL}/api/templates/`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })

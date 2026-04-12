@@ -64,7 +64,7 @@ export default function Dashboard() {
           `${API_BASE_URL}/api/auth/me`,
           {
             headers: {
-              Authorization: `Bearer ${localStorage.getItem('kompagnon_token')}`,
+              Authorization: `Bearer ${sessionStorage.getItem('kompagnon_token')}`,
             },
           }
         );

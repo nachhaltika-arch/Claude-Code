@@ -9,11 +9,15 @@ import re
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+
+# Cookie-Konfiguration — ein Platz, damit alle Endpunkte konsistent bleiben
+ACCESS_COOKIE_NAME = "access_token"
+ACCESS_COOKIE_MAX_AGE = 60 * 15  # 15 min, passt zu Fix 12 Token-Expiry
 
 from database import User, UserSession, RevokedToken, get_db
 from auth import (
@@ -59,7 +63,14 @@ admin_router = APIRouter(prefix="/api/admin", tags=["admin"])
 # Dependencies
 # ═══════════════════════════════════════════════════════════
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_current_user(
+    bearer_token: str = Depends(oauth2_scheme),
+    cookie_token: Optional[str] = Cookie(default=None, alias=ACCESS_COOKIE_NAME),
+    db: Session = Depends(get_db),
+):
+    # Dual-Mode: Cookie bevorzugen, Bearer-Header als Fallback.
+    # Nach vollstaendiger Frontend-Migration kann der Bearer-Fallback entfernt werden.
+    token = cookie_token or bearer_token
     if not token:
         raise HTTPException(401, "Nicht autorisiert")
     payload = decode_token(token)
@@ -112,8 +123,13 @@ def require_kunde(user: User = Depends(get_current_user)):
     return user
 
 
-def optional_auth(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def optional_auth(
+    bearer_token: str = Depends(oauth2_scheme),
+    cookie_token: Optional[str] = Cookie(default=None, alias=ACCESS_COOKIE_NAME),
+    db: Session = Depends(get_db),
+):
     """Returns user if authenticated, None otherwise."""
+    token = cookie_token or bearer_token
     if not token:
         return None
     try:
@@ -146,6 +162,19 @@ def _revoke_token(token_str: str, db: Session) -> None:
             db.rollback()
         except Exception:
             pass
+
+
+def _set_access_cookie(response: Response, token: str) -> None:
+    """Setzt den JWT als httpOnly-Cookie — zentrale Konfiguration."""
+    response.set_cookie(
+        key=ACCESS_COOKIE_NAME,
+        value=token,
+        httponly=True,        # Kein JavaScript-Zugriff → XSS-Schutz
+        secure=True,          # Nur ueber HTTPS
+        samesite="lax",       # CSRF-Schutz (blockiert Cross-Site-POSTs)
+        max_age=ACCESS_COOKIE_MAX_AGE,
+        path="/",
+    )
 
 
 # ═══════════════════════════════════════════════════════════
@@ -264,7 +293,7 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
 @router.post("/login")
 @limiter.limit("5/minute")
-def login(request: Request, req: LoginRequest, db: Session = Depends(get_db)):
+def login(request: Request, req: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == req.email.lower().strip()).first()
     if not user or not user.password_hash:
         raise HTTPException(401, "E-Mail oder Passwort falsch")
@@ -283,6 +312,10 @@ def login(request: Request, req: LoginRequest, db: Session = Depends(get_db)):
     user.last_login = datetime.utcnow()
     db.commit()
 
+    # httpOnly-Cookie setzen — Fix 14. access_token im Body
+    # bleibt waehrend der Uebergangsphase fuer Alt-Clients erhalten.
+    _set_access_cookie(response, token)
+
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -292,7 +325,7 @@ def login(request: Request, req: LoginRequest, db: Session = Depends(get_db)):
 
 @router.post("/login/2fa")
 @limiter.limit("5/minute")
-def login_2fa(request: Request, req: TwoFARequest, db: Session = Depends(get_db)):
+def login_2fa(request: Request, req: TwoFARequest, response: Response, db: Session = Depends(get_db)):
     payload = decode_token(req.temp_token)
     if payload.get("type") != "2fa_temp":
         raise HTTPException(401, "Ungueltiger 2FA-Token")
@@ -324,6 +357,9 @@ def login_2fa(request: Request, req: TwoFARequest, db: Session = Depends(get_db)
     user.last_login = datetime.utcnow()
     db.commit()
 
+    # httpOnly-Cookie setzen — gleiche Behandlung wie bei /login
+    _set_access_cookie(response, token)
+
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -332,9 +368,20 @@ def login_2fa(request: Request, req: TwoFARequest, db: Session = Depends(get_db)
 
 
 @router.post("/logout")
-def logout(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """Sperrt den aktuellen Token serverseitig. Blacklist fuer JWT-Revokation."""
-    _revoke_token(token, db)
+def logout(
+    request: Request,
+    response: Response,
+    bearer_token: str = Depends(oauth2_scheme),
+    cookie_token: Optional[str] = Cookie(default=None, alias=ACCESS_COOKIE_NAME),
+    db: Session = Depends(get_db),
+):
+    """Sperrt den aktuellen Token serverseitig + loescht das Auth-Cookie."""
+    # Beide moeglichen Token-Quellen sperren
+    _revoke_token(cookie_token or "", db)
+    _revoke_token(bearer_token or "", db)
+
+    # httpOnly-Cookie loeschen
+    response.delete_cookie(key=ACCESS_COOKIE_NAME, path="/")
     return {"message": "Erfolgreich abgemeldet"}
 
 

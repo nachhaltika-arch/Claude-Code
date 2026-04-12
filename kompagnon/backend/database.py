@@ -493,6 +493,16 @@ class UserSession(Base):
     is_valid = Column(Boolean, default=True)
 
 
+class RevokedToken(Base):
+    """JWT Blacklist — Token-JTI gesperrt bis zu expires_at."""
+    __tablename__ = "revoked_tokens"
+
+    id         = Column(Integer, primary_key=True)
+    jti        = Column(String(64), unique=True, nullable=False, index=True)
+    revoked_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+
+
 class SystemSettings(Base):
     """Key-value system settings."""
     __tablename__ = "system_settings"

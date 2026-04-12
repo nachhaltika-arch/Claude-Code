@@ -1015,6 +1015,14 @@ def _run_migrations():
             sort_order  INTEGER DEFAULT 0
         )""",
         "CREATE INDEX IF NOT EXISTS idx_deal_items_deal ON deal_items(deal_id)",
+        # Revoked-Token Blacklist fuer JWT-Revokation (Security Fix 12)
+        """CREATE TABLE IF NOT EXISTS revoked_tokens (
+            id          SERIAL PRIMARY KEY,
+            jti         VARCHAR(64) UNIQUE NOT NULL,
+            revoked_at  TIMESTAMP DEFAULT NOW(),
+            expires_at  TIMESTAMP NOT NULL
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_revoked_tokens_jti ON revoked_tokens(jti)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS deal_id INTEGER",
     ]
     academy_tables = [

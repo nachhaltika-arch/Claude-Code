@@ -37,6 +37,18 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    // Best-effort Server-Revokation — Token sofort in Blacklist eintragen.
+    // Fehler ignorieren (Offline, Netzwerk, abgelaufener Token).
+    const existing = localStorage.getItem('kompagnon_token');
+    if (existing) {
+      try {
+        fetch(`${API_BASE_URL}/api/auth/logout`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${existing}` },
+          keepalive: true,
+        }).catch(() => {});
+      } catch { /* ignore */ }
+    }
     localStorage.removeItem('kompagnon_token');
     setToken(null);
     setUser(null);
@@ -62,7 +74,7 @@ export const useAuth = () => useContext(AuthContext);
 
 export async function apiCall(url, options = {}) {
   const token = localStorage.getItem('kompagnon_token');
-  return fetch(`${API_BASE_URL}${url}`, {
+  const response = await fetch(`${API_BASE_URL}${url}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -70,4 +82,16 @@ export async function apiCall(url, options = {}) {
       ...options.headers,
     },
   });
+
+  // Token abgelaufen oder serverseitig invalidiert (Blacklist) → sauber ausloggen.
+  // Login-Endpunkte ausnehmen, sonst wird jeder fehlerhafte Login-Versuch
+  // zum Force-Logout.
+  if (response.status === 401 && !url.includes('/api/auth/login')) {
+    localStorage.removeItem('kompagnon_token');
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+      window.location.href = '/login';
+    }
+  }
+
+  return response;
 }

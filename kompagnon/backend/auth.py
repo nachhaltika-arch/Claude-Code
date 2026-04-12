@@ -6,6 +6,7 @@ import os
 import io
 import base64
 import secrets
+import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -23,7 +24,7 @@ except ImportError:
 
 SECRET_KEY = os.getenv("SECRET_KEY", "kompagnon-secret-2025-change-in-production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8  # 8 hours
+ACCESS_TOKEN_EXPIRE_MINUTES = 15  # 15 min — kompromittierte Tokens laufen schnell ab
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
@@ -42,7 +43,11 @@ def verify_password(plain: str, hashed: str) -> bool:
 def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
+    # JTI (JWT ID) — eindeutiger Fingerprint fuer die Revokation-Blacklist
+    to_encode.update({
+        "exp": expire,
+        "jti": str(uuid.uuid4()),
+    })
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 

@@ -375,6 +375,23 @@ def job_check_all_domains():
     logger.info("✓ Domain-Check abgeschlossen")
 
 
+def job_cleanup_revoked_tokens():
+    """Taeglich: abgelaufene Token-Blacklist-Eintraege loeschen."""
+    from database import SessionLocal, RevokedToken
+    db = SessionLocal()
+    try:
+        deleted = db.query(RevokedToken).filter(
+            RevokedToken.expires_at < datetime.utcnow()
+        ).delete()
+        db.commit()
+        if deleted:
+            logger.info(f"🧹 {deleted} abgelaufene Token-Blacklist-Eintraege geloescht")
+    except Exception as e:
+        logger.error(f"Token-Cleanup fehlgeschlagen: {e}")
+    finally:
+        db.close()
+
+
 # ===================================================================
 # SCHEDULER CLASS (thin wrapper, no job logic)
 # ===================================================================
@@ -475,7 +492,16 @@ class CompagnonScheduler:
             replace_existing=True,
             timezone="Europe/Berlin",
         )
-        logger.info("✓ Daily jobs registered (incl. weekly HWK scraper)")
+        # Daily cleanup of revoked JWT tokens — 03:00
+        self.scheduler.add_job(
+            job_cleanup_revoked_tokens,
+            "cron",
+            hour=3, minute=0,
+            id="daily_cleanup_revoked_tokens",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+        )
+        logger.info("✓ Daily jobs registered (incl. weekly HWK scraper + token cleanup)")
 
         # Stündlicher E-Mail-Sequenz-Runner
         try:

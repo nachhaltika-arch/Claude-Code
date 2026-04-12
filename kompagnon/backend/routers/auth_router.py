@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from database import User, UserSession, get_db
+from database import User, UserSession, RevokedToken, get_db
 from auth import (
     hash_password, verify_password, create_access_token, decode_token,
     generate_totp_secret, generate_totp_qr, verify_totp,
@@ -65,6 +65,14 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     payload = decode_token(token)
     if payload.get("type") == "2fa_temp":
         raise HTTPException(401, "2FA-Verifizierung erforderlich")
+
+    # Blacklist pruefen — gesperrte Tokens sofort ablehnen
+    jti = payload.get("jti")
+    if jti:
+        revoked = db.query(RevokedToken).filter(RevokedToken.jti == jti).first()
+        if revoked:
+            raise HTTPException(401, "Token wurde invalidiert")
+
     user = db.query(User).filter(User.id == payload.get("user_id")).first()
     if not user or not user.is_active:
         raise HTTPException(401, "Nicht autorisiert")
@@ -116,6 +124,28 @@ def optional_auth(token: str = Depends(oauth2_scheme), db: Session = Depends(get
         return user if user and user.is_active else None
     except Exception:
         return None
+
+
+def _revoke_token(token_str: str, db: Session) -> None:
+    """Token-JTI in Blacklist eintragen. Silent failure bei ungueltigem Token."""
+    if not token_str:
+        return
+    try:
+        payload = decode_token(token_str)
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+        if not jti or not exp:
+            return
+        expires_at = datetime.utcfromtimestamp(exp)
+        existing = db.query(RevokedToken).filter(RevokedToken.jti == jti).first()
+        if not existing:
+            db.add(RevokedToken(jti=jti, expires_at=expires_at))
+            db.commit()
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 # ═══════════════════════════════════════════════════════════
@@ -301,6 +331,13 @@ def login_2fa(request: Request, req: TwoFARequest, db: Session = Depends(get_db)
     }
 
 
+@router.post("/logout")
+def logout(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """Sperrt den aktuellen Token serverseitig. Blacklist fuer JWT-Revokation."""
+    _revoke_token(token, db)
+    return {"message": "Erfolgreich abgemeldet"}
+
+
 # ═══════════════════════════════════════════════════════════
 # 2FA Setup
 # ═══════════════════════════════════════════════════════════
@@ -406,14 +443,22 @@ def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/change-password")
-def change_password(req: ChangePasswordRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def change_password(
+    req: ChangePasswordRequest,
+    token: str = Depends(oauth2_scheme),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     if not verify_password(req.current_password, user.password_hash or ""):
         raise HTTPException(401, "Aktuelles Passwort falsch")
     _validate_password(req.new_password)
 
     user.password_hash = hash_password(req.new_password)
     db.commit()
-    return {"message": "Passwort geaendert"}
+
+    # Altes Token sofort sperren — Nutzer muss sich neu einloggen
+    _revoke_token(token, db)
+    return {"message": "Passwort geaendert. Bitte neu anmelden."}
 
 
 # ═══════════════════════════════════════════════════════════

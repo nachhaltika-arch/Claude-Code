@@ -158,6 +158,20 @@ def run_migrations():
         ON kas_gjs_data(page_id);
     """)
 
+    # Tabelle: revoked_tokens — JWT Blacklist fuer sofortige Invalidierung
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS revoked_tokens (
+            id          SERIAL PRIMARY KEY,
+            jti         VARCHAR(64) UNIQUE NOT NULL,
+            revoked_at  TIMESTAMP DEFAULT NOW(),
+            expires_at  TIMESTAMP NOT NULL
+        );
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_revoked_tokens_jti
+        ON revoked_tokens(jti);
+    """)
+
     cur.close()
     conn.close()
     print("Migrationen erfolgreich ausgefuehrt.")

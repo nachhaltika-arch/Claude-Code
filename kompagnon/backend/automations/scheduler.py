@@ -141,6 +141,13 @@ def job_hwk_scrape_weekly():
             f"✅ HWK scraper complete: "
             f"{result['leads_found']} found | {result['leads_saved']} saved"
         )
+        result_summary = (
+            f"HWK Wochenscraper abgeschlossen: "
+            f"{result['leads_found']} gefunden, "
+            f"{result['leads_saved']} gespeichert, "
+            f"{result.get('errors', 0)} Fehler"
+        )
+        logger.info(result_summary)
     except Exception as e:
         logger.error(f"❌ HWK scraper job failed: {e}", exc_info=True)
 

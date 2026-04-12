@@ -184,16 +184,6 @@ class ScheduleRequest(BaseModel):
     enabled: bool
 
 
-@router.get("/health", summary="Scheduler status + env config")
-def scraper_health():
-    """Return whether the weekly auto-scraper is enabled."""
-    return {
-        "schedule_enabled": _schedule_enabled,
-        "current_run": _current_run,
-        "total_runs": len(_run_history),
-    }
-
-
 @router.post("/schedule", summary="Enable/disable weekly auto-scraper")
 def set_schedule(request: ScheduleRequest):
     """Toggle the weekly auto-scraper flag (read by automations/scheduler.py)."""
@@ -202,4 +192,22 @@ def set_schedule(request: ScheduleRequest):
     # Sync env var for legacy code paths that read it directly
     os.environ["HWK_SCRAPER_ENABLED"] = "true" if _schedule_enabled else "false"
     logger.info(f"HWK scraper schedule {'enabled' if _schedule_enabled else 'disabled'}")
-    return {"schedule_enabled": _schedule_enabled}
+    return {"hwk_scraper_enabled": _schedule_enabled}
+
+
+@router.get("/health", summary="Scraper-Konfiguration prüfen")
+def scraper_health():
+    """Zeigt ob der automatische Wochenscraper aktiv ist."""
+    import os
+    enabled = os.getenv("HWK_SCRAPER_ENABLED", "false").lower() == "true"
+    return {
+        "hwk_scraper_enabled": enabled,
+        "message": (
+            "Aktiv — läuft jeden Montag um 02:00 Uhr Europe/Berlin"
+            if enabled else
+            "INAKTIV — Umgebungsvariable HWK_SCRAPER_ENABLED ist nicht gesetzt"
+        ),
+        "next_run": "Nächster Montag 02:00 Europe/Berlin" if enabled else None,
+        "chambers_available": list(CHAMBER_CONFIGS.keys()),
+        "trades_available": len(TRADES_MUENCHEN),
+    }

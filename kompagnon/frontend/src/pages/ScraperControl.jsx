@@ -45,7 +45,7 @@ export default function ScraperControl() {
 
     fetch(`${API_BASE_URL}/api/scraper/health`, { headers })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setScheduleEnabled(!!d.schedule_enabled); })
+      .then(d => { if (d) setScheduleEnabled(!!d.hwk_scraper_enabled); })
       .catch(() => {});
 
     loadStatus();
@@ -142,8 +142,8 @@ export default function ScraperControl() {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setScheduleEnabled(!!data.schedule_enabled);
-      toast.success(data.schedule_enabled ? 'Auto-Scraper aktiviert' : 'Auto-Scraper deaktiviert');
+      setScheduleEnabled(!!data.hwk_scraper_enabled);
+      toast.success(data.hwk_scraper_enabled ? 'Auto-Scraper aktiviert' : 'Auto-Scraper deaktiviert');
     } catch (e) {
       toast.error('Umschalten fehlgeschlagen');
     }

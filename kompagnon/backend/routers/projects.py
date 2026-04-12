@@ -1655,6 +1655,9 @@ class NetlifyDeployRequest(BaseModel):
     html:      str
     css:       str = ""
     redirects: str = ""
+    page_title:       str = "Website"
+    meta_description: str = ""
+    company_name:     str = ""
 
 class NetlifyDomainRequest(BaseModel):
     domain: str
@@ -1716,19 +1719,33 @@ async def netlify_deploy(
 ):
     """Deployt HTML auf die Netlify-Site des Projekts (nur Admin)."""
     row = db.execute(
-        text("SELECT netlify_site_id FROM projects WHERE id = :id"),
+        text(
+            "SELECT p.netlify_site_id, COALESCE(l.company_name, '') "
+            "FROM projects p LEFT JOIN leads l ON l.id = p.lead_id "
+            "WHERE p.id = :id"
+        ),
         {"id": project_id},
     ).fetchone()
     if not row or not row[0]:
         raise HTTPException(400, "Keine Netlify-Site vorhanden. Zuerst Site anlegen.")
 
-    site_id = row[0]
+    site_id       = row[0]
+    company_name  = body.company_name or row[1] or ""
+    page_title    = body.page_title or company_name or "Website"
 
     # DB-Verbindung vor externem Netlify-Deploy freigeben
     db.close()
 
     from services.netlify_service import deploy_html
-    result = await deploy_html(site_id, body.html, body.css, body.redirects)
+    result = await deploy_html(
+        site_id,
+        body.html,
+        body.css,
+        body.redirects,
+        page_title=page_title,
+        meta_description=body.meta_description,
+        company_name=company_name,
+    )
 
     # Neue Session zum Speichern
     db2 = SessionLocal()

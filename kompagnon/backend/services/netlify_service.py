@@ -64,6 +64,9 @@ async def deploy_html(
     html: str,
     css: str = "",
     redirects: str = "",
+    page_title: str = "Website",
+    meta_description: str = "",
+    company_name: str = "",
 ) -> dict:
     """
     Deployt HTML (+ optionales CSS / Redirects) als ZIP auf eine Netlify-Site.
@@ -78,12 +81,18 @@ async def deploy_html(
     # ZIP im Speicher aufbauen
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        og_description = meta_description or f"Offizielle Website von {company_name or page_title}"
+
         full_html = f"""<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Website</title>
+  <title>{page_title}</title>
+  <meta name="description" content="{og_description}">
+  <meta property="og:title" content="{page_title}">
+  <meta property="og:description" content="{og_description}">
+  <meta property="og:type" content="website">
   {f'<link rel="stylesheet" href="/style.css">' if css else ''}
 </head>
 <body>

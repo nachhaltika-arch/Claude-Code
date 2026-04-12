@@ -105,7 +105,12 @@ export default function GrapesEditor({
       const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}/netlify/deploy`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ html, css, redirects: '' }),
+        body: JSON.stringify({
+          html,
+          css,
+          redirects: '',
+          page_title: pageName || 'Website',
+        }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();

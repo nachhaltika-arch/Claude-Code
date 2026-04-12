@@ -393,7 +393,18 @@ export default function CustomerPortal() {
 
   const loadPortal = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/leads/portal/${token}`);
+      // Token NICHT mehr in der URL — per POST-Body senden (verhindert
+      // Leaks in Browser-History, Server-Logs, Referer-Header)
+      const res = await fetch(`${API_BASE_URL}/api/leads/portal/verify-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      if (res.status === 403) {
+        setError('Dieser Link ist abgelaufen. Bitte neuen Link anfordern.');
+        setStep('error');
+        return;
+      }
       if (!res.ok) { setError('Dieser Link ist ungültig oder abgelaufen.'); setStep('error'); return; }
       const d = await res.json();
       setData(d);

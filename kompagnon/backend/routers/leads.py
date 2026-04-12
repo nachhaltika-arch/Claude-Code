@@ -741,13 +741,12 @@ async def create_public_lead(request: Request, data: dict, db: Session = Depends
 
 # ── Portal routes (public, no auth) ──────────────────────
 
-@router.get("/portal/{token}")
-def get_portal_data(token: str, db: Session = Depends(get_db)):
-    """Public portal page — token is the access key."""
-    lead = db.query(Lead).filter(Lead.customer_token == token).first()
-    if not lead:
-        raise HTTPException(404, "Ungültiger Zugangslink")
+class PortalTokenRequest(BaseModel):
+    token: str
 
+
+def _serialize_portal(lead: Lead, db: Session) -> dict:
+    """Shared portal payload used by the new POST endpoint."""
     email_domain = ''
     if lead.email and '@' in lead.email:
         email_domain = lead.email.split('@')[1]
@@ -785,6 +784,47 @@ def get_portal_data(token: str, db: Session = Depends(get_db)):
         'project_status': project.status if project else None,
         'go_live_date':   str(project.go_live_date)[:10] if project and project.go_live_date else None,
     }
+
+
+@router.post("/portal/verify-token")
+def get_portal_data_by_body(req: PortalTokenRequest, db: Session = Depends(get_db)):
+    """Verify token via POST body (token not exposed in URL, history or logs)."""
+    lead = db.query(Lead).filter(Lead.customer_token == req.token).first()
+    if not lead:
+        raise HTTPException(404, "Ungültiger oder abgelaufener Link")
+
+    # Ablaufdatum prüfen
+    if lead.customer_token_expires and lead.customer_token_expires < datetime.utcnow():
+        raise HTTPException(403, "Dieser Link ist abgelaufen. Bitte neuen Link anfordern.")
+
+    return _serialize_portal(lead, db)
+
+
+@router.get("/portal/{token}")
+def portal_redirect(token: str):
+    """Legacy — alte Links signalisieren dem Frontend, auf POST umzustellen."""
+    return {"token": token, "use_post": True}
+
+
+@router.post("/portal/{token}/renew")
+def renew_portal_token(token: str, db: Session = Depends(get_db)):
+    """Erneuert einen abgelaufenen Token und versendet einen neuen Link per E-Mail."""
+    lead = db.query(Lead).filter(Lead.customer_token == token).first()
+    if not lead:
+        raise HTTPException(404, "Link nicht gefunden")
+
+    from services.qr_service import generate_token, token_expires_at
+    lead.customer_token = generate_token()
+    lead.customer_token_expires = token_expires_at()
+    db.commit()
+
+    try:
+        from services.email import send_portal_link
+        send_portal_link(lead.email, lead.customer_token)
+    except Exception as e:
+        logger.error(f"Portal-Link E-Mail fehlgeschlagen: {e}")
+
+    return {"message": "Neuer Link wurde per E-Mail versendet."}
 
 
 @router.post("/portal/{token}/verify")
@@ -1548,7 +1588,7 @@ async def extract_impressum(lead_id: int, db: Session = Depends(get_db)):
 @router.get("/{lead_id}/qr-code")
 def get_qr_code(lead_id: int, db: Session = Depends(get_db)):
     """Get or create QR code for customer portal access."""
-    from services.qr_service import generate_token, generate_qr_code, get_portal_url
+    from services.qr_service import generate_token, generate_qr_code, get_portal_url, token_expires_at
 
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
@@ -1557,6 +1597,7 @@ def get_qr_code(lead_id: int, db: Session = Depends(get_db)):
     if not lead.customer_token:
         lead.customer_token = generate_token()
         lead.customer_token_created_at = datetime.utcnow()
+        lead.customer_token_expires = token_expires_at()
         db.commit()
         db.refresh(lead)
 
@@ -1574,7 +1615,7 @@ def get_qr_code(lead_id: int, db: Session = Depends(get_db)):
 @router.post("/{lead_id}/qr-code/refresh")
 def refresh_qr_code(lead_id: int, db: Session = Depends(get_db)):
     """Generate a new QR code token, invalidating the old one."""
-    from services.qr_service import generate_token, generate_qr_code, get_portal_url
+    from services.qr_service import generate_token, generate_qr_code, get_portal_url, token_expires_at
 
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
@@ -1582,6 +1623,7 @@ def refresh_qr_code(lead_id: int, db: Session = Depends(get_db)):
 
     lead.customer_token = generate_token()
     lead.customer_token_created_at = datetime.utcnow()
+    lead.customer_token_expires = token_expires_at()
     db.commit()
     db.refresh(lead)
 

@@ -86,6 +86,7 @@ class Lead(Base):
 
     customer_token = Column(String, unique=True, nullable=True)
     customer_token_created_at = Column(DateTime, nullable=True)
+    customer_token_expires = Column(DateTime, nullable=True)
 
     # PageSpeed Insights (stored per-lead)
     pagespeed_mobile_score  = Column(Integer, nullable=True)
@@ -693,6 +694,7 @@ class UserCard(Base):
     # Portal access
     customer_token            = Column(String, unique=True, nullable=True)
     customer_token_created_at = Column(DateTime, nullable=True)
+    customer_token_expires    = Column(DateTime, nullable=True)
 
     # PageSpeed Insights
     pagespeed_mobile_score  = Column(Integer,  nullable=True)

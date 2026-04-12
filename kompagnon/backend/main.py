@@ -144,6 +144,7 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS display_name VARCHAR DEFAULT ''",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS customer_token VARCHAR UNIQUE",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS customer_token_created_at TIMESTAMP",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS customer_token_expires TIMESTAMP",
         """CREATE TABLE IF NOT EXISTS briefings (
             id SERIAL PRIMARY KEY,
             lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
@@ -1107,9 +1108,11 @@ def _create_default_admin():
             return
 
         # 3. Portal-Token erzeugen (qr_service oder uuid-Fallback)
+        _token_expires = None
         try:
-            from services.qr_service import generate_token
+            from services.qr_service import generate_token, token_expires_at
             _token = generate_token()
+            _token_expires = token_expires_at()
         except Exception:
             import uuid as _uuid
             _token = _uuid.uuid4().hex
@@ -1127,6 +1130,7 @@ def _create_default_admin():
             status               = "won",
             notes                = "Demo-Kunde | Paket: KOMPAGNON | 2.000 EUR",
             customer_token       = _token,
+            customer_token_expires = _token_expires,
             onboarding_completed = False,
         )
         _db2.add(demo_lead)

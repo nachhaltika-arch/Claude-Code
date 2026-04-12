@@ -1,12 +1,19 @@
 import qrcode
 import base64
 import io
-import uuid
 import os
+import secrets
+from datetime import datetime, timedelta
 
 
 def generate_token() -> str:
-    return str(uuid.uuid4()).replace('-', '')
+    """Generiert kryptografisch sicheren Token — 32 Bytes URL-sicher."""
+    return secrets.token_urlsafe(32)
+
+
+def token_expires_at() -> datetime:
+    """Token läuft nach 30 Tagen ab."""
+    return datetime.utcnow() + timedelta(days=30)
 
 
 def generate_qr_code(url: str) -> str:

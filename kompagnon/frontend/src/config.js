@@ -15,8 +15,22 @@ const API_BASE_URL = process.env.REACT_APP_API_URL ||
 // Das Backend akzeptiert nach Fix 14 Phase 2 ausschliesslich Cookies —
 // ohne diese Defaults landen alle Requests als 401 Unauthorized.
 
-// ── axios default: withCredentials fuer alle Requests ─────────────────
+// ── axios: withCredentials fuer alle Requests erzwingen ──────────────
+// Doppelt abgesichert:
+//   1. defaults.withCredentials = true  — greift fuer neue Requests
+//   2. Request-Interceptor               — forciert es auch wenn der
+//      Caller-Code einen Config-Override mitgibt (z.B. { headers })
 axios.defaults.withCredentials = true;
+axios.interceptors.request.use((config) => {
+  // API-Base-URL matchen, damit externe axios-Calls (falls vorhanden)
+  // nicht beruehrt werden
+  const url = config.url || '';
+  const fullUrl = config.baseURL ? config.baseURL + url : url;
+  if (fullUrl.startsWith(API_BASE_URL)) {
+    config.withCredentials = true;
+  }
+  return config;
+});
 
 // ── fetch patch ───────────────────────────────────────────────────────
 (function patchFetchForCookies() {

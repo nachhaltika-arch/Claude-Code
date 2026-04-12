@@ -105,6 +105,7 @@ const NAV_SECTIONS = [
       { label: 'Kampagnen',     path: '/app/campaigns', icon: 'chart', adminOnly: true },
       { label: 'Unternehmen',   path: '/app/companies', icon: 'users', activePaths: ['/app/companies', '/app/leads/'] },
       { label: 'Domain Import', path: '/app/import',    icon: 'users' },
+      { label: 'HWK Scraper',   path: '/app/scraper',   icon: 'docCheck', adminOnly: true },
       { label: 'Export',        path: '/app/export',    icon: 'docCheck' },
       { label: 'Website Audit', path: '/app/audit',     icon: 'docCheck' },
       { label: 'Newsletter',    path: '/app/newsletter', icon: 'newspaper' },

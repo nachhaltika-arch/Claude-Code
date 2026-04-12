@@ -4,11 +4,14 @@ Endpoints for triggering and monitoring HWK scraper jobs.
 
 Endpoints:
     POST /api/scraper/run          — trigger a scraper run (async background)
+    POST /api/scraper/run-batch    — trigger batch scraper (top N trades)
     GET  /api/scraper/status       — list recent runs
     GET  /api/scraper/chambers     — list available chambers + trades
+    GET  /api/scraper/health       — scheduler enabled state
     POST /api/scraper/schedule     — enable/disable scheduled runs
 """
 import logging
+import os
 from datetime import datetime
 from typing import Optional, List
 from threading import Thread
@@ -25,6 +28,14 @@ router = APIRouter(prefix="/api/scraper", tags=["Scraper"])
 # ── In-memory run log (resets on restart; good enough for manual triggers) ─────
 _run_history: List[dict] = []
 _current_run: Optional[dict] = None
+
+# ── Scheduler enabled flag (module-level, read by weekly job) ──────────────────
+_schedule_enabled: bool = os.getenv("HWK_SCRAPER_ENABLED", "false").lower() == "true"
+
+
+def is_schedule_enabled() -> bool:
+    """Used by automations/scheduler.py to check if weekly job should run."""
+    return _schedule_enabled
 
 
 # ── Pydantic schemas ───────────────────────────────────────────────────────────
@@ -167,3 +178,28 @@ def list_chambers():
             for t in TRADES_MUENCHEN
         ],
     }
+
+
+class ScheduleRequest(BaseModel):
+    enabled: bool
+
+
+@router.get("/health", summary="Scheduler status + env config")
+def scraper_health():
+    """Return whether the weekly auto-scraper is enabled."""
+    return {
+        "schedule_enabled": _schedule_enabled,
+        "current_run": _current_run,
+        "total_runs": len(_run_history),
+    }
+
+
+@router.post("/schedule", summary="Enable/disable weekly auto-scraper")
+def set_schedule(request: ScheduleRequest):
+    """Toggle the weekly auto-scraper flag (read by automations/scheduler.py)."""
+    global _schedule_enabled
+    _schedule_enabled = bool(request.enabled)
+    # Sync env var for legacy code paths that read it directly
+    os.environ["HWK_SCRAPER_ENABLED"] = "true" if _schedule_enabled else "false"
+    logger.info(f"HWK scraper schedule {'enabled' if _schedule_enabled else 'disabled'}")
+    return {"schedule_enabled": _schedule_enabled}

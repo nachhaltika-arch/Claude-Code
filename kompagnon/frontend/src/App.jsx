@@ -46,6 +46,7 @@ import Companies from './pages/Companies';
 import CustomerDashboard from './pages/CustomerDashboard';
 import Courses from './pages/Courses';
 import DomainImport from './pages/DomainImport';
+import ScraperControl from './pages/ScraperControl';
 import CustomerPortal from './pages/CustomerPortal';
 import CustomerDetail from './pages/CustomerDetail';
 import KundenPortal from './pages/KundenPortal';
@@ -174,6 +175,7 @@ function App() {
             <Route path="customers" element={<PrivateRoute><Customers /></PrivateRoute>} />
             <Route path="customers/:customerId" element={<PrivateRoute roles={['admin']}><CustomerDetail /></PrivateRoute>} />
             <Route path="import" element={<PrivateRoute roles={['admin', 'auditor']}><DomainImport /></PrivateRoute>} />
+            <Route path="scraper" element={<PrivateRoute roles={['admin']}><ScraperControl /></PrivateRoute>} />
             <Route path="export" element={<PrivateRoute roles={['admin', 'auditor']}><MassExport /></PrivateRoute>} />
             <Route path="audit" element={<PrivateRoute><AuditTool /></PrivateRoute>} />
             <Route path="profile" element={<Profile />} />

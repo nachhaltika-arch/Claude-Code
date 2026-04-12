@@ -120,11 +120,16 @@ def job_hwk_scrape_weekly():
     Weekly HWK lead scraping job.
     Scrapes top 5 München trades with default city list.
     Runs every Monday at 02:00 Europe/Berlin.
-    Set env HWK_SCRAPER_ENABLED=true to activate.
+    Toggled via POST /api/scraper/schedule or env HWK_SCRAPER_ENABLED=true.
     """
-    import os
-    if os.getenv("HWK_SCRAPER_ENABLED", "false").lower() != "true":
-        logger.info("⏭  HWK scraper job skipped (HWK_SCRAPER_ENABLED != true)")
+    try:
+        from routers.scraper import is_schedule_enabled
+        enabled = is_schedule_enabled()
+    except Exception:
+        import os
+        enabled = os.getenv("HWK_SCRAPER_ENABLED", "false").lower() == "true"
+    if not enabled:
+        logger.info("⏭  HWK scraper job skipped (schedule disabled)")
         return
 
     logger.info("🔍 Weekly HWK scraper job starting...")

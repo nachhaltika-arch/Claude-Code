@@ -1,16 +1,24 @@
+import axios from 'axios';
+
 const API_BASE_URL = process.env.REACT_APP_API_URL ||
   'https://claude-code-znq2.onrender.com';
 
-// ── Global fetch-Patch (Security Fix 14 Phase 2) ────────────────────
+// ── Global HTTP-Client Konfiguration (Security Fix 14 Phase 2) ─────────
 // Sorgt dafuer, dass jeder Request zur KOMPAGNON-API automatisch den
-// httpOnly-Cookie mitsendet, ohne dass jede einzelne fetch()-Stelle
-// manuell `credentials: 'include'` setzen muss.
+// httpOnly-Cookie mitsendet, ohne dass jede einzelne Call-Site das
+// manuell konfigurieren muss.
 //
-// Das Backend akzeptiert nach Phase 2 ausschliesslich Cookies — ein
-// `Authorization: Bearer ...`-Header im Request ist harmlos, da der
-// Server ihn ignoriert. Der Monkey-Patch ist auf API-Base-URL
-// gescoped, damit externe fetch-Calls (z.B. Google Fonts, Netlify)
-// nicht beruehrt werden.
+// Zwei Mechanismen, weil das Projekt BEIDE HTTP-Clients nutzt:
+//   1. window.fetch — Monkey-Patch fuegt credentials: 'include' hinzu
+//   2. axios        — defaults.withCredentials = true
+//
+// Das Backend akzeptiert nach Fix 14 Phase 2 ausschliesslich Cookies —
+// ohne diese Defaults landen alle Requests als 401 Unauthorized.
+
+// ── axios default: withCredentials fuer alle Requests ─────────────────
+axios.defaults.withCredentials = true;
+
+// ── fetch patch ───────────────────────────────────────────────────────
 (function patchFetchForCookies() {
   if (typeof window === 'undefined' || !window.fetch) return;
   if (window.__kompagnon_fetch_patched) return;

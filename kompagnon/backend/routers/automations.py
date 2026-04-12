@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 from database import Project, Lead, Communication, AuditResult, get_db
 from services.margin_calculator import MarginCalculator
-from routers.auth_router import require_admin
+from routers.auth_router import require_admin, require_any_auth
 
 router = APIRouter(prefix="/api", tags=["dashboard", "automations"])
 
@@ -39,92 +39,136 @@ class Alert(BaseModel):
 
 
 @router.get("/dashboard/kpis", response_model=KPIData)
-def get_dashboard_kpis(db: Session = Depends(get_db)):
-    """Get KPI data for dashboard."""
-    margin_summary = MarginCalculator.get_margin_summary(db)
+def get_dashboard_kpis(
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """
+    Get KPI data for dashboard.
 
-    # Count projects going live this week
-    week_from_now = datetime.utcnow() + timedelta(days=7)
-    golive_this_week = (
-        db.query(Project)
-        .filter(
-            Project.status == "phase_6",
-            Project.actual_go_live.isnot(None),
-            Project.actual_go_live <= week_from_now,
-        )
-        .count()
-    )
-
-    # Count projects pending reviews
-    pending_reviews = (
-        db.query(Project)
-        .filter(
-            Project.status.in_(["phase_7", "completed"]),
-            Project.review_received == False,
-        )
-        .count()
-    )
-
-    # Audit KPIs
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    audits_today = (
-        db.query(AuditResult)
-        .filter(AuditResult.status == "completed", AuditResult.created_at >= today_start)
-        .count()
-    )
-    avg_row = (
-        db.query(func.avg(AuditResult.total_score))
-        .filter(AuditResult.status == "completed")
-        .scalar()
-    )
-    audits_avg_score = round(float(avg_row), 1) if avg_row else 0
-
-    # Count leads that improved (have 2+ audits where latest > earliest)
-    audits_improved = 0
-    lead_ids_with_audits = (
-        db.query(AuditResult.lead_id)
-        .filter(AuditResult.lead_id.isnot(None), AuditResult.status == "completed")
-        .group_by(AuditResult.lead_id)
-        .having(func.count(AuditResult.id) >= 2)
-        .all()
-    )
-    for (lid,) in lead_ids_with_audits:
-        scores = (
-            db.query(AuditResult.total_score)
-            .filter(AuditResult.lead_id == lid, AuditResult.status == "completed")
-            .order_by(AuditResult.created_at.asc())
-            .all()
-        )
-        if len(scores) >= 2 and scores[-1][0] > scores[0][0]:
-            audits_improved += 1
-
-    # Lead / Usercard counts — prefer leads table, fallback to usercards
-    leads_total = db.query(Lead).count()
-    leads_won   = db.query(Lead).filter(Lead.status == "won").count()
-    if leads_total == 0:
-        try:
-            leads_total = db.execute(text("SELECT COUNT(*) FROM usercards")).scalar() or 0
-            leads_won   = db.execute(text("SELECT COUNT(*) FROM usercards WHERE status = 'won'")).scalar() or 0
-        except Exception:
-            pass
-
-    return {
-        "active_projects": margin_summary.get("active_projects", 0),
-        "average_margin_percent": margin_summary.get("average_margin_percent", 0),
-        "projects_in_target": margin_summary.get("projects_in_target", 0),
-        "projects_at_risk": margin_summary.get("projects_at_risk", 0),
-        "projects_going_live_this_week": golive_this_week,
-        "pending_reviews": pending_reviews,
-        "audits_today": audits_today,
-        "audits_avg_score": audits_avg_score,
-        "audits_improved": audits_improved,
-        "leads_total": leads_total,
-        "leads_won": leads_won,
+    Performance-optimiert:
+      - audits_improved via 1 Aggregations-Query (vorher: N+1 mit Schleife ueber alle Leads)
+      - Jeder Block in try/except gekapselt, damit eine einzelne kaputte
+        Query nicht den ganzen Endpoint crasht (Security Fix 06 haette das
+        sonst als generischen 500 zurueckgegeben)
+    """
+    # Defaults — alle Felder, die wir liefern MUESSEN (Pydantic-Modell)
+    kpis = {
+        "active_projects": 0,
+        "average_margin_percent": 0,
+        "projects_in_target": 0,
+        "projects_at_risk": 0,
+        "projects_going_live_this_week": 0,
+        "pending_reviews": 0,
+        "audits_today": 0,
+        "audits_avg_score": 0,
+        "audits_improved": 0,
+        "leads_total": 0,
+        "leads_won": 0,
     }
+
+    # ── Margin-Summary ──────────────────────────────────────
+    try:
+        ms = MarginCalculator.get_margin_summary(db)
+        kpis["active_projects"] = ms.get("active_projects", 0)
+        kpis["average_margin_percent"] = ms.get("average_margin_percent", 0)
+        kpis["projects_in_target"] = ms.get("projects_in_target", 0)
+        kpis["projects_at_risk"] = ms.get("projects_at_risk", 0)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"dashboard/kpis margin_summary: {e}")
+
+    # ── Projekte, die diese Woche live gehen ────────────────
+    try:
+        week_from_now = datetime.utcnow() + timedelta(days=7)
+        kpis["projects_going_live_this_week"] = (
+            db.query(Project)
+            .filter(
+                Project.status == "phase_6",
+                Project.actual_go_live.isnot(None),
+                Project.actual_go_live <= week_from_now,
+            )
+            .count()
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"dashboard/kpis golive: {e}")
+
+    # ── Offene Reviews ──────────────────────────────────────
+    try:
+        kpis["pending_reviews"] = (
+            db.query(Project)
+            .filter(
+                Project.status.in_(["phase_7", "completed"]),
+                Project.review_received == False,
+            )
+            .count()
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"dashboard/kpis pending_reviews: {e}")
+
+    # ── Audit KPIs ──────────────────────────────────────────
+    try:
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        kpis["audits_today"] = (
+            db.query(AuditResult)
+            .filter(AuditResult.status == "completed", AuditResult.created_at >= today_start)
+            .count()
+        )
+        avg_row = (
+            db.query(func.avg(AuditResult.total_score))
+            .filter(AuditResult.status == "completed")
+            .scalar()
+        )
+        kpis["audits_avg_score"] = round(float(avg_row), 1) if avg_row else 0
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"dashboard/kpis audit_kpis: {e}")
+
+    # ── audits_improved via 1 Aggregations-Query (war vorher N+1) ──
+    # Nutzt PostgreSQL array_agg mit ORDER BY — neustes minus aeltestes Score
+    # pro Lead, gezaehlt wird wer sich verbessert hat.
+    try:
+        row = db.execute(text("""
+            SELECT COUNT(*) AS improved
+            FROM (
+                SELECT
+                    lead_id,
+                    (array_agg(total_score ORDER BY created_at ASC))[1]  AS first_score,
+                    (array_agg(total_score ORDER BY created_at DESC))[1] AS last_score,
+                    COUNT(*) AS n
+                FROM audit_results
+                WHERE lead_id IS NOT NULL AND status = 'completed'
+                GROUP BY lead_id
+                HAVING COUNT(*) >= 2
+            ) sub
+            WHERE last_score > first_score
+        """)).fetchone()
+        kpis["audits_improved"] = int(row.improved) if row and row.improved else 0
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"dashboard/kpis audits_improved: {e}")
+
+    # ── Lead / Usercard counts ───────────────────────────────
+    try:
+        kpis["leads_total"] = db.query(Lead).count()
+        kpis["leads_won"]   = db.query(Lead).filter(Lead.status == "won").count()
+        if kpis["leads_total"] == 0:
+            try:
+                kpis["leads_total"] = db.execute(text("SELECT COUNT(*) FROM usercards")).scalar() or 0
+                kpis["leads_won"]   = db.execute(text("SELECT COUNT(*) FROM usercards WHERE status = 'won'")).scalar() or 0
+            except Exception:
+                pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"dashboard/kpis lead_counts: {e}")
+
+    return kpis
 
 
 @router.get("/dashboard/alerts", response_model=list[Alert])
-def get_dashboard_alerts(db: Session = Depends(get_db)):
+def get_dashboard_alerts(db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Get all active alerts for dashboard."""
     alerts = []
 
@@ -178,7 +222,7 @@ def get_dashboard_alerts(db: Session = Depends(get_db)):
 
 
 @router.get("/dashboard/projects-by-phase")
-def get_projects_by_phase(db: Session = Depends(get_db)):
+def get_projects_by_phase(db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Get projects grouped by phase (for kanban view)."""
     phases = {
         "phase_1": [],
@@ -218,7 +262,7 @@ def get_projects_by_phase(db: Session = Depends(get_db)):
 
 
 @router.get("/automations/jobs")
-def get_active_jobs():
+def get_active_jobs(_=Depends(require_admin)):
     """Get list of active scheduled jobs."""
     from automations.scheduler import get_scheduler
     try:

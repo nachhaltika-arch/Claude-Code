@@ -539,8 +539,20 @@ def update_signature(req: SignatureUpdate, user: User = Depends(get_current_user
 
 @admin_router.get("/users")
 def list_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    # Alle User in einer Query laden
     users = db.query(User).order_by(User.created_at.desc()).all()
-    return [_user_dict(u) for u in users]
+
+    # ── N+1 Fix: alle zugeordneten Leads in EINER Batch-Query laden ──
+    # Vorher: pro User eine neue SessionLocal() — bei vielen Usern fuehrte das
+    # zu Connection-Pool-Exhaustion und Statement-Timeouts auf Render.
+    from database import Lead
+    lead_ids = [u.lead_id for u in users if u.lead_id]
+    onboarding_map = {}
+    if lead_ids:
+        lead_rows = db.query(Lead.id, Lead.onboarding_completed).filter(Lead.id.in_(lead_ids)).all()
+        onboarding_map = {row.id: bool(row.onboarding_completed) for row in lead_rows}
+
+    return [_user_dict(u, onboarding_map=onboarding_map) for u in users]
 
 
 @admin_router.post("/users")
@@ -620,17 +632,31 @@ def admin_reset_password(user_id: int, admin: User = Depends(require_admin), db:
 # Helpers
 # ═══════════════════════════════════════════════════════════
 
-def _user_dict(user: User) -> dict:
+def _user_dict(user: User, onboarding_map: dict | None = None) -> dict:
+    """
+    Serializes a User into a dict.
+
+    onboarding_map: optionales Dict {lead_id: bool} aus der aufrufenden
+    Funktion. Wenn uebergeben, wird daraus gelesen statt eine eigene
+    DB-Session pro User aufzumachen (N+1 Fix).
+    Falls None, faellt die Funktion auf eine einzelne Query zurueck —
+    fuer Einzel-Aufrufe von `/api/auth/me` etc.
+    """
     onboarding_done = False
     if user.lead_id:
-        try:
-            from database import SessionLocal, Lead
-            _db = SessionLocal()
-            lead = _db.query(Lead).filter(Lead.id == user.lead_id).first()
-            onboarding_done = bool(getattr(lead, 'onboarding_completed', False)) if lead else False
-            _db.close()
-        except Exception:
-            pass
+        if onboarding_map is not None:
+            onboarding_done = bool(onboarding_map.get(user.lead_id, False))
+        else:
+            # Fallback fuer Einzel-Calls (z.B. /me) — nutzt die bestehende
+            # Session ueber einen Quick-Lookup.
+            try:
+                from database import SessionLocal, Lead
+                _db = SessionLocal()
+                lead = _db.query(Lead).filter(Lead.id == user.lead_id).first()
+                onboarding_done = bool(getattr(lead, 'onboarding_completed', False)) if lead else False
+                _db.close()
+            except Exception:
+                pass
 
     return {
         "id": user.id,

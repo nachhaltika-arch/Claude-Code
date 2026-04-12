@@ -25,7 +25,8 @@ def crawler_status():
         from services.crawler_service import crawl_website  # noqa: F401
         return {'status': 'available', 'engine': 'httpx+beautifulsoup4'}
     except ImportError as e:
-        return {'status': 'unavailable', 'error': str(e)}
+        logger.error(f"crawler service unavailable: {e}", exc_info=True)
+        return {'status': 'unavailable', 'error': 'Crawler-Service nicht verfügbar'}
 
 
 def _run_crawl(job_id: int, customer_id: int, start_url: str, max_pages: int):
@@ -293,7 +294,8 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
                     'scraped_at':       datetime.utcnow(),
                 })
             except Exception as e:
-                errors.append({'url': crawl_url, 'error': str(e)})
+                logger.error(f"crawl fetch failed for {crawl_url}: {e}", exc_info=True)
+                errors.append({'url': crawl_url, 'error': 'Seite konnte nicht abgerufen werden'})
 
     # Neue Session zum Speichern der Ergebnisse
     db2 = SessionLocal()

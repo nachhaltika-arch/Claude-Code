@@ -245,12 +245,12 @@ def get_active_jobs():
         }
     except Exception as e:
         import logging
-        logging.getLogger(__name__).warning(f"Jobs-Endpunkt Fehler: {e}")
+        logging.getLogger(__name__).error(f"Jobs-Endpunkt Fehler: {e}", exc_info=True)
         return {
             "active_jobs": 0,
             "jobs": [],
             "status": "error",
-            "info": str(e),
+            "info": "Jobs-Liste nicht verfügbar",
         }
 
 

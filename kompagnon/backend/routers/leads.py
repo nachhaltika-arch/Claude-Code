@@ -221,9 +221,8 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
         }
     except Exception as e:
         db.rollback()
-        import logging
-        logging.getLogger('leads').error(f'Lead create error: {type(e).__name__}: {e}')
-        raise HTTPException(status_code=500, detail=f'Lead konnte nicht angelegt werden: {str(e)}')
+        logger.error(f'Lead create error: {type(e).__name__}: {e}', exc_info=True)
+        raise HTTPException(status_code=500, detail='Lead konnte nicht angelegt werden')
 
 
 @router.get("/")
@@ -1097,7 +1096,8 @@ def analyze_lead(lead_id: int, db: Session = Depends(get_db)):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+        logger.error(f"lead analysis failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Analyse fehlgeschlagen")
 
 
 @router.post("/{lead_id}/convert")
@@ -1147,7 +1147,8 @@ def convert_lead(
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Conversion failed: {str(e)}")
+        logger.error(f"lead conversion failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Konvertierung fehlgeschlagen")
 
 
 # ===== IMPORT ENDPOINTS =====
@@ -1296,9 +1297,10 @@ async def import_leads_csv(
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"csv import failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=400,
-            detail=f"Import fehlgeschlagen: {str(e)}",
+            detail="Import fehlgeschlagen",
         )
 
 

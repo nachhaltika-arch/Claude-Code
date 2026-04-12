@@ -6,10 +6,13 @@ POST /api/agents/{project_id}/seo           - Run SEO/GEO agent
 POST /api/agents/{project_id}/qa            - Run QA agent
 POST /api/agents/{project_id}/review        - Run review agent
 """
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from database import Project, get_db
+
+logger = logging.getLogger(__name__)
 from agents import (
     ContentWriterAgent,
     SeoGeoAgent,
@@ -121,7 +124,8 @@ def _run_content_job(job_id: str, briefing_dict: dict, use_mock: bool,
             result_html = _json_to_html(result, briefing_dict) if isinstance(result, dict) else result
             _jobs[job_id] = {"status": "done", "result": result, "result_html": result_html}
     except Exception as e:
-        _jobs[job_id] = {"status": "error", "error": str(e)}
+        logger.error(f"content writer job {job_id} failed: {e}", exc_info=True)
+        _jobs[job_id] = {"status": "error", "error": "Content-Generierung fehlgeschlagen"}
 
 
 class ContentBriefing(BaseModel):
@@ -233,7 +237,8 @@ def run_content_agent(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Agent failed: {str(e)}")
+        logger.error(f"ContentWriterAgent failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Agent fehlgeschlagen")
 
 
 @router.get("/jobs/{job_id}")
@@ -284,7 +289,8 @@ def run_seo_agent(
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Agent failed: {str(e)}")
+        logger.error(f"SeoGeoAgent failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Agent fehlgeschlagen")
 
 
 @router.post("/{project_id}/qa")
@@ -322,7 +328,8 @@ def run_qa_agent(
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Agent failed: {str(e)}")
+        logger.error(f"QaAgent failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Agent fehlgeschlagen")
 
 
 @router.post("/{project_id}/review")
@@ -365,4 +372,5 @@ def run_review_agent(
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Agent failed: {str(e)}")
+        logger.error(f"ReviewAgent failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Agent fehlgeschlagen")

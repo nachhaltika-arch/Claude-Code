@@ -12,7 +12,7 @@ import logging
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from datetime import datetime
@@ -1511,6 +1511,25 @@ app = FastAPI(
 # Register rate limiter with the app
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+# ── Globaler Exception-Handler ─────────────────────────────
+# Fängt jede nicht-HTTPException ab, loggt den vollständigen Stack-Trace
+# und sendet an den Client nur eine generische Fehlermeldung ohne
+# Systemdetails. Verhindert Leaks von DB-Schemas, Dateipfaden,
+# Stack-Traces, etc.
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(
+        f"Unhandled exception: {type(exc).__name__}: {exc} "
+        f"| Path: {request.url.path}",
+        exc_info=True,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Interner Fehler"},
+    )
+
 
 # CORS Middleware — must be before all routers
 # Build allowed origins from environment or use sensible defaults.

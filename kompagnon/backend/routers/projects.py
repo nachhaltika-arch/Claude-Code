@@ -272,7 +272,8 @@ def debug_projects(db: Session = Depends(get_db)):
             ],
         }
     except Exception as e:
-        return {"error": str(e)}
+        logger.error(f"projects debug error: {e}", exc_info=True)
+        return {"error": "Interner Fehler"}
 
 
 @router.post("/seed")
@@ -419,8 +420,8 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
             {"pid": project_id},
         ).fetchone()
     except Exception as e:
-        logger.error(f"get_project query error: {e}")
-        raise HTTPException(status_code=500, detail=f"DB error: {e}")
+        logger.error(f"get_project query error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Interner Fehler")
 
     if not row:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -639,7 +640,8 @@ def log_time(
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Time logging failed: {str(e)}")
+        logger.error(f"time logging failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Interner Fehler")
 
 
 @router.get("/{project_id}/checklist", response_model=list[ChecklistItemResponse])
@@ -740,7 +742,8 @@ def trigger_automation(
             "timestamp": datetime.utcnow(),
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Automation failed: {str(e)}")
+        logger.error(f"automation trigger failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Interner Fehler")
 
 
 class ApprovalRequest(BaseModel):
@@ -1231,10 +1234,11 @@ async def scrape_project_website(
             db2.rollback()
         finally:
             db2.close()
+        logger.error(f"project scrape failed: {e}", exc_info=True)
         return {
             "success": False,
             "scrape_failed": True,
-            "error": str(e),
+            "error": "Scrape fehlgeschlagen",
             "message": "Website konnte nicht gescrapt werden",
         }
 
@@ -2113,11 +2117,11 @@ async def netlify_status(
         from services.netlify_service import get_site_status
         live = await get_site_status(site_id)
     except Exception as e:
-        logger.error(f"Netlify get_site_status Fehler: {e}")
+        logger.error(f"Netlify get_site_status Fehler: {e}", exc_info=True)
         return {
             "connected": False,
             "status": "api_error",
-            "message": str(e),
+            "message": "Netlify-Status nicht abrufbar",
             "netlify_site_id": row[0],
             "netlify_site_url": row[1],
         }
@@ -2492,7 +2496,8 @@ def scrape_project_content(project_id: int, db: Session = Depends(get_db)):
         )
         resp.raise_for_status()
     except requests.RequestException as e:
-        raise HTTPException(status_code=502, detail=f"Website nicht erreichbar: {e}")
+        logger.error(f"website unreachable: {e}", exc_info=True)
+        raise HTTPException(status_code=502, detail="Website nicht erreichbar")
 
     # Parse with BeautifulSoup
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -2597,9 +2602,8 @@ def get_qa_result(project_id: int, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        logger.error(f"QA-Result unerwarteter Fehler: {e}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"QA-Result unerwarteter Fehler: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Interner Fehler")
 
 
 @router.post("/{project_id}/credentials")

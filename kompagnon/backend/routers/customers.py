@@ -8,11 +8,14 @@ GET  /api/customers/{id}/pagespeed - Return persisted PageSpeed values
 """
 import os
 import asyncio
+import logging
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 from database import Customer, Project, get_db, SessionLocal
 
 router = APIRouter(prefix="/api/customers", tags=["customers"])
@@ -157,7 +160,8 @@ def create_customer(
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Customer creation failed: {str(e)}")
+        logger.error(f"customer creation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Kunde konnte nicht angelegt werden")
 
 
 @router.get("/project/{project_id}/exists")

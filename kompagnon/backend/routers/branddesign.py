@@ -415,7 +415,8 @@ def analyze_screenshot(lead_id: int, db: Session = Depends(get_db)):
             raw = "\n".join(l for l in raw.splitlines() if not l.startswith("```")).strip()
         result = json.loads(raw)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Analyse fehlgeschlagen: {exc}")
+        logger.error(f"branddesign analysis failed: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Analyse fehlgeschlagen")
 
     _set(lead, 'brand_primary_color',   result.get('primary_color'))
     _set(lead, 'brand_secondary_color', result.get('secondary_color'))

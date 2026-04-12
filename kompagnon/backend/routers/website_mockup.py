@@ -76,5 +76,8 @@ async def generate_design(
         return {"html": html}
 
     except Exception as e:
-        logger.error("generate_design Fehler für customer_id=%s: %s", customer_id, e)
-        raise HTTPException(status_code=500, detail=f"KI-Generierung fehlgeschlagen: {e}")
+        logger.error(
+            "generate_design Fehler für customer_id=%s: %s",
+            customer_id, e, exc_info=True,
+        )
+        raise HTTPException(status_code=500, detail="KI-Generierung fehlgeschlagen")

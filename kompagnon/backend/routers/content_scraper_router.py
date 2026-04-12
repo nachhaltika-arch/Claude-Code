@@ -154,8 +154,11 @@ def get_scrape_full_cached(
     try:
         data = json.loads(project.scrape_full_data)
     except json.JSONDecodeError as e:
-        logger.error(f"scrape_full_data parse error project {project_id}: {e}")
-        return {"status": "parse_error", "message": str(e)}
+        logger.error(
+            f"scrape_full_data parse error project {project_id}: {e}",
+            exc_info=True,
+        )
+        return {"status": "parse_error", "message": "Gespeicherte Daten nicht lesbar"}
     data["_cached_at"] = str(project.scrape_full_at)[:19] if project.scrape_full_at else None
     return data
 

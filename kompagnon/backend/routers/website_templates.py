@@ -111,7 +111,8 @@ def _extract_from_zip(zip_bytes: bytes, filename: str) -> dict:
     except zipfile.BadZipFile:
         result["error"] = "Keine gültige ZIP-Datei"
     except Exception as e:
-        result["error"] = str(e)
+        logger.error(f"website_templates zip extract failed: {e}", exc_info=True)
+        result["error"] = "Template konnte nicht verarbeitet werden"
     return result
 
 
@@ -209,7 +210,8 @@ async def import_bulk(
                 db.rollback()
             except Exception:
                 pass
-            results.append({"file": f.filename, "error": str(e), "ok": False})
+            logger.error(f"website_templates upload failed for {f.filename}: {e}", exc_info=True)
+            results.append({"file": f.filename, "error": "Upload fehlgeschlagen", "ok": False})
 
     db.commit()
     return {

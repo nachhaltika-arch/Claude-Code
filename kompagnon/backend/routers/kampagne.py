@@ -213,9 +213,12 @@ async def audit_anfrage(
         return {"success": True, "lead_id": lead_id}
 
     except Exception as e:
-        logger.error(f"kampagne audit-anfrage error: {type(e).__name__}: {e}")
+        logger.error(
+            f"kampagne audit-anfrage error: {type(e).__name__}: {e}",
+            exc_info=True,
+        )
         try:
             db.rollback()
         except Exception:
             pass
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "Anfrage konnte nicht verarbeitet werden"}

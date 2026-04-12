@@ -762,10 +762,8 @@ def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        logger.error(f"PDF generation failed for audit {audit_id}: {e}")
-        logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"PDF-Generierung fehlgeschlagen: {str(e)}")
+        logger.error(f"PDF generation failed for audit {audit_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="PDF-Generierung fehlgeschlagen")
 
 
 @router.get("/{audit_id}/angebot")
@@ -792,10 +790,11 @@ def download_angebot_pdf(audit_id: int, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        logger.error(f"Angebots-PDF Generierung fehlgeschlagen für Audit {audit_id}: {e}")
-        logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Angebots-PDF-Generierung fehlgeschlagen: {str(e)}")
+        logger.error(
+            f"Angebots-PDF Generierung fehlgeschlagen für Audit {audit_id}: {e}",
+            exc_info=True,
+        )
+        raise HTTPException(status_code=500, detail="Angebots-PDF-Generierung fehlgeschlagen")
 
 
 @router.get("/{audit_id}")
@@ -814,8 +813,8 @@ def get_audit(audit_id: int, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f'Audit {audit_id} Fehler: {e}')
-        raise HTTPException(status_code=500, detail=f'Audit konnte nicht geladen werden: {str(e)}')
+        logger.error(f'Audit {audit_id} Fehler: {e}', exc_info=True)
+        raise HTTPException(status_code=500, detail='Audit konnte nicht geladen werden')
 
 
 @router.delete("/{audit_id}")

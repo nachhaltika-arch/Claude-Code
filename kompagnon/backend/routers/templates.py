@@ -6,6 +6,7 @@ GET  /api/templates/            - List all active templates
 GET  /api/templates/{id}        - Get single template
 """
 import io
+import logging
 import os
 import zipfile
 from datetime import datetime
@@ -13,6 +14,8 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from database import get_db
 from routers.auth_router import require_admin
@@ -133,7 +136,8 @@ async def import_template_from_url(
             resp = await client.get(url)
         html_raw = resp.text
     except Exception as e:
-        return {"error": "URL nicht erreichbar", "detail": str(e)}
+        logger.error(f"template URL import fetch failed: {e}", exc_info=True)
+        return {"error": "URL nicht erreichbar"}
 
     # 2. Extract with BeautifulSoup
     from bs4 import BeautifulSoup

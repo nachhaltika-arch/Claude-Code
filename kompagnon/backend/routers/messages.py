@@ -243,5 +243,5 @@ def send_email_endpoint(
 
         return {"success": True}
     except Exception as e:
-        logger.error(f"send-email Fehler: {e}")
-        return {"success": False, "error": str(e)}
+        logger.error(f"send-email Fehler: {e}", exc_info=True)
+        return {"success": False, "error": "E-Mail konnte nicht gesendet werden"}

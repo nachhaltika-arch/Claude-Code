@@ -98,7 +98,13 @@ function PrivateRoute({ children, roles }) {
   if (user.role === 'kunde' && roles && !roles.includes('kunde')) {
     return <Navigate to={user.lead_id ? `/app/usercards/${user.lead_id}` : '/app/dashboard'} replace />;
   }
-  if (roles && !roles.includes(user.role)) return <Navigate to="/app/dashboard" replace />;
+  if (roles) {
+    // Superadmin inherits admin access — gets in anywhere admin does
+    const effectiveRoles = roles.includes('admin') && !roles.includes('superadmin')
+      ? [...roles, 'superadmin']
+      : roles;
+    if (!effectiveRoles.includes(user.role)) return <Navigate to="/app/dashboard" replace />;
+  }
   return children;
 }
 

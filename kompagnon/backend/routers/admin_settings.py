@@ -15,10 +15,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin-settings"])
 
 DEFAULT_PERMISSIONS = {
+    "superadmin": [
+        "view_dashboard", "view_leads", "create_leads", "edit_leads", "delete_leads",
+        "view_audits", "create_audits", "download_pdf", "view_projects", "manage_projects",
+        "view_users", "manage_users", "view_settings", "manage_settings", "view_billing", "manage_billing",
+        "deploy_kas_pages",        # KAS-Seiten live stellen
+        "manage_system_settings",  # systemkritische Einstellungen
+    ],
     "admin": [
         "view_dashboard", "view_leads", "create_leads", "edit_leads", "delete_leads",
         "view_audits", "create_audits", "download_pdf", "view_projects", "manage_projects",
         "view_users", "manage_users", "view_settings", "manage_settings", "view_billing", "manage_billing",
+        # Kein deploy_kas_pages — Admin darf bearbeiten aber nicht deployen
     ],
     "auditor": [
         "view_dashboard", "view_leads", "create_leads", "edit_leads",
@@ -30,6 +38,27 @@ DEFAULT_PERMISSIONS = {
     "kunde": [
         "view_dashboard", "view_audits", "download_pdf",
     ],
+}
+
+PERM_LABELS = {
+    "view_dashboard":         "Dashboard ansehen",
+    "view_leads":             "Leads ansehen",
+    "create_leads":           "Leads anlegen",
+    "edit_leads":             "Leads bearbeiten",
+    "delete_leads":           "Leads loeschen",
+    "view_audits":            "Audits ansehen",
+    "create_audits":          "Audits erstellen",
+    "download_pdf":           "PDFs herunterladen",
+    "view_projects":          "Projekte ansehen",
+    "manage_projects":        "Projekte verwalten",
+    "view_users":             "Benutzer ansehen",
+    "manage_users":           "Benutzer verwalten",
+    "view_settings":          "Einstellungen ansehen",
+    "manage_settings":        "Einstellungen verwalten",
+    "view_billing":           "Abrechnung ansehen",
+    "manage_billing":         "Abrechnung verwalten",
+    "deploy_kas_pages":       "KAS-Seiten live deployen",
+    "manage_system_settings": "Systemkritische Einstellungen aendern",
 }
 
 
@@ -91,6 +120,8 @@ def get_roles(admin=Depends(require_admin), db: Session = Depends(get_db)):
 
 @router.patch("/roles/{role}")
 def update_role_permissions(role: str, req: RolePermissionsUpdate, admin=Depends(require_admin), db: Session = Depends(get_db)):
+    if role == "superadmin":
+        raise HTTPException(400, "Superadmin-Rolle kann nicht ueber die UI geaendert werden")
     if role == "admin":
         raise HTTPException(400, "Admin-Rolle kann nicht geaendert werden")
     if role not in ("auditor", "nutzer", "kunde"):
@@ -114,6 +145,7 @@ def _seed_permissions(db: Session):
         "view_dashboard", "view_leads", "create_leads", "edit_leads", "delete_leads",
         "view_audits", "create_audits", "download_pdf", "view_projects", "manage_projects",
         "view_users", "manage_users", "view_settings", "manage_settings", "view_billing", "manage_billing",
+        "deploy_kas_pages", "manage_system_settings",
     ]
     for role, allowed_perms in DEFAULT_PERMISSIONS.items():
         for perm in all_perms:

@@ -43,13 +43,24 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 
 def require_admin(user: User = Depends(get_current_user)):
-    if user.role != "admin":
-        raise HTTPException(403, "Nur fuer Admins")
+    """Admin und Superadmin haben Admin-Rechte."""
+    if user.role not in ("admin", "superadmin"):
+        raise HTTPException(403, "Admin-Rechte erforderlich")
+    return user
+
+
+def require_superadmin(user: User = Depends(get_current_user)):
+    """Nur Superadmin darf diese Aktion ausfuehren."""
+    if user.role != "superadmin":
+        raise HTTPException(
+            status_code=403,
+            detail="Diese Aktion erfordert Superadmin-Rechte."
+        )
     return user
 
 
 def require_auditor(user: User = Depends(get_current_user)):
-    if user.role not in ("admin", "auditor"):
+    if user.role not in ("admin", "superadmin", "auditor"):
         raise HTTPException(403, "Nur fuer Auditoren und Admins")
     return user
 
@@ -354,7 +365,7 @@ def update_me(req: ProfileUpdate, user: User = Depends(get_current_user), db: Se
         user.last_name = req.last_name.strip()
     if req.phone is not None:
         user.phone = req.phone.strip()
-    if req.position is not None and user.role in ("admin", "auditor"):
+    if req.position is not None and user.role in ("admin", "superadmin", "auditor"):
         user.position = req.position.strip()
     db.commit()
     return _user_dict(user)
@@ -362,7 +373,7 @@ def update_me(req: ProfileUpdate, user: User = Depends(get_current_user), db: Se
 
 @router.post("/me/signature")
 def update_signature(req: SignatureUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if user.role not in ("admin", "auditor"):
+    if user.role not in ("admin", "superadmin", "auditor"):
         raise HTTPException(403, "Nur fuer Auditoren")
     user.signature_data = req.signature_data
     db.commit()
@@ -391,7 +402,7 @@ def create_user(req: AdminCreateUser, admin: User = Depends(require_admin), db: 
         password_hash=hash_password(temp_password),
         first_name=req.first_name.strip(),
         last_name=req.last_name.strip(),
-        role=req.role if req.role in ("admin", "auditor", "nutzer", "kunde") else "nutzer",
+        role=req.role if req.role in ("admin", "superadmin", "auditor", "nutzer", "kunde") else "nutzer",
         position=req.position.strip(),
         is_active=True,
         is_verified=True,
@@ -413,7 +424,10 @@ def update_user(user_id: int, req: AdminUpdateUser, admin: User = Depends(requir
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(404, "Benutzer nicht gefunden")
-    if req.role is not None and req.role in ("admin", "auditor", "nutzer", "kunde"):
+    if req.role is not None and req.role in ("admin", "superadmin", "auditor", "nutzer", "kunde"):
+        # Only superadmin may promote users to superadmin
+        if req.role == "superadmin" and admin.role != "superadmin":
+            raise HTTPException(403, "Nur Superadmin darf die Superadmin-Rolle vergeben")
         user.role = req.role
     if req.is_active is not None:
         user.is_active = req.is_active

@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import ModalSheet from '../components/ui/ModalSheet';
 import toast from 'react-hot-toast';
 import { parseApiError } from '../utils/apiError';
-import { apiCall } from '../context/AuthContext';
+import { apiCall, useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
 
 
 const ROLE_BADGES = {
+  superadmin: { bg: '#7c3aed', color: '#fff', label: 'Superadmin' },
   admin: { bg: 'var(--text-primary)', color: '#fff', label: 'Admin' },
   auditor: { bg: '#2a5aa0', color: '#fff', label: 'Auditor' },
   nutzer: { bg: '#4a5a7a', color: '#fff', label: 'Nutzer' },
@@ -16,6 +17,7 @@ const ROLE_BADGES = {
 
 export default function AdminUsers() {
   const { isMobile } = useScreenSize();
+  const { isSuperadmin } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -138,6 +140,9 @@ export default function AdminUsers() {
               <option value="nutzer">Nutzer</option>
               <option value="auditor">Auditor</option>
               <option value="admin">Admin</option>
+              {isSuperadmin && isSuperadmin() && (
+                <option value="superadmin">Superadmin</option>
+              )}
               <option value="kunde">Kunde</option>
             </select>
             {newUser.role === 'auditor' && (

@@ -74,6 +74,9 @@ def _run_migrations():
     """Führt alle fehlenden Spalten-Migrationen aus."""
     from database import engine
     migrations = [
+        # Ensure the users.role column can hold 'superadmin' (and drop any
+        # legacy CHECK constraint that might reject it)
+        "ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check",
         # NOT NULL Constraints entfernen
         "ALTER TABLE leads ALTER COLUMN contact_name DROP NOT NULL",
         "ALTER TABLE leads ALTER COLUMN phone DROP NOT NULL",

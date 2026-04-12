@@ -4,94 +4,88 @@ import API_BASE_URL from '../config';
 const AuthContext = createContext(null);
 
 // ── Token-Storage ─────────────────────────────────────────────────
-// Fix 14 — JWT ist jetzt primaer ein httpOnly-Cookie. Der Token
-// liegt zusaetzlich waehrend der Uebergangsphase in sessionStorage
-// (NICHT localStorage), damit existierende Pages, die noch
-// `Authorization: Bearer ${token}` bauen, weiter funktionieren.
-// sessionStorage ist tab-scoped und wird beim Schliessen des Tabs
-// geloescht — eine erste Haertung gegen persistente XSS-Payloads.
-// Phase 2: diesen Token-Fallback komplett entfernen, wenn alle
-// fetch()-Calls auf `credentials: 'include'` umgestellt sind.
-const TOKEN_KEY = 'kompagnon_token';
-const USER_KEY  = 'kompagnon_user';
+// Fix 14 Phase 2 — JWT ist ausschliesslich ein httpOnly-Cookie.
+// Kein Token mehr in sessionStorage, kein Token in localStorage.
+// Das User-Objekt bleibt in sessionStorage fuer Reload-Resilienz
+// (keine sensiblen Credentials enthalten).
+//
+// Pages, die noch `Authorization: Bearer ${token}` bauen, sind
+// harmlos: `token` ist dann `null`, das Backend akzeptiert aber
+// nur noch Cookies (Phase 2 Backend-Removal), der Header wird
+// ignoriert.
+const USER_KEY = 'kompagnon_user';
+const LEGACY_TOKEN_KEY = 'kompagnon_token';
 
-const readToken = () => {
-  try { return sessionStorage.getItem(TOKEN_KEY); } catch { return null; }
+// Altreste aus Pre-Fix-14 aufraeumen (localStorage + sessionStorage)
+const clearLegacyToken = () => {
+  try { localStorage.removeItem(LEGACY_TOKEN_KEY); } catch { /* ignore */ }
+  try { sessionStorage.removeItem(LEGACY_TOKEN_KEY); } catch { /* ignore */ }
 };
-const writeToken = (t) => {
-  try { sessionStorage.setItem(TOKEN_KEY, t); } catch { /* ignore */ }
-};
-const clearToken = () => {
+
+const readUserFromStorage = () => {
   try {
-    sessionStorage.removeItem(TOKEN_KEY);
-    // Aus altem localStorage auch entfernen, falls noch Reste aus Pre-Fix-14
-    localStorage.removeItem(TOKEN_KEY);
-  } catch { /* ignore */ }
+    const raw = sessionStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 };
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => readUserFromStorage());
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(() => readToken());
+  // token wird nur noch im React-State gehalten (fuer Alt-Pages, die
+  // useAuth().token lesen) und verschwindet beim Reload. Die echte
+  // Authentifizierung laeuft ueber den httpOnly-Cookie.
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
-    // Sowohl mit Token (Bearer-Fallback) als auch ohne (Cookie-only)
-    // versuchen, den User zu laden — das Backend ist dual-mode.
+    clearLegacyToken();
     loadUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadUser = async () => {
     try {
-      const headers = {};
-      const currentToken = readToken();
-      if (currentToken) headers.Authorization = `Bearer ${currentToken}`;
-      const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers,
-        credentials: 'include',   // httpOnly-Cookie mitsenden
-      });
+      // Browser sendet httpOnly-Cookie automatisch (via config.js fetch-patch)
+      const res = await fetch(`${API_BASE_URL}/api/auth/me`);
       if (res.ok) {
-        setUser(await res.json());
+        const fresh = await res.json();
+        setUser(fresh);
+        try { sessionStorage.setItem(USER_KEY, JSON.stringify(fresh)); } catch { /* ignore */ }
       } else {
-        // Kein gueltiger Cookie + kein gueltiger Token → ausloggen
-        clearToken();
-        setToken(null);
+        // Kein gueltiger Cookie → User komplett zuruecksetzen
         setUser(null);
+        setToken(null);
+        try { sessionStorage.removeItem(USER_KEY); } catch { /* ignore */ }
       }
     } catch {
-      clearToken();
-      setToken(null);
       setUser(null);
+      setToken(null);
     } finally {
       setLoading(false);
     }
   };
 
   const login = (newToken, userData) => {
-    // Der Cookie wurde vom Backend bereits gesetzt (httpOnly).
-    // Token wird waehrend der Transition zusaetzlich in sessionStorage
-    // gespeichert, damit Pages mit Bearer-Header weiter funktionieren.
-    writeToken(newToken);
+    // newToken wird nur noch als React-State gehalten — fuer Alt-Pages
+    // die ihn ueber useAuth().token lesen. Das Backend hat bereits den
+    // httpOnly-Cookie gesetzt, Token im Body ist reine Uebergangs-Info.
     setToken(newToken);
     setUser(userData);
-    // User-Objekt fuer Reload-Resilienz im sessionStorage sichern
     try { sessionStorage.setItem(USER_KEY, JSON.stringify(userData)); } catch { /* ignore */ }
   };
 
   const logout = () => {
-    // Best-effort Server-Revokation — Cookie wird vom Backend geloescht,
-    // Token kommt zusaetzlich in die Blacklist.
-    const existing = readToken();
+    // Best-effort Server-Revokation — Cookie wird vom Backend geloescht.
     try {
       fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
-        credentials: 'include',
-        headers: existing ? { Authorization: `Bearer ${existing}` } : {},
         keepalive: true,
       }).catch(() => {});
     } catch { /* ignore */ }
 
-    clearToken();
+    clearLegacyToken();
     try { sessionStorage.removeItem(USER_KEY); } catch { /* ignore */ }
     setToken(null);
     setUser(null);
@@ -116,23 +110,22 @@ export function AuthProvider({ children }) {
 export const useAuth = () => useContext(AuthContext);
 
 export async function apiCall(url, options = {}) {
-  const token = readToken();
+  // credentials: 'include' kommt automatisch via config.js fetch-Patch,
+  // trotzdem explizit setzen fuer Klarheit.
   const response = await fetch(`${API_BASE_URL}${url}`, {
     ...options,
-    credentials: 'include',       // httpOnly-Cookie immer mitsenden
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
 
-  // Token abgelaufen oder serverseitig invalidiert (Blacklist) → sauber ausloggen.
-  // Login-Endpunkte ausnehmen, sonst wird jeder fehlerhafte Login-Versuch
-  // zum Force-Logout.
+  // 401 → sauber ausloggen. Login-Endpunkte ausnehmen, sonst wird
+  // jeder fehlerhafte Login-Versuch zum Force-Logout.
   if (response.status === 401 && !url.includes('/api/auth/login')) {
-    clearToken();
     try { sessionStorage.removeItem(USER_KEY); } catch { /* ignore */ }
+    clearLegacyToken();
     if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
       window.location.href = '/login';
     }

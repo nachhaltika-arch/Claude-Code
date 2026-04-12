@@ -64,16 +64,13 @@ admin_router = APIRouter(prefix="/api/admin", tags=["admin"])
 # ═══════════════════════════════════════════════════════════
 
 def get_current_user(
-    bearer_token: str = Depends(oauth2_scheme),
     cookie_token: Optional[str] = Cookie(default=None, alias=ACCESS_COOKIE_NAME),
     db: Session = Depends(get_db),
 ):
-    # Dual-Mode: Cookie bevorzugen, Bearer-Header als Fallback.
-    # Nach vollstaendiger Frontend-Migration kann der Bearer-Fallback entfernt werden.
-    token = cookie_token or bearer_token
-    if not token:
+    # Fix 14 Phase 2 — nur noch Cookie-Auth. Bearer-Fallback entfernt.
+    if not cookie_token:
         raise HTTPException(401, "Nicht autorisiert")
-    payload = decode_token(token)
+    payload = decode_token(cookie_token)
     if payload.get("type") == "2fa_temp":
         raise HTTPException(401, "2FA-Verifizierung erforderlich")
 
@@ -124,16 +121,14 @@ def require_kunde(user: User = Depends(get_current_user)):
 
 
 def optional_auth(
-    bearer_token: str = Depends(oauth2_scheme),
     cookie_token: Optional[str] = Cookie(default=None, alias=ACCESS_COOKIE_NAME),
     db: Session = Depends(get_db),
 ):
-    """Returns user if authenticated, None otherwise."""
-    token = cookie_token or bearer_token
-    if not token:
+    """Returns user if authenticated via cookie, None otherwise."""
+    if not cookie_token:
         return None
     try:
-        payload = decode_token(token)
+        payload = decode_token(cookie_token)
         if payload.get("type") == "2fa_temp":
             return None
         user = db.query(User).filter(User.id == payload.get("user_id")).first()
@@ -371,15 +366,11 @@ def login_2fa(request: Request, req: TwoFARequest, response: Response, db: Sessi
 def logout(
     request: Request,
     response: Response,
-    bearer_token: str = Depends(oauth2_scheme),
     cookie_token: Optional[str] = Cookie(default=None, alias=ACCESS_COOKIE_NAME),
     db: Session = Depends(get_db),
 ):
     """Sperrt den aktuellen Token serverseitig + loescht das Auth-Cookie."""
-    # Beide moeglichen Token-Quellen sperren
     _revoke_token(cookie_token or "", db)
-    _revoke_token(bearer_token or "", db)
-
     # httpOnly-Cookie loeschen
     response.delete_cookie(key=ACCESS_COOKIE_NAME, path="/")
     return {"message": "Erfolgreich abgemeldet"}
@@ -492,7 +483,8 @@ def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
 @router.post("/change-password")
 def change_password(
     req: ChangePasswordRequest,
-    token: str = Depends(oauth2_scheme),
+    response: Response,
+    cookie_token: Optional[str] = Cookie(default=None, alias=ACCESS_COOKIE_NAME),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -503,8 +495,9 @@ def change_password(
     user.password_hash = hash_password(req.new_password)
     db.commit()
 
-    # Altes Token sofort sperren — Nutzer muss sich neu einloggen
-    _revoke_token(token, db)
+    # Altes Token sofort sperren und Cookie loeschen — Nutzer muss sich neu einloggen
+    _revoke_token(cookie_token or "", db)
+    response.delete_cookie(key=ACCESS_COOKIE_NAME, path="/")
     return {"message": "Passwort geaendert. Bitte neu anmelden."}
 
 

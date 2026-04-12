@@ -1,0 +1,48 @@
+version: 2
+updates:
+
+  # Frontend — npm
+  - package-ecosystem: "npm"
+    directory: "/kompagnon/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "security"
+      - "dependencies"
+    ignore:
+      # Major-Versions manuell pruefen
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Backend — pip
+  - package-ecosystem: "pip"
+    directory: "/kompagnon/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "security"
+      - "dependencies"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions selbst — damit Action-Versionen aktuell bleiben
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 3
+    labels:
+      - "security"
+      - "dependencies"

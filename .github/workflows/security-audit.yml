@@ -1,0 +1,64 @@
+name: Security Audit
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"   # Jeden Montag 07:00 UTC
+  workflow_dispatch:       # Manuell ausloesbar
+
+jobs:
+  frontend-audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Abhaengigkeiten installieren
+        working-directory: kompagnon/frontend
+        run: npm ci --prefer-offline
+
+      - name: npm audit
+        working-directory: kompagnon/frontend
+        run: |
+          npm audit --audit-level=moderate --json > npm-audit.json || true
+          cat npm-audit.json
+
+      - name: Audit-Report hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: kompagnon/frontend/npm-audit.json
+          retention-days: 30
+
+  backend-audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: pip-audit installieren
+        run: pip install pip-audit
+
+      - name: pip-audit ausfuehren
+        working-directory: kompagnon/backend
+        run: |
+          pip-audit -r requirements.txt \
+            --format json \
+            --output pip-audit.json || true
+          cat pip-audit.json
+
+      - name: Audit-Report hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: kompagnon/backend/pip-audit.json
+          retention-days: 30

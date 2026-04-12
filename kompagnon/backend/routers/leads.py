@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from database import Lead, Project, AuditResult, get_db, SessionLocal
-from routers.auth_router import require_any_auth, get_current_user
+from routers.auth_router import require_any_auth, require_admin, get_current_user
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 import asyncio
@@ -119,7 +119,7 @@ class LeadConvertRequest(BaseModel):
 
 
 @router.post("/")
-def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     try:
         result = db.execute(text("""
             INSERT INTO leads (
@@ -231,6 +231,7 @@ def list_leads(
     skip: int = Query(0),
     limit: int = Query(100),
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """List all leads with latest audit level, optionally filtered by status."""
     import logging as _log
@@ -281,7 +282,7 @@ def list_leads(
 
 
 @router.get("/customers")
-def get_customers(db: Session = Depends(get_db)):
+def get_customers(db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Get all paying customers (won leads, stripe, etc.) with audit + project data."""
     from sqlalchemy import or_
     from database import User, Project
@@ -319,7 +320,7 @@ def get_customers(db: Session = Depends(get_db)):
 
 
 @router.get("/export/csv")
-def export_leads_csv(db: Session = Depends(get_db)):
+def export_leads_csv(db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Export all leads as CSV file."""
     import io as _io
     from fastapi.responses import StreamingResponse
@@ -344,7 +345,7 @@ def export_leads_csv(db: Session = Depends(get_db)):
 
 
 @router.post("/import/domains/check")
-async def check_domains(data: dict, db: Session = Depends(get_db)):
+async def check_domains(data: dict, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Check which domains already exist + reachability/redirect check."""
     from sqlalchemy import or_
     from services.domain_checker import check_domains_batch
@@ -556,6 +557,7 @@ async def import_domains_text(
     data: DomainsTextInput,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Import domains from text input — runs audit + impressum extraction in background."""
     domains = _extract_domains(data.domains_text)
@@ -626,6 +628,7 @@ async def import_domains_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Import domains from CSV file upload."""
     content = await file.read()
@@ -693,7 +696,7 @@ async def import_domains_file(
 
 
 @router.get("/import/domains/{job_id}/status")
-def get_import_status(job_id: str):
+def get_import_status(job_id: str, _=Depends(require_any_auth)):
     """Get status of a domain import job."""
     if job_id not in import_jobs:
         raise HTTPException(404, "Job nicht gefunden")
@@ -701,7 +704,7 @@ def get_import_status(job_id: str):
 
 
 @router.post("/enrich/all")
-async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depends(get_db), _=Depends(require_admin)):
     """Batch-enrich all leads with score=0. Runs in background."""
     from services.lead_enrichment import enrich_all_pending
     import asyncio
@@ -991,7 +994,7 @@ def portal_auth_complete_onboarding(
 
 
 @router.get("/{lead_id}", response_model=LeadResponse)
-def get_lead(lead_id: int, db: Session = Depends(get_db)):
+def get_lead(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Get a specific lead by ID."""
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
@@ -1000,7 +1003,7 @@ def get_lead(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{lead_id}")
-def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db)):
+def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Update a lead — saves all provided fields."""
     db_lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not db_lead:
@@ -1018,7 +1021,7 @@ def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{lead_id}")
-def delete_lead(lead_id: int, db: Session = Depends(get_db)):
+def delete_lead(lead_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
     """Delete a lead and all associated data in correct dependency order."""
     # 1. Prüfen ob Lead existiert
     lead = db.execute(
@@ -1057,7 +1060,7 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{lead_id}/analyze")
-def analyze_lead(lead_id: int, db: Session = Depends(get_db)):
+def analyze_lead(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Run lead analyst agent on a lead."""
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
@@ -1105,6 +1108,7 @@ def convert_lead(
     lead_id: int,
     convert_request: LeadConvertRequest,
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Convert lead to a project (create Project)."""
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
@@ -1168,6 +1172,7 @@ async def import_leads_csv(
     file: UploadFile = File(...),
     background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Import leads from a CSV file."""
     if not file.filename.endswith(".csv"):
@@ -1309,6 +1314,7 @@ def import_lead_manual(
     lead_data: ManualLeadImport,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Import a single lead manually."""
     if not lead_data.company_name.strip():
@@ -1337,7 +1343,7 @@ def import_lead_manual(
 
 
 @router.post("/{lead_id}/enrich")
-async def enrich_single_lead(lead_id: int, db: Session = Depends(get_db)):
+async def enrich_single_lead(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Manually trigger enrichment for a single lead."""
     # SSRF-Schutz — Lead-URL validieren bevor der Service sie fetcht
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
@@ -1354,7 +1360,7 @@ async def enrich_single_lead(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{lead_id}/latest-screenshot")
-def get_latest_screenshot(lead_id: int, db: Session = Depends(get_db)):
+def get_latest_screenshot(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Get the latest audit screenshot for a lead, saving it to the lead if found."""
     latest = (
         db.query(AuditResult)
@@ -1376,7 +1382,7 @@ def get_latest_screenshot(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{lead_id}/screenshot")
-async def create_screenshot(lead_id: int, db: Session = Depends(get_db)):
+async def create_screenshot(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Capture website screenshot and return it immediately."""
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
@@ -1404,7 +1410,7 @@ async def create_screenshot(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{lead_id}/profile")
-def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
+def get_lead_profile(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Full lead profile with audits, projects, and score history."""
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
@@ -1526,7 +1532,7 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{lead_id}/audits")
-def get_lead_audits(lead_id: int, db: Session = Depends(get_db)):
+def get_lead_audits(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Get all audits linked to a lead, newest first."""
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
@@ -1558,7 +1564,7 @@ def get_lead_audits(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{lead_id}/extract-impressum")
-async def extract_impressum(lead_id: int, db: Session = Depends(get_db)):
+async def extract_impressum(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Extract contact data from a lead's website impressum using AI."""
     from services.impressum_scraper import extract_contact_from_impressum
 
@@ -1611,7 +1617,7 @@ async def extract_impressum(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{lead_id}/qr-code")
-def get_qr_code(lead_id: int, db: Session = Depends(get_db)):
+def get_qr_code(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Get or create QR code for customer portal access."""
     from services.qr_service import generate_token, generate_qr_code, get_portal_url, token_expires_at
 
@@ -1638,7 +1644,7 @@ def get_qr_code(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{lead_id}/qr-code/refresh")
-def refresh_qr_code(lead_id: int, db: Session = Depends(get_db)):
+def refresh_qr_code(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Generate a new QR code token, invalidating the old one."""
     from services.qr_service import generate_token, generate_qr_code, get_portal_url, token_expires_at
 
@@ -1677,7 +1683,7 @@ def _pagespeed_payload_lead(lead: Lead) -> dict:
 
 
 @router.get("/{lead_id}/pagespeed")
-def get_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
+def get_lead_pagespeed(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Return the last stored PageSpeed values for this lead without a new API call."""
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
@@ -1686,7 +1692,7 @@ def get_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{lead_id}/pagespeed")
-async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
+async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Call Google PageSpeed Insights (mobile + desktop), persist results on the lead."""
     from sqlalchemy import text as sa_text
 
@@ -1856,7 +1862,7 @@ async def domain_check_lead(lead_id: int, db: Session = Depends(get_db), _=Depen
 # ── E-Mail-Sequenz-Endpunkte ─────────────────────────────────────────────────
 
 @router.post("/{lead_id}/sequence/start", dependencies=[Depends(require_any_auth)])
-def sequence_start(lead_id: int, db: Session = Depends(get_db)):
+def sequence_start(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     from services.sequence_runner import start_sequence_for_lead
     ok = start_sequence_for_lead(lead_id)
     if not ok:
@@ -1865,7 +1871,7 @@ def sequence_start(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{lead_id}/sequence/pause", dependencies=[Depends(require_any_auth)])
-def sequence_pause(lead_id: int, db: Session = Depends(get_db)):
+def sequence_pause(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -1875,7 +1881,7 @@ def sequence_pause(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{lead_id}/sequence/stop", dependencies=[Depends(require_any_auth)])
-def sequence_stop(lead_id: int, db: Session = Depends(get_db)):
+def sequence_stop(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -1887,7 +1893,7 @@ def sequence_stop(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{lead_id}/email-logs", dependencies=[Depends(require_any_auth)])
-def get_email_logs(lead_id: int, db: Session = Depends(get_db)):
+def get_email_logs(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     rows = db.execute(
         text("SELECT * FROM email_logs WHERE lead_id=:id ORDER BY sent_at DESC LIMIT 50"),
         {"id": lead_id},

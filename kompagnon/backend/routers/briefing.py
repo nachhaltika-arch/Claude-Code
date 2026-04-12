@@ -6,12 +6,14 @@ import json
 import os
 import logging
 
+from routers.auth_router import require_any_auth
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/api/briefings', tags=['briefings'])
 
 
 @router.patch('/{lead_id}')
-def update_briefing(lead_id: int, data: dict, db: Session = Depends(get_db)):
+def update_briefing(lead_id: int, data: dict, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Update one or more briefing sections."""
     briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
     if not briefing:
@@ -123,7 +125,7 @@ def _serialize(b):
 
 
 @router.post('/{lead_id}/zielgruppenanalyse')
-async def zielgruppenanalyse(lead_id: int, db: Session = Depends(get_db)):
+async def zielgruppenanalyse(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """AI-powered target audience analysis based on lead trade + city."""
     from anthropic import Anthropic
 
@@ -180,7 +182,7 @@ Schreibe kompakt und praxisnah. Maximal 400 Wörter. Auf Deutsch."""
 
 
 @router.post('/{lead_id}/wettbewerbsanalyse')
-async def wettbewerbsanalyse(lead_id: int, db: Session = Depends(get_db)):
+async def wettbewerbsanalyse(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """AI-powered competitor analysis based on lead trade + city + region."""
     from anthropic import Anthropic
 

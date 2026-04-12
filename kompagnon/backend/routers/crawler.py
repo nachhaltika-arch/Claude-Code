@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database import get_db, CrawlJob, CrawlResult, SessionLocal
-from routers.auth_router import get_current_user, require_admin
+from routers.auth_router import get_current_user, require_admin, require_any_auth
 from datetime import datetime
 import logging
 
@@ -19,7 +19,7 @@ router = APIRouter(prefix='/api/crawler', tags=['crawler'])
 
 
 @router.get('/status')
-def crawler_status():
+def crawler_status(_=Depends(require_any_auth)):
     """Prüft ob der Crawler verfügbar ist."""
     try:
         from services.crawler_service import crawl_website  # noqa: F401
@@ -176,7 +176,7 @@ def get_results(
 
 
 @router.post('/scrape-content/{customer_id}')
-async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
+async def scrape_content(customer_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Scrapt Inhalte aller gecrawlten URLs und speichert sie in website_content_cache."""
     from bs4 import BeautifulSoup
     import httpx
@@ -339,7 +339,7 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db)):
 
 
 @router.get('/content/{customer_id}')
-def get_content(customer_id: int, db: Session = Depends(get_db)):
+def get_content(customer_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Gibt gecachte Content-Scraping-Ergebnisse für customer_id zurück."""
     import json
 

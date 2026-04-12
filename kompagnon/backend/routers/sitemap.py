@@ -694,7 +694,7 @@ def _generate_sitemap_pdf(pages: list, company_name: str) -> bytes:
 def export_sitemap_pdf(
     lead_id: int,
     db: Session = Depends(get_db),
-    _=Depends(optional_auth),
+    _=Depends(require_any_auth),
 ):
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:

@@ -242,7 +242,7 @@ class MarginResponse(BaseModel):
 
 
 @router.get("/debug")
-def debug_projects(db: Session = Depends(get_db)):
+def debug_projects(db: Session = Depends(get_db), _=Depends(require_admin)):
     """Diagnostic: raw project + lead counts and sample rows."""
     try:
         project_count = db.execute(text("SELECT COUNT(*) FROM projects")).scalar()
@@ -277,7 +277,7 @@ def debug_projects(db: Session = Depends(get_db)):
 
 
 @router.post("/seed")
-def seed_projects(db: Session = Depends(get_db)):
+def seed_projects(db: Session = Depends(get_db), _=Depends(require_admin)):
     """
     Admin: Create projects from leads that have none yet.
     Priority: status='won' leads first, then all others as fallback
@@ -490,6 +490,7 @@ def update_project(
     project_id: int,
     body: dict,
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Update project fields via raw SQL — avoids ORM column-mapping issues."""
     from sqlalchemy import text as _text
@@ -547,6 +548,7 @@ def change_phase(
     project_id: int,
     change_request: PhaseChangeRequest,
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Change project phase and trigger automations."""
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -612,6 +614,7 @@ def log_time(
     project_id: int,
     time_log: TimeLogRequest,
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Log hours spent on a project and update margin."""
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -649,6 +652,7 @@ def get_checklist(
     project_id: int,
     phase: int = Query(None),
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Get project checklist, optionally filtered by phase."""
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -669,6 +673,7 @@ def update_checklist_item(
     item_key: str,
     update: ChecklistItemUpdate,
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Mark checklist item as complete."""
     item = (
@@ -697,7 +702,7 @@ def update_checklist_item(
 
 
 @router.get("/{project_id}/margin", response_model=MarginResponse)
-def get_margin(project_id: int, db: Session = Depends(get_db)):
+def get_margin(project_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Get real-time margin for project."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
@@ -715,6 +720,7 @@ def trigger_automation(
     project_id: int,
     automation_id: str = Query(...),
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Manually trigger an automation for a project."""
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -1065,7 +1071,7 @@ async def _golive_automation(project_id: int):
 
 
 @router.post("/from-lead/{lead_id}", status_code=201)
-def create_project_from_lead(lead_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def create_project_from_lead(lead_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """
     Create a project from any lead (Nutzerkartei).
 
@@ -1150,6 +1156,7 @@ def create_project_from_lead(lead_id: int, background_tasks: BackgroundTasks, db
 async def scrape_project_website(
     project_id: int,
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Scrapt die Website des Projekts und extrahiert Branddesign-Daten."""
     import httpx, re, json
@@ -1248,6 +1255,7 @@ async def hosting_scan(
     project_id: int,
     force: bool = False,
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Scannt Hosting, DNS, WHOIS und WordPress-Erkennung für das Projekt.
     Cache: liefert gespeicherten Scan wenn < 12h alt (außer force=true).
@@ -1493,6 +1501,7 @@ def hosting_info(
 async def domain_check_project(
     project_id: int,
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Prüft DNS, WHOIS und SSL für die Website-URL des Projekts."""
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -1587,7 +1596,7 @@ async def domain_check_project(
 
 
 @router.post("/{project_id}/screenshot/before")
-async def screenshot_before(project_id: int, db: Session = Depends(get_db)):
+async def screenshot_before(project_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(404, "Projekt nicht gefunden")
@@ -1614,7 +1623,7 @@ async def screenshot_before(project_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{project_id}/screenshot/after")
-async def screenshot_after(project_id: int, db: Session = Depends(get_db)):
+async def screenshot_after(project_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(404, "Projekt nicht gefunden")
@@ -1641,7 +1650,7 @@ async def screenshot_after(project_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{project_id}/screenshots")
-def get_screenshots(project_id: int, db: Session = Depends(get_db)):
+def get_screenshots(project_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     row = db.execute(
         text(
             "SELECT screenshot_before, screenshot_after, screenshot_before_date, screenshot_after_date "
@@ -2445,6 +2454,7 @@ def version_preview(
     project_id: int,
     version_id: int,
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """HTML-Preview einer Version für iframe-Einbettung."""
     from fastapi.responses import HTMLResponse
@@ -2466,7 +2476,7 @@ def version_preview(
 # ── Scrape Website Content ─────────────────────────────────────────────────────
 
 @router.get("/{project_id}/scrape-content")
-def scrape_project_content(project_id: int, db: Session = Depends(get_db)):
+def scrape_project_content(project_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Fetch and parse the project's website, store clean text in scraped_content."""
     import requests
     from bs4 import BeautifulSoup
@@ -2526,7 +2536,7 @@ def scrape_project_content(project_id: int, db: Session = Depends(get_db)):
 # ── QA-Scanner Endpunkte ──────────────────────────────────────────────────────
 
 @router.post("/{project_id}/qa/run")
-async def run_project_qa(project_id: int, db: Session = Depends(get_db)):
+async def run_project_qa(project_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Führt vollständigen KI-QA-Scan durch und speichert Ergebnis."""
     from services.qa_scanner import run_full_qa, ai_evaluate_qa
     import json as _json
@@ -2573,7 +2583,7 @@ async def run_project_qa(project_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{project_id}/qa/result")
-def get_qa_result(project_id: int, db: Session = Depends(get_db)):
+def get_qa_result(project_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Gibt das zuletzt gespeicherte QA-Ergebnis zurück.
     Funktioniert egal ob qa_result als Text-JSON oder JSONB-Dict kommt.
     """

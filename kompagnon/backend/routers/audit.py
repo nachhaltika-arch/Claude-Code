@@ -20,7 +20,7 @@ from pydantic import BaseModel
 
 from database import AuditResult, Lead, User, get_db, SessionLocal
 from email_service import send_audit_done_email
-from routers.auth_router import optional_auth
+from routers.auth_router import optional_auth, require_any_auth, require_admin
 
 try:
     from anthropic import Anthropic
@@ -627,7 +627,7 @@ def get_recent_audits(
     limit: Optional[int] = 10,
     skip: Optional[int] = 0,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(optional_auth),
+    current_user: Optional[User] = Depends(require_any_auth),
 ):
     """Return the most recent completed audits, newest first."""
     query = db.query(AuditResult).filter(AuditResult.status == "completed")
@@ -662,6 +662,7 @@ async def start_audit(
     req: AuditRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
 ):
     """Create audit record, auto-scrape website, and run checks in background."""
     from services.url_validator import validate_url
@@ -725,7 +726,7 @@ async def start_audit(
 
 
 @router.get("/status/{audit_id}")
-def get_audit_status(audit_id: int, db: Session = Depends(get_db)):
+def get_audit_status(audit_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Poll audit status (pending / running / completed / failed)."""
     audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
     if not audit:
@@ -739,7 +740,7 @@ def get_audit_status(audit_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{audit_id}/pdf")
-def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
+def download_audit_pdf(audit_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Download audit result as PDF report."""
     try:
         audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
@@ -767,7 +768,7 @@ def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{audit_id}/angebot")
-def download_angebot_pdf(audit_id: int, db: Session = Depends(get_db)):
+def download_angebot_pdf(audit_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Angebots-PDF für ein abgeschlossenes Audit herunterladen."""
     try:
         audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
@@ -798,7 +799,7 @@ def download_angebot_pdf(audit_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{audit_id}")
-def get_audit(audit_id: int, db: Session = Depends(get_db)):
+def get_audit(audit_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Get a stored audit result."""
     try:
         audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
@@ -818,7 +819,7 @@ def get_audit(audit_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{audit_id}")
-def delete_audit(audit_id: int, db: Session = Depends(get_db)):
+def delete_audit(audit_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
     """Delete a single audit. Updates lead screenshot if needed."""
     audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
     if not audit:
@@ -839,7 +840,7 @@ def delete_audit(audit_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{audit_id}/link-lead")
-def link_audit_to_lead(audit_id: int, req: LinkLeadRequest, db: Session = Depends(get_db)):
+def link_audit_to_lead(audit_id: int, req: LinkLeadRequest, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Link an existing audit to a lead."""
     audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
     if not audit:
@@ -853,7 +854,7 @@ def link_audit_to_lead(audit_id: int, req: LinkLeadRequest, db: Session = Depend
 
 
 @router.get("/lead/{lead_id}")
-def get_audits_for_lead(lead_id: int, db: Session = Depends(get_db)):
+def get_audits_for_lead(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Get all audits for a specific lead."""
     audits = (
         db.query(AuditResult)

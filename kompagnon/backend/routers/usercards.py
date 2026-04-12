@@ -26,7 +26,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import AuditResult, Project, UserCard, User, get_db, SessionLocal
-from routers.auth_router import optional_auth
+from routers.auth_router import optional_auth, require_any_auth, require_admin
 
 router = APIRouter(prefix="/api/usercards", tags=["usercards"])
 
@@ -198,7 +198,7 @@ def list_usercards(
     skip: int = Query(0),
     limit: int = Query(200),
     db: Session = Depends(get_db),
-    current_user: User = Depends(optional_auth),
+    current_user: User = Depends(require_any_auth),
 ):
     """List all user cards, optionally filtered by status or legacy_type."""
     query = db.query(UserCard)
@@ -222,7 +222,7 @@ def list_usercards(
 
 
 @router.post("/")
-def create_usercard(data: UserCardCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def create_usercard(data: UserCardCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Create a new user card."""
     card = UserCard(
         company_name=data.company_name,
@@ -252,7 +252,7 @@ def create_usercard(data: UserCardCreate, background_tasks: BackgroundTasks, db:
 
 
 @router.get("/{card_id}/profile")
-def get_usercard_profile(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(optional_auth)):
+def get_usercard_profile(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_any_auth)):
     """Full card profile with audits, projects, and score history."""
     _check_kunde_access(card_id, current_user)
     card = _get_card_or_404(card_id, db)
@@ -319,7 +319,7 @@ def get_usercard_profile(card_id: int, db: Session = Depends(get_db), current_us
 
 
 @router.get("/{card_id}/audits")
-def get_usercard_audits(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(optional_auth)):
+def get_usercard_audits(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_any_auth)):
     """Get all completed audits for a card, newest first."""
     _check_kunde_access(card_id, current_user)
     _get_card_or_404(card_id, db)
@@ -333,7 +333,7 @@ def get_usercard_audits(card_id: int, db: Session = Depends(get_db), current_use
 
 
 @router.get("/{card_id}/pagespeed")
-def get_usercard_pagespeed(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(optional_auth)):
+def get_usercard_pagespeed(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_any_auth)):
     """Return stored PageSpeed values without a new API call."""
     _check_kunde_access(card_id, current_user)
     card = _get_card_or_404(card_id, db)
@@ -341,7 +341,7 @@ def get_usercard_pagespeed(card_id: int, db: Session = Depends(get_db), current_
 
 
 @router.post("/{card_id}/pagespeed")
-async def run_usercard_pagespeed(card_id: int, db: Session = Depends(get_db)):
+async def run_usercard_pagespeed(card_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Run Google PageSpeed Insights (mobile + desktop) and persist results."""
     card = _get_card_or_404(card_id, db)
     if not card.website_url:
@@ -394,7 +394,7 @@ async def run_usercard_pagespeed(card_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{card_id}")
-def get_usercard(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(optional_auth)):
+def get_usercard(card_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_any_auth)):
     """Get a single user card by ID."""
     _check_kunde_access(card_id, current_user)
     card = _get_card_or_404(card_id, db)
@@ -409,7 +409,7 @@ def get_usercard(card_id: int, db: Session = Depends(get_db), current_user: User
 
 @router.put("/{card_id}")
 @router.patch("/{card_id}")
-def update_usercard(card_id: int, data: UserCardUpdate, db: Session = Depends(get_db)):
+def update_usercard(card_id: int, data: UserCardUpdate, db: Session = Depends(get_db), _=Depends(require_any_auth)):
     """Update a user card (partial or full). Accepts both PUT and PATCH."""
     card = _get_card_or_404(card_id, db)
     for field, value in data.dict(exclude_none=True).items():
@@ -422,7 +422,7 @@ def update_usercard(card_id: int, data: UserCardUpdate, db: Session = Depends(ge
 
 
 @router.delete("/{card_id}")
-def delete_usercard(card_id: int, db: Session = Depends(get_db)):
+def delete_usercard(card_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
     """Delete a user card and all associated audit results."""
     card = _get_card_or_404(card_id, db)
     db.query(AuditResult).filter(AuditResult.lead_id == card_id).delete()

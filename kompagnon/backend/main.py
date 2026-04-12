@@ -1598,6 +1598,23 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+
+# ── Security-HTTP-Header ───────────────────────────────────
+# Setzt Defense-in-Depth Header auf jede API-Response.
+# Kein CSP hier — die API liefert JSON, kein HTML. CSP steht
+# auf den Netlify-Kunden-Seiten (Fix 07) und optional im
+# React-Frontend (public/_headers).
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"]        = "DENY"
+    response.headers["Referrer-Policy"]        = "strict-origin-when-cross-origin"
+    response.headers["X-XSS-Protection"]       = "1; mode=block"
+    response.headers["Permissions-Policy"]     = "camera=(), microphone=(), geolocation=()"
+    return response
+
+
 # Include all routers — specific routers BEFORE alias/fallback routers
 app.include_router(usercards_router)
 app.include_router(leads_router)                      # real leads router first

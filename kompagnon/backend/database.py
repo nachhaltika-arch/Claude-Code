@@ -126,6 +126,13 @@ class Lead(Base):
     sequence_paused    = Column(Boolean, default=False, nullable=True)
     sequence_last_sent = Column(DateTime, nullable=True)
 
+    # Onboarding (Kundenportal)
+    # WICHTIG: Spalten existieren in der DB (db_migrations v1), waren aber
+    # bislang nicht im ORM-Modell — dadurch wurde `lead.onboarding_completed = True`
+    # nie persistiert und Queries via Lead.onboarding_completed warfen AttributeError.
+    onboarding_completed    = Column(Boolean, default=False, nullable=True)
+    onboarding_completed_at = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

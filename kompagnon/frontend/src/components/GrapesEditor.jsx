@@ -51,6 +51,19 @@ export default function GrapesEditor({
     try {
       const html = editor?.getHtml?.() || '';
       const css  = editor?.getCss?.()  || '';
+
+      // Warnung bei Script-/iFrame-Inhalten — kein Block, nur Transparenz.
+      // Das Backend loggt zusaetzlich, und Netlify liefert die CSP-Header.
+      const hasScripts = /<script[\s>]/i.test(html);
+      const hasIframes = /<iframe[\s>]/i.test(html);
+      if (hasScripts || hasIframes) {
+        toast(
+          'Diese Seite enthaelt Script- oder iFrame-Inhalte. ' +
+          'Bitte sicherstellen dass nur vertrauenswuerdige Quellen eingebunden sind.',
+          { duration: 6000, icon: '⚠️' }
+        );
+      }
+
       await fetch(`${API_BASE_URL}${endpointBase}/${pageId}/editor`, {
         method: 'POST',
         headers,

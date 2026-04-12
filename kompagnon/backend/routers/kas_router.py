@@ -16,6 +16,7 @@ Endpunkte:
     POST   /api/kas/deploy             — Alle Seiten live deployen (Superadmin)
 """
 import logging
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -142,8 +143,24 @@ def save_editor_data(
     page_id: int,
     body: GjsDataBody,
     db: Session = Depends(get_db),
-    _=Depends(require_admin),
+    current_user=Depends(require_admin),
 ):
+    # Script-Inhalte erkennen und im Audit-Log festhalten.
+    has_scripts = bool(re.search(r'<script[\s>]', body.html or "", re.IGNORECASE))
+    has_iframes = bool(re.search(r'<iframe[\s>]', body.html or "", re.IGNORECASE))
+    has_event_handlers = bool(re.search(
+        r'\bon\w+\s*=', body.html or "", re.IGNORECASE
+    ))
+    if has_scripts or has_iframes or has_event_handlers:
+        logger.warning(
+            "KAS Script-Inhalt gespeichert | "
+            f"page_id={page_id} | "
+            f"user={getattr(current_user, 'email', 'unknown')} | "
+            f"scripts={has_scripts} | "
+            f"iframes={has_iframes} | "
+            f"event_handlers={has_event_handlers}"
+        )
+
     page = db.query(KasPage).filter(KasPage.id == page_id).first()
     if not page:
         raise HTTPException(404, "Seite nicht gefunden")

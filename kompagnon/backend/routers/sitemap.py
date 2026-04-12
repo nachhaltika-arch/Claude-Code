@@ -11,6 +11,7 @@ GET    /api/sitemap/{lead_id}/pdf       → PDF-Export
 import json
 import logging
 import os
+import re
 import unicodedata
 from datetime import datetime
 from io import BytesIO
@@ -297,8 +298,28 @@ def save_editor_data(
     page_id: int,
     body: GjsData,
     db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
+    current_user=Depends(require_any_auth),
 ):
+    # Script-Inhalte erkennen und im Audit-Log festhalten.
+    # Kein Sanitizing — Admins duerfen legitim <script>-Tags einbinden
+    # (z.B. Google Analytics). Transparenz + CSP-Header beim Deploy
+    # uebernehmen die Defense-in-Depth.
+    has_scripts = bool(re.search(r'<script[\s>]', body.html or "", re.IGNORECASE))
+    has_iframes = bool(re.search(r'<iframe[\s>]', body.html or "", re.IGNORECASE))
+    has_event_handlers = bool(re.search(
+        r'\bon\w+\s*=', body.html or "", re.IGNORECASE
+    ))
+
+    if has_scripts or has_iframes or has_event_handlers:
+        logger.warning(
+            "Script-Inhalt gespeichert | "
+            f"page_id={page_id} | "
+            f"user={getattr(current_user, 'email', 'unknown')} | "
+            f"scripts={has_scripts} | "
+            f"iframes={has_iframes} | "
+            f"event_handlers={has_event_handlers}"
+        )
+
     page = db.query(SitemapPage).filter(SitemapPage.id == page_id).first()
     if not page:
         raise HTTPException(status_code=404, detail="Seite nicht gefunden")

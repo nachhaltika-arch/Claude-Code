@@ -20,6 +20,32 @@ HEADERS       = {
 }
 
 
+# ── Security Headers fuer Netlify-Deployments ─────────────────────────────
+# Wird als _headers-Datei im Deploy-ZIP mitgeschickt und von Netlify auf
+# jede Response angewendet. Die CSP erlaubt legitime Drittanbieter
+# (Google Analytics, GTM, Facebook Pixel, Trustpilot, YouTube-Embed)
+# und blockiert alle anderen externen Script-Quellen.
+SECURITY_HEADERS = (
+    "/*\n"
+    "  X-Frame-Options: SAMEORIGIN\n"
+    "  X-Content-Type-Options: nosniff\n"
+    "  Referrer-Policy: strict-origin-when-cross-origin\n"
+    "  Permissions-Policy: camera=(), microphone=(), geolocation=()\n"
+    "  Content-Security-Policy: "
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' "
+    "https://www.googletagmanager.com "
+    "https://www.google-analytics.com "
+    "https://connect.facebook.net "
+    "https://widget.trustpilot.com; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' https://fonts.gstatic.com; "
+    "img-src 'self' data: https:; "
+    "frame-src 'self' https://www.google.com https://www.youtube.com; "
+    "connect-src 'self' https://www.google-analytics.com"
+)
+
+
 def _slug(name: str) -> str:
     """Firmenname → netlify-kompatibler Site-Slug (lowercase, a-z 0-9 -)"""
     s = name.lower().strip()
@@ -70,13 +96,11 @@ async def deploy_html(
 ) -> dict:
     """
     Deployt HTML (+ optionales CSS / Redirects) als ZIP auf eine Netlify-Site.
-    Rückgabe: { deploy_id, deploy_url, state }
+    Rückgabe: { deploy_id, deploy_url, state[, security_notice] }
     """
-    default_headers = (
-        "/*\n"
-        "  X-Frame-Options: DENY\n"
-        "  X-Content-Type-Options: nosniff"
-    )
+    # Script-/iFrame-Inhalte im Deploy dokumentieren
+    script_count = len(re.findall(r'<script[\s>]', html or "", re.IGNORECASE))
+    iframe_count = len(re.findall(r'<iframe[\s>]', html or "", re.IGNORECASE))
 
     # ZIP im Speicher aufbauen
     buf = io.BytesIO()
@@ -107,7 +131,7 @@ async def deploy_html(
             "_redirects",
             redirects if redirects else "/*  /index.html  200",
         )
-        zf.writestr("_headers", default_headers)
+        zf.writestr("_headers", SECURITY_HEADERS)
     zip_bytes = buf.getvalue()
 
     deploy_headers = {
@@ -130,11 +154,23 @@ async def deploy_html(
         raise Exception(f"Netlify Deploy Fehler ({resp.status_code}): {detail}")
 
     data = resp.json()
-    return {
+    result = {
         "deploy_id":  data["id"],
         "deploy_url": data.get("deploy_ssl_url") or data.get("deploy_url") or "",
         "state":      data.get("state", "unknown"),
     }
+
+    if script_count or iframe_count:
+        result["security_notice"] = (
+            f"Deploy enthaelt {script_count} Script(s) und "
+            f"{iframe_count} iFrame(s). CSP-Header aktiv."
+        )
+        logger.warning(
+            f"Deploy mit Script-Inhalt: site={site_id} | "
+            f"scripts={script_count} | iframes={iframe_count}"
+        )
+
+    return result
 
 
 async def deploy_all_pages(
@@ -156,13 +192,15 @@ async def deploy_all_pages(
                 verlinkt wenn vorhanden)
     company_name: Fallback fuer Meta-Tags
 
-    Rueckgabe: { deploy_id, deploy_url, state }
+    Rueckgabe: { deploy_id, deploy_url, state[, security_notice] }
     """
-    default_headers = (
-        "/*\n"
-        "  X-Frame-Options: DENY\n"
-        "  X-Content-Type-Options: nosniff"
-    )
+    # Script-/iFrame-Inhalte ueber ALLE Seiten zaehlen
+    script_count = 0
+    iframe_count = 0
+    for _pf in page_files.values():
+        _html = _pf.get("html", "") or ""
+        script_count += len(re.findall(r'<script[\s>]', _html, re.IGNORECASE))
+        iframe_count += len(re.findall(r'<iframe[\s>]', _html, re.IGNORECASE))
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
@@ -194,7 +232,7 @@ async def deploy_all_pages(
 
         # Keine SPA-Redirect-Regel — echte Dateien fuer echte Pfade
         zf.writestr("_redirects", "")
-        zf.writestr("_headers", default_headers)
+        zf.writestr("_headers", SECURITY_HEADERS)
 
     zip_bytes = buf.getvalue()
 
@@ -218,11 +256,23 @@ async def deploy_all_pages(
         raise Exception(f"Netlify Multi-Page Deploy Fehler ({resp.status_code}): {detail}")
 
     data = resp.json()
-    return {
+    result = {
         "deploy_id":  data["id"],
         "deploy_url": data.get("deploy_ssl_url") or data.get("deploy_url") or "",
         "state":      data.get("state", "unknown"),
     }
+
+    if script_count or iframe_count:
+        result["security_notice"] = (
+            f"Deploy enthaelt {script_count} Script(s) und "
+            f"{iframe_count} iFrame(s). CSP-Header aktiv."
+        )
+        logger.warning(
+            f"Multi-page deploy mit Script-Inhalt: site={site_id} | "
+            f"pages={len(page_files)} | scripts={script_count} | iframes={iframe_count}"
+        )
+
+    return result
 
 
 async def set_custom_domain(site_id: str, domain: str) -> dict:

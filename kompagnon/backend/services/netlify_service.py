@@ -137,6 +137,94 @@ async def deploy_html(
     }
 
 
+async def deploy_all_pages(
+    site_id: str,
+    page_files: dict,
+    shared_css: str = "",
+    company_name: str = "Website",
+) -> dict:
+    """
+    Deployt mehrere Seiten als ZIP auf Netlify (Multi-Page Deploy).
+
+    page_files: dict mapping filename -> { html, css, page_title, meta_desc }
+        Beispiel:
+            {
+                "index.html":           { html, css, page_title, meta_desc },
+                "leistungen/index.html": { html, css, page_title, meta_desc },
+            }
+    shared_css: optional — zusammengefuehrtes CSS aller Seiten (wird als /style.css
+                verlinkt wenn vorhanden)
+    company_name: Fallback fuer Meta-Tags
+
+    Rueckgabe: { deploy_id, deploy_url, state }
+    """
+    default_headers = (
+        "/*\n"
+        "  X-Frame-Options: DENY\n"
+        "  X-Content-Type-Options: nosniff"
+    )
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+
+        for filename, page in page_files.items():
+            page_title = page.get("page_title") or company_name
+            og_desc    = page.get("meta_desc") or f"Offizielle Website von {company_name}"
+            css_link   = '<link rel="stylesheet" href="/style.css">' if shared_css else ''
+            full_html  = f"""<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{page_title}</title>
+  <meta name="description" content="{og_desc}">
+  <meta property="og:title" content="{page_title}">
+  <meta property="og:description" content="{og_desc}">
+  <meta property="og:type" content="website">
+  {css_link}
+</head>
+<body>
+{page.get('html', '')}
+</body>
+</html>"""
+            zf.writestr(filename, full_html)
+
+        if shared_css:
+            zf.writestr("style.css", shared_css)
+
+        # Keine SPA-Redirect-Regel — echte Dateien fuer echte Pfade
+        zf.writestr("_redirects", "")
+        zf.writestr("_headers", default_headers)
+
+    zip_bytes = buf.getvalue()
+
+    deploy_headers = {
+        "Authorization": f"Bearer {NETLIFY_TOKEN}",
+        "Content-Type":  "application/zip",
+    }
+
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        resp = await client.post(
+            f"{NETLIFY_API}/sites/{site_id}/deploys",
+            headers=deploy_headers,
+            content=zip_bytes,
+        )
+
+    if not resp.is_success:
+        try:
+            detail = resp.json().get("message", resp.text)
+        except Exception:
+            detail = resp.text
+        raise Exception(f"Netlify Multi-Page Deploy Fehler ({resp.status_code}): {detail}")
+
+    data = resp.json()
+    return {
+        "deploy_id":  data["id"],
+        "deploy_url": data.get("deploy_ssl_url") or data.get("deploy_url") or "",
+        "state":      data.get("state", "unknown"),
+    }
+
+
 async def set_custom_domain(site_id: str, domain: str) -> dict:
     """
     Setzt eine Custom-Domain auf der Netlify-Site.

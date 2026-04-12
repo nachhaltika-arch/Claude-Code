@@ -1767,123 +1767,118 @@ async def netlify_deploy(
     }
 
 
-@router.post("/{project_id}/netlify/deploy-all-pages")
-async def netlify_deploy_all_pages(
+def _slugify_page_name(name: str) -> str:
+    """URL-safe slug for sitemap page names (used by Multi-Page Deploy)."""
+    import re
+    s = (name or "").lower()
+    s = s.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+    return s or "seite"
+
+
+@router.post("/{project_id}/netlify/deploy-all")
+async def netlify_deploy_all(
     project_id: int,
     db: Session = Depends(get_db),
     _: object = Depends(require_admin),
 ):
     """
-    Deployt alle gespeicherten Seiten des Projekts als Multi-Page-Site auf Netlify.
-    Jede Seite bekommt ihren eigenen Pfad (z.B. /leistungen/index.html).
-    """
-    import io
-    import re
-    import zipfile
+    Deployt alle gespeicherten GrapesJS-Seiten eines Projekts auf Netlify.
+    Jede Seite wird als eigene HTML-Datei abgelegt (Pfad = Ordner).
 
+    Startseite (position=0 oder Name Startseite/Home) → /index.html
+    Andere Seiten → /{slug}/index.html
+    """
     row = db.execute(
-        text("SELECT netlify_site_id, lead_id FROM projects WHERE id = :id"),
+        text(
+            "SELECT p.netlify_site_id, p.lead_id, COALESCE(l.company_name, '') "
+            "FROM projects p LEFT JOIN leads l ON l.id = p.lead_id "
+            "WHERE p.id = :id"
+        ),
         {"id": project_id},
     ).fetchone()
     if not row or not row[0]:
         raise HTTPException(400, "Keine Netlify-Site vorhanden. Zuerst Site anlegen.")
     if not row[1]:
-        raise HTTPException(400, "Kein Lead verknüpft")
+        raise HTTPException(400, "Kein Lead verknuepft")
 
-    site_id = row[0]
-    lead_id = row[1]
+    site_id      = row[0]
+    lead_id      = row[1]
+    company_name = row[2] or "Website"
 
     pages = db.execute(
         text("""
-            SELECT page_name, gjs_html, gjs_css, position
+            SELECT page_name, gjs_html, gjs_css, zweck, position, ist_pflichtseite
             FROM sitemap_pages
-            WHERE lead_id = :lid AND gjs_html IS NOT NULL AND gjs_html != ''
-            ORDER BY position
+            WHERE lead_id = :lid
+            ORDER BY position, id
         """),
         {"lid": lead_id},
     ).fetchall()
 
     if not pages:
-        raise HTTPException(400, "Keine Seiten mit Inhalt. Bitte zuerst Seiten im Editor speichern.")
+        raise HTTPException(400, "Keine Seiten in der Sitemap gefunden.")
+
+    # ── Seiten-Dateien zusammenstellen ────────────────────────────────────
+    page_files: dict = {}
+    css_parts: list = []
+    used_slugs: dict = {}
+
+    for page in pages:
+        page_name, gjs_html, gjs_css, zweck, position, ist_pflichtseite = page
+        html = gjs_html or "<p>Diese Seite hat noch keinen Inhalt.</p>"
+        css  = gjs_css or ""
+        if css:
+            css_parts.append(css)
+
+        slug = _slugify_page_name(page_name)
+        if slug in used_slugs:
+            used_slugs[slug] += 1
+            slug = f"{slug}-{used_slugs[slug]}"
+        else:
+            used_slugs[slug] = 0
+
+        is_home = (position == 0) or slug in ("startseite", "home", "index")
+        filename = "index.html" if is_home else f"{slug}/index.html"
+
+        page_files[filename] = {
+            "html":       html,
+            "css":        css,
+            "page_title": f"{page_name} — {company_name}" if not is_home else company_name,
+            "meta_desc":  zweck or f"{page_name} — {company_name}",
+        }
+
+    # Deduplicate CSS (gemeinsame Styles)
+    shared_css = "\n".join(dict.fromkeys(css_parts))
 
     # DB-Verbindung vor externem API-Call freigeben
     db.close()
 
-    def slugify(name):
-        s = name.lower()
-        s = s.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
-        s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
-        return s or "seite"
+    from services.netlify_service import deploy_all_pages
+    try:
+        result = await deploy_all_pages(site_id, page_files, shared_css, company_name)
+    except Exception as e:
+        raise HTTPException(500, f"Netlify Deploy Fehler: {str(e)[:200]}")
 
-    def build_html(name, html, css):
-        return (
-            f"<!DOCTYPE html><html lang=\"de\"><head><meta charset=\"UTF-8\">"
-            f"<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">"
-            f"<title>{name}</title><style>{css}</style></head>"
-            f"<body>{html}</body></html>"
-        )
-
-    buf = io.BytesIO()
-    used_slugs = {}
-    redirects_lines = []
-
-    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for page in pages:
-            slug = slugify(page.page_name)
-            if slug in used_slugs:
-                used_slugs[slug] += 1
-                slug = f"{slug}-{used_slugs[slug]}"
-            else:
-                used_slugs[slug] = 0
-
-            html_content = build_html(page.page_name, page.gjs_html or "", page.gjs_css or "")
-
-            is_home = page.position == 0 or slug in ("startseite", "home", "index")
-            if is_home:
-                zf.writestr("index.html", html_content)
-            else:
-                zf.writestr(f"{slug}/index.html", html_content)
-                redirects_lines.append(f"/{slug}  /{slug}/index.html  200")
-
-        redirects_lines.append("/*  /index.html  200")
-        zf.writestr("_redirects", "\n".join(redirects_lines))
-        zf.writestr("_headers", "/*\n  X-Frame-Options: DENY\n  X-Content-Type-Options: nosniff")
-
-    zip_bytes = buf.getvalue()
-
-    deploy_headers = {
-        "Authorization": f"Bearer {os.getenv('NETLIFY_API_TOKEN', '')}",
-        "Content-Type": "application/zip",
-    }
-
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        resp = await client.post(
-            f"https://api.netlify.com/api/v1/sites/{site_id}/deploys",
-            headers=deploy_headers,
-            content=zip_bytes,
-        )
-
-    if not resp.is_success:
-        raise HTTPException(500, f"Netlify Deploy Fehler: {resp.text[:200]}")
-
-    data = resp.json()
-    deploy_url = data.get("deploy_ssl_url") or data.get("deploy_url") or ""
-
+    # Deploy-Info speichern
     db2 = SessionLocal()
     try:
         db2.execute(
-            text("UPDATE projects SET netlify_deploy_id = :did, netlify_last_deploy = :ts WHERE id = :id"),
-            {"did": data["id"], "ts": datetime.utcnow(), "id": project_id},
+            text(
+                "UPDATE projects SET netlify_deploy_id = :did, netlify_last_deploy = :ts "
+                "WHERE id = :id"
+            ),
+            {"did": result["deploy_id"], "ts": datetime.utcnow(), "id": project_id},
         )
         db2.commit()
     finally:
         db2.close()
 
     return {
-        "deploy_id": data["id"],
-        "deploy_url": deploy_url,
-        "pages_count": len(pages),
-        "state": data.get("state", "unknown"),
+        "deploy_id":      result["deploy_id"],
+        "deploy_url":     result["deploy_url"],
+        "state":          result["state"],
+        "pages_deployed": list(page_files.keys()),
     }
 
 

@@ -1327,6 +1327,41 @@ function NetlifyEmbed({ project, headers }) {
         </div>
       )}
 
+      {/* 3b: Multi-Page Deploy — alle Sitemap-Seiten auf einmal */}
+      {status?.site_id && (
+        <div style={cardStyle}>
+          <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>3b. Alle Seiten deployen</div>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+            Deployt alle Seiten aus dem Seitenmanager auf einmal — jede Seite als eigene URL.
+            Voraussetzung: Seiten im GrapesJS-Editor gespeichert.
+          </div>
+          <button onClick={async () => {
+            setDeploying(true); setError('');
+            try {
+              const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/deploy-all`, { method:'POST', headers });
+              if (!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || `HTTP ${r.status}`);
+              const d = await r.json();
+              setDeployResult(d);
+            } catch (e) { setError(e.message); } finally { setDeploying(false); }
+          }} disabled={deploying} style={{
+            padding: '10px 18px', borderRadius: 8, border: 'none',
+            background: deploying ? '#94a3b8' : '#7c3aed',
+            color: '#fff', fontSize: 13, fontWeight: 700,
+            cursor: deploying ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-sans)',
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+          }}>
+            {deploying ? (<><span style={{ width:12, height:12, border:'2px solid rgba(255,255,255,.3)', borderTopColor:'#fff', borderRadius:'50%', animation:'spin .8s linear infinite', display:'inline-block' }} />Deploy laeuft...</>) : 'Alle Seiten deployen'}
+          </button>
+          {deployResult?.pages_deployed && (
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+              <strong>{deployResult.pages_deployed.length} Seiten deployed:</strong>{' '}
+              {deployResult.pages_deployed.join(' · ')}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 4: Domain */}
       {status?.site_id && (
         <div style={cardStyle}>

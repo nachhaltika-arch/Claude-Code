@@ -237,7 +237,90 @@ export default function LeadProfile() {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); loadAssignedTemplate(); }, [leadId]); // eslint-disable-line
+  // Perf-Fix 03: ein einziger /full-Request statt 5 parallele Loads.
+  // Reduziert CORS-Preflights von ~10 auf 2 beim Oeffnen eines Lead-Profils.
+  useEffect(() => { loadAll(); }, [leadId]); // eslint-disable-line
+
+  // Laedt alle Lead-Profile-Daten in einem einzigen Request.
+  // Falls /full fehlschlaegt (z.B. alter Backend-Build), fallback
+  // auf die Einzel-Loader damit die Seite nicht komplett leer bleibt.
+  const loadAll = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/full`, { headers: h });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      // 1) Profile
+      if (data.profile) {
+        setProfile(data.profile);
+        const lead = data.profile.lead;
+        if (lead) {
+          setDisplayName(lead.display_name || lead.company_name || '');
+          setEditData({
+            company_name: lead.company_name || '',
+            display_name: lead.display_name || '',
+            contact_name: lead.contact_name || '',
+            phone: lead.phone || '',
+            mobile: lead.mobile || '',
+            email: lead.email || '',
+            website_url: lead.website_url || '',
+            street: lead.street || '',
+            house_number: lead.house_number || '',
+            postal_code: lead.postal_code || '',
+            city: lead.city || '',
+            trade: lead.trade || '',
+            wz_code: lead.wz_code || '',
+            wz_title: lead.wz_title || '',
+            legal_form: lead.legal_form || '',
+            vat_id: lead.vat_id || '',
+            register_number: lead.register_number || '',
+            register_court: lead.register_court || '',
+            ceo_first_name: lead.ceo_first_name || '',
+            ceo_last_name: lead.ceo_last_name || '',
+            notes: lead.notes || '',
+          });
+          if (!lead.website_screenshot) fetchLatestScreenshot();
+        }
+        setProjectId(data.profile.project_id || null);
+        if (data.profile.project_id) {
+          // Projekt-Details sind nicht in /full gebuendelt (Scope)
+          fetch(`${API_BASE_URL}/api/projects/${data.profile.project_id}`, { headers: h })
+            .then(r => r.ok ? r.json() : null)
+            .then(p => { if (p) setProjectData(p); })
+            .catch(() => {});
+        }
+      }
+
+      // 2) Domains
+      setDomains(Array.isArray(data.domains) ? data.domains : []);
+
+      // 3) Briefing
+      if (data.briefing) {
+        setBriefingData(data.briefing);
+      }
+
+      // 4) Assigned Template
+      setAssignedTemplate(data.assigned_template || null);
+
+      // 5) QR-Code
+      if (data.qr_code) {
+        setQrData(data.qr_code);
+      }
+    } catch (e) {
+      console.error('loadAll fehlgeschlagen, fallback auf Einzel-Loader:', e);
+      // Fallback — altes Verhalten
+      loadProfile();
+      loadQrCode();
+      loadDomains();
+      loadBriefing();
+      loadAssignedTemplate();
+    } finally {
+      setLoading(false);
+      setTemplateLoading(false);
+      setQrLoading(false);
+      setBriefingLoading(false);
+    }
+  };
 
   const loadMessages = async () => {
     setMsgLoading(true);

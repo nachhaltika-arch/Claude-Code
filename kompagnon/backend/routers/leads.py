@@ -1409,10 +1409,12 @@ async def create_screenshot(lead_id: int, db: Session = Depends(get_db), _=Depen
         raise HTTPException(500, f"Screenshot Fehler: {str(e)}")
 
 
-@router.get("/{lead_id}/profile")
-def get_lead_profile(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
+def _build_lead_profile_data(lead_id: int, db: Session) -> dict:
     """
-    Full lead profile with audits, projects, and score history.
+    Helper — baut das Lead-Profil-Dict.
+
+    Wird sowohl von `/api/leads/{id}/profile` als auch vom Aggregations-
+    Endpunkt `/api/leads/{id}/full` aufgerufen.
 
     Perf-optimiert (Fix Performance 02):
       - 1 Query fuer Lead + latest-audit + latest-project via LATERAL JOINs
@@ -1588,6 +1590,127 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db), _=Depends(requ
         "audits":        [_row_to_audit_dict(a) for a in audit_rows],
         "projects":      projects_list,
         "project_id":    row.latest_project_id,
+    }
+
+
+@router.get("/{lead_id}/profile")
+def get_lead_profile(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
+    """Full lead profile — Thin-Wrapper um _build_lead_profile_data()."""
+    return _build_lead_profile_data(lead_id, db)
+
+
+@router.get("/{lead_id}/full")
+def get_lead_full(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
+    """
+    Aggregations-Endpunkt — liefert alle LeadProfile-Daten in einem Request.
+
+    Ersetzt die bisherigen 5 Einzel-Requests:
+      GET /api/leads/{id}/profile
+      GET /api/leads/{id}/domains
+      GET /api/leads/{id}/qr-code
+      GET /api/briefings/{id}
+      GET /api/templates/lead/{id}
+
+    Damit reduziert sich die Zahl der CORS-Preflights beim Oeffnen eines
+    Lead-Profils von ~10 auf 2 (ein OPTIONS + ein GET).
+    """
+    # 1) Profile (inkl. Lead, Audits, latest project)
+    profile = _build_lead_profile_data(lead_id, db)
+
+    # 2) Domains (raw SQL, kleine Tabelle)
+    domain_rows = db.execute(
+        text("""
+            SELECT id, url, label, is_primary
+            FROM lead_domains
+            WHERE lead_id = :lid
+            ORDER BY is_primary DESC, id ASC
+        """),
+        {"lid": lead_id},
+    ).fetchall()
+    domains = [
+        {
+            "id": d.id,
+            "url": d.url,
+            "label": d.label or "",
+            "is_primary": bool(d.is_primary),
+        }
+        for d in domain_rows
+    ]
+
+    # 3) Briefing (raw SQL, auto-create wenn nicht vorhanden)
+    briefing_row = db.execute(
+        text("SELECT * FROM briefings WHERE lead_id = :lid LIMIT 1"),
+        {"lid": lead_id},
+    ).fetchone()
+    briefing = None
+    if briefing_row:
+        briefing = dict(briefing_row._mapping)
+        # JSON-Felder dekodieren, damit der Client sie nicht doppelt parsen muss
+        for key in (
+            "projektrahmen", "positionierung", "zielgruppe", "wettbewerb",
+            "inhalte", "funktionen", "branding", "struktur", "hosting",
+            "seo", "projektplan", "freigaben",
+        ):
+            val = briefing.get(key)
+            if isinstance(val, str) and val:
+                try:
+                    briefing[key] = json.loads(val)
+                except (json.JSONDecodeError, TypeError):
+                    briefing[key] = {}
+            elif val is None:
+                briefing[key] = {}
+        # Datumswerte als ISO-Strings serialisieren
+        for key in ("created_at", "updated_at"):
+            val = briefing.get(key)
+            if val is not None and not isinstance(val, str):
+                briefing[key] = str(val)[:16]
+
+    # 4) Assigned Template (best-effort — die Tabelle hat kein template_id auf
+    #    leads in allen Deployments, daher abgesichert)
+    assigned_template = None
+    try:
+        tpl_row = db.execute(
+            text("""
+                SELECT wt.id, wt.name, wt.description, wt.category
+                FROM website_templates wt
+                JOIN leads l ON l.template_id = wt.id
+                WHERE l.id = :lid
+            """),
+            {"lid": lead_id},
+        ).fetchone()
+        if tpl_row:
+            assigned_template = dict(tpl_row._mapping)
+    except Exception:
+        # Spalte `leads.template_id` existiert evtl. nicht in diesem Deploy
+        assigned_template = None
+
+    # 5) QR-Code — erstellt bei Bedarf einen Token, rendert QR erst bei
+    #    Klick auf /qr-code/refresh. Hier liefern wir nur die bereits
+    #    existierenden Daten aus der DB, damit /full schnell bleibt.
+    qr_data = None
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if lead and lead.customer_token:
+        try:
+            from services.qr_service import get_portal_url, generate_qr_code
+            portal_url = get_portal_url(lead.customer_token)
+            qr_data = {
+                "token": lead.customer_token,
+                "portal_url": portal_url,
+                "qr_code_base64": generate_qr_code(portal_url),
+                "created_at": (
+                    str(lead.customer_token_created_at)[:10]
+                    if lead.customer_token_created_at else ""
+                ),
+            }
+        except Exception as e:
+            logger.warning(f"QR-Generation fuer Lead {lead_id} fehlgeschlagen: {e}")
+
+    return {
+        "profile": profile,
+        "domains": domains,
+        "briefing": briefing,
+        "assigned_template": assigned_template,
+        "qr_code": qr_data,
     }
 
 

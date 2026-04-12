@@ -994,10 +994,16 @@ MIGRATIONS = [
     (1, "legacy_baseline", _LEGACY_BASELINE),
 
     # ── Neue Migrationen ab hier ──
-    # Beispiel:
-    # (2, "add_foo_column", [
-    #     "ALTER TABLE leads ADD COLUMN IF NOT EXISTS foo VARCHAR DEFAULT ''",
-    # ]),
+    (2, "add_profile_indexes", [
+        # Audit-Abfragen nach lead_id + status + Datum (fuer /api/leads/{id}/profile):
+        "CREATE INDEX IF NOT EXISTS idx_audit_lead_status_date ON audit_results(lead_id, status, created_at DESC)",
+        # Projekt-Abfragen nach lead_id + Datum (fuer LATERAL-JOIN auf letztes Projekt):
+        "CREATE INDEX IF NOT EXISTS idx_projects_lead_created ON projects(lead_id, created_at DESC)",
+        # Lead-Suche nach Status (fuer Listen-Filter):
+        "CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)",
+        # Lead-Suche nach lead_source (fuer Kampagnen-/Herkunfts-Filter):
+        "CREATE INDEX IF NOT EXISTS idx_leads_source ON leads(lead_source)",
+    ]),
 ]
 
 

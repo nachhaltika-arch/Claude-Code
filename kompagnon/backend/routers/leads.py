@@ -1411,54 +1411,101 @@ async def create_screenshot(lead_id: int, db: Session = Depends(get_db), _=Depen
 
 @router.get("/{lead_id}/profile")
 def get_lead_profile(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
-    """Full lead profile with audits, projects, and score history."""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
+    """
+    Full lead profile with audits, projects, and score history.
+
+    Perf-optimiert (Fix Performance 02):
+      - 1 Query fuer Lead + latest-audit + latest-project via LATERAL JOINs
+      - 1 Query fuer die gesamte Audit-Historie (nur relevante Spalten)
+      - Keine ORM-Objekte — direktes Tuple-Mapping via text()
+      - Alle abhaengigen Indizes in db_migrations v2
+    """
+    # ── Query 1: Lead + letzter Audit + letztes Projekt ───────────────
+    row = db.execute(text("""
+        SELECT
+            l.id, l.company_name, l.contact_name, l.phone, l.mobile, l.email,
+            l.website_url, l.city, l.trade, l.status, l.lead_source, l.notes,
+            l.created_at,
+            l.street, l.house_number, l.postal_code,
+            l.legal_form, l.vat_id, l.register_number, l.register_court,
+            l.ceo_first_name, l.ceo_last_name, l.geschaeftsfuehrer, l.display_name,
+            l.website_screenshot,
+            l.sequence_active, l.sequence_paused, l.sequence_step, l.sequence_last_sent,
+            -- Latest project via LATERAL (nur eine Zeile ganz rechts)
+            p.id            AS latest_project_id,
+            p.status        AS latest_project_status,
+            p.start_date    AS latest_project_start_date,
+            p.target_go_live AS latest_project_target,
+            p.margin_percent AS latest_project_margin
+        FROM leads l
+        LEFT JOIN LATERAL (
+            SELECT id, status, start_date, target_go_live, margin_percent
+            FROM projects
+            WHERE lead_id = l.id
+            ORDER BY created_at DESC
+            LIMIT 1
+        ) p ON TRUE
+        WHERE l.id = :lid
+    """), {"lid": lead_id}).fetchone()
+
+    if not row:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
-    audits = (
-        db.query(AuditResult)
-        .filter(AuditResult.lead_id == lead_id)
-        .order_by(AuditResult.created_at.desc())
-        .all()
-    )
+    # ── Query 2: Alle Audits fuer Historie + Liste ────────────────────
+    # Nur die Spalten, die _audit_dict tatsaechlich liest.
+    audit_rows = db.execute(text("""
+        SELECT
+            id, created_at, total_score, level, status,
+            website_url, company_name, trade, city, ai_summary,
+            ssl_ok, mobile_score, lcp_value, cls_value, inp_value,
+            rc_score, tp_score, bf_score, si_score, se_score, ux_score,
+            rc_impressum, rc_datenschutz, rc_cookie, rc_bfsg, rc_urheberrecht, rc_ecommerce,
+            tp_lcp, tp_cls, tp_inp, tp_mobile, tp_bilder,
+            ho_anbieter, ho_uptime, ho_http, ho_backup, ho_cdn,
+            bf_kontrast, bf_tastatur, bf_screenreader, bf_lesbarkeit,
+            si_ssl, si_header, si_drittanbieter, si_formulare,
+            se_seo, se_schema, se_lokal,
+            ux_erstindruck, ux_cta, ux_navigation, ux_vertrauen, ux_content, ux_kontakt,
+            llms_txt, robots_ai_friendly, structured_data, ai_mentions,
+            top_issues, recommendations
+        FROM audit_results
+        WHERE lead_id = :lid
+        ORDER BY created_at DESC
+    """), {"lid": lead_id}).fetchall()
 
-    projects = db.query(Project).filter(Project.lead_id == lead_id).all()
-
-    latest_audit = audits[0] if audits else None
-
+    # ── Score-History (aelteste → neueste) ─────────────────────────────
     score_history = [
         {
-            "date": a.created_at.strftime("%d.%m.%Y") if a.created_at else "",
+            "date":  a.created_at.strftime("%d.%m.%Y") if a.created_at else "",
             "score": a.total_score,
             "level": a.level,
         }
-        for a in reversed(audits)
+        for a in reversed(audit_rows)
     ]
 
-    def _audit_dict(a):
+    # ── Audit-Dict-Serializer (nimmt Row statt ORM) ───────────────────
+    def _row_to_audit_dict(a):
         d = {
-            "id": a.id,
-            "created_at": a.created_at.strftime("%d.%m.%Y %H:%M") if a.created_at else "",
-            "total_score": a.total_score,
-            "level": a.level,
-            "status": a.status,
-            "website_url": a.website_url,
+            "id":           a.id,
+            "created_at":   a.created_at.strftime("%d.%m.%Y %H:%M") if a.created_at else "",
+            "total_score":  a.total_score,
+            "level":        a.level,
+            "status":       a.status,
+            "website_url":  a.website_url,
             "company_name": a.company_name,
-            "trade": a.trade,
-            "city": a.city,
-            "ai_summary": a.ai_summary,
-            "ssl_ok": a.ssl_ok,
+            "trade":        a.trade,
+            "city":         a.city,
+            "ai_summary":   a.ai_summary,
+            "ssl_ok":       a.ssl_ok,
             "mobile_score": a.mobile_score,
-            "lcp_value": a.lcp_value,
-            "cls_value": a.cls_value,
-            "inp_value": a.inp_value,
-            "rc_score": a.rc_score, "tp_score": a.tp_score,
-            "bf_score": a.bf_score, "si_score": a.si_score,
-            "se_score": a.se_score, "ux_score": a.ux_score,
+            "lcp_value":    a.lcp_value,
+            "cls_value":    a.cls_value,
+            "inp_value":    a.inp_value,
+            "rc_score":     a.rc_score, "tp_score": a.tp_score,
+            "bf_score":     a.bf_score, "si_score": a.si_score,
+            "se_score":     a.se_score, "ux_score": a.ux_score,
         }
-        # Item-level scores
-        for key in [
+        for key in (
             "rc_impressum", "rc_datenschutz", "rc_cookie", "rc_bfsg", "rc_urheberrecht", "rc_ecommerce",
             "tp_lcp", "tp_cls", "tp_inp", "tp_mobile", "tp_bilder",
             "ho_anbieter", "ho_uptime", "ho_http", "ho_backup", "ho_cdn",
@@ -1466,14 +1513,12 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db), _=Depends(requ
             "si_ssl", "si_header", "si_drittanbieter", "si_formulare",
             "se_seo", "se_schema", "se_lokal",
             "ux_erstindruck", "ux_cta", "ux_navigation", "ux_vertrauen", "ux_content", "ux_kontakt",
-        ]:
+        ):
             d[key] = getattr(a, key, 0) or 0
-        # GEO / KI-Sichtbarkeit fields
-        d["llms_txt"] = getattr(a, "llms_txt", False) or False
+        d["llms_txt"]           = getattr(a, "llms_txt", False) or False
         d["robots_ai_friendly"] = getattr(a, "robots_ai_friendly", False) or False
-        d["structured_data"] = getattr(a, "structured_data", False) or False
-        d["ai_mentions"] = getattr(a, "ai_mentions", 0) or 0
-        # JSON fields
+        d["structured_data"]    = getattr(a, "structured_data", False) or False
+        d["ai_mentions"]        = getattr(a, "ai_mentions", 0) or 0
         try:
             d["top_issues"] = json.loads(a.top_issues) if a.top_issues else []
         except (json.JSONDecodeError, TypeError):
@@ -1484,50 +1529,65 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db), _=Depends(requ
             d["recommendations"] = []
         return d
 
+    latest_audit = audit_rows[0] if audit_rows else None
+
+    # ── Projekte-Liste (nur das neueste, fuer Rueckwaerts-Kompat) ─────
+    projects_list = []
+    if row.latest_project_id is not None:
+        projects_list.append({
+            "id":             row.latest_project_id,
+            "status":         row.latest_project_status,
+            "start_date":     row.latest_project_start_date.strftime("%d.%m.%Y") if row.latest_project_start_date else "",
+            "target_go_live": row.latest_project_target.strftime("%d.%m.%Y") if row.latest_project_target else "",
+            "margin_percent": row.latest_project_margin,
+        })
+
     return {
         "lead": {
-            "id": lead.id,
-            "company_name": lead.company_name,
-            "contact_name": lead.contact_name,
-            "phone": lead.phone,
-            "mobile": getattr(lead, 'mobile', '') or '',
-            "email": lead.email,
-            "website_url": lead.website_url,
-            "city": lead.city,
-            "trade": lead.trade,
-            "status": lead.status,
-            "lead_source": lead.lead_source,
-            "notes": lead.notes,
-            "created_at": lead.created_at.strftime("%d.%m.%Y") if lead.created_at else "",
-            "website_screenshot": f"data:image/jpeg;base64,{lead.website_screenshot}" if getattr(lead, 'website_screenshot', None) else None,
-            "street": getattr(lead, 'street', '') or '',
-            "house_number": getattr(lead, 'house_number', '') or '',
-            "postal_code": getattr(lead, 'postal_code', '') or '',
-            "legal_form": getattr(lead, 'legal_form', '') or '',
-            "vat_id": getattr(lead, 'vat_id', '') or '',
-            "register_number": getattr(lead, 'register_number', '') or '',
-            "register_court": getattr(lead, 'register_court', '') or '',
-            "ceo_first_name": getattr(lead, 'ceo_first_name', '') or '',
-            "ceo_last_name": getattr(lead, 'ceo_last_name', '') or '',
-            "geschaeftsfuehrer": getattr(lead, 'geschaeftsfuehrer', '') or '',
-            "display_name": getattr(lead, 'display_name', '') or '',
+            "id":               row.id,
+            "company_name":     row.company_name,
+            "contact_name":     row.contact_name,
+            "phone":            row.phone,
+            "mobile":           row.mobile or "",
+            "email":            row.email,
+            "website_url":      row.website_url,
+            "city":             row.city,
+            "trade":            row.trade,
+            "status":           row.status,
+            "lead_source":      row.lead_source,
+            "notes":            row.notes,
+            "created_at":       row.created_at.strftime("%d.%m.%Y") if row.created_at else "",
+            "website_screenshot": (
+                f"data:image/jpeg;base64,{row.website_screenshot}"
+                if row.website_screenshot else None
+            ),
+            "street":           row.street or "",
+            "house_number":     row.house_number or "",
+            "postal_code":      row.postal_code or "",
+            "legal_form":       row.legal_form or "",
+            "vat_id":           row.vat_id or "",
+            "register_number":  row.register_number or "",
+            "register_court":   row.register_court or "",
+            "ceo_first_name":   row.ceo_first_name or "",
+            "ceo_last_name":    row.ceo_last_name or "",
+            "geschaeftsfuehrer": row.geschaeftsfuehrer or "",
+            "display_name":     row.display_name or "",
+            # Sequence-Fields — werden von LeadProfile.jsx direkt gelesen
+            "sequence_active":    bool(row.sequence_active) if row.sequence_active is not None else False,
+            "sequence_paused":    bool(row.sequence_paused) if row.sequence_paused is not None else False,
+            "sequence_step":      row.sequence_step or 0,
+            "sequence_last_sent": (
+                row.sequence_last_sent.strftime("%d.%m.%Y %H:%M")
+                if row.sequence_last_sent else None
+            ),
         },
         "current_score": latest_audit.total_score if latest_audit else None,
         "current_level": latest_audit.level if latest_audit else None,
         "score_history": score_history,
-        "total_audits": len(audits),
-        "audits": [_audit_dict(a) for a in audits],
-        "projects": [
-            {
-                "id": p.id,
-                "status": p.status,
-                "start_date": p.start_date.strftime("%d.%m.%Y") if p.start_date else "",
-                "target_go_live": p.target_go_live.strftime("%d.%m.%Y") if p.target_go_live else "",
-                "margin_percent": p.margin_percent,
-            }
-            for p in projects
-        ],
-        "project_id": projects[0].id if projects else None,
+        "total_audits":  len(audit_rows),
+        "audits":        [_row_to_audit_dict(a) for a in audit_rows],
+        "projects":      projects_list,
+        "project_id":    row.latest_project_id,
     }
 
 

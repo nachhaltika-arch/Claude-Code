@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 
 export default function GrapesEditor({
   pageId, pageName, initialHtml, onClose, onSave, projectId, netlitySiteId, leadId,
+  endpointBase = '/api/pages',
 }) {
   const { token } = useAuth();
   const { isMobile } = useScreenSize();
@@ -50,7 +51,7 @@ export default function GrapesEditor({
     try {
       const html = editor?.getHtml?.() || '';
       const css  = editor?.getCss?.()  || '';
-      await fetch(`${API_BASE_URL}/api/pages/${pageId}/editor`, {
+      await fetch(`${API_BASE_URL}${endpointBase}/${pageId}/editor`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ html, css, gjsData: project }),
@@ -61,13 +62,13 @@ export default function GrapesEditor({
       toast.error('Seite konnte nicht gespeichert werden — bitte erneut versuchen');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageId, token, onSave]);
+  }, [pageId, token, onSave, endpointBase]);
 
   // ── Load: bestehende Editor-Daten vom Backend ──────────────
   const handleLoad = useCallback(async () => {
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/pages/${pageId}/editor`,
+        `${API_BASE_URL}${endpointBase}/${pageId}/editor`,
         { headers: authHeaders },
       );
       if (res.ok) {
@@ -90,7 +91,7 @@ export default function GrapesEditor({
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageId, pageName, initialHtml, token]);
+  }, [pageId, pageName, initialHtml, token, endpointBase]);
 
   // ── Asset Manager — zentraler Hook ──
   const { onAssetsLoad, onAssetsUpload, editorRef: assetEditorRef } = useGrapesAssetManager({ leadId, projectId, token });

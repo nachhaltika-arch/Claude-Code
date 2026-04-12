@@ -4,14 +4,15 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 
 const SETTINGS_NAV = [
-  { label: 'Profil', path: '/app/settings/profile', icon: '👤', roles: ['admin', 'auditor', 'nutzer', 'kunde'] },
-  { label: 'Sicherheit', path: '/app/settings/security', icon: '🔐', roles: ['admin', 'auditor', 'nutzer', 'kunde'] },
-  { label: 'Rollenverwaltung', path: '/app/settings/roles', icon: '👥', roles: ['admin'] },
-  { label: 'Benutzerverwaltung', path: '/app/settings/users', icon: '🧑‍💼', roles: ['admin'] },
-  { label: 'System', path: '/app/settings/system', icon: '🏢', roles: ['admin'] },
-  { label: 'Benachrichtigungen', path: '/app/settings/notifications', icon: '📧', roles: ['admin', 'auditor'] },
+  { label: 'Profil', path: '/app/settings/profile', icon: '👤', roles: ['admin', 'superadmin', 'auditor', 'nutzer', 'kunde'] },
+  { label: 'Sicherheit', path: '/app/settings/security', icon: '🔐', roles: ['admin', 'superadmin', 'auditor', 'nutzer', 'kunde'] },
+  { label: 'Rollenverwaltung', path: '/app/settings/roles', icon: '👥', roles: ['admin', 'superadmin'] },
+  { label: 'Benutzerverwaltung', path: '/app/settings/users', icon: '🧑‍💼', roles: ['admin', 'superadmin'] },
+  { label: 'System', path: '/app/settings/system', icon: '🏢', roles: ['admin', 'superadmin'] },
+  { label: 'KAS Website', path: '/app/settings/kas-website', icon: '🌐', roles: ['admin', 'superadmin'] },
+  { label: 'Benachrichtigungen', path: '/app/settings/notifications', icon: '📧', roles: ['admin', 'superadmin', 'auditor'] },
   { label: 'Abonnement', path: '/app/settings/subscription', icon: '💳', roles: ['nutzer', 'kunde'] },
-  { label: 'Templates', path: '/app/settings/templates', icon: '🗂️', roles: ['admin'] },
+  { label: 'Templates', path: '/app/settings/templates', icon: '🗂️', roles: ['admin', 'superadmin'] },
 ];
 
 export default function SettingsLayout() {

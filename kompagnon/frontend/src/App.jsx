@@ -47,6 +47,7 @@ import CustomerDashboard from './pages/CustomerDashboard';
 import Courses from './pages/Courses';
 import DomainImport from './pages/DomainImport';
 import ScraperControl from './pages/ScraperControl';
+import KasWebsite from './pages/KasWebsite';
 import CustomerPortal from './pages/CustomerPortal';
 import CustomerDetail from './pages/CustomerDetail';
 import KundenPortal from './pages/KundenPortal';
@@ -231,6 +232,7 @@ function App() {
               <Route path="roles" element={<PrivateRoute roles={['admin']}><RoleManagement /></PrivateRoute>} />
               <Route path="users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
               <Route path="system" element={<PrivateRoute roles={['admin']}><Settings tab="system" /></PrivateRoute>} />
+              <Route path="kas-website" element={<PrivateRoute roles={['admin', 'superadmin']}><KasWebsite /></PrivateRoute>} />
               <Route path="notifications" element={<Settings tab="notifications" />} />
               <Route path="subscription" element={<PrivateRoute roles={['admin']}><Settings tab="subscription" /></PrivateRoute>} />
               <Route path="templates" element={<PrivateRoute roles={['admin']}><TemplateLibrary /></PrivateRoute>} />

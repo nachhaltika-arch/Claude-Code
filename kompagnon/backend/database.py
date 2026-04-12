@@ -3,7 +3,7 @@ SQLAlchemy database setup and models for KOMPAGNON system.
 """
 import os
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, create_engine
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, JSON, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.exc import OperationalError
@@ -795,6 +795,45 @@ class Message(Base):
     is_read     = Column(Boolean, default=False)
     read_at     = Column(DateTime, nullable=True)
     created_at  = Column(DateTime, default=datetime.utcnow)
+
+
+# ── KAS Website (KOMPAGNON-eigene Seiten) ─────────────────────────────────────
+
+class KasPage(Base):
+    """KOMPAGNON-eigene Website-Seiten (KAS = KOMPAGNON Agentur Seiten)."""
+    __tablename__ = "kas_pages"
+
+    id               = Column(Integer, primary_key=True, index=True)
+    titel            = Column(String(255), nullable=False)
+    pfad             = Column(String(255), nullable=False)
+    meta_description = Column(Text, default="")
+    position         = Column(Integer, default=0)
+    status           = Column(String(50), default="draft")
+    ist_startseite   = Column(Boolean, default=False)
+    notizen          = Column(Text, default="")
+    created_at       = Column(DateTime, default=datetime.utcnow)
+    updated_at       = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    gjs_data = relationship(
+        "KasGjsData",
+        back_populates="page",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+
+class KasGjsData(Base):
+    """GrapesJS-Inhalt pro KAS-Seite (separate Tabelle fuer Performance)."""
+    __tablename__ = "kas_gjs_data"
+
+    id       = Column(Integer, primary_key=True, index=True)
+    page_id  = Column(Integer, ForeignKey("kas_pages.id", ondelete="CASCADE"))
+    html     = Column(Text, default="")
+    css      = Column(Text, default="")
+    gjs_data = Column(JSON, default=dict)
+    saved_at = Column(DateTime, default=datetime.utcnow)
+
+    page = relationship("KasPage", back_populates="gjs_data")
 
 
 def init_db():

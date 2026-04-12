@@ -124,6 +124,40 @@ def run_migrations():
         ON crawl_results(job_id);
     """)
 
+    # ── KAS Website (KOMPAGNON-eigene Seiten) ──────────────────────────────
+    # Tabelle: kas_pages — KOMPAGNON eigene Seiten (kein lead_id)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS kas_pages (
+            id               SERIAL PRIMARY KEY,
+            titel            VARCHAR(255) NOT NULL,
+            pfad             VARCHAR(255) NOT NULL,
+            meta_description TEXT DEFAULT '',
+            position         INTEGER DEFAULT 0,
+            status           VARCHAR(50) DEFAULT 'draft',
+            ist_startseite   BOOLEAN DEFAULT false,
+            notizen          TEXT DEFAULT '',
+            created_at       TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at       TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    """)
+
+    # Tabelle: kas_gjs_data — GrapesJS-Inhalt pro KAS-Seite
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS kas_gjs_data (
+            id        SERIAL PRIMARY KEY,
+            page_id   INTEGER REFERENCES kas_pages(id) ON DELETE CASCADE,
+            html      TEXT DEFAULT '',
+            css       TEXT DEFAULT '',
+            gjs_data  JSONB DEFAULT '{}'::jsonb,
+            saved_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    """)
+
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_kas_gjs_data_page
+        ON kas_gjs_data(page_id);
+    """)
+
     cur.close()
     conn.close()
     print("Migrationen erfolgreich ausgefuehrt.")

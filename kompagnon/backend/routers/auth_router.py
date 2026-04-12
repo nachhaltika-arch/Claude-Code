@@ -160,13 +160,28 @@ def _revoke_token(token_str: str, db: Session) -> None:
 
 
 def _set_access_cookie(response: Response, token: str) -> None:
-    """Setzt den JWT als httpOnly-Cookie — zentrale Konfiguration."""
+    """
+    Setzt den JWT als httpOnly-Cookie — zentrale Konfiguration.
+
+    samesite="none" ist Pflicht weil Frontend und Backend auf
+    verschiedenen Subdomains von onrender.com laufen. onrender.com
+    steht auf der Public Suffix List, d.h. jede Subdomain ist eine
+    eigene Site. `SameSite=lax` wuerde Cross-Site-XHR komplett
+    blockieren und der Browser wuerde das Cookie bei fetch()-Calls
+    einfach nicht mitsenden.
+
+    CSRF-Schutz kommt stattdessen aus:
+      1. CORS `allow_origins=["https://kompagnon-frontend.onrender.com"]`
+         — nur die explizite Frontend-Origin darf credentials senden
+      2. `secure=True` — Cookie wird nur ueber HTTPS uebertragen
+      3. `httponly=True` — kein JS-Zugriff, also kein XSS-Leak
+    """
     response.set_cookie(
         key=ACCESS_COOKIE_NAME,
         value=token,
         httponly=True,        # Kein JavaScript-Zugriff → XSS-Schutz
-        secure=True,          # Nur ueber HTTPS
-        samesite="lax",       # CSRF-Schutz (blockiert Cross-Site-POSTs)
+        secure=True,          # Pflicht bei samesite=none, nur HTTPS
+        samesite="none",      # Cross-site XHR erlaubt (onrender.com ist PSL)
         max_age=ACCESS_COOKIE_MAX_AGE,
         path="/",
     )

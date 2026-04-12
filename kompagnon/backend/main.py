@@ -429,6 +429,80 @@ def _disable_demo_accounts_in_production():
         db.close()
 
 
+def _create_default_superadmin():
+    """
+    Bootstrap-Funktion fuer den initialen Superadmin.
+
+    Laeuft in ALLEN Umgebungen (auch production), aber NUR wenn die
+    beiden Env-Vars SUPERADMIN_EMAIL und SUPERADMIN_PASSWORD gesetzt sind.
+    KEINE hardcoded Fallback-Credentials — bei fehlenden Env-Vars wird
+    die Funktion stumm uebersprungen.
+
+    Verhalten:
+      - User existiert noch nicht → neu anlegen mit role=superadmin
+      - User existiert bereits mit anderer Rolle → zu superadmin promoten
+      - User existiert bereits als superadmin → no-op
+      - Passwort wird NUR beim Neu-Anlegen gesetzt. Bei bestehenden
+        Usern wird das aktuelle Passwort NIE ueberschrieben, damit
+        User-Edits (via Admin-UI) nicht beim Deploy rueckgaengig gemacht werden.
+    """
+    email = os.getenv("SUPERADMIN_EMAIL", "").strip().lower()
+    password = os.getenv("SUPERADMIN_PASSWORD", "")
+
+    if not email or not password:
+        # Beide Env-Vars muessen gesetzt sein — sonst ueberspringen
+        logger.info("⏭  Superadmin-Bootstrap uebersprungen (SUPERADMIN_EMAIL/SUPERADMIN_PASSWORD nicht gesetzt)")
+        return
+
+    # Leichte Passwort-Warnung (entspricht Security Fix 11 Minimum)
+    if len(password) < 12:
+        logger.warning(
+            f"⚠️  SUPERADMIN_PASSWORD fuer {email} ist schwach "
+            f"(<12 Zeichen) — bitte nach dem Bootstrap via "
+            f"/api/auth/change-password aendern"
+        )
+
+    from database import SessionLocal, User
+    from auth import hash_password
+
+    db = SessionLocal()
+    try:
+        existing = db.query(User).filter(User.email == email).first()
+
+        if existing:
+            # Bestehenden User nicht ueberschreiben, nur Rolle setzen
+            if existing.role == "superadmin":
+                logger.info(f"✓ Superadmin {email} bereits vorhanden — no-op")
+            else:
+                old_role = existing.role
+                existing.role = "superadmin"
+                existing.is_active = True  # Sicherstellen dass nicht deaktiviert
+                db.commit()
+                logger.info(
+                    f"✓ User {email} von '{old_role}' zu 'superadmin' promoted "
+                    f"(Passwort unveraendert)"
+                )
+        else:
+            # Neuen Superadmin anlegen
+            user = User(
+                email=email,
+                password_hash=hash_password(password),
+                first_name=os.getenv("SUPERADMIN_FIRST_NAME", "Super"),
+                last_name=os.getenv("SUPERADMIN_LAST_NAME", "Admin"),
+                role="superadmin",
+                is_active=True,
+                is_verified=True,
+            )
+            db.add(user)
+            db.commit()
+            logger.info(f"✓ Superadmin {email} neu angelegt")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Superadmin-Bootstrap fehlgeschlagen: {e}")
+    finally:
+        db.close()
+
+
 def _migrate_backup_codes():
     """Einmalig: Klartext-Backup-Codes in der DB hashen."""
     from database import SessionLocal, User
@@ -562,6 +636,7 @@ async def lifespan(app: FastAPI):
                 ("DB init",       init_db,               30.0),
                 ("Default admin", _create_default_admin, 10.0),
                 ("Disable demo accounts", _disable_demo_accounts_in_production, 10.0),
+                ("Default superadmin", _create_default_superadmin, 10.0),
                 ("Hash backup codes", _migrate_backup_codes, 20.0),
                 ("Academy seed",  _academy_seed,         10.0),
                 ("Deals migration", _deals_migration,    15.0),

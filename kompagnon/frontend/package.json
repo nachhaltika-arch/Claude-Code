@@ -14,7 +14,7 @@
     "@heroicons/react": "^2.0.18",
     "autoprefixer": "^10.4.16",
     "axios": "^1.6.2",
-    "bootstrap": "^5.2.3",
+    "bootstrap": "^5.3.8",
     "clsx": "^2.0.0",
     "date-fns": "^2.30.0",
     "echarts": "^6.0.0",

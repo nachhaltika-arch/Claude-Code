@@ -1363,6 +1363,42 @@ def _disable_demo_accounts_in_production():
         db.close()
 
 
+def _migrate_backup_codes():
+    """Einmalig: Klartext-Backup-Codes in der DB hashen."""
+    from database import SessionLocal, User
+    from auth import hash_password
+
+    db = SessionLocal()
+    try:
+        users = db.query(User).filter(User.backup_codes.isnot(None)).all()
+        migrated = 0
+        for user in users:
+            if not user.backup_codes:
+                continue
+            try:
+                codes = json.loads(user.backup_codes)
+                if not codes:
+                    continue
+                # Pruefen ob bereits gehasht (bcrypt-Hash beginnt mit $2a$/$2b$/$2y$)
+                first = codes[0] if isinstance(codes, list) else ""
+                if isinstance(first, str) and first.startswith(("$2a$", "$2b$", "$2y$")):
+                    continue  # Bereits gehasht — ueberspringen
+                # Klartext → hashen
+                user.backup_codes = json.dumps([hash_password(c) for c in codes])
+                migrated += 1
+            except Exception:
+                continue
+        if migrated:
+            db.commit()
+            logger.info(f"✓ {migrated} Nutzer: Backup-Codes gehasht")
+        else:
+            logger.info("✓ Keine Klartext-Backup-Codes mehr in der DB")
+    except Exception as e:
+        logger.error(f"Backup-Code-Migration fehlgeschlagen: {e}")
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("🚀 KOMPAGNON Backend Starting...")
@@ -1460,6 +1496,7 @@ async def lifespan(app: FastAPI):
                 ("DB init",       init_db,               30.0),
                 ("Default admin", _create_default_admin, 10.0),
                 ("Disable demo accounts", _disable_demo_accounts_in_production, 10.0),
+                ("Hash backup codes", _migrate_backup_codes, 20.0),
                 ("Academy seed",  _academy_seed,         10.0),
                 ("Deals migration", _deals_migration,    15.0),
                 ("Scheduler",     start_scheduler,       15.0),

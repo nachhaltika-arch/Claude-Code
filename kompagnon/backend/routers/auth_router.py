@@ -249,10 +249,20 @@ def login_2fa(request: Request, req: TwoFARequest, db: Session = Depends(get_db)
         raise HTTPException(401, "Benutzer nicht gefunden")
 
     if not verify_totp(user.totp_secret, req.totp_code):
-        # Check backup codes
+        # Backup-Codes sind gehasht gespeichert — jeden Eintrag via
+        # verify_password abgleichen (constant-time dank bcrypt).
         codes = json.loads(user.backup_codes) if user.backup_codes else []
-        if req.totp_code in codes:
-            codes.remove(req.totp_code)
+        matched_index = None
+        for i, hashed in enumerate(codes):
+            try:
+                if verify_password(req.totp_code, hashed):
+                    matched_index = i
+                    break
+            except Exception:
+                continue
+
+        if matched_index is not None:
+            codes.pop(matched_index)
             user.backup_codes = json.dumps(codes)
         else:
             raise HTTPException(401, "Ungueltiger 2FA-Code")
@@ -290,7 +300,9 @@ def verify_2fa_setup(req: TwoFASetupVerify, user: User = Depends(get_current_use
 
     codes = generate_backup_codes()
     user.totp_enabled = True
-    user.backup_codes = json.dumps(codes)
+    # Nur gehashte Codes in der DB — Klartext wird einmalig an den User
+    # zurueckgegeben und ist danach nicht mehr abrufbar.
+    user.backup_codes = json.dumps([hash_password(c) for c in codes])
     db.commit()
 
     return {"success": True, "backup_codes": codes}

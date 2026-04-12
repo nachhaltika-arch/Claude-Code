@@ -11,6 +11,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from database import User, UserSession, get_db
 from auth import (
@@ -21,6 +23,9 @@ from auth import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Rate limiter — uses same key_func (IP-based) as main.py instance
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 admin_router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -164,7 +169,8 @@ class AdminUpdateUser(BaseModel):
 # ═══════════════════════════════════════════════════════════
 
 @router.post("/register")
-def register(req: RegisterRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def register(request: Request, req: RegisterRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == req.email.lower().strip()).first():
         raise HTTPException(400, "E-Mail bereits registriert")
     if len(req.password) < 8:
@@ -203,7 +209,8 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 # ═══════════════════════════════════════════════════════════
 
 @router.post("/login")
-def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, req: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == req.email.lower().strip()).first()
     if not user or not user.password_hash:
         raise HTTPException(401, "E-Mail oder Passwort falsch")
@@ -230,7 +237,8 @@ def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/login/2fa")
-def login_2fa(req: TwoFARequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login_2fa(request: Request, req: TwoFARequest, db: Session = Depends(get_db)):
     payload = decode_token(req.temp_token)
     if payload.get("type") != "2fa_temp":
         raise HTTPException(401, "Ungueltiger 2FA-Token")
@@ -306,7 +314,8 @@ def disable_2fa(req: TwoFADisable, user: User = Depends(get_current_user), db: S
 # ═══════════════════════════════════════════════════════════
 
 @router.post("/forgot-password")
-def forgot_password(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def forgot_password(request: Request, req: ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == req.email.lower().strip()).first()
     if user and user.is_active:
         user.password_reset_token = generate_reset_token()

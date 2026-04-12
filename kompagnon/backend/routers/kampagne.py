@@ -6,14 +6,19 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import AuditResult, Lead, get_db, SessionLocal
 
 logger = logging.getLogger(__name__)
+
+# Rate limiter — uses same key_func (IP-based) as main.py instance
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/api/kampagne", tags=["kampagne"])
 
@@ -29,7 +34,9 @@ class AuditAnfrageRequest(BaseModel):
 
 
 @router.post("/audit-anfrage")
+@limiter.limit("3/minute")
 async def audit_anfrage(
+    request: Request,
     req: AuditAnfrageRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),

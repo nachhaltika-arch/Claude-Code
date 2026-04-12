@@ -5,12 +5,14 @@ GET /api/leads/ - List all leads
 POST /api/leads/{id}/analyze - Run lead analyst agent
 POST /api/leads/{id}/convert - Convert to project
 """
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, BackgroundTasks, Request
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from database import Lead, Project, AuditResult, get_db, SessionLocal
 from routers.auth_router import require_any_auth, get_current_user
 from seed_checklists import create_project_checklists
@@ -25,6 +27,9 @@ import os
 import uuid
 
 logger = logging.getLogger(__name__)
+
+# Rate limiter — uses same key_func (IP-based) as main.py instance
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
 
@@ -707,7 +712,8 @@ async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depe
 # ── Public lead creation (no auth — used by landing page audit) ──
 
 @router.post("/public")
-async def create_public_lead(data: dict, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+async def create_public_lead(request: Request, data: dict, db: Session = Depends(get_db)):
     """Public endpoint for landing page audit — creates lead without login."""
     website_url = data.get('website_url', '').strip()
     email_addr = data.get('email', '').strip()

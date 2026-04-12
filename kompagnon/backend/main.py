@@ -1045,7 +1045,11 @@ def _run_migrations():
 
 
 def _create_default_admin():
-    """Create demo users for all 4 roles if they don't exist."""
+    """Create demo users for all 4 roles — only in development environment."""
+    if os.getenv("ENVIRONMENT", "development").lower() == "production":
+        logger.info("⏭  Demo-User-Erstellung übersprungen (ENVIRONMENT=production)")
+        return
+
     from database import SessionLocal, User
     from auth import hash_password
     db = SessionLocal()
@@ -1315,6 +1319,40 @@ def _create_default_admin():
         logger.warning(f"Produkt-Seed Fehler: {e}")
 
 
+def _disable_demo_accounts_in_production():
+    """Deaktiviert Demo-Konten wenn ENVIRONMENT=production gesetzt ist."""
+    if os.getenv("ENVIRONMENT", "development").lower() != "production":
+        return
+
+    DEMO_EMAILS = [
+        "admin@kompagnon.de",
+        "auditor@kompagnon.de",
+        "nutzer@kompagnon.de",
+        "kunde@kompagnon.de",
+    ]
+
+    from database import SessionLocal, User
+    db = SessionLocal()
+    try:
+        deactivated = 0
+        for email in DEMO_EMAILS:
+            user = db.query(User).filter(User.email == email).first()
+            if user and user.is_active:
+                user.is_active = False
+                deactivated += 1
+                logger.warning(f"🔒 Demo-Konto deaktiviert: {email}")
+        if deactivated:
+            db.commit()
+            logger.warning(f"🔒 {deactivated} Demo-Konten in Produktion deaktiviert")
+        else:
+            logger.info("✓ Keine aktiven Demo-Konten gefunden")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Demo-Deaktivierung fehlgeschlagen: {e}")
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("🚀 KOMPAGNON Backend Starting...")
@@ -1411,6 +1449,7 @@ async def lifespan(app: FastAPI):
                 ("Migrations",    _run_migrations,       60.0),
                 ("DB init",       init_db,               30.0),
                 ("Default admin", _create_default_admin, 10.0),
+                ("Disable demo accounts", _disable_demo_accounts_in_production, 10.0),
                 ("Academy seed",  _academy_seed,         10.0),
                 ("Deals migration", _deals_migration,    15.0),
                 ("Scheduler",     start_scheduler,       15.0),

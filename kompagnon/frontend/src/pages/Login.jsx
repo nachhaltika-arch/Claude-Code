@@ -20,13 +20,6 @@ export default function Login() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const DEMOS = [
-    { role: 'Admin', icon: '👑', email: 'admin@kompagnon.de', password: 'Admin2025!', color: 'var(--text-primary)' },
-    { role: 'Auditor', icon: '🔍', email: 'auditor@kompagnon.de', password: 'Auditor2025!', color: 'var(--brand-primary)' },
-    { role: 'Nutzer', icon: '👤', email: 'nutzer@kompagnon.de', password: 'Nutzer2025!', color: 'var(--status-success-text)' },
-    { role: 'Kunde', icon: '🏢', email: 'kunde@kompagnon.de', password: 'Kunde2025!', color: 'var(--status-warning-text)' },
-  ];
-
   const inputStyle = {
     width: '100%', padding: '10px 12px',
     border: '1px solid var(--border-medium)',
@@ -141,36 +134,6 @@ export default function Login() {
             <>
               <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>Anmelden</h2>
               <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 20 }}>Willkommen zurück</p>
-
-              {/* Demo Buttons */}
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-                  Demo-Zugänge
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                  {DEMOS.map(d => (
-                    <button key={d.role} onClick={() => { setEmail(d.email); setPassword(d.password); }} style={{
-                      padding: '7px 10px', borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-light)', background: 'var(--bg-app)',
-                      color: d.color, fontSize: 11, fontWeight: 500, cursor: 'pointer',
-                      fontFamily: 'var(--font-sans)', textAlign: 'left',
-                      display: 'flex', alignItems: 'center', gap: 6, minHeight: 32, transition: 'all 0.1s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-medium)'; e.currentTarget.style.background = 'var(--bg-hover)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.background = 'var(--bg-app)'; }}
-                    >
-                      <span>{d.icon}</span>{d.role}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>oder mit E-Mail</span>
-                <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
-              </div>
 
               {error && (
                 <div style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', borderRadius: 'var(--radius-md)', padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>

@@ -335,7 +335,8 @@ def forgot_password(request: Request, req: ForgotPasswordRequest, db: Session = 
     user = db.query(User).filter(User.email == req.email.lower().strip()).first()
     if user and user.is_active:
         user.password_reset_token = generate_reset_token()
-        user.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
+        # 15 Minuten reichen fuer einen Reset-Flow — kleinere Angriffsflaeche
+        user.password_reset_expires = datetime.utcnow() + timedelta(minutes=15)
         db.commit()
         try:
             from services.email import send_password_reset
@@ -352,12 +353,29 @@ def forgot_password(request: Request, req: ForgotPasswordRequest, db: Session = 
 
 @router.post("/reset-password")
 def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    # Generische Fehlermeldung — kein Hinweis ob Token oder Ablauf das Problem ist
+    INVALID_MSG = "Dieser Reset-Link ist ungueltig oder abgelaufen"
+
     user = db.query(User).filter(User.password_reset_token == req.token).first()
-    if not user or not user.password_reset_expires or user.password_reset_expires < datetime.utcnow():
-        raise HTTPException(400, "Ungueltiger oder abgelaufener Reset-Token")
+    if not user:
+        raise HTTPException(400, INVALID_MSG)
+
+    # Ablaufdatum explizit pruefen
+    if not user.password_reset_expires:
+        raise HTTPException(400, INVALID_MSG)
+
+    if user.password_reset_expires < datetime.utcnow():
+        # Abgelaufenen Token sofort invalidieren, damit er kein Replay-Risiko bleibt
+        user.password_reset_token = None
+        user.password_reset_expires = None
+        db.commit()
+        raise HTTPException(400, INVALID_MSG)
+
+    # Passwort-Komplexitaet pruefen
     if len(req.new_password) < 8:
         raise HTTPException(400, "Passwort muss mindestens 8 Zeichen haben")
 
+    # Passwort setzen und Token sofort invalidieren — kein zweites Einloesen moeglich
     user.password_hash = hash_password(req.new_password)
     user.password_reset_token = None
     user.password_reset_expires = None

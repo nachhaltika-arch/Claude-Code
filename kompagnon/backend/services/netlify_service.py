@@ -78,7 +78,20 @@ async def deploy_html(
     # ZIP im Speicher aufbauen
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("index.html", html)
+        full_html = f"""<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Website</title>
+  {f'<link rel="stylesheet" href="/style.css">' if css else ''}
+</head>
+<body>
+{html}
+</body>
+</html>"""
+
+        zf.writestr("index.html", full_html)
         if css:
             zf.writestr("style.css", css)
         zf.writestr(

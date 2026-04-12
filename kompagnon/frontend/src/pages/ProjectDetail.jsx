@@ -715,7 +715,6 @@ export default function ProjectDetail() {
   const [netlifyError, setNetlifyError] = useState(null);
   const [netlifyChecked, setNetlifyChecked] = useState(false);
   const netlifyFetchRef = useRef(false);
-  const [deployHtml, setDeployHtml] = useState('');
   const [netlifyDomain, setNetlifyDomain] = useState('');
   const [netlifyDnsGuide, setNetlifyDnsGuide] = useState(null); // { cname_target }
   const [netlifyDeploying, setNetlifyDeploying] = useState(false);

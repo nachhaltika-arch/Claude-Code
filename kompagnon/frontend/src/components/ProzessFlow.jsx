@@ -1302,8 +1302,12 @@ function NetlifyEmbed({ project, headers }) {
         <div style={cardStyle}>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>3. HTML deployen</div>
           <textarea value={deployHtml} onChange={e => setDeployHtml(e.target.value)}
-            placeholder={'<!DOCTYPE html>\n<html>...</html>'} rows={5}
+            placeholder={'Nur den Body-Inhalt einfügen (kein DOCTYPE nötig — wird automatisch ergänzt)'} rows={5}
             style={{ ...inputStyle, resize:'vertical', fontFamily:'monospace', fontSize:11 }} />
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+            Nur den Body-Inhalt aus GrapesJS einfügen. DOCTYPE, head und CSS-Link
+            werden automatisch vom System ergänzt.
+          </div>
           <button onClick={async () => {
             if (!deployHtml.trim()) { setError('HTML fehlt'); return; }
             setDeploying(true); setError('');

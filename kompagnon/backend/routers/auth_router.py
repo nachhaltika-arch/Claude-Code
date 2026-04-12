@@ -172,7 +172,8 @@ class AdminUpdateUser(BaseModel):
 @limiter.limit("3/minute")
 def register(request: Request, req: RegisterRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == req.email.lower().strip()).first():
-        raise HTTPException(400, "E-Mail bereits registriert")
+        # Keine Info ob E-Mail existiert — immer gleiche Antwort
+        return {"message": "Falls diese E-Mail neu ist, erhalten Sie eine Bestätigung."}
     if len(req.password) < 8:
         raise HTTPException(400, "Passwort muss mindestens 8 Zeichen haben")
 
@@ -316,18 +317,25 @@ def disable_2fa(req: TwoFADisable, user: User = Depends(get_current_user), db: S
 @router.post("/forgot-password")
 @limiter.limit("3/minute")
 def forgot_password(request: Request, req: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    import time
+    start = time.time()
+
     user = db.query(User).filter(User.email == req.email.lower().strip()).first()
     if user and user.is_active:
         user.password_reset_token = generate_reset_token()
         user.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
         db.commit()
         try:
-            from services.email import send_password_reset_email
-            name = f"{user.first_name} {user.last_name}".strip() or user.email
-            send_password_reset_email(user.email, user.password_reset_token, name)
+            from services.email import send_password_reset
+            send_password_reset(user.email, user.password_reset_token)
         except Exception as e:
-            logger.warning(f"Reset email failed: {e}")
-    return {"message": "Falls die E-Mail existiert, wurde ein Reset-Link gesendet"}
+            logger.error(f"Password reset email failed: {e}")
+
+    # Immer ~300ms — verhindert Timing-Angriff
+    time.sleep(max(0, 0.3 - (time.time() - start)))
+
+    # Immer gleiche Antwort — egal ob User existiert oder nicht
+    return {"message": "Falls diese E-Mail existiert, erhalten Sie einen Reset-Link."}
 
 
 @router.post("/reset-password")

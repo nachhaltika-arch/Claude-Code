@@ -1532,25 +1532,21 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # CORS Middleware — must be before all routers
-# Build allowed origins from environment or use sensible defaults.
-# NOTE: allow_credentials=True requires explicit origins (not "*").
-_cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
-_cors_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()] if _cors_origins_env else []
-
-# Always include known origins
-_default_origins = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://localhost:5173",
+# Explicit origin list — NO wildcard, NO env-var injection.
+# Localhost-Origins werden nur ausserhalb von production erlaubt.
+_ALLOWED_ORIGINS = [
     "https://kompagnon-frontend.onrender.com",
 ]
-for _o in _default_origins:
-    if _o not in _cors_origins:
-        _cors_origins.append(_o)
+if os.getenv("ENVIRONMENT", "development").lower() != "production":
+    _ALLOWED_ORIGINS += [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+    ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_cors_origins,
+    allow_origins=_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

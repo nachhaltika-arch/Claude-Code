@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import PasswordStrength, { isPasswordStrong } from '../components/PasswordStrength';
 
 
 
@@ -18,7 +19,10 @@ export default function ResetPassword() {
   const handleReset = async (e) => {
     e.preventDefault();
     setError('');
-    if (password.length < 8) { setError('Passwort muss mindestens 8 Zeichen haben'); return; }
+    if (!isPasswordStrong(password)) {
+      setError('Passwort zu schwach — bitte alle Anforderungen erfuellen');
+      return;
+    }
     if (password !== confirm) { setError('Passwoerter stimmen nicht ueberein'); return; }
     setLoading(true);
     try {
@@ -76,18 +80,12 @@ export default function ResetPassword() {
                 <div style={{ marginBottom: 14 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Neues Passwort</label>
                   <div style={{ position: 'relative' }}>
-                    <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 8 Zeichen" required style={{ ...inp, paddingRight: 44 }} />
+                    <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sicheres Passwort" required style={{ ...inp, paddingRight: 44 }} />
                     <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-tertiary)', padding: 0 }}>
                       {showPw ? '🙈' : '👁️'}
                     </button>
                   </div>
-                  {password && (
-                    <div style={{ marginTop: 6, display: 'flex', gap: 4 }}>
-                      {[1, 2, 3, 4].map((i) => (
-                        <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: password.length >= i * 4 ? (i <= 1 ? '#dc2626' : i <= 2 ? '#d97706' : i <= 3 ? '#2563eb' : '#059669') : '#e2e8f0' }} />
-                      ))}
-                    </div>
-                  )}
+                  <PasswordStrength password={password} />
                 </div>
                 <div style={{ marginBottom: 24 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Passwort bestaetigen</label>

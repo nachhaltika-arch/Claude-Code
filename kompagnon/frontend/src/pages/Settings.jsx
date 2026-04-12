@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth, apiCall } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
+import PasswordStrength, { isPasswordStrong } from '../components/PasswordStrength';
 
 
 
@@ -98,6 +99,10 @@ function SecurityTab() {
   const changePw = async (e) => {
     e.preventDefault();
     if (pw.new_password !== pw.confirm) { toast.error('Die beiden Passwörter stimmen nicht überein'); return; }
+    if (!isPasswordStrong(pw.new_password)) {
+      toast.error('Neues Passwort zu schwach — bitte alle Anforderungen erfuellen');
+      return;
+    }
     setSaving(true);
     try {
       const res = await apiCall('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password: pw.current_password, new_password: pw.new_password }) });
@@ -111,7 +116,10 @@ function SecurityTab() {
       <Card title="Passwort aendern" icon="🔑">
         <form onSubmit={changePw} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <Field label="Aktuelles Passwort" type="password" value={pw.current_password} onChange={(v) => setPw((f) => ({ ...f, current_password: v }))} />
-          <Field label="Neues Passwort" type="password" value={pw.new_password} onChange={(v) => setPw((f) => ({ ...f, new_password: v }))} />
+          <div>
+            <Field label="Neues Passwort" type="password" value={pw.new_password} onChange={(v) => setPw((f) => ({ ...f, new_password: v }))} />
+            <PasswordStrength password={pw.new_password} />
+          </div>
           <Field label="Passwort bestaetigen" type="password" value={pw.confirm} onChange={(v) => setPw((f) => ({ ...f, confirm: v }))} />
           <Btn type="submit" loading={saving}>Passwort aendern</Btn>
         </form>

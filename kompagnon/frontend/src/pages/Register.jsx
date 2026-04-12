@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import PasswordStrength, { isPasswordStrong } from '../components/PasswordStrength';
 
 
 const AMBER = '#D4A017';
@@ -23,7 +24,10 @@ export default function Register() {
     e.preventDefault();
     setError('');
     if (password !== passwordConfirm) { setError('Passwoerter stimmen nicht ueberein'); return; }
-    if (password.length < 8) { setError('Passwort muss mindestens 8 Zeichen haben'); return; }
+    if (!isPasswordStrong(password)) {
+      setError('Passwort zu schwach — bitte alle Anforderungen erfuellen');
+      return;
+    }
     if (!agb) { setError('Bitte akzeptieren Sie die AGB'); return; }
 
     setLoading(true);
@@ -138,8 +142,9 @@ export default function Register() {
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ihre@email.de" required style={inp} />
             </div>
             <div style={{ marginBottom: 14 }}>
-              <label style={lbl}>Passwort (min. 8 Zeichen)</label>
+              <label style={lbl}>Passwort</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sicheres Passwort" required style={inp} />
+              <PasswordStrength password={password} />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={lbl}>Passwort wiederholen</label>

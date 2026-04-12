@@ -5,6 +5,7 @@ Login, register, 2FA, OAuth, password reset, profile, admin user management.
 import os
 import json
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -28,6 +29,29 @@ logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+def _validate_password(password: str) -> None:
+    """
+    Prueft Passwort-Komplexitaet. Wirft HTTPException bei Verstoss.
+    Wird bei Registration, Passwort-Aenderung und Reset verwendet.
+    """
+    errors = []
+
+    if not password or len(password) < 12:
+        errors.append("Mindestens 12 Zeichen")
+    if not re.search(r"[A-Z]", password or ""):
+        errors.append("Mindestens ein Grossbuchstabe (A-Z)")
+    if not re.search(r"[0-9]", password or ""):
+        errors.append("Mindestens eine Ziffer (0-9)")
+    if not re.search(r"[^A-Za-z0-9]", password or ""):
+        errors.append("Mindestens ein Sonderzeichen (!@#$%...)")
+
+    if errors:
+        raise HTTPException(
+            400,
+            "Passwort zu schwach: " + " · ".join(errors)
+        )
 admin_router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
@@ -174,8 +198,7 @@ def register(request: Request, req: RegisterRequest, db: Session = Depends(get_d
     if db.query(User).filter(User.email == req.email.lower().strip()).first():
         # Keine Info ob E-Mail existiert — immer gleiche Antwort
         return {"message": "Falls diese E-Mail neu ist, erhalten Sie eine Bestätigung."}
-    if len(req.password) < 8:
-        raise HTTPException(400, "Passwort muss mindestens 8 Zeichen haben")
+    _validate_password(req.password)
 
     user = User(
         email=req.email.lower().strip(),
@@ -372,8 +395,7 @@ def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
         raise HTTPException(400, INVALID_MSG)
 
     # Passwort-Komplexitaet pruefen
-    if len(req.new_password) < 8:
-        raise HTTPException(400, "Passwort muss mindestens 8 Zeichen haben")
+    _validate_password(req.new_password)
 
     # Passwort setzen und Token sofort invalidieren — kein zweites Einloesen moeglich
     user.password_hash = hash_password(req.new_password)
@@ -387,8 +409,7 @@ def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
 def change_password(req: ChangePasswordRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not verify_password(req.current_password, user.password_hash or ""):
         raise HTTPException(401, "Aktuelles Passwort falsch")
-    if len(req.new_password) < 8:
-        raise HTTPException(400, "Neues Passwort muss mindestens 8 Zeichen haben")
+    _validate_password(req.new_password)
 
     user.password_hash = hash_password(req.new_password)
     db.commit()

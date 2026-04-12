@@ -31,6 +31,27 @@ function scoreBar(score) {
 
 const SORT_KEYS = ['company_name', 'city', 'status', 'analysis_score'];
 
+function sourceBadge(source) {
+  const map = {
+    'HWK-Muenchen':    { bg: '#EAF4E0', text: '#3B6D11', label: 'HWK München' },
+    'HWK-Rheinhessen': { bg: '#E6F1FB', text: '#185FA5', label: 'HWK Rheinhessen' },
+  };
+  const style = map[source] || { bg: 'var(--bg-muted)', text: 'var(--text-tertiary)', label: source || 'Manuell' };
+  return (
+    <span style={{
+      padding: '2px 8px',
+      borderRadius: 4,
+      fontSize: 11,
+      fontWeight: 500,
+      background: style.bg,
+      color: style.text,
+      whiteSpace: 'nowrap',
+    }}>
+      {style.label}
+    </span>
+  );
+}
+
 export default function Companies() {
   const navigate         = useNavigate();
   const { token }        = useAuth();
@@ -40,6 +61,7 @@ export default function Companies() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
   const [search, setSearch]     = useState('');
+  const [sourceFilter, setSourceFilter] = useState('Alle');
   const [sortKey, setSortKey]   = useState('company_name');
   const [sortAsc, setSortAsc]   = useState(true);
 
@@ -47,7 +69,7 @@ export default function Companies() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/leads/?limit=500`, { headers });
+      const res = await fetch(`${API_BASE_URL}/api/leads/?limit=1000`, { headers });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setRows(Array.isArray(data) ? data : []);
@@ -68,11 +90,18 @@ export default function Companies() {
   const filtered = rows
     .filter(r => {
       const q = search.toLowerCase();
-      return !q
+      const matchSearch = !q
         || (r.company_name || '').toLowerCase().includes(q)
         || (r.city         || '').toLowerCase().includes(q)
         || (r.website_url  || '').toLowerCase().includes(q)
         || (r.status       || '').toLowerCase().includes(q);
+
+      const matchSource =
+        sourceFilter === 'Alle'
+        || (sourceFilter === 'manual' && (!r.lead_source || r.lead_source === 'manual'))
+        || r.lead_source === sourceFilter;
+
+      return matchSearch && matchSource;
     })
     .sort((a, b) => {
       let av = a[sortKey] ?? '';
@@ -109,18 +138,38 @@ export default function Companies() {
             {loading ? 'Lädt…' : `${filtered.length} von ${rows.length} Einträgen`}
           </p>
         </div>
-        <input
-          type="search"
-          placeholder="Suche nach Name, Stadt, URL …"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{
-            padding: '8px 12px', borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-medium)', background: 'var(--bg-surface)',
-            color: 'var(--text-primary)', fontSize: 13, fontFamily: 'var(--font-sans)',
-            outline: 'none', width: 260,
-          }}
-        />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            type="search"
+            placeholder="Suche nach Name, Stadt, URL …"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              padding: '8px 12px', borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-medium)', background: 'var(--bg-surface)',
+              color: 'var(--text-primary)', fontSize: 13, fontFamily: 'var(--font-sans)',
+              outline: 'none', width: 260,
+            }}
+          />
+          <select
+            value={sourceFilter}
+            onChange={e => setSourceFilter(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-light)',
+              background: 'var(--bg-surface)',
+              color: 'var(--text-primary)',
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            <option value="Alle">Alle Quellen</option>
+            <option value="HWK-Muenchen">HWK München</option>
+            <option value="HWK-Rheinhessen">HWK Rheinhessen</option>
+            <option value="manual">Manuell</option>
+          </select>
+        </div>
       </div>
 
       {/* ── Error ──────────────────────────────────────────────────────────── */}
@@ -154,6 +203,7 @@ export default function Companies() {
                   <th style={thStyle('status')} onClick={() => handleSort('status')}>
                     Status <SortIcon k="status" />
                   </th>
+                  <th style={thStyle('lead_source')}>Quelle</th>
                   <th style={{ ...thStyle('analysis_score'), textAlign: 'right' }} onClick={() => handleSort('analysis_score')}>
                     Score <SortIcon k="analysis_score" />
                   </th>
@@ -162,7 +212,7 @@ export default function Companies() {
               <tbody>
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={5} style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, color: 'var(--text-tertiary)' }}>
+                    <td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, color: 'var(--text-tertiary)' }}>
                       Keine Einträge gefunden.
                     </td>
                   </tr>
@@ -245,6 +295,10 @@ export default function Companies() {
                         }}>
                           {row.status || '–'}
                         </span>
+                      </td>
+                      {/* Quelle */}
+                      <td style={{ padding: '12px 14px' }}>
+                        {sourceBadge(row.lead_source)}
                       </td>
                       {/* Score */}
                       <td style={{ padding: '12px 14px', minWidth: 100 }}>

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from typing import Optional
 from database import (
@@ -97,6 +98,60 @@ def _progress_summary(course_id: int, user_id: int, db: Session) -> dict:
     }
 
 
+def _progress_summary_batch(course_ids: list, user_id: int, db: Session) -> dict:
+    """
+    Batch-Variante von _progress_summary — gibt {course_id: {total, completed, progress_pct}}
+    fuer alle uebergebenen course_ids in EINER SQL-Query zurueck.
+
+    Ersetzt N x _progress_summary() (mit jeweils 2 Queries) durch 1 Query
+    mit zwei LEFT JOINs + Aggregation. Wird in list_courses und
+    get_customer_courses verwendet.
+    """
+    if not course_ids:
+        return {}
+
+    rows = db.execute(text("""
+        WITH course_lessons AS (
+            SELECT m.course_id, l.id AS lesson_id
+            FROM academy_lessons l
+            JOIN academy_modules m ON m.id = l.module_id
+            WHERE m.course_id = ANY(:course_ids)
+        )
+        SELECT
+            cl.course_id,
+            COUNT(*) AS total_lessons,
+            COUNT(*) FILTER (
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM academy_progress p
+                    WHERE p.lesson_id = cl.lesson_id
+                      AND p.user_id = :user_id
+                      AND p.completed_at IS NOT NULL
+                )
+            ) AS completed_lessons
+        FROM course_lessons cl
+        GROUP BY cl.course_id
+    """), {
+        "course_ids": list(course_ids),
+        "user_id": user_id,
+    }).fetchall()
+
+    result = {}
+    for r in rows:
+        total = int(r.total_lessons or 0)
+        completed = int(r.completed_lessons or 0)
+        result[r.course_id] = {
+            'total_lessons': total,
+            'completed': completed,
+            'progress_pct': round((completed / total) * 100) if total else 0,
+        }
+    # Courses ohne Lessons fehlen im Result — defaults eintragen
+    for cid in course_ids:
+        if cid not in result:
+            result[cid] = {'total_lessons': 0, 'completed': 0, 'progress_pct': 0}
+    return result
+
+
 # ── Courses ───────────────────────────────────────────────
 
 @router.get('/courses')
@@ -121,12 +176,18 @@ def list_courses(db: Session = Depends(get_db), current_user=Depends(get_current
         )
 
     courses = q.order_by(AcademyCourse.sort_order, AcademyCourse.id).all()
-    result = []
-    for c in courses:
-        data = _serialize_course(c)
-        data['progress'] = _progress_summary(c.id, current_user.id, db)
-        result.append(data)
-    return result
+    if not courses:
+        return []
+
+    # Batch-Progress-Lookup statt N x _progress_summary (N+1 Fix)
+    progress_map = _progress_summary_batch(
+        [c.id for c in courses], current_user.id, db
+    )
+
+    return [
+        {**_serialize_course(c), 'progress': progress_map.get(c.id, {'total_lessons': 0, 'completed': 0, 'progress_pct': 0})}
+        for c in courses
+    ]
 
 
 @router.get('/courses/{course_id}')
@@ -142,16 +203,29 @@ def get_course(course_id: int, db: Session = Depends(get_db), current_user=Depen
         .order_by(AcademyModule.position, AcademyModule.sort_order, AcademyModule.id)
         .all()
     )
-    modules_data = []
-    for m in modules:
-        lessons = (
+
+    # Alle Lessons der Module in einer einzigen Query laden (N+1 Fix)
+    module_ids = [m.id for m in modules]
+    if module_ids:
+        all_lessons = (
             db.query(AcademyLesson)
-            .filter(AcademyLesson.module_id == m.id)
-            .order_by(AcademyLesson.position, AcademyLesson.sort_order, AcademyLesson.id)
+            .filter(AcademyLesson.module_id.in_(module_ids))
+            .order_by(AcademyLesson.module_id, AcademyLesson.position,
+                      AcademyLesson.sort_order, AcademyLesson.id)
             .all()
         )
+    else:
+        all_lessons = []
+
+    # Nach module_id gruppieren
+    lessons_by_module = {}
+    for l in all_lessons:
+        lessons_by_module.setdefault(l.module_id, []).append(l)
+
+    modules_data = []
+    for m in modules:
         mod = _serialize_module(m)
-        mod['lessons'] = [_serialize_lesson(l) for l in lessons]
+        mod['lessons'] = [_serialize_lesson(l) for l in lessons_by_module.get(m.id, [])]
         modules_data.append(mod)
 
     checklist_items = (
@@ -689,19 +763,34 @@ def _gen_cert_code() -> str:
 
 @router.get('/certificates')
 def list_certificates(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    """Alle Zertifikate des aktuellen Users."""
-    certs = db.query(AcademyCertificate).filter(AcademyCertificate.user_id == current_user.id).all()
-    result = []
-    for c in certs:
-        course = db.query(AcademyCourse).filter(AcademyCourse.id == c.course_id).first()
-        result.append({
-            'id': c.id,
-            'course_id': c.course_id,
-            'course_title': course.title if course else '',
-            'issued_at': str(c.issued_at)[:10] if c.issued_at else '',
-            'certificate_code': c.certificate_code,
-        })
-    return result
+    """
+    Alle Zertifikate des aktuellen Users.
+
+    Perf-optimiert: 1 JOIN-Query statt 1 + N (course-Lookup pro cert).
+    """
+    rows = db.execute(text("""
+        SELECT
+            c.id,
+            c.course_id,
+            c.issued_at,
+            c.certificate_code,
+            COALESCE(co.title, '') AS course_title
+        FROM academy_certificates c
+        LEFT JOIN academy_courses co ON co.id = c.course_id
+        WHERE c.user_id = :uid
+        ORDER BY c.issued_at DESC
+    """), {"uid": current_user.id}).fetchall()
+
+    return [
+        {
+            'id': r.id,
+            'course_id': r.course_id,
+            'course_title': r.course_title,
+            'issued_at': str(r.issued_at)[:10] if r.issued_at else '',
+            'certificate_code': r.certificate_code,
+        }
+        for r in rows
+    ]
 
 
 @router.post('/courses/{course_id}/certificate')
@@ -802,32 +891,50 @@ def get_customer_courses(
     db: Session = Depends(get_db),
     current_user=Depends(require_admin),
 ):
-    """Alle Kurse mit Fortschritt und Zertifikat-Status für einen Kunden."""
-    accesses = db.query(AcademyCustomerAccess).filter(
-        AcademyCustomerAccess.customer_id == customer_id
-    ).all()
-    result = []
-    for access in accesses:
-        course = db.query(AcademyCourse).filter(AcademyCourse.id == access.course_id).first()
-        if not course:
-            continue
-        progress = _progress_summary(access.course_id, customer_id, db)
-        cert = db.query(AcademyCertificate).filter(
-            AcademyCertificate.user_id == customer_id,
-            AcademyCertificate.course_id == access.course_id,
-        ).first()
-        result.append({
-            'id': access.id,
-            'course_id': course.id,
-            'course_title': course.title,
-            'course_thumbnail': course.thumbnail_url or '',
-            'assigned_at': str(access.assigned_at)[:10] if access.assigned_at else '',
-            'progress_pct': progress['progress_pct'],
-            'total_lessons': progress['total_lessons'],
-            'completed': progress['completed'],
-            'certificate_code': cert.certificate_code if cert else None,
-        })
-    return result
+    """
+    Alle Kurse mit Fortschritt und Zertifikat-Status fuer einen Kunden.
+
+    Perf-optimiert: 2 Queries total statt 1 + 4N
+      Query 1: access JOIN course JOIN cert (Master-Query)
+      Query 2: _progress_summary_batch fuer alle course_ids
+    """
+    rows = db.execute(text("""
+        SELECT
+            a.id           AS access_id,
+            a.assigned_at  AS assigned_at,
+            co.id          AS course_id,
+            co.title       AS course_title,
+            co.thumbnail_url AS course_thumbnail,
+            cert.certificate_code AS certificate_code
+        FROM academy_customer_access a
+        JOIN academy_courses co ON co.id = a.course_id
+        LEFT JOIN academy_certificates cert
+               ON cert.user_id = a.customer_id
+              AND cert.course_id = a.course_id
+        WHERE a.customer_id = :cid
+        ORDER BY a.assigned_at DESC
+    """), {"cid": customer_id}).fetchall()
+
+    if not rows:
+        return []
+
+    course_ids = [r.course_id for r in rows]
+    progress_map = _progress_summary_batch(course_ids, customer_id, db)
+
+    return [
+        {
+            'id': r.access_id,
+            'course_id': r.course_id,
+            'course_title': r.course_title,
+            'course_thumbnail': r.course_thumbnail or '',
+            'assigned_at': str(r.assigned_at)[:10] if r.assigned_at else '',
+            'progress_pct': progress_map.get(r.course_id, {}).get('progress_pct', 0),
+            'total_lessons': progress_map.get(r.course_id, {}).get('total_lessons', 0),
+            'completed': progress_map.get(r.course_id, {}).get('completed', 0),
+            'certificate_code': r.certificate_code,
+        }
+        for r in rows
+    ]
 
 
 @router.post('/customer/{customer_id}/courses/{course_id}/assign')

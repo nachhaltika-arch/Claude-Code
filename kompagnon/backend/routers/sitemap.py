@@ -172,13 +172,36 @@ PFLICHTSEITEN = [
 
 
 def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
-    """Insert missing Pflichtseiten for a lead (idempotent)."""
+    """Insert missing Pflichtseiten for a lead (idempotent).
+
+    Wird aus GET /{lead_id}, POST /{lead_id}/generate und GET /{lead_id}/pdf
+    aufgerufen. Der Hot-Path ist der GET (wird bei jedem Oeffnen des
+    Sitemap-Tabs getriggert), daher steht eine billige COUNT-Query am Anfang:
+    sobald alle erwarteten Pflichtseiten vorhanden sind, entfaellt das
+    Laden der Namen und das anschliessende COMMIT komplett.
+
+    Langfristig saubere Loesung waere, die Erzeugung in den Lead-Lifecycle
+    zu verschieben (On-Create-Hook) und diesen Aufruf in den Read-Endpoints
+    zu entfernen. Das verlangt jedoch Aenderungen am Lead-Flow und ist
+    ausserhalb des aktuellen Scopes.
+    """
+    # Fast path: Pflichtseiten sind schon vollstaendig da → nichts zu tun.
+    pflicht_count = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.ist_pflichtseite.is_(True))
+        .count()
+    )
+    if pflicht_count >= len(PFLICHTSEITEN):
+        return
+
+    # Slow path: mindestens eine Pflichtseite fehlt — nachtragen.
     existing_names = {
         p.page_name
         for p in db.query(SitemapPage.page_name)
         .filter(SitemapPage.lead_id == lead_id, SitemapPage.ist_pflichtseite.is_(True))
         .all()
     }
+    added = False
     for pf in PFLICHTSEITEN:
         if pf["page_name"] not in existing_names:
             db.add(SitemapPage(
@@ -190,7 +213,9 @@ def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
                 status="geplant",
                 ist_pflichtseite=True,
             ))
-    db.commit()
+            added = True
+    if added:
+        db.commit()
 
 
 # ── Routes ─────────────────────────────────────────────────────────────────────

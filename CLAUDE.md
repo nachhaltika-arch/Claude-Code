@@ -7,7 +7,7 @@ Bevor irgendein Code angefasst wird, führe aus:
 
 Erwartetes Ergebnis:
   origin → https://github.com/nachhaltika-arch/Claude-Code
-  current branch → main
+  current branch → claude/kompagnon-automation-system-FapM9
 
 Falls EINES davon nicht stimmt:
   → STOPPE sofort

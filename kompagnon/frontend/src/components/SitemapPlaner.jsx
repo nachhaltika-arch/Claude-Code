@@ -3,11 +3,49 @@ import API_BASE_URL from '../config';
 
 const SEITENTYPEN = ['Landing', 'Info', 'Leistung', 'Kontakt', 'Blog', 'Sonstiges'];
 
+// ── Mapping zwischen Frontend-State und sitemap.py (System A) ───────────────
+// Frontend hält intern { id, name, typ, keyword, order }.
+// Backend erwartet      { page_name, page_type, ziel_keyword, position }.
+const TYP_TO_BACKEND = {
+  Landing:   'startseite',
+  Info:      'info',
+  Leistung:  'leistung',
+  Kontakt:   'kontakt',
+  Blog:      'blog',
+  Sonstiges: 'sonstiges',
+};
+const BACKEND_TO_TYP = {
+  startseite: 'Landing',
+  landing:    'Landing',
+  info:       'Info',
+  leistung:   'Leistung',
+  kontakt:    'Kontakt',
+  blog:       'Blog',
+};
+const mapTypToBackend = (typ) => TYP_TO_BACKEND[typ] || 'sonstiges';
+const mapTypFromBackend = (pt) => BACKEND_TO_TYP[(pt || '').toLowerCase()] || 'Sonstiges';
+
+const seiteToBackend = (p) => ({
+  page_name:    p.name,
+  page_type:    mapTypToBackend(p.typ),
+  ziel_keyword: p.keyword || '',
+  position:     p.order,
+});
+const seiteFromBackend = (p) => ({
+  id:      p.id,
+  name:    p.page_name || '',
+  typ:     mapTypFromBackend(p.page_type),
+  keyword: p.ziel_keyword || '',
+  order:   p.position ?? 0,
+});
+
+// Lokale (noch nicht persistierte) Seiten tragen negative IDs, damit sie
+// nicht mit echten sitemap_pages-IDs kollidieren.
 const DEFAULT_SEITEN = [
-  { id: 1, name: 'Startseite',  typ: 'Landing',  keyword: 'Sanitär Koblenz', order: 1 },
-  { id: 2, name: 'Leistungen',  typ: 'Leistung', keyword: '',                order: 2 },
-  { id: 3, name: 'Über uns',    typ: 'Info',     keyword: '',                order: 3 },
-  { id: 4, name: 'Kontakt',     typ: 'Kontakt',  keyword: '',                order: 4 },
+  { id: -1, name: 'Startseite',  typ: 'Landing',  keyword: 'Sanitär Koblenz', order: 1 },
+  { id: -2, name: 'Leistungen',  typ: 'Leistung', keyword: '',                order: 2 },
+  { id: -3, name: 'Über uns',    typ: 'Info',     keyword: '',                order: 3 },
+  { id: -4, name: 'Kontakt',     typ: 'Kontakt',  keyword: '',                order: 4 },
 ];
 
 export default function SitemapPlaner({ projectId, leadId, token }) {
@@ -24,7 +62,8 @@ export default function SitemapPlaner({ projectId, leadId, token }) {
   const [msg, setMsg]               = useState('');
   const [dragIdx, setDragIdx]       = useState(null);
   const [dragOver, setDragOver]     = useState(null);
-  const nextId = useRef(100);
+  const nextId = useRef(-100);
+  const savingRef = useRef(false);
 
   // ── Daten laden ──────────────────────────────────────────
   useEffect(() => {
@@ -40,14 +79,16 @@ export default function SitemapPlaner({ projectId, leadId, token }) {
         );
         if (!r.ok) return [];
         const data = await r.json();
-        const wunsch = data?.inhalte?.wunschseiten || '';
+        // Bug 3 fix: Briefing speichert wunschseiten flach unter data.wunschseiten;
+        // ältere Strukturen hatten data.inhalte.wunschseiten. Beide unterstützen.
+        const wunsch = data?.wunschseiten || data?.inhalte?.wunschseiten || '';
         if (!wunsch) return [];
         const zeilen = wunsch
           .split(/[\n,;]+/)
           .map(s => s.trim())
           .filter(Boolean);
         return zeilen.map((name, i) => ({
-          id: nextId.current++,
+          id: nextId.current--,
           name,
           typ: 'Info',
           keyword: '',
@@ -56,22 +97,30 @@ export default function SitemapPlaner({ projectId, leadId, token }) {
       } catch { return []; }
     };
 
+    // Bug 1 fix: Laden kommt jetzt aus sitemap_pages (System A).
+    // Das Projekt-Endpoint wird nur noch für den Freigabe-Zeitstempel gebraucht.
     const loadSitemap = async () => {
       try {
-        const r = await fetch(
-          `${API_BASE_URL}/api/projects/${projectId}/sitemap`,
-          { headers: h }
-        );
-        if (!r.ok) return null;
-        return await r.json();
-      } catch { return null; }
+        if (!leadId) return { pages: [], freigabe: null };
+        const [pagesRes, projectRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/sitemap/${leadId}`, { headers: h }),
+          fetch(`${API_BASE_URL}/api/projects/${projectId}/sitemap`, { headers: h }),
+        ]);
+        const pages = pagesRes.ok ? await pagesRes.json() : [];
+        const proj  = projectRes.ok ? await projectRes.json() : {};
+        return {
+          pages: Array.isArray(pages) ? pages : [],
+          freigabe: proj?.sitemap_freigabe || null,
+        };
+      } catch { return { pages: [], freigabe: null }; }
     };
 
     Promise.all([loadSitemap(), loadBriefingSeiten()])
       .then(([sm, briefingSeiten]) => {
-        if (sm && sm.seiten && sm.seiten.length > 0) {
-          setSeiten(sm.seiten);
-          setFreigabe(sm.sitemap_freigabe || null);
+        if (sm.pages && sm.pages.length > 0) {
+          // Backend → Frontend Feldnamen mappen
+          setSeiten(sm.pages.map(seiteFromBackend));
+          setFreigabe(sm.freigabe);
         } else if (briefingSeiten.length > 0) {
           setSeiten(briefingSeiten);
         } else {
@@ -79,29 +128,88 @@ export default function SitemapPlaner({ projectId, leadId, token }) {
         }
       })
       .finally(() => setLoading(false));
-  }, [projectId]); // eslint-disable-line
+  }, [projectId, leadId]); // eslint-disable-line
 
   // ── Auto-Save debounced ──────────────────────────────────
+  // `saving` ist in den deps, damit nach Abschluss eines laufenden Saves
+  // ein noch ausstehender Edit garantiert einen weiteren Save triggert.
   useEffect(() => {
     if (loading) return;
+    if (savingRef.current) return;
     const t = setTimeout(() => autoSave(), 1200);
     return () => clearTimeout(t);
-  }, [seiten]); // eslint-disable-line
+  }, [seiten, saving]); // eslint-disable-line
 
-  const autoSave = async () => {
-    if (!projectId || saving) return;
+  // Bug 1 fix: Speichern geht jetzt nach sitemap_pages (System A).
+  // sitemap.py hat keinen Bulk-Endpoint, daher diffen wir gegen den
+  // aktuellen Server-Stand und feuern POST/PUT/DELETE einzeln.
+  const syncToBackend = async () => {
+    if (!leadId || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
     try {
-      await fetch(`${API_BASE_URL}/api/projects/${projectId}/sitemap`, {
-        method: 'PATCH',
-        headers: h,
-        body: JSON.stringify({ seiten }),
-      });
+      const r = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}`, { headers: h });
+      if (!r.ok) return;
+      const serverPages = await r.json();
+      const serverById  = new Map(serverPages.map(p => [p.id, p]));
+      const localIds    = new Set(seiten.map(p => p.id));
+
+      // 1. DELETE: auf dem Server, aber nicht mehr lokal. Pflichtseiten
+      //    (ist_pflichtseite = true) ueberspringen — das Backend blockt sie
+      //    ohnehin mit 403.
+      for (const sp of serverPages) {
+        if (sp.ist_pflichtseite) continue;
+        if (!localIds.has(sp.id)) {
+          await fetch(`${API_BASE_URL}/api/sitemap/pages/${sp.id}`, {
+            method: 'DELETE',
+            headers: h,
+          });
+        }
+      }
+
+      // 2. PUT: bekannte Seiten aktualisieren.
+      for (const p of seiten) {
+        if (serverById.has(p.id)) {
+          await fetch(`${API_BASE_URL}/api/sitemap/pages/${p.id}`, {
+            method: 'PUT',
+            headers: h,
+            body: JSON.stringify(seiteToBackend(p)),
+          });
+        }
+      }
+
+      // 3. POST: neue Seiten (negative Temp-IDs). Server gibt echte ID
+      //    zurueck; wir mappen sie lokal.
+      const idMap = {};
+      for (const p of seiten) {
+        if (!serverById.has(p.id)) {
+          const cr = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pages`, {
+            method: 'POST',
+            headers: h,
+            body: JSON.stringify(seiteToBackend(p)),
+          });
+          if (cr.ok) {
+            const created = await cr.json();
+            idMap[p.id] = created.id;
+          }
+        }
+      }
+
+      if (Object.keys(idMap).length > 0) {
+        setSeiten(s => s.map(p => (idMap[p.id] ? { ...p, id: idMap[p.id] } : p)));
+      }
     } catch {}
+    finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
+
+  const autoSave = syncToBackend;
 
   // ── CRUD ─────────────────────────────────────────────────
   const addSeite = () => {
-    const id = nextId.current++;
+    const id = nextId.current--;
     setSeiten(s => [
       ...s,
       { id, name: 'Neue Seite', typ: 'Info', keyword: '', order: s.length + 1 },
@@ -134,6 +242,12 @@ export default function SitemapPlaner({ projectId, leadId, token }) {
     setRequesting(true);
     setMsg('');
     try {
+      // Bug 1 fix: Zuerst nach sitemap_pages synchronisieren,
+      // damit der Freigabestand mit dem tatsaechlich persistierten
+      // Inhalt uebereinstimmt. Das Projekt-Endpoint liefert danach
+      // nur noch den Freigabe-Zeitstempel.
+      await syncToBackend();
+
       const r = await fetch(
         `${API_BASE_URL}/api/projects/${projectId}/freigabe`,
         {
@@ -141,7 +255,7 @@ export default function SitemapPlaner({ projectId, leadId, token }) {
           headers: h,
           body: JSON.stringify({
             typ:         'sitemap',
-            seiten,
+            seiten:      [],
             zeitstempel: new Date().toISOString(),
           }),
         }

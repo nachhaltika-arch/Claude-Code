@@ -1432,15 +1432,22 @@ export default function ProjectDetail() {
     const [audits, pagespeed, crawler, briefing] = await Promise.allSettled([
       fetch(`${API_BASE_URL}/api/audit/lead/${leadId}`, { headers }).then(r => r.json()),
       fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers }).then(r => r.json()),
-      fetch(`${API_BASE_URL}/api/crawler/${leadId}`, { headers }).then(r => r.json()),
+      // Bug 2: Der alte /api/crawler/{id}-Endpoint existiert nicht (404).
+      // /content/{id} liefert ein flaches Array [{url, title, h1, ...}]
+      // mit echten Page-Titles aus dem website_content_cache.
+      fetch(`${API_BASE_URL}/api/crawler/content/${leadId}`, { headers }).then(r => r.json()),
       fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers }).then(r => r.json()),
     ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null));
     const latestAudit = Array.isArray(audits) ? audits[0] : null;
     return {
       audit_score: latestAudit?.total_score || null,
-      audit_problems: latestAudit?.top_problems || [],
+      // Bug 1: Audit-Response feldname ist top_issues, nicht top_problems.
+      audit_problems: latestAudit?.top_issues || [],
       pagespeed_mobile: pagespeed?.mobile_score || null,
       crawler_pages: Array.isArray(crawler) ? crawler.length : 0,
+      crawler_titles: Array.isArray(crawler)
+        ? crawler.slice(0, 5).map(p => p.title || p.h1 || p.url).filter(Boolean)
+        : [],
       briefing_usp: typeof briefing?.usp === 'string' ? briefing.usp : '',
       briefing_leistungen: typeof briefing?.leistungen === 'string' ? briefing.leistungen : '',
       briefing_zielgruppe: typeof briefing?.zielgruppe === 'string' ? briefing.zielgruppe : '',

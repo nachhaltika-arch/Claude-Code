@@ -1330,7 +1330,9 @@ export default function CustomerDetail() {
     const results = await Promise.allSettled([
       fetch(`${API_BASE_URL}/api/audit/lead/${lid}`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE_URL}/api/leads/${lid}/pagespeed`, { headers: h }).then(r => r.json()),
-      fetch(`${API_BASE_URL}/api/crawler/${lid}`, { headers: h }).then(r => r.json()),
+      // Bug 2: /api/crawler/{id} existiert nicht — /content/{id} liefert
+      // das flache Array mit Titles aus website_content_cache.
+      fetch(`${API_BASE_URL}/api/crawler/content/${lid}`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE_URL}/api/briefings/${lid}`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE_URL}/api/branddesign/${lid}`, { headers: h }).then(r => r.json()),
     ]);
@@ -1340,12 +1342,13 @@ export default function CustomerDetail() {
     const latestAudit = Array.isArray(audits) ? audits[0] : null;
     return {
       audit_score:          latestAudit?.total_score || null,
-      audit_problems:       latestAudit?.top_problems || [],
+      // Bug 1: Audit-Response heisst top_issues, nicht top_problems.
+      audit_problems:       latestAudit?.top_issues || [],
       audit_summary:        latestAudit?.ai_summary || '',
       pagespeed_mobile:     pagespeed?.mobile_score || null,
       pagespeed_desktop:    pagespeed?.desktop_score || null,
       crawler_pages:        Array.isArray(crawler) ? crawler.length : 0,
-      crawler_titles:       Array.isArray(crawler) ? crawler.slice(0, 5).map(p => p.title).filter(Boolean) : [],
+      crawler_titles:       Array.isArray(crawler) ? crawler.slice(0, 5).map(p => p.title || p.h1 || p.url).filter(Boolean) : [],
       briefing_usp:         briefing?.usp || '',
       briefing_leistungen:  briefing?.leistungen || '',
       briefing_zielgruppe:  briefing?.zielgruppe || '',

@@ -1011,6 +1011,15 @@ MIGRATIONS = [
         # projects.status — fuer WHERE p.status = ANY(...) Filter der aktiven Phasen:
         "CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)",
     ]),
+
+    (4, "add_audit_status_date_index", [
+        # audit_results(status, created_at DESC) — fuer /api/audit/recent
+        # (WHERE status = 'completed' ORDER BY created_at DESC LIMIT N).
+        # Der bestehende v2-Index idx_audit_lead_status_date hat lead_id als
+        # fuehrende Spalte und kann daher ohne WHERE lead_id nicht sauber
+        # benutzt werden.
+        "CREATE INDEX IF NOT EXISTS idx_audit_status_date ON audit_results(status, created_at DESC)",
+    ]),
 ]
 
 

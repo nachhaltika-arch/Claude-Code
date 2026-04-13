@@ -15,6 +15,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import Response
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -629,20 +630,43 @@ def get_recent_audits(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(require_any_auth),
 ):
-    """Return the most recent completed audits, newest first."""
-    query = db.query(AuditResult).filter(AuditResult.status == "completed")
-    # Kunde role: only own audits
+    """
+    Return the most recent completed audits, newest first.
+
+    Perf-optimiert: raw SQL mit expliziter Spalten-Liste statt `db.query(AuditResult)`,
+    das vorher alle ~60 Spalten (inkl. screenshot_base64 mit ~100 KB pro Row)
+    per ORM geladen hat — nur um 7 Felder zurueckzugeben. Das war der
+    Hauptgrund fuer die 3,6 s Antwortzeit.
+
+    Index: idx_audit_status_date auf audit_results(status, created_at DESC)
+    macht den Scan+Sort konstant schnell (db_migrations v4).
+    """
+    # Kunde role: only own audits — wenn kein lead_id, leeres Ergebnis
+    kunde_lead_id: Optional[int] = None
     if current_user and current_user.role == "kunde":
         if not current_user.lead_id:
             return []
-        query = query.filter(AuditResult.lead_id == current_user.lead_id)
-    audits = (
-        query
-        .order_by(AuditResult.created_at.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+        kunde_lead_id = current_user.lead_id
+
+    if kunde_lead_id is not None:
+        rows = db.execute(text("""
+            SELECT id, website_url, company_name, total_score, level, lead_id, created_at
+            FROM audit_results
+            WHERE status = 'completed' AND lead_id = :lid
+            ORDER BY created_at DESC
+            OFFSET :skip
+            LIMIT :lim
+        """), {"lid": kunde_lead_id, "skip": skip, "lim": limit}).fetchall()
+    else:
+        rows = db.execute(text("""
+            SELECT id, website_url, company_name, total_score, level, lead_id, created_at
+            FROM audit_results
+            WHERE status = 'completed'
+            ORDER BY created_at DESC
+            OFFSET :skip
+            LIMIT :lim
+        """), {"skip": skip, "lim": limit}).fetchall()
+
     return [
         {
             "id": a.id,
@@ -653,7 +677,7 @@ def get_recent_audits(
             "lead_id": a.lead_id,
             "created_at": a.created_at.isoformat() if a.created_at else None,
         }
-        for a in audits
+        for a in rows
     ]
 
 

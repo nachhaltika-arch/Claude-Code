@@ -193,7 +193,15 @@ def run_content_agent(
     briefing: ContentBriefing,
     db: Session = Depends(get_db),
 ):
-    """Run content writer agent synchronously. Returns result directly."""
+    """Start content writer as background job. Returns {job_id} for polling.
+
+    Der Content-Agent laeuft via _run_content_job in einem daemon-Thread und
+    schreibt Status + Ergebnis in das modulglobale _jobs-Dict. Das Frontend
+    pollt danach GET /api/agents/jobs/{job_id} bis status == "done"/"error".
+    Der synchrone Antwortpfad war historisch ein Drift — alle drei Frontends
+    (LeadProfile, ProjectDetail, CustomerDetail) sind bereits auf job_id-
+    Polling aufgebaut, nur das Backend gab keinen job_id heraus.
+    """
     # Wenn lead_id vorhanden: Daten aus DB ergänzen
     if briefing.lead_id:
         from database import Lead, Briefing as BriefingModel
@@ -251,35 +259,27 @@ def run_content_agent(
     project = db.query(Project).filter(Project.id == project_id).first()
 
     briefing_dict = briefing.dict()
+    use_mock = not os.getenv("ANTHROPIC_API_KEY")
 
-    try:
-        use_mock = not os.getenv("ANTHROPIC_API_KEY")
-        if not use_mock:
-            from agents import ContentWriterAgent
-            agent = ContentWriterAgent()
-            result = agent.write_content(briefing_dict)
-        else:
-            from agents import ContentWriterAgent
-            result = ContentWriterAgent.get_mock_content(
-                briefing.company_name,
-                briefing.city,
-                briefing.trade,
-            )
-
-        if "error" in result:
-            raise HTTPException(status_code=500, detail=result["error"])
-
-        return {
-            "project_id": project_id,
-            "agent": "ContentWriterAgent",
-            "result": result,
-            "status": "success",
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"ContentWriterAgent failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Agent fehlgeschlagen")
+    # Background-Thread starten. _run_content_job uebernimmt Fehlerbehandlung
+    # und schreibt alles Wichtige in _jobs[job_id]. Synchrone Exceptions aus
+    # dem Thread-Start selbst sind praktisch nur MemoryError — die bubblen
+    # als 500 hoch, was OK ist.
+    job_id = str(uuid.uuid4())
+    _jobs[job_id] = {"status": "running"}
+    threading.Thread(
+        target=_run_content_job,
+        args=(
+            job_id,
+            briefing_dict,
+            use_mock,
+            briefing.company_name,
+            briefing.city,
+            briefing.trade,
+        ),
+        daemon=True,
+    ).start()
+    return {"job_id": job_id}
 
 
 @router.get("/jobs/{job_id}")

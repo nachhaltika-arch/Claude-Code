@@ -88,6 +88,26 @@ const SECTIONS = [
 
 ];
 
+// Mapping: JSON-Sektion.Feld → flache Spalte im Briefing-Model (FLAT_FIELDS).
+// Beim Speichern werden alle vorhandenen Werte aus den JSON-Sektionen zusaetzlich
+// in die flachen Spalten gespiegelt, damit Wizard + PDF denselben Datenstand sehen.
+const SECTION_TO_FLAT = [
+  ['projektrahmen',  'branche',     'gewerk'],
+  ['positionierung', 'hauptziel',   'leistungen'],
+  ['zielgruppe',     'region',      'einzugsgebiet'],
+  ['wettbewerb',     'usp',         'usp'],
+  ['wettbewerb',     'mitbewerber', 'mitbewerber'],
+  ['wettbewerb',     'vorbilder',   'vorbilder'],
+  ['branding',       'stil',        'stil'],
+  ['branding',       'farben',      'farben'],
+  ['inhalte',        'seiten',      'wunschseiten'],
+];
+
+const ALL_JSON_SECTIONS = [
+  'projektrahmen', 'positionierung', 'zielgruppe', 'wettbewerb', 'inhalte',
+  'funktionen', 'branding', 'struktur', 'hosting', 'seo', 'projektplan', 'freigaben',
+];
+
 const FREIGABEN = [
   { key: 'auftragserteilung',    label: 'Auftragserteilung & Anzahlung',         phase: '1.0' },
   { key: 'assets_geliefert',     label: 'Logo, Fotos & Texte eingegangen',        phase: '1.2' },
@@ -164,13 +184,45 @@ export default function BriefingTab({ lead, isMobile }) {
     finally { setLoading(false); }
   };
 
-  const saveSection = async (sectionId) => {
+  // Baut aus localData ein FLACHES Payload fuer PUT /api/briefings/{lead_id}.
+  // Backend briefings.py kennt nur FLAT_FIELDS — nested JSON-Sektionen wuerden ignoriert.
+  const buildFlatPayload = () => {
+    const flat = {};
+    for (const [section, key, flatKey] of SECTION_TO_FLAT) {
+      const v = (localData[section] || {})[key];
+      if (v !== undefined && v !== null && v !== '') flat[flatKey] = v;
+    }
+    const logo = (localData.funktionen || {}).logo;
+    if (typeof logo === 'string' && logo.length > 0) flat.logo_vorhanden = logo.startsWith('Ja');
+    const fotos = (localData.funktionen || {}).fotos;
+    if (typeof fotos === 'string' && fotos.length > 0) flat.fotos_vorhanden = fotos.startsWith('Ja');
+    return flat;
+  };
+
+  const saveSection = async (_sectionId) => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/briefings/${lead.id}`, {
-        method: 'PATCH', headers: h, body: JSON.stringify({ [sectionId]: localData[sectionId] || {} }),
+      // 1) JSON-Sektionen persistieren (briefing.py PATCH) — alle Sektionen auf einmal,
+      //    nicht nur die aktuelle, damit unveroeffentlichte Edits aus anderen Tabs nicht verloren gehen.
+      const sectionPayload = {};
+      for (const sec of ALL_JSON_SECTIONS) {
+        if (localData[sec] !== undefined) sectionPayload[sec] = localData[sec] || {};
+      }
+      const patchRes = await fetch(`${API_BASE_URL}/api/briefings/${lead.id}`, {
+        method: 'PATCH', headers: h, body: JSON.stringify(sectionPayload),
       });
-      if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); }
+
+      // 2) Flache Spalten spiegeln (briefings.py PUT) — so sehen Wizard und PDF denselben Stand.
+      const flat = buildFlatPayload();
+      let putOk = true;
+      if (Object.keys(flat).length > 0) {
+        const putRes = await fetch(`${API_BASE_URL}/api/briefings/${lead.id}`, {
+          method: 'PUT', headers: h, body: JSON.stringify(flat),
+        });
+        putOk = putRes.ok;
+      }
+
+      if (patchRes.ok && putOk) { setSaved(true); setTimeout(() => setSaved(false), 2000); }
     } catch (e) { console.error(e); }
     finally { setSaving(false); }
   };
@@ -493,6 +545,17 @@ export default function BriefingTab({ lead, isMobile }) {
                             );
                           })}
                         </div>
+                      ) : (field.type === 'select' || field.type === 'dropdown') && field.options ? (
+                        <select
+                          value={val}
+                          onChange={e => updateField(activeSection, field.key, e.target.value)}
+                          style={{ ...inputStyle, appearance: 'auto' }}
+                        >
+                          <option value="">— bitte wählen —</option>
+                          {field.options.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
                       ) : field.options ? (
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {field.options.map(opt => (

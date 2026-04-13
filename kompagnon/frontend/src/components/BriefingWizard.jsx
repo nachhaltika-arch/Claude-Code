@@ -646,7 +646,9 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
     setSaving(true);
     setSaveError('');
     try {
-      const token = sessionStorage.getItem('kompagnon_token');
+      // Nach Fix 14 Phase 2 wird Auth ueber httpOnly-Cookie getragen — sessionStorage
+      // ist leer. Wir verwenden den `token` aus useAuth() (siehe oben), der aus dem
+      // AuthContext kommt, und lassen den monkey-patched fetch die Cookies anhaengen.
       const payload = {
         gewerk:            data.gewerk,
         wz_code:           data.wz_code,
@@ -724,9 +726,11 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
   const autoSave = async () => {
     setAutoSaveStatus('saving');
     try {
-      const t = sessionStorage.getItem('kompagnon_token');
+      // Token aus useAuth()-Context (oben destrukturiert). Nach Fix 14 Phase 2
+      // wird der tatsaechliche Auth-Kontext via httpOnly-Cookie vom monkey-patched
+      // fetch uebertragen — dieser Header ist nur noch eine Best-Effort-Beigabe.
       await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        method: 'POST', headers: suggestHeaders,
         body: JSON.stringify(buildPayload()),
       });
       setAutoSaveStatus('saved');
@@ -749,9 +753,9 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
   const handleSaveOnly = async () => {
     setSaving(true); setSaveError('');
     try {
-      const t = sessionStorage.getItem('kompagnon_token');
+      // Token aus useAuth()-Context; Cookie-Auth uebernimmt die eigentliche Pruefung.
       const res = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        method: 'POST', headers: suggestHeaders,
         body: JSON.stringify(buildPayload()),
       });
       if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Fehler');

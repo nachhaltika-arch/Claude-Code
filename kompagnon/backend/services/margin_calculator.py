@@ -2,6 +2,7 @@
 Real-time margin calculator for KOMPAGNON projects.
 Margin target: 78% (minimum 70%)
 """
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database import Project, TimeTracking
 from typing import Dict, Optional
@@ -138,36 +139,78 @@ class MarginCalculator:
 
     @staticmethod
     def get_margin_summary(db: Session) -> Dict:
-        """Get overall margin statistics for dashboard."""
-        margins_data = MarginCalculator.get_all_margins(db)
+        """
+        Get overall margin statistics for dashboard — optimiert auf EINE Query.
 
-        if not margins_data:
+        Vorher: get_all_margins(db) → fuer jedes Projekt 2 Queries
+                (Projekt re-laden + time_tracking laden) → 1 + 2N Queries
+                + voller ORM-Overhead (50+ Spalten pro Projekt)
+
+        Nachher: eine einzige Aggregation mit LEFT JOIN auf time_tracking,
+                 SUM im SQL, Margin-Berechnung im SQL, Zaehl-Aggregation
+                 ueber die Result-Row. Keine ORM-Objekte.
+
+        Das Ergebnis ist identisch zur alten Version.
+        """
+        active_phases = ('phase_1', 'phase_2', 'phase_3', 'phase_4',
+                         'phase_5', 'phase_6', 'phase_7')
+
+        row = db.execute(text("""
+            WITH project_costs AS (
+                SELECT
+                    p.id,
+                    COALESCE(p.fixed_price, :default_price) AS fixed_price,
+                    COALESCE(p.hourly_rate, :default_rate)  AS hourly_rate,
+                    COALESCE(p.ai_tool_costs, :default_ai)  AS ai_costs,
+                    COALESCE(
+                        SUM(CASE WHEN t.logged_by <> 'KI' THEN t.hours ELSE 0 END),
+                        0
+                    ) AS human_hours
+                FROM projects p
+                LEFT JOIN time_tracking t ON t.project_id = p.id
+                WHERE p.status = ANY(:active_phases)
+                GROUP BY p.id, p.fixed_price, p.hourly_rate, p.ai_tool_costs
+            ),
+            project_margins AS (
+                SELECT
+                    id,
+                    fixed_price,
+                    CASE
+                        WHEN fixed_price > 0 THEN
+                            ((fixed_price - (human_hours * hourly_rate + ai_costs))
+                             / fixed_price) * 100
+                        ELSE 0
+                    END AS margin_percent
+                FROM project_costs
+            )
+            SELECT
+                COUNT(*)                                         AS active_projects,
+                COALESCE(AVG(margin_percent), 0)                 AS average_margin_percent,
+                SUM(CASE WHEN margin_percent >= :target THEN 1 ELSE 0 END) AS projects_in_target,
+                SUM(CASE WHEN margin_percent <  :min_accept THEN 1 ELSE 0 END) AS projects_at_risk
+            FROM project_margins
+        """), {
+            "default_price": MarginCalculator.FIXED_PRICE,
+            "default_rate":  MarginCalculator.DEFAULT_HOURLY_RATE,
+            "default_ai":    MarginCalculator.DEFAULT_AI_COSTS,
+            "active_phases": list(active_phases),
+            "target":        MarginCalculator.TARGET_MARGIN_PERCENT,
+            "min_accept":    MarginCalculator.MIN_ACCEPTABLE_MARGIN_PERCENT,
+        }).fetchone()
+
+        if not row or row.active_projects == 0:
             return {
                 "active_projects": 0,
                 "average_margin_percent": 0,
                 "projects_in_target": 0,
                 "projects_at_risk": 0,
             }
-
-        valid_margins = [m for m in margins_data.values() if "error" not in m]
-
-        if not valid_margins:
-            return {
-                "active_projects": 0,
-                "average_margin_percent": 0,
-                "projects_in_target": 0,
-                "projects_at_risk": 0,
-            }
-
-        average_margin = sum(m["margin_percent"] for m in valid_margins) / len(valid_margins)
-        projects_in_target = sum(1 for m in valid_margins if m["status"] == "green")
-        projects_at_risk = sum(1 for m in valid_margins if m["status"] == "red")
 
         return {
-            "active_projects": len(valid_margins),
-            "average_margin_percent": round(average_margin, 1),
-            "projects_in_target": projects_in_target,
-            "projects_at_risk": projects_at_risk,
+            "active_projects":        int(row.active_projects),
+            "average_margin_percent": round(float(row.average_margin_percent), 1),
+            "projects_in_target":     int(row.projects_in_target or 0),
+            "projects_at_risk":       int(row.projects_at_risk or 0),
         }
 
     @staticmethod

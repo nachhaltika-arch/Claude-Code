@@ -1004,6 +1004,13 @@ MIGRATIONS = [
         # Lead-Suche nach lead_source (fuer Kampagnen-/Herkunfts-Filter):
         "CREATE INDEX IF NOT EXISTS idx_leads_source ON leads(lead_source)",
     ]),
+
+    (3, "add_margin_summary_indexes", [
+        # time_tracking.project_id — fuer LEFT JOIN in get_margin_summary():
+        "CREATE INDEX IF NOT EXISTS idx_time_tracking_project ON time_tracking(project_id)",
+        # projects.status — fuer WHERE p.status = ANY(...) Filter der aktiven Phasen:
+        "CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)",
+    ]),
 ]
 
 

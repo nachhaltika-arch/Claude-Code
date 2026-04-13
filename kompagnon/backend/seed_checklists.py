@@ -1,9 +1,22 @@
 """
-Seed script to populate ProjectChecklist with all 7-phase items.
-Run once after database creation: python seed_checklists.py
+Checklist-Templates fuer neue Projekte.
+
+HINWEIS zum Design:
+  - CHECKLIST_TEMPLATES ist das Template-Dict (Phase → Liste von Items)
+    und wird von `create_project_checklists(db, project_id)` genutzt,
+    um fuer jedes NEU angelegte Projekt eine Checkliste zu erstellen.
+  - `seed_checklists()` (frueher ein Bulk-Seed-Script) ist DEAD CODE —
+    die Tabelle `project_checklists` verlangt `project_id NOT NULL`,
+    daher lassen sich keine Template-Zeilen "auf Vorrat" anlegen.
+    Die Funktion bleibt als No-Op erhalten fuer Rueckwaerts-
+    Kompatibilitaet der Imports (main.py:43).
 """
+import logging
+
 from database import SessionLocal, init_db, ProjectChecklist
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 # Phase 1: Onboarding (Erstkontakt bis Vertragsabschluss)
 PHASE_1 = [
@@ -112,32 +125,19 @@ CHECKLIST_TEMPLATES = {
 
 
 def seed_checklists():
-    """Create all checklist items for a new project."""
-    db = SessionLocal()
-    try:
-        for phase, items in CHECKLIST_TEMPLATES.items():
-            for item_key, item_label, responsible, is_critical in items:
-                # Check if already exists (to prevent duplicates)
-                existing = db.query(ProjectChecklist).filter_by(
-                    phase=phase, item_key=item_key
-                ).first()
-                if not existing:
-                    checklist = ProjectChecklist(
-                        phase=phase,
-                        item_key=item_key,
-                        item_label=item_label,
-                        responsible=responsible,
-                        is_critical=is_critical,
-                        is_completed=False,
-                    )
-                    db.add(checklist)
-        db.commit()
-        print("✓ Checklisten erfolgreich gepopuliert")
-    except Exception as e:
-        db.rollback()
-        print(f"✗ Fehler beim Seeding: {e}")
-    finally:
-        db.close()
+    """
+    Dead-Code No-Op (war frueher ein Bulk-Seed, crashte aber gegen
+    `project_checklists.project_id NOT NULL`).
+
+    Checklisten werden heute **pro Projekt** angelegt — sobald ein
+    neues Projekt erstellt wird, ruft der Router `create_project_checklists(
+    db, project_id)` auf. Siehe routers/payments.py und routers/leads.py.
+
+    Die Funktion existiert nur noch als Import-Kompatibilitaets-Stub
+    (main.py:43 importiert den Namen).
+    """
+    logger.info("seed_checklists() is a no-op — per-project checklists werden via create_project_checklists() erstellt")
+    return {"seeded": 0, "skipped": True, "reason": "per-project checklist flow"}
 
 
 def create_project_checklists(db, project_id: int):
@@ -158,6 +158,8 @@ def create_project_checklists(db, project_id: int):
 
 
 if __name__ == "__main__":
-    init_db()
-    seed_checklists()
-    print("\n📋 Datenbank initialisiert und Checklisten eingespeichert!")
+    # Bewusst leer — das alte Bulk-Seed-Script funktionierte nicht mehr.
+    # Wer die Tabellen nur anlegen will:  python3 -c "from database import init_db; init_db()"
+    print("seed_checklists.py ist deprecated als Standalone-Script.")
+    print("Checklisten werden pro-Projekt via create_project_checklists() erstellt.")
+

@@ -15,10 +15,10 @@ Falls EINES davon nicht stimmt:
   → Führe NICHTS aus bis der Nutzer bestätigt
 
 ## Branch-Regel
-- Immer auf Branch: main
+- Immer auf Branch: claude/kompagnon-automation-system-FapM9
 - NIE automatisch neue Branches erstellen
 - NIE auf claude/* Branches pushen
-- Nach jedem Commit sofort: git push origin main
+- Nach jedem Commit sofort: git push origin claude/kompagnon-automation-system-FapM9
 
 ## Repo-Regel
 - Einziges erlaubtes Repo: nachhaltika-arch/Claude-Code
@@ -28,4 +28,4 @@ Falls EINES davon nicht stimmt:
 ## Commit-Regel
 - Nach jedem Prompt: genau ein Commit + sofortiger Push
 - Commit-Message immer auf Englisch
-- Branch immer main
+- Branch immer claude/kompagnon-automation-system-FapM9

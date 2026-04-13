@@ -196,7 +196,7 @@ def run_content_agent(
     """Run content writer agent synchronously. Returns result directly."""
     # Wenn lead_id vorhanden: Daten aus DB ergänzen
     if briefing.lead_id:
-        from database import Lead
+        from database import Lead, Briefing as BriefingModel
         lead = db.query(Lead).filter(Lead.id == briefing.lead_id).first()
         if lead:
             if not briefing.company_name:
@@ -205,6 +205,47 @@ def run_content_agent(
                 briefing.city = lead.city or ""
             if not briefing.trade:
                 briefing.trade = lead.trade or ""
+
+            # Bug 4: Briefing-Daten als Fallback laden, damit usp / services /
+            # target_audience auch dann korrekt befuellt sind, wenn das
+            # Frontend mit unvollstaendigem Payload ankommt (z.B. wegen eines
+            # Briefing-Save-Fehlers oder leerem localStorage).
+            db_briefing = db.query(BriefingModel).filter(
+                BriefingModel.lead_id == briefing.lead_id
+            ).first()
+            if db_briefing:
+                if not briefing.usp and db_briefing.usp:
+                    briefing.usp = db_briefing.usp
+                if not briefing.briefing_leistungen and db_briefing.leistungen:
+                    briefing.briefing_leistungen = db_briefing.leistungen
+                if not briefing.services and db_briefing.leistungen:
+                    import re
+                    parts = [
+                        s.strip()
+                        for s in re.split(r'[\n,]+', db_briefing.leistungen or '')
+                        if s.strip()
+                    ]
+                    briefing.services = parts or [lead.trade or 'Handwerk']
+                # target_audience: zielgruppe im DB kann String oder JSON-dict sein.
+                if not briefing.target_audience and db_briefing.zielgruppe:
+                    raw = db_briefing.zielgruppe or ''
+                    if raw and raw != '{}':
+                        audience = ''
+                        try:
+                            import json
+                            parsed = json.loads(raw)
+                            if isinstance(parsed, dict):
+                                audience = parsed.get('analyse') \
+                                    or parsed.get('beschreibung') \
+                                    or parsed.get('text') or ''
+                            elif isinstance(parsed, str):
+                                audience = parsed
+                        except (ValueError, TypeError):
+                            audience = raw
+                        if audience:
+                            briefing.target_audience = audience
+                if not briefing.briefing_zielgruppe and db_briefing.zielgruppe:
+                    briefing.briefing_zielgruppe = db_briefing.zielgruppe
 
     # Wenn Projekt-ID nicht gefunden: trotzdem weitermachen mit Lead-Daten
     project = db.query(Project).filter(Project.id == project_id).first()

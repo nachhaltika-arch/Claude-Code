@@ -168,6 +168,8 @@ export default function LeadProfile() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [designSitemapPages, setDesignSitemapPages] = useState([]);
+  const [designSelectedPageId, setDesignSelectedPageId] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
   const [editingName, setEditingName] = useState(false);
@@ -364,6 +366,25 @@ export default function LeadProfile() {
     if (activeTab === 'emails') loadEmailData();
   }, [activeTab]); // eslint-disable-line
 
+  // Design-Tab: Sitemap-Seiten laden, damit generateDesign page_name/zweck
+  // aus der tatsaechlich gewaehlten Seite beziehen kann (Bug 1).
+  useEffect(() => {
+    if (activeTab !== 'design' || !leadId) return;
+    (async () => {
+      try {
+        const r = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}`, { headers: h });
+        if (!r.ok) return;
+        const pages = await r.json();
+        if (!Array.isArray(pages)) return;
+        setDesignSitemapPages(pages);
+        // Default: Startseite bevorzugen, sonst erste Nicht-Pflichtseite.
+        const content = pages.filter(p => !p.ist_pflichtseite);
+        const start = content.find(p => (p.page_type || '').toLowerCase() === 'startseite') || content[0];
+        if (start) setDesignSelectedPageId(prev => prev ?? start.id);
+      } catch { /* silent */ }
+    })();
+  }, [activeTab, leadId]); // eslint-disable-line
+
   const loadEmailData = async () => {
     setEmailLoading(true);
     try {
@@ -526,21 +547,47 @@ export default function LeadProfile() {
 
       const lead = profile?.lead;
 
+      // Bug 2: zielgruppe kann String oder Objekt ({analyse, ...}) sein.
+      // String(object) -> "[object Object]" war der alte Payload-Muell.
+      const extractZielgruppe = (z) => {
+        if (!z) return '';
+        if (typeof z === 'string') return z === '{}' ? '' : z;
+        if (typeof z === 'object') {
+          return z.analyse || z.beschreibung || z.text || '';
+        }
+        return '';
+      };
+
+      // Bug 3: services brauchen einen Fallback, falls briefing.leistungen
+      // leer oder noch nicht gespeichert ist. Sonst erfindet die KI Leistungen.
+      const rawLeistungen = briefing?.leistungen;
+      const serviceList = Array.isArray(rawLeistungen)
+        ? rawLeistungen.map(String).filter(Boolean)
+        : typeof rawLeistungen === 'string' && rawLeistungen.trim()
+          ? rawLeistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+          : [];
+      const finalServices = serviceList.length > 0
+        ? serviceList
+        : [briefing?.gewerk || lead?.trade || 'Handwerk'].filter(Boolean);
+
+      // Bug 1: page_name war hardcoded 'Startseite'. Jetzt aus
+      // designSitemapPages + designSelectedPageId die aktive Seite ziehen.
+      const selectedPage =
+        designSitemapPages.find(p => p.id === designSelectedPageId) || null;
+
       const payload = {
+        // Bug 5: lead_id muss mit, sonst greift der Backend-Autofill nicht.
+        lead_id: leadId ? Number(leadId) : null,
         company_name: String(lead?.display_name || lead?.company_name || ''),
         city: String(briefing?.einzugsgebiet || lead?.city || ''),
         trade: String(briefing?.gewerk || lead?.trade || ''),
         usp: String(briefing?.usp || ''),
-        services: Array.isArray(briefing?.leistungen)
-          ? briefing.leistungen.map(String)
-          : typeof briefing?.leistungen === 'string'
-            ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
-            : [],
-        target_audience: String(briefing?.zielgruppe || ''),
-        page_name: 'Startseite',
-        zweck: '',
-        ziel_keyword: '',
-        cta_text: '',
+        services: finalServices,
+        target_audience: extractZielgruppe(briefing?.zielgruppe),
+        page_name:    String(selectedPage?.page_name    || 'Startseite'),
+        zweck:        String(selectedPage?.zweck        || ''),
+        ziel_keyword: String(selectedPage?.ziel_keyword || ''),
+        cta_text:     String(selectedPage?.cta_text     || ''),
       };
       console.log('Design payload:', JSON.stringify(payload, null, 2));
 
@@ -2005,6 +2052,28 @@ export default function LeadProfile() {
             {!projectId && (
               <div style={{ background: '#FFF9E6', border: '1px solid #F5D87A', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92660A', marginBottom: 12 }}>
                 Für den KI-Entwurf wird ein Projekt benötigt. Bitte zuerst ein Projekt anlegen.
+              </div>
+            )}
+            {/* Seiten-Picker — bestimmt welche Sitemap-Seite generiert wird (Bug 1) */}
+            {designSitemapPages.filter(p => !p.ist_pflichtseite).length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>
+                  Seite
+                </div>
+                <select
+                  value={designSelectedPageId || ''}
+                  onChange={e => setDesignSelectedPageId(Number(e.target.value) || null)}
+                  disabled={designRunning}
+                  style={{ padding: '7px 10px', fontSize: 13, border: '1px solid var(--border-light)', borderRadius: 6, background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'inherit', minWidth: 220 }}
+                >
+                  {designSitemapPages
+                    .filter(p => !p.ist_pflichtseite)
+                    .map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.page_name}
+                      </option>
+                    ))}
+                </select>
               </div>
             )}
             <button

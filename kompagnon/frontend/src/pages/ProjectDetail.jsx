@@ -1454,18 +1454,41 @@ export default function ProjectDetail() {
 
       const city = briefing?.einzugsgebiet || project.city || '';
       const trade = briefing?.gewerk || project.trade || project.industry || '';
-      const services = Array.isArray(briefing?.leistungen)
-        ? briefing.leistungen.map(String)
-        : typeof briefing?.leistungen === 'string'
-          ? briefing.leistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
-          : (trade ? [trade] : ['Handwerk']);
+
+      // Bug 3: services-Fallback greift auch bei leerem Array/leerem String —
+      // vorher nur bei null/undefined, was '' und [] durchrutschen liess.
+      const rawLeistungen = briefing?.leistungen;
+      const serviceList = Array.isArray(rawLeistungen)
+        ? rawLeistungen.map(String).filter(Boolean)
+        : typeof rawLeistungen === 'string' && rawLeistungen.trim()
+          ? rawLeistungen.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+          : [];
+      const services = serviceList.length > 0
+        ? serviceList
+        : [trade || 'Handwerk'].filter(Boolean);
+
+      // Bug 2: zielgruppe kann ein Objekt (Legacy-JSON-Sektion) sein —
+      // String({...}) -> "[object Object]". Analyse-Feld rausziehen.
+      const extractZielgruppe = (z) => {
+        if (!z) return '';
+        if (typeof z === 'string') return z === '{}' ? '' : z;
+        if (typeof z === 'object') {
+          return z.analyse || z.beschreibung || z.text || '';
+        }
+        return '';
+      };
+      const audience = extractZielgruppe(briefing?.zielgruppe)
+        || (city ? `Kunden in ${city}` : 'Lokale Kunden');
+
       const payload = {
+        // Bug 5: lead_id muss mit, sonst greift der Backend-Autofill nicht.
+        lead_id: project?.lead_id || null,
         company_name: String(project.company_name || ''),
         city: String(city),
         trade: String(trade),
         usp: String(briefing?.usp || ''),
         services,
-        target_audience: String(briefing?.zielgruppe || (city ? `Kunden in ${city}` : 'Lokale Kunden')),
+        target_audience: audience,
         page_name: String(selectedPage?.page_name || 'Startseite'),
         zweck: String(selectedPage?.zweck || ''),
         ziel_keyword: String(selectedPage?.ziel_keyword || ''),

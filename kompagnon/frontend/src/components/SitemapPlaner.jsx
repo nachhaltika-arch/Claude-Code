@@ -37,6 +37,7 @@ const seiteFromBackend = (p) => ({
   typ:     mapTypFromBackend(p.page_type),
   keyword: p.ziel_keyword || '',
   order:   p.position ?? 0,
+  ist_pflichtseite: !!p.ist_pflichtseite,
 });
 
 // Lokale (noch nicht persistierte) Seiten tragen negative IDs, damit sie
@@ -167,8 +168,11 @@ export default function SitemapPlaner({ projectId, leadId, token }) {
         }
       }
 
-      // 2. PUT: bekannte Seiten aktualisieren.
+      // 2. PUT: bekannte Seiten aktualisieren. Pflichtseiten ueberspringen,
+      //    da das Backend alle strukturellen Felder (page_name, page_type,
+      //    ziel_keyword, position) fuer Pflichtseiten ohnehin filtert.
       for (const p of seiten) {
+        if (p.ist_pflichtseite) continue;
         if (serverById.has(p.id)) {
           await fetch(`${API_BASE_URL}/api/sitemap/pages/${p.id}`, {
             method: 'PUT',
@@ -217,17 +221,37 @@ export default function SitemapPlaner({ projectId, leadId, token }) {
   };
 
   const updateSeite = (id, field, val) =>
-    setSeiten(s => s.map(p => p.id === id ? { ...p, [field]: val } : p));
+    setSeiten(s => s.map(p => {
+      if (p.id !== id) return p;
+      if (p.ist_pflichtseite) return p; // Pflichtseiten sind read-only
+      return { ...p, [field]: val };
+    }));
 
   const deleteSeite = (id) =>
-    setSeiten(s => s.filter(p => p.id !== id).map((p, i) => ({ ...p, order: i + 1 })));
+    setSeiten(s => {
+      const target = s.find(p => p.id === id);
+      if (target?.ist_pflichtseite) return s; // Pflichtseiten nicht loeschbar
+      return s.filter(p => p.id !== id).map((p, i) => ({ ...p, order: i + 1 }));
+    });
 
   // ── Drag & Drop ──────────────────────────────────────────
-  const onDragStart = (idx) => setDragIdx(idx);
-  const onDragOver  = (e, idx) => { e.preventDefault(); setDragOver(idx); };
+  // Pflichtseiten sind per Drag weder Quelle noch Ziel — ihre Position ist
+  // im Backend festgelegt (90-93) und wuerde ohnehin ignoriert.
+  const onDragStart = (idx) => {
+    if (seiten[idx]?.ist_pflichtseite) return;
+    setDragIdx(idx);
+  };
+  const onDragOver  = (e, idx) => {
+    if (seiten[idx]?.ist_pflichtseite) return;
+    e.preventDefault();
+    setDragOver(idx);
+  };
   const onDrop      = (e, idx) => {
     e.preventDefault();
     if (dragIdx === null || dragIdx === idx) return;
+    if (seiten[idx]?.ist_pflichtseite || seiten[dragIdx]?.ist_pflichtseite) {
+      setDragIdx(null); setDragOver(null); return;
+    }
     const arr = [...seiten];
     const [moved] = arr.splice(dragIdx, 1);
     arr.splice(idx, 0, moved);
@@ -350,14 +374,25 @@ export default function SitemapPlaner({ projectId, leadId, token }) {
           const tc = TYP_COLORS[seite.typ] || TYP_COLORS['Sonstiges'];
           const isDragging = dragIdx === idx;
           const isOver     = dragOver === idx;
+          const isPflicht  = !!seite.ist_pflichtseite;
+          const lockedInput = {
+            border: '0.5px solid var(--border-light)',
+            borderRadius: 6, padding: '5px 8px',
+            fontSize: 13, fontFamily: 'inherit',
+            background: 'var(--bg-app)',
+            color: isPflicht ? 'var(--text-tertiary)' : 'var(--text-primary)',
+            outline: 'none',
+            cursor: isPflicht ? 'not-allowed' : 'text',
+          };
           return (
             <div
               key={seite.id}
-              draggable
+              draggable={!isPflicht}
               onDragStart={() => onDragStart(idx)}
               onDragOver={e => onDragOver(e, idx)}
               onDrop={e => onDrop(e, idx)}
               onDragEnd={onDragEnd}
+              title={isPflicht ? 'Pflichtseite — gesetzlich vorgeschrieben, nicht editierbar' : undefined}
               style={{
                 display: 'grid',
                 gridTemplateColumns: '28px 40px 1fr 110px 1fr 32px',
@@ -366,18 +401,19 @@ export default function SitemapPlaner({ projectId, leadId, token }) {
                   ? '0.5px solid var(--border-light)' : 'none',
                 background: isOver    ? 'var(--bg-active)'
                            : isDragging ? 'var(--bg-app)'
+                           : isPflicht  ? 'var(--bg-app)'
                            : 'transparent',
                 transition: 'background .1s',
-                opacity: isDragging ? 0.5 : 1,
-                cursor: 'grab',
+                opacity: isDragging ? 0.5 : isPflicht ? 0.75 : 1,
+                cursor: isPflicht ? 'default' : 'grab',
               }}
             >
-              {/* Drag-Handle */}
+              {/* Drag-Handle bzw. Lock-Icon */}
               <div style={{
                 color: 'var(--text-tertiary)', fontSize: 14,
                 textAlign: 'center', userSelect: 'none',
               }}>
-                ⠿
+                {isPflicht ? '🔒' : '⠿'}
               </div>
 
               {/* Reihenfolge */}
@@ -395,14 +431,8 @@ export default function SitemapPlaner({ projectId, leadId, token }) {
                 onClick={e => e.stopPropagation()}
                 onMouseDown={e => e.stopPropagation()}
                 draggable={false}
-                style={{
-                  border: '0.5px solid var(--border-light)',
-                  borderRadius: 6, padding: '5px 8px',
-                  fontSize: 13, fontFamily: 'inherit',
-                  background: 'var(--bg-app)',
-                  color: 'var(--text-primary)', outline: 'none',
-                  cursor: 'text',
-                }}
+                readOnly={isPflicht}
+                style={lockedInput}
               />
 
               {/* Typ */}
@@ -411,11 +441,13 @@ export default function SitemapPlaner({ projectId, leadId, token }) {
                 onChange={e => updateSeite(seite.id, 'typ', e.target.value)}
                 onClick={e => e.stopPropagation()}
                 draggable={false}
+                disabled={isPflicht}
                 style={{
                   border: 'none', borderRadius: 8, padding: '4px 8px',
                   fontSize: 11, fontWeight: 600,
                   background: tc.bg, color: tc.color,
-                  cursor: 'pointer', outline: 'none',
+                  cursor: isPflicht ? 'not-allowed' : 'pointer',
+                  outline: 'none',
                 }}
               >
                 {SEITENTYPEN.map(t => (
@@ -429,32 +461,30 @@ export default function SitemapPlaner({ projectId, leadId, token }) {
                 onChange={e => updateSeite(seite.id, 'keyword', e.target.value)}
                 onClick={e => e.stopPropagation()}
                 onMouseDown={e => e.stopPropagation()}
-                placeholder="z.B. Sanitär Koblenz"
+                placeholder={isPflicht ? '' : 'z.B. Sanitär Koblenz'}
                 draggable={false}
-                style={{
-                  border: '0.5px solid var(--border-light)',
-                  borderRadius: 6, padding: '5px 8px',
-                  fontSize: 12, fontFamily: 'inherit',
-                  background: 'var(--bg-app)',
-                  color: 'var(--text-primary)', outline: 'none',
-                  cursor: 'text',
-                }}
+                readOnly={isPflicht}
+                style={{ ...lockedInput, fontSize: 12 }}
               />
 
-              {/* Löschen */}
-              <button
-                onClick={() => deleteSeite(seite.id)}
-                title="Seite löschen"
-                style={{
-                  background: 'none', border: 'none',
-                  color: 'var(--text-tertiary)', cursor: 'pointer',
-                  fontSize: 16, display: 'flex',
-                  alignItems: 'center', justifyContent: 'center',
-                  borderRadius: 4, padding: 2,
-                }}
-              >
-                ×
-              </button>
+              {/* Löschen — fuer Pflichtseiten ausgeblendet */}
+              {isPflicht ? (
+                <div />
+              ) : (
+                <button
+                  onClick={() => deleteSeite(seite.id)}
+                  title="Seite löschen"
+                  style={{
+                    background: 'none', border: 'none',
+                    color: 'var(--text-tertiary)', cursor: 'pointer',
+                    fontSize: 16, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    borderRadius: 4, padding: 2,
+                  }}
+                >
+                  ×
+                </button>
+              )}
             </div>
           );
         })}

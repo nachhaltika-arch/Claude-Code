@@ -125,26 +125,13 @@ class MarginCalculator:
         return None
 
     @staticmethod
-    def get_all_margins(db: Session) -> Dict[int, Dict]:
-        """Get margin data for all active projects."""
-        projects = db.query(Project).filter(
-            Project.status.in_(["phase_1", "phase_2", "phase_3", "phase_4", "phase_5", "phase_6", "phase_7"])
-        ).all()
-
-        margins = {}
-        for project in projects:
-            margins[project.id] = MarginCalculator.calculate_margin(db, project.id)
-
-        return margins
-
-    @staticmethod
     def get_margin_summary(db: Session) -> Dict:
         """
         Get overall margin statistics for dashboard — optimiert auf EINE Query.
 
-        Vorher: get_all_margins(db) → fuer jedes Projekt 2 Queries
-                (Projekt re-laden + time_tracking laden) → 1 + 2N Queries
-                + voller ORM-Overhead (50+ Spalten pro Projekt)
+        Vorher (bis Commit b5ba200): get_all_margins(db) loopte ueber
+            alle aktiven Projekte und rief `calculate_margin(project_id)`
+            auf — 1 + 2N Queries plus voller ORM-Overhead.
 
         Nachher: eine einzige Aggregation mit LEFT JOIN auf time_tracking,
                  SUM im SQL, Margin-Berechnung im SQL, Zaehl-Aggregation

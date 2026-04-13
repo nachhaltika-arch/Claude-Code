@@ -169,61 +169,147 @@ def get_dashboard_kpis(
 
 @router.get("/dashboard/alerts", response_model=list[Alert])
 def get_dashboard_alerts(db: Session = Depends(get_db), _=Depends(require_any_auth)):
-    """Get all active alerts for dashboard."""
-    alerts = []
+    """
+    Get all active alerts for dashboard.
 
-    # Check for overdue phases (>3 days in phase)
-    all_projects = db.query(Project).filter(
-        Project.status.in_(
-            ["phase_1", "phase_2", "phase_3", "phase_4", "phase_5", "phase_6"]
+    Perf-optimiert (Fix Performance 03):
+      - 1 SQL-Query + LEFT JOIN auf time_tracking, statt 1 + 2N ORM-Queries
+      - Margin-Berechnung direkt im SQL (gleiche Formel wie MarginCalculator)
+      - Kein ORM-Overhead — nur Tuples zum Klassifizieren
+    """
+    active_phases = ('phase_1', 'phase_2', 'phase_3', 'phase_4', 'phase_5', 'phase_6')
+
+    rows = db.execute(text("""
+        WITH project_costs AS (
+            SELECT
+                p.id,
+                p.status,
+                p.start_date,
+                p.scope_creep_flags,
+                COALESCE(p.fixed_price, :default_price) AS fixed_price,
+                COALESCE(p.hourly_rate, :default_rate)  AS hourly_rate,
+                COALESCE(p.ai_tool_costs, :default_ai)  AS ai_costs,
+                COALESCE(
+                    SUM(CASE WHEN t.logged_by <> 'KI' THEN t.hours ELSE 0 END),
+                    0
+                ) AS human_hours
+            FROM projects p
+            LEFT JOIN time_tracking t ON t.project_id = p.id
+            WHERE p.status = ANY(:active_phases)
+            GROUP BY p.id, p.status, p.start_date, p.scope_creep_flags,
+                     p.fixed_price, p.hourly_rate, p.ai_tool_costs
         )
-    ).all()
+        SELECT
+            id, status, start_date, scope_creep_flags, fixed_price,
+            CASE
+                WHEN fixed_price > 0 THEN
+                    ((fixed_price - (human_hours * hourly_rate + ai_costs))
+                     / fixed_price) * 100
+                ELSE 0
+            END AS margin_percent
+        FROM project_costs
+        ORDER BY id
+    """), {
+        "default_price": 2000.0,
+        "default_rate":  45.0,
+        "default_ai":    50.0,
+        "active_phases": list(active_phases),
+    }).fetchall()
 
-    for project in all_projects:
-        if project.start_date:
-            days_in_phase = (datetime.utcnow() - project.start_date).days
+    alerts: list[Alert] = []
+    now = datetime.utcnow()
+
+    for row in rows:
+        # 1. Overdue phase (>3 days in same phase)
+        if row.start_date:
+            days_in_phase = (now - row.start_date).days
             if days_in_phase > 3:
-                alerts.append(
-                    Alert(
-                        alert_type="overdue_phase",
-                        severity="warning" if days_in_phase < 5 else "critical",
-                        project_id=project.id,
-                        message=f"Projekt {project.id} seit {days_in_phase} Tagen in Phase {project.status}",
-                        timestamp=datetime.utcnow(),
-                    )
-                )
+                alerts.append(Alert(
+                    alert_type="overdue_phase",
+                    severity="warning" if days_in_phase < 5 else "critical",
+                    project_id=row.id,
+                    message=f"Projekt {row.id} seit {days_in_phase} Tagen in Phase {row.status}",
+                    timestamp=now,
+                ))
 
-        # Check margin status
-        margin = MarginCalculator.calculate_margin(db, project.id)
-        if margin.get("status") == "red":
-            alerts.append(
-                Alert(
-                    alert_type="margin_risk",
-                    severity="critical",
-                    project_id=project.id,
-                    message=f"Projekt {project.id}: Marge kritisch ({margin.get('margin_percent', 0):.1f}%)",
-                    timestamp=datetime.utcnow(),
-                )
-            )
+        # 2. Margin kritisch (rot = unter 70%, gleiche Schwelle wie MarginCalculator)
+        margin_pct = float(row.margin_percent or 0)
+        if margin_pct < 70:
+            alerts.append(Alert(
+                alert_type="margin_risk",
+                severity="critical",
+                project_id=row.id,
+                message=f"Projekt {row.id}: Marge kritisch ({margin_pct:.1f}%)",
+                timestamp=now,
+            ))
 
-        # Check for scope creep
-        if project.scope_creep_flags > 0:
-            alerts.append(
-                Alert(
-                    alert_type="scope_creep",
-                    severity="warning",
-                    project_id=project.id,
-                    message=f"Projekt {project.id}: {project.scope_creep_flags} Scope-Creep-Vorfälle",
-                    timestamp=datetime.utcnow(),
-                )
-            )
+        # 3. Scope Creep
+        if (row.scope_creep_flags or 0) > 0:
+            alerts.append(Alert(
+                alert_type="scope_creep",
+                severity="warning",
+                project_id=row.id,
+                message=f"Projekt {row.id}: {row.scope_creep_flags} Scope-Creep-Vorfälle",
+                timestamp=now,
+            ))
 
     return alerts
 
 
 @router.get("/dashboard/projects-by-phase")
 def get_projects_by_phase(db: Session = Depends(get_db), _=Depends(require_any_auth)):
-    """Get projects grouped by phase (for kanban view)."""
+    """
+    Get projects grouped by phase (for kanban view).
+
+    Perf-optimiert (Fix Performance 03):
+      - 1 SQL-Query mit LEFT JOIN auf leads + time_tracking,
+        statt 1 + 3N Queries (Projekt-Liste + pro Projekt:
+        lead-Lazy-Load + 2x calculate_margin)
+    """
+    rows = db.execute(text("""
+        WITH project_costs AS (
+            SELECT
+                p.id,
+                p.status,
+                p.start_date,
+                p.margin_percent AS stored_margin,
+                l.company_name   AS lead_company_name,
+                COALESCE(p.fixed_price, :default_price) AS fixed_price,
+                COALESCE(p.hourly_rate, :default_rate)  AS hourly_rate,
+                COALESCE(p.ai_tool_costs, :default_ai)  AS ai_costs,
+                COALESCE(
+                    SUM(CASE WHEN t.logged_by <> 'KI' THEN t.hours ELSE 0 END),
+                    0
+                ) AS human_hours
+            FROM projects p
+            LEFT JOIN leads l           ON l.id = p.lead_id
+            LEFT JOIN time_tracking t   ON t.project_id = p.id
+            GROUP BY p.id, p.status, p.start_date, p.margin_percent,
+                     l.company_name, p.fixed_price, p.hourly_rate, p.ai_tool_costs
+        )
+        SELECT
+            id, status, start_date, stored_margin, lead_company_name,
+            CASE
+                WHEN fixed_price > 0 THEN
+                    ((fixed_price - (human_hours * hourly_rate + ai_costs))
+                     / fixed_price) * 100
+                ELSE 0
+            END AS computed_margin_percent
+        FROM project_costs
+        ORDER BY id
+    """), {
+        "default_price": 2000.0,
+        "default_rate":  45.0,
+        "default_ai":    50.0,
+    }).fetchall()
+
+    def _margin_status(pct: float) -> str:
+        if pct >= 78:
+            return "green"
+        if pct >= 70:
+            return "yellow"
+        return "red"
+
     phases = {
         "phase_1": [],
         "phase_2": [],
@@ -235,29 +321,26 @@ def get_projects_by_phase(db: Session = Depends(get_db), _=Depends(require_any_a
         "completed": [],
     }
 
-    all_projects = db.query(Project).all()
-    for project in all_projects:
-        if project.status in phases:
-            lead = project.lead
-            phases[project.status].append(
-                {
-                    "id": project.id,
-                    "company_name": lead.company_name if lead else "N/A",
-                    "margin_percent": project.margin_percent,
-                    "margin_status": MarginCalculator.calculate_margin(db, project.id).get("status"),
-                    "started": project.start_date,
-                }
-            )
+    for row in rows:
+        if row.status not in phases:
+            continue
+        phases[row.status].append({
+            "id": row.id,
+            "company_name": row.lead_company_name or "N/A",
+            "margin_percent": row.stored_margin,
+            "margin_status": _margin_status(float(row.computed_margin_percent or 0)),
+            "started": row.start_date,
+        })
 
     return {
         "phase_1_onboarding": phases["phase_1"],
-        "phase_2_briefing": phases["phase_2"],
-        "phase_3_content": phases["phase_3"],
-        "phase_4_technik": phases["phase_4"],
-        "phase_5_qa": phases["phase_5"],
-        "phase_6_golive": phases["phase_6"],
+        "phase_2_briefing":   phases["phase_2"],
+        "phase_3_content":    phases["phase_3"],
+        "phase_4_technik":    phases["phase_4"],
+        "phase_5_qa":         phases["phase_5"],
+        "phase_6_golive":     phases["phase_6"],
         "phase_7_postlaunch": phases["phase_7"],
-        "completed": phases["completed"],
+        "completed":          phases["completed"],
     }
 
 

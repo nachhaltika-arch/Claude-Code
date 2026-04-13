@@ -16,12 +16,24 @@ const MSGS = [
   '🤖 KI-Analyse läuft...',
 ];
 
+// Audit-Level-Schwellenwerte — identisch zum Backend (audit.py:LEVELS).
+// Backend ist die Quelle der Wahrheit: 95/85/70/50/0.
 const LEVEL = (s) =>
-  s >= 85 ? 'Homepage Standard Platin 💎'
-  : s >= 70 ? 'Homepage Standard Gold 🥇'
-  : s >= 50 ? 'Homepage Standard Silber 🥈'
-  : s >= 30 ? 'Homepage Standard Bronze 🥉'
-  : 'Nicht konform ⚠️';
+  s >= 95 ? 'Homepage Standard Platin'
+  : s >= 85 ? 'Homepage Standard Gold'
+  : s >= 70 ? 'Homepage Standard Silber'
+  : s >= 50 ? 'Homepage Standard Bronze'
+  : 'Nicht konform';
+
+// Emojis separat halten — niemals in den Level-String einbetten, weil
+// der Backend-String genau so in der DB steht.
+const LEVEL_EMOJI = {
+  'Homepage Standard Platin': '💎',
+  'Homepage Standard Gold':   '🥇',
+  'Homepage Standard Silber': '🥈',
+  'Homepage Standard Bronze': '🥉',
+  'Nicht konform':            '⚠️',
+};
 
 const scoreColor = (s) =>
   s >= 70 ? '#1d9e75' : s >= 50 ? '#e67e22' : '#c0392b';
@@ -485,7 +497,11 @@ export default function AuditHook() {
                   borderRadius: 20, fontSize: 12, fontWeight: 700,
                   color: scoreColor(auditData.score||0),
                 }}>
-                  {LEVEL(auditData.score || 0)}
+                  {(() => {
+                    const lvl = LEVEL(auditData.score || 0);
+                    const emoji = LEVEL_EMOJI[lvl] || '';
+                    return `${lvl} ${emoji}`.trim();
+                  })()}
                 </div>
               </div>
             </div>

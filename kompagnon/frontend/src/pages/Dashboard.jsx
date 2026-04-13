@@ -389,12 +389,13 @@ export default function Dashboard() {
           ) : (
             audits.map((audit, i) => {
               const score = audit.total_score || 0;
-              const level = score >= 85 ? 'Pt' : score >= 70 ? 'Go' : score >= 50 ? 'Si' : score >= 30 ? 'Br' : 'NC';
+              // Audit-Level-Schwellenwerte — identisch zum Backend (audit.py:LEVELS): 95/85/70/50/0
+              const level = score >= 95 ? 'Pt' : score >= 85 ? 'Go' : score >= 70 ? 'Si' : score >= 50 ? 'Br' : 'NC';
               const levelColor =
-                score >= 85 ? 'var(--brand-primary)'
-                : score >= 70 ? 'var(--status-warning-text)'
-                : score >= 50 ? 'var(--text-secondary)'
-                : score >= 30 ? '#a06820'
+                score >= 95 ? 'var(--brand-primary)'
+                : score >= 85 ? 'var(--status-warning-text)'
+                : score >= 70 ? 'var(--text-secondary)'
+                : score >= 50 ? '#a06820'
                 : 'var(--status-danger-text)';
 
               return (

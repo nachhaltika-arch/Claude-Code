@@ -16,11 +16,13 @@ const STATUS = {
   lost:          { label: 'Verloren',    variant: 'danger' },
 };
 
+// Audit-Level-Schwellenwerte — identisch zum Backend (audit.py:LEVELS).
+// Backend ist die Quelle der Wahrheit: 95/85/70/50/0.
 const CERT = (score) =>
-  score >= 85 ? { label: 'Platin', short: 'Pt', bg: 'var(--brand-primary-light)', fg: 'var(--brand-primary)' }
-  : score >= 70 ? { label: 'Gold',   short: 'Go', bg: 'var(--status-warning-bg)',  fg: 'var(--status-warning-text)' }
-  : score >= 50 ? { label: 'Silber', short: 'Si', bg: 'var(--status-neutral-bg)',  fg: 'var(--text-secondary)' }
-  : score >= 30 ? { label: 'Bronze', short: 'Br', bg: '#fdf0e0',                  fg: '#a06820' }
+  score >= 95 ? { label: 'Platin', short: 'Pt', bg: 'var(--brand-primary-light)', fg: 'var(--brand-primary)' }
+  : score >= 85 ? { label: 'Gold',   short: 'Go', bg: 'var(--status-warning-bg)',  fg: 'var(--status-warning-text)' }
+  : score >= 70 ? { label: 'Silber', short: 'Si', bg: 'var(--status-neutral-bg)',  fg: 'var(--text-secondary)' }
+  : score >= 50 ? { label: 'Bronze', short: 'Br', bg: '#fdf0e0',                  fg: '#a06820' }
   :               { label: 'N/K',    short: 'NC', bg: 'var(--status-danger-bg)',   fg: 'var(--status-danger-text)' };
 
 export default function Customers() {

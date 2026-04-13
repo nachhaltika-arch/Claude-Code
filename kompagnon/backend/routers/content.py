@@ -234,6 +234,48 @@ def _serialize_media(m: ContentMedia) -> dict:
     }
 
 
+def _row_to_section_dict(r) -> dict:
+    """Section-Dict aus raw SQL row (selbe Form wie _serialize_section)."""
+    return {
+        "id": r.id,
+        "sitemap_page_id": r.sitemap_page_id,
+        "lead_id": r.lead_id,
+        "slot_typ": r.slot_typ,
+        "slot_label": r.slot_label,
+        "hinweis": r.hinweis,
+        "inhalt_ki": r.inhalt_ki,
+        "inhalt_kunde": r.inhalt_kunde,
+        "inhalt_final": r.inhalt_final,
+        "status": r.status,
+        "zeichenlimit": r.zeichenlimit,
+        "erstellt_am": r.erstellt_am.isoformat() if r.erstellt_am else None,
+        "aktualisiert_am": r.aktualisiert_am.isoformat() if r.aktualisiert_am else None,
+    }
+
+
+def _row_to_media_lite_dict(r) -> dict:
+    """
+    Media-Dict aus raw SQL row — OHNE `datei_base64` (koennte MB gross sein).
+    Wird in Listen-Endpoints verwendet, wo der Frontend-Code das Base64
+    ohnehin nicht konsumiert (nur `dateiname` + `status` fuer Anzeige).
+    Einzel-GETs liefern weiterhin den Full-Content via /media/{id}/file.
+    """
+    return {
+        "id": r.id,
+        "sitemap_page_id": r.sitemap_page_id,
+        "lead_id": r.lead_id,
+        "slot_typ": r.slot_typ,
+        "slot_label": r.slot_label,
+        "hinweis": r.hinweis,
+        "dateiname": r.dateiname,
+        "dateityp": r.dateityp,
+        "datei_base64": None,  # absichtlich ausgelassen — siehe Docstring
+        "dateigroesse_kb": r.dateigroesse_kb,
+        "status": r.status,
+        "erstellt_am": r.erstellt_am.isoformat() if r.erstellt_am else None,
+    }
+
+
 # ── Pydantic Schemas ──────────────────────────────────────────────────────────
 
 class SectionUpdate(BaseModel):
@@ -254,27 +296,77 @@ def get_content_for_lead(
     db: Session = Depends(get_db),
     user=Depends(require_any_auth),
 ):
-    """Alle Seiten des Leads mit ihren Sections + Media, gruppiert nach sitemap_page_id."""
-    from sqlalchemy import text
+    """
+    Alle Seiten des Leads mit ihren Sections + Media, gruppiert nach sitemap_page_id.
 
+    Perf-optimiert:
+      - 3 Queries total (Pages, Sections, Media) statt 1 + 2N bei N Seiten
+      - Raw SQL mit expliziter Spalten-Liste statt ORM-Full-Row
+      - `datei_base64` wird NICHT geladen (koennte MB gross sein) — die
+        Listen-Ansicht zeigt nur Metadaten, Einzel-GETs gehen ueber
+        /media/{id}/file
+    """
+    from sqlalchemy import text
+    from collections import defaultdict
+
+    # 1) Pages
     pages = db.execute(
-        text("SELECT id, page_name, page_type, ist_pflichtseite FROM sitemap_pages WHERE lead_id = :lid ORDER BY position"),
+        text("""
+            SELECT id, page_name, page_type, ist_pflichtseite
+            FROM sitemap_pages
+            WHERE lead_id = :lid
+            ORDER BY position
+        """),
         {"lid": lead_id},
     ).fetchall()
 
-    result = []
-    for page in pages:
-        sections = db.query(ContentSection).filter_by(sitemap_page_id=page.id).all()
-        media = db.query(ContentMedia).filter_by(sitemap_page_id=page.id).all()
-        result.append({
+    if not pages:
+        return []
+
+    # 2) Sections fuer ALLE Pages auf einmal (eine Query)
+    section_rows = db.execute(
+        text("""
+            SELECT id, sitemap_page_id, lead_id, slot_typ, slot_label,
+                   hinweis, inhalt_ki, inhalt_kunde, inhalt_final,
+                   status, zeichenlimit, erstellt_am, aktualisiert_am
+            FROM content_sections
+            WHERE lead_id = :lid
+        """),
+        {"lid": lead_id},
+    ).fetchall()
+
+    # 3) Media fuer ALLE Pages auf einmal — OHNE datei_base64
+    media_rows = db.execute(
+        text("""
+            SELECT id, sitemap_page_id, lead_id, slot_typ, slot_label,
+                   hinweis, dateiname, dateityp, dateigroesse_kb,
+                   status, erstellt_am
+            FROM content_media
+            WHERE lead_id = :lid
+        """),
+        {"lid": lead_id},
+    ).fetchall()
+
+    # Gruppierung nach sitemap_page_id
+    sections_by_page = defaultdict(list)
+    for s in section_rows:
+        sections_by_page[s.sitemap_page_id].append(_row_to_section_dict(s))
+
+    media_by_page = defaultdict(list)
+    for m in media_rows:
+        media_by_page[m.sitemap_page_id].append(_row_to_media_lite_dict(m))
+
+    return [
+        {
             "sitemap_page_id": page.id,
             "page_name": page.page_name,
             "page_type": page.page_type,
             "ist_pflichtseite": bool(page.ist_pflichtseite),
-            "sections": [_serialize_section(s) for s in sections],
-            "media": [_serialize_media(m) for m in media],
-        })
-    return result
+            "sections": sections_by_page.get(page.id, []),
+            "media": media_by_page.get(page.id, []),
+        }
+        for page in pages
+    ]
 
 
 @router.get("/page/{sitemap_page_id}")
@@ -283,7 +375,13 @@ def get_page_content(
     db: Session = Depends(get_db),
     user=Depends(require_any_auth),
 ):
-    """Slots für eine einzelne Seite laden (und ggf. auto-erstellen)."""
+    """
+    Slots fuer eine einzelne Seite laden (und ggf. auto-erstellen).
+
+    Perf-optimiert: raw SQL mit expliziter Spalten-Liste fuer sections
+    und media, `datei_base64` wird nicht mitgeladen (siehe
+    _row_to_media_lite_dict).
+    """
     from sqlalchemy import text
 
     page = db.execute(
@@ -296,8 +394,27 @@ def get_page_content(
 
     _ensure_slots(sitemap_page_id, page.page_type, page.lead_id, db)
 
-    sections = db.query(ContentSection).filter_by(sitemap_page_id=sitemap_page_id).all()
-    media    = db.query(ContentMedia).filter_by(sitemap_page_id=sitemap_page_id).all()
+    section_rows = db.execute(
+        text("""
+            SELECT id, sitemap_page_id, lead_id, slot_typ, slot_label,
+                   hinweis, inhalt_ki, inhalt_kunde, inhalt_final,
+                   status, zeichenlimit, erstellt_am, aktualisiert_am
+            FROM content_sections
+            WHERE sitemap_page_id = :pid
+        """),
+        {"pid": sitemap_page_id},
+    ).fetchall()
+
+    media_rows = db.execute(
+        text("""
+            SELECT id, sitemap_page_id, lead_id, slot_typ, slot_label,
+                   hinweis, dateiname, dateityp, dateigroesse_kb,
+                   status, erstellt_am
+            FROM content_media
+            WHERE sitemap_page_id = :pid
+        """),
+        {"pid": sitemap_page_id},
+    ).fetchall()
 
     return {
         "sitemap_page_id": page.id,
@@ -305,8 +422,8 @@ def get_page_content(
         "page_type": page.page_type,
         "lead_id": page.lead_id,
         "ist_pflichtseite": bool(page.ist_pflichtseite),
-        "sections": [_serialize_section(s) for s in sections],
-        "media": [_serialize_media(m) for m in media],
+        "sections": [_row_to_section_dict(s) for s in section_rows],
+        "media": [_row_to_media_lite_dict(m) for m in media_rows],
     }
 
 

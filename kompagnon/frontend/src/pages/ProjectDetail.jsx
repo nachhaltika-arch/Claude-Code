@@ -1292,10 +1292,17 @@ export default function ProjectDetail() {
 
   const saveOrder = async (reorderedPages) => {
     try {
+      // Backend erwartet List[ReorderItem] = [{id, position, parent_id}, ...]
+      // (siehe routers/sitemap.py::reorder_pages), nicht {page_ids: [...]}.
+      const payload = reorderedPages.map((p, idx) => ({
+        id: p.id,
+        position: idx,
+        parent_id: p.parent_id || null,
+      }));
       await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id}/reorder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ page_ids: reorderedPages.map(p => p.id) }),
+        body: JSON.stringify(payload),
       });
     } catch (e) { console.error(e); }
   };

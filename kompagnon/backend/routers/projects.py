@@ -345,61 +345,70 @@ def list_projects(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
+    """
+    List projects with pagination + optional status filter.
+
+    Perf-optimiert: die Main-Query war bereits raw SQL, aber der Ergebnis-Loop
+    machte pro Projekt eine zusaetzliche `db.query(Lead).filter(...).first()`
+    um `company_name`/`website_url` als Fallback zu lesen (bei Legacy-Daten,
+    wo `projects.company_name` leer war). Bei 50 Projekten = 51 Queries.
+
+    Fix: LEFT JOIN auf leads direkt in der Main-Query, Fallback via
+    COALESCE(projects.company_name, leads.company_name, '').
+    → 1 Query total.
+    """
     # Kunden sehen nur ihre eigenen Projekte
-    customer_filter = ""
+    where_parts = []
     params = {"limit": limit, "skip": skip}
+
     if current_user.role == "kunde":
-        customer_filter = "WHERE lead_id = :lead_id "
+        where_parts.append("p.lead_id = :lead_id")
         params["lead_id"] = current_user.lead_id
-        if status:
-            customer_filter += "AND status = :status "
-            params["status"] = status
-    elif status:
-        customer_filter = "WHERE status = :status "
+    if status:
+        where_parts.append("p.status = :status")
         params["status"] = status
+
+    where_clause = ("WHERE " + " AND ".join(where_parts) + " ") if where_parts else ""
 
     try:
         rows = db.execute(
             text(
-                "SELECT id, lead_id, status, fixed_price, actual_hours, hourly_rate, "
-                "ai_tool_costs, margin_percent, scope_creep_flags, created_at, "
-                "company_name, website_url, contact_name "
-                "FROM projects "
-                + customer_filter
-                + "ORDER BY id DESC LIMIT :limit OFFSET :skip"
+                "SELECT "
+                "  p.id, p.lead_id, p.status, p.fixed_price, p.actual_hours, "
+                "  p.hourly_rate, p.ai_tool_costs, p.margin_percent, "
+                "  p.scope_creep_flags, p.created_at, "
+                "  COALESCE(NULLIF(p.company_name, ''), l.company_name, '') AS company_name, "
+                "  COALESCE(NULLIF(p.website_url, ''), l.website_url, '')   AS website_url "
+                "FROM projects p "
+                "LEFT JOIN leads l ON l.id = p.lead_id "
+                + where_clause +
+                "ORDER BY p.id DESC LIMIT :limit OFFSET :skip"
             ),
             params,
         ).fetchall()
     except Exception as e:
-        logger.error(f"list_projects query error: {e}")
+        logger.error(f"list_projects query error: {e}", exc_info=True)
         return []
 
-    result = []
-    for row in rows:
-        try:
-            lead_id = row[1]
-            lead = db.query(Lead).filter(Lead.id == lead_id).first() if lead_id else None
-            company = row[10] or (lead.company_name if lead else '') or ''
-            website = row[11] or (lead.website_url if lead else '') or ''
-            result.append({
-                'id': row[0],
-                'lead_id': lead_id,
-                'name': f"Website – {company}" if company else f"Projekt #{row[0]}",
-                'customer_name': company,
-                'status': row[2] or 'phase_1',
-                'current_phase': 1,
-                'website_url': website,
-                'fixed_price': row[3] or 2000,
-                'actual_hours': row[4] or 0,
-                'hourly_rate': row[5] or 45,
-                'ai_tool_costs': row[6] or 50,
-                'margin_percent': row[7] or 0,
-                'scope_creep_flags': row[8] or 0,
-                'created_at': str(row[9])[:10] if row[9] else '',
-            })
-        except Exception:
-            continue
-    return result
+    return [
+        {
+            "id":                row.id,
+            "lead_id":           row.lead_id,
+            "name":              f"Website – {row.company_name}" if row.company_name else f"Projekt #{row.id}",
+            "customer_name":     row.company_name or "",
+            "status":            row.status or "phase_1",
+            "current_phase":     1,
+            "website_url":       row.website_url or "",
+            "fixed_price":       row.fixed_price or 2000,
+            "actual_hours":      row.actual_hours or 0,
+            "hourly_rate":       row.hourly_rate or 45,
+            "ai_tool_costs":     row.ai_tool_costs or 50,
+            "margin_percent":    row.margin_percent or 0,
+            "scope_creep_flags": row.scope_creep_flags or 0,
+            "created_at":        str(row.created_at)[:10] if row.created_at else "",
+        }
+        for row in rows
+    ]
 
 
 @router.get("/{project_id}")

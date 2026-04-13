@@ -14,7 +14,6 @@ import AuditReport from '../components/AuditReport';
 import BriefingTab from '../components/BriefingTab';
 import BriefingWizard from '../components/BriefingWizard';
 import WZSearch from '../components/WZSearch';
-import SitemapPlaner from '../components/SitemapPlaner';
 import ContentManager from '../components/ContentManager';
 import OfferTab from '../components/OfferTab';
 import ProjectFilesSection from '../components/ProjectFilesSection';

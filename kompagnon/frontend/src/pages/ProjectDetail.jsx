@@ -24,7 +24,6 @@ import ProzessFlow from '../components/ProzessFlow';
 // Lazy-loaded: heavy components loaded on demand
 const BriefingTab = lazy(() => import('../components/BriefingTab'));
 const BriefingWizard = lazy(() => import('../components/BriefingWizard'));
-const SitemapPlaner = lazy(() => import('../components/SitemapPlaner'));
 const GrapesEditor = lazy(() => import('../components/GrapesEditor'));
 const WebsiteDesigner = lazy(() => import('../components/WebsiteDesigner'));
 const ContentManager = lazy(() => import('../components/ContentManager'));
@@ -624,7 +623,6 @@ export default function ProjectDetail() {
   const [sitemapPages, setSitemapPages]     = useState([]);
   const [sitemapLoading, setSitemapLoading] = useState(false);
   const [sitemapLoaded, setSitemapLoaded]   = useState(false);
-  const [showSitemapPlaner, setShowSitemapPlaner] = useState(false);
   const [selectedPageId, setSelectedPageId] = useState(null);
   const [editingPage, setEditingPage]       = useState(null);
   // Add page form

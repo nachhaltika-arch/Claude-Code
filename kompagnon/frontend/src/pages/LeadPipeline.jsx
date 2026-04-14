@@ -82,6 +82,14 @@ function buildCards(projArray, leadsArray) {
   return cards;
 }
 
+const LEAD_STATUS_PILLS = [
+  { id: 'alle',    label: 'Alle' },
+  { id: 'neu',     label: 'Neu' },
+  { id: 'kontakt', label: 'Kontakt' },
+  { id: 'angebot', label: 'Angebot' },
+  { id: 'firmen',  label: '🏢 Firmen', path: '/app/companies' },
+];
+
 export default function LeadPipeline() {
   const navigate         = useNavigate();
   const { user, token }  = useAuth();
@@ -91,6 +99,7 @@ export default function LeadPipeline() {
   const [loading, setLoading]     = useState(true);
   const [dragging, setDragging]   = useState(null);
   const [dragOver, setDragOver]   = useState(null);
+  const [activeLeadTab, setActiveLeadTab] = useState('alle');
 
   const fetchedRef = useRef(false);
   const mkH = () => ({ 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) });
@@ -117,8 +126,18 @@ export default function LeadPipeline() {
     finally { setLoading(false); }
   };
 
+  // Mobile: Status-Filter auf Lead-Ebene
+  const filteredCards = cards.filter(c => {
+    if (activeLeadTab === 'alle') return true;
+    const status = (c.lead?.status || '').toLowerCase();
+    if (activeLeadTab === 'neu')     return !status || status === 'neu' || status === 'new';
+    if (activeLeadTab === 'kontakt') return status === 'kontaktiert' || status === 'contacted';
+    if (activeLeadTab === 'angebot') return status === 'angebot' || status === 'proposal_sent';
+    return true;
+  });
+
   const getColCards = (phaseId) =>
-    cards.filter(c => c.phase === phaseId)
+    filteredCards.filter(c => c.phase === phaseId)
          .sort((a, b) => new Date(b.lead?.created_at || b.project?.created_at || 0)
                        - new Date(a.lead?.created_at || a.project?.created_at || 0));
 
@@ -148,6 +167,51 @@ export default function LeadPipeline() {
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
+      {/* Mobile: Lead-Status Pills */}
+      {isMobile && (
+        <div style={{
+          display: 'flex', gap: 8,
+          padding: '10px 14px 4px',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          background: '#fff',
+          borderBottom: '0.5px solid var(--border-light)',
+          marginLeft: -16, marginRight: -16,
+          marginBottom: 12,
+        }}>
+          {LEAD_STATUS_PILLS.map(p => {
+            const active = activeLeadTab === p.id && !p.path;
+            return (
+              <button
+                key={p.id}
+                onClick={() => {
+                  if (p.path) { navigate(p.path); return; }
+                  setActiveLeadTab(p.id);
+                }}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: 20,
+                  fontSize: 11, fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  border: active ? 'none' : '1.5px solid var(--border-medium, #D5E0E2)',
+                  background: active ? '#004F59' : '#fff',
+                  color: active ? '#fff' : 'var(--text-secondary, #4A5A5C)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '.04em',
+                  fontFamily: 'var(--font-sans)',
+                  transition: 'all .12s',
+                  flexShrink: 0,
+                }}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'flex-start',

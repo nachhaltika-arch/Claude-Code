@@ -196,7 +196,7 @@ function getMobileTabs(role, leadId) {
   }
   return [
     { label: 'Dashboard', path: '/app/dashboard', icon: 'grid'                  },
-    { label: 'Vertrieb',  path: '/app/deals',     icon: 'chart'                 },
+    { label: 'Vertrieb',  path: '/app/vertrieb',  icon: 'chart'                 },
     { label: 'Leads',     path: '/app/leads',     icon: 'users', badge: true    },
     { label: 'Projekte',  path: '/app/projects',  icon: 'folder'                },
     { label: 'Mehr',      path: '__more__',       icon: 'menu'                  },
@@ -679,6 +679,14 @@ function BottomNav() {
 
   const isActive = (path) => {
     if (path === '__more__') return false;
+    // Vertrieb-Hub: aktiv wenn auf einer der Vertrieb-Unterseiten
+    if (path === '/app/vertrieb') {
+      return [
+        '/app/vertrieb', '/app/deals', '/app/campaigns',
+        '/app/audit', '/app/newsletter', '/app/import',
+        '/app/retainer',
+      ].some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+    }
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
@@ -803,10 +811,14 @@ function BottomNav() {
                 borderRadius: 2,
                 transition: 'background .12s',
               }} />
-              <span style={{ display: 'flex', position: 'relative' }} aria-hidden="true">
+              <span style={{
+                display: 'flex', position: 'relative',
+                color: active ? '#FAE600' : 'rgba(255,255,255,.5)',
+                transition: 'color .12s',
+              }} aria-hidden="true">
                 {icons[tab.icon]}
                 {/* Badge-Dot (z.B. für neue Leads) */}
-                {tab.badge && (
+                {tab.badge && !active && (
                   <span style={{
                     position: 'absolute',
                     top: -2, right: -4,

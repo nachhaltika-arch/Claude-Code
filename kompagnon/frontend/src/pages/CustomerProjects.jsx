@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import EmptyState from '../components/ui/EmptyState';
 
@@ -136,6 +137,7 @@ function ProjectListCard({ project, lead, onClick }) {
 export default function CustomerProjects() {
   const navigate     = useNavigate();
   const { token }    = useAuth();
+  const { isMobile } = useScreenSize();
   const h            = token ? { Authorization: `Bearer ${token}` } : {};
 
   const [projects, setProjects]   = useState([]);
@@ -143,6 +145,12 @@ export default function CustomerProjects() {
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
   const [phaseFilter, setPhaseFilter] = useState('');
+
+  const MOBILE_PROJEKTE_PILLS = [
+    { id: 'alle',    label: 'Alle Projekte' },
+    { id: 'tickets', label: '🎫 Tickets',    path: '/app/tickets' },
+    { id: 'check',   label: '✅ Checklisten', path: '/app/checklists' },
+  ];
 
   useEffect(() => {
     (async () => {
@@ -183,6 +191,47 @@ export default function CustomerProjects() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* Mobile: Pill-Navigation */}
+      {isMobile && (
+        <div style={{
+          display: 'flex', gap: 8,
+          padding: '10px 14px 4px',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          background: '#fff',
+          borderBottom: '0.5px solid var(--border-light)',
+          marginLeft: -16, marginRight: -16,
+        }}>
+          {MOBILE_PROJEKTE_PILLS.map(p => {
+            const active = p.id === 'alle' && !p.path;
+            return (
+              <button
+                key={p.id}
+                onClick={() => { if (p.path) navigate(p.path); }}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: 20,
+                  fontSize: 11, fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  border: active ? 'none' : '1.5px solid var(--border-medium, #D5E0E2)',
+                  background: active ? '#004F59' : '#fff',
+                  color: active ? '#fff' : 'var(--text-secondary, #4A5A5C)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '.04em',
+                  fontFamily: 'var(--font-sans)',
+                  transition: 'all .12s',
+                  flexShrink: 0,
+                }}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>

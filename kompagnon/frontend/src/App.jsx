@@ -74,6 +74,7 @@ import CampaignManager from './pages/CampaignManager';
 import PageManager from './pages/PageManager';
 import PublicPageEditor from './pages/PublicPageEditor';
 import PageTemplateEditor from './pages/PageTemplateEditor';
+import MobileVertrieb from './pages/MobileVertrieb';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -170,6 +171,7 @@ function App() {
             {/* Vertriebspipeline durch Deals ersetzt — alte URL leitet weiter */}
             <Route path="sales" element={<Navigate to="/app/deals" replace />} />
             <Route path="deals" element={<PrivateRoute roles={['admin', 'auditor']}><Deals /></PrivateRoute>} />
+            <Route path="vertrieb" element={<PrivateRoute roles={['admin', 'auditor']}><MobileVertrieb /></PrivateRoute>} />
             <Route path="campaigns" element={<PrivateRoute roles={['admin']}><CampaignManager /></PrivateRoute>} />
             <Route path="pages" element={<PrivateRoute roles={['admin']}><PageManager /></PrivateRoute>} />
             <Route path="pages/templates/:id/editor" element={<PrivateRoute roles={['admin']}><PageTemplateEditor /></PrivateRoute>} />

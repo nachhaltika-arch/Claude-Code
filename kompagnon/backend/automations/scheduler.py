@@ -392,6 +392,78 @@ def job_cleanup_revoked_tokens():
         db.close()
 
 
+def job_briefing_approval_reminders():
+    """Stuendlicher Job: prueft eingereichte, aber nicht freigegebene Briefings.
+
+    - 24h <= Wartezeit < 25h: Erinnerungs-Mail an Admin (genau einmal, da
+      der Job stuendlich laeuft und das 1h-Fenster damit jede Entry exakt
+      einmal trifft).
+    - >= 48h:                 Eskalations-Mail an Admin (warnt jede Stunde
+      bis zur Freigabe — bewusst noisy, damit es nicht ignoriert wird).
+
+    Hinweis: In diesem Commit werden die E-Mails noch als WARNING/ERROR
+    in den Logger geschrieben. Das tatsaechliche Versenden ist als TODO
+    markiert und wird in einem Folge-Commit ergaenzt, sobald SMTP-Config
+    + Template-Runner abgestimmt sind.
+    """
+    from sqlalchemy import text as _text
+    db = SessionLocal()
+    try:
+        pending = db.execute(_text("""
+            SELECT p.id AS project_id,
+                   p.lead_id AS lead_id,
+                   p.briefing_submitted_at AS briefing_submitted_at,
+                   COALESCE(l.company_name, l.display_name, '') AS company,
+                   COALESCE(l.email, '') AS email
+            FROM projects p
+            LEFT JOIN leads l ON l.id = p.lead_id
+            WHERE p.briefing_submitted_at IS NOT NULL
+              AND p.briefing_approved_at IS NULL
+        """)).fetchall()
+
+        if not pending:
+            return
+
+        now = datetime.utcnow()
+        reminders_sent = 0
+        escalations_sent = 0
+        for row in pending:
+            submitted_at = row.briefing_submitted_at
+            if not submitted_at:
+                continue
+            hours_waiting = (now - submitted_at).total_seconds() / 3600.0
+
+            if 24 <= hours_waiting < 25:
+                reminders_sent += 1
+                logger.warning(
+                    f"⏰ Briefing-Reminder: Projekt {row.project_id} "
+                    f"({row.company or 'unbekannt'}) wartet seit "
+                    f"{int(hours_waiting)}h auf Admin-Freigabe."
+                )
+                # TODO: Admin-E-Mail (services/email_service.EmailService)
+                # wird in einem separaten Commit ergaenzt — Template ist
+                # noch nicht finalisiert.
+
+            elif hours_waiting >= 48:
+                escalations_sent += 1
+                logger.error(
+                    f"🚨 ESKALATION: Briefing fuer Projekt {row.project_id} "
+                    f"({row.company or 'unbekannt'}) wartet seit "
+                    f"{int(hours_waiting)}h auf Admin-Freigabe!"
+                )
+                # TODO: Eskalations-Mail an Admin + Support-Verteiler.
+
+        if reminders_sent or escalations_sent:
+            logger.info(
+                f"briefing_approval_reminders: {reminders_sent} Reminder, "
+                f"{escalations_sent} Eskalationen (total pending: {len(pending)})"
+            )
+    except Exception as e:
+        logger.error(f"briefing_approval_reminders Job Fehler: {e}")
+    finally:
+        db.close()
+
+
 # ===================================================================
 # SCHEDULER CLASS (thin wrapper, no job logic)
 # ===================================================================
@@ -501,7 +573,18 @@ class CompagnonScheduler:
             replace_existing=True,
             timezone="Europe/Berlin",
         )
-        logger.info("✓ Daily jobs registered (incl. weekly HWK scraper + token cleanup)")
+        # Stuendlicher Briefing-Approval-Reminder — Tor 1 der
+        # Funnel-Automation. Prueft projects mit
+        # briefing_submitted_at IS NOT NULL AND briefing_approved_at IS NULL
+        # und loggt Erinnerungen nach 24h / Eskalationen nach 48h.
+        self.scheduler.add_job(
+            job_briefing_approval_reminders,
+            "interval",
+            hours=1,
+            id="briefing_approval_reminders",
+            replace_existing=True,
+        )
+        logger.info("✓ Daily jobs registered (incl. weekly HWK scraper + token cleanup + briefing reminders)")
 
         # Stündlicher E-Mail-Sequenz-Runner
         try:

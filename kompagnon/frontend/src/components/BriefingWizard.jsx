@@ -468,11 +468,35 @@ function SummarySection({ title, children }) {
   );
 }
 
-function Step6({ data, saving, error, onSaveAndPdf, onSaveOnly }) {
+function Step6({ data, saving, error, submitted, onSaveAndPdf, onSaveOnly, onSubmit }) {
+  // Nach erfolgreichem Submit: Success-Screen statt Buttons.
+  if (submitted) {
+    return (
+      <div style={{
+        padding: '28px 24px', borderRadius: 12,
+        background: '#EAF3DE', border: '1px solid #1D9E75',
+        textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 10,
+      }}>
+        <div style={{ fontSize: 40, lineHeight: 1 }}>✓</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#0F5C43' }}>
+          Briefing abgeschickt
+        </div>
+        <div style={{ fontSize: 13, color: '#27500A', lineHeight: 1.6, maxWidth: 480, margin: '0 auto' }}>
+          Dein Briefing liegt jetzt beim Team zur Freigabe.
+          Sobald es geprüft ist, starten wir automatisch mit der Sitemap und dem Content
+          und du bekommst eine E-Mail-Benachrichtigung.
+        </div>
+        <div style={{ fontSize: 11, color: '#3D5F32', marginTop: 4 }}>
+          Du kannst diesen Dialog jetzt schliessen.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)' }}>
-        Bitte prüfen Sie alle Angaben. Mit „Speichern & PDF" wird das Briefing gespeichert und als PDF heruntergeladen.
+        Bitte prüfen Sie alle Angaben. Mit „Abschicken" geht das Briefing zur Admin-Freigabe — danach startet die KI-Sitemap automatisch.
       </div>
       <SummarySection title="Betrieb & Leistungen">
         <SummaryRow label="Gewerk" value={data.gewerk} />
@@ -504,14 +528,18 @@ function Step6({ data, saving, error, onSaveAndPdf, onSaveOnly }) {
           {error}
         </div>
       )}
-      <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+      <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
         <button onClick={onSaveOnly} disabled={saving}
-          style={{ flex: 1, padding: '13px 0', borderRadius: 10, border: `1.5px solid ${TEAL}`, background: 'transparent', color: TEAL, fontSize: 14, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
-          {saving ? 'Speichert...' : 'Nur speichern'}
+          style={{ flex: '1 1 140px', padding: '13px 0', borderRadius: 10, border: `1.5px solid ${TEAL}`, background: 'transparent', color: TEAL, fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          {saving ? '…' : 'Entwurf speichern'}
         </button>
         <button onClick={onSaveAndPdf} disabled={saving}
-          style={{ flex: 2, padding: '13px 0', borderRadius: 10, border: 'none', background: saving ? 'var(--border-light)' : TEAL, color: saving ? 'var(--text-tertiary)' : '#fff', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
-          {saving ? 'Speichern...' : 'Speichern & PDF'}
+          style={{ flex: '1 1 140px', padding: '13px 0', borderRadius: 10, border: `1.5px solid ${TEAL}`, background: 'transparent', color: TEAL, fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          {saving ? '…' : 'Speichern & PDF'}
+        </button>
+        <button onClick={onSubmit} disabled={saving}
+          style={{ flex: '2 1 200px', padding: '13px 0', borderRadius: 10, border: 'none', background: saving ? 'var(--border-light)' : '#1D9E75', color: saving ? 'var(--text-tertiary)' : '#fff', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans, system-ui)', boxShadow: saving ? 'none' : '0 1px 3px rgba(0,0,0,0.12)' }}>
+          {saving ? 'Wird übermittelt…' : '✓ Briefing abschicken'}
         </button>
       </div>
     </>
@@ -815,6 +843,40 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
     finally { setSaving(false); }
   };
 
+  // Tor 1 — "Briefing abschicken" (Baustein 2 der Funnel-Automation)
+  const [submitted, setSubmitted] = useState(false);
+  const handleSubmit = async () => {
+    setSaving(true);
+    setSaveError('');
+    try {
+      // Schritt 1: letzten Stand speichern (damit der Submit-Check auf
+      // aktuelle Werte greift — der Endpoint validiert gewerk/leistungen).
+      const saveRes = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
+        method: 'POST', headers: suggestHeaders,
+        body: JSON.stringify(buildPayload()),
+      });
+      if (!saveRes.ok) {
+        const err = await saveRes.json().catch(() => ({}));
+        throw new Error(err.detail || 'Speichern fehlgeschlagen');
+      }
+      // Schritt 2: Submit-Endpoint triggern.
+      const submitRes = await fetch(
+        `${API_BASE_URL}/api/briefings/${leadId}/submit`,
+        { method: 'POST', headers: suggestHeaders },
+      );
+      if (!submitRes.ok) {
+        const err = await submitRes.json().catch(() => ({}));
+        throw new Error(err.detail || 'Abschicken fehlgeschlagen');
+      }
+      clearDraft(leadId);
+      setSubmitted(true);
+    } catch (e) {
+      setSaveError(e.message || 'Abschicken fehlgeschlagen.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const renderStep = () => {
     const suggestProps = { suggestions, onSuggest: suggestField, onApply: applySuggestion };
     const isKiFilled = (key) => kiFilledFields.has(key);
@@ -825,7 +887,17 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
       case 2: return <Step3 {...p} />;
       case 3: return <Step4 {...p} showErrors={showErrors} />;
       case 4: return <Step5 {...p} />;
-      case 5: return <Step6 data={data} saving={saving} error={saveError} onSaveAndPdf={handleSaveAndPdf} onSaveOnly={handleSaveOnly} />;
+      case 5: return (
+        <Step6
+          data={data}
+          saving={saving}
+          error={saveError}
+          submitted={submitted}
+          onSaveAndPdf={handleSaveAndPdf}
+          onSaveOnly={handleSaveOnly}
+          onSubmit={handleSubmit}
+        />
+      );
       default: return null;
     }
   };

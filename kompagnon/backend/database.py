@@ -169,6 +169,13 @@ class Project(Base):
     margin_percent = Column(Float, default=0.0)  # Computed
     scope_creep_flags = Column(Integer, default=0)  # Count of scope creep incidents
     customer_approved_at = Column(DateTime)  # When customer approved Phase 5
+    # Briefing-Freigabe-Gate (Tor 1): Kunde schickt Briefing ab, Admin gibt
+    # frei. Phase-2-Endpoints (Sitemap-KI, Content-Agent, Design) sind via
+    # require_briefing_approved_for_project / _for_lead gesperrt, bis
+    # briefing_approved_at gesetzt ist.
+    briefing_submitted_at = Column(DateTime, nullable=True)
+    briefing_approved_at = Column(DateTime, nullable=True)
+    briefing_approved_by = Column(String(200), nullable=True)
     review_received = Column(Boolean, default=False)
     review_platform = Column(String(50))  # google, provenexpert
     review_rating = Column(Float)  # 1-5 stars
@@ -874,3 +881,67 @@ def get_db():
         raise
     finally:
         db.close()
+
+
+# ── Briefing-Freigabe-Gate (Tor 1) ─────────────────────────────────────────────
+#
+# Wird von Phase-2-Endpoints (Sitemap-KI, Content-Agent, Design) aufgerufen,
+# um Aufrufe zu blocken, solange der Kunde das Briefing eingereicht hat, aber
+# der Admin es noch nicht freigegeben hat.
+#
+# Liegt hier im database-Modul, damit alle Router ohne Kreuzimports zugreifen
+# koennen. Importe von HTTPException/text sind lokal, damit database.py bei
+# nicht-FastAPI-Kontexten (Scripts, Migrations) ohne FastAPI ladbar bleibt.
+
+def require_briefing_approved_for_project(project_id: int, db) -> None:
+    """Blockt den Request mit 403, wenn das Briefing des Projekts eingereicht
+    aber noch nicht freigegeben wurde. Ruft keine Ausnahme wenn gar kein
+    Briefing eingereicht wurde (dann laeuft der Admin-Flow und der Call darf
+    durch).
+    """
+    from fastapi import HTTPException
+    from sqlalchemy import text
+    row = db.execute(
+        text(
+            "SELECT briefing_submitted_at, briefing_approved_at "
+            "FROM projects WHERE id = :id"
+        ),
+        {"id": project_id},
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    submitted, approved = row[0], row[1]
+    if submitted and not approved:
+        raise HTTPException(
+            403,
+            "Briefing noch nicht freigegeben. Bitte warte auf die Admin-Freigabe, "
+            "bevor du Phase 2 startest.",
+        )
+
+
+def require_briefing_approved_for_lead(lead_id: int, db) -> None:
+    """Wie require_briefing_approved_for_project, aber via lead_id.
+
+    Sucht das juengste Projekt fuer den Lead. Wenn kein Projekt existiert,
+    wird der Call durchgelassen — der Guard greift nur, wenn es bereits einen
+    Projekt-Datensatz gibt und dort briefing_submitted_at gesetzt ist.
+    """
+    from fastapi import HTTPException
+    from sqlalchemy import text
+    row = db.execute(
+        text(
+            "SELECT briefing_submitted_at, briefing_approved_at "
+            "FROM projects WHERE lead_id = :lid "
+            "ORDER BY id DESC LIMIT 1"
+        ),
+        {"lid": lead_id},
+    ).fetchone()
+    if not row:
+        return
+    submitted, approved = row[0], row[1]
+    if submitted and not approved:
+        raise HTTPException(
+            403,
+            "Briefing noch nicht freigegeben. Bitte warte auf die Admin-Freigabe, "
+            "bevor du Phase 2 startest.",
+        )

@@ -1032,6 +1032,25 @@ MIGRATIONS = [
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS ki_confidence VARCHAR(10)",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS ki_hinweise TEXT",
     ]),
+
+    (6, "add_project_briefing_approval_gate", [
+        # Tor 1: Briefing-Freigabe-Gate (Baustein 2 der Funnel-Automation).
+        # Der Kunde schickt das Briefing ab (briefing_submitted_at wird
+        # gesetzt), Phase-2-Endpoints sind dann gesperrt bis ein Admin das
+        # Briefing explizit freigibt (briefing_approved_at + _by). Der
+        # APScheduler-Job 'briefing_approval_reminders' kontrolliert alle
+        # pending Freigaben stuendlich und eskaliert bei >48h Wartezeit.
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS briefing_submitted_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS briefing_approved_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS briefing_approved_by VARCHAR(200)",
+        # Partial-Index fuer den stuendlichen Reminder-Scan: nur Projekte
+        # mit submitted aber not approved — das sind typischerweise nur
+        # wenige Zeilen, der Index spart full table scans bei wachsender
+        # projects-Tabelle.
+        "CREATE INDEX IF NOT EXISTS idx_projects_briefing_pending "
+        "ON projects(briefing_submitted_at) "
+        "WHERE briefing_approved_at IS NULL",
+    ]),
 ]
 
 

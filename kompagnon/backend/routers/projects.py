@@ -423,7 +423,8 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
                 "sitemap_json, sitemap_freigabe, content_freigaben, qa_checklist_json, "
                 "abnahme_datum, abnahme_durch, "
                 "pagespeed_after_mobile, pagespeed_after_desktop, screenshot_after, "
-                "gbp_checklist_json "
+                "gbp_checklist_json, "
+                "briefing_submitted_at, briefing_approved_at, briefing_approved_by "
                 "FROM projects WHERE id = :pid"
             ),
             {"pid": project_id},
@@ -485,6 +486,10 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
         'gbp_rating':               getattr(lead, 'gbp_rating', None),
         'gbp_ratings_total':        getattr(lead, 'gbp_ratings_total', None),
         'gbp_checklist_json':       row[24],
+        # Tor 1 — Briefing-Freigabe-Gate (Baustein 2)
+        'briefing_submitted_at':    row[25].isoformat() if row[25] else None,
+        'briefing_approved_at':     row[26].isoformat() if row[26] else None,
+        'briefing_approved_by':     row[27] or None,
     }
 
 
@@ -4071,3 +4076,87 @@ async def netlify_set_domain(
             raise HTTPException(502, f"Domain: {res.text[:150]}")
         site = res.json()
     return {"cname_target": site.get("url","").replace("https://",""), "domain": domain}
+
+
+# ── Tor 1: Admin-Freigabe fuer Briefing ───────────────────────────────────────
+
+@router.post("/{project_id}/approve-briefing")
+def approve_briefing(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    """Admin gibt das eingereichte Briefing frei und entsperrt Phase 2.
+
+    Setzt briefing_approved_at + briefing_approved_by auf dem Projekt und
+    startet die KI-Sitemap-Generierung als Background-Thread (direkter
+    Funktionsaufruf auf generate_sitemap_impl, kein HTTP-Roundtrip, keine
+    interne Auth-Umgehung). Der Admin landet sofort wieder im UI, die
+    Sitemap erscheint dort nach wenigen Sekunden durch normales Polling.
+    """
+    import threading
+    from datetime import datetime as _dt
+    from database import SessionLocal as _SL
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    if not project.briefing_submitted_at:
+        raise HTTPException(
+            400,
+            "Das Briefing fuer dieses Projekt wurde noch nicht eingereicht. "
+            "Warte bis der Kunde es abschickt.",
+        )
+
+    # Idempotent: zweite Freigabe ist No-Op, aber gibt den aktuellen Stand zurueck.
+    already_approved = project.briefing_approved_at is not None
+    if not already_approved:
+        project.briefing_approved_at = _dt.utcnow()
+        project.briefing_approved_by = getattr(current_user, "email", None) or str(
+            getattr(current_user, "id", "admin")
+        )
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"approve_briefing Commit fehlgeschlagen: {e}")
+            raise HTTPException(500, f"Freigabe fehlgeschlagen: {str(e)[:200]}")
+
+    # Auto-Start der Sitemap-KI in einem daemon-Thread. Nur beim ERSTEN
+    # Approve — Wiederholungen triggern nichts Neues.
+    sitemap_started = False
+    lead_id = project.lead_id
+    if lead_id and not already_approved:
+        def _auto_start_sitemap(lid: int):
+            import time as _time
+            _time.sleep(2)  # kurz warten, damit der Frontend-UI-Refresh durch ist
+            _db = _SL()
+            try:
+                from routers.sitemap import generate_sitemap_impl
+                result = generate_sitemap_impl(lid, _db)
+                logger.info(
+                    f"Auto-Sitemap nach Briefing-Freigabe: Lead {lid} — "
+                    f"{len(result.get('pages', []))} Seiten, source={result.get('source')}"
+                )
+            except Exception as e:
+                logger.error(f"Auto-Sitemap fehlgeschlagen fuer Lead {lid}: {e}")
+            finally:
+                _db.close()
+
+        threading.Thread(
+            target=_auto_start_sitemap, args=(lead_id,), daemon=True
+        ).start()
+        sitemap_started = True
+        logger.info(
+            f"Briefing freigegeben: Projekt {project_id} (Lead {lead_id}) "
+            f"durch {project.briefing_approved_by} — Auto-Sitemap geplant"
+        )
+
+    return {
+        "approved": True,
+        "already_approved": already_approved,
+        "sitemap_started": sitemap_started,
+        "briefing_approved_at": project.briefing_approved_at.isoformat(),
+        "briefing_approved_by": project.briefing_approved_by,
+    }

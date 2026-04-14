@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
 
-from database import get_db, Briefing, Lead
+from database import get_db, Briefing, Lead, Project
 from routers.auth_router import require_any_auth
 
 logger = logging.getLogger(__name__)
@@ -639,3 +639,154 @@ def ki_prefill_endpoint(
     werden niemals automatisch befuellt.
     """
     return ki_prefill_briefing(lead_id, db)
+
+
+# ── Tor 1: Briefing-Submit ────────────────────────────────────────────────────
+#
+# Der Kunde klickt "Briefing abschicken" im BriefingWizard. Das setzt
+# briefing.status='submitted', projects.briefing_submitted_at=now() und
+# benachrichtigt den Admin. Phase 2 (Sitemap-KI, Content-Agent, Design)
+# ist dann gesperrt bis ein Admin explizit via POST /api/projects/{id}/
+# approve-briefing freigibt.
+
+
+def _get_admin_notification_email(db: Session) -> Optional[str]:
+    """Admin-Mail aus SystemSettings holen, sonst env, sonst erster superadmin."""
+    import os
+    from database import SystemSettings, User
+    # 1. SystemSettings-Key 'admin_notification_email'
+    try:
+        row = db.query(SystemSettings).filter(
+            SystemSettings.key == "admin_notification_email"
+        ).first()
+        if row and row.value:
+            return row.value.strip()
+    except Exception:
+        pass
+    # 2. Env-Fallback
+    env_val = os.getenv("ADMIN_NOTIFICATION_EMAIL", "").strip()
+    if env_val:
+        return env_val
+    # 3. Erster aktiver superadmin als letzter Fallback
+    try:
+        row = db.query(User).filter(User.role == "superadmin").first()
+        if row and row.email:
+            return row.email
+    except Exception:
+        pass
+    return None
+
+
+def _notify_admin_briefing_submitted(lead: Lead, project: Optional[Project], db: Session) -> None:
+    """Sende eine Admin-Benachrichtigung per E-Mail, dass ein Briefing
+    zur Freigabe wartet. Schluckt alle Fehler — Mail-Probleme duerfen
+    den Submit-Endpoint NICHT zum 500 zwingen."""
+    try:
+        to = _get_admin_notification_email(db)
+        if not to:
+            logger.warning(
+                "Briefing-Submit: Keine Admin-E-Mail konfiguriert — "
+                "Benachrichtigung uebersprungen."
+            )
+            return
+
+        import os
+        use_mock = os.getenv("USE_MOCK_EMAIL", "false").lower() == "true"
+        if use_mock:
+            from services.email_service import MockEmailService
+            svc = MockEmailService()
+        else:
+            from services.email_service import EmailService
+            svc = EmailService()
+
+        company = (lead.display_name or lead.company_name or f"Lead #{lead.id}") if lead else "Unbekannt"
+        project_id = project.id if project else "—"
+        subject = f"[KOMPAGNON] Briefing wartet auf Freigabe — {company}"
+        body = (
+            f"Ein Kunde hat sein Briefing eingereicht und wartet auf deine Freigabe.\n\n"
+            f"Unternehmen: {company}\n"
+            f"Lead-ID:     {lead.id if lead else '—'}\n"
+            f"Projekt-ID:  {project_id}\n"
+            f"Eingereicht: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}\n\n"
+            f"Oeffne das Projekt in KOMPAGNON und klicke 'Briefing freigeben', "
+            f"um Phase 2 (Sitemap, Content, Design) zu starten.\n\n"
+            f"Nach 24h ohne Freigabe erhaeltst du eine Erinnerung, "
+            f"nach 48h geht eine Eskalation raus.\n"
+        )
+        svc.send_email(to=to, subject=subject, body=body)
+        logger.info(f"Briefing-Submit: Admin-Benachrichtigung an {to} fuer Lead {lead.id if lead else '?'}")
+    except Exception as e:
+        logger.error(f"Briefing-Submit: Admin-E-Mail fehlgeschlagen: {e}")
+
+
+@router.post("/{lead_id}/submit")
+def submit_briefing(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Kunde reicht das Briefing zur Admin-Freigabe ein (Tor 1).
+
+    Pflichtfelder: gewerk + leistungen muessen gesetzt sein.
+    Effekte:
+      1. briefing.status = 'submitted'
+      2. projects.briefing_submitted_at = now() (falls Projekt existiert)
+      3. Admin-E-Mail-Benachrichtigung (best-effort, wirft nicht)
+
+    Idempotent: Wenn das Briefing bereits submitted ist, wird der
+    Timestamp auf dem Projekt NICHT ueberschrieben — der Endpoint gibt
+    einfach den aktuellen Stand zurueck.
+    """
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    if not briefing:
+        raise HTTPException(404, "Briefing nicht gefunden — zuerst speichern.")
+
+    # Pflichtfelder pruefen
+    missing = []
+    if not (briefing.gewerk and briefing.gewerk.strip()):
+        missing.append("gewerk")
+    if not (briefing.leistungen and briefing.leistungen.strip()):
+        missing.append("leistungen")
+    if missing:
+        raise HTTPException(
+            400,
+            f"Pflichtfelder fehlen: {', '.join(missing)}. "
+            f"Bitte vor dem Abschicken ausfuellen.",
+        )
+
+    briefing.status = "submitted"
+    briefing.updated_at = datetime.utcnow()
+
+    # Projekt-Timestamp setzen (nur beim ersten Submit, nicht bei Retry)
+    project = db.query(Project).filter(Project.lead_id == lead_id).order_by(
+        Project.id.desc()
+    ).first()
+    first_submit = False
+    if project and not project.briefing_submitted_at:
+        project.briefing_submitted_at = datetime.utcnow()
+        first_submit = True
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+
+    try:
+        db.commit()
+        db.refresh(briefing)
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Briefing-Submit Commit fehlgeschlagen: {e}")
+        raise HTTPException(500, f"Submit fehlgeschlagen: {str(e)[:200]}")
+
+    # Admin-Benachrichtigung nur beim ersten Submit
+    if first_submit:
+        _notify_admin_briefing_submitted(lead, project, db)
+
+    return {
+        "status": "submitted",
+        "first_submit": first_submit,
+        "briefing_submitted_at": (
+            project.briefing_submitted_at.isoformat()
+            if project and project.briefing_submitted_at else None
+        ),
+        "project_id": project.id if project else None,
+        "briefing": _serialize(briefing),
+    }

@@ -27,6 +27,10 @@ async def generate_design(
     Generate a complete single-page HTML website design for a lead/customer.
     customer_id corresponds to the Lead.id (leads are the primary record in the UI).
     """
+    # Tor 1: Briefing-Freigabe-Gate (Baustein 2). customer_id == lead_id.
+    from database import require_briefing_approved_for_lead
+    require_briefing_approved_for_lead(customer_id, db)
+
     lead = db.query(Lead).filter(Lead.id == customer_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Kunde nicht gefunden")

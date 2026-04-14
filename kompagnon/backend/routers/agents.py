@@ -202,6 +202,10 @@ def run_content_agent(
     (LeadProfile, ProjectDetail, CustomerDetail) sind bereits auf job_id-
     Polling aufgebaut, nur das Backend gab keinen job_id heraus.
     """
+    # Tor 1: Briefing-Freigabe-Gate (Baustein 2). Blockiert Phase-2-Calls,
+    # solange das Briefing eingereicht aber noch nicht freigegeben wurde.
+    from database import require_briefing_approved_for_project
+    require_briefing_approved_for_project(project_id, db)
     # Wenn lead_id vorhanden: Daten aus DB ergänzen
     if briefing.lead_id:
         from database import Lead, Briefing as BriefingModel

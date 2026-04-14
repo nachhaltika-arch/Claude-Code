@@ -427,13 +427,19 @@ def _insert_pages(lead_id: int, raw_pages: list, db: Session) -> list:
 
 # ── ENDPOINT: KI-Vorlage generieren ──────────────────────────────────────────
 
-@router.post("/{lead_id}/generate")
-async def generate_sitemap(
-    lead_id: int,
-    db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
-):
-    """Generate sitemap pages via Claude AI (or fallback template)."""
+def generate_sitemap_impl(lead_id: int, db: Session) -> dict:
+    """Kernlogik fuer die KI-Sitemap-Generierung (sync, ohne Auth-Dependency).
+
+    Wird aufgerufen von:
+      1. POST /api/sitemap/{lead_id}/generate (HTTP-Endpoint unten)
+      2. approve-briefing-Webhook in projects.py (Background-Thread nach
+         Admin-Freigabe) — direkter Funktionsaufruf, kein HTTP-Roundtrip.
+    """
+    from database import require_briefing_approved_for_lead
+    # Tor 1: wenn ein Projekt mit submitted aber not approved existiert,
+    # hier 403 werfen — identisch zum Guard im HTTP-Endpoint.
+    require_briefing_approved_for_lead(lead_id, db)
+
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
@@ -516,6 +522,16 @@ async def generate_sitemap(
         .all()
     )
     return {"pages": [_serialize(p) for p in all_pages], "source": source}
+
+
+@router.post("/{lead_id}/generate")
+async def generate_sitemap(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Generate sitemap pages via Claude AI (or fallback template)."""
+    return generate_sitemap_impl(lead_id, db)
 
 
 # ── ENDPOINT: PDF-Export ──────────────────────────────────────────────────────

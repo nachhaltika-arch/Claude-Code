@@ -5,6 +5,7 @@ import DesignStudio from './DesignStudio';
 import BriefingTab from './BriefingTab';
 import BriefingWizard from './BriefingWizard';
 import API_BASE_URL from '../config';
+import { useAuth } from '../context/AuthContext';
 
 const PHASEN = [
   {
@@ -99,6 +100,37 @@ export default function ProzessFlow({
   const [localCrawlPages, setLocalCrawlPages] = useState(crawlPages);
   const [localBrandColor, setLocalBrandColor] = useState(brandData?.primary_color || null);
 
+  // Tor 1 — Briefing-Freigabe-Gate
+  const { user: authUser } = useAuth() || {};
+  const isAdmin = authUser?.role === 'admin' || authUser?.role === 'superadmin';
+  const [briefingSubmittedAt, setBriefingSubmittedAt] = useState(project?.briefing_submitted_at || null);
+  const [briefingApprovedAt, setBriefingApprovedAt]   = useState(project?.briefing_approved_at || null);
+  const [approving, setApproving]                     = useState(false);
+  const [approveError, setApproveError]               = useState('');
+
+  useEffect(() => {
+    setBriefingSubmittedAt(project?.briefing_submitted_at || null);
+    setBriefingApprovedAt(project?.briefing_approved_at || null);
+  }, [project?.briefing_submitted_at, project?.briefing_approved_at]);
+
+  // Wenn das Projekt-Prop die Felder nicht enthaelt (z.B. weil der Parent
+  // sie noch nicht fetcht), holen wir sie einmal selbst nach, damit das
+  // Gate-Verhalten auch ohne Parent-Aenderung funktioniert.
+  useEffect(() => {
+    if (!project?.id) return;
+    if (project.briefing_submitted_at !== undefined) return; // parent liefert schon
+    fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return;
+        setBriefingSubmittedAt(d.briefing_submitted_at || null);
+        setBriefingApprovedAt(d.briefing_approved_at || null);
+      })
+      .catch(() => { /* silent */ });
+  }, [project?.id, token]); // eslint-disable-line
+
   useEffect(() => { setLocalBriefing(briefing); }, [briefing]); // eslint-disable-line
   useEffect(() => { setLocalLatestAudit(latestAudit); }, [latestAudit]); // eslint-disable-line
   useEffect(() => { setLocalCrawlPages(crawlPages); }, [crawlPages]); // eslint-disable-line
@@ -124,6 +156,31 @@ export default function ProzessFlow({
       if (res.ok) setLocalBriefing(await res.json());
     } catch { /* silent */ }
   };
+
+  const approveBriefing = async () => {
+    if (!project?.id || approving) return;
+    setApproving(true);
+    setApproveError('');
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/projects/${project.id}/approve-briefing`,
+        { method: 'POST', headers },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.detail || `Freigabe fehlgeschlagen (${res.status})`);
+      }
+      setBriefingApprovedAt(data.briefing_approved_at || new Date().toISOString());
+      // Sitemap-KI laeuft jetzt im Hintergrund — nach ~10 Sek reload triggern.
+      setTimeout(() => { if (onSitemapReload) onSitemapReload(); }, 10000);
+    } catch (e) {
+      setApproveError(e?.message || 'Freigabe fehlgeschlagen');
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const briefingPending = !!briefingSubmittedAt && !briefingApprovedAt;
 
   const leadId = project?.lead_id || lead?.id;
 
@@ -155,6 +212,17 @@ export default function ProzessFlow({
   }, [JSON.stringify(prozessDaten)]); // eslint-disable-line
 
   const waehleSchritt = useCallback((schritt) => {
+    // Tor 1: Phase-2-Schritte (ab Schritt 6 "Sitemap anlegen") sind
+    // gesperrt, solange das Briefing eingereicht aber noch nicht
+    // freigegeben wurde.
+    if (briefingPending && schritt.nr >= 6) {
+      setWarnung({
+        ziel: schritt,
+        fehlt: { id: schritt.id, nr: 5, label: 'Briefing-Freigabe' },
+        text: 'Warte auf die Admin-Freigabe des Briefings, bevor du Sitemap, Content oder Design startest.',
+      });
+      return;
+    }
     const idx    = ALLE_SCHRITTE.findIndex(s => s.id === schritt.id);
     const voriger = idx > 0 ? ALLE_SCHRITTE[idx - 1] : null;
     if (voriger && !voriger.optional && !voriger.istFertig(prozessDaten)) {
@@ -164,7 +232,7 @@ export default function ProzessFlow({
       setWarnung(null);
       setAktiverSchritt(schritt.id);
     }
-  }, [JSON.stringify(prozessDaten)]); // eslint-disable-line
+  }, [JSON.stringify(prozessDaten), briefingPending]); // eslint-disable-line
 
   const aktivObj    = ALLE_SCHRITTE.find(s => s.id === aktiverSchritt);
   const fertigCount = ALLE_SCHRITTE.filter(s => s.istFertig(prozessDaten)).length;
@@ -226,6 +294,55 @@ export default function ProzessFlow({
           );
         })}
       </div>
+
+      {/* Tor 1 — Briefing-Freigabe-Gate */}
+      {briefingPending && (
+        <div style={{
+          padding: '14px 18px',
+          background: '#FFF7E6',
+          border: '1px solid #F5A623',
+          borderRadius: 'var(--radius-lg)',
+          display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap',
+        }}>
+          <div style={{ fontSize: 22, lineHeight: 1 }}>⏳</div>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#7A4E00', marginBottom: 2 }}>
+              {isAdmin ? 'Briefing wartet auf deine Freigabe' : 'Wartet auf Admin-Freigabe'}
+            </div>
+            <div style={{ fontSize: 12, color: '#5A4800', lineHeight: 1.5, marginBottom: 4 }}>
+              {isAdmin
+                ? 'Der Kunde hat sein Briefing eingereicht. Prüfe es und gib es frei — danach startet die KI-Sitemap automatisch.'
+                : 'Das Briefing wurde eingereicht. Ein Admin prüft es und gibt es frei. Du wirst per E-Mail benachrichtigt sobald es weitergeht.'}
+            </div>
+            <div style={{ fontSize: 11, color: '#7A6500' }}>
+              Eingereicht am {briefingSubmittedAt
+                ? new Date(briefingSubmittedAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })
+                : '—'}
+            </div>
+            {approveError && (
+              <div style={{ fontSize: 11, color: '#B02A2A', marginTop: 6, fontWeight: 600 }}>
+                Fehler: {approveError}
+              </div>
+            )}
+          </div>
+          {isAdmin && (
+            <button
+              onClick={approveBriefing}
+              disabled={approving}
+              style={{
+                padding: '9px 18px', borderRadius: 8, border: 'none',
+                background: approving ? '#94a3b8' : '#1D9E75',
+                color: '#fff', fontSize: 13, fontWeight: 700,
+                cursor: approving ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)', flexShrink: 0,
+                boxShadow: approving ? 'none' : '0 1px 3px rgba(0,0,0,0.12)',
+              }}
+            >
+              {approving ? 'Wird freigegeben…' : '✓ Briefing freigeben'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Reihenfolge-Warnung */}
       {warnung && (

@@ -2422,6 +2422,37 @@ Antworte NUR mit einem JSON-Objekt:
     }
 
 
+# ── Hebel #5: Manueller Trigger fuer den monatlichen Performance-Report ───────
+#
+# Der eigentliche Job laeuft via APScheduler am 1. jeden Monats um 08:30
+# Berlin-Zeit (siehe automations/scheduler.py::job_monthly_performance_report).
+# Dieser Endpoint erlaubt Admins, den Job sofort zu triggern — ohne auf den
+# Cron zu warten — fuer Tests, Audits oder Ad-hoc-Reports.
+#
+# Die Route ist 2-Segment (`/admin/trigger-performance-reports`) und kollidiert
+# nicht mit `/{lead_id}` (1-Segment). Der konstante Pfad `/admin/...` matcht
+# eindeutig.
+
+@router.post("/admin/trigger-performance-reports")
+def trigger_performance_reports(
+    background_tasks: BackgroundTasks,
+    _=Depends(require_admin),
+):
+    """Manueller Trigger fuer den monatlichen Performance-Report (nur Admin).
+
+    Faehrt den Job in einem Background-Task an, damit die HTTP-Response
+    sofort zurueckkehrt. Der Job kann je nach Lead-Anzahl 1-3 Min dauern.
+    Erfolg / Fehler nur in den Render-Backend-Logs sichtbar.
+    """
+    from automations.scheduler import job_monthly_performance_report
+    background_tasks.add_task(job_monthly_performance_report)
+    return {
+        "message": "Performance-Report Job gestartet — pruefe Render-Logs",
+        "note": "Laeuft im Hintergrund, dauert 1-3 Min je nach Anzahl Kunden",
+        "log_marker": "Performance-Report",
+    }
+
+
 # Registers identical handlers under /api/customers/{lead_id}/... so that
 # frontend calls to either prefix work transparently.
 

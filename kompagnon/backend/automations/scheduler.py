@@ -577,6 +577,449 @@ def job_content_approval_reminders():
         db.close()
 
 
+# ── Hebel #5: Monatlicher Performance-Report ──────────────────────────────────
+#
+# Cron-Job am 1. jeden Monats um 08:30 Berlin-Zeit. Pro aktivem Kunden:
+#   1. Frische PageSpeed-Messung via Google PageSpeed API
+#   2. Vergleich mit perf_report_last_mobile (Score vom letzten Report)
+#   3. KI-Kommentar via Claude (mit Fallback-Text wenn ANTHROPIC_API_KEY fehlt)
+#   4. HTML-E-Mail mit Score-Karten + Trend + KI-Analyse + ggf. Upsell-Box
+#   5. send_email via kanonischer services.email
+#   6. perf_report_*-Tracking-Spalten auf dem Lead aktualisieren
+
+
+def _measure_pagespeed_sync(url: str, api_key: str):
+    """Synchroner PageSpeed-Call fuer Mobile + Desktop.
+
+    APScheduler-Jobs laufen in einem ThreadPool — kein Event-Loop, deshalb
+    sync httpx statt async/await. Returnt (mobile_score, desktop_score) als
+    Tupel von ints (0-100) oder None bei Fehlern. Eigene Errors werden NICHT
+    geworfen — der aufrufende Job entscheidet, ob er den fehlenden Score
+    toleriert.
+    """
+    import httpx as _httpx
+    results = []
+    for strategy in ("mobile", "desktop"):
+        try:
+            resp = _httpx.get(
+                "https://www.googleapis.com/pagespeedonline/v5/runPagespeed",
+                params={
+                    "url": url,
+                    "key": api_key,
+                    "strategy": strategy,
+                    "category": "performance",
+                },
+                timeout=30.0,
+            )
+            if resp.is_success:
+                data = resp.json()
+                score = (
+                    data.get("lighthouseResult", {})
+                        .get("categories", {})
+                        .get("performance", {})
+                        .get("score")
+                )
+                results.append(int(score * 100) if score is not None else None)
+            else:
+                results.append(None)
+        except Exception:
+            results.append(None)
+    return results[0], results[1]  # (mobile, desktop)
+
+
+def _fallback_perf_comment(mobile, diff) -> str:
+    """Fallback-Text wenn ANTHROPIC_API_KEY fehlt oder Claude nicht erreichbar."""
+    score = mobile if mobile is not None else 0
+    if score >= 85:
+        return (
+            "Ihre Website performt ausgezeichnet. Der hohe Score sorgt fuer "
+            "bessere Google-Rankings und schnellere Ladezeiten fuer Ihre Besucher."
+        )
+    if score >= 70:
+        return (
+            "Ihre Website laeuft gut. Mit einigen Optimierungen — etwa "
+            "Bildkomprimierung — laesst sich der Score noch weiter verbessern."
+        )
+    return (
+        "Ihre Website hat Optimierungsbedarf. Ein niedriger PageSpeed-Score "
+        "kann sich negativ auf Google-Rankings und Absprungrate auswirken."
+    )
+
+
+def _generate_perf_comment(
+    company: str, url: str,
+    mobile, desktop,
+    last_mobile, diff,
+) -> str:
+    """Generiert einen kurzen KI-Kommentar (2-3 Saetze) zum Monatsreport.
+
+    Bei Claude-API-Fehler (Netzwerk, Auth, JSON, Timeout) faellt es auf den
+    statischen _fallback_perf_comment zurueck. Fehler werden nur auf Debug-
+    Level geloggt, weil ein fehlender KI-Kommentar kein Hard-Fail ist.
+    """
+    import os as _os
+    import httpx as _httpx
+
+    api_key = _os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return _fallback_perf_comment(mobile, diff)
+
+    if diff is None:
+        trend_text = "erste Messung — kein Vergleich verfuegbar"
+    elif diff > 2:
+        trend_text = f"verbessert um {diff} Punkte gegenueber Vormonat"
+    elif diff < -2:
+        trend_text = f"verschlechtert um {abs(diff)} Punkte gegenueber Vormonat"
+    else:
+        trend_text = "stabil geblieben (kleine Schwankung)"
+
+    prompt = (
+        f"Schreibe 2-3 Saetze als freundlicher Website-Berater fuer einen Monatsbericht.\n"
+        f"Firma: {company} | Website: {url}\n"
+        f"PageSpeed Mobil: {mobile}/100 | Desktop: {desktop if desktop is not None else '—'}/100\n"
+        f"Trend: {trend_text}\n\n"
+        f"Ton: professionell, kurz, konkret. Ein positiver Aspekt, ein Verbesserungshinweis. "
+        f"Max 60 Woerter. Kein HTML. Nur der Text."
+    )
+
+    try:
+        resp = _httpx.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": "claude-sonnet-4-20250514",
+                "max_tokens": 200,
+                "messages": [{"role": "user", "content": prompt}],
+            },
+            timeout=20.0,
+        )
+        if resp.is_success:
+            text_block = resp.json().get("content", [{}])[0].get("text", "").strip()
+            if text_block:
+                return text_block
+    except Exception as e:
+        logger.debug(f"_generate_perf_comment Claude-Fallback ({e})")
+
+    return _fallback_perf_comment(mobile, diff)
+
+
+def _build_perf_report_email(
+    company, website_url,
+    mobile, desktop,
+    last_mobile, mobile_diff,
+    ki_kommentar, upsell, report_count,
+) -> str:
+    """Baut die HTML-Report-E-Mail."""
+    month = datetime.utcnow().strftime("%B %Y")
+
+    score_color = (
+        "#059669" if (mobile or 0) >= 85
+        else "#D97706" if (mobile or 0) >= 70
+        else "#DC2626"
+    )
+    score_label = (
+        "Sehr gut" if (mobile or 0) >= 85
+        else "Gut" if (mobile or 0) >= 70
+        else "Optimierungsbedarf"
+    )
+
+    if mobile_diff is None:
+        trend_html = '<span style="color:#6B7280;">Erste Messung — kein Vergleich verfuegbar</span>'
+    elif mobile_diff > 2:
+        trend_html = (
+            f'<span style="color:#059669;font-weight:700;">'
+            f'\u25B2 +{mobile_diff} Punkte gegenueber Vormonat</span>'
+        )
+    elif mobile_diff < -2:
+        trend_html = (
+            f'<span style="color:#DC2626;font-weight:700;">'
+            f'\u25BC {mobile_diff} Punkte gegenueber Vormonat</span>'
+        )
+    else:
+        trend_html = (
+            f'<span style="color:#6B7280;">'
+            f'\u25B6 Stabil (\u00B1{abs(mobile_diff)} Punkte)</span>'
+        )
+
+    upsell_html = ""
+    if upsell:
+        upsell_html = """
+        <div style="background:#FEF3C7;border-left:4px solid #D97706;
+                    padding:14px 16px;margin:20px 0;border-radius:0 6px 6px 0;">
+          <div style="font-weight:700;color:#92400E;margin-bottom:6px;">
+            \U0001F4A1 Empfehlung: Website-Optimierung
+          </div>
+          <div style="font-size:13px;color:#92400E;line-height:1.6;">
+            Ein Score unter 70 kostet Sie taeglich potenzielle Kunden.
+            Mit unserem <strong>Performance-Paket</strong> optimieren wir
+            Ladezeiten, Bilder und technische Faktoren gezielt.<br><br>
+            <a href="mailto:info@kompagnon.de"
+               style="color:#92400E;font-weight:700;">
+              Jetzt kostenloses Beratungsgespraech anfragen \u2192
+            </a>
+          </div>
+        </div>
+        """
+
+    desktop_display = desktop if desktop is not None else "\u2013"
+
+    return f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a2332;">
+      <div style="background:#008EAA;padding:20px 24px;border-radius:8px 8px 0 0;">
+        <div style="color:#fff;font-size:18px;font-weight:700;">KOMPAGNON</div>
+        <div style="color:rgba(255,255,255,.75);font-size:13px;">
+          Ihr monatlicher Website-Report — {month}
+        </div>
+      </div>
+      <div style="padding:24px;background:#fff;border:1px solid #e2e8f0;
+                  border-top:none;border-radius:0 0 8px 8px;">
+
+        <p style="margin:0 0 20px;font-size:15px;">
+          Guten Tag, <strong>{company}</strong>,
+        </p>
+
+        <table cellpadding="0" cellspacing="0" border="0"
+               style="width:100%;margin-bottom:20px;border-collapse:separate;border-spacing:8px 0;">
+          <tr>
+            <td style="width:50%;text-align:center;padding:16px;
+                       background:#f8fafc;border-radius:8px;
+                       border:2px solid {score_color};">
+              <div style="font-size:11px;color:#6B7280;
+                          text-transform:uppercase;margin-bottom:4px;">Mobil</div>
+              <div style="font-size:36px;font-weight:800;color:{score_color};">{mobile}</div>
+              <div style="font-size:12px;color:{score_color};font-weight:600;">{score_label}</div>
+            </td>
+            <td style="width:50%;text-align:center;padding:16px;
+                       background:#f8fafc;border-radius:8px;">
+              <div style="font-size:11px;color:#6B7280;
+                          text-transform:uppercase;margin-bottom:4px;">Desktop</div>
+              <div style="font-size:36px;font-weight:800;color:#374151;">{desktop_display}</div>
+              <div style="font-size:12px;color:#6B7280;">Score /100</div>
+            </td>
+          </tr>
+        </table>
+
+        <div style="margin-bottom:16px;font-size:13px;">{trend_html}</div>
+
+        <div style="background:#F0F9FF;border-radius:8px;padding:14px 16px;margin-bottom:20px;">
+          <div style="font-size:12px;font-weight:700;color:#0369A1;margin-bottom:6px;">
+            \U0001F4CA KI-Analyse
+          </div>
+          <div style="font-size:13px;color:#374151;line-height:1.7;">
+            {ki_kommentar}
+          </div>
+        </div>
+
+        {upsell_html}
+
+        <div style="font-size:12px;color:#6B7280;margin-top:20px;">
+          <a href="{website_url}" style="color:#008EAA;">{website_url}</a>
+          &middot; Report #{report_count} &middot; Gemessen am {month}
+        </div>
+
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid #e2e8f0;
+                    font-size:12px;color:#6B7280;">
+          <strong>KOMPAGNON Communications</strong><br>
+          Bei Fragen: <a href="mailto:info@kompagnon.de" style="color:#008EAA;">info@kompagnon.de</a>
+        </div>
+      </div>
+    </div>
+    """
+
+
+def job_monthly_performance_report():
+    """Monatlicher Performance-Report-Job — APScheduler cron, 1. des Monats 08:30 Berlin.
+
+    Fuer jeden aktiven Lead (mit E-Mail, Website, Go-Live oder aktiver
+    Netlify-Domain): PageSpeed messen → mit Vormonat vergleichen →
+    KI-Kommentar generieren → HTML-E-Mail senden → Tracking-Spalten updaten.
+
+    Einzelne Lead-Fehler werden geloggt, brechen aber nicht den ganzen Job ab.
+    """
+    import os as _os
+    from sqlalchemy import text as _text
+    from services.email import send_email
+
+    logger.info("\U0001F4CA Monatlicher Performance-Report gestartet...")
+
+    db = SessionLocal()
+    try:
+        leads = db.execute(_text("""
+            SELECT
+                l.id,
+                l.email,
+                l.company_name,
+                l.website_url,
+                l.pagespeed_mobile_score,
+                l.pagespeed_desktop_score,
+                l.pagespeed_checked_at,
+                l.perf_report_last_mobile,
+                l.perf_report_last_desktop,
+                l.perf_report_sent_count
+            FROM leads l
+            WHERE l.email IS NOT NULL
+              AND l.email != ''
+              AND l.website_url IS NOT NULL
+              AND l.website_url != ''
+              AND (
+                  l.actual_go_live IS NOT NULL
+                  OR EXISTS (
+                      SELECT 1 FROM projects p
+                      WHERE p.lead_id = l.id
+                        AND p.netlify_domain_status = 'active'
+                  )
+              )
+        """)).fetchall()
+
+        logger.info(f"Performance-Report: {len(leads)} aktive Kunden gefunden")
+
+        api_key = _os.getenv("PAGESPEED_API_KEY", "")
+        sent_count = 0
+        skipped_count = 0
+        failed_count = 0
+
+        for row in leads:
+            lead_id         = row[0]
+            email           = row[1]
+            company         = row[2] or "Ihr Unternehmen"
+            website_url     = row[3]
+            current_mobile  = row[4]
+            current_desktop = row[5]
+            last_mobile     = row[7]   # Vormonat-Score (perf_report_last_mobile)
+            report_count    = row[9] or 0
+
+            try:
+                # 1. Frische PageSpeed-Messung — Fallback auf gespeicherte Werte
+                new_mobile, new_desktop = current_mobile, current_desktop
+                if api_key and website_url:
+                    try:
+                        m, d = _measure_pagespeed_sync(website_url, api_key)
+                        # Nur uebernehmen wenn die Messung tatsaechlich was lieferte
+                        if m is not None:
+                            new_mobile = m
+                        if d is not None:
+                            new_desktop = d
+                    except Exception as ps_err:
+                        logger.warning(
+                            f"PageSpeed-Messung fehlgeschlagen fuer Lead {lead_id}: {ps_err}"
+                        )
+
+                if new_mobile is None:
+                    logger.info(
+                        f"Ueberspringe Lead {lead_id} ({email}) — kein PageSpeed-Score"
+                    )
+                    skipped_count += 1
+                    continue
+
+                # 2. Trend-Differenz
+                mobile_diff = None
+                if last_mobile is not None and new_mobile is not None:
+                    mobile_diff = new_mobile - last_mobile
+
+                # 3. KI-Kommentar
+                ki_kommentar = _generate_perf_comment(
+                    company, website_url, new_mobile, new_desktop,
+                    last_mobile, mobile_diff,
+                )
+
+                # 4. Upsell-Flag (Score < 70 → Optimierungs-Box)
+                upsell = new_mobile < 70
+
+                # 5. HTML-Body
+                html_body = _build_perf_report_email(
+                    company=company,
+                    website_url=website_url,
+                    mobile=new_mobile,
+                    desktop=new_desktop,
+                    last_mobile=last_mobile,
+                    mobile_diff=mobile_diff,
+                    ki_kommentar=ki_kommentar,
+                    upsell=upsell,
+                    report_count=report_count + 1,
+                )
+
+                # 6. Betreff mit Trend-Emoji
+                trend_emoji = (
+                    "\U0001F4C8" if (mobile_diff or 0) > 2          # 📈
+                    else "\U0001F4C9" if (mobile_diff or 0) < -2    # 📉
+                    else "\U0001F4CA"                                # 📊
+                )
+                month = datetime.utcnow().strftime("%B %Y")
+                subject = f"{trend_emoji} Ihr Website-Report {month} — Score: {new_mobile}/100"
+
+                # 7. Versand via kanonische send_email
+                ok = send_email(
+                    to_email=email,
+                    subject=subject,
+                    html_body=html_body,
+                )
+
+                if ok:
+                    # 8. Tracking-Spalten aktualisieren — der "neue Score" wird zum
+                    #    Vergleichswert fuer den naechsten Monat. Idempotent durch
+                    #    COALESCE — falls Migration v10 noch nicht in DB ist, schlaegt
+                    #    der ALTER nicht den Job ab, sondern wird im except gefangen.
+                    try:
+                        db.execute(_text("""
+                            UPDATE leads SET
+                                pagespeed_mobile_score   = :mobile,
+                                pagespeed_desktop_score  = :desktop,
+                                pagespeed_checked_at     = NOW(),
+                                perf_report_last_mobile  = :mobile,
+                                perf_report_last_desktop = :desktop,
+                                perf_report_sent_at      = NOW(),
+                                perf_report_sent_count   = COALESCE(perf_report_sent_count, 0) + 1
+                            WHERE id = :lid
+                        """), {
+                            "mobile":  new_mobile,
+                            "desktop": new_desktop,
+                            "lid":     lead_id,
+                        })
+                        db.commit()
+                    except Exception as upd_err:
+                        logger.warning(
+                            f"Performance-Report: Tracking-Update fuer Lead {lead_id} "
+                            f"fehlgeschlagen ({upd_err}) — Mail wurde trotzdem gesendet."
+                        )
+                        try:
+                            db.rollback()
+                        except Exception:
+                            pass
+                    sent_count += 1
+                    logger.info(
+                        f"\u2713 Performance-Report gesendet: Lead {lead_id} "
+                        f"({email}) Score: {new_mobile}/100"
+                    )
+                else:
+                    failed_count += 1
+                    logger.warning(
+                        f"Performance-Report: send_email an {email} fehlgeschlagen "
+                        f"(Lead {lead_id}) — SMTP-Konfiguration pruefen."
+                    )
+
+            except Exception as lead_err:
+                failed_count += 1
+                logger.warning(
+                    f"Performance-Report Lead {lead_id} Fehler: {lead_err}"
+                )
+                continue
+
+        logger.info(
+            f"\u2713 Performance-Report abgeschlossen: "
+            f"{sent_count} gesendet, {skipped_count} uebersprungen, "
+            f"{failed_count} fehlgeschlagen, {len(leads)} Leads gesamt"
+        )
+
+    except Exception as e:
+        logger.error(f"Performance-Report Job-Fehler: {e}", exc_info=True)
+    finally:
+        db.close()
+
+
 # ===================================================================
 # SCHEDULER CLASS (thin wrapper, no job logic)
 # ===================================================================
@@ -708,7 +1151,23 @@ class CompagnonScheduler:
             id="content_approval_reminders",
             replace_existing=True,
         )
-        logger.info("✓ Daily jobs registered (incl. weekly HWK scraper + token cleanup + approval reminders)")
+        # Hebel #5 — Monatlicher Performance-Report.
+        # Cron am 1. jeden Monats um 08:30 Berlin-Zeit. Pro aktiver Kunde:
+        # PageSpeed messen, KI-Kommentar generieren, HTML-E-Mail senden.
+        self.scheduler.add_job(
+            job_monthly_performance_report,
+            "cron",
+            day=1,
+            hour=8,
+            minute=30,
+            id="monthly_performance_report",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+        )
+        logger.info(
+            "✓ Daily jobs registered (incl. weekly HWK scraper + token cleanup "
+            "+ approval reminders + monthly performance report)"
+        )
 
         # Stündlicher E-Mail-Sequenz-Runner
         try:

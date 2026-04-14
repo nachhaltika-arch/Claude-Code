@@ -1102,6 +1102,24 @@ MIGRATIONS = [
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS kaltakquise_gesendet_at TIMESTAMP",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS kaltakquise_count INTEGER DEFAULT 0",
     ]),
+
+    (10, "add_lead_perf_report_tracking", [
+        # Monatlicher Performance-Report (Hebel #5): APScheduler triggert
+        # job_monthly_performance_report am 1. jeden Monats um 08:30 Berlin-Zeit.
+        # Pro aktiver Lead (mit Go-Live oder Netlify-aktiv) wird PageSpeed
+        # frisch gemessen, mit dem letzten Report verglichen und per E-Mail
+        # mit KI-Kommentar verschickt.
+        #
+        # perf_report_last_*  = Score zum Zeitpunkt des letzten Reports
+        #                       (nicht "aktueller Score" — der bleibt in
+        #                        pagespeed_*_score). Damit ist der Vergleich
+        #                       stabil: letzter Report ↔ dieser Report.
+        # perf_report_sent_*  = Tracking fuer Logs / Statistiken / Audit-Trail
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS perf_report_last_mobile INTEGER",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS perf_report_last_desktop INTEGER",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS perf_report_sent_at TIMESTAMP",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS perf_report_sent_count INTEGER DEFAULT 0",
+    ]),
 ]
 
 

@@ -690,19 +690,13 @@ def _notify_admin_briefing_submitted(lead: Lead, project: Optional[Project], db:
             )
             return
 
-        import os
-        use_mock = os.getenv("USE_MOCK_EMAIL", "false").lower() == "true"
-        if use_mock:
-            from services.email_service import MockEmailService
-            svc = MockEmailService()
-        else:
-            from services.email_service import EmailService
-            svc = EmailService()
-
         company = (lead.display_name or lead.company_name or f"Lead #{lead.id}") if lead else "Unbekannt"
         project_id = project.id if project else "—"
         subject = f"[KOMPAGNON] Briefing wartet auf Freigabe — {company}"
-        body = (
+        # Plain-Text Body in minimales HTML wrappen, damit Zeilenumbrueche
+        # im Mail-Client erhalten bleiben — die kanonische send_email
+        # erwartet html_body als Pflichtparameter.
+        body_text = (
             f"Ein Kunde hat sein Briefing eingereicht und wartet auf deine Freigabe.\n\n"
             f"Unternehmen: {company}\n"
             f"Lead-ID:     {lead.id if lead else '—'}\n"
@@ -713,8 +707,25 @@ def _notify_admin_briefing_submitted(lead: Lead, project: Optional[Project], db:
             f"Nach 24h ohne Freigabe erhaeltst du eine Erinnerung, "
             f"nach 48h geht eine Eskalation raus.\n"
         )
-        svc.send_email(to=to, subject=subject, body=body)
-        logger.info(f"Briefing-Submit: Admin-Benachrichtigung an {to} fuer Lead {lead.id if lead else '?'}")
+        html_body = (
+            "<pre style=\"font-family:-apple-system,sans-serif;font-size:14px;"
+            "white-space:pre-wrap\">" + body_text + "</pre>"
+        )
+
+        from services.email import send_email
+        ok = send_email(
+            to_email=to,
+            subject=subject,
+            html_body=html_body,
+            text_body=body_text,
+        )
+        if ok:
+            logger.info(f"Briefing-Submit: Admin-Benachrichtigung an {to} fuer Lead {lead.id if lead else '?'}")
+        else:
+            logger.warning(
+                f"Briefing-Submit: Admin-Mail an {to} fehlgeschlagen — "
+                "SMTP-Konfiguration pruefen."
+            )
     except Exception as e:
         logger.error(f"Briefing-Submit: Admin-E-Mail fehlgeschlagen: {e}")
 

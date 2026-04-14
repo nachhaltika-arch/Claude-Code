@@ -2050,32 +2050,24 @@ def _send_dns_guide_email_and_message(project_id, lead_id, domain, guide, db):
     </div>
     """
 
-    # E-Mail versenden (versucht mehrere Varianten)
+    # E-Mail versenden ueber die kanonische send_email in services/email.py.
+    # Die Funktion gibt bool zurueck und wirft keine Exception, deshalb kein
+    # try/except-Fallback noetig — stattdessen das Return-Ergebnis pruefen.
     if lead.email:
-        sent = False
-        try:
-            from services.email import send_email
-            send_email(
-                to_email=lead.email,
-                subject=f"DNS-Einstellungen für {domain} — letzter Schritt vor Go-Live",
-                html_body=html_body,
-            )
-            sent = True
-        except Exception as e1:
-            logger.warning(f"DNS-Guide: services.email fehlgeschlagen: {e1}")
-        if not sent:
-            try:
-                from services.email_service import send_email as send_email2
-                send_email2(
-                    to=lead.email,
-                    subject=f"DNS-Einstellungen für {domain} — letzter Schritt vor Go-Live",
-                    html=html_body,
-                )
-                sent = True
-            except Exception as e2:
-                logger.warning(f"DNS-Guide: services.email_service fehlgeschlagen: {e2}")
-        if sent:
+        from services.email import send_email
+        ok = send_email(
+            to_email=lead.email,
+            subject=f"DNS-Einstellungen für {domain} — letzter Schritt vor Go-Live",
+            html_body=html_body,
+        )
+        if ok:
             logger.info(f"DNS-Guide E-Mail gesendet an {lead.email}")
+        else:
+            logger.warning(
+                f"DNS-Guide E-Mail an {lead.email} fehlgeschlagen — "
+                "SMTP-Konfiguration in Render pruefen "
+                "(SMTP_HOST, SMTP_USER, SMTP_PASSWORD, SMTP_SENDER_EMAIL)"
+            )
 
     # Portal-Nachricht anlegen
     try:
@@ -4476,14 +4468,6 @@ def _send_content_approval_admin_notification(
             )
             return
 
-        use_mock = os.environ.get("USE_MOCK_EMAIL", "false").lower() == "true"
-        if use_mock:
-            from services.email_service import MockEmailService
-            svc = MockEmailService()
-        else:
-            from services.email_service import EmailService
-            svc = EmailService()
-
         from automations.email_templates import render_template
         from datetime import datetime as _dt
         rendered = render_template("content_approval_admin_notification", {
@@ -4493,10 +4477,30 @@ def _send_content_approval_admin_notification(
             "approved_at":      _dt.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
             "approval_channel": channel,
         })
-        svc.send_email(to=to, subject=rendered["subject"], body=rendered["body"])
-        logger.info(
-            f"Content-Approval: Admin-Benachrichtigung an {to} (Projekt {project_id}, Kanal: {channel})"
+        # Plain-Text-Body des Templates in minimales HTML wrappen,
+        # damit die kanonische send_email einen html_body bekommt.
+        body_text = rendered["body"]
+        html_body = (
+            "<pre style=\"font-family:-apple-system,sans-serif;font-size:14px;"
+            "white-space:pre-wrap\">" + body_text + "</pre>"
         )
+
+        from services.email import send_email
+        ok = send_email(
+            to_email=to,
+            subject=rendered["subject"],
+            html_body=html_body,
+            text_body=body_text,
+        )
+        if ok:
+            logger.info(
+                f"Content-Approval: Admin-Benachrichtigung an {to} (Projekt {project_id}, Kanal: {channel})"
+            )
+        else:
+            logger.warning(
+                f"Content-Approval: Admin-Mail an {to} fehlgeschlagen (Projekt {project_id}) — "
+                "SMTP-Konfiguration pruefen."
+            )
     except Exception as e:
         logger.error(f"Content-Approval: Admin-Mail fehlgeschlagen: {e}")
 
@@ -4579,24 +4583,33 @@ def request_content_approval(
     email_sent = False
     if email_to:
         try:
-            use_mock = os.environ.get("USE_MOCK_EMAIL", "false").lower() == "true"
-            if use_mock:
-                from services.email_service import MockEmailService
-                svc = MockEmailService()
-            else:
-                from services.email_service import EmailService
-                svc = EmailService()
             from automations.email_templates import render_template
             rendered = render_template("content_approval_request", {
                 "company_name": company or f"Lead #{project.lead_id or '?'}",
                 "contact_name": contact_name,
                 "approval_url": approval_url,
             })
-            svc.send_email(to=email_to, subject=rendered["subject"], body=rendered["body"])
-            email_sent = True
-            logger.info(
-                f"Content-Approval: Request-Mail an {email_to} (Projekt {project_id})"
+            body_text = rendered["body"]
+            html_body = (
+                "<pre style=\"font-family:-apple-system,sans-serif;font-size:14px;"
+                "white-space:pre-wrap\">" + body_text + "</pre>"
             )
+            from services.email import send_email
+            email_sent = send_email(
+                to_email=email_to,
+                subject=rendered["subject"],
+                html_body=html_body,
+                text_body=body_text,
+            )
+            if email_sent:
+                logger.info(
+                    f"Content-Approval: Request-Mail an {email_to} (Projekt {project_id})"
+                )
+            else:
+                logger.warning(
+                    f"Content-Approval: Request-Mail an {email_to} fehlgeschlagen "
+                    f"(Projekt {project_id}) — SMTP-Konfiguration pruefen."
+                )
         except Exception as e:
             logger.error(
                 f"Content-Approval: Request-Mail an {email_to} fehlgeschlagen: {e}"

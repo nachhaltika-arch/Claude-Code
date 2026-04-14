@@ -1,96 +1,97 @@
 """
-SMTP Email Service for sending automated emails.
+Veraltet — EmailService und MockEmailService delegieren an services/email.py.
+
+services/email.py ist die einzige kanonische Stelle fuer E-Mail-Versand
+(siehe dortiges `send_email`). Diese Datei bleibt aus Rueckwaerts-
+Kompatibilitaet erhalten:
+
+- `EmailService.send_email(...)` delegiert an `services.email.send_email`.
+- `EmailService.log_communication(...)` bleibt als static method erhalten
+  (schreibt in die Communication-Tabelle, hat nichts mit SMTP zu tun).
+- `MockEmailService.send_email(...)` ist ein echter Mock (kein Versand,
+  nur Log + sammelt Eintraege in `sent_emails`). Wird von
+  automations/scheduler.py::_get_email_service() genutzt wenn die
+  Env-Variable USE_MOCK_EMAIL=true gesetzt ist.
+
+Neue Aufrufer sollten direkt `from services.email import send_email`
+verwenden, nicht mehr diese Datei.
 """
-import smtplib
-import os
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from typing import Optional, List
+import logging
 from datetime import datetime
+from typing import Optional, List
 from sqlalchemy.orm import Session
+
+from services.email import send_email as _canonical_send_email
 from database import Communication
+
+logger = logging.getLogger(__name__)
 
 
 class EmailService:
-    """Send emails via SMTP (Gmail, custom SMTP server, etc)."""
+    """Rueckwaerts-kompatibler Wrapper fuer den kanonischen send_email."""
 
-    def __init__(
-        self,
-        smtp_host: Optional[str] = None,
-        smtp_port: Optional[int] = None,
-        smtp_user: Optional[str] = None,
-        smtp_password: Optional[str] = None,
-        from_email: Optional[str] = None,
-    ):
-        self.smtp_host = smtp_host or os.getenv("SMTP_HOST", "localhost")
-        self.smtp_port = smtp_port or int(os.getenv("SMTP_PORT", "587"))
-        self.smtp_user = smtp_user or os.getenv("SMTP_USER", "")
-        self.smtp_password = smtp_password or os.getenv("SMTP_PASSWORD", "")
-        self.from_email = from_email or os.getenv("FROM_EMAIL", "info@kompagnon.de")
-        self.use_tls = self.smtp_port in [587, 25]
+    def __init__(self, *args, **kwargs):
+        # Konstruktor-Argumente (smtp_host, smtp_port etc.) werden ignoriert —
+        # die kanonische send_email liest SMTP-Konfiguration direkt aus env.
+        pass
 
     def send_email(
         self,
         to: str,
         subject: str,
-        body: str,
+        body: str = "",
         cc: Optional[List[str]] = None,
         bcc: Optional[List[str]] = None,
         html: bool = False,
     ) -> bool:
+        """Delegiert an services/email.py::send_email.
+
+        Mapping der alten Parameter auf die kanonische Signatur:
+          to      → to_email
+          subject → subject
+          body    → html_body (falls html=True) oder text_body (falls False)
+          cc      → cc (erste Adresse, kanonisch ist ein String)
+          bcc     → NICHT unterstuetzt von der kanonischen Funktion; wird
+                    ignoriert. Legacy-Aufrufer die bcc brauchen, sollten
+                    direkt smtplib verwenden.
         """
-        Send email via SMTP.
+        # body wird als HTML behandelt wenn html=True, sonst als Plain-Text.
+        # Die kanonische send_email erwartet html_body als Pflicht — wir
+        # wrappen Plain-Text in ein minimales <pre> damit Zeilenumbrueche
+        # im Mail-Client erhalten bleiben.
+        if html:
+            html_body = body
+            text_body = ""
+        else:
+            text_body = body
+            html_body = (
+                "<pre style=\"font-family:-apple-system,sans-serif;"
+                "font-size:14px;white-space:pre-wrap\">"
+                + (body or "")
+                + "</pre>"
+            )
 
-        Args:
-            to: Recipient email (comma-separated for multiple)
-            subject: Email subject
-            body: Email body
-            cc: CC recipients
-            bcc: BCC recipients
-            html: Whether body is HTML
-
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            # Create message
-            msg = MIMEMultipart("alternative")
-            msg["From"] = self.from_email
-            msg["To"] = to
-            msg["Subject"] = subject
-
-            if cc:
-                msg["Cc"] = ",".join(cc) if isinstance(cc, list) else cc
-
-            # Add body
-            mime_type = "html" if html else "plain"
-            msg.attach(MIMEText(body, mime_type, "utf-8"))
-
-            # Prepare recipient list
-            recipients = to.split(",")
-            if cc:
-                recipients.extend(cc if isinstance(cc, list) else cc.split(","))
-            if bcc:
-                recipients.extend(bcc if isinstance(bcc, list) else bcc.split(","))
-
-            # Connect and send
-            if self.use_tls:
-                server = smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10)
-                server.starttls()
+        cc_str = ""
+        if cc:
+            if isinstance(cc, list):
+                cc_str = cc[0] if cc else ""
             else:
-                server = smtplib.SMTP_SSL(self.smtp_host, self.smtp_port, timeout=10)
+                cc_str = cc
 
-            if self.smtp_user and self.smtp_password:
-                server.login(self.smtp_user, self.smtp_password)
+        if bcc:
+            logger.warning(
+                "EmailService.send_email: bcc-Parameter wird von der "
+                "kanonischen services.email.send_email nicht unterstuetzt "
+                "und wurde ignoriert."
+            )
 
-            server.sendmail(self.from_email, recipients, msg.as_string())
-            server.quit()
-
-            return True
-
-        except Exception as e:
-            print(f"❌ Email send failed: {str(e)}")
-            return False
+        return _canonical_send_email(
+            to_email=to,
+            subject=subject,
+            html_body=html_body,
+            text_body=text_body,
+            cc=cc_str,
+        )
 
     @staticmethod
     def log_communication(
@@ -103,7 +104,7 @@ class EmailService:
         is_automated: bool = False,
         template_key: Optional[str] = None,
     ) -> Optional[Communication]:
-        """Log email in Communication table."""
+        """Log email in Communication table. Unveraendert — hat nichts mit SMTP zu tun."""
         try:
             comm = Communication(
                 project_id=project_id,
@@ -120,12 +121,17 @@ class EmailService:
             db.commit()
             return comm
         except Exception as e:
-            print(f"❌ Communication logging failed: {str(e)}")
+            logger.error(f"Communication logging failed: {e}")
             return None
 
 
 class MockEmailService(EmailService):
-    """Mock email service for development (no actual sending)."""
+    """Echter Mock — kein Versand, nur Log und Eintragssammlung.
+
+    Wird ueber USE_MOCK_EMAIL=true in Development aktiviert (siehe
+    automations/scheduler.py::_get_email_service). Die gesammelten
+    sent_emails koennen in Tests ueber get_sent_emails() abgefragt werden.
+    """
 
     def __init__(self):
         super().__init__()
@@ -135,12 +141,11 @@ class MockEmailService(EmailService):
         self,
         to: str,
         subject: str,
-        body: str,
+        body: str = "",
         cc: Optional[List[str]] = None,
         bcc: Optional[List[str]] = None,
         html: bool = False,
     ) -> bool:
-        """Log email instead of sending."""
         self.sent_emails.append(
             {
                 "to": to,
@@ -152,9 +157,8 @@ class MockEmailService(EmailService):
                 "timestamp": datetime.utcnow().isoformat(),
             }
         )
-        print(f"📧 [MOCK] Email to {to}: {subject}")
+        logger.info(f"[MOCK] Email an {to}: {subject}")
         return True
 
     def get_sent_emails(self):
-        """Get list of all sent emails (for testing)."""
         return self.sent_emails

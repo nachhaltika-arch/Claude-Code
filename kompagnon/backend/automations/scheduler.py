@@ -505,16 +505,8 @@ def job_content_approval_reminders():
         reminders_sent = 0
         escalations_sent = 0
 
-        # E-Mail-Service einmal pro Lauf initialisieren
-        use_mock = os.getenv("USE_MOCK_EMAIL", "false").lower() == "true"
-        try:
-            if use_mock:
-                svc = MockEmailService()
-            else:
-                svc = EmailService()
-        except Exception as e:
-            logger.warning(f"content_approval_reminders: EmailService nicht verfuegbar ({e})")
-            svc = None
+        # Kanonische send_email aus services/email.py — keine Klasse mehr
+        from services.email import send_email as _canonical_send
 
         frontend_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
 
@@ -531,7 +523,7 @@ def job_content_approval_reminders():
                     f"({row.company or 'unbekannt'}) wartet seit "
                     f"{int(hours_waiting)}h auf Kundenfreigabe."
                 )
-                if svc and row.email and row.token:
+                if row.email and row.token:
                     try:
                         approval_url = f"{frontend_url}/approve-content/{row.token}"
                         rendered = render_template("content_approval_reminder", {
@@ -539,14 +531,27 @@ def job_content_approval_reminders():
                             "contact_name": row.contact_name or "liebe Kundin / lieber Kunde",
                             "approval_url": approval_url,
                         })
-                        svc.send_email(
-                            to=row.email,
+                        body_text = rendered["body"]
+                        html_body = (
+                            "<pre style=\"font-family:-apple-system,sans-serif;"
+                            "font-size:14px;white-space:pre-wrap\">"
+                            + body_text + "</pre>"
+                        )
+                        ok = _canonical_send(
+                            to_email=row.email,
                             subject=rendered["subject"],
-                            body=rendered["body"],
+                            html_body=html_body,
+                            text_body=body_text,
                         )
-                        logger.info(
-                            f"content_approval_reminders: Reminder an {row.email} (Projekt {row.project_id})"
-                        )
+                        if ok:
+                            logger.info(
+                                f"content_approval_reminders: Reminder an {row.email} (Projekt {row.project_id})"
+                            )
+                        else:
+                            logger.warning(
+                                f"content_approval_reminders: Reminder an {row.email} "
+                                f"fehlgeschlagen (Projekt {row.project_id}) — SMTP pruefen."
+                            )
                     except Exception as e:
                         logger.error(
                             f"content_approval_reminders: Reminder an {row.email} fehlgeschlagen: {e}"

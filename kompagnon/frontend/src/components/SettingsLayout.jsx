@@ -94,6 +94,11 @@ function MobileSettingsHub() {
     { icon: '💳', bg: '#FFFBE0', label: 'Abonnement',        val: 'Verwalten',     path: '/app/settings/subscription' },
   ];
 
+  const productRows = [
+    { icon: '🛠️', bg: '#F0F4F5', label: 'Produktentwicklung', val: 'Roadmap',        path: '/app/product' },
+    { icon: '✏️', bg: '#E0F4F8', label: 'Produkteditor',      val: 'Pakete & Preise', path: '/app/product-editor' },
+  ];
+
   const groupStyle = {
     background: '#fff',
     border: '0.5px solid #D5E0E2',
@@ -179,6 +184,16 @@ function MobileSettingsHub() {
             <div style={groupLabelStyle}>System</div>
             {systemRows.map((item, i) => (
               <SettingRow key={item.path} {...item} isLast={i === systemRows.length - 1} />
+            ))}
+          </div>
+        )}
+
+        {/* Produkt — nur Admin */}
+        {isAdmin && (
+          <div style={groupStyle}>
+            <div style={groupLabelStyle}>Produkt</div>
+            {productRows.map((item, i) => (
+              <SettingRow key={item.path} {...item} isLast={i === productRows.length - 1} />
             ))}
           </div>
         )}

@@ -2137,6 +2137,291 @@ async def briefing_prefill_from_lead(
     }
 
 
+# ── Hebel #4: Ein-Klick-Kaltakquise ────────────────────────────────────────────
+#
+# POST /api/leads/{lead_id}/kaltakquise
+#
+# Ein einziger Aufruf produziert eine personalisierte Akquise-E-Mail an den
+# Lead, mit dem Audit-PDF als Anhang. Pipeline:
+#
+#   1. Lead + neuesten completed Audit laden
+#   2. Claude-Call generiert Betreff + Anrede + Haupttext + CTA basierend
+#      auf total_score und top_issues (Plain-Text-Briefkopf, kein HTML)
+#   3. Audit-PDF via services.pdf_generator.generate_audit_report bauen
+#      (direkter Funktionsaufruf, kein HTTP-Roundtrip)
+#   4. HTML-E-Mail bauen mit Score-Box + PDF-Anhang
+#   5. services.email.send_email (kanonisch aus Bug #2) versendet
+#   6. Lead-Status auf "kontaktiert" + kaltakquise_count++
+
+@router.post("/{lead_id}/kaltakquise")
+async def start_kaltakquise(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Vollautomatischer Kaltakquise-Workflow: Audit → KI-Anschreiben → PDF → E-Mail."""
+    import re as _re
+    import tempfile
+    import os as _os
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+    if not lead.email:
+        raise HTTPException(400, "Lead hat keine E-Mail-Adresse")
+    if not lead.website_url:
+        raise HTTPException(400, "Lead hat keine Website-URL — Audit nicht moeglich")
+
+    # Lead-Felder vor dem db.close() puffern, damit wir sie spaeter
+    # ohne weitere DB-Session noch nutzen koennen.
+    lead_email    = lead.email
+    lead_website  = lead.website_url or ""
+    lead_company  = lead.company_name or "Ihr Unternehmen"
+    lead_city     = lead.city or ""
+    lead_trade    = lead.trade or "Handwerksbetrieb"
+
+    # Neuesten abgeschlossenen Audit laden — Column heisst top_issues (nicht _json).
+    audit_row = db.execute(
+        text("""
+            SELECT id, total_score, ai_summary, top_issues,
+                   company_name, website_url, city, trade
+            FROM audit_results
+            WHERE lead_id = :lid AND status = 'completed'
+            ORDER BY created_at DESC
+            LIMIT 1
+        """),
+        {"lid": lead_id},
+    ).fetchone()
+
+    if not audit_row:
+        return {
+            "success": False,
+            "status": "no_audit",
+            "message": (
+                "Kein abgeschlossener Audit vorhanden. "
+                "Bitte zuerst einen Audit starten und warten bis er fertig ist."
+            ),
+        }
+
+    audit_id    = audit_row[0]
+    total_score = audit_row[1] or 0
+    # ai_summary ist hier nicht kritisch — wird nicht in den Prompt eingebaut
+    company     = audit_row[4] or lead_company
+    city        = audit_row[6] or lead_city
+    trade       = audit_row[7] or lead_trade
+
+    top_issues: list = []
+    try:
+        raw = audit_row[3]
+        if raw:
+            parsed = json.loads(raw) if isinstance(raw, str) else raw
+            if isinstance(parsed, list):
+                top_issues = [str(x) for x in parsed[:3]]
+    except Exception:
+        top_issues = []
+
+    # DB-Verbindung vor dem Claude-Call freigeben — der Call kann 20-40s dauern
+    db.close()
+
+    # ── KI-Anschreiben generieren ──────────────────────────────────────────
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    if top_issues:
+        issues_text = "\n".join([f"- {issue}" for issue in top_issues])
+    else:
+        issues_text = f"- Gesamt-Score nur {total_score}/100 Punkte"
+
+    level_text = (
+        "kritisch" if total_score < 40
+        else "verbesserungswuerdig" if total_score < 70
+        else "gut"
+    )
+
+    prompt = f"""Du schreibst ein professionelles, kurzes Akquise-Anschreiben fuer einen Webdesign-Dienstleister.
+
+EMPFAENGER:
+- Firma: {company}
+- Branche: {trade}
+- Stadt: {city}
+- Website-Score: {total_score}/100 (Bewertung: {level_text})
+
+TOP-PROBLEME DER WEBSITE:
+{issues_text}
+
+ABSENDER: KOMPAGNON Communications — Website-Agentur fuer Handwerksbetriebe
+
+REGELN:
+- Ton: professionell, direkt, kein Werbe-Jargon
+- Laenge: maximal 120 Woerter im Haupttext
+- Keine Floskeln wie "Sehr geehrte Damen und Herren" — direkt ansprechen
+- Konkret auf die gefundenen Probleme eingehen (nicht generisch)
+- Einen klaren naechsten Schritt nennen (kostenloses Erstgespraech)
+- Kein HTML, nur Plain-Text fuer den Brief-Inhalt
+
+Antworte NUR mit einem JSON-Objekt:
+{{
+  "betreff": "<E-Mail-Betreffzeile, max 70 Zeichen>",
+  "anrede": "<z.B. Guten Tag, Team {company},>",
+  "haupttext": "<Der eigentliche Anschreiben-Text, max 120 Woerter>",
+  "cta": "<Abschluss mit Handlungsaufforderung, 1-2 Saetze>"
+}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 800,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+        resp.raise_for_status()
+        raw = resp.json()["content"][0]["text"].strip()
+        raw = _re.sub(r"^```json\s*", "", raw)
+        raw = _re.sub(r"\s*```$", "", raw)
+        letter = json.loads(raw)
+        if not isinstance(letter, dict):
+            raise ValueError("Claude-Antwort ist kein JSON-Objekt")
+    except Exception as e:
+        logger.error(f"Kaltakquise KI-Anschreiben fehlgeschlagen: {e}")
+        raise HTTPException(500, f"KI-Anschreiben fehlgeschlagen: {str(e)[:200]}")
+
+    betreff   = (letter.get("betreff") or f"Ihre Website {lead_website} — wir haben sie analysiert")[:200]
+    anrede    = letter.get("anrede") or f"Guten Tag, Team {company},"
+    haupttext = letter.get("haupttext") or ""
+    cta       = letter.get("cta") or "Wir freuen uns auf Ihre Rueckmeldung."
+
+    # ── Audit-PDF erzeugen ────────────────────────────────────────────────
+    # Direkter Funktionsaufruf auf services.pdf_generator.generate_audit_report
+    # (analog zum Pattern aus audit.py::download_audit_pdf).
+    pdf_path: Optional[str] = None
+    db_pdf = SessionLocal()
+    try:
+        audit_obj = db_pdf.query(AuditResult).filter(AuditResult.id == audit_id).first()
+        if audit_obj:
+            try:
+                from services.pdf_generator import generate_audit_report
+                pdf_bytes = generate_audit_report(audit_obj.__dict__)
+                tmp = tempfile.NamedTemporaryFile(
+                    suffix=".pdf", delete=False,
+                    prefix=f"audit_{lead_id}_",
+                )
+                tmp.write(pdf_bytes)
+                tmp.close()
+                pdf_path = tmp.name
+            except Exception as pdf_err:
+                logger.warning(
+                    f"Kaltakquise: PDF-Generierung fehlgeschlagen fuer Audit "
+                    f"{audit_id}: {pdf_err} — E-Mail wird ohne Anhang verschickt."
+                )
+                pdf_path = None
+    finally:
+        db_pdf.close()
+
+    # ── HTML-E-Mail bauen ──────────────────────────────────────────────────
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a2332;">
+      <div style="background:#008EAA;padding:20px 24px;border-radius:8px 8px 0 0;">
+        <div style="color:#fff;font-size:18px;font-weight:700;">KOMPAGNON</div>
+        <div style="color:rgba(255,255,255,.7);font-size:12px;">Website-Optimierung fuer Handwerksbetriebe</div>
+      </div>
+      <div style="padding:28px 24px;background:#fff;border:1px solid #e2e8f0;border-top:none;">
+        <p style="margin:0 0 16px;font-size:15px;font-weight:500;">{anrede}</p>
+        <div style="font-size:14px;line-height:1.7;color:#374151;white-space:pre-line;">{haupttext}</div>
+
+        <div style="background:#FEF3C7;border-left:4px solid #D97706;
+                    padding:14px 16px;margin:20px 0;border-radius:0 6px 6px 0;">
+          <div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:6px;">
+            Ihre Website {lead_website} — Analyse-Ergebnis
+          </div>
+          <div style="font-size:22px;font-weight:800;color:#92400E;">{total_score}/100 Punkte</div>
+          <div style="font-size:12px;color:#92400E;margin-top:4px;">
+            Den vollstaendigen Bericht finden Sie im Anhang.
+          </div>
+        </div>
+
+        <p style="font-size:14px;line-height:1.7;color:#374151;">{cta}</p>
+
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;
+                    font-size:12px;color:#6B7280;">
+          <strong>KOMPAGNON Communications</strong><br>
+          Website-Optimierung &middot; Handwerksbetriebe<br>
+          <a href="https://kompagnon-frontend.onrender.com" style="color:#008EAA;">www.kompagnon.de</a>
+        </div>
+      </div>
+    </div>
+    """
+
+    # ── E-Mail senden via kanonischer services.email.send_email ───────────
+    from services.email import send_email
+    safe_company = _re.sub(r"[^A-Za-z0-9_-]+", "-", company).strip("-") or "Audit"
+    ok = send_email(
+        to_email=lead_email,
+        subject=betreff,
+        html_body=html_body,
+        attachment_path=pdf_path,
+        attachment_name=f"Website-Analyse-{safe_company}.pdf" if pdf_path else None,
+    )
+
+    # Temp-PDF aufraeumen unabhaengig vom Versand-Ergebnis
+    if pdf_path and _os.path.exists(pdf_path):
+        try:
+            _os.unlink(pdf_path)
+        except Exception:
+            pass
+
+    if not ok:
+        raise HTTPException(
+            500,
+            "E-Mail-Versand fehlgeschlagen — SMTP-Konfiguration pruefen "
+            "(SMTP_HOST, SMTP_USER, SMTP_PASSWORD, SMTP_SENDER_EMAIL)"
+        )
+
+    # ── Lead-Status aktualisieren (frische Session, fehlertolerant) ──────
+    db_upd = SessionLocal()
+    try:
+        db_upd.execute(
+            text("""
+                UPDATE leads SET
+                    status = 'kontaktiert',
+                    kaltakquise_gesendet_at = NOW(),
+                    kaltakquise_count = COALESCE(kaltakquise_count, 0) + 1
+                WHERE id = :lid
+            """),
+            {"lid": lead_id},
+        )
+        db_upd.commit()
+    except Exception as e:
+        logger.warning(f"Kaltakquise: Lead-Status Update fehlgeschlagen: {e}")
+        try:
+            db_upd.rollback()
+        except Exception:
+            pass
+    finally:
+        db_upd.close()
+
+    logger.info(
+        f"✓ Kaltakquise gesendet: Lead {lead_id} → {lead_email} "
+        f"(Score: {total_score}, with_pdf={pdf_path is not None})"
+    )
+
+    return {
+        "success":       True,
+        "email_sent_to": lead_email,
+        "audit_score":   total_score,
+        "betreff":       betreff,
+        "with_pdf":      pdf_path is not None,
+    }
+
+
 # Registers identical handlers under /api/customers/{lead_id}/... so that
 # frontend calls to either prefix work transparently.
 

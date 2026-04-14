@@ -1094,6 +1094,14 @@ MIGRATIONS = [
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS content_generated BOOLEAN DEFAULT false",
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS content_generated_at TIMESTAMP",
     ]),
+
+    (9, "add_lead_kaltakquise_tracking", [
+        # Kaltakquise-Tracking (Hebel #4): Ein Button in LeadProfile.jsx
+        # triggert Audit → KI-Anschreiben → PDF → E-Mail → Status-Update.
+        # Die zwei Spalten dokumentieren Wann-zuletzt und Wie-oft.
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS kaltakquise_gesendet_at TIMESTAMP",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS kaltakquise_count INTEGER DEFAULT 0",
+    ]),
 ]
 
 

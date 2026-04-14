@@ -178,6 +178,10 @@ export default function LeadProfile() {
   const [deleteAuditId, setDeleteAuditId] = useState(null);
   const [auditRunning, setAuditRunning] = useState(false);
   const [auditProgress, setAuditProgress] = useState('');
+  // Hebel #4 — Kaltakquise-Workflow
+  const [kaltakquiseLoading, setKaltakquiseLoading] = useState(false);
+  const [kaltakquiseDone, setKaltakquiseDone]       = useState(false);
+  const [kaltakquiseResult, setKaltakquiseResult]   = useState(null);
   const [screenshotLoading, setScreenshotLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [extracting, setExtracting] = useState(false);
@@ -788,6 +792,66 @@ export default function LeadProfile() {
     setTimeout(() => { clearInterval(iv); setAuditRunning(false); }, 180000);
   };
 
+  // Hebel #4 — Ein-Klick-Kaltakquise:
+  // Triggert Backend POST /api/leads/{id}/kaltakquise → KI-Anschreiben + PDF + E-Mail.
+  // Bestätigt vorher mit window.confirm, weil eine echte E-Mail an den Lead rausgeht.
+  const handleKaltakquise = async () => {
+    const lead = profile?.lead;
+    if (!lead?.email) {
+      toast.error('Lead hat keine E-Mail-Adresse');
+      return;
+    }
+    if (!lead?.website_url) {
+      toast.error('Lead hat keine Website-URL — Audit nicht möglich');
+      return;
+    }
+    if (!window.confirm(
+      `Kaltakquise-E-Mail an ${lead.email} senden?\n\n` +
+      'Die KI generiert ein personalisiertes Anschreiben auf Basis des letzten Audits ' +
+      'und sendet es mit dem Audit-PDF als Anhang. Der Lead-Status wechselt danach auf "Kontaktiert".'
+    )) return;
+
+    setKaltakquiseLoading(true);
+    setKaltakquiseDone(false);
+    setKaltakquiseResult(null);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/leads/${leadId}/kaltakquise`,
+        { method: 'POST', headers: h },
+      );
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        // Backend kann auch ein 200 mit success:false zurueckgeben (no_audit-Fall)
+        toast.error(data.detail || 'Kaltakquise fehlgeschlagen');
+        return;
+      }
+
+      // 200, aber success kann false sein (z.B. no_audit)
+      if (data.success === false) {
+        if (data.status === 'no_audit') {
+          toast.error('Kein Audit vorhanden — bitte zuerst einen Audit starten');
+        } else {
+          toast.error(data.message || 'Kaltakquise fehlgeschlagen');
+        }
+        return;
+      }
+
+      setKaltakquiseResult(data);
+      setKaltakquiseDone(true);
+      toast.success(
+        `Kaltakquise gesendet an ${data.email_sent_to} · Score ${data.audit_score}/100${data.with_pdf ? ' · mit PDF' : ''}`,
+        { duration: 5000 }
+      );
+      // Profil neu laden, damit der Lead-Status (kontaktiert) sofort aktualisiert ist.
+      try { await loadProfile(); } catch { /* nicht fatal */ }
+    } catch (err) {
+      toast.error('Verbindungsfehler — bitte erneut versuchen');
+    } finally {
+      setKaltakquiseLoading(false);
+    }
+  };
+
   const createScreenshot = async () => {
     if (!profile?.lead?.website_url) return;
     setScreenshotLoading(true);
@@ -1070,6 +1134,55 @@ export default function LeadProfile() {
           >
             📋 Briefing starten
           </button>
+
+          {/* Hebel #4 — Ein-Klick-Kaltakquise: nur sichtbar wenn Lead E-Mail UND Website hat */}
+          {profile?.lead?.email && profile?.lead?.website_url && (
+            <button
+              onClick={handleKaltakquise}
+              disabled={kaltakquiseLoading}
+              title={kaltakquiseDone
+                ? 'Kaltakquise wurde bereits gesendet — Klick sendet erneut'
+                : 'KI generiert Anschreiben + Audit-PDF und sendet E-Mail an den Lead'}
+              style={{
+                background: kaltakquiseLoading
+                  ? 'rgba(255,255,255,0.1)'
+                  : kaltakquiseDone
+                    ? 'rgba(29,158,117,0.65)'
+                    : 'rgba(124,58,237,0.7)',
+                border: '1px solid rgba(255,255,255,0.35)',
+                borderRadius: 'var(--radius-md)',
+                color: 'white',
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '7px 14px',
+                cursor: kaltakquiseLoading ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                width: isMobile ? '100%' : undefined,
+                justifyContent: isMobile ? 'center' : undefined,
+              }}
+            >
+              {kaltakquiseLoading ? (
+                <>
+                  <span style={{
+                    width: 12, height: 12,
+                    border: '2px solid rgba(255,255,255,.3)',
+                    borderTopColor: '#fff',
+                    borderRadius: '50%',
+                    animation: 'spin .8s linear infinite',
+                    display: 'inline-block',
+                  }} />
+                  KI schreibt …
+                </>
+              ) : kaltakquiseDone ? (
+                <>{'\u2713'} Gesendet</>
+              ) : (
+                <>📧 Kaltakquise</>
+              )}
+            </button>
+          )}
 
           {projectId ? (
             <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 600, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>

@@ -868,21 +868,24 @@ export default function AppLayout() {
   };
   const cta = ctaMap[location.pathname];
 
+  // Vollbild-Modus: Sidebar + Topbar ausblenden auf der Projekt-Prozess-Route
+  const hideSidebar = /^\/app\/projects\/\d+/.test(location.pathname);
+
   return (
     <div style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
-      {/* Sidebar — desktop only */}
-      {!isMobile && user && <SidebarNav badges={badges} />}
+      {/* Sidebar — desktop only, außer im Vollbild-Modus */}
+      {!isMobile && user && !hideSidebar && <SidebarNav badges={badges} />}
 
       {/* Main area */}
       <div style={{
         flex: 1,
         minWidth: 0,
-        marginLeft: !isMobile && user ? 'var(--sidebar-width)' : 0,
+        marginLeft: !isMobile && user && !hideSidebar ? 'var(--sidebar-width)' : 0,
         display: 'flex', flexDirection: 'column',
         height: '100vh', overflow: 'hidden',
       }}>
-        {/* Topbar — desktop only */}
-        {!isMobile && (
+        {/* Topbar — desktop only, außer im Vollbild-Modus */}
+        {!isMobile && !hideSidebar && (
           <Topbar
             breadcrumbs={breadcrumbs}
             ctaLabel={cta?.label}
@@ -994,11 +997,13 @@ export default function AppLayout() {
         <main
           ref={mainRef}
           style={{
-            flex: 1, overflowY: 'auto', overflowX: 'hidden',
+            flex: 1,
+            overflowY: hideSidebar ? 'hidden' : 'auto',
+            overflowX: 'hidden',
             minWidth: 0, position: 'relative',
-            padding: isMobile ? 16 : '28px 32px',
-            paddingTop: isMobile ? 72 : undefined,
-            paddingBottom: isMobile ? 80 : 28,
+            padding: hideSidebar ? 0 : (isMobile ? 16 : '28px 32px'),
+            paddingTop: isMobile && !hideSidebar ? 72 : undefined,
+            paddingBottom: isMobile && !hideSidebar ? 80 : (hideSidebar ? 0 : 28),
           }}
         >
           {/* Kaltstart-Banner */}

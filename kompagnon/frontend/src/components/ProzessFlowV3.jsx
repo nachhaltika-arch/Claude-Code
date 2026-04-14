@@ -226,10 +226,9 @@ export default function ProzessFlowV3({
     <div style={{
       display: 'grid',
       gridTemplateColumns: '64px 1fr',
-      minHeight: 600,
+      height: '100%',
+      minHeight: 0,
       background: 'var(--surface)',
-      border: '0.5px solid var(--border)',
-      borderRadius: 'var(--r-lg)',
       overflow: 'hidden',
       fontFamily: 'var(--font-sans)',
     }}>

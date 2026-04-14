@@ -1627,9 +1627,10 @@ export default function ProjectDetail() {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '100%',
+      height: '100vh',
       minHeight: 0,
       overflow: 'hidden',
+      background: 'var(--surface)',
       fontFamily: 'var(--font-sans)',
     }}>
       {/* ── ProzessFlow V3 (Vollbild) ───────────────────────────────────────── */}

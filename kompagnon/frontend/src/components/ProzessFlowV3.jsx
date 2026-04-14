@@ -337,7 +337,7 @@ export default function ProzessFlowV3({
           <BreadcrumbItem onClick={() => navigate('/app/projects')} label="Projekte" />
           <BreadcrumbSep />
           <BreadcrumbItem
-            onClick={() => navigate(`/app/projects/${project?.id}`)}
+            onClick={() => leadId && navigate(`/app/leads/${leadId}`)}
             dot
             label={companyName}
           />

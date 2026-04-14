@@ -216,6 +216,10 @@ async def create_kas_site(
     from services.netlify_service import create_site
     try:
         result = await create_site("kompagnon-kas-website")
+    except ValueError as e:
+        # Token fehlt in der Env — HTTP 400 mit klarer Fehlermeldung
+        logger.error(f"KAS Netlify Token fehlt: {e}")
+        raise HTTPException(400, str(e))
     except Exception as e:
         logger.error(f"KAS Netlify create_site failed: {e}")
         raise HTTPException(502, f"Netlify-Site konnte nicht angelegt werden: {str(e)[:150]}")
@@ -275,6 +279,10 @@ async def deploy_kas_pages(
     from services.netlify_service import deploy_all_pages
     try:
         result = await deploy_all_pages(site_id, page_files, shared_css, "KOMPAGNON")
+    except ValueError as e:
+        # Token fehlt in der Env — HTTP 400 mit klarer Fehlermeldung
+        logger.error(f"KAS Netlify Token fehlt: {e}")
+        raise HTTPException(400, str(e))
     except Exception as e:
         logger.error(f"KAS Netlify deploy failed: {e}")
         raise HTTPException(502, f"KAS Deploy fehlgeschlagen: {str(e)[:200]}")

@@ -12,12 +12,31 @@ import re
 
 logger = logging.getLogger(__name__)
 
-NETLIFY_TOKEN = os.getenv("NETLIFY_API_TOKEN", "")
-NETLIFY_API   = "https://api.netlify.com/api/v1"
-HEADERS       = {
-    "Authorization": f"Bearer {NETLIFY_TOKEN}",
-    "Content-Type":  "application/json",
-}
+NETLIFY_API = "https://api.netlify.com/api/v1"
+
+
+def _get_netlify_token(token: str = None) -> str:
+    """Token lazy aus Env laden. Wirft ValueError wenn leer.
+
+    Grund fuer lazy loading: beim Modulimport war der Env-Wert unter Umstaenden
+    noch nicht verfuegbar, was zu `Authorization: Bearer ` (leer!) fuehrte und
+    httpx zum Crash ("Illegal header value") brachte.
+    """
+    t = (token or os.getenv("NETLIFY_API_TOKEN", "")).strip()
+    if not t:
+        raise ValueError(
+            "NETLIFY_API_TOKEN ist nicht gesetzt. "
+            "Bitte in Render.com unter Environment eintragen."
+        )
+    return t
+
+
+def _get_headers(token: str = None) -> dict:
+    """JSON-Header mit frisch geladenem Bearer-Token."""
+    return {
+        "Authorization": f"Bearer {_get_netlify_token(token)}",
+        "Content-Type":  "application/json",
+    }
 
 
 # ── Security Headers fuer Netlify-Deployments ─────────────────────────────
@@ -66,7 +85,7 @@ async def create_site(site_name: str) -> dict:
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
             f"{NETLIFY_API}/sites",
-            headers=HEADERS,
+            headers=_get_headers(),
             json=payload,
         )
 
@@ -135,7 +154,7 @@ async def deploy_html(
     zip_bytes = buf.getvalue()
 
     deploy_headers = {
-        "Authorization": f"Bearer {NETLIFY_TOKEN}",
+        "Authorization": f"Bearer {_get_netlify_token()}",
         "Content-Type":  "application/zip",
     }
 
@@ -237,7 +256,7 @@ async def deploy_all_pages(
     zip_bytes = buf.getvalue()
 
     deploy_headers = {
-        "Authorization": f"Bearer {NETLIFY_TOKEN}",
+        "Authorization": f"Bearer {_get_netlify_token()}",
         "Content-Type":  "application/zip",
     }
 
@@ -283,7 +302,7 @@ async def set_custom_domain(site_id: str, domain: str) -> dict:
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.put(
             f"{NETLIFY_API}/sites/{site_id}",
-            headers=HEADERS,
+            headers=_get_headers(),
             json={"custom_domain": domain},
         )
 
@@ -314,7 +333,7 @@ async def get_site_status(site_id: str) -> dict:
     async with httpx.AsyncClient(timeout=20.0) as client:
         resp = await client.get(
             f"{NETLIFY_API}/sites/{site_id}",
-            headers=HEADERS,
+            headers=_get_headers(),
         )
 
     if not resp.is_success:
@@ -348,7 +367,7 @@ async def delete_site(site_id: str) -> bool:
     async with httpx.AsyncClient(timeout=20.0) as client:
         resp = await client.delete(
             f"{NETLIFY_API}/sites/{site_id}",
-            headers=HEADERS,
+            headers=_get_headers(),
         )
 
     if resp.status_code == 404:

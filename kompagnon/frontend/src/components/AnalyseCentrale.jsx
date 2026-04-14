@@ -156,6 +156,12 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
   const [stepProgress, setStepProgress] = useState(0);
   const [stepResults, setStepResults] = useState({});
   const [stepErrors, setStepErrors]   = useState({});
+  // Optimierung #1 — wenn mehrere Schritte parallel laufen, kann der einzelne
+  // Integer `currentStep` das nicht abbilden. `parallelRunning` ist ein Set
+  // von Step-IDs, die gerade aktiv sind (nur waehrend runParallelPipeline
+  // befuellt). Das Step-Render-Template nutzt parallelRunning.has(step.id)
+  // als aktiv-Erkennung neben currentStep.
+  const [parallelRunning, setParallelRunning] = useState(() => new Set());
   const [pages, setPages]             = useState([]);
   const [pagesLoading, setPagesLoading] = useState(false);
   const [hostingData, setHostingData] = useState(null);
@@ -279,7 +285,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
     }
   };
 
-  // ── Alle Schritte ausfuehren ────────────────────────────────────────────
+  // ── Alle Schritte sequenziell (Fallback, alter Pfad) ───────────────────
   const runPipeline = async () => {
     if (!websiteUrl) { toast.error('Keine Website-URL im Projekt'); return; }
     setRunning(true);
@@ -305,6 +311,106 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
     toast.success('Alle Analysen abgeschlossen — Ergebnisse gespeichert!');
   };
 
+  // ── Vollanalyse parallel (Optimierung #1) ──────────────────────────────
+  //
+  // Abhaengigkeits-Graph:
+  //   Gruppe A (unabhaengig, sofort parallel): url-crawl, pagespeed, brand, hosting
+  //   Gruppe B (sequentiell, startet sobald url-crawl fertig):
+  //     url-crawl -> content-scrape -> analytics
+  //
+  // Statt `await Promise.allSettled(phase1)` nutzen wir Promise-Chaining:
+  // content-scrape startet genau in dem Moment, in dem url-crawl fertig ist —
+  // unabhaengig davon, ob pagespeed/brand/hosting noch laufen. Das ist
+  // der Speedup gegenueber einem zweistufigen "phase1 dann phase2"-Ansatz.
+  const runParallelPipeline = async () => {
+    if (!websiteUrl) { toast.error('Keine Website-URL im Projekt'); return; }
+    setRunning(true);
+    setCurrentStep(-1);  // Bei parallelem Lauf kein einzelner "aktueller" Step
+    setStepResults({});
+    setStepErrors({});
+    setParallelRunning(new Set());
+
+    const stepMap = Object.fromEntries(steps.map(s => [s.id, s]));
+
+    // Hilfsfunktion: einen Schritt ausfuehren und pro Schritt im
+    // parallelRunning-Set tracken. Fehler werden nicht bubbled — stattdessen
+    // in stepErrors gespeichert, damit Promise.allSettled weiterlaufen kann
+    // und der Nutzer danach sieht welcher Schritt fehlschlug.
+    const execStep = async (stepId) => {
+      const step = stepMap[stepId];
+      if (!step) return null;
+      setParallelRunning(prev => {
+        const next = new Set(prev);
+        next.add(stepId);
+        return next;
+      });
+      try {
+        // In der parallelen Pipeline kein per-step-Progress — das wuerde
+        // sonst die stepProgress-Anzeige springen lassen, weil mehrere
+        // Schritte gleichzeitig schreiben.
+        const result = await step.run(() => {});
+        setStepResults(prev => ({ ...prev, [stepId]: result }));
+        return result;
+      } catch (err) {
+        setStepErrors(prev => ({ ...prev, [stepId]: err.message || String(err) }));
+        return null;
+      } finally {
+        setParallelRunning(prev => {
+          const next = new Set(prev);
+          next.delete(stepId);
+          return next;
+        });
+      }
+    };
+
+    try {
+      // ── Gruppe A: 4 Schritte sofort parallel starten ───────────────────
+      const pCrawl     = execStep('url-crawl');
+      const pPagespeed = execStep('pagespeed');
+      const pBrand     = execStep('brand');
+      const pHosting   = execStep('hosting');
+
+      // ── Gruppe B: Promise-Chain, startet sobald url-crawl fertig ──────
+      const pContentScrape = pCrawl.then(async (crawlResult) => {
+        if (!crawlResult) return null;
+        // Seitenliste nach dem Crawl sofort nachladen, damit das Seiten-
+        // Board schon gefuellt ist, waehrend content-scrape noch laeuft.
+        try {
+          const content = await fetch(
+            `${API_BASE_URL}/api/crawler/content/${leadId}`,
+            { headers },
+          ).then(r => r.ok ? r.json() : []).catch(() => []);
+          setPages(content);
+          if (Array.isArray(content) && content.length > 0 && !selectedPage) {
+            setSelectedPage(content[0]);
+          }
+        } catch { /* nicht fatal */ }
+        return execStep('content-scrape');
+      });
+      const pAnalytics = pContentScrape.then((contentResult) => {
+        if (!contentResult) return null;
+        return execStep('analytics');
+      });
+
+      // Auf alle Pfade warten — Gruppe A + Gruppe B (via Chain)
+      await Promise.allSettled([pPagespeed, pBrand, pHosting, pContentScrape, pAnalytics]);
+
+      // Panel-Daten abschliessend nachladen (SavedBrand, SavedPagespeed, Pages)
+      await loadSavedResults();
+
+      const doneIds = Object.keys(stepResults).length + Object.keys(stepErrors).length;
+      toast.success(
+        'Vollanalyse abgeschlossen — alle Daten gespeichert!',
+        { duration: 4000 },
+      );
+    } catch (err) {
+      toast.error('Vollanalyse unterbrochen: ' + (err?.message || 'unbekannter Fehler'));
+    } finally {
+      setParallelRunning(new Set());
+      setRunning(false);
+    }
+  };
+
   const [saveStatus, setSaveStatus] = useState(''); // '', 'saving', 'saved'
 
   // ── Gesamtfortschritt ────────────────────────────────────────────────────
@@ -327,9 +433,81 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
     }
   };
 
+  // ── Gesamt-Status fuer Hero-Panel ────────────────────────────────────────
+  const parallelDoneCount = Object.keys(stepResults).length + Object.keys(stepErrors).length;
+
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* ── Optimierung #1: Prominenter Vollanalyse-Hero ── */}
+      <div style={{
+        background: running ? 'var(--bg-surface)' : 'linear-gradient(135deg, #008EAA 0%, #006680 100%)',
+        border: running ? '1px solid var(--border-light)' : 'none',
+        borderRadius: 12,
+        padding: '18px 22px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 14,
+        flexWrap: 'wrap',
+        boxShadow: running ? 'none' : '0 4px 18px rgba(0, 142, 170, 0.28)',
+      }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{
+            fontSize: 15, fontWeight: 700,
+            color: running ? 'var(--text-primary)' : '#fff',
+            marginBottom: 3,
+          }}>
+            {running ? 'Vollanalyse laeuft …' : 'Vollanalyse starten'}
+          </div>
+          <div style={{
+            fontSize: 12,
+            color: running ? 'var(--text-secondary)' : 'rgba(255,255,255,.85)',
+          }}>
+            {running
+              ? `Schritt ${parallelDoneCount}/${steps.length} abgeschlossen${parallelRunning.size > 0 ? ` · ${parallelRunning.size} parallel aktiv` : ''}`
+              : 'Crawler · Brand · PageSpeed · Analytics — alle unabhaengigen Schritte laufen gleichzeitig'}
+          </div>
+        </div>
+        <button
+          onClick={runParallelPipeline}
+          disabled={running || !websiteUrl}
+          style={{
+            padding: '11px 26px',
+            borderRadius: 10,
+            border: 'none',
+            background: running
+              ? 'var(--border-light)'
+              : (!websiteUrl ? 'rgba(255,255,255,.25)' : 'rgba(255,255,255,.22)'),
+            color: running ? 'var(--text-secondary)' : '#fff',
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: (running || !websiteUrl) ? 'not-allowed' : 'pointer',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontFamily: 'var(--font-sans)',
+            backdropFilter: running ? 'none' : 'blur(4px)',
+          }}
+        >
+          {running ? (
+            <>
+              <span style={{
+                width: 14, height: 14, borderRadius: '50%',
+                border: '2px solid rgba(0,0,0,.2)',
+                borderTopColor: 'var(--text-secondary)',
+                animation: 'spin 0.8s linear infinite',
+                display: 'inline-block',
+              }} />
+              Laeuft …
+            </>
+          ) : (
+            <>\u25B6 Vollanalyse starten</>
+          )}
+        </button>
+      </div>
 
       {/* ── Header + Start-Button ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
@@ -343,7 +521,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           <button
-            onClick={runPipeline}
+            onClick={runParallelPipeline}
             disabled={running || !websiteUrl}
             style={{
               padding: '11px 24px', borderRadius: 8, border: 'none',
@@ -409,7 +587,9 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
         {steps.map((step, i) => {
           const isDone    = step.id in stepResults;
           const hasError  = step.id in stepErrors;
-          const isActive  = currentStep === i;
+          // isActive erkennt beide Modi: sequenzieller runPipeline (currentStep === i)
+          // und paralleler runParallelPipeline (parallelRunning.has(step.id)).
+          const isActive  = currentStep === i || parallelRunning.has(step.id);
           const result    = stepResults[step.id];
           const error     = stepErrors[step.id];
 
@@ -430,7 +610,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                 {hasError && !isActive && <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--status-danger-text)' }}>&#10007;</span>}
               </div>
 
-              {isActive && (
+              {isActive && stepProgress > 0 && !parallelRunning.has(step.id) && (
                 <div style={{ height: 4, background: 'var(--brand-primary-light, #E6F6FA)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 }}>
                   <div style={{ height: '100%', width: `${stepProgress}%`, background: 'var(--brand-primary, #008EAA)', borderRadius: 2, transition: 'width 0.4s' }} />
                 </div>

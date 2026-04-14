@@ -988,19 +988,8 @@ export default function AppLayout() {
             padding: '0 18px',
             flexShrink: 0,
           }}>
-            {/* Logo-Mark */}
-            <div style={{
-              width: 28, height: 28,
-              background: '#008EAA',         /* kc-mid */
-              borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, fontWeight: 900, color: '#fff',
-              letterSpacing: '-.04em',
-              fontFamily: 'var(--font-sans)',
-              flexShrink: 0,
-            }}>
-              kc
-            </div>
+            {/* Logo-Mark — offizielles Kompagnon-Icon (weiss invertiert) */}
+            <KompagnonLogo variant="icon" height={28} style={{ flexShrink: 0, filter: 'brightness(0) invert(1)' }} />
             {/* Seiten-Name */}
             <span style={{
               fontFamily: "'Barlow Condensed', var(--font-sans)",

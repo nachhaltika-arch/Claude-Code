@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 import PricingSection from '../components/PricingSection';
 import AuditHook from '../components/AuditHook';
+import KompagnonLogo from '../components/KompagnonLogo';
 
 // ── Markenfarben kompagnon.eu ─────────────────────────────────
 const C = {
@@ -28,17 +29,6 @@ const DiagUp = ({ from = C.bg, to = C.primary }) => (
   <svg viewBox="0 0 1065 70" preserveAspectRatio="none"
     style={{ display: 'block', width: '100%', background: to, flexShrink: 0 }}>
     <polygon points="1065,15 1065,0 0,0 0,15 0,70 1065,15" fill={from} />
-  </svg>
-);
-
-// ── KC Logo SVG (wie kompagnon.eu) ────────────────────────────
-const KCLogo = ({ color = '#fff', size = 28 }) => (
-  <svg width={size * 3.2} height={size} viewBox="0 0 102 32" fill="none">
-    <rect width="34" height="32" rx="2" fill={color === '#fff' ? '#fff' : C.primary}/>
-    <text x="17" y="22" textAnchor="middle" fill={color === '#fff' ? C.primary : '#fff'}
-      fontSize="14" fontWeight="800" fontFamily="system-ui">KC</text>
-    <text x="42" y="22" fill={color} fontSize="13" fontWeight="700"
-      fontFamily="system-ui" letterSpacing="-0.3">KOMPAGNON</text>
   </svg>
 );
 
@@ -103,16 +93,11 @@ export default function Landing() {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           padding: `12px ${px}`,
         }}>
-          {/* Logo */}
+          {/* Logo — offizielles Kompagnon SVG */}
           <button onClick={() => nav('/')}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                     display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ background: C.primary, borderRadius: 4, padding: '4px 8px',
-                          fontWeight: 800, fontSize: 14, color: '#fff', letterSpacing: '-.3px' }}>
-              KC
-            </div>
-            <span style={{ fontWeight: 700, fontSize: 15, color: C.primary,
-                           letterSpacing: '-.3px' }}>KOMPAGNON</span>
+                     display: 'flex', alignItems: 'center' }}>
+            <KompagnonLogo variant="color" height={32} />
           </button>
 
           {/* Desktop Nav */}
@@ -493,10 +478,8 @@ export default function Landing() {
 
           {/* Logo + Beschreibung */}
           <div style={{ marginBottom: isMobile ? 28 : 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <div style={{ background: '#fff', borderRadius: 4, padding: '3px 7px',
-                fontWeight: 800, fontSize: 13, color: C.primary }}>KC</div>
-              <span style={{ fontWeight: 700, fontSize: 14, color: '#fff' }}>KOMPAGNON</span>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+              <KompagnonLogo variant="white" height={28} />
             </div>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,.55)', lineHeight: 1.65,
               maxWidth: 280, margin: '0 0 16px' }}>

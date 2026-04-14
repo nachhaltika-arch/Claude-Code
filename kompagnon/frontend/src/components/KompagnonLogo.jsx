@@ -1,47 +1,42 @@
 /**
- * KompagnonLogo — verwendet die offiziellen Marken-SVGs aus /public/
+ * KompagnonLogo — offizielle Marken-SVGs aus /public/
  *
  * variant:
- *   'color'  → logo-group.svg (Bildmarke + Wortmarke + "communications"), Farbe
- *   'white'  → gleiche Datei, CSS-Filter invertiert für dunkle Hintergründe
- *   'icon'   → nur Bildmarke (icon.png, kein SVG verfügbar)
- *   'word'   → nur Wortmarke ohne "communications" (logo.svg)
+ *   'color'  → logo-group.svg  (Bildmarke + Wortmarke + "communications")
+ *   'white'  → logo-group.svg  CSS-invertiert fuer dunkle Hintergruende
+ *   'icon'   → icon.svg        nur Bildmarke
+ *   'word'   → logo.svg        nur Wortmarke ohne "communications"
  */
-export default function KompagnonLogo({ variant = 'color', height = 40 }) {
+export default function KompagnonLogo({ variant = 'color', height = 40, style = {} }) {
   const isWhite = variant === 'white';
   const isIcon  = variant === 'icon';
   const isWord  = variant === 'word';
 
-  const filter = isWhite
-    ? 'brightness(0) invert(1)'
-    : undefined;
+  const filter = isWhite ? 'brightness(0) invert(1)' : undefined;
 
-  if (isIcon) {
-    return (
-      <img
-        src="/icon.png"
-        alt="KOMPAGNON"
-        style={{ height, width: 'auto', display: 'block', filter }}
-      />
-    );
-  }
+  const src = isIcon
+    ? '/icon.svg'
+    : isWord
+      ? '/logo.svg'
+      : '/logo-group.svg';
 
-  if (isWord) {
-    return (
-      <img
-        src="/logo.svg"
-        alt="KOMPAGNON"
-        style={{ height, width: 'auto', display: 'block', filter }}
-      />
-    );
-  }
+  const alt = isIcon
+    ? 'KOMPAGNON'
+    : isWord
+      ? 'KOMPAGNON'
+      : 'KOMPAGNON communications';
 
-  // default: color or white — logo-group (Bildmarke + Wortmarke + communications)
   return (
     <img
-      src="/logo-group.svg"
-      alt="KOMPAGNON communications"
-      style={{ height, width: 'auto', display: 'block', filter }}
+      src={src}
+      alt={alt}
+      style={{
+        height,
+        width: 'auto',
+        display: 'block',
+        filter,
+        ...style,
+      }}
     />
   );
 }

@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import GrapesEditor from '../components/GrapesEditor';
+import KompagnonLogo from '../components/KompagnonLogo';
 
 export default function KasWebsite() {
   const { token, user, isSuperadmin } = useAuth();
@@ -174,12 +175,30 @@ export default function KasWebsite() {
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)' }}>
-          KAS Website
-        </div>
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
-          KOMPAGNON-eigene Seiten — getrennt von Kundenprojekten
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 16,
+        marginBottom: 24,
+      }}>
+        <KompagnonLogo variant="color" height={36} />
+        <div>
+          <div style={{
+            fontFamily: 'var(--font-display, "Barlow Condensed")',
+            fontSize: 20, fontWeight: 700,
+            color: 'var(--kc-dark, #004F59)',
+            textTransform: 'uppercase', letterSpacing: '.02em',
+            lineHeight: 1,
+          }}>
+            KAS Website
+          </div>
+          <div style={{
+            fontSize: 11, fontWeight: 700,
+            color: 'var(--text-30, #9AACAE)',
+            textTransform: 'uppercase', letterSpacing: '.08em',
+            marginTop: 4,
+            fontFamily: 'var(--font-sans)',
+          }}>
+            Kompagnon Agentur Seiten
+          </div>
         </div>
       </div>
 

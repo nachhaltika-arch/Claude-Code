@@ -3,6 +3,46 @@ import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 import { renderPage } from '../grapesjs/handwerk-blocks';
 
+/**
+ * Reichert vom Backend generierte Bloecke mit vorhandenem KI-Content
+ * (ki_h1 / ki_hero_text / ki_abschnitt_text / ki_cta) aus Optimierung #3 an.
+ *
+ * Das Backend hat den KI-Content zwar bereits als Prompt-Kontext an Claude
+ * weitergegeben (Optimierung #4 Teil 1), aber Claude schreibt die Texte
+ * nicht immer 1:1 in die Block-Felder. Dieser Helper ueberschreibt die
+ * wichtigsten Headline/Text-Felder defensiv mit den explizit gespeicherten
+ * KI-Texten — der Editor oeffnet sich dann garantiert mit den Kundentexten.
+ *
+ * Mapping:
+ *   ki_h1             → hero.headline, ueber-uns.headline, leistungen-grid.headline
+ *   ki_hero_text      → hero.subline, cta-banner.subline
+ *   ki_abschnitt_text → ueber-uns.text
+ *   ki_cta            → hero.cta_text, cta-banner.headline
+ */
+function enrichBlocksWithKiContent(blocks, kiContent) {
+  if (!kiContent || !Array.isArray(blocks) || blocks.length === 0) return blocks;
+  return blocks.map(block => {
+    const data = { ...(block.data || {}) };
+    if (block.type === 'hero') {
+      if (kiContent.ki_h1)        data.headline = kiContent.ki_h1;
+      if (kiContent.ki_hero_text) data.subline  = kiContent.ki_hero_text;
+      if (kiContent.ki_cta)       data.cta_text = kiContent.ki_cta;
+    }
+    if (block.type === 'ueber-uns') {
+      if (kiContent.ki_h1)             data.headline = kiContent.ki_h1;
+      if (kiContent.ki_abschnitt_text) data.text     = kiContent.ki_abschnitt_text;
+    }
+    if (block.type === 'cta-banner') {
+      if (kiContent.ki_cta)       data.headline = kiContent.ki_cta;
+      if (kiContent.ki_hero_text) data.subline  = kiContent.ki_hero_text;
+    }
+    if (block.type === 'leistungen-grid') {
+      if (kiContent.ki_h1) data.headline = kiContent.ki_h1;
+    }
+    return { ...block, data };
+  });
+}
+
 const TEMPLATE_PRESETS = [
   { id: 'modern-clean',   name: 'Modern Clean',    desc: 'Minimalistisch, viel Weissraum, klare Typografie',    icon: '⬜', style: { borderRadius: 8, shadows: 'leicht', density: 'luftig' },   preview_gradient: 'linear-gradient(135deg, #f8fafc, #e2e8f0)' },
   { id: 'handwerk-bold',  name: 'Handwerk Bold',   desc: 'Kraftvoll, erdige Toene, handwerkliches Gefuehl',     icon: '🔨', style: { borderRadius: 4, shadows: 'mittel', density: 'kompakt' },  preview_gradient: 'linear-gradient(135deg, #292524, #57534e)' },
@@ -22,6 +62,9 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
   const [designBrand, setDesignBrand]           = useState(null);
   const [linkReport, setLinkReport]             = useState([]);
   const [linkSummary, setLinkSummary]           = useState(null);
+  // Optimierung #4 — markiert, dass die Bloecke mit KI-Content aus
+  // Schritt 7 angereichert wurden (statt generischem Claude-Output).
+  const [kiContentInjected, setKiContentInjected] = useState(false);
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
@@ -39,6 +82,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
   const generateDesign = async () => {
     if (!selectedPage) { toast.error('Bitte Seite waehlen'); return; }
     setGenerating(true);
+    setKiContentInjected(false);
     try {
       // 1. Block-JSON von Claude holen
       const res = await fetch(
@@ -49,19 +93,48 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || 'Generierung fehlgeschlagen');
       }
-      const { blocks, brand } = await res.json();
+      const { blocks: rawBlocks, brand } = await res.json();
+      let blocks = rawBlocks || [];
 
-      // 2. HTML aus Block-Bibliothek rendern
+      // 2. Optimierung #4 — KI-Content aus Schritt 7 defensiv in die
+      //    Bloecke einsetzen. Das Backend hat den KI-Content zwar schon
+      //    als Prompt-Kontext an Claude gegeben, aber der defensive
+      //    Helper garantiert, dass die expliziten Kundentexte in den
+      //    entsprechenden Feldern landen — auch wenn Claude sie umformt.
+      try {
+        const kiRes = await fetch(
+          `${API_BASE_URL}/api/sitemap/${leadId}`,
+          { headers },
+        );
+        if (kiRes.ok) {
+          const sitemapData = await kiRes.json();
+          // sitemap.py liefert entweder ein flaches Array oder { pages: [...] }
+          const allPages = Array.isArray(sitemapData)
+            ? sitemapData
+            : (sitemapData?.pages || []);
+          const kiPage = allPages.find(p => p.id === selectedPage.id);
+          if (kiPage && (kiPage.content_generated || kiPage.ki_h1 || kiPage.ki_hero_text)) {
+            blocks = enrichBlocksWithKiContent(blocks, kiPage);
+            setKiContentInjected(true);
+            toast.success('KI-Texte aus Schritt 7 eingesetzt \u2713', { duration: 2000 });
+          }
+        }
+      } catch (kiErr) {
+        // Kein harter Fehler — KI-Anreicherung ist optional.
+        console.warn('KI-Content konnte nicht geladen werden:', kiErr);
+      }
+
+      // 3. HTML aus Block-Bibliothek rendern
       const html = renderPage(blocks, brand);
 
-      // 3. Link-Resolver
+      // 4. Link-Resolver
       const linkRes = await fetch(
         `${API_BASE_URL}/api/projects/${project.id}/resolve-links`,
         { method: 'POST', headers, body: JSON.stringify({ html, page_id: selectedPage.id }) }
       );
       const linkData = linkRes.ok ? await linkRes.json() : { html, link_report: [], summary: {} };
 
-      // 4. State setzen
+      // 5. State setzen
       setDesignBlocks(blocks);
       setDesignBrand(brand);
       setDesignResult(linkData.html);
@@ -263,6 +336,24 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
         {/* Schritt 4: Ergebnis */}
         {step === 4 && designResult && (
           <div>
+            {/* Optimierung #4 — Hinweis wenn KI-Content aus Schritt 7 eingesetzt wurde */}
+            {kiContentInjected && (
+              <div style={{
+                padding: '8px 14px',
+                background: '#E1F5EE',
+                border: '1px solid #5DCAA5',
+                borderRadius: 8,
+                fontSize: 12,
+                color: '#085041',
+                marginBottom: 10,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}>
+                <span>\u2713</span>
+                KI-Texte aus Schritt 7 wurden automatisch eingesetzt
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
                 Design-Entwurf: {selectedPage?.page_name}

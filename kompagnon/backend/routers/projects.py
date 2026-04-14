@@ -4105,12 +4105,21 @@ async def generate_design_json(
     lead_id = project.lead_id
 
     page = db.execute(
-        text("SELECT page_name, page_type, ziel_keyword, zweck FROM sitemap_pages WHERE id=:id"),
+        text("""
+            SELECT page_name, page_type, ziel_keyword, zweck,
+                   ki_h1, ki_hero_text, ki_abschnitt_text, ki_cta,
+                   content_generated
+            FROM sitemap_pages WHERE id = :id
+        """),
         {"id": page_id},
     ).fetchone()
     if not page:
         raise HTTPException(404, "Seite nicht gefunden")
-    page_name, page_type, keyword, zweck = page
+    (
+        page_name, page_type, keyword, zweck,
+        ki_h1, ki_hero_text, ki_abschnitt_text, ki_cta,
+        ki_content_generated,
+    ) = page
 
     briefing = db.execute(
         text("SELECT gewerk, leistungen, einzugsgebiet, usp FROM briefings WHERE lead_id=:lid LIMIT 1"),
@@ -4136,12 +4145,29 @@ async def generate_design_json(
     company = getattr(lead, 'company_name', '') or ''
     phone   = getattr(lead, 'phone', '') or ''
 
+    # Optimierung #4 — falls bereits KI-Content (Optimierung #3) fuer diese
+    # Seite existiert, binden wir ihn in den Prompt ein. Claude erfindet
+    # dann nichts Neues, sondern uebernimmt die Texte exakt in die Bloecke.
+    ki_content_section = ""
+    if ki_h1 or ki_hero_text or ki_abschnitt_text:
+        ki_content_section = (
+            "\nBEREITS GENERIERTER KI-CONTENT "
+            "(diese Texte MUESSEN verwendet werden — nicht neu erfinden):\n"
+            f"- H1/Hauptueberschrift: {ki_h1 or '—'}\n"
+            f"- Hero-Text: {ki_hero_text or '—'}\n"
+            f"- Haupttext: {ki_abschnitt_text or '—'}\n"
+            f"- CTA-Text: {ki_cta or 'Jetzt anfragen'}\n"
+            "Nutze diese Texte EXAKT fuer die entsprechenden Bloecke. "
+            "Nur wenn ein Feld leer ist, erfinde einen passenden Text.\n\n"
+        )
+
     prompt = (
         f"Du bist ein Webdesigner der eine Website-Seite als Block-JSON entwirft.\n\n"
         f"UNTERNEHMEN: {company} | Branche: {gewerk} | Region: {region} | USP: {usp} | Tel: {phone}\n"
         f"SEITE: {page_name} ({page_type}) | Keyword: {keyword or '—'} | Zweck: {zweck or '—'}\n"
         f"STIL: {brand.get('style_keyword','Modern')} | {brand.get('design_brief',{}).get('fuer_ki_prompt','')}\n"
-        f"SEITEN FUER LINKS: {json.dumps(sitemap_list, ensure_ascii=False)}\n\n"
+        f"SEITEN FUER LINKS: {json.dumps(sitemap_list, ensure_ascii=False)}\n"
+        f"{ki_content_section}"
         "VERFUEGBARE BLOECKE: hero, leistungen-grid, usp-balken, ueber-uns, cta-banner, kontakt-form, footer\n\n"
         "REGELN:\n"
         "- Startseite: hero + usp-balken + leistungen-grid + cta-banner + footer\n"

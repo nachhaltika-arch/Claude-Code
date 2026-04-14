@@ -1077,6 +1077,23 @@ MIGRATIONS = [
         "ON projects(content_approval_sent_at) "
         "WHERE content_approved_at IS NULL",
     ]),
+
+    (8, "add_sitemap_page_ki_content_columns", [
+        # Batch-Content-Generierung fuer die ContentWerkstatt (Optimierung #3).
+        # Das neue POST /api/projects/{id}/content-workshop/generate-all
+        # schreibt KI-Texte aller Sitemap-Seiten in einem einzigen Claude-Call
+        # direkt in diese neuen Spalten. Das GET /api/sitemap/{lead_id}
+        # liefert sie zurueck, damit die ContentWerkstatt sie nach dem Reload
+        # rehydratisieren kann.
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_h1 TEXT",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_hero_text TEXT",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_abschnitt_text TEXT",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_cta VARCHAR(100)",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_meta_title VARCHAR(70)",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_meta_description VARCHAR(160)",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS content_generated BOOLEAN DEFAULT false",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS content_generated_at TIMESTAMP",
+    ]),
 ]
 
 

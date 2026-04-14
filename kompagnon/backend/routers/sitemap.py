@@ -97,6 +97,17 @@ class SitemapPage(Base):
     gjs_html         = Column(Text,        default='')
     gjs_css          = Column(Text,        default='')
     gjs_data         = Column(Text,        default='{}')
+    # Batch-Content-Generierung (Optimierung #3): die neuen ki_*-Spalten
+    # werden von POST /api/projects/{id}/content-workshop/generate-all
+    # geschrieben und vom Sitemap-GET-Endpoint via _serialize zurueckgegeben.
+    ki_h1               = Column(Text,         nullable=True)
+    ki_hero_text        = Column(Text,         nullable=True)
+    ki_abschnitt_text   = Column(Text,         nullable=True)
+    ki_cta              = Column(String(100),  nullable=True)
+    ki_meta_title       = Column(String(70),   nullable=True)
+    ki_meta_description = Column(String(160),  nullable=True)
+    content_generated    = Column(Boolean,     default=False)
+    content_generated_at = Column(DateTime,    nullable=True)
     created_at       = Column(DateTime,    server_default=func.now())
 
 
@@ -157,6 +168,18 @@ def _serialize(p: SitemapPage) -> dict:
         "mockup_html":      p.mockup_html or "",
         "gjs_html":         p.gjs_html or "",
         "ist_pflichtseite": bool(p.ist_pflichtseite),
+        # Batch-Content-Generation (Optimierung #3) — damit die Content-
+        # Werkstatt nach einem Reload wieder sieht, was die KI geschrieben hat.
+        # Felder sind via getattr-Default None-safe, falls die DB noch auf
+        # Migration v7 steht (Spalten fehlen → getattr liefert None).
+        "ki_h1":               getattr(p, "ki_h1", None) or "",
+        "ki_hero_text":        getattr(p, "ki_hero_text", None) or "",
+        "ki_abschnitt_text":   getattr(p, "ki_abschnitt_text", None) or "",
+        "ki_cta":              getattr(p, "ki_cta", None) or "",
+        "ki_meta_title":       getattr(p, "ki_meta_title", None) or "",
+        "ki_meta_description": getattr(p, "ki_meta_description", None) or "",
+        "content_generated":    bool(getattr(p, "content_generated", False)),
+        "content_generated_at": str(getattr(p, "content_generated_at", "") or "")[:16],
         "created_at":       str(p.created_at)[:16] if p.created_at else "",
     }
 

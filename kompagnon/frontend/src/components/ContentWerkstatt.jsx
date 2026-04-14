@@ -20,6 +20,9 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
   const [queueStop, setQueueStop]               = useState(false);
   const [saveStatus, setSaveStatus]             = useState('idle');
   const [queueCurrentPage, setQueueCurrentPage] = useState('');
+  // Optimierung #3 — Batch-Generierung aller Seiten in einem Claude-Call
+  const [generatingAll, setGeneratingAll]     = useState(false);
+  const [allGenProgress, setAllGenProgress]   = useState({ done: 0, total: 0 });
   const queueStopRef = useRef(false);
 
   useEffect(() => {
@@ -98,6 +101,96 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
     return () => clearInterval(interval);
   }, [selectedPage?.id, editedContent, newContent]); // eslint-disable-line
 
+  // Hydrate pageContent from sitemap pages' ki_* columns on mount/update.
+  // Wenn der Batch-Endpoint vorher gelaufen ist, kommen ki_h1/ki_hero_text/
+  // ki_abschnitt_text via GET /api/sitemap/{leadId} zurueck. Wir mappen sie
+  // in das Schema, das die bestehende Detail-Ansicht erwartet (headline,
+  // intro, sections[0].text, cta, meta_*). Nur Seiten, fuer die noch kein
+  // pageContent existiert, werden hydriert — das schuetzt gerade frisch
+  // generierten Content aus dem Einzelseiten-Endpoint.
+  useEffect(() => {
+    if (!Array.isArray(sitemapPages) || sitemapPages.length === 0) return;
+    setPageContent(prev => {
+      let changed = false;
+      const next = { ...prev };
+      for (const p of sitemapPages) {
+        if (next[p.id]) continue;
+        if (!p.content_generated && !p.ki_h1 && !p.ki_hero_text) continue;
+        next[p.id] = {
+          headline:         p.ki_h1 || '',
+          subheadline:      '',
+          intro:            p.ki_hero_text || '',
+          sections:         p.ki_abschnitt_text
+            ? [{ titel: 'Details', text: p.ki_abschnitt_text }]
+            : [],
+          cta:              p.ki_cta || '',
+          meta_title:       p.ki_meta_title || '',
+          meta_description: p.ki_meta_description || '',
+        };
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [sitemapPages]);
+
+  // Optimierung #3 — Alle Seiten in einem einzigen Claude-Call generieren.
+  const handleGenerateAll = async () => {
+    if (!sitemapPages || sitemapPages.length === 0) {
+      toast.error('Keine Sitemap-Seiten vorhanden. Zuerst Sitemap anlegen.');
+      return;
+    }
+    if (!window.confirm(
+      `Alle ${sitemapPages.length} Seiten mit KI-Texten befüllen? ` +
+      'Bestehende KI-Texte werden überschrieben.'
+    )) return;
+
+    setGeneratingAll(true);
+    setAllGenProgress({ done: 0, total: sitemapPages.length });
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/projects/${project.id}/content-workshop/generate-all`,
+        { method: 'POST', headers },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Fehler beim Generieren');
+
+      setAllGenProgress({ done: data.pages_generated || 0, total: sitemapPages.length });
+      toast.success(`${data.pages_generated || 0} Seiten erfolgreich generiert!`);
+
+      // Lokalen pageContent-State im bestehenden Schema aktualisieren,
+      // damit die Detail-Ansicht die neuen Texte sofort anzeigt — ohne
+      // auf einen Sitemap-Reload zu warten.
+      if (data.results && Array.isArray(data.results)) {
+        setPageContent(prev => {
+          const next = { ...prev };
+          for (const item of data.results) {
+            if (!item?.page_id) continue;
+            next[item.page_id] = {
+              headline:         item.h1 || '',
+              subheadline:      '',
+              intro:            item.hero_text || '',
+              sections:         item.abschnitt_text
+                ? [{ titel: 'Details', text: item.abschnitt_text }]
+                : [],
+              cta:              item.cta || '',
+              meta_title:       item.meta_title || '',
+              meta_description: item.meta_description || '',
+            };
+          }
+          return next;
+        });
+        // Edits zu bereits gerenderten Seiten verwerfen — die neuen KI-Texte
+        // sind der frische Stand, alte Edits wuerden sonst wieder darueber-
+        // gestuelpt via getField().
+        setEditedContent({});
+      }
+    } catch (err) {
+      toast.error(err.message || 'Generierung fehlgeschlagen');
+    } finally {
+      setGeneratingAll(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
@@ -125,6 +218,62 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
 
       {/* TAB 2: SEITENINHALTE — Master-Detail */}
       {activeTab === 'inhalte' && (
+        <>
+          {/* Batch-Generierung-Toolbar (Optimierung #3) */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '10px 14px', marginBottom: 10,
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-light)',
+            borderRadius: 'var(--radius-lg)',
+            flexWrap: 'wrap',
+          }}>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+                Alle Seiten auf einmal generieren
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                Ein Claude-Call schreibt Texte für alle {sitemapPages?.length || 0} Seiten — spart 30–45 Min. manuelle Klicks.
+              </div>
+            </div>
+            <button
+              onClick={handleGenerateAll}
+              disabled={generatingAll || !sitemapPages?.length}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 8,
+                border: 'none',
+                background: generatingAll ? '#6B7280' : (!sitemapPages?.length ? 'var(--border-medium)' : '#7c3aed'),
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: generatingAll || !sitemapPages?.length ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontFamily: 'var(--font-sans)',
+                flexShrink: 0,
+              }}
+            >
+              {generatingAll ? (
+                <>
+                  <span style={{
+                    width: 11, height: 11,
+                    border: '2px solid rgba(255,255,255,.3)',
+                    borderTopColor: '#fff', borderRadius: '50%',
+                    animation: 'spin .8s linear infinite',
+                    display: 'inline-block',
+                  }} />
+                  Generiere… {allGenProgress.total > 0 && `(${allGenProgress.total} Seiten)`}
+                </>
+              ) : (
+                <>
+                  🤖 Alle {sitemapPages?.length || 0} Seiten generieren
+                </>
+              )}
+            </button>
+          </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', height: 640 }}>
           <div style={{ borderRight: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', background: 'var(--bg-app)' }}>
             <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-light)', fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{sitemapPages.length} Seiten</div>
@@ -236,6 +385,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>Seite aus der Liste waehlen</div>
           )}
         </div>
+        </>
       )}
 
       {/* TAB 3: BILDER & ASSETS */}

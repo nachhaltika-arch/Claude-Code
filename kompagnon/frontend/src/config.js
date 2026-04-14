@@ -20,6 +20,11 @@ const API_BASE_URL = process.env.REACT_APP_API_URL ||
 //   1. defaults.withCredentials = true  — greift fuer neue Requests
 //   2. Request-Interceptor               — forciert es auch wenn der
 //      Caller-Code einen Config-Override mitgibt (z.B. { headers })
+const STORED_TOKEN_KEY = 'kompagnon_access_token';
+const readStoredToken = () => {
+  try { return localStorage.getItem(STORED_TOKEN_KEY); } catch { return null; }
+};
+
 axios.defaults.withCredentials = true;
 axios.interceptors.request.use((config) => {
   // API-Base-URL matchen, damit externe axios-Calls (falls vorhanden)
@@ -28,6 +33,14 @@ axios.interceptors.request.use((config) => {
   const fullUrl = config.baseURL ? config.baseURL + url : url;
   if (fullUrl.startsWith(API_BASE_URL)) {
     config.withCredentials = true;
+    // Mobile-Safari-Fallback: Bearer-Token anhaengen wenn localStorage
+    // einen Token hat und kein Authorization-Header explizit gesetzt ist.
+    const stored = readStoredToken();
+    if (stored) {
+      config.headers = config.headers || {};
+      const hasAuth = config.headers.Authorization || config.headers.authorization;
+      if (!hasAuth) config.headers.Authorization = `Bearer ${stored}`;
+    }
   }
   return config;
 });
@@ -48,9 +61,23 @@ axios.interceptors.request.use((config) => {
 
       // Nur eigene API-Requests patchen — keine Third-Party-Calls
       if (url && url.startsWith(API_BASE_URL)) {
+        // Mobile-Safari-Fallback: Bearer-Header anhaengen wenn localStorage
+        // einen Token hat und noch kein Authorization-Header gesetzt ist.
+        const stored = readStoredToken();
+        const existingHeaders = init.headers || {};
+        const hasAuth =
+          (typeof existingHeaders.get === 'function' && existingHeaders.get('Authorization')) ||
+          existingHeaders.Authorization ||
+          existingHeaders.authorization;
+        const authHeader = hasAuth || (stored ? `Bearer ${stored}` : undefined);
+
         return originalFetch(input, {
           ...init,
           credentials: init.credentials || 'include',
+          headers: {
+            ...existingHeaders,
+            ...(authHeader && !hasAuth ? { Authorization: authHeader } : {}),
+          },
         });
       }
     } catch { /* fall through */ }

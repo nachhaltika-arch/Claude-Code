@@ -17,7 +17,7 @@ from slowapi.util import get_remote_address
 
 # Cookie-Konfiguration — ein Platz, damit alle Endpunkte konsistent bleiben
 ACCESS_COOKIE_NAME = "access_token"
-ACCESS_COOKIE_MAX_AGE = 60 * 15  # 15 min, passt zu Fix 12 Token-Expiry
+ACCESS_COOKIE_MAX_AGE = 60 * 60 * 8  # 8 Stunden — Mobile Safari ITP blockiert Cookie-Refresh
 
 from database import User, UserSession, RevokedToken, get_db
 from auth import (
@@ -64,13 +64,23 @@ admin_router = APIRouter(prefix="/api/admin", tags=["admin"])
 # ═══════════════════════════════════════════════════════════
 
 def get_current_user(
+    request: Request,
     cookie_token: Optional[str] = Cookie(default=None, alias=ACCESS_COOKIE_NAME),
     db: Session = Depends(get_db),
 ):
-    # Fix 14 Phase 2 — nur noch Cookie-Auth. Bearer-Fallback entfernt.
-    if not cookie_token:
+    # Primary: Cookie (Desktop, normale Browser mit Cross-Origin-Cookie-Support).
+    # Fallback: Authorization Bearer Header — Mobile Safari / iOS WebKit blockiert
+    # Cross-Origin httpOnly-Cookies über ITP, dort nutzt der Frontend-Client
+    # localStorage + Bearer-Header.
+    token_value = cookie_token
+    if not token_value:
+        auth_header = request.headers.get("Authorization") or request.headers.get("authorization") or ""
+        if auth_header.startswith("Bearer "):
+            token_value = auth_header.split(" ", 1)[1].strip() or None
+
+    if not token_value:
         raise HTTPException(401, "Nicht autorisiert")
-    payload = decode_token(cookie_token)
+    payload = decode_token(token_value)
     if payload.get("type") == "2fa_temp":
         raise HTTPException(401, "2FA-Verifizierung erforderlich")
 

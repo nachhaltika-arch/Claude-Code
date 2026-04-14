@@ -4,16 +4,13 @@ import API_BASE_URL from '../config';
 const AuthContext = createContext(null);
 
 // ── Token-Storage ─────────────────────────────────────────────────
-// Fix 14 Phase 2 — JWT ist ausschliesslich ein httpOnly-Cookie.
-// Kein Token mehr in sessionStorage, kein Token in localStorage.
-// Das User-Objekt bleibt in sessionStorage fuer Reload-Resilienz
-// (keine sensiblen Credentials enthalten).
-//
-// Pages, die noch `Authorization: Bearer ${token}` bauen, sind
-// harmlos: `token` ist dann `null`, das Backend akzeptiert aber
-// nur noch Cookies (Phase 2 Backend-Removal), der Header wird
-// ignoriert.
+// Dual-Auth (Mobile-Safari-Fix):
+// - Desktop / normale Browser: httpOnly-Cookie (primary)
+// - Mobile Safari / iOS WebKit: localStorage + Bearer-Header (fallback),
+//   weil ITP Cross-Origin httpOnly-Cookies blockiert.
+// Das User-Objekt bleibt in sessionStorage fuer Reload-Resilienz.
 const USER_KEY = 'kompagnon_user';
+const TOKEN_KEY = 'kompagnon_access_token';
 const LEGACY_TOKEN_KEY = 'kompagnon_token';
 
 // Altreste aus Pre-Fix-14 aufraeumen (localStorage + sessionStorage)
@@ -34,10 +31,13 @@ const readUserFromStorage = () => {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => readUserFromStorage());
   const [loading, setLoading] = useState(true);
-  // token wird nur noch im React-State gehalten (fuer Alt-Pages, die
-  // useAuth().token lesen) und verschwindet beim Reload. Die echte
-  // Authentifizierung laeuft ueber den httpOnly-Cookie.
-  const [token, setToken] = useState(null);
+  // Token aus localStorage hydratisieren — Mobile-Safari-Fallback.
+  // Auf Desktops ist der Wert oft null, weil die Auth via httpOnly-Cookie
+  // laeuft; der fetch-Patch in config.js haengt den Bearer nur an wenn
+  // der Wert gesetzt ist.
+  const [token, setToken] = useState(() => {
+    try { return localStorage.getItem(TOKEN_KEY) || null; } catch { return null; }
+  });
 
   useEffect(() => {
     clearLegacyToken();
@@ -54,10 +54,11 @@ export function AuthProvider({ children }) {
         setUser(fresh);
         try { sessionStorage.setItem(USER_KEY, JSON.stringify(fresh)); } catch { /* ignore */ }
       } else {
-        // Kein gueltiger Cookie → User komplett zuruecksetzen
+        // Kein gueltiger Cookie / Bearer → User komplett zuruecksetzen
         setUser(null);
         setToken(null);
         try { sessionStorage.removeItem(USER_KEY); } catch { /* ignore */ }
+        try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
       }
     } catch {
       setUser(null);
@@ -68,12 +69,14 @@ export function AuthProvider({ children }) {
   };
 
   const login = (newToken, userData) => {
-    // newToken wird nur noch als React-State gehalten — fuer Alt-Pages
-    // die ihn ueber useAuth().token lesen. Das Backend hat bereits den
-    // httpOnly-Cookie gesetzt, Token im Body ist reine Uebergangs-Info.
     setToken(newToken);
     setUser(userData);
     try { sessionStorage.setItem(USER_KEY, JSON.stringify(userData)); } catch { /* ignore */ }
+    // Mobile-Safari-Fallback: Token persistent in localStorage speichern,
+    // damit er nach dem Reload wieder als Bearer-Header angehaengt werden kann.
+    if (newToken) {
+      try { localStorage.setItem(TOKEN_KEY, newToken); } catch { /* ignore */ }
+    }
   };
 
   const logout = () => {
@@ -87,6 +90,7 @@ export function AuthProvider({ children }) {
 
     clearLegacyToken();
     try { sessionStorage.removeItem(USER_KEY); } catch { /* ignore */ }
+    try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
     setToken(null);
     setUser(null);
   };
@@ -125,6 +129,7 @@ export async function apiCall(url, options = {}) {
   // jeder fehlerhafte Login-Versuch zum Force-Logout.
   if (response.status === 401 && !url.includes('/api/auth/login')) {
     try { sessionStorage.removeItem(USER_KEY); } catch { /* ignore */ }
+    try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
     clearLegacyToken();
     if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
       window.location.href = '/login';

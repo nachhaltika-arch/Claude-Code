@@ -24,7 +24,7 @@ except ImportError:
 
 SECRET_KEY = os.getenv("SECRET_KEY", "kompagnon-secret-2025-change-in-production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 15  # 15 min — kompromittierte Tokens laufen schnell ab
+ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 Stunden — Mobile Safari ITP blockiert Cookie-Refresh
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)

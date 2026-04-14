@@ -1627,7 +1627,7 @@ export default function ProjectDetail() {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '100vh',
+      height: '100%',
       minHeight: 0,
       overflow: 'hidden',
       background: 'var(--surface)',

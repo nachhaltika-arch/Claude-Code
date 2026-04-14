@@ -87,7 +87,16 @@ const icons = {
       <circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/>
     </svg>
   ),
+  folder: (
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1.5 4.5A1.5 1.5 0 013 3h3.5l1.5 1.5H13A1.5 1.5 0 0114.5 6v6.5A1.5 1.5 0 0113 14H3a1.5 1.5 0 01-1.5-1.5v-8z"/>
+    </svg>
+  ),
 };
+
+// ── Mobile-Layout-Konstanten ────────────────────────────────────
+const MOBILE_HEADER_HEIGHT = 52;  // px
+const MOBILE_NAV_HEIGHT    = 64;  // px (exkl. safe-area)
 
 // ── Nav structure ──────────────────────────────────────────────
 
@@ -180,17 +189,17 @@ const PAGE_NAMES = {
 function getMobileTabs(role, leadId) {
   if (role === 'kunde') {
     return [
-      { label: 'Start', path: '/app/dashboard', icon: 'grid' },
-      { label: 'Mein Projekt', path: leadId ? `/app/leads/${leadId}` : '/app/dashboard', icon: 'users' },
-      { label: 'Einstellungen', path: '/app/settings', icon: 'gear' },
+      { label: 'Start',        path: '/app/dashboard', icon: 'grid'  },
+      { label: 'Mein Projekt', path: leadId ? `/app/usercards/${leadId}` : '/app/dashboard', icon: 'users' },
+      { label: 'Einstellungen',path: '/app/settings',  icon: 'gear'  },
     ];
   }
   return [
-    { label: 'Dashboard', path: '/app/dashboard', icon: 'grid' },
-    { label: 'Projekte', path: '/app/projects', icon: 'users' },
-    { label: 'Vertrieb', path: '/app/deals', icon: 'chart' },
-    { label: 'Audit', path: '/app/audit', icon: 'docCheck' },
-    { label: 'Mehr', path: '__more__', icon: 'menu' },
+    { label: 'Dashboard', path: '/app/dashboard', icon: 'grid'   },
+    { label: 'Vertrieb',  path: '/app/deals',     icon: 'chart'  },
+    { label: 'Leads',     path: '/app/leads',     icon: 'users'  },
+    { label: 'Projekte',  path: '/app/projects',  icon: 'folder' },
+    { label: 'Mehr',      path: '__more__',       icon: 'menu'   },
   ];
 }
 
@@ -720,9 +729,10 @@ function BottomNav() {
       {/* Bottom Bar */}
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: 'var(--bg-surface)', borderTop: '1px solid var(--border-light)',
+        background: 'var(--kc-dark, #004F59)',
+        borderTop: '0.5px solid rgba(255,255,255,.1)',
         display: 'flex', justifyContent: 'space-around',
-        height: 'calc(56px + env(safe-area-inset-bottom))',
+        height: 'calc(64px + env(safe-area-inset-bottom))',
         paddingBottom: 'env(safe-area-inset-bottom)',
         alignItems: 'flex-start', paddingTop: 8, zIndex: 100,
       }}>
@@ -731,18 +741,32 @@ function BottomNav() {
           return (
             <button key={tab.path} onClick={() => handleTab(tab.path)} style={{
               background: 'none', border: 'none',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              padding: '4px 8px', cursor: 'pointer', minWidth: 48, flex: 1,
-              color: active ? 'var(--brand-primary)' : 'var(--text-tertiary)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+              padding: '10px 6px 4px', cursor: 'pointer', minWidth: 48, flex: 1,
+              color: active ? 'var(--kc-yellow, #FAE600)' : 'rgba(255,255,255,.45)',
               transition: 'color var(--transition-fast)',
+              position: 'relative',
+              fontFamily: 'var(--font-sans)',
             }}>
+              {/* Gelber Aktiv-Indikator oben */}
+              <span style={{
+                position: 'absolute',
+                top: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 20, height: 3,
+                background: active ? 'var(--kc-yellow, #FAE600)' : 'transparent',
+                borderRadius: 2,
+              }} />
               <span style={{ display: 'flex', position: 'relative' }} aria-hidden="true">
                 {icons[tab.icon]}
-                {tab.path === '__more__' && moreOpen && (
-                  <span style={{ position: 'absolute', top: -2, right: -2, width: 6, height: 6, borderRadius: '50%', background: 'var(--brand-primary)' }} />
-                )}
               </span>
-              <span style={{ fontSize: 10, fontWeight: active ? 700 : 400 }}>{tab.label}</span>
+              <span style={{
+                fontSize: 9,
+                fontWeight: active ? 900 : 700,
+                textTransform: 'uppercase',
+                letterSpacing: '.06em',
+              }}>{tab.label}</span>
             </button>
           );
         })}
@@ -896,15 +920,36 @@ export default function AppLayout() {
         {/* Mobile header */}
         {isMobile && (
           <header style={{
-            padding: '10px 16px', background: 'var(--bg-surface)',
-            borderBottom: '1px solid var(--border-light)',
+            position: 'fixed',
+            top: 0, left: 0, right: 0,
+            height: MOBILE_HEADER_HEIGHT,
+            zIndex: 100,
+            background: 'var(--kc-dark, #004F59)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, flexShrink: 0,
+            padding: '0 18px',
+            flexShrink: 0,
           }}>
-            <div>
-              <KompagnonLogo height={36} variant={theme === 'dark' ? 'white' : 'color'} />
+            {/* Logo-Mark */}
+            <div style={{
+              width: 28, height: 28,
+              background: 'var(--kc-mid, #008EAA)',
+              borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, fontWeight: 900, color: '#fff',
+              fontFamily: 'var(--font-sans)',
+            }}>
+              kc
             </div>
-            <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
+            {/* Seiten-Name */}
+            <span style={{
+              fontFamily: 'var(--font-display, "Barlow Condensed", sans-serif)',
+              fontSize: 16, fontWeight: 700,
+              color: '#fff',
+              textTransform: 'uppercase',
+              letterSpacing: '.04em',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              padding: '0 8px',
+            }}>
               {breadcrumbs[breadcrumbs.length - 1]?.label || 'KOMPAGNON'}
             </span>
             {/* User avatar + dropdown */}
@@ -912,14 +957,14 @@ export default function AppLayout() {
               <button
                 onClick={() => setMobileMenuOpen(o => !o)}
                 style={{
-                  width: 32, height: 32, borderRadius: '50%',
-                  background: 'var(--brand-primary-light)', color: 'var(--brand-primary)',
-                  border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                  width: 30, height: 30, borderRadius: '50%',
+                  background: 'var(--kc-mid, #008EAA)', color: '#fff',
+                  border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 900,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'var(--font-sans)',
                 }}
               >
-                {(user?.first_name?.[0] || 'U').toUpperCase()}
+                {((user?.first_name?.[0] || '') + (user?.last_name?.[0] || '')) || 'U'}
               </button>
               {mobileMenuOpen && (
                 <>
@@ -996,14 +1041,26 @@ export default function AppLayout() {
         {/* Content */}
         <main
           ref={mainRef}
-          style={{
+          style={isMobile ? {
+            // Mobile: fix zwischen Header und Bottom-Nav — genau eine Scroll-Zone
+            position: 'fixed',
+            top: MOBILE_HEADER_HEIGHT,
+            left: 0,
+            right: 0,
+            bottom: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom))`,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            WebkitOverflowScrolling: 'touch',
+            background: 'var(--surface, #F0F4F5)',
+            padding: hideSidebar ? 0 : '12px 16px 16px',
+          } : {
+            // Desktop
             flex: 1,
             overflowY: hideSidebar ? 'hidden' : 'auto',
             overflowX: 'hidden',
             minWidth: 0, position: 'relative',
-            padding: hideSidebar ? 0 : (isMobile ? 16 : '28px 32px'),
-            paddingTop: isMobile && !hideSidebar ? 72 : undefined,
-            paddingBottom: isMobile && !hideSidebar ? 80 : (hideSidebar ? 0 : 28),
+            padding: hideSidebar ? 0 : '28px 32px',
+            paddingBottom: hideSidebar ? 0 : 28,
           }}
         >
           {/* Kaltstart-Banner */}

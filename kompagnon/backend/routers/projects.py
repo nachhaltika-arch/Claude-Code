@@ -3945,6 +3945,272 @@ async def generate_page_content(
         raise HTTPException(500, f"Content-Generierung fehlgeschlagen: {str(e)[:200]}")
 
 
+# ── Ground Page Generator (GEO / KI-Optimierung) ─────────────────────────────
+
+def _build_schema_jsonld(
+    data: dict,
+    company: str,
+    city: str,
+    website: str,
+    phone: str,
+    rating: str,
+    rating_count: str,
+    founded: str,
+    employees: str,
+    leistungen: str,
+) -> dict:
+    """Baut das Schema.org LocalBusiness JSON-LD Objekt fuer die Ground Page."""
+    schema = {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "name": company,
+        "url": website or "",
+        "telephone": phone or "",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": city,
+            "addressCountry": "DE",
+        },
+        "description": data.get("meta_description", ""),
+    }
+
+    if rating and rating != "\u2014":
+        try:
+            schema["aggregateRating"] = {
+                "@type": "AggregateRating",
+                "ratingValue": str(rating),
+                "reviewCount": str(rating_count or "0"),
+            }
+        except Exception:
+            pass
+
+    if founded and founded != "\u2014":
+        schema["foundingDate"] = str(founded)
+
+    if employees and employees != "\u2014":
+        schema["numberOfEmployees"] = str(employees)
+
+    services = [s.strip() for s in (leistungen or "").split(",") if s.strip()]
+    if services:
+        schema["hasOfferCatalog"] = {
+            "@type": "OfferCatalog",
+            "name": "Leistungen",
+            "itemListElement": services[:10],
+        }
+
+    faq_items = data.get("faq", [])
+    if faq_items:
+        schema["mainEntity"] = [
+            {
+                "@type": "Question",
+                "name": item.get("frage", ""),
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": item.get("antwort", ""),
+                },
+            }
+            for item in faq_items
+        ]
+
+    return schema
+
+
+@router.post("/{project_id}/ground-page")
+async def generate_ground_page(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """
+    Generiert eine vollstaendige Ground Page fuer GEO / KI-Optimierung.
+    Enthaelt: Fakten, Leistungen mit Keywords, USP, FAQ, Schema.org Markup.
+    """
+    import httpx
+    import json as _gp_json
+    import re as _gp_re
+    from sqlalchemy import text as _sql_text
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    lead = project.lead
+    lead_id = project.lead_id
+
+    briefing = db.execute(
+        _sql_text("""
+            SELECT gewerk, leistungen, einzugsgebiet, usp,
+                   zielgruppe, hauptziel, aktionen,
+                   telefon, email, gruendungsjahr,
+                   mitarbeiterzahl, google_bewertung,
+                   google_bewertung_anzahl, zertifikate,
+                   auszeichnungen, sonstige_hinweise
+            FROM briefings WHERE lead_id = :lid LIMIT 1
+        """),
+        {"lid": lead_id},
+    ).fetchone()
+
+    company    = getattr(lead, "company_name", "") or ""
+    city       = getattr(lead, "city", "") or ""
+    website    = getattr(lead, "website_url", "") or ""
+    phone      = getattr(lead, "phone", "") or ""
+
+    gewerk         = (briefing[0]  if briefing else "") or ""
+    leistungen     = (briefing[1]  if briefing else "") or ""
+    einzugsgebiet  = (briefing[2]  if briefing else city) or city
+    usp            = (briefing[3]  if briefing else "") or ""
+    zielgruppe     = (briefing[4]  if briefing else "Privatkunden") or "Privatkunden"
+    hauptziel      = (briefing[5]  if briefing else "") or ""
+    telefon_b      = (briefing[7]  if briefing else phone) or phone
+    gruendungsjahr = (briefing[9]  if briefing else "") or ""
+    mitarbeiter    = (briefing[10] if briefing else "") or ""
+    g_bewertung    = (briefing[11] if briefing else "") or ""
+    g_anzahl       = (briefing[12] if briefing else "") or ""
+    zertifikate    = (briefing[13] if briefing else "") or ""
+    auszeichnungen = (briefing[14] if briefing else "") or ""
+    hinweise       = (briefing[15] if briefing else "") or ""
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    prompt = f"""Du erstellst eine Ground Page fuer ein Handwerksunternehmen.
+Eine Ground Page ist eine maschinenlesbare Seite fuer KI-Systeme (ChatGPT, Perplexity, Google AI).
+Sie soll das Unternehmen bei relevanten KI-Suchanfragen empfehlenswert machen.
+
+UNTERNEHMENSDATEN:
+- Name: {company}
+- Branche/Gewerk: {gewerk}
+- Stadt: {city}
+- Einzugsgebiet: {einzugsgebiet}
+- Website: {website}
+- Telefon: {telefon_b or phone}
+- Gegruendet: {gruendungsjahr or '—'}
+- Mitarbeiter: {mitarbeiter or '—'}
+- Google-Bewertung: {g_bewertung or '—'} ({g_anzahl or '—'} Bewertungen)
+- Zertifikate: {zertifikate or '—'}
+- Auszeichnungen: {auszeichnungen or '—'}
+- Leistungen: {leistungen}
+- USP: {usp}
+- Zielgruppe: {zielgruppe}
+- Hauptziel: {hauptziel}
+- Hinweise: {hinweise}
+
+AUFGABE: Erstelle NUR gueltiges JSON mit GENAU dieser Struktur:
+
+{{
+  "page_title": "Ueber uns & Informationen — {company}",
+  "meta_description": "<155 Zeichen: Wer wir sind, was wir anbieten, wo wir sind>",
+  "intro": "<2-3 Saetze Einleitung, direkt und informativ fuer KI-Systeme>",
+  "fakten": {{
+    "name": "{company}",
+    "branche": "<Gewerk>",
+    "standort": "<Stadt, Bundesland, Deutschland>",
+    "einzugsgebiet": "<Region mit Staedten>",
+    "gegruendet": "<Jahr oder —>",
+    "mitarbeiter": "<Zahl oder —>",
+    "telefon": "<Telefon>",
+    "website": "<URL>",
+    "notdienst": "<Ja 24/7 / Ja Mo-Fr / Nein>",
+    "sprachen": "Deutsch<, weitere falls bekannt>"
+  }},
+  "leistungen_keywords": [
+    "<Leistung + Stadt, z.B. Wallbox installieren Muenchen>",
+    "<weitere 7-9 GEO-optimierte Leistungs-Keywords>"
+  ],
+  "usp_saetze": [
+    "<USP 1 als vollstaendiger Satz fuer KI-Verstaendnis>",
+    "<USP 2>",
+    "<USP 3>"
+  ],
+  "faq": [
+    {{"frage": "<Frage wie Nutzer sie in ChatGPT eintippen>", "antwort": "<Direkte, informative Antwort mit Firmenname und Kontakt>"}},
+    {{"frage": "<Frage 2>", "antwort": "<Antwort 2>"}},
+    {{"frage": "<Frage 3>", "antwort": "<Antwort 3>"}},
+    {{"frage": "<Frage 4>", "antwort": "<Antwort 4>"}},
+    {{"frage": "<Frage 5>", "antwort": "<Antwort 5>"}}
+  ],
+  "vertrauen": {{
+    "google_bewertung": "{g_bewertung or '—'}",
+    "google_anzahl": "{g_anzahl or '—'}",
+    "zertifikate": "<Zertifikate oder —>",
+    "auszeichnungen": "<Auszeichnungen oder —>",
+    "seit": "<Gruendungsjahr oder —>",
+    "projekte": "<Geschaetzte Projektanzahl falls ableitbar, sonst —>"
+  }},
+  "schema_type": "LocalBusiness",
+  "letzte_aktualisierung": "2026-04"
+}}
+
+Gib NUR das JSON zurueck, keine Erklaerung, kein Markdown."""
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-6",
+                    "max_tokens": 3000,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+        resp.raise_for_status()
+        raw = resp.json()["content"][0]["text"].strip()
+        raw = _gp_re.sub(r"^```json\s*", "", raw)
+        raw = _gp_re.sub(r"^```\s*", "", raw)
+        raw = _gp_re.sub(r"\s*```$", "", raw)
+        ground_data = _gp_json.loads(raw)
+
+        schema = _build_schema_jsonld(
+            ground_data, company, city, website,
+            telefon_b or phone, g_bewertung, g_anzahl,
+            gruendungsjahr, mitarbeiter, leistungen,
+        )
+        ground_data["schema_jsonld"] = schema
+
+        ground_page = db.execute(
+            _sql_text("SELECT id FROM sitemap_pages WHERE lead_id = :lid AND page_type = 'ground' LIMIT 1"),
+            {"lid": lead_id},
+        ).fetchone()
+
+        if ground_page:
+            payload = _gp_json.dumps(ground_data, ensure_ascii=False)
+            db.execute(
+                _sql_text("""
+                    UPDATE sitemap_pages
+                    SET ki_content = :content,
+                        ki_h1 = :h1,
+                        ki_meta_title = :meta_t,
+                        ki_meta_description = :meta_d,
+                        content_generated = TRUE,
+                        content_generated_at = NOW()
+                    WHERE id = :pid
+                """),
+                {
+                    "content": payload,
+                    "h1": (ground_data.get("page_title") or "")[:500],
+                    "meta_t": (ground_data.get("page_title") or "")[:70],
+                    "meta_d": (ground_data.get("meta_description") or "")[:160],
+                    "pid": ground_page[0],
+                },
+            )
+            db.commit()
+
+        return {"ok": True, "ground_page": ground_data}
+
+    except _gp_json.JSONDecodeError:
+        raise HTTPException(500, "KI-Antwort konnte nicht verarbeitet werden")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Ground Page Generierung fehlgeschlagen: {str(e)[:300]}")
+
+
 # ── Link-Resolver ─────────────────────────────────────────────────────────────
 
 import re as _re

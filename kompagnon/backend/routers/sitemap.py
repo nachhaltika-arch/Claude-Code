@@ -413,6 +413,37 @@ _FALLBACK_PAGES = [
 ]
 
 
+def _ensure_ground_page(lead_id: int, gewerk: str, city: str, db: Session) -> None:
+    """Stellt sicher, dass eine Ground Page (GEO/KI-Optimierung) existiert.
+
+    Die Ground Page ist eine maschinenlesbare Informationsseite für KI-Systeme
+    wie ChatGPT, Perplexity, Google AI. Sie wird automatisch am Ende jeder
+    KI-Sitemap-Generierung angehängt — falls das KI-Modell selbst keine
+    erzeugt hat oder der Fallback-Pfad genutzt wurde.
+    """
+    existing = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.page_type == "ground")
+        .first()
+    )
+    if existing:
+        return
+    db.add(SitemapPage(
+        lead_id=lead_id,
+        page_name="Über uns & Informationen",
+        page_type="ground",
+        position=99,
+        parent_id=None,
+        zweck="Maschinenlesbare Informationsseite für KI-Systeme und Suchmaschinen (GEO-Optimierung). Enthält alle strukturierten Fakten über das Unternehmen.",
+        ziel_keyword=(f"{gewerk} {city} Informationen Kontakt")[:150],
+        cta_text="Jetzt Kontakt aufnehmen",
+        cta_ziel="kontakt",
+        notizen="Ground Page für GEO / KI-Optimierung — automatisch generiert",
+        status="geplant",
+    ))
+    db.commit()
+
+
 def _insert_pages(lead_id: int, raw_pages: list, db: Session) -> list:
     """Persist a list of page dicts, return serialized results."""
     created = []
@@ -493,9 +524,13 @@ def generate_sitemap_impl(lead_id: int, db: Session) -> dict:
             "Erstelle eine Sitemap mit 5-8 INHALTLICHEN Seiten für diesen Betrieb.\n"
             "NICHT einschließen: Impressum, Datenschutz, AGB, Barrierefreiheit – "
             "diese werden automatisch ergänzt.\n"
+            "WICHTIG: Füge IMMER eine Seite mit page_type=\"ground\" hinzu. "
+            "Das ist eine maschinenlesbare Informationsseite für KI-Systeme "
+            "(ChatGPT, Perplexity, Google AI) zur GEO-Optimierung. "
+            "Sie enthält Fakten, FAQ, USP und Schema.org-Markup und wird im Footer verlinkt.\n"
             f"Gewerk: {gewerk}, Stadt: {city}, Leistungen: {leistungen}\n"
             "Antworte NUR als JSON-Array:\n"
-            '[{ "page_name": "", "page_type": "startseite|leistung|info|vertrauen|conversion", '
+            '[{ "page_name": "", "page_type": "startseite|leistung|info|vertrauen|conversion|ground", '
             '"zweck": "", "ziel_keyword": "", "cta_text": "", "cta_ziel": "kontakt|formular|tel", '
             '"position": 0, "parent_id": null }]'
         )
@@ -536,6 +571,9 @@ def generate_sitemap_impl(lead_id: int, db: Session) -> dict:
         except Exception as exc:
             logger.warning("Sitemap KI-Generierung fehlgeschlagen, Fallback: %s", exc)
             _insert_pages(lead_id, _FALLBACK_PAGES, db)
+
+    # Ground Page immer sicherstellen — für GEO / KI-Optimierung
+    _ensure_ground_page(lead_id, gewerk, city, db)
 
     # Gesamte Sitemap (Inhalt + Pflichtseiten) zurückgeben
     all_pages = (

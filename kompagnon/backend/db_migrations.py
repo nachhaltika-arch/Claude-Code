@@ -1120,6 +1120,16 @@ MIGRATIONS = [
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS perf_report_sent_at TIMESTAMP",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS perf_report_sent_count INTEGER DEFAULT 0",
     ]),
+
+    (11, "add_sitemap_ki_content_for_ground_page", [
+        # Ground Page (GEO / KI-Optimierung): strukturierte JSON-Daten
+        # (Fakten, FAQ, USP, Schema.org JSON-LD) werden als serialisiertes
+        # JSON in ki_content abgelegt. Die granularen v8-Spalten (ki_h1,
+        # ki_hero_text, ki_abschnitt_text, ki_cta) reichen dafuer nicht aus.
+        # Fuer normale Seiten bleibt ki_content leer — die v8-Spalten
+        # werden weiter genutzt.
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_content TEXT",
+    ]),
 ]
 
 

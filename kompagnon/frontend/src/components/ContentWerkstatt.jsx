@@ -45,6 +45,38 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
     finally { setGenerating(false); }
   };
 
+  // Ground Page — GEO / KI-Optimierung (strukturiertes JSON mit Fakten, FAQ, Schema.org)
+  const generateGroundPage = async (page) => {
+    setGenerating(true);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/projects/${project.id}/ground-page`,
+        { method: 'POST', headers },
+      );
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Fehler');
+      const data = await res.json();
+      const gp = data.ground_page || {};
+      setPageContent(prev => ({
+        ...prev,
+        [page.id]: {
+          title: gp.page_title,
+          headline: gp.page_title,
+          meta_description: gp.meta_description,
+          intro: gp.intro,
+          ground_page: gp,
+          ground_page_json: JSON.stringify(gp, null, 2),
+        },
+      }));
+      setSelectedPage(page);
+      setActiveTab('inhalte');
+      toast.success('Ground Page generiert \u2713');
+    } catch (e) {
+      toast.error(e.message || 'Ground Page Generierung fehlgeschlagen');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const getField = (pageId, field) => editedContent[pageId]?.[field] ?? pageContent[pageId]?.[field] ?? '';
   const setEdit = (pageId, field, value) => setEditedContent(prev => ({ ...prev, [pageId]: { ...(prev[pageId] || {}), [field]: value } }));
 
@@ -291,6 +323,21 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                       {hasContent && <span style={{ fontSize: 10, color: 'var(--status-success-text)', flexShrink: 0, marginLeft: 4 }}>{'\u2713'}</span>}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{page.page_type}</div>
+                    {page.page_type === 'ground' && (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '3px 7px',
+                        background: '#E0F4F8',
+                        borderRadius: 4,
+                        marginTop: 4,
+                        fontSize: 9, fontWeight: 700,
+                        color: '#004F59',
+                        textTransform: 'uppercase',
+                        letterSpacing: '.06em',
+                      }}>
+                        🤖 GEO / KI
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -304,10 +351,17 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{selectedPage.page_name}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{selectedPage.page_type}{selectedPage.ziel_keyword ? ` · ${selectedPage.ziel_keyword}` : ''}</div>
                 </div>
-                <button onClick={() => generateContent(selectedPage)} disabled={generating}
-                  style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: generating ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {generating ? (<><span style={{ width: 11, height: 11, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Generiert...</>) : pageContent[selectedPage.id] ? 'Neu generieren' : 'KI generieren'}
-                </button>
+                {selectedPage.page_type === 'ground' ? (
+                  <button onClick={() => generateGroundPage(selectedPage)} disabled={generating}
+                    style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: generating ? 'var(--border-medium)' : '#FAE600', color: '#000', fontSize: 12, fontWeight: 900, cursor: generating ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', textTransform: 'uppercase', letterSpacing: '.06em', display: 'flex', alignItems: 'center', gap: 7 }}>
+                    {generating ? (<><span style={{ width: 11, height: 11, border: '2px solid rgba(0,0,0,.3)', borderTopColor: '#000', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Generiert...</>) : '🤖 Ground Page generieren (GEO)'}
+                  </button>
+                ) : (
+                  <button onClick={() => generateContent(selectedPage)} disabled={generating}
+                    style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: generating ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {generating ? (<><span style={{ width: 11, height: 11, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Generiert...</>) : pageContent[selectedPage.id] ? 'Neu generieren' : 'KI generieren'}
+                  </button>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, minWidth: 90 }}>
                   {saveStatus === 'saving' && (<><span style={{ width: 10, height: 10, border: '1.5px solid var(--border-medium)', borderTopColor: 'var(--brand-primary)', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} /><span style={{ color: 'var(--text-tertiary)' }}>Speichert...</span></>)}
                   {saveStatus === 'saved' && <span style={{ color: 'var(--status-success-text)', fontWeight: 600 }}>Gespeichert</span>}

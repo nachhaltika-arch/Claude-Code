@@ -66,7 +66,7 @@ async def upload_template(
             INSERT INTO website_templates
               (name, description, source, html_content, css_content, tags, category, created_at, updated_at)
             VALUES
-              (%(name)s, %(desc)s, 'upload', %(html)s, %(css)s, %(tags)s, %(cat)s, NOW(), NOW())
+              (:name, :desc, 'upload', :html, :css, :tags, :cat, NOW(), NOW())
             RETURNING id, name, created_at
         """),
         {
@@ -180,7 +180,7 @@ async def import_template_from_url(
         text("""
             INSERT INTO website_templates
               (name, description, source, source_url, html_content, css_content, created_at, updated_at)
-            VALUES (%(name)s, %(desc)s, 'url', %(url)s, %(html)s, %(css)s, NOW(), NOW())
+            VALUES (:name, :desc, 'url', :url, :html, :css, NOW(), NOW())
             RETURNING id, name, html_content, created_at
         """),
         {"name": name, "desc": description, "url": url, "html": cleaned_html, "css": css_content},

@@ -75,11 +75,18 @@ function ProjectListCard({ project, lead, onClick }) {
 
       {/* Name + domain */}
       <div style={{ flex: '1 1 160px', minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 15, fontWeight: 700,
+          color: 'var(--kc-dark)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
           {lead?.company_name || project.company_name || `Projekt #${project.id}`}
         </div>
         {domain && (
-          <div style={{ fontSize: 11, color: 'var(--brand-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+          <div style={{ fontSize: 11, color: 'var(--kc-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
             {domain}
           </div>
         )}
@@ -87,11 +94,22 @@ function ProjectListCard({ project, lead, onClick }) {
 
       {/* Phase + progress */}
       <div style={{ flex: '1 1 140px', minWidth: 120 }}>
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700,
+          color: 'var(--text-60)',
+          textTransform: 'uppercase', letterSpacing: '0.06em',
+          marginBottom: 4,
+        }}>
           {pNum ? `Phase ${pNum} von 7 · ${ph?.label}` : project.status || '–'}
         </div>
-        <div style={{ height: 5, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{ width: pNum ? `${(pNum / 7) * 100}%` : '0%', height: '100%', background: '#0d6efd', borderRadius: 3 }} />
+        <div style={{ height: 5, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{
+            width: pNum ? `${(pNum / 7) * 100}%` : '0%',
+            height: '100%',
+            background: pNum && (pNum / 7) > 0.8 ? 'var(--success)' : 'var(--kc-mid)',
+            borderRadius: 3,
+            transition: 'width 0.5s ease',
+          }} />
         </div>
       </div>
 
@@ -169,10 +187,24 @@ export default function CustomerProjects() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Kundenprojekte</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
+          <h1 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 28, fontWeight: 700,
+            color: 'var(--kc-dark)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.02em', lineHeight: 1,
+            margin: 0,
+          }}>
+            Kundenprojekte
+          </h1>
+          <div style={{
+            fontSize: 10, fontWeight: 700,
+            letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: 'var(--text-30)', marginTop: 4,
+            fontFamily: 'var(--font-sans)',
+          }}>
             {loading ? 'Lädt…' : `${filtered.length} von ${projects.length} Projekten`}
-          </p>
+          </div>
         </div>
       </div>
 

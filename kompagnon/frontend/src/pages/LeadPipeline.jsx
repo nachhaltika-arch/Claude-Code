@@ -149,11 +149,48 @@ export default function LeadPipeline() {
   return (
     <div style={{ animation: 'fadeIn 0.3s ease', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       {/* Header */}
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Projektpipeline</h1>
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
-          {cards.length} aktive Projekte · Drag & Drop zum Verschieben
+      <div style={{
+        display: 'flex', alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 16, flexWrap: 'wrap',
+        marginBottom: 16,
+      }}>
+        <div>
+          <h1 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 28, fontWeight: 700,
+            color: 'var(--kc-dark)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.02em', lineHeight: 1,
+            margin: 0,
+          }}>
+            Projektpipeline
+          </h1>
+          <div style={{
+            fontSize: 10, fontWeight: 700,
+            letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: 'var(--text-30)', marginTop: 4,
+            fontFamily: 'var(--font-sans)',
+          }}>
+            {cards.length} aktive Projekte · Drag & Drop zum Verschieben
+          </div>
         </div>
+        <button
+          onClick={() => navigate('/app/import')}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            padding: '9px 18px',
+            background: 'var(--kc-yellow)',
+            color: '#000', border: 'none',
+            borderRadius: 'var(--r-md)',
+            fontSize: 12, fontWeight: 700,
+            cursor: 'pointer',
+            textTransform: 'uppercase', letterSpacing: '0.04em',
+            fontFamily: 'var(--font-sans)',
+          }}
+        >
+          + Neuer Lead
+        </button>
       </div>
 
       {/* KPI bar */}

@@ -1909,3 +1909,17 @@ function AbnahmeEmbed({ project, lead, headers, netlify }) {
     </div>
   );
 }
+
+// ── Named exports for re-use in ProzessFlowV3 ───────────────────────────────
+export {
+  BriefingUnternehmenEmbed,
+  AuditEmbed,
+  SitemapKiVorschlag,
+  SitemapEditorEmbed,
+  DesignStudioEmbed,
+  NetlifyEmbed,
+  DNSEmbed,
+  QAEmbed,
+  AbnahmeEmbed,
+  ZugangsdatenEmbed,
+};

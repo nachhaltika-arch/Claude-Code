@@ -91,6 +91,13 @@ def _serialize(b: Briefing) -> dict:
         "fotos_vorhanden":   bool(getattr(b, "fotos_vorhanden", False)),
         "sonstige_hinweise": getattr(b, "sonstige_hinweise", "") or "",
         "status":            getattr(b, "status",            "entwurf") or "entwurf",
+        # KI-Auto-Fill Metadaten (fuer Banner + Badges im Frontend)
+        "ki_prefilled_at":   (
+            b.ki_prefilled_at.isoformat()
+            if getattr(b, "ki_prefilled_at", None) else None
+        ),
+        "ki_confidence":     getattr(b, "ki_confidence", "") or "",
+        "ki_hinweise":       getattr(b, "ki_hinweise", "") or "",
         "created_at":        str(b.created_at)[:16] if b.created_at else "",
         "updated_at":        str(b.updated_at)[:16] if b.updated_at else "",
     }
@@ -282,3 +289,353 @@ async def suggest_field(
         return {"field": field, "suggestion": suggestion}
     except Exception as e:
         raise HTTPException(500, f"Vorschlag fehlgeschlagen: {str(e)[:150]}")
+
+
+# ── KI-Briefing-Auto-Fill ──────────────────────────────────────────────────────
+#
+# Endpoint: POST /api/briefings/{lead_id}/ki-prefill
+# Kernlogik: ki_prefill_briefing(lead_id, db) — wird auch direkt vom
+# Stripe-Webhook-Background-Thread aufgerufen (kein HTTP-Roundtrip).
+#
+# Pipeline:
+#   1. Lead + website_content_cache + brand_* + audit_top_issues laden
+#   2. Heuristic-Fallback-Dict aus den Rohdaten bauen (trade, page-names aus URLs)
+#   3. Wenn ANTHROPIC_API_KEY + Rohdaten vorhanden: Claude-Call fuer bessere Werte
+#   4. Merge: Claude-Werte ueberschreiben Heuristik
+#   5. Ins Briefing schreiben — aber NUR Felder, die noch leer sind
+#   6. usp / vorbilder / sonstige_hinweise werden NIE auto-befuellt
+#   7. ki_prefilled_at / ki_confidence / ki_hinweise immer setzen
+
+_KI_PREFILL_FILLABLE = [
+    "gewerk", "leistungen", "einzugsgebiet", "farben", "stil",
+    "wunschseiten", "logo_vorhanden", "fotos_vorhanden",
+]
+_KI_PREFILL_NEVER_FILL = ["usp", "vorbilder", "sonstige_hinweise"]
+
+
+def _ki_prefill_gather_context(lead: Lead, db: Session) -> dict:
+    """Sammelt alle verfuegbaren Rohdaten fuer einen Lead in ein Context-Dict."""
+    from sqlalchemy import text as sa_text
+    from urllib.parse import urlparse
+
+    lead_id = lead.id
+
+    # 1. Website-Content-Cache (nach Wordcount, damit wir die textreichsten
+    #    Seiten zuerst bekommen — die tragen die meiste Signal-Information)
+    rows = db.execute(
+        sa_text("""
+            SELECT url, title, meta_description, h1, h2s, text_preview,
+                   COALESCE(word_count, 0) AS wc, COALESCE(images, '[]') AS imgs
+            FROM website_content_cache
+            WHERE customer_id = :lid
+            ORDER BY word_count DESC NULLS LAST, scraped_at DESC
+            LIMIT 15
+        """),
+        {"lid": lead_id},
+    ).fetchall()
+
+    all_h2s: list = []
+    all_titles: list = []
+    page_names: list = []
+    text_previews: list = []
+    image_count = 0
+
+    for row in rows:
+        url, title, _meta, h1, h2s_json, preview, _wc, imgs_json = row
+        if title:
+            all_titles.append(title.strip())
+        if h1:
+            all_h2s.append(h1.strip())
+        try:
+            parsed_h2 = json.loads(h2s_json or '[]')
+            if isinstance(parsed_h2, list):
+                all_h2s.extend([str(s).strip() for s in parsed_h2 if s])
+        except Exception:
+            pass
+        if url:
+            try:
+                path = urlparse(url).path.strip('/').split('/')[-1]
+                if path and len(path) > 1:
+                    name = path.replace('-', ' ').replace('_', ' ').title()
+                    if name not in page_names:
+                        page_names.append(name)
+            except Exception:
+                pass
+        if preview:
+            text_previews.append(f"{url or '?'}: {preview[:220]}")
+        try:
+            parsed_imgs = json.loads(imgs_json or '[]')
+            if isinstance(parsed_imgs, list):
+                image_count += len(parsed_imgs)
+        except Exception:
+            pass
+
+    # 2. Audit-Top-Issues (letzter abgeschlossener Audit)
+    audit_top_issues: list = []
+    try:
+        raw = db.execute(
+            sa_text("""
+                SELECT top_issues
+                FROM audit_results
+                WHERE lead_id = :lid
+                ORDER BY created_at DESC
+                LIMIT 1
+            """),
+            {"lid": lead_id},
+        ).scalar()
+        if raw:
+            parsed = json.loads(raw) if isinstance(raw, str) else raw
+            if isinstance(parsed, list):
+                audit_top_issues = [str(i) for i in parsed[:3]]
+    except Exception:
+        audit_top_issues = []
+
+    return {
+        "company_name": lead.company_name or "",
+        "city": lead.city or "",
+        "trade": lead.trade or "",
+        "website_url": lead.website_url or "",
+        "pages_found": page_names[:10],
+        "page_titles": list(dict.fromkeys(all_titles))[:10],
+        "h2s_sample": list(dict.fromkeys(all_h2s))[:20],
+        "text_previews": text_previews[:5],
+        "brand_primary": getattr(lead, "brand_primary_color", "") or "",
+        "brand_secondary": getattr(lead, "brand_secondary_color", "") or "",
+        "brand_font": getattr(lead, "brand_font_primary", "") or "",
+        "brand_style": getattr(lead, "brand_design_style", "") or "",
+        "logo_found": bool(getattr(lead, "brand_logo_url", "")),
+        "image_count": image_count,
+        "audit_top_issues": audit_top_issues,
+        "_row_count": len(rows),
+    }
+
+
+def _ki_prefill_heuristic(ctx: dict) -> dict:
+    """Baue das Fallback-Dict rein aus den Rohdaten — ohne Claude."""
+    brand_primary = ctx.get("brand_primary", "")
+    brand_secondary = ctx.get("brand_secondary", "")
+    if brand_primary:
+        farben = f"Primärfarbe: {brand_primary}"
+        if brand_secondary:
+            farben += f", Sekundärfarbe: {brand_secondary}"
+    else:
+        farben = ""
+
+    h2s = ctx.get("h2s_sample", [])
+    leistungen_list = list(dict.fromkeys([h for h in h2s if h]))[:8]
+
+    return {
+        "gewerk": (ctx.get("trade") or (h2s[0] if h2s else ""))[:80],
+        "leistungen": ", ".join(leistungen_list),
+        "einzugsgebiet": ctx.get("city", ""),
+        "farben": farben,
+        "stil": ctx.get("brand_style", "") or "",
+        "wunschseiten": ", ".join(ctx.get("pages_found", [])[:8]),
+        "logo_vorhanden": bool(ctx.get("logo_found")),
+        "fotos_vorhanden": (ctx.get("image_count") or 0) > 3,
+        "ki_confidence": "low",
+        "ki_hinweise": "Heuristik ohne KI-Call — bitte alle Angaben prüfen.",
+    }
+
+
+def _ki_prefill_build_prompt(ctx: dict) -> str:
+    pages_list = ", ".join(ctx.get("pages_found", [])) or "(keine)"
+    h2_list = ", ".join(ctx.get("h2s_sample", [])) or "(keine)"
+    previews = "\n".join(f"  - {p}" for p in ctx.get("text_previews", [])) or "  (keine)"
+    issues = "\n".join(f"  - {i}" for i in ctx.get("audit_top_issues", [])) or "  (keine)"
+    return f"""Du bist ein Website-Analyst für KOMPAGNON. Analysiere diese Daten einer Handwerker-Website und fülle die Briefing-Felder aus.
+
+KONTEXT:
+  Unternehmen:    {ctx.get('company_name', '')}
+  Branche/Trade:  {ctx.get('trade', '')}
+  Stadt:          {ctx.get('city', '')}
+  URL:            {ctx.get('website_url', '')}
+  Gefundene Seiten:           {pages_list}
+  Überschriften (H1/H2-Mix):  {h2_list}
+  Bild-Anzahl:                {ctx.get('image_count', 0)}
+  Logo erkannt:               {'ja' if ctx.get('logo_found') else 'nein'}
+  Primärfarbe (Brand-Scan):   {ctx.get('brand_primary', '') or '(nicht erkannt)'}
+  Sekundärfarbe (Brand-Scan): {ctx.get('brand_secondary', '') or '(nicht erkannt)'}
+  Schriftart (Brand-Scan):    {ctx.get('brand_font', '') or '(nicht erkannt)'}
+  Design-Stil (Brand-Scan):   {ctx.get('brand_style', '') or '(nicht erkannt)'}
+
+Text-Vorschauen der wichtigsten Seiten:
+{previews}
+
+Audit-Top-Probleme (falls vorhanden):
+{issues}
+
+AUFGABE: Antworte AUSSCHLIESSLICH als valides JSON ohne Markdown-Wrapper.
+Kein Text davor oder danach. Format:
+{{
+  "gewerk": "<kurzer Branchen-Begriff, max 40 Zeichen>",
+  "leistungen": "<kommagetrennte Leistungen aus den Seiteninhalten, max 8>",
+  "einzugsgebiet": "<Stadt + Region aus Texten, max 80 Zeichen>",
+  "farben": "<Primärfarbe: #xxx, Sekundärfarbe: #yyy — nur wenn erkannt>",
+  "stil": "<Modern|Klassisch|Handwerklich|Minimalistisch|Premium>",
+  "wunschseiten": "<kommagetrennte Seitennamen, max 8>",
+  "logo_vorhanden": <true|false>,
+  "fotos_vorhanden": <true|false>,
+  "ki_confidence": "<high|medium|low>",
+  "ki_hinweise": "<max 1 Satz: was sollte der Kunde prüfen?>"
+}}
+
+Regeln:
+- Sei konkret. Keine Allgemeinplätze.
+- Wenn ein Feld unklar ist: setze es auf "" (empty string).
+- ki_confidence: high wenn >=10 H2s UND >=5 Seiten. Sonst medium/low.
+- fotos_vorhanden: true wenn image_count > 3.
+- stil: exakt einer der 5 Begriffe, nichts anderes.
+"""
+
+
+def _ki_prefill_call_claude(ctx: dict) -> Optional[dict]:
+    """Synchroner Claude-Call. Gibt dict zurueck oder None bei Fehler."""
+    import os
+    import httpx
+    import re as _re
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return None
+    try:
+        with httpx.Client(timeout=60.0) as client:
+            resp = client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 800,
+                    "messages": [
+                        {"role": "user", "content": _ki_prefill_build_prompt(ctx)}
+                    ],
+                },
+            )
+        resp.raise_for_status()
+        raw = resp.json()["content"][0]["text"].strip()
+        # Strip potential markdown fences defensively
+        raw = _re.sub(r'^```(?:json)?\s*', '', raw)
+        raw = _re.sub(r'\s*```$', '', raw)
+        parsed = json.loads(raw)
+        if not isinstance(parsed, dict):
+            return None
+        return parsed
+    except Exception as e:
+        logger.warning(f"KI-Prefill Claude-Call fehlgeschlagen: {e}")
+        return None
+
+
+def _ki_prefill_is_empty(briefing: Briefing, field: str) -> bool:
+    """Pruefe ob ein Briefing-Feld als 'leer / noch nicht vom Nutzer gesetzt' gilt.
+
+    String-Felder: None oder leerer/whitespace-String.
+    Bool-Felder: False wird als 'nicht gesetzt' interpretiert, weil der
+    DB-Default False ist und der Nutzer haette aktiv auf True setzen muessen.
+    """
+    current = getattr(briefing, field, None)
+    if current is None:
+        return True
+    if isinstance(current, bool):
+        return current is False
+    if isinstance(current, str):
+        return current.strip() == ""
+    return False
+
+
+def ki_prefill_briefing(lead_id: int, db: Session) -> dict:
+    """KI-basiertes Auto-Fill fuer ein Lead-Briefing.
+
+    Wird von zwei Stellen aufgerufen:
+      1. HTTP-Endpoint POST /api/briefings/{lead_id}/ki-prefill
+      2. Stripe-Webhook Background-Thread (_handle_successful_payment)
+
+    Fehlertolerant: Wenn website_content_cache leer oder Claude nicht
+    verfuegbar ist, greift die Heuristik. Wirft HTTPException nur bei
+    echten DB-Fehlern oder fehlendem Lead.
+    """
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+
+    ctx = _ki_prefill_gather_context(lead, db)
+    heuristic = _ki_prefill_heuristic(ctx)
+
+    # Claude nur aufrufen, wenn wir tatsaechlich Rohdaten haben — sonst
+    # bleiben wir bei der Heuristik und sparen den API-Call.
+    merged = dict(heuristic)
+    if ctx.get("_row_count", 0) > 0:
+        kresult = _ki_prefill_call_claude(ctx)
+        if kresult:
+            for key in heuristic.keys():
+                val = kresult.get(key)
+                if val is not None and val != "":
+                    merged[key] = val
+
+    # Bool-Felder defensiv normalisieren (Claude koennte Strings liefern)
+    merged["logo_vorhanden"] = bool(merged.get("logo_vorhanden"))
+    merged["fotos_vorhanden"] = bool(merged.get("fotos_vorhanden"))
+    merged["ki_confidence"] = str(merged.get("ki_confidence") or "low")[:10]
+    merged["ki_hinweise"] = str(merged.get("ki_hinweise") or "")[:500]
+
+    # Briefing laden / anlegen
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    if not briefing:
+        briefing = Briefing(lead_id=lead_id, status="entwurf")
+        db.add(briefing)
+        db.flush()
+
+    filled: list = []
+    skipped: list = []
+    for field in _KI_PREFILL_FILLABLE:
+        if _ki_prefill_is_empty(briefing, field):
+            new_val = merged.get(field)
+            if new_val not in (None, "", []):
+                setattr(briefing, field, new_val)
+                filled.append(field)
+            else:
+                skipped.append(field)
+        else:
+            skipped.append(field)
+
+    # KI-Metadaten immer setzen (auch wenn filled leer ist — Nutzer hatte
+    # schon alles ausgefuellt, wir haben trotzdem etwas analysiert)
+    briefing.ki_prefilled_at = datetime.utcnow()
+    briefing.ki_confidence = merged["ki_confidence"]
+    briefing.ki_hinweise = merged["ki_hinweise"]
+    briefing.updated_at = datetime.utcnow()
+
+    try:
+        db.commit()
+        db.refresh(briefing)
+    except Exception as e:
+        db.rollback()
+        logger.error(f"KI-Prefill Commit fehlgeschlagen fuer Lead {lead_id}: {e}")
+        raise HTTPException(500, f"KI-Prefill fehlgeschlagen: {str(e)[:200]}")
+
+    return {
+        "filled_fields": filled,
+        "skipped_fields": sorted(set(skipped + _KI_PREFILL_NEVER_FILL)),
+        "ki_confidence": merged["ki_confidence"],
+        "ki_hinweise": merged["ki_hinweise"],
+        "briefing": _serialize(briefing),
+    }
+
+
+@router.post("/{lead_id}/ki-prefill")
+def ki_prefill_endpoint(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """KI-basiertes Auto-Fill des Briefings fuer einen Lead.
+
+    Liest Crawler-Content, Brand-Design und den letzten Audit, baut daraus
+    einen Kontext fuer Claude und schreibt die Ergebnisse in nur jene
+    Briefing-Felder, die noch leer sind. usp / vorbilder / sonstige_hinweise
+    werden niemals automatisch befuellt.
+    """
+    return ki_prefill_briefing(lead_id, db)

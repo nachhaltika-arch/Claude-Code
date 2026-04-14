@@ -471,6 +471,40 @@ def _handle_successful_payment(session: dict, db: Session):
             f"({website_url})"
         )
 
+    # ── 6. KI-BRIEFING-AUTO-FILL IM HINTERGRUND ─────────────
+    # Wartet 30 Sekunden, damit der Scraper aus Schritt 5 Zeit hat,
+    # die ersten Seiten in website_content_cache zu schreiben. Dann
+    # laeuft ki_prefill_briefing direkt (kein HTTP-Roundtrip, keine
+    # Auth-Umleitung), nutzt die im Briefing vorhandenen leeren Felder
+    # und persistiert Vorschlaege + KI-Metadaten in der DB.
+    if lead.id:
+        def _ki_prefill_in_background(lead_id: int):
+            import time
+            from database import SessionLocal
+            time.sleep(30)
+            _db = SessionLocal()
+            try:
+                from routers.briefings import ki_prefill_briefing
+                result = ki_prefill_briefing(lead_id, _db)
+                logger.info(
+                    f"Stripe: KI-Prefill abgeschlossen fuer Lead {lead_id} — "
+                    f"filled={len(result.get('filled_fields', []))}, "
+                    f"confidence={result.get('ki_confidence')}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"Stripe: KI-Prefill Fehler fuer Lead {lead_id}: {e}"
+                )
+            finally:
+                _db.close()
+
+        threading.Thread(
+            target=_ki_prefill_in_background,
+            args=(lead.id,),
+            daemon=True,
+        ).start()
+        logger.info(f"Stripe: KI-Prefill geplant (+30s) fuer Lead {lead.id}")
+
     logger.info(
         f"Stripe: Zahlung verarbeitet — "
         f"Lead {lead.id} | Projekt {project_id} | {company} | "

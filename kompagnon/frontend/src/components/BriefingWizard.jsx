@@ -160,7 +160,7 @@ function Select({ value, onChange, options, onBlur, hasError, id }) {
   );
 }
 
-function Field({ label, required, hint, error, charInfo, children }) {
+function Field({ label, required, hint, error, charInfo, kiFilled, children }) {
   const id = useId();
   const childWithId = React.Children.map(children, (child, i) => {
     if (i === 0 && React.isValidElement(child)) return React.cloneElement(child, { id });
@@ -175,6 +175,18 @@ function Field({ label, required, hint, error, charInfo, children }) {
         marginBottom: 6, cursor: 'pointer', transition: 'color 0.15s',
       }}>
         {label}{required && <span style={{ color: error ? 'var(--status-danger-text)' : TEAL, marginLeft: 2 }}>*</span>}
+        {kiFilled && (
+          <span
+            title="Automatisch vorausgefüllt — bitte prüfen. Sobald du editierst, verschwindet das Badge."
+            style={{
+              marginLeft: 8, padding: '1px 7px', borderRadius: 10,
+              background: '#E6F1FB', color: '#0C447C',
+              fontSize: 9, fontWeight: 700,
+              textTransform: 'none', letterSpacing: '0.02em',
+              verticalAlign: 'middle',
+            }}
+          >🤖 KI</span>
+        )}
       </label>
       {childWithId}
       {error ? (
@@ -224,10 +236,10 @@ function ProgressBar({ step }) {
 
 // ── Step screens ─────────────────────────────────────────────────────────────
 
-function Step1({ data, set, firstRef, touch, fieldError, suggestions, onSuggest, onApply }) {
+function Step1({ data, set, firstRef, touch, fieldError, suggestions, onSuggest, onApply, isKiFilled = () => false }) {
   return (
     <div ref={firstRef}>
-      <Field label="Gewerk / Branche" required hint="Waehlen Sie die Hauptbranche Ihres Betriebs." error={fieldError('gewerk')}>
+      <Field label="Gewerk / Branche" required hint="Waehlen Sie die Hauptbranche Ihres Betriebs." error={fieldError('gewerk')} kiFilled={isKiFilled('gewerk')}>
         <WZSearch
           value={data.wz_code ? { code: data.wz_code, title: data.wz_title } : null}
           onChange={(entry) => {
@@ -239,7 +251,7 @@ function Step1({ data, set, firstRef, touch, fieldError, suggestions, onSuggest,
         />
         <SuggestButton field="gewerk" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.gewerk} />
       </Field>
-      <Field label="Leistungen" required hint="Was bieten Sie an? Bitte alle Leistungen auflisten." error={fieldError('leistungen')} charInfo="Empfohlen: mind. 50 Zeichen">
+      <Field label="Leistungen" required hint="Was bieten Sie an? Bitte alle Leistungen auflisten." error={fieldError('leistungen')} charInfo="Empfohlen: mind. 50 Zeichen" kiFilled={isKiFilled('leistungen')}>
         <Textarea
           value={data.leistungen}
           onChange={v => set('leistungen', v)}
@@ -251,7 +263,7 @@ function Step1({ data, set, firstRef, touch, fieldError, suggestions, onSuggest,
         />
         <SuggestButton field="leistungen" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.leistungen} />
       </Field>
-      <Field label="Einzugsgebiet" hint="In welcher Region arbeiten Sie?">
+      <Field label="Einzugsgebiet" hint="In welcher Region arbeiten Sie?" kiFilled={isKiFilled('einzugsgebiet')}>
         <Input
           value={data.einzugsgebiet}
           onChange={v => set('einzugsgebiet', v)}
@@ -376,14 +388,14 @@ function SeitenCheckbox({ selected, onChange }) {
   );
 }
 
-function Step4({ data, set, firstRef, touch, fieldError, showErrors, suggestions, onSuggest, onApply }) {
+function Step4({ data, set, firstRef, touch, fieldError, showErrors, suggestions, onSuggest, onApply, isKiFilled = () => false }) {
   return (
     <div ref={firstRef}>
-      <Field label="Farbwuensche" hint="Welche Farben passen zu Ihrer Marke?">
+      <Field label="Farbwuensche" hint="Welche Farben passen zu Ihrer Marke?" kiFilled={isKiFilled('farben')}>
         <Input value={data.farben} onChange={v => set('farben', v)} placeholder="z.B. Blau & Weiss, Gruen-Toene, keine Vorgabe" />
         <SuggestButton field="farben" suggestions={suggestions} onSuggest={onSuggest} onApply={onApply} set={set} currentValue={data.farben} />
       </Field>
-      <Field label="Stil *" required hint="Welcher Designstil soll Ihre Website praegen?" error={fieldError('stil')}>
+      <Field label="Stil *" required hint="Welcher Designstil soll Ihre Website praegen?" error={fieldError('stil')} kiFilled={isKiFilled('stil')}>
         <Select value={data.stil} onChange={v => set('stil', v)} onBlur={() => touch('stil')} hasError={!!fieldError('stil')} options={STIL_OPTIONS} />
         {showErrors && !data.stil && (
           <div style={{ fontSize: 11, color: '#C0392B', marginTop: 4, fontWeight: 600 }}>Bitte einen Stil auswaehlen um fortzufahren</div>
@@ -398,19 +410,19 @@ function Step4({ data, set, firstRef, touch, fieldError, showErrors, suggestions
   );
 }
 
-function Step5({ data, set, firstRef }) {
+function Step5({ data, set, firstRef, isKiFilled = () => false }) {
   return (
     <div ref={firstRef}>
-      <Field label="Gewünschte Seiten" hint="Welche Seiten soll Ihre neue Website enthalten?">
+      <Field label="Gewünschte Seiten" hint="Welche Seiten soll Ihre neue Website enthalten?" kiFilled={isKiFilled('wunschseiten')}>
         <SeitenCheckbox
           selected={data.wunschseiten}
           onChange={v => set('wunschseiten', v)}
         />
       </Field>
-      <Field label="Logo vorhanden?" hint="Haben Sie bereits ein Logo, das wir verwenden können?">
+      <Field label="Logo vorhanden?" hint="Haben Sie bereits ein Logo, das wir verwenden können?" kiFilled={isKiFilled('logo_vorhanden')}>
         <Toggle value={data.logo_vorhanden} onChange={v => set('logo_vorhanden', v)} />
       </Field>
-      <Field label="Fotos / Bilder vorhanden?" hint="Haben Sie Fotos Ihres Betriebs, Teams oder Ihrer Arbeit?">
+      <Field label="Fotos / Bilder vorhanden?" hint="Haben Sie Fotos Ihres Betriebs, Teams oder Ihrer Arbeit?" kiFilled={isKiFilled('fotos_vorhanden')}>
         <Toggle value={data.fotos_vorhanden} onChange={v => set('fotos_vorhanden', v)} />
       </Field>
       <Field label="Sonstige Hinweise" hint="Gibt es weitere Wünsche, Anforderungen oder wichtige Informationen?" charInfo="Max. 500 Zeichen">
@@ -586,6 +598,19 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
 
   const [data, setData] = useState(() => existingDraft?.data || defaultData);
 
+  // KI-Auto-Fill Tracking: welche Felder wurden vom Backend-ki-prefill
+  // befuellt? Das Set wird beim Laden von leadData initialisiert und
+  // schrumpft, sobald der Nutzer ein Feld editiert — dann verschwindet
+  // das KI-Badge an diesem Feld.
+  const KI_AUTOFILL_FIELDS = [
+    'gewerk', 'leistungen', 'einzugsgebiet', 'farben', 'stil',
+    'wunschseiten', 'logo_vorhanden', 'fotos_vorhanden',
+  ];
+  const [kiFilledFields, setKiFilledFields] = useState(() => new Set());
+  const kiPrefilledAt = leadData?.ki_prefilled_at || null;
+  const kiConfidence = leadData?.ki_confidence || '';
+  const kiHinweise = leadData?.ki_hinweise || '';
+
   // Sync from leadData when it arrives (e.g. after async briefing load)
   useEffect(() => {
     if (!leadData) return;
@@ -609,7 +634,32 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
     });
   }, [leadData]); // eslint-disable-line
 
-  const set = (key, val) => setData(d => ({ ...d, [key]: val }));
+  // KI-Badges initialisieren, sobald ki_prefilled_at vom Backend kommt
+  useEffect(() => {
+    if (!kiPrefilledAt) return;
+    const filled = new Set();
+    for (const key of KI_AUTOFILL_FIELDS) {
+      const val = leadData?.[key];
+      const isSet = (
+        (typeof val === 'string' && val.trim() !== '') ||
+        (Array.isArray(val) && val.length > 0) ||
+        (typeof val === 'boolean' && val === true)
+      );
+      if (isSet) filled.add(key);
+    }
+    setKiFilledFields(filled);
+  }, [kiPrefilledAt]); // eslint-disable-line
+
+  const set = (key, val) => {
+    setData(d => ({ ...d, [key]: val }));
+    // Sobald Nutzer ein Feld editiert: KI-Badge entfernen
+    setKiFilledFields(prev => {
+      if (!prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+  };
 
   // Auto-Save Draft bei jeder Änderung (nur wenn echte Daten vorhanden)
   useEffect(() => {
@@ -767,7 +817,8 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
 
   const renderStep = () => {
     const suggestProps = { suggestions, onSuggest: suggestField, onApply: applySuggestion };
-    const p = { data, set, touch, fieldError, firstRef: firstFieldRef, ...suggestProps };
+    const isKiFilled = (key) => kiFilledFields.has(key);
+    const p = { data, set, touch, fieldError, firstRef: firstFieldRef, isKiFilled, ...suggestProps };
     switch (step) {
       case 0: return <Step1 {...p} />;
       case 1: return <Step2 {...p} />;
@@ -1009,6 +1060,44 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
               onClick={() => { clearDraft(leadId); setDraftBanner(null); setData(defaultData); setStep(0); }}
               style={{ background: 'none', border: 'none', fontSize: 11, fontWeight: 600, color: 'var(--status-warning-text)', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'var(--font-sans)' }}
             >Verwerfen</button>
+          </div>
+        )}
+
+        {/* KI-Prefill-Banner — erscheint wenn Backend das Briefing
+            automatisch aus Crawler/Brand/Audit vorausgefuellt hat */}
+        {kiPrefilledAt && (
+          <div style={{
+            margin: '10px 24px 0', padding: '10px 14px',
+            background: '#E6F1FB', border: '1px solid #0C447C',
+            borderRadius: 'var(--radius-md, 6px)', fontSize: 12,
+            color: '#0C447C', lineHeight: 1.5,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: kiHinweise ? 4 : 0 }}>
+              <span style={{ fontSize: 14 }}>🤖</span>
+              <strong>Wir haben dein Briefing bereits aus deiner bisherigen Website vorausgefüllt.</strong>
+              {kiConfidence && (
+                <span style={{
+                  marginLeft: 'auto', padding: '1px 8px', borderRadius: 10,
+                  background: '#FFFFFFAA', fontSize: 10, fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.04em',
+                }}>
+                  {kiConfidence === 'high' ? 'Hohe Sicherheit'
+                    : kiConfidence === 'medium' ? 'Mittlere Sicherheit'
+                    : 'Niedrige Sicherheit'}
+                </span>
+              )}
+            </div>
+            <div>
+              Bitte prüfe die Angaben und ergänze was fehlt. Felder mit <span style={{
+                padding: '0 5px', borderRadius: 8, background: '#FFFFFF',
+                fontSize: 9, fontWeight: 700,
+              }}>🤖 KI</span> wurden automatisch erkannt.
+            </div>
+            {kiHinweise && (
+              <div style={{ marginTop: 6, fontStyle: 'italic', color: '#3D5F86' }}>
+                Hinweis: {kiHinweise}
+              </div>
+            )}
           </div>
         )}
 

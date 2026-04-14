@@ -565,6 +565,10 @@ class Briefing(Base):
     fotos_vorhanden = Column(Boolean, default=False)
     sonstige_hinweise = Column(Text)
     status = Column(String(50), default='entwurf')
+    # KI-Auto-Fill Metadaten (gesetzt von routers/briefings.py::ki_prefill)
+    ki_prefilled_at = Column(DateTime, nullable=True)
+    ki_confidence = Column(String(10), nullable=True)
+    ki_hinweise = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

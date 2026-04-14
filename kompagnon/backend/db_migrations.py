@@ -1020,6 +1020,18 @@ MIGRATIONS = [
         # benutzt werden.
         "CREATE INDEX IF NOT EXISTS idx_audit_status_date ON audit_results(status, created_at DESC)",
     ]),
+
+    (5, "add_briefing_ki_prefill_metadata", [
+        # KI-Auto-Fill Metadaten (gesetzt von POST /api/briefings/{id}/ki-prefill):
+        # ki_prefilled_at markiert wann die KI das Briefing befuellt hat,
+        # ki_confidence ist high|medium|low, ki_hinweise ist ein kurzer
+        # Hinweistext fuer den Kunden. Das Frontend zeigt auf Basis von
+        # ki_prefilled_at einen Info-Banner und auf den befuellten Feldern
+        # ein KI-Badge.
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS ki_prefilled_at TIMESTAMP",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS ki_confidence VARCHAR(10)",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS ki_hinweise TEXT",
+    ]),
 ]
 
 

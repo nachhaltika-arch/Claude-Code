@@ -424,7 +424,8 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
                 "abnahme_datum, abnahme_durch, "
                 "pagespeed_after_mobile, pagespeed_after_desktop, screenshot_after, "
                 "gbp_checklist_json, "
-                "briefing_submitted_at, briefing_approved_at, briefing_approved_by "
+                "briefing_submitted_at, briefing_approved_at, briefing_approved_by, "
+                "content_approval_sent_at, content_approved_at, content_approved_by "
                 "FROM projects WHERE id = :pid"
             ),
             {"pid": project_id},
@@ -490,6 +491,10 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
         'briefing_submitted_at':    row[25].isoformat() if row[25] else None,
         'briefing_approved_at':     row[26].isoformat() if row[26] else None,
         'briefing_approved_by':     row[27] or None,
+        # Tor 2 — Content-Freigabe-Gate (Baustein 3)
+        'content_approval_sent_at': row[28].isoformat() if row[28] else None,
+        'content_approved_at':      row[29].isoformat() if row[29] else None,
+        'content_approved_by':      row[30] or None,
     }
 
 
@@ -4159,4 +4164,325 @@ def approve_briefing(
         "sitemap_started": sitemap_started,
         "briefing_approved_at": project.briefing_approved_at.isoformat(),
         "briefing_approved_by": project.briefing_approved_by,
+    }
+
+
+# ── Tor 2: Content-Freigabe durch den Kunden (Baustein 3) ─────────────────────
+#
+# Flow:
+#   1. Admin ruft POST /request-content-approval → Token + Mail + sent_at
+#   2a. Kunde klickt Link aus der Mail → GET /approve-content/{token}
+#   2b. Kunde loggt ins Portal ein → POST /approve-content-portal
+#   3. Beide Wege setzen content_approved_at/_by, benachrichtigen Admin und
+#      setzen project.status auf "phase_4" (Design-Phase).
+
+
+def _get_admin_notification_email_proj(db: Session) -> Optional[str]:
+    """Admin-Mail fuer Content-Approval-Benachrichtigungen.
+
+    Dreistufige Kaskade analog zu briefings._get_admin_notification_email:
+    SystemSettings-Key 'admin_notification_email' → env ADMIN_NOTIFICATION_EMAIL
+    → erster superadmin-User als Fallback.
+    """
+    try:
+        row = db.execute(
+            text("SELECT value FROM system_settings WHERE key = :k"),
+            {"k": "admin_notification_email"},
+        ).fetchone()
+        if row and row[0]:
+            return row[0].strip()
+    except Exception:
+        pass
+    env_val = os.environ.get("ADMIN_NOTIFICATION_EMAIL", "").strip()
+    if env_val:
+        return env_val
+    try:
+        row = db.execute(
+            text("SELECT email FROM users WHERE role = 'superadmin' ORDER BY id LIMIT 1")
+        ).fetchone()
+        if row and row[0]:
+            return row[0]
+    except Exception:
+        pass
+    return None
+
+
+def _send_content_approval_admin_notification(
+    project_id: int,
+    lead_id: Optional[int],
+    company_name: str,
+    channel: str,
+    db: Session,
+) -> None:
+    """Informiere den Admin dass der Kunde freigegeben hat. Best-effort —
+    Fehler werden geloggt, kein Raise (damit der eigentliche Freigabe-
+    Pfad nicht wegen Mail-Problemen scheitert)."""
+    try:
+        to = _get_admin_notification_email_proj(db)
+        if not to:
+            logger.warning(
+                "Content-Approval: Keine Admin-E-Mail konfiguriert — "
+                "Benachrichtigung uebersprungen."
+            )
+            return
+
+        use_mock = os.environ.get("USE_MOCK_EMAIL", "false").lower() == "true"
+        if use_mock:
+            from services.email_service import MockEmailService
+            svc = MockEmailService()
+        else:
+            from services.email_service import EmailService
+            svc = EmailService()
+
+        from automations.email_templates import render_template
+        from datetime import datetime as _dt
+        rendered = render_template("content_approval_admin_notification", {
+            "company_name":     company_name or f"Lead #{lead_id or '?'}",
+            "lead_id":          lead_id or "—",
+            "project_id":       project_id,
+            "approved_at":      _dt.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+            "approval_channel": channel,
+        })
+        svc.send_email(to=to, subject=rendered["subject"], body=rendered["body"])
+        logger.info(
+            f"Content-Approval: Admin-Benachrichtigung an {to} (Projekt {project_id}, Kanal: {channel})"
+        )
+    except Exception as e:
+        logger.error(f"Content-Approval: Admin-Mail fehlgeschlagen: {e}")
+
+
+def _advance_project_to_design_phase(project: Project, db: Session) -> str:
+    """Nach Content-Freigabe: project.status auf Design-Phase setzen.
+
+    Minimal: Status auf "phase_4" setzen. Kein expliziter Claude-Call fuer
+    die Design-Generierung — der Admin triggert das manuell aus dem UI,
+    wie vor Baustein 3 auch. Die Freigabe dient als Statussignal im
+    ProzessFlow, nicht als Auto-Orchestrator.
+    """
+    prev_status = project.status or "phase_1"
+    # Nur vorwaertsbewegen, nie zurueck
+    try:
+        num = int(str(prev_status).replace("phase_", "")) if "phase_" in str(prev_status) else 3
+    except (ValueError, TypeError):
+        num = 3
+    next_num = max(num + 1, 4)
+    project.status = f"phase_{next_num}"
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"_advance_project_to_design_phase Commit-Fehler: {e}")
+        return prev_status
+    return project.status
+
+
+@router.post("/{project_id}/request-content-approval")
+def request_content_approval(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    """Admin schickt dem Kunden einen Freigabe-Link fuer die Content-Phase.
+
+    Generiert einen tokenisierten Link und schickt ihn per E-Mail an die
+    auf dem Lead hinterlegte Adresse. Der Token ist single-use: der public
+    Endpoint GET /approve-content/{token} setzt ihn beim erfolgreichen
+    Approve auf NULL, damit der Link nicht erneut verwendet werden kann.
+    """
+    from services.qr_service import generate_token
+    from datetime import datetime as _dt
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    if project.content_approved_at is not None:
+        raise HTTPException(
+            400,
+            "Content wurde bereits freigegeben — ein erneuter Request ist nicht noetig.",
+        )
+
+    # Neuen Token generieren (ueberschreibt alte, noch ungenutzte Tokens,
+    # damit ein erneutes Senden den alten Link invalidiert — wichtiger
+    # Security-Punkt falls die alte Mail abgefangen worden waere).
+    token = generate_token()
+    project.content_approval_token = token
+    project.content_approval_sent_at = _dt.utcnow()
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"request_content_approval Commit fehlgeschlagen: {e}")
+        raise HTTPException(500, f"Freigabe-Request fehlgeschlagen: {str(e)[:200]}")
+
+    frontend_url = os.environ.get("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
+    approval_url = f"{frontend_url}/approve-content/{token}"
+
+    # Empfaenger: Lead.email
+    lead = db.query(Lead).filter(Lead.id == project.lead_id).first() if project.lead_id else None
+    email_to = (lead.email if lead else None) or ""
+    contact_name = (lead.contact_name if lead else None) or (
+        lead.display_name if lead else None
+    ) or (lead.company_name if lead else None) or "liebe Kundin / lieber Kunde"
+    company = (lead.company_name or lead.display_name or "") if lead else ""
+
+    email_sent = False
+    if email_to:
+        try:
+            use_mock = os.environ.get("USE_MOCK_EMAIL", "false").lower() == "true"
+            if use_mock:
+                from services.email_service import MockEmailService
+                svc = MockEmailService()
+            else:
+                from services.email_service import EmailService
+                svc = EmailService()
+            from automations.email_templates import render_template
+            rendered = render_template("content_approval_request", {
+                "company_name": company or f"Lead #{project.lead_id or '?'}",
+                "contact_name": contact_name,
+                "approval_url": approval_url,
+            })
+            svc.send_email(to=email_to, subject=rendered["subject"], body=rendered["body"])
+            email_sent = True
+            logger.info(
+                f"Content-Approval: Request-Mail an {email_to} (Projekt {project_id})"
+            )
+        except Exception as e:
+            logger.error(
+                f"Content-Approval: Request-Mail an {email_to} fehlgeschlagen: {e}"
+            )
+    else:
+        logger.warning(
+            f"Content-Approval: Lead {project.lead_id} hat keine E-Mail — "
+            f"Token wurde generiert, aber keine Mail verschickt."
+        )
+
+    return {
+        "token_generated": True,
+        "email_sent": email_sent,
+        "approval_url": approval_url,
+        "content_approval_sent_at": project.content_approval_sent_at.isoformat(),
+    }
+
+
+@router.get("/approve-content/{token}")
+def approve_content_via_token(
+    token: str,
+    db: Session = Depends(get_db),
+):
+    """Oeffentlicher Endpoint (kein Auth): Kunde klickt Link aus Mail.
+
+    Der Token ist single-use — nach erfolgreicher Freigabe wird er auf
+    NULL gesetzt, sodass ein erneuter Aufruf mit demselben Token 404
+    liefert ("ungueltig oder bereits verwendet"). Das Frontend zeigt
+    darauf eine klare Fehlermeldung.
+    """
+    from datetime import datetime as _dt
+
+    if not token or len(token) < 8:
+        raise HTTPException(404, "Dieser Link ist ungueltig oder wurde bereits verwendet.")
+
+    project = db.query(Project).filter(
+        Project.content_approval_token == token,
+        Project.content_approved_at.is_(None),
+    ).first()
+    if not project:
+        raise HTTPException(404, "Dieser Link ist ungueltig oder wurde bereits verwendet.")
+
+    project.content_approved_at = _dt.utcnow()
+    project.content_approved_by = "kunde_via_email"
+    project.content_approval_token = None  # Token einmalig
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"approve_content_via_token Commit fehlgeschlagen: {e}")
+        raise HTTPException(500, f"Freigabe fehlgeschlagen: {str(e)[:200]}")
+
+    # Projekt-Status in Design-Phase schieben
+    new_status = _advance_project_to_design_phase(project, db)
+
+    # Admin informieren
+    lead = db.query(Lead).filter(Lead.id == project.lead_id).first() if project.lead_id else None
+    company = (lead.company_name or lead.display_name or "") if lead else ""
+    _send_content_approval_admin_notification(
+        project_id=project.id,
+        lead_id=project.lead_id,
+        company_name=company,
+        channel="E-Mail-Link",
+        db=db,
+    )
+
+    return {
+        "approved": True,
+        "company_name": company or "Ihr Projekt",
+        "project_id": project.id,
+        "new_status": new_status,
+    }
+
+
+@router.post("/{project_id}/approve-content-portal")
+def approve_content_via_portal(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_any_auth),
+):
+    """Portal-Endpoint: der eingeloggte Kunde gibt die Inhalte frei.
+
+    Authentifizierter Gegenpart zum tokenisierten Link — nur Nutzer mit
+    role='kunde' UND passender lead_id duerfen das Projekt ihres eigenen
+    Leads freigeben.
+    """
+    from datetime import datetime as _dt
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    user_role = getattr(current_user, "role", None)
+    user_lead_id = getattr(current_user, "lead_id", None)
+    if user_role != "kunde":
+        raise HTTPException(
+            403,
+            "Nur Kunden koennen ueber das Portal freigeben. Admins nutzen die E-Mail-Anfrage.",
+        )
+    if not user_lead_id or user_lead_id != project.lead_id:
+        raise HTTPException(403, "Kein Zugriff auf dieses Projekt.")
+
+    if project.content_approved_at is not None:
+        return {
+            "approved": True,
+            "already_approved": True,
+            "content_approved_at": project.content_approved_at.isoformat(),
+            "content_approved_by": project.content_approved_by,
+        }
+
+    project.content_approved_at = _dt.utcnow()
+    project.content_approved_by = getattr(current_user, "email", None) or "kunde_via_portal"
+    project.content_approval_token = None  # falls noch ein Token offen war
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"approve_content_via_portal Commit fehlgeschlagen: {e}")
+        raise HTTPException(500, f"Freigabe fehlgeschlagen: {str(e)[:200]}")
+
+    new_status = _advance_project_to_design_phase(project, db)
+
+    lead = db.query(Lead).filter(Lead.id == project.lead_id).first() if project.lead_id else None
+    company = (lead.company_name or lead.display_name or "") if lead else ""
+    _send_content_approval_admin_notification(
+        project_id=project.id,
+        lead_id=project.lead_id,
+        company_name=company,
+        channel="Kundenportal",
+        db=db,
+    )
+
+    return {
+        "approved": True,
+        "already_approved": False,
+        "content_approved_at": project.content_approved_at.isoformat(),
+        "content_approved_by": project.content_approved_by,
+        "new_status": new_status,
     }

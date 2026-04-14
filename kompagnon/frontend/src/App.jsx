@@ -64,6 +64,7 @@ import PortalLogin from './pages/PortalLogin';
 import WebhookDashboard from './pages/WebhookDashboard';
 import RetainerDashboard from './pages/RetainerDashboard';
 import Abnahme from './pages/Abnahme';
+import ApproveContent from './pages/ApproveContent';
 import ProductManager from './pages/ProductManager';
 import SupportTickets from './pages/customer/SupportTickets';
 import Freigaben from './pages/customer/Freigaben';
@@ -159,6 +160,7 @@ function App() {
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
           <Route path="/kampagne/:slug" element={<KampagneLandingPage />} />
           <Route path="/abnahme/:projectId" element={<Abnahme />} />
+          <Route path="/approve-content/:token" element={<ApproveContent />} />
 
           {/* App — authenticated, with Navbar/Sidebar */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>

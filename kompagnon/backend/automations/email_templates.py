@@ -194,6 +194,50 @@ Jede Bewertung hilft! Die ersten 5 pushen Ihr Google-Ranking massiv.
 
 Möchten Sie Unterstützung dabei? {assigned_person}""",
     },
+    "content_approval_request": {
+        "subject": "Ihre Website-Inhalte warten auf Ihre Freigabe — {company_name}",
+        "body": """Hallo {contact_name},
+
+wir haben die Sitemap und die Texte für Ihre neue Website fertiggestellt. Jetzt brauchen wir kurz Ihre Freigabe, damit wir mit dem Design weitermachen können.
+
+Bitte prüfen Sie die Inhalte über diesen Link:
+
+{approval_url}
+
+Mit einem Klick auf "Inhalte jetzt freigeben" bestätigen Sie, dass alles passt — danach starten wir sofort mit der Design-Phase.
+
+Alternativ können Sie sich auch ins Kundenportal einloggen und dort freigeben.
+
+Bei Fragen oder Änderungswünschen melden Sie sich gerne direkt bei uns.
+
+Viele Grüße,
+Ihr KOMPAGNON-Team""",
+    },
+    "content_approval_reminder": {
+        "subject": "Erinnerung: Ihre Website-Freigabe steht noch aus — {company_name}",
+        "body": """Hallo {contact_name},
+
+wir warten noch auf Ihre Freigabe für die Website-Inhalte. Sobald wir Ihr OK haben, geht es direkt mit dem Design weiter — ohne Freigabe können wir leider nicht weitermachen.
+
+Bitte hier prüfen und freigeben:
+
+{approval_url}
+
+Falls etwas unklar ist oder Sie Änderungen wünschen, antworten Sie einfach auf diese Mail.
+
+Viele Grüße,
+Ihr KOMPAGNON-Team""",
+    },
+    "content_approval_admin_notification": {
+        "subject": "[KOMPAGNON] Kunde hat Inhalte freigegeben — {company_name}",
+        "body": """Der Kunde {company_name} (Lead #{lead_id}, Projekt #{project_id}) hat die Website-Inhalte freigegeben.
+
+Freigegeben am: {approved_at}
+Freigabe-Kanal: {approval_channel}
+
+Das Projekt kann jetzt in die Design-Phase uebergehen. Oeffne das Projekt in KOMPAGNON um weiterzuarbeiten.
+""",
+    },
 }
 
 

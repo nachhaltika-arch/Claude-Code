@@ -153,6 +153,34 @@ def get_portal_me(user=Depends(get_current_user), db: Session = Depends(get_db))
     except Exception:
         pass
 
+    # Tor 2 — Content-Freigabe-Status. Das Kundenportal zeigt eine
+    # Freigabe-Karte wenn content_approval_sent_at gesetzt, aber
+    # content_approved_at noch NULL ist. Attribute sind Optional — falls
+    # der Deploy auf einer Pre-Baustein-3-DB laeuft, fehlen die Spalten
+    # und getattr liefert None — Karte bleibt dann unsichtbar, kein Crash.
+    content_approval_sent_at = getattr(project, "content_approval_sent_at", None)
+    content_approved_at = getattr(project, "content_approved_at", None)
+    content_approved_by = getattr(project, "content_approved_by", None)
+
+    # Sitemap-Vorschau fuer die Freigabe-Karte (nur die vom Kunden
+    # sichtbaren Content-Seiten, Pflichtseiten bleiben ausgeblendet).
+    sitemap_preview = []
+    try:
+        from sqlalchemy import text as _text
+        sm_rows = db.execute(_text("""
+            SELECT page_name, page_type
+            FROM sitemap_pages
+            WHERE lead_id = :lid AND COALESCE(ist_pflichtseite, false) = false
+            ORDER BY position, id
+            LIMIT 20
+        """), {"lid": project.lead_id}).fetchall()
+        sitemap_preview = [
+            {"page_name": r[0], "page_type": r[1]}
+            for r in sm_rows
+        ]
+    except Exception:
+        pass
+
     return {
         "project_id": project.id,
         "lead_id": user.lead_id,
@@ -163,6 +191,11 @@ def get_portal_me(user=Depends(get_current_user), db: Session = Depends(get_db))
         "netlify": netlify_info,
         "inspirations": inspirations,
         "versions": versions_list,
+        # Tor 2 — Content-Freigabe-Gate
+        "content_approval_sent_at": content_approval_sent_at.isoformat() if content_approval_sent_at else None,
+        "content_approved_at":      content_approved_at.isoformat() if content_approved_at else None,
+        "content_approved_by":      content_approved_by,
+        "sitemap_preview":          sitemap_preview,
     }
 
 

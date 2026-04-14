@@ -108,10 +108,18 @@ export default function ProzessFlow({
   const [approving, setApproving]                     = useState(false);
   const [approveError, setApproveError]               = useState('');
 
+  // Tor 2 — Content-Approval-Gate
+  const [contentApprovalSentAt, setContentApprovalSentAt] = useState(project?.content_approval_sent_at || null);
+  const [contentApprovedAt, setContentApprovedAt]         = useState(project?.content_approved_at || null);
+  const [requestingContentApproval, setRequestingContentApproval] = useState(false);
+  const [contentApprovalMsg, setContentApprovalMsg]       = useState('');
+
   useEffect(() => {
     setBriefingSubmittedAt(project?.briefing_submitted_at || null);
     setBriefingApprovedAt(project?.briefing_approved_at || null);
-  }, [project?.briefing_submitted_at, project?.briefing_approved_at]);
+    setContentApprovalSentAt(project?.content_approval_sent_at || null);
+    setContentApprovedAt(project?.content_approved_at || null);
+  }, [project?.briefing_submitted_at, project?.briefing_approved_at, project?.content_approval_sent_at, project?.content_approved_at]);
 
   // Wenn das Projekt-Prop die Felder nicht enthaelt (z.B. weil der Parent
   // sie noch nicht fetcht), holen wir sie einmal selbst nach, damit das
@@ -181,6 +189,34 @@ export default function ProzessFlow({
   };
 
   const briefingPending = !!briefingSubmittedAt && !briefingApprovedAt;
+  const contentApprovalPending = !!contentApprovalSentAt && !contentApprovedAt;
+
+  // Tor 2: Admin schickt die Content-Freigabe-Anfrage an den Kunden.
+  const requestContentApproval = async () => {
+    if (!project?.id || requestingContentApproval) return;
+    setRequestingContentApproval(true);
+    setContentApprovalMsg('');
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/projects/${project.id}/request-content-approval`,
+        { method: 'POST', headers },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.detail || `Anfrage fehlgeschlagen (${res.status})`);
+      }
+      setContentApprovalSentAt(new Date().toISOString());
+      setContentApprovalMsg(
+        data.email_sent
+          ? '✓ Freigabe-Link per E-Mail an den Kunden gesendet.'
+          : '✓ Token generiert — achte auf die E-Mail (Lead hat keine Mail-Adresse hinterlegt).',
+      );
+    } catch (e) {
+      setContentApprovalMsg(`Fehler: ${e?.message || 'Anfrage fehlgeschlagen'}`);
+    } finally {
+      setRequestingContentApproval(false);
+    }
+  };
 
   const leadId = project?.lead_id || lead?.id;
 
@@ -341,6 +377,75 @@ export default function ProzessFlow({
               {approving ? 'Wird freigegeben…' : '✓ Briefing freigeben'}
             </button>
           )}
+        </div>
+      )}
+
+      {/* Tor 2 — Content-Freigabe-Gate (Baustein 3) */}
+      {isAdmin && !briefingPending && !contentApprovalPending && !contentApprovedAt && briefingApprovedAt && (
+        <div style={{
+          padding: '12px 16px',
+          background: '#F0F9FF',
+          border: '1px solid #0EA5E9',
+          borderRadius: 'var(--radius-lg)',
+          display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap',
+        }}>
+          <div style={{ fontSize: 20, lineHeight: 1 }}>📬</div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#075985', marginBottom: 2 }}>
+              Freigabe beim Kunden anfordern
+            </div>
+            <div style={{ fontSize: 12, color: '#0C4A6E', lineHeight: 1.5 }}>
+              Sobald Sitemap und Texte fertig sind, bekommt der Kunde einen Freigabe-Link per E-Mail. Nach seiner Zustimmung geht es automatisch in die Design-Phase.
+            </div>
+            {contentApprovalMsg && (
+              <div style={{
+                fontSize: 11, marginTop: 6, fontWeight: 600,
+                color: contentApprovalMsg.startsWith('Fehler') ? '#B02A2A' : '#0F5C43',
+              }}>
+                {contentApprovalMsg}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={requestContentApproval}
+            disabled={requestingContentApproval}
+            style={{
+              padding: '9px 18px', borderRadius: 8, border: 'none',
+              background: requestingContentApproval ? '#94a3b8' : '#0EA5E9',
+              color: '#fff', fontSize: 13, fontWeight: 700,
+              cursor: requestingContentApproval ? 'not-allowed' : 'pointer',
+              fontFamily: 'var(--font-sans)', flexShrink: 0,
+              boxShadow: requestingContentApproval ? 'none' : '0 1px 3px rgba(0,0,0,0.12)',
+            }}
+          >
+            {requestingContentApproval ? 'Wird gesendet…' : '📬 Freigabe anfordern'}
+          </button>
+        </div>
+      )}
+
+      {/* Tor 2 — Warte-Status (Content-Approval wurde gesendet, noch nicht bestaetigt) */}
+      {contentApprovalPending && (
+        <div style={{
+          padding: '14px 18px',
+          background: '#FFF7E6',
+          border: '1px solid #F5A623',
+          borderRadius: 'var(--radius-lg)',
+          display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap',
+        }}>
+          <div style={{ fontSize: 22, lineHeight: 1 }}>⏳</div>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#7A4E00', marginBottom: 2 }}>
+              Wartet auf Kundenfreigabe
+            </div>
+            <div style={{ fontSize: 12, color: '#5A4800', lineHeight: 1.5 }}>
+              Der Freigabe-Link wurde an den Kunden versendet. Sobald er bestätigt, startet die Design-Phase.
+            </div>
+            <div style={{ fontSize: 11, color: '#7A6500', marginTop: 4 }}>
+              Angefragt am {contentApprovalSentAt
+                ? new Date(contentApprovalSentAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })
+                : '—'}
+            </div>
+          </div>
         </div>
       )}
 

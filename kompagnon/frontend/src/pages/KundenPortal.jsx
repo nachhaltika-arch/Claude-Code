@@ -220,6 +220,15 @@ export default function KundenPortal() {
         </div>
       </div>
 
+      {/* ── Tor 2: Content-Freigabe-Karte (Baustein 3) ── */}
+      <ContentApprovalCard project={project} token={token} onApproved={(data) => {
+        setProject(prev => prev ? {
+          ...prev,
+          content_approved_at: data?.content_approved_at || new Date().toISOString(),
+          content_approved_by: data?.content_approved_by || 'Sie',
+        } : prev);
+      }} />
+
       {/* ── Phase timeline ── */}
       <div style={{ marginTop: 24 }}>
         {phases.map((phase, i) => (
@@ -566,6 +575,159 @@ function InspirationsSection({ project, token }) {
           {saving ? 'Speichern…' : 'Speichern'}
         </button>
         {saved && <span style={{ fontSize: 12, color: 'var(--status-success-text)' }}>✓ Gespeichert</span>}
+      </div>
+    </div>
+  );
+}
+
+// ── Tor 2: Content-Freigabe-Karte (Baustein 3) ────────────────────────────────
+//
+// Sichtbar genau dann, wenn der Admin die Freigabe angefragt hat
+// (content_approval_sent_at gesetzt) und der Kunde noch nicht
+// freigegeben hat (content_approved_at NULL). Zeigt optional eine
+// Sitemap-Vorschau. Nach erfolgreicher Freigabe schwenkt die Karte
+// auf einen gruenen Bestaetigungs-Screen um.
+
+function ContentApprovalCard({ project, token, onApproved }) {
+  const sentAt = project?.content_approval_sent_at || null;
+  const approvedAt = project?.content_approved_at || null;
+  const sitemap = Array.isArray(project?.sitemap_preview) ? project.sitemap_preview : [];
+
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  // Wenn noch gar keine Freigabe angefragt wurde: Karte unsichtbar.
+  if (!sentAt && !approvedAt) return null;
+
+  // Bereits freigegeben → Bestaetigung
+  if (approvedAt) {
+    return (
+      <div style={{
+        marginTop: 24,
+        padding: '18px 22px',
+        background: '#EAF3DE',
+        border: '1px solid #1D9E75',
+        borderRadius: 'var(--radius-lg, 10px)',
+        display: 'flex', alignItems: 'center', gap: 14,
+      }}>
+        <div style={{ fontSize: 26, lineHeight: 1, color: '#1D9E75' }}>✓</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#0F5C43' }}>
+            Freigabe erteilt — Ihr Design wird erstellt.
+          </div>
+          <div style={{ fontSize: 12, color: '#27500A', marginTop: 2 }}>
+            Freigegeben am {new Date(approvedAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // sentAt gesetzt, approvedAt noch nicht → Freigabe-Aufforderung
+  const approve = async () => {
+    if (!project?.project_id || submitting) return;
+    setSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/projects/${project.project_id}/approve-content-portal`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.detail || `Freigabe fehlgeschlagen (${res.status})`);
+      }
+      if (onApproved) onApproved(data);
+    } catch (e) {
+      setError(e?.message || 'Freigabe fehlgeschlagen');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={{
+      marginTop: 24,
+      padding: '20px 22px',
+      background: '#FFF7E6',
+      border: '1px solid #F5A623',
+      borderRadius: 'var(--radius-lg, 10px)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <div style={{ fontSize: 22, lineHeight: 1 }}>📋</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#7A4E00' }}>
+          Ihre Inhalte warten auf Freigabe
+        </div>
+      </div>
+      <div style={{ fontSize: 13, color: '#5A4800', lineHeight: 1.55, marginBottom: 14 }}>
+        Wir haben Sitemap und Texte für Ihre neue Website erstellt. Bitte
+        prüfen Sie diese und erteilen Sie die Freigabe — danach starten wir
+        mit dem Design.
+      </div>
+
+      {sitemap.length > 0 && (
+        <div style={{
+          background: '#FFFFFFDD',
+          border: '1px solid #E8D7A8',
+          borderRadius: 8,
+          padding: '10px 14px',
+          marginBottom: 14,
+        }}>
+          <div style={{
+            fontSize: 10, fontWeight: 700, color: '#7A6500',
+            textTransform: 'uppercase', letterSpacing: '0.06em',
+            marginBottom: 6,
+          }}>
+            Vorschau · {sitemap.length} {sitemap.length === 1 ? 'Seite' : 'Seiten'}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {sitemap.map((p, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#5A4800' }}>
+                <span style={{ fontWeight: 600 }}>{p.page_name}</span>
+                <span style={{ fontSize: 10, color: '#94803D', textTransform: 'uppercase' }}>{p.page_type}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div style={{
+          background: '#FEE2E2',
+          border: '1px solid #DC2626',
+          borderRadius: 6,
+          padding: '8px 12px',
+          fontSize: 12,
+          color: '#991B1B',
+          marginBottom: 12,
+          fontWeight: 600,
+        }}>
+          Fehler: {error}
+        </div>
+      )}
+
+      <button
+        onClick={approve}
+        disabled={submitting}
+        style={{
+          padding: '11px 26px', borderRadius: 10, border: 'none',
+          background: submitting ? '#94a3b8' : '#1D9E75',
+          color: '#fff', fontSize: 14, fontWeight: 700,
+          cursor: submitting ? 'not-allowed' : 'pointer',
+          fontFamily: 'var(--font-sans, system-ui)',
+          boxShadow: submitting ? 'none' : '0 1px 3px rgba(0,0,0,0.12)',
+        }}
+      >
+        {submitting ? 'Wird übermittelt…' : '✓ Inhalte freigeben'}
+      </button>
+      <div style={{ fontSize: 11, color: '#94803D', marginTop: 8 }}>
+        Freigabe angefragt am {new Date(sentAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}
       </div>
     </div>
   );

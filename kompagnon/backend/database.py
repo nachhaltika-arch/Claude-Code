@@ -176,6 +176,17 @@ class Project(Base):
     briefing_submitted_at = Column(DateTime, nullable=True)
     briefing_approved_at = Column(DateTime, nullable=True)
     briefing_approved_by = Column(String(200), nullable=True)
+    # Tor 2 — Content-Freigabe durch den Kunden (Baustein 3).
+    # Zwei Wege fuehren zur Freigabe:
+    #   1. Admin schickt per E-Mail einen tokenisierten Link; Kunde klickt
+    #      ihn an → GET /api/projects/approve-content/{token}.
+    #   2. Kunde loggt sich ins Portal ein und klickt den Freigabe-Button
+    #      → POST /api/projects/{id}/approve-content-portal.
+    # Beide Wege setzen content_approved_at + content_approved_by.
+    content_approval_sent_at = Column(DateTime, nullable=True)
+    content_approval_token = Column(String(64), nullable=True)
+    content_approved_at = Column(DateTime, nullable=True)
+    content_approved_by = Column(String(200), nullable=True)
     review_received = Column(Boolean, default=False)
     review_platform = Column(String(50))  # google, provenexpert
     review_rating = Column(Float)  # 1-5 stars

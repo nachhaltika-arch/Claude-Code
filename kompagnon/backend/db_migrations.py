@@ -1051,6 +1051,32 @@ MIGRATIONS = [
         "ON projects(briefing_submitted_at) "
         "WHERE briefing_approved_at IS NULL",
     ]),
+
+    (7, "add_project_content_approval_gate", [
+        # Tor 2: Content-Freigabe durch den Kunden (Baustein 3).
+        # Nachdem Admin Sitemap + Content-Texte fertig hat, schickt er
+        # POST /api/projects/{id}/request-content-approval: das generiert
+        # einen sicheren Token (secrets.token_urlsafe(32)) und setzt
+        # content_approval_sent_at. Der Kunde klickt entweder den
+        # tokenisierten Link aus der Mail (GET /approve-content/{token})
+        # oder bestaetigt im Portal (POST /approve-content-portal).
+        # Beide Wege setzen content_approved_at + _by.
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS content_approval_sent_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS content_approval_token VARCHAR(64)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS content_approved_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS content_approved_by VARCHAR(200)",
+        # Unique-Index auf Token: der tokenisierte Link-Endpoint matcht
+        # auf genau eine Zeile. Kollisionen sind bei 32 random bytes
+        # praktisch ausgeschlossen; der Unique-Constraint macht es zur
+        # harten Garantie und beschleunigt den Lookup gleichzeitig.
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_content_token "
+        "ON projects(content_approval_token) "
+        "WHERE content_approval_token IS NOT NULL",
+        # Partial-Index fuer den 48h-Reminder-Job (analog zu v6):
+        "CREATE INDEX IF NOT EXISTS idx_projects_content_pending "
+        "ON projects(content_approval_sent_at) "
+        "WHERE content_approved_at IS NULL",
+    ]),
 ]
 
 

@@ -464,6 +464,114 @@ def job_briefing_approval_reminders():
         db.close()
 
 
+def job_content_approval_reminders():
+    """Stuendlicher Job: prueft Content-Approvals, die seit 48h+ ausstehen.
+
+    Analog zu job_briefing_approval_reminders (Tor 1), aber fuer Tor 2:
+    der Kunde hat eine Freigabe-Anfrage erhalten (content_approval_sent_at
+    gesetzt), aber noch nicht freigegeben (content_approved_at NULL).
+
+    - 48h <= Wartezeit < 49h: Erinnerungs-Mail an den Kunden mit dem
+      Approval-Link (genau einmal — 1h-Fenster bei stuendlichem Job).
+    - >= 72h:                 Eskalations-Log-Eintrag + Admin-Info per Mail.
+
+    Nur Kunden-Reminder werden in diesem Commit tatsaechlich versendet;
+    die Admin-Eskalation bleibt vorerst nur Log, weil Eskalations-Mail-
+    Empfaenger noch nicht konfiguriert sind (gleicher Punkt wie bei
+    briefing_approval_reminders).
+    """
+    import os
+    from sqlalchemy import text as _text
+    db = SessionLocal()
+    try:
+        pending = db.execute(_text("""
+            SELECT p.id AS project_id,
+                   p.lead_id AS lead_id,
+                   p.content_approval_sent_at AS sent_at,
+                   p.content_approval_token AS token,
+                   COALESCE(l.company_name, l.display_name, '') AS company,
+                   COALESCE(l.contact_name, l.display_name, '') AS contact_name,
+                   COALESCE(l.email, '') AS email
+            FROM projects p
+            LEFT JOIN leads l ON l.id = p.lead_id
+            WHERE p.content_approval_sent_at IS NOT NULL
+              AND p.content_approved_at IS NULL
+        """)).fetchall()
+
+        if not pending:
+            return
+
+        now = datetime.utcnow()
+        reminders_sent = 0
+        escalations_sent = 0
+
+        # E-Mail-Service einmal pro Lauf initialisieren
+        use_mock = os.getenv("USE_MOCK_EMAIL", "false").lower() == "true"
+        try:
+            if use_mock:
+                svc = MockEmailService()
+            else:
+                svc = EmailService()
+        except Exception as e:
+            logger.warning(f"content_approval_reminders: EmailService nicht verfuegbar ({e})")
+            svc = None
+
+        frontend_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
+
+        for row in pending:
+            sent_at = row.sent_at
+            if not sent_at:
+                continue
+            hours_waiting = (now - sent_at).total_seconds() / 3600.0
+
+            if 48 <= hours_waiting < 49:
+                reminders_sent += 1
+                logger.warning(
+                    f"⏰ Content-Approval-Reminder: Projekt {row.project_id} "
+                    f"({row.company or 'unbekannt'}) wartet seit "
+                    f"{int(hours_waiting)}h auf Kundenfreigabe."
+                )
+                if svc and row.email and row.token:
+                    try:
+                        approval_url = f"{frontend_url}/approve-content/{row.token}"
+                        rendered = render_template("content_approval_reminder", {
+                            "company_name": row.company or f"Lead #{row.lead_id or '?'}",
+                            "contact_name": row.contact_name or "liebe Kundin / lieber Kunde",
+                            "approval_url": approval_url,
+                        })
+                        svc.send_email(
+                            to=row.email,
+                            subject=rendered["subject"],
+                            body=rendered["body"],
+                        )
+                        logger.info(
+                            f"content_approval_reminders: Reminder an {row.email} (Projekt {row.project_id})"
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"content_approval_reminders: Reminder an {row.email} fehlgeschlagen: {e}"
+                        )
+
+            elif hours_waiting >= 72:
+                escalations_sent += 1
+                logger.error(
+                    f"🚨 ESKALATION: Content-Approval fuer Projekt {row.project_id} "
+                    f"({row.company or 'unbekannt'}) wartet seit "
+                    f"{int(hours_waiting)}h auf Kundenfreigabe!"
+                )
+                # TODO: Eskalations-Mail an Admin wie bei briefing_approval_reminders.
+
+        if reminders_sent or escalations_sent:
+            logger.info(
+                f"content_approval_reminders: {reminders_sent} Reminder, "
+                f"{escalations_sent} Eskalationen (total pending: {len(pending)})"
+            )
+    except Exception as e:
+        logger.error(f"content_approval_reminders Job Fehler: {e}")
+    finally:
+        db.close()
+
+
 # ===================================================================
 # SCHEDULER CLASS (thin wrapper, no job logic)
 # ===================================================================
@@ -584,7 +692,18 @@ class CompagnonScheduler:
             id="briefing_approval_reminders",
             replace_existing=True,
         )
-        logger.info("✓ Daily jobs registered (incl. weekly HWK scraper + token cleanup + briefing reminders)")
+        # Stuendlicher Content-Approval-Reminder — Tor 2 der
+        # Funnel-Automation. Prueft projects mit
+        # content_approval_sent_at IS NOT NULL AND content_approved_at IS NULL
+        # und sendet Kunden-Erinnerungen nach 48h, Eskalationen nach 72h.
+        self.scheduler.add_job(
+            job_content_approval_reminders,
+            "interval",
+            hours=1,
+            id="content_approval_reminders",
+            replace_existing=True,
+        )
+        logger.info("✓ Daily jobs registered (incl. weekly HWK scraper + token cleanup + approval reminders)")
 
         # Stündlicher E-Mail-Sequenz-Runner
         try:

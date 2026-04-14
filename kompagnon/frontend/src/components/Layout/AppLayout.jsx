@@ -95,8 +95,8 @@ const icons = {
 };
 
 // ── Mobile-Layout-Konstanten ────────────────────────────────────
-const MOBILE_HEADER_HEIGHT = 52;  // px
-const MOBILE_NAV_HEIGHT    = 64;  // px (exkl. safe-area)
+const MOBILE_HEADER_H = 52;  // px
+const MOBILE_NAV_H    = 64;  // px (exkl. safe-area)
 
 // ── Nav structure ──────────────────────────────────────────────
 
@@ -195,11 +195,11 @@ function getMobileTabs(role, leadId) {
     ];
   }
   return [
-    { label: 'Dashboard', path: '/app/dashboard', icon: 'grid'   },
-    { label: 'Vertrieb',  path: '/app/deals',     icon: 'chart'  },
-    { label: 'Leads',     path: '/app/leads',     icon: 'users'  },
-    { label: 'Projekte',  path: '/app/projects',  icon: 'folder' },
-    { label: 'Mehr',      path: '__more__',       icon: 'menu'   },
+    { label: 'Dashboard', path: '/app/dashboard', icon: 'grid'                  },
+    { label: 'Vertrieb',  path: '/app/deals',     icon: 'chart'                 },
+    { label: 'Leads',     path: '/app/leads',     icon: 'users', badge: true    },
+    { label: 'Projekte',  path: '/app/projects',  icon: 'folder'                },
+    { label: 'Mehr',      path: '__more__',       icon: 'menu'                  },
   ];
 }
 
@@ -695,29 +695,70 @@ function BottomNav() {
       {/* Mehr-Drawer */}
       {moreOpen && (
         <>
-          <div onClick={() => setMoreOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 98, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(2px)' }} />
+          <div
+            onClick={() => setMoreOpen(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 98,
+              background: 'rgba(0,79,89,0.6)',      /* kc-dark mit Transparenz */
+              backdropFilter: 'blur(2px)',
+            }}
+          />
           <div style={{
-            position: 'fixed', bottom: 'calc(56px + env(safe-area-inset-bottom))',
+            position: 'fixed',
+            bottom: `calc(${MOBILE_NAV_H}px + env(safe-area-inset-bottom, 0px))`,
             left: 0, right: 0, zIndex: 99,
-            background: 'var(--bg-surface)', borderTop: '1px solid var(--border-light)',
-            borderRadius: 'var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0',
-            padding: '16px 16px 8px',
-            boxShadow: '0 -8px 32px rgba(0,0,0,0.12)',
+            background: '#fff',
+            borderRadius: '16px 16px 0 0',
+            padding: '16px 14px',
+            boxShadow: '0 -8px 32px rgba(0,79,89,.2)',
+            animation: 'bwSlideUp .2s ease',
           }}>
-            <div style={{ width: 36, height: 4, background: 'var(--border-medium)', borderRadius: 2, margin: '-8px auto 16px' }} />
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Weitere Bereiche</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            <div style={{
+              width: 36, height: 4,
+              background: '#D5E0E2',
+              borderRadius: 2,
+              margin: '-4px auto 14px',
+            }} />
+            <div style={{
+              fontSize: 10, fontWeight: 900,
+              color: '#9AACAE',
+              textTransform: 'uppercase',
+              letterSpacing: '.1em',
+              marginBottom: 12,
+              fontFamily: 'var(--font-sans)',
+            }}>
+              Weitere Bereiche
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
               {moreItems.map(item => {
                 const active = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
                 return (
-                  <button key={item.path} onClick={() => { navigate(item.path); setMoreOpen(false); }} style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                    padding: '12px 6px', background: active ? 'var(--brand-primary-light)' : 'var(--bg-app)',
-                    border: active ? '1px solid var(--brand-primary-mid, var(--border-light))' : '1px solid transparent',
-                    borderRadius: 'var(--radius-lg)', cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 72,
-                  }}>
+                  <button
+                    key={item.path}
+                    onClick={() => { navigate(item.path); setMoreOpen(false); }}
+                    style={{
+                      background: active ? '#E0F4F8' : '#F0F4F5',
+                      border: active ? '1.5px solid #008EAA' : '0.5px solid #D5E0E2',
+                      borderRadius: 10,
+                      padding: '14px 8px',
+                      cursor: 'pointer',
+                      display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', gap: 6,
+                      minHeight: 72,
+                      fontFamily: 'var(--font-sans)',
+                    }}
+                  >
                     <span style={{ fontSize: 22 }} aria-hidden="true">{item.icon}</span>
-                    <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? 'var(--brand-primary-dark)' : 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.3 }}>{item.label}</span>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700,
+                      color: active ? '#004F59' : '#4A5A5C',
+                      textTransform: 'uppercase',
+                      letterSpacing: '.04em',
+                      textAlign: 'center', lineHeight: 1.3,
+                      fontFamily: 'var(--font-sans)',
+                    }}>
+                      {item.label}
+                    </span>
                   </button>
                 );
               })}
@@ -729,12 +770,14 @@ function BottomNav() {
       {/* Bottom Bar */}
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: 'var(--kc-dark, #004F59)',
+        zIndex: 100,
+        background: '#004F59',                /* kc-dark */
         borderTop: '0.5px solid rgba(255,255,255,.1)',
         display: 'flex', justifyContent: 'space-around',
-        height: 'calc(64px + env(safe-area-inset-bottom))',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        alignItems: 'flex-start', paddingTop: 8, zIndex: 100,
+        alignItems: 'flex-start',
+        height: `calc(${MOBILE_NAV_H}px + env(safe-area-inset-bottom, 0px))`,
+        paddingTop: 8,
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}>
         {tabs.map((tab) => {
           const active = tab.path === '__more__' ? moreOpen : isActive(tab.path);
@@ -742,30 +785,46 @@ function BottomNav() {
             <button key={tab.path} onClick={() => handleTab(tab.path)} style={{
               background: 'none', border: 'none',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-              padding: '10px 6px 4px', cursor: 'pointer', minWidth: 48, flex: 1,
-              color: active ? 'var(--kc-yellow, #FAE600)' : 'rgba(255,255,255,.45)',
-              transition: 'color var(--transition-fast)',
+              padding: '2px 4px', cursor: 'pointer', flex: 1,
+              minHeight: 44,                  /* Touch-Target iOS */
               position: 'relative',
+              color: active ? '#FAE600' : 'rgba(255,255,255,.45)',
+              transition: 'color .12s',
               fontFamily: 'var(--font-sans)',
             }}>
               {/* Gelber Aktiv-Indikator oben */}
               <span style={{
                 position: 'absolute',
-                top: 0,
+                top: -8,
                 left: '50%',
                 transform: 'translateX(-50%)',
-                width: 20, height: 3,
-                background: active ? 'var(--kc-yellow, #FAE600)' : 'transparent',
+                width: 24, height: 3,
+                background: active ? '#FAE600' : 'transparent',
                 borderRadius: 2,
+                transition: 'background .12s',
               }} />
               <span style={{ display: 'flex', position: 'relative' }} aria-hidden="true">
                 {icons[tab.icon]}
+                {/* Badge-Dot (z.B. für neue Leads) */}
+                {tab.badge && (
+                  <span style={{
+                    position: 'absolute',
+                    top: -2, right: -4,
+                    width: 7, height: 7,
+                    borderRadius: '50%',
+                    background: '#FAE600',
+                    border: '1.5px solid #004F59',
+                  }} />
+                )}
               </span>
               <span style={{
-                fontSize: 9,
-                fontWeight: active ? 900 : 700,
+                fontSize: 10,
+                fontWeight: active ? 700 : 400,
+                color: active ? '#FAE600' : 'rgba(255,255,255,.45)',
                 textTransform: 'uppercase',
-                letterSpacing: '.06em',
+                letterSpacing: '.04em',
+                fontFamily: 'var(--font-sans)',
+                transition: 'color .12s',
               }}>{tab.label}</span>
             </button>
           );
@@ -922,9 +981,9 @@ export default function AppLayout() {
           <header style={{
             position: 'fixed',
             top: 0, left: 0, right: 0,
-            height: MOBILE_HEADER_HEIGHT,
-            zIndex: 100,
-            background: 'var(--kc-dark, #004F59)',
+            height: MOBILE_HEADER_H,
+            zIndex: 110,
+            background: '#004F59',          /* kc-dark */
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0 18px',
             flexShrink: 0,
@@ -932,36 +991,43 @@ export default function AppLayout() {
             {/* Logo-Mark */}
             <div style={{
               width: 28, height: 28,
-              background: 'var(--kc-mid, #008EAA)',
+              background: '#008EAA',         /* kc-mid */
               borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 10, fontWeight: 900, color: '#fff',
+              letterSpacing: '-.04em',
               fontFamily: 'var(--font-sans)',
+              flexShrink: 0,
             }}>
               kc
             </div>
             {/* Seiten-Name */}
             <span style={{
-              fontFamily: 'var(--font-display, "Barlow Condensed", sans-serif)',
+              fontFamily: "'Barlow Condensed', var(--font-sans)",
               fontSize: 16, fontWeight: 700,
               color: '#fff',
               textTransform: 'uppercase',
               letterSpacing: '.04em',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              padding: '0 8px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              maxWidth: '55%',
+              textAlign: 'center',
             }}>
-              {breadcrumbs[breadcrumbs.length - 1]?.label || 'KOMPAGNON'}
+              {breadcrumbs[breadcrumbs.length - 1]?.label || 'Kompagnon'}
             </span>
             {/* User avatar + dropdown */}
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
               <button
                 onClick={() => setMobileMenuOpen(o => !o)}
                 style={{
                   width: 30, height: 30, borderRadius: '50%',
-                  background: 'var(--kc-mid, #008EAA)', color: '#fff',
+                  background: '#008EAA',        /* kc-mid */
+                  color: '#fff',
                   border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 900,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'var(--font-sans)',
+                  flexShrink: 0,
                 }}
               >
                 {((user?.first_name?.[0] || '') + (user?.last_name?.[0] || '')) || 'U'}
@@ -1044,15 +1110,16 @@ export default function AppLayout() {
           style={isMobile ? {
             // Mobile: fix zwischen Header und Bottom-Nav — genau eine Scroll-Zone
             position: 'fixed',
-            top: MOBILE_HEADER_HEIGHT,
+            top: MOBILE_HEADER_H,
             left: 0,
             right: 0,
-            bottom: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom))`,
+            bottom: `calc(${MOBILE_NAV_H}px + env(safe-area-inset-bottom, 0px))`,
             overflowY: 'auto',
             overflowX: 'hidden',
             WebkitOverflowScrolling: 'touch',
-            background: 'var(--surface, #F0F4F5)',
-            padding: hideSidebar ? 0 : '12px 16px 16px',
+            background: '#F0F4F5',
+            // kein paddingTop/paddingBottom — Header+Nav sind fix
+            ...(hideSidebar ? {} : { padding: '0 16px' }),
           } : {
             // Desktop
             flex: 1,

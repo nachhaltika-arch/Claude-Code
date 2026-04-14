@@ -4,6 +4,19 @@
 
 @import './styles/tokens.css';
 
+/* ── iOS Mobile Scroll Fix ───────────────────────── */
+html, body {
+  overscroll-behavior: none;    /* kein Bounce beim Rand-Scroll */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Status-Bar-Farbe für Safari (iOS PWA) — passt zur kc-dark Header-Farbe */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  html {
+    background: #004F59;
+  }
+}
+
 /* ══════════════════════════════════════════════════════════════
    GLOBAL RESET — KOMPAGNON Redesign
    ══════════════════════════════════════════════════════════════ */

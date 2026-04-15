@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import { useScreenSize } from '../utils/responsive';
 import AnalyseCentrale from './AnalyseCentrale';
 import ContentWerkstatt from './ContentWerkstatt';
 import DesignStudio from './DesignStudio';
@@ -149,6 +150,7 @@ export default function ProzessFlowV3({
   websiteContent, brandData, netlify, qaResult,
 }) {
   const navigate   = useNavigate();
+  const { isMobile } = useScreenSize();
   const headers    = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
   const leadId     = project?.lead_id || lead?.id;
   const companyName = lead?.display_name || lead?.company_name || project?.company_name || 'Projekt';
@@ -226,7 +228,11 @@ export default function ProzessFlowV3({
     <div style={{
       display: 'grid',
       gridTemplateColumns: '64px 1fr',
-      height: '100%',
+      // Desktop: explizite Viewport-Hoehe, damit die Timeline-Spalte
+      //          zuverlaessig bis zum unteren Bildschirmrand reicht.
+      // Mobile:  relative Hoehe, weil main bereits `position: fixed`
+      //          zwischen Header (52px) und Bottom-Nav (64+safe) liegt.
+      height: isMobile ? '100%' : '100vh',
       minHeight: 0,
       background: 'var(--surface)',
       overflow: 'hidden',
@@ -237,6 +243,8 @@ export default function ProzessFlowV3({
         background: 'var(--kc-dark)',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', padding: '16px 0',
+        height: '100%',
+        ...(isMobile ? {} : { minHeight: '100vh' }),
       }}>
         <div style={{
           width: 32, height: 32,

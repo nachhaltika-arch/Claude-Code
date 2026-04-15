@@ -75,6 +75,9 @@ import PageManager from './pages/PageManager';
 import PublicPageEditor from './pages/PublicPageEditor';
 import PageTemplateEditor from './pages/PageTemplateEditor';
 import MobileVertrieb from './pages/MobileVertrieb';
+import MobileLeads from './pages/MobileLeads';
+import MobileProjekte from './pages/MobileProjekte';
+import MobileSettings from './pages/MobileSettings';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -172,6 +175,10 @@ function App() {
             <Route path="sales" element={<Navigate to="/app/deals" replace />} />
             <Route path="deals" element={<PrivateRoute roles={['admin', 'auditor']}><Deals /></PrivateRoute>} />
             <Route path="vertrieb" element={<PrivateRoute roles={['admin', 'auditor']}><MobileVertrieb /></PrivateRoute>} />
+            <Route path="m-vertrieb" element={<PrivateRoute roles={['admin', 'auditor']}><MobileVertrieb /></PrivateRoute>} />
+            <Route path="m-leads" element={<PrivateRoute roles={['admin', 'auditor']}><MobileLeads /></PrivateRoute>} />
+            <Route path="m-projekte" element={<PrivateRoute roles={['admin', 'auditor']}><MobileProjekte /></PrivateRoute>} />
+            <Route path="m-settings" element={<PrivateRoute><MobileSettings /></PrivateRoute>} />
             <Route path="campaigns" element={<PrivateRoute roles={['admin']}><CampaignManager /></PrivateRoute>} />
             <Route path="pages" element={<PrivateRoute roles={['admin']}><PageManager /></PrivateRoute>} />
             <Route path="pages/templates/:id/editor" element={<PrivateRoute roles={['admin']}><PageTemplateEditor /></PrivateRoute>} />

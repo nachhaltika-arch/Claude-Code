@@ -96,7 +96,7 @@ const icons = {
 
 // ── Mobile-Layout-Konstanten ────────────────────────────────────
 const MOBILE_HEADER_H = 52;  // px
-const MOBILE_NAV_H    = 64;  // px (exkl. safe-area)
+const MOBILE_NAV_H    = 68;  // px (exkl. safe-area)
 
 // ── Nav structure ──────────────────────────────────────────────
 
@@ -195,11 +195,11 @@ function getMobileTabs(role, leadId) {
     ];
   }
   return [
-    { label: 'Dashboard', path: '/app/dashboard', icon: 'grid'                  },
-    { label: 'Vertrieb',  path: '/app/vertrieb',  icon: 'chart'                 },
-    { label: 'Leads',     path: '/app/leads',     icon: 'users', badge: true    },
-    { label: 'Projekte',  path: '/app/projects',  icon: 'folder'                },
-    { label: 'Mehr',      path: '__more__',       icon: 'menu'                  },
+    { label: 'Dashboard',     path: '/app/dashboard',  icon: 'grid'                  },
+    { label: 'Vertrieb',      path: '/app/m-vertrieb', icon: 'chart'                 },
+    { label: 'Leads',         path: '/app/m-leads',    icon: 'users', badge: true    },
+    { label: 'Projekte',      path: '/app/m-projekte', icon: 'folder'                },
+    { label: 'Einstellungen', path: '/app/m-settings', icon: 'gear'                  },
   ];
 }
 
@@ -689,12 +689,30 @@ function BottomNav() {
   const isActive = (path) => {
     if (path === '__more__') return false;
     // Vertrieb-Hub: aktiv wenn auf einer der Vertrieb-Unterseiten
-    if (path === '/app/vertrieb') {
+    if (path === '/app/m-vertrieb' || path === '/app/vertrieb') {
       return [
-        '/app/vertrieb', '/app/deals', '/app/campaigns',
+        '/app/m-vertrieb', '/app/vertrieb', '/app/deals', '/app/campaigns',
         '/app/audit', '/app/newsletter', '/app/import',
         '/app/export', '/app/scraper', '/app/retainer',
       ].some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+    }
+    // Leads-Hub
+    if (path === '/app/m-leads') {
+      return ['/app/m-leads', '/app/leads', '/app/companies']
+        .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+    }
+    // Projekte-Hub
+    if (path === '/app/m-projekte') {
+      return ['/app/m-projekte', '/app/projects', '/app/tickets',
+              '/app/checklists', '/app/settings/templates']
+        .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+    }
+    // Settings-Hub: aktiv auf jeder /app/settings* oder /app/m-settings*
+    if (path === '/app/m-settings') {
+      return location.pathname === '/app/m-settings'
+          || location.pathname.startsWith('/app/m-settings/')
+          || location.pathname === '/app/settings'
+          || location.pathname.startsWith('/app/settings/');
     }
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
@@ -797,9 +815,9 @@ function BottomNav() {
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}>
         {tabs.map((tab) => {
-          const active = tab.path === '__more__' ? moreOpen : isActive(tab.path);
+          const active = isActive(tab.path);
           return (
-            <button key={tab.path} onClick={() => handleTab(tab.path)} style={{
+            <button key={tab.path} onClick={() => navigate(tab.path)} style={{
               background: 'none', border: 'none',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
               padding: '2px 4px', cursor: 'pointer', flex: 1,

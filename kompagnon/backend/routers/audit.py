@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from database import AuditResult, Lead, User, get_db, SessionLocal
-from email_service import send_audit_done_email
+from services.email_service import send_audit_done_email
 from routers.auth_router import optional_auth, require_any_auth, require_admin
 
 try:

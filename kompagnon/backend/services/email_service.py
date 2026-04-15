@@ -162,3 +162,69 @@ class MockEmailService(EmailService):
 
     def get_sent_emails(self):
         return self.sent_emails
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Template-Wrapper (aus frueherem Root-Level `backend/email_service.py`)
+# ═══════════════════════════════════════════════════════════════════════════
+# Diese drei Helper waren historisch in einer zweiten `email_service.py` im
+# Backend-Root. Das war eine stille Duplikations-Falle: zwei Dateien mit
+# identischem Namen auf zwei Ebenen. Der Merge hierher (Bug #2) macht
+# `services/email_service.py` zur einzigen kanonischen Stelle.
+#
+# Die Wrapper bauen vordefinierte HTML-Mails und delegieren an die
+# kanonische `services.email.send_email`. Sie sind thin wrappers — neue
+# Aufrufer sollten direkt `send_email(to_email=..., subject=..., html_body=...)`
+# aus `services/email.py` nutzen.
+
+PHASE_NAMES = {
+    1: "Akquise",
+    2: "Briefing",
+    3: "Content",
+    4: "Technik",
+    5: "QA",
+    6: "Go-Live",
+    7: "Post-Launch",
+}
+
+
+def send_phase_change_email(to: str, company: str, phase: int) -> bool:
+    """Benachrichtigt einen Kunden ueber den Uebergang in eine neue Projekt-Phase."""
+    name = PHASE_NAMES.get(phase, f"Phase {phase}")
+    subject = f"Ihr Projekt ist jetzt in Phase {phase}: {name}"
+    body = f"""
+    <h2>Gute Neuigkeiten, {company}!</h2>
+    <p>Ihr Projekt ist in die naechste Phase uebergegangen:</p>
+    <h3>Phase {phase} von 7 — {name}</h3>
+    <p>Wir halten Sie auf dem Laufenden. Bei Fragen stehen wir jederzeit zur Verfuegung.</p>
+    <p>Mit freundlichen Gruessen,<br>Ihr KOMPAGNON-Team</p>
+    """
+    return _canonical_send_email(to_email=to, subject=subject, html_body=body)
+
+
+def send_audit_done_email(to: str, company: str, report_url: str = None) -> bool:
+    """Benachrichtigt einen Kunden, dass sein Website-Audit abgeschlossen ist."""
+    subject = f"Ihr Website-Audit fuer {company} ist fertig"
+    link = f'<a href="{report_url}">Zum Audit-Report</a>' if report_url else ""
+    body = f"""
+    <h2>Ihr Audit-Bericht ist bereit, {company}!</h2>
+    <p>Wir haben Ihre Website analysiert und den Bericht erstellt.</p>
+    {link}
+    <p>Mit freundlichen Gruessen,<br>Ihr KOMPAGNON-Team</p>
+    """
+    return _canonical_send_email(to_email=to, subject=subject, html_body=body)
+
+
+def send_approval_request_email(to: str, company: str, topic: str, notes: str = "") -> bool:
+    """Fordert einen Kunden zur Freigabe auf — z.B. fuer Content oder Design."""
+    subject = f"Ihre Freigabe wird benoetigt \u2014 {topic}"
+    notes_html = "<p>" + notes + "</p>" if notes else ""
+    body = f"""
+    <h2>Freigabe erforderlich, {company}!</h2>
+    <p>Fuer den naechsten Schritt in Ihrem Projekt benoetigen wir Ihre Freigabe:</p>
+    <h3>{topic}</h3>
+    {notes_html}
+    <p>Bitte antworten Sie auf diese E-Mail oder kontaktieren Sie uns direkt.</p>
+    <p>Mit freundlichen Gruessen,<br>Ihr KOMPAGNON-Team</p>
+    """
+    return _canonical_send_email(to_email=to, subject=subject, html_body=body)

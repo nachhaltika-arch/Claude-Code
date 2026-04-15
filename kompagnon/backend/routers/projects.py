@@ -4481,31 +4481,49 @@ async def generate_design_json(
 async def netlify_customer_status(
     project_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)
 ):
+    """Gibt Netlify-Deploy-Status fuer ein Kundenprojekt zurueck.
+
+    Seit der Vereinheitlichung (Bug #1) liest `has_token` NICHT mehr aus
+    `projects.netlify_token`, sondern prueft die zentrale Env-Var
+    `NETLIFY_API_TOKEN`. Die DB-Spalte bleibt bestehen, wird aber ignoriert.
+    """
     row = db.execute(
-        text("SELECT netlify_token, netlify_site_id, netlify_site_url FROM projects WHERE id=:id"),
-        {"id": project_id}
+        text("SELECT netlify_site_id, netlify_site_url FROM projects WHERE id=:id"),
+        {"id": project_id},
     ).fetchone()
     if not row:
         raise HTTPException(404, "Projekt nicht gefunden")
+    has_token = bool((os.getenv("NETLIFY_API_TOKEN") or "").strip())
     return {
-        "has_token": bool(row[0]),
-        "site_id":   row[1],
-        "url":       row[2],
-        "state":     "ready" if row[2] else None,
+        "has_token": has_token,
+        "site_id":   row[0],
+        "url":       row[1],
+        "state":     "ready" if row[1] else None,
     }
 
 
 @router.post("/{project_id}/netlify/save-token")
 async def netlify_save_token(
     project_id: int, data: dict,
-    db: Session = Depends(get_db), _=Depends(require_any_auth)
+    db: Session = Depends(get_db), _=Depends(require_any_auth),
 ):
-    token = (data.get("token") or "").strip()
-    if not token:
-        raise HTTPException(400, "Token fehlt")
-    db.execute(text("UPDATE projects SET netlify_token=:t WHERE id=:id"), {"t": token, "id": project_id})
-    db.commit()
-    return {"saved": True}
+    """DEPRECATED (Bug #1 Fix).
+
+    Projekt-spezifische Netlify-Tokens werden nicht mehr unterstuetzt. Der
+    Token wird jetzt zentral ueber die Env-Variable `NETLIFY_API_TOKEN`
+    verwaltet (siehe `services/netlify_service.py`). Dieser Endpunkt bleibt
+    nur noch existent, um alte Frontend-Calls mit einer klaren
+    Fehlermeldung abzufangen.
+    """
+    raise HTTPException(
+        status_code=410,
+        detail=(
+            "Dieser Endpunkt ist deaktiviert. Projekt-spezifische "
+            "Netlify-Tokens werden nicht mehr unterstuetzt — der Token "
+            "wird zentral ueber die Umgebungsvariable NETLIFY_API_TOKEN "
+            "auf dem Backend gesetzt."
+        ),
+    )
 
 
 @router.post("/{project_id}/netlify/customer-create-site")
@@ -4513,82 +4531,109 @@ async def netlify_customer_create_site(
     project_id: int,
     db: Session = Depends(get_db), _=Depends(require_any_auth),
 ):
-    import httpx
-    row = db.execute(text("SELECT netlify_token FROM projects WHERE id=:id"), {"id": project_id}).fetchone()
-    if not row or not row[0]:
-        raise HTTPException(400, "Kein Netlify-Token gespeichert")
-    netlify_token = row[0]
+    """Erstellt eine Netlify-Site fuer ein Kundenprojekt. Token wird aus Env geladen."""
+    from services.netlify_service import create_site
+
     project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
     lead = project.lead if project else None
-    name = (getattr(lead, 'company_name', '') or f"projekt-{project_id}").lower().replace(" ","-")
+    name = (getattr(lead, "company_name", "") or f"projekt-{project_id}").lower().replace(" ", "-")
     import re as _r
-    name = _r.sub(r'[^a-z0-9-]', '', name)[:40]
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        res = await client.post("https://api.netlify.com/api/v1/sites",
-            headers={"Authorization": f"Bearer {netlify_token}", "Content-Type": "application/json"},
-            json={"name": name})
-        if res.status_code not in (200, 201):
-            raise HTTPException(502, f"Netlify: {res.text[:200]}")
-        site = res.json()
-    site_id = site["id"]
-    site_url = site.get("ssl_url") or site.get("url", "")
-    db.execute(text("UPDATE projects SET netlify_site_id=:sid, netlify_site_url=:url WHERE id=:id"),
-        {"sid": site_id, "url": site_url, "id": project_id})
+    name = _r.sub(r"[^a-z0-9-]", "", name)[:40]
+
+    try:
+        result = await create_site(name)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        logger.error(f"Netlify customer-create-site failed (project {project_id}): {e}")
+        raise HTTPException(502, f"Netlify-Site konnte nicht angelegt werden: {str(e)[:200]}")
+
+    site_id  = result.get("site_id")
+    site_url = result.get("site_url", "")
+
+    db.execute(
+        text("UPDATE projects SET netlify_site_id=:sid, netlify_site_url=:url WHERE id=:id"),
+        {"sid": site_id, "url": site_url, "id": project_id},
+    )
     db.commit()
-    return {"site_id": site_id, "url": site_url, "name": site.get("name")}
+    return {"site_id": site_id, "url": site_url, "name": result.get("name")}
 
 
 @router.post("/{project_id}/netlify/customer-deploy")
 async def netlify_customer_deploy(
     project_id: int, data: dict,
-    db: Session = Depends(get_db), _=Depends(require_any_auth)
+    db: Session = Depends(get_db), _=Depends(require_any_auth),
 ):
-    import httpx, zipfile, io
-    row = db.execute(text("SELECT netlify_token, netlify_site_id FROM projects WHERE id=:id"),
-        {"id": project_id}).fetchone()
-    if not row or not row[0] or not row[1]:
-        raise HTTPException(400, "Token oder Site-ID fehlen")
-    netlify_token, site_id = row
+    """Deployt HTML fuer ein Kundenprojekt auf die bereits angelegte Site.
+    Token wird aus Env geladen, nur `netlify_site_id` wird aus der DB gelesen.
+    """
+    from services.netlify_service import deploy_html
+
+    row = db.execute(
+        text("SELECT netlify_site_id FROM projects WHERE id=:id"),
+        {"id": project_id},
+    ).fetchone()
+    if not row or not row[0]:
+        raise HTTPException(400, "Keine Netlify-Site fuer dieses Projekt angelegt")
+    site_id = row[0]
+
     html = (data.get("html") or "").strip()
     if not html:
         raise HTTPException(400, "HTML fehlt")
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("index.html", html.encode("utf-8"))
-        zf.writestr("_redirects", "/* /index.html 200")
-    buf.seek(0)
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        res = await client.post(f"https://api.netlify.com/api/v1/sites/{site_id}/deploys",
-            headers={"Authorization": f"Bearer {netlify_token}", "Content-Type": "application/zip"},
-            content=buf.read())
-        if res.status_code not in (200, 201):
-            raise HTTPException(502, f"Deploy: {res.text[:200]}")
-        deploy = res.json()
-    return {"deploy_id": deploy.get("id"), "deploy_url": deploy.get("ssl_url") or deploy.get("deploy_ssl_url"), "state": deploy.get("state")}
+
+    try:
+        result = await deploy_html(site_id=site_id, html=html)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        logger.error(f"Netlify customer-deploy failed (project {project_id}): {e}")
+        raise HTTPException(502, f"Deploy fehlgeschlagen: {str(e)[:200]}")
+
+    return {
+        "deploy_id":  result.get("deploy_id"),
+        "deploy_url": result.get("deploy_url"),
+        "state":      result.get("state"),
+    }
 
 
 @router.post("/{project_id}/netlify/set-domain")
 async def netlify_set_domain(
     project_id: int, data: dict,
-    db: Session = Depends(get_db), _=Depends(require_any_auth)
+    db: Session = Depends(get_db), _=Depends(require_any_auth),
 ):
-    import httpx
-    row = db.execute(text("SELECT netlify_token, netlify_site_id FROM projects WHERE id=:id"),
-        {"id": project_id}).fetchone()
-    if not row or not row[0] or not row[1]:
-        raise HTTPException(400, "Token oder Site-ID fehlen")
-    netlify_token, site_id = row
+    """Setzt eine Custom-Domain fuer eine Kundenprojekt-Site.
+    Token wird aus Env geladen, nur `netlify_site_id` wird aus der DB gelesen.
+    """
+    from services.netlify_service import set_custom_domain
+
+    row = db.execute(
+        text("SELECT netlify_site_id FROM projects WHERE id=:id"),
+        {"id": project_id},
+    ).fetchone()
+    if not row or not row[0]:
+        raise HTTPException(400, "Keine Netlify-Site fuer dieses Projekt angelegt")
+    site_id = row[0]
+
     domain = (data.get("domain") or "").strip()
     if not domain:
         raise HTTPException(400, "Domain fehlt")
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        res = await client.put(f"https://api.netlify.com/api/v1/sites/{site_id}",
-            headers={"Authorization": f"Bearer {netlify_token}", "Content-Type": "application/json"},
-            json={"custom_domain": domain})
-        if res.status_code not in (200, 201):
-            raise HTTPException(502, f"Domain: {res.text[:150]}")
-        site = res.json()
-    return {"cname_target": site.get("url","").replace("https://",""), "domain": domain}
+
+    try:
+        result = await set_custom_domain(site_id, domain)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        logger.error(f"Netlify set-domain failed (project {project_id}): {e}")
+        raise HTTPException(502, f"Domain konnte nicht gesetzt werden: {str(e)[:200]}")
+
+    return {
+        "cname_target":        (result.get("ssl_url") or "").replace("https://", ""),
+        "domain":              result.get("custom_domain", domain),
+        "required_dns_record": result.get("required_dns_record"),
+    }
 
 
 # ── Tor 1: Admin-Freigabe fuer Briefing ───────────────────────────────────────

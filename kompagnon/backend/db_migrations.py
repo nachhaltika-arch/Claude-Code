@@ -716,7 +716,12 @@ _LEGACY_BASELINE = [
         "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS files TEXT DEFAULT '[]'",
         """CREATE INDEX IF NOT EXISTS idx_website_content_cache_customer
            ON website_content_cache(customer_id)""",
-        # Netlify-Integration (NETLIFY_API_TOKEN env-Variable erforderlich)
+        # Netlify-Integration — NETLIFY_API_TOKEN env-Variable erforderlich.
+        # `projects.netlify_token` ist seit Bug #1 Fix DEPRECATED und wird
+        # vom Backend nicht mehr gelesen oder geschrieben. Die Spalte bleibt
+        # nur aus Rollback-Gruenden bestehen (bestehende DB-Zeilen werden
+        # beim Deploy nicht geaendert). Alle Deploys nutzen jetzt den
+        # zentralen Token aus `NETLIFY_API_TOKEN`.
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_token TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_site_id VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_site_url VARCHAR",

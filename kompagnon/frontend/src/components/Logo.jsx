@@ -1,16 +1,13 @@
 /**
- * Logo — kompakter Einsatz der offiziellen Wortmarke (logo.svg)
- * Für Seiten ohne Sidebar (Login, Portal, Checkout…)
+ * Logo — Wrapper fuer KompagnonLogo (Abwaertskompatibilitaet)
+ *
+ * Fuer neue Komponenten: direkt `KompagnonLogo` verwenden.
+ * Dieser Wrapper bleibt bestehen, damit Seiten wie Login, CustomerPortal,
+ * Checkout und die Paket-Seiten nicht einzeln migriert werden muessen.
  */
+import KompagnonLogo from './KompagnonLogo';
+
 export default function Logo({ size = 'default', variant = 'color' }) {
   const height = size === 'small' ? 24 : size === 'large' ? 48 : 36;
-  const filter = variant === 'white' ? 'brightness(0) invert(1)' : undefined;
-
-  return (
-    <img
-      src="/logo-group.svg"
-      alt="KOMPAGNON"
-      style={{ height, width: 'auto', display: 'block', filter }}
-    />
-  );
+  return <KompagnonLogo variant={variant} height={height} />;
 }

@@ -801,3 +801,260 @@ def submit_briefing(
         "project_id": project.id if project else None,
         "briefing": _serialize(briefing),
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Legacy-Sektionen + KI-Analysen
+# ═══════════════════════════════════════════════════════════════════════════
+# Diese Endpunkte stammen aus dem frueheren `routers/briefing.py` (Singular),
+# das parallel unter demselben Prefix `/api/briefings` registriert war. Das
+# war eine stille Kollisions-Falle: wer in einer der beiden Dateien einen
+# Endpunkt anlegt, der in der anderen schon existiert, bekommt ohne Warnung
+# das "zuletzt registrierte" Verhalten. Durch den Merge in diese Datei ist
+# die Endpunkt-Registrierung jetzt eindeutig.
+# ═══════════════════════════════════════════════════════════════════════════
+
+@router.patch("/{lead_id}")
+def update_briefing_sections(
+    lead_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Aktualisiert Legacy-JSON-Sections eines Briefings (projektrahmen,
+    positionierung, zielgruppe, wettbewerb, inhalte, funktionen, branding,
+    struktur, hosting, seo, projektplan, freigaben, status).
+
+    Unterscheidet sich bewusst vom PUT-Endpunkt oben, der die flachen Felder
+    (gewerk, leistungen, einzugsgebiet, usp etc.) aktualisiert.
+    """
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    if not briefing:
+        briefing = Briefing(lead_id=lead_id)
+        db.add(briefing)
+
+    allowed = [
+        "projektrahmen", "positionierung", "zielgruppe", "wettbewerb", "inhalte",
+        "funktionen", "branding", "struktur", "hosting", "seo", "projektplan",
+        "freigaben", "status",
+    ]
+    for key in allowed:
+        if key in data:
+            if isinstance(data[key], dict):
+                setattr(briefing, key, json.dumps(data[key], ensure_ascii=False))
+            else:
+                setattr(briefing, key, data[key])
+
+    briefing.updated_at = datetime.utcnow()
+    try:
+        db.commit()
+        db.refresh(briefing)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(422, f"Speichern fehlgeschlagen: {str(e)[:200]}")
+    return _serialize(briefing)
+
+
+@router.patch("/{lead_id}/freigabe")
+def set_freigabe(lead_id: int, data: dict, db: Session = Depends(get_db)):
+    """Nur Kunden (role=kunde) koennen Freigaben erteilen — kann nicht widerrufen
+    werden. Die Authentifizierung laeuft manuell ueber ein Token im Body, weil
+    der Endpunkt aus dem Kundenportal per Magic-Link aufgerufen wird und der
+    httpOnly-Cookie dort nicht verfuegbar ist.
+    """
+    from routers.auth_router import decode_token
+    from database import User
+
+    token = data.get("_token", "")
+    if not token:
+        raise HTTPException(403, "Nicht authentifiziert")
+    try:
+        payload = decode_token(token)
+        current_user = db.query(User).filter(User.id == payload.get("user_id")).first()
+        if not current_user or current_user.role != "kunde":
+            raise HTTPException(403, "Nur Kunden koennen Freigaben erteilen")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(403, "Authentifizierung fehlgeschlagen")
+
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    if not briefing:
+        raise HTTPException(404, "Briefing nicht gefunden")
+
+    key = data.get("key")
+    if not key:
+        raise HTTPException(400, "Freigabe-Key fehlt")
+
+    current = (
+        json.loads(briefing.freigaben)
+        if briefing.freigaben and briefing.freigaben != "{}"
+        else {}
+    )
+    existing = current.get(key, {})
+
+    if existing.get("datum"):
+        raise HTTPException(400, "Freigabe bereits erteilt und kann nicht widerrufen werden")
+
+    updated = {
+        **current,
+        key: {
+            "datum":   datetime.utcnow().strftime("%d.%m.%Y"),
+            "uhrzeit": datetime.utcnow().strftime("%H:%M"),
+            "durch":   current_user.email or f"{current_user.first_name} {current_user.last_name}",
+            "user_id": current_user.id,
+        },
+    }
+
+    briefing.freigaben = json.dumps(updated, ensure_ascii=False)
+    briefing.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(briefing)
+    return _serialize(briefing)
+
+
+@router.post("/{lead_id}/zielgruppenanalyse")
+async def zielgruppenanalyse(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """AI-gestuetzte Zielgruppenanalyse auf Basis von Gewerk + Stadt des Leads.
+    Ergebnis wird im Feld `briefing.zielgruppe.analyse` gespeichert.
+    """
+    import os
+    from anthropic import Anthropic
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    trade   = lead.trade or "Handwerk"
+    city    = lead.city or "Deutschland"
+    company = lead.display_name or lead.company_name or ""
+
+    prompt = f"""Du bist ein erfahrener Marketing-Stratege fuer Handwerksbetriebe in Deutschland.
+
+Analysiere die Zielgruppe fuer diesen Betrieb:
+- Unternehmen: {company}
+- Branche/Gewerk: {trade}
+- Standort: {city}
+
+Erstelle eine strukturierte Zielgruppenanalyse mit:
+1. Primaere Zielgruppe (wer kauft hauptsaechlich)
+2. Sekundaere Zielgruppe
+3. Demografische Merkmale (Alter, Geschlecht, Einkommen)
+4. Psychografische Merkmale (Werte, Beduerfnisse, Schmerzpunkte)
+5. Kaufmotivation (Warum beauftragen sie einen {trade}?)
+6. Entscheidungskriterien (Was ist bei der Auswahl wichtig?)
+7. Bevorzugte Kommunikationskanaele
+8. Empfehlung fuer die Website-Ansprache
+
+Schreibe kompakt und praxisnah. Maximal 400 Woerter. Auf Deutsch."""
+
+    try:
+        client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), max_retries=0, timeout=60.0)
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        analyse = response.content[0].text
+
+        briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+        if not briefing:
+            briefing = Briefing(lead_id=lead_id)
+            db.add(briefing)
+
+        current = (
+            json.loads(briefing.zielgruppe)
+            if briefing.zielgruppe and briefing.zielgruppe != "{}"
+            else {}
+        )
+        updated = {
+            **current,
+            "analyse": analyse,
+            "analyse_datum": datetime.utcnow().strftime("%d.%m.%Y %H:%M"),
+        }
+        briefing.zielgruppe = json.dumps(updated, ensure_ascii=False)
+        briefing.updated_at = datetime.utcnow()
+        db.commit()
+
+        return {"analyse": analyse, "datum": updated["analyse_datum"]}
+    except Exception as e:
+        logger.error(f"Zielgruppenanalyse Fehler: {e}")
+        raise HTTPException(500, f"Analyse fehlgeschlagen: {str(e)}")
+
+
+@router.post("/{lead_id}/wettbewerbsanalyse")
+async def wettbewerbsanalyse(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """AI-gestuetzte Wettbewerbsanalyse auf Basis von Gewerk + Stadt + PLZ des Leads.
+    Ergebnis wird im Feld `briefing.wettbewerb.analyse` gespeichert.
+    """
+    import os
+    from anthropic import Anthropic
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    trade       = lead.trade or "Handwerk"
+    city        = lead.city or "Deutschland"
+    postal_code = lead.postal_code or ""
+    company     = lead.display_name or lead.company_name or ""
+    region      = f"{city} ({postal_code})" if postal_code else city
+
+    prompt = f"""Du bist ein erfahrener Markt- und Wettbewerbsanalyst fuer Handwerksbetriebe in Deutschland.
+
+Erstelle eine Wettbewerbsanalyse fuer:
+- Unternehmen: {company}
+- Branche/Gewerk: {trade}
+- Region: {region} und 50 km Umkreis
+
+Analysiere:
+1. Marktuebersicht — Typische Anzahl Wettbewerber, Marktstruktur
+2. Typische Wettbewerber-Profile — Wie praesentieren sie sich online?
+3. Online-Praesenz der Wettbewerber — Typischer Stand der Websites, Staerken, Schwaechen
+4. Differenzierungspotenzial — Wo kann sich {company} abheben? Welche Luecken gibt es?
+5. Empfehlungen fuer die Website — Was muss sie zeigen? Welche Inhalte heben ab?
+6. Lokale SEO Chancen — Wichtige Suchbegriffe fuer {trade} in {city}, Google Business Tipps
+
+Schreibe kompakt und praxisnah. Maximal 500 Woerter. Auf Deutsch."""
+
+    try:
+        client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), max_retries=0, timeout=60.0)
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1200,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        analyse = response.content[0].text
+
+        briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+        if not briefing:
+            briefing = Briefing(lead_id=lead_id)
+            db.add(briefing)
+
+        current = (
+            json.loads(briefing.wettbewerb)
+            if briefing.wettbewerb and briefing.wettbewerb != "{}"
+            else {}
+        )
+        updated = {
+            **current,
+            "analyse": analyse,
+            "analyse_datum": datetime.utcnow().strftime("%d.%m.%Y %H:%M"),
+            "region": region,
+        }
+        briefing.wettbewerb = json.dumps(updated, ensure_ascii=False)
+        briefing.updated_at = datetime.utcnow()
+        db.commit()
+
+        return {"analyse": analyse, "region": region, "datum": updated["analyse_datum"]}
+    except Exception as e:
+        logger.error(f"Wettbewerbsanalyse Fehler: {e}")
+        raise HTTPException(500, f"Analyse fehlgeschlagen: {str(e)}")

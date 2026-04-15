@@ -770,10 +770,10 @@ app.include_router(tickets_router)
 app.include_router(newsletter_router)
 
 from routers import briefings
-app.include_router(briefings.router)      # GET /api/briefings/{lead_id} + POST + PUT
-
-from routers.briefing import router as briefing_router
-app.include_router(briefing_router)       # PATCH + AI endpoints
+# Alle /api/briefings/* Endpunkte leben jetzt in einem einzigen Router:
+# GET + POST + PUT + PATCH + PATCH/freigabe + POST/suggest-field +
+# POST/ki-prefill + POST/submit + POST/zielgruppenanalyse + POST/wettbewerbsanalyse
+app.include_router(briefings.router)
 
 from routers.kampagne import router as kampagne_router
 app.include_router(kampagne_router)

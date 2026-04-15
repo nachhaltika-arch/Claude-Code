@@ -1070,6 +1070,57 @@ function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespeed, sav
           )}
         </div>
 
+        {/* SSL-Status Badge (vom branddesign-Scrape gesetzt) */}
+        {brand?.ssl_ok === false && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 8,
+            padding: '10px 14px',
+            background: '#FFFBE0',
+            border: '1px solid #FAE600',
+            borderRadius: 8,
+            marginBottom: 10,
+          }}>
+            <span style={{ fontSize: 18, lineHeight: 1 }} aria-hidden="true">⚠️</span>
+            <div>
+              <div style={{
+                fontWeight: 900, fontSize: 11,
+                color: '#004F59',
+                textTransform: 'uppercase',
+                letterSpacing: '.06em',
+              }}>
+                SSL-Zertifikat fehlerhaft
+              </div>
+              <div style={{ fontSize: 11, color: '#4A5A5C', marginTop: 3, lineHeight: 1.5 }}>
+                Die Kunden-Website hat ein ungueltiges Zertifikat. Inhalte wurden trotzdem geladen.
+                Nach dem Launch auf Netlify wird SSL automatisch korrekt eingerichtet.
+              </div>
+              {brand?.ssl_error && (
+                <div style={{ fontSize: 10, color: '#9AACAE', marginTop: 4, fontFamily: 'monospace' }}>
+                  {brand.ssl_error}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        {brand?.ssl_ok === true && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            padding: '3px 9px',
+            background: '#E3F6EF',
+            border: '1px solid rgba(0,135,90,0.3)',
+            borderRadius: 20,
+            fontSize: 10, fontWeight: 700,
+            color: '#00875A',
+            textTransform: 'uppercase',
+            letterSpacing: '.06em',
+            marginBottom: 10,
+          }}>
+            🔒 SSL OK
+          </div>
+        )}
+
         {designData ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 

@@ -114,6 +114,11 @@ class Lead(Base):
     brand_notes           = Column(Text, nullable=True)
     brand_pdf_filename    = Column(String(255), nullable=True)
 
+    # SSL-Zertifikat-Status der Kunden-Website (gefuellt vom branddesign-Scrape)
+    # None = noch nicht geprueft, True = Zertifikat gueltig, False = unvollstaendige Kette
+    ssl_ok      = Column(Boolean, nullable=True)
+    ssl_error   = Column(String(500), nullable=True)
+
     # Google Analytics detection
     ga_status         = Column(String(50), nullable=True)
     ga_type           = Column(String(50), nullable=True)

@@ -104,6 +104,9 @@ class LeadResponse(BaseModel):
     geo_score: Optional[int] = None
     pagespeed_mobile: Optional[int] = None
     pagespeed_desktop: Optional[int] = None
+    # SSL-Status der Kunden-Website (vom branddesign-Scrape gefuellt)
+    ssl_ok: Optional[bool] = None
+    ssl_error: Optional[str] = None
     created_at: datetime = None
     updated_at: datetime = None
 

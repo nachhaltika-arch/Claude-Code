@@ -1135,6 +1135,15 @@ MIGRATIONS = [
         # werden weiter genutzt.
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_content TEXT",
     ]),
+
+    (12, "add_lead_ssl_status", [
+        # SSL-Zertifikat-Status der Kunden-Website. Wird vom branddesign-Scrape
+        # gefuellt: True = gueltige Zertifikatskette, False = SSL-Fallback aktiv
+        # (z.B. Strato/IONOS Altsysteme mit fehlendem Intermediate), NULL =
+        # noch nie geprueft. Frontend zeigt entsprechendes Badge im Lead-Profil.
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ssl_ok BOOLEAN",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ssl_error VARCHAR(500)",
+    ]),
 ]
 
 

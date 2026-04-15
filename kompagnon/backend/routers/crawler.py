@@ -210,18 +210,35 @@ async def scrape_content(customer_id: int, db: Session = Depends(get_db), _=Depe
 
     entries = []
     errors = []
+    # Zwei Clients: einer mit SSL-Pruefung (Standard), einer ohne (Fallback fuer
+    # Kunden-Altsysteme mit kaputter Zertifikatskette — z.B. Strato/IONOS/1&1).
+    # SSL-Fehler verschwindet sonst still als 0 gescrapte URLs.
+    crawl_headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,*/*;q=0.9',
+        'Accept-Language': 'de-DE,de;q=0.9,en;q=0.7',
+    }
     async with httpx.AsyncClient(
         timeout=10.0,
         follow_redirects=True,
-        headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,*/*;q=0.9',
-            'Accept-Language': 'de-DE,de;q=0.9,en;q=0.7',
-        },
-    ) as client:
+        headers=crawl_headers,
+    ) as client, httpx.AsyncClient(
+        timeout=10.0,
+        follow_redirects=True,
+        headers=crawl_headers,
+        verify=False,
+    ) as client_insecure:
         for crawl_url in url_list:
             try:
-                res = await client.get(crawl_url)
+                try:
+                    res = await client.get(crawl_url)
+                except (httpx.ConnectError, httpx.TransportError) as ssl_err:
+                    msg = str(ssl_err).upper()
+                    if "CERTIFICATE" in msg or "SSL" in msg:
+                        # Fallback: ohne Zertifikatspruefung erneut versuchen
+                        res = await client_insecure.get(crawl_url)
+                    else:
+                        raise
                 soup = BeautifulSoup(res.text, 'html.parser')
                 base_url = crawl_url
 

@@ -183,16 +183,36 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
     all_colors: list[str] = []
     all_fonts:  list[str] = []
 
+    # SSL-toleranter Fetch: erst mit Zertifikatspruefung, bei Fehler Fallback.
+    # Status (ssl_ok/ssl_error) wird sowohl im Lead-Modell als auch in der
+    # API-Response zurueckgegeben, damit das Frontend ein Badge anzeigen kann.
+    from services.ssl_helper import fetch_with_ssl_fallback_async
+    ssl_result = await fetch_with_ssl_fallback_async(website_url)
+
+    if not ssl_result["reachable"]:
+        # Website komplett offline — Fehler dokumentieren und Lead trotzdem updaten
+        _set(lead, 'ssl_ok',    False)
+        _set(lead, 'ssl_error', ssl_result["ssl_error"])
+        _set(lead, 'brand_scrape_failed', True)
+        db.commit()
+        return {
+            "success":      False,
+            "ssl_ok":       False,
+            "ssl_error":    ssl_result["ssl_error"],
+            "message":      f"Website nicht erreichbar: {ssl_result['ssl_error']}",
+            "primary_color": None,
+            "all_fonts":    [],
+        }
+
+    html_text = ssl_result["content"] or ""
+    ssl_ok    = ssl_result["ssl_ok"]
+    ssl_error = ssl_result["ssl_error"]
+
     try:
-        async with httpx.AsyncClient(
-            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
-            timeout=30.0,
-            follow_redirects=True,
-        ) as client:
-            resp = await client.get(website_url)
-            resp.raise_for_status()
-            html_text = resp.text
-        logger.info(f"Brand scrape OK for {website_url}: {len(html_text)} chars")
+        logger.info(
+            f"Brand scrape OK for {website_url}: {len(html_text)} chars "
+            f"(ssl_ok={ssl_ok})"
+        )
 
         # ── Google Analytics erkennen ──
         ga_result = _detect_google_analytics(html_text)
@@ -353,12 +373,18 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
     lead.brand_fonts           = json.dumps(all_fonts)
     lead.brand_scrape_failed   = scrape_failed
     lead.brand_scraped_at      = now
+    # SSL-Status aus dem Helper persistieren — Frontend rendert dazu ein Badge
+    lead.ssl_ok                = ssl_ok
+    lead.ssl_error             = ssl_error
     if design_data:
         lead.brand_design_json  = json.dumps(design_data, ensure_ascii=False)
         lead.brand_design_style = design_data.get("style_keyword")
     try:
         db.commit()
-        logger.info(f"Brand data saved for lead {lead_id}: primary={primary_color}, fonts={len(all_fonts)}")
+        logger.info(
+            f"Brand data saved for lead {lead_id}: primary={primary_color}, "
+            f"fonts={len(all_fonts)}, ssl_ok={ssl_ok}"
+        )
     except Exception as e:
         db.rollback()
         logger.error(f"Brand save failed for lead {lead_id}: {e}")
@@ -375,6 +401,9 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
         "scrape_failed":   scrape_failed,
         "scraped_at":      str(now)[:16],
         "design_data":     design_data,
+        # SSL-Status fuer das Frontend-Badge
+        "ssl_ok":          ssl_ok,
+        "ssl_error":       ssl_error,
     }
 
 

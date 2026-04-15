@@ -889,6 +889,122 @@ async def api_ping():
     """Ultra-lightweight keepalive alias."""
     return "pong"
 
+
+@app.get("/api/health/full")
+async def api_health_full():
+    """Vollstaendiger Self-Check fuer alle kritischen Subsysteme.
+
+    Pruef-Strategie: Nur Existenz-Checks (Env-Vars + DB-connect), KEINE
+    externen API-Aufrufe an Anthropic / Netlify / SMTP. Damit ist der
+    Endpunkt schnell, kostenlos und faellt nicht bei externen Ausfaellen.
+
+    status:
+      - "ok"        — alles gruen
+      - "degraded"  — mindestens ein nicht-kritischer Check fehlt
+      - "error"     — DB nicht erreichbar (kritisch)
+
+    Antwort enthaelt KEINE Secrets, nur boolesche "ist gesetzt" Flags.
+    """
+    from database import SessionLocal
+    from db_migrations import MIGRATIONS
+
+    checks = {}
+    info = {}
+
+    # ── DB connect + Migrations-Vergleich ───────────────────────────
+    db_ok = False
+    db_detail = "unknown"
+    db_max_version = None
+    try:
+        db = SessionLocal()
+        try:
+            db.execute(text("SELECT 1"))
+            db_ok = True
+            db_detail = "connected"
+            try:
+                row = db.execute(
+                    text("SELECT MAX(version) FROM schema_migrations")
+                ).fetchone()
+                db_max_version = row[0] if row and row[0] is not None else 0
+            except Exception as e:
+                db_detail = f"connected, schema_migrations read failed: {str(e)[:80]}"
+        finally:
+            db.close()
+    except Exception as e:
+        db_detail = f"error: {str(e)[:120]}"
+    checks["db"] = {"ok": db_ok, "detail": db_detail}
+
+    # Migration-State: erwartete Version vs. angewandte Version
+    code_max_version = max((v for v, _name, _sql in MIGRATIONS), default=0)
+    if db_max_version is None:
+        mig_ok = False
+        mig_detail = "schema_migrations table not readable"
+    elif db_max_version >= code_max_version:
+        mig_ok = True
+        mig_detail = f"v{db_max_version} applied (code expects v{code_max_version})"
+    else:
+        mig_ok = False
+        mig_detail = (
+            f"v{db_max_version} applied, but code expects v{code_max_version} "
+            f"— {code_max_version - db_max_version} pending"
+        )
+    checks["migrations"] = {"ok": mig_ok, "detail": mig_detail}
+
+    # ── Env-Var-Existenz (keine Werte loggen!) ──────────────────────
+    def _env_set(key: str) -> bool:
+        return bool((os.getenv(key) or "").strip())
+
+    anthropic_ok = _env_set("ANTHROPIC_API_KEY")
+    checks["anthropic"] = {
+        "ok": anthropic_ok,
+        "detail": "ANTHROPIC_API_KEY set" if anthropic_ok else "ANTHROPIC_API_KEY missing",
+    }
+
+    netlify_ok = _env_set("NETLIFY_API_TOKEN")
+    checks["netlify"] = {
+        "ok": netlify_ok,
+        "detail": "NETLIFY_API_TOKEN set" if netlify_ok else "NETLIFY_API_TOKEN missing",
+    }
+
+    smtp_keys = ["SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "SMTP_SENDER_EMAIL"]
+    smtp_missing = [k for k in smtp_keys if not _env_set(k)]
+    smtp_ok = len(smtp_missing) == 0
+    checks["smtp"] = {
+        "ok": smtp_ok,
+        "detail": "all 4 SMTP env vars set" if smtp_ok else f"missing: {', '.join(smtp_missing)}",
+    }
+
+    # ── Info (nicht im Status-Aggregat enthalten) ───────────────────
+    try:
+        info["routes"] = sum(1 for r in app.routes if hasattr(r, "path"))
+    except Exception:
+        info["routes"] = None
+
+    info["git_sha"] = (
+        os.getenv("RENDER_GIT_COMMIT")
+        or os.getenv("GIT_COMMIT")
+        or os.getenv("COMMIT_SHA")
+        or None
+    )
+    info["python_env"] = "production" if os.getenv("RENDER") else "local"
+
+    # ── Status aggregieren ──────────────────────────────────────────
+    if not checks["db"]["ok"]:
+        status = "error"
+    elif not all(c["ok"] for c in checks.values()):
+        status = "degraded"
+    else:
+        status = "ok"
+
+    return {
+        "status":    status,
+        "timestamp": datetime.utcnow().isoformat(),
+        "service":   "kompagnon-backend",
+        "checks":    checks,
+        "info":      info,
+    }
+
+
 @app.get("/health")
 def health_check():
     """Check if backend and database are running."""

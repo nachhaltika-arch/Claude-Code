@@ -1544,8 +1544,6 @@ function DesignStudioEmbed({ project, leadId, token, headers, brandData, sitemap
 function NetlifyEmbed({ project, headers }) {
   const [status, setStatus]           = useState(null);
   const [statusLoading, setStatusLoading] = useState(true);
-  const [token, setToken]             = useState('');
-  const [savingToken, setSavingToken] = useState(false);
   const [creating, setCreating]       = useState(false);
   const [deployHtml, setDeployHtml]   = useState('');
   const [deploying, setDeploying]     = useState(false);
@@ -1572,36 +1570,49 @@ function NetlifyEmbed({ project, headers }) {
     <div style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:16 }}>
       {error && <div style={{ fontSize:12, color:'var(--status-danger-text)', background:'var(--status-danger-bg)', padding:'8px 12px', borderRadius:6 }}>{error}</div>}
 
-      {/* 1: Token */}
+      {/* 1: Netlify-Token (zentral via NETLIFY_API_TOKEN env, nicht mehr projekt-spezifisch) */}
       <div style={cardStyle}>
         <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>
-          {status?.has_token ? 'Netlify-Token gespeichert' : '1. Netlify API-Token des Kunden'}
+          1. Netlify-Verbindung
         </div>
-        {!status?.has_token && (<>
-          <div style={{ fontSize:12, color:'var(--text-secondary)' }}>
-            Kunde erstellt Token unter: <a href="https://app.netlify.com/user/applications" target="_blank" rel="noreferrer" style={{ color:'var(--brand-primary)' }}>app.netlify.com → Personal access tokens</a>
+        {status?.has_token ? (
+          <div style={{
+            fontSize: 12, color: 'var(--status-success-text)',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span style={{ fontSize: 14 }} aria-hidden="true">✓</span>
+            <span>
+              Netlify-Token aktiv — zentral via Env-Variable <code style={{ background:'var(--bg-app)', padding:'1px 5px', borderRadius:3 }}>NETLIFY_API_TOKEN</code> konfiguriert.
+              Alle Deploys laufen ueber das Kompagnon-Netlify-Konto.
+            </span>
           </div>
-          <div style={{ display:'flex', gap:8 }}>
-            <input type="password" value={token} onChange={e => setToken(e.target.value)} placeholder="netlify_pat_XXXXXXXXXX" style={{ ...inputStyle, flex:1 }} />
-            <button onClick={async () => {
-              if (!token.trim()) return; setSavingToken(true); setError('');
-              try {
-                const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/save-token`, { method:'POST', headers, body: JSON.stringify({ token: token.trim() }) });
-                if (!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || 'Fehler');
-                setStatus(s => ({ ...s, has_token: true })); setToken('');
-              } catch (e) { setError(e.message); } finally { setSavingToken(false); }
-            }} disabled={savingToken || !token.trim()} style={btnStyle(savingToken || !token.trim())}>
-              {savingToken ? 'Speichert...' : 'Speichern'}
-            </button>
+        ) : (
+          <div style={{
+            fontSize: 12, color: 'var(--status-warning-text)',
+            background: 'var(--status-warning-bg)',
+            border: '1px solid rgba(184,134,11,.3)',
+            borderRadius: 8, padding: '10px 12px',
+            display: 'flex', alignItems: 'flex-start', gap: 8,
+          }}>
+            <span style={{ fontSize: 14, lineHeight: 1 }} aria-hidden="true">⚠️</span>
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: 3 }}>
+                NETLIFY_API_TOKEN fehlt
+              </div>
+              <div style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Ein Admin muss die Env-Variable <code style={{ background:'var(--bg-app)', padding:'1px 5px', borderRadius:3 }}>NETLIFY_API_TOKEN</code> im
+                Render-Backend-Service unter <em>Environment</em> setzen. Ohne Token sind Site-Anlegen und Deploy nicht verfuegbar.
+              </div>
+            </div>
           </div>
-        </>)}
+        )}
       </div>
 
       {/* 2: Site anlegen */}
       {status?.has_token && (
         <div style={cardStyle}>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>
-            {status?.site_id ? 'Netlify-Site angelegt' : '2. Site auf Kunden-Account anlegen'}
+            {status?.site_id ? 'Netlify-Site angelegt' : '2. Site anlegen'}
           </div>
           {status?.site_id
             ? <a href={status.url} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--brand-primary)' }}>{status.url}</a>

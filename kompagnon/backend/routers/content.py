@@ -22,7 +22,7 @@ from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Foreign
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
-from database import Base, get_db
+from database import Base, get_db, SessionLocal
 from routers.auth_router import require_any_auth
 
 logger = logging.getLogger(__name__)
@@ -533,16 +533,32 @@ def _build_ki_prompt(section: ContentSection, db: Session) -> str:
     )
 
 
-async def _generate_one(section_id: int, db: Session) -> dict:
-    """KI-Entwurf für einen einzelnen Slot erstellen."""
+async def _generate_one(section_id: int) -> dict:
+    """KI-Entwurf fuer einen einzelnen Slot erstellen.
+
+    Eigene Session-Verwaltung (2× SessionLocal) — der aeussere DB-Pool wird
+    waehrend des blockierenden Claude-Calls NICHT gehalten. Das ist kritisch
+    auf Render Basic mit kleinem Pool: bei 5 parallelen Requests wuerde
+    sonst der Pool verhungern, waehrend jede Anfrage ~60s im Claude-Call
+    haengt.
+
+    Phase 1 (Read): Section + Prompt-Kontext aus DB holen
+    Phase 2 (Extern): Claude-Call ohne DB-Connection
+    Phase 3 (Write): Section in einer frischen Session aktualisieren
+    """
     import anthropic
 
-    section = db.query(ContentSection).filter_by(id=section_id).first()
-    if not section:
-        raise HTTPException(status_code=404, detail="Section nicht gefunden")
+    # ── Phase 1: Read mit eigener Session, direkt wieder freigeben ────
+    db_read = SessionLocal()
+    try:
+        section = db_read.query(ContentSection).filter_by(id=section_id).first()
+        if not section:
+            raise HTTPException(status_code=404, detail="Section nicht gefunden")
+        prompt = _build_ki_prompt(section, db_read)
+    finally:
+        db_read.close()
 
-    prompt = _build_ki_prompt(section, db)
-
+    # ── Phase 2: Claude-Call OHNE DB-Connection ──────────────────────
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
     message = client.messages.create(
         model="claude-sonnet-4-6",
@@ -555,21 +571,35 @@ async def _generate_one(section_id: int, db: Session) -> dict:
     )
     ki_text = message.content[0].text.strip()
 
-    section.inhalt_ki = ki_text
-    section.status    = "ki_entwurf"
-    db.commit()
-    db.refresh(section)
-    return {"id": section.id, "inhalt_ki": ki_text, "status": section.status}
+    # ── Phase 3: Write in frischer Session ───────────────────────────
+    db_write = SessionLocal()
+    try:
+        section = db_write.query(ContentSection).filter_by(id=section_id).first()
+        if not section:
+            # Section wurde zwischenzeitlich geloescht — kein Persist,
+            # aber den KI-Text trotzdem zurueckgeben (Aufrufer kann
+            # entscheiden was tun).
+            return {"id": section_id, "inhalt_ki": ki_text, "status": "orphan"}
+        section.inhalt_ki = ki_text
+        section.status    = "ki_entwurf"
+        db_write.commit()
+        db_write.refresh(section)
+        return {"id": section.id, "inhalt_ki": ki_text, "status": section.status}
+    finally:
+        db_write.close()
 
 
 @router.post("/section/{section_id}/generate")
 async def generate_section(
     section_id: int,
-    db: Session = Depends(get_db),
     user=Depends(require_any_auth),
 ):
-    """KI-Textentwurf für einen einzelnen Slot generieren."""
-    return await _generate_one(section_id, db)
+    """KI-Textentwurf fuer einen einzelnen Slot generieren.
+
+    Nutzt keinen `db`-Dependency mehr — `_generate_one` verwaltet seine
+    Session selbst, damit der Pool waehrend des Claude-Calls nicht blockiert.
+    """
+    return await _generate_one(section_id)
 
 
 @router.post("/page/{sitemap_page_id}/generate-all")
@@ -578,15 +608,24 @@ async def generate_all_sections(
     db: Session = Depends(get_db),
     user=Depends(require_any_auth),
 ):
-    """KI-Entwurf für alle Text-Slots der Seite generieren (sequenziell)."""
+    """KI-Entwurf fuer alle Text-Slots der Seite generieren (sequenziell).
+
+    Holt die Section-IDs in einer kurzlebigen DB-Session, schliesst sie
+    SOFORT, und loopt dann durch die IDs. _generate_one oeffnet pro
+    Iteration zwei eigene Sessions — der aeussere Request-Pool haengt
+    nicht fuer die ganze Zeit an einer einzigen Connection.
+    """
     sections = db.query(ContentSection).filter_by(sitemap_page_id=sitemap_page_id).all()
+    section_ids = [s.id for s in sections]
+    db.close()  # Pool freigeben BEVOR der Claude-Loop startet
+
     generated, errors = 0, []
-    for s in sections:
+    for sid in section_ids:
         try:
-            await _generate_one(s.id, db)
+            await _generate_one(sid)
             generated += 1
         except Exception as exc:
-            errors.append({"section_id": s.id, "error": str(exc)})
+            errors.append({"section_id": sid, "error": str(exc)})
     return {"generated": generated, "errors": errors}
 
 

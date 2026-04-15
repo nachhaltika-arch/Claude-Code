@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
 
-from database import get_db, Briefing, Lead, Project
+from database import get_db, Briefing, Lead, Project, SessionLocal
 from routers.auth_router import require_any_auth
 
 logger = logging.getLogger(__name__)
@@ -276,6 +276,11 @@ async def suggest_field(
         raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
 
     prompt = f"Du analysierst Website-Content und beantwortest eine Frage.\n\nWEBSITE-CONTENT:\n{website_content}\n\nAUFGABE: {field_prompt}\n\nAntworte NUR mit dem Wert, keine Einleitung."
+
+    # DB-Connection vor dem externen Claude-Call freigeben — auf Render Basic
+    # mit kleinem Pool wuerden 5 parallele Requests sonst den Pool verhungern
+    # lassen, waehrend jeder Call bis zu 30s blockt.
+    db.close()
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -553,19 +558,32 @@ def ki_prefill_briefing(lead_id: int, db: Session) -> dict:
       1. HTTP-Endpoint POST /api/briefings/{lead_id}/ki-prefill
       2. Stripe-Webhook Background-Thread (_handle_successful_payment)
 
+    Pool-Safety: Der uebergebene `db` wird NACH dem Context-Sammeln und
+    VOR dem blockierenden Claude-Call geschlossen. Der Persist laeuft
+    danach in einer frischen SessionLocal. Auf Render Basic mit kleinem
+    Pool verhindert das Pool-Exhaustion wenn mehrere KI-Prefills parallel
+    laufen.
+
     Fehlertolerant: Wenn website_content_cache leer oder Claude nicht
     verfuegbar ist, greift die Heuristik. Wirft HTTPException nur bei
     echten DB-Fehlern oder fehlendem Lead.
     """
+    # ── Phase 1: Read mit der aussen uebergebenen Session ────────────
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
     ctx = _ki_prefill_gather_context(lead, db)
+
+    # DB-Connection freigeben BEVOR der blockierende Claude-Call startet.
+    # Der Aufrufer (sowohl FastAPI-Dependency als auch Stripe-Webhook) ist
+    # fuer das endgueltige Teardown verantwortlich — unser close() hier
+    # ist idempotent und gibt den Pool sofort zurueck.
+    db.close()
+
     heuristic = _ki_prefill_heuristic(ctx)
 
-    # Claude nur aufrufen, wenn wir tatsaechlich Rohdaten haben — sonst
-    # bleiben wir bei der Heuristik und sparen den API-Call.
+    # ── Phase 2: Claude-Call OHNE DB-Connection ──────────────────────
     merged = dict(heuristic)
     if ctx.get("_row_count", 0) > 0:
         kresult = _ki_prefill_call_claude(ctx)
@@ -581,48 +599,52 @@ def ki_prefill_briefing(lead_id: int, db: Session) -> dict:
     merged["ki_confidence"] = str(merged.get("ki_confidence") or "low")[:10]
     merged["ki_hinweise"] = str(merged.get("ki_hinweise") or "")[:500]
 
-    # Briefing laden / anlegen
-    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
-    if not briefing:
-        briefing = Briefing(lead_id=lead_id, status="entwurf")
-        db.add(briefing)
-        db.flush()
+    # ── Phase 3: Persist in frischer Session ─────────────────────────
+    db2 = SessionLocal()
+    try:
+        briefing = db2.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+        if not briefing:
+            briefing = Briefing(lead_id=lead_id, status="entwurf")
+            db2.add(briefing)
+            db2.flush()
 
-    filled: list = []
-    skipped: list = []
-    for field in _KI_PREFILL_FILLABLE:
-        if _ki_prefill_is_empty(briefing, field):
-            new_val = merged.get(field)
-            if new_val not in (None, "", []):
-                setattr(briefing, field, new_val)
-                filled.append(field)
+        filled: list = []
+        skipped: list = []
+        for field in _KI_PREFILL_FILLABLE:
+            if _ki_prefill_is_empty(briefing, field):
+                new_val = merged.get(field)
+                if new_val not in (None, "", []):
+                    setattr(briefing, field, new_val)
+                    filled.append(field)
+                else:
+                    skipped.append(field)
             else:
                 skipped.append(field)
-        else:
-            skipped.append(field)
 
-    # KI-Metadaten immer setzen (auch wenn filled leer ist — Nutzer hatte
-    # schon alles ausgefuellt, wir haben trotzdem etwas analysiert)
-    briefing.ki_prefilled_at = datetime.utcnow()
-    briefing.ki_confidence = merged["ki_confidence"]
-    briefing.ki_hinweise = merged["ki_hinweise"]
-    briefing.updated_at = datetime.utcnow()
+        # KI-Metadaten immer setzen (auch wenn filled leer ist — Nutzer hatte
+        # schon alles ausgefuellt, wir haben trotzdem etwas analysiert)
+        briefing.ki_prefilled_at = datetime.utcnow()
+        briefing.ki_confidence = merged["ki_confidence"]
+        briefing.ki_hinweise = merged["ki_hinweise"]
+        briefing.updated_at = datetime.utcnow()
 
-    try:
-        db.commit()
-        db.refresh(briefing)
-    except Exception as e:
-        db.rollback()
-        logger.error(f"KI-Prefill Commit fehlgeschlagen fuer Lead {lead_id}: {e}")
-        raise HTTPException(500, f"KI-Prefill fehlgeschlagen: {str(e)[:200]}")
+        try:
+            db2.commit()
+            db2.refresh(briefing)
+        except Exception as e:
+            db2.rollback()
+            logger.error(f"KI-Prefill Commit fehlgeschlagen fuer Lead {lead_id}: {e}")
+            raise HTTPException(500, f"KI-Prefill fehlgeschlagen: {str(e)[:200]}")
 
-    return {
-        "filled_fields": filled,
-        "skipped_fields": sorted(set(skipped + _KI_PREFILL_NEVER_FILL)),
-        "ki_confidence": merged["ki_confidence"],
-        "ki_hinweise": merged["ki_hinweise"],
-        "briefing": _serialize(briefing),
-    }
+        return {
+            "filled_fields": filled,
+            "skipped_fields": sorted(set(skipped + _KI_PREFILL_NEVER_FILL)),
+            "ki_confidence": merged["ki_confidence"],
+            "ki_hinweise": merged["ki_hinweise"],
+            "briefing": _serialize(briefing),
+        }
+    finally:
+        db2.close()
 
 
 @router.post("/{lead_id}/ki-prefill")
@@ -921,10 +943,15 @@ async def zielgruppenanalyse(
 ):
     """AI-gestuetzte Zielgruppenanalyse auf Basis von Gewerk + Stadt des Leads.
     Ergebnis wird im Feld `briefing.zielgruppe.analyse` gespeichert.
+
+    Pool-Safety: Lead-Daten werden in lokale Variablen gezogen, dann wird
+    der uebergebene db GESCHLOSSEN, und der blockierende Claude-Call laeuft
+    ohne DB-Connection. Persist danach in einer frischen SessionLocal.
     """
     import os
     from anthropic import Anthropic
 
+    # ── Phase 1: Read ────────────────────────────────────────────────
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(404, "Lead nicht gefunden")
@@ -932,6 +959,9 @@ async def zielgruppenanalyse(
     trade   = lead.trade or "Handwerk"
     city    = lead.city or "Deutschland"
     company = lead.display_name or lead.company_name or ""
+
+    # DB-Connection freigeben BEVOR der blockierende Claude-Call startet.
+    db.close()
 
     prompt = f"""Du bist ein erfahrener Marketing-Stratege fuer Handwerksbetriebe in Deutschland.
 
@@ -952,6 +982,7 @@ Erstelle eine strukturierte Zielgruppenanalyse mit:
 
 Schreibe kompakt und praxisnah. Maximal 400 Woerter. Auf Deutsch."""
 
+    # ── Phase 2: Claude-Call OHNE DB-Connection ──────────────────────
     try:
         client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), max_retries=0, timeout=60.0)
         response = client.messages.create(
@@ -960,11 +991,18 @@ Schreibe kompakt und praxisnah. Maximal 400 Woerter. Auf Deutsch."""
             messages=[{"role": "user", "content": prompt}],
         )
         analyse = response.content[0].text
+    except Exception as e:
+        logger.error(f"Zielgruppenanalyse Claude-Fehler: {e}")
+        raise HTTPException(500, f"Analyse fehlgeschlagen: {str(e)}")
 
-        briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    # ── Phase 3: Persist in frischer Session ─────────────────────────
+    analyse_datum = datetime.utcnow().strftime("%d.%m.%Y %H:%M")
+    db2 = SessionLocal()
+    try:
+        briefing = db2.query(Briefing).filter(Briefing.lead_id == lead_id).first()
         if not briefing:
             briefing = Briefing(lead_id=lead_id)
-            db.add(briefing)
+            db2.add(briefing)
 
         current = (
             json.loads(briefing.zielgruppe)
@@ -974,16 +1012,19 @@ Schreibe kompakt und praxisnah. Maximal 400 Woerter. Auf Deutsch."""
         updated = {
             **current,
             "analyse": analyse,
-            "analyse_datum": datetime.utcnow().strftime("%d.%m.%Y %H:%M"),
+            "analyse_datum": analyse_datum,
         }
         briefing.zielgruppe = json.dumps(updated, ensure_ascii=False)
         briefing.updated_at = datetime.utcnow()
-        db.commit()
-
-        return {"analyse": analyse, "datum": updated["analyse_datum"]}
+        db2.commit()
     except Exception as e:
-        logger.error(f"Zielgruppenanalyse Fehler: {e}")
-        raise HTTPException(500, f"Analyse fehlgeschlagen: {str(e)}")
+        db2.rollback()
+        logger.error(f"Zielgruppenanalyse Persist-Fehler: {e}")
+        raise HTTPException(500, f"Analyse konnte nicht gespeichert werden: {str(e)[:200]}")
+    finally:
+        db2.close()
+
+    return {"analyse": analyse, "datum": analyse_datum}
 
 
 @router.post("/{lead_id}/wettbewerbsanalyse")
@@ -994,10 +1035,15 @@ async def wettbewerbsanalyse(
 ):
     """AI-gestuetzte Wettbewerbsanalyse auf Basis von Gewerk + Stadt + PLZ des Leads.
     Ergebnis wird im Feld `briefing.wettbewerb.analyse` gespeichert.
+
+    Pool-Safety: Lead-Daten werden in lokale Variablen gezogen, dann wird
+    der uebergebene db GESCHLOSSEN, und der blockierende Claude-Call laeuft
+    ohne DB-Connection. Persist danach in einer frischen SessionLocal.
     """
     import os
     from anthropic import Anthropic
 
+    # ── Phase 1: Read ────────────────────────────────────────────────
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(404, "Lead nicht gefunden")
@@ -1007,6 +1053,9 @@ async def wettbewerbsanalyse(
     postal_code = lead.postal_code or ""
     company     = lead.display_name or lead.company_name or ""
     region      = f"{city} ({postal_code})" if postal_code else city
+
+    # DB-Connection freigeben BEVOR der blockierende Claude-Call startet.
+    db.close()
 
     prompt = f"""Du bist ein erfahrener Markt- und Wettbewerbsanalyst fuer Handwerksbetriebe in Deutschland.
 
@@ -1025,6 +1074,7 @@ Analysiere:
 
 Schreibe kompakt und praxisnah. Maximal 500 Woerter. Auf Deutsch."""
 
+    # ── Phase 2: Claude-Call OHNE DB-Connection ──────────────────────
     try:
         client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"), max_retries=0, timeout=60.0)
         response = client.messages.create(
@@ -1033,11 +1083,18 @@ Schreibe kompakt und praxisnah. Maximal 500 Woerter. Auf Deutsch."""
             messages=[{"role": "user", "content": prompt}],
         )
         analyse = response.content[0].text
+    except Exception as e:
+        logger.error(f"Wettbewerbsanalyse Claude-Fehler: {e}")
+        raise HTTPException(500, f"Analyse fehlgeschlagen: {str(e)}")
 
-        briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    # ── Phase 3: Persist in frischer Session ─────────────────────────
+    analyse_datum = datetime.utcnow().strftime("%d.%m.%Y %H:%M")
+    db2 = SessionLocal()
+    try:
+        briefing = db2.query(Briefing).filter(Briefing.lead_id == lead_id).first()
         if not briefing:
             briefing = Briefing(lead_id=lead_id)
-            db.add(briefing)
+            db2.add(briefing)
 
         current = (
             json.loads(briefing.wettbewerb)
@@ -1047,14 +1104,17 @@ Schreibe kompakt und praxisnah. Maximal 500 Woerter. Auf Deutsch."""
         updated = {
             **current,
             "analyse": analyse,
-            "analyse_datum": datetime.utcnow().strftime("%d.%m.%Y %H:%M"),
+            "analyse_datum": analyse_datum,
             "region": region,
         }
         briefing.wettbewerb = json.dumps(updated, ensure_ascii=False)
         briefing.updated_at = datetime.utcnow()
-        db.commit()
-
-        return {"analyse": analyse, "region": region, "datum": updated["analyse_datum"]}
+        db2.commit()
     except Exception as e:
-        logger.error(f"Wettbewerbsanalyse Fehler: {e}")
-        raise HTTPException(500, f"Analyse fehlgeschlagen: {str(e)}")
+        db2.rollback()
+        logger.error(f"Wettbewerbsanalyse Persist-Fehler: {e}")
+        raise HTTPException(500, f"Analyse konnte nicht gespeichert werden: {str(e)[:200]}")
+    finally:
+        db2.close()
+
+    return {"analyse": analyse, "region": region, "datum": analyse_datum}

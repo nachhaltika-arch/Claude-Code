@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 
 const KACHELN = [
-  { label: 'Pipeline',      desc: 'Deals & Phasen',       icon: '📋', path: '/app/deals',       primary: true },
-  { label: 'Audit-Tool',    desc: 'Website analysieren',  icon: '🔍', path: '/app/audit' },
-  { label: 'Kampagnen',     desc: 'UTM & Landingpages',   icon: '📣', path: '/app/campaigns' },
-  { label: 'Newsletter',    desc: 'Brevo · Listen',       icon: '📧', path: '/app/newsletter' },
-  { label: 'Domain-Import', desc: 'CSV hochladen',        icon: '⬆️', path: '/app/import' },
-  { label: 'Retainer',      desc: 'Pflegepakete',         icon: '💰', path: '/app/retainer' },
+  { label: 'Pipeline',      desc: 'Deals & Phasen',         icon: '📋', path: '/app/deals',     primary: true },
+  { label: 'Audit-Tool',    desc: 'Website analysieren',    icon: '🔍', path: '/app/audit' },
+  { label: 'Kampagnen',     desc: 'UTM & Landingpages',     icon: '📣', path: '/app/campaigns' },
+  { label: 'Newsletter',    desc: 'Brevo · Listen',         icon: '📧', path: '/app/newsletter' },
+  { label: 'Domain-Import', desc: 'CSV hochladen',          icon: '⬆️', path: '/app/import' },
+  { label: 'Massen-Export', desc: 'Lead-Daten als CSV',     icon: '⬇️', path: '/app/export' },
+  { label: 'Scraper',       desc: 'Crawler-Steuerung',      icon: '🕷️', path: '/app/scraper' },
+  { label: 'Retainer',      desc: 'Pflegepakete',           icon: '💰', path: '/app/retainer' },
 ];
 
 export default function MobileVertrieb() {

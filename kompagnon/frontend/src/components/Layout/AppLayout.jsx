@@ -205,17 +205,22 @@ function getMobileTabs(role, leadId) {
 
 const MORE_ITEMS = [
   { label: 'Unternehmen', path: '/app/companies', icon: '🏢' },
-  { label: 'Newsletter', path: '/app/newsletter', icon: '📧' },
-  { label: 'Tickets', path: '/app/tickets', icon: '🎫' },
-  { label: 'Akademie', path: '/app/academy', icon: '🎓' },
-  { label: 'Einstellungen', path: '/app/settings', icon: '⚙️' },
-  { label: 'Profil', path: '/app/profile', icon: '👤' },
+  { label: 'Audit',       path: '/app/audit',     icon: '🔍' },
+  { label: 'Newsletter',  path: '/app/newsletter',icon: '📧' },
+  { label: 'Tickets',     path: '/app/tickets',   icon: '🎫' },
+  { label: 'Akademie',    path: '/app/academy',   icon: '🎓' },
+  { label: 'Einstellungen',path: '/app/settings', icon: '⚙️' },
+  { label: 'Profil',      path: '/app/profile',   icon: '👤' },
 ];
 
 const MORE_ITEMS_ADMIN = [
   ...MORE_ITEMS,
   { label: 'Produkteditor', path: '/app/product-editor', icon: '🛒' },
-  { label: 'Domain Import', path: '/app/import', icon: '⬆️' },
+  { label: 'Domain Import', path: '/app/import',         icon: '⬆️' },
+  { label: 'Export',        path: '/app/export',         icon: '⬇️' },
+  { label: 'Scraper',       path: '/app/scraper',        icon: '🕷️' },
+  { label: 'Kampagnen',     path: '/app/campaigns',      icon: '📣' },
+  { label: 'Retainer',      path: '/app/retainer',       icon: '💰' },
 ];
 
 // ── Sidebar ────────────────────────────────────────────────────
@@ -424,9 +429,13 @@ function SidebarNav({ badges }) {
               {[
                 { label: 'Pipeline',      path: '/app/deals' },
                 { label: 'Audit-Tool',    path: '/app/audit' },
+                { label: 'Kampagnen',     path: '/app/campaigns' },
                 { label: 'Kaltakquise',   path: '/app/companies' },
                 { label: 'Newsletter',    path: '/app/newsletter' },
                 { label: 'Domain-Import', path: '/app/import' },
+                { label: 'Massen-Export', path: '/app/export' },
+                { label: 'Scraper',       path: '/app/scraper' },
+                { label: 'Retainer',      path: '/app/retainer' },
               ].map(item => (
                 <button
                   key={`vertrieb-${item.label}`}
@@ -684,7 +693,7 @@ function BottomNav() {
       return [
         '/app/vertrieb', '/app/deals', '/app/campaigns',
         '/app/audit', '/app/newsletter', '/app/import',
-        '/app/retainer',
+        '/app/export', '/app/scraper', '/app/retainer',
       ].some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
     }
     return location.pathname === path || location.pathname.startsWith(path + '/');

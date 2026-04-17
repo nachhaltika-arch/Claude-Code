@@ -9,6 +9,8 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
   const [guideline, setGuideline] = useState(null);
   const [loading, setLoading]     = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [editingToken, setEditingToken] = useState(null);
+  const [editedColors, setEditedColors] = useState({});
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
@@ -103,19 +105,68 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
             ))}
           </div>
 
-          {/* FARBEN */}
+          {/* FARBEN — klickbar zum Inline-Editieren */}
           {activeTab === 'Farben' && (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10, marginBottom: 16 }}>
-                {Object.entries(g.colors || {}).map(([token, hex]) => (
-                  <div key={token} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-                    <div style={{ width: '100%', height: 52, borderRadius: 8, background: hex, border: '0.5px solid rgba(0,0,0,.08)', cursor: 'pointer' }}
-                      onClick={() => { navigator.clipboard?.writeText(hex); toast.success(`${hex} kopiert`); }} title="Klick = kopieren" />
-                    <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', textAlign: 'center' }}>{token.replace(/_/g, ' ')}</div>
-                    <div style={{ fontSize: 8, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{hex}</div>
-                  </div>
-                ))}
+                {Object.entries(g.colors || {}).map(([tokenKey, hex]) => {
+                  const isEditing = editingToken === tokenKey;
+                  const isDerived = ['primary_dark','primary_light','primary_subtle'].includes(tokenKey);
+                  const displayHex = editedColors[tokenKey] || hex;
+                  return (
+                    <div key={tokenKey}>
+                      <div
+                        onClick={() => isDerived ? navigator.clipboard?.writeText(displayHex) : setEditingToken(isEditing ? null : tokenKey)}
+                        style={{
+                          width: '100%', height: 52, borderRadius: 8,
+                          background: displayHex,
+                          border: isEditing ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.08)',
+                          cursor: 'pointer', position: 'relative',
+                        }}
+                        title={isDerived ? `${displayHex} (auto — klick kopiert)` : `${tokenKey} bearbeiten`}
+                      >
+                        {!isDerived && <div style={{ position: 'absolute', top: 3, right: 4, fontSize: 9, color: 'rgba(255,255,255,.7)' }}>✎</div>}
+                        {isDerived && <div style={{ position: 'absolute', top: 3, right: 4, fontSize: 8, color: 'rgba(255,255,255,.5)' }}>auto</div>}
+                      </div>
+                      {isEditing && !isDerived && (
+                        <div style={{ border: '1.5px solid var(--brand-primary)', borderRadius: 8, padding: 10, background: 'var(--bg-surface)', marginTop: 4 }}>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <div style={{ width: 28, height: 28, borderRadius: 5, background: displayHex, border: '0.5px solid rgba(0,0,0,.1)' }} />
+                            <input value={displayHex} onChange={e => setEditedColors(prev => ({ ...prev, [tokenKey]: e.target.value }))}
+                              style={{ width: 90, padding: '4px 8px', border: '0.5px solid var(--border-light)', borderRadius: 5, fontSize: 12, fontFamily: 'monospace', background: 'var(--bg-surface)', color: 'var(--text-primary)' }} />
+                            <input type="color" value={displayHex.length === 7 ? displayHex : '#000000'} onChange={e => setEditedColors(prev => ({ ...prev, [tokenKey]: e.target.value }))}
+                              style={{ width: 28, height: 28, cursor: 'pointer', border: 'none' }} />
+                            <button onClick={() => setEditingToken(null)} style={{ marginLeft: 'auto', padding: '4px 10px', fontSize: 10, background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 5, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>OK</button>
+                          </div>
+                        </div>
+                      )}
+                      <div style={{ fontSize: 8, color: 'var(--text-tertiary)', fontFamily: 'monospace', textAlign: 'center', marginTop: 3 }}>{displayHex}</div>
+                      <div style={{ fontSize: 8, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.04em', textAlign: 'center' }}>{tokenKey.replace(/_/g, ' ')}</div>
+                    </div>
+                  );
+                })}
               </div>
+              {Object.keys(editedColors).length > 0 && (
+                <button
+                  onClick={async () => {
+                    const updated = { ...g, colors: { ...g.colors, ...editedColors } };
+                    try {
+                      await fetch(`${API_BASE_URL}/api/branddesign/${leadId}/guideline`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ guideline: updated }),
+                      });
+                      setGuideline(updated);
+                      setEditedColors({});
+                      setEditingToken(null);
+                      toast.success('Guideline gespeichert');
+                    } catch { toast.error('Speichern fehlgeschlagen'); }
+                  }}
+                  style={{ marginBottom: 12, padding: '9px 18px', background: '#FAE600', color: '#000', border: 'none', borderRadius: 7, fontSize: 11, fontWeight: 900, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+                >
+                  Aenderungen speichern
+                </button>
+              )}
               {g.css_variables && (
                 <div>
                   <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 6 }}>CSS Variables</div>

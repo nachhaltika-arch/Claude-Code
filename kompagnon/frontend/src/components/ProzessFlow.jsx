@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import AnalyseCentrale from './AnalyseCentrale';
 import ContentWerkstatt from './ContentWerkstatt';
 import BrandDesignWerkstatt from './BrandDesignWerkstatt';
+import BrandDesignEditor from './BrandDesignEditor';
 import BrandGuideline from './BrandGuideline';
 import SitemapVorschlaege from './SitemapVorschlaege';
 import DesignStudio from './DesignStudio';
@@ -720,8 +721,12 @@ function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
 
     case 'BrandDesign':
       return (
-        <BrandDesignWerkstatt project={project} lead={lead} token={token}
-          onBrandSaved={(data) => { if (onAnalyseUpdate) onAnalyseUpdate({ brandPrimaryColor: data?.primary_color, brandData: data }); }} />
+        <BrandDesignEditor
+          leadId={project?.lead_id || lead?.id}
+          token={token}
+          brandData={brandData}
+          onSaved={(data) => { if (onAnalyseUpdate) onAnalyseUpdate({ brandPrimaryColor: data?.primary, brandData: data }); }}
+        />
       );
     case 'BrandGuideline':
       return (

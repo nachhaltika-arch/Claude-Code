@@ -8,6 +8,7 @@ import ContentWerkstatt from './ContentWerkstatt';
 import DesignStudio from './DesignStudio';
 import BriefingTab from './BriefingTab';
 import BrandDesignWerkstatt from './BrandDesignWerkstatt';
+import BrandDesignEditor from './BrandDesignEditor';
 import BrandGuideline from './BrandGuideline';
 import SitemapVorschlaege from './SitemapVorschlaege';
 import {
@@ -778,8 +779,12 @@ function SchrittContent({ schritt, ...props }) {
       );
     case 'BrandDesign':
       return (
-        <BrandDesignWerkstatt project={props.project} lead={props.lead} token={props.token}
-          onBrandSaved={(data) => { if (props.onAnalyseUpdate) props.onAnalyseUpdate({ brandPrimaryColor: data?.primary_color, brandData: data }); }} />
+        <BrandDesignEditor
+          leadId={props.leadId}
+          token={props.token}
+          brandData={props.brandData}
+          onSaved={(data) => { if (props.onAnalyseUpdate) props.onAnalyseUpdate({ brandPrimaryColor: data?.primary, brandData: data }); }}
+        />
       );
     case 'BrandGuideline':
       return (

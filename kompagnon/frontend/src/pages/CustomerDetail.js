@@ -89,7 +89,7 @@ function AuditHistorySection({ customerId, customer, headers }) {
     setPollingId(auditId);
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/audit/status/${auditId}`, { headers });
+        const res = await fetch(`${API_BASE_URL}/api/audit/${auditId}`, { headers });
         if (!res.ok) { stopPolling(); return; }
         const data = await res.json();
         if (data.status === 'completed' || data.status === 'failed') {

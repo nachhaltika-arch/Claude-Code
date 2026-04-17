@@ -292,6 +292,7 @@ function SidebarNav({ badges }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [openSection, setOpenSection] = useState(null);
   const [leadCount, setLeadCount] = useState(0);
 
@@ -537,10 +538,32 @@ function SidebarNav({ badges }) {
         )}
       </nav>
 
+      {/* Theme Toggle */}
+      <div
+        onClick={toggleTheme}
+        title={theme === 'dark' ? 'Helles Design' : 'Dunkles Design'}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 20px', cursor: 'pointer',
+          borderTop: '0.5px solid rgba(255,255,255,0.08)',
+          marginTop: 'auto',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      >
+        <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(255,255,255,0.45)', fontFamily: 'var(--font-sans)', userSelect: 'none' }}>
+          {theme === 'dark' ? 'Hell' : 'Dunkel'}
+        </span>
+        <div style={{ width: 40, height: 22, borderRadius: 11, background: theme === 'dark' ? 'var(--kc-yellow)' : 'rgba(255,255,255,0.20)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+          <div style={{ position: 'absolute', top: 3, left: theme === 'dark' ? 21 : 3, width: 16, height: 16, borderRadius: '50%', background: theme === 'dark' ? '#004F59' : '#fff', transition: 'left 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9 }}>
+            {theme === 'dark' ? '\u2600' : '\u263E'}
+          </div>
+        </div>
+      </div>
+
       {/* User Footer */}
       {user && (
         <div style={{
-          marginTop: 'auto',
           padding: '14px 20px',
           borderTop: '0.5px solid rgba(255,255,255,0.08)',
           display: 'flex',

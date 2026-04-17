@@ -209,6 +209,18 @@ PFLICHTSEITEN = PFLICHTSEITEN_IMMER + PFLICHTSEITEN_BEDINGT
 
 # Optionale Zusatzseiten (Vorschlagskatalog fuer den Admin).
 OPTIONALE_SEITEN = [
+    # Basis-Seiten
+    {"page_name": "Startseite",   "page_type": "startseite", "position": 1,
+     "zweck": "Hauptseite des Auftritts — erster Eindruck, Hero-Bereich, USP, CTA"},
+    {"page_name": "Leistungen",   "page_type": "leistung",   "position": 2,
+     "zweck": "Uebersicht aller angebotenen Leistungen — zentraler SEO-Treiber"},
+    {"page_name": "Ueber uns",    "page_type": "info",        "position": 3,
+     "zweck": "Geschichte, Team und Werte des Unternehmens — baut Vertrauen auf"},
+    {"page_name": "Kontakt",      "page_type": "conversion",  "position": 4,
+     "zweck": "Kontaktformular, Adresse, Oeffnungszeiten — Hauptkonversionspunkt"},
+    {"page_name": "Landingpage",  "page_type": "conversion",  "position": 5,
+     "zweck": "Kampagnen-spezifische Zielseite fuer Ads / Aktionen"},
+    # Vertrauen & Inhalte
     {"page_name": "FAQ",              "page_type": "info",       "position": 80,
      "zweck": "Haeufige Fragen und Antworten — staerkt Vertrauen und reduziert Supportaufwand"},
     {"page_name": "Blog / News",      "page_type": "info",       "position": 81,
@@ -217,16 +229,19 @@ OPTIONALE_SEITEN = [
      "zweck": "Fotos abgeschlossener Projekte — baut Vertrauen auf"},
     {"page_name": "Referenzen",       "page_type": "vertrauen",  "position": 83,
      "zweck": "Kundenstimmen und abgeschlossene Projekte"},
-    {"page_name": "Karriere / Jobs",  "page_type": "info",       "position": 84,
-     "zweck": "Offene Stellen und Ausbildungsplaetze — Fachkraeftegewinnung"},
     {"page_name": "Team",             "page_type": "vertrauen",  "position": 85,
      "zweck": "Mitarbeitervorstellung — schafft Naehe und Vertrauen"},
+    # Conversion & Spezial
+    {"page_name": "Karriere / Jobs",  "page_type": "info",       "position": 84,
+     "zweck": "Offene Stellen und Ausbildungsplaetze — Fachkraeftegewinnung"},
     {"page_name": "Preise",           "page_type": "conversion", "position": 86,
      "zweck": "Preistransparenz — reduziert Anfragehuerde"},
     {"page_name": "Online-Shop",      "page_type": "conversion", "position": 87,
      "zweck": "Produkte online kaufen"},
     {"page_name": "Notfallservice",   "page_type": "conversion", "position": 88,
      "zweck": "24h Notdienst — wichtig fuer Handwerker mit Bereitschaftsdienst"},
+    {"page_name": "Terminbuchung",    "page_type": "conversion", "position": 89,
+     "zweck": "Online-Terminbuchung — reduziert Telefon-Aufwand, erhoeht Konversion"},
 ]
 
 
@@ -656,6 +671,91 @@ def suggest_pages(
         "bedingte_pflichtseiten": bedingte,
         "optionale_seiten": optional,
     }
+
+
+@router.get("/{lead_id}/ki-empfehlung")
+async def ki_seitenempfehlung(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Laesst Claude eine individuelle Seiten-Empfehlung generieren —
+    basierend auf Gewerk, USP, Leistungen, Zielgruppe aus dem Briefing.
+    """
+    import httpx
+    import json as _json_mod
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    existing = [
+        p.page_name
+        for p in db.query(SitemapPage).filter(SitemapPage.lead_id == lead_id).all()
+    ]
+
+    gewerk     = (briefing.gewerk     if briefing else "") or (lead.trade or "Handwerk")
+    leistungen = (briefing.leistungen if briefing else "") or ""
+    usp        = (briefing.usp        if briefing else "") or ""
+    zielgruppe = (briefing.zielgruppe if briefing else "") or ""
+    mitbewerber = (briefing.mitbewerber if briefing else "") or ""
+    city       = lead.city or "Deutschland"
+    company    = lead.company_name or ""
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    prompt = (
+        "Du bist ein Website-Stratege fuer Handwerksbetriebe.\n\n"
+        f"KUNDE: {company}\nGewerk: {gewerk}\nStadt: {city}\n"
+        f"Leistungen: {leistungen}\nUSP: {usp}\n"
+        f"Zielgruppe: {zielgruppe}\nWettbewerber: {mitbewerber}\n\n"
+        f"Bereits geplante Seiten: {', '.join(existing) or 'keine'}\n\n"
+        "Empfehle 3-5 spezifische Seiten die fuer DIESEN Betrieb besonders wichtig sind.\n"
+        "Beruecksichtige Gewerk, USP und Zielgruppe — gib individuelle, nicht generische Empfehlungen.\n\n"
+        "Antworte NUR als JSON-Array:\n"
+        '[{"page_name":"<Name>","page_type":"startseite|leistung|info|vertrauen|conversion|ground",'
+        '"zweck":"<1-2 Saetze>","ziel_keyword":"<Keyword>","position":<Zahl>,'
+        '"ki_begruendung":"<Individueller Grund>"}]'
+    )
+
+    # DB vor dem blockierenden Call freigeben (Pool-Safety)
+    db.close()
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 1500,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+        resp.raise_for_status()
+        raw = resp.json()["content"][0]["text"].strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        empfehlungen = _json_mod.loads(raw)
+
+        empfehlungen = [
+            e for e in empfehlungen
+            if e.get("page_name") not in existing
+        ]
+
+        return {
+            "empfehlungen": empfehlungen,
+            "company": company,
+            "gewerk": gewerk,
+        }
+    except Exception as e:
+        raise HTTPException(500, f"KI-Empfehlung fehlgeschlagen: {str(e)[:200]}")
 
 
 @router.post("/{lead_id}/add-suggested")

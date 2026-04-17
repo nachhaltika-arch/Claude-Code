@@ -8,6 +8,7 @@ GET  /api/branddesign/{lead_id}/pdf                - Download brand PDF
 """
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import Response
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database import get_db, Lead
 from routers.auth_router import require_any_auth

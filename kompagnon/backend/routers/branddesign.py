@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from database import get_db, Lead
+from routers.auth_router import require_any_auth
 import httpx, re, os, json, anthropic, logging
 from datetime import datetime
 

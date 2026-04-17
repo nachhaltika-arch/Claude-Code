@@ -11,7 +11,53 @@ function adjustColor(hex, amount) {
 }
 
 const QUICK_ACCENTS = ['#F39C12','#E67E22','#FAE600','#2ECC71','#3498DB','#9B59B6','#1ABC9C','#E74C3C'];
-const GOOGLE_FONTS = ['Georgia','Playfair Display','Merriweather','Lora','Inter','Roboto','Open Sans','Noto Sans','Barlow Condensed','Oswald','Raleway','Montserrat'];
+
+const GOOGLE_FONTS_CATALOG = {
+  'Serif — Klassisch': [
+    'Georgia','Times New Roman','Playfair Display','Merriweather',
+    'Lora','Libre Baskerville','PT Serif','Crimson Text',
+    'EB Garamond','Cormorant Garamond',
+  ],
+  'Sans-Serif — Modern': [
+    'Inter','Roboto','Open Sans','Noto Sans','Source Sans 3',
+    'Nunito','Mulish','DM Sans','Plus Jakarta Sans','Outfit',
+    'Figtree','Albert Sans',
+  ],
+  'Sans-Serif — Neutral': [
+    'Arial','Helvetica','Lato','Raleway','Montserrat',
+    'Poppins','Urbanist','Rubik','Work Sans','Manrope',
+  ],
+  'Condensed / Display': [
+    'Barlow Condensed','Oswald','Anton','Bebas Neue',
+    'Fjalla One','Squada One','Big Shoulders Display',
+    'League Gothic','Passion One',
+  ],
+  'Handwerk / Regional': [
+    'Teko','Exo 2','Titillium Web','Asap','Cabin',
+    'Josefin Sans','Prompt','Saira','IBM Plex Sans',
+  ],
+  'Slab Serif': [
+    'Roboto Slab','Arvo','Zilla Slab','Crete Round',
+    'Alfa Slab One','Tinos',
+  ],
+};
+
+const ALL_FONTS_FLAT = Object.values(GOOGLE_FONTS_CATALOG).flat();
+
+const _loadedFonts = new Set();
+function loadGoogleFont(fontName) {
+  if (!fontName) return;
+  const systemFonts = ['Arial','Helvetica','Georgia','Times New Roman','Courier New','Verdana','Trebuchet MS'];
+  if (systemFonts.includes(fontName)) return;
+  if (_loadedFonts.has(fontName)) return;
+  const encoded = fontName.replace(/ /g, '+');
+  if (document.querySelector(`link[href*="${encoded}"]`)) { _loadedFonts.add(fontName); return; }
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${encoded}:wght@400;600;700;900&display=swap`;
+  document.head.appendChild(link);
+  _loadedFonts.add(fontName);
+}
 
 export default function BrandDesignEditor({ leadId, token, brandData, onSaved }) {
   const [primary, setPrimary]       = useState(brandData?.primary_color || '#004F59');
@@ -60,11 +106,23 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
   }, [leadId, token]); // eslint-disable-line
 
   useEffect(() => {
-    if (brandData?.font_heading) setFontH1(brandData.font_heading);
-    else if (brandData?.font_primary) setFontH1(brandData.font_primary);
-    if (brandData?.font_body) setFontBody(brandData.font_body);
-    else if (brandData?.font_secondary) setFontBody(brandData.font_secondary);
-    if (brandData?.font_accent) setFontAkzent(brandData.font_accent);
+    const detected = [
+      brandData?.font_heading, brandData?.font_body, brandData?.font_accent,
+      brandData?.font_primary, brandData?.font_secondary,
+      ...(brandData?.all_fonts || []),
+      ...(brandData?.fonts_detail?.google_fonts || []),
+    ].filter(Boolean);
+    detected.forEach(loadGoogleFont);
+
+    if (brandData?.font_heading || brandData?.font_primary) {
+      const f = brandData.font_heading || brandData.font_primary;
+      setFontH1(f); loadGoogleFont(f);
+    }
+    if (brandData?.font_body || brandData?.font_secondary) {
+      const f = brandData.font_body || brandData.font_secondary;
+      setFontBody(f); loadGoogleFont(f);
+    }
+    if (brandData?.font_accent) { setFontAkzent(brandData.font_accent); loadGoogleFont(brandData.font_accent); }
     if (brandData?.secondary_color) setColorBg(brandData.secondary_color);
     if (brandData?.all_colors?.[2]) setColorField(brandData.all_colors[2]);
   }, [brandData]); // eslint-disable-line
@@ -102,27 +160,34 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
     { id: 'h1_color',  label: 'Ueberschrift', color: colorH1,    type: 'color',   setter: setColorH1 },
   ];
 
+  const detectedFonts = [
+    ...(brandData?.fonts_detail?.google_fonts || []),
+    brandData?.font_heading, brandData?.font_body, brandData?.font_accent,
+    brandData?.font_primary, brandData?.font_secondary,
+    ...(brandData?.all_fonts || []),
+  ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
+
   const fontRoles = [
     {
       role: 'h1', label: 'Ueberschriften (H1 · H2 · H3)',
-      font: fontH1, setFont: setFontH1,
+      font: fontH1, setFont: (f) => { setFontH1(f); loadGoogleFont(f); },
       color: colorH1, setColor: setColorH1,
-      sample: 'Ueberschrift H1 — Ihr Betrieb',
-      sampleStyle: { fontSize: 18, fontWeight: 700 },
+      sample: 'Ueberschrift — Ihr Handwerksbetrieb',
+      sampleStyle: { fontSize: 16, fontWeight: 700 },
     },
     {
       role: 'body', label: 'Fliesstext',
-      font: fontBody, setFont: setFontBody,
+      font: fontBody, setFont: (f) => { setFontBody(f); loadGoogleFont(f); },
       color: colorBody, setColor: setColorBody,
-      sample: 'Fliesstext — klar, lesbar und professionell.',
-      sampleStyle: { fontSize: 13, fontWeight: 400, lineHeight: 1.6 },
+      sample: 'Fliesstext — professionell und gut lesbar.',
+      sampleStyle: { fontSize: 12, fontWeight: 400, lineHeight: 1.6 },
     },
     {
-      role: 'akzent', label: 'Akzent (Buttons · Labels · CTA)',
-      font: fontAkzent, setFont: setFontAkzent,
+      role: 'akzent', label: 'Akzent (Buttons · CTA)',
+      font: fontAkzent, setFont: (f) => { setFontAkzent(f); loadGoogleFont(f); },
       color: colorAkzent, setColor: setColorAkzent,
       sample: 'JETZT ANFRAGEN',
-      sampleStyle: { fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' },
+      sampleStyle: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' },
     },
   ];
 
@@ -237,19 +302,11 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
             </div>
             <div style={{ padding: '10px 12px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
-                <select
+                <FontPicker
                   value={font}
-                  onChange={e => setFont(e.target.value)}
-                  style={{
-                    width: '100%', padding: '7px 10px',
-                    border: '0.5px solid var(--border-light)',
-                    borderRadius: 6, fontSize: 12,
-                    background: 'var(--bg-surface)', color: 'var(--text-primary)',
-                    fontFamily: font,
-                  }}
-                >
-                  {GOOGLE_FONTS.map(f => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
-                </select>
+                  onChange={setFont}
+                  detectedFonts={detectedFonts}
+                />
                 <div style={{
                   marginTop: 5, padding: '5px 8px',
                   background: 'var(--surface)', borderRadius: 5,
@@ -354,6 +411,166 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
         cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
         textTransform: 'uppercase', letterSpacing: '.05em',
       }}>{saving ? 'Wird gespeichert…' : 'Brand Design speichern'}</button>
+    </div>
+  );
+}
+
+function FontPicker({ value, onChange, detectedFonts = [] }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const handleSelect = (font) => {
+    loadGoogleFont(font);
+    onChange(font);
+    setOpen(false);
+    setSearch('');
+  };
+
+  const searchLower = search.toLowerCase();
+  const filteredCatalog = search
+    ? { 'Suchergebnisse': ALL_FONTS_FLAT.filter(f => f.toLowerCase().includes(searchLower)) }
+    : GOOGLE_FONTS_CATALOG;
+
+  return (
+    <div ref={ref} style={{ position: 'relative', width: '100%' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', padding: '7px 10px',
+          border: '0.5px solid var(--border-light)',
+          borderRadius: 6, fontSize: 12,
+          background: 'var(--bg-surface)', color: 'var(--text-primary)',
+          fontFamily: value, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 6, textAlign: 'left',
+        }}
+      >
+        <span style={{ fontFamily: value }}>{value}</span>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: 10 }}>&#9662;</span>
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)',
+          left: 0, right: 0,
+          background: 'var(--bg-surface)',
+          border: '1.5px solid var(--brand-primary)',
+          borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.15)',
+          zIndex: 200, maxHeight: 340,
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}>
+          <div style={{ padding: '8px 10px', borderBottom: '0.5px solid var(--border-light)', flexShrink: 0 }}>
+            <input
+              autoFocus
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Font suchen…"
+              style={{
+                width: '100%', padding: '5px 8px',
+                border: '0.5px solid var(--border-light)',
+                borderRadius: 5, fontSize: 12,
+                background: 'var(--bg-surface)', color: 'var(--text-primary)',
+                fontFamily: 'var(--font-sans)', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {!search && detectedFonts.length > 0 && (
+            <div style={{ flexShrink: 0 }}>
+              <div style={{
+                padding: '5px 10px', fontSize: 9, fontWeight: 900,
+                color: '#00875A', textTransform: 'uppercase', letterSpacing: '.08em',
+                background: '#F0FDF4', borderBottom: '0.5px solid var(--border-light)',
+              }}>
+                Von Website erkannt
+              </div>
+              {detectedFonts.map(font => (
+                <FontOption key={font} font={font} selected={value === font} onSelect={handleSelect} detected />
+              ))}
+              <div style={{ height: '0.5px', background: 'var(--border-light)' }} />
+            </div>
+          )}
+
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {Object.entries(filteredCatalog).map(([category, fonts]) => (
+              <div key={category}>
+                {!search && (
+                  <div style={{
+                    padding: '5px 10px', fontSize: 9, fontWeight: 900,
+                    color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em',
+                    background: 'var(--surface)', position: 'sticky', top: 0,
+                  }}>
+                    {category}
+                  </div>
+                )}
+                {fonts
+                  .filter(f => !detectedFonts.includes(f) || search)
+                  .map(font => (
+                    <FontOption key={font} font={font} selected={value === font} onSelect={handleSelect} detected={false} />
+                  ))
+                }
+              </div>
+            ))}
+            {search && Object.values(filteredCatalog)[0]?.length === 0 && (
+              <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: 'var(--text-tertiary)' }}>
+                Kein Font gefunden
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FontOption({ font, selected, onSelect, detected }) {
+  const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    if (hovered) loadGoogleFont(font);
+  }, [hovered, font]);
+
+  return (
+    <div
+      onClick={() => onSelect(font)}
+      onMouseEnter={() => setHovered(true)}
+      style={{
+        padding: '7px 10px',
+        background: selected ? 'var(--info-bg, #E0F4F8)' : 'transparent',
+        cursor: 'pointer',
+        display: 'flex', alignItems: 'baseline', gap: 8,
+        borderLeft: selected ? '3px solid var(--brand-primary)' : '3px solid transparent',
+      }}
+    >
+      <span style={{
+        fontFamily: hovered || selected ? font : 'var(--font-sans)',
+        fontSize: 14, color: 'var(--text-primary)',
+        flex: 1, lineHeight: 1.4,
+      }}>
+        {font}
+      </span>
+      <span style={{
+        fontFamily: hovered || selected ? font : 'var(--font-sans)',
+        fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0,
+      }}>
+        Aa Bb 123
+      </span>
+      {detected && (
+        <span style={{
+          fontSize: 8, fontWeight: 900, padding: '1px 5px',
+          borderRadius: 3, background: '#E3F6EF', color: '#00875A', flexShrink: 0,
+        }}>
+          erkannt
+        </span>
+      )}
     </div>
   );
 }

@@ -248,97 +248,109 @@ export default function ProzessFlowV3({
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '64px 1fr',
-      // Desktop: explizite Viewport-Hoehe, damit die Timeline-Spalte
-      //          zuverlaessig bis zum unteren Bildschirmrand reicht.
-      // Mobile:  relative Hoehe, weil main bereits `position: fixed`
-      //          zwischen Header (52px) und Bottom-Nav (64+safe) liegt.
+      gridTemplateColumns: '80px 1fr',
       height: isMobile ? '100%' : '100vh',
       minHeight: 0,
       background: 'var(--surface)',
       overflow: 'hidden',
       fontFamily: 'var(--font-sans)',
     }}>
-      {/* ── TIMELINE (links, 64px) ── */}
+      {/* ── TIMELINE (links, 80px) ── */}
       <div style={{
-        background: 'var(--kc-dark)',
+        width: 80,
+        background: 'linear-gradient(180deg, #004F59 0%, #003840 100%)',
         display: 'flex', flexDirection: 'column',
-        alignItems: 'center', padding: '16px 0',
-        height: '100%',
+        alignItems: 'center',
+        height: '100%', flexShrink: 0,
         ...(isMobile ? {} : { minHeight: '100vh' }),
+        boxShadow: '2px 0 16px rgba(0,0,0,.25)',
       }}>
-        <div style={{
-          width: 32, height: 32,
-          background: 'var(--kc-mid)',
-          borderRadius: '50%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 900, fontSize: 11, color: '#fff',
-          marginBottom: 16, paddingBottom: 16,
-          borderBottom: '0.5px solid rgba(255,255,255,.1)',
-          fontFamily: 'var(--font-sans)',
-        }}>kc</div>
 
+        {/* SVG Logo */}
         <div style={{
-          flex: 1,
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', gap: 6,
-          position: 'relative', padding: '8px 0',
+          width: '100%', padding: '14px 0 12px',
+          display: 'flex', justifyContent: 'center', alignItems: 'center',
+          borderBottom: '0.5px solid rgba(255,255,255,.1)',
+          marginBottom: 12, flexShrink: 0,
         }}>
-          <div style={{
-            position: 'absolute',
-            left: '50%', transform: 'translateX(-50%)',
-            top: 0, bottom: 0, width: 1,
-            background: 'rgba(255,255,255,.1)',
-          }} />
-          {SCHRITTE.map((s) => {
+          <svg width="38" height="38" viewBox="0 0 107.7 107.7" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+            <path fill="#008EAA" d="M5.7,53.8c0,11.8,4.3,22.7,11.3,31.1,3.4-19.9,14-59.4,20-76.2C18.7,15.5,5.7,33.1,5.7,53.8Z"/>
+            <path fill="#008EAA" d="M55.1,5.7c-1.4,5.4-6.4,24.1-10.4,38.4,7.1-8.9,16.2-15,23.5-15.5.8,0,1.4,0,2.3,0,4.5.2,14.6,4.8,15.5,13.5.3,5.4-4.1,15.5-8.2,15.8-5.1.3-9.7-6.1-9.8-7.4-.2-3,2.6-6.7,2.5-7.8,0-.4-.6-.5-1-.4-2.5.2-18.9,17.5-18,33.3.3,5.3,2.2,8.7,9.2,8.3,9.1-.6,18.2-8,28-22.4,1.1-1.6,2.4-2.3,3.5-2.4,2.3-.1,4.5,1.9,4.6,4.6,0,.8,0,1.7-.5,2.5-.7,1.4-5,8.2-10.9,14.5-7.8,8.5-17.6,13.2-26.5,14.5-4.9.7-10.6-.3-15.2-2.7-3.8-1.9-8.1-5.9-9.6-10.7-1.4,5.3-2.7,10.5-3.9,14.2,7,3.9,15,6.1,23.5,6.1,26.6,0,48.2-21.6,48.2-48.2S81.1,6.3,55.1,5.7Z"/>
+          </svg>
+        </div>
+
+        {/* Nummerierte Schritte */}
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', gap: 4,
+          padding: '4px 0', overflowY: 'auto',
+          width: '100%', scrollbarWidth: 'none',
+        }}>
+          {SCHRITTE.map((s, idx) => {
             const fertig = s.istFertig(prozessDaten);
             const aktiv  = s.id === offenerSchritt;
-            const size   = aktiv ? 14 : 10;
-            const bg     = fertig
-              ? 'var(--success)'
-              : aktiv
-                ? 'var(--kc-yellow)'
-                : s.id === SCHRITTE[aktivIdx + 1]?.id
-                  ? 'rgba(255,255,255,.3)'
-                  : 'rgba(255,255,255,.1)';
+            const naechster = !fertig && !aktiv && idx === aktivIdx + 1;
+            const size = aktiv ? 36 : naechster ? 30 : fertig ? 30 : 26;
+            const bg = fertig ? '#00875A'
+              : aktiv ? '#FAE600'
+              : naechster ? 'rgba(255,255,255,.15)'
+              : 'rgba(255,255,255,.06)';
+            const color = fertig ? '#fff'
+              : aktiv ? '#004F59'
+              : naechster ? 'rgba(255,255,255,.7)'
+              : 'rgba(255,255,255,.25)';
+
             return (
               <div
                 key={s.id}
                 onClick={() => setOffenerSchritt(s.id)}
                 title={`${s.nr}. ${s.label}`}
                 style={{
-                  position: 'relative', zIndex: 1,
+                  position: 'relative',
                   width: size, height: size,
                   borderRadius: '50%',
-                  background: bg,
-                  border: aktiv ? '2px solid #fff' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all .2s',
-                  flexShrink: 0,
+                  background: bg, color,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: "'Barlow Condensed', var(--font-sans)",
+                  fontSize: aktiv ? 15 : size <= 26 ? 11 : 13,
+                  fontWeight: 700,
+                  cursor: 'pointer', flexShrink: 0,
+                  transition: 'all .2s', userSelect: 'none',
+                  boxShadow: aktiv
+                    ? '0 0 0 3px rgba(250,230,0,.3), 0 3px 12px rgba(250,230,0,.4)'
+                    : fertig ? '0 2px 6px rgba(0,135,90,.35)'
+                    : naechster ? '0 0 0 1px rgba(255,255,255,.2)'
+                    : 'none',
+                  animation: aktiv ? 'stepPulse 2s ease-in-out infinite' : 'none',
                 }}
-              />
+              >
+                {fertig ? '✓' : s.nr}
+              </div>
             );
           })}
         </div>
 
+        {/* Avatar + Fortschritt */}
         <div style={{
-          paddingTop: 12, marginTop: 8,
+          width: '100%', padding: '10px 0 12px',
           borderTop: '0.5px solid rgba(255,255,255,.1)',
           display: 'flex', flexDirection: 'column',
-          alignItems: 'center', gap: 4,
+          alignItems: 'center', gap: 4, flexShrink: 0,
         }}>
           <div style={{
-            width: 26, height: 26, borderRadius: '50%',
-            background: 'var(--kc-mid)',
+            width: 30, height: 30, borderRadius: '50%',
+            background: '#008EAA',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 9, fontWeight: 900, color: '#fff',
+            fontSize: 10, fontWeight: 900, color: '#fff',
+            fontFamily: 'var(--font-sans)',
           }}>DA</div>
           <div style={{
             fontSize: 9, fontWeight: 900,
-            color: 'rgba(255,255,255,.35)',
+            color: 'rgba(255,255,255,.3)',
             textTransform: 'uppercase', letterSpacing: '.06em',
           }}>{gesamtPct}%</div>
         </div>
+
       </div>
 
       {/* ── CONTENT (rechts) ── */}
@@ -650,7 +662,13 @@ export default function ProzessFlowV3({
           </div>
         )}
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes stepPulse {
+          0%, 100% { box-shadow: 0 0 0 3px rgba(250,230,0,.3), 0 3px 12px rgba(250,230,0,.4); }
+          50%       { box-shadow: 0 0 0 6px rgba(250,230,0,.15), 0 3px 16px rgba(250,230,0,.6); }
+        }
+      `}</style>
     </div>
   );
 }

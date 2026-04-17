@@ -239,7 +239,24 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    if (!brandData) return;
+    if (!brandData) {
+      setPrimary('#004F59');
+      setSecondary('#2C3E50');
+      setAccent('#FAE600');
+      setColorBg('#F5F5F0');
+      setColorField('#FFFFFF');
+      setColorHeading('#FFFFFF');
+      setColorText('#333333');
+      setFontH1('Georgia');
+      setFontBody('Arial');
+      setFontAkzent('Barlow Condensed');
+      setColorFontH1('#FFFFFF');
+      setColorFontBody('rgba(255,255,255,0.75)');
+      setColorFontCta('#000000');
+      setRadius(6);
+      setShadow('leicht');
+      return;
+    }
     if (brandData.primary_color)   setPrimary(brandData.primary_color);
     if (brandData.secondary_color) setSecondary(brandData.secondary_color);
 

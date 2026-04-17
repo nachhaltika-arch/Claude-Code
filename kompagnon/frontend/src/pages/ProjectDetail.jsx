@@ -1184,6 +1184,7 @@ export default function ProjectDetail() {
   // Auto-load briefing data on project load
   useEffect(() => {
     if (!project?.lead_id) return;
+    setBriefingData(null);
     fetch(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setBriefingData(d); })
@@ -1207,7 +1208,8 @@ export default function ProjectDetail() {
 
   // Auto-load brand data on project load (needed for ProzessFlow step 3 completion)
   useEffect(() => {
-    if (!project?.lead_id || brandData) return;
+    if (!project?.lead_id) return;
+    setBrandData(null);
     loadBrandData();
   }, [project?.lead_id]); // eslint-disable-line
 
@@ -1421,7 +1423,10 @@ export default function ProjectDetail() {
   const loadBrandData = async () => {
     if (!project?.lead_id) return;
     const res = await fetch(`${API_BASE_URL}/api/branddesign/${project.lead_id}`, { headers });
-    if (res.ok) setBrandData(await res.json());
+    if (res.ok) {
+      const d = await res.json();
+      if (d && (!d.lead_id || d.lead_id === project.lead_id)) setBrandData(d);
+    }
   };
 
   const loadPageContext = async () => {

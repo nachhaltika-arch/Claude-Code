@@ -721,7 +721,7 @@ function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
     case 'BrandDesign':
       return (
         <BrandDesignWerkstatt project={project} lead={lead} token={token}
-          onBrandSaved={(data) => { if (onBrandUpdate) onBrandUpdate(data); }} />
+          onBrandSaved={(data) => { if (onAnalyseUpdate) onAnalyseUpdate({ brandPrimaryColor: data?.primary_color, brandData: data }); }} />
       );
     case 'BrandGuideline':
       return (

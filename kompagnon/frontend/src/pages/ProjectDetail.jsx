@@ -1213,6 +1213,15 @@ export default function ProjectDetail() {
     loadBrandData();
   }, [project?.lead_id]); // eslint-disable-line
 
+  // Auto-load netlify status on project load (needed for ProzessFlow step completion)
+  useEffect(() => {
+    if (!project?.id) return;
+    fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setNetlify(d); })
+      .catch(() => {});
+  }, [project?.id]); // eslint-disable-line
+
   // Set initial tab on project load
   useEffect(() => {
     if (project) {

@@ -15,6 +15,7 @@ import SitemapVorschlaege from './SitemapVorschlaege';
 import ZieleZielgruppe from './briefing/ZieleZielgruppe';
 import AssetsKlaeren from './briefing/AssetsKlaeren';
 import Funktionen from './briefing/Funktionen';
+import SeoZiele from './briefing/SeoZiele';
 import {
   BriefingUnternehmenEmbed,
   AuditEmbed,
@@ -67,7 +68,16 @@ const SCHRITTE = [
     fertigText: () => 'Funktionen geklärt',
   },
   {
-    id: 'audit', nr: 5, phase: 'Analyse',
+    id: 'seo-ziele', nr: 5, phase: 'Analyse',
+    icon: '📈', label: 'SEO-Ziele', auto: false,
+    cta: 'SEO-Ziele bestätigen →',
+    desc: 'Keywords automatisch generiert — Google Business und Social Media aus Website erkannt.',
+    component: 'SeoZiele',
+    istFertig: (d) => !!(d.briefing?.sonstige_hinweise?.includes('Keywords:')),
+    fertigText: () => 'SEO-Ziele gesetzt',
+  },
+  {
+    id: 'audit', nr: 6, phase: 'Analyse',
     icon: '🔍', label: 'Website-Audit', auto: true,
     autoText: 'Bestehende Website wird analysiert — Score, Probleme und Bericht in ~30 Sekunden.',
     desc: 'Technische Analyse der alten Website.',
@@ -76,7 +86,7 @@ const SCHRITTE = [
     fertigText: (d) => `Score: ${d.latestAudit?.total_score}/100`,
   },
   {
-    id: 'analyse-zentrale', nr: 6, phase: 'Analyse',
+    id: 'analyse-zentrale', nr: 7, phase: 'Analyse',
     icon: '🔬', label: 'Vollanalyse', auto: false,
     cta: 'Vollanalyse starten →',
     desc: 'Crawler, PageSpeed, GA und Hosting werden gleichzeitig gemessen.',
@@ -85,7 +95,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.crawlPages} Seiten gecrawlt`,
   },
   {
-    id: 'brand-design', nr: 7, phase: 'Analyse',
+    id: 'brand-design', nr: 8, phase: 'Analyse',
     icon: '🎨', label: 'Brand Design', auto: false,
     cta: 'Brand Design speichern →',
     desc: 'Farben, Schriften und Stil fuer die neue Website festlegen.',
@@ -94,7 +104,7 @@ const SCHRITTE = [
     fertigText: (d) => d.brandPrimaryColor || 'Gespeichert',
   },
   {
-    id: 'brand-guideline', nr: 8, phase: 'Analyse',
+    id: 'brand-guideline', nr: 9, phase: 'Analyse',
     icon: '📐', label: 'Brand Guideline', auto: false,
     cta: 'Guideline generieren →',
     desc: 'KI erstellt Farb-Tokens, Typografie-Skala und Komponenten-Stile aus den Brand-Daten.',
@@ -103,7 +113,7 @@ const SCHRITTE = [
     fertigText: () => 'Design-System erstellt',
   },
   {
-    id: 'seo-analyse', nr: 9, phase: 'Analyse',
+    id: 'seo-analyse', nr: 10, phase: 'Analyse',
     icon: '📊', label: 'SEO-Analyse', auto: false,
     cta: 'SEO-Analyse starten →',
     desc: 'Lokale SEO-Positionierung analysieren — Keywords, On-Page, Wettbewerber.',
@@ -112,7 +122,7 @@ const SCHRITTE = [
     fertigText: (d) => d.seoScore ? `Score: ${d.seoScore}` : 'Abgeschlossen',
   },
   {
-    id: 'briefing-website', nr: 10, phase: 'Analyse',
+    id: 'briefing-website', nr: 11, phase: 'Analyse',
     icon: '📋', label: 'Briefing: Website', auto: false,
     cta: 'Website-Briefing ausfüllen →',
     desc: 'Ziele, gewünschte Seiten und Design-Wünsche dokumentieren.',
@@ -121,7 +131,7 @@ const SCHRITTE = [
     fertigText: () => 'Ausgefüllt',
   },
   {
-    id: 'zugangsdaten', nr: 11, phase: 'Analyse',
+    id: 'zugangsdaten', nr: 12, phase: 'Analyse',
     icon: '🔑', label: 'Zugangsdaten', auto: false, optional: true,
     cta: 'Zugangsdaten speichern →',
     desc: 'Hosting, FTP und CMS-Zugänge sicher speichern.',
@@ -130,7 +140,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.credsCount} Einträge`,
   },
   {
-    id: 'sitemap', nr: 12, phase: 'Content',
+    id: 'sitemap', nr: 13, phase: 'Content',
     icon: '🗺️', label: 'Sitemap', auto: false,
     cta: 'KI-Sitemap generieren →',
     desc: 'KI legt alle Seiten aus dem Briefing an — 1 Klick.',
@@ -139,7 +149,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.sitemapCount} Seiten`,
   },
   {
-    id: 'seiteninhalte', nr: 13, phase: 'Content',
+    id: 'seiteninhalte', nr: 14, phase: 'Content',
     icon: '📝', label: 'Seiteninhalte', auto: false,
     cta: 'Alle Texte generieren →',
     desc: 'KI schreibt alle Seiten auf einmal — ca. 60 Sekunden.',
@@ -148,7 +158,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.contentCount}/${d.sitemapCount} Seiten`,
   },
   {
-    id: 'bilder-assets', nr: 14, phase: 'Content',
+    id: 'bilder-assets', nr: 15, phase: 'Content',
     icon: '🖼️', label: 'Bilder & Assets', auto: false, optional: true,
     cta: 'Weiter zu Freigaben →',
     desc: 'Fotos, Icons und Medien jeder Seite zuweisen.',
@@ -157,7 +167,7 @@ const SCHRITTE = [
     fertigText: () => 'Geprueft',
   },
   {
-    id: 'freigaben', nr: 15, phase: 'Content',
+    id: 'freigaben', nr: 16, phase: 'Content',
     icon: '✅', label: 'Freigaben', auto: false, optional: true,
     cta: 'Freigabe anfordern →',
     desc: 'Content-Freigabe vom Kunden einholen.',
@@ -166,7 +176,7 @@ const SCHRITTE = [
     fertigText: () => 'Freigegeben',
   },
   {
-    id: 'design-generieren', nr: 16, phase: 'Design',
+    id: 'design-generieren', nr: 17, phase: 'Design',
     icon: '🎨', label: 'Design wählen', auto: false,
     cta: 'Design generieren →',
     desc: 'KI erstellt 3 Entwürfe — du wählst den besten.',
@@ -175,7 +185,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.designVersions} Version(en)`,
   },
   {
-    id: 'editor', nr: 17, phase: 'Design',
+    id: 'editor', nr: 18, phase: 'Design',
     icon: '🖊️', label: 'Feinschliff', auto: false, optional: true,
     cta: 'Editor öffnen →',
     desc: 'Echte Fotos einsetzen, Texte prüfen, Mobile-Ansicht testen.',
@@ -184,7 +194,7 @@ const SCHRITTE = [
     fertigText: () => 'Gespeichert',
   },
   {
-    id: 'netlify', nr: 18, phase: 'Go Live',
+    id: 'netlify', nr: 19, phase: 'Go Live',
     icon: '🚀', label: 'Veröffentlichen', auto: false,
     cta: 'Jetzt veröffentlichen →',
     desc: 'Website live schalten — 1 Klick, Netlify deployt automatisch.',
@@ -193,7 +203,7 @@ const SCHRITTE = [
     fertigText: (d) => d.netlifyUrl || 'Deployed',
   },
   {
-    id: 'dns', nr: 19, phase: 'Go Live',
+    id: 'dns', nr: 20, phase: 'Go Live',
     icon: '🌍', label: 'Domain verbinden', auto: true,
     autoText: 'DNS-Anleitung wird automatisch per E-Mail an den Kunden gesendet — du musst nichts tun.',
     desc: 'Anleitung geht direkt an den Kunden.',
@@ -202,7 +212,7 @@ const SCHRITTE = [
     fertigText: () => 'Domain erreichbar',
   },
   {
-    id: 'qa', nr: 20, phase: 'Go Live',
+    id: 'qa', nr: 21, phase: 'Go Live',
     icon: '✅', label: 'QA-Check', auto: true,
     autoText: 'Website wird automatisch auf Fehler, Mobile-Darstellung und Impressum geprüft.',
     desc: 'Links, Mobile, Impressum — automatisch.',
@@ -211,7 +221,7 @@ const SCHRITTE = [
     fertigText: () => 'QA abgeschlossen',
   },
   {
-    id: 'abnahme', nr: 21, phase: 'Go Live',
+    id: 'abnahme', nr: 22, phase: 'Go Live',
     icon: '🏁', label: 'Go Live!', auto: false,
     cta: 'Abnahme erteilen →',
     desc: 'Finale Kundenfreigabe und Go-Live.',
@@ -809,6 +819,14 @@ function SchrittContent({ schritt, ...props }) {
     case 'Funktionen':
       return (
         <Funktionen
+          leadId={props.leadId}
+          token={props.token}
+          onSaved={() => { if (props.reloadBriefing) props.reloadBriefing(); }}
+        />
+      );
+    case 'SeoZiele':
+      return (
+        <SeoZiele
           leadId={props.leadId}
           token={props.token}
           onSaved={() => { if (props.reloadBriefing) props.reloadBriefing(); }}

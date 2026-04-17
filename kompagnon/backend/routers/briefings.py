@@ -922,6 +922,118 @@ def prefill_funktionen(
     }
 
 
+@router.post("/{lead_id}/ki-prefill-seo")
+async def ki_prefill_seo(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Generiert SEO-Keywords mit Claude, liest Google Business und Social Media aus Crawler."""
+    import os, httpx, json as _json, re
+    from sqlalchemy import text as sa_text
+
+    lead     = db.query(Lead).filter(Lead.id == lead_id).first()
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    gewerk     = (briefing.gewerk     if briefing else "") or (lead.trade or "Handwerk")
+    leistungen = (briefing.leistungen if briefing else "") or ""
+    city       = lead.city or "Deutschland"
+    einzug     = (briefing.einzugsgebiet if briefing else "") or city
+
+    ga_status = getattr(lead, "ga_status", "") or "unbekannt"
+    ga_type   = getattr(lead, "ga_type", "") or ""
+
+    gb_status = "unbekannt"
+    social_found = []
+    try:
+        rows = db.execute(
+            sa_text("SELECT full_text, url FROM website_content_cache WHERE customer_id=:id LIMIT 5"),
+            {"id": lead_id}
+        ).fetchall()
+        all_text = " ".join((r[0] or "") + " " + (r[1] or "") for r in rows).lower()
+
+        if "maps.google" in all_text or "goo.gl/maps" in all_text or "google.com/maps" in all_text:
+            gb_status = "Vorhanden (Link auf Website gefunden)"
+        elif "google business" in all_text or "google my business" in all_text:
+            gb_status = "Wahrscheinlich vorhanden"
+
+        social_patterns = {
+            "Facebook":  r"facebook\.com/",
+            "Instagram": r"instagram\.com/",
+            "LinkedIn":  r"linkedin\.com/",
+            "YouTube":   r"youtube\.com/",
+            "TikTok":    r"tiktok\.com/",
+            "Pinterest": r"pinterest\.",
+            "X/Twitter": r"twitter\.com/|x\.com/",
+            "Xing":      r"xing\.com/",
+        }
+        for name, pat in social_patterns.items():
+            if re.search(pat, all_text):
+                social_found.append(name)
+    except Exception:
+        pass
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    keywords = []
+
+    if api_key:
+        prompt = f"""Generiere die Top 5 Google-Suchbegriffe fuer diesen Handwerksbetrieb.
+Gewerk: {gewerk} | Stadt: {city} | Einzugsgebiet: {einzug}
+Leistungen: {leistungen}
+
+Regel: Immer nach Muster "{{Leistung}} {{Stadt}}" und "{{Leistung}} {{Region}}".
+Fuege 1-2 Notfall/Spezial-Keywords hinzu wenn relevant.
+
+Antworte NUR als JSON-Array: ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]"""
+
+        db.close()
+
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                resp = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
+                             "content-type": "application/json"},
+                    json={"model": "claude-sonnet-4-20250514", "max_tokens": 200,
+                          "messages": [{"role": "user", "content": prompt}]},
+                )
+            resp.raise_for_status()
+            raw = resp.json()["content"][0]["text"].strip()
+            raw = raw.replace("```json", "").replace("```", "").strip()
+            keywords = _json.loads(raw)
+        except Exception:
+            pass
+    else:
+        db.close()
+
+    if not keywords:
+        keywords = [
+            f"{gewerk} {city}",
+            f"{gewerk} {einzug}",
+            f"{gewerk} {city} guenstig",
+        ]
+
+    return {
+        "keywords":        keywords,
+        "keywords_quelle": "Claude + Gewerk/Stadt",
+        "google_business": {
+            "status": gb_status,
+            "quelle": "Crawler-Analyse",
+        },
+        "social_media": {
+            "gefunden": social_found,
+            "quelle":   f"{len(social_found)} Kanaele auf Website erkannt",
+            "auto":     True,
+        },
+        "ga_analytics": {
+            "status": ga_status,
+            "type":   ga_type,
+        },
+    }
+
+
 @router.post("/{lead_id}/ki-prefill")
 def ki_prefill_endpoint(
     lead_id: int,

@@ -1168,6 +1168,13 @@ MIGRATIONS = [
         )""",
         "CREATE INDEX IF NOT EXISTS idx_seo_analyses_project_id ON seo_analyses(project_id)",
     ]),
+
+    (15, "add_lead_font_roles", [
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_font_heading TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_font_body TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_font_accent TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_fonts_detail TEXT",
+    ]),
 ]
 
 

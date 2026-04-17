@@ -81,6 +81,10 @@ def get_brand_data(lead_id: int, db: Session = Depends(get_db)):
         "secondary_color": lead.brand_secondary_color,
         "font_primary":    lead.brand_font_primary,
         "font_secondary":  lead.brand_font_secondary,
+        "font_heading":    getattr(lead, 'brand_font_heading', None),
+        "font_body":       getattr(lead, 'brand_font_body',    None),
+        "font_accent":     getattr(lead, 'brand_font_accent',  None),
+        "fonts_detail":    _j(getattr(lead, 'brand_fonts_detail', None)),
         "logo_url":        lead.brand_logo_url,
         "all_colors":      _j(lead.brand_colors),
         "all_fonts":       _j(lead.brand_fonts),
@@ -167,6 +171,108 @@ Antworte NUR als JSON-Array: [{{"name":"Font","category":"Sans-Serif|Serif|Displ
         raise HTTPException(500, f"Font-Recherche fehlgeschlagen: {str(e)[:100]}")
 
 
+# ── Font-Rollen-Erkennung ──────────────────────────────────────────────────────
+
+def _extract_font_roles(css_text: str, html_text: str) -> dict:
+    """Analysiert CSS + HTML und erkennt Heading/Body/Accent Schriften."""
+    HEADING_PAT = [r'h[1-6]\b', r'\.heading', r'\.title', r'\.headline', r'\.hero', r'\.display']
+    BODY_PAT    = [r'\bbody\b', r'\bp\b', r'main\b', r'article\b', r'\.content\b', r'\.text\b', r'\.prose']
+    ACCENT_PAT  = [r'\.btn\b', r'button\b', r'\bnav\b', r'\.cta\b', r'blockquote\b', r'\.badge\b']
+
+    generic = {'inherit','initial','unset','serif','sans-serif','monospace','cursive','fantasy',
+               'system-ui','-apple-system','blinkmacsystemfont','segoe ui','helvetica neue',
+               'helvetica','arial','times new roman','courier new'}
+
+    def _clean(raw):
+        name = raw.strip().strip("'\"").split(',')[0].strip()
+        return name if name and name.lower() not in generic else None
+
+    def _match(sel, pats):
+        s = sel.lower()
+        return any(re.search(p, s) for p in pats)
+
+    rule_pat = re.compile(r'([^{}@][^{}]*?)\{([^{}]*?font-family\s*:[^;}]+[^{}]*?)\}', re.DOTALL | re.IGNORECASE)
+    fd_pat   = re.compile(r'font-family\s*:\s*([^;}{]+)', re.IGNORECASE)
+
+    heading_f, body_f, accent_f = [], [], []
+    seen, all_f = set(), []
+
+    for m in rule_pat.finditer(css_text):
+        sel, body = m.group(1).strip(), m.group(2)
+        fm = fd_pat.search(body)
+        if not fm:
+            continue
+        name = _clean(fm.group(1))
+        if not name:
+            continue
+        if name not in seen:
+            seen.add(name)
+            all_f.append(name)
+        if _match(sel, HEADING_PAT): heading_f.append(name)
+        if _match(sel, BODY_PAT):    body_f.append(name)
+        if _match(sel, ACCENT_PAT):  accent_f.append(name)
+
+    gf_pat = re.compile(r'fonts\.googleapis\.com/css[^"\']*[?&]family=([^"\'&]+)', re.IGNORECASE)
+    google_fonts = []
+    for src in [html_text, css_text]:
+        for gm in gf_pat.finditer(src):
+            for fam in gm.group(1).split('|'):
+                n = fam.split(':')[0].replace('+', ' ').strip()
+                if n and n not in google_fonts:
+                    google_fonts.append(n)
+                    if n not in seen:
+                        seen.add(n)
+                        all_f.append(n)
+
+    def _pick(lst, idx=0):
+        if lst:
+            from collections import Counter
+            return Counter(lst).most_common(1)[0][0]
+        if google_fonts:
+            return google_fonts[min(idx, len(google_fonts) - 1)]
+        if all_f:
+            return all_f[min(idx, len(all_f) - 1)]
+        return None
+
+    h, b, a = _pick(heading_f, 0), _pick(body_f, 1), _pick(accent_f, 2)
+    if h and b and h == b:
+        rem = [f for f in all_f if f != h]
+        if rem:
+            b = rem[0]
+
+    return {
+        "heading": h, "body": b, "accent": a,
+        "all": all_f[:8], "google_fonts": google_fonts,
+        "heading_candidates": list(set(heading_f))[:4],
+        "body_candidates":    list(set(body_f))[:4],
+        "accent_candidates":  list(set(accent_f))[:4],
+        "source": "css_analysis" if (heading_f or body_f) else "heuristic",
+    }
+
+
+async def _fetch_external_css(html_text: str, base_url: str) -> str:
+    """Laedt verlinkte CSS-Dateien (max 3, 5s Timeout, 200KB max)."""
+    from bs4 import BeautifulSoup
+    from urllib.parse import urljoin
+    import httpx as _hx
+
+    soup = BeautifulSoup(html_text, 'html.parser')
+    parts = []
+    for tag in soup.find_all('link', rel=lambda r: r and 'stylesheet' in r)[:3]:
+        href = tag.get('href', '')
+        if not href or 'fonts.googleapis.com' in href:
+            continue
+        url = href if href.startswith('http') else urljoin(base_url, href)
+        try:
+            async with _hx.AsyncClient(timeout=5.0, verify=False) as c:
+                resp = await c.get(url, follow_redirects=True)
+            if resp.status_code == 200:
+                parts.append(resp.text[:200_000])
+        except Exception:
+            pass
+    return '\n'.join(parts)
+
+
 # ── Endpoint 2 — Scrape ────────────────────────────────────────────────────────
 
 @router.post("/{lead_id}/scrape")
@@ -239,20 +345,24 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
         primary_color = primary
         secondary_color = all_colors[1] if len(all_colors) > 1 else None
 
-        # Fonts — deduplicate, skip generic families
-        generic = {'inherit', 'initial', 'unset', 'serif', 'sans-serif',
-                   'monospace', 'cursive', 'fantasy', 'system-ui'}
-        seen_f: set[str] = set()
-        for f in fonts:
-            name = f.strip().strip("'\"").split(',')[0].strip()
-            if name and name.lower() not in generic and name not in seen_f:
-                seen_f.add(name)
-                all_fonts.append(name)
-        all_fonts = all_fonts[:6]
+        # Fonts — Rollen-Analyse (Heading/Body/Accent aus CSS-Selektoren)
+        external_css = await _fetch_external_css(html_text, website_url)
+        combined_css = html_text + '\n' + external_css
+        font_roles = _extract_font_roles(combined_css, html_text)
 
-        if all_fonts:
-            font_primary   = all_fonts[0]
-            font_secondary = all_fonts[1] if len(all_fonts) > 1 else None
+        font_heading_val  = font_roles.get("heading")
+        font_body_val     = font_roles.get("body")
+        font_accent_val   = font_roles.get("accent")
+        all_fonts         = font_roles.get("all", [])[:6]
+        google_fonts_list = font_roles.get("google_fonts", [])
+
+        font_primary   = font_heading_val or (all_fonts[0] if all_fonts else None)
+        font_secondary = font_body_val or (all_fonts[1] if len(all_fonts) > 1 else None)
+
+        logger.info(
+            f"Font-Analyse {website_url}: heading={font_heading_val}, "
+            f"body={font_body_val}, accent={font_accent_val}, google={google_fonts_list}"
+        )
 
         # Logo
         from bs4 import BeautifulSoup
@@ -372,6 +482,19 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
     lead.brand_logo_url        = logo_url
     lead.brand_colors          = json.dumps(all_colors)
     lead.brand_fonts           = json.dumps(all_fonts)
+    # Font-Rollen (Heading/Body/Accent separat)
+    _set(lead, 'brand_font_heading', font_heading_val if not scrape_failed else None)
+    _set(lead, 'brand_font_body',    font_body_val    if not scrape_failed else None)
+    _set(lead, 'brand_font_accent',  font_accent_val  if not scrape_failed else None)
+    _set(lead, 'brand_fonts_detail', json.dumps({
+        "heading": font_heading_val, "body": font_body_val, "accent": font_accent_val,
+        "google_fonts": google_fonts_list if not scrape_failed else [],
+        "all": all_fonts,
+        "heading_candidates": font_roles.get("heading_candidates", []) if not scrape_failed else [],
+        "body_candidates":    font_roles.get("body_candidates", [])    if not scrape_failed else [],
+        "accent_candidates":  font_roles.get("accent_candidates", [])  if not scrape_failed else [],
+        "source": font_roles.get("source", "unknown") if not scrape_failed else "failed",
+    }, ensure_ascii=False) if not scrape_failed else None)
     lead.brand_scrape_failed   = scrape_failed
     lead.brand_scraped_at      = now
     # SSL-Status aus dem Helper persistieren — Frontend rendert dazu ein Badge
@@ -399,6 +522,9 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
         "logo_url":        logo_url,
         "all_colors":      all_colors,
         "all_fonts":       all_fonts,
+        "font_heading":    font_heading_val if not scrape_failed else None,
+        "font_body":       font_body_val    if not scrape_failed else None,
+        "font_accent":     font_accent_val  if not scrape_failed else None,
         "scrape_failed":   scrape_failed,
         "scraped_at":      str(now)[:16],
         "design_data":     design_data,

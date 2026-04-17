@@ -19,6 +19,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
   const [accent, setAccent]       = useState('#F39C12');
   const [fontHead, setFontHead]   = useState(brandData?.font_primary || 'Georgia');
   const [fontBody, setFontBody]   = useState(brandData?.font_secondary || 'Arial');
+  const [fontAccent, setFontAccent] = useState(brandData?.font_accent || 'Barlow Condensed');
   const [radius, setRadius]       = useState(6);
   const [shadow, setShadow]       = useState('leicht');
   const [activeToken, setActiveToken] = useState(null);

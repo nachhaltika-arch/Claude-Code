@@ -10,6 +10,7 @@ import BriefingTab from './BriefingTab';
 import BrandDesignWerkstatt from './BrandDesignWerkstatt';
 import BrandDesignEditor from './BrandDesignEditor';
 import BrandGuideline from './BrandGuideline';
+import SeoAnalyseStep from './SeoAnalyseStep';
 import SitemapVorschlaege from './SitemapVorschlaege';
 import {
   BriefingUnternehmenEmbed,
@@ -72,7 +73,16 @@ const SCHRITTE = [
     fertigText: () => 'Design-System erstellt',
   },
   {
-    id: 'briefing-website', nr: 6, phase: 'Analyse',
+    id: 'seo-analyse', nr: 6, phase: 'Analyse',
+    icon: '📊', label: 'SEO-Analyse', auto: false,
+    cta: 'SEO-Analyse starten →',
+    desc: 'Lokale SEO-Positionierung analysieren — Keywords, On-Page, Wettbewerber.',
+    component: 'SeoAnalyse',
+    istFertig: (d) => !!(d.seoCompleted),
+    fertigText: (d) => d.seoScore ? `Score: ${d.seoScore}` : 'Abgeschlossen',
+  },
+  {
+    id: 'briefing-website', nr: 7, phase: 'Analyse',
     icon: '📋', label: 'Briefing: Website', auto: false,
     cta: 'Website-Briefing ausfüllen →',
     desc: 'Ziele, gewünschte Seiten und Design-Wünsche dokumentieren.',
@@ -81,7 +91,7 @@ const SCHRITTE = [
     fertigText: () => 'Ausgefüllt',
   },
   {
-    id: 'zugangsdaten', nr: 7, phase: 'Analyse',
+    id: 'zugangsdaten', nr: 8, phase: 'Analyse',
     icon: '🔑', label: 'Zugangsdaten', auto: false, optional: true,
     cta: 'Zugangsdaten speichern →',
     desc: 'Hosting, FTP und CMS-Zugänge sicher speichern.',
@@ -90,7 +100,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.credsCount} Einträge`,
   },
   {
-    id: 'sitemap', nr: 8, phase: 'Content',
+    id: 'sitemap', nr: 9, phase: 'Content',
     icon: '🗺️', label: 'Sitemap', auto: false,
     cta: 'KI-Sitemap generieren →',
     desc: 'KI legt alle Seiten aus dem Briefing an — 1 Klick.',
@@ -99,7 +109,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.sitemapCount} Seiten`,
   },
   {
-    id: 'seiteninhalte', nr: 9, phase: 'Content',
+    id: 'seiteninhalte', nr: 10, phase: 'Content',
     icon: '📝', label: 'Seiteninhalte', auto: false,
     cta: 'Alle Texte generieren →',
     desc: 'KI schreibt alle Seiten auf einmal — ca. 60 Sekunden.',
@@ -108,7 +118,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.contentCount}/${d.sitemapCount} Seiten`,
   },
   {
-    id: 'bilder-assets', nr: 10, phase: 'Content',
+    id: 'bilder-assets', nr: 11, phase: 'Content',
     icon: '🖼️', label: 'Bilder & Assets', auto: false, optional: true,
     cta: 'Weiter zu Freigaben →',
     desc: 'Fotos, Icons und Medien jeder Seite zuweisen.',
@@ -117,7 +127,7 @@ const SCHRITTE = [
     fertigText: () => 'Geprueft',
   },
   {
-    id: 'freigaben', nr: 11, phase: 'Content',
+    id: 'freigaben', nr: 12, phase: 'Content',
     icon: '✅', label: 'Freigaben', auto: false, optional: true,
     cta: 'Freigabe anfordern →',
     desc: 'Content-Freigabe vom Kunden einholen.',
@@ -126,7 +136,7 @@ const SCHRITTE = [
     fertigText: () => 'Freigegeben',
   },
   {
-    id: 'design-generieren', nr: 12, phase: 'Design',
+    id: 'design-generieren', nr: 13, phase: 'Design',
     icon: '🎨', label: 'Design wählen', auto: false,
     cta: 'Design generieren →',
     desc: 'KI erstellt 3 Entwürfe — du wählst den besten.',
@@ -135,7 +145,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.designVersions} Version(en)`,
   },
   {
-    id: 'editor', nr: 13, phase: 'Design',
+    id: 'editor', nr: 14, phase: 'Design',
     icon: '🖊️', label: 'Feinschliff', auto: false, optional: true,
     cta: 'Editor öffnen →',
     desc: 'Echte Fotos einsetzen, Texte prüfen, Mobile-Ansicht testen.',
@@ -144,7 +154,7 @@ const SCHRITTE = [
     fertigText: () => 'Gespeichert',
   },
   {
-    id: 'netlify', nr: 14, phase: 'Go Live',
+    id: 'netlify', nr: 15, phase: 'Go Live',
     icon: '🚀', label: 'Veröffentlichen', auto: false,
     cta: 'Jetzt veröffentlichen →',
     desc: 'Website live schalten — 1 Klick, Netlify deployt automatisch.',
@@ -153,7 +163,7 @@ const SCHRITTE = [
     fertigText: (d) => d.netlifyUrl || 'Deployed',
   },
   {
-    id: 'dns', nr: 15, phase: 'Go Live',
+    id: 'dns', nr: 16, phase: 'Go Live',
     icon: '🌍', label: 'Domain verbinden', auto: true,
     autoText: 'DNS-Anleitung wird automatisch per E-Mail an den Kunden gesendet — du musst nichts tun.',
     desc: 'Anleitung geht direkt an den Kunden.',
@@ -162,7 +172,7 @@ const SCHRITTE = [
     fertigText: () => 'Domain erreichbar',
   },
   {
-    id: 'qa', nr: 16, phase: 'Go Live',
+    id: 'qa', nr: 17, phase: 'Go Live',
     icon: '✅', label: 'QA-Check', auto: true,
     autoText: 'Website wird automatisch auf Fehler, Mobile-Darstellung und Impressum geprüft.',
     desc: 'Links, Mobile, Impressum — automatisch.',
@@ -171,7 +181,7 @@ const SCHRITTE = [
     fertigText: () => 'QA abgeschlossen',
   },
   {
-    id: 'abnahme', nr: 17, phase: 'Go Live',
+    id: 'abnahme', nr: 18, phase: 'Go Live',
     icon: '🏁', label: 'Go Live!', auto: false,
     cta: 'Abnahme erteilen →',
     desc: 'Finale Kundenfreigabe und Go-Live.',
@@ -213,6 +223,8 @@ export default function ProzessFlowV3({
     crawlPages:       localCrawlPages || 0,
     brandPrimaryColor: localBrandColor || null,
     brandGuidelineGenerated: !!(lead?.brand_guideline_json),
+    seoCompleted: false,
+    seoScore: null,
     sitemapCount:     sitemapPages?.length || 0,
     contentCount:     (websiteContent || []).filter(p => p.ki_content || p.content_generated).length,
     assetsChecked:    !!(project?.assets_checked),
@@ -791,6 +803,8 @@ function SchrittContent({ schritt, ...props }) {
         <BrandGuideline project={props.project} lead={props.lead} token={props.token}
           leadId={props.leadId} brandData={props.brandData} />
       );
+    case 'SeoAnalyse':
+      return <SeoAnalyseStep projectId={props.project?.id} token={props.token} />;
     case 'ContentWerkstatt':
       return (
         <ContentWerkstatt project={props.project} sitemapPages={props.sitemapPages} sitemapLoading={props.sitemapLoading} token={props.token} leadId={props.leadId} websiteContent={props.websiteContent} />

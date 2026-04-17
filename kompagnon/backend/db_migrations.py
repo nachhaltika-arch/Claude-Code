@@ -1175,6 +1175,13 @@ MIGRATIONS = [
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_font_accent TEXT",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_fonts_detail TEXT",
     ]),
+
+    (16, "add_briefing_ziele_zielgruppe", [
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS hauptziel TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS aktionen TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS typischer_kunde TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS haeufige_anfrage TEXT",
+    ]),
 ]
 
 

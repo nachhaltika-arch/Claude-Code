@@ -25,6 +25,7 @@ FLAT_FIELDS = [
     "project_id", "gewerk", "wz_code", "wz_title", "leistungen", "einzugsgebiet", "usp",
     "mitbewerber", "vorbilder", "farben", "wunschseiten", "stil",
     "logo_vorhanden", "fotos_vorhanden", "sonstige_hinweise", "status",
+    "hauptziel", "aktionen", "typischer_kunde", "haeufige_anfrage",
 ]
 
 
@@ -45,6 +46,10 @@ class BriefingBody(BaseModel):
     fotos_vorhanden: Optional[bool] = None
     sonstige_hinweise: Optional[str] = None
     status: Optional[str] = None
+    hauptziel: Optional[str] = None
+    aktionen: Optional[str] = None
+    typischer_kunde: Optional[str] = None
+    haeufige_anfrage: Optional[str] = None
 
 
 def _serialize(b: Briefing) -> dict:
@@ -91,6 +96,10 @@ def _serialize(b: Briefing) -> dict:
         "fotos_vorhanden":   bool(getattr(b, "fotos_vorhanden", False)),
         "sonstige_hinweise": getattr(b, "sonstige_hinweise", "") or "",
         "status":            getattr(b, "status",            "entwurf") or "entwurf",
+        "hauptziel":         getattr(b, "hauptziel",         "") or "",
+        "aktionen":          getattr(b, "aktionen",          "") or "",
+        "typischer_kunde":   getattr(b, "typischer_kunde",   "") or "",
+        "haeufige_anfrage":  getattr(b, "haeufige_anfrage",  "") or "",
         # KI-Auto-Fill Metadaten (fuer Banner + Badges im Frontend)
         "ki_prefilled_at":   (
             b.ki_prefilled_at.isoformat()
@@ -645,6 +654,91 @@ def ki_prefill_briefing(lead_id: int, db: Session) -> dict:
         }
     finally:
         db2.close()
+
+
+@router.post("/{lead_id}/ki-prefill-ziele")
+async def ki_prefill_ziele(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Liest vorhandene Daten und laesst Claude Ziele + Zielgruppe ableiten."""
+    import os, httpx, json as _json
+    from sqlalchemy import text as sa_text
+
+    lead     = db.query(Lead).filter(Lead.id == lead_id).first()
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    crawler_pages = []
+    try:
+        cached = db.execute(
+            sa_text("SELECT title, text_preview, full_text FROM website_content_cache "
+                    "WHERE customer_id=:id ORDER BY id LIMIT 3"),
+            {"id": lead_id}
+        ).fetchall()
+        for p in cached:
+            crawler_pages.append(f"{p[0] or ''}: {(p[2] or p[1] or '')[:300]}")
+    except Exception:
+        pass
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    gewerk     = (briefing.gewerk     if briefing else "") or (lead.trade or "Handwerk")
+    leistungen = (briefing.leistungen if briefing else "") or ""
+    usp        = (briefing.usp        if briefing else "") or ""
+    region     = (briefing.einzugsgebiet if briefing else "") or (lead.city or "")
+    company    = lead.company_name or ""
+    crawler_text = "\n".join(crawler_pages) or "kein Crawler-Inhalt verfuegbar"
+
+    prompt = f"""Du analysierst Daten eines Handwerksbetriebs und leitest Ziele + Zielgruppe ab.
+
+BETRIEB: {company}
+Gewerk: {gewerk} | Region: {region}
+Leistungen: {leistungen}
+USP: {usp}
+
+WEBSITE-INHALTE (automatisch gescrapt):
+{crawler_text}
+
+Leite folgende Felder aus den Daten ab. Sei konkret und praxisnah.
+
+Antworte NUR als JSON:
+{{
+  "hauptziel": "<Was ist das primaere Ziel der Website? 1 klarer Satz.>",
+  "hauptziel_konfidenz": <0.0-1.0>,
+  "cta_aktion": "<Anrufen|Kontaktformular|WhatsApp|Termin buchen|Angebot anfragen>",
+  "cta_aktion_konfidenz": <0.0-1.0>,
+  "zielgruppe_typ": "<B2C|B2B|Beides>",
+  "zielgruppe_typ_konfidenz": <0.0-1.0>,
+  "typischer_kunde": "<Persona in 1-2 Saetzen.>",
+  "typischer_kunde_konfidenz": <0.0-1.0>,
+  "haeufigste_anfrage": "<Top 2-3 Anfrage-Typen aus Leistungen.>",
+  "haeufigste_anfrage_konfidenz": <0.0-1.0>,
+  "ki_begruendung": "<1 Satz warum diese Ableitungen gemacht wurden>"
+}}"""
+
+    db.close()
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514", "max_tokens": 800,
+                      "messages": [{"role": "user", "content": prompt}]},
+            )
+        resp.raise_for_status()
+        raw = resp.json()["content"][0]["text"].strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        result = _json.loads(raw)
+        result["source"] = "claude"
+        return result
+    except Exception as e:
+        raise HTTPException(500, f"KI-Vorausfuellung fehlgeschlagen: {str(e)[:200]}")
 
 
 @router.post("/{lead_id}/ki-prefill")

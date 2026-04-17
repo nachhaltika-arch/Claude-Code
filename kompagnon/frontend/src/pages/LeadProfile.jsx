@@ -22,6 +22,7 @@ import PageSpeedSection from '../components/PageSpeedSection';
 import API_BASE_URL from '../config';
 import NewsletterDesigner from '../components/NewsletterDesigner';
 import { useScreenSize } from '../utils/responsive';
+import LeadSeoSummary from '../components/LeadSeoSummary';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -1379,6 +1380,9 @@ export default function LeadProfile() {
       {/* ÜBERSICHT TAB */}
       {activeTab === 'overview' && (
         <>
+        {/* SEO-Positionierung (aufklappbar) */}
+        <LeadSeoSummary projectId={projectId} leadId={lead?.id} token={token} />
+
         {/* Lead-Quelle (nur intern) */}
         {(lead.utm_source || lead.kampagne_quelle) && (() => {
           const SOURCE_MAP = {

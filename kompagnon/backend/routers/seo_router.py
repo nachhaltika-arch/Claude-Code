@@ -206,3 +206,44 @@ def get_seo_result(
         "action_plan":      result.action_plan or [],
         "error_message":    result.error_message,
     }
+
+
+@router.get("/result/by-lead/{lead_id}")
+def get_seo_result_by_lead(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Gibt das neueste SEO-Ergebnis fuer einen Lead zurueck (ueber dessen Projekt)."""
+    result = db.execute(
+        text("""
+            SELECT sa.* FROM seo_analyses sa
+            JOIN projects p ON p.id = sa.project_id
+            WHERE p.lead_id = :lid
+            ORDER BY sa.created_at DESC
+            LIMIT 1
+        """),
+        {"lid": lead_id},
+    ).fetchone()
+
+    if not result:
+        return {"status": "not_found"}
+
+    return {
+        "id":               result.id,
+        "project_id":       result.project_id,
+        "status":           result.status,
+        "created_at":       str(result.created_at) if result.created_at else None,
+        "updated_at":       str(result.updated_at) if result.updated_at else None,
+        "trade":            result.trade,
+        "city":             result.city,
+        "overall_score":    result.overall_score,
+        "keyword_score":    result.keyword_score,
+        "onpage_score":     result.onpage_score,
+        "competitor_score": result.competitor_score,
+        "top_keywords":     result.top_keywords or [],
+        "onpage_issues":    result.onpage_issues or [],
+        "competitors":      result.competitors or [],
+        "action_plan":      result.action_plan or [],
+        "error_message":    result.error_message,
+    }

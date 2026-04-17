@@ -826,6 +826,102 @@ def save_assets(
     return {"saved": True}
 
 
+@router.get("/{lead_id}/ki-prefill-funktionen")
+def prefill_funktionen(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Erkennt Funktionen aus Crawler-Inhalt + Gewerk-Logik. Kein KI-Call."""
+    import json as _json, re
+    from sqlalchemy import text as sa_text
+
+    lead     = db.query(Lead).filter(Lead.id == lead_id).first()
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    gewerk = (briefing.gewerk if briefing else "") or (lead.trade or "")
+
+    full_text = ""
+    links_found = []
+    try:
+        rows = db.execute(
+            sa_text("SELECT full_text, url FROM website_content_cache WHERE customer_id=:id"),
+            {"id": lead_id}
+        ).fetchall()
+        for r in rows:
+            full_text += " " + (r[0] or "")
+            links_found.append(r[1] or "")
+    except Exception:
+        pass
+
+    full_lower = full_text.lower()
+    links_str  = " ".join(links_found).lower()
+    combined   = full_lower + " " + links_str
+
+    booking_patterns = [
+        r'calendly\.com', r'booksy\.com', r'treatwell',
+        r'booking\.com', r'termin.*buchen', r'online.*termin',
+        r'termin.*vereinbaren', r'reservierung', r'appointment',
+    ]
+    booking_found = any(re.search(p, combined) for p in booking_patterns)
+    booking_gewerk = any(k in gewerk.lower() for k in
+        ['kosmetik', 'friseur', 'arzt', 'zahnarzt', 'physiother', 'massage', 'studio'])
+
+    shop_patterns = [
+        r'woocommerce', r'shopify', r'/shop/', r'/produkte?/',
+        r'in den warenkorb', r'add to cart', r'checkout',
+        r'eur\s*\d+[,.]\d{2}', r'preisliste',
+    ]
+    shop_found = any(re.search(p, combined) for p in shop_patterns)
+
+    multi_patterns = [
+        r'/en/', r'/fr/', r'/nl/', r'lang=', r'language.switch',
+        r'wpml', r'polylang', r'english', r'fran[cç]ais',
+    ]
+    multi_found = any(re.search(p, combined) for p in multi_patterns)
+
+    tool_patterns = {
+        'Trustpilot':  r'trustpilot',
+        'Google Maps': r'maps\.google|google.*maps|goo\.gl/maps',
+        'Instagram':   r'instagram\.com',
+        'Facebook':    r'facebook\.com',
+        'WhatsApp':    r'wa\.me|whatsapp',
+        'Calendly':    r'calendly\.com',
+        'Tidio':       r'tidio',
+        'Intercom':    r'intercom',
+        'Elfsight':    r'elfsight',
+        'YouTube':     r'youtube\.com/embed|youtu\.be',
+    }
+    tools_erkannt = [name for name, pat in tool_patterns.items()
+                     if re.search(pat, combined)]
+
+    return {
+        "terminbuchung": {
+            "vorhanden":    booking_found or booking_gewerk,
+            "auto_erkannt": booking_found,
+            "empfohlen":    booking_gewerk,
+            "quelle":       "Website erkannt" if booking_found else ("Gewerk-Empfehlung" if booking_gewerk else "Standard: Nein"),
+        },
+        "online_shop": {
+            "vorhanden":    shop_found,
+            "auto_erkannt": shop_found,
+            "quelle":       "Website erkannt" if shop_found else "Standard: Nein",
+        },
+        "mehrsprachig": {
+            "vorhanden":    multi_found,
+            "auto_erkannt": multi_found,
+            "quelle":       "Website erkannt" if multi_found else "Standard: Nein",
+        },
+        "externe_tools": {
+            "liste":        tools_erkannt,
+            "auto_erkannt": True,
+            "quelle":       f"{len(tools_erkannt)} Tools auf Website gefunden",
+        },
+    }
+
+
 @router.post("/{lead_id}/ki-prefill")
 def ki_prefill_endpoint(
     lead_id: int,

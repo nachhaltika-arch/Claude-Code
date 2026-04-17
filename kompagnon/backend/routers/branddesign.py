@@ -707,17 +707,21 @@ async def check_google_analytics(lead_id: int, db: Session = Depends(get_db)):
 def get_brand_guideline(lead_id: int, db: Session = Depends(get_db)):
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
+        logger.warning(f"get_brand_guideline: Lead {lead_id} nicht gefunden")
         raise HTTPException(404, "Lead nicht gefunden")
     raw = getattr(lead, 'brand_guideline_json', None)
+    generated_at = getattr(lead, 'brand_guideline_generated_at', None)
+    logger.info(f"get_brand_guideline: lead_id={lead_id}, hat_guideline={bool(raw)}, generated_at={generated_at}")
     if not raw:
         return {"generated": False, "guideline": None}
     try:
         return {
             "generated": True,
             "guideline": json.loads(raw),
-            "generated_at": str(getattr(lead, 'brand_guideline_generated_at', '') or '')[:16],
+            "generated_at": str(generated_at or '')[:16] or None,
         }
-    except Exception:
+    except Exception as e:
+        logger.error(f"get_brand_guideline: JSON parse Fehler lead_id={lead_id}: {e}")
         return {"generated": False, "guideline": None}
 
 

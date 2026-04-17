@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { useConfirmStep } from '../hooks/useConfirmStep';
@@ -23,23 +23,41 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
     onConfirmed: onStepConfirmed,
   });
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    if (!leadId) { setLoading(false); return; }
+    setLoading(true);
+    setGuideline(null);
+    fetch(`${API_BASE_URL}/api/branddesign/${leadId}/guideline`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.generated && d?.guideline) {
+          setGuideline(d.guideline);
+          if (d.generated_at) setSavedAt(new Date(d.generated_at));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [leadId, token]); // eslint-disable-line
+
+  const reload = async () => {
     if (!leadId) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/branddesign/${leadId}/guideline`, { headers });
+      const res = await fetch(`${API_BASE_URL}/api/branddesign/${leadId}/guideline`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok) {
         const d = await res.json();
-        if (d.generated && d.guideline) {
+        if (d?.generated && d?.guideline) {
           setGuideline(d.guideline);
           if (d.generated_at) setSavedAt(new Date(d.generated_at));
         }
       }
     } catch { /* silent */ }
     finally { setLoading(false); }
-  }, [leadId]); // eslint-disable-line
-
-  useEffect(() => { load(); }, [load]);
+  };
 
   const generate = async () => {
     setGenerating(true);
@@ -56,8 +74,18 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
 
   const g = guideline;
 
+  if (!leadId) return (
+    <div style={{ padding: '20px 24px', background: '#FEF3DC', borderRadius: 10, fontSize: 13, color: '#8A5C00' }}>
+      Keine Lead-ID verfuegbar. Bitte Seite neu laden.
+    </div>
+  );
+
   if (loading) return (
-    <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>Wird geladen…</div>
+    <div style={{ padding: '32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: 'var(--text-tertiary)' }}>
+      <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary, #004F59)', animation: 'spin .8s linear infinite' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{ fontSize: 12 }}>Brand Guideline wird geladen…</div>
+    </div>
   );
 
   return (

@@ -1137,12 +1137,13 @@ MIGRATIONS = [
     ]),
 
     (12, "add_lead_ssl_status", [
-        # SSL-Zertifikat-Status der Kunden-Website. Wird vom branddesign-Scrape
-        # gefuellt: True = gueltige Zertifikatskette, False = SSL-Fallback aktiv
-        # (z.B. Strato/IONOS Altsysteme mit fehlendem Intermediate), NULL =
-        # noch nie geprueft. Frontend zeigt entsprechendes Badge im Lead-Profil.
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ssl_ok BOOLEAN",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ssl_error VARCHAR(500)",
+    ]),
+
+    (13, "add_lead_brand_guideline", [
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_guideline_json TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_guideline_generated_at TIMESTAMP",
     ]),
 ]
 

@@ -546,3 +546,170 @@ async def check_google_analytics(lead_id: int, db: Session = Depends(get_db)):
         **ga_result,
         "ga_checked_at":  datetime.utcnow().strftime('%Y-%m-%d %H:%M'),
     }
+
+
+# ── Brand Guideline (KI Design-Token-System) ─────────────────────────────────
+
+@router.get("/{lead_id}/guideline")
+def get_brand_guideline(lead_id: int, db: Session = Depends(get_db)):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+    raw = getattr(lead, 'brand_guideline_json', None)
+    if not raw:
+        return {"generated": False, "guideline": None}
+    try:
+        return {
+            "generated": True,
+            "guideline": json.loads(raw),
+            "generated_at": str(getattr(lead, 'brand_guideline_generated_at', '') or '')[:16],
+        }
+    except Exception:
+        return {"generated": False, "guideline": None}
+
+
+@router.post("/{lead_id}/guideline/generate")
+async def generate_brand_guideline(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    from database import Briefing
+    import httpx
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    primary      = lead.brand_primary_color   or "#000000"
+    secondary    = lead.brand_secondary_color or "#333333"
+    font_head    = lead.brand_font_primary    or "Georgia"
+    font_body    = lead.brand_font_secondary  or "Arial"
+    all_colors   = json.loads(lead.brand_colors  or "[]")
+    all_fonts    = json.loads(lead.brand_fonts   or "[]")
+    design_style = lead.brand_design_style    or "Modern"
+    design_json  = getattr(lead, 'brand_design_json', None)
+    design_data  = json.loads(design_json) if design_json else {}
+    brief        = design_data.get("design_brief", {})
+    radius_px    = design_data.get("border_radius_px", 6)
+    shadow_lbl   = design_data.get("shadow_label", "leicht")
+    btn_style    = design_data.get("button_style", "abgerundet")
+    spacing      = design_data.get("spacing_density", "normal")
+    farb_stimmung = design_data.get("farb_stimmung", "Neutral")
+
+    gewerk     = (briefing.gewerk     if briefing else "") or (lead.trade or "Handwerk")
+    leistungen = (briefing.leistungen if briefing else "") or ""
+    usp        = (briefing.usp        if briefing else "") or ""
+    city       = lead.city or "Deutschland"
+    company    = lead.company_name or ""
+
+    prompt = (
+        "Du bist ein professioneller UI/UX-Designer. Erstelle eine vollstaendige "
+        "UI Brand Guideline als strukturiertes JSON-Objekt.\n\n"
+        f"KUNDENDATEN:\nUnternehmen: {company}\nGewerk: {gewerk} | Stadt: {city}\n"
+        f"Leistungen: {leistungen}\nUSP: {usp}\n\n"
+        f"ERKANNTE BRAND-DATEN:\nPrimaerfarbe: {primary}\nSekundaerfarbe: {secondary}\n"
+        f"Farben: {', '.join(all_colors[:8])}\n"
+        f"Schriften: {font_head} (Ueberschriften), {font_body} (Fliesstext)\n"
+        f"Stil: {design_style} | Stimmung: {farb_stimmung}\n"
+        f"Radius: {radius_px}px ({btn_style}) | Schatten: {shadow_lbl} | Dichte: {spacing}\n\n"
+        f"KI DESIGN-BRIEF: {json.dumps(brief, ensure_ascii=False)[:600] if brief else 'nicht vorhanden'}\n\n"
+        "AUFGABE: Erstelle ein vollstaendiges Design-Token-System. Leite aus der Primaerfarbe "
+        f"{primary} automatisch Dark/Light-Varianten ab.\n\n"
+        "Antworte NUR als JSON-Objekt (kein Markdown):\n"
+        '{"meta":{"company":"...","gewerk":"...","style_keyword":"...","farb_stimmung":"..."},'
+        '"colors":{"primary":"...","primary_dark":"...","primary_light":"...","primary_subtle":"...",'
+        '"secondary":"...","accent":"...","surface":"...","surface_raised":"...","border":"...",'
+        '"text_primary":"...","text_secondary":"...","text_tertiary":"...","text_inverse":"#FFF",'
+        '"success":"#1D9E75","warning":"#F59E0B","error":"#E74C3C","info":"#3B82F6"},'
+        '"typography":{"font_heading":"...","font_body":"...","font_mono":"JetBrains Mono",'
+        '"scale":{"h1":{"size":"48px","weight":"700","line_height":"1.1","letter_spacing":"-0.02em"},'
+        '"h2":{"size":"32px","weight":"700","line_height":"1.2"},'
+        '"h3":{"size":"24px","weight":"600","line_height":"1.3"},'
+        '"h4":{"size":"20px","weight":"600","line_height":"1.4"},'
+        '"body_lg":{"size":"18px","weight":"400","line_height":"1.75"},'
+        '"body":{"size":"16px","weight":"400","line_height":"1.75"},'
+        '"body_sm":{"size":"14px","weight":"400","line_height":"1.6"},'
+        '"label":{"size":"12px","weight":"700","text_transform":"uppercase","letter_spacing":"0.06em"},'
+        '"caption":{"size":"11px","weight":"400","line_height":"1.5"},'
+        '"button":{"size":"14px","weight":"700","text_transform":"uppercase","letter_spacing":"0.05em"}}},'
+        '"spacing":{"xs":"4px","sm":"8px","md":"16px","lg":"24px","xl":"32px","2xl":"48px","3xl":"64px","4xl":"96px"},'
+        f'"border_radius":{{"sm":"{max(1,radius_px//2)}px","md":"{radius_px}px","lg":"{int(radius_px*1.5)}px","xl":"{radius_px*2}px","full":"9999px"}},'
+        '"shadows":{"sm":"...","md":"...","lg":"...","none":"none"},'
+        '"components":{"button_primary":{"background":"...","color":"...","border_radius":"...","padding":"10px 24px"},'
+        '"button_secondary":{"background":"transparent","color":"...","border":"1.5px solid ...","border_radius":"...","padding":"10px 24px"},'
+        '"button_accent":{"background":"...","color":"...","border_radius":"...","padding":"10px 24px"},'
+        '"card":{"background":"...","border":"...","border_radius":"...","shadow":"...","padding":"24px"},'
+        '"input":{"background":"...","border":"...","border_radius":"...","padding":"10px 14px","focus_border":"..."},'
+        '"nav":{"background":"...","text_color":"...","height":"64px","logo_height":"36px"},'
+        '"hero":{"background":"...","text_color":"...","padding_y":"80px"},'
+        '"footer":{"background":"...","text_color":"rgba(255,255,255,0.7)","padding_y":"48px"}},'
+        '"css_variables":"<vollstaendige :root { --var: value; } CSS als String>",'
+        '"voice_tone":{"charakter":"<2-3 Adjektive>","ansprache":"<Du/Sie>","cta_beispiele":["<CTA1>","<CTA2>","<CTA3>"]}}'
+    )
+
+    # DB vor langem Claude-Call freigeben
+    db.close()
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 4000,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+        resp.raise_for_status()
+        raw_text = resp.json()["content"][0]["text"].strip()
+        raw_text = re.sub(r'^```json\s*', '', raw_text)
+        raw_text = re.sub(r'^```\s*', '', raw_text)
+        raw_text = re.sub(r'\s*```$', '', raw_text)
+        guideline = json.loads(raw_text)
+    except Exception as e:
+        raise HTTPException(500, f"Guideline-Generierung fehlgeschlagen: {str(e)[:200]}")
+
+    from database import SessionLocal
+    db2 = SessionLocal()
+    try:
+        lead2 = db2.query(Lead).filter(Lead.id == lead_id).first()
+        if lead2:
+            _set(lead2, 'brand_guideline_json', json.dumps(guideline, ensure_ascii=False))
+            _set(lead2, 'brand_guideline_generated_at', datetime.utcnow())
+            db2.commit()
+    except Exception as e:
+        db2.rollback()
+        raise HTTPException(500, f"Speichern fehlgeschlagen: {str(e)[:100]}")
+    finally:
+        db2.close()
+
+    return {"generated": True, "guideline": guideline}
+
+
+@router.put("/{lead_id}/guideline")
+def save_brand_guideline(
+    lead_id: int, body: dict,
+    db: Session = Depends(get_db), _=Depends(require_any_auth),
+):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+    guideline = body.get("guideline")
+    if not guideline:
+        raise HTTPException(400, "guideline fehlt")
+    _set(lead, 'brand_guideline_json', json.dumps(guideline, ensure_ascii=False))
+    _set(lead, 'brand_guideline_generated_at', datetime.utcnow())
+    db.commit()
+    return {"saved": True}

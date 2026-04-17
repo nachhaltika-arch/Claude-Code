@@ -262,7 +262,7 @@ export default function ProzessFlowV3({
     latestAudit:      localLatestAudit,
     crawlPages:       localCrawlPages || 0,
     brandPrimaryColor: localBrandColor || null,
-    brandGuidelineGenerated: !!(lead?.brand_guideline_json),
+    brandGuidelineGenerated: !!(lead?.brand_guideline_json || brandData?.guideline_generated || brandData?.design_tokens),
     seoCompleted: false,
     seoScore: null,
     sitemapCount:     sitemapPages?.length || 0,

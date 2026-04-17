@@ -64,7 +64,7 @@ const SCHRITTE = [
     cta: 'Funktionen bestätigen →',
     desc: 'Terminbuchung, Shop, Sprachen, externe Tools — automatisch erkannt.',
     component: 'Funktionen',
-    istFertig: (d) => !!(d.briefing?.sonstige_hinweise?.includes('Funktionen:')),
+    istFertig: (d) => { try { const f = d.briefing?.funktionen_json; if (!f) return false; const p = typeof f === 'string' ? JSON.parse(f) : f; return !!p?.bestaetigt; } catch { return false; } },
     fertigText: () => 'Funktionen geklärt',
   },
   {
@@ -73,7 +73,7 @@ const SCHRITTE = [
     cta: 'SEO-Ziele bestätigen →',
     desc: 'Keywords automatisch generiert — Google Business und Social Media aus Website erkannt.',
     component: 'SeoZiele',
-    istFertig: (d) => !!(d.briefing?.sonstige_hinweise?.includes('Keywords:')),
+    istFertig: (d) => { try { const s = d.briefing?.seo_json; if (!s) return false; const p = typeof s === 'string' ? JSON.parse(s) : s; return !!(p?.bestaetigt && p?.keywords?.length > 0); } catch { return false; } },
     fertigText: () => 'SEO-Ziele gesetzt',
   },
   {
@@ -284,7 +284,6 @@ export default function ProzessFlowV3({
   const aktiverIdx  = SCHRITTE.findIndex(s => !s.istFertig(prozessDaten));
   const aktiverId   = aktiverIdx >= 0 ? SCHRITTE[aktiverIdx].id : SCHRITTE[SCHRITTE.length - 1].id;
   const [offenerSchritt, setOffenerSchritt] = useState(aktiverId);
-  useEffect(() => { setOffenerSchritt(aktiverId); }, [aktiverId]); // eslint-disable-line
 
   const fertigCount = SCHRITTE.filter(s => s.istFertig(prozessDaten)).length;
   const gesamtPct   = Math.round((fertigCount / SCHRITTE.length) * 100);
@@ -616,6 +615,7 @@ export default function ProzessFlowV3({
               headers={headers}
               localBriefing={localBriefing}
               reloadBriefing={reloadBriefing}
+              goWeiter={goWeiter}
               latestAudit={localLatestAudit}
               onAuditComplete={handleAuditComplete}
               onAnalyseUpdate={handleAnalyseUpdate}
@@ -805,7 +805,7 @@ function SchrittContent({ schritt, ...props }) {
           leadId={props.leadId}
           token={props.token}
           briefing={props.localBriefing}
-          onSaved={() => { if (props.reloadBriefing) props.reloadBriefing(); }}
+          onSaved={() => { if (props.reloadBriefing) props.reloadBriefing(); if (props.goWeiter) props.goWeiter(); }}
         />
       );
     case 'AssetsKlaeren':
@@ -813,7 +813,7 @@ function SchrittContent({ schritt, ...props }) {
         <AssetsKlaeren
           leadId={props.leadId}
           token={props.token}
-          onSaved={() => { if (props.reloadBriefing) props.reloadBriefing(); }}
+          onSaved={() => { if (props.reloadBriefing) props.reloadBriefing(); if (props.goWeiter) props.goWeiter(); }}
         />
       );
     case 'Funktionen':
@@ -821,7 +821,7 @@ function SchrittContent({ schritt, ...props }) {
         <Funktionen
           leadId={props.leadId}
           token={props.token}
-          onSaved={() => { if (props.reloadBriefing) props.reloadBriefing(); }}
+          onSaved={() => { if (props.reloadBriefing) props.reloadBriefing(); if (props.goWeiter) props.goWeiter(); }}
         />
       );
     case 'SeoZiele':
@@ -829,7 +829,7 @@ function SchrittContent({ schritt, ...props }) {
         <SeoZiele
           leadId={props.leadId}
           token={props.token}
-          onSaved={() => { if (props.reloadBriefing) props.reloadBriefing(); }}
+          onSaved={() => { if (props.reloadBriefing) props.reloadBriefing(); if (props.goWeiter) props.goWeiter(); }}
         />
       );
     case 'BriefingWebsite':

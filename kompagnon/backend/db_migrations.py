@@ -1182,6 +1182,11 @@ MIGRATIONS = [
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS typischer_kunde TEXT",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS haeufige_anfrage TEXT",
     ]),
+
+    (17, "add_briefing_funktionen_seo_json", [
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS funktionen_json TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS seo_json TEXT",
+    ]),
 ]
 
 

@@ -593,6 +593,8 @@ class Briefing(Base):
     aktionen = Column(Text, nullable=True)
     typischer_kunde = Column(Text, nullable=True)
     haeufige_anfrage = Column(Text, nullable=True)
+    funktionen_json = Column(Text, nullable=True)
+    seo_json = Column(Text, nullable=True)
     # KI-Auto-Fill Metadaten (gesetzt von routers/briefings.py::ki_prefill)
     ki_prefilled_at = Column(DateTime, nullable=True)
     ki_confidence = Column(String(10), nullable=True)

@@ -50,11 +50,12 @@ export default function SeoZiele({ leadId, token, onSaved }) {
       await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
         method: 'PUT', headers,
         body: JSON.stringify({
-          sonstige_hinweise: [
-            `Keywords: ${keywords.join(', ')}`,
-            `Google Business: ${gbStatus}`,
-            `Social Media: ${social.join(', ') || 'keine'}`,
-          ].join(' | '),
+          seo_json: JSON.stringify({
+            keywords:        keywords,
+            google_business: gbStatus,
+            social_media:    social,
+            bestaetigt:      true,
+          }),
         }),
       });
       toast.success('SEO-Ziele gespeichert');

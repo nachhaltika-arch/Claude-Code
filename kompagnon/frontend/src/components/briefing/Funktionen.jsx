@@ -51,16 +51,18 @@ export default function Funktionen({ leadId, token, onSaved }) {
   const save = async () => {
     setSaving(true);
     try {
-      const summary = [
-        data.terminbuchung ? 'Terminbuchung' : null,
-        data.online_shop   ? 'Online-Shop'   : null,
-        data.mehrsprachig  ? 'Mehrsprachig'  : null,
-        ...(data.externe_tools.length ? [`Tools: ${data.externe_tools.join(', ')}`] : []),
-      ].filter(Boolean).join(' · ');
-
       await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
         method: 'PUT', headers,
-        body: JSON.stringify({ sonstige_hinweise: `Funktionen: ${summary}. ${data.tools_details}`.trim() }),
+        body: JSON.stringify({
+          funktionen_json: JSON.stringify({
+            terminbuchung: data.terminbuchung,
+            online_shop:   data.online_shop,
+            mehrsprachig:  data.mehrsprachig,
+            externe_tools: data.externe_tools,
+            details:       data.tools_details,
+            bestaetigt:    true,
+          }),
+        }),
       });
       toast.success('Funktionen gespeichert');
       if (onSaved) onSaved(data);

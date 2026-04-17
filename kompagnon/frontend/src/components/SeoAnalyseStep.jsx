@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { useConfirmStep } from '../hooks/useConfirmStep';
 
 const STATUS_COLORS = {
   ok:   { dot: '#1D9E75', bg: '#E3F6EF' },
@@ -13,11 +15,15 @@ const PRIO_COLORS = {
   niedrig: { bg: '#E3F6EF', text: '#3B6D11' },
 };
 
-export default function SeoAnalyseStep({ projectId, token }) {
+export default function SeoAnalyseStep({ projectId, token, onStepConfirmed }) {
   const [data, setData]           = useState(null);
   const [loading, setLoading]     = useState(true);
   const [triggering, setTriggering] = useState(false);
   const [activeTab, setActiveTab] = useState('keywords');
+
+  const { confirm: confirmStep, confirming: confirmingStep } = useConfirmStep({
+    projectId, stepId: 'seo-analyse', token, onConfirmed: onStepConfirmed,
+  });
   const [error, setError]         = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
@@ -167,8 +173,25 @@ export default function SeoAnalyseStep({ projectId, token }) {
         </div>
       ))}
 
+      {/* Schritt abschliessen */}
+      <button
+        onClick={confirmStep}
+        disabled={confirmingStep}
+        style={{
+          width: '100%', marginTop: 20, padding: '12px',
+          background: confirmingStep ? 'var(--border-light)' : '#FAE600',
+          color: '#000', border: 'none', borderRadius: 8,
+          fontSize: 13, fontWeight: 900,
+          cursor: confirmingStep ? 'not-allowed' : 'pointer',
+          fontFamily: 'var(--font-sans)',
+          textTransform: 'uppercase', letterSpacing: '.05em',
+        }}
+      >
+        {confirmingStep ? 'Wird gespeichert…' : 'SEO-Analyse abschliessen & weiter'}
+      </button>
+
       {/* Footer */}
-      <div style={{ marginTop: 20, display: 'flex', gap: 10, alignItems: 'center' }}>
+      <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
         <button onClick={triggerAnalysis} disabled={triggering} style={{
           background: 'transparent', color: 'var(--kc-dark, #004F59)',
           border: '1px solid var(--kc-dark, #004F59)', borderRadius: 6,

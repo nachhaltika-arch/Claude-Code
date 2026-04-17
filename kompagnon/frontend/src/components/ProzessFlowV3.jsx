@@ -118,8 +118,8 @@ const SCHRITTE = [
     cta: 'SEO-Analyse starten →',
     desc: 'Lokale SEO-Positionierung analysieren — Keywords, On-Page, Wettbewerber.',
     component: 'SeoAnalyse',
-    istFertig: (d) => !!(d.seoCompleted),
-    fertigText: (d) => d.seoScore ? `Score: ${d.seoScore}` : 'Abgeschlossen',
+    istFertig: (d) => !!(d.confirmedSteps?.['seo-analyse']?.confirmed || d.seoCompleted),
+    fertigText: () => 'SEO analysiert',
   },
   {
     id: 'briefing-website', nr: 11, phase: 'Analyse',
@@ -672,12 +672,12 @@ export default function ProzessFlowV3({
               >← Zurück</button>
             )}
 
-            {aktivObj.istFertig(prozessDaten) ? (
+            {(aktivObj.istFertig(prozessDaten) || confirmedSteps[aktivObj.id]?.confirmed) ? (
               aktivIdx < SCHRITTE.length - 1 && (
                 <button
                   onClick={goWeiter}
                   style={{
-                    background: 'var(--kc-dark)',
+                    background: confirmedSteps[aktivObj.id]?.confirmed ? '#1D9E75' : 'var(--kc-dark)',
                     color: '#fff', border: 'none',
                     borderRadius: 'var(--r-md)',
                     padding: '11px 24px',
@@ -687,7 +687,7 @@ export default function ProzessFlowV3({
                     fontFamily: 'var(--font-sans)',
                     display: 'inline-flex', alignItems: 'center', gap: 7,
                   }}
-                >Weiter →</button>
+                >{confirmedSteps[aktivObj.id]?.confirmed ? 'Abgeschlossen — Weiter →' : 'Weiter →'}</button>
               )
             ) : !aktivObj.auto && (
               <button
@@ -900,7 +900,8 @@ function SchrittContent({ schritt, ...props }) {
           onStepConfirmed={() => { if (props.reloadConfirmedSteps) props.reloadConfirmedSteps(); if (props.goWeiter) props.goWeiter(); }} />
       );
     case 'SeoAnalyse':
-      return <SeoAnalyseStep projectId={props.project?.id} token={props.token} />;
+      return <SeoAnalyseStep projectId={props.project?.id} token={props.token}
+        onStepConfirmed={() => { if (props.reloadConfirmedSteps) props.reloadConfirmedSteps(); if (props.goWeiter) props.goWeiter(); }} />;
     case 'ContentWerkstatt':
       return (
         <ContentWerkstatt project={props.project} sitemapPages={props.sitemapPages} sitemapLoading={props.sitemapLoading} token={props.token} leadId={props.leadId} websiteContent={props.websiteContent} />

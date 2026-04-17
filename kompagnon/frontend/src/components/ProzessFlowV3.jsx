@@ -257,12 +257,30 @@ export default function ProzessFlowV3({
     if (brandData?.primary_color) setLocalBrandColor(brandData.primary_color);
   }, [brandData]); // eslint-disable-line
 
+  const [confirmedSteps, setConfirmedSteps] = useState(project?.steps_confirmed || {});
+  useEffect(() => {
+    if (!project?.id) return;
+    fetch(`${API_BASE_URL}/api/projects/${project.id}/confirmed-steps`, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setConfirmedSteps(d.confirmed_steps || {}); })
+      .catch(() => {});
+  }, [project?.id]); // eslint-disable-line
+
+  const reloadConfirmedSteps = async () => {
+    if (!project?.id) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/confirmed-steps`, { headers });
+      if (res.ok) { const d = await res.json(); setConfirmedSteps(d.confirmed_steps || {}); }
+    } catch { /* silent */ }
+  };
+
   const prozessDaten = {
     briefing:         localBriefing,
     latestAudit:      localLatestAudit,
     crawlPages:       localCrawlPages || 0,
     brandPrimaryColor: localBrandColor || null,
-    brandGuidelineGenerated: !!(lead?.brand_guideline_json || brandData?.guideline_generated || brandData?.design_tokens),
+    confirmedSteps,
+    brandGuidelineGenerated: !!(confirmedSteps['brand-guideline']?.confirmed || lead?.brand_guideline_json || brandData?.guideline_generated),
     seoCompleted: false,
     seoScore: null,
     sitemapCount:     sitemapPages?.length || 0,
@@ -627,6 +645,7 @@ export default function ProzessFlowV3({
               netlify={netlify}
               qaResult={qaResult}
               prozessDaten={prozessDaten}
+              reloadConfirmedSteps={reloadConfirmedSteps}
             />
           )}
 
@@ -829,7 +848,9 @@ function SchrittContent({ schritt, ...props }) {
         <SeoZiele
           leadId={props.leadId}
           token={props.token}
-          onSaved={() => { if (props.reloadBriefing) props.reloadBriefing(); if (props.goWeiter) props.goWeiter(); }}
+          projectId={props.project?.id}
+          onSaved={() => { if (props.reloadBriefing) props.reloadBriefing(); }}
+          onStepConfirmed={() => { if (props.reloadConfirmedSteps) props.reloadConfirmedSteps(); if (props.goWeiter) props.goWeiter(); }}
         />
       );
     case 'BriefingWebsite':
@@ -874,7 +895,9 @@ function SchrittContent({ schritt, ...props }) {
     case 'BrandGuideline':
       return (
         <BrandGuideline project={props.project} lead={props.lead} token={props.token}
-          leadId={props.leadId} brandData={props.brandData} />
+          leadId={props.leadId} brandData={props.brandData}
+          projectId={props.project?.id}
+          onStepConfirmed={() => { if (props.reloadConfirmedSteps) props.reloadConfirmedSteps(); if (props.goWeiter) props.goWeiter(); }} />
       );
     case 'SeoAnalyse':
       return <SeoAnalyseStep projectId={props.project?.id} token={props.token} />;

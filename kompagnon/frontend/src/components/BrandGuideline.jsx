@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { useConfirmStep } from '../hooks/useConfirmStep';
 
 const TABS = ['Farben', 'Typografie', 'Komponenten', 'Vorschau', 'Export'];
 
-export default function BrandGuideline({ project, lead, token, leadId, brandData }) {
+export default function BrandGuideline({ project, lead, token, leadId, brandData, projectId, onStepConfirmed }) {
   const [activeTab, setActiveTab] = useState('Farben');
   const [guideline, setGuideline] = useState(null);
   const [loading, setLoading]     = useState(true);
@@ -14,6 +15,13 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
   const [savedAt, setSavedAt] = useState(null);
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
+  const { confirm: confirmStep, confirming: confirmingStep } = useConfirmStep({
+    projectId: projectId || project?.id,
+    stepId: 'brand-guideline',
+    token,
+    onConfirmed: onStepConfirmed,
+  });
 
   const load = useCallback(async () => {
     if (!leadId) return;
@@ -102,6 +110,25 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
             cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0,
           }}>{generating ? 'Generiert…' : 'Neu generieren'}</button>
         </div>
+      )}
+
+      {/* Schritt abschliessen */}
+      {g && (projectId || project?.id) && (
+        <button
+          onClick={confirmStep}
+          disabled={confirmingStep}
+          style={{
+            width: '100%', margin: '0 0 12px', padding: '12px',
+            background: confirmingStep ? 'var(--border-light)' : '#FAE600',
+            color: '#000', border: 'none', borderRadius: 8,
+            fontSize: 13, fontWeight: 900,
+            cursor: confirmingStep ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-sans)',
+            textTransform: 'uppercase', letterSpacing: '.05em',
+          }}
+        >
+          {confirmingStep ? 'Wird gespeichert…' : 'Guideline abschliessen & weiter'}
+        </button>
       )}
 
       {/* Tabs + Content */}

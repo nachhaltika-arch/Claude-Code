@@ -259,6 +259,9 @@ class Project(Base):
     screenshot_url_before   = Column(String(500))
     screenshot_url_after    = Column(String(500))
 
+    # Prozess-Schritt-Bestätigungen (JSON)
+    steps_confirmed = Column(Text, default='{}')
+
     # Relationships
     lead = relationship("Lead", back_populates="projects", foreign_keys=[lead_id])
     checklists = relationship("ProjectChecklist", back_populates="project", cascade="all, delete-orphan")

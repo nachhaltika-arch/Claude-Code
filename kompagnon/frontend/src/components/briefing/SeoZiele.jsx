@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../../config';
+import { useConfirmStep } from '../../hooks/useConfirmStep';
 
 const ALL_SOCIAL = ['Facebook','Instagram','LinkedIn','YouTube','TikTok',
                     'Pinterest','X/Twitter','Xing','WhatsApp Business','Keine'];
 
-export default function SeoZiele({ leadId, token, onSaved }) {
+export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConfirmed }) {
   const [ki, setKi]             = useState(null);
   const [loading, setLoading]   = useState(true);
   const [saving,  setSaving]    = useState(false);
@@ -16,6 +17,10 @@ export default function SeoZiele({ leadId, token, onSaved }) {
   const [gbStatus, setGbStatus] = useState('');
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
+  const { confirm: confirmStep, confirming } = useConfirmStep({
+    projectId, stepId: 'seo-ziele', token, onConfirmed: onStepConfirmed,
+  });
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/briefings/${leadId}/ki-prefill-seo`,
@@ -215,18 +220,27 @@ export default function SeoZiele({ leadId, token, onSaved }) {
         </div>
       )}
 
-      <button
-        onClick={save}
-        disabled={saving}
-        style={{
-          width: '100%', padding: '12px', background: '#FAE600', color: '#000',
-          border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 900,
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={save} disabled={saving} style={{
+          flex: 1, padding: '11px', background: 'var(--bg-surface)', color: 'var(--text-secondary)',
+          border: '0.5px solid var(--border-light)', borderRadius: 8, fontSize: 12, fontWeight: 700,
           cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
-          textTransform: 'uppercase', letterSpacing: '.05em',
-        }}
-      >
-        {saving ? 'Wird gespeichert…' : 'SEO-Ziele bestätigen & weiter'}
-      </button>
+        }}>
+          {saving ? 'Speichert…' : 'Zwischenspeichern'}
+        </button>
+        <button
+          onClick={async () => { await save(); await confirmStep(); }}
+          disabled={saving || confirming}
+          style={{
+            flex: 2, padding: '11px', background: (saving || confirming) ? 'var(--border-light)' : '#FAE600',
+            color: '#000', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 900,
+            cursor: (saving || confirming) ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
+            textTransform: 'uppercase', letterSpacing: '.05em',
+          }}
+        >
+          {(saving || confirming) ? 'Wird gespeichert…' : 'SEO abschliessen & weiter'}
+        </button>
+      </div>
     </div>
   );
 }

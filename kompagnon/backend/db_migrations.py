@@ -1191,6 +1191,10 @@ MIGRATIONS = [
     (18, "add_lead_brand_design_tokens", [
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_design_tokens_json TEXT",
     ]),
+
+    (19, "add_project_steps_confirmed", [
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS steps_confirmed TEXT DEFAULT '{}'",
+    ]),
 ]
 
 

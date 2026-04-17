@@ -1536,6 +1536,67 @@ def hosting_info(
 
 
 
+@router.post("/{project_id}/confirm-step")
+def confirm_step(
+    project_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Markiert einen Prozessschritt explizit als abgeschlossen."""
+    import json as _json
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    step_id = body.get("step_id", "").strip()
+    if not step_id:
+        raise HTTPException(400, "step_id fehlt")
+
+    raw = getattr(project, 'steps_confirmed', '{}') or '{}'
+    try:
+        confirmed = _json.loads(raw)
+    except Exception:
+        confirmed = {}
+
+    confirmed[step_id] = {
+        "confirmed": True,
+        "confirmed_at": datetime.utcnow().isoformat(),
+    }
+
+    try:
+        project.steps_confirmed = _json.dumps(confirmed, ensure_ascii=False)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(422, f"Speichern fehlgeschlagen: {str(e)[:200]}")
+
+    return {"saved": True, "step_id": step_id, "confirmed": confirmed}
+
+
+@router.get("/{project_id}/confirmed-steps")
+def get_confirmed_steps(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Gibt alle bestaetigten Schritte eines Projekts zurueck."""
+    import json as _json
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    raw = getattr(project, 'steps_confirmed', '{}') or '{}'
+    try:
+        confirmed = _json.loads(raw)
+    except Exception:
+        confirmed = {}
+
+    return {"confirmed_steps": confirmed}
+
+
 @router.post("/{project_id}/domain-check")
 async def domain_check_project(
     project_id: int,

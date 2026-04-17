@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import AnalyseCentrale from './AnalyseCentrale';
 import ContentWerkstatt from './ContentWerkstatt';
+import BrandDesignWerkstatt from './BrandDesignWerkstatt';
 import SitemapVorschlaege from './SitemapVorschlaege';
 import DesignStudio from './DesignStudio';
 import BriefingTab from './BriefingTab';
@@ -20,15 +21,19 @@ const PHASEN = [
         istFertig: (d) => !!(d.latestAudit?.total_score > 0),
         wasFehlts: (d) => d.latestAudit ? [] : ['Audit noch nicht gestartet'],
         fertigText: (d) => `Score: ${d.latestAudit?.total_score}/100` },
-      { id: 'analyse-zentrale', nr: 3, label: 'Analyse-Zentrale', desc: 'Crawler, Brand Design, PageSpeed, GA', icon: '🔬', component: 'AnalyseZentrale',
-        istFertig: (d) => (d.crawlPages || 0) >= 3 && !!(d.brandPrimaryColor),
-        wasFehlts: (d) => { const f = []; if ((d.crawlPages||0) < 3) f.push(`Crawler: ${d.crawlPages||0} Seiten (mind. 3)`); if (!d.brandPrimaryColor) f.push('Brand-Scan fehlt'); return f; },
-        fertigText: (d) => `${d.crawlPages} Seiten · Brand` },
-      { id: 'briefing-website', nr: 4, label: 'Briefing Website', desc: 'Ziele, Design, Seiten dokumentieren', icon: '📋', component: 'BriefingWebsite',
+      { id: 'analyse-zentrale', nr: 3, label: 'Analyse-Zentrale', desc: 'Crawler, PageSpeed, GA, Hosting', icon: '🔬', component: 'AnalyseZentrale',
+        istFertig: (d) => (d.crawlPages || 0) >= 3,
+        wasFehlts: (d) => { const f = []; if ((d.crawlPages||0) < 3) f.push(`Crawler: ${d.crawlPages||0} Seiten (mind. 3)`); return f; },
+        fertigText: (d) => `${d.crawlPages} Seiten gecrawlt` },
+      { id: 'brand-design', nr: 4, label: 'Brand Design', desc: 'Farben, Schriften und Stil festlegen', icon: '🎨', component: 'BrandDesign',
+        istFertig: (d) => !!(d.brandPrimaryColor),
+        wasFehlts: (d) => d.brandPrimaryColor ? [] : ['Brand Design noch nicht gespeichert'],
+        fertigText: (d) => d.brandPrimaryColor || 'Gespeichert' },
+      { id: 'briefing-website', nr: 5, label: 'Briefing Website', desc: 'Ziele, Design, Seiten dokumentieren', icon: '📋', component: 'BriefingWebsite',
         istFertig: (d) => !!((d.briefing?.hauptziel && d.briefing?.aktionen) || d.briefing?.seiten),
         wasFehlts: (d) => { const f = []; if (!d.briefing?.hauptziel) f.push('Hauptziel'); if (!d.briefing?.aktionen) f.push('CTA-Aktion'); if (!d.briefing?.seiten) f.push('Gewuenschte Seiten'); return f; },
         fertigText: () => 'Ausgefuellt' },
-      { id: 'zugangsdaten', nr: 5, label: 'Zugangsdaten', desc: 'Hosting, FTP, CMS-Zugaenge', icon: '🔑', component: 'Zugangsdaten', optional: true,
+      { id: 'zugangsdaten', nr: 6, label: 'Zugangsdaten', desc: 'Hosting, FTP, CMS-Zugaenge', icon: '🔑', component: 'Zugangsdaten', optional: true,
         istFertig: (d) => (d.credsCount || 0) >= 1,
         wasFehlts: (d) => d.credsCount ? [] : ['Keine Zugaenge gespeichert'],
         fertigText: (d) => `${d.credsCount} Eintraege` },
@@ -37,19 +42,19 @@ const PHASEN = [
   {
     id: 'content', label: 'Content', icon: '📝', color: '#7c3aed',
     schritte: [
-      { id: 'sitemap', nr: 6, label: 'Sitemap anlegen', desc: 'Seitenstruktur definieren', icon: '🗺️', component: 'Sitemap',
+      { id: 'sitemap', nr: 7, label: 'Sitemap anlegen', desc: 'Seitenstruktur definieren', icon: '🗺️', component: 'Sitemap',
         istFertig: (d) => (d.sitemapCount || 0) >= 3,
         wasFehlts: (d) => { const f = 3-(d.sitemapCount||0); return f > 0 ? [`Noch ${f} Seite(n) (mind. 3)`] : []; },
         fertigText: (d) => `${d.sitemapCount} Seiten` },
-      { id: 'seiteninhalte', nr: 7, label: 'Seiteninhalte', desc: 'KI schreibt alle Texte auf einmal', icon: '📝', component: 'Seiteninhalte',
+      { id: 'seiteninhalte', nr: 8, label: 'Seiteninhalte', desc: 'KI schreibt alle Texte auf einmal', icon: '📝', component: 'Seiteninhalte',
         istFertig: (d) => (d.sitemapCount||0) > 0 && (d.contentCount||0) >= (d.sitemapCount||1),
         wasFehlts: (d) => { if (!d.sitemapCount) return ['Zuerst Sitemap anlegen']; const o = (d.sitemapCount||0)-(d.contentCount||0); return o > 0 ? [`${o}/${d.sitemapCount} Seiten ohne Content`] : []; },
         fertigText: (d) => `${d.contentCount}/${d.sitemapCount} Seiten` },
-      { id: 'bilder-assets', nr: 8, label: 'Bilder & Assets', desc: 'Fotos, Icons und Medien zuweisen', icon: '🖼️', component: 'BilderAssets', optional: true,
+      { id: 'bilder-assets', nr: 9, label: 'Bilder & Assets', desc: 'Fotos, Icons und Medien zuweisen', icon: '🖼️', component: 'BilderAssets', optional: true,
         istFertig: (d) => !!(d.assetsChecked),
         wasFehlts: () => ['Bilder noch nicht geprueft'],
         fertigText: () => 'Geprueft' },
-      { id: 'freigaben', nr: 9, label: 'Freigaben', desc: 'Content-Freigabe vom Kunden', icon: '✅', component: 'Freigaben', optional: true,
+      { id: 'freigaben', nr: 10, label: 'Freigaben', desc: 'Content-Freigabe vom Kunden', icon: '✅', component: 'Freigaben', optional: true,
         istFertig: (d) => !!(d.contentApproved),
         wasFehlts: () => ['Freigabe noch nicht erteilt'],
         fertigText: () => 'Freigegeben' },
@@ -58,11 +63,11 @@ const PHASEN = [
   {
     id: 'design', label: 'Design', icon: '🎨', color: '#d97706',
     schritte: [
-      { id: 'design-generieren', nr: 10, label: 'Design generieren', desc: 'Template + KI-Entwurf', icon: '✨', component: 'DesignStudio',
+      { id: 'design-generieren', nr: 11, label: 'Design generieren', desc: 'Template + KI-Entwurf', icon: '✨', component: 'DesignStudio',
         istFertig: (d) => (d.designVersions || 0) >= 1,
         wasFehlts: (d) => (d.designVersions||0) === 0 ? ['Noch kein Design generiert'] : [],
         fertigText: (d) => `${d.designVersions} Version(en)` },
-      { id: 'editor', nr: 11, label: 'Editor nachbearbeiten', desc: 'Feinschliff im GrapesJS', icon: '🖊️', component: 'Editor', optional: true,
+      { id: 'editor', nr: 12, label: 'Editor nachbearbeiten', desc: 'Feinschliff im GrapesJS', icon: '🖊️', component: 'Editor', optional: true,
         istFertig: (d) => !!(d.editorSaved),
         wasFehlts: () => ['Editor nicht geoeffnet'],
         fertigText: () => 'Gespeichert' },
@@ -71,19 +76,19 @@ const PHASEN = [
   {
     id: 'golive', label: 'Go Live', icon: '🚀', color: '#059669',
     schritte: [
-      { id: 'netlify', nr: 12, label: 'Netlify deployen', desc: 'Website veroeffentlichen', icon: '🚀', component: 'Netlify',
+      { id: 'netlify', nr: 13, label: 'Netlify deployen', desc: 'Website veroeffentlichen', icon: '🚀', component: 'Netlify',
         istFertig: (d) => !!(d.netlifyUrl && d.netlifyReady),
         wasFehlts: (d) => { if (!d.netlifyUrl) return ['Netlify nicht angelegt']; if (!d.netlifyReady) return ['Deploy nicht abgeschlossen']; return []; },
         fertigText: (d) => d.netlifyUrl || 'Deployed' },
-      { id: 'dns', nr: 13, label: 'DNS umstellen', desc: 'CNAME beim Domain-Anbieter', icon: '🌍', component: 'DNS',
+      { id: 'dns', nr: 14, label: 'DNS umstellen', desc: 'CNAME beim Domain-Anbieter', icon: '🌍', component: 'DNS',
         istFertig: (d) => !!(d.domainReachable && d.domainStatusCode === 200),
         wasFehlts: (d) => { if (!d.netlifyUrl) return ['Zuerst Netlify deployen']; if (!d.domainReachable) return ['Domain nicht erreichbar']; return []; },
         fertigText: () => 'Domain erreichbar' },
-      { id: 'qa', nr: 14, label: 'QA-Check', desc: 'Links, Mobile, Impressum', icon: '✓', component: 'QA',
+      { id: 'qa', nr: 15, label: 'QA-Check', desc: 'Links, Mobile, Impressum', icon: '✓', component: 'QA',
         istFertig: (d) => !!(d.qaResult),
         wasFehlts: () => ['QA-Scan nicht durchgefuehrt'],
         fertigText: () => 'QA abgeschlossen' },
-      { id: 'abnahme', nr: 15, label: 'Abnahme & Go Live', desc: 'Kundenfreigabe', icon: '🏁', component: 'Abnahme',
+      { id: 'abnahme', nr: 16, label: 'Abnahme & Go Live', desc: 'Kundenfreigabe', icon: '🏁', component: 'Abnahme',
         istFertig: (d) => !!(d.goLiveConfirmed || d.projectStatus === 'fertig'),
         wasFehlts: (d) => { const f = []; if (!d.qaResult) f.push('QA-Check fehlt'); if (!d.domainReachable) f.push('DNS nicht umgestellt'); if (!d.goLiveConfirmed) f.push('Abnahme nicht erteilt'); return f; },
         fertigText: () => 'Live!' },
@@ -705,6 +710,12 @@ function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
             <SitemapVorschlaege leadId={leadId} token={token} onAdded={onSitemapReload} />
           </div>
         </div>
+      );
+
+    case 'BrandDesign':
+      return (
+        <BrandDesignWerkstatt project={project} lead={lead} token={token}
+          onBrandSaved={(data) => { if (onBrandUpdate) onBrandUpdate(data); }} />
       );
 
     case 'ContentWerkstatt':

@@ -132,14 +132,34 @@ export default function Landing() {
             </nav>
           )}
 
-          {/* Mobile: kompakter Button */}
+          {/* Mobile: Anmelden + Anfragen */}
           {isMobile && (
-            <button onClick={() => nav('/checkout/kompagnon')}
-              style={{ background: C.accent, color: '#fff', border: 'none',
-                borderRadius: 6, padding: '8px 14px', fontSize: 13,
-                fontWeight: 700, cursor: 'pointer' }}>
-              Anfragen
-            </button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button onClick={() => nav('/login')}
+                style={{
+                  background: 'transparent',
+                  color: C.primary,
+                  border: `1.5px solid ${C.primary}`,
+                  borderRadius: 6,
+                  padding: '7px 14px',
+                  fontSize: 13, fontWeight: 600,
+                  cursor: 'pointer',
+                }}>
+                Anmelden
+              </button>
+              <button onClick={() => nav('/checkout/kompagnon')}
+                style={{
+                  background: C.accent,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '7px 14px',
+                  fontSize: 13, fontWeight: 700,
+                  cursor: 'pointer',
+                }}>
+                Anfragen
+              </button>
+            </div>
           )}
         </div>
       </header>

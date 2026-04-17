@@ -1140,8 +1140,6 @@ export {
   BriefingUnternehmenEmbed,
   SitemapKiVorschlag,
   AuditEmbed,
-  AuditRunningUI,
-  AuditErrorUI,
   ZugangsdatenEmbed,
   DesignStudioEmbed,
   NetlifyEmbed,

@@ -257,21 +257,38 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
       setShadow('leicht');
       return;
     }
-    if (brandData.primary_color)   setPrimary(brandData.primary_color);
-    if (brandData.secondary_color) setSecondary(brandData.secondary_color);
-
-    const dd = brandData.design_data;
-    if (dd?.design_brief?.akzentfarbe) setAccent(dd.design_brief.akzentfarbe);
-    if (dd?.design_brief?.hintergrundfarbe) setColorBg(dd.design_brief.hintergrundfarbe);
-    if (dd?.border_radius_px) setRadius(dd.border_radius_px);
-    if (dd?.shadow_label)     setShadow(dd.shadow_label);
-
-    const fh = brandData.font_heading || brandData.font_primary;
-    const fb = brandData.font_body    || brandData.font_secondary;
-    const fa = brandData.font_accent;
-    if (fh) { setFontH1(fh);     loadFont(fh); }
-    if (fb) { setFontBody(fb);   loadFont(fb); }
-    if (fa) { setFontAkzent(fa); loadFont(fa); }
+    const t = brandData.design_tokens;
+    if (t) {
+      if (t.primary)         setPrimary(t.primary);
+      if (t.secondary)       setSecondary(t.secondary);
+      if (t.accent)          setAccent(t.accent);
+      if (t.color_bg)        setColorBg(t.color_bg);
+      if (t.color_field)     setColorField(t.color_field);
+      if (t.color_heading)   setColorHeading(t.color_heading);
+      if (t.color_text)      setColorText(t.color_text);
+      if (t.font_h1)         { setFontH1(t.font_h1);       loadFont(t.font_h1); }
+      if (t.font_body)       { setFontBody(t.font_body);   loadFont(t.font_body); }
+      if (t.font_akzent)     { setFontAkzent(t.font_akzent); loadFont(t.font_akzent); }
+      if (t.color_font_h1)   setColorFontH1(t.color_font_h1);
+      if (t.color_font_body) setColorFontBody(t.color_font_body);
+      if (t.color_font_cta)  setColorFontCta(t.color_font_cta);
+      if (t.radius != null)  setRadius(t.radius);
+      if (t.shadow)          setShadow(t.shadow);
+    } else {
+      if (brandData.primary_color)   setPrimary(brandData.primary_color);
+      if (brandData.secondary_color) setSecondary(brandData.secondary_color);
+      const dd = brandData.design_data;
+      if (dd?.design_brief?.akzentfarbe) setAccent(dd.design_brief.akzentfarbe);
+      if (dd?.design_brief?.hintergrundfarbe) setColorBg(dd.design_brief.hintergrundfarbe);
+      if (dd?.border_radius_px) setRadius(dd.border_radius_px);
+      if (dd?.shadow_label)     setShadow(dd.shadow_label);
+      const fh = brandData.font_heading || brandData.font_primary;
+      const fb = brandData.font_body    || brandData.font_secondary;
+      const fa = brandData.font_accent;
+      if (fh) { setFontH1(fh);     loadFont(fh); }
+      if (fb) { setFontBody(fb);   loadFont(fb); }
+      if (fa) { setFontAkzent(fa); loadFont(fa); }
+    }
 
     (brandData.all_fonts || []).forEach(loadFont);
     (brandData.fonts_detail?.google_fonts || []).forEach(loadFont);
@@ -301,16 +318,26 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
   const save = async () => {
     setSaving(true);
     try {
+      const tokens = {
+        primary, secondary, accent,
+        color_bg: colorBg, color_field: colorField,
+        color_heading: colorHeading, color_text: colorText,
+        font_h1: fontH1, font_body: fontBody, font_akzent: fontAkzent,
+        color_font_h1: colorFontH1, color_font_body: colorFontBody, color_font_cta: colorFontCta,
+        radius, shadow,
+        saved_at: new Date().toISOString(),
+      };
       await fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, {
         method: 'PUT', headers,
         body: JSON.stringify({
           primary_color: primary, secondary_color: secondary,
           font_primary: fontH1, font_secondary: fontBody,
           font_heading: fontH1, font_body: fontBody, font_accent: fontAkzent,
+          design_tokens: tokens,
         }),
       });
       toast.success('Brand Design gespeichert');
-      if (onSaved) onSaved({ primary, secondary, accent, fontH1, fontBody, fontAkzent });
+      if (onSaved) onSaved(tokens);
     } catch { toast.error('Speichern fehlgeschlagen'); }
     finally { setSaving(false); }
   };

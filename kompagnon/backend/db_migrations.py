@@ -1187,6 +1187,10 @@ MIGRATIONS = [
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS funktionen_json TEXT",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS seo_json TEXT",
     ]),
+
+    (18, "add_lead_brand_design_tokens", [
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_design_tokens_json TEXT",
+    ]),
 ]
 
 

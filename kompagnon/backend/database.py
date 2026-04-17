@@ -110,6 +110,7 @@ class Lead(Base):
     brand_scrape_failed   = Column(Boolean, default=False, nullable=True)
     brand_scraped_at      = Column(DateTime, nullable=True)
     brand_design_json     = Column(Text, nullable=True)
+    brand_design_tokens_json = Column(Text, nullable=True)
     brand_design_style    = Column(String(100), nullable=True)
     brand_notes           = Column(Text, nullable=True)
     brand_pdf_filename    = Column(String(255), nullable=True)

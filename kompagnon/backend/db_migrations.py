@@ -1195,6 +1195,10 @@ MIGRATIONS = [
     (19, "add_project_steps_confirmed", [
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS steps_confirmed TEXT DEFAULT '{}'",
     ]),
+
+    (20, "add_project_ssl_checked_at", [
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_ssl_checked_at TIMESTAMP",
+    ]),
 ]
 
 

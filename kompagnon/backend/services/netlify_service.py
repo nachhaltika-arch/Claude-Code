@@ -401,8 +401,9 @@ def check_dns_active(domain: str, netlify_site_url: str = "") -> bool:
     return False
 
 
-def generate_dns_guide(domain: str, netlify_site_url: str) -> dict:
-    """Erzeugt die DNS-Einträge die der Kunde bei seinem Anbieter eintragen muss."""
+def generate_dns_guide(domain: str, netlify_site_url: str,
+                       email_forwarding: list = None) -> dict:
+    """Erzeugt DNS-Eintraege + optionale E-Mail-Weiterleitungen."""
     clean_domain = (domain or "").lower().strip()
     if clean_domain.startswith("www."):
         clean_domain = clean_domain[4:]
@@ -412,33 +413,62 @@ def generate_dns_guide(domain: str, netlify_site_url: str) -> dict:
     if not netlify_host:
         netlify_host = "<ihre-netlify-subdomain>.netlify.app"
 
+    records = [
+        {"type": "A", "name": "@", "value": "75.2.60.5", "ttl": "3600",
+         "note": "Hauptdomain (ohne www)", "category": "website"},
+        {"type": "CNAME", "name": "www", "value": netlify_host, "ttl": "3600",
+         "note": "www-Subdomain", "category": "website"},
+    ]
+
+    email_records = []
+    if email_forwarding:
+        seen_mx = False
+        for fwd in email_forwarding:
+            alias = fwd.get("alias", "info")
+            ziel  = fwd.get("ziel", "")
+            if not ziel:
+                continue
+            if not seen_mx:
+                email_records.append({"type": "MX", "name": "@", "value": "mx1.forwardemail.net",
+                                      "priority": "10", "ttl": "3600",
+                                      "note": "E-Mail-Weiterleitung (ForwardEmail.net)", "category": "email"})
+                seen_mx = True
+            email_records.append({"type": "TXT", "name": "@",
+                                  "value": f"forward-email={alias}:{ziel}", "ttl": "3600",
+                                  "note": f"{alias}@{clean_domain} -> {ziel}", "category": "email"})
+
     return {
         "domain": clean_domain,
         "netlify_url": netlify_site_url,
-        "records": [
-            {
-                "type":  "A",
-                "name":  "@",
-                "value": "75.2.60.5",
-                "ttl":   "3600",
-                "note":  "Hauptdomain (ohne www)",
-            },
-            {
-                "type":  "CNAME",
-                "name":  "www",
-                "value": netlify_host,
-                "ttl":   "3600",
-                "note":  "www-Subdomain",
-            },
-        ],
+        "records": records,
+        "email_records": email_records,
         "instructions": (
             f"Bitte loggen Sie sich bei Ihrem Domain-Anbieter "
             f"(z.B. IONOS, Strato, united-domains, GoDaddy) ein und tragen Sie "
-            f"die folgenden DNS-Einträge für '{clean_domain}' ein. "
-            f"Die Änderungen werden innerhalb von 1–48 Stunden aktiv. "
+            f"die folgenden DNS-Eintraege fuer '{clean_domain}' ein. "
+            f"Die Aenderungen werden innerhalb von 1-48 Stunden aktiv. "
             f"Wir informieren Sie automatisch, sobald Ihre Website live ist."
         ),
+        "email_instructions": (
+            "Fuer E-Mail-Weiterleitungen: Tragen Sie zusaetzlich die MX- und "
+            "TXT-Eintraege ein. Eingehende E-Mails werden automatisch "
+            "an Ihre bestehende E-Mail-Adresse weitergeleitet."
+        ) if email_records else None,
     }
+
+
+async def set_domain_alias(site_id: str, alias: str) -> dict:
+    """Fuegt einen Domain-Alias zu einer Netlify-Site hinzu."""
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        get_resp = await client.get(f"{NETLIFY_API}/sites/{site_id}", headers=_get_headers())
+        existing = get_resp.json().get("domain_aliases", []) if get_resp.is_success else []
+        if alias not in existing:
+            existing.append(alias)
+        resp = await client.put(f"{NETLIFY_API}/sites/{site_id}", headers=_get_headers(),
+                                json={"domain_aliases": existing})
+    if not resp.is_success:
+        raise Exception(f"Domain-Alias Fehler: {resp.status_code}")
+    return {"aliases": resp.json().get("domain_aliases", [])}
 
 
 def generate_redirects(old_urls: list, new_urls: dict) -> str:

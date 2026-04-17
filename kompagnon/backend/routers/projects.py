@@ -1536,6 +1536,43 @@ def hosting_info(
 
 
 
+@router.post("/{project_id}/netlify/add-subdomain")
+async def netlify_add_subdomain(
+    project_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Fuegt eine Subdomain zur Netlify-Site hinzu und generiert DNS-Anleitung."""
+    row = db.execute(
+        _sql_text("SELECT netlify_site_id, netlify_site_url, netlify_domain, lead_id FROM projects WHERE id=:id"),
+        {"id": project_id},
+    ).fetchone()
+    if not row or not row[0]:
+        raise HTTPException(400, "Keine Netlify-Site vorhanden")
+
+    site_id, site_url, main_domain, lead_id = row[0], row[1] or "", row[2] or "", row[3]
+    sub = (body.get("subdomain") or "").lower().strip()
+    if not sub:
+        raise HTTPException(400, "subdomain fehlt")
+    full_sub = f"{sub}.{main_domain}" if main_domain and "." not in sub else sub
+    netlify_host = site_url.replace("https://", "").replace("http://", "").rstrip("/")
+
+    try:
+        from services.netlify_service import set_domain_alias
+        await set_domain_alias(site_id, full_sub)
+    except Exception as e:
+        logger.warning(f"Netlify add_domain_alias fehlgeschlagen: {e}")
+
+    return {
+        "subdomain": full_sub,
+        "netlify_target": netlify_host,
+        "dns_record": {"type": "CNAME", "name": sub, "value": netlify_host, "ttl": "3600",
+                        "note": f"{full_sub} zeigt auf Netlify"},
+        "instructions": f"CNAME  {sub}  ->  {netlify_host}. Aktiv in 1-24 Stunden.",
+    }
+
+
 @router.post("/{project_id}/confirm-step")
 def confirm_step(
     project_id: int,

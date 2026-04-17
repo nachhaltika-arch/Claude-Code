@@ -211,6 +211,58 @@ def job_check_netlify_dns():
         db.close()
 
 
+def job_check_netlify_ssl():
+    """Prueft taeglich ob SSL auf aktiven Netlify-Sites noch gueltig ist."""
+    from sqlalchemy import text
+    import asyncio
+
+    db = SessionLocal()
+    try:
+        sites = db.execute(text("""
+            SELECT id, netlify_site_id, netlify_domain, netlify_ssl_active, lead_id
+            FROM projects
+            WHERE netlify_site_id IS NOT NULL
+              AND netlify_domain IS NOT NULL
+              AND netlify_domain_status = 'active'
+        """)).fetchall()
+
+        for site in sites:
+            try:
+                from services.netlify_service import get_site_status
+                live = asyncio.run(get_site_status(site.netlify_site_id))
+                ssl_now = bool(live.get("ssl"))
+                db.execute(text("""
+                    UPDATE projects
+                    SET netlify_ssl_active = :ssl, netlify_ssl_checked_at = NOW()
+                    WHERE id = :id
+                """), {"ssl": ssl_now, "id": site.id})
+                db.commit()
+
+                if site.netlify_ssl_active and not ssl_now:
+                    logger.warning(f"SSL-Problem: Projekt {site.id} ({site.netlify_domain})")
+                    try:
+                        db.execute(text("""
+                            INSERT INTO messages (lead_id, channel, content, direction, created_at, sender_role)
+                            VALUES (:lid, 'in_app', :content, 'outbound', NOW(), 'system')
+                        """), {
+                            "lid": site.lead_id,
+                            "content": (
+                                f"SSL-Zertifikat Problem: {site.netlify_domain} hat kein gueltiges SSL. "
+                                f"Bitte im Netlify-Dashboard pruefen und SSL manuell erneuern."
+                            ),
+                        })
+                        db.commit()
+                    except Exception as me:
+                        logger.warning(f"SSL-Alert Nachricht Fehler: {me}")
+
+            except Exception as e:
+                logger.error(f"SSL-Check Fehler Projekt {site.id}: {e}")
+    except Exception as e:
+        logger.error(f"SSL-Check Job Fehler: {e}")
+    finally:
+        db.close()
+
+
 def job_check_overdue_phases():
     """Check projects stuck in phase > 2 days and create a support ticket after 3 days."""
     from sqlalchemy import text
@@ -1076,6 +1128,13 @@ class CompagnonScheduler:
             "interval", minutes=10,
             id="netlify_dns_check_every_10min",
             replace_existing=True,
+        )
+        self.scheduler.add_job(
+            job_check_netlify_ssl,
+            "cron", hour=8, minute=0,
+            id="netlify_ssl_check_daily",
+            replace_existing=True,
+            timezone="Europe/Berlin",
         )
         self.scheduler.add_job(
             job_check_overdue_phases,

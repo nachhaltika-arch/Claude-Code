@@ -894,10 +894,12 @@ function SchrittContent({ schritt, ...props }) {
       );
     case 'BrandGuideline':
       return (
-        <BrandGuideline project={props.project} lead={props.lead} token={props.token}
-          leadId={props.leadId} brandData={props.brandData}
+        <BrandGuideline
+          leadId={props.leadId}
+          token={props.token}
           projectId={props.project?.id}
-          onStepConfirmed={() => { if (props.reloadConfirmedSteps) props.reloadConfirmedSteps(); if (props.goWeiter) props.goWeiter(); }} />
+          onStepConfirmed={() => { if (props.reloadConfirmedSteps) props.reloadConfirmedSteps(); if (props.goWeiter) props.goWeiter(); }}
+        />
       );
     case 'SeoAnalyse':
       return <SeoAnalyseStep projectId={props.project?.id} token={props.token}

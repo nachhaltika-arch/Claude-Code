@@ -77,16 +77,34 @@ const SCHRITTE = [
     fertigText: (d) => `${d.sitemapCount} Seiten`,
   },
   {
-    id: 'content-generieren', nr: 7, phase: 'Content',
-    icon: '✍️', label: 'Texte generieren', auto: false,
+    id: 'seiteninhalte', nr: 7, phase: 'Content',
+    icon: '📝', label: 'Seiteninhalte', auto: false,
     cta: 'Alle Texte generieren →',
     desc: 'KI schreibt alle Seiten auf einmal — ca. 60 Sekunden.',
-    component: 'ContentWerkstatt',
+    component: 'Seiteninhalte',
     istFertig: (d) => (d.sitemapCount || 0) > 0 && (d.contentCount || 0) >= (d.sitemapCount || 1),
     fertigText: (d) => `${d.contentCount}/${d.sitemapCount} Seiten`,
   },
   {
-    id: 'design-generieren', nr: 8, phase: 'Design',
+    id: 'bilder-assets', nr: 8, phase: 'Content',
+    icon: '🖼️', label: 'Bilder & Assets', auto: false, optional: true,
+    cta: 'Weiter zu Freigaben →',
+    desc: 'Fotos, Icons und Medien jeder Seite zuweisen.',
+    component: 'BilderAssets',
+    istFertig: (d) => !!(d.assetsChecked),
+    fertigText: () => 'Geprueft',
+  },
+  {
+    id: 'freigaben', nr: 9, phase: 'Content',
+    icon: '✅', label: 'Freigaben', auto: false, optional: true,
+    cta: 'Freigabe anfordern →',
+    desc: 'Content-Freigabe vom Kunden einholen.',
+    component: 'Freigaben',
+    istFertig: (d) => !!(d.contentApproved),
+    fertigText: () => 'Freigegeben',
+  },
+  {
+    id: 'design-generieren', nr: 10, phase: 'Design',
     icon: '🎨', label: 'Design wählen', auto: false,
     cta: 'Design generieren →',
     desc: 'KI erstellt 3 Entwürfe — du wählst den besten.',
@@ -95,7 +113,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.designVersions} Version(en)`,
   },
   {
-    id: 'editor', nr: 9, phase: 'Design',
+    id: 'editor', nr: 11, phase: 'Design',
     icon: '🖊️', label: 'Feinschliff', auto: false, optional: true,
     cta: 'Editor öffnen →',
     desc: 'Echte Fotos einsetzen, Texte prüfen, Mobile-Ansicht testen.',
@@ -104,7 +122,7 @@ const SCHRITTE = [
     fertigText: () => 'Gespeichert',
   },
   {
-    id: 'netlify', nr: 10, phase: 'Go Live',
+    id: 'netlify', nr: 12, phase: 'Go Live',
     icon: '🚀', label: 'Veröffentlichen', auto: false,
     cta: 'Jetzt veröffentlichen →',
     desc: 'Website live schalten — 1 Klick, Netlify deployt automatisch.',
@@ -113,7 +131,7 @@ const SCHRITTE = [
     fertigText: (d) => d.netlifyUrl || 'Deployed',
   },
   {
-    id: 'dns', nr: 11, phase: 'Go Live',
+    id: 'dns', nr: 13, phase: 'Go Live',
     icon: '🌍', label: 'Domain verbinden', auto: true,
     autoText: 'DNS-Anleitung wird automatisch per E-Mail an den Kunden gesendet — du musst nichts tun.',
     desc: 'Anleitung geht direkt an den Kunden.',
@@ -122,7 +140,7 @@ const SCHRITTE = [
     fertigText: () => 'Domain erreichbar',
   },
   {
-    id: 'qa', nr: 12, phase: 'Go Live',
+    id: 'qa', nr: 14, phase: 'Go Live',
     icon: '✅', label: 'QA-Check', auto: true,
     autoText: 'Website wird automatisch auf Fehler, Mobile-Darstellung und Impressum geprüft.',
     desc: 'Links, Mobile, Impressum — automatisch.',
@@ -131,7 +149,7 @@ const SCHRITTE = [
     fertigText: () => 'QA abgeschlossen',
   },
   {
-    id: 'abnahme', nr: 13, phase: 'Go Live',
+    id: 'abnahme', nr: 15, phase: 'Go Live',
     icon: '🏁', label: 'Go Live!', auto: false,
     cta: 'Abnahme erteilen →',
     desc: 'Finale Kundenfreigabe und Go-Live.',
@@ -174,6 +192,8 @@ export default function ProzessFlowV3({
     brandPrimaryColor: localBrandColor || null,
     sitemapCount:     sitemapPages?.length || 0,
     contentCount:     (websiteContent || []).filter(p => p.ki_content || p.content_generated).length,
+    assetsChecked:    !!(project?.assets_checked),
+    contentApproved:  !!(project?.content_approved_at),
     credsCount:       0,
     designVersions:   0,
     editorSaved:      false,
@@ -716,6 +736,24 @@ function SchrittContent({ schritt, ...props }) {
     case 'ContentWerkstatt':
       return (
         <ContentWerkstatt project={props.project} sitemapPages={props.sitemapPages} sitemapLoading={props.sitemapLoading} token={props.token} leadId={props.leadId} websiteContent={props.websiteContent} />
+      );
+    case 'Seiteninhalte':
+      return (
+        <ContentWerkstatt project={props.project} sitemapPages={props.sitemapPages} sitemapLoading={props.sitemapLoading}
+          token={props.token} leadId={props.leadId} websiteContent={props.websiteContent}
+          defaultTab="inhalte" hideTabs />
+      );
+    case 'BilderAssets':
+      return (
+        <ContentWerkstatt project={props.project} sitemapPages={props.sitemapPages} sitemapLoading={props.sitemapLoading}
+          token={props.token} leadId={props.leadId} websiteContent={props.websiteContent}
+          defaultTab="assets" hideTabs />
+      );
+    case 'Freigaben':
+      return (
+        <ContentWerkstatt project={props.project} sitemapPages={props.sitemapPages} sitemapLoading={props.sitemapLoading}
+          token={props.token} leadId={props.leadId} websiteContent={props.websiteContent}
+          defaultTab="freigaben" hideTabs />
       );
     case 'DesignStudio':
       return <DesignStudioEmbed project={props.project} leadId={props.leadId} token={props.token} headers={props.headers} brandData={props.brandData} sitemapPages={props.sitemapPages} />;

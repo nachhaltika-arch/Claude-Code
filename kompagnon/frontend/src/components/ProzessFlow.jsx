@@ -40,20 +40,28 @@ const PHASEN = [
         istFertig: (d) => (d.sitemapCount || 0) >= 3,
         wasFehlts: (d) => { const f = 3-(d.sitemapCount||0); return f > 0 ? [`Noch ${f} Seite(n) (mind. 3)`] : []; },
         fertigText: (d) => `${d.sitemapCount} Seiten` },
-      { id: 'content-generieren', nr: 7, label: 'Content & Bilder', desc: 'KI-Texte + Bilder je Seite', icon: '🤖', component: 'ContentWerkstatt',
+      { id: 'seiteninhalte', nr: 7, label: 'Seiteninhalte', desc: 'KI schreibt alle Texte auf einmal', icon: '📝', component: 'Seiteninhalte',
         istFertig: (d) => (d.sitemapCount||0) > 0 && (d.contentCount||0) >= (d.sitemapCount||1),
         wasFehlts: (d) => { if (!d.sitemapCount) return ['Zuerst Sitemap anlegen']; const o = (d.sitemapCount||0)-(d.contentCount||0); return o > 0 ? [`${o}/${d.sitemapCount} Seiten ohne Content`] : []; },
         fertigText: (d) => `${d.contentCount}/${d.sitemapCount} Seiten` },
+      { id: 'bilder-assets', nr: 8, label: 'Bilder & Assets', desc: 'Fotos, Icons und Medien zuweisen', icon: '🖼️', component: 'BilderAssets', optional: true,
+        istFertig: (d) => !!(d.assetsChecked),
+        wasFehlts: () => ['Bilder noch nicht geprueft'],
+        fertigText: () => 'Geprueft' },
+      { id: 'freigaben', nr: 9, label: 'Freigaben', desc: 'Content-Freigabe vom Kunden', icon: '✅', component: 'Freigaben', optional: true,
+        istFertig: (d) => !!(d.contentApproved),
+        wasFehlts: () => ['Freigabe noch nicht erteilt'],
+        fertigText: () => 'Freigegeben' },
     ],
   },
   {
     id: 'design', label: 'Design', icon: '🎨', color: '#d97706',
     schritte: [
-      { id: 'design-generieren', nr: 8, label: 'Design generieren', desc: 'Template + KI-Entwurf', icon: '✨', component: 'DesignStudio',
+      { id: 'design-generieren', nr: 10, label: 'Design generieren', desc: 'Template + KI-Entwurf', icon: '✨', component: 'DesignStudio',
         istFertig: (d) => (d.designVersions || 0) >= 1,
         wasFehlts: (d) => (d.designVersions||0) === 0 ? ['Noch kein Design generiert'] : [],
         fertigText: (d) => `${d.designVersions} Version(en)` },
-      { id: 'editor', nr: 9, label: 'Editor nachbearbeiten', desc: 'Feinschliff im GrapesJS', icon: '🖊️', component: 'Editor', optional: true,
+      { id: 'editor', nr: 11, label: 'Editor nachbearbeiten', desc: 'Feinschliff im GrapesJS', icon: '🖊️', component: 'Editor', optional: true,
         istFertig: (d) => !!(d.editorSaved),
         wasFehlts: () => ['Editor nicht geoeffnet'],
         fertigText: () => 'Gespeichert' },
@@ -62,19 +70,19 @@ const PHASEN = [
   {
     id: 'golive', label: 'Go Live', icon: '🚀', color: '#059669',
     schritte: [
-      { id: 'netlify', nr: 10, label: 'Netlify deployen', desc: 'Website veroeffentlichen', icon: '🚀', component: 'Netlify',
+      { id: 'netlify', nr: 12, label: 'Netlify deployen', desc: 'Website veroeffentlichen', icon: '🚀', component: 'Netlify',
         istFertig: (d) => !!(d.netlifyUrl && d.netlifyReady),
         wasFehlts: (d) => { if (!d.netlifyUrl) return ['Netlify nicht angelegt']; if (!d.netlifyReady) return ['Deploy nicht abgeschlossen']; return []; },
         fertigText: (d) => d.netlifyUrl || 'Deployed' },
-      { id: 'dns', nr: 11, label: 'DNS umstellen', desc: 'CNAME beim Domain-Anbieter', icon: '🌍', component: 'DNS',
+      { id: 'dns', nr: 13, label: 'DNS umstellen', desc: 'CNAME beim Domain-Anbieter', icon: '🌍', component: 'DNS',
         istFertig: (d) => !!(d.domainReachable && d.domainStatusCode === 200),
         wasFehlts: (d) => { if (!d.netlifyUrl) return ['Zuerst Netlify deployen']; if (!d.domainReachable) return ['Domain nicht erreichbar']; return []; },
         fertigText: () => 'Domain erreichbar' },
-      { id: 'qa', nr: 12, label: 'QA-Check', desc: 'Links, Mobile, Impressum', icon: '✓', component: 'QA',
+      { id: 'qa', nr: 14, label: 'QA-Check', desc: 'Links, Mobile, Impressum', icon: '✓', component: 'QA',
         istFertig: (d) => !!(d.qaResult),
         wasFehlts: () => ['QA-Scan nicht durchgefuehrt'],
         fertigText: () => 'QA abgeschlossen' },
-      { id: 'abnahme', nr: 13, label: 'Abnahme & Go Live', desc: 'Kundenfreigabe', icon: '🏁', component: 'Abnahme',
+      { id: 'abnahme', nr: 15, label: 'Abnahme & Go Live', desc: 'Kundenfreigabe', icon: '🏁', component: 'Abnahme',
         istFertig: (d) => !!(d.goLiveConfirmed || d.projectStatus === 'fertig'),
         wasFehlts: (d) => { const f = []; if (!d.qaResult) f.push('QA-Check fehlt'); if (!d.domainReachable) f.push('DNS nicht umgestellt'); if (!d.goLiveConfirmed) f.push('Abnahme nicht erteilt'); return f; },
         fertigText: () => 'Live!' },
@@ -227,6 +235,8 @@ export default function ProzessFlow({
     brandPrimaryColor: localBrandColor || null,
     sitemapCount:     sitemapPages?.length || 0,
     contentCount:     (websiteContent || []).filter(p => p.ki_content).length,
+    assetsChecked:    !!(project?.assets_checked),
+    contentApproved:  !!(project?.content_approved_at),
     credsCount:       0,
     hasAssets:        (websiteContent || []).some(p => p.images?.length > 0),
     designVersions:   0,
@@ -606,7 +616,7 @@ export default function ProzessFlow({
           </div>
 
           {/* Fehlende Felder — nicht fuer Schritte mit eingebettetem Formular */}
-          {!aktivObj.istFertig(prozessDaten) && !['BriefingUnternehmen','BriefingWebsite','ContentWerkstatt','DesignStudio','AnalyseZentrale'].includes(aktivObj.component) && aktivObj.wasFehlts && (() => {
+          {!aktivObj.istFertig(prozessDaten) && !['BriefingUnternehmen','BriefingWebsite','ContentWerkstatt','Seiteninhalte','BilderAssets','Freigaben','DesignStudio','AnalyseZentrale'].includes(aktivObj.component) && aktivObj.wasFehlts && (() => {
             const fehlende = aktivObj.wasFehlts(prozessDaten);
             if (!fehlende || fehlende.length === 0) return null;
             return (
@@ -695,14 +705,26 @@ function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
 
     case 'ContentWerkstatt':
       return (
-        <ContentWerkstatt
-          project={project}
-          sitemapPages={sitemapPages}
-          sitemapLoading={sitemapLoading}
-          token={token}
-          leadId={project.lead_id}
-          websiteContent={websiteContent}
-        />
+        <ContentWerkstatt project={project} sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
+          token={token} leadId={project.lead_id} websiteContent={websiteContent} />
+      );
+    case 'Seiteninhalte':
+      return (
+        <ContentWerkstatt project={project} sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
+          token={token} leadId={project.lead_id} websiteContent={websiteContent}
+          defaultTab="inhalte" hideTabs />
+      );
+    case 'BilderAssets':
+      return (
+        <ContentWerkstatt project={project} sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
+          token={token} leadId={project.lead_id} websiteContent={websiteContent}
+          defaultTab="assets" hideTabs />
+      );
+    case 'Freigaben':
+      return (
+        <ContentWerkstatt project={project} sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
+          token={token} leadId={project.lead_id} websiteContent={websiteContent}
+          defaultTab="freigaben" hideTabs />
       );
 
     case 'DesignStudio':

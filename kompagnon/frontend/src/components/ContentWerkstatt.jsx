@@ -8,8 +8,12 @@ const CONTENT_TABS = [
   { id: 'freigaben',  label: 'Freigaben',       icon: '✅', desc: 'Kunden-Freigaben' },
 ];
 
-export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading, token, leadId, websiteContent }) {
-  const [activeTab, setActiveTab]       = useState('inhalte');
+export default function ContentWerkstatt({
+  project, sitemapPages, sitemapLoading, token, leadId, websiteContent,
+  defaultTab = 'inhalte',
+  hideTabs = false,
+}) {
+  const [activeTab, setActiveTab]       = useState(defaultTab);
   const [selectedPage, setSelectedPage] = useState(null);
   const [generating, setGenerating]     = useState(false);
   const [pageContent, setPageContent]   = useState({});
@@ -226,26 +230,28 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
-      {/* Unter-Tab-Navigation */}
-      <div style={{ display: 'flex', background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: 12 }}>
-        {CONTENT_TABS.map((tab, i) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-              flex: 1, padding: '10px 8px 8px', border: 'none',
-              borderRight: i < CONTENT_TABS.length - 1 ? '1px solid var(--border-light)' : 'none',
-              borderBottom: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent',
-              background: isActive ? 'var(--bg-active, var(--bg-elevated))' : 'transparent',
-              cursor: 'pointer', fontFamily: 'var(--font-sans)',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-            }}>
-              <span style={{ fontSize: 18 }}>{tab.icon}</span>
-              <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--brand-primary)' : 'var(--text-primary)' }}>{tab.label}</span>
-              <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{tab.desc}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Unter-Tab-Navigation — ausgeblendet wenn aus ProzessFlow per hideTabs aufgerufen */}
+      {!hideTabs && (
+        <div style={{ display: 'flex', background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: 12 }}>
+          {CONTENT_TABS.map((tab, i) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+                flex: 1, padding: '10px 8px 8px', border: 'none',
+                borderRight: i < CONTENT_TABS.length - 1 ? '1px solid var(--border-light)' : 'none',
+                borderBottom: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent',
+                background: isActive ? 'var(--bg-active, var(--bg-elevated))' : 'transparent',
+                cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              }}>
+                <span style={{ fontSize: 18 }}>{tab.icon}</span>
+                <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--brand-primary)' : 'var(--text-primary)' }}>{tab.label}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{tab.desc}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
 
       {/* TAB 2: SEITENINHALTE — Master-Detail */}

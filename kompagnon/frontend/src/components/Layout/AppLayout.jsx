@@ -320,6 +320,10 @@ function SidebarNav({ badges }) {
       path.startsWith('/app/campaigns')
     ) {
       setOpenSection('vertrieb');
+    } else if (path.startsWith('/app/product') && !path.startsWith('/app/product-editor') && !path.startsWith('/app/products')) {
+      setOpenSection('vertrieb');
+    } else if (path.startsWith('/app/product-editor') || path.startsWith('/app/products')) {
+      setOpenSection('settings');
     } else if (path.startsWith('/app/settings')) {
       setOpenSection('settings');
     }
@@ -412,17 +416,18 @@ function SidebarNav({ badges }) {
               <span>Vertrieb</span>
               <span style={sbChevronStyle(openSection === 'vertrieb')}>›</span>
             </button>
-            <div style={sbCollapseStyle(openSection === 'vertrieb')}>
+            <div style={sbCollapseStyle(openSection === 'vertrieb', 360)}>
               {[
-                { label: 'Pipeline',      path: '/app/deals' },
-                { label: 'Audit-Tool',    path: '/app/audit' },
-                { label: 'Kampagnen',     path: '/app/campaigns' },
-                { label: 'Kaltakquise',   path: '/app/companies' },
-                { label: 'Newsletter',    path: '/app/newsletter' },
-                { label: 'Domain-Import', path: '/app/import' },
-                { label: 'Massen-Export', path: '/app/export' },
-                { label: 'Scraper',       path: '/app/scraper' },
-                { label: 'Retainer',      path: '/app/retainer' },
+                { label: 'Pipeline',           path: '/app/deals' },
+                { label: 'Audit-Tool',         path: '/app/audit' },
+                { label: 'Kampagnen',          path: '/app/campaigns' },
+                { label: 'Kaltakquise',        path: '/app/companies' },
+                { label: 'Newsletter',         path: '/app/newsletter' },
+                { label: 'Domain-Import',      path: '/app/import' },
+                { label: 'Massen-Export',      path: '/app/export' },
+                { label: 'Scraper',            path: '/app/scraper' },
+                { label: 'Retainer',           path: '/app/retainer' },
+                { label: 'Produktentwicklung', path: '/app/product' },
               ].map(item => (
                 <button
                   key={`vertrieb-${item.label}`}
@@ -516,7 +521,7 @@ function SidebarNav({ badges }) {
               <span>Einstellungen</span>
               <span style={sbChevronStyle(openSection === 'settings')}>›</span>
             </button>
-            <div style={sbCollapseStyle(openSection === 'settings', 360)}>
+            <div style={sbCollapseStyle(openSection === 'settings', 460)}>
               {[
                 { label: 'Profil',             path: '/app/settings/profile' },
                 { label: 'Sicherheit & 2FA',   path: '/app/settings/security' },
@@ -524,6 +529,8 @@ function SidebarNav({ badges }) {
                 { label: 'Rollenverwaltung',   path: '/app/settings/roles' },
                 { label: 'System & API-Keys',  path: '/app/settings/system' },
                 { label: 'Benachrichtigungen', path: '/app/settings/notifications' },
+                { label: 'Produkt-Editor',     path: '/app/product-editor' },
+                { label: 'Produkte',           path: '/app/products' },
               ].map(item => (
                 <button
                   key={`settings-${item.label}`}

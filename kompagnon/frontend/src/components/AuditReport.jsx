@@ -419,7 +419,7 @@ export default function AuditReport({ auditData, onClose }) {
                     display: 'inline-flex', alignItems: 'center', gap: '6px',
                     padding: '4px 12px',
                     borderRadius: 'var(--radius-md)',
-                    background: ok ? '#e8f5e9' : '#fdecea',
+                    background: ok ? 'var(--status-success-bg)' : 'var(--status-danger-bg)',
                     border: `1px solid ${ok ? 'var(--status-success-text)' : 'var(--brand-primary)'}`,
                     fontSize: '11px', fontWeight: 600,
                     color: ok ? 'var(--status-success-text)' : 'var(--brand-primary)',
@@ -560,20 +560,20 @@ export default function AuditReport({ auditData, onClose }) {
             <strong style={{ display: 'block', marginBottom: 12, fontSize: 14 }}>🤖 GEO & KI-Sichtbarkeit</strong>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ background: '#F9FAFB' }}>
-                  <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '1px solid #E5E7EB' }}>Prüfpunkt</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, color: '#374151', borderBottom: '1px solid #E5E7EB', width: 70 }}>Status</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '1px solid #E5E7EB' }}>Empfehlung</th>
+                <tr style={{ background: 'var(--bg-elevated, #F9FAFB)' }}>
+                  <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary, #374151)', borderBottom: '1px solid var(--border-light, #E5E7EB)' }}>Prüfpunkt</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, color: 'var(--text-secondary, #374151)', borderBottom: '1px solid var(--border-light, #E5E7EB)', width: 70 }}>Status</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary, #374151)', borderBottom: '1px solid var(--border-light, #E5E7EB)' }}>Empfehlung</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#F9FAFB' }}>
-                    <td style={{ padding: '8px 10px', color: '#374151', borderBottom: '1px solid #F3F4F6' }}>{row.label}</td>
-                    <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 18, borderBottom: '1px solid #F3F4F6' }}>
-                      <span style={{ color: row.ok ? '#16a34a' : '#DC2626' }}>{row.ok ? '✓' : '✗'}</span>
+                  <tr key={i} style={{ background: i % 2 === 0 ? 'var(--bg-surface, #fff)' : 'var(--bg-elevated, #F9FAFB)' }}>
+                    <td style={{ padding: '8px 10px', color: 'var(--text-secondary, #374151)', borderBottom: '1px solid var(--border-light, #F3F4F6)' }}>{row.label}</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 18, borderBottom: '1px solid var(--border-light, #F3F4F6)' }}>
+                      <span style={{ color: row.ok ? 'var(--status-success-text, #16a34a)' : 'var(--status-danger-text, #DC2626)' }}>{row.ok ? '✓' : '✗'}</span>
                     </td>
-                    <td style={{ padding: '8px 10px', color: '#6B7280', borderBottom: '1px solid #F3F4F6' }}>{row.rec}</td>
+                    <td style={{ padding: '8px 10px', color: 'var(--text-tertiary, #6B7280)', borderBottom: '1px solid var(--border-light, #F3F4F6)' }}>{row.rec}</td>
                   </tr>
                 ))}
               </tbody>
@@ -625,7 +625,7 @@ export default function AuditReport({ auditData, onClose }) {
                   <div style={{ background: ph.bg, padding: '12px 14px' }}>
                     <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {ph.items.map((item, i) => (
-                        <li key={i} style={{ fontSize: 12, color: '#374151', lineHeight: 1.5 }}>{item}</li>
+                        <li key={i} style={{ fontSize: 12, color: 'var(--text-secondary, #374151)', lineHeight: 1.5 }}>{item}</li>
                       ))}
                     </ul>
                   </div>
@@ -774,7 +774,7 @@ function EChartsRadar({ auditData: r, getCatScore }) {
       radar: {
         indicator: RADAR_INDICATORS,
         splitNumber: 5,
-        axisName: { color: '#374151', fontSize: 11 },
+        axisName: { color: 'var(--text-secondary, #374151)', fontSize: 11 },
         splitLine: { lineStyle: { color: '#E5E7EB' } },
         splitArea: { show: false },
         axisLine: { lineStyle: { color: '#E5E7EB' } },

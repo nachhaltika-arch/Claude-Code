@@ -17,9 +17,10 @@ export default function BrandGuideline({ leadId, token, projectId, onStepConfirm
   const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    if (!leadId || !token) return;
+    if (!leadId || !token) { setLoading(false); return; }
     setLoading(true);
     setError('');
+    setGuideline(null);
     fetch(`${API_BASE_URL}/api/branddesign/${leadId}/guideline`, { headers: h })
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(d => {

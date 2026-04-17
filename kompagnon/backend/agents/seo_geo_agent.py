@@ -4,6 +4,7 @@ Creates JSON-LD, robots.txt, sitemap templates.
 """
 import json
 import os
+import re as _re
 from typing import Dict, Optional, List
 from datetime import datetime
 
@@ -11,6 +12,53 @@ try:
     from anthropic import Anthropic
 except ImportError:
     Anthropic = None
+
+
+def _repair_json(text: str) -> str:
+    """Attempt to repair truncated JSON from Claude responses."""
+    text = text.strip()
+    if not text:
+        return "{}"
+    try:
+        json.loads(text)
+        return text
+    except json.JSONDecodeError:
+        pass
+    open_braces = text.count("{") - text.count("}")
+    open_brackets = text.count("[") - text.count("]")
+    in_string = False
+    escape = False
+    for ch in text:
+        if escape:
+            escape = False
+            continue
+        if ch == "\\":
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+    if in_string:
+        text += '"'
+    text += "]" * max(0, open_brackets)
+    text += "}" * max(0, open_braces)
+    try:
+        json.loads(text)
+        return text
+    except json.JSONDecodeError:
+        pass
+    last_comma = text.rfind(",")
+    if last_comma > 0:
+        candidate = text[:last_comma]
+        open_b = candidate.count("{") - candidate.count("}")
+        open_br = candidate.count("[") - candidate.count("]")
+        candidate += "]" * max(0, open_br)
+        candidate += "}" * max(0, open_b)
+        try:
+            json.loads(candidate)
+            return candidate
+        except json.JSONDecodeError:
+            pass
+    return text
 
 
 class SeoGeoAgent:
@@ -65,7 +113,7 @@ class SeoGeoAgent:
 Generiere vollständiges Schema.org-Markup für deutsche Handwerksbetriebe.
 
 WICHTIG:
-- Antworte als valides JSON ohne Markdown-Wrapper
+- Antworte als valides JSON ohne Markdown-Wrapper (kein ```json)
 - Schema.org muss vollständig, deutschsprachig und korrekt sein
 - Alle IDs sind @id URLs in folgendem Format: https://example.com/#[type]
 - LocalBusinessSchema: Enthält ALL Kontaktinfos, Öffnungszeiten, Koordinaten
@@ -73,7 +121,8 @@ WICHTIG:
 - Breadcrumb: Home → Services → [Service]
 - ServiceSchemas: Eigenes Schema pro Leistung
 - geo_readiness_score: Bewertet, wie gut lokal optimiert
-- geo_recommendations: Die 5 wichtigsten nächsten Schritte"""
+- geo_recommendations: Die 5 wichtigsten nächsten Schritte
+- Halte die Antwort kompakt: max 3 FAQ-Eintraege, max 5 Services, max 5 Empfehlungen"""
 
             company_name = company_data.get("company_name", "Betrieb")
             website = company_data.get("website", "https://example.com")
@@ -104,12 +153,16 @@ Liefere das Ergebnis als JSON:
 
             message = self.client.messages.create(
                 model=self.model,
-                max_tokens=4000,
+                max_tokens=8000,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_message}],
             )
 
-            response_text = message.content[0].text
+            response_text = message.content[0].text.strip()
+            response_text = _re.sub(r"^```json\s*", "", response_text)
+            response_text = _re.sub(r"^```\s*", "", response_text)
+            response_text = _re.sub(r"\s*```$", "", response_text)
+            response_text = _repair_json(response_text)
             result = json.loads(response_text)
             return result
 

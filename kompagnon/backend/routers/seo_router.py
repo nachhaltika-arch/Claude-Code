@@ -19,6 +19,53 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/seo", tags=["seo"])
 
 
+def _repair_json(text: str) -> str:
+    """Attempt to repair truncated JSON from Claude responses."""
+    text = text.strip()
+    if not text:
+        return "{}"
+    try:
+        json.loads(text)
+        return text
+    except json.JSONDecodeError:
+        pass
+    open_braces = text.count("{") - text.count("}")
+    open_brackets = text.count("[") - text.count("]")
+    in_string = False
+    escape = False
+    for ch in text:
+        if escape:
+            escape = False
+            continue
+        if ch == "\\":
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+    if in_string:
+        text += '"'
+    text += "]" * max(0, open_brackets)
+    text += "}" * max(0, open_braces)
+    try:
+        json.loads(text)
+        return text
+    except json.JSONDecodeError:
+        pass
+    last_comma = text.rfind(",")
+    if last_comma > 0:
+        candidate = text[:last_comma]
+        open_b = candidate.count("{") - candidate.count("}")
+        open_br = candidate.count("[") - candidate.count("]")
+        candidate += "]" * max(0, open_br)
+        candidate += "}" * max(0, open_b)
+        try:
+            json.loads(candidate)
+            return candidate
+        except json.JSONDecodeError:
+            pass
+    return text
+
+
 def _generate_seo_analysis(
     trade: str, city: str, company_name: str, url: str, radius_km: int = 25,
 ) -> dict:
@@ -41,13 +88,14 @@ def _generate_seo_analysis(
         '"competitors":[{"name":"...","score":<0-100>}],'
         '"action_plan":[{"title":"...","time":"...","effect":"..."}]}\n\n'
         f"Ersetze alle Platzhalter durch echte Werte fuer {trade} in {city}. "
-        "Variiere Scores realistisch (35-70 fuer typischen Betrieb ohne aktive SEO)."
+        "Variiere Scores realistisch (35-70 fuer typischen Betrieb ohne aktive SEO). "
+        "Halte die Antwort kompakt: max 10 Keywords, max 8 Issues, max 5 Competitors, max 5 Actions."
     )
 
     client = Anthropic(api_key=api_key, max_retries=0, timeout=60.0)
     message = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=2000,
+        max_tokens=4000,
         messages=[{"role": "user", "content": prompt}],
     )
 
@@ -55,6 +103,7 @@ def _generate_seo_analysis(
     raw = _re.sub(r"^```json\s*", "", raw)
     raw = _re.sub(r"^```\s*", "", raw)
     raw = _re.sub(r"\s*```$", "", raw)
+    raw = _repair_json(raw)
     return json.loads(raw)
 
 

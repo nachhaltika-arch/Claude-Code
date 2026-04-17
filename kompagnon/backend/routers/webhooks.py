@@ -1,6 +1,8 @@
 import os
 import logging
-from fastapi import APIRouter, Request, HTTPException
+import hashlib
+import hmac
+from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
 from sqlalchemy import text
 from database import SessionLocal
 
@@ -144,3 +146,120 @@ def get_webhook_log(limit: int = 50):
         return [dict(r._mapping) for r in rows]
     finally:
         db.close()
+
+
+def _verify_netlify_signature(payload: bytes, signature: str) -> bool:
+    secret = os.getenv("NETLIFY_WEBHOOK_SECRET", "")
+    if not secret:
+        return True
+    expected = "sha256=" + hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature or "")
+
+
+@router.post("/netlify/audit-anfrage")
+async def netlify_audit_anfrage(request: Request, background_tasks: BackgroundTasks):
+    """Netlify-Webhook: Audit-Formular → Lead anlegen + Audit starten."""
+    body_bytes = await request.body()
+    sig = request.headers.get("x-webhook-signature", "")
+    if not _verify_netlify_signature(body_bytes, sig):
+        raise HTTPException(401, "Ungueltige Webhook-Signatur")
+
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        data = await request.json()
+    else:
+        form = await request.form()
+        data = dict(form)
+
+    email       = (data.get("email") or "").strip().lower()
+    website_url = (data.get("website_url") or data.get("url") or "").strip()
+    phone       = (data.get("phone") or data.get("telefon") or "").strip()
+    company     = (data.get("company") or data.get("firma") or "").strip()
+    utm_source  = data.get("utm_source", "netlify_audit")
+
+    if not email:
+        raise HTTPException(400, "E-Mail fehlt")
+    if website_url and not website_url.startswith("http"):
+        website_url = "https://" + website_url
+
+    db = SessionLocal()
+    try:
+        existing = db.execute(text("SELECT id FROM leads WHERE email = :email LIMIT 1"), {"email": email}).fetchone()
+        if existing:
+            lead_id = existing[0]
+            db.execute(text("""
+                UPDATE leads SET website_url = COALESCE(NULLIF(website_url,''), :url),
+                lead_source = COALESCE(NULLIF(lead_source,''), :src), updated_at = NOW() WHERE id = :id
+            """), {"url": website_url, "src": utm_source, "id": lead_id})
+            db.commit()
+        else:
+            result = db.execute(text("""
+                INSERT INTO leads (email, website_url, phone, company_name, lead_source, status, created_at, updated_at)
+                VALUES (:email, :url, :phone, :company, :src, 'new', NOW(), NOW()) RETURNING id
+            """), {"email": email, "url": website_url, "phone": phone, "company": company, "src": utm_source})
+            lead_id = result.fetchone()[0]
+            db.commit()
+            logger.info(f"Netlify Webhook: Neuer Lead {lead_id} ({email})")
+    finally:
+        db.close()
+
+    if website_url:
+        background_tasks.add_task(_start_audit_background, lead_id, website_url, company or email)
+
+    return {"status": "ok", "lead_id": lead_id, "audit": bool(website_url)}
+
+
+async def _start_audit_background(lead_id: int, website_url: str, company: str):
+    import httpx
+    try:
+        api_base = os.getenv("API_BASE_URL", "http://localhost:8000")
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            await client.post(f"{api_base}/api/audit/start",
+                              json={"website_url": website_url, "lead_id": lead_id, "company_name": company})
+        logger.info(f"Audit gestartet fuer Lead {lead_id}: {website_url}")
+    except Exception as e:
+        logger.warning(f"Audit-Start Hintergrund fehlgeschlagen: {e}")
+
+
+@router.post("/netlify/kontakt")
+async def netlify_kontakt(request: Request):
+    """Netlify-Webhook: Kontaktformular → Lead anlegen (kein Audit)."""
+    body_bytes = await request.body()
+    sig = request.headers.get("x-webhook-signature", "")
+    if not _verify_netlify_signature(body_bytes, sig):
+        raise HTTPException(401, "Ungueltige Signatur")
+
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        data = await request.json()
+    else:
+        form = await request.form()
+        data = dict(form)
+
+    email   = (data.get("email") or "").strip().lower()
+    name    = (data.get("name") or "").strip()
+    phone   = (data.get("phone") or "").strip()
+    message = (data.get("message") or data.get("nachricht") or "").strip()
+    source  = data.get("utm_source", "netlify_kontakt")
+
+    if not email:
+        raise HTTPException(400, "E-Mail fehlt")
+
+    db = SessionLocal()
+    try:
+        existing = db.execute(text("SELECT id FROM leads WHERE email = :email LIMIT 1"), {"email": email}).fetchone()
+        if existing:
+            lead_id = existing[0]
+        else:
+            result = db.execute(text("""
+                INSERT INTO leads (email, contact_name, phone, lead_source, status, notes, created_at, updated_at)
+                VALUES (:email, :name, :phone, :src, 'new', :notes, NOW(), NOW()) RETURNING id
+            """), {"email": email, "name": name, "phone": phone, "src": source,
+                   "notes": f"Kontaktformular: {message[:500]}" if message else ""})
+            lead_id = result.fetchone()[0]
+            db.commit()
+            logger.info(f"Netlify Kontakt: Neuer Lead {lead_id} ({email})")
+    finally:
+        db.close()
+
+    return {"status": "ok", "lead_id": lead_id}

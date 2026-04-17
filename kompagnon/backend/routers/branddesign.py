@@ -705,12 +705,14 @@ async def check_google_analytics(lead_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{lead_id}/guideline")
 def get_brand_guideline(lead_id: int, db: Session = Depends(get_db)):
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        logger.warning(f"get_brand_guideline: Lead {lead_id} nicht gefunden")
+    row = db.execute(
+        text("SELECT brand_guideline_json, brand_guideline_generated_at FROM leads WHERE id = :lid"),
+        {"lid": lead_id},
+    ).fetchone()
+    if not row:
         raise HTTPException(404, "Lead nicht gefunden")
-    raw = getattr(lead, 'brand_guideline_json', None)
-    generated_at = getattr(lead, 'brand_guideline_generated_at', None)
+    raw = row[0]
+    generated_at = row[1]
     logger.info(f"get_brand_guideline: lead_id={lead_id}, hat_guideline={bool(raw)}, generated_at={generated_at}")
     if not raw:
         return {"generated": False, "guideline": None}
@@ -861,14 +863,25 @@ async def generate_brand_guideline(
     from database import SessionLocal
     db2 = SessionLocal()
     try:
-        lead2 = db2.query(Lead).filter(Lead.id == lead_id).first()
-        if lead2:
-            _set(lead2, 'brand_guideline_json', json.dumps(guideline, ensure_ascii=False))
-            _set(lead2, 'brand_guideline_generated_at', datetime.utcnow())
-            db2.commit()
+        db2.execute(
+            text("""
+                UPDATE leads
+                SET brand_guideline_json = :gjson,
+                    brand_guideline_generated_at = :gat
+                WHERE id = :lid
+            """),
+            {
+                "gjson": json.dumps(guideline, ensure_ascii=False),
+                "gat":   datetime.utcnow(),
+                "lid":   lead_id,
+            }
+        )
+        db2.commit()
+        logger.info(f"Guideline gespeichert fuer lead_id={lead_id}")
     except Exception as e:
         db2.rollback()
-        raise HTTPException(500, f"Speichern fehlgeschlagen: {str(e)[:100]}")
+        logger.error(f"Guideline save failed lead_id={lead_id}: {e}")
+        raise HTTPException(500, f"Speichern fehlgeschlagen: {str(e)[:200]}")
     finally:
         db2.close()
 

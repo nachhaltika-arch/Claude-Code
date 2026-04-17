@@ -11,6 +11,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
   const [generating, setGenerating] = useState(false);
   const [editingToken, setEditingToken] = useState(null);
   const [editedColors, setEditedColors] = useState({});
+  const [savedAt, setSavedAt] = useState(null);
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
@@ -21,7 +22,10 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
       const res = await fetch(`${API_BASE_URL}/api/branddesign/${leadId}/guideline`, { headers });
       if (res.ok) {
         const d = await res.json();
-        if (d.generated && d.guideline) setGuideline(d.guideline);
+        if (d.generated && d.guideline) {
+          setGuideline(d.guideline);
+          if (d.generated_at) setSavedAt(new Date(d.generated_at));
+        }
       }
     } catch { /* silent */ }
     finally { setLoading(false); }
@@ -36,7 +40,8 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Fehler');
       const d = await res.json();
       setGuideline(d.guideline);
-      toast.success('Brand Guideline generiert!');
+      setSavedAt(new Date());
+      toast.success('Brand Guideline gespeichert');
     } catch (e) { toast.error(e.message || 'Generierung fehlgeschlagen'); }
     finally { setGenerating(false); }
   };
@@ -74,18 +79,28 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
         </div>
       ) : (
         <div style={{
-          background: '#E3F6EF', border: '0.5px solid rgba(0,135,90,.2)',
+          background: '#E3F6EF', border: '0.5px solid #00875A33',
           borderRadius: 8, padding: '10px 14px', margin: '12px 0',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
         }}>
-          <div style={{ fontSize: 12, color: '#00875A', fontWeight: 700 }}>
-            Brand Guideline generiert — {g?.meta?.style_keyword} · {g?.meta?.farb_stimmung}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14 }}>✓</span>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#00875A' }}>
+                Automatisch gespeichert
+              </div>
+              <div style={{ fontSize: 10, color: '#4A7A5C', marginTop: 1 }}>
+                {savedAt ? savedAt.toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) : ''}
+                {g?.meta?.style_keyword ? ` · ${g.meta.style_keyword}` : ''}
+                {g?.meta?.farb_stimmung ? ` · ${g.meta.farb_stimmung}` : ''}
+              </div>
+            </div>
           </div>
           <button onClick={generate} disabled={generating} style={{
-            background: 'transparent', color: '#00875A', border: '1px solid rgba(0,135,90,.3)',
+            background: 'transparent', color: '#00875A', border: '1px solid #00875A44',
             borderRadius: 6, padding: '5px 12px', fontSize: 11, fontWeight: 700,
-            cursor: 'pointer', fontFamily: 'var(--font-sans)',
-          }}>{generating ? '…' : 'Neu generieren'}</button>
+            cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0,
+          }}>{generating ? 'Generiert…' : 'Neu generieren'}</button>
         </div>
       )}
 
@@ -159,7 +174,8 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                       setGuideline(updated);
                       setEditedColors({});
                       setEditingToken(null);
-                      toast.success('Guideline gespeichert');
+                      setSavedAt(new Date());
+                      toast.success('Aenderungen gespeichert');
                     } catch { toast.error('Speichern fehlgeschlagen'); }
                   }}
                   style={{ marginBottom: 12, padding: '9px 18px', background: '#FAE600', color: '#000', border: 'none', borderRadius: 7, fontSize: 11, fontWeight: 900, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}

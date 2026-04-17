@@ -825,6 +825,9 @@ app.include_router(content_scraper_router.router)
 from routers.branddesign import router as branddesign_router
 app.include_router(branddesign_router)
 
+from routers.seo_router import router as seo_router
+app.include_router(seo_router)
+
 from routers import templates as templates_router
 app.include_router(templates_router.router)
 

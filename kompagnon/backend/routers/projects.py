@@ -1144,6 +1144,26 @@ def create_project_from_lead(lead_id: int, background_tasks: BackgroundTasks, db
         except Exception as exc:
             logger.warning("Could not start auto-scrape for project %s: %s", project.id, exc)
 
+    # 3c. Auto-start SEO analysis
+    try:
+        from routers.seo_router import run_seo_analysis_background
+        seo_trade = lead.trade or "Handwerk"
+        seo_city  = lead.city or ""
+        seo_name  = lead.company_name or "Unbekannt"
+        seo_url   = lead.website_url or ""
+        db.execute(text("""
+            INSERT INTO seo_analyses (project_id, trade, city, radius_km, status)
+            VALUES (:pid, :trade, :city, 25, 'pending')
+            ON CONFLICT DO NOTHING
+        """), {"pid": project.id, "trade": seo_trade, "city": seo_city})
+        db.commit()
+        background_tasks.add_task(
+            run_seo_analysis_background,
+            project.id, seo_trade, seo_city, seo_name, seo_url, 25,
+        )
+    except Exception as exc:
+        logger.warning("Could not start auto-SEO for project %s: %s", project.id, exc)
+
     # 4. Try to find an existing customer linked via email
     customer_id = None
     if lead.email:

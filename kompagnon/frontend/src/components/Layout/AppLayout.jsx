@@ -348,34 +348,20 @@ function SidebarNav({ badges }) {
       overflowY: 'auto',
     }}>
       {/* Logo */}
-      <div style={{
-        padding: '20px 20px 16px',
-        borderBottom: '0.5px solid rgba(255,255,255,0.1)',
-      }}>
-        <div style={{
-          width: 34, height: 34,
-          background: 'var(--kc-mid)',
-          borderRadius: '50%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 900, fontSize: 13,
-          color: '#fff', letterSpacing: '-.05em',
-          marginBottom: 10,
-          fontFamily: 'var(--font-sans)',
-        }}>
-          kc
-        </div>
-        <div style={{
-          fontSize: 10, fontWeight: 900,
-          letterSpacing: '.2em', textTransform: 'uppercase', color: '#fff',
-          fontFamily: 'var(--font-sans)',
-        }}>
-          Kompagnon
-        </div>
+      <div
+        onClick={() => navigate('/app/dashboard')}
+        style={{
+          padding: '18px 20px 14px',
+          borderBottom: '0.5px solid rgba(255,255,255,0.1)',
+          cursor: 'pointer',
+        }}
+      >
+        <KompagnonLogo variant="white" height={32} />
         <div style={{
           fontSize: 9, letterSpacing: '.14em',
           textTransform: 'uppercase',
           color: 'var(--kc-yellow)',
-          marginTop: 3, fontWeight: 700,
+          marginTop: 8, fontWeight: 700,
           fontFamily: 'var(--font-sans)',
         }}>
           {roleLabel}

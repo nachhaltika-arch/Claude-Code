@@ -7,6 +7,7 @@ import AnalyseCentrale from './AnalyseCentrale';
 import ContentWerkstatt from './ContentWerkstatt';
 import DesignStudio from './DesignStudio';
 import BriefingTab from './BriefingTab';
+import SitemapVorschlaege from './SitemapVorschlaege';
 import {
   BriefingUnternehmenEmbed,
   AuditEmbed,
@@ -731,6 +732,9 @@ function SchrittContent({ schritt, ...props }) {
           {props.sitemapLoading ? <Spinner /> : (
             <SitemapEditorEmbed pages={props.sitemapPages} leadId={props.leadId} headers={props.headers} onReload={props.onSitemapReload} />
           )}
+          <div style={{ padding: '0 24px 20px' }}>
+            <SitemapVorschlaege leadId={props.leadId} token={props.token} onAdded={props.onSitemapReload} />
+          </div>
         </div>
       );
     case 'ContentWerkstatt':

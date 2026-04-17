@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import AnalyseCentrale from './AnalyseCentrale';
 import ContentWerkstatt from './ContentWerkstatt';
+import SitemapVorschlaege from './SitemapVorschlaege';
 import DesignStudio from './DesignStudio';
 import BriefingTab from './BriefingTab';
 import BriefingWizard from './BriefingWizard';
@@ -700,6 +701,9 @@ function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
               onReload={onSitemapReload}
             />
           )}
+          <div style={{ padding: '0 24px 20px' }}>
+            <SitemapVorschlaege leadId={leadId} token={token} onAdded={onSitemapReload} />
+          </div>
         </div>
       );
 

@@ -186,38 +186,66 @@ def _serialize(p: SitemapPage) -> dict:
 
 # ── Pflichtseiten ──────────────────────────────────────────────────────────────
 
-PFLICHTSEITEN = [
-    {"page_name": "Impressum",                 "page_type": "rechtlich", "position": 90, "zweck": "Gesetzlich vorgeschriebene Pflichtangaben"},
-    {"page_name": "Datenschutzerklärung",      "page_type": "rechtlich", "position": 91, "zweck": "Informationen zur Datenverarbeitung gemäß DSGVO"},
-    {"page_name": "Barrierefreiheitserklärung","page_type": "rechtlich", "position": 92, "zweck": "Konformitätserklärung gemäß BFSG / BITV 2.0"},
-    {"page_name": "AGB",                       "page_type": "rechtlich", "position": 93, "zweck": "Allgemeine Geschäftsbedingungen"},
+# Immer-Pflichtseiten: fuer jeden Kunden automatisch angelegt.
+PFLICHTSEITEN_IMMER = [
+    {"page_name": "Impressum",            "page_type": "rechtlich", "position": 90,
+     "zweck": "Gesetzlich vorgeschriebene Pflichtangaben gemaess §5 TMG"},
+    {"page_name": "Datenschutzerklärung", "page_type": "rechtlich", "position": 91,
+     "zweck": "Informationen zur Datenverarbeitung gemaess DSGVO"},
+]
+
+# Bedingte Pflichtseiten: nur unter Voraussetzungen (Admin entscheidet per UI).
+PFLICHTSEITEN_BEDINGT = [
+    {"page_name": "Barrierefreiheitserklärung", "page_type": "rechtlich", "position": 92,
+     "zweck": "Konformitaetserklaerung gemaess BFSG / BITV 2.0 — erforderlich fuer oeffentliche Stellen und B2C-Websites ab 28.06.2025",
+     "bedingung": "bfsg"},
+    {"page_name": "AGB", "page_type": "rechtlich", "position": 93,
+     "zweck": "Allgemeine Geschaeftsbedingungen — erforderlich bei Online-Shop / E-Commerce",
+     "bedingung": "ecommerce"},
+]
+
+# Abwaertskompatibilitaet: alter Code referenziert PFLICHTSEITEN.
+PFLICHTSEITEN = PFLICHTSEITEN_IMMER + PFLICHTSEITEN_BEDINGT
+
+# Optionale Zusatzseiten (Vorschlagskatalog fuer den Admin).
+OPTIONALE_SEITEN = [
+    {"page_name": "FAQ",              "page_type": "info",       "position": 80,
+     "zweck": "Haeufige Fragen und Antworten — staerkt Vertrauen und reduziert Supportaufwand"},
+    {"page_name": "Blog / News",      "page_type": "info",       "position": 81,
+     "zweck": "Aktuelle Beitraege, Neuigkeiten und Expertise — gut fuer SEO"},
+    {"page_name": "Galerie",          "page_type": "vertrauen",  "position": 82,
+     "zweck": "Fotos abgeschlossener Projekte — baut Vertrauen auf"},
+    {"page_name": "Referenzen",       "page_type": "vertrauen",  "position": 83,
+     "zweck": "Kundenstimmen und abgeschlossene Projekte"},
+    {"page_name": "Karriere / Jobs",  "page_type": "info",       "position": 84,
+     "zweck": "Offene Stellen und Ausbildungsplaetze — Fachkraeftegewinnung"},
+    {"page_name": "Team",             "page_type": "vertrauen",  "position": 85,
+     "zweck": "Mitarbeitervorstellung — schafft Naehe und Vertrauen"},
+    {"page_name": "Preise",           "page_type": "conversion", "position": 86,
+     "zweck": "Preistransparenz — reduziert Anfragehuerde"},
+    {"page_name": "Online-Shop",      "page_type": "conversion", "position": 87,
+     "zweck": "Produkte online kaufen"},
+    {"page_name": "Notfallservice",   "page_type": "conversion", "position": 88,
+     "zweck": "24h Notdienst — wichtig fuer Handwerker mit Bereitschaftsdienst"},
 ]
 
 
 def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
-    """Insert missing Pflichtseiten for a lead (idempotent).
+    """Insert missing Immer-Pflichtseiten for a lead (idempotent).
 
-    Wird aus GET /{lead_id}, POST /{lead_id}/generate und GET /{lead_id}/pdf
-    aufgerufen. Der Hot-Path ist der GET (wird bei jedem Oeffnen des
-    Sitemap-Tabs getriggert), daher steht eine billige COUNT-Query am Anfang:
-    sobald alle erwarteten Pflichtseiten vorhanden sind, entfaellt das
-    Laden der Namen und das anschliessende COMMIT komplett.
-
-    Langfristig saubere Loesung waere, die Erzeugung in den Lead-Lifecycle
-    zu verschieben (On-Create-Hook) und diesen Aufruf in den Read-Endpoints
-    zu entfernen. Das verlangt jedoch Aenderungen am Lead-Flow und ist
-    ausserhalb des aktuellen Scopes.
+    Nur Impressum + Datenschutz werden automatisch angelegt. Bedingte
+    Pflichtseiten (Barrierefreiheit, AGB) und optionale Seiten werden
+    ueber GET /{lead_id}/suggest + POST /{lead_id}/add-suggested
+    vom Admin manuell hinzugefuegt.
     """
-    # Fast path: Pflichtseiten sind schon vollstaendig da → nichts zu tun.
     pflicht_count = (
         db.query(SitemapPage)
         .filter(SitemapPage.lead_id == lead_id, SitemapPage.ist_pflichtseite.is_(True))
         .count()
     )
-    if pflicht_count >= len(PFLICHTSEITEN):
+    if pflicht_count >= len(PFLICHTSEITEN_IMMER):
         return
 
-    # Slow path: mindestens eine Pflichtseite fehlt — nachtragen.
     existing_names = {
         p.page_name
         for p in db.query(SitemapPage.page_name)
@@ -225,7 +253,7 @@ def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
         .all()
     }
     added = False
-    for pf in PFLICHTSEITEN:
+    for pf in PFLICHTSEITEN_IMMER:
         if pf["page_name"] not in existing_names:
             db.add(SitemapPage(
                 lead_id=lead_id,
@@ -593,6 +621,72 @@ async def generate_sitemap(
 ):
     """Generate sitemap pages via Claude AI (or fallback template)."""
     return generate_sitemap_impl(lead_id, db)
+
+
+# ── ENDPOINT: Seiten-Vorschlaege (bedingte Pflicht + optional) ────────────────
+
+@router.get("/{lead_id}/suggest")
+def suggest_pages(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Gibt bedingte Pflichtseiten + optionale Seiten als Vorschlaege zurueck.
+
+    Der Admin entscheidet in der UI welche tatsaechlich zur Sitemap
+    hinzugefuegt werden.
+    """
+    existing_names = {
+        p.page_name
+        for p in db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id)
+        .all()
+    }
+
+    bedingte = [
+        {**s, "bereits_vorhanden": s["page_name"] in existing_names, "kategorie": "bedingt_pflicht"}
+        for s in PFLICHTSEITEN_BEDINGT
+    ]
+    optional = [
+        {**s, "bereits_vorhanden": s["page_name"] in existing_names, "kategorie": "optional"}
+        for s in OPTIONALE_SEITEN
+    ]
+
+    return {
+        "bedingte_pflichtseiten": bedingte,
+        "optionale_seiten": optional,
+    }
+
+
+@router.post("/{lead_id}/add-suggested")
+def add_suggested_page(
+    lead_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Fuegt eine vorgeschlagene Seite (bedingt-Pflicht oder optional) zur Sitemap hinzu."""
+    page_name = (body.get("page_name") or "").strip()
+    if not page_name:
+        raise HTTPException(400, "page_name fehlt")
+
+    alle_vorschlaege = PFLICHTSEITEN_BEDINGT + OPTIONALE_SEITEN
+    vorlage = next((s for s in alle_vorschlaege if s["page_name"] == page_name), None)
+
+    ist_pflicht = bool(vorlage and vorlage.get("bedingung"))
+
+    db.add(SitemapPage(
+        lead_id=lead_id,
+        page_name=page_name,
+        page_type=body.get("page_type") or (vorlage["page_type"] if vorlage else "info"),
+        position=body.get("position") or (vorlage["position"] if vorlage else 50),
+        zweck=body.get("zweck") or (vorlage["zweck"] if vorlage else ""),
+        ziel_keyword=body.get("ziel_keyword") or (vorlage.get("ziel_keyword", "") if vorlage else ""),
+        ist_pflichtseite=ist_pflicht,
+        status="geplant",
+    ))
+    db.commit()
+    return {"ok": True, "page_name": page_name}
 
 
 # ── ENDPOINT: PDF-Export ──────────────────────────────────────────────────────

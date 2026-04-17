@@ -27,7 +27,7 @@ import {
   QAEmbed,
   AbnahmeEmbed,
   ZugangsdatenEmbed,
-} from './ProzessFlow';
+} from './EmbedComponents';
 
 // ── Schritt-Definitionen (Logik 1:1 aus ProzessFlow.jsx) ─────────────────────
 const SCHRITTE = [

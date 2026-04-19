@@ -65,10 +65,7 @@ const TABS = [
   { id: 'deals',      label: 'Deals',       icon: '💼' },
   { id: 'messages',   label: 'Nachrichten', icon: '💬' },
   { id: 'contact',    label: 'Kontakt',     icon: '👤' },
-  { id: 'audits',     label: 'Audits',      icon: '✓' },
   { id: 'dateien',    label: 'Dateien',     icon: '📎' },
-  { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
-  { id: 'offer',      label: 'Angebot',     icon: '📄' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
   { id: 'emails',     label: '📧 E-Mails',  icon: '' },
 ];

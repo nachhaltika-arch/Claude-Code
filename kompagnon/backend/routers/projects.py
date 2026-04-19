@@ -276,6 +276,48 @@ def debug_projects(db: Session = Depends(get_db), _=Depends(require_admin)):
         return {"error": "Interner Fehler"}
 
 
+@router.post("/", status_code=201)
+def create_project_manual(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    """Manuelles Anlegen eines Projekts (Website oder IMPULS)."""
+    company_name = (data.get("company_name") or "").strip()
+    if not company_name:
+        raise HTTPException(400, "company_name ist Pflichtfeld")
+
+    now = datetime.utcnow()
+    project_type = data.get("project_type", "website")
+    initial_status = data.get("status", "impuls_antrag" if project_type == "impuls" else "phase_1")
+
+    result = db.execute(text("""
+        INSERT INTO projects (
+            company_name, contact_name, contact_email,
+            project_type, status, fixed_price, package_type,
+            start_date, created_at, updated_at
+        ) VALUES (
+            :company, :contact, :email,
+            :ptype, :status, :price, :pkg,
+            :now, :now, :now
+        )
+        RETURNING id
+    """), {
+        "company":  company_name,
+        "contact":  (data.get("contact_name") or "").strip(),
+        "email":    (data.get("contact_email") or "").strip(),
+        "ptype":    project_type,
+        "status":   initial_status,
+        "price":    float(data.get("fixed_price", 0)),
+        "pkg":      data.get("package_type", ""),
+        "now":      now,
+    })
+    db.commit()
+    new_id = result.fetchone()[0]
+    logger.info(f"Projekt #{new_id} manuell angelegt: {company_name} ({project_type})")
+    return {"id": new_id, "project_type": project_type, "status": initial_status}
+
+
 @router.post("/seed")
 def seed_projects(db: Session = Depends(get_db), _=Depends(require_admin)):
     """

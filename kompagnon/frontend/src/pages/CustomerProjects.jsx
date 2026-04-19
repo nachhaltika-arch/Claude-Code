@@ -178,6 +178,14 @@ export default function CustomerProjects() {
   const setImpuls = (field) => (e) =>
     setImpulsForm(prev => ({ ...prev, [field]: e.target.value }));
 
+  const [showOnlineFertigModal, setShowOnlineFertigModal] = useState(false);
+  const [onlineFertigForm, setOnlineFertigForm] = useState({
+    company_name: '', contact_name: '', contact_email: '', contact_phone: '', paket: 'kompagnon',
+  });
+  const [onlineFertigLoading, setOnlineFertigLoading] = useState(false);
+  const setOF = (field) => (e) =>
+    setOnlineFertigForm(prev => ({ ...prev, [field]: e.target.value }));
+
   const createImpulsProjekt = async () => {
     if (!impulsForm.company_name.trim()) {
       toast.error('Unternehmensname ist Pflichtfeld');
@@ -200,6 +208,43 @@ export default function CustomerProjects() {
       toast.error(err.message || 'Fehler beim Anlegen');
     }
     setImpulsLoading(false);
+  };
+
+  const createOnlineFertigProjekt = async () => {
+    if (!onlineFertigForm.company_name.trim()) {
+      toast.error('Unternehmensname ist Pflichtfeld');
+      return;
+    }
+    setOnlineFertigLoading(true);
+    const PREISE = { starter: 1500, kompagnon: 2000, premium: 2800 };
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/projects/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({
+          company_name:  onlineFertigForm.company_name,
+          contact_name:  onlineFertigForm.contact_name,
+          contact_email: onlineFertigForm.contact_email,
+          contact_phone: onlineFertigForm.contact_phone,
+          project_type:  'website',
+          status:        'phase_1',
+          fixed_price:   PREISE[onlineFertigForm.paket] ?? 2000,
+          package_type:  onlineFertigForm.paket,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.detail || 'Fehler beim Anlegen');
+      }
+      const data = await res.json();
+      toast.success('Online Fertig Projekt angelegt');
+      setShowOnlineFertigModal(false);
+      setOnlineFertigForm({ company_name: '', contact_name: '', contact_email: '', contact_phone: '', paket: 'kompagnon' });
+      navigate(`/app/projects/${data.id}`);
+    } catch (err) {
+      toast.error(err.message || 'Fehler beim Anlegen');
+    }
+    setOnlineFertigLoading(false);
   };
 
   const MOBILE_PROJEKTE_PILLS = [
@@ -311,18 +356,32 @@ export default function CustomerProjects() {
             {loading ? 'Lädt…' : `${filtered.length} von ${projects.length} Projekten`}
           </div>
         </div>
-        <button
-          onClick={() => setShowImpulsModal(true)}
-          style={{
-            padding: '8px 16px', borderRadius: 8, border: 'none',
-            background: '#004F59', color: '#FAE600',
-            fontSize: 12, fontWeight: 900, cursor: 'pointer',
-            letterSpacing: '0.04em', fontFamily: 'inherit',
-            textTransform: 'uppercase',
-          }}
-        >
-          + IMPULS-Projekt
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setShowOnlineFertigModal(true)}
+            style={{
+              padding: '8px 16px', borderRadius: 8, border: 'none',
+              background: 'var(--brand-primary)', color: '#fff',
+              fontSize: 12, fontWeight: 900, cursor: 'pointer',
+              letterSpacing: '0.04em', fontFamily: 'inherit',
+              textTransform: 'uppercase',
+            }}
+          >
+            + Online Fertig
+          </button>
+          <button
+            onClick={() => setShowImpulsModal(true)}
+            style={{
+              padding: '8px 16px', borderRadius: 8, border: 'none',
+              background: '#004F59', color: '#FAE600',
+              fontSize: 12, fontWeight: 900, cursor: 'pointer',
+              letterSpacing: '0.04em', fontFamily: 'inherit',
+              textTransform: 'uppercase',
+            }}
+          >
+            + IMPULS-Projekt
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -473,6 +532,77 @@ export default function CustomerProjects() {
                 style={{ padding: '10px 24px', border: 'none', borderRadius: 8, background: impulsLoading ? '#94a3b8' : '#004F59', color: impulsLoading ? '#fff' : '#FAE600', cursor: impulsLoading ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 900, fontFamily: 'inherit', letterSpacing: '0.04em' }}
               >
                 {impulsLoading ? '⏳ Anlegen...' : '✓ IMPULS-Projekt anlegen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Online Fertig Projekt anlegen — Modal */}
+      {showOnlineFertigModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 16, padding: 32, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--brand-primary)' }}>Online Fertig Projekt</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>Website-Projekt manuell anlegen</div>
+              </div>
+              <button onClick={() => setShowOnlineFertigModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--text-tertiary)' }}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Paket</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                {[
+                  { value: 'starter',   label: 'Starter',   preis: '1.500 €' },
+                  { value: 'kompagnon', label: 'Kompagnon', preis: '2.000 €' },
+                  { value: 'premium',   label: 'Premium',   preis: '2.800 €' },
+                ].map(p => (
+                  <div
+                    key={p.value}
+                    onClick={() => setOF('paket')({ target: { value: p.value } })}
+                    style={{
+                      padding: '10px 8px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
+                      border: `2px solid ${onlineFertigForm.paket === p.value ? 'var(--brand-primary)' : 'var(--border-light)'}`,
+                      background: onlineFertigForm.paket === p.value ? 'var(--bg-active)' : 'var(--bg-surface)',
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{p.label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{p.preis}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {[
+              { field: 'company_name',  label: 'Unternehmensname *', placeholder: 'Mustermann GmbH',  type: 'text' },
+              { field: 'contact_name',  label: 'Ansprechpartner',    placeholder: 'Max Mustermann',   type: 'text' },
+              { field: 'contact_email', label: 'E-Mail',             placeholder: 'max@beispiel.de',  type: 'email' },
+              { field: 'contact_phone', label: 'Telefon',            placeholder: '+49 261 ...',      type: 'tel' },
+            ].map(f => (
+              <div key={f.field} style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{f.label}</label>
+                <input
+                  type={f.type}
+                  placeholder={f.placeholder}
+                  value={onlineFertigForm[f.field]}
+                  onChange={setOF(f.field)}
+                  style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--border-light)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', background: 'var(--bg-app)', color: 'var(--text-primary)' }}
+                />
+              </div>
+            ))}
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+              <button onClick={() => setShowOnlineFertigModal(false)} style={{ padding: '10px 20px', border: '1px solid var(--border-light)', borderRadius: 8, background: 'transparent', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', color: 'var(--text-primary)' }}>
+                Abbrechen
+              </button>
+              <button
+                onClick={createOnlineFertigProjekt}
+                disabled={onlineFertigLoading}
+                style={{ padding: '10px 24px', border: 'none', borderRadius: 8, background: onlineFertigLoading ? '#94a3b8' : 'var(--brand-primary)', color: '#fff', cursor: onlineFertigLoading ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 900, fontFamily: 'inherit' }}
+              >
+                {onlineFertigLoading ? '⏳ Anlegen...' : '✓ Projekt anlegen'}
               </button>
             </div>
           </div>

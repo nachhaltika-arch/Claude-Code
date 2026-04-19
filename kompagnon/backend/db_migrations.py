@@ -1199,6 +1199,13 @@ MIGRATIONS = [
     (20, "add_project_ssl_checked_at", [
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_ssl_checked_at TIMESTAMP",
     ]),
+
+    (21, "add_product_category", [
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'sonstige'",
+        "UPDATE products SET category = 'website' WHERE slug IN ('starter', 'kompagnon', 'premium')",
+        "UPDATE products SET category = 'beratung' WHERE slug = 'impuls'",
+        "CREATE INDEX IF NOT EXISTS idx_products_category ON products(category)",
+    ]),
 ]
 
 

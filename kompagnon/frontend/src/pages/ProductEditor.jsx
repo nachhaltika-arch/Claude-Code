@@ -67,6 +67,13 @@ const WEBHOOK_ACTION_OPTIONS = [
   { value: 'start_sequence',     label: 'E-Mail-Sequenz starten' },
 ];
 
+const CATEGORY_OPTIONS = [
+  { value: 'website',    label: '🌐 Online Fertig — Websites' },
+  { value: 'beratung',   label: '📋 IMPULS — Beratung' },
+  { value: 'monitoring', label: '📊 Monitoring & Reports' },
+  { value: 'sonstige',   label: '📦 Sonstige' },
+];
+
 // ── Extracted Tab Components (stable identity across renders) ────────────────
 
 function ProductSidebar({ products, selected, onSelect, onNew, onMoveSort }) {
@@ -103,53 +110,91 @@ function ProductSidebar({ products, selected, onSelect, onNew, onMoveSort }) {
             Noch keine Produkte
           </div>
         )}
-        {products.map((p, idx) => {
-          const dot = STATUS_DOT[p.status] || STATUS_DOT.draft;
-          const isActive = selected === p.slug;
-          return (
-            <div key={p.slug} style={{
-              padding: '8px 10px 8px 14px',
-              borderBottom: '0.5px solid var(--border-light)',
-              background: isActive ? 'var(--brand-primary-light, #e6f1fb)' : 'transparent',
-              borderLeft: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
-                <button
-                  onClick={e => { e.stopPropagation(); onMoveSort(p.slug, -1); }}
-                  disabled={idx === 0}
-                  style={{
-                    width: 16, height: 14, padding: 0, border: 'none',
-                    background: 'transparent', cursor: idx === 0 ? 'default' : 'pointer',
-                    color: idx === 0 ? '#d1d5db' : '#94a3b8', fontSize: 9, lineHeight: 1,
-                  }}
-                >▲</button>
-                <button
-                  onClick={e => { e.stopPropagation(); onMoveSort(p.slug, 1); }}
-                  disabled={idx === products.length - 1}
-                  style={{
-                    width: 16, height: 14, padding: 0, border: 'none',
-                    background: 'transparent', cursor: idx === products.length - 1 ? 'default' : 'pointer',
-                    color: idx === products.length - 1 ? '#d1d5db' : '#94a3b8', fontSize: 9, lineHeight: 1,
-                  }}
-                >▼</button>
-              </div>
-              <div onClick={() => onSelect(p)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: dot.bg, flexShrink: 0 }} />
-                  <span style={{
-                    fontSize: 13, fontWeight: isActive ? 600 : 400,
-                    color: 'var(--text-primary)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{p.name}</span>
+        {(() => {
+          const CATS = [
+            { key: 'website',    label: '🌐 Online Fertig' },
+            { key: 'beratung',   label: '📋 IMPULS Beratung' },
+            { key: 'monitoring', label: '📊 Monitoring' },
+            { key: 'sonstige',   label: '📦 Sonstige' },
+          ];
+          const grouped = {};
+          products.forEach((p, idx) => {
+            const cat = p.category || 'sonstige';
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push({ ...p, _originalIdx: idx });
+          });
+          return CATS.map(cat => {
+            const catProducts = grouped[cat.key];
+            if (!catProducts || catProducts.length === 0) return null;
+            return (
+              <div key={cat.key}>
+                <div style={{
+                  padding: '6px 14px 4px',
+                  fontSize: 10, fontWeight: 700,
+                  color: 'var(--text-tertiary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  background: 'var(--bg-app)',
+                  borderBottom: '0.5px solid var(--border-light)',
+                  borderTop: '0.5px solid var(--border-light)',
+                }}>
+                  {cat.label}
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, paddingLeft: 15 }}>
-                  {p.price_brutto ? `${parseFloat(p.price_brutto).toFixed(2)} €` : '—'} · {dot.label}
-                </div>
+                {catProducts.map((p) => {
+                  const idx = p._originalIdx;
+                  const dot = STATUS_DOT[p.status] || STATUS_DOT.draft;
+                  const isActive = selected === p.slug;
+                  return (
+                    <div key={p.slug} style={{
+                      padding: '8px 10px 8px 14px',
+                      borderBottom: '0.5px solid var(--border-light)',
+                      background: isActive ? 'var(--brand-primary-light, #e6f1fb)' : 'transparent',
+                      borderLeft: isActive ? '3px solid var(--brand-primary)' : '3px solid transparent',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      cursor: 'pointer',
+                    }}
+                      onClick={() => onSelect(p)}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
+                        <button
+                          onClick={e => { e.stopPropagation(); onMoveSort(p.slug, -1); }}
+                          disabled={idx === 0}
+                          style={{
+                            width: 16, height: 14, padding: 0, border: 'none',
+                            background: 'transparent', cursor: idx === 0 ? 'default' : 'pointer',
+                            color: idx === 0 ? '#d1d5db' : '#94a3b8', fontSize: 9, lineHeight: 1,
+                          }}
+                        >▲</button>
+                        <button
+                          onClick={e => { e.stopPropagation(); onMoveSort(p.slug, 1); }}
+                          disabled={idx === products.length - 1}
+                          style={{
+                            width: 16, height: 14, padding: 0, border: 'none',
+                            background: 'transparent', cursor: idx === products.length - 1 ? 'default' : 'pointer',
+                            color: idx === products.length - 1 ? '#d1d5db' : '#94a3b8', fontSize: 9, lineHeight: 1,
+                          }}
+                        >▼</button>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: dot.bg, flexShrink: 0 }} />
+                          <span style={{
+                            fontSize: 13, fontWeight: isActive ? 600 : 400,
+                            color: 'var(--text-primary)',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>{p.name}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, paddingLeft: 15 }}>
+                          {p.price_brutto ? `${parseFloat(p.price_brutto).toFixed(2)} €` : '—'} · {dot.label}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
-          );
-        })}
+            );
+          });
+        })()}
       </div>
     </div>
   );
@@ -158,6 +203,18 @@ function ProductSidebar({ products, selected, onSelect, onNew, onMoveSort }) {
 function TabProduktdaten({ product, onChange, selected, setProduct, validationErrors }) {
   return (
     <div>
+      <div style={FIELD}>
+        <label style={LBL}>Kategorie / Segment</label>
+        <select
+          value={product.category || 'sonstige'}
+          onChange={e => onChange('category', e.target.value)}
+          style={INP}
+        >
+          {CATEGORY_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
         <div style={FIELD}>
           <label htmlFor="prod-name" style={LBL}>Produktname *</label>
@@ -465,6 +522,7 @@ export default function ProductEditor() {
       webhook_actions: ['create_lead', 'create_user', 'create_project',
                         'send_welcome_email', 'send_pdf'],
       status: 'draft', sort_order: 0,
+      category: 'website',
     });
     setActiveTab('produktdaten');
     setMsg('');

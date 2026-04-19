@@ -333,6 +333,7 @@ def _create_default_admin():
                     "short_desc": "5 Seiten, SEO Basic, Mobiloptimierung",
                     "price_brutto": 1500.00, "price_netto": 1260.50, "tax_rate": 19,
                     "payment_type": "once", "delivery_days": 14, "status": "live",
+                    "category": "website",
                     "features": ["5-seitige WordPress-Website", "Mobile-First Design",
                                  "SEO-Grundoptimierung", "SSL-Zertifikat & DSGVO-konform",
                                  "Kontaktformular", "30 Tage Support"],
@@ -346,6 +347,7 @@ def _create_default_admin():
                     "price_brutto": 2000.00, "price_netto": 1680.67, "tax_rate": 19,
                     "payment_type": "once", "delivery_days": 14, "status": "live",
                     "highlighted": True, "highlight_label": "Empfehlung",
+                    "category": "website",
                     "features": ["8-seitige WordPress-Website", "SEO + GEO-Optimierung",
                                  "Strategy Workshop (60 Min.)", "Schema Markup & KI-Optimierung",
                                  "Google Business Verknuepfung", "30 Tage Support"],
@@ -358,6 +360,7 @@ def _create_default_admin():
                     "short_desc": "12 Seiten, Shop-Ready, Fotoshooting",
                     "price_brutto": 2800.00, "price_netto": 2352.94, "tax_rate": 19,
                     "payment_type": "once", "delivery_days": 21, "status": "live",
+                    "category": "website",
                     "features": ["12-seitige WordPress-Website", "Individual-Design nach CI",
                                  "SEO + GEO + KI-Volloptimierung", "Strategy Workshop (90 Min.)",
                                  "Professioneller Fotoshooting-Tag", "Google Ads Einrichtung",
@@ -379,6 +382,7 @@ def _create_default_admin():
                     "price_brutto": 20000.00, "price_netto": 16806.72, "tax_rate": 19,
                     "payment_type": "once", "delivery_days": 90, "status": "draft",
                     "highlighted": True, "highlight_label": "50 % Förderung",
+                    "category": "beratung",
                     "features": [
                         "ISB-158 Förderung: 50 % vom Land Rheinland-Pfalz",
                         "Bis zu 20 Tagewerke à 8 Stunden Beratung",
@@ -399,9 +403,10 @@ def _create_default_admin():
                     (slug, name, short_desc, long_desc, price_brutto, price_netto,
                      tax_rate, payment_type, delivery_days, status,
                      highlighted, highlight_label, features,
-                     checkout_fields, webhook_actions, sort_order)
+                     checkout_fields, webhook_actions, sort_order, category)
                     VALUES (:slug, :name, :sd, :ld, :pb, :pn, :tr, :pt, :dd,
-                     :status, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :so)
+                     :status, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :so, :cat)
+                    ON CONFLICT (slug) DO UPDATE SET category = EXCLUDED.category
                 """), {
                     "slug": p["slug"], "name": p["name"], "sd": p["short_desc"],
                     "ld": p.get("long_desc", ""),
@@ -414,6 +419,7 @@ def _create_default_admin():
                     "cf": _j.dumps(p["checkout_fields"]),
                     "wa": _j.dumps(p["webhook_actions"]),
                     "so": p["sort_order"],
+                    "cat": p.get("category", "sonstige"),
                 })
             _db3.commit()
             logger.info("✓ 4 Produkte geseedet")

@@ -92,9 +92,11 @@ def create_product(data: dict, db: Session = Depends(get_db),
         INSERT INTO products (slug, name, short_desc, long_desc,
           price_brutto, price_netto, tax_rate, payment_type,
           delivery_days, highlighted, highlight_label,
-          features, checkout_fields, webhook_actions, status, sort_order)
+          features, checkout_fields, webhook_actions,
+          status, sort_order, category)
         VALUES (:slug, :name, :sd, :ld, :pb, :pn, :tr, :pt,
-          :dd, :hl, :hll, CAST(:feat AS jsonb), CAST(:cf AS jsonb), CAST(:wa AS jsonb), :status, :so)
+          :dd, :hl, :hll, CAST(:feat AS jsonb), CAST(:cf AS jsonb),
+          CAST(:wa AS jsonb), :status, :so, :cat)
     """), {
         "slug":   slug,
         "name":   data.get("name", ""),
@@ -112,6 +114,7 @@ def create_product(data: dict, db: Session = Depends(get_db),
         "wa":     json.dumps(data.get("webhook_actions", [])),
         "status": data.get("status", "draft"),
         "so":     int(data.get("sort_order", 0)),
+        "cat":    data.get("category", "sonstige"),
     })
     db.commit()
     return get_product(slug, db)
@@ -137,6 +140,7 @@ def update_product(slug: str, data: dict,
         "stripe_price_id":  "spid",
         "stripe_product_id":"sprodid",
         "sort_order":       "so",
+        "category":         "cat",
     }
     for k, p in mapping.items():
         if k in data:

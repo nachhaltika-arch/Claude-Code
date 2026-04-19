@@ -1230,6 +1230,30 @@ MIGRATIONS = [
         "ALTER TABLE deals ADD COLUMN IF NOT EXISTS product_type VARCHAR(50) DEFAULT 'website'",
         "UPDATE deals SET product_type = 'website' WHERE product_type IS NULL",
     ]),
+
+    (25, "add_missing_kartei_and_project_fields", [
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS mitarbeiterzahl INTEGER",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS jahresumsatz_eur NUMERIC(15,2)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gruendungsjahr INTEGER",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS betriebsstaette_rlp BOOLEAN DEFAULT false",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS insolvenzfreiheit_bestaetigt BOOLEAN DEFAULT false",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS letzter_kontakt_datum TIMESTAMP",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS letzter_kontakt_art VARCHAR(50)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS cms_type VARCHAR(100)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS bewertung_erhalten BOOLEAN DEFAULT false",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS bewertung_url VARCHAR(500)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS bewertung_platform VARCHAR(50)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS zugewiesener_berater VARCHAR(200)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS deminimis_nachweis_pfad VARCHAR(500)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS isb_verwendungsnachweis_pfad VARCHAR(500)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS strategiedokument_pfad VARCHAR(500)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS berater_phase_1 VARCHAR(200)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS berater_phase_2 VARCHAR(200)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS berater_phase_3 VARCHAR(200)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS berater_phase_4 VARCHAR(200)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS berater_phase_5 VARCHAR(200)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS berater_phase_6 VARCHAR(200)",
+    ]),
 ]
 
 

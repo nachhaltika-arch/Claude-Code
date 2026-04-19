@@ -428,7 +428,12 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
                 "content_approval_sent_at, content_approved_at, content_approved_by, "
                 "project_type, isb_antrag_datum, isb_bewilligung_datum, "
                 "isb_foerdersumme, tagewerke_gesamt, tagewerke_verbraucht, "
-                "mmv_leasingrate, beratungsphase, portal_url, impuls_fortschritt "
+                "mmv_leasingrate, beratungsphase, portal_url, impuls_fortschritt, "
+                "cms_type, bewertung_erhalten, bewertung_url, bewertung_platform, "
+                "zugewiesener_berater, "
+                "deminimis_nachweis_pfad, isb_verwendungsnachweis_pfad, strategiedokument_pfad, "
+                "berater_phase_1, berater_phase_2, berater_phase_3, "
+                "berater_phase_4, berater_phase_5, berater_phase_6 "
                 "FROM projects WHERE id = :pid"
             ),
             {"pid": project_id},
@@ -509,6 +514,20 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
         'beratungsphase':           int(row[38]) if row[38] is not None else 0,
         'portal_url':               row[39] or None,
         'impuls_fortschritt':       row[40] if row[40] is not None else {},
+        'cms_type':                    row[41] or '',
+        'bewertung_erhalten':          bool(row[42]) if row[42] is not None else False,
+        'bewertung_url':               row[43] or '',
+        'bewertung_platform':          row[44] or '',
+        'zugewiesener_berater':        row[45] or '',
+        'deminimis_nachweis_pfad':     row[46] or '',
+        'isb_verwendungsnachweis_pfad': row[47] or '',
+        'strategiedokument_pfad':      row[48] or '',
+        'berater_phase_1':             row[49] or '',
+        'berater_phase_2':             row[50] or '',
+        'berater_phase_3':             row[51] or '',
+        'berater_phase_4':             row[52] or '',
+        'berater_phase_5':             row[53] or '',
+        'berater_phase_6':             row[54] or '',
     }
 
 

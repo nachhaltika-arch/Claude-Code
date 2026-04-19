@@ -1864,6 +1864,41 @@ export default function LeadProfile() {
               </Card>
             )}
 
+            {/* ISB-Förderfähigkeit */}
+            {(user?.role === 'admin' || user?.role === 'superadmin') && (
+              <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 12 }}>ISB-Förderfähigkeit</div>
+                {fieldRow('👥', lead.mitarbeiterzahl ? `${lead.mitarbeiterzahl} Mitarbeiter` : '—', 'Mitarbeiterzahl')}
+                {fieldRow('💶', lead.jahresumsatz_eur ? `${Number(lead.jahresumsatz_eur).toLocaleString('de-DE')} € Jahresumsatz` : '—', 'Jahresumsatz')}
+                {fieldRow('📅', lead.gruendungsjahr || '—', 'Gründungsjahr')}
+                {fieldRow('📍', lead.betriebsstaette_rlp ? '✓ Ja' : '✗ Nicht bestätigt', 'Betriebsstätte RLP')}
+                {fieldRow('⚖️', lead.insolvenzfreiheit_bestaetigt ? '✓ Bestätigt' : '✗ Nicht bestätigt', 'Insolvenzfreiheit')}
+                {fieldRow('📞', lead.letzter_kontakt_datum
+                  ? `${lead.letzter_kontakt_datum?.slice(0,10)} · ${lead.letzter_kontakt_art || '—'}`
+                  : '—', 'Letzter Kontakt')}
+                <div style={{ marginTop: 10, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {['Telefon', 'E-Mail', 'Meeting', 'WhatsApp'].map(art => (
+                    <button
+                      key={art}
+                      onClick={async () => {
+                        await fetch(`${API_BASE_URL}/api/leads/${leadId}`, {
+                          method: 'PATCH', headers: h,
+                          body: JSON.stringify({
+                            letzter_kontakt_datum: new Date().toISOString(),
+                            letzter_kontakt_art: art,
+                          }),
+                        });
+                        loadAll();
+                      }}
+                      style={{ padding: '4px 10px', fontSize: 11, borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-app)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      {art} jetzt
+                    </button>
+                  ))}
+                </div>
+              </Card>
+            )}
+
             {/* QR-Code */}
             <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -2070,6 +2105,32 @@ export default function LeadProfile() {
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                 ))}
+
+                {/* ISB-Felder */}
+                {[
+                  ['Mitarbeiterzahl', 'mitarbeiterzahl', 'z.B. 12', 'number'],
+                  ['Jahresumsatz (€)', 'jahresumsatz_eur', 'z.B. 1500000', 'number'],
+                  ['Gründungsjahr', 'gruendungsjahr', 'z.B. 2005', 'number'],
+                ].map(([label, field, ph, type]) => (
+                  <div key={field}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
+                    <input type={type} value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value ? (type === 'number' ? Number(e.target.value) : e.target.value) : null}))} placeholder={ph} style={inputStyle}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
+                  </div>
+                ))}
+
+                <div style={{ gridColumn: isMobile ? '1' : '1 / -1', display: 'flex', gap: 20, marginTop: 4, flexWrap: 'wrap' }}>
+                  {[
+                    { field: 'betriebsstaette_rlp',         label: 'Betriebsstätte in RLP' },
+                    { field: 'insolvenzfreiheit_bestaetigt', label: 'Insolvenzfreiheit bestätigt' },
+                  ].map(cb => (
+                    <label key={cb.field} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={!!editData[cb.field]} onChange={e => setEditData(d => ({ ...d, [cb.field]: e.target.checked }))} />
+                      {cb.label}
+                    </label>
+                  ))}
+                </div>
 
                 <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, marginTop: 8 }}>Notizen</div>

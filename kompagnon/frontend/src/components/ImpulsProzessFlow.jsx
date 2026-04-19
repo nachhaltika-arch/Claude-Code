@@ -196,6 +196,35 @@ export default function ImpulsProzessFlow({ project, lead, token }) {
               </div>
             </div>
 
+            {/* Berater dieser Phase */}
+            {istAktiv && isAdmin && (() => {
+              const phaseKeyMap = {
+                'vorbereitung': 'berater_phase_1', 'analyse': 'berater_phase_2',
+                'strategie': 'berater_phase_3', 'digitalisierung': 'berater_phase_4',
+                'design': 'berater_phase_6', 'abschluss': 'berater_phase_5',
+              };
+              const phaseKey = phaseKeyMap[phase.id];
+              return phaseKey ? (
+                <div style={{ padding: '8px 18px 10px', background: 'var(--bg-app)', borderBottom: '1px solid var(--border-light)' }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 4 }}>Berater</label>
+                  <input
+                    type="text"
+                    placeholder="z.B. Manuel Potter"
+                    defaultValue={project?.[phaseKey] || ''}
+                    onBlur={async (e) => {
+                      try {
+                        await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
+                          method: 'PUT', headers,
+                          body: JSON.stringify({ [phaseKey]: e.target.value }),
+                        });
+                      } catch {}
+                    }}
+                    style={{ width: '100%', padding: '6px 10px', border: '1px solid var(--border-light)', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', boxSizing: 'border-box', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+              ) : null;
+            })()}
+
             {/* Schritte (aufklappbar) */}
             {istAktiv && (
               <div style={{ padding: '8px 0' }}>

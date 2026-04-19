@@ -82,6 +82,13 @@ class LeadUpdate(BaseModel):
     inspiration_url_1: Optional[str] = None
     inspiration_url_2: Optional[str] = None
     inspiration_url_3: Optional[str] = None
+    mitarbeiterzahl: Optional[int] = None
+    jahresumsatz_eur: Optional[float] = None
+    gruendungsjahr: Optional[int] = None
+    betriebsstaette_rlp: Optional[bool] = None
+    insolvenzfreiheit_bestaetigt: Optional[bool] = None
+    letzter_kontakt_datum: Optional[str] = None
+    letzter_kontakt_art: Optional[str] = None
 
 
 class LeadResponse(BaseModel):
@@ -1585,6 +1592,13 @@ def _build_lead_profile_data(lead_id: int, db: Session) -> dict:
                 row.sequence_last_sent.strftime("%d.%m.%Y %H:%M")
                 if row.sequence_last_sent else None
             ),
+            "mitarbeiterzahl":              getattr(row, "mitarbeiterzahl", None),
+            "jahresumsatz_eur":             float(row.jahresumsatz_eur) if getattr(row, "jahresumsatz_eur", None) else None,
+            "gruendungsjahr":               getattr(row, "gruendungsjahr", None),
+            "betriebsstaette_rlp":          bool(getattr(row, "betriebsstaette_rlp", False)),
+            "insolvenzfreiheit_bestaetigt": bool(getattr(row, "insolvenzfreiheit_bestaetigt", False)),
+            "letzter_kontakt_datum":        str(row.letzter_kontakt_datum)[:16] if getattr(row, "letzter_kontakt_datum", None) else None,
+            "letzter_kontakt_art":          getattr(row, "letzter_kontakt_art", "") or "",
         },
         "current_score": latest_audit.total_score if latest_audit else None,
         "current_level": latest_audit.level if latest_audit else None,

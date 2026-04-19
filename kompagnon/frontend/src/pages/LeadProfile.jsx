@@ -238,6 +238,8 @@ export default function LeadProfile() {
   const [seqStatus, setSeqStatus]       = useState(null);
   const [emailLoading, setEmailLoading] = useState(false);
 
+  const [dealLoading, setDealLoading] = useState(false);
+
   const h = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -690,6 +692,42 @@ export default function LeadProfile() {
       setEditingName(false);
       await loadProfile();
     } catch {}
+  };
+
+  const createDealSchnell = async (productType) => {
+    setDealLoading(true);
+    try {
+      const lead = profile?.lead;
+      const preis = productType === 'impuls' ? 20000 : 2000;
+      const titel = productType === 'impuls'
+        ? `IMPULS — ${lead?.company_name || 'Unbekannt'}`
+        : `Online Fertig — ${lead?.company_name || 'Unbekannt'}`;
+
+      const res = await fetch(`${API_BASE_URL}/api/deals/`, {
+        method: 'POST',
+        headers: h,
+        body: JSON.stringify({
+          title:        titel,
+          company_id:   lead?.id,
+          status:       'neu',
+          product_type: productType,
+          notes:        'Deal aus Kundenkartei erstellt',
+          items: [{
+            position:   productType === 'impuls' ? 'IMPULS ISB-158 Beratungspaket' : 'Website Online Fertig',
+            quantity:   1,
+            unit_price: preis,
+          }],
+        }),
+      });
+      if (!res.ok) throw new Error('Fehler beim Anlegen');
+      const deal = await res.json();
+      toast.success(`Deal "${deal.title}" angelegt`);
+      setActiveTab('deals');
+      setTimeout(() => window.location.reload(), 500);
+    } catch (err) {
+      toast.error(err.message || 'Fehler');
+    }
+    setDealLoading(false);
   };
 
   const createProject = async () => {
@@ -1223,6 +1261,52 @@ export default function LeadProfile() {
       ) : (
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', padding: '2px 4px' }}>
           Noch kein Briefing vorhanden
+        </div>
+      )}
+
+      {/* ── Aktions-Panel: Produkte & Projekte ── */}
+      {profile?.lead && (
+        <div style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '14px 18px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexWrap: 'wrap',
+          marginBottom: 8,
+        }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginRight: 4 }}>
+            Starten:
+          </span>
+
+          <button
+            onClick={() => createDealSchnell('website')}
+            disabled={dealLoading}
+            style={{ padding: '7px 14px', borderRadius: 7, border: '1.5px solid var(--brand-primary)', background: 'transparent', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 700, cursor: dealLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            🌐 Online Fertig Deal
+          </button>
+
+          <button
+            onClick={() => createDealSchnell('impuls')}
+            disabled={dealLoading}
+            style={{ padding: '7px 14px', borderRadius: 7, border: '1.5px solid #004F59', background: 'transparent', color: '#004F59', fontSize: 12, fontWeight: 700, cursor: dealLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            📋 IMPULS Deal
+          </button>
+
+          <div style={{ flex: 1 }} />
+
+          {projectId && (
+            <button
+              onClick={() => navigate(`/app/projects/${projectId}`)}
+              style={{ padding: '7px 14px', borderRadius: 7, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              → Aktives Projekt öffnen
+            </button>
+          )}
         </div>
       )}
 
@@ -2093,6 +2177,17 @@ export default function LeadProfile() {
             }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{deal.title}</div>
+                <span style={{
+                  fontSize: 10, fontWeight: 900,
+                  padding: '2px 8px', borderRadius: 20,
+                  background: deal.product_type === 'impuls' ? '#004F5918' : 'var(--bg-app)',
+                  color: deal.product_type === 'impuls' ? '#004F59' : 'var(--text-tertiary)',
+                  border: `1px solid ${deal.product_type === 'impuls' ? '#004F5940' : 'var(--border-light)'}`,
+                  letterSpacing: '0.06em', textTransform: 'uppercase',
+                  marginTop: 4, display: 'inline-block',
+                }}>
+                  {deal.product_type === 'impuls' ? 'IMPULS' : 'Online Fertig'}
+                </span>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
                   {deal.created_at?.slice(0, 10)}
                 </div>

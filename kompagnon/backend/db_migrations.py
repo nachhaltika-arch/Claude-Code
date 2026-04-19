@@ -1225,6 +1225,11 @@ MIGRATIONS = [
     (23, "add_impuls_fortschritt", [
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS impuls_fortschritt JSONB DEFAULT '{}'",
     ]),
+
+    (24, "add_deal_product_type", [
+        "ALTER TABLE deals ADD COLUMN IF NOT EXISTS product_type VARCHAR(50) DEFAULT 'website'",
+        "UPDATE deals SET product_type = 'website' WHERE product_type IS NULL",
+    ]),
 ]
 
 

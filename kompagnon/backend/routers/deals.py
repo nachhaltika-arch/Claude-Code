@@ -40,6 +40,7 @@ class DealCreate(BaseModel):
     status: str = "neu"
     notes: Optional[str] = None
     items: List[DealItem] = []
+    product_type: str = "website"
 
 
 class DealUpdate(BaseModel):
@@ -48,6 +49,7 @@ class DealUpdate(BaseModel):
     status: Optional[str] = None
     notes: Optional[str] = None
     items: Optional[List[DealItem]] = None
+    product_type: Optional[str] = None
 
 
 # ── Helpers ──────────────────────────────────────────────────────
@@ -71,6 +73,7 @@ def _deal_row_to_dict(row, items=None):
         "lost_at":     str(row.lost_at)[:19] if row.lost_at else None,
         "created_at":  str(row.created_at)[:19] if row.created_at else None,
         "updated_at":  str(row.updated_at)[:19] if row.updated_at else None,
+        "product_type": getattr(row, "product_type", "website") or "website",
         "items":       items or [],
     }
 
@@ -177,16 +180,17 @@ def create_deal(
     lost_at_expr = "NOW()" if data.status == "verloren" else "NULL"
 
     result = db.execute(text(f"""
-        INSERT INTO deals (title, company_id, status, total_value, notes, assigned_to, won_at, lost_at)
-        VALUES (:title, :company_id, :status, :total, :notes, :assigned_to, {won_at_expr}, {lost_at_expr})
+        INSERT INTO deals (title, company_id, status, total_value, notes, assigned_to, won_at, lost_at, product_type)
+        VALUES (:title, :company_id, :status, :total, :notes, :assigned_to, {won_at_expr}, {lost_at_expr}, :product_type)
         RETURNING id
     """), {
-        "title":       data.title,
-        "company_id":  data.company_id,
-        "status":      data.status,
-        "total":       total,
-        "notes":       data.notes,
-        "assigned_to": current_user.id,
+        "title":        data.title,
+        "company_id":   data.company_id,
+        "status":       data.status,
+        "total":        total,
+        "notes":        data.notes,
+        "assigned_to":  current_user.id,
+        "product_type": data.product_type or "website",
     })
     deal_id = result.fetchone()[0]
 
@@ -242,6 +246,9 @@ def update_deal(
             fields.append("won_at = NOW()")
         elif data.status == "verloren" and deal.status != "verloren":
             fields.append("lost_at = NOW()")
+    if data.product_type is not None:
+        fields.append("product_type = :product_type")
+        updates["product_type"] = data.product_type
 
     if data.items is not None:
         total = _calculate_total(data.items)
@@ -308,19 +315,43 @@ def create_project_from_deal(
     if existing:
         return {"project_id": existing.id, "already_exists": True}
 
+    product_type = getattr(deal, "product_type", "website") or "website"
+    initial_status = "impuls_antrag" if product_type == "impuls" else "phase_1"
+
     result = db.execute(text("""
-        INSERT INTO projects (lead_id, deal_id, status, start_date, created_at, updated_at, fixed_price)
-        VALUES (:lead_id, :deal_id, 'phase_1', NOW(), NOW(), NOW(), :value)
+        INSERT INTO projects (
+            lead_id, deal_id, status, project_type,
+            start_date, created_at, updated_at, fixed_price,
+            company_name, contact_name, contact_email
+        )
+        SELECT
+            d.company_id,
+            :deal_id,
+            :initial_status,
+            :product_type,
+            NOW(), NOW(), NOW(),
+            :value,
+            l.company_name,
+            l.contact_name,
+            l.email
+        FROM deals d
+        LEFT JOIN leads l ON d.company_id = l.id
+        WHERE d.id = :deal_id
         RETURNING id
     """), {
-        "lead_id": deal.lead_id,
-        "deal_id": deal_id,
-        "value":   float(deal.total_value or 0),
+        "deal_id":        deal_id,
+        "initial_status": initial_status,
+        "product_type":   product_type,
+        "value":          float(deal.total_value or 0),
     })
     project_id = result.fetchone()[0]
     db.commit()
 
-    return {"project_id": project_id, "already_exists": False}
+    return {
+        "project_id":     project_id,
+        "product_type":   product_type,
+        "already_exists": False,
+    }
 
 
 # ── Einmalige Migration bestehender Leads zu Deals ───────────────

@@ -60,6 +60,7 @@ export default function Deals() {
   const openNew = () => {
     setEditingDeal({
       title: '', company_id: null, status: 'neu', notes: '',
+      product_type: 'website',
       items: [{ position: '', quantity: 1, unit_price: 0 }],
     });
     setShowModal(true);
@@ -328,7 +329,7 @@ export default function Deals() {
 
 function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
   const { token } = useAuth();
-  const [form, setForm] = useState(deal);
+  const [form, setForm] = useState({ product_type: 'website', ...deal });
   const [companies, setCompanies] = useState([]);
   const [saving, setSaving] = useState(false);
   const h = { Authorization: `Bearer ${token}` };
@@ -372,6 +373,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
         company_id: form.company_id || null,
         status: form.status || 'neu',
         notes: form.notes || '',
+        product_type: form.product_type || 'website',
         items: form.items
           .filter(i => i.position?.trim())
           .map(i => ({
@@ -479,6 +481,36 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
 
         {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+
+          {/* Produkttyp */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={labelStyle}>Produkttyp</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {[
+                { value: 'website', label: '🌐 Online Fertig', sub: 'Website-Paket · Stripe-Checkout möglich' },
+                { value: 'impuls',  label: '📋 IMPULS',        sub: 'ISB-158 Beratung · Angebot/Annahme' },
+              ].map(opt => (
+                <div
+                  key={opt.value}
+                  onClick={() => setForm(f => ({ ...f, product_type: opt.value }))}
+                  style={{
+                    padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
+                    border: `2px solid ${form.product_type === opt.value ? (opt.value === 'impuls' ? '#004F59' : 'var(--brand-primary)') : 'var(--border-light)'}`,
+                    background: form.product_type === opt.value ? (opt.value === 'impuls' ? '#004F5910' : 'var(--bg-active)') : 'var(--bg-surface)',
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>{opt.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{opt.sub}</div>
+                </div>
+              ))}
+            </div>
+            {form.product_type === 'impuls' && (
+              <div style={{ marginTop: 8, padding: '8px 12px', background: '#FAE60015', border: '1px solid #FAE60060', borderRadius: 6, fontSize: 12, color: '#854F0B' }}>
+                ⚠️ IMPULS läuft über Angebot/Annahme — kein Stripe-Checkout. Deal erst auf "Gewonnen" setzen wenn ISB-Antrag bewilligt ist.
+              </div>
+            )}
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>Titel *</label>

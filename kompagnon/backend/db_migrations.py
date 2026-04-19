@@ -1206,6 +1206,21 @@ MIGRATIONS = [
         "UPDATE products SET category = 'beratung' WHERE slug = 'impuls'",
         "CREATE INDEX IF NOT EXISTS idx_products_category ON products(category)",
     ]),
+
+    (22, "add_project_type_column", [
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_type VARCHAR(50) DEFAULT 'website'",
+        "UPDATE projects SET project_type = 'website' WHERE project_type IS NULL",
+        "CREATE INDEX IF NOT EXISTS idx_projects_type ON projects(project_type)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS isb_antrag_datum DATE",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS isb_bewilligung_datum DATE",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS isb_foerdersumme NUMERIC(10,2)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS tagewerke_gesamt INTEGER DEFAULT 20",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS tagewerke_verbraucht NUMERIC(5,2) DEFAULT 0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS mmv_leasingrate NUMERIC(10,2)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS beratungsphase INTEGER DEFAULT 0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS portal_url VARCHAR(500)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS portal_passwort VARCHAR(100)",
+    ]),
 ]
 
 

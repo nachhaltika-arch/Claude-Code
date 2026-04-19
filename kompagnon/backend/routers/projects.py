@@ -425,7 +425,10 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
                 "pagespeed_after_mobile, pagespeed_after_desktop, screenshot_after, "
                 "gbp_checklist_json, "
                 "briefing_submitted_at, briefing_approved_at, briefing_approved_by, "
-                "content_approval_sent_at, content_approved_at, content_approved_by "
+                "content_approval_sent_at, content_approved_at, content_approved_by, "
+                "project_type, isb_antrag_datum, isb_bewilligung_datum, "
+                "isb_foerdersumme, tagewerke_gesamt, tagewerke_verbraucht, "
+                "mmv_leasingrate, beratungsphase, portal_url "
                 "FROM projects WHERE id = :pid"
             ),
             {"pid": project_id},
@@ -495,6 +498,16 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
         'content_approval_sent_at': row[28].isoformat() if row[28] else None,
         'content_approved_at':      row[29].isoformat() if row[29] else None,
         'content_approved_by':      row[30] or None,
+        # Projekttyp + IMPULS-Felder (Migration v22)
+        'project_type':             row[31] or 'website',
+        'isb_antrag_datum':         str(row[32])[:10] if row[32] else None,
+        'isb_bewilligung_datum':    str(row[33])[:10] if row[33] else None,
+        'isb_foerdersumme':         float(row[34]) if row[34] is not None else None,
+        'tagewerke_gesamt':         int(row[35]) if row[35] is not None else 20,
+        'tagewerke_verbraucht':     float(row[36]) if row[36] is not None else 0,
+        'mmv_leasingrate':          float(row[37]) if row[37] is not None else None,
+        'beratungsphase':           int(row[38]) if row[38] is not None else 0,
+        'portal_url':               row[39] or None,
     }
 
 
@@ -560,6 +573,59 @@ def update_project(
         {"id": project_id}
     ).fetchone()
     return dict(row._mapping) if row else {"success": True}
+
+
+@router.post("/impuls", status_code=201)
+def create_impuls_project(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    """
+    Manuelles Anlegen eines IMPULS-Beratungsprojekts.
+    Wird nach ISB-Antragsbewilligung vom Admin ausgefuehrt.
+    """
+    company_name  = (data.get("company_name") or "").strip()
+    contact_name  = (data.get("contact_name") or "").strip()
+    contact_email = (data.get("contact_email") or "").strip()
+    lead_id       = data.get("lead_id")
+
+    if not company_name:
+        raise HTTPException(400, "company_name ist Pflichtfeld")
+
+    now = datetime.utcnow()
+
+    result = db.execute(text("""
+        INSERT INTO projects (
+            lead_id, company_name, contact_name, contact_email,
+            project_type, status,
+            isb_antrag_datum, isb_bewilligung_datum, isb_foerdersumme,
+            tagewerke_gesamt, mmv_leasingrate,
+            start_date, created_at, updated_at
+        ) VALUES (
+            :lead_id, :company, :contact, :email,
+            'impuls', 'impuls_antrag',
+            :antrag, :bewilligung, :foerder,
+            :tw, :leasing,
+            :now, :now, :now
+        )
+        RETURNING id
+    """), {
+        "lead_id":     lead_id,
+        "company":     company_name,
+        "contact":     contact_name,
+        "email":       contact_email,
+        "antrag":      data.get("isb_antrag_datum"),
+        "bewilligung": data.get("isb_bewilligung_datum"),
+        "foerder":     data.get("isb_foerdersumme", 20000),
+        "tw":          data.get("tagewerke_gesamt", 20),
+        "leasing":     data.get("mmv_leasingrate"),
+        "now":         now,
+    })
+    db.commit()
+    new_id = result.fetchone()[0]
+    logger.info(f"IMPULS-Projekt #{new_id} angelegt fuer {company_name}")
+    return {"id": new_id, "project_type": "impuls", "status": "impuls_antrag"}
 
 
 @router.patch("/{project_id}/phase")

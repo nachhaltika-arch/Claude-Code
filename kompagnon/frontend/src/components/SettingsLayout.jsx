@@ -265,33 +265,8 @@ export default function SettingsLayout() {
   }
 
   return (
-    <div style={{ display: 'flex', gap: 20 }}>
-      <nav style={{ width: 220, flexShrink: 0 }}>
-        <div style={{
-          background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-light)', overflow: 'hidden', padding: 4,
-        }}>
-          {items.map((item) => {
-            const active = location.pathname === item.path;
-            return (
-              <button key={item.path} onClick={() => navigate(item.path)}
-              className={`kc-nav-item${active ? ' kc-nav-item--active' : ''}`}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                padding: '7px 12px', borderRadius: 'var(--radius-md)',
-                border: 'none', fontSize: 13, cursor: 'pointer',
-                textAlign: 'left', fontFamily: 'var(--font-sans)',
-              }}
-              >
-                <span style={{ fontSize: 14 }}>{item.icon}</span> {item.label}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <Outlet />
-      </div>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <Outlet />
     </div>
   );
 }

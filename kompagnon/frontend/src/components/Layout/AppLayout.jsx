@@ -521,25 +521,44 @@ function SidebarNav({ badges }) {
               <span>Einstellungen</span>
               <span style={sbChevronStyle(openSection === 'settings')}>›</span>
             </button>
-            <div style={sbCollapseStyle(openSection === 'settings', 460)}>
+            <div style={sbCollapseStyle(openSection === 'settings', 520)}>
               {[
-                { label: 'Profil',             path: '/app/settings/profile' },
-                { label: 'Sicherheit & 2FA',   path: '/app/settings/security' },
-                { label: 'Benutzerverwaltung', path: '/app/settings/users' },
-                { label: 'Rollenverwaltung',   path: '/app/settings/roles' },
-                { label: 'System & API-Keys',  path: '/app/settings/system' },
-                { label: 'Benachrichtigungen', path: '/app/settings/notifications' },
-                { label: 'Produkt-Editor',     path: '/app/product-editor' },
-                { label: 'Produkte',           path: '/app/products' },
-              ].map(item => (
-                <button
-                  key={`settings-${item.label}`}
-                  onClick={() => navigate(item.path)}
-                  style={sbSubItemStyle(isActive(item.path))}
-                >
-                  {item.label}
-                </button>
-              ))}
+                { label: 'Profil',              path: '/app/settings/profile',       roles: ['admin', 'superadmin', 'auditor', 'nutzer', 'kunde'] },
+                { label: 'Sicherheit & 2FA',    path: '/app/settings/security',      roles: ['admin', 'superadmin', 'auditor', 'nutzer', 'kunde'] },
+                { label: 'Benutzerverwaltung',  path: '/app/settings/users',         roles: ['admin', 'superadmin'] },
+                { label: 'Rollenverwaltung',    path: '/app/settings/roles',         roles: ['admin', 'superadmin'] },
+                { label: 'System & API-Keys',   path: '/app/settings/system',        roles: ['admin', 'superadmin'] },
+                { label: 'KAS Website',         path: '/app/settings/kas-website',   roles: ['admin', 'superadmin'] },
+                { label: 'Benachrichtigungen',  path: '/app/settings/notifications', roles: ['admin', 'superadmin', 'auditor', 'nutzer'] },
+                { label: 'Abonnement',          path: '/app/settings/subscription',  roles: ['admin', 'superadmin'] },
+                { label: 'Templates',           path: '/app/settings/templates',     roles: ['admin', 'superadmin'] },
+                { label: '─', path: null, roles: ['admin', 'superadmin'] },
+                { label: 'Produkteditor',       path: '/app/product-editor',         roles: ['admin', 'superadmin'] },
+                { label: 'Produktentwicklung',  path: '/app/product',                roles: ['admin', 'superadmin'] },
+                { label: 'Seiten-Manager',      path: '/app/pages',                  roles: ['admin', 'superadmin'] },
+              ]
+                .filter(item => item.roles.includes(user?.role))
+                .map(item => {
+                  if (item.path === null) {
+                    return (
+                      <div key="sep" style={{
+                        height: '0.5px',
+                        background: 'rgba(255,255,255,0.08)',
+                        margin: '4px 20px 4px 32px',
+                      }} />
+                    );
+                  }
+                  return (
+                    <button
+                      key={`settings-${item.label}`}
+                      onClick={() => navigate(item.path)}
+                      style={sbSubItemStyle(isActive(item.path))}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })
+              }
             </div>
           </>
         )}

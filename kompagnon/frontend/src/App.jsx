@@ -68,6 +68,7 @@ import MobileVertrieb from './pages/MobileVertrieb';
 import MobileLeads from './pages/MobileLeads';
 import MobileProjekte from './pages/MobileProjekte';
 import MobileSettings from './pages/MobileSettings';
+import PackageImpuls from './pages/PackageImpuls';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -145,6 +146,7 @@ function App() {
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
           <Route path="/abnahme/:projectId" element={<Abnahme />} />
           <Route path="/approve-content/:token" element={<ApproveContent />} />
+          <Route path="/paket/impuls" element={<PackageImpuls />} />
 
           {/* App — authenticated, with Navbar/Sidebar */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>

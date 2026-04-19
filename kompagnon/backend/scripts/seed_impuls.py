@@ -95,3 +95,13 @@ with engine.connect() as conn:
         )
         conn.commit()
         print("IMPULS-Produkt erfolgreich angelegt.")
+
+# Landing-Page-Eintrag in public_pages — idempotent via ON CONFLICT.
+with engine.connect() as conn:
+    conn.execute(text("""
+        INSERT INTO public_pages (slug, name, page_type, status, react_component)
+        VALUES ('/paket/impuls', 'IMPULS: Geförderte Beratung', 'paket', 'live', 'PackageImpuls')
+        ON CONFLICT (slug) DO NOTHING
+    """))
+    conn.commit()
+    print("IMPULS Landing Page in public_pages eingetragen (oder bereits vorhanden).")

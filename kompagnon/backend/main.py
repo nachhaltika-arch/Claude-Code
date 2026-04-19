@@ -366,18 +366,45 @@ def _create_default_admin():
                     "webhook_actions": ["create_lead", "create_user", "create_project",
                                         "send_welcome_email", "send_pdf"],
                 },
+                {
+                    "slug": "impuls", "name": "IMPULS by KOMPAGNON", "sort_order": 10,
+                    "short_desc": "Geförderte Unternehmensberatung — 50 % vom Land RLP",
+                    "long_desc": (
+                        "IMPULS ist das ISB-158-Beratungsprogramm von KOMPAGNON für KMU in Rheinland-Pfalz. "
+                        "Das Land Rheinland-Pfalz übernimmt 50 % der Beratungskosten (max. 500 €/Tagewerk). "
+                        "Beratungsschwerpunkte: Strategie, Marketing, Digitalisierung, Kommunikationsdesign. "
+                        "Finanzierung des Eigenanteils über MMV Leasing in 36 Monatsraten. "
+                        "Alle Ergebnisse werden in einem persönlichen, passwortgeschützten Online-Portal bereitgestellt."
+                    ),
+                    "price_brutto": 20000.00, "price_netto": 16806.72, "tax_rate": 19,
+                    "payment_type": "once", "delivery_days": 90, "status": "draft",
+                    "highlighted": True, "highlight_label": "50 % Förderung",
+                    "features": [
+                        "ISB-158 Förderung: 50 % vom Land Rheinland-Pfalz",
+                        "Bis zu 20 Tagewerke à 8 Stunden Beratung",
+                        "Strategie, Marketing & Vertriebsoptimierung",
+                        "Digitalisierung & KI-Einsatz im Unternehmen",
+                        "Kommunikations- & Designberatung (max. 3 TW)",
+                        "Persönliches Ergebnis-Portal (passwortgeschützt)",
+                        "Leasingfinanzierung: ~145 €/Monat über MMV",
+                        "Wir übernehmen Antragstellung & Dokumentation",
+                    ],
+                    "checkout_fields": ["name", "company", "email", "phone", "message"],
+                    "webhook_actions": ["create_lead", "send_welcome_email"],
+                },
             ]
             for p in SEED:
                 _db3.execute(_t("""
                     INSERT INTO products
-                    (slug, name, short_desc, price_brutto, price_netto,
+                    (slug, name, short_desc, long_desc, price_brutto, price_netto,
                      tax_rate, payment_type, delivery_days, status,
                      highlighted, highlight_label, features,
                      checkout_fields, webhook_actions, sort_order)
-                    VALUES (:slug, :name, :sd, :pb, :pn, :tr, :pt, :dd,
+                    VALUES (:slug, :name, :sd, :ld, :pb, :pn, :tr, :pt, :dd,
                      :status, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :so)
                 """), {
                     "slug": p["slug"], "name": p["name"], "sd": p["short_desc"],
+                    "ld": p.get("long_desc", ""),
                     "pb": p["price_brutto"], "pn": p["price_netto"],
                     "tr": p["tax_rate"], "pt": p["payment_type"],
                     "dd": p["delivery_days"], "status": p["status"],
@@ -389,7 +416,7 @@ def _create_default_admin():
                     "so": p["sort_order"],
                 })
             _db3.commit()
-            logger.info("✓ 3 Produkte geseedet")
+            logger.info("✓ 4 Produkte geseedet")
         _db3.close()
     except Exception as e:
         logger.warning(f"Produkt-Seed Fehler: {e}")

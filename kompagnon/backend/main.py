@@ -896,6 +896,9 @@ app.include_router(export_router)
 from routers.kas_router import router as kas_router
 app.include_router(kas_router)
 
+from routers.impuls import router as impuls_router
+app.include_router(impuls_router)
+
 
 # Global exception handler — catches unhandled errors
 @app.exception_handler(Exception)

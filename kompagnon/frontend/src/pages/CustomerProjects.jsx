@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import EmptyState from '../components/ui/EmptyState';
+import toast from 'react-hot-toast';
 
 const PHASES = [
   { id: 'phase_1', label: 'Onboarding',  color: '#008EAA' },
@@ -93,25 +94,39 @@ function ProjectListCard({ project, lead, onClick }) {
         )}
       </div>
 
-      {/* Phase + progress */}
+      {/* Phase + progress (oder IMPULS-Badge) */}
       <div style={{ flex: '1 1 140px', minWidth: 120 }}>
-        <div style={{
-          fontSize: 11, fontWeight: 700,
-          color: 'var(--text-60)',
-          textTransform: 'uppercase', letterSpacing: '0.06em',
-          marginBottom: 4,
-        }}>
-          {pNum ? `Phase ${pNum} von 7 · ${ph?.label}` : project.status || '–'}
-        </div>
-        <div style={{ height: 5, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{
-            width: pNum ? `${(pNum / 7) * 100}%` : '0%',
-            height: '100%',
-            background: pNum && (pNum / 7) > 0.8 ? 'var(--success)' : 'var(--kc-mid)',
-            borderRadius: 3,
-            transition: 'width 0.5s ease',
-          }} />
-        </div>
+        {project.project_type === 'impuls' ? (
+          <span style={{
+            display: 'inline-block',
+            fontSize: 10, fontWeight: 900, padding: '3px 10px', borderRadius: 20,
+            background: '#004F5920', color: '#004F59',
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            border: '1px solid #004F5940',
+          }}>
+            IMPULS
+          </span>
+        ) : (
+          <>
+            <div style={{
+              fontSize: 11, fontWeight: 700,
+              color: 'var(--text-60)',
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              marginBottom: 4,
+            }}>
+              {pNum ? `Phase ${pNum} von 7 · ${ph?.label}` : project.status || '–'}
+            </div>
+            <div style={{ height: 5, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{
+                width: pNum ? `${(pNum / 7) * 100}%` : '0%',
+                height: '100%',
+                background: pNum && (pNum / 7) > 0.8 ? 'var(--success)' : 'var(--kc-mid)',
+                borderRadius: 3,
+                transition: 'width 0.5s ease',
+              }} />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Badges */}
@@ -145,6 +160,47 @@ export default function CustomerProjects() {
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
   const [phaseFilter, setPhaseFilter] = useState('');
+
+  // ── IMPULS-Projekt anlegen ──
+  const emptyImpulsForm = {
+    company_name:          '',
+    contact_name:          '',
+    contact_email:         '',
+    contact_phone:         '',
+    isb_antrag_datum:      '',
+    isb_bewilligung_datum: '',
+    isb_foerdersumme:      20000,
+    tagewerke_gesamt:      20,
+  };
+  const [showImpulsModal, setShowImpulsModal] = useState(false);
+  const [impulsForm, setImpulsForm] = useState(emptyImpulsForm);
+  const [impulsLoading, setImpulsLoading] = useState(false);
+  const setImpuls = (field) => (e) =>
+    setImpulsForm(prev => ({ ...prev, [field]: e.target.value }));
+
+  const createImpulsProjekt = async () => {
+    if (!impulsForm.company_name.trim()) {
+      toast.error('Unternehmensname ist Pflichtfeld');
+      return;
+    }
+    setImpulsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/projects/impuls`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify(impulsForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Fehler');
+      toast.success('IMPULS-Projekt angelegt');
+      setShowImpulsModal(false);
+      setImpulsForm(emptyImpulsForm);
+      navigate(`/app/projects/${data.id}`);
+    } catch (err) {
+      toast.error(err.message || 'Fehler beim Anlegen');
+    }
+    setImpulsLoading(false);
+  };
 
   const MOBILE_PROJEKTE_PILLS = [
     { id: 'alle',    label: 'Alle Projekte' },
@@ -255,6 +311,18 @@ export default function CustomerProjects() {
             {loading ? 'Lädt…' : `${filtered.length} von ${projects.length} Projekten`}
           </div>
         </div>
+        <button
+          onClick={() => setShowImpulsModal(true)}
+          style={{
+            padding: '8px 16px', borderRadius: 8, border: 'none',
+            background: '#004F59', color: '#FAE600',
+            fontSize: 12, fontWeight: 900, cursor: 'pointer',
+            letterSpacing: '0.04em', fontFamily: 'inherit',
+            textTransform: 'uppercase',
+          }}
+        >
+          + IMPULS-Projekt
+        </button>
       </div>
 
       {/* Filters */}
@@ -321,6 +389,93 @@ export default function CustomerProjects() {
               onClick={() => navigate(`/app/projects/${p.id}`)}
             />
           ))}
+        </div>
+      )}
+
+      {/* IMPULS-Projekt anlegen — Modal */}
+      {showImpulsModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 16, padding: 32, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }}>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#004F59' }}>IMPULS-Projekt anlegen</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>Nach ISB-Antragsbewilligung ausführen</div>
+              </div>
+              <button onClick={() => setShowImpulsModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--text-tertiary)' }}>✕</button>
+            </div>
+
+            {[
+              { field: 'company_name',  label: 'Unternehmensname *', placeholder: 'Mustermann GmbH',   type: 'text' },
+              { field: 'contact_name',  label: 'Ansprechpartner',    placeholder: 'Max Mustermann',    type: 'text' },
+              { field: 'contact_email', label: 'E-Mail',             placeholder: 'max@mustermann.de', type: 'email' },
+              { field: 'contact_phone', label: 'Telefon',            placeholder: '+49 261 ...',       type: 'tel' },
+            ].map(f => (
+              <div key={f.field} style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>
+                  {f.label}
+                </label>
+                <input
+                  type={f.type}
+                  placeholder={f.placeholder}
+                  value={impulsForm[f.field]}
+                  onChange={setImpuls(f.field)}
+                  style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--border-light)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', background: 'var(--bg-app)', color: 'var(--text-primary)' }}
+                />
+              </div>
+            ))}
+
+            <div style={{ background: 'var(--bg-app)', borderRadius: 8, padding: '14px 16px', marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>ISB-Förderdaten</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {[
+                  { field: 'isb_antrag_datum',      label: 'Antragsdatum',      type: 'date' },
+                  { field: 'isb_bewilligung_datum', label: 'Bewilligungsdatum', type: 'date' },
+                ].map(f => (
+                  <div key={f.field}>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{f.label}</label>
+                    <input
+                      type={f.type}
+                      value={impulsForm[f.field]}
+                      onChange={setImpuls(f.field)}
+                      style={{ width: '100%', padding: '9px 10px', border: '1.5px solid var(--border-light)', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
+                    />
+                  </div>
+                ))}
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Fördervolumen (€)</label>
+                  <input
+                    type="number"
+                    value={impulsForm.isb_foerdersumme}
+                    onChange={setImpuls('isb_foerdersumme')}
+                    style={{ width: '100%', padding: '9px 10px', border: '1.5px solid var(--border-light)', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Tagewerke gesamt</label>
+                  <input
+                    type="number"
+                    value={impulsForm.tagewerke_gesamt}
+                    onChange={setImpuls('tagewerke_gesamt')}
+                    style={{ width: '100%', padding: '9px 10px', border: '1.5px solid var(--border-light)', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowImpulsModal(false)} style={{ padding: '10px 20px', border: '1px solid var(--border-light)', borderRadius: 8, background: 'transparent', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', color: 'var(--text-primary)' }}>
+                Abbrechen
+              </button>
+              <button
+                onClick={createImpulsProjekt}
+                disabled={impulsLoading}
+                style={{ padding: '10px 24px', border: 'none', borderRadius: 8, background: impulsLoading ? '#94a3b8' : '#004F59', color: impulsLoading ? '#fff' : '#FAE600', cursor: impulsLoading ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 900, fontFamily: 'inherit', letterSpacing: '0.04em' }}
+              >
+                {impulsLoading ? '⏳ Anlegen...' : '✓ IMPULS-Projekt anlegen'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -694,14 +694,19 @@ export default function LeadProfile() {
     } catch {}
   };
 
-  const createDealSchnell = async (productType) => {
+  const createDealSchnell = async (productType, paket) => {
     setDealLoading(true);
     try {
-      const lead = profile?.lead;
-      const preis = productType === 'impuls' ? 20000 : 2000;
-      const titel = productType === 'impuls'
-        ? `IMPULS — ${lead?.company_name || 'Unbekannt'}`
-        : `Online Fertig — ${lead?.company_name || 'Unbekannt'}`;
+      const lead    = profile?.lead;
+      const firma   = lead?.company_name || lead?.display_name || 'Unbekannt';
+      const preis   = paket?.preis ?? (productType === 'impuls' ? 20000 : 2000);
+      const pakName = paket?.label ?? (productType === 'impuls' ? 'Premium' : 'Kompagnon');
+      const titel   = productType === 'impuls'
+        ? `IMPULS ${pakName} — ${firma}`
+        : `Online Fertig ${pakName} — ${firma}`;
+      const position = productType === 'impuls'
+        ? `IMPULS ISB-158 ${pakName} (${paket?.tw ?? 20} Tagewerke)`
+        : `Website Online Fertig ${pakName}`;
 
       const res = await fetch(`${API_BASE_URL}/api/deals/`, {
         method: 'POST',
@@ -711,9 +716,9 @@ export default function LeadProfile() {
           company_id:   lead?.id,
           status:       'neu',
           product_type: productType,
-          notes:        'Deal aus Kundenkartei erstellt',
+          notes:        `Deal aus Kundenkartei · Paket: ${pakName}`,
           items: [{
-            position:   productType === 'impuls' ? 'IMPULS ISB-158 Beratungspaket' : 'Website Online Fertig',
+            position,
             quantity:   1,
             unit_price: preis,
           }],
@@ -721,7 +726,7 @@ export default function LeadProfile() {
       });
       if (!res.ok) throw new Error('Fehler beim Anlegen');
       const deal = await res.json();
-      toast.success(`Deal "${deal.title}" angelegt`);
+      toast.success(`Deal "${deal.title}" angelegt — ${preis.toLocaleString('de-DE')} €`);
       setActiveTab('deals');
       setTimeout(() => window.location.reload(), 500);
     } catch (err) {
@@ -1223,13 +1228,9 @@ export default function LeadProfile() {
             </button>
           )}
 
-          {projectId ? (
+          {projectId && (
             <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 600, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
               📁 Zum Projekt →
-            </button>
-          ) : (
-            <button onClick={createProject} disabled={creatingProject} style={{ background: creatingProject ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 600, padding: '7px 14px', cursor: creatingProject ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6, width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined }}>
-              {creatingProject ? <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Anlegen…</> : '📁 Projekt anlegen'}
             </button>
           )}
 
@@ -1271,41 +1272,101 @@ export default function LeadProfile() {
           border: '1px solid var(--border-light)',
           borderRadius: 'var(--radius-lg)',
           padding: '14px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          flexWrap: 'wrap',
           marginBottom: 8,
         }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginRight: 4 }}>
-            Starten:
-          </span>
 
-          <button
-            onClick={() => createDealSchnell('website')}
-            disabled={dealLoading}
-            style={{ padding: '7px 14px', borderRadius: 7, border: '1.5px solid var(--brand-primary)', background: 'transparent', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 700, cursor: dealLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            🌐 Online Fertig Deal
-          </button>
+          <div style={{
+            fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)',
+            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12,
+          }}>
+            Deal anlegen
+          </div>
 
-          <button
-            onClick={() => createDealSchnell('impuls')}
-            disabled={dealLoading}
-            style={{ padding: '7px 14px', borderRadius: 7, border: '1.5px solid #004F59', background: 'transparent', color: '#004F59', fontSize: 12, fontWeight: 700, cursor: dealLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            📋 IMPULS Deal
-          </button>
+          {/* Online Fertig — mit Paketauswahl */}
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>
+              🌐 Online Fertig
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {[
+                { slug: 'starter',   label: 'Starter',   preis: 1500 },
+                { slug: 'kompagnon', label: 'Kompagnon', preis: 2000 },
+                { slug: 'premium',   label: 'Premium',   preis: 2800 },
+              ].map(paket => (
+                <button
+                  key={paket.slug}
+                  onClick={() => createDealSchnell('website', paket)}
+                  disabled={dealLoading}
+                  style={{
+                    padding: '6px 12px', borderRadius: 7,
+                    border: '1.5px solid var(--brand-primary)',
+                    background: 'transparent', color: 'var(--brand-primary)',
+                    fontSize: 12, fontWeight: 700, cursor: dealLoading ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: 1, lineHeight: 1.2,
+                  }}
+                >
+                  <span>{paket.label}</span>
+                  <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.7 }}>
+                    {paket.preis.toLocaleString('de-DE')} €
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
 
-          <div style={{ flex: 1 }} />
+          <div style={{ height: '0.5px', background: 'var(--border-light)', margin: '10px 0' }} />
 
+          {/* IMPULS — mit Paketauswahl */}
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>
+              📋 IMPULS Beratung
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {[
+                { slug: 'impuls-starter', label: 'Starter', preis: 5000,  tw: 5 },
+                { slug: 'impuls-classic', label: 'Classic', preis: 13000, tw: 13 },
+                { slug: 'impuls-premium', label: 'Premium', preis: 20000, tw: 20 },
+              ].map(paket => (
+                <button
+                  key={paket.slug}
+                  onClick={() => createDealSchnell('impuls', paket)}
+                  disabled={dealLoading}
+                  style={{
+                    padding: '6px 12px', borderRadius: 7,
+                    border: '1.5px solid #004F59',
+                    background: 'transparent', color: '#004F59',
+                    fontSize: 12, fontWeight: 700, cursor: dealLoading ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: 1, lineHeight: 1.2,
+                  }}
+                >
+                  <span>{paket.label}</span>
+                  <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.7 }}>
+                    {paket.preis.toLocaleString('de-DE')} € · {paket.tw} TW
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Aktives Projekt öffnen */}
           {projectId && (
-            <button
-              onClick={() => navigate(`/app/projects/${projectId}`)}
-              style={{ padding: '7px 14px', borderRadius: 7, border: 'none', background: 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}
-            >
-              → Aktives Projekt öffnen
-            </button>
+            <>
+              <div style={{ height: '0.5px', background: 'var(--border-light)', margin: '10px 0' }} />
+              <button
+                onClick={() => navigate(`/app/projects/${projectId}`)}
+                style={{
+                  width: '100%', padding: '8px 14px', borderRadius: 8,
+                  border: 'none', background: 'var(--brand-primary)', color: '#fff',
+                  fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  fontFamily: 'inherit', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: 6,
+                }}
+              >
+                → Aktives Projekt öffnen
+              </button>
+            </>
           )}
         </div>
       )}

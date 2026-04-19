@@ -18,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import ProzessFlowV3 from '../components/ProzessFlowV3';
+import ImpulsProzessFlow from '../components/ImpulsProzessFlow';
 
 // Lazy-loaded: heavy components loaded on demand
 const BriefingTab = lazy(() => import('../components/BriefingTab'));
@@ -1647,26 +1648,34 @@ export default function ProjectDetail() {
       background: 'var(--surface)',
       fontFamily: 'var(--font-sans)',
     }}>
-      {/* ── ProzessFlow V3 (Vollbild) ───────────────────────────────────────── */}
+      {/* ── ProzessFlow (Vollbild) — wählt basierend auf project_type ─────────── */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        <ProzessFlowV3
-          project={project}
-          lead={lead || briefingLead}
-          token={token}
-          briefing={briefingData}
-          latestAudit={latestAudit}
-          onAuditUpdate={setLatestAudit}
-          onSitemapReload={loadSitemapPages}
-          onBrandUpdate={setBrandData}
-          onCrawlUpdate={(count) => setCrawlResults(prev => prev.length >= count ? prev : Array(count).fill({}))}
-          crawlPages={crawlResults?.length || 0}
-          sitemapPages={sitemapPages}
-          sitemapLoading={sitemapLoading}
-          websiteContent={websiteContent}
-          brandData={brandData}
-          netlify={netlify}
-          qaResult={qaResult}
-        />
+        {project?.project_type === 'impuls' ? (
+          <ImpulsProzessFlow
+            project={project}
+            lead={lead || briefingLead}
+            token={token}
+          />
+        ) : (
+          <ProzessFlowV3
+            project={project}
+            lead={lead || briefingLead}
+            token={token}
+            briefing={briefingData}
+            latestAudit={latestAudit}
+            onAuditUpdate={setLatestAudit}
+            onSitemapReload={loadSitemapPages}
+            onBrandUpdate={setBrandData}
+            onCrawlUpdate={(count) => setCrawlResults(prev => prev.length >= count ? prev : Array(count).fill({}))}
+            crawlPages={crawlResults?.length || 0}
+            sitemapPages={sitemapPages}
+            sitemapLoading={sitemapLoading}
+            websiteContent={websiteContent}
+            brandData={brandData}
+            netlify={netlify}
+            qaResult={qaResult}
+          />
+        )}
       </div>
 
       {/* ── Nachrichten Modal ───────────────────────────────────────────────── */}

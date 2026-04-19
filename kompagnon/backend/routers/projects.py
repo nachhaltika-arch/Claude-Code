@@ -428,7 +428,7 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
                 "content_approval_sent_at, content_approved_at, content_approved_by, "
                 "project_type, isb_antrag_datum, isb_bewilligung_datum, "
                 "isb_foerdersumme, tagewerke_gesamt, tagewerke_verbraucht, "
-                "mmv_leasingrate, beratungsphase, portal_url "
+                "mmv_leasingrate, beratungsphase, portal_url, impuls_fortschritt "
                 "FROM projects WHERE id = :pid"
             ),
             {"pid": project_id},
@@ -508,6 +508,7 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
         'mmv_leasingrate':          float(row[37]) if row[37] is not None else None,
         'beratungsphase':           int(row[38]) if row[38] is not None else 0,
         'portal_url':               row[39] or None,
+        'impuls_fortschritt':       row[40] if row[40] is not None else {},
     }
 
 

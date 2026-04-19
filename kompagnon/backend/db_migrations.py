@@ -1221,6 +1221,10 @@ MIGRATIONS = [
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS portal_url VARCHAR(500)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS portal_passwort VARCHAR(100)",
     ]),
+
+    (23, "add_impuls_fortschritt", [
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS impuls_fortschritt JSONB DEFAULT '{}'",
+    ]),
 ]
 
 

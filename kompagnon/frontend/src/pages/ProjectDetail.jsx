@@ -581,6 +581,9 @@ export default function ProjectDetail() {
   const scrollRef = useRef(null);
   const [showEdit, setShowEdit]       = useState(false);
   const [showApproval, setShowApproval] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteInput,     setDeleteInput]     = useState('');
+  const [deleteLoading,   setDeleteLoading]   = useState(false);
   const [showBriefingWizard, setShowBriefingWizard] = useState(false);
   const [showWebsiteDesigner, setShowWebsiteDesigner] = useState(false);
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
@@ -591,6 +594,27 @@ export default function ProjectDetail() {
   useEscapeKey(() => setShowEdit(false), showEdit);
   useEscapeKey(() => setShowApproval(false), showApproval);
   useEscapeKey(() => setShowBriefingWizard(false), showBriefingWizard);
+  useEscapeKey(() => setShowDeleteModal(false), showDeleteModal);
+
+  const handleDeleteProject = async () => {
+    if (deleteInput !== 'Löschen') return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.detail || 'Fehler beim Löschen');
+      }
+      toast.success('Projekt wurde gelöscht');
+      navigate('/app/projects');
+    } catch (err) {
+      toast.error(err.message || 'Löschen fehlgeschlagen');
+      setDeleteLoading(false);
+    }
+  };
 
   // Swipe between tool tiles on mobile
   const ANALYSE_TOOLS = ['unternehmen', 'briefing', 'audits', 'analyse', 'zugangsdaten'];
@@ -1648,6 +1672,30 @@ export default function ProjectDetail() {
       background: 'var(--surface)',
       fontFamily: 'var(--font-sans)',
     }}>
+      {/* ── Admin-Toolbar (nur fuer admin/superadmin) ───────────────────────── */}
+      {(user?.role === 'admin' || user?.role === 'superadmin') && (
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
+          padding: '6px 14px', gap: 8,
+          borderBottom: '0.5px solid var(--border-light)',
+          background: 'var(--bg-surface)',
+          flexShrink: 0,
+        }}>
+          <button
+            onClick={() => { setShowDeleteModal(true); setDeleteInput(''); }}
+            style={{
+              padding: '5px 12px', borderRadius: 7,
+              border: '1px solid #C0392B',
+              background: 'transparent', color: '#C0392B',
+              fontSize: 11, fontWeight: 700, cursor: 'pointer',
+              fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            🗑 Projekt löschen
+          </button>
+        </div>
+      )}
+
       {/* ── ProzessFlow (Vollbild) — wählt basierend auf project_type ─────────── */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {project?.project_type === 'impuls' ? (
@@ -1744,6 +1792,99 @@ export default function ProjectDetail() {
           netlitySiteId={project.netlify_site_id || null}
           leadId={project.lead_id}
         /></Suspense>
+      )}
+
+      {/* ── Projekt-Löschen Modal ───────────────────────────────────────────── */}
+      {showDeleteModal && createPortal(
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          zIndex: 2000, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', padding: 24,
+        }}>
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 16,
+            padding: 32, width: '100%', maxWidth: 440,
+            boxShadow: '0 8px 40px rgba(0,0,0,0.3)',
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%', background: '#FEF2F2',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 26, marginBottom: 12,
+              }}>🗑</div>
+              <h2 style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                Projekt unwiderruflich löschen?
+              </h2>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+                <strong>{project?.company_name || `Projekt #${project?.id}`}</strong> und alle zugehörigen
+                Daten (Briefing, Sitemap, Checklisten, Dateien) werden permanent gelöscht.
+                Diese Aktion kann nicht rückgängig gemacht werden.
+              </p>
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{
+                display: 'block', fontSize: 12, fontWeight: 700,
+                color: 'var(--text-tertiary)', textTransform: 'uppercase',
+                letterSpacing: '0.06em', marginBottom: 8,
+              }}>
+                Tippe{' '}
+                <span style={{ color: '#C0392B', fontFamily: 'monospace', fontSize: 13 }}>
+                  Löschen
+                </span>{' '}
+                zur Bestätigung
+              </label>
+              <input
+                type="text"
+                value={deleteInput}
+                onChange={e => setDeleteInput(e.target.value)}
+                placeholder="Löschen"
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && deleteInput === 'Löschen') handleDeleteProject();
+                  if (e.key === 'Escape') setShowDeleteModal(false);
+                }}
+                style={{
+                  width: '100%', padding: '10px 12px', boxSizing: 'border-box',
+                  border: `1.5px solid ${deleteInput === 'Löschen' ? '#C0392B' : 'var(--border-light)'}`,
+                  borderRadius: 8, fontSize: 14, fontFamily: 'inherit',
+                  outline: 'none', background: 'var(--bg-app)', color: 'var(--text-primary)',
+                  transition: 'border-color 0.15s',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => { setShowDeleteModal(false); setDeleteInput(''); }}
+                style={{
+                  flex: 1, padding: '11px',
+                  border: '1px solid var(--border-light)', borderRadius: 8,
+                  background: 'transparent', cursor: 'pointer',
+                  fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleDeleteProject}
+                disabled={deleteInput !== 'Löschen' || deleteLoading}
+                style={{
+                  flex: 1, padding: '11px', border: 'none', borderRadius: 8,
+                  background: deleteInput === 'Löschen' && !deleteLoading ? '#C0392B' : '#E5A9A9',
+                  color: '#fff',
+                  cursor: deleteInput === 'Löschen' && !deleteLoading ? 'pointer' : 'not-allowed',
+                  fontSize: 13, fontWeight: 900, fontFamily: 'inherit',
+                  transition: 'background 0.15s',
+                }}
+              >
+                {deleteLoading ? '⏳ Wird gelöscht...' : '🗑 Endgültig löschen'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -5245,3 +5245,54 @@ def approve_content_via_portal(
         "content_approved_by": project.content_approved_by,
         "new_status": new_status,
     }
+
+
+@router.delete("/{project_id}")
+def delete_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    """
+    Loescht ein Projekt und alle abhaengigen Daten.
+    Nur fuer Admins und Superadmins.
+    """
+    project = db.execute(
+        text("SELECT id, company_name, lead_id FROM projects WHERE id = :id"),
+        {"id": project_id}
+    ).fetchone()
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+
+    logger.info(
+        f"Admin {current_user.email} loescht Projekt #{project_id} ({project.company_name})"
+    )
+
+    # Abhaengige Daten in korrekter Reihenfolge loeschen.
+    # Try/except pro Tabelle: fehlt eine, ueberspringen wir sie geraeuschlos.
+    for table, col in [
+        ("project_checklists",   "project_id"),
+        ("time_tracking",        "project_id"),
+        ("project_credentials",  "project_id"),
+        ("project_files",        "project_id"),
+        ("briefings",            "project_id"),
+        ("messages",             "project_id"),
+        ("email_logs",           "project_id"),
+    ]:
+        try:
+            db.execute(text(f"DELETE FROM {table} WHERE {col} = :id"), {"id": project_id})
+        except Exception as e:
+            db.rollback()
+            logger.warning(f"Loeschen aus {table} uebersprungen: {e}")
+
+    # Projekt selbst loeschen
+    db.execute(text("DELETE FROM projects WHERE id = :id"), {"id": project_id})
+    db.commit()
+
+    logger.info(f"Projekt #{project_id} geloescht")
+    return {
+        "deleted": True,
+        "id": project_id,
+        "company_name": project.company_name,
+    }

@@ -319,15 +319,13 @@ def _create_default_admin():
     except Exception as e:
         logger.warning(f"Produkt-Seed Fehler: {e}")
 
-    # ── Produkte seeden (nur wenn Tabelle leer) ──────────────
+    # ── Produkte seeden (idempotent — ON CONFLICT aktualisiert nur category) ──
     try:
         from database import SessionLocal
         from sqlalchemy import text as _t
         _db3 = SessionLocal()
-        count = _db3.execute(_t("SELECT COUNT(*) FROM products")).scalar()
-        if count == 0:
-            import json as _j
-            SEED = [
+        import json as _j
+        SEED = [
                 {
                     "slug": "starter", "name": "Starter-Paket", "sort_order": 1,
                     "short_desc": "5 Seiten, SEO Basic, Mobiloptimierung",
@@ -396,33 +394,33 @@ def _create_default_admin():
                     "checkout_fields": ["name", "company", "email", "phone", "message"],
                     "webhook_actions": ["create_lead", "send_welcome_email"],
                 },
-            ]
-            for p in SEED:
-                _db3.execute(_t("""
-                    INSERT INTO products
-                    (slug, name, short_desc, long_desc, price_brutto, price_netto,
-                     tax_rate, payment_type, delivery_days, status,
-                     highlighted, highlight_label, features,
-                     checkout_fields, webhook_actions, sort_order, category)
-                    VALUES (:slug, :name, :sd, :ld, :pb, :pn, :tr, :pt, :dd,
-                     :status, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :so, :cat)
-                    ON CONFLICT (slug) DO UPDATE SET category = EXCLUDED.category
-                """), {
-                    "slug": p["slug"], "name": p["name"], "sd": p["short_desc"],
-                    "ld": p.get("long_desc", ""),
-                    "pb": p["price_brutto"], "pn": p["price_netto"],
-                    "tr": p["tax_rate"], "pt": p["payment_type"],
-                    "dd": p["delivery_days"], "status": p["status"],
-                    "hl": p.get("highlighted", False),
-                    "hll": p.get("highlight_label", ""),
-                    "feat": _j.dumps(p["features"]),
-                    "cf": _j.dumps(p["checkout_fields"]),
-                    "wa": _j.dumps(p["webhook_actions"]),
-                    "so": p["sort_order"],
-                    "cat": p.get("category", "sonstige"),
-                })
-            _db3.commit()
-            logger.info("✓ 4 Produkte geseedet")
+        ]
+        for p in SEED:
+            _db3.execute(_t("""
+                INSERT INTO products
+                (slug, name, short_desc, long_desc, price_brutto, price_netto,
+                 tax_rate, payment_type, delivery_days, status,
+                 highlighted, highlight_label, features,
+                 checkout_fields, webhook_actions, sort_order, category)
+                VALUES (:slug, :name, :sd, :ld, :pb, :pn, :tr, :pt, :dd,
+                 :status, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :so, :cat)
+                ON CONFLICT (slug) DO UPDATE SET category = EXCLUDED.category
+            """), {
+                "slug": p["slug"], "name": p["name"], "sd": p["short_desc"],
+                "ld": p.get("long_desc", ""),
+                "pb": p["price_brutto"], "pn": p["price_netto"],
+                "tr": p["tax_rate"], "pt": p["payment_type"],
+                "dd": p["delivery_days"], "status": p["status"],
+                "hl": p.get("highlighted", False),
+                "hll": p.get("highlight_label", ""),
+                "feat": _j.dumps(p["features"]),
+                "cf": _j.dumps(p["checkout_fields"]),
+                "wa": _j.dumps(p["webhook_actions"]),
+                "so": p["sort_order"],
+                "cat": p.get("category", "sonstige"),
+            })
+        _db3.commit()
+        logger.info("✓ Produkt-Seed abgeschlossen (4 Eintraege, ON CONFLICT)")
         _db3.close()
     except Exception as e:
         logger.warning(f"Produkt-Seed Fehler: {e}")

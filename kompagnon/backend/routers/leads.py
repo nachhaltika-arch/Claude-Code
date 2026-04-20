@@ -437,7 +437,12 @@ def _extract_domains(text: str) -> list:
 
 
 async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict:
-    """Process a single domain sequentially: Lead → pause → Audit → pause → Impressum."""
+    """Process a single domain sequentially: Lead → pause → Audit → pause → Impressum.
+
+    DB-Session wird nach dem Lead-Insert sofort geschlossen, damit die
+    Pool-Connection waehrend der 80-150s Audit-Polling + Impressum-Scraping
+    frei ist. Fuer den Impressum-Commit wird eine frische Session geoeffnet.
+    """
     import asyncio as _aio
     import logging as _log
     from datetime import datetime as _dt
@@ -459,11 +464,13 @@ async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict
     # ── Step 1: Duplicate check + Lead creation ──
     existing = _db.query(Lead).filter(Lead.website_url.ilike(f'%{clean}%')).first()
     if existing:
+        _db.close()
         return {'url': url, 'status': 'already_exists', 'lead_id': existing.id,
                 'company_name': existing.display_name or existing.company_name,
                 'score': existing.analysis_score,
                 'audit_status': 'skipped', 'impressum_status': 'skipped'}
 
+    lead_id = None
     try:
         lead = Lead(
             company_name=clean, website_url=url, contact_name='', phone='',
@@ -477,25 +484,31 @@ async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict
         _db.add(lead)
         _db.commit()
         _db.refresh(lead)
-        result['lead_id'] = lead.id
-        _logger.info(f'Lead angelegt: {clean} (ID: {lead.id})')
+        lead_id = lead.id
+        result['lead_id'] = lead_id
+        _logger.info(f'Lead angelegt: {clean} (ID: {lead_id})')
     except Exception as e:
         try: _db.rollback()
         except: pass
         _logger.error(f'Lead anlegen Fehler {clean}: {e}')
         return {'url': url, 'status': 'error', 'error': f'Lead: {str(e)}',
                 'audit_status': 'failed', 'impressum_status': 'failed'}
+    finally:
+        # Pool-Connection sofort freigeben — die naechsten 80-150s sind
+        # reine HTTP-Calls und Sleeps, keine DB-Operationen.
+        try: _db.close()
+        except: pass
 
     await _aio.sleep(1)
 
-    # ── Step 2: Audit (max 90s) ──
+    # ── Step 2: Audit (max 90s) — kein DB-Zugriff noetig ──
     _logger.info(f'Starte Audit: {clean}')
     try:
         import httpx
         async with httpx.AsyncClient(timeout=90) as client:
             audit_base = os.getenv('API_BASE_URL', 'http://localhost:8000')
             r = await client.post(f'{audit_base}/api/audit/start',
-                json={'website_url': url, 'lead_id': lead.id, 'company_name': clean})
+                json={'website_url': url, 'lead_id': lead_id, 'company_name': clean})
             if r.status_code == 200:
                 aid = r.json().get('audit_id') or r.json().get('id')
                 if aid:
@@ -521,33 +534,36 @@ async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict
         result['audit_status'] = 'failed'
         _logger.warning(f'Audit Fehler {clean}: {type(e).__name__}: {e}')
 
-    # Pause between audit and impressum (let Anthropic API recover)
     _logger.info(f'Warte 5s vor Impressum: {clean}')
     await _aio.sleep(5)
 
-    # ── Step 3: Impressum (max 30s) ──
+    # ── Step 3: Impressum (max 30s) — frische DB-Session nur fuer den Commit ──
     _logger.info(f'Starte Impressum: {clean}')
+    from database import SessionLocal
+    imp_db = SessionLocal()
     try:
         from services.impressum_scraper import extract_contact_from_impressum
         imp = await _aio.wait_for(extract_contact_from_impressum(url), timeout=30.0)
         if imp.get('success'):
             data_imp = imp.get('data', {})
             updated_fields = []
-            try: _db.refresh(lead)
-            except: pass
-            for field in ['company_name', 'legal_form', 'ceo_first_name', 'ceo_last_name',
-                          'street', 'house_number', 'postal_code', 'city', 'phone', 'email',
-                          'vat_id', 'register_number', 'register_court', 'trade']:
-                if data_imp.get(field) and not getattr(lead, field, None):
-                    setattr(lead, field, data_imp[field])
-                    updated_fields.append(field)
-            if not lead.contact_name and data_imp.get('ceo_first_name'):
-                lead.contact_name = ' '.join(filter(None, [data_imp.get('ceo_first_name'), data_imp.get('ceo_last_name')]))
-            try: _db.commit()
-            except: _db.rollback()
-            result['impressum_status'] = 'completed'
-            result['company_name'] = lead.company_name
-            _logger.info(f'Impressum fertig: {clean} — {len(updated_fields)} Felder')
+            lead = imp_db.query(Lead).filter(Lead.id == lead_id).first()
+            if lead:
+                for field in ['company_name', 'legal_form', 'ceo_first_name', 'ceo_last_name',
+                              'street', 'house_number', 'postal_code', 'city', 'phone', 'email',
+                              'vat_id', 'register_number', 'register_court', 'trade']:
+                    if data_imp.get(field) and not getattr(lead, field, None):
+                        setattr(lead, field, data_imp[field])
+                        updated_fields.append(field)
+                if not lead.contact_name and data_imp.get('ceo_first_name'):
+                    lead.contact_name = ' '.join(filter(None, [data_imp.get('ceo_first_name'), data_imp.get('ceo_last_name')]))
+                imp_db.commit()
+                result['impressum_status'] = 'completed'
+                result['company_name'] = lead.company_name
+                _logger.info(f'Impressum fertig: {clean} — {len(updated_fields)} Felder')
+            else:
+                result['impressum_status'] = 'failed'
+                _logger.warning(f'Impressum: Lead {lead_id} nicht mehr in DB gefunden')
         else:
             result['impressum_status'] = 'failed'
             _logger.warning(f'Impressum kein Ergebnis: {clean}')
@@ -557,6 +573,11 @@ async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict
     except Exception as e:
         result['impressum_status'] = 'failed'
         _logger.warning(f'Impressum Fehler {clean}: {type(e).__name__}: {e}')
+        try: imp_db.rollback()
+        except: pass
+    finally:
+        try: imp_db.close()
+        except: pass
 
     _logger.info(f'Domain fertig: {clean} — Audit: {result["audit_status"]}, Impressum: {result["impressum_status"]}')
     return result

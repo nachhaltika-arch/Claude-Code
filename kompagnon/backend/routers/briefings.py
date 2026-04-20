@@ -8,8 +8,10 @@ import json
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -20,6 +22,7 @@ from routers.auth_router import require_any_auth
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/briefings", tags=["briefings"])
+limiter = Limiter(key_func=get_remote_address)
 
 FLAT_FIELDS = [
     "project_id", "gewerk", "wz_code", "wz_title", "leistungen", "einzugsgebiet", "usp",
@@ -222,7 +225,9 @@ def update_briefing(
 
 
 @router.post("/{lead_id}/suggest-field")
+@limiter.limit("10/minute")
 async def suggest_field(
+    request: Request,
     lead_id: int,
     data: dict,
     db: Session = Depends(get_db),
@@ -1328,7 +1333,9 @@ def set_freigabe(lead_id: int, data: dict, db: Session = Depends(get_db)):
 
 
 @router.post("/{lead_id}/zielgruppenanalyse")
+@limiter.limit("3/minute")
 async def zielgruppenanalyse(
+    request: Request,
     lead_id: int,
     db: Session = Depends(get_db),
     _=Depends(require_any_auth),
@@ -1420,7 +1427,9 @@ Schreibe kompakt und praxisnah. Maximal 400 Woerter. Auf Deutsch."""
 
 
 @router.post("/{lead_id}/wettbewerbsanalyse")
+@limiter.limit("3/minute")
 async def wettbewerbsanalyse(
+    request: Request,
     lead_id: int,
     db: Session = Depends(get_db),
     _=Depends(require_any_auth),

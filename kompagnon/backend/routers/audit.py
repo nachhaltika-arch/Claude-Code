@@ -13,8 +13,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 from fastapi.responses import Response
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -31,6 +33,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/audit", tags=["audit"])
+limiter = Limiter(key_func=get_remote_address)
 
 PAGESPEED_API_KEY = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
@@ -682,7 +685,9 @@ def get_recent_audits(
 
 
 @router.post("/start")
+@limiter.limit("5/minute")
 async def start_audit(
+    request: Request,
     req: AuditRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),

@@ -297,7 +297,8 @@ def register(request: Request, req: RegisterRequest, db: Session = Depends(get_d
 
 
 @router.post("/verify-email")
-def verify_email(token: str, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def verify_email(request: Request, token: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email_verify_token == token).first()
     if not user:
         raise HTTPException(400, "Ungueltiger Verifizierungstoken")
@@ -475,7 +476,8 @@ def forgot_password(request: Request, req: ForgotPasswordRequest, db: Session = 
 
 
 @router.post("/reset-password")
-def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def reset_password(request: Request, req: ResetPasswordRequest, db: Session = Depends(get_db)):
     # Generische Fehlermeldung — kein Hinweis ob Token oder Ablauf das Problem ist
     INVALID_MSG = "Dieser Reset-Link ist ungueltig oder abgelaufen"
 
@@ -506,7 +508,9 @@ def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/change-password")
+@limiter.limit("5/minute")
 def change_password(
+    request: Request,
     req: ChangePasswordRequest,
     response: Response,
     cookie_token: Optional[str] = Cookie(default=None, alias=ACCESS_COOKIE_NAME),

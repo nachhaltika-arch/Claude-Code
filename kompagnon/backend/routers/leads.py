@@ -584,7 +584,9 @@ async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict
 
 
 @router.post("/import/domains/text")
+@limiter.limit("3/minute")
 async def import_domains_text(
+    request: Request,
     data: DomainsTextInput,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
@@ -655,7 +657,9 @@ async def import_domains_text(
 
 
 @router.post("/import/domains/file")
+@limiter.limit("3/minute")
 async def import_domains_file(
+    request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -1199,7 +1203,9 @@ class ManualLeadImport(BaseModel):
 
 
 @router.post("/import/csv")
+@limiter.limit("5/minute")
 async def import_leads_csv(
+    request: Request,
     file: UploadFile = File(...),
     background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
@@ -2124,7 +2130,9 @@ def get_email_logs(lead_id: int, db: Session = Depends(get_db), _=Depends(requir
 
 # ── /api/customers aliases for all /{lead_id}/... endpoints ─────────────────
 @router.post("/{lead_id}/briefing-prefill")
+@limiter.limit("5/minute")
 async def briefing_prefill_from_lead(
+    request: Request,
     lead_id: int,
     db: Session = Depends(get_db),
     _=Depends(require_any_auth),

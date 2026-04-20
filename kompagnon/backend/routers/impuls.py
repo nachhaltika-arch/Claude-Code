@@ -7,8 +7,10 @@ import logging
 import os
 import re
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, field_validator
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -20,6 +22,7 @@ from database import get_db
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/impuls", tags=["impuls"])
+limiter = Limiter(key_func=get_remote_address)
 
 TEAM_EMAIL   = os.getenv("IMPULS_NOTIFY_EMAIL", "info@kompagnon.eu")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
@@ -41,7 +44,8 @@ class ImpulsAnfrage(BaseModel):
 
 
 @router.post("/anfrage")
-def impuls_anfrage(body: ImpulsAnfrage, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def impuls_anfrage(request: Request, body: ImpulsAnfrage, db: Session = Depends(get_db)):
     """
     Öffentlicher Endpunkt — kein Auth erforderlich.
     1. Duplikat-Check per E-Mail

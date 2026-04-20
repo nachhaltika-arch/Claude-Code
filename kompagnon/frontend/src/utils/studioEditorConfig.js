@@ -19,9 +19,18 @@ import {
   youtubeAssetProvider,
 } from '@grapesjs/studio-sdk-plugins';
 
-export const STUDIO_LICENSE_KEY =
-  process.env.REACT_APP_GJS_LICENSE_KEY ||
-  '251e7a07b6194ed78d85dc1e7f7f7a2c69fb8beee4c74faea53cf9492f89c357';
+// License key wird ausschliesslich aus der Build-Time-Env geladen.
+// Kein Hardcoded-Fallback — frueher war der Schluessel im Quellcode
+// und damit in DevTools sowie Git-History sichtbar.
+export const STUDIO_LICENSE_KEY = process.env.REACT_APP_GJS_LICENSE_KEY || '';
+
+if (!STUDIO_LICENSE_KEY && typeof console !== 'undefined') {
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[Studio SDK] REACT_APP_GJS_LICENSE_KEY ist nicht gesetzt — ' +
+    'der Editor wird mit einer Lizenz-Fehlermeldung starten.'
+  );
+}
 
 // Build a fresh plugin list. We wrap in a function so each editor
 // instance gets its own plugin descriptors (avoids shared state).

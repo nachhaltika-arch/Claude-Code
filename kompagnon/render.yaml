@@ -46,3 +46,5 @@ services:
         value: 18.20.0
       - key: REACT_APP_API_URL
         value: https://claude-code-znq2.onrender.com
+      - key: REACT_APP_GJS_LICENSE_KEY
+        sync: false

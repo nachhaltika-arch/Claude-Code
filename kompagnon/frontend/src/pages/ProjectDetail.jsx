@@ -246,6 +246,7 @@ const TOOL_SUBTAB_MAP = {
 function EditModal({ project, lead, latestAudit, token, onClose, onSaved }) {
   const [form, setForm] = useState(() => buildInitialForm(project, lead, latestAudit));
   const [saving, setSaving] = useState(false);
+  const { isMobile } = useScreenSize();
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
@@ -290,7 +291,9 @@ function EditModal({ project, lead, latestAudit, token, onClose, onSaved }) {
     position: 'sticky', bottom: 0, background: 'var(--bg-surface)',
   };
   const fieldGroup = (n = 1) => ({
-    display: 'grid', gridTemplateColumns: `repeat(${n}, 1fr)`, gap: 12,
+    display: 'grid',
+    gridTemplateColumns: isMobile ? '1fr' : `repeat(${n}, 1fr)`,
+    gap: 12,
   });
   const label = { fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, display: 'block' };
   const input = {

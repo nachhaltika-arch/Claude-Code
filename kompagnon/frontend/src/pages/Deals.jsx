@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 
@@ -329,6 +330,7 @@ export default function Deals() {
 
 function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
   const { token } = useAuth();
+  const { isMobile } = useScreenSize();
   const [form, setForm] = useState({ product_type: 'website', ...deal });
   const [companies, setCompanies] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -485,7 +487,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
           {/* Produkttyp */}
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Produkttyp</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8 }}>
               {[
                 { value: 'website', label: '🌐 Online Fertig', sub: 'Website-Paket · Stripe-Checkout möglich' },
                 { value: 'impuls',  label: '📋 IMPULS',        sub: 'ISB-158 Beratung · Angebot/Annahme' },
@@ -511,7 +513,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
             )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 14, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>Titel *</label>
               <input style={inputStyle} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="z.B. Website-Relaunch Müller GmbH" />
@@ -544,8 +546,8 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
               <button onClick={addItem} style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Position hinzufügen</button>
             </div>
 
-            <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: 12, border: '1px solid var(--border-light)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 110px 36px', gap: 8, fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, padding: '0 4px' }}>
+            <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: 12, border: '1px solid var(--border-light)', overflowX: 'auto' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 110px 36px', gap: 8, fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, padding: '0 4px', minWidth: isMobile ? 440 : undefined }}>
                 <div>Position</div>
                 <div style={{ textAlign: 'right' }}>Menge</div>
                 <div style={{ textAlign: 'right' }}>EP €</div>
@@ -553,7 +555,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
                 <div></div>
               </div>
               {form.items.map((item, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 110px 36px', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 110px 36px', gap: 8, marginBottom: 6, alignItems: 'center', minWidth: isMobile ? 440 : undefined }}>
                   <input
                     style={{ ...inputStyle, padding: '7px 10px', fontSize: 12 }}
                     value={item.position}

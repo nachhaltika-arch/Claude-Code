@@ -486,7 +486,7 @@ export default function CustomerProjects() {
 
             <div style={{ background: 'var(--bg-app)', borderRadius: 8, padding: '14px 16px', marginBottom: 14 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>ISB-Förderdaten</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
                 {[
                   { field: 'isb_antrag_datum',      label: 'Antragsdatum',      type: 'date' },
                   { field: 'isb_bewilligung_datum', label: 'Bewilligungsdatum', type: 'date' },
@@ -553,7 +553,7 @@ export default function CustomerProjects() {
 
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Paket</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 8 }}>
                 {[
                   { value: 'starter',   label: 'Starter',   preis: '1.500 €' },
                   { value: 'kompagnon', label: 'Kompagnon', preis: '2.000 €' },

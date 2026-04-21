@@ -20,6 +20,34 @@ HEADERS       = {
 }
 
 
+def _build_full_html(
+    page_name: str,
+    html: str,
+    css: str,
+    meta_description: str = "",
+    company_name: str = "",
+) -> str:
+    title = f"{page_name} — {company_name}" if company_name and page_name else (page_name or company_name or "Website")
+    meta_desc = meta_description or (f"{page_name} — {company_name}" if page_name else "")
+
+    style_block = f"<style>\n{css.strip()}\n</style>" if css and css.strip() else ""
+    meta_desc_tag = f'<meta name="description" content="{meta_desc}">' if meta_desc else ""
+
+    return f"""<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+  {meta_desc_tag}
+  {style_block}
+</head>
+<body>
+{html}
+</body>
+</html>"""
+
+
 def _slug(name: str) -> str:
     """Firmenname → netlify-kompatibler Site-Slug (lowercase, a-z 0-9 -)"""
     s = name.lower().strip()
@@ -64,18 +92,31 @@ async def deploy_html(
     html: str,
     css: str = "",
     redirects: str = "",
+    page_name: str = "",
+    company_name: str = "",
+    meta_description: str = "",
 ) -> dict:
     """
     Deployt HTML (+ optionales CSS / Redirects) als ZIP auf eine Netlify-Site.
+    Wraps raw GrapesJS body-only HTML in a full DOCTYPE document.
     Rückgabe: { deploy_id, deploy_url, state }
     """
+    if html and not html.strip().lower().startswith("<!doctype"):
+        html = _build_full_html(
+            page_name=page_name or "Website",
+            html=html,
+            css=css,
+            meta_description=meta_description,
+            company_name=company_name,
+        )
+        css = ""
+
     default_headers = (
         "/*\n"
         "  X-Frame-Options: DENY\n"
         "  X-Content-Type-Options: nosniff"
     )
 
-    # ZIP im Speicher aufbauen
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("index.html", html)

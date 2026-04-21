@@ -331,10 +331,10 @@ function SidebarNav({ badges }) {
               {
                 id: 'projekte', label: 'Projekte',
                 items: [
-                  { label: 'Alle Projekte', path: '/app/projects'   },
-                  { label: 'Checklisten',   path: '/app/checklists' },
-                  { label: 'Tickets',       path: '/app/tickets'    },
-                  { label: 'Templates',     path: '/app/pages',     adminOnly: true },
+                  { label: 'Alle Projekte',   path: '/app/projects'   },
+                  { label: 'Prozess-Ansicht', path: '/app/checklists' },
+                  { label: 'Tickets',         path: '/app/tickets'    },
+                  { label: 'Templates',       path: '/app/pages',     adminOnly: true },
                 ],
               },
             ].map(group => {

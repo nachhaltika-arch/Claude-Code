@@ -1017,7 +1017,19 @@ def create_project_from_lead(lead_id: int, background_tasks: BackgroundTasks, db
     if existing:
         raise HTTPException(status_code=409, detail="Für diesen Lead existiert bereits ein Projekt")
 
-    # 3. Create project
+    # 3. Guard: Website-URL ist Pflicht für Projekterstellung
+    if not lead.website_url or not lead.website_url.strip():
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "MISSING_WEBSITE_URL",
+                "message": "Projekterstellung nicht möglich: Für diesen Kunden ist keine Website-Domain hinterlegt. Bitte zuerst die Domain im Kundenprofil ergänzen.",
+                "lead_id": lead_id,
+                "field": "website_url",
+            }
+        )
+
+    # 4. Create project
     company_name = lead.company_name or f"Lead #{lead_id}"
     now = datetime.utcnow()
     project = Project(

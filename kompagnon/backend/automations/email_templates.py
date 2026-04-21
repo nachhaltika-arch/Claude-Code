@@ -26,24 +26,27 @@ Viele Grüße,
 Ihr KOMPAGNON-Team""",
     },
     "material_reminder": {
-        "subject": "Erinnerung: Materialsammlung {company_name}",
+        "subject": "Erinnerung: Materialien für Ihre Website — {company_name}",
         "body": """Lieber {contact_name},
 
-Sie haben eine Website bei KOMPAGNON in Auftrag gegeben — sehr gut! 👍
+damit wir Ihre neue Website pünktlich fertigstellen können, benötigen wir noch einige Unterlagen von Ihnen.
 
-Damit wir pünktlich fertig werden, brauchen wir von Ihnen noch:
+Bitte stellen Sie uns folgende Materialien zur Verfügung:
 
-✓ Unternehmensfotos (mind. 3)
+✓ Unternehmensfotos (mind. 3 aktuelle Fotos)
 ✓ Leistungsbeschreibung (was machen Sie genau?)
-✓ Team-Informationen (wie viele Mitarbeiter, Expertise)
+✓ Team-Informationen (Mitarbeiterzahl, Expertise)
 ✓ Öffnungszeiten
 ✓ Kontaktdaten (Telefon, E-Mail, Adresse)
 
-**Deadline: {deadline}**
+Bitte bis zum {review_deadline} einreichen.
 
-Bitte hochladen unter: {upload_link}
+Upload-Link: {upload_link}
 
-Danke!
+Bei Fragen erreichen Sie uns unter:
+{contact_person_phone} | {contact_person_email}
+
+Herzliche Grüße,
 {assigned_person}
 KOMPAGNON-Team""",
     },
@@ -209,9 +212,27 @@ def get_template(template_key: str) -> dict:
 
 
 def render_template(template_key: str, context: dict) -> dict:
-    """Render template with context variables."""
+    """Render template with context variables. Missing keys are replaced with placeholder text."""
+    import logging
+    import string
+    log = logging.getLogger(__name__)
     template = get_template(template_key)
+
+    def safe_format(text: str) -> str:
+        try:
+            return text.format(**context)
+        except KeyError as e:
+            log.error(
+                f"Template '{template_key}': missing placeholder {e}. "
+                f"Available keys: {list(context.keys())}"
+            )
+            safe_ctx = {**context}
+            for _, field_name, _, _ in string.Formatter().parse(text):
+                if field_name and field_name not in safe_ctx:
+                    safe_ctx[field_name] = f"[{field_name.upper()} FEHLT]"
+            return text.format(**safe_ctx)
+
     return {
-        "subject": template["subject"].format(**context),
-        "body": template["body"].format(**context),
+        "subject": safe_format(template["subject"]),
+        "body": safe_format(template["body"]),
     }

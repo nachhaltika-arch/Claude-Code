@@ -45,20 +45,21 @@ def _send_phase_email(project_id: int, template_key: str):
             return
 
         lead = project.lead
+        frontend_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
         context = {
-            "company_name": lead.company_name,
-            "contact_name": lead.contact_name,
-            "assigned_person": "KOMPAGNON-Team",
-            "contact_person_phone": "+49 (0)123 456789",
-            "contact_person_email": "kontakt@kompagnon.de",
-            "preview_link": f"https://preview.example.de/{project_id}",
-            "upload_link": f"https://app.example.de/upload/{project_id}",
-            "review_deadline": (datetime.utcnow() + timedelta(days=3)).strftime("%d.%m.%Y"),
-            "kickoff_date": (datetime.utcnow() + timedelta(days=2)).strftime("%d.%m.%Y"),
-            "new_visitors": "42",
-            "form_submissions": "3",
-            "pagespeed_score": "87",
-            "review_link": f"https://google.com/reviews/{project_id}",
+            "company_name":         lead.company_name or "Ihr Unternehmen",
+            "contact_name":         lead.contact_name or "liebe Kundin / lieber Kunde",
+            "assigned_person":      "KOMPAGNON-Team",
+            "contact_person_phone": os.getenv("CONTACT_PHONE", "+49 (0) 261 88 44 70"),
+            "contact_person_email": os.getenv("CONTACT_EMAIL", "info@kompagnon.eu"),
+            "preview_link":         f"{frontend_url}/portal",
+            "upload_link":          f"{frontend_url}/portal",
+            "review_deadline":      (datetime.utcnow() + timedelta(days=5)).strftime("%d.%m.%Y"),
+            "kickoff_date":         (datetime.utcnow() + timedelta(days=2)).strftime("%d.%m.%Y"),
+            "new_visitors":         "—",
+            "form_submissions":     "—",
+            "pagespeed_score":      "—",
+            "review_link":          "https://g.page/r/kompagnon",
         }
 
         rendered = render_template(template_key, context)

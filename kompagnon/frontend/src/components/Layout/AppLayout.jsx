@@ -231,25 +231,25 @@ function SidebarNav({ badges }) {
   return (
     <aside style={{
       position: 'fixed', left: 0, top: 0, bottom: 0,
-      width: 'var(--sidebar-width)', background: 'var(--bg-sidebar)',
-      borderRight: '1px solid var(--border-light)',
+      width: 'var(--sidebar-width)', background: '#004F59',
+      borderRight: '1px solid rgba(255,255,255,0.08)',
       display: 'flex', flexDirection: 'column',
       zIndex: 40, overflowY: 'auto',
     }}>
       {/* Logo */}
       <div style={{
-        padding: '20px 16px 18px', borderBottom: '1px solid var(--border-light)',
+        padding: '20px 16px 18px', borderBottom: '1px solid rgba(255,255,255,0.10)',
         cursor: 'pointer',
       }} onClick={() => navigate('/app/dashboard')}>
-        <KompagnonLogo height={36} variant={theme === 'dark' ? 'white' : 'color'} />
+        <KompagnonLogo height={36} variant="white" />
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
+      <nav style={{ flex: 1, padding: '12px 6px', overflowY: 'auto' }}>
         {user?.role === 'kunde' ? (
           /* ── Kunde: only these four items ── */
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', padding: '0 10px', marginBottom: 4 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)', padding: '0 10px', marginBottom: 4, textTransform: 'uppercase' }}>
               Mein Bereich
             </div>
             {[
@@ -264,7 +264,7 @@ function SidebarNav({ badges }) {
               const active = isActive(item.path);
               return (
                 <button key={item.path} onClick={() => navigate(item.path)}
-                className={`kc-nav-item${active ? ' kc-nav-item--active' : ''}`}
+                className={`kc-sidebar-item${active ? ' kc-sidebar-item--active' : ''}`}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                   padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-md)',
@@ -283,9 +283,10 @@ function SidebarNav({ badges }) {
             const visibleItems = section.items.filter(i => !i.adminOnly || hasRole('admin'));
             if (visibleItems.length === 0) return null;
             return (
-              <div key={section.title} style={{ marginBottom: 20 }}>
+              <div key={section.title} style={{ marginBottom: 16 }}>
                 <div style={{
-                  fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)',
+                  fontSize: 10, fontWeight: 600, letterSpacing: '0.08em',
+                  color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase',
                   padding: '0 10px', marginBottom: 4,
                 }}>
                   {section.title}
@@ -302,13 +303,13 @@ function SidebarNav({ badges }) {
                         cursor: 'pointer', fontSize: 13, textAlign: 'left',
                         fontFamily: 'var(--font-sans)',
                       }}
-                      className={`kc-nav-item${active ? ' kc-nav-item--active' : ''}`}
+                      className={`kc-sidebar-item${active ? ' kc-sidebar-item--active' : ''}`}
                     >
                       <span>{item.label}</span>
                       {item.badgeKey && badges[item.badgeKey] > 0 && (
                         <span style={{
                           marginLeft: 'auto', fontSize: 10, padding: '1px 6px', borderRadius: 10,
-                          background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', fontWeight: 600,
+                          background: '#FAE600', color: '#004F59', fontWeight: 700,
                         }}>
                           {badges[item.badgeKey]}
                         </span>
@@ -325,19 +326,19 @@ function SidebarNav({ badges }) {
       {/* Footer */}
       {user && (
         <div style={{
-          marginTop: 'auto', borderTop: '1px solid var(--border-light)',
+          marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.10)',
           padding: '12px 10px', position: 'relative',
         }}>
           {/* Theme toggle */}
-          <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 8, marginBottom: 8 }}>
+          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.10)', paddingBottom: 8, marginBottom: 8 }}>
             <button
               onClick={toggleTheme}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                 padding: '6px 8px', border: 'none', borderRadius: 'var(--radius-md)',
                 cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                background: 'transparent', color: 'rgba(255,255,255,0.6)',
               }}
-              className="kc-btn-ghost"
             >
               <span style={{ fontSize: 16, display: 'flex', flexShrink: 0 }} aria-hidden="true">
                 {theme === 'dark' ? '☀️' : '🌙'}
@@ -354,25 +355,36 @@ function SidebarNav({ badges }) {
           }}>
             <div style={{
               width: 32, height: 32, borderRadius: '50%',
-              background: 'var(--brand-primary-light)', color: 'var(--brand-primary)',
+              background: 'rgba(255,255,255,0.15)', color: '#ffffff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 13, fontWeight: 600, flexShrink: 0,
             }}>
               {(user.first_name?.[0] || 'U').toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user.first_name} {user.last_name}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'capitalize' }}>
-                {user.role}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', textTransform: 'capitalize' }}>
+                  {user.role}
+                </span>
+                {user.role === 'superadmin' && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.05em',
+                    background: '#FAE600', color: '#004F59',
+                    padding: '1px 5px', borderRadius: 3,
+                  }}>
+                    SUPERADMIN
+                  </span>
+                )}
               </div>
             </div>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               style={{
                 background: 'none', border: 'none', padding: 4,
-                color: 'var(--text-tertiary)', cursor: 'pointer',
+                color: 'rgba(255,255,255,0.45)', cursor: 'pointer',
                 display: 'flex', borderRadius: 'var(--radius-sm)',
                 transition: 'color var(--transition-fast)',
               }}

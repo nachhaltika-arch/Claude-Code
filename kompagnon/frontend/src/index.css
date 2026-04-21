@@ -410,6 +410,28 @@ input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
   background: var(--bg-hover);
 }
 
+/* ── Dark Sidebar Nav-Item (#004F59 Hintergrund) ──────────────── */
+.kc-sidebar-item {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  border-left: 3px solid transparent;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.kc-sidebar-item:hover:not(.kc-sidebar-item--active) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+.kc-sidebar-item--active {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  font-weight: 500;
+  border-left: 3px solid #FAE600 !important;
+}
+.kc-sidebar-item:focus-visible {
+  outline: 2px solid #FAE600;
+  outline-offset: -2px;
+}
+
 /* Tool tile focus ring */
 button[aria-pressed]:focus-visible {
   outline: 2px solid var(--brand-primary);

@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -17,12 +19,14 @@ const COLUMNS = [
 
 export default function SalesPipeline() {
   const navigate = useNavigate();
-  const { token, user } = useAuth();
+  const { token, user, hasRole } = useAuth();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dragging, setDragging] = useState(null);
   const [dragOver, setDragOver] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [wonConfirm, setWonConfirm] = useState(null);
+  const [leadProjects, setLeadProjects] = useState({});
   const [search, setSearch] = useState('');
   const [filterTrade, setFilterTrade] = useState('');
 
@@ -47,15 +51,52 @@ export default function SalesPipeline() {
         ? data.filter(l => !(l.status === 'won' && l.lead_source === 'stripe_checkout'))
         : [];
       setLeads(salesLeads);
+      // Load projects for won leads
+      try {
+        const pRes = await fetch(`${API_BASE_URL}/api/projects/?limit=200`, { headers: h });
+        const projects = await pRes.json();
+        if (Array.isArray(projects)) {
+          const map = {};
+          projects.forEach(p => { if (p.lead_id) map[p.lead_id] = p; });
+          setLeadProjects(map);
+        }
+      } catch {}
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
 
-  const updateStatus = async (leadId, status) => {
+  const saveStatus = async (leadId, status) => {
     try {
       await fetch(`${API_BASE_URL}/api/leads/${leadId}`, { method: 'PATCH', headers: h, body: JSON.stringify({ status }) });
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status } : l));
     } catch {}
+  };
+
+  const updateStatus = (leadId, status) => {
+    if (status === 'won') {
+      const lead = leads.find(l => l.id === leadId);
+      setWonConfirm({ leadId, lead });
+      return;
+    }
+    saveStatus(leadId, status);
+  };
+
+  const handleWonConfirm = async (createProject) => {
+    const { leadId } = wonConfirm;
+    await saveStatus(leadId, 'won');
+    if (createProject) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/projects/from-lead/${leadId}`, { method: 'POST', headers: h });
+        if (res.ok) toast.success('Projekt wurde angelegt!');
+        else if (res.status === 409) toast.error('Projekt bereits vorhanden');
+        else if (res.status === 422) {
+          const data = await res.json().catch(() => null);
+          toast.error(data?.detail?.message || 'Domain fehlt — bitte zuerst im Kundenprofil ergänzen.');
+        }
+        else toast.error('Fehler beim Anlegen des Projekts');
+      } catch { toast.error('Fehler beim Anlegen des Projekts'); }
+    }
+    setWonConfirm(null);
   };
 
   const deleteLead = async (leadId) => {
@@ -180,12 +221,14 @@ export default function SalesPipeline() {
                   lead={lead}
                   col={COLUMNS[mobileTab]}
                   columns={COLUMNS}
+                  project={leadProjects[lead.id]}
                   onDragStart={() => {}}
                   onOpen={() => navigate(`/app/leads/${lead.id}`)}
                   onAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
                   onDelete={() => setDeleteConfirm(lead.id)}
                   onStatusChange={updateStatus}
-                  isAdmin={user?.role === 'admin'}
+                  onProjectClick={(pid) => navigate(`/app/projects/${pid}`)}
+                  isAdmin={hasRole('admin')}
                 />
               ))
             )}
@@ -218,10 +261,10 @@ export default function SalesPipeline() {
                 <div style={{ height: 2, background: col.color, margin: '8px 12px', borderRadius: 2 }} />
                 <div style={{ padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {colLeads.map(lead => (
-                    <SalesCard key={lead.id} lead={lead} col={col} columns={COLUMNS} onDragStart={handleDragStart}
+                    <SalesCard key={lead.id} lead={lead} col={col} columns={COLUMNS} project={leadProjects[lead.id]} onDragStart={handleDragStart}
                       onOpen={() => navigate(`/app/leads/${lead.id}`)}
                       onAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
-                      onDelete={() => setDeleteConfirm(lead.id)} onStatusChange={updateStatus} isAdmin={user?.role === 'admin'} />
+                      onDelete={() => setDeleteConfirm(lead.id)} onStatusChange={updateStatus} onProjectClick={(pid) => navigate(`/app/projects/${pid}`)} isAdmin={hasRole('admin')} />
                   ))}
                   {colLeads.length === 0 && (
                     <div style={{ padding: '14px 8px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>Leer</div>
@@ -234,7 +277,7 @@ export default function SalesPipeline() {
       )}
 
       {/* Lösch Modal */}
-      {deleteConfirm && (
+      {deleteConfirm && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setDeleteConfirm(null)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 360, width: '100%', textAlign: 'center' }}>
@@ -248,7 +291,27 @@ export default function SalesPipeline() {
               <Button variant="danger" fullWidth onClick={() => deleteLead(deleteConfirm)}>Löschen</Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {wonConfirm && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setWonConfirm(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center' }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🏆</div>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Projekt anlegen?</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6 }}>
+              Der Lead <strong>{wonConfirm.lead?.company_name || 'Unbekannt'}</strong> wurde als gewonnen markiert.
+              Soll automatisch ein Projekt angelegt werden?
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => handleWonConfirm(false)} style={{ flex: 1, padding: '10px 16px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Nur Status speichern</button>
+              <button onClick={() => handleWonConfirm(true)} style={{ flex: 1, padding: '10px 16px', border: 'none', borderRadius: 'var(--radius-md)', background: '#008eaa', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, Projekt anlegen</button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -283,7 +346,7 @@ function fmtDate(iso) {
 
 // ── Sales Card ──
 
-function SalesCard({ lead, col, columns, onDragStart, onOpen, onAudit, onDelete, onStatusChange, isAdmin }) {
+function SalesCard({ lead, col, columns, project, onDragStart, onOpen, onAudit, onDelete, onStatusChange, onProjectClick, isAdmin }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const domain    = getDomain(lead.website_url);
   const sc        = scoreStyle(lead.analysis_score);
@@ -395,6 +458,19 @@ function SalesCard({ lead, col, columns, onDragStart, onOpen, onAudit, onDelete,
       {lead.created_at && (
         <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
           📅 {fmtDate(lead.created_at)}
+        </div>
+      )}
+
+      {/* ── Row 5: Projekt-Karte (nur bei won + Projekt vorhanden) ── */}
+      {lead.status === 'won' && project && (
+        <div
+          onClick={e => { e.stopPropagation(); onProjectClick?.(project.id); }}
+          style={{ background: 'rgba(0,142,170,0.08)', borderRadius: 'var(--radius-md)', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}
+        >
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--brand-primary)' }}>
+            Projekt aktiv · Phase {(project.status || '').replace('phase_', '')} von 7
+          </span>
+          <span style={{ fontSize: 10, color: 'var(--brand-primary)' }}>→</span>
         </div>
       )}
     </div>

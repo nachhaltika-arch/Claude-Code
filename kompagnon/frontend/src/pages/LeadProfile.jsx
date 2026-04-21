@@ -11,6 +11,7 @@ import SecurityChecklist from '../components/SecurityChecklist';
 import AuditReport from '../components/AuditReport';
 import BriefingTab from '../components/BriefingTab';
 import BriefingWizard from '../components/BriefingWizard';
+import WZSearch from '../components/WZSearch';
 import SitemapPlaner from '../components/SitemapPlaner';
 import ContentManager from '../components/ContentManager';
 import OfferTab from '../components/OfferTab';
@@ -18,6 +19,7 @@ import ProjectFilesSection from '../components/ProjectFilesSection';
 import AcademyCustomerSection from '../components/AcademyCustomerSection';
 import PageSpeedSection from '../components/PageSpeedSection';
 import API_BASE_URL from '../config';
+import NewsletterDesigner from '../components/NewsletterDesigner';
 import { useScreenSize } from '../utils/responsive';
 
 const scoreColor = (s) =>
@@ -42,15 +44,85 @@ const LEVEL_COLORS = {
   'Nicht konform': 'var(--status-danger-text)',
 };
 
+const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
+  if (loading) return <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>⏳ Prüfe...</span>;
+  const date = checkedAt ? new Date(checkedAt).toLocaleDateString('de-DE') : null;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: reachable === null ? '#f3f4f6' : reachable ? '#dcfce7' : '#fee2e2', color: reachable === null ? '#6b7280' : reachable ? '#166534' : '#991b1b' }}>
+        {reachable === null ? '● Nicht geprüft' : reachable ? '✓ Erreichbar' : '✗ Nicht erreichbar'}
+      </span>
+      {date && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{date}</span>}
+      <button onClick={onCheck} title="Jetzt prüfen" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-tertiary)', padding: '0 2px' }}>🔄</button>
+    </span>
+  );
+};
+
 const TABS = [
   { id: 'overview',   label: 'Übersicht',   icon: '⊞' },
+  { id: 'messages',   label: 'Nachrichten', icon: '💬' },
   { id: 'contact',    label: 'Kontakt',     icon: '👤' },
   { id: 'audits',     label: 'Audits',      icon: '✓' },
   { id: 'dateien',    label: 'Dateien',     icon: '📎' },
   { id: 'akademy',    label: 'Akademy',     icon: '🎓' },
   { id: 'offer',      label: 'Angebot',     icon: '📄' },
   { id: 'qrcode',     label: 'Zugang',      icon: '📲' },
+  { id: 'emails',     label: '📧 E-Mails',  icon: '' },
 ];
+
+const GbpBadge = ({ lead }) => {
+  if (!lead) return null;
+
+  const claimed = lead.gbp_claimed;
+  const rating  = lead.gbp_rating;
+  const total   = lead.gbp_ratings_total;
+
+  if (lead.gbp_checked_at === undefined || lead.gbp_checked_at === null) {
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '3px 10px', borderRadius: 12, fontSize: 11,
+        fontWeight: 500, background: '#F1EFE8', color: '#5F5E5A',
+        border: '0.5px solid #D3D1C7',
+      }}>
+        <span>📍</span> Google Business: Nicht geprüft
+      </span>
+    );
+  }
+
+  if (!claimed) {
+    return (
+      <span
+        title="Kein Google Business Profil gefunden — starkes Verkaufsargument!"
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          padding: '3px 10px', borderRadius: 12, fontSize: 11,
+          fontWeight: 600, background: '#FCEBEB', color: '#A32D2D',
+          border: '0.5px solid #F09595', cursor: 'default',
+        }}
+      >
+        <span>⚠</span> Google Business: Nicht eingetragen
+      </span>
+    );
+  }
+
+  const stars = rating ? `⭐ ${rating.toFixed(1)}` : '✓';
+  const count = total  ? ` (${total} Bewertungen)` : '';
+
+  return (
+    <span
+      title={`Google Place ID: ${lead.gbp_place_id || '—'}`}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '3px 10px', borderRadius: 12, fontSize: 11,
+        fontWeight: 600, background: '#EAF3DE', color: '#27500A',
+        border: '0.5px solid #97C459', cursor: 'default',
+      }}
+    >
+      {stars} Google Business{count}
+    </span>
+  );
+};
 
 export default function LeadProfile() {
   const { leadId } = useParams();
@@ -60,6 +132,7 @@ export default function LeadProfile() {
   const isTablet = width >= 768 && width < 1100;
   const isDesktop = width >= 1100;
 
+  const [showNewsletter, setShowNewsletter] = useState(false);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -97,18 +170,106 @@ export default function LeadProfile() {
   const [showBriefingWizard, setShowBriefingWizard] = useState(false);
   const [briefingData, setBriefingData] = useState(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
-  // Mockup tab
-  const [mockupRunning, setMockupRunning] = useState(false);
-  const [mockupSlow, setMockupSlow] = useState(false);
-  const [mockupResult, setMockupResult] = useState(null);
-  const [mockupError, setMockupError] = useState('');
+  // Design tab
+  const [designRunning, setDesignRunning] = useState(false);
+  const [designSlow, setDesignSlow] = useState(false);
+  const [designResult, setDesignResult] = useState(null);
+  const [designError, setDesignError] = useState('');
+  // Template assignment
+  const [assignedTemplate, setAssignedTemplate] = useState(null);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [allTemplates, setAllTemplates] = useState([]);
+  // Domain-Check
+  const [domainLoading, setDomainLoading] = useState(false);
+  // Nachrichten
+  const [messages, setMessages] = useState([]);
+  const [msgLoading, setMsgLoading] = useState(false);
+  const [msgText, setMsgText] = useState('');
+  const [msgChannel, setMsgChannel] = useState('in_app');
+  const [msgSubject, setMsgSubject] = useState('');
+  const [msgSending, setMsgSending] = useState(false);
+  // E-Mail-Sequenz
+  const [emailLogs, setEmailLogs]       = useState([]);
+  const [seqStatus, setSeqStatus]       = useState(null);
+  const [emailLoading, setEmailLoading] = useState(false);
 
   const h = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); }, [leadId]); // eslint-disable-line
+  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); loadAssignedTemplate(); }, [leadId]); // eslint-disable-line
+
+  const loadMessages = async () => {
+    setMsgLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/messages/${leadId}`, { headers: h });
+      if (res.ok) setMessages(await res.json());
+    } catch { /* silent */ } finally { setMsgLoading(false); }
+  };
+
+  const sendMessage = async () => {
+    if (!msgText.trim()) return;
+    setMsgSending(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/messages/${leadId}`, {
+        method: 'POST', headers: h,
+        body: JSON.stringify({ content: msgText.trim(), subject: msgSubject.trim() || undefined, channel: msgChannel }),
+      });
+      if (res.ok) { setMsgText(''); setMsgSubject(''); await loadMessages(); }
+    } catch { /* silent */ } finally { setMsgSending(false); }
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'messages') return;
+    loadMessages();
+    const interval = setInterval(loadMessages, 30000);
+    return () => clearInterval(interval);
+  }, [activeTab, leadId]); // eslint-disable-line
+
+  useEffect(() => {
+    if (activeTab === 'emails') loadEmailData();
+  }, [activeTab]); // eslint-disable-line
+
+  const loadEmailData = async () => {
+    setEmailLoading(true);
+    try {
+      const r = await fetch(
+        `${API_BASE_URL}/api/leads/${leadId}/email-logs`,
+        { headers: h }
+      );
+      if (r.ok) setEmailLogs(await r.json());
+
+      if (profile?.lead) {
+        setSeqStatus({
+          active:    profile.lead.sequence_active,
+          paused:    profile.lead.sequence_paused,
+          step:      profile.lead.sequence_step || 0,
+          last_sent: profile.lead.sequence_last_sent,
+        });
+      }
+    } catch {}
+    setEmailLoading(false);
+  };
+
+  const seqAction = async (action) => {
+    await fetch(
+      `${API_BASE_URL}/api/leads/${leadId}/sequence/${action}`,
+      { method: 'POST', headers: h }
+    );
+    await loadProfile();
+    await loadEmailData();
+  };
+
+  const checkDomain = async () => {
+    setDomainLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/domain-check`, { method: 'POST', headers: h });
+      const d = await res.json();
+      setProfile(prev => ({ ...prev, lead: { ...prev.lead, domain_reachable: d.reachable, domain_status_code: d.status_code, domain_checked_at: d.checked_at } }));
+    } catch { /* silent */ } finally { setDomainLoading(false); }
+  };
 
   const loadProfile = async () => {
     try {
@@ -140,6 +301,8 @@ export default function LeadProfile() {
         postal_code: lead.postal_code || '',
         city: lead.city || '',
         trade: lead.trade || '',
+        wz_code: lead.wz_code || '',
+        wz_title: lead.wz_title || '',
         legal_form: lead.legal_form || '',
         vat_id: lead.vat_id || '',
         register_number: lead.register_number || '',
@@ -183,12 +346,47 @@ export default function LeadProfile() {
     setShowBriefingWizard(true);
   };
 
-  const generateMockup = async () => {
-    setMockupRunning(true);
-    setMockupSlow(false);
-    setMockupError('');
-    setMockupResult(null);
-    const slowTimer = setTimeout(() => setMockupSlow(true), 20000);
+  const loadAssignedTemplate = async () => {
+    setTemplateLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/templates/lead/${leadId}`, { headers: h });
+      if (res.ok) {
+        const data = await res.json();
+        setAssignedTemplate(data);
+      } else {
+        setAssignedTemplate(null);
+      }
+    } catch { setAssignedTemplate(null); }
+    setTemplateLoading(false);
+  };
+
+  const openTemplateModal = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/templates/`, { headers: h });
+      if (res.ok) setAllTemplates(await res.json());
+    } catch { setAllTemplates([]); }
+    setShowTemplateModal(true);
+  };
+
+  const assignTemplate = async (templateId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/templates/${templateId}/assign-lead`, {
+        method: 'POST', headers: h, body: JSON.stringify({ lead_id: parseInt(leadId) }),
+      });
+      if (res.ok) {
+        toast.success('Template zugewiesen');
+        setShowTemplateModal(false);
+        await loadAssignedTemplate();
+      }
+    } catch { toast.error('Fehler beim Zuweisen'); }
+  };
+
+  const generateDesign = async () => {
+    setDesignRunning(true);
+    setDesignSlow(false);
+    setDesignError('');
+    setDesignResult(null);
+    const slowTimer = setTimeout(() => setDesignSlow(true), 20000);
     try {
       // Fetch briefing first
       const bRes = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers: h });
@@ -212,7 +410,7 @@ export default function LeadProfile() {
         ziel_keyword: '',
         cta_text: '',
       };
-      console.log('Mockup payload:', JSON.stringify(payload, null, 2));
+      console.log('Design payload:', JSON.stringify(payload, null, 2));
 
       // Start background job — returns immediately with job_id
       const startRes = await fetch(`${API_BASE_URL}/api/agents/${projectId}/content`, {
@@ -240,13 +438,13 @@ export default function LeadProfile() {
         if (job.status === 'error') throw new Error(job.error || 'KI-Generierung fehlgeschlagen');
       }
       if (!result) throw new Error('Zeitüberschreitung — bitte erneut versuchen');
-      setMockupResult(result);
+      setDesignResult(result);
     } catch (e) {
-      setMockupError(e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.');
+      setDesignError(e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.');
     } finally {
       clearTimeout(slowTimer);
-      setMockupRunning(false);
-      setMockupSlow(false);
+      setDesignRunning(false);
+      setDesignSlow(false);
     }
   };
 
@@ -319,11 +517,15 @@ export default function LeadProfile() {
       );
       const data = await res.json();
       if (res.status === 409) {
-        // Project already exists — find and navigate to it
         const projRes = await fetch(`${API_BASE_URL}/api/projects/?limit=200`, { headers: h });
         const projects = await projRes.json();
         const existing = Array.isArray(projects) ? projects.find(p => p.lead_id === parseInt(leadId)) : null;
         if (existing) navigate(`/app/projects/${existing.id}`);
+        return;
+      }
+      if (res.status === 422) {
+        const err = data?.detail?.message || 'Domain fehlt — bitte zuerst im Kundenprofil ergänzen.';
+        toast ? toast.error(err) : alert(err);
         return;
       }
       if (!res.ok) throw new Error();
@@ -608,6 +810,7 @@ export default function LeadProfile() {
                   {improvement >= 0 ? '↑' : '↓'}{Math.abs(improvement)} Punkte
                 </span>
               )}
+              <GbpBadge lead={profile?.lead} />
             </div>
           </div>
 
@@ -637,6 +840,29 @@ export default function LeadProfile() {
 
           <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 500, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
             ✏️ Bearbeiten
+          </button>
+
+          <button
+            onClick={async () => {
+              try {
+                await fetch(
+                  `${API_BASE_URL}/api/leads/${leadId}/enrich`,
+                  { method: 'POST', headers: h }
+                );
+                await loadProfile();
+              } catch {}
+            }}
+            title="Google Business + alle Daten neu prüfen"
+            style={{
+              padding: '6px 12px', borderRadius: 7,
+              background: 'rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              fontSize: 12, cursor: 'pointer', color: 'white',
+              fontFamily: 'var(--font-sans)',
+              width: isMobile ? '100%' : undefined,
+            }}
+          >
+            🔄 Neu prüfen
           </button>
 
           <button
@@ -693,9 +919,151 @@ export default function LeadProfile() {
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ flex: isMobile ? '0 0 auto' : 1, flexShrink: 0, padding: isMobile ? '7px 14px' : '8px 12px', borderRadius: 'var(--radius-md)', border: 'none', background: activeTab === tab.id ? 'var(--bg-active)' : 'transparent', color: activeTab === tab.id ? 'var(--brand-primary)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: activeTab === tab.id ? 500 : 400, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
             <span>{tab.icon}</span>{tab.label}
+            {tab.id === 'messages' && (lead.unread_messages || 0) > 0 && (
+              <span style={{ background: '#ef4444', color: '#fff', borderRadius: 9999, fontSize: 10, fontWeight: 700, padding: '1px 6px', lineHeight: 1.4 }}>
+                {lead.unread_messages}
+              </span>
+            )}
           </button>
         ))}
       </div>
+
+      {/* NACHRICHTEN TAB */}
+      {activeTab === 'messages' && (() => {
+        const fmtTime = (iso) => {
+          if (!iso) return '';
+          const d = new Date(iso);
+          return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        };
+        const fmtDay = (iso) => {
+          if (!iso) return '';
+          const d = new Date(iso);
+          const today = new Date();
+          const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+          if (d.toDateString() === today.toDateString()) return 'Heute';
+          if (d.toDateString() === yesterday.toDateString()) return 'Gestern';
+          return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        };
+
+        // Group messages by day for separators
+        const grouped = [];
+        let lastDay = null;
+        for (const m of messages) {
+          const day = fmtDay(m.created_at);
+          if (day !== lastDay) { grouped.push({ type: 'sep', day }); lastDay = day; }
+          grouped.push({ type: 'msg', msg: m });
+        }
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--border-light)', borderRadius: 12, overflow: 'hidden', background: 'var(--bg-app)' }}>
+
+            {/* Newsletter Button */}
+            <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowNewsletter(true)}
+                style={{ padding: '6px 14px', border: 'none', borderRadius: 6,
+                         background: '#008eaa', color: 'white', cursor: 'pointer',
+                         fontSize: 13, fontWeight: 600 }}>
+                Newsletter erstellen
+              </button>
+            </div>
+
+            {/* Nachrichtenverlauf */}
+            <div style={{ maxHeight: 500, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {msgLoading && messages.length === 0 && (
+                <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: 32 }}>Nachrichten werden geladen…</div>
+              )}
+              {!msgLoading && messages.length === 0 && (
+                <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: 32 }}>Noch keine Nachrichten. Schreib die erste Nachricht!</div>
+              )}
+              {grouped.map((item, i) => {
+                if (item.type === 'sep') return (
+                  <div key={`sep-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)', fontSize: 11 }}>
+                    <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+                    {item.day}
+                    <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+                  </div>
+                );
+                const m = item.msg;
+                const isAdmin = m.sender_role === 'admin';
+                return (
+                  <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isAdmin ? 'flex-end' : 'flex-start' }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontWeight: 600 }}>{m.sender_name || (isAdmin ? 'Admin' : lead.company_name)}</span>
+                      <span>{fmtTime(m.created_at)}</span>
+                      {isAdmin && (
+                        <span style={{ background: m.channel === 'email' ? '#fef3c7' : '#dcfce7', color: m.channel === 'email' ? '#92400e' : '#166534', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 600 }}>
+                          {m.channel === 'email' ? '✉️ E-Mail' : '💬 In-App'}
+                        </span>
+                      )}
+                      {!isAdmin && !m.is_read && (
+                        <span style={{ color: '#3b82f6', fontSize: 10 }}>🔵 Ungelesen</span>
+                      )}
+                    </div>
+                    <div style={{ maxWidth: '75%', padding: '10px 14px', borderRadius: isAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: isAdmin ? '#E6F1FB' : 'var(--bg-surface)', border: '1px solid var(--border-light)', fontSize: 13, lineHeight: 1.6, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {m.content}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Eingabebereich */}
+            <div style={{ borderTop: '1px solid var(--border-light)', padding: '12px 16px', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {msgChannel === 'email' && (
+                <input
+                  value={msgSubject}
+                  onChange={e => setMsgSubject(e.target.value)}
+                  placeholder="Betreff der E-Mail…"
+                  style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-app)', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              )}
+              <textarea
+                value={msgText}
+                onChange={e => setMsgText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendMessage(); }}
+                placeholder="Nachricht schreiben… (Ctrl+Enter zum Senden)"
+                rows={3}
+                style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13, fontFamily: 'var(--font-sans)', resize: 'vertical', background: 'var(--bg-app)', color: 'var(--text-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[{ id: 'in_app', label: '💬 In-App' }, { id: 'email', label: '✉️ + E-Mail' }].map(ch => (
+                    <button key={ch.id} onClick={() => setMsgChannel(ch.id)}
+                      style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border-light)', fontSize: 12, fontWeight: msgChannel === ch.id ? 700 : 400, background: msgChannel === ch.id ? 'var(--brand-primary)' : 'var(--bg-app)', color: msgChannel === ch.id ? '#fff' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      {ch.label}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={sendMessage} disabled={msgSending || !msgText.trim()}
+                  style={{ padding: '8px 20px', background: '#0d6efd', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
+                  {msgSending ? 'Senden…' : 'Senden →'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {showNewsletter && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9998,
+                      background: 'var(--bg-surface)' }}>
+          <div style={{ position: 'absolute', top: 12, right: 16, zIndex: 9999 }}>
+            <button onClick={() => setShowNewsletter(false)}
+              style={{ padding: '6px 16px', border: 'none', borderRadius: 6,
+                       background: '#E24B4A', color: 'white', cursor: 'pointer' }}>
+              Schliessen
+            </button>
+          </div>
+          <NewsletterDesigner
+            leadId={leadId}
+            onSend={() => {
+              setShowNewsletter(false);
+              toast.success('Newsletter gesendet');
+            }}
+            onSave={() => toast.success('Entwurf gespeichert')}
+          />
+        </div>
+      )}
 
       {/* ÜBERSICHT TAB */}
       {activeTab === 'overview' && (
@@ -719,6 +1087,10 @@ export default function LeadProfile() {
                 <button onClick={createScreenshot} disabled={screenshotLoading} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: screenshotLoading ? 'wait' : 'pointer', fontSize: 12, padding: '1px 4px', flexShrink: 0 }} title="Screenshot aktualisieren">
                   {screenshotLoading ? '⏳' : '🔄'}
                 </button>
+              </div>
+
+              <div style={{ padding: '4px 10px 6px' }}>
+                <DomainBadge reachable={lead.domain_reachable ?? null} checkedAt={lead.domain_checked_at} loading={domainLoading} onCheck={checkDomain} />
               </div>
 
               <div style={{ margin: '0 -12px', position: 'relative', minHeight: 160, overflow: 'hidden' }}>
@@ -1118,7 +1490,6 @@ export default function LeadProfile() {
                   ['Gesellschaftsform', 'legal_form', 'GmbH, UG, GmbH & Co. KG'],
                   ['Vorname Geschäftsführer', 'ceo_first_name', 'Max'],
                   ['Nachname Geschäftsführer', 'ceo_last_name', 'Mustermann'],
-                  ['Gewerk', 'trade', 'Elektriker'],
                 ].map(([label, field, ph]) => (
                   <div key={field}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
@@ -1127,6 +1498,19 @@ export default function LeadProfile() {
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                 ))}
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Gewerk / Branche</div>
+                  <WZSearch
+                    value={editData.wz_code ? { code: editData.wz_code, title: editData.wz_title } : null}
+                    onChange={(entry) => setEditData(p => ({
+                      ...p,
+                      wz_code: entry?.code || '',
+                      wz_title: entry?.title || '',
+                      trade: entry?.title || '',
+                    }))}
+                    placeholder="Branche suchen..."
+                  />
+                </div>
 
                 <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
                   <div style={sectionLabel}>Adresse</div>
@@ -1324,8 +1708,8 @@ export default function LeadProfile() {
       {/* AKADEMY TAB */}
       {activeTab === 'akademy' && <AcademyCustomerSection leadId={lead.id} />}
 
-      {/* MOCKUP TAB */}
-      {activeTab === 'mockup' && (
+      {/* DESIGN TAB */}
+      {activeTab === 'design' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
@@ -1336,44 +1720,72 @@ export default function LeadProfile() {
               Generiert automatisch Textentwürfe für die Website auf Basis der Briefing-Daten.
               {!briefingData?.gewerk && ' Noch kein Briefing ausgefüllt – Basisdaten des Leads werden verwendet.'}
             </div>
+
+            {/* Template assignment */}
+            <div style={{ background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>Design-Template</div>
+              {templateLoading ? (
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Lade Template-Info...</div>
+              ) : assignedTemplate ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>📐 {assignedTemplate.name}</span>
+                  <button onClick={openTemplateModal} style={{ fontSize: 11, padding: '3px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 6, cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)' }}>
+                    wechseln
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Kein Template zugewiesen</span>
+                  <button onClick={openTemplateModal} style={{ fontSize: 11, padding: '4px 12px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                    Template zuweisen
+                  </button>
+                </div>
+              )}
+              {assignedTemplate && (
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                  Die KI nutzt dieses Template als Designgrundlage für den Entwurf.
+                </div>
+              )}
+            </div>
+
             {!projectId && (
               <div style={{ background: '#FFF9E6', border: '1px solid #F5D87A', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92660A', marginBottom: 12 }}>
                 Für den KI-Entwurf wird ein Projekt benötigt. Bitte zuerst ein Projekt anlegen.
               </div>
             )}
             <button
-              onClick={generateMockup}
-              disabled={mockupRunning || !projectId}
+              onClick={generateDesign}
+              disabled={designRunning || !projectId}
               style={{
                 padding: '10px 22px', borderRadius: 8, border: 'none',
-                background: mockupRunning || !projectId ? 'var(--bg-muted)' : 'var(--brand-primary)',
-                color: mockupRunning || !projectId ? 'var(--text-tertiary)' : '#fff',
-                fontSize: 14, fontWeight: 600, cursor: mockupRunning || !projectId ? 'not-allowed' : 'pointer',
+                background: designRunning || !projectId ? 'var(--bg-muted)' : 'var(--brand-primary)',
+                color: designRunning || !projectId ? 'var(--text-tertiary)' : '#fff',
+                fontSize: 14, fontWeight: 600, cursor: designRunning || !projectId ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8,
               }}
             >
-              {mockupRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
-              {mockupRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
+              {designRunning && <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />}
+              {designRunning ? 'Generiere Entwurf…' : '🎨 KI-Entwurf generieren'}
             </button>
-            {mockupSlow && (
+            {designSlow && (
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F59E0B', display: 'inline-block', flexShrink: 0 }} />
                 Claude denkt gründlich nach — das kann bis zu 55 Sekunden dauern…
               </div>
             )}
-            {mockupError && (
+            {designError && (
               <div style={{ background: 'var(--status-danger-bg)', border: '1px solid var(--status-danger-text)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--status-danger-text)', marginTop: 12 }}>
-                {typeof mockupError === 'string' ? mockupError : JSON.stringify(mockupError)}
+                {typeof designError === 'string' ? designError : JSON.stringify(designError)}
               </div>
             )}
           </div>
-          {mockupResult && (
+          {designResult && (
             <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>Generierter Entwurf</div>
-              {typeof mockupResult === 'string' ? (
-                <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'inherit', lineHeight: 1.7, margin: 0 }}>{mockupResult}</pre>
+              {typeof designResult === 'string' ? (
+                <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'inherit', lineHeight: 1.7, margin: 0 }}>{designResult}</pre>
               ) : (
-                Object.entries(mockupResult).map(([key, val]) => (
+                Object.entries(designResult).map(([key, val]) => (
                   <div key={key} style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{key}</div>
                     <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{typeof val === 'string' ? val : JSON.stringify(val, null, 2)}</div>
@@ -1383,6 +1795,38 @@ export default function LeadProfile() {
             </div>
           )}
         </div>
+      )}
+
+      {/* TEMPLATE SELECTION MODAL */}
+      {showTemplateModal && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={e => e.target === e.currentTarget && setShowTemplateModal(false)}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: '100%', maxWidth: 600, maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 17 }}>🗂️ Template auswählen</div>
+            {allTemplates.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>🗂️</div>
+                <div>Noch keine Templates vorhanden.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+                {allTemplates.map(tpl => (
+                  <div key={tpl.id} onClick={() => assignTemplate(tpl.id)} style={{ border: `2px solid ${assignedTemplate?.id === tpl.id ? 'var(--brand-primary)' : '#e0e0e0'}`, borderRadius: 8, padding: 14, cursor: 'pointer', background: assignedTemplate?.id === tpl.id ? 'var(--bg-active)' : '#fff', transition: 'border-color 0.15s' }}
+                    onMouseEnter={e => { if (assignedTemplate?.id !== tpl.id) e.currentTarget.style.borderColor = 'var(--brand-primary)'; }}
+                    onMouseLeave={e => { if (assignedTemplate?.id !== tpl.id) e.currentTarget.style.borderColor = '#e0e0e0'; }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{tpl.name}</div>
+                    <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, background: tpl.source === 'url' ? '#e3f2fd' : '#e8f5e9', color: tpl.source === 'url' ? '#1565c0' : '#2e7d32', fontWeight: 600 }}>
+                      {tpl.source === 'url' ? '🌐 URL' : '📁 ZIP'}
+                    </span>
+                    {tpl.created_at && <div style={{ fontSize: 10, color: '#aaa', marginTop: 6 }}>{new Date(tpl.created_at).toLocaleDateString('de-DE')}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setShowTemplateModal(false)} style={{ padding: '9px', background: '#f5f5f5', color: '#555', border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abbrechen</button>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* ANGEBOT TAB */}
@@ -1699,6 +2143,153 @@ export default function LeadProfile() {
         );
       })()}
 
+      {/* E-MAILS TAB */}
+      {activeTab === 'emails' && (
+        <div style={{ padding: '20px 0' }}>
+
+          {/* SEQUENZ-STEUERUNG */}
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 12,
+            border: '0.5px solid var(--border-light)',
+            padding: '16px 20px', marginBottom: 16,
+          }}>
+            <div style={{
+              fontSize: 12, fontWeight: 600, color: '#64748b',
+              textTransform: 'uppercase', letterSpacing: '.06em',
+              marginBottom: 12,
+            }}>
+              E-Mail-Sequenz (Tag 1 · 3 · 7)
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <span style={{
+                padding: '3px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600,
+                background: seqStatus?.active && !seqStatus?.paused
+                  ? '#E1F5EE' : seqStatus?.paused ? '#FAEEDA' : '#F1EFE8',
+                color: seqStatus?.active && !seqStatus?.paused
+                  ? '#085041' : seqStatus?.paused ? '#633806' : '#444441',
+              }}>
+                {seqStatus?.active && !seqStatus?.paused
+                  ? `Aktiv — Schritt ${seqStatus.step} von 3`
+                  : seqStatus?.paused ? 'Pausiert'
+                  : 'Inaktiv'}
+              </span>
+              {seqStatus?.last_sent && (
+                <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                  Letzter Versand: {new Date(seqStatus.last_sent).toLocaleDateString('de-DE')}
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {!seqStatus?.active && (
+                <button
+                  onClick={() => seqAction('start')}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8, border: 'none',
+                    background: '#1D9E75', color: 'white',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}>
+                  Sequenz starten
+                </button>
+              )}
+              {seqStatus?.active && !seqStatus?.paused && (
+                <button
+                  onClick={() => seqAction('pause')}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8,
+                    border: '1px solid #e2e8f0', background: 'transparent',
+                    color: '#64748b', fontSize: 12, cursor: 'pointer',
+                  }}>
+                  Pausieren
+                </button>
+              )}
+              {seqStatus?.paused && (
+                <button
+                  onClick={() => seqAction('start')}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8, border: 'none',
+                    background: '#008eaa', color: 'white',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}>
+                  Fortsetzen
+                </button>
+              )}
+              {seqStatus?.active && (
+                <button
+                  onClick={() => seqAction('stop')}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8,
+                    border: '1px solid #FECACA', background: '#FFF1F1',
+                    color: '#A32D2D', fontSize: 12, cursor: 'pointer',
+                  }}>
+                  Stoppen
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* E-MAIL-PROTOKOLL */}
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 12,
+            border: '0.5px solid var(--border-light)',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '12px 16px',
+              borderBottom: '0.5px solid var(--border-light)',
+              fontSize: 12, fontWeight: 600, color: '#64748b',
+              textTransform: 'uppercase', letterSpacing: '.06em',
+            }}>
+              Gesendete E-Mails ({emailLogs.length})
+            </div>
+
+            {emailLoading ? (
+              <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                Lädt...
+              </div>
+            ) : emailLogs.length === 0 ? (
+              <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                Noch keine E-Mails gesendet.
+              </div>
+            ) : emailLogs.map((log, i) => (
+              <div key={i} style={{
+                padding: '10px 16px',
+                borderBottom: i < emailLogs.length - 1 ? '0.5px solid var(--border-light)' : 'none',
+                display: 'flex', alignItems: 'center', gap: 10,
+              }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 600, padding: '2px 7px',
+                  borderRadius: 8,
+                  background: log.status === 'sent' ? '#EAF3DE' : '#FFF1F1',
+                  color: log.status === 'sent' ? '#27500A' : '#A32D2D',
+                  flexShrink: 0,
+                }}>
+                  {log.status === 'sent' ? '✓ Gesendet' : '✗ Fehler'}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 13, color: 'var(--text-primary)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {log.subject}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
+                    {log.template_key} ·{' '}
+                    {log.sent_at
+                      ? new Date(log.sent_at).toLocaleDateString('de-DE', {
+                          day: '2-digit', month: '2-digit', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit',
+                        })
+                      : '—'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* AUDIT DETAIL MODAL */}
       {openAudit && createPortal(
         <>
@@ -1717,7 +2308,7 @@ export default function LeadProfile() {
       )}
 
       {/* AUDIT LÖSCHEN MODAL */}
-      {deleteAuditId && (
+      {deleteAuditId && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setDeleteAuditId(null)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
@@ -1729,11 +2320,12 @@ export default function LeadProfile() {
               <Button variant="danger" fullWidth onClick={() => deleteAudit(deleteAuditId)}>Löschen</Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* GEWONNEN MODAL */}
-      {wonModal && (
+      {wonModal && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setWonModal(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: 28, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
@@ -1754,7 +2346,8 @@ export default function LeadProfile() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* BRIEFING WIZARD MODAL */}

@@ -13,7 +13,8 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from database import SessionLocal, Project, DATABASE_URL
 from services.margin_calculator import MarginCalculator
-from services.email_service import EmailService, MockEmailService
+from services.email import send_email
+from services.email_service import EmailService
 from automations.email_templates import render_template
 import logging
 import os
@@ -28,13 +29,6 @@ _use_mock_email = os.getenv("USE_MOCK_EMAIL", "false").lower() == "true"
 # STANDALONE JOB FUNCTIONS (no class instance references)
 # ===================================================================
 
-def _get_email_service():
-    """Create a fresh email service instance per job execution."""
-    if _use_mock_email:
-        return MockEmailService()
-    return EmailService()
-
-
 def _send_phase_email(project_id: int, template_key: str):
     """Send template email for a project (standalone function)."""
     db = SessionLocal()
@@ -45,29 +39,33 @@ def _send_phase_email(project_id: int, template_key: str):
             return
 
         lead = project.lead
+        FRONTEND_URL = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
         context = {
-            "company_name": lead.company_name,
-            "contact_name": lead.contact_name,
-            "assigned_person": "KOMPAGNON-Team",
-            "contact_person_phone": "+49 (0)123 456789",
-            "contact_person_email": "kontakt@kompagnon.de",
-            "preview_link": f"https://preview.example.de/{project_id}",
-            "upload_link": f"https://app.example.de/upload/{project_id}",
-            "review_deadline": (datetime.utcnow() + timedelta(days=3)).strftime("%d.%m.%Y"),
-            "kickoff_date": (datetime.utcnow() + timedelta(days=2)).strftime("%d.%m.%Y"),
-            "new_visitors": "42",
-            "form_submissions": "3",
-            "pagespeed_score": "87",
-            "review_link": f"https://google.com/reviews/{project_id}",
+            "company_name":         lead.company_name or "Ihr Unternehmen",
+            "contact_name":         lead.contact_name or "liebe Kundin / lieber Kunde",
+            "assigned_person":      "KOMPAGNON-Team",
+            "contact_person_phone": os.getenv("CONTACT_PHONE", "+49 (0) 261 88 44 70"),
+            "contact_person_email": os.getenv("CONTACT_EMAIL", "info@kompagnon.eu"),
+            "preview_link":         f"{FRONTEND_URL}/portal",
+            "upload_link":          f"{FRONTEND_URL}/portal",
+            "review_deadline":      (datetime.utcnow() + timedelta(days=5)).strftime("%d.%m.%Y"),
+            "kickoff_date":         (datetime.utcnow() + timedelta(days=2)).strftime("%d.%m.%Y"),
+            "new_visitors":         "—",
+            "form_submissions":     "—",
+            "pagespeed_score":      "—",
+            "review_link":          "https://g.page/r/kompagnon",
         }
 
         rendered = render_template(template_key, context)
-        email_service = _get_email_service()
-        success = email_service.send_email(
-            to=lead.email,
-            subject=rendered["subject"],
-            body=rendered["body"],
-        )
+        if _use_mock_email:
+            logger.info(f"[MOCK] E-Mail an {lead.email}: {rendered['subject']}")
+            success = True
+        else:
+            success = send_email(
+                to_email=lead.email,
+                subject=rendered["subject"],
+                html_body=rendered["body"],
+            )
 
         if success:
             EmailService.log_communication(
@@ -80,9 +78,9 @@ def _send_phase_email(project_id: int, template_key: str):
                 is_automated=True,
                 template_key=template_key,
             )
-            logger.info(f"✓ Email sent for Project {project_id}: {template_key}")
+            logger.info(f"Email sent for Project {project_id}: {template_key}")
         else:
-            logger.error(f"✗ Email failed for Project {project_id}: {template_key}")
+            logger.error(f"Email failed for Project {project_id}: {template_key}")
 
     except Exception as e:
         logger.error(f"✗ Error sending email: {str(e)}")
@@ -234,6 +232,148 @@ def job_tag_30_upsell(project_id: int):
         db.close()
 
 
+async def _check_all_domains_async():
+    from database import SessionLocal, Lead, Project
+    from services.domain_checker import check_domain
+    from datetime import datetime
+    db = SessionLocal()
+    try:
+        leads = db.query(Lead).filter(Lead.website_url != None,
+                                      Lead.website_url != "").all()
+        for lead in leads:
+            try:
+                result = await check_domain(lead.website_url)
+                lead.domain_reachable   = result["reachable"]
+                lead.domain_status_code = result.get("status_code")
+                lead.domain_checked_at  = datetime.utcnow()
+            except Exception:
+                pass
+        db.commit()
+
+        projects = db.query(Project).filter(Project.website_url != None,
+                                            Project.website_url != "").all()
+        for project in projects:
+            try:
+                result = await check_domain(project.website_url)
+                project.domain_reachable   = result["reachable"]
+                project.domain_status_code = result.get("status_code")
+                project.domain_checked_at  = datetime.utcnow()
+            except Exception:
+                pass
+        db.commit()
+    finally:
+        db.close()
+
+
+def job_check_netlify_dns():
+    """Check DNS status for active Netlify projects with backoff on 429."""
+    import random
+    import time as _time
+    from datetime import datetime, timedelta
+    from sqlalchemy import text as _text
+
+    db = SessionLocal()
+    now = datetime.utcnow()
+
+    try:
+        rows = db.execute(_text("""
+            SELECT id, netlify_site_id, company_name,
+                   netlify_dns_fail_count, netlify_dns_retry_after
+            FROM projects
+            WHERE netlify_site_id IS NOT NULL
+              AND (domain_reachable IS NULL OR domain_reachable = false)
+              AND (netlify_dns_retry_after IS NULL OR netlify_dns_retry_after < :now)
+            ORDER BY id
+            LIMIT 50
+        """), {"now": now}).fetchall()
+
+        if not rows:
+            logger.info("DNS-Polling: Keine Projekte zu pruefen")
+            return
+
+        logger.info(f"DNS-Polling: {len(rows)} Projekte zu pruefen")
+
+        NETLIFY_TOKEN = os.getenv("NETLIFY_API_TOKEN", "")
+        if not NETLIFY_TOKEN:
+            logger.warning("DNS-Polling: NETLIFY_API_TOKEN nicht gesetzt")
+            return
+
+        import httpx
+
+        for row in rows:
+            project_id   = row[0]
+            site_id      = row[1]
+            company_name = row[2] or f"Projekt {project_id}"
+            fail_count   = row[3] or 0
+
+            _time.sleep(random.uniform(0, 3))
+
+            try:
+                resp = httpx.get(
+                    f"https://api.netlify.com/api/v1/sites/{site_id}",
+                    headers={"Authorization": f"Bearer {NETLIFY_TOKEN}"},
+                    timeout=10.0,
+                )
+
+                if resp.status_code == 429:
+                    new_fail_count = fail_count + 1
+                    backoff_minutes = min(10 * (2 ** fail_count), 1440)
+                    retry_after = now + timedelta(minutes=backoff_minutes)
+
+                    db.execute(_text("""
+                        UPDATE projects
+                        SET netlify_dns_fail_count = :fc,
+                            netlify_dns_retry_after = :ra
+                        WHERE id = :id
+                    """), {"fc": new_fail_count, "ra": retry_after, "id": project_id})
+                    db.commit()
+
+                    logger.warning(
+                        f"DNS-Polling: Projekt {project_id} ({company_name}) — "
+                        f"429 Rate-Limited. Backoff: {backoff_minutes}min"
+                    )
+                    continue
+
+                if resp.status_code != 200:
+                    logger.warning(f"DNS-Polling: Projekt {project_id} — Netlify API {resp.status_code}")
+                    continue
+
+                data = resp.json()
+                ssl_ready = data.get("ssl") is not None
+                published = data.get("published_deploy", {})
+                domain_reachable = ssl_ready and published.get("state") == "ready"
+
+                db.execute(_text("""
+                    UPDATE projects
+                    SET domain_reachable = :reachable,
+                        netlify_dns_fail_count = 0,
+                        netlify_dns_retry_after = NULL,
+                        updated_at = :now
+                    WHERE id = :id
+                """), {"reachable": domain_reachable, "now": now, "id": project_id})
+                db.commit()
+
+                status = "erreichbar" if domain_reachable else "noch nicht erreichbar"
+                logger.info(f"DNS-Polling: Projekt {project_id} ({company_name}) — {status}")
+
+            except Exception as e:
+                logger.error(f"DNS-Polling: Projekt {project_id} Fehler: {type(e).__name__}: {e}")
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+
+    finally:
+        db.close()
+
+
+def job_check_all_domains():
+    import asyncio
+    logger.info("🌐 Domain-Check gestartet...")
+    asyncio.run(_check_all_domains_async())
+    logger.info("✓ Domain-Check abgeschlossen")
+
+
 # ===================================================================
 # SCHEDULER CLASS (thin wrapper, no job logic)
 # ===================================================================
@@ -246,12 +386,25 @@ class CompagnonScheduler:
         global _use_mock_email
         _use_mock_email = use_mock_email
 
-        jobstores = {
-            "default": SQLAlchemyJobStore(url=database_url, tablename="apscheduler_jobs")
-        }
-        executors = {"default": ThreadPoolExecutor(max_workers=3)}
+        # JobStore mit Fallback auf MemoryJobStore wenn DB nicht erreichbar
+        try:
+            from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+            jobstores = {
+                "default": SQLAlchemyJobStore(
+                    url=database_url,
+                    tablename="apscheduler_jobs"
+                )
+            }
+        except Exception as e:
+            logger.warning(f"⚠ SQLAlchemy JobStore nicht verfügbar ({e}) — nutze MemoryJobStore")
+            from apscheduler.jobstores.memory import MemoryJobStore
+            jobstores = {"default": MemoryJobStore()}
 
-        self.scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors)
+        executors = {"default": ThreadPoolExecutor(max_workers=3)}
+        self.scheduler = BackgroundScheduler(
+            jobstores=jobstores,
+            executors=executors
+        )
 
     def start(self):
         """Start the scheduler and register all daily jobs."""
@@ -266,6 +419,12 @@ class CompagnonScheduler:
 
     def _register_daily_jobs(self):
         """Register cron jobs using standalone functions."""
+        self.scheduler.add_job(
+            job_check_all_domains,
+            "interval", hours=6,
+            id="domain_check_every_6h",
+            replace_existing=True,
+        )
         self.scheduler.add_job(
             job_check_overdue_phases,
             "cron",
@@ -309,7 +468,27 @@ class CompagnonScheduler:
             replace_existing=True,
             timezone="Europe/Berlin",
         )
-        logger.info("✓ Daily jobs registered (incl. weekly HWK scraper)")
+        self.scheduler.add_job(
+            job_check_netlify_dns,
+            "interval", minutes=15,
+            id="netlify_dns_check_every_15min",
+            replace_existing=True,
+        )
+        logger.info("Daily jobs registered (incl. weekly HWK scraper, Netlify DNS)")
+
+        # Stündlicher E-Mail-Sequenz-Runner
+        try:
+            from services.sequence_runner import run_email_sequences
+            self.scheduler.add_job(
+                run_email_sequences,
+                "interval",
+                hours=1,
+                id="email_sequence_runner",
+                replace_existing=True,
+            )
+            logger.info("✓ E-Mail-Sequenz-Job registriert (stündlich)")
+        except Exception as e:
+            logger.warning(f"⚠ E-Mail-Sequenz-Job nicht registriert: {e}")
 
     def trigger_phase_change(self, project_id: int, new_status: str):
         """Called when project phase changes. Schedules follow-up jobs."""
@@ -387,10 +566,22 @@ def get_scheduler(database_url: str = None, use_mock_email: bool = False):
 
 
 def start_scheduler():
-    """Start the global scheduler."""
-    scheduler = get_scheduler()
-    if not scheduler.scheduler.running:
-        scheduler.start()
+    """Start the global scheduler. Fehler werden nur geloggt."""
+    global _scheduler
+    try:
+        scheduler = get_scheduler()
+        if not scheduler.scheduler.running:
+            scheduler.start()
+            logger.info("✓ Scheduler gestartet")
+        else:
+            logger.info("✓ Scheduler läuft bereits")
+    except Exception as e:
+        logger.warning(
+            f"⚠ Scheduler konnte nicht gestartet werden: {e} "
+            f"— Automatische Jobs deaktiviert, App läuft weiter."
+        )
+        # _scheduler NICHT auf None zurücksetzen —
+        # get_active_jobs() soll trotzdem antworten können
 
 
 def stop_scheduler():

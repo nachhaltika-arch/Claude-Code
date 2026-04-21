@@ -43,13 +43,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 
 def require_admin(user: User = Depends(get_current_user)):
-    if user.role != "admin":
+    if user.role not in ("admin", "superadmin"):
         raise HTTPException(403, "Nur fuer Admins")
     return user
 
 
 def require_auditor(user: User = Depends(get_current_user)):
-    if user.role not in ("admin", "auditor"):
+    if user.role not in ("admin", "superadmin", "auditor"):
         raise HTTPException(403, "Nur fuer Auditoren und Admins")
     return user
 
@@ -454,6 +454,17 @@ def admin_reset_password(user_id: int, admin: User = Depends(require_admin), db:
 # ═══════════════════════════════════════════════════════════
 
 def _user_dict(user: User) -> dict:
+    onboarding_done = False
+    if user.lead_id:
+        try:
+            from database import SessionLocal, Lead
+            _db = SessionLocal()
+            lead = _db.query(Lead).filter(Lead.id == user.lead_id).first()
+            onboarding_done = bool(getattr(lead, 'onboarding_completed', False)) if lead else False
+            _db.close()
+        except Exception:
+            pass
+
     return {
         "id": user.id,
         "email": user.email,
@@ -469,4 +480,5 @@ def _user_dict(user: User) -> dict:
         "lead_id": user.lead_id,
         "last_login": user.last_login.isoformat() if user.last_login else None,
         "created_at": user.created_at.isoformat() if user.created_at else None,
+        "onboarding_completed": onboarding_done,
     }

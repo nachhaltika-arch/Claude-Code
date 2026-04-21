@@ -91,7 +91,7 @@ def get_roles(admin=Depends(require_admin), db: Session = Depends(get_db)):
 
 @router.patch("/roles/{role}")
 def update_role_permissions(role: str, req: RolePermissionsUpdate, admin=Depends(require_admin), db: Session = Depends(get_db)):
-    if role == "admin":
+    if role in ("admin", "superadmin"):
         raise HTTPException(400, "Admin-Rolle kann nicht geaendert werden")
     if role not in ("auditor", "nutzer", "kunde"):
         raise HTTPException(400, "Unbekannte Rolle")

@@ -12,7 +12,7 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db
-from routers.auth_router import require_any_auth
+from routers.auth_router import require_any_auth, get_current_user
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 import asyncio
@@ -69,21 +69,30 @@ class LeadUpdate(BaseModel):
     register_court: Optional[str] = None
     ceo_first_name: Optional[str] = None
     ceo_last_name: Optional[str] = None
+    wz_code: Optional[str] = None
+    wz_title: Optional[str] = None
 
 
 class LeadResponse(BaseModel):
     id: int
-    company_name: str = ""
-    contact_name: str = ""
-    phone: str = ""
-    email: str = ""
-    website_url: str = None
-    city: str = ""
-    trade: str = ""
-    lead_source: str = None
+    company_name: Optional[str] = None
+    contact_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    website_url: Optional[str] = None
+    city: Optional[str] = None
+    trade: Optional[str] = None
+    industry: Optional[str] = None
+    description: Optional[str] = None
+    notes: Optional[str] = None
+    wz_code: Optional[str] = None
+    wz_title: Optional[str] = None
+    lead_source: Optional[str] = None
     status: str = "new"
-    analysis_score: int = 0
-    geo_score: int = 0
+    analysis_score: Optional[int] = None
+    geo_score: Optional[int] = None
+    pagespeed_mobile: Optional[int] = None
+    pagespeed_desktop: Optional[int] = None
     created_at: datetime = None
     updated_at: datetime = None
 
@@ -130,9 +139,58 @@ def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks, db: Session
         row = result.fetchone()
         lead_id = row[0]
 
+        AUTO_SEQUENCE_SOURCES = {
+            "stripe_checkout",
+            "landing_audit",
+            "landing_page",
+            "llm_landing",
+            "postkarte",
+            "webhook_facebook",
+            "webhook_linkedin",
+            "webhook_google",
+        }
+
+        if lead.email and (lead.lead_source or '') in AUTO_SEQUENCE_SOURCES:
+            try:
+                from services.sequence_runner import start_sequence_for_lead
+                import threading
+                threading.Thread(
+                    target=start_sequence_for_lead,
+                    args=(lead_id,),
+                    daemon=True,
+                ).start()
+                import logging as _log
+                _log.getLogger('leads').info(
+                    f"Auto-Sequenz gestartet für Lead {lead_id} "
+                    f"(Quelle: {lead.lead_source})"
+                )
+            except Exception as e:
+                import logging as _log
+                _log.getLogger('leads').warning(f"Auto-Sequenz Fehler: {e}")
+
         if lead.website_url:
             from services.lead_enrichment import enrich_lead_sync
             background_tasks.add_task(enrich_lead_sync, lead_id)
+
+        # Google Business Profile check (non-blocking)
+        def _gbp_check(lid, company, city):
+            import asyncio
+            from services.google_business import check_google_business
+            from database import SessionLocal
+            try:
+                gbp = asyncio.run(check_google_business(company, city))
+                s = SessionLocal()
+                s.execute(text(
+                    "UPDATE leads SET gbp_place_id=:pid, gbp_claimed=:c, "
+                    "gbp_rating=:r, gbp_ratings_total=:rt WHERE id=:id"
+                ), {"pid": gbp["place_id"], "c": gbp["claimed"],
+                    "r": gbp["rating"], "rt": gbp["ratings_total"], "id": lid})
+                s.commit()
+                s.close()
+            except Exception:
+                pass
+        background_tasks.add_task(_gbp_check, lead_id,
+                                  lead.company_name or '', lead.city or '')
 
         return {
             'id': row[0],
@@ -242,6 +300,10 @@ def get_customers(db: Session = Depends(get_db)):
             "project_status": project.status if project else None,
             "project_id": project.id if project else None,
             "has_account": user is not None, "user_id": user.id if user else None,
+            'gbp_claimed':       getattr(lead, 'gbp_claimed', False) or False,
+            'gbp_rating':        getattr(lead, 'gbp_rating', None),
+            'gbp_ratings_total': getattr(lead, 'gbp_ratings_total', None),
+            'gbp_place_id':      getattr(lead, 'gbp_place_id', None),
         })
     return result
 
@@ -353,8 +415,9 @@ def _extract_domains(text: str) -> list:
     return domains
 
 
-async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict:
-    """Process a single domain sequentially: Lead → pause → Audit → pause → Impressum."""
+async def _process_single_domain(url: str, clean: str, _session_factory, job_id: str) -> dict:
+    """Process a single domain sequentially: Lead → pause → Audit → pause → Impressum.
+    Uses short-lived DB sessions to avoid stale connections during long async operations."""
     import asyncio as _aio
     import logging as _log
     from datetime import datetime as _dt
@@ -363,15 +426,16 @@ async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict
     result = {'url': url, 'status': 'created', 'lead_id': None, 'company_name': clean,
               'audit_status': 'pending', 'impressum_status': 'pending', 'score': None}
 
-    # ── Step 1: Duplicate check + Lead creation ──
-    existing = _db.query(Lead).filter(Lead.website_url.ilike(f'%{clean}%')).first()
-    if existing:
-        return {'url': url, 'status': 'already_exists', 'lead_id': existing.id,
-                'company_name': existing.display_name or existing.company_name,
-                'score': existing.analysis_score,
-                'audit_status': 'skipped', 'impressum_status': 'skipped'}
-
+    # ── Step 1: Duplicate check + Lead creation (short-lived session) ──
+    db = _session_factory()
     try:
+        existing = db.query(Lead).filter(Lead.website_url.ilike(f'%{clean}%')).first()
+        if existing:
+            return {'url': url, 'status': 'already_exists', 'lead_id': existing.id,
+                    'company_name': existing.display_name or existing.company_name,
+                    'score': existing.analysis_score,
+                    'audit_status': 'skipped', 'impressum_status': 'skipped'}
+
         lead = Lead(
             company_name=clean, website_url=url, contact_name='', phone='',
             email='', city='', trade='', notes='', website_screenshot='',
@@ -381,28 +445,31 @@ async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict
             ceo_first_name='', ceo_last_name='', display_name='',
             created_at=_dt.utcnow(), updated_at=_dt.utcnow(),
         )
-        _db.add(lead)
-        _db.commit()
-        _db.refresh(lead)
-        result['lead_id'] = lead.id
-        _logger.info(f'Lead angelegt: {clean} (ID: {lead.id})')
+        db.add(lead)
+        db.commit()
+        db.refresh(lead)
+        lead_id = lead.id
+        result['lead_id'] = lead_id
+        _logger.info(f'Lead angelegt: {clean} (ID: {lead_id})')
     except Exception as e:
-        try: _db.rollback()
+        try: db.rollback()
         except: pass
         _logger.error(f'Lead anlegen Fehler {clean}: {e}')
         return {'url': url, 'status': 'error', 'error': f'Lead: {str(e)}',
                 'audit_status': 'failed', 'impressum_status': 'failed'}
+    finally:
+        db.close()
 
     await _aio.sleep(1)
 
-    # ── Step 2: Audit (max 90s) ──
+    # ── Step 2: Audit (max 90s, no DB session needed) ──
     _logger.info(f'Starte Audit: {clean}')
     try:
         import httpx
         async with httpx.AsyncClient(timeout=90) as client:
             audit_base = os.getenv('API_BASE_URL', 'http://localhost:8000')
             r = await client.post(f'{audit_base}/api/audit/start',
-                json={'website_url': url, 'lead_id': lead.id, 'company_name': clean})
+                json={'website_url': url, 'lead_id': lead_id, 'company_name': clean})
             if r.status_code == 200:
                 aid = r.json().get('audit_id') or r.json().get('id')
                 if aid:
@@ -428,33 +495,42 @@ async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict
         result['audit_status'] = 'failed'
         _logger.warning(f'Audit Fehler {clean}: {type(e).__name__}: {e}')
 
-    # Pause between audit and impressum (let Anthropic API recover)
     _logger.info(f'Warte 5s vor Impressum: {clean}')
     await _aio.sleep(5)
 
-    # ── Step 3: Impressum (max 30s) ──
+    # ── Step 3: Impressum (max 30s, fresh session for DB update) ──
     _logger.info(f'Starte Impressum: {clean}')
     try:
         from services.impressum_scraper import extract_contact_from_impressum
         imp = await _aio.wait_for(extract_contact_from_impressum(url), timeout=30.0)
         if imp.get('success'):
             data_imp = imp.get('data', {})
-            updated_fields = []
-            try: _db.refresh(lead)
-            except: pass
-            for field in ['company_name', 'legal_form', 'ceo_first_name', 'ceo_last_name',
-                          'street', 'house_number', 'postal_code', 'city', 'phone', 'email',
-                          'vat_id', 'register_number', 'register_court', 'trade']:
-                if data_imp.get(field) and not getattr(lead, field, None):
-                    setattr(lead, field, data_imp[field])
-                    updated_fields.append(field)
-            if not lead.contact_name and data_imp.get('ceo_first_name'):
-                lead.contact_name = ' '.join(filter(None, [data_imp.get('ceo_first_name'), data_imp.get('ceo_last_name')]))
-            try: _db.commit()
-            except: _db.rollback()
-            result['impressum_status'] = 'completed'
-            result['company_name'] = lead.company_name
-            _logger.info(f'Impressum fertig: {clean} — {len(updated_fields)} Felder')
+            db = _session_factory()
+            try:
+                lead = db.query(Lead).filter(Lead.id == lead_id).first()
+                if not lead:
+                    _logger.warning(f'Lead {lead_id} nicht mehr in DB gefunden')
+                    result['impressum_status'] = 'failed'
+                    return result
+                updated_fields = []
+                for field in ['company_name', 'legal_form', 'ceo_first_name', 'ceo_last_name',
+                              'street', 'house_number', 'postal_code', 'city', 'phone', 'email',
+                              'vat_id', 'register_number', 'register_court', 'trade']:
+                    if data_imp.get(field) and not getattr(lead, field, None):
+                        setattr(lead, field, data_imp[field])
+                        updated_fields.append(field)
+                if not lead.contact_name and data_imp.get('ceo_first_name'):
+                    lead.contact_name = ' '.join(filter(None, [data_imp.get('ceo_first_name'), data_imp.get('ceo_last_name')]))
+                db.commit()
+                result['impressum_status'] = 'completed'
+                result['company_name'] = lead.company_name
+                _logger.info(f'Impressum fertig: {clean} — {len(updated_fields)} Felder')
+            except Exception as e:
+                db.rollback()
+                _logger.error(f'Impressum DB-Update Fehler {clean}: {type(e).__name__}: {e}')
+                result['impressum_status'] = 'failed'
+            finally:
+                db.close()
         else:
             result['impressum_status'] = 'failed'
             _logger.warning(f'Impressum kein Ergebnis: {clean}')
@@ -499,11 +575,9 @@ async def import_domains_text(
             for i, url in enumerate(domains):
                 clean = url.replace('https://', '').replace('http://', '')
                 _logger.info(f'━━━ [{i+1}/{len(domains)}] {clean} ━━━')
-                # Own session per domain
-                domain_db = SessionLocal()
                 try:
                     result = await _aio.wait_for(
-                        _process_single_domain(url, clean, domain_db, job_id),
+                        _process_single_domain(url, clean, SessionLocal, job_id),
                         timeout=150.0
                     )
                 except _aio.TimeoutError:
@@ -513,12 +587,8 @@ async def import_domains_text(
                     _logger.error(f'Domain {clean} komplett fehlgeschlagen: {type(domain_err).__name__}: {domain_err}')
                     result = {'url': url, 'status': 'error', 'error': str(domain_err),
                               'audit_status': 'failed', 'impressum_status': 'failed', 'score': None}
-                finally:
-                    try: domain_db.close()
-                    except: pass
                 import_jobs[job_id]['results'].append(result)
                 import_jobs[job_id]['processed'] = i + 1
-                # 10s pause between domains
                 if i < len(domains) - 1:
                     _logger.info(f'Warte 10s vor nächster Domain...')
                     await _aio.sleep(10)
@@ -570,11 +640,9 @@ async def import_domains_file(
             for i, url in enumerate(domains):
                 clean = url.replace('https://', '').replace('http://', '')
                 _logger.info(f'━━━ [{i+1}/{len(domains)}] {clean} ━━━')
-                # Own session per domain
-                domain_db = SessionLocal()
                 try:
                     result = await _aio.wait_for(
-                        _process_single_domain(url, clean, domain_db, job_id),
+                        _process_single_domain(url, clean, SessionLocal, job_id),
                         timeout=150.0
                     )
                 except _aio.TimeoutError:
@@ -584,12 +652,8 @@ async def import_domains_file(
                     _logger.error(f'Domain {clean} komplett fehlgeschlagen: {type(domain_err).__name__}: {domain_err}')
                     result = {'url': url, 'status': 'error', 'error': str(domain_err),
                               'audit_status': 'failed', 'impressum_status': 'failed', 'score': None}
-                finally:
-                    try: domain_db.close()
-                    except: pass
                 import_jobs[job_id]['results'].append(result)
                 import_jobs[job_id]['processed'] = i + 1
-                # 10s pause between domains
                 if i < len(domains) - 1:
                     _logger.info(f'Warte 10s vor nächster Domain...')
                     await _aio.sleep(10)
@@ -682,6 +746,10 @@ def get_portal_data(token: str, db: Session = Depends(get_db)):
         AuditResult.lead_id == lead.id, AuditResult.status == 'completed',
     ).order_by(AuditResult.created_at.desc()).first()
 
+    project = db.query(Project).filter(
+        Project.lead_id == lead.id
+    ).order_by(Project.created_at.desc()).first()
+
     return {
         'lead_id': lead.id,
         'company_name': lead.display_name or lead.company_name or '',
@@ -701,6 +769,11 @@ def get_portal_data(token: str, db: Session = Depends(get_db)):
         'ux_score': latest_audit.ux_score if latest_audit else None,
         'ai_summary': latest_audit.ai_summary if latest_audit else None,
         'website_screenshot': f'data:image/jpeg;base64,{lead.website_screenshot}' if lead.website_screenshot else None,
+        'onboarding_completed': getattr(lead, 'onboarding_completed', False) or False,
+        'project_id':     project.id if project else None,
+        'current_phase':  project.current_phase if project else None,
+        'project_status': project.status if project else None,
+        'go_live_date':   str(project.go_live_date)[:10] if project and project.go_live_date else None,
     }
 
 
@@ -746,6 +819,111 @@ def verify_portal_access(token: str, data: dict, db: Session = Depends(get_db)):
     }
 
 
+@router.post("/portal/{token}/complete-onboarding")
+def complete_onboarding(token: str, data: dict, db: Session = Depends(get_db)):
+    """Mark onboarding as completed and optionally save briefing fields."""
+    lead = db.query(Lead).filter(Lead.customer_token == token).first()
+    if not lead:
+        raise HTTPException(404, "Ungültiger Zugangslink")
+
+    if data.get('website_url'):
+        lead.website_url = data['website_url']
+
+    lead.onboarding_completed = True
+    lead.onboarding_completed_at = datetime.utcnow()
+
+    # Briefing-Felder speichern falls vorhanden
+    gewerk       = data.get('gewerk')
+    leistungen   = data.get('leistungen')
+    einzugsgebiet = data.get('einzugsgebiet')
+    has_logo     = data.get('has_logo')
+    has_photos   = data.get('has_photos')
+    anmerkungen  = data.get('anmerkungen')
+
+    briefing_fields = any(v is not None for v in [
+        gewerk, leistungen, einzugsgebiet, has_logo, has_photos, anmerkungen
+    ])
+
+    if briefing_fields:
+        try:
+            db.execute(text("""
+                INSERT INTO briefings
+                  (lead_id, gewerk, leistungen, einzugsgebiet,
+                   logo_vorhanden, fotos_vorhanden, sonstige_hinweise, status)
+                VALUES
+                  (:lead_id, :gewerk, :leistungen, :einzugsgebiet,
+                   :logo_vorhanden, :fotos_vorhanden, :sonstige_hinweise, 'entwurf')
+                ON CONFLICT (lead_id) DO UPDATE SET
+                  gewerk            = COALESCE(EXCLUDED.gewerk, briefings.gewerk),
+                  leistungen        = COALESCE(EXCLUDED.leistungen, briefings.leistungen),
+                  einzugsgebiet     = COALESCE(EXCLUDED.einzugsgebiet, briefings.einzugsgebiet),
+                  logo_vorhanden    = COALESCE(EXCLUDED.logo_vorhanden, briefings.logo_vorhanden),
+                  fotos_vorhanden   = COALESCE(EXCLUDED.fotos_vorhanden, briefings.fotos_vorhanden),
+                  sonstige_hinweise = COALESCE(EXCLUDED.sonstige_hinweise, briefings.sonstige_hinweise),
+                  updated_at        = NOW()
+            """), {
+                'lead_id':          lead.id,
+                'gewerk':           gewerk,
+                'leistungen':       leistungen,
+                'einzugsgebiet':    einzugsgebiet,
+                'logo_vorhanden':   has_logo,
+                'fotos_vorhanden':  has_photos,
+                'sonstige_hinweise': anmerkungen,
+            })
+        except Exception:
+            # Briefings-Tabelle existiert nicht — Felder als Notiz sichern
+            parts = []
+            if gewerk:        parts.append(f"Gewerk: {gewerk}")
+            if leistungen:    parts.append(f"Leistungen: {leistungen}")
+            if einzugsgebiet: parts.append(f"Einzugsgebiet: {einzugsgebiet}")
+            if anmerkungen:   parts.append(f"Anmerkungen: {anmerkungen}")
+            if parts:
+                lead.notes = ((lead.notes or '') + '\n' + '\n'.join(parts)).strip()
+
+    db.commit()
+    return {"success": True}
+
+
+@router.post("/portal-auth/complete-onboarding")
+def portal_auth_complete_onboarding(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """JWT-geschützter Onboarding-Abschluss für Kunden."""
+    from database import User as UserModel
+    if current_user.role != 'kunde':
+        raise HTTPException(403, "Nur für Kunden zugänglich")
+
+    lead_id = data.get('lead_id') or current_user.lead_id
+    if not lead_id:
+        raise HTTPException(400, "lead_id fehlt")
+
+    if current_user.lead_id and current_user.lead_id != lead_id:
+        raise HTTPException(403, "Zugriff verweigert")
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    if data.get('website_url'):
+        lead.website_url = data['website_url']
+
+    lead.onboarding_completed = True
+    lead.onboarding_completed_at = datetime.utcnow()
+
+    parts = []
+    if data.get('gewerk'):        parts.append(f"Gewerk: {data['gewerk']}")
+    if data.get('leistungen'):    parts.append(f"Leistungen: {data['leistungen']}")
+    if data.get('einzugsgebiet'): parts.append(f"Einzugsgebiet: {data['einzugsgebiet']}")
+    if data.get('anmerkungen'):   parts.append(f"Anmerkungen: {data['anmerkungen']}")
+    if parts:
+        lead.notes = ((lead.notes or '') + '\n---\nOnboarding:\n' + '\n'.join(parts)).strip()
+
+    db.commit()
+    return {"success": True}
+
+
 # ── Routes with {lead_id} parameter below ──────────────────────
 
 
@@ -778,14 +956,41 @@ def update_lead(lead_id: int, data: LeadUpdate, db: Session = Depends(get_db)):
 
 @router.delete("/{lead_id}")
 def delete_lead(lead_id: int, db: Session = Depends(get_db)):
-    """Delete a lead and all associated audits. Admin only."""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    """Delete a lead and all associated data in correct dependency order."""
+    # 1. Prüfen ob Lead existiert
+    lead = db.execute(
+        text("SELECT id FROM leads WHERE id = :id"), {"id": lead_id}
+    ).fetchone()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
-    db.query(AuditResult).filter(AuditResult.lead_id == lead_id).delete()
-    db.delete(lead)
+
+    # 2. Verknüpfte Projekte finden
+    projects = db.execute(
+        text("SELECT id FROM projects WHERE lead_id = :id"), {"id": lead_id}
+    ).fetchall()
+    project_ids = [p[0] for p in projects]
+
+    # 3. Abhängige Daten der Projekte löschen (Reihenfolge wichtig)
+    for pid in project_ids:
+        db.execute(text("DELETE FROM project_checklists WHERE project_id = :id"), {"id": pid})
+        db.execute(text("DELETE FROM time_tracking WHERE project_id = :id"), {"id": pid})
+        db.execute(text("DELETE FROM briefings WHERE project_id = :id"), {"id": pid})
+        db.execute(text("DELETE FROM project_files WHERE lead_id = :id"), {"id": lead_id})
+
+    # 4. Projekte selbst löschen
+    if project_ids:
+        db.execute(text("DELETE FROM projects WHERE lead_id = :id"), {"id": lead_id})
+
+    # 5. Weitere Lead-abhängige Daten löschen
+    db.execute(text("DELETE FROM briefings WHERE lead_id = :id"), {"id": lead_id})
+    db.execute(text("DELETE FROM audit_results WHERE lead_id = :id"), {"id": lead_id})
+    db.execute(text("DELETE FROM email_logs WHERE lead_id = :id"), {"id": lead_id})
+
+    # 6. Lead selbst löschen
+    db.execute(text("DELETE FROM leads WHERE id = :id"), {"id": lead_id})
     db.commit()
-    return {"success": True, "message": "Lead geloescht"}
+
+    return {"deleted": True, "id": lead_id}
 
 
 @router.post("/{lead_id}/analyze")
@@ -1487,6 +1692,70 @@ def delete_lead_domain(lead_id: int, domain_id: int, db: Session = Depends(get_d
     return {"ok": True}
 
 
+@router.post("/{lead_id}/domain-check")
+async def domain_check_lead(lead_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth)):
+    """Manueller Domain-Check für einen Lead."""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+    if not lead.website_url:
+        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
+    from services.domain_checker import check_domain
+    result = await check_domain(lead.website_url)
+    lead.domain_reachable   = result["reachable"]
+    lead.domain_status_code = result.get("status_code")
+    lead.domain_checked_at  = datetime.utcnow()
+    db.commit()
+    return {
+        "reachable":    lead.domain_reachable,
+        "status_code":  lead.domain_status_code,
+        "checked_at":   lead.domain_checked_at.isoformat(),
+        "website_url":  lead.website_url,
+    }
+
+
+# ── E-Mail-Sequenz-Endpunkte ─────────────────────────────────────────────────
+
+@router.post("/{lead_id}/sequence/start", dependencies=[Depends(require_any_auth)])
+def sequence_start(lead_id: int, db: Session = Depends(get_db)):
+    from services.sequence_runner import start_sequence_for_lead
+    ok = start_sequence_for_lead(lead_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Lead not found or no email")
+    return {"success": ok}
+
+
+@router.post("/{lead_id}/sequence/pause", dependencies=[Depends(require_any_auth)])
+def sequence_pause(lead_id: int, db: Session = Depends(get_db)):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    lead.sequence_paused = True
+    db.commit()
+    return {"success": True}
+
+
+@router.post("/{lead_id}/sequence/stop", dependencies=[Depends(require_any_auth)])
+def sequence_stop(lead_id: int, db: Session = Depends(get_db)):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    lead.sequence_active = False
+    lead.sequence_paused = False
+    lead.sequence_step = 0
+    db.commit()
+    return {"success": True}
+
+
+@router.get("/{lead_id}/email-logs", dependencies=[Depends(require_any_auth)])
+def get_email_logs(lead_id: int, db: Session = Depends(get_db)):
+    rows = db.execute(
+        text("SELECT * FROM email_logs WHERE lead_id=:id ORDER BY sent_at DESC LIMIT 50"),
+        {"id": lead_id},
+    ).mappings().all()
+    return [dict(r) for r in rows]
+
+
 # ── /api/customers aliases for all /{lead_id}/... endpoints ─────────────────
 # Registers identical handlers under /api/customers/{lead_id}/... so that
 # frontend calls to either prefix work transparently.
@@ -1510,3 +1779,4 @@ customers_alias_router.add_api_route("/{lead_id}/qr-code",          get_qr_code,
 customers_alias_router.add_api_route("/{lead_id}/qr-code/refresh",  refresh_qr_code,      methods=["POST"])
 customers_alias_router.add_api_route("/{lead_id}/pagespeed",        get_lead_pagespeed,   methods=["GET"])
 customers_alias_router.add_api_route("/{lead_id}/pagespeed",        run_lead_pagespeed,   methods=["POST"])
+customers_alias_router.add_api_route("/{lead_id}/domain-check",     domain_check_lead,    methods=["POST"])

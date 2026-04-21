@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
@@ -11,7 +12,7 @@ const AUDIENCE_LABEL = {
 
 export default function AcademyAdmin() {
   const navigate = useNavigate();
-  const { token, user } = useAuth();
+  const { token, user, hasRole } = useAuth();
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
   const [courses, setCourses] = useState([]);
@@ -75,7 +76,7 @@ export default function AcademyAdmin() {
     } catch (e) { console.error(e); }
   };
 
-  if (user?.role !== 'admin') {
+  if (!hasRole('admin')) {
     return (
       <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-tertiary)' }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
@@ -279,7 +280,7 @@ export default function AcademyAdmin() {
       )}
 
       {/* ── Delete confirm modal ────────────────────────────────── */}
-      {deleteId && (
+      {deleteId && createPortal(
         <>
           <div
             style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000 }}
@@ -328,7 +329,8 @@ export default function AcademyAdmin() {
               >Löschen</button>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );

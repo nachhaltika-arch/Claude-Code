@@ -425,10 +425,10 @@ input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
   background: rgba(255, 255, 255, 0.12) !important;
   color: #ffffff !important;
   font-weight: 500;
-  border-left: 3px solid #FAE600 !important;
+  border-left: 3px solid var(--kc-yellow) !important;
 }
 .kc-sidebar-item:focus-visible {
-  outline: 2px solid #FAE600;
+  outline: 2px solid var(--kc-yellow);
   outline-offset: -2px;
 }
 

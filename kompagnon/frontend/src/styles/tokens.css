@@ -106,6 +106,10 @@
   --font-weight-bold:      700;
   --font-weight-black:     900;
   --font-weight-extrabold: 800;
+
+  /* Sidebar-Farben — immer dunkel, unabhängig vom Theme */
+  --kc-dark:   #004F59;
+  --kc-yellow: #FAE600;
 }
 
 /* ── Dark mode — only when system is dark AND no manual override ── */

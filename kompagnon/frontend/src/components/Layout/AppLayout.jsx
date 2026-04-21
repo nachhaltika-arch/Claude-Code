@@ -231,7 +231,7 @@ function SidebarNav({ badges }) {
   return (
     <aside style={{
       position: 'fixed', left: 0, top: 0, bottom: 0,
-      width: 'var(--sidebar-width)', background: '#004F59',
+      width: 'var(--sidebar-width)', background: 'var(--kc-dark)',
       borderRight: '1px solid rgba(255,255,255,0.08)',
       display: 'flex', flexDirection: 'column',
       zIndex: 40, overflowY: 'auto',
@@ -309,7 +309,7 @@ function SidebarNav({ badges }) {
                       {item.badgeKey && badges[item.badgeKey] > 0 && (
                         <span style={{
                           marginLeft: 'auto', fontSize: 10, padding: '1px 6px', borderRadius: 10,
-                          background: '#FAE600', color: '#004F59', fontWeight: 700,
+                          background: 'var(--kc-yellow)', color: 'var(--kc-dark)', fontWeight: 700,
                         }}>
                           {badges[item.badgeKey]}
                         </span>
@@ -372,7 +372,7 @@ function SidebarNav({ badges }) {
                 {user.role === 'superadmin' && (
                   <span style={{
                     fontSize: 9, fontWeight: 700, letterSpacing: '0.05em',
-                    background: '#FAE600', color: '#004F59',
+                    background: 'var(--kc-yellow)', color: 'var(--kc-dark)',
                     padding: '1px 5px', borderRadius: 3,
                   }}>
                     SUPERADMIN

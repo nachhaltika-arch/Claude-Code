@@ -254,14 +254,33 @@ function App() {
             duration: 4000,
             style: {
               fontFamily: 'var(--font-sans)',
-              fontSize: 13,
-              borderRadius: 'var(--radius-md)',
-              maxWidth: 420,
-              padding: '12px 16px',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+              fontSize: 12,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              borderRadius: 'var(--r-md)',
+              maxWidth: 380,
+              padding: '12px 14px',
+              border: '0.5px solid',
             },
-            success: { duration: 3000 },
-            error: { duration: 6000 },
+            success: {
+              duration: 3000,
+              style: {
+                background: 'var(--success-bg)',
+                color: 'var(--success)',
+                borderColor: 'rgba(0,135,90,0.3)',
+              },
+              icon: '✓',
+            },
+            error: {
+              duration: 6000,
+              style: {
+                background: 'var(--error-bg)',
+                color: 'var(--error)',
+                borderColor: 'rgba(192,57,43,0.3)',
+              },
+              icon: '✕',
+            },
           }}
         />
       </AuthProvider>

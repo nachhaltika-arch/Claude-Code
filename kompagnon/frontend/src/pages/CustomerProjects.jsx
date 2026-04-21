@@ -94,7 +94,7 @@ function ProjectListCard({ project, lead, onClick }) {
           {pNum ? `Phase ${pNum} von 7 · ${ph?.label}` : project.status || '–'}
         </div>
         <div style={{ height: 5, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{ width: pNum ? `${(pNum / 7) * 100}%` : '0%', height: '100%', background: '#0d6efd', borderRadius: 3 }} />
+          <div style={{ width: pNum ? `${(pNum / 7) * 100}%` : '0%', height: '100%', background: pNum && pNum > 5 ? 'var(--success)' : 'var(--kc-mid)', borderRadius: 3 }} />
         </div>
       </div>
 
@@ -457,15 +457,15 @@ export default function CustomerProjects() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Kundenprojekte</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, margin: 0 }}>Kundenprojekte</h1>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--text-30)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
             {loading ? 'Lädt…' : `${filtered.length} von ${projects.length} Projekten`}
-          </p>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             onClick={() => setShowNewProject(true)}
-            style={{ padding: '8px 16px', background: '#008EAA', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+            style={{ padding: '9px 18px', background: 'var(--kc-yellow)', color: '#000', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.04em' }}
           >
             + Neues Projekt
           </button>

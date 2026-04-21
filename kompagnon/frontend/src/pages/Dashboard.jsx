@@ -80,39 +80,21 @@ export default function Dashboard() {
   }, [user, onboardingChecked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const KpiCard = ({ label, value, icon, delta, color }) => (
-    <Card>
-      <div style={{
-        display: 'flex', alignItems: 'flex-start',
-        justifyContent: 'space-between', marginBottom: 12,
-      }}>
-        <span style={{
-          fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em',
-          color: 'var(--text-tertiary)', fontWeight: 500,
-        }}>
-          {label}
-        </span>
-        <span style={{ fontSize: 18, opacity: 0.6 }}>{icon}</span>
-      </div>
+    <div style={{ background: 'var(--paper)', border: '0.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '16px 18px' }}>
       {loading ? (
         <Skeleton height={32} width={80} />
       ) : (
-        <div style={{
-          fontSize: 28, fontWeight: 500,
-          color: color || 'var(--text-primary)',
-          lineHeight: 1, marginBottom: delta ? 8 : 0,
-        }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: color || 'var(--kc-dark)', lineHeight: 1 }}>
           {value ?? '—'}
         </div>
       )}
-      {delta && !loading && (
-        <div style={{
-          fontSize: 11,
-          color: delta > 0 ? 'var(--status-success-text)' : 'var(--status-danger-text)',
-        }}>
-          {delta > 0 ? '↑' : '↓'} {Math.abs(delta)} diese Woche
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-30)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>{label}</div>
+      {delta !== undefined && !loading && (
+        <div style={{ fontSize: 10, fontWeight: 700, marginTop: 3, color: delta > 0 ? 'var(--success)' : 'var(--text-30)', fontFamily: 'var(--font-sans)' }}>
+          {delta > 0 ? '▲' : '▼'} {Math.abs(delta)} diese Woche
         </div>
       )}
-    </Card>
+    </div>
   );
 
   const avgScore = audits.length
@@ -145,12 +127,28 @@ export default function Dashboard() {
           user={user}
           onComplete={() => {
             setShowOnboarding(false);
-            // onboarding_completed Flag lokal aktualisieren
-            // damit kein zweiter Check den Wizard nochmal zeigt
             setOnboardingChecked(true);
           }}
         />
       )}
+
+      {/* Page Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+        <div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, margin: 0 }}>
+            Dashboard
+          </h1>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-30)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
+            {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </div>
+        </div>
+        <button
+          onClick={() => navigate('/app/leads')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: 'var(--kc-yellow)', color: '#000', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
+          + Neuer Lead
+        </button>
+      </div>
 
       {/* Deal-Metriken */}
       {dealStats && (
@@ -285,21 +283,15 @@ export default function Dashboard() {
 
         {/* Leads */}
         <Card padding="sm" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '4px 4px 12px', borderBottom: '1px solid var(--border-light)', marginBottom: 4,
-          }}>
-            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--border-light)', marginBottom: 4 }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '.08em' }}>
               Aktuelle Leads
             </span>
             <button
               onClick={() => navigate('/app/deals')}
-              style={{
-                fontSize: 11, color: 'var(--brand-primary)', background: 'none',
-                border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)',
-              }}
+              style={{ fontSize: 11, color: 'var(--kc-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}
             >
-              Alle anzeigen →
+              Alle →
             </button>
           </div>
 
@@ -373,10 +365,7 @@ export default function Dashboard() {
 
         {/* Letzte Audits */}
         <Card padding="sm" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
-          <div style={{
-            fontSize: 13, fontWeight: 500, color: 'var(--text-primary)',
-            padding: '4px 4px 12px', borderBottom: '1px solid var(--border-light)', marginBottom: 8,
-          }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '.08em', paddingBottom: 12, borderBottom: '1px solid var(--border-light)', marginBottom: 8 }}>
             Letzte Audits
           </div>
 

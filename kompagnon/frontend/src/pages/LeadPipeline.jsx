@@ -150,8 +150,8 @@ export default function LeadPipeline() {
     <div style={{ animation: 'fadeIn 0.3s ease', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       {/* Header */}
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Projektpipeline</h1>
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, margin: 0 }}>Projektpipeline</h1>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--text-30)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
           {cards.length} aktive Projekte · Drag & Drop zum Verschieben
         </div>
       </div>
@@ -285,7 +285,7 @@ function ProjectKanbanCard({ card, phase, onDragStart, onOpen }) {
           {type === 'lead' ? 'Gewonnen · kein Projekt' : `Phase ${pNum} von 7 · ${phase?.label}`}
         </div>
         <div style={{ height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{ width: type === 'project' ? `${((pNum || 1) / 7) * 100}%` : '8%', height: '100%', background: type === 'lead' ? '#0d6efd' : '#0d6efd', borderRadius: 2 }} />
+          <div style={{ width: type === 'project' ? `${((pNum || 1) / 7) * 100}%` : '8%', height: '100%', background: 'var(--kc-mid)', borderRadius: 2 }} />
         </div>
       </div>
 

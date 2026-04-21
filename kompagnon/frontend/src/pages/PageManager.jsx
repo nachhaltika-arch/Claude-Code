@@ -45,7 +45,7 @@ export default function PageManager() {
         fetch(`${API_BASE_URL}/api/pages/`, { headers: h }),
         fetch(`${API_BASE_URL}/api/pages/templates/list`, { headers: h }),
       ]);
-      if (pRes.ok) setPages(await pRes.json());
+      if (pRes.ok) { const d = await pRes.json(); setPages(d.items ?? d); }
       if (tRes.ok) setTemplates(await tRes.json());
     } catch { toast.error('Laden fehlgeschlagen'); }
     setLoading(false);

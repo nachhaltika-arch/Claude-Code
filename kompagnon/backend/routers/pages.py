@@ -203,17 +203,56 @@ def delete_template(
 @router.get("/")
 def list_pages(
     page_type: Optional[str] = None,
+    limit: int = 200,
+    offset: int = 0,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    query = "SELECT * FROM public_pages"
-    params = {}
+    """
+    Returns public pages with pagination.
+
+    Query params:
+      page_type — filter by type (optional)
+      limit     — max entries (default 200, max 500)
+      offset    — skip N entries
+
+    Response: {total, limit, offset, items[]}
+    HTML/GrapesJS content is excluded from the list — fetch /api/pages/{id} for full data.
+    """
+    limit  = min(max(limit, 1), 500)
+    offset = max(offset, 0)
+
+    base_filter = ""
+    params: dict = {}
     if page_type:
-        query += " WHERE page_type = :type"
+        base_filter = " WHERE page_type = :type"
         params["type"] = page_type
-    query += " ORDER BY page_type, name"
-    rows = db.execute(text(query), params).fetchall()
-    return [dict(r._mapping) for r in rows]
+
+    count_row = db.execute(
+        text(f"SELECT COUNT(*) FROM public_pages{base_filter}"),
+        params,
+    ).fetchone()
+    total = count_row[0] if count_row else 0
+
+    params["limit"]  = limit
+    params["offset"] = offset
+    rows = db.execute(
+        text(
+            f"SELECT id, name, slug, page_type, meta_title, meta_description,"
+            f"       is_published, created_at, updated_at"
+            f"  FROM public_pages{base_filter}"
+            f" ORDER BY page_type, name"
+            f" LIMIT :limit OFFSET :offset"
+        ),
+        params,
+    ).fetchall()
+
+    return {
+        "total":  total,
+        "limit":  limit,
+        "offset": offset,
+        "items":  [dict(r._mapping) for r in rows],
+    }
 
 
 @router.post("/")

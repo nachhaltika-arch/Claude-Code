@@ -1180,10 +1180,10 @@ export default function ProjectDetail() {
 
   // Auto-load brand data when branddesign tab is opened
   useEffect(() => {
-    if (activeTab === 'branddesign' && !brandData && project?.lead_id) {
+    if (activeTab === 'branddesign' && project?.lead_id) {
       loadBrandData();
     }
-  }, [activeTab, brandData, project?.lead_id]); // eslint-disable-line
+  }, [activeTab, project?.lead_id]); // eslint-disable-line
 
   // Auto-load briefing data on project load
   useEffect(() => {
@@ -1209,10 +1209,17 @@ export default function ProjectDetail() {
     loadSitemapPages();
   }, [project?.lead_id]); // eslint-disable-line
 
-  // Auto-load brand data on project load (needed for ProzessFlow step 3 completion)
+  // Auto-load brand data on project load — always reset first to prevent data bleed between projects
   useEffect(() => {
-    if (!project?.lead_id || brandData) return;
-    loadBrandData();
+    if (!project?.lead_id) return;
+    setBrandData(null);
+    const currentLeadId = project.lead_id;
+    fetch(`${API_BASE_URL}/api/branddesign/${currentLeadId}`, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d && (d.lead_id === undefined || d.lead_id === currentLeadId)) setBrandData(d);
+      })
+      .catch(() => {});
   }, [project?.lead_id]); // eslint-disable-line
 
   // Set initial tab on project load
@@ -1417,8 +1424,15 @@ export default function ProjectDetail() {
 
   const loadBrandData = async () => {
     if (!project?.lead_id) return;
-    const res = await fetch(`${API_BASE_URL}/api/branddesign/${project.lead_id}`, { headers });
-    if (res.ok) setBrandData(await res.json());
+    setBrandData(null);
+    const currentLeadId = project.lead_id;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/branddesign/${currentLeadId}`, { headers });
+      if (res.ok) {
+        const d = await res.json();
+        if (d.lead_id === undefined || d.lead_id === currentLeadId) setBrandData(d);
+      }
+    } catch { /* silent */ }
   };
 
   const loadPageContext = async () => {

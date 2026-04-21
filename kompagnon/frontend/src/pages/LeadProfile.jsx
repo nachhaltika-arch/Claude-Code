@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useAudit } from '../hooks/useAudit';
 import { parseApiError } from '../utils/apiError';
 import EmptyState from '../components/ui/EmptyState';
 import { createPortal } from 'react-dom';
@@ -175,8 +176,7 @@ export default function LeadProfile() {
   const [displayName, setDisplayName] = useState('');
   const [openAudit, setOpenAudit] = useState(null);
   const [deleteAuditId, setDeleteAuditId] = useState(null);
-  const [auditRunning, setAuditRunning] = useState(false);
-  const [auditProgress, setAuditProgress] = useState('');
+
   const [screenshotLoading, setScreenshotLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [extracting, setExtracting] = useState(false);
@@ -236,6 +236,24 @@ export default function LeadProfile() {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
+
+  const { phase: auditPhase, progress: auditProgress, start: auditStart } = useAudit({
+    leadId:      parseInt(leadId),
+    websiteUrl:  profile?.lead?.website_url,
+    companyName: profile?.lead?.company_name || '',
+    city:        profile?.lead?.city  || '',
+    trade:       profile?.lead?.trade || '',
+    headers:     h,
+    autoStart:   false,
+  });
+  const auditRunning = auditPhase === 'running';
+
+  useEffect(() => {
+    if (auditPhase === 'done') {
+      loadProfile();
+      setActiveTab('audits');
+    }
+  }, [auditPhase]); // eslint-disable-line
 
   useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); loadAssignedTemplate(); }, [leadId]); // eslint-disable-line
 
@@ -598,66 +616,7 @@ export default function LeadProfile() {
     } catch {}
   };
 
-  const startAudit = async () => {
-    if (!profile?.lead?.website_url) return;
-    setAuditRunning(true);
-    setAuditProgress('Audit wird gestartet...');
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/audit/start`,
-        {
-          method: 'POST', headers: h,
-          body: JSON.stringify({
-            website_url: profile.lead.website_url,
-            lead_id: parseInt(leadId),
-            company_name: profile.lead.company_name,
-            city: profile.lead.city,
-            trade: profile.lead.trade,
-          }),
-        }
-      );
-      const data = await res.json();
-      if (!data.audit_id) throw new Error();
-      pollAudit(data.audit_id);
-    } catch { setAuditRunning(false); setAuditProgress(''); }
-  };
-
-  const pollAudit = (auditId) => {
-    const msgs = [
-      '🔍 Website wird analysiert...',
-      '⚡ Performance wird gemessen...',
-      '⚖️ Rechtliches wird geprüft...',
-      '📸 Screenshot wird erstellt...',
-      '🤖 KI-Analyse läuft...',
-    ];
-    let i = 0;
-    const iv = setInterval(async () => {
-      i = (i + 1) % msgs.length;
-      setAuditProgress(msgs[i]);
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/api/audit/${auditId}`,
-          { headers: h }
-        );
-        const d = await res.json();
-        if (d.status === 'completed') {
-          clearInterval(iv);
-          setAuditProgress('✓ Audit abgeschlossen!');
-          setTimeout(async () => {
-            setAuditRunning(false);
-            setAuditProgress('');
-            await loadProfile();
-            setActiveTab('audits');
-          }, 1500);
-        } else if (d.status === 'failed') {
-          clearInterval(iv);
-          setAuditRunning(false);
-          setAuditProgress('');
-        }
-      } catch {}
-    }, 4000);
-    setTimeout(() => { clearInterval(iv); setAuditRunning(false); }, 180000);
-  };
+  const startAudit = () => auditStart();
 
   const createScreenshot = async () => {
     if (!profile?.lead?.website_url) return;

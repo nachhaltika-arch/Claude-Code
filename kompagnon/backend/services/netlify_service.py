@@ -20,6 +20,49 @@ HEADERS       = {
 }
 
 
+def _build_full_html(
+    page_name: str,
+    html: str,
+    css: str = "",
+    shared_css: str = "",
+    meta_description: str = "",
+    company_name: str = "",
+) -> str:
+    """
+    Builds a complete HTML document from a GrapesJS body fragment.
+    GrapesJS exports only body content — this adds DOCTYPE, head, charset,
+    viewport, title, meta description, OG tags and embedded CSS.
+    shared_css is prepended; page-specific css follows.
+    """
+    title = (
+        f"{page_name} — {company_name}" if page_name and company_name
+        else page_name or company_name or "Website"
+    )
+    og_desc = meta_description or (
+        f"Offizielle Website von {company_name}" if company_name else title
+    )
+
+    combined_css = "\n".join(filter(None, [shared_css.strip(), css.strip()]))
+    style_block = f"<style>\n{combined_css}\n</style>" if combined_css else ""
+
+    return f"""<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+  <meta name="description" content="{og_desc}">
+  <meta property="og:title" content="{title}">
+  <meta property="og:description" content="{og_desc}">
+  <meta property="og:type" content="website">
+  {style_block}
+</head>
+<body>
+{html}
+</body>
+</html>"""
+
+
 def _slug(name: str) -> str:
     """Firmenname → netlify-kompatibler Site-Slug (lowercase, a-z 0-9 -)"""
     s = name.lower().strip()
@@ -81,28 +124,14 @@ async def deploy_html(
     # ZIP im Speicher aufbauen
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-        og_description = meta_description or f"Offizielle Website von {company_name or page_title}"
-
-        full_html = f"""<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{page_title}</title>
-  <meta name="description" content="{og_description}">
-  <meta property="og:title" content="{page_title}">
-  <meta property="og:description" content="{og_description}">
-  <meta property="og:type" content="website">
-  {f'<link rel="stylesheet" href="/style.css">' if css else ''}
-</head>
-<body>
-{html}
-</body>
-</html>"""
-
+        full_html = _build_full_html(
+            page_name=page_title,
+            html=html,
+            css=css,
+            meta_description=meta_description,
+            company_name=company_name,
+        )
         zf.writestr("index.html", full_html)
-        if css:
-            zf.writestr("style.css", css)
         zf.writestr(
             "_redirects",
             redirects if redirects else "/*  /index.html  200",
@@ -152,8 +181,7 @@ async def deploy_all_pages(
                 "index.html":           { html, css, page_title, meta_desc },
                 "leistungen/index.html": { html, css, page_title, meta_desc },
             }
-    shared_css: optional — zusammengefuehrtes CSS aller Seiten (wird als /style.css
-                verlinkt wenn vorhanden)
+    shared_css: optional — shared CSS embedded before per-page CSS in every page
     company_name: Fallback fuer Meta-Tags
 
     Rueckgabe: { deploy_id, deploy_url, state }
@@ -168,29 +196,15 @@ async def deploy_all_pages(
     with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
 
         for filename, page in page_files.items():
-            page_title = page.get("page_title") or company_name
-            og_desc    = page.get("meta_desc") or f"Offizielle Website von {company_name}"
-            css_link   = '<link rel="stylesheet" href="/style.css">' if shared_css else ''
-            full_html  = f"""<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{page_title}</title>
-  <meta name="description" content="{og_desc}">
-  <meta property="og:title" content="{page_title}">
-  <meta property="og:description" content="{og_desc}">
-  <meta property="og:type" content="website">
-  {css_link}
-</head>
-<body>
-{page.get('html', '')}
-</body>
-</html>"""
+            full_html = _build_full_html(
+                page_name=page.get("page_title") or company_name,
+                html=page.get("html", ""),
+                css=page.get("css", ""),
+                shared_css=shared_css,
+                meta_description=page.get("meta_desc", ""),
+                company_name=company_name,
+            )
             zf.writestr(filename, full_html)
-
-        if shared_css:
-            zf.writestr("style.css", shared_css)
 
         # Keine SPA-Redirect-Regel — echte Dateien fuer echte Pfade
         zf.writestr("_redirects", "")

@@ -218,6 +218,18 @@ function SidebarNav({ badges }) {
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const [openGroups, setOpenGroups] = useState(() => {
+    const p = location.pathname;
+    const inGroup = (paths) => paths.some(g => p === g || p.startsWith(g + '/'));
+    return {
+      vertrieb:       inGroup(['/app/deals','/app/campaigns','/app/newsletter','/app/audit','/app/import','/app/export','/app/scraper']),
+      leads:          inGroup(['/app/leads','/app/companies']),
+      projekte:       inGroup(['/app/projects','/app/checklists','/app/tickets','/app/pages']),
+      einstellungen:  inGroup(['/app/profile','/app/settings','/app/retainer','/app/products','/app/product','/app/qr-generator','/app/webhooks','/app/admin']),
+    };
+  });
+  const toggleGroup = (id) => setOpenGroups(prev => ({ ...prev, [id]: !prev[id] }));
+
   const isActive = (path) => {
     if (path === '/app/leads') {
       return location.pathname === '/app/leads';
@@ -278,48 +290,160 @@ function SidebarNav({ badges }) {
             })}
           </div>
         ) : (
-          /* ── All other roles: full NAV_SECTIONS ── */
-          NAV_SECTIONS.map((section) => {
-            const visibleItems = section.items.filter(i => !i.adminOnly || hasRole('admin'));
-            if (visibleItems.length === 0) return null;
-            return (
-              <div key={section.title} style={{ marginBottom: 16 }}>
-                <div style={{
-                  fontSize: 10, fontWeight: 600, letterSpacing: '0.08em',
-                  color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase',
-                  padding: '0 10px', marginBottom: 4,
-                }}>
-                  {section.title}
+          /* ── All other roles: collapsible groups ── */
+          <>
+            {/* Dashboard — standalone top item */}
+            <button
+              onClick={() => navigate('/app/dashboard')}
+              className={`kc-sidebar-item${isActive('/app/dashboard') ? ' kc-sidebar-item--active' : ''}`}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 13, textAlign: 'left', fontFamily: 'var(--font-sans)', marginBottom: 2 }}
+            >
+              {icons.grid}
+              <span>Dashboard</span>
+            </button>
+
+            {/* ARBEIT section */}
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', padding: '8px 10px 4px', marginTop: 6 }}>
+              Arbeit
+            </div>
+
+            {/* ─ Vertrieb ─ */}
+            {[
+              {
+                id: 'vertrieb', label: 'Vertrieb',
+                items: [
+                  { label: 'Deals',         path: '/app/deals'       },
+                  { label: 'Kampagnen',      path: '/app/campaigns',  adminOnly: true },
+                  { label: 'Newsletter',     path: '/app/newsletter'  },
+                  { label: 'Website Audit',  path: '/app/audit'       },
+                  { label: 'Domain Import',  path: '/app/import'      },
+                  { label: 'Export',         path: '/app/export'      },
+                  { label: 'HWK Scraper',    path: '/app/scraper',    adminOnly: true },
+                ],
+              },
+              {
+                id: 'leads', label: 'Leads',
+                items: [
+                  { label: 'Alle Leads',  path: '/app/leads'    },
+                  { label: 'Unternehmen', path: '/app/companies' },
+                ],
+              },
+              {
+                id: 'projekte', label: 'Projekte',
+                items: [
+                  { label: 'Alle Projekte', path: '/app/projects'   },
+                  { label: 'Checklisten',   path: '/app/checklists' },
+                  { label: 'Tickets',       path: '/app/tickets'    },
+                  { label: 'Templates',     path: '/app/pages',     adminOnly: true },
+                ],
+              },
+            ].map(group => {
+              const visibleItems = group.items.filter(i => !i.adminOnly || hasRole('admin'));
+              if (visibleItems.length === 0) return null;
+              const isOpen = openGroups[group.id];
+              const hasActive = visibleItems.some(i => isActive(i.path));
+              return (
+                <div key={group.id}>
+                  <button
+                    onClick={() => toggleGroup(group.id)}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+                      padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-md)',
+                      cursor: 'pointer', fontSize: 13, textAlign: 'left',
+                      fontFamily: 'var(--font-sans)',
+                      background: hasActive && !isOpen ? 'rgba(255,255,255,0.07)' : 'transparent',
+                      color: hasActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)',
+                      marginBottom: 1,
+                    }}
+                  >
+                    <span style={{ flex: 1, fontWeight: hasActive ? 500 : 400 }}>{group.label}</span>
+                    <span style={{
+                      fontSize: 10, color: 'rgba(255,255,255,0.35)',
+                      transition: 'transform 0.2s',
+                      transform: isOpen ? 'rotate(90deg)' : 'none',
+                      display: 'inline-block',
+                    }}>›</span>
+                  </button>
+                  {isOpen && (
+                    <div style={{ paddingLeft: 6, marginBottom: 2 }}>
+                      {visibleItems.map(item => {
+                        const active = isActive(item.path);
+                        return (
+                          <button
+                            key={item.path}
+                            onClick={() => navigate(item.path)}
+                            className={`kc-sidebar-item${active ? ' kc-sidebar-item--active' : ''}`}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 12, textAlign: 'left', fontFamily: 'var(--font-sans)' }}
+                          >
+                            {item.label}
+                            {item.badgeKey && badges[item.badgeKey] > 0 && (
+                              <span style={{ marginLeft: 'auto', fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'var(--kc-yellow)', color: 'var(--kc-dark)', fontWeight: 700 }}>
+                                {badges[item.badgeKey]}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                {visibleItems.map((item) => {
-                  const active = isActive(item.path);
-                  return (
-                    <button
-                      key={item.path}
-                      onClick={() => navigate(item.path)}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'center',
-                        padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-md)',
-                        cursor: 'pointer', fontSize: 13, textAlign: 'left',
-                        fontFamily: 'var(--font-sans)',
-                      }}
-                      className={`kc-sidebar-item${active ? ' kc-sidebar-item--active' : ''}`}
-                    >
-                      <span>{item.label}</span>
-                      {item.badgeKey && badges[item.badgeKey] > 0 && (
-                        <span style={{
-                          marginLeft: 'auto', fontSize: 10, padding: '1px 6px', borderRadius: 10,
-                          background: 'var(--kc-yellow)', color: 'var(--kc-dark)', fontWeight: 700,
-                        }}>
-                          {badges[item.badgeKey]}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })
+              );
+            })}
+
+            {/* Separator */}
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '10px 6px 8px' }} />
+
+            {/* ─ Einstellungen ─ */}
+            {(() => {
+              const einstellItems = [
+                { label: 'Profil',             path: '/app/profile'       },
+                { label: 'Einstellungen',       path: '/app/settings'      },
+                { label: 'Retainer',            path: '/app/retainer',     adminOnly: true },
+                { label: 'Produkte',            path: '/app/products',     adminOnly: true },
+                { label: 'Produktentwicklung',  path: '/app/product',      adminOnly: true },
+                { label: 'QR-Generator',        path: '/app/qr-generator', adminOnly: true },
+                { label: 'Webhooks',            path: '/app/webhooks',     adminOnly: true },
+                { label: 'Benutzer',            path: '/app/admin/users',  adminOnly: true },
+              ].filter(i => !i.adminOnly || hasRole('admin'));
+              const isOpen = openGroups.einstellungen;
+              const hasActive = einstellItems.some(i => isActive(i.path));
+              return (
+                <div>
+                  <button
+                    onClick={() => toggleGroup('einstellungen')}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+                      padding: '7px 10px', border: 'none', borderRadius: 'var(--radius-md)',
+                      cursor: 'pointer', fontSize: 13, textAlign: 'left',
+                      fontFamily: 'var(--font-sans)',
+                      background: hasActive && !isOpen ? 'rgba(255,255,255,0.07)' : 'transparent',
+                      color: hasActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)',
+                    }}
+                  >
+                    <span style={{ flex: 1, fontWeight: hasActive ? 500 : 400 }}>Einstellungen</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', transition: 'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'none', display: 'inline-block' }}>›</span>
+                  </button>
+                  {isOpen && (
+                    <div style={{ paddingLeft: 6, marginBottom: 2 }}>
+                      {einstellItems.map(item => {
+                        const active = isActive(item.path);
+                        return (
+                          <button
+                            key={item.path}
+                            onClick={() => navigate(item.path)}
+                            className={`kc-sidebar-item${active ? ' kc-sidebar-item--active' : ''}`}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 12, textAlign: 'left', fontFamily: 'var(--font-sans)' }}
+                          >
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </>
         )}
       </nav>
 

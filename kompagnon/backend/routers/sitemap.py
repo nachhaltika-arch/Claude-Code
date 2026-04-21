@@ -268,6 +268,51 @@ def delete_page(
 pages_router = APIRouter(prefix="/api/pages", tags=["pages"])
 
 
+@pages_router.get("/")
+def list_pages(
+    page_type: Optional[str] = None,
+    lead_id: Optional[int] = None,
+    limit: int = 200,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    limit = min(limit, 500)
+    offset = max(offset, 0)
+
+    q = db.query(SitemapPage)
+    if page_type:
+        q = q.filter(SitemapPage.page_type == page_type)
+    if lead_id:
+        q = q.filter(SitemapPage.lead_id == lead_id)
+
+    total = q.count()
+    pages = q.order_by(SitemapPage.lead_id, SitemapPage.position).offset(offset).limit(limit).all()
+
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "items": [
+            {
+                "id": p.id,
+                "lead_id": p.lead_id,
+                "parent_id": p.parent_id,
+                "position": p.position,
+                "page_name": p.page_name,
+                "page_type": p.page_type,
+                "zweck": p.zweck,
+                "ziel_keyword": p.ziel_keyword,
+                "cta_text": p.cta_text,
+                "cta_ziel": p.cta_ziel,
+                "status": p.status,
+                "ist_pflichtseite": p.ist_pflichtseite,
+            }
+            for p in pages
+        ],
+    }
+
+
 class GjsData(BaseModel):
     html:    str  = ""
     css:     str  = ""

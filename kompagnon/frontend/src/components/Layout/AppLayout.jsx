@@ -755,8 +755,6 @@ export default function AppLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
 
-  const isProjectFull = !isMobile && /^\/app\/projects\/\d+/.test(location.pathname);
-
   const togglePalette = useCallback(() => setPaletteOpen(p => !p), []);
   const goSettings = useCallback(() => navigate('/app/settings'), [navigate]);
   const goDashboard = useCallback(() => navigate('/app/dashboard'), [navigate]);
@@ -863,19 +861,19 @@ export default function AppLayout() {
 
   return (
     <div style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
-      {/* Sidebar — desktop only, nicht bei Vollbild-Projektansicht */}
-      {!isMobile && user && !isProjectFull && <SidebarNav badges={badges} />}
+      {/* Sidebar — desktop only */}
+      {!isMobile && user && <SidebarNav badges={badges} />}
 
       {/* Main area */}
       <div style={{
         flex: 1,
         minWidth: 0,
-        marginLeft: !isMobile && user && !isProjectFull ? 'var(--sidebar-width)' : 0,
+        marginLeft: !isMobile && user ? 'var(--sidebar-width)' : 0,
         display: 'flex', flexDirection: 'column',
         height: '100vh', overflow: 'hidden',
       }}>
-        {/* Topbar — desktop only, nicht bei Vollbild-Projektansicht */}
-        {!isMobile && !isProjectFull && (
+        {/* Topbar — desktop only */}
+        {!isMobile && (
           <Topbar
             breadcrumbs={breadcrumbs}
             ctaLabel={cta?.label}
@@ -988,14 +986,12 @@ export default function AppLayout() {
           ref={mainRef}
           style={{
             flex: 1,
-            overflowY: isProjectFull ? 'hidden' : 'auto',
+            overflowY: 'auto',
             overflowX: 'hidden',
             minWidth: 0, position: 'relative',
-            padding: isMobile ? 16 : isProjectFull ? 0 : '20px 28px',
+            padding: isMobile ? 16 : '20px 28px',
             paddingTop: isMobile ? 72 : undefined,
-            paddingBottom: isMobile ? 80 : isProjectFull ? 0 : 20,
-            display: isProjectFull ? 'flex' : undefined,
-            flexDirection: isProjectFull ? 'column' : undefined,
+            paddingBottom: isMobile ? 80 : 20,
           }}
         >
           {/* Kaltstart-Banner */}
@@ -1021,10 +1017,7 @@ export default function AppLayout() {
           {isMobile && <PullIndicator />}
           <div key={location.pathname} className="page-enter" style={{
             maxWidth: '100%',
-            overflowX: isProjectFull ? undefined : 'hidden',
-            flex: isProjectFull ? 1 : undefined,
-            display: isProjectFull ? 'flex' : undefined,
-            flexDirection: isProjectFull ? 'column' : undefined,
+            overflowX: 'hidden',
           }}>
             <Outlet />
           </div>

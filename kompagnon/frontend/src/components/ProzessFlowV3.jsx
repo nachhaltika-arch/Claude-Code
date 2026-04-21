@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PHASEN, ALLE_SCHRITTE, SchrittInhalt } from './ProzessFlow';
-import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
 export default function ProzessFlowV3({
@@ -78,11 +77,11 @@ export default function ProzessFlowV3({
   }, [JSON.stringify(prozessDaten)]); // eslint-disable-line
 
   const waehleSchritt = useCallback((schritt) => {
-    const idx     = ALLE_SCHRITTE.findIndex(s => s.id === schritt.id);
+    const idx    = ALLE_SCHRITTE.findIndex(s => s.id === schritt.id);
     const voriger = idx > 0 ? ALLE_SCHRITTE[idx - 1] : null;
     if (voriger && !voriger.optional && !voriger.istFertig(prozessDaten)) {
       setWarnung({ ziel: schritt, fehlt: voriger,
-        text: `Schritt ${voriger.nr} „${voriger.label}" ist noch nicht abgeschlossen.` });
+        text: `Schritt ${voriger.nr} "${voriger.label}" ist noch nicht abgeschlossen.` });
     } else {
       setWarnung(null);
       setAktiverSchritt(schritt.id);
@@ -101,271 +100,90 @@ export default function ProzessFlowV3({
     else { setWarnung(null); setAktiverSchritt(next.id); }
   };
 
-  const statusLabel = project?.status?.includes('abgeschlossen') ? 'Abgeschlossen'
-    : project?.status?.includes('pausiert') ? 'Pausiert' : 'Aktiv';
-  const { isMobile } = useScreenSize();
-  const companyName = project?.company_name || lead?.company_name || `Projekt #${project?.id}`;
-
   return (
-    <div style={{
-      position: isMobile ? 'relative' : 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      display: 'flex', flexDirection: 'column',
-      zIndex: 50, background: 'var(--bg-surface)',
-      overflow: 'hidden', fontFamily: 'var(--font-sans)',
-      ...(isMobile ? { minHeight: '100vh' } : {}),
-    }}>
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
 
-      {/* ── Eigene Topbar mit Breadcrumb ────────────────────────────── */}
-      <div style={{
-        height: 44, flexShrink: 0,
-        background: 'var(--bg-surface)',
-        borderBottom: '1px solid var(--border-light)',
-        display: 'flex', alignItems: 'center',
-        padding: '0 20px 0 16px',
-        zIndex: 10,
-      }}>
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-          <button onClick={() => navigate && navigate('/app/dashboard')} style={{
-            background: 'none', border: 'none', color: 'var(--text-tertiary)',
-            cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)', padding: 0,
-          }}>
-            Dashboard
-          </button>
-          <span style={{ color: 'var(--text-tertiary)', opacity: .5 }}>›</span>
-          <button onClick={() => navigate && navigate('/app/projects')} style={{
-            background: 'none', border: 'none', color: 'var(--text-tertiary)',
-            cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)', padding: 0,
-          }}>
-            Kundenprojekte
-          </button>
-          <span style={{ color: 'var(--text-tertiary)', opacity: .5 }}>›</span>
-          <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 12 }}>
-            {companyName}
-          </span>
-        </nav>
-
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 80, height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${gesamtPct}%`, background: 'linear-gradient(90deg,#008EAA,#059669)', borderRadius: 2, transition: 'width .5s' }} />
-          </div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
-            {fertigCount}/{ALLE_SCHRITTE.length}
-          </span>
+      {/* ── Top progress bar ─────────────────────────────────────────────── */}
+      <div style={{ padding: '10px 16px 8px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1, height: 5, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${gesamtPct}%`, background: 'linear-gradient(90deg,#008EAA,#059669)', borderRadius: 3, transition: 'width .5s' }} />
         </div>
-      </div>
-
-      {/* ── Hauptbereich: linkes Panel + rechter Inhalt ─────────────── */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '240px 1fr', overflow: 'hidden', minHeight: 0 }}>
-
-      {/* ── LEFT: Process Navigation Sidebar ────────────────────────── */}
-      <div style={{
-        background: 'var(--kc-dark)',
-        borderRight: '1px solid rgba(255,255,255,0.08)',
-        display: 'flex', flexDirection: 'column',
-        overflow: 'hidden',
-        minWidth: 0,
-      }}>
-
-        {/* Header: back + project info */}
-        <div style={{ padding: '14px 12px 10px', borderBottom: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }}>
-          {onNavigateBack && (
-            <button onClick={onNavigateBack} style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              background: 'none', border: 'none',
-              color: 'rgba(255,255,255,0.45)', fontSize: 11,
-              cursor: 'pointer', padding: '0 0 9px 0',
-              fontFamily: 'var(--font-sans)',
-            }}>
-              ‹ Alle Projekte
-            </button>
-          )}
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {project?.company_name}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>#{project?.id}</span>
-            <span style={{
-              fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
-              background: statusLabel === 'Aktiv' ? '#059669' : statusLabel === 'Pausiert' ? '#d97706' : 'rgba(255,255,255,0.15)',
-              color: '#fff',
-            }}>{statusLabel}</span>
-          </div>
-          {/* Progress bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.12)', borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ width: `${gesamtPct}%`, height: '100%', background: 'linear-gradient(90deg,#008EAA,#059669)', transition: 'width .5s', borderRadius: 2 }} />
-            </div>
-            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', flexShrink: 0, fontWeight: 600 }}>{fertigCount}/{ALLE_SCHRITTE.length}</span>
-          </div>
-        </div>
-
-        {/* Phase + Step Navigation */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0 12px' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
           {PHASEN.map(phase => {
             const phaseFertig = phase.schritte.filter(s => s.istFertig(prozessDaten)).length;
             const phaseAktiv  = phase.schritte.some(s => s.id === aktiverSchritt);
             return (
-              <div key={phase.id} style={{ marginBottom: 2 }}>
-                {/* Phase header */}
-                <div style={{ padding: '7px 12px 3px', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ fontSize: 10 }}>{phase.icon}</span>
-                  <span style={{
-                    fontSize: 9, fontWeight: 800,
-                    color: phaseAktiv ? phase.color : 'rgba(255,255,255,0.28)',
-                    textTransform: 'uppercase', letterSpacing: '.08em', flex: 1,
-                  }}>{phase.label}</span>
-                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>
-                    {phaseFertig}/{phase.schritte.length}
-                  </span>
-                </div>
-
-                {/* Step items */}
-                {phase.schritte.map(schritt => {
-                  const fertig = schritt.istFertig(prozessDaten);
-                  const aktiv  = schritt.id === aktiverSchritt;
-                  return (
-                    <button
-                      key={schritt.id}
-                      onClick={() => waehleSchritt(schritt)}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                        padding: '5px 10px 5px 9px', border: 'none',
-                        borderLeft: aktiv ? '3px solid var(--kc-yellow)' : '3px solid transparent',
-                        background: aktiv ? 'rgba(255,255,255,0.09)' : 'transparent',
-                        color: fertig ? '#86efac' : aktiv ? '#fff' : 'rgba(255,255,255,0.5)',
-                        fontSize: 12, cursor: 'pointer', textAlign: 'left',
-                        fontFamily: 'var(--font-sans)', transition: 'background .12s',
-                      }}
-                    >
-                      <span style={{
-                        width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 9, fontWeight: 700,
-                        background: fertig ? '#059669' : aktiv ? 'var(--kc-yellow)' : 'rgba(255,255,255,0.1)',
-                        color: aktiv && !fertig ? '#004F59' : '#fff',
-                      }}>
-                        {fertig ? '✓' : schritt.nr}
-                      </span>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontSize: 11.5 }}>
-                        {schritt.label}
-                      </span>
-                      {schritt.optional && <span style={{ fontSize: 9, opacity: .35, flexShrink: 0 }}>opt</span>}
-                    </button>
-                  );
-                })}
+              <div key={phase.id} style={{ display: 'flex', alignItems: 'center', gap: 4, opacity: phaseAktiv ? 1 : 0.5 }}>
+                <span style={{ fontSize: 11 }}>{phase.icon}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: phaseAktiv ? phase.color : 'var(--text-tertiary)' }}>
+                  {phaseFertig}/{phase.schritte.length}
+                </span>
               </div>
             );
           })}
-        </div>
-
-        {/* Sidebar footer: action buttons */}
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: '10px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {project?.lead_id && navigate && (
-            <button onClick={() => navigate(`/app/leads/${project.lead_id}`)} style={{
-              width: '100%', padding: '6px 10px', border: 'none', borderRadius: 'var(--radius-md)',
-              background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.65)',
-              fontSize: 11, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-sans)',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-              <span style={{ fontSize: 13 }}>👤</span> Kundenkartei
-            </button>
-          )}
-          {onShowEdit && (
-            <button onClick={onShowEdit} style={{
-              width: '100%', padding: '6px 10px', border: 'none', borderRadius: 'var(--radius-md)',
-              background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.65)',
-              fontSize: 11, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-sans)',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-              <span style={{ fontSize: 13 }}>✏️</span> Projektdaten
-            </button>
-          )}
-          {isAdmin && onShowApproval && (
-            <button onClick={onShowApproval} style={{
-              width: '100%', padding: '6px 10px', border: 'none', borderRadius: 'var(--radius-md)',
-              background: 'rgba(250,230,0,0.15)', color: 'var(--kc-yellow)',
-              fontSize: 11, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-sans)',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-              <span style={{ fontSize: 13 }}>🖊️</span> Freigabe anfragen
-            </button>
-          )}
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginLeft: 4 }}>
+            {fertigCount}/{ALLE_SCHRITTE.length} · {gesamtPct}%
+          </span>
         </div>
       </div>
 
-      {/* ── RIGHT: Step Content Area ─────────────────────────────────── */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-app)' }}>
+      {/* ── Main: timeline + content ──────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr', minHeight: 400 }}>
 
-        {/* Active step header */}
-        {aktivObj && (
-          <div style={{
-            padding: '14px 20px',
-            borderBottom: '1px solid var(--border-light)',
-            display: 'flex', alignItems: 'center', gap: 14,
-            background: `${aktivObj.phase.color}08`,
-            flexShrink: 0,
-          }}>
-            <div style={{
-              width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
-              background: aktivObj.istFertig(prozessDaten) ? '#059669' : aktivObj.phase.color,
-              color: '#fff', fontSize: 15, fontWeight: 800,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              {aktivObj.istFertig(prozessDaten) ? '✓' : aktivObj.nr}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: aktivObj.phase.color, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>
-                {aktivObj.phase.label} · Schritt {aktivObj.nr}/{ALLE_SCHRITTE.length}
-                {aktivObj.optional && <span style={{ marginLeft: 8, opacity: .6 }}>Optional</span>}
-                {aktivObj.istFertig(prozessDaten) && (
-                  <span style={{ marginLeft: 8, background: '#dcfce7', color: '#059669', padding: '1px 6px', borderRadius: 99 }}>Fertig</span>
+        {/* Left 64px timeline */}
+        <div style={{ borderRight: '1px solid var(--border-light)', background: 'var(--bg-app)', padding: '12px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+          {PHASEN.map((phase, pi) => (
+            <TimelinePhase
+              key={phase.id}
+              phase={phase}
+              prozessDaten={prozessDaten}
+              aktiverSchritt={aktiverSchritt}
+              waehleSchritt={waehleSchritt}
+              isLast={pi === PHASEN.length - 1}
+            />
+          ))}
+        </div>
+
+        {/* Right content area */}
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+
+          {/* Active step header */}
+          {aktivObj && (
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 14, background: `${aktivObj.phase.color}08`, flexShrink: 0 }}>
+              <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: aktivObj.istFertig(prozessDaten) ? '#059669' : aktivObj.phase.color, color: '#fff', fontSize: 15, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {aktivObj.istFertig(prozessDaten) ? '✓' : aktivObj.nr}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: aktivObj.phase.color, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>
+                  {aktivObj.phase.label} · Schritt {aktivObj.nr}/{ALLE_SCHRITTE.length}
+                  {aktivObj.optional && <span style={{ marginLeft: 8, opacity: .6 }}>Optional</span>}
+                  {aktivObj.istFertig(prozessDaten) && <span style={{ marginLeft: 8, background: '#dcfce7', color: '#059669', padding: '1px 6px', borderRadius: 99 }}>Fertig</span>}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{aktivObj.icon} {aktivObj.label}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>
+                  {aktivObj.istFertig(prozessDaten) ? aktivObj.fertigText(prozessDaten) : aktivObj.desc}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                {aktivObj.nr > 1 && (
+                  <button onClick={() => goTo(-1)}
+                    style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    ← Zurück
+                  </button>
+                )}
+                {aktivObj.nr < ALLE_SCHRITTE.length && (
+                  <button onClick={() => goTo(1)}
+                    style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: aktivObj.istFertig(prozessDaten) ? '#059669' : aktivObj.phase.color, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    Weiter →
+                  </button>
                 )}
               </div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
-                {aktivObj.icon} {aktivObj.label}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>
-                {aktivObj.istFertig(prozessDaten) ? aktivObj.fertigText(prozessDaten) : aktivObj.desc}
-              </div>
             </div>
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              {aktivObj.nr > 1 && (
-                <button onClick={() => goTo(-1)} style={{
-                  padding: '6px 12px', borderRadius: 6,
-                  border: '1px solid var(--border-light)',
-                  background: 'var(--bg-surface)', color: 'var(--text-secondary)',
-                  fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                }}>
-                  ← Zurück
-                </button>
-              )}
-              {aktivObj.nr < ALLE_SCHRITTE.length && (
-                <button onClick={() => goTo(1)} style={{
-                  padding: '6px 14px', borderRadius: 6, border: 'none',
-                  background: aktivObj.istFertig(prozessDaten) ? '#059669' : aktivObj.phase.color,
-                  color: '#fff', fontSize: 12, fontWeight: 700,
-                  cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                }}>
-                  Weiter →
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Scrollable step area */}
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          )}
 
           {/* Order warning */}
           {warnung && (
-            <div style={{
-              margin: '12px 16px 0', padding: '12px 16px',
-              background: 'var(--status-warning-bg)',
-              border: '1px solid var(--status-warning-text)',
-              borderRadius: 'var(--radius-lg)',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
-            }}>
+            <div style={{ margin: '12px 16px 0', padding: '12px 16px', background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-text)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 16 }}>⚠️</span>
                 <div>
@@ -374,19 +192,12 @@ export default function ProzessFlowV3({
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => { setWarnung(null); setAktiverSchritt(warnung.fehlt.id); }} style={{
-                  padding: '6px 12px', borderRadius: 6, border: 'none',
-                  background: 'var(--status-warning-text)', color: '#fff',
-                  fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                }}>
+                <button onClick={() => { setWarnung(null); setAktiverSchritt(warnung.fehlt.id); }}
+                  style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: 'var(--status-warning-text)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                   Schritt {warnung.fehlt.nr} zuerst
                 </button>
-                <button onClick={() => { setWarnung(null); setAktiverSchritt(warnung.ziel.id); }} style={{
-                  padding: '6px 12px', borderRadius: 6,
-                  border: '1px solid var(--status-warning-text)',
-                  background: 'transparent', color: 'var(--status-warning-text)',
-                  fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                }}>
+                <button onClick={() => { setWarnung(null); setAktiverSchritt(warnung.ziel.id); }}
+                  style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--status-warning-text)', background: 'transparent', color: 'var(--status-warning-text)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                   Trotzdem weiter
                 </button>
               </div>
@@ -400,11 +211,7 @@ export default function ProzessFlowV3({
              const fehlende = aktivObj.wasFehlts?.(prozessDaten) || [];
              if (!fehlende.length) return null;
              return (
-               <div style={{
-                 margin: '12px 20px 0', padding: '10px 14px',
-                 background: 'rgba(220,38,38,.06)', border: '1px solid rgba(220,38,38,.2)',
-                 borderRadius: 8, display: 'flex', alignItems: 'flex-start', gap: 10,
-               }}>
+               <div style={{ margin: '12px 20px 0', padding: '10px 14px', background: 'rgba(220,38,38,.06)', border: '1px solid rgba(220,38,38,.2)', borderRadius: 8, display: 'flex', alignItems: 'flex-start', gap: 10, flexShrink: 0 }}>
                  <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>⚠️</span>
                  <div>
                    <div style={{ fontSize: 11, fontWeight: 700, color: '#C0392B', marginBottom: 4 }}>Noch nicht abgeschlossen:</div>
@@ -428,11 +235,73 @@ export default function ProzessFlowV3({
               websiteContent={websiteContent} brandData={brandData}
               netlify={netlify} qaResult={qaResult}
               onProjectRefresh={onProjectRefresh}
+              isAdmin={isAdmin} navigate={navigate}
+              onShowEdit={onShowEdit} onShowApproval={onShowApproval}
             />
           )}
         </div>
       </div>
-      </div>{/* end Hauptbereich */}
+    </div>
+  );
+}
+
+function TimelinePhase({ phase, prozessDaten, aktiverSchritt, waehleSchritt, isLast }) {
+  return (
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {/* Phase label */}
+      <div style={{ fontSize: 8, fontWeight: 800, color: phase.color, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6, opacity: 0.85 }}>
+        {phase.label.slice(0, 3)}
+      </div>
+
+      {phase.schritte.map((schritt, si) => {
+        const fertig = schritt.istFertig(prozessDaten);
+        const aktiv  = schritt.id === aktiverSchritt;
+        const isLastInPhase = si === phase.schritte.length - 1;
+        const circleColor = fertig ? '#059669' : aktiv ? phase.color : 'var(--bg-elevated)';
+        const textColor   = fertig || aktiv ? '#fff' : 'var(--text-tertiary)';
+        const borderColor = fertig ? '#059669' : aktiv ? phase.color : 'var(--border-medium)';
+
+        return (
+          <div key={schritt.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+            {/* Step circle */}
+            <button
+              onClick={() => waehleSchritt(schritt)}
+              title={`${schritt.nr}. ${schritt.label}`}
+              style={{
+                width: aktiv ? 32 : 26, height: aktiv ? 32 : 26,
+                borderRadius: '50%',
+                border: `2px solid ${borderColor}`,
+                background: circleColor,
+                color: textColor,
+                fontSize: aktiv ? 12 : 10,
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: 'var(--font-sans)',
+                transition: 'all .2s',
+                flexShrink: 0,
+                boxShadow: aktiv ? `0 0 0 3px ${phase.color}30` : 'none',
+                position: 'relative',
+                zIndex: 1,
+              }}
+            >
+              {fertig ? '✓' : schritt.nr}
+            </button>
+
+            {/* Connector line — between steps and between phases */}
+            {(!isLastInPhase || !isLast) && (
+              <div style={{
+                width: 2,
+                height: isLastInPhase ? 14 : 10,
+                background: fertig ? '#059669' : 'var(--border-light)',
+                borderRadius: 1,
+                margin: '3px 0',
+                flexShrink: 0,
+              }} />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
-import gjsNewsletter from 'grapesjs-preset-newsletter';
 import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 
 const DEFAULT_TEMPLATE = `
@@ -29,6 +29,7 @@ const DEFAULT_TEMPLATE = `
 </table>`;
 
 export default function NewsletterDesigner({ leadId, projectId, onSend, onSave, initialHtml }) {
+  const { token } = useAuth();
   const editorRef = useRef(null);
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendTo, setSendTo] = useState('');
@@ -44,7 +45,7 @@ export default function NewsletterDesigner({ leadId, projectId, onSend, onSave, 
       const res = await fetch(`${API_BASE_URL}/api/messages/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json',
-                   Authorization: `Bearer ${localStorage.getItem('token')}` },
+                   Authorization: `Bearer ${token}` },
         body: JSON.stringify({ to: sendTo, subject, html,
                                lead_id: leadId || null,
                                project_id: projectId || null }),
@@ -63,15 +64,8 @@ export default function NewsletterDesigner({ leadId, projectId, onSend, onSave, 
       storageManager: false,
       fromElement: false,
       components: initialHtml || DEFAULT_TEMPLATE,
-      plugins: [gjsNewsletter],
-      pluginsOpts: {
-        [gjsNewsletter]: {
-          modalLabelImport: 'HTML importieren',
-          modalLabelExport: 'HTML exportieren',
-          updateStyleManager: true,
-          showStylesOnChange: true,
-        },
-      },
+      plugins: [],
+      pluginsOpts: {},
       deviceManager: {
         devices: [
           { name: 'Desktop', width: '650px' },

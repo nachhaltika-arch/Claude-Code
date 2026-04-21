@@ -1,6 +1,6 @@
 """
-Website Design Generator
-POST /api/customers/{customer_id}/generate-design
+Website Mockup Generator
+POST /api/customers/{customer_id}/generate-mockup
 Generates a complete single-page HTML website for a lead/customer using Claude AI.
 """
 import logging
@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["website_mockup"])
 
 
-@router.post("/customers/{customer_id}/generate-design")
-async def generate_design(
+@router.post("/customers/{customer_id}/generate-mockup")
+async def generate_mockup(
     customer_id: int,
     db: Session = Depends(get_db),
     _=Depends(require_any_auth),
 ):
     """
-    Generate a complete single-page HTML website design for a lead/customer.
+    Generate a complete single-page HTML website mockup for a lead/customer.
     customer_id corresponds to the Lead.id (leads are the primary record in the UI).
     """
     lead = db.query(Lead).filter(Lead.id == customer_id).first()
@@ -76,5 +76,5 @@ async def generate_design(
         return {"html": html}
 
     except Exception as e:
-        logger.error("generate_design Fehler für customer_id=%s: %s", customer_id, e)
+        logger.error("generate_mockup Fehler für customer_id=%s: %s", customer_id, e)
         raise HTTPException(status_code=500, detail=f"KI-Generierung fehlgeschlagen: {e}")

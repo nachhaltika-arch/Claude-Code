@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   RadarChart,
   PolarGrid,
@@ -9,8 +9,6 @@ import {
 } from 'recharts';
 import * as echarts from 'echarts';
 import { useScreenSize } from '../utils/responsive';
-import { useAuth } from '../context/AuthContext';
-import API_BASE_URL from '../config';
 
 const LEVEL_STYLES = {
   'Homepage Standard Platin': { bg: '#e8eaf6', color: '#283593', icon: '\uD83C\uDFC6' },
@@ -135,28 +133,6 @@ function scoreIcon(score, max) {
 
 export default function AuditReport({ auditData, onClose }) {
   const { isMobile } = useScreenSize();
-  const { token } = useAuth();
-  const [angebotLoading, setAngebotLoading] = useState(false);
-
-  const createAngebot = async () => {
-    setAngebotLoading(true);
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/audit/${auditData.id}/angebot`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!res.ok) throw new Error("Fehler");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Angebot-KOMPAGNON-${auditData.company_name}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      alert("Angebot konnte nicht erstellt werden.");
-    } finally { setAngebotLoading(false); }
-  };
 
   if (!auditData) return null;
 
@@ -170,7 +146,7 @@ export default function AuditReport({ auditData, onClose }) {
   const res = r.result || r;
 
   // Support: res.items.key (from _format_audit), res.key (flat DB), r.result.key
-  const itemsRaw = r.items || r.result?.items || r.result || {};
+  const itemsRaw = res.items || r.items || {};
   const items = {};
   for (const cat of CATEGORIES) {
     for (const item of cat.items) {
@@ -210,35 +186,22 @@ export default function AuditReport({ auditData, onClose }) {
     'inhalt_nutzererfahrung': 'ux_score',
   };
 
-  // Build category score: try direct score keys, then categories object, then sum items
+  // Build category score: prefer categories object, then flat score fields (also in r.result),
+  // then fall back to summing individual items
   const getCatScore = (catKey, catMax) => {
-    // 1. Direct score keys (multiple naming conventions)
-    const directKeys = {
-      rechtliche_compliance:  ['rc_score', 'rc_gesamt'],
-      technische_performance: ['tp_score', 'tp_gesamt'],
-      barrierefreiheit:       ['bf_score', 'bf_gesamt'],
-      sicherheit_datenschutz: ['si_score', 'si_gesamt'],
-      seo_sichtbarkeit:       ['se_score', 'se_gesamt'],
-      inhalt_nutzererfahrung: ['ux_score', 'ux_gesamt'],
-    };
-    const keys = directKeys[catKey] || [];
-    for (const k of keys) {
-      const v = r.result?.[k] ?? r[k];
-      if (v !== undefined && v !== null) return Math.round(Number(v));
-    }
-    // 2. categories object (from _format_audit or r.result.categories)
-    const cat = r.result?.categories?.[catKey];
-    if (cat?.score !== undefined) return Math.round(Number(cat.score));
-    // 3. Flat score field via CAT_SCORE_FIELD map
+    // 1. categories object (from _format_audit or r.result.categories)
+    const cats = res.categories || r.categories;
+    if (cats?.[catKey]?.score != null) return cats[catKey].score;
+    // 2. flat score fields on res (r.result) or r directly
     const field = CAT_SCORE_FIELD[catKey];
     if (field) {
-      if (res[field] != null) return Math.round(Number(res[field]));
-      if (r[field] != null) return Math.round(Number(r[field]));
+      if (res[field] != null) return res[field];
+      if (r[field] != null) return r[field];
     }
-    // 4. Sum individual item scores
-    const catDef = CATEGORIES.find(c => c.key === catKey);
-    if (!catDef) return 0;
-    return Math.min(catDef.items.reduce((sum, item) => sum + (items[item.key] || 0), 0), catMax);
+    // 3. sum individual item scores
+    const cat = CATEGORIES.find(c => c.key === catKey);
+    if (!cat) return 0;
+    return Math.min(cat.items.reduce((sum, item) => sum + (items[item.key] || 0), 0), catMax);
   };
 
   const radarData = CATEGORIES.map((cat) => {
@@ -268,25 +231,6 @@ export default function AuditReport({ auditData, onClose }) {
           ×
         </button>
       )}
-      {/* Angebot Button */}
-      {auditData.id && auditData.status === "completed" && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button
-            onClick={createAngebot}
-            disabled={angebotLoading}
-            title="Erstellt ein fertiges PDF-Angebot auf Basis dieses Audit-Ergebnisses"
-            style={{
-              background: '#1D9E75', color: '#fff', border: 'none',
-              borderRadius: 8, padding: '8px 16px', fontSize: 13,
-              fontWeight: 600, cursor: 'pointer', display: 'flex',
-              alignItems: 'center', gap: 6,
-            }}
-          >
-            {angebotLoading ? '⏳ Wird erstellt...' : '📄 Angebot erstellen'}
-          </button>
-        </div>
-      )}
-
       {/* Score Hero */}
       <div
         className="kc-card"

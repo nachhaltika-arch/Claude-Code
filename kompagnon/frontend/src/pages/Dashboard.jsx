@@ -6,12 +6,9 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import API_BASE_URL from '../config';
-import OnboardingWizard from '../components/OnboardingWizard';
 
 export default function Dashboard() {
-  const { token, user } = useAuth();
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const { token } = useAuth();
   const navigate = useNavigate();
   const { isMobile } = useScreenSize();
   const [kpis, setKpis] = useState(null);
@@ -25,9 +22,9 @@ export default function Dashboard() {
     fetchedRef.current = true;
     const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     Promise.all([
-      fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h }).then(r => r.json()).catch(() => null),
+      fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE_URL}/api/leads/`, { headers: h }).then(r => r.json()).catch(() => []),
-      fetch(`${API_BASE_URL}/api/audit/recent`, { headers: h }).then(r => r.json()).catch(() => []),
+      fetch(`${API_BASE_URL}/api/audit/recent`, { headers: h }).then(r => r.json().catch(() => [])),
     ]).then(async ([kpiData, leadsData, auditData]) => {
       setKpis(kpiData);
       let rows = Array.isArray(leadsData) ? leadsData : [];
@@ -42,35 +39,6 @@ export default function Dashboard() {
       setAudits(Array.isArray(auditData) ? auditData.slice(0, 5) : []);
     }).finally(() => setLoading(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!user || onboardingChecked) return;
-    setOnboardingChecked(true);
-
-    // Nur für Kunden mit verknüpftem Lead
-    if (user.role !== 'kunde' || !user.lead_id) return;
-
-    // Onboarding-Status vom Server prüfen
-    const checkOnboarding = async () => {
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/api/auth/me`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('kompagnon_token')}`,
-            },
-          }
-        );
-        if (res.ok) {
-          const me = await res.json();
-          if (me.onboarding_completed === false) {
-            setShowOnboarding(true);
-          }
-        }
-      } catch {}
-    };
-    checkOnboarding();
-  }, [user, onboardingChecked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const KpiCard = ({ label, value, icon, delta, color }) => (
     <Card>
@@ -132,18 +100,6 @@ export default function Dashboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, animation: 'fadeIn 0.3s ease', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
-
-      {showOnboarding && (
-        <OnboardingWizard
-          user={user}
-          onComplete={() => {
-            setShowOnboarding(false);
-            // onboarding_completed Flag lokal aktualisieren
-            // damit kein zweiter Check den Wizard nochmal zeigt
-            setOnboardingChecked(true);
-          }}
-        />
-      )}
 
       {/* KPI Grid */}
       <div style={{

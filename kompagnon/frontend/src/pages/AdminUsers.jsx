@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import { apiCall } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
@@ -75,7 +74,7 @@ export default function AdminUsers() {
   };
 
   return (
-    <div style={{ width: '100%', boxSizing: 'border-box' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>Benutzerverwaltung</h1>
         <button onClick={() => { setShowCreate(true); setTempPw(''); setNewUser({ email: '', first_name: '', last_name: '', role: 'nutzer', position: '' }); }} style={{
@@ -118,7 +117,7 @@ export default function AdminUsers() {
       )}
 
       {/* Create User Modal */}
-      {showCreate && createPortal(
+      {showCreate && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowCreate(false); }}>
           <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', padding: '28px 32px', maxWidth: 440, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -161,8 +160,7 @@ export default function AdminUsers() {
               </form>
             )}
           </div>
-        </div>,
-        document.body
+        </div>
       )}
     </div>
   );

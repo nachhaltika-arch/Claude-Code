@@ -81,7 +81,7 @@ export default function Tickets() {
       </div>
 
       {/* Two-column: List + Detail */}
-      <div style={{ display: 'grid', gridTemplateColumns: selected && !isMobile ? '2fr minmax(280px,1fr)' : '1fr', gap: 16, alignItems: 'flex-start', minWidth: 0, width: '100%', overflowX: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: selected && !isMobile ? '1fr 400px' : '1fr', gap: 16, alignItems: 'flex-start', minWidth: 0, width: '100%', overflowX: 'hidden' }}>
         {/* List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
           {filtered.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)', background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)' }}>Keine Tickets</div>}
@@ -136,12 +136,7 @@ export default function Tickets() {
                 {selected.user_name && <span>👤 {selected.user_name}</span>}
                 {selected.user_email && <span>✉️ {selected.user_email}</span>}
                 <span>{String(selected.created_at || '').slice(0, 16).replace('T', ' ')}</span>
-                {selected.page_name && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#f0f4ff', color: '#3b5bdb', border: '1px solid #c5d0ff', borderRadius: 6, padding: '3px 10px', fontWeight: 700, fontSize: 12 }}>
-                    📍 {selected.page_name}
-                  </span>
-                )}
-                {selected.page_url && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11, color: 'var(--text-tertiary)' }}>🔗 {selected.page_url}</span>}
+                {selected.page_url && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🔗 {selected.page_url}</span>}
               </div>
               <Lbl>Beschreibung</Lbl>
               <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: '12px 14px', fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: 16, whiteSpace: 'pre-wrap' }}>{selected.description}</div>

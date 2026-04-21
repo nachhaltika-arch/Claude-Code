@@ -33,48 +33,6 @@ async def test_wp_connection(url: str, username: str, app_password: str) -> tupl
         return False, str(exc)
 
 
-async def push_to_wordpress(
-    url: str,
-    username: str,
-    app_password: str,
-    html: str,
-    css: str,
-    page_title: str,
-) -> tuple[bool, str]:
-    """
-    Create a draft WordPress page with a self-contained HTML document as content.
-    Returns (True, page_url) on success or (False, error_message).
-    """
-    full_html = (
-        f'<!DOCTYPE html><html lang="de"><head>'
-        f'<meta charset="UTF-8">'
-        f'<meta name="viewport" content="width=device-width,initial-scale=1.0">'
-        f'<title>{page_title}</title>'
-        f'<style>{css}</style>'
-        f'</head><body>{html}</body></html>'
-    )
-    payload = {
-        "title": page_title,
-        "content": full_html,
-        "status": "draft",
-    }
-    endpoint = f"{url.rstrip('/')}/wp-json/wp/v2/pages"
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(
-                endpoint,
-                json=payload,
-                headers=_basic_header(username, app_password),
-            )
-        data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
-        if resp.status_code in (200, 201):
-            return True, data.get("link", "")
-        return False, data.get("message") or f"HTTP {resp.status_code}"
-    except Exception as exc:
-        logger.debug("WP push failed for %s: %s", url, exc)
-        return False, str(exc)
-
-
 async def push_to_wordpress_elementor(
     url: str,
     username: str,

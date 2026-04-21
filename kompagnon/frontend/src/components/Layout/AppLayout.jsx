@@ -55,12 +55,6 @@ const icons = {
       <path d="M5 1v14M5 5h6M5 8h6M5 11h4"/>
     </svg>
   ),
-  newspaper: (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/>
-      <path d="M4.5 6h7M4.5 8.5h7M4.5 11h4"/>
-    </svg>
-  ),
   dots: (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
       <circle cx="4" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12" cy="8" r="1.2"/>
@@ -90,7 +84,6 @@ const NAV_SECTIONS = [
       { label: 'Domain Import',     path: '/app/import',    icon: 'users' },
       { label: 'Export',            path: '/app/export',    icon: 'docCheck' },
       { label: 'Website Audit',     path: '/app/audit',     icon: 'docCheck' },
-      { label: 'Newsletter',         path: '/app/newsletter', icon: 'newspaper' },
     ],
   },
   {
@@ -104,20 +97,18 @@ const NAV_SECTIONS = [
     title: 'Qualität',
     items: [
       { label: 'Support Tickets', path: '/app/tickets', icon: 'docCheck' },
-      { label: 'Produktentwicklung', path: '/app/product',        icon: 'gear', adminOnly: true },
-      { label: 'Produkteditor',      path: '/app/product-editor', icon: 'gear', adminOnly: true },
-      { label: 'QR-Generator',       path: '/app/qr-generator',  icon: 'qr',   adminOnly: true },
+      { label: 'Produktentwicklung', path: '/app/product', icon: 'gear', adminOnly: true },
+      { label: 'QR-Generator', path: '/app/qr-generator', icon: 'qr', adminOnly: true },
     ],
   },
-  // Inhalte / Akademie — ausgeblendet, wird später aktiviert
-  // {
-  //   title: 'Inhalte',
-  //   items: [
-  //     { label: 'Kurse', path: '/app/courses', icon: 'book' },
-  //     { label: 'Akademy', path: '/app/academy', icon: 'gradCap' },
-  //     { label: 'Kurse verwalten', path: '/app/akademie/admin', icon: 'gear', adminOnly: true },
-  //   ],
-  // },
+  {
+    title: 'Inhalte',
+    items: [
+      { label: 'Kurse', path: '/app/courses', icon: 'book' },
+      { label: 'Akademy', path: '/app/academy', icon: 'gradCap' },
+      { label: 'Kurse verwalten', path: '/app/akademie/admin', icon: 'gear', adminOnly: true },
+    ],
+  },
   {
     title: 'Einstellungen',
     items: [
@@ -146,8 +137,7 @@ const PAGE_NAMES = {
   '/app/tickets': 'Support Tickets',
   '/app/profile': 'Profil',
   '/app/checklists': 'Checklisten',
-  '/app/product':         'Produktentwicklung',
-  '/app/product-editor':  'Produkteditor',
+  '/app/product': 'Produktentwicklung',
 };
 
 const MOBILE_TABS = [
@@ -167,14 +157,13 @@ function SidebarNav({ badges }) {
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const isActive = (path) => {
-    if (path === '/app/leads') {
-      return location.pathname === '/app/leads';
-    }
-    if (path === '/app/projects') {
-      return location.pathname === '/app/projects' || location.pathname.startsWith('/app/projects/');
-    }
-    return location.pathname === path || location.pathname.startsWith(path + '/');
+  const isActive = (item) => {
+    const p = typeof item === 'string' ? item : item.path;
+    if (item.exactMatch)  return location.pathname === p;
+    if (item.activePaths) return item.activePaths.some(ap =>
+      ap.endsWith('/') ? location.pathname.startsWith(ap) : location.pathname === ap
+    );
+    return location.pathname === p || location.pathname.startsWith(p + '/');
   };
 
   return (
@@ -207,7 +196,7 @@ function SidebarNav({ badges }) {
               { label: 'Akademie',     path: '/app/academy',                                              icon: '🎓' },
               { label: 'Einstellungen',path: '/app/settings',                                             icon: '⚙️' },
             ].map((item) => {
-              const active = isActive(item.path);
+              const active = isActive(item);
               return (
                 <button key={item.path} onClick={() => navigate(item.path)} style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10,
@@ -240,7 +229,7 @@ function SidebarNav({ badges }) {
                   {section.title}
                 </div>
                 {visibleItems.map((item) => {
-                  const active = isActive(item.path);
+                  const active = isActive(item);
                   return (
                     <button
                       key={item.path}

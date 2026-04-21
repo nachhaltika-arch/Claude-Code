@@ -25,7 +25,7 @@ else:
         max_overflow=5,
         pool_timeout=10,
         connect_args={
-            "connect_timeout": 8,
+            "connect_timeout": 5,
             "keepalives": 1,
             "keepalives_idle": 30,
             "keepalives_interval": 5,
@@ -149,14 +149,6 @@ class Project(Base):
     industry = Column(String(100))
     email_notifications_enabled = Column(Boolean, default=True)
     customer_email = Column(String(255))
-
-    # Screenshots before/after
-    screenshot_before       = Column(Text)
-    screenshot_before_date  = Column(DateTime)
-    screenshot_after        = Column(Text)
-    screenshot_after_date   = Column(DateTime)
-    screenshot_url_before   = Column(String(500))
-    screenshot_url_after    = Column(String(500))
 
     # Relationships
     lead = relationship("Lead", back_populates="projects", foreign_keys=[lead_id])
@@ -712,20 +704,6 @@ class ProjectScrapeJob(Base):
     total_pages  = Column(Integer, default=0)
     started_at   = Column(DateTime)
     completed_at = Column(DateTime)
-
-
-class Message(Base):
-    __tablename__ = "messages"
-    id          = Column(Integer, primary_key=True)
-    lead_id     = Column(Integer, ForeignKey("leads.id"), nullable=False)
-    sender_role = Column(String, nullable=False)   # "admin" | "kunde"
-    sender_name = Column(String)                   # z.B. "David" oder Firmenname
-    channel     = Column(String, default="in_app") # "in_app" | "email"
-    subject     = Column(String)                   # nur bei channel="email"
-    content     = Column(Text, nullable=False)
-    is_read     = Column(Boolean, default=False)
-    read_at     = Column(DateTime, nullable=True)
-    created_at  = Column(DateTime, default=datetime.utcnow)
 
 
 def init_db():

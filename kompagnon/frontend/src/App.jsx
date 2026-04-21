@@ -25,7 +25,6 @@ import Landing from './pages/Landing';
 import Checkout from './pages/Checkout';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import Settings from './pages/Settings';
-import ProductEditor from './pages/ProductEditor';
 import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
 import Impressum from './pages/Impressum';
@@ -55,15 +54,6 @@ import PackageKompagnon from './pages/PackageKompagnon';
 import PackagePremium from './pages/PackagePremium';
 import KampagneLandingPage from './pages/KampagneLandingPage';
 import QRGenerator from './pages/QRGenerator';
-import TemplateLibrary from './pages/TemplateLibrary';
-import TemplateEditor from './pages/TemplateEditor';
-import NewsletterDesigner from './components/NewsletterDesigner';
-import Newsletter from './pages/Newsletter';
-import PortalLogin from './pages/PortalLogin';
-import WebhookDashboard from './pages/WebhookDashboard';
-import RetainerDashboard from './pages/RetainerDashboard';
-import Abnahme from './pages/Abnahme';
-import ProductManager from './pages/ProductManager';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -134,8 +124,6 @@ function App() {
           <Route path="/datenschutz" element={<Datenschutz />} />
           <Route path="/barrierefreiheit" element={<Barrierefreiheit />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/portal/login" element={<PortalLogin />} />
-          <Route path="/kundenportal" element={<PortalLogin />} />
           <Route path="/portal/:token" element={<CustomerPortal />} />
           <Route path="/paket/starter" element={<PackageStarter />} />
           <Route path="/paket/kompagnon" element={<PackageKompagnon />} />
@@ -143,7 +131,6 @@ function App() {
           <Route path="/checkout/:package" element={<Checkout />} />
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
           <Route path="/kampagne/:slug" element={<KampagneLandingPage />} />
-          <Route path="/abnahme/:projectId" element={<Abnahme />} />
 
           {/* App — authenticated, with Navbar/Sidebar */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
@@ -168,14 +155,7 @@ function App() {
             <Route path="admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
             <Route path="tickets" element={<PrivateRoute roles={['admin', 'auditor']}><Tickets /></PrivateRoute>} />
             <Route path="product" element={<PrivateRoute roles={['admin']}><ProductDevelopment /></PrivateRoute>} />
-            <Route path="product-editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
             <Route path="qr-generator" element={<PrivateRoute roles={['admin']}><QRGenerator /></PrivateRoute>} />
-            <Route path="webhooks" element={<PrivateRoute roles={['admin']}><WebhookDashboard /></PrivateRoute>} />
-            <Route path="retainer" element={<PrivateRoute roles={['admin']}><RetainerDashboard /></PrivateRoute>} />
-            <Route path="products" element={<PrivateRoute roles={['admin']}><ProductManager /></PrivateRoute>} />
-            <Route path="products/editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
-            <Route path="newsletter" element={<PrivateRoute><Newsletter /></PrivateRoute>} />
-            <Route path="newsletter/editor/:id" element={<PrivateRoute><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}
             <Route path="courses" element={<PrivateRoute roles={['admin', 'auditor']}><Courses /></PrivateRoute>} />
             <Route path="portal" element={<PrivateRoute roles={['kunde']}><KundenPortal /></PrivateRoute>} />
@@ -209,10 +189,7 @@ function App() {
               <Route path="system" element={<PrivateRoute roles={['admin']}><Settings tab="system" /></PrivateRoute>} />
               <Route path="notifications" element={<Settings tab="notifications" />} />
               <Route path="subscription" element={<PrivateRoute roles={['admin']}><Settings tab="subscription" /></PrivateRoute>} />
-              <Route path="templates" element={<PrivateRoute roles={['admin']}><TemplateLibrary /></PrivateRoute>} />
             </Route>
-            {/* Template Editor — fullscreen, outside settings layout */}
-            <Route path="settings/templates/:id" element={<PrivateRoute roles={['admin']}><TemplateEditor /></PrivateRoute>} />
           </Route>
 
           {/* Fallback */}

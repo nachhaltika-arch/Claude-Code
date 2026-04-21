@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/briefings", tags=["briefings"])
 
 FLAT_FIELDS = [
-    "project_id", "gewerk", "wz_code", "wz_title", "leistungen", "einzugsgebiet", "usp",
+    "project_id", "gewerk", "leistungen", "einzugsgebiet", "usp",
     "mitbewerber", "vorbilder", "farben", "wunschseiten", "stil",
     "logo_vorhanden", "fotos_vorhanden", "sonstige_hinweise", "status",
 ]
@@ -31,8 +31,6 @@ FLAT_FIELDS = [
 class BriefingBody(BaseModel):
     project_id: Optional[int] = None
     gewerk: Optional[str] = None
-    wz_code: Optional[str] = None
-    wz_title: Optional[str] = None
     leistungen: Optional[str] = None
     einzugsgebiet: Optional[str] = None
     usp: Optional[str] = None
@@ -59,38 +57,36 @@ def _serialize(b: Briefing) -> dict:
             return {}
 
     return {
-        "id":                b.id,
-        "lead_id":           b.lead_id,
+        "id": b.id,
+        "lead_id": b.lead_id,
         # Legacy JSON sections
-        "projektrahmen":     _parse(getattr(b, "projektrahmen",  None)),
-        "positionierung":    _parse(getattr(b, "positionierung", None)),
-        "zielgruppe":        _parse(getattr(b, "zielgruppe",     None)),
-        "wettbewerb":        _parse(getattr(b, "wettbewerb",     None)),
-        "inhalte":           _parse(getattr(b, "inhalte",        None)),
-        "funktionen":        _parse(getattr(b, "funktionen",     None)),
-        "branding":          _parse(getattr(b, "branding",       None)),
-        "struktur":          _parse(getattr(b, "struktur",       None)),
-        "hosting":           _parse(getattr(b, "hosting",        None)),
-        "seo":               _parse(getattr(b, "seo",            None)),
-        "projektplan":       _parse(getattr(b, "projektplan",    None)),
-        "freigaben":         _parse(getattr(b, "freigaben",      None)),
+        "projektrahmen":  _parse(b.projektrahmen),
+        "positionierung": _parse(b.positionierung),
+        "zielgruppe":     _parse(b.zielgruppe),
+        "wettbewerb":     _parse(b.wettbewerb),
+        "inhalte":        _parse(b.inhalte),
+        "funktionen":     _parse(b.funktionen),
+        "branding":       _parse(b.branding),
+        "struktur":       _parse(b.struktur),
+        "hosting":        _parse(b.hosting),
+        "seo":            _parse(b.seo),
+        "projektplan":    _parse(b.projektplan),
+        "freigaben":      _parse(b.freigaben),
         # Flat fields
-        "project_id":        getattr(b, "project_id",        None),
-        "gewerk":            getattr(b, "gewerk",            "") or "",
-        "wz_code":           getattr(b, "wz_code",           "") or "",
-        "wz_title":          getattr(b, "wz_title",          "") or "",
-        "leistungen":        getattr(b, "leistungen",        "") or "",
-        "einzugsgebiet":     getattr(b, "einzugsgebiet",     "") or "",
-        "usp":               getattr(b, "usp",               "") or "",
-        "mitbewerber":       getattr(b, "mitbewerber",       "") or "",
-        "vorbilder":         getattr(b, "vorbilder",         "") or "",
-        "farben":            getattr(b, "farben",            "") or "",
-        "wunschseiten":      getattr(b, "wunschseiten",      "") or "",
-        "stil":              getattr(b, "stil",              "") or "",
-        "logo_vorhanden":    bool(getattr(b, "logo_vorhanden",  False)),
-        "fotos_vorhanden":   bool(getattr(b, "fotos_vorhanden", False)),
-        "sonstige_hinweise": getattr(b, "sonstige_hinweise", "") or "",
-        "status":            getattr(b, "status",            "entwurf") or "entwurf",
+        "project_id":        b.project_id,
+        "gewerk":            b.gewerk or "",
+        "leistungen":        b.leistungen or "",
+        "einzugsgebiet":     b.einzugsgebiet or "",
+        "usp":               b.usp or "",
+        "mitbewerber":       b.mitbewerber or "",
+        "vorbilder":         b.vorbilder or "",
+        "farben":            b.farben or "",
+        "wunschseiten":      b.wunschseiten or "",
+        "stil":              b.stil or "",
+        "logo_vorhanden":    bool(b.logo_vorhanden),
+        "fotos_vorhanden":   bool(b.fotos_vorhanden),
+        "sonstige_hinweise": b.sonstige_hinweise or "",
+        "status":            b.status or "entwurf",
         "created_at":        str(b.created_at)[:16] if b.created_at else "",
         "updated_at":        str(b.updated_at)[:16] if b.updated_at else "",
     }

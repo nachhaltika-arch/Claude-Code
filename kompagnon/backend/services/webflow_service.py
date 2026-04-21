@@ -16,9 +16,7 @@ def _auth_header(api_token: str) -> dict:
 
 
 def _slugify(title: str) -> str:
-    t = title.lower()
-    t = t.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
-    slug = re.sub(r"[^a-z0-9]+", "-", t).strip("-")
+    slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
     return slug or "page"
 
 
@@ -43,25 +41,16 @@ async def push_to_webflow(
     api_token: str,
     site_id: str,
     html: str,
-    css: str,
     page_title: str,
 ) -> tuple[bool, str]:
     """
-    Create a draft Webflow page with a self-contained HTML document.
+    Create a draft Webflow page with the given HTML.
     Returns (True, page_url) or (False, error_message).
     """
-    full_html = (
-        f'<!DOCTYPE html><html lang="de"><head>'
-        f'<meta charset="UTF-8">'
-        f'<meta name="viewport" content="width=device-width,initial-scale=1.0">'
-        f'<title>{page_title}</title>'
-        f'<style>{css}</style>'
-        f'</head><body>{html}</body></html>'
-    )
     payload = {
         "title": page_title,
         "slug": _slugify(page_title),
-        "body": full_html,
+        "body": html,
         "isDraft": True,
     }
     try:

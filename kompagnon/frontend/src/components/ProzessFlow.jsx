@@ -4,6 +4,8 @@ import ContentWerkstatt from './ContentWerkstatt';
 import DesignStudio from './DesignStudio';
 import BriefingTab from './BriefingTab';
 import BriefingWizard from './BriefingWizard';
+import KiReportPanel from './KiReportPanel';
+import MoodboardPanel from './MoodboardPanel';
 import API_BASE_URL from '../config';
 
 const PHASEN = [
@@ -33,13 +35,26 @@ const PHASEN = [
     ],
   },
   {
+    id: 'briefing', label: 'Report', icon: '🤖', color: '#0d6efd',
+    schritte: [
+      { id: 'ki-report', nr: 6, label: 'KI-Report erstellen', desc: 'KI-Analyse aus Briefing + Crawler-Daten', icon: '🤖', component: 'KiReport',
+        istFertig: (d) => !!(d.kiReportDone),
+        wasFehlts: () => ['Report noch nicht generiert'],
+        fertigText: () => 'Report erstellt', optional: true },
+    ],
+  },
+  {
     id: 'content', label: 'Content', icon: '📝', color: '#7c3aed',
     schritte: [
-      { id: 'sitemap', nr: 6, label: 'Sitemap anlegen', desc: 'Seitenstruktur definieren', icon: '🗺️', component: 'Sitemap',
+      { id: 'moodboard', nr: 7, label: 'Moodboard / Stilrichtung', desc: 'Stilrichtung und Farbwelt festlegen', icon: '🎨', component: 'Moodboard',
+        istFertig: (d) => !!(d.moodboardDone),
+        wasFehlts: () => ['Stilrichtung noch nicht gewaehlt'],
+        fertigText: () => 'Stilrichtung festgelegt', optional: true },
+      { id: 'sitemap', nr: 8, label: 'Sitemap anlegen', desc: 'Seitenstruktur definieren', icon: '🗺️', component: 'Sitemap',
         istFertig: (d) => (d.sitemapCount || 0) >= 3,
         wasFehlts: (d) => { const f = 3-(d.sitemapCount||0); return f > 0 ? [`Noch ${f} Seite(n) (mind. 3)`] : []; },
         fertigText: (d) => `${d.sitemapCount} Seiten` },
-      { id: 'content-generieren', nr: 7, label: 'Content & Bilder', desc: 'KI-Texte + Bilder je Seite', icon: '🤖', component: 'ContentWerkstatt',
+      { id: 'content-generieren', nr: 9, label: 'Content & Bilder', desc: 'KI-Texte + Bilder je Seite', icon: '📝', component: 'ContentWerkstatt',
         istFertig: (d) => (d.sitemapCount||0) > 0 && (d.contentCount||0) >= (d.sitemapCount||1),
         wasFehlts: (d) => { if (!d.sitemapCount) return ['Zuerst Sitemap anlegen']; const o = (d.sitemapCount||0)-(d.contentCount||0); return o > 0 ? [`${o}/${d.sitemapCount} Seiten ohne Content`] : []; },
         fertigText: (d) => `${d.contentCount}/${d.sitemapCount} Seiten` },
@@ -48,11 +63,11 @@ const PHASEN = [
   {
     id: 'design', label: 'Design', icon: '🎨', color: '#d97706',
     schritte: [
-      { id: 'design-generieren', nr: 8, label: 'Design generieren', desc: 'Template + KI-Entwurf', icon: '✨', component: 'DesignStudio',
+      { id: 'design-generieren', nr: 10, label: 'Design generieren', desc: 'Template + KI-Entwurf', icon: '✨', component: 'DesignStudio',
         istFertig: (d) => (d.designVersions || 0) >= 1,
         wasFehlts: (d) => (d.designVersions||0) === 0 ? ['Noch kein Design generiert'] : [],
         fertigText: (d) => `${d.designVersions} Version(en)` },
-      { id: 'editor', nr: 9, label: 'Editor nachbearbeiten', desc: 'Feinschliff im GrapesJS', icon: '🖊️', component: 'Editor', optional: true,
+      { id: 'editor', nr: 11, label: 'Editor nachbearbeiten', desc: 'Feinschliff im GrapesJS', icon: '🖊️', component: 'Editor', optional: true,
         istFertig: (d) => !!(d.editorSaved),
         wasFehlts: () => ['Editor nicht geoeffnet'],
         fertigText: () => 'Gespeichert' },
@@ -61,22 +76,65 @@ const PHASEN = [
   {
     id: 'golive', label: 'Go Live', icon: '🚀', color: '#059669',
     schritte: [
-      { id: 'netlify', nr: 10, label: 'Netlify deployen', desc: 'Website veroeffentlichen', icon: '🚀', component: 'Netlify',
+      { id: 'netlify', nr: 12, label: 'Netlify deployen', desc: 'Website veroeffentlichen', icon: '🚀', component: 'Netlify',
         istFertig: (d) => !!(d.netlifyUrl && d.netlifyReady),
         wasFehlts: (d) => { if (!d.netlifyUrl) return ['Netlify nicht angelegt']; if (!d.netlifyReady) return ['Deploy nicht abgeschlossen']; return []; },
         fertigText: (d) => d.netlifyUrl || 'Deployed' },
-      { id: 'dns', nr: 11, label: 'DNS umstellen', desc: 'CNAME beim Domain-Anbieter', icon: '🌍', component: 'DNS',
+      { id: 'dns', nr: 13, label: 'DNS umstellen', desc: 'CNAME beim Domain-Anbieter', icon: '🌍', component: 'DNS',
         istFertig: (d) => !!(d.domainReachable && d.domainStatusCode === 200),
         wasFehlts: (d) => { if (!d.netlifyUrl) return ['Zuerst Netlify deployen']; if (!d.domainReachable) return ['Domain nicht erreichbar']; return []; },
         fertigText: () => 'Domain erreichbar' },
-      { id: 'qa', nr: 12, label: 'QA-Check', desc: 'Links, Mobile, Impressum', icon: '✓', component: 'QA',
+      { id: 'qa', nr: 14, label: 'QA-Check', desc: 'Links, Mobile, Impressum', icon: '✓', component: 'QA',
         istFertig: (d) => !!(d.qaResult),
         wasFehlts: () => ['QA-Scan nicht durchgefuehrt'],
         fertigText: () => 'QA abgeschlossen' },
-      { id: 'abnahme', nr: 13, label: 'Abnahme & Go Live', desc: 'Kundenfreigabe', icon: '🏁', component: 'Abnahme',
+      { id: 'abnahme', nr: 15, label: 'Abnahme & Go Live', desc: 'Kundenfreigabe', icon: '🏁', component: 'Abnahme',
         istFertig: (d) => !!(d.goLiveConfirmed || d.projectStatus === 'fertig'),
         wasFehlts: (d) => { const f = []; if (!d.qaResult) f.push('QA-Check fehlt'); if (!d.domainReachable) f.push('DNS nicht umgestellt'); if (!d.goLiveConfirmed) f.push('Abnahme nicht erteilt'); return f; },
         fertigText: () => 'Live!' },
+    ],
+  },
+  {
+    id: 'qm', label: 'QM', icon: '✅', color: '#0891b2',
+    schritte: [
+      { id: 'qm-checkliste', nr: 16, label: 'QM-Checkliste', desc: 'Qualitaetssicherung nach Go Live', icon: '✅', component: 'QmCheckliste',
+        istFertig: (d) => !!(d.qmDone),
+        wasFehlts: () => ['Checkliste noch nicht abgehakt'],
+        fertigText: () => 'QM abgeschlossen', optional: true },
+      { id: 'ki-qa-scan', nr: 17, label: 'KI-QA-Scan', desc: 'Automatische Qualitaetspruefung per KI', icon: '🤖', component: 'KiQaScan',
+        istFertig: (d) => !!(d.qaResult),
+        wasFehlts: () => ['Scan noch nicht durchgefuehrt'],
+        fertigText: () => 'Scan abgeschlossen', optional: true },
+    ],
+  },
+  {
+    id: 'postlaunch', label: 'Post-Launch', icon: '📈', color: '#dc2626',
+    schritte: [
+      { id: 'gbp-qr', nr: 18, label: 'GBP + QR-Code', desc: 'Google Business Profile & Bewertungs-QR', icon: '📍', component: 'GbpQr',
+        istFertig: (d) => !!(d.gbpPlaceId),
+        wasFehlts: () => ['GBP-Place-ID fehlt'],
+        fertigText: () => 'GBP eingerichtet', optional: true },
+      { id: 'trustpilot', nr: 19, label: 'Trustpilot', desc: 'Bewertungsanfrage an Kunden senden', icon: '⭐', component: 'Trustpilot',
+        istFertig: () => false,
+        wasFehlts: () => [],
+        fertigText: () => 'Anfrage gesendet', optional: true },
+      { id: 'website-vergleich', nr: 20, label: 'Website-Vergleich', desc: 'Vorher / Nachher Screenshots', icon: '📸', component: 'WebsiteVergleich',
+        istFertig: (d) => !!(d.screenshotBefore && d.screenshotAfter),
+        wasFehlts: (d) => { const f = []; if (!d.screenshotBefore) f.push('Vorher-Screenshot fehlt'); if (!d.screenshotAfter) f.push('Nachher-Screenshot fehlt'); return f; },
+        fertigText: () => 'Screenshots erstellt', optional: true },
+    ],
+  },
+  {
+    id: 'fertig', label: 'Fertig', icon: '🌐', color: '#7c3aed',
+    schritte: [
+      { id: 'upsell', nr: 21, label: 'Up-Sales', desc: 'Retainer, SEO, Wartungspaket anbieten', icon: '💼', component: 'Upsell',
+        istFertig: () => false,
+        wasFehlts: () => [],
+        fertigText: () => 'Angebot erstellt', optional: true },
+      { id: 'live-daten', nr: 22, label: 'Live-Daten', desc: 'PageSpeed, Domain-Status, Projektabschluss', icon: '🌐', component: 'LiveDaten',
+        istFertig: (d) => !!(d.domainReachable),
+        wasFehlts: (d) => d.domainReachable ? [] : ['Domain noch nicht erreichbar'],
+        fertigText: () => 'Website live' },
     ],
   },
 ];
@@ -145,7 +203,14 @@ export default function ProzessFlow({
     domainStatusCode: project?.domain_status_code || null,
     qaResult,
     projectStatus:    project?.status || '',
-    goLiveConfirmed:  false,
+    goLiveConfirmed:  !!(project?.abnahme_datum),
+    // neue Schritte
+    kiReportDone:     false,
+    moodboardDone:    false,
+    qmDone:           false,
+    gbpPlaceId:       project?.gbp_place_id || null,
+    screenshotBefore: project?.screenshot_before || null,
+    screenshotAfter:  project?.screenshot_after  || null,
   };
 
   // Auto-Vorschlag: erster nicht-fertiger Schritt
@@ -420,6 +485,41 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
 
     case 'Abnahme':
       return <AbnahmeEmbed project={project} lead={lead} headers={headers} netlify={netlify} />;
+
+    case 'KiReport':
+      return (
+        <div style={pad}>
+          <KiReportPanel projectId={project.id} leadId={project.lead_id} token={token} />
+        </div>
+      );
+
+    case 'Moodboard':
+      return (
+        <div style={pad}>
+          <MoodboardPanel projectId={project.id} leadId={project.lead_id} token={token} />
+        </div>
+      );
+
+    case 'QmCheckliste':
+      return <QmChecklisteEmbed project={project} headers={headers} />;
+
+    case 'KiQaScan':
+      return <QAEmbed project={project} headers={headers} qaResult={qaResult} />;
+
+    case 'GbpQr':
+      return <GbpQrEmbed project={project} headers={headers} />;
+
+    case 'Trustpilot':
+      return <TrustpilotEmbed project={project} />;
+
+    case 'WebsiteVergleich':
+      return <WebsiteVergleichEmbed project={project} headers={headers} />;
+
+    case 'Upsell':
+      return <UpsellEmbed />;
+
+    case 'LiveDaten':
+      return <LiveDatenEmbed project={project} />;
 
     default:
       return (
@@ -1607,6 +1707,258 @@ function AbnahmeEmbed({ project, lead, headers, netlify }) {
           Das Projekt wird als Fertig markiert.
         </div>
       </>)}
+    </div>
+  );
+}
+
+// ── QM-Checkliste ─────────────────────────────────────────────────────────────
+function QmChecklisteEmbed({ project, headers }) {
+  const ITEMS = [
+    { id: 'speed',     label: 'PageSpeed > 80 (Mobile + Desktop)' },
+    { id: 'links',     label: 'Alle Links funktionieren (kein 404)' },
+    { id: 'mobile',    label: 'Mobile Ansicht korrekt auf iOS & Android' },
+    { id: 'impressum', label: 'Impressum + Datenschutz vorhanden' },
+    { id: 'ssl',       label: 'SSL-Zertifikat aktiv (https://)' },
+    { id: 'forms',     label: 'Kontaktformular sendet korrekt' },
+    { id: 'analytics', label: 'Google Analytics / GA4 eingebunden' },
+    { id: 'favicon',   label: 'Favicon + Meta-Titel korrekt' },
+    { id: 'maps',      label: 'Google Maps / Adresse stimmt' },
+    { id: 'social',    label: 'Social Media Links korrekt' },
+  ];
+  const [checked, setChecked] = useState(() => {
+    try { return JSON.parse(project?.gbp_checklist_json || '{}'); } catch { return {}; }
+  });
+
+  const toggle = (id) => {
+    const next = { ...checked, [id]: !checked[id] };
+    setChecked(next);
+    fetch(`${API_BASE_URL}/api/projects/${project.id}/gbp-checklist`, {
+      method: 'PATCH', headers,
+      body: JSON.stringify({ checked: next }),
+    }).catch(() => {});
+  };
+
+  const done = ITEMS.filter(i => checked[i.id]).length;
+  return (
+    <div style={{ padding: '20px 24px' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16 }}>
+        {done}/{ITEMS.length} Punkte abgehakt
+        <div style={{ marginTop: 6, height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${Math.round(done / ITEMS.length * 100)}%`, background: '#059669', borderRadius: 2, transition: 'width .3s' }} />
+        </div>
+      </div>
+      {ITEMS.map(item => (
+        <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border-light)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={!!checked[item.id]} onChange={() => toggle(item.id)} style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#059669' }} />
+          <span style={{ fontSize: 13, color: checked[item.id] ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: checked[item.id] ? 'line-through' : 'none' }}>
+            {item.label}
+          </span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+// ── GBP + QR-Code ─────────────────────────────────────────────────────────────
+function GbpQrEmbed({ project, headers }) {
+  const [gbpData, setGbpData]     = useState(null);
+  const [qrData, setQrData]       = useState(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrError, setQrError]     = useState('');
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/projects/${project.id}/bewertungs-url`, { headers })
+      .then(r => r.ok ? r.json() : null).then(d => d && setGbpData(d)).catch(() => {});
+  }, [project.id]); // eslint-disable-line
+
+  const loadQr = async () => {
+    setQrLoading(true); setQrError('');
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/bewertungs-qrcode`, { headers });
+      if (!r.ok) { setQrError('QR-Code konnte nicht geladen werden'); return; }
+      const blob = await r.blob();
+      const reader = new FileReader();
+      reader.onloadend = () => setQrData(reader.result);
+      reader.readAsDataURL(blob);
+    } catch { setQrError('Verbindungsfehler'); }
+    finally { setQrLoading(false); }
+  };
+
+  const downloadQr = () => {
+    if (!qrData) return;
+    const a = document.createElement('a');
+    a.href = qrData; a.download = `bewertungs-qr-${project.company_name || project.id}.png`; a.click();
+  };
+
+  return (
+    <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {gbpData?.review_url && (
+        <div style={{ padding: 14, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 6 }}>Google Bewertungs-Link</div>
+          <a href={gbpData.review_url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--brand-primary)', wordBreak: 'break-all' }}>{gbpData.review_url}</a>
+        </div>
+      )}
+      {project.gbp_rating && (
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flex: 1, padding: 14, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 10, textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Google Bewertung</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#d97706' }}>⭐ {project.gbp_rating}</div>
+          </div>
+          <div style={{ flex: 1, padding: 14, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 10, textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Anzahl Bewertungen</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>{project.gbp_ratings_total}</div>
+          </div>
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button onClick={loadQr} disabled={qrLoading}
+          style={{ flex: 1, padding: '10px 0', background: '#008EAA', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: qrLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+          {qrLoading ? 'Laden...' : '📲 QR-Code laden'}
+        </button>
+        {qrData && (
+          <button onClick={downloadQr}
+            style={{ padding: '10px 16px', background: 'var(--bg-app)', border: '1px solid var(--border-medium)', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+            ⬇ Herunterladen
+          </button>
+        )}
+      </div>
+      {qrError && <div style={{ fontSize: 12, color: '#dc2626' }}>{qrError}</div>}
+      {qrData && <img src={qrData} alt="Bewertungs-QR" style={{ width: 160, height: 160, margin: '0 auto', display: 'block', borderRadius: 8 }} />}
+    </div>
+  );
+}
+
+// ── Trustpilot ────────────────────────────────────────────────────────────────
+function TrustpilotEmbed({ project }) {
+  return (
+    <div style={{ padding: '32px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
+      <div style={{ fontSize: 40 }}>⭐</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Trustpilot-Bewertung anfragen</div>
+      <div style={{ fontSize: 13, color: 'var(--text-secondary)', maxWidth: 360 }}>
+        Fordere {project?.company_name || 'den Kunden'} auf, eine Bewertung auf Trustpilot zu hinterlassen und stärke die Online-Reputation.
+      </div>
+      <a href="https://www.trustpilot.com" target="_blank" rel="noreferrer"
+        style={{ padding: '10px 28px', background: '#00b67a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'none', display: 'inline-block' }}>
+        ⭐ Zu Trustpilot
+      </a>
+    </div>
+  );
+}
+
+// ── Website-Vergleich ─────────────────────────────────────────────────────────
+function WebsiteVergleichEmbed({ project, headers }) {
+  const [screenshots, setScreenshots] = useState({ before: null, after: null });
+  const [takingBefore, setTakingBefore] = useState(false);
+  const [takingAfter, setTakingAfter]   = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/projects/${project.id}/screenshots`, { headers })
+      .then(r => r.ok ? r.json() : null).then(d => d && setScreenshots(d)).catch(() => {});
+  }, [project.id]); // eslint-disable-line
+
+  const takeBefore = async () => {
+    setTakingBefore(true);
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/screenshot/before`, { method: 'POST', headers });
+      if (r.ok) { const d = await r.json(); setScreenshots(s => ({ ...s, before: { data: d.screenshot_url, date: new Date().toISOString() } })); }
+    } catch {} finally { setTakingBefore(false); }
+  };
+
+  const takeAfter = async () => {
+    setTakingAfter(true);
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/screenshot/after`, { method: 'POST', headers });
+      if (r.ok) { const d = await r.json(); setScreenshots(s => ({ ...s, after: { data: d.screenshot_url, date: new Date().toISOString() } })); }
+    } catch {} finally { setTakingAfter(false); }
+  };
+
+  const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null;
+  const Placeholder = ({ text }) => (
+    <div style={{ height: 160, background: 'var(--bg-app)', border: '1.5px dashed var(--border-medium)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{text}</span>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: '20px 24px' }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>📸 Website-Vergleich</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 8 }}>VORHER</div>
+          {screenshots.before?.data
+            ? <img src={screenshots.before.data} alt="Vorher" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border-light)' }} />
+            : <Placeholder text="Noch kein Screenshot" />}
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button onClick={takeBefore} disabled={takingBefore}
+              style={{ flex: 1, padding: '8px 0', background: 'var(--bg-elevated)', border: '1px solid var(--border-medium)', borderRadius: 7, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              {takingBefore ? 'Erstelle...' : '📷 Screenshot erstellen'}
+            </button>
+          </div>
+          {screenshots.before?.date && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>{fmtDate(screenshots.before.date)}</div>}
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#059669', marginBottom: 8 }}>NACHHER</div>
+          {screenshots.after?.data
+            ? <img src={screenshots.after.data} alt="Nachher" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border-light)' }} />
+            : <Placeholder text="Noch kein Screenshot" />}
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button onClick={takeAfter} disabled={takingAfter}
+              style={{ flex: 1, padding: '8px 0', background: '#059669', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              {takingAfter ? 'Erstelle...' : '📷 Screenshot erstellen'}
+            </button>
+          </div>
+          {screenshots.after?.date && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>{fmtDate(screenshots.after.date)}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Upsell ────────────────────────────────────────────────────────────────────
+function UpsellEmbed() {
+  const PAKETE = [
+    { name: 'SEO-Retainer',     price: '129€/Monat', color: '#0d6efd', features: ['Monatliche Keyword-Analyse', 'On-Page Optimierung', 'Monatlicher Report'] },
+    { name: 'Wartungspaket',    price: '49€/Monat',  color: '#7c3aed', features: ['Updates & Sicherheit', 'Backup täglich', 'Support per Chat'] },
+    { name: 'Digital Rundum',   price: '249€/Monat', color: '#059669', features: ['SEO + Wartung', 'Google Ads Management', 'Monatliches Strategie-Call'] },
+  ];
+  return (
+    <div style={{ padding: '20px 24px' }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>💼 Upsell-Produkte</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+        {PAKETE.map(pkg => (
+          <div key={pkg.name} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 10, padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{pkg.name}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: pkg.color }}>{pkg.price}</div>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+              {pkg.features.map(f => <li key={f}>{f}</li>)}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Live-Daten ────────────────────────────────────────────────────────────────
+function LiveDatenEmbed({ project }) {
+  const fields = [
+    { label: 'Phase',             value: project?.status?.replace('phase_', 'Phase ') || '—' },
+    { label: 'PageSpeed Mobile',  value: project?.pagespeed_mobile  != null ? `${project.pagespeed_mobile}/100`  : '—' },
+    { label: 'PageSpeed Desktop', value: project?.pagespeed_desktop != null ? `${project.pagespeed_desktop}/100` : '—' },
+    { label: 'Domain erreichbar', value: project?.domain_reachable === true ? '✅ Ja' : project?.domain_reachable === false ? '❌ Nein' : '—' },
+    { label: 'Go-Live Datum',     value: project?.abnahme_datum ? new Date(project.abnahme_datum).toLocaleDateString('de-DE') : '—' },
+    { label: 'Abnahme durch',     value: project?.abnahme_durch || '—' },
+  ];
+  return (
+    <div style={{ padding: '20px 24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+        {fields.map(f => (
+          <div key={f.label} style={{ padding: 14, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>{f.label}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{f.value}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

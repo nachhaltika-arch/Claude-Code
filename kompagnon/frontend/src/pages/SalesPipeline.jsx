@@ -89,6 +89,10 @@ export default function SalesPipeline() {
         const res = await fetch(`${API_BASE_URL}/api/projects/from-lead/${leadId}`, { method: 'POST', headers: h });
         if (res.ok) toast.success('Projekt wurde angelegt!');
         else if (res.status === 409) toast.error('Projekt bereits vorhanden');
+        else if (res.status === 422) {
+          const data = await res.json().catch(() => null);
+          toast.error(data?.detail?.message || 'Domain fehlt — bitte zuerst im Kundenprofil ergänzen.');
+        }
         else toast.error('Fehler beim Anlegen des Projekts');
       } catch { toast.error('Fehler beim Anlegen des Projekts'); }
     }

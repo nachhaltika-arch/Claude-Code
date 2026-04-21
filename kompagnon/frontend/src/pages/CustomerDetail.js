@@ -893,7 +893,7 @@ function LinkedProjectSection({ leadId, headers, navigate }) {
       const res = await fetch(`${API_BASE_URL}/api/projects/from-lead/${leadId}`, { method: 'POST', headers });
       const data = await res.json();
       if (res.ok) { setProject(data); }
-      else { setError(data.detail || 'Fehler beim Anlegen des Projekts'); }
+      else { setError(data?.detail?.message || data.detail || 'Fehler beim Anlegen des Projekts'); }
     } catch (e) { setError(String(e)); }
     setCreating(false);
   };

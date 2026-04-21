@@ -517,11 +517,15 @@ export default function LeadProfile() {
       );
       const data = await res.json();
       if (res.status === 409) {
-        // Project already exists — find and navigate to it
         const projRes = await fetch(`${API_BASE_URL}/api/projects/?limit=200`, { headers: h });
         const projects = await projRes.json();
         const existing = Array.isArray(projects) ? projects.find(p => p.lead_id === parseInt(leadId)) : null;
         if (existing) navigate(`/app/projects/${existing.id}`);
+        return;
+      }
+      if (res.status === 422) {
+        const err = data?.detail?.message || 'Domain fehlt — bitte zuerst im Kundenprofil ergänzen.';
+        toast ? toast.error(err) : alert(err);
         return;
       }
       if (!res.ok) throw new Error();

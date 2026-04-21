@@ -1009,6 +1009,9 @@ def _run_migrations():
         )""",
         "CREATE INDEX IF NOT EXISTS idx_deal_items_deal ON deal_items(deal_id)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS deal_id INTEGER",
+        # DNS-Polling backoff (exponential backoff on repeated failures)
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_dns_fail_count INTEGER DEFAULT 0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_dns_retry_after TIMESTAMP",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

@@ -161,60 +161,122 @@ def job_hwk_scrape_weekly():
 # ----- DAILY JOBS -----
 
 def job_check_netlify_dns():
-    """Prüft alle 10 Min. ob Custom Domains mit pending-Status nun auf Netlify zeigen."""
-    from sqlalchemy import text
+    """
+    Prüft DNS-Status aller Projekte mit pendingem Custom-Domain-Status.
+
+    Verbesserungen gegenüber der alten Version:
+    - Überspringt Projekte im Backoff-Zeitraum (nach Fehler-Häufung)
+    - Jitter: zufällige 0–3s Verzögerung verhindert Thundering-Herd
+    - Exponential Backoff bei aufeinanderfolgenden Fehlern
+    - Per-Projekt-Commit verhindert Datenverlust bei teilweisem Fehler
+    """
+    import random
+    import time as _time
+    from sqlalchemy import text as _text
+    from datetime import datetime as _dt, timedelta as _td
+
     try:
         from services.netlify_service import check_dns_active
     except Exception as e:
         logger.warning(f"Netlify DNS-Check: service import fehlgeschlagen: {e}")
         return
 
+    logger.info("DNS-Polling: Start")
     db = SessionLocal()
+    now = _dt.utcnow()
+
     try:
-        pending = db.execute(text("""
-            SELECT id, netlify_domain, netlify_site_url, lead_id
+        pending = db.execute(_text("""
+            SELECT id, netlify_domain, netlify_site_url, lead_id,
+                   COALESCE(netlify_dns_fail_count, 0) AS fail_count,
+                   netlify_dns_retry_after
             FROM projects
             WHERE netlify_domain IS NOT NULL
               AND netlify_domain_status = 'pending'
-        """)).fetchall()
+              AND (netlify_dns_retry_after IS NULL OR netlify_dns_retry_after < :now)
+            ORDER BY id
+            LIMIT 50
+        """), {"now": now}).fetchall()
+
+        if not pending:
+            logger.info("DNS-Polling: Keine Projekte zu prüfen")
+            return
+
+        logger.info(f"DNS-Polling: {len(pending)} Projekte zu prüfen")
 
         for p in pending:
+            # Jitter: 0–3s Verzögerung pro Projekt
+            _time.sleep(random.uniform(0, 3))
+
+            project_id   = p[0]
+            domain       = p[1]
+            site_url     = p[2] or ""
+            lead_id      = p[3]
+            fail_count   = p[4]
+
             try:
-                if check_dns_active(p.netlify_domain, p.netlify_site_url or ""):
-                    db.execute(text("""
+                is_active = check_dns_active(domain, site_url)
+
+                if is_active:
+                    db.execute(_text("""
                         UPDATE projects SET
-                          netlify_domain_status = 'active',
-                          netlify_ssl_active    = TRUE,
-                          updated_at            = NOW()
+                          netlify_domain_status   = 'active',
+                          netlify_ssl_active      = TRUE,
+                          netlify_dns_fail_count  = 0,
+                          netlify_dns_retry_after = NULL,
+                          updated_at              = NOW()
                         WHERE id = :id
-                    """), {"id": p.id})
+                    """), {"id": project_id})
                     # Portal-Benachrichtigung
                     try:
-                        db.execute(text("""
-                            INSERT INTO messages (lead_id, channel, content, direction, created_at, sender_role)
+                        db.execute(_text("""
+                            INSERT INTO messages
+                              (lead_id, channel, content, direction, created_at, sender_role)
                             VALUES (:lead_id, 'in_app', :content, 'outbound', NOW(), 'system')
                         """), {
-                            "lead_id": p.lead_id,
+                            "lead_id": lead_id,
                             "content": (
-                                f"🎉 Ihre Website ist jetzt unter {p.netlify_domain} live! "
+                                f"Ihre Website ist jetzt unter {domain} live! "
                                 f"Das SSL-Zertifikat wird automatisch innerhalb weniger Minuten aktiviert."
                             ),
                         })
                     except Exception as me:
-                        logger.warning(f"DNS-Live-Nachricht Fehler Projekt {p.id}: {me}")
-                    logger.info(f"✓ DNS aktiv: {p.netlify_domain} (Projekt {p.id})")
+                        logger.warning(f"DNS-Live-Nachricht Fehler Projekt {project_id}: {me}")
+                    logger.info(f"✓ DNS aktiv: {domain} (Projekt {project_id})")
+                else:
+                    # Nicht aktiv — Fail-Count erhöhen, Backoff setzen
+                    new_fail_count  = fail_count + 1
+                    backoff_minutes = min(15 * (2 ** fail_count), 1440)  # 15m, 30m, 60m … max 24h
+                    retry_after     = now + _td(minutes=backoff_minutes)
+                    db.execute(_text("""
+                        UPDATE projects
+                        SET netlify_dns_fail_count  = :fc,
+                            netlify_dns_retry_after = :ra
+                        WHERE id = :id
+                    """), {"fc": new_fail_count, "ra": retry_after, "id": project_id})
+                    logger.info(
+                        f"DNS-Polling: {domain} (Projekt {project_id}) — "
+                        f"noch nicht aktiv, nächster Versuch in {backoff_minutes}min"
+                    )
+
+                db.commit()
+
             except Exception as pe:
-                logger.warning(f"DNS-Check Projekt {p.id} Fehler: {pe}")
-                continue
-        db.commit()
+                logger.warning(f"DNS-Check Projekt {project_id} Fehler: {type(pe).__name__}: {pe}")
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+
     except Exception as e:
-        logger.error(f"Netlify DNS-Check Fehler: {e}")
+        logger.error(f"Netlify DNS-Check unbehandelter Fehler: {e}")
         try:
             db.rollback()
         except Exception:
             pass
     finally:
         db.close()
+        logger.info("DNS-Polling: Abgeschlossen")
 
 
 def job_check_overdue_phases():
@@ -434,8 +496,8 @@ class CompagnonScheduler:
         )
         self.scheduler.add_job(
             job_check_netlify_dns,
-            "interval", minutes=10,
-            id="netlify_dns_check_every_10min",
+            "interval", minutes=15,
+            id="netlify_dns_check_every_15min",
             replace_existing=True,
         )
         self.scheduler.add_job(

@@ -20,3 +20,4 @@ qrcode[pil]
 pillow
 stripe
 matplotlib
+brevo-python

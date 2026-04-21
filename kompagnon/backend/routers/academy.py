@@ -111,8 +111,8 @@ def list_courses(db: Session = Depends(get_db), current_user=Depends(get_current
             AcademyCourse.target_audience.in_(['customer', 'both']),
             AcademyCourse.is_published.is_(True),
         )
-    elif role == 'admin':
-        pass  # Admin sieht alle Kurse inkl. Entwürfe, keine Filterung
+    elif role in ('admin', 'superadmin'):
+        pass  # Admin/Superadmin sieht alle Kurse inkl. Entwürfe, keine Filterung
     else:
         # nutzer, auditor, und alle anderen internen Rollen
         q = q.filter(

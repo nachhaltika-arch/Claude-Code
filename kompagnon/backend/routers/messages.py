@@ -195,7 +195,7 @@ def get_messages_kunde(
     # Admin-Nachrichten als gelesen markieren
     now = datetime.utcnow()
     for m in messages:
-        if m.sender_role == "admin" and not m.is_read:
+        if m.sender_role in ("admin", "superadmin") and not m.is_read:
             m.is_read = True
             m.read_at = now
     db.commit()

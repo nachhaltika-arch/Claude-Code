@@ -413,7 +413,7 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
                 "sitemap_json, sitemap_freigabe, content_freigaben, qa_checklist_json, "
                 "abnahme_datum, abnahme_durch, "
                 "pagespeed_after_mobile, pagespeed_after_desktop, screenshot_after, "
-                "gbp_checklist_json "
+                "gbp_checklist_json, briefing_approved_at "
                 "FROM projects WHERE id = :pid"
             ),
             {"pid": project_id},
@@ -475,6 +475,7 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
         'gbp_rating':               getattr(lead, 'gbp_rating', None),
         'gbp_ratings_total':        getattr(lead, 'gbp_ratings_total', None),
         'gbp_checklist_json':       row[24],
+        'briefing_approved_at':     row[25].isoformat() if row[25] else None,
     }
 
 

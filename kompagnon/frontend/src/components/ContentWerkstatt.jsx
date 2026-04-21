@@ -8,7 +8,7 @@ const CONTENT_TABS = [
   { id: 'freigaben',  label: 'Freigaben',       icon: '✅', desc: 'Kunden-Freigaben' },
 ];
 
-export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading, token, leadId, websiteContent }) {
+export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading, token, leadId, websiteContent, onProjectRefresh }) {
   const [activeTab, setActiveTab]       = useState('inhalte');
   const [selectedPage, setSelectedPage] = useState(null);
   const [generating, setGenerating]     = useState(false);
@@ -32,7 +32,16 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
     setGenerating(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/content-workshop/${page.id}`, { method: 'POST', headers });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Fehler');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const detail = errData.detail;
+        if (detail?.code === 'BRIEFING_NOT_APPROVED') {
+          toast('🔒 Briefing noch nicht freigegeben. Bitte warte auf Kundenfreigabe.', { duration: 5000 });
+          if (onProjectRefresh) onProjectRefresh();
+          return;
+        }
+        throw new Error(typeof detail === 'string' ? detail : detail?.message || 'Fehler');
+      }
       const data = await res.json();
       setPageContent(prev => ({ ...prev, [page.id]: data }));
       setSelectedPage(page);

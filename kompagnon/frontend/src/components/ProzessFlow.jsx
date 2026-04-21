@@ -382,6 +382,7 @@ function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
           token={token}
           leadId={project.lead_id}
           websiteContent={websiteContent}
+          onProjectRefresh={onProjectRefresh}
         />
       );
 
@@ -829,16 +830,22 @@ function BriefingUnternehmenEmbed({ lead, localBriefing, reloadBriefing }) {
 }
 
 function SitemapKiVorschlag({ project, leadId, headers, onGenerated }) {
-  const [loading, setLoading] = useState(false);
-  const [done, setDone]       = useState(false);
-  const [error, setError]     = useState(null);
+  const [loading, setLoading]       = useState(false);
+  const [done, setDone]             = useState(false);
+  const [error, setError]           = useState(null);
+  const [gateBlocked, setGateBlocked] = useState(false);
 
   const generate = async () => {
     if (!leadId) { setError('Keine Lead-ID verfuegbar.'); return; }
-    setLoading(true); setError(null);
+    setLoading(true); setError(null); setGateBlocked(false);
     try {
       const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/generate`, { method: 'POST', headers });
-      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || `HTTP ${res.status}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const detail = errData.detail;
+        if (detail?.code === 'BRIEFING_NOT_APPROVED') { setGateBlocked(true); return; }
+        throw new Error(typeof detail === 'string' ? detail : detail?.message || `HTTP ${res.status}`);
+      }
       setDone(true);
       if (onGenerated) onGenerated();
     } catch (e) { setError(e.message); }
@@ -848,6 +855,20 @@ function SitemapKiVorschlag({ project, leadId, headers, onGenerated }) {
   if (done) return (
     <div style={{ padding: '12px 18px', background: 'var(--status-success-bg)', borderRadius: 8, fontSize: 13, color: 'var(--status-success-text)', marginBottom: 12 }}>
       Sitemap wurde generiert — wird geladen...
+    </div>
+  );
+
+  if (gateBlocked) return (
+    <div style={{ margin: '0 20px 16px', padding: '14px 18px', background: 'rgba(217,119,6,.06)', border: '1px solid rgba(217,119,6,.3)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 14 }}>
+      <span style={{ fontSize: 28, flexShrink: 0 }}>🔒</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>Briefing noch nicht freigegeben</div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Der Kunde hat das Briefing noch nicht freigegeben. Sobald die Freigabe erteilt wurde, kann die KI-Sitemap erstellt werden.</div>
+      </div>
+      <button onClick={generate} disabled={loading}
+        style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid rgba(217,119,6,.4)', background: 'transparent', color: '#d97706', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+        Erneut prüfen
+      </button>
     </div>
   );
 

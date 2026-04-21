@@ -141,18 +141,32 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     sig = request.headers.get("stripe-signature")
 
     if not WEBHOOK_SECRET:
-        logger.warning("Stripe webhook secret not configured")
-        raise HTTPException(400, "Webhook nicht konfiguriert")
+        logger.error(
+            "Stripe Webhook empfangen aber STRIPE_WEBHOOK_SECRET nicht gesetzt — "
+            "Zahlung kann nicht verarbeitet werden! Bitte Env-Var in Render setzen."
+        )
+        return {"status": "skipped", "reason": "webhook_secret_not_configured"}
 
     try:
         event = stripe.Webhook.construct_event(payload, sig, WEBHOOK_SECRET)
+    except stripe.error.SignatureVerificationError as e:
+        logger.error(f"Stripe Signatur ungueltig: {e}")
+        raise HTTPException(400, "Ungueltige Webhook-Signatur")
     except Exception as e:
-        logger.error(f"Webhook verification failed: {e}")
+        logger.error(f"Stripe Webhook Fehler: {e}")
         raise HTTPException(400, "Webhook Fehler")
 
     if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        _handle_successful_payment(session, db)
+        session_obj = event["data"]["object"]
+        try:
+            _handle_successful_payment(session_obj, db)
+        except Exception as e:
+            logger.error(
+                f"Stripe: _handle_successful_payment Fehler fuer "
+                f"Session {session_obj.get('id', '?')}: {e}",
+                exc_info=True,
+            )
+            return {"status": "error_logged"}
 
     return {"status": "ok"}
 
@@ -175,6 +189,24 @@ def _handle_successful_payment(session: dict, db: Session):
     phone_nr    = meta.get("phone", "") or \
                   (session.get("customer_details") or {}).get("phone", "")
     amount      = (session.get("amount_total", 0) or 0) / 100
+    stripe_session_id = session.get("id", "")
+
+    if stripe_session_id:
+        from sqlalchemy import text as _text
+        existing_lead = db.execute(_text(
+            "SELECT id FROM leads WHERE notes LIKE :pattern LIMIT 1"
+        ), {"pattern": f"%{stripe_session_id}%"}).fetchone()
+        if existing_lead:
+            logger.info(
+                f"Stripe Webhook: Session {stripe_session_id} bereits verarbeitet "
+                f"(Lead {existing_lead[0]}) — uebersprungen"
+            )
+            return
+
+    logger.info(
+        f"Stripe: Neue Zahlung — {company} ({email}) | "
+        f"{amount:.2f} EUR | Session: {stripe_session_id}"
+    )
 
     name_parts = name.split(" ", 1)
     first_name = name_parts[0] if name_parts else ""
@@ -492,3 +524,20 @@ async def get_session_status(session_id: str):
         }
     except Exception as e:
         raise HTTPException(400, str(e))
+
+
+def _check_stripe_config():
+    if not stripe.api_key:
+        logger.error(
+            "STRIPE_SECRET_KEY nicht gesetzt — Stripe-Calls werden fehlschlagen. "
+            "Bitte in Render.com Environment konfigurieren."
+        )
+    if not WEBHOOK_SECRET:
+        logger.error(
+            "STRIPE_WEBHOOK_SECRET nicht gesetzt — Webhook-Verifikation deaktiviert. "
+            "Zahlungen werden NICHT verarbeitet."
+        )
+    if stripe.api_key and WEBHOOK_SECRET:
+        logger.info("Stripe-Konfiguration vollstaendig")
+
+_check_stripe_config()

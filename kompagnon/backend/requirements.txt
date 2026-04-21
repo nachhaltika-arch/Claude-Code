@@ -22,5 +22,5 @@ stripe
 matplotlib
 dnspython
 python-whois
-sib-api-v3-sdk
+brevo-python
 gunicorn

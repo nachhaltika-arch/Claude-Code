@@ -1,6 +1,5 @@
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
-import gjsNewsletter from 'grapesjs-preset-newsletter';
 import { useEffect, useRef, useState } from 'react';
 import API_BASE_URL from '../config';
 
@@ -63,15 +62,8 @@ export default function NewsletterDesigner({ leadId, projectId, onSend, onSave, 
       storageManager: false,
       fromElement: false,
       components: initialHtml || DEFAULT_TEMPLATE,
-      plugins: [gjsNewsletter],
-      pluginsOpts: {
-        [gjsNewsletter]: {
-          modalLabelImport: 'HTML importieren',
-          modalLabelExport: 'HTML exportieren',
-          updateStyleManager: true,
-          showStylesOnChange: true,
-        },
-      },
+      plugins: [],
+      pluginsOpts: {},
       deviceManager: {
         devices: [
           { name: 'Desktop', width: '650px' },

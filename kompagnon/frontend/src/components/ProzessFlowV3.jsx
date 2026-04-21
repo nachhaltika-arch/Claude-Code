@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PHASEN, ALLE_SCHRITTE, SchrittInhalt } from './ProzessFlow';
+import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
 export default function ProzessFlowV3({
@@ -102,18 +103,17 @@ export default function ProzessFlowV3({
 
   const statusLabel = project?.status?.includes('abgeschlossen') ? 'Abgeschlossen'
     : project?.status?.includes('pausiert') ? 'Pausiert' : 'Aktiv';
+  const { isMobile } = useScreenSize();
   const companyName = project?.company_name || lead?.company_name || `Projekt #${project?.id}`;
-
-  const isMobileView = window.innerWidth <= 768;
 
   return (
     <div style={{
-      position: isMobileView ? 'relative' : 'fixed',
+      position: isMobile ? 'relative' : 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
       display: 'flex', flexDirection: 'column',
       zIndex: 50, background: 'var(--bg-surface)',
       overflow: 'hidden', fontFamily: 'var(--font-sans)',
-      ...(isMobileView ? { minHeight: '100vh' } : {}),
+      ...(isMobile ? { minHeight: '100vh' } : {}),
     }}>
 
       {/* ── Eigene Topbar mit Breadcrumb ────────────────────────────── */}

@@ -9,6 +9,8 @@ import os
 import re
 import requests
 import logging
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Optional
@@ -440,11 +442,33 @@ def _mock_ai_score(check_data: dict) -> dict:
 # API Endpoints
 # ═══════════════════════════════════════════════════════════
 
+AUDIT_TOTAL_TIMEOUT_SEC = 90
+
+
+def _run_with_timeout(fn, timeout_sec, *args, **kwargs):
+    result = [None]
+    error = [None]
+
+    def target():
+        try:
+            result[0] = fn(*args, **kwargs)
+        except Exception as e:
+            error[0] = e
+
+    t = threading.Thread(target=target, daemon=True)
+    t.start()
+    t.join(timeout=timeout_sec)
+    if t.is_alive():
+        raise TimeoutError(f"Timeout nach {timeout_sec}s")
+    if error[0]:
+        raise error[0]
+    return result[0]
+
+
 def _run_audit_background(audit_id: int):
-    """Background worker — runs all checks and updates the DB record.
-    Designed to complete within 25s for Render free-plan compatibility.
+    """Background worker with short-lived DB sessions.
+    DB is closed before external HTTP calls (PageSpeed, AI) to free pool slots.
     """
-    import time
     _start = time.monotonic()
 
     from database import SessionLocal
@@ -458,6 +482,9 @@ def _run_audit_background(audit_id: int):
         db.commit()
 
         url = audit.website_url
+        company_name = audit.company_name or ""
+        trade = audit.trade or ""
+        lead_id = audit.lead_id
 
         # 1. Basic checks
         ssl_ok = _check_ssl(url)
@@ -471,7 +498,11 @@ def _run_audit_background(audit_id: int):
         # 2. Legal checks
         legal = _check_legal_pages(site["html"], url)
 
-        # 3+4. PageSpeed + Security headers IN PARALLEL (12s max)
+        # Release DB before external HTTP calls
+        db.close()
+        db = None
+
+        # 3+4. PageSpeed + Security headers IN PARALLEL (max 25s)
         psi = {"performance_score": 0, "mobile_score": 0, "lcp_value": 99.0, "cls_value": 1.0, "inp_value": 999.0}
         sec = {"has_hsts": False, "has_csp": False, "has_xframe": False, "has_xcontent": False}
         try:
@@ -483,15 +514,15 @@ def _run_audit_background(audit_id: int):
                 except Exception:
                     pass
                 try:
-                    psi = fut_psi.result(timeout=12)
+                    psi = fut_psi.result(timeout=20)
                 except Exception:
-                    pass
-        except Exception:
-            pass
+                    logger.warning(f"Audit {audit_id}: PageSpeed Timeout/Fehler")
+        except Exception as e:
+            logger.warning(f"Audit {audit_id}: ThreadPoolExecutor Fehler: {e}")
 
         # 5. Build check data bundle
         check_data = {
-            "company_name": audit.company_name,
+            "company_name": company_name,
             "url": url,
             "ssl_ok": ssl_ok,
             "reachable": True,
@@ -500,10 +531,17 @@ def _run_audit_background(audit_id: int):
             "security_headers": sec,
         }
 
-        # 6. AI scoring (skip if already past 20s)
+        # 6. AI scoring (with timeout guard)
         elapsed = time.monotonic() - _start
-        if elapsed < 20:
-            ai = _ai_score(check_data, audit.company_name, audit.trade or "")
+        if elapsed < 60:
+            try:
+                ai = _run_with_timeout(_ai_score, 30, check_data, company_name, trade)
+            except TimeoutError:
+                logger.warning(f"Audit {audit_id}: AI scoring Timeout (30s), using mock")
+                ai = _mock_ai_score(check_data)
+            except Exception as e:
+                logger.warning(f"Audit {audit_id}: AI scoring Fehler: {e}, using mock")
+                ai = _mock_ai_score(check_data)
         else:
             logger.warning(f"Audit {audit_id}: skipping AI (elapsed {elapsed:.0f}s), using mock")
             ai = _mock_ai_score(check_data)
@@ -530,85 +568,98 @@ def _run_audit_background(audit_id: int):
         total = rc + tp + bf + si + se + ux
         level = next(lbl for threshold, lbl in LEVELS if total >= threshold)
 
-        # 8. Update category + aggregate fields
-        audit.total_score = total
-        audit.level = level
-        audit.rc_score = rc
-        audit.tp_score = tp
-        audit.bf_score = bf
-        audit.si_score = si
-        audit.se_score = se
-        audit.ux_score = ux
-        audit.ssl_ok = ssl_ok
-        audit.impressum_ok = legal["impressum_ok"]
-        audit.datenschutz_ok = legal["datenschutz_ok"]
-        audit.lcp_value = psi.get("lcp_value")
-        audit.cls_value = psi.get("cls_value")
-        audit.inp_value = psi.get("inp_value")
-        audit.mobile_score = psi.get("mobile_score")
-        audit.performance_score = psi.get("performance_score")
-        audit.ai_summary = ai.get("ai_summary", "")
-        audit.top_issues = json.dumps(ai.get("top_issues", []), ensure_ascii=False)
-        audit.recommendations = json.dumps(ai.get("recommendations", []), ensure_ascii=False)
-
-        # 8b. Save all item-level scores
-        _ITEM_KEYS = [
-            "rc_impressum", "rc_datenschutz", "rc_cookie", "rc_bfsg", "rc_urheberrecht", "rc_ecommerce",
-            "tp_lcp", "tp_cls", "tp_inp", "tp_mobile", "tp_bilder",
-            "ho_anbieter", "ho_uptime", "ho_http", "ho_backup", "ho_cdn",
-            "bf_kontrast", "bf_tastatur", "bf_screenreader", "bf_lesbarkeit",
-            "si_ssl", "si_header", "si_drittanbieter", "si_formulare",
-            "se_seo", "se_schema", "se_lokal",
-            "ux_erstindruck", "ux_cta", "ux_navigation", "ux_vertrauen", "ux_content", "ux_kontakt",
-        ]
-        for key in _ITEM_KEYS:
-            setattr(audit, key, int(ai.get(key, 0) or 0))
-
-        # 9. Screenshot (optional, non-blocking)
+        # 8. Fresh DB session for result storage
+        db2 = SessionLocal()
         try:
-            import asyncio
-            from services.screenshot import capture_screenshot
-            screenshot_b64 = asyncio.run(capture_screenshot(url))
-            if screenshot_b64:
-                audit.screenshot_base64 = screenshot_b64
-                if audit.lead_id:
-                    from database import Lead as LeadModel
-                    lead = db.query(LeadModel).filter(LeadModel.id == audit.lead_id).first()
-                    if lead:
-                        lead.website_screenshot = screenshot_b64
-        except Exception as e:
-            logger.warning(f"Screenshot skipped for audit {audit_id}: {e}")
+            audit = db2.query(AuditResult).filter(AuditResult.id == audit_id).first()
+            if not audit:
+                return
 
-        audit.status = "completed"
-        db.commit()
-        logger.info(f"✓ Audit {audit_id} completed: {total}/100 ({level})")
+            audit.total_score = total
+            audit.level = level
+            audit.rc_score = rc
+            audit.tp_score = tp
+            audit.bf_score = bf
+            audit.si_score = si
+            audit.se_score = se
+            audit.ux_score = ux
+            audit.ssl_ok = ssl_ok
+            audit.impressum_ok = legal["impressum_ok"]
+            audit.datenschutz_ok = legal["datenschutz_ok"]
+            audit.lcp_value = psi.get("lcp_value")
+            audit.cls_value = psi.get("cls_value")
+            audit.inp_value = psi.get("inp_value")
+            audit.mobile_score = psi.get("mobile_score")
+            audit.performance_score = psi.get("performance_score")
+            audit.ai_summary = ai.get("ai_summary", "")
+            audit.top_issues = json.dumps(ai.get("top_issues", []), ensure_ascii=False)
+            audit.recommendations = json.dumps(ai.get("recommendations", []), ensure_ascii=False)
 
-        # E-Mail bei Audit-Abschluss
-        try:
-            if audit.lead_id:
-                from database import Project
-                project = db.query(Project).filter(Project.lead_id == audit.lead_id).first()
-                if project:
-                    to_email = getattr(project, "customer_email", None) or ""
-                    notifications_on = getattr(project, "email_notifications_enabled", True)
-                    if notifications_on and to_email:
-                        company = getattr(project, "company_name", "") or f"Lead #{audit.lead_id}"
-                        send_audit_done_email(to=to_email, company=company, report_url=None)
-        except Exception as exc:
-            logger.warning(f"Audit-E-Mail fehlgeschlagen für Audit {audit_id}: {exc}")
+            _ITEM_KEYS = [
+                "rc_impressum", "rc_datenschutz", "rc_cookie", "rc_bfsg", "rc_urheberrecht", "rc_ecommerce",
+                "tp_lcp", "tp_cls", "tp_inp", "tp_mobile", "tp_bilder",
+                "ho_anbieter", "ho_uptime", "ho_http", "ho_backup", "ho_cdn",
+                "bf_kontrast", "bf_tastatur", "bf_screenreader", "bf_lesbarkeit",
+                "si_ssl", "si_header", "si_drittanbieter", "si_formulare",
+                "se_seo", "se_schema", "se_lokal",
+                "ux_erstindruck", "ux_cta", "ux_navigation", "ux_vertrauen", "ux_content", "ux_kontakt",
+            ]
+            for key in _ITEM_KEYS:
+                setattr(audit, key, int(ai.get(key, 0) or 0))
+
+            try:
+                import asyncio
+                from services.screenshot import capture_screenshot
+                screenshot_b64 = asyncio.run(capture_screenshot(url))
+                if screenshot_b64:
+                    audit.screenshot_base64 = screenshot_b64
+                    if lead_id:
+                        from database import Lead as LeadModel
+                        lead_obj = db2.query(LeadModel).filter(LeadModel.id == lead_id).first()
+                        if lead_obj:
+                            lead_obj.website_screenshot = screenshot_b64
+            except Exception as e:
+                logger.warning(f"Screenshot skipped for audit {audit_id}: {e}")
+
+            audit.status = "completed"
+            db2.commit()
+            logger.info(f"Audit {audit_id} completed: {total}/100 ({level}) in {time.monotonic()-_start:.1f}s")
+
+            try:
+                if lead_id:
+                    from database import Project
+                    project = db2.query(Project).filter(Project.lead_id == lead_id).first()
+                    if project:
+                        to_email = getattr(project, "customer_email", None) or ""
+                        notifications_on = getattr(project, "email_notifications_enabled", True)
+                        if notifications_on and to_email:
+                            company = getattr(project, "company_name", "") or f"Lead #{lead_id}"
+                            send_audit_done_email(to=to_email, company=company, report_url=None)
+            except Exception as exc:
+                logger.warning(f"Audit-E-Mail fehlgeschlagen für Audit {audit_id}: {exc}")
+        finally:
+            db2.close()
 
     except Exception as e:
-        logger.error(f"✗ Audit {audit_id} failed: {e}")
+        logger.error(f"Audit {audit_id} failed: {type(e).__name__}: {e}")
         try:
-            audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
-            if audit:
-                audit.status = "failed"
-                audit.error_message = str(e)[:500]
-                db.commit()
+            db3 = SessionLocal()
+            try:
+                a = db3.query(AuditResult).filter(AuditResult.id == audit_id).first()
+                if a and a.status == "running":
+                    a.status = "failed"
+                    a.error_message = f"{type(e).__name__}: {str(e)[:200]}"
+                    db3.commit()
+            finally:
+                db3.close()
         except Exception:
             pass
     finally:
-        db.close()
+        if db is not None:
+            try:
+                db.close()
+            except Exception:
+                pass
 
 
 @router.get("/recent")
@@ -685,8 +736,25 @@ async def start_audit(
     db.commit()
     db.refresh(audit)
 
-    # Kick off background processing
-    background_tasks.add_task(_run_audit_background, audit.id)
+    def _run_with_global_timeout(aid: int):
+        try:
+            _run_with_timeout(_run_audit_background, AUDIT_TOTAL_TIMEOUT_SEC, aid)
+        except TimeoutError:
+            logger.error(f"Audit {aid}: Gesamt-Timeout ({AUDIT_TOTAL_TIMEOUT_SEC}s)")
+            from database import SessionLocal
+            s = SessionLocal()
+            try:
+                a = s.query(AuditResult).filter(AuditResult.id == aid).first()
+                if a and a.status == "running":
+                    a.status = "failed"
+                    a.error_message = f"Timeout: Audit nicht in {AUDIT_TOTAL_TIMEOUT_SEC}s abgeschlossen."
+                    s.commit()
+            finally:
+                s.close()
+        except Exception as e:
+            logger.error(f"Audit {aid}: Background-Fehler: {e}")
+
+    background_tasks.add_task(_run_with_global_timeout, audit.id)
 
     return {
         "id": audit.id,

@@ -2100,6 +2100,13 @@ def request_approval(
                   Bitte antworten Sie auf diese E-Mail oder melden Sie sich
                   in Ihrem Kundenportal an, um die Freigabe zu erteilen.
                 </p>
+                <div style="text-align:center;margin:20px 0">
+                  <a href="{os.getenv('FRONTEND_URL', 'https://kompagnon-frontend.onrender.com')}/kundenportal"
+                     style="display:inline-block;padding:12px 28px;background:#008eaa;color:white;
+                            text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px">
+                    Zum Kundenportal &rarr;
+                  </a>
+                </div>
               </div>
               <div style="padding:14px 28px;background:#f8f9fa;
                           border-radius:0 0 12px 12px;text-align:center">

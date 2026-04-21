@@ -436,6 +436,22 @@ async def generate_sitemap(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
+    briefing_obj = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    if briefing_obj and briefing_obj.freigaben:
+        import json as _json
+        try:
+            fg = _json.loads(briefing_obj.freigaben)
+            if fg and not fg.get("briefing", {}).get("approved"):
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "code": "BRIEFING_PENDING_APPROVAL",
+                        "message": "Das Briefing wurde noch nicht freigegeben. Bitte warten bis die Kundenfreigabe erteilt wurde.",
+                    }
+                )
+        except (ValueError, TypeError):
+            pass
+
     # Step 1: Pflichtseiten immer zuerst sicherstellen
     _ensure_pflichtseiten(lead_id, db)
 

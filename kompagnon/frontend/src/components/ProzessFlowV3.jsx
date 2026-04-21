@@ -104,12 +104,16 @@ export default function ProzessFlowV3({
     : project?.status?.includes('pausiert') ? 'Pausiert' : 'Aktiv';
   const companyName = project?.company_name || lead?.company_name || `Projekt #${project?.id}`;
 
+  const isMobileView = window.innerWidth <= 768;
+
   return (
     <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      position: isMobileView ? 'relative' : 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
       display: 'flex', flexDirection: 'column',
       zIndex: 50, background: 'var(--bg-surface)',
       overflow: 'hidden', fontFamily: 'var(--font-sans)',
+      ...(isMobileView ? { minHeight: '100vh' } : {}),
     }}>
 
       {/* ── Eigene Topbar mit Breadcrumb ────────────────────────────── */}
@@ -152,15 +156,15 @@ export default function ProzessFlowV3({
       </div>
 
       {/* ── Hauptbereich: linkes Panel + rechter Inhalt ─────────────── */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '240px 1fr', overflow: 'hidden', minHeight: 0 }}>
 
       {/* ── LEFT: Process Navigation Sidebar ────────────────────────── */}
       <div style={{
-        width: 220, flexShrink: 0,
         background: 'var(--kc-dark)',
         borderRight: '1px solid rgba(255,255,255,0.08)',
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
+        minWidth: 0,
       }}>
 
         {/* Header: back + project info */}

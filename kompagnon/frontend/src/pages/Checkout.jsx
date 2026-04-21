@@ -16,7 +16,7 @@ export default function Checkout() {
   const [packages, setPackages] = useState([]);
   const [step, setStep] = useState(1);
   const [selected, setSelected] = useState(pkgParam || searchParams.get('package') || 'kompagnon');
-  const [form, setForm] = useState({ name: '', company: '', email: '', phone: '', message: '' });
+  const [form, setForm] = useState({ name: '', company: '', website: '', email: '', phone: '', message: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -47,13 +47,15 @@ export default function Checkout() {
 
   const handleCheckout = async () => {
     if (!form.email || !form.name || !form.company) { setError('Bitte alle Pflichtfelder ausfuellen'); return; }
+    if (!form.website.trim()) { setError('Bitte Website / Domain eingeben'); return; }
+    const websiteUrl = form.website.trim().startsWith('http') ? form.website.trim() : `https://${form.website.trim()}`;
     setLoading(true);
     setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/payments/create-checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ package: selected, email: form.email, name: form.name, company: form.company }),
+        body: JSON.stringify({ package: selected, email: form.email, name: form.name, company: form.company, website_url: websiteUrl, phone: form.phone }),
       });
       const data = await res.json();
       if (data.checkout_url) {
@@ -158,6 +160,11 @@ export default function Checkout() {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
                 <div><label style={lbl}>Ihr Name *</label><input style={inp} value={form.name} onChange={set('name')} placeholder="Max Mustermann" /></div>
                 <div><label style={lbl}>Firma *</label><input style={inp} value={form.company} onChange={set('company')} placeholder="Mustermann GmbH" /></div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={lbl}>Website / Domain *</label>
+                <input style={inp} type="text" value={form.website} onChange={set('website')} placeholder="z.B. meinefirma.de" autoComplete="url" />
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>Ohne Domain kann kein Audit und kein Website-Projekt gestartet werden.</div>
               </div>
               <div style={{ marginBottom: 16 }}><label style={lbl}>E-Mail *</label><input style={inp} type="email" value={form.email} onChange={set('email')} placeholder="ihre@email.de" /></div>
               <div style={{ marginBottom: 16 }}><label style={lbl}>Telefon</label><input style={inp} type="tel" value={form.phone} onChange={set('phone')} placeholder="089 123 456" /></div>

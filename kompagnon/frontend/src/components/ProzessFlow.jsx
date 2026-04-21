@@ -23,15 +23,19 @@ const PHASEN = [
         istFertig: (d) => !!(d.latestAudit?.total_score > 0),
         wasFehlts: (d) => d.latestAudit ? [] : ['Audit noch nicht gestartet'],
         fertigText: (d) => `Score: ${d.latestAudit?.total_score}/100` },
-      { id: 'analyse-zentrale', nr: 3, label: 'Analyse-Zentrale', desc: 'Crawler, Brand Design, PageSpeed, GA', icon: '🔬', component: 'AnalyseZentrale',
-        istFertig: (d) => (d.crawlPages || 0) >= 3 && !!(d.brandPrimaryColor),
-        wasFehlts: (d) => { const f = []; if ((d.crawlPages||0) < 3) f.push(`Crawler: ${d.crawlPages||0} Seiten (mind. 3)`); if (!d.brandPrimaryColor) f.push('Brand-Scan fehlt'); return f; },
-        fertigText: (d) => `${d.crawlPages} Seiten · Brand` },
-      { id: 'briefing-website', nr: 4, label: 'Briefing Website', desc: 'Ziele, Design, Seiten dokumentieren', icon: '📋', component: 'BriefingWebsite',
+      { id: 'analyse-zentrale', nr: 3, label: 'Analyse-Zentrale', desc: 'Crawler, PageSpeed, Hosting, GA', icon: '🔬', component: 'AnalyseZentrale',
+        istFertig: (d) => (d.crawlPages || 0) >= 3,
+        wasFehlts: (d) => { const f = []; if ((d.crawlPages||0) < 3) f.push(`Crawler: ${d.crawlPages||0} Seiten (mind. 3)`); return f; },
+        fertigText: (d) => `${d.crawlPages} Seiten` },
+      { id: 'brand-design', nr: 4, label: 'Brand Design', desc: 'Farben, Schriften und Stil festlegen', icon: '🎨', component: 'BrandDesignEditor',
+        istFertig: (d) => !!(d.brandPrimaryColor),
+        wasFehlts: () => ['Brand Design noch nicht gespeichert'],
+        fertigText: (d) => d.brandPrimaryColor || 'Gespeichert' },
+      { id: 'briefing-website', nr: 5, label: 'Briefing Website', desc: 'Ziele, Design, Seiten dokumentieren', icon: '📋', component: 'BriefingWebsite',
         istFertig: (d) => !!((d.briefing?.hauptziel && d.briefing?.aktionen) || d.briefing?.seiten),
         wasFehlts: (d) => { const f = []; if (!d.briefing?.hauptziel) f.push('Hauptziel'); if (!d.briefing?.aktionen) f.push('CTA-Aktion'); if (!d.briefing?.seiten) f.push('Gewuenschte Seiten'); return f; },
         fertigText: () => 'Ausgefuellt' },
-      { id: 'zugangsdaten', nr: 5, label: 'Zugangsdaten', desc: 'Hosting, FTP, CMS-Zugaenge', icon: '🔑', component: 'Zugangsdaten', optional: true,
+      { id: 'zugangsdaten', nr: 6, label: 'Zugangsdaten', desc: 'Hosting, FTP, CMS-Zugaenge', icon: '🔑', component: 'Zugangsdaten', optional: true,
         istFertig: (d) => (d.credsCount || 0) >= 1,
         wasFehlts: (d) => d.credsCount ? [] : ['Keine Zugaenge gespeichert'],
         fertigText: (d) => `${d.credsCount} Eintraege` },
@@ -40,7 +44,7 @@ const PHASEN = [
   {
     id: 'briefing', label: 'Report', icon: '🤖', color: '#0d6efd',
     schritte: [
-      { id: 'ki-report', nr: 6, label: 'KI-Report erstellen', desc: 'KI-Analyse aus Briefing + Crawler-Daten', icon: '🤖', component: 'KiReport',
+      { id: 'ki-report', nr: 7, label: 'KI-Report erstellen', desc: 'KI-Analyse aus Briefing + Crawler-Daten', icon: '🤖', component: 'KiReport',
         istFertig: (d) => !!(d.kiReportDone),
         wasFehlts: () => ['Report noch nicht generiert'],
         fertigText: () => 'Report erstellt', optional: true },
@@ -49,23 +53,23 @@ const PHASEN = [
   {
     id: 'content', label: 'Content', icon: '📝', color: '#7c3aed',
     schritte: [
-      { id: 'moodboard', nr: 7, label: 'Moodboard / Stilrichtung', desc: 'Stilrichtung und Farbwelt festlegen', icon: '🎨', component: 'Moodboard',
+      { id: 'moodboard', nr: 8, label: 'Moodboard / Stilrichtung', desc: 'Stilrichtung und Farbwelt festlegen', icon: '🎨', component: 'Moodboard',
         istFertig: (d) => !!(d.moodboardDone),
         wasFehlts: () => ['Stilrichtung noch nicht gewaehlt'],
         fertigText: () => 'Stilrichtung festgelegt', optional: true },
-      { id: 'sitemap', nr: 8, label: 'Sitemap anlegen', desc: 'Seitenstruktur definieren', icon: '🗺️', component: 'Sitemap',
+      { id: 'sitemap', nr: 9, label: 'Sitemap anlegen', desc: 'Seitenstruktur definieren', icon: '🗺️', component: 'Sitemap',
         istFertig: (d) => (d.sitemapCount || 0) >= 3,
         wasFehlts: (d) => { const f = 3-(d.sitemapCount||0); return f > 0 ? [`Noch ${f} Seite(n) (mind. 3)`] : []; },
         fertigText: (d) => `${d.sitemapCount} Seiten` },
-      { id: 'seiteninhalte', nr: 9, label: 'Seiteninhalte', desc: 'KI-Texte je Seite erstellen', icon: '📄', component: 'ContentSeiteninhalte',
+      { id: 'seiteninhalte', nr: 10, label: 'Seiteninhalte', desc: 'KI-Texte je Seite erstellen', icon: '📄', component: 'ContentSeiteninhalte',
         istFertig: (d) => (d.sitemapCount||0) > 0 && (d.contentCount||0) >= (d.sitemapCount||1),
         wasFehlts: (d) => { if (!d.sitemapCount) return ['Zuerst Sitemap anlegen']; const o = (d.sitemapCount||0)-(d.contentCount||0); return o > 0 ? [`${o}/${d.sitemapCount} Seiten ohne Content`] : []; },
         fertigText: (d) => `${d.contentCount}/${d.sitemapCount} Seiten` },
-      { id: 'build-assets', nr: 10, label: 'Bilder & Assets', desc: 'Bilder und Medien je Seite zuordnen', icon: '🖼️', component: 'ContentAssets',
+      { id: 'build-assets', nr: 11, label: 'Bilder & Assets', desc: 'Bilder und Medien je Seite zuordnen', icon: '🖼️', component: 'ContentAssets',
         istFertig: (d) => !!(d.hasAssets),
         wasFehlts: () => ['Noch keine Bilder zugeordnet'],
         fertigText: () => 'Assets zugeordnet', optional: true },
-      { id: 'content-freigabe', nr: 11, label: 'Freigabe', desc: 'Kundenfreigabe für Seiteninhalte', icon: '✅', component: 'ContentFreigabe',
+      { id: 'content-freigabe', nr: 12, label: 'Freigabe', desc: 'Kundenfreigabe für Seiteninhalte', icon: '✅', component: 'ContentFreigabe',
         istFertig: (d) => !!(d.contentFreigabeErteilt),
         wasFehlts: () => ['Freigabe noch nicht erteilt'],
         fertigText: () => 'Freigabe erteilt' },
@@ -74,11 +78,11 @@ const PHASEN = [
   {
     id: 'design', label: 'Design', icon: '🎨', color: '#d97706',
     schritte: [
-      { id: 'design-generieren', nr: 12, label: 'Design generieren', desc: 'Template + KI-Entwurf', icon: '✨', component: 'DesignStudio',
+      { id: 'design-generieren', nr: 13, label: 'Design generieren', desc: 'Template + KI-Entwurf', icon: '✨', component: 'DesignStudio',
         istFertig: (d) => (d.designVersions || 0) >= 1,
         wasFehlts: (d) => (d.designVersions||0) === 0 ? ['Noch kein Design generiert'] : [],
         fertigText: (d) => `${d.designVersions} Version(en)` },
-      { id: 'editor', nr: 13, label: 'Editor nachbearbeiten', desc: 'Feinschliff im GrapesJS', icon: '🖊️', component: 'Editor', optional: true,
+      { id: 'editor', nr: 14, label: 'Editor nachbearbeiten', desc: 'Feinschliff im GrapesJS', icon: '🖊️', component: 'Editor', optional: true,
         istFertig: (d) => !!(d.editorSaved),
         wasFehlts: () => ['Editor nicht geoeffnet'],
         fertigText: () => 'Gespeichert' },
@@ -87,19 +91,19 @@ const PHASEN = [
   {
     id: 'golive', label: 'Go Live', icon: '🚀', color: '#059669',
     schritte: [
-      { id: 'netlify', nr: 14, label: 'Netlify deployen', desc: 'Website veroeffentlichen', icon: '🚀', component: 'Netlify',
+      { id: 'netlify', nr: 15, label: 'Netlify deployen', desc: 'Website veroeffentlichen', icon: '🚀', component: 'Netlify',
         istFertig: (d) => !!(d.netlifyUrl && d.netlifyReady),
         wasFehlts: (d) => { if (!d.netlifyUrl) return ['Netlify nicht angelegt']; if (!d.netlifyReady) return ['Deploy nicht abgeschlossen']; return []; },
         fertigText: (d) => d.netlifyUrl || 'Deployed' },
-      { id: 'dns', nr: 15, label: 'DNS umstellen', desc: 'CNAME beim Domain-Anbieter', icon: '🌍', component: 'DNS',
+      { id: 'dns', nr: 16, label: 'DNS umstellen', desc: 'CNAME beim Domain-Anbieter', icon: '🌍', component: 'DNS',
         istFertig: (d) => !!(d.domainReachable && d.domainStatusCode === 200),
         wasFehlts: (d) => { if (!d.netlifyUrl) return ['Zuerst Netlify deployen']; if (!d.domainReachable) return ['Domain nicht erreichbar']; return []; },
         fertigText: () => 'Domain erreichbar' },
-      { id: 'qa', nr: 16, label: 'QA-Check', desc: 'Links, Mobile, Impressum', icon: '✓', component: 'QA',
+      { id: 'qa', nr: 17, label: 'QA-Check', desc: 'Links, Mobile, Impressum', icon: '✓', component: 'QA',
         istFertig: (d) => !!(d.qaResult),
         wasFehlts: () => ['QA-Scan nicht durchgefuehrt'],
         fertigText: () => 'QA abgeschlossen' },
-      { id: 'abnahme', nr: 17, label: 'Abnahme & Go Live', desc: 'Kundenfreigabe', icon: '🏁', component: 'Abnahme',
+      { id: 'abnahme', nr: 18, label: 'Abnahme & Go Live', desc: 'Kundenfreigabe', icon: '🏁', component: 'Abnahme',
         istFertig: (d) => !!(d.goLiveConfirmed || d.projectStatus === 'fertig'),
         wasFehlts: (d) => { const f = []; if (!d.qaResult) f.push('QA-Check fehlt'); if (!d.domainReachable) f.push('DNS nicht umgestellt'); if (!d.goLiveConfirmed) f.push('Abnahme nicht erteilt'); return f; },
         fertigText: () => 'Live!' },
@@ -108,11 +112,11 @@ const PHASEN = [
   {
     id: 'qm', label: 'QM', icon: '✅', color: '#0891b2',
     schritte: [
-      { id: 'qm-checkliste', nr: 18, label: 'QM-Checkliste', desc: 'Qualitaetssicherung nach Go Live', icon: '✅', component: 'QmCheckliste',
+      { id: 'qm-checkliste', nr: 19, label: 'QM-Checkliste', desc: 'Qualitaetssicherung nach Go Live', icon: '✅', component: 'QmCheckliste',
         istFertig: (d) => !!(d.qmDone),
         wasFehlts: () => ['Checkliste noch nicht abgehakt'],
         fertigText: () => 'QM abgeschlossen', optional: true },
-      { id: 'ki-qa-scan', nr: 19, label: 'KI-QA-Scan', desc: 'Automatische Qualitaetspruefung per KI', icon: '🤖', component: 'KiQaScan',
+      { id: 'ki-qa-scan', nr: 20, label: 'KI-QA-Scan', desc: 'Automatische Qualitaetspruefung per KI', icon: '🤖', component: 'KiQaScan',
         istFertig: (d) => !!(d.qaResult),
         wasFehlts: () => ['Scan noch nicht durchgefuehrt'],
         fertigText: () => 'Scan abgeschlossen', optional: true },
@@ -121,15 +125,15 @@ const PHASEN = [
   {
     id: 'postlaunch', label: 'Post-Launch', icon: '📈', color: '#dc2626',
     schritte: [
-      { id: 'gbp-qr', nr: 20, label: 'GBP + QR-Code', desc: 'Google Business Profile & Bewertungs-QR', icon: '📍', component: 'GbpQr',
+      { id: 'gbp-qr', nr: 21, label: 'GBP + QR-Code', desc: 'Google Business Profile & Bewertungs-QR', icon: '📍', component: 'GbpQr',
         istFertig: (d) => !!(d.gbpPlaceId),
         wasFehlts: () => ['GBP-Place-ID fehlt'],
         fertigText: () => 'GBP eingerichtet', optional: true },
-      { id: 'trustpilot', nr: 21, label: 'Trustpilot', desc: 'Bewertungsanfrage an Kunden senden', icon: '⭐', component: 'Trustpilot',
+      { id: 'trustpilot', nr: 22, label: 'Trustpilot', desc: 'Bewertungsanfrage an Kunden senden', icon: '⭐', component: 'Trustpilot',
         istFertig: () => false,
         wasFehlts: () => [],
         fertigText: () => 'Anfrage gesendet', optional: true },
-      { id: 'website-vergleich', nr: 22, label: 'Website-Vergleich', desc: 'Vorher / Nachher Screenshots', icon: '📸', component: 'WebsiteVergleich',
+      { id: 'website-vergleich', nr: 23, label: 'Website-Vergleich', desc: 'Vorher / Nachher Screenshots', icon: '📸', component: 'WebsiteVergleich',
         istFertig: (d) => !!(d.screenshotBefore && d.screenshotAfter),
         wasFehlts: (d) => { const f = []; if (!d.screenshotBefore) f.push('Vorher-Screenshot fehlt'); if (!d.screenshotAfter) f.push('Nachher-Screenshot fehlt'); return f; },
         fertigText: () => 'Screenshots erstellt', optional: true },
@@ -138,11 +142,11 @@ const PHASEN = [
   {
     id: 'fertig', label: 'Fertig', icon: '🌐', color: '#7c3aed',
     schritte: [
-      { id: 'upsell', nr: 23, label: 'Up-Sales', desc: 'Retainer, SEO, Wartungspaket anbieten', icon: '💼', component: 'Upsell',
+      { id: 'upsell', nr: 24, label: 'Up-Sales', desc: 'Retainer, SEO, Wartungspaket anbieten', icon: '💼', component: 'Upsell',
         istFertig: () => false,
         wasFehlts: () => [],
         fertigText: () => 'Angebot erstellt', optional: true },
-      { id: 'live-daten', nr: 24, label: 'Live-Daten', desc: 'PageSpeed, Domain-Status, Projektabschluss', icon: '🌐', component: 'LiveDaten',
+      { id: 'live-daten', nr: 25, label: 'Live-Daten', desc: 'PageSpeed, Domain-Status, Projektabschluss', icon: '🌐', component: 'LiveDaten',
         istFertig: (d) => !!(d.domainReachable),
         wasFehlts: (d) => d.domainReachable ? [] : ['Domain noch nicht erreichbar'],
         fertigText: () => 'Website live' },
@@ -531,13 +535,17 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
 
     case 'BrandDesignEditor':
       return (
-        <BrandDesignEditor
-          leadId={project.lead_id}
-          token={token}
-          headers={headers}
-          brandData={brandData}
-          onSaved={onProjectRefresh ? () => onProjectRefresh() : undefined}
-        />
+        <div style={{ padding: '20px 24px' }}>
+          <BrandDesignEditor
+            leadId={project.lead_id}
+            token={token}
+            brandData={brandData}
+            onSaved={(data) => {
+              if (onAnalyseUpdate) onAnalyseUpdate({ brandPrimaryColor: data.primary, brandData: data });
+              if (onProjectRefresh) onProjectRefresh();
+            }}
+          />
+        </div>
       );
 
     case 'Editor':

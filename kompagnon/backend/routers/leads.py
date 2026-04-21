@@ -415,8 +415,9 @@ def _extract_domains(text: str) -> list:
     return domains
 
 
-async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict:
-    """Process a single domain sequentially: Lead → pause → Audit → pause → Impressum."""
+async def _process_single_domain(url: str, clean: str, _session_factory, job_id: str) -> dict:
+    """Process a single domain sequentially: Lead → pause → Audit → pause → Impressum.
+    Uses short-lived DB sessions to avoid stale connections during long async operations."""
     import asyncio as _aio
     import logging as _log
     from datetime import datetime as _dt
@@ -425,15 +426,16 @@ async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict
     result = {'url': url, 'status': 'created', 'lead_id': None, 'company_name': clean,
               'audit_status': 'pending', 'impressum_status': 'pending', 'score': None}
 
-    # ── Step 1: Duplicate check + Lead creation ──
-    existing = _db.query(Lead).filter(Lead.website_url.ilike(f'%{clean}%')).first()
-    if existing:
-        return {'url': url, 'status': 'already_exists', 'lead_id': existing.id,
-                'company_name': existing.display_name or existing.company_name,
-                'score': existing.analysis_score,
-                'audit_status': 'skipped', 'impressum_status': 'skipped'}
-
+    # ── Step 1: Duplicate check + Lead creation (short-lived session) ──
+    db = _session_factory()
     try:
+        existing = db.query(Lead).filter(Lead.website_url.ilike(f'%{clean}%')).first()
+        if existing:
+            return {'url': url, 'status': 'already_exists', 'lead_id': existing.id,
+                    'company_name': existing.display_name or existing.company_name,
+                    'score': existing.analysis_score,
+                    'audit_status': 'skipped', 'impressum_status': 'skipped'}
+
         lead = Lead(
             company_name=clean, website_url=url, contact_name='', phone='',
             email='', city='', trade='', notes='', website_screenshot='',
@@ -443,28 +445,31 @@ async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict
             ceo_first_name='', ceo_last_name='', display_name='',
             created_at=_dt.utcnow(), updated_at=_dt.utcnow(),
         )
-        _db.add(lead)
-        _db.commit()
-        _db.refresh(lead)
-        result['lead_id'] = lead.id
-        _logger.info(f'Lead angelegt: {clean} (ID: {lead.id})')
+        db.add(lead)
+        db.commit()
+        db.refresh(lead)
+        lead_id = lead.id
+        result['lead_id'] = lead_id
+        _logger.info(f'Lead angelegt: {clean} (ID: {lead_id})')
     except Exception as e:
-        try: _db.rollback()
+        try: db.rollback()
         except: pass
         _logger.error(f'Lead anlegen Fehler {clean}: {e}')
         return {'url': url, 'status': 'error', 'error': f'Lead: {str(e)}',
                 'audit_status': 'failed', 'impressum_status': 'failed'}
+    finally:
+        db.close()
 
     await _aio.sleep(1)
 
-    # ── Step 2: Audit (max 90s) ──
+    # ── Step 2: Audit (max 90s, no DB session needed) ──
     _logger.info(f'Starte Audit: {clean}')
     try:
         import httpx
         async with httpx.AsyncClient(timeout=90) as client:
             audit_base = os.getenv('API_BASE_URL', 'http://localhost:8000')
             r = await client.post(f'{audit_base}/api/audit/start',
-                json={'website_url': url, 'lead_id': lead.id, 'company_name': clean})
+                json={'website_url': url, 'lead_id': lead_id, 'company_name': clean})
             if r.status_code == 200:
                 aid = r.json().get('audit_id') or r.json().get('id')
                 if aid:
@@ -490,33 +495,42 @@ async def _process_single_domain(url: str, clean: str, _db, job_id: str) -> dict
         result['audit_status'] = 'failed'
         _logger.warning(f'Audit Fehler {clean}: {type(e).__name__}: {e}')
 
-    # Pause between audit and impressum (let Anthropic API recover)
     _logger.info(f'Warte 5s vor Impressum: {clean}')
     await _aio.sleep(5)
 
-    # ── Step 3: Impressum (max 30s) ──
+    # ── Step 3: Impressum (max 30s, fresh session for DB update) ──
     _logger.info(f'Starte Impressum: {clean}')
     try:
         from services.impressum_scraper import extract_contact_from_impressum
         imp = await _aio.wait_for(extract_contact_from_impressum(url), timeout=30.0)
         if imp.get('success'):
             data_imp = imp.get('data', {})
-            updated_fields = []
-            try: _db.refresh(lead)
-            except: pass
-            for field in ['company_name', 'legal_form', 'ceo_first_name', 'ceo_last_name',
-                          'street', 'house_number', 'postal_code', 'city', 'phone', 'email',
-                          'vat_id', 'register_number', 'register_court', 'trade']:
-                if data_imp.get(field) and not getattr(lead, field, None):
-                    setattr(lead, field, data_imp[field])
-                    updated_fields.append(field)
-            if not lead.contact_name and data_imp.get('ceo_first_name'):
-                lead.contact_name = ' '.join(filter(None, [data_imp.get('ceo_first_name'), data_imp.get('ceo_last_name')]))
-            try: _db.commit()
-            except: _db.rollback()
-            result['impressum_status'] = 'completed'
-            result['company_name'] = lead.company_name
-            _logger.info(f'Impressum fertig: {clean} — {len(updated_fields)} Felder')
+            db = _session_factory()
+            try:
+                lead = db.query(Lead).filter(Lead.id == lead_id).first()
+                if not lead:
+                    _logger.warning(f'Lead {lead_id} nicht mehr in DB gefunden')
+                    result['impressum_status'] = 'failed'
+                    return result
+                updated_fields = []
+                for field in ['company_name', 'legal_form', 'ceo_first_name', 'ceo_last_name',
+                              'street', 'house_number', 'postal_code', 'city', 'phone', 'email',
+                              'vat_id', 'register_number', 'register_court', 'trade']:
+                    if data_imp.get(field) and not getattr(lead, field, None):
+                        setattr(lead, field, data_imp[field])
+                        updated_fields.append(field)
+                if not lead.contact_name and data_imp.get('ceo_first_name'):
+                    lead.contact_name = ' '.join(filter(None, [data_imp.get('ceo_first_name'), data_imp.get('ceo_last_name')]))
+                db.commit()
+                result['impressum_status'] = 'completed'
+                result['company_name'] = lead.company_name
+                _logger.info(f'Impressum fertig: {clean} — {len(updated_fields)} Felder')
+            except Exception as e:
+                db.rollback()
+                _logger.error(f'Impressum DB-Update Fehler {clean}: {type(e).__name__}: {e}')
+                result['impressum_status'] = 'failed'
+            finally:
+                db.close()
         else:
             result['impressum_status'] = 'failed'
             _logger.warning(f'Impressum kein Ergebnis: {clean}')
@@ -561,11 +575,9 @@ async def import_domains_text(
             for i, url in enumerate(domains):
                 clean = url.replace('https://', '').replace('http://', '')
                 _logger.info(f'━━━ [{i+1}/{len(domains)}] {clean} ━━━')
-                # Own session per domain
-                domain_db = SessionLocal()
                 try:
                     result = await _aio.wait_for(
-                        _process_single_domain(url, clean, domain_db, job_id),
+                        _process_single_domain(url, clean, SessionLocal, job_id),
                         timeout=150.0
                     )
                 except _aio.TimeoutError:
@@ -575,12 +587,8 @@ async def import_domains_text(
                     _logger.error(f'Domain {clean} komplett fehlgeschlagen: {type(domain_err).__name__}: {domain_err}')
                     result = {'url': url, 'status': 'error', 'error': str(domain_err),
                               'audit_status': 'failed', 'impressum_status': 'failed', 'score': None}
-                finally:
-                    try: domain_db.close()
-                    except: pass
                 import_jobs[job_id]['results'].append(result)
                 import_jobs[job_id]['processed'] = i + 1
-                # 10s pause between domains
                 if i < len(domains) - 1:
                     _logger.info(f'Warte 10s vor nächster Domain...')
                     await _aio.sleep(10)
@@ -632,11 +640,9 @@ async def import_domains_file(
             for i, url in enumerate(domains):
                 clean = url.replace('https://', '').replace('http://', '')
                 _logger.info(f'━━━ [{i+1}/{len(domains)}] {clean} ━━━')
-                # Own session per domain
-                domain_db = SessionLocal()
                 try:
                     result = await _aio.wait_for(
-                        _process_single_domain(url, clean, domain_db, job_id),
+                        _process_single_domain(url, clean, SessionLocal, job_id),
                         timeout=150.0
                     )
                 except _aio.TimeoutError:
@@ -646,12 +652,8 @@ async def import_domains_file(
                     _logger.error(f'Domain {clean} komplett fehlgeschlagen: {type(domain_err).__name__}: {domain_err}')
                     result = {'url': url, 'status': 'error', 'error': str(domain_err),
                               'audit_status': 'failed', 'impressum_status': 'failed', 'score': None}
-                finally:
-                    try: domain_db.close()
-                    except: pass
                 import_jobs[job_id]['results'].append(result)
                 import_jobs[job_id]['processed'] = i + 1
-                # 10s pause between domains
                 if i < len(domains) - 1:
                     _logger.info(f'Warte 10s vor nächster Domain...')
                     await _aio.sleep(10)

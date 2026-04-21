@@ -1700,6 +1700,7 @@ export default function ProjectDetail() {
         brandData={brandData}
         netlify={netlify}
         qaResult={qaResult}
+        onProjectRefresh={loadProject}
       />
 
       {/* ── Nachrichten Modal ───────────────────────────────────────────────── */}

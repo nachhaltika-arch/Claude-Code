@@ -755,7 +755,8 @@ def request_approval(
     db: Session = Depends(get_db),
     _: object = Depends(require_admin),
 ):
-    """Admin: send a approval-request e-mail to the customer."""
+    """Admin: generate approval token, store it, send email with frontend link."""
+    import uuid
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -767,18 +768,54 @@ def request_approval(
         return {"success": False, "message": "Keine E-Mail hinterlegt"}
 
     company = getattr(project, "company_name", "") or f"Projekt #{project_id}"
+
+    # Generate and persist approval token (Tor 2)
+    token = str(uuid.uuid4())
+    db.execute(
+        text("UPDATE projects SET content_approval_token=:t WHERE id=:id"),
+        {"t": token, "id": project_id},
+    )
+    db.commit()
+
+    frontend_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
+    approval_url = f"{frontend_url}/approve-content/{token}"
+
     try:
-        send_approval_request_email(
-            to=to_email,
-            company=company,
-            topic=body.topic,
-            notes=body.notes,
-        )
+        from services.email import send_email as _send_email
+        subject = f"Freigabe benötigt: {body.topic} — {company}"
+        html = f"""
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;color:#1A2C32">
+  <div style="background:#008EAA;padding:24px 32px;border-radius:12px 12px 0 0">
+    <div style="color:white;font-size:20px;font-weight:700">KOMPAGNON</div>
+    <div style="color:rgba(255,255,255,.8);font-size:14px;margin-top:4px">Freigabe erforderlich</div>
+  </div>
+  <div style="background:#fff;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px">
+    <p>Guten Tag,</p>
+    <p>für Ihr Projekt <strong>{company}</strong> benötigen wir Ihre Freigabe:</p>
+    <div style="background:#f4f6f8;border-left:4px solid #008EAA;padding:14px 18px;border-radius:0 8px 8px 0;margin:20px 0">
+      <div style="font-weight:700;font-size:15px">{body.topic}</div>
+      {f'<div style="margin-top:8px;font-size:14px;color:#64748b">{body.notes}</div>' if body.notes else ''}
+    </div>
+    <p>Bitte klicken Sie auf den folgenden Button, um Ihre Freigabe zu erteilen:</p>
+    <div style="text-align:center;margin:28px 0">
+      <a href="{approval_url}"
+         style="background:#008EAA;color:white;padding:14px 32px;border-radius:8px;
+                text-decoration:none;font-weight:700;font-size:16px;display:inline-block">
+        Jetzt freigeben ✓
+      </a>
+    </div>
+    <p style="font-size:12px;color:#94a3b8">
+      Alternativ: <a href="{approval_url}" style="color:#008EAA">{approval_url}</a>
+    </p>
+    <p>Mit freundlichen Grüßen,<br><strong>Ihr KOMPAGNON-Team</strong></p>
+  </div>
+</div>"""
+        threading.Thread(target=_send_email, args=(to_email, subject, html), daemon=True).start()
     except Exception as exc:
         logger.warning(f"Freigabe-E-Mail fehlgeschlagen für Projekt {project_id}: {exc}")
         return {"success": False, "message": f"E-Mail-Versand fehlgeschlagen: {exc}"}
 
-    return {"success": True, "message": "Freigabe-E-Mail gesendet"}
+    return {"success": True, "message": "Freigabe-E-Mail gesendet", "token": token}
 
 
 # ── Go-Live Automation ────────────────────────────────────────────────────────
@@ -3596,6 +3633,16 @@ async def generate_page_content(
     if not project:
         raise HTTPException(404, "Projekt nicht gefunden")
 
+    # Tor 1: Briefing muss vom Kunden freigegeben sein
+    if not getattr(project, "briefing_approved_at", None):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "BRIEFING_NOT_APPROVED",
+                "message": "Das Briefing wurde noch nicht vom Kunden freigegeben. Bitte zuerst eine Freigabe-E-Mail senden.",
+            },
+        )
+
     lead_id = project.lead_id
 
     page = db.execute(
@@ -4043,3 +4090,55 @@ async def netlify_set_domain(
             raise HTTPException(502, f"Domain: {res.text[:150]}")
         site = res.json()
     return {"cname_target": site.get("url","").replace("https://",""), "domain": domain}
+
+
+# ── Öffentliche Freigabe-Endpoints (kein Login erforderlich) ─────────────────
+
+@router.get("/approve-content/{token}")
+def get_approve_content(
+    token: str,
+    db: Session = Depends(get_db),
+):
+    """Öffentlich: Projektinfo anhand des Freigabe-Tokens abrufen."""
+    row = db.execute(
+        text(
+            "SELECT id, company_name, briefing_approved_at "
+            "FROM projects WHERE content_approval_token=:t LIMIT 1"
+        ),
+        {"t": token},
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, "Ungültiger oder abgelaufener Freigabe-Link")
+    return {
+        "project_id":       row[0],
+        "company_name":     row[1] or "Ihr Projekt",
+        "already_approved": bool(row[2]),
+    }
+
+
+@router.post("/approve-content/{token}")
+def post_approve_content(
+    token: str,
+    db: Session = Depends(get_db),
+):
+    """Öffentlich: Freigabe erteilen — setzt briefing_approved_at auf dem Projekt."""
+    from datetime import datetime as _dt
+    row = db.execute(
+        text(
+            "SELECT id, briefing_approved_at "
+            "FROM projects WHERE content_approval_token=:t LIMIT 1"
+        ),
+        {"t": token},
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, "Ungültiger oder abgelaufener Freigabe-Link")
+    project_id, already_approved = row[0], row[1]
+    if already_approved:
+        return {"success": True, "already_approved": True}
+    now = _dt.utcnow()
+    db.execute(
+        text("UPDATE projects SET briefing_approved_at=:ts WHERE id=:id"),
+        {"ts": now, "id": project_id},
+    )
+    db.commit()
+    return {"success": True, "already_approved": False, "approved_at": str(now)[:16]}

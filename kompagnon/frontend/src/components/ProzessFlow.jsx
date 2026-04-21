@@ -91,6 +91,7 @@ export default function ProzessFlow({
   onSitemapReload, onBrandUpdate, onCrawlUpdate,
   crawlPages, sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult,
+  onProjectRefresh,
 }) {
   const [aktiverSchritt, setAktiverSchritt] = useState(null);
   const [warnung, setWarnung]               = useState(null);
@@ -311,6 +312,7 @@ export default function ProzessFlow({
             sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
             websiteContent={websiteContent} brandData={brandData}
             netlify={netlify} qaResult={qaResult}
+            onProjectRefresh={onProjectRefresh}
           />
         </div>
       )}
@@ -321,7 +323,7 @@ export default function ProzessFlow({
 function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
   briefing, latestAudit, localBriefing, reloadBriefing, onAuditComplete,
   onSitemapReload, onAnalyseUpdate, sitemapPages, sitemapLoading,
-  websiteContent, brandData, netlify, qaResult }) {
+  websiteContent, brandData, netlify, qaResult, onProjectRefresh }) {
 
   const pad = { padding: '20px 24px' };
 

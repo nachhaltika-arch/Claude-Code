@@ -1012,6 +1012,9 @@ def _run_migrations():
         # DNS-Polling backoff (exponential backoff on repeated failures)
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_dns_fail_count INTEGER DEFAULT 0",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_dns_retry_after TIMESTAMP",
+        # Freigabe-Gates (Tor 1 + Tor 2)
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS briefing_approved_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS content_approval_token VARCHAR(255)",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

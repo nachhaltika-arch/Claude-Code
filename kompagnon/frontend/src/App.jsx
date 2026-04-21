@@ -73,6 +73,7 @@ import CampaignManager from './pages/CampaignManager';
 import PageManager from './pages/PageManager';
 import PublicPageEditor from './pages/PublicPageEditor';
 import PageTemplateEditor from './pages/PageTemplateEditor';
+import ContentApprovalPage from './pages/ContentApprovalPage';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -159,6 +160,7 @@ function App() {
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
           <Route path="/kampagne/:slug" element={<KampagneLandingPage />} />
           <Route path="/abnahme/:projectId" element={<Abnahme />} />
+          <Route path="/approve-content/:token" element={<ContentApprovalPage />} />
 
           {/* App — authenticated, with Navbar/Sidebar */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>

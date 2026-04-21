@@ -28,7 +28,7 @@ from reportlab.platypus import (
     PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
 )
 from reportlab.platypus.flowables import HRFlowable
-from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime, ForeignKey, text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
@@ -391,6 +391,23 @@ async def generate_sitemap(
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+
+    # Tor 1: Briefing muss vom Kunden freigegeben sein
+    proj_row = db.execute(
+        text(
+            "SELECT briefing_approved_at FROM projects "
+            "WHERE lead_id=:lid ORDER BY id DESC LIMIT 1"
+        ),
+        {"lid": lead_id},
+    ).fetchone()
+    if not proj_row or not proj_row[0]:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "BRIEFING_NOT_APPROVED",
+                "message": "Das Briefing wurde noch nicht freigegeben. Bitte zuerst eine Freigabe-E-Mail senden und die Kundenfreigabe einholen.",
+            },
+        )
 
     # Step 1: Pflichtseiten immer zuerst sicherstellen
     _ensure_pflichtseiten(lead_id, db)

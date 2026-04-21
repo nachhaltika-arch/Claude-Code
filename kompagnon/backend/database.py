@@ -227,6 +227,10 @@ class Project(Base):
     screenshot_url_before   = Column(String(500))
     screenshot_url_after    = Column(String(500))
 
+    # Freigabe-Gates
+    briefing_approved_at    = Column(DateTime)
+    content_approval_token  = Column(String(255))
+
     # Relationships
     lead = relationship("Lead", back_populates="projects", foreign_keys=[lead_id])
     checklists = relationship("ProjectChecklist", back_populates="project", cascade="all, delete-orphan")

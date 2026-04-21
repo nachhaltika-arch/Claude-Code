@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import EmptyState from '../components/ui/EmptyState';
+import NewProjectModal from '../components/NewProjectModal';
 import toast from 'react-hot-toast';
 
 const PHASES = [
@@ -411,6 +412,7 @@ export default function CustomerProjects() {
   const [phaseFilter, setPhaseFilter] = useState('');
   const [showOnlineFertig, setShowOnlineFertig] = useState(false);
   const [showImpuls, setShowImpuls] = useState(false);
+  const [showNewProject, setShowNewProject] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -460,22 +462,30 @@ export default function CustomerProjects() {
             {loading ? 'Lädt…' : `${filtered.length} von ${projects.length} Projekten`}
           </p>
         </div>
-        {hasRole('admin') && (
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => setShowImpuls(true)}
-              style={{ padding: '8px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
-            >
-              + IMPULS-PROJEKT
-            </button>
-            <button
-              onClick={() => setShowOnlineFertig(true)}
-              style={{ padding: '8px 16px', background: 'var(--kc-dark)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
-            >
-              + Online Fertig
-            </button>
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setShowNewProject(true)}
+            style={{ padding: '8px 16px', background: '#008EAA', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+          >
+            + Neues Projekt
+          </button>
+          {hasRole('admin') && (
+            <>
+              <button
+                onClick={() => setShowImpuls(true)}
+                style={{ padding: '8px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                + IMPULS-PROJEKT
+              </button>
+              <button
+                onClick={() => setShowOnlineFertig(true)}
+                style={{ padding: '8px 16px', background: 'var(--kc-dark)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                + Online Fertig
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -543,6 +553,17 @@ export default function CustomerProjects() {
             />
           ))}
         </div>
+      )}
+
+      {/* Neues Projekt Modal */}
+      {showNewProject && (
+        <NewProjectModal
+          onClose={() => setShowNewProject(false)}
+          onProjectCreated={(projekt) => {
+            setShowNewProject(false);
+            navigate(`/app/projects/${projekt.id}`);
+          }}
+        />
       )}
 
       {/* Online Fertig Modal */}

@@ -255,11 +255,11 @@ export default function ProzessFlow({
 
       {/* Gesamtfortschritt */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ flex: 1, height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${gesamtPct}%`, background: 'linear-gradient(90deg,#008EAA,#059669)', borderRadius: 3, transition: 'width .5s' }} />
+        <div style={{ flex: 1, height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${gesamtPct}%`, background: 'var(--kc-mid)', borderRadius: 3, transition: 'width .5s ease' }} />
         </div>
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0 }}>
-          {fertigCount}/{ALLE_SCHRITTE.length} · {gesamtPct}%
+        <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-30)', flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-sans)' }}>
+          {fertigCount} von {ALLE_SCHRITTE.length}
         </span>
       </div>
 
@@ -289,8 +289,8 @@ export default function ProzessFlow({
                       style={{
                         width: aktiv ? 28 : 20, height: 20,
                         borderRadius: aktiv ? 10 : '50%', border: 'none', cursor: 'pointer',
-                        background: fertig ? '#059669' : aktiv ? phase.color : s.optional ? 'var(--border-light)' : 'var(--bg-elevated)',
-                        color: fertig || aktiv ? '#fff' : 'var(--text-tertiary)',
+                        background: fertig ? 'var(--kc-dark)' : aktiv ? 'var(--kc-yellow)' : s.optional ? 'var(--border-light)' : 'var(--bg-elevated)',
+                        color: fertig ? '#fff' : aktiv ? '#000' : 'var(--text-tertiary)',
                         fontSize: 9, fontWeight: 700, transition: 'all .2s', padding: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sans)',
                       }}>
@@ -333,17 +333,36 @@ export default function ProzessFlow({
       {/* Aktiver Schritt */}
       {aktivObj && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 14, background: `${aktivObj.phase.color}08` }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: aktivObj.istFertig(prozessDaten) ? '#059669' : aktivObj.phase.color, color: '#fff', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 14, background: aktivObj.istFertig(prozessDaten) ? 'transparent' : 'var(--info-bg)' }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+              fontSize: 14, fontWeight: 900, fontFamily: 'var(--font-sans)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: aktivObj.istFertig(prozessDaten) ? 'var(--kc-dark)' : 'var(--kc-yellow)',
+              color: aktivObj.istFertig(prozessDaten) ? '#fff' : '#000',
+            }}>
               {aktivObj.istFertig(prozessDaten) ? '\u2713' : aktivObj.nr}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: aktivObj.phase.color, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>
-                {aktivObj.phase.label} · Schritt {aktivObj.nr}/{ALLE_SCHRITTE.length}
-                {aktivObj.optional && <span style={{ marginLeft: 8, opacity: .6 }}>Optional</span>}
-                {aktivObj.istFertig(prozessDaten) && <span style={{ marginLeft: 8, background: '#dcfce7', color: '#059669', padding: '1px 6px', borderRadius: 99 }}>Fertig</span>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--kc-mid)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                  {aktivObj.phase.label} · Schritt {aktivObj.nr}/{ALLE_SCHRITTE.length}
+                </span>
+                {aktivObj.optional && (
+                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-30)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Optional</span>
+                )}
+                {!aktivObj.istFertig(prozessDaten) && (
+                  <span style={{ padding: '2px 8px', background: 'var(--kc-yellow)', color: '#000', borderRadius: 'var(--r-sm)', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-sans)' }}>
+                    Jetzt du
+                  </span>
+                )}
+                {aktivObj.istFertig(prozessDaten) && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: 'var(--r-sm)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-sans)' }}>
+                    Erledigt \u2713
+                  </span>
+                )}
               </div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{aktivObj.icon} {aktivObj.label}</div>
+              <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--kc-dark)', fontFamily: 'var(--font-sans)' }}>{aktivObj.icon} {aktivObj.label}</div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
                 {aktivObj.istFertig(prozessDaten) ? aktivObj.fertigText(prozessDaten) : aktivObj.desc}
               </div>
@@ -351,14 +370,14 @@ export default function ProzessFlow({
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
               {aktivObj.nr > 1 && (
                 <button onClick={() => { setWarnung(null); setAktiverSchritt(ALLE_SCHRITTE[aktivObj.nr - 2].id); }}
-                  style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                  Zurueck
+                  style={{ padding: '6px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  Zurück
                 </button>
               )}
               {aktivObj.nr < ALLE_SCHRITTE.length && (
                 <button onClick={() => waehleSchritt(ALLE_SCHRITTE[aktivObj.nr])}
-                  style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: aktivObj.istFertig(prozessDaten) ? '#059669' : aktivObj.phase.color, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                  Weiter
+                  style={{ padding: '10px 24px', background: 'var(--kc-dark)', color: '#fff', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: 'var(--font-sans)' }}>
+                  Weiter →
                 </button>
               )}
             </div>

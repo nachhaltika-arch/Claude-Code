@@ -264,6 +264,108 @@ async def _check_all_domains_async():
         db.close()
 
 
+def job_check_netlify_dns():
+    """Check DNS status for active Netlify projects with backoff on 429."""
+    import random
+    import time as _time
+    from datetime import datetime, timedelta
+    from sqlalchemy import text as _text
+
+    db = SessionLocal()
+    now = datetime.utcnow()
+
+    try:
+        rows = db.execute(_text("""
+            SELECT id, netlify_site_id, company_name,
+                   netlify_dns_fail_count, netlify_dns_retry_after
+            FROM projects
+            WHERE netlify_site_id IS NOT NULL
+              AND (domain_reachable IS NULL OR domain_reachable = false)
+              AND (netlify_dns_retry_after IS NULL OR netlify_dns_retry_after < :now)
+            ORDER BY id
+            LIMIT 50
+        """), {"now": now}).fetchall()
+
+        if not rows:
+            logger.info("DNS-Polling: Keine Projekte zu pruefen")
+            return
+
+        logger.info(f"DNS-Polling: {len(rows)} Projekte zu pruefen")
+
+        NETLIFY_TOKEN = os.getenv("NETLIFY_API_TOKEN", "")
+        if not NETLIFY_TOKEN:
+            logger.warning("DNS-Polling: NETLIFY_API_TOKEN nicht gesetzt")
+            return
+
+        import httpx
+
+        for row in rows:
+            project_id   = row[0]
+            site_id      = row[1]
+            company_name = row[2] or f"Projekt {project_id}"
+            fail_count   = row[3] or 0
+
+            _time.sleep(random.uniform(0, 3))
+
+            try:
+                resp = httpx.get(
+                    f"https://api.netlify.com/api/v1/sites/{site_id}",
+                    headers={"Authorization": f"Bearer {NETLIFY_TOKEN}"},
+                    timeout=10.0,
+                )
+
+                if resp.status_code == 429:
+                    new_fail_count = fail_count + 1
+                    backoff_minutes = min(10 * (2 ** fail_count), 1440)
+                    retry_after = now + timedelta(minutes=backoff_minutes)
+
+                    db.execute(_text("""
+                        UPDATE projects
+                        SET netlify_dns_fail_count = :fc,
+                            netlify_dns_retry_after = :ra
+                        WHERE id = :id
+                    """), {"fc": new_fail_count, "ra": retry_after, "id": project_id})
+                    db.commit()
+
+                    logger.warning(
+                        f"DNS-Polling: Projekt {project_id} ({company_name}) — "
+                        f"429 Rate-Limited. Backoff: {backoff_minutes}min"
+                    )
+                    continue
+
+                if resp.status_code != 200:
+                    logger.warning(f"DNS-Polling: Projekt {project_id} — Netlify API {resp.status_code}")
+                    continue
+
+                data = resp.json()
+                ssl_ready = data.get("ssl") is not None
+                published = data.get("published_deploy", {})
+                domain_reachable = ssl_ready and published.get("state") == "ready"
+
+                db.execute(_text("""
+                    UPDATE projects
+                    SET domain_reachable = :reachable,
+                        netlify_dns_fail_count = 0,
+                        netlify_dns_retry_after = NULL,
+                        updated_at = :now
+                    WHERE id = :id
+                """), {"reachable": domain_reachable, "now": now, "id": project_id})
+                db.commit()
+
+                status = "erreichbar" if domain_reachable else "noch nicht erreichbar"
+                logger.info(f"DNS-Polling: Projekt {project_id} ({company_name}) — {status}")
+
+            except Exception as e:
+                logger.error(f"DNS-Polling: Projekt {project_id} Fehler: {type(e).__name__}: {e}")
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+
+    finally:
+        db.close()
+
+
 def job_check_all_domains():
     import asyncio
     logger.info("🌐 Domain-Check gestartet...")
@@ -365,7 +467,13 @@ class CompagnonScheduler:
             replace_existing=True,
             timezone="Europe/Berlin",
         )
-        logger.info("✓ Daily jobs registered (incl. weekly HWK scraper)")
+        self.scheduler.add_job(
+            job_check_netlify_dns,
+            "interval", minutes=15,
+            id="netlify_dns_check_every_15min",
+            replace_existing=True,
+        )
+        logger.info("Daily jobs registered (incl. weekly HWK scraper, Netlify DNS)")
 
         # Stündlicher E-Mail-Sequenz-Runner
         try:

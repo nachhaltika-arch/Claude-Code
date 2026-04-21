@@ -576,6 +576,8 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_reachable BOOLEAN DEFAULT NULL",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_status_code INTEGER",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS domain_checked_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_dns_retry_after TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_dns_fail_count INTEGER DEFAULT 0",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_name VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS current_phase INTEGER DEFAULT 1",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS fixed_price FLOAT",

@@ -119,7 +119,7 @@ function LessonForm({ lesson, onSave, onDelete, onMove, isFirst, isLast }) {
 
 export default function AcademyModuleEdit() {
   const { moduleId } = useParams();
-  const { token, user } = useAuth();
+  const { token, user, hasRole } = useAuth();
   const navigate = useNavigate();
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
@@ -204,7 +204,7 @@ export default function AcademyModuleEdit() {
     } catch (e) { console.error(e); }
   };
 
-  if (user?.role !== 'admin') return (
+  if (!hasRole('admin')) return (
     <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-tertiary)' }}>
       <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
       <div style={{ fontSize: 14 }}>Nur für Administratoren</div>

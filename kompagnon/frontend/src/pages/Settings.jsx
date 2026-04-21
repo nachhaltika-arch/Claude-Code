@@ -16,7 +16,7 @@ export default function Settings({ tab }) {
 
 // ── Profile ──
 function ProfileTab() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const { isMobile } = useScreenSize();
   const [form, setForm] = useState({ first_name: '', last_name: '', phone: '', position: '' });
   const [saving, setSaving] = useState(false);
@@ -43,11 +43,11 @@ function ProfileTab() {
       </div>
       <Field label="E-Mail" value={user?.email || ''} disabled />
       <Field label="Telefon" value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
-      {(user?.role === 'admin' || user?.role === 'auditor') && (
+      {(hasRole('admin') || hasRole('auditor')) && (
         <Field label="Position" value={form.position} onChange={(v) => setForm((f) => ({ ...f, position: v }))} placeholder="z.B. Senior Auditor" />
       )}
       <Btn onClick={save} loading={saving}>Aenderungen speichern</Btn>
-      {(user?.role === 'admin' || user?.role === 'auditor') && <SignatureSection />}
+      {(hasRole('admin') || hasRole('auditor')) && <SignatureSection />}
     </Card>
   );
 }
@@ -173,7 +173,7 @@ function SystemTab() {
 
 // ── Notifications ──
 function NotificationsTab() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const [prefs, setPrefs] = useState({ new_lead: true, audit_done: true, project_status: true, daily_report: false, review_reminder: true, weekly_report: false });
   const [smtp, setSmtp] = useState({ host: '', port: '', user: '', password: '', from_name: '', from_email: '' });
   const [testEmail, setTestEmail] = useState('');
@@ -208,7 +208,7 @@ function NotificationsTab() {
         ))}
         <Btn onClick={() => toast.success('Gespeichert')} style={{ marginTop: 12 }}>Speichern</Btn>
       </Card>
-      {user?.role === 'admin' && (
+      {hasRole('admin') && (
         <Card title="SMTP-Einstellungen" icon="⚙️">
           <Field label="SMTP Host" value={smtp.host} onChange={(v) => setSmtp((s) => ({ ...s, host: v }))} placeholder="smtp.example.com" />
           <Field label="SMTP Port" value={smtp.port} onChange={(v) => setSmtp((s) => ({ ...s, port: v }))} placeholder="587" />

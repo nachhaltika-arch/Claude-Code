@@ -12,7 +12,7 @@ const AUDIENCE_LABEL = {
 
 export default function AcademyAdmin() {
   const navigate = useNavigate();
-  const { token, user } = useAuth();
+  const { token, user, hasRole } = useAuth();
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
   const [courses, setCourses] = useState([]);
@@ -76,7 +76,7 @@ export default function AcademyAdmin() {
     } catch (e) { console.error(e); }
   };
 
-  if (user?.role !== 'admin') {
+  if (!hasRole('admin')) {
     return (
       <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-tertiary)' }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>

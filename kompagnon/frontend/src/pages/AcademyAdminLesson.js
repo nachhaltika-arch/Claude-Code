@@ -317,7 +317,7 @@ export default function AcademyAdminLesson() {
   const { lessonId }  = useParams();
   const [search]      = useSearchParams();
   const navigate      = useNavigate();
-  const { token, user } = useAuth();
+  const { token, user, hasRole } = useAuth();
   const { isMobile, isTablet } = useScreenSize();
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
@@ -449,7 +449,7 @@ export default function AcademyAdminLesson() {
 
   // ── Guard ─────────────────────────────────────────────────────
 
-  if (user?.role !== 'admin') return (
+  if (!hasRole('admin')) return (
     <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-tertiary)' }}>
       <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
       <div style={{ fontSize: 14 }}>Nur für Administratoren</div>

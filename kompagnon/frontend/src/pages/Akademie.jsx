@@ -10,8 +10,8 @@ const BADGE_MAP = {
 
 export default function Akademie() {
   const navigate = useNavigate();
-  const { user, token } = useAuth();
-  const isInternal = user?.role === 'admin' || user?.role === 'auditor';
+  const { user, token, hasRole } = useAuth();
+  const isInternal = hasRole('admin') || hasRole('auditor');
   const [viewMode, setViewMode] = useState(isInternal ? 'employee' : 'customer');
   const [courses, setCourses] = useState([]);
   const [progressMap, setProgressMap] = useState({});
@@ -71,7 +71,7 @@ export default function Akademie() {
       {/* Section Heading */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{heading}</div>
-        {user?.role === 'admin' && (
+        {hasRole('admin') && (
           <button onClick={() => navigate('/app/akademie/admin')} style={{
             padding: '6px 14px', background: 'var(--bg-app)', color: 'var(--text-secondary)',
             border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',

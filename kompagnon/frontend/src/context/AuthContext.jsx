@@ -42,7 +42,13 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const hasRole = (...roles) => roles.includes(user?.role);
+  const hasRole = (...roles) => {
+    const r = user?.role;
+    if (!r) return false;
+    if (roles.includes(r)) return true;
+    if (r === 'superadmin' && roles.includes('admin')) return true;
+    return false;
+  };
 
   return (
     <AuthContext.Provider value={{ user, token, loading, login, logout, hasRole }}>

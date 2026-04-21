@@ -43,13 +43,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 
 def require_admin(user: User = Depends(get_current_user)):
-    if user.role != "admin":
+    if user.role not in ("admin", "superadmin"):
         raise HTTPException(403, "Nur fuer Admins")
     return user
 
 
 def require_auditor(user: User = Depends(get_current_user)):
-    if user.role not in ("admin", "auditor"):
+    if user.role not in ("admin", "superadmin", "auditor"):
         raise HTTPException(403, "Nur fuer Auditoren und Admins")
     return user
 

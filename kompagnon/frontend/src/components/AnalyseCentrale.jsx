@@ -122,27 +122,6 @@ function buildSteps(projectId, leadId, websiteUrl, headers) {
         return { ga_found: found };
       },
     },
-    {
-      id: 'brand',
-      label: 'Brand Design',
-      icon: '🎨',
-      desc: 'Farben, Schriften & Logo von Website',
-      run: async (setProgress) => {
-        setProgress(20);
-        const res = await fetch(
-          `${API_BASE_URL}/api/branddesign/${leadId}/scrape`,
-          { method: 'POST', headers }
-        );
-        setProgress(80);
-        if (!res.ok) throw new Error('Brand-Scraping fehlgeschlagen');
-        const data = await res.json();
-        setProgress(100);
-        return {
-          primary: data.primary_color,
-          fonts: data.all_fonts?.length || 0,
-        };
-      },
-    },
   ];
 }
 
@@ -182,7 +161,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
         fetch(`${API_BASE_URL}/api/crawler/content/${leadId}`, { headers }).then(r => r.ok ? r.json() : []),
         fetch(`${API_BASE_URL}/api/projects/${projectId}/hosting-info`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers }).then(r => r.ok ? r.json() : null),
-        fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers }).then(r => r.ok ? r.json() : null), // for summary panel only
       ]);
 
       // Crawler + Content
@@ -229,8 +208,6 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
       if (onDataUpdate) {
         onDataUpdate({
           crawlPages: content.length,
-          brandPrimaryColor: brand?.primary_color || null,
-          brandData: brand,
         });
       }
     } catch { /* silent */ }
@@ -266,13 +243,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
       const ps = await fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null);
       if (ps) setSavedPagespeed(ps);
     }
-    if (step.id === 'brand') {
-      const bd = await fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null);
-      if (bd) {
-        setSavedBrand(bd);
-        if (onDataUpdate) onDataUpdate({ brandPrimaryColor: bd.primary_color, brandData: bd });
-      }
-    }
+
     // Crawl-Daten nach oben melden
     if (step.id === 'url-crawl' || step.id === 'content-scrape') {
       if (onDataUpdate) onDataUpdate({ crawlPages: pages.length });
@@ -445,7 +416,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                   {step.id === 'hosting'         && result.provider}
                   {step.id === 'pagespeed'       && `Mobil: ${result.mobile ?? '—'} / Desktop: ${result.desktop ?? '—'}`}
                   {step.id === 'analytics'       && (result.ga_found ? 'GA4 erkannt' : 'Kein GA4 gefunden')}
-                  {step.id === 'brand'           && `${result.primary || '—'} / ${result.fonts} Schriften`}
+
                 </div>
               )}
               {hasError && (

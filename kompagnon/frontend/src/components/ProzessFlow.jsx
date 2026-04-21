@@ -8,6 +8,7 @@ import KiReportPanel from './KiReportPanel';
 import MoodboardPanel from './MoodboardPanel';
 import AuditReport from './AuditReport';
 import BrandDesignEditor from './BrandDesignEditor';
+import BrandDesignWerkstatt from './BrandDesignWerkstatt';
 import { useAudit } from '../hooks/useAudit';
 import API_BASE_URL from '../config';
 
@@ -27,7 +28,7 @@ const PHASEN = [
         istFertig: (d) => (d.crawlPages || 0) >= 3,
         wasFehlts: (d) => { const f = []; if ((d.crawlPages||0) < 3) f.push(`Crawler: ${d.crawlPages||0} Seiten (mind. 3)`); return f; },
         fertigText: (d) => `${d.crawlPages} Seiten` },
-      { id: 'brand-design', nr: 4, label: 'Brand Design', desc: 'Farben, Schriften und Stil festlegen', icon: '🎨', component: 'BrandDesignEditor',
+      { id: 'brand-design', nr: 4, label: 'Brand Design', desc: 'Farben, Schriften und Stil festlegen', icon: '🎨', component: 'BrandDesign',
         istFertig: (d) => !!(d.brandPrimaryColor),
         wasFehlts: () => ['Brand Design noch nicht gespeichert'],
         fertigText: (d) => d.brandPrimaryColor || 'Gespeichert' },
@@ -530,6 +531,20 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
           headers={headers}
           brandData={brandData}
           sitemapPages={sitemapPages}
+        />
+      );
+
+    case 'BrandDesign':
+      return (
+        <BrandDesignWerkstatt
+          project={project}
+          leadId={project.lead_id}
+          token={token}
+          brandData={brandData}
+          onSaved={(data) => {
+            if (onAnalyseUpdate) onAnalyseUpdate({ brandPrimaryColor: data.primary_color || data.primary, brandData: data });
+            if (onProjectRefresh) onProjectRefresh();
+          }}
         />
       );
 

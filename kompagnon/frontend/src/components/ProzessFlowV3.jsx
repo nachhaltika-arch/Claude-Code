@@ -100,12 +100,59 @@ export default function ProzessFlowV3({
     else { setWarnung(null); setAktiverSchritt(next.id); }
   };
 
-  const phaseNum   = parseInt((project?.status || '').replace('phase_', '')) || 1;
   const statusLabel = project?.status?.includes('abgeschlossen') ? 'Abgeschlossen'
     : project?.status?.includes('pausiert') ? 'Pausiert' : 'Aktiv';
+  const companyName = project?.company_name || lead?.company_name || `Projekt #${project?.id}`;
 
   return (
-    <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      display: 'flex', flexDirection: 'column',
+      zIndex: 50, background: 'var(--bg-surface)',
+      overflow: 'hidden', fontFamily: 'var(--font-sans)',
+    }}>
+
+      {/* ── Eigene Topbar mit Breadcrumb ────────────────────────────── */}
+      <div style={{
+        height: 44, flexShrink: 0,
+        background: 'var(--bg-surface)',
+        borderBottom: '1px solid var(--border-light)',
+        display: 'flex', alignItems: 'center',
+        padding: '0 20px 0 16px',
+        zIndex: 10,
+      }}>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontFamily: 'var(--font-sans)' }}>
+          <button onClick={() => navigate && navigate('/app/dashboard')} style={{
+            background: 'none', border: 'none', color: 'var(--text-tertiary)',
+            cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)', padding: 0,
+          }}>
+            Dashboard
+          </button>
+          <span style={{ color: 'var(--text-tertiary)', opacity: .5 }}>›</span>
+          <button onClick={() => navigate && navigate('/app/projects')} style={{
+            background: 'none', border: 'none', color: 'var(--text-tertiary)',
+            cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)', padding: 0,
+          }}>
+            Kundenprojekte
+          </button>
+          <span style={{ color: 'var(--text-tertiary)', opacity: .5 }}>›</span>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 12 }}>
+            {companyName}
+          </span>
+        </nav>
+
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 80, height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${gesamtPct}%`, background: 'linear-gradient(90deg,#008EAA,#059669)', borderRadius: 2, transition: 'width .5s' }} />
+          </div>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+            {fertigCount}/{ALLE_SCHRITTE.length}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Hauptbereich: linkes Panel + rechter Inhalt ─────────────── */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
 
       {/* ── LEFT: Process Navigation Sidebar ────────────────────────── */}
       <div style={{
@@ -381,6 +428,7 @@ export default function ProzessFlowV3({
           )}
         </div>
       </div>
+      </div>{/* end Hauptbereich */}
     </div>
   );
 }

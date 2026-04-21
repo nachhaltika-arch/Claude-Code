@@ -863,19 +863,19 @@ export default function AppLayout() {
 
   return (
     <div style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
-      {/* Sidebar — desktop only */}
-      {!isMobile && user && <SidebarNav badges={badges} />}
+      {/* Sidebar — desktop only, nicht bei Vollbild-Projektansicht */}
+      {!isMobile && user && !isProjectFull && <SidebarNav badges={badges} />}
 
       {/* Main area */}
       <div style={{
         flex: 1,
         minWidth: 0,
-        marginLeft: !isMobile && user ? 'var(--sidebar-width)' : 0,
+        marginLeft: !isMobile && user && !isProjectFull ? 'var(--sidebar-width)' : 0,
         display: 'flex', flexDirection: 'column',
         height: '100vh', overflow: 'hidden',
       }}>
-        {/* Topbar — desktop only */}
-        {!isMobile && (
+        {/* Topbar — desktop only, nicht bei Vollbild-Projektansicht */}
+        {!isMobile && !isProjectFull && (
           <Topbar
             breadcrumbs={breadcrumbs}
             ctaLabel={cta?.label}

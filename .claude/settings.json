@@ -6,8 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "branch=$(git -C /home/user/Claude-Code rev-parse --abbrev-ref HEAD 2>/dev/null); if [ \"$branch\" = \"claude/kompagnon-automation-system-FapM9\" ]; then git -C /home/user/Claude-Code push origin claude/kompagnon-automation-system-FapM9 2>&1 | tail -3; fi",
-            "statusMessage": "Deploying to Render...",
+            "command": "branch=$(git -C /home/user/Claude-Code rev-parse --abbrev-ref HEAD 2>/dev/null); if [ \"$branch\" = \"staging\" ]; then git -C /home/user/Claude-Code push origin staging 2>&1 | tail -3; fi",
+            "statusMessage": "Deploying to Render Stage...",
             "async": true
           }
         ]

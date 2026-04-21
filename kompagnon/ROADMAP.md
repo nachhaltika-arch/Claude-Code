@@ -1,6 +1,6 @@
 # KOMPAGNON — Feature Roadmap & Produktentwicklung
 
-> Branch: `claude/kompagnon-automation-system-FapM9`
+> Branch: `staging`
 > Zuletzt aktualisiert: April 2026
 
 ---
@@ -240,7 +240,7 @@
 - **Backend**: https://claude-code-znq2.onrender.com  
 - **Frontend**: https://kompagnon-frontend.onrender.com  
 - **Repo**: nachhaltika-arch/Claude-Code  
-- **Branch**: claude/kompagnon-automation-system-FapM9
+- **Branch**: staging
 
 ---
 

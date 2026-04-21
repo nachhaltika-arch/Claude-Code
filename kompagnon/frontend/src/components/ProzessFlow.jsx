@@ -7,6 +7,7 @@ import BriefingWizard from './BriefingWizard';
 import KiReportPanel from './KiReportPanel';
 import MoodboardPanel from './MoodboardPanel';
 import AuditReport from './AuditReport';
+import BrandDesignEditor from './BrandDesignEditor';
 import { useAudit } from '../hooks/useAudit';
 import API_BASE_URL from '../config';
 
@@ -525,6 +526,17 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
           headers={headers}
           brandData={brandData}
           sitemapPages={sitemapPages}
+        />
+      );
+
+    case 'BrandDesignEditor':
+      return (
+        <BrandDesignEditor
+          leadId={project.lead_id}
+          token={token}
+          headers={headers}
+          brandData={brandData}
+          onSaved={onProjectRefresh ? () => onProjectRefresh() : undefined}
         />
       );
 

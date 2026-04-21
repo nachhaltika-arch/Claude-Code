@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import EmptyState from '../components/ui/EmptyState';
+import toast from 'react-hot-toast';
 
 const PHASES = [
   { id: 'phase_1', label: 'Onboarding',  color: '#008EAA' },
@@ -114,10 +116,145 @@ function ProjectListCard({ project, lead, onClick }) {
   );
 }
 
+const EMPTY_FORM = { paket: 'kompagnon', company_name: '', website_url: '', contact_name: '', email: '', phone: '' };
+
+// ── Online Fertig Modal ───────────────────────────────────────────────────────
+function OnlineFertigModal({ token, onClose, onCreated }) {
+  const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [saving, setSaving] = useState(false);
+  const { isMobile } = useScreenSize();
+  const h = token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.company_name.trim()) { toast.error('Bitte Unternehmensname eingeben'); return; }
+    if (!form.website_url.trim())  { toast.error('Bitte Website / Domain eingeben'); return; }
+
+    const websiteUrl = form.website_url.trim().startsWith('http')
+      ? form.website_url.trim()
+      : `https://${form.website_url.trim()}`;
+
+    setSaving(true);
+    try {
+      const leadRes = await fetch(`${API_BASE_URL}/api/leads/`, {
+        method: 'POST', headers: h,
+        body: JSON.stringify({
+          company_name: form.company_name.trim(),
+          website_url:  websiteUrl,
+          contact_name: form.contact_name.trim(),
+          email:        form.email.trim(),
+          phone:        form.phone.trim(),
+          lead_source:  'manual',
+          status:       'won',
+          package_type: form.paket,
+        }),
+      });
+      if (!leadRes.ok) {
+        const err = await leadRes.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${leadRes.status}`);
+      }
+      const lead = await leadRes.json();
+
+      const projRes = await fetch(`${API_BASE_URL}/api/projects/from-lead/${lead.id}`, {
+        method: 'POST', headers: h,
+      });
+      if (!projRes.ok && projRes.status !== 409) {
+        throw new Error('Projekt konnte nicht angelegt werden');
+      }
+      const proj = await projRes.json();
+      toast.success(`Projekt für ${form.company_name} angelegt`);
+      onCreated(proj.project_id);
+    } catch (err) {
+      toast.error(err.message || 'Fehler beim Anlegen');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inp = {
+    width: '100%', boxSizing: 'border-box', padding: '9px 12px',
+    border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
+    background: 'var(--bg-surface)', color: 'var(--text-primary)',
+    fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none',
+  };
+  const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 };
+
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
+        <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Online Fertig Projekt</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Manuelles Projekt anlegen (ohne Stripe-Checkout)</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, padding: '0 2px' }}>×</button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Paket */}
+          <div>
+            <label style={lbl}>Paket</label>
+            <select value={form.paket} onChange={set('paket')} style={inp}>
+              <option value="starter">Starter — 1.500 €</option>
+              <option value="kompagnon">Kompagnon — 3.500 €</option>
+              <option value="premium">Premium — 2.500 €</option>
+            </select>
+          </div>
+
+          {/* Unternehmensname */}
+          <div>
+            <label style={lbl}>Unternehmensname *</label>
+            <input value={form.company_name} onChange={set('company_name')} placeholder="z.B. Müller Haustechnik GmbH" style={inp} autoFocus />
+          </div>
+
+          {/* Website / Domain — Pflichtfeld */}
+          <div>
+            <label style={lbl}>Website / Domain *</label>
+            <input value={form.website_url} onChange={set('website_url')} placeholder="z.B. mueller-haustechnik.de" style={inp} autoComplete="url" />
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>Ohne Domain kann kein Audit und kein Website-Projekt gestartet werden.</div>
+          </div>
+
+          {/* Ansprechpartner + Telefon */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>Ansprechpartner</label>
+              <input value={form.contact_name} onChange={set('contact_name')} placeholder="Vor- und Nachname" style={inp} />
+            </div>
+            <div>
+              <label style={lbl}>Telefon</label>
+              <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+49 261 …" style={inp} />
+            </div>
+          </div>
+
+          {/* E-Mail */}
+          <div>
+            <label style={lbl}>E-Mail</label>
+            <input type="email" value={form.email} onChange={set('email')} placeholder="info@firma.de" style={inp} />
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 4 }}>
+            <button type="button" onClick={onClose} style={{ padding: '9px 18px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              Abbrechen
+            </button>
+            <button type="submit" disabled={saving} style={{ padding: '9px 22px', background: saving ? 'var(--text-tertiary)' : 'var(--kc-dark)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+              {saving ? 'Anlegen…' : '✓ Projekt anlegen'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function CustomerProjects() {
   const navigate     = useNavigate();
-  const { token }    = useAuth();
+  const { token, hasRole } = useAuth();
   const h            = token ? { Authorization: `Bearer ${token}` } : {};
 
   const [projects, setProjects]   = useState([]);
@@ -125,6 +262,7 @@ export default function CustomerProjects() {
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
   const [phaseFilter, setPhaseFilter] = useState('');
+  const [showOnlineFertig, setShowOnlineFertig] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -174,6 +312,14 @@ export default function CustomerProjects() {
             {loading ? 'Lädt…' : `${filtered.length} von ${projects.length} Projekten`}
           </p>
         </div>
+        {hasRole('admin') && (
+          <button
+            onClick={() => setShowOnlineFertig(true)}
+            style={{ padding: '8px 16px', background: 'var(--kc-dark)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            + Online Fertig Projekt
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -241,6 +387,18 @@ export default function CustomerProjects() {
             />
           ))}
         </div>
+      )}
+
+      {/* Online Fertig Modal */}
+      {showOnlineFertig && (
+        <OnlineFertigModal
+          token={token}
+          onClose={() => setShowOnlineFertig(false)}
+          onCreated={(projectId) => {
+            setShowOnlineFertig(false);
+            navigate(`/app/projects/${projectId}`);
+          }}
+        />
       )}
     </div>
   );

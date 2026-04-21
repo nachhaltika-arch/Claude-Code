@@ -19,7 +19,7 @@ import { parseApiError } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
-import ProzessFlow from '../components/ProzessFlow';
+import ProzessFlowV3 from '../components/ProzessFlowV3';
 
 // Lazy-loaded: heavy components loaded on demand
 const BriefingTab = lazy(() => import('../components/BriefingTab'));
@@ -1591,99 +1591,9 @@ export default function ProjectDetail() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ marginBottom: 0 }}>
-          <span>Projekt #{project.id}</span>
-          <h1 style={{ fontSize: 'var(--kc-text-3xl)', margin: 0 }}>{project.company_name}</h1>
-        </div>
-        {margin && <MarginBadge marginPercent={margin.margin_percent} status={margin.status} />}
-      </div>
-
-      {/* ── ProjectCard ─────────────────────────────────────────────────────── */}
-      <ProjectCard project={project} onDomainCheck={checkDomain} domainChecking={domainChecking} />
-
-      {/* ── Projekt-Uebersicht — Status + Marge ── */}
-      {project && (() => {
-        const phaseNum  = parseInt((project.status || '').replace('phase_', '')) || 1;
-        const phaseName = ['Onboarding','Briefing','Content','Technik','Go Live','QM','Post-Launch','Fertig'][phaseNum - 1] || 'Onboarding';
-        const statusColor = project.status?.includes('abgeschlossen')
-          ? { bg: '#f3f4f6', text: '#6b7280' }
-          : project.status?.includes('pausiert')
-          ? { bg: '#fef3c7', text: '#92400e' }
-          : { bg: '#dcfce7', text: '#166534' };
-        const statusLabel = project.status?.includes('abgeschlossen') ? 'Abgeschlossen'
-          : project.status?.includes('pausiert') ? 'Pausiert' : 'Aktiv';
-        const marginPct   = margin?.margin_percent ?? null;
-        const marginColor = marginPct === null ? 'var(--text-tertiary)'
-          : marginPct < 30 ? '#E24B4A' : marginPct < 50 ? '#BA7517' : '#1D9E75';
-
-        return (
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-            {/* Status */}
-            <div style={{ flex: '1 1 220px', padding: '12px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: statusColor.bg, color: statusColor.text }}>
-                  {statusLabel}
-                </span>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                  Phase {phaseNum}/7 {phaseName}
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'var(--text-tertiary)' }}>
-                <span>Start: {project.start_date ? new Date(project.start_date).toLocaleDateString('de-DE') : '\u2013'}</span>
-                <span>Go-Live: {project.target_go_live || project.go_live_date ? new Date(project.target_go_live || project.go_live_date).toLocaleDateString('de-DE') : '\u2013'}</span>
-              </div>
-            </div>
-            {/* Marge */}
-            <div style={{ flex: '1 1 220px', padding: '12px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
-              <div style={{ display: 'flex', gap: 20, alignItems: 'baseline' }}>
-                <div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Fixpreis</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{(project.fixed_price || 0).toFixed(0)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Stunden</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{(project.actual_hours || 0).toFixed(1)}h</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Marge</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: marginColor, fontVariantNumeric: 'tabular-nums' }}>{marginPct !== null ? `${marginPct.toFixed(0)}%` : '\u2013'}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ── Buttons ─────────────────────────────────────────────────────────── */}
-      {(() => {
-        const btnBase = {
-          flex: 1, minWidth: 120, padding: '8px 10px', fontSize: 12,
-          fontWeight: 500, borderRadius: 'var(--radius-md)', cursor: 'pointer',
-          border: '1px solid var(--border-light)', background: 'var(--bg-surface)',
-          color: 'var(--text-primary)', display: 'flex', alignItems: 'center',
-          gap: 5, justifyContent: 'center', fontFamily: 'var(--font-sans)',
-        };
-        const btnApproval = {
-          ...btnBase, background: 'var(--brand-primary)', color: '#fff', border: 'none',
-        };
-        return (
-          <div style={{ display: 'flex', flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-            {project.lead_id && (
-              <button onClick={() => navigate(`/app/leads/${project.lead_id}`)} style={btnBase}>👤 Zur Kundenkartei</button>
-            )}
-            <button onClick={() => { loadLatestAudit(); setShowEdit(true); }} style={btnBase}>✏️ Projektdaten bearbeiten</button>
-            {isAdmin && (
-              <button onClick={() => setShowApproval(true)} style={btnApproval}>🖊️ Freigabe anfordern</button>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* ── ProzessFlow ─────────────────────────────────────────────────────── */}
-      <ProzessFlow
+    <>
+      {/* ── ProzessFlowV3: full-height sidebar layout ─────────────────── */}
+      <ProzessFlowV3
         project={project}
         lead={lead || briefingLead}
         token={token}
@@ -1701,6 +1611,11 @@ export default function ProjectDetail() {
         netlify={netlify}
         qaResult={qaResult}
         onProjectRefresh={loadProject}
+        onNavigateBack={() => navigate('/app/projects')}
+        isAdmin={isAdmin}
+        onShowEdit={() => { loadLatestAudit(); setShowEdit(true); }}
+        onShowApproval={() => setShowApproval(true)}
+        navigate={navigate}
       />
 
       {/* ── Nachrichten Modal ──────────────────────────────────────────────── */}
@@ -1770,7 +1685,7 @@ export default function ProjectDetail() {
           leadId={project.lead_id}
         /></Suspense>
       )}
-    </div>
+    </>
   );
 }
 

@@ -755,6 +755,8 @@ export default function AppLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
 
+  const isProjectFull = !isMobile && /^\/app\/projects\/\d+/.test(location.pathname);
+
   const togglePalette = useCallback(() => setPaletteOpen(p => !p), []);
   const goSettings = useCallback(() => navigate('/app/settings'), [navigate]);
   const goDashboard = useCallback(() => navigate('/app/dashboard'), [navigate]);
@@ -985,11 +987,15 @@ export default function AppLayout() {
         <main
           ref={mainRef}
           style={{
-            flex: 1, overflowY: 'auto', overflowX: 'hidden',
+            flex: 1,
+            overflowY: isProjectFull ? 'hidden' : 'auto',
+            overflowX: 'hidden',
             minWidth: 0, position: 'relative',
-            padding: isMobile ? 16 : '20px 28px',
+            padding: isMobile ? 16 : isProjectFull ? 0 : '20px 28px',
             paddingTop: isMobile ? 72 : undefined,
-            paddingBottom: isMobile ? 80 : 20,
+            paddingBottom: isMobile ? 80 : isProjectFull ? 0 : 20,
+            display: isProjectFull ? 'flex' : undefined,
+            flexDirection: isProjectFull ? 'column' : undefined,
           }}
         >
           {/* Kaltstart-Banner */}
@@ -1013,7 +1019,13 @@ export default function AppLayout() {
             </div>
           )}
           {isMobile && <PullIndicator />}
-          <div key={location.pathname} className="page-enter" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
+          <div key={location.pathname} className="page-enter" style={{
+            maxWidth: '100%',
+            overflowX: isProjectFull ? undefined : 'hidden',
+            flex: isProjectFull ? 1 : undefined,
+            display: isProjectFull ? 'flex' : undefined,
+            flexDirection: isProjectFull ? 'column' : undefined,
+          }}>
             <Outlet />
           </div>
         </main>

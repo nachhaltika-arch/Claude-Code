@@ -11,9 +11,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from database import SessionLocal, Project, DATABASE_URL
+from database import SessionLocal, Project, Communication, DATABASE_URL
 from services.margin_calculator import MarginCalculator
-from services.email_service import EmailService, MockEmailService
+from services.email import send_email as _send_email_canonical
 from automations.email_templates import render_template
 import logging
 import os
@@ -28,11 +28,11 @@ _use_mock_email = os.getenv("USE_MOCK_EMAIL", "false").lower() == "true"
 # STANDALONE JOB FUNCTIONS (no class instance references)
 # ===================================================================
 
-def _get_email_service():
-    """Create a fresh email service instance per job execution."""
+def _do_send_email(to_email: str, subject: str, html_body: str) -> bool:
     if _use_mock_email:
-        return MockEmailService()
-    return EmailService()
+        logger.info(f"[MOCK] E-Mail an {to_email}: {subject}")
+        return True
+    return _send_email_canonical(to_email=to_email, subject=subject, html_body=html_body)
 
 
 def _send_phase_email(project_id: int, template_key: str):
@@ -63,24 +63,29 @@ def _send_phase_email(project_id: int, template_key: str):
         }
 
         rendered = render_template(template_key, context)
-        email_service = _get_email_service()
-        success = email_service.send_email(
-            to=lead.email,
+        success = _do_send_email(
+            to_email=lead.email,
             subject=rendered["subject"],
-            body=rendered["body"],
+            html_body=rendered["body"],
         )
 
         if success:
-            EmailService.log_communication(
-                db,
-                project_id,
-                "email",
-                "outbound",
-                rendered["subject"],
-                rendered["body"],
-                is_automated=True,
-                template_key=template_key,
-            )
+            try:
+                comm = Communication(
+                    project_id=project_id,
+                    type="email",
+                    direction="outbound",
+                    channel="email",
+                    subject=rendered["subject"],
+                    body=rendered["body"][:500],
+                    is_automated=True,
+                    template_key=template_key,
+                    sent_at=datetime.utcnow(),
+                )
+                db.add(comm)
+                db.commit()
+            except Exception as log_err:
+                logger.warning(f"log_communication fehlgeschlagen: {log_err}")
             logger.info(f"✓ Email sent for Project {project_id}: {template_key}")
         else:
             logger.error(f"✗ Email failed for Project {project_id}: {template_key}")

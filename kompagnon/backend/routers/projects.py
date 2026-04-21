@@ -1043,14 +1043,15 @@ async def _golive_automation(project_id: int):
                     </div>
                     """
 
-                    send_email(
+                    ok = send_email(
                         to_email  = customer_email,
                         subject   = f"🚀 Ihre Website ist live — {company}",
                         html_body = html,
                     )
-                    logger.info(
-                        f"Go-Live: E-Mail gesendet an {customer_email}"
-                    )
+                    if ok:
+                        logger.info(f"Go-Live: E-Mail gesendet an {customer_email}")
+                    else:
+                        logger.warning(f"Go-Live: E-Mail an {customer_email} fehlgeschlagen")
                 except Exception as e:
                     logger.error(f"Go-Live: E-Mail Fehler: {e}")
 
@@ -2026,32 +2027,18 @@ def _send_dns_guide_email_and_message(project_id, lead_id, domain, guide, db):
     </div>
     """
 
-    # E-Mail versenden (versucht mehrere Varianten)
+    # E-Mail versenden
     if lead.email:
-        sent = False
-        try:
-            from services.email import send_email
-            send_email(
-                to_email=lead.email,
-                subject=f"DNS-Einstellungen für {domain} — letzter Schritt vor Go-Live",
-                html_body=html_body,
-            )
-            sent = True
-        except Exception as e1:
-            logger.warning(f"DNS-Guide: services.email fehlgeschlagen: {e1}")
-        if not sent:
-            try:
-                from services.email_service import send_email as send_email2
-                send_email2(
-                    to=lead.email,
-                    subject=f"DNS-Einstellungen für {domain} — letzter Schritt vor Go-Live",
-                    html=html_body,
-                )
-                sent = True
-            except Exception as e2:
-                logger.warning(f"DNS-Guide: services.email_service fehlgeschlagen: {e2}")
-        if sent:
+        from services.email import send_email
+        ok = send_email(
+            to_email=lead.email,
+            subject=f"DNS-Einstellungen für {domain} — letzter Schritt vor Go-Live",
+            html_body=html_body,
+        )
+        if ok:
             logger.info(f"DNS-Guide E-Mail gesendet an {lead.email}")
+        else:
+            logger.warning(f"DNS-Guide E-Mail an {lead.email} fehlgeschlagen")
 
     # Portal-Nachricht anlegen
     try:

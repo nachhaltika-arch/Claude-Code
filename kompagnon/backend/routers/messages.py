@@ -122,16 +122,14 @@ def send_message_admin(
     db.refresh(msg)
 
     if body.channel == "email" and lead.email:
-        try:
-            from services.email_service import EmailService
-            EmailService().send_email(
-                to=lead.email,
-                subject=body.subject or "Nachricht von KOMPAGNON",
-                body=_email_wrapper(body.content, lead.company_name or ""),
-                html=True,
-            )
-        except Exception as e:
-            logger.error(f"E-Mail an Kunde fehlgeschlagen: {e}")
+        from services.email import send_email
+        ok = send_email(
+            to_email=lead.email,
+            subject=body.subject or "Nachricht von KOMPAGNON",
+            html_body=_email_wrapper(body.content, lead.company_name or ""),
+        )
+        if not ok:
+            logger.warning(f"E-Mail an {lead.email} konnte nicht gesendet werden")
 
     return {"id": msg.id, "created_at": msg.created_at.isoformat(), "success": True}
 
@@ -163,16 +161,14 @@ def send_message_kunde(
 
     # Admin-Benachrichtigung per E-Mail
     if SMTP_USER:
-        try:
-            from services.email_service import EmailService
-            EmailService().send_email(
-                to=SMTP_USER,
-                subject=f"💬 Neue Nachricht von {lead.company_name or 'Kunde'}",
-                body=f"<p><strong>{lead.company_name}</strong> hat eine neue Nachricht gesendet:</p><blockquote>{body.content}</blockquote>",
-                html=True,
-            )
-        except Exception as e:
-            logger.error(f"Admin-Benachrichtigung fehlgeschlagen: {e}")
+        from services.email import send_email
+        ok = send_email(
+            to_email=SMTP_USER,
+            subject=f"💬 Neue Nachricht von {lead.company_name or 'Kunde'}",
+            html_body=f"<p><strong>{lead.company_name}</strong> hat eine neue Nachricht gesendet:</p><blockquote>{body.content}</blockquote>",
+        )
+        if not ok:
+            logger.warning(f"Admin-Benachrichtigung an {SMTP_USER} fehlgeschlagen")
 
     return {"id": msg.id, "created_at": msg.created_at.isoformat(), "success": True}
 
@@ -227,7 +223,9 @@ def send_email_endpoint(
         raise HTTPException(status_code=400, detail="to und subject sind Pflichtfelder")
     try:
         from services.email import send_email
-        send_email(to_email=body.to, subject=body.subject, html_body=body.html)
+        ok = send_email(to_email=body.to, subject=body.subject, html_body=body.html)
+        if not ok:
+            logger.warning(f"E-Mail an {body.to} konnte nicht gesendet werden")
 
         if body.lead_id:
             msg = Message(

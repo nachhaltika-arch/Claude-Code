@@ -482,14 +482,17 @@ def _handle_successful_payment(session: dict, db: Session):
             </div>
             """
 
-            send_email(
+            ok = send_email(
                 to_email        = email,
                 subject         = "Willkommen bei KOMPAGNON — Ihre Zugangsdaten",
                 html_body       = html_body,
                 attachment_path = pdf_path,
                 attachment_name = "KOMPAGNON-Auftragsbestaetigung.pdf",
             )
-            logger.info(f"Stripe: Willkommens-E-Mail gesendet an {email}")
+            if ok:
+                logger.info(f"Stripe: Willkommens-E-Mail gesendet an {email}")
+            else:
+                logger.warning(f"Stripe: Willkommens-E-Mail an {email} fehlgeschlagen")
 
         except Exception as e:
             logger.error(f"Stripe: Willkommens-E-Mail Fehler: {e}")

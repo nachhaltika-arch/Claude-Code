@@ -48,7 +48,7 @@ export default function ProzessFlowV3({
     briefing: localBriefing,
     latestAudit: localLatestAudit,
     crawlPages:        localCrawlPages || 0,
-    brandPrimaryColor: localBrandColor || null,
+    brandPrimaryColor: brandData?.primary_color || localBrandColor || null,
     sitemapCount:      sitemapPages?.length || 0,
     contentCount:      (websiteContent || []).filter(p => p.ki_content).length,
     credsCount:        0,

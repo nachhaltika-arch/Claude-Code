@@ -206,7 +206,7 @@ export default function ProzessFlow({
     briefing: localBriefing,
     latestAudit: localLatestAudit,
     crawlPages:       localCrawlPages || 0,
-    brandPrimaryColor: localBrandColor || null,
+    brandPrimaryColor: brandData?.primary_color || localBrandColor || null,
     sitemapCount:     sitemapPages?.length || 0,
     contentCount:     (websiteContent || []).filter(p => p.ki_content).length,
     credsCount:       0,
@@ -538,11 +538,10 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
       return (
         <BrandDesignWerkstatt
           project={project}
-          leadId={project.lead_id}
+          lead={lead}
           token={token}
-          brandData={brandData}
-          onSaved={(data) => {
-            if (onAnalyseUpdate) onAnalyseUpdate({ brandPrimaryColor: data.primary_color || data.primary, brandData: data });
+          onBrandSaved={(data) => {
+            if (onAnalyseUpdate) onAnalyseUpdate({ brandPrimaryColor: data.primary_color, brandData: data });
             if (onProjectRefresh) onProjectRefresh();
           }}
         />

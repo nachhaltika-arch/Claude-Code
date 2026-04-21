@@ -19,7 +19,7 @@ import { parseApiError } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
-import ProzessFlow from '../components/ProzessFlow';
+import ProzessFlowV3 from '../components/ProzessFlowV3';
 
 // Lazy-loaded: heavy components loaded on demand
 const BriefingTab = lazy(() => import('../components/BriefingTab'));
@@ -1683,7 +1683,7 @@ export default function ProjectDetail() {
       })()}
 
       {/* ── ProzessFlow ─────────────────────────────────────────────────────── */}
-      <ProzessFlow
+      <ProzessFlowV3
         project={project}
         lead={lead || briefingLead}
         token={token}
@@ -1703,7 +1703,7 @@ export default function ProjectDetail() {
         onProjectRefresh={loadProject}
       />
 
-      {/* ── Nachrichten Modal ───────────────────────────────────────────────── */}
+      {/* ── Nachrichten Modal ──────────────────────────────────────────────── */}
       {showNewMessageModal && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,28,32,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setShowNewMessageModal(false)}>

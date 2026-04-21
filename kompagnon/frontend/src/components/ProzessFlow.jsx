@@ -320,7 +320,7 @@ export default function ProzessFlow({
   );
 }
 
-function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
+export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
   briefing, latestAudit, localBriefing, reloadBriefing, onAuditComplete,
   onSitemapReload, onAnalyseUpdate, sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult, onProjectRefresh }) {

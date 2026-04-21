@@ -123,13 +123,14 @@ def send_message_admin(
 
     if body.channel == "email" and lead.email:
         try:
-            from services.email_service import EmailService
-            EmailService().send_email(
-                to=lead.email,
+            from services.email import send_email
+            ok = send_email(
+                to_email=lead.email,
                 subject=body.subject or "Nachricht von KOMPAGNON",
-                body=_email_wrapper(body.content, lead.company_name or ""),
-                html=True,
+                html_body=_email_wrapper(body.content, lead.company_name or ""),
             )
+            if not ok:
+                logger.warning(f"E-Mail an {lead.email} konnte nicht gesendet werden")
         except Exception as e:
             logger.error(f"E-Mail an Kunde fehlgeschlagen: {e}")
 
@@ -164,13 +165,14 @@ def send_message_kunde(
     # Admin-Benachrichtigung per E-Mail
     if SMTP_USER:
         try:
-            from services.email_service import EmailService
-            EmailService().send_email(
-                to=SMTP_USER,
-                subject=f"💬 Neue Nachricht von {lead.company_name or 'Kunde'}",
-                body=f"<p><strong>{lead.company_name}</strong> hat eine neue Nachricht gesendet:</p><blockquote>{body.content}</blockquote>",
-                html=True,
+            from services.email import send_email
+            ok = send_email(
+                to_email=SMTP_USER,
+                subject=f"Neue Nachricht von {lead.company_name or 'Kunde'}",
+                html_body=f"<p><strong>{lead.company_name}</strong> hat eine neue Nachricht gesendet:</p><blockquote>{body.content}</blockquote>",
             )
+            if not ok:
+                logger.warning(f"Admin-Benachrichtigung konnte nicht gesendet werden")
         except Exception as e:
             logger.error(f"Admin-Benachrichtigung fehlgeschlagen: {e}")
 

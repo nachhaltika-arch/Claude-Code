@@ -13,7 +13,8 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from database import SessionLocal, Project, DATABASE_URL
 from services.margin_calculator import MarginCalculator
-from services.email_service import EmailService, MockEmailService
+from services.email import send_email
+from services.email_service import EmailService
 from automations.email_templates import render_template
 import logging
 import os
@@ -27,13 +28,6 @@ _use_mock_email = os.getenv("USE_MOCK_EMAIL", "false").lower() == "true"
 # ===================================================================
 # STANDALONE JOB FUNCTIONS (no class instance references)
 # ===================================================================
-
-def _get_email_service():
-    """Create a fresh email service instance per job execution."""
-    if _use_mock_email:
-        return MockEmailService()
-    return EmailService()
-
 
 def _send_phase_email(project_id: int, template_key: str):
     """Send template email for a project (standalone function)."""
@@ -62,12 +56,15 @@ def _send_phase_email(project_id: int, template_key: str):
         }
 
         rendered = render_template(template_key, context)
-        email_service = _get_email_service()
-        success = email_service.send_email(
-            to=lead.email,
-            subject=rendered["subject"],
-            body=rendered["body"],
-        )
+        if _use_mock_email:
+            logger.info(f"[MOCK] E-Mail an {lead.email}: {rendered['subject']}")
+            success = True
+        else:
+            success = send_email(
+                to_email=lead.email,
+                subject=rendered["subject"],
+                html_body=rendered["body"],
+            )
 
         if success:
             EmailService.log_communication(
@@ -80,9 +77,9 @@ def _send_phase_email(project_id: int, template_key: str):
                 is_automated=True,
                 template_key=template_key,
             )
-            logger.info(f"✓ Email sent for Project {project_id}: {template_key}")
+            logger.info(f"Email sent for Project {project_id}: {template_key}")
         else:
-            logger.error(f"✗ Email failed for Project {project_id}: {template_key}")
+            logger.error(f"Email failed for Project {project_id}: {template_key}")
 
     except Exception as e:
         logger.error(f"✗ Error sending email: {str(e)}")

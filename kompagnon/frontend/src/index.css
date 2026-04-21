@@ -21,13 +21,13 @@ html, body, #root {
 body {
   background: var(--bg-app);
   color: var(--text-primary);
-  font-family: var(--font-family-base);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-family-base);
-  font-weight: var(--font-weight-black);
+  font-family: var(--font-sans);
+  font-weight: 900;
 }
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font-family: inherit; }

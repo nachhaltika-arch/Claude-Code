@@ -1,57 +1,91 @@
 :root {
-  /* LIGHT MODE — always default */
-  --bg-app:           #f4f6f8;
-  --bg-surface:       #ffffff;
-  --bg-sidebar:       #ffffff;
-  --bg-elevated:      #ffffff;
-  --bg-hover:         #f0f7f9;
-  --bg-active:        #e0f4f8;
+  /* ── Primitive Brand Colors ─────────────────────────────────── */
+  --kc-dark:   #004F59;   /* Pantone 3165 — Primär/Dunkel */
+  --kc-mid:    #008EAA;   /* Pantone 3135 — Sekundär/Mittel */
+  --kc-yellow: #FAE600;   /* Pantone 3945 — Akzent/CTA */
+  --kc-black:  #000000;
 
-  --text-primary:     #0f1c20;
-  --text-secondary:   #4a6470;
-  --text-tertiary:    #5e7a84;
+  /* ── Primitive Surface Colors (Light Mode) ──────────────────── */
+  --paper:   #FAFAFA;
+  --surface: #F0F4F5;
+  --border:  #D5E0E2;
+
+  /* ── Primitive Text Colors ──────────────────────────────────── */
+  --text:    #000000;
+  --text-60: #4A5A5C;
+  --text-30: #9AACAE;
+
+  /* ── Primitive Semantic Colors ──────────────────────────────── */
+  --success:    #00875A;
+  --success-bg: #E3F6EF;
+  --warn:       #B8860B;
+  --warn-bg:    #FFFBE0;
+  --error:      #C0392B;
+  --error-bg:   #FDECEA;
+  --info:       #008EAA;
+  --info-bg:    #E0F4F8;
+
+  /* ── Background (Light Mode) ────────────────────────────────── */
+  --bg-app:      var(--surface);
+  --bg-surface:  var(--paper);
+  --bg-sidebar:  var(--kc-dark);
+  --bg-elevated: var(--paper);
+  --bg-hover:    var(--surface);
+  --bg-active:   #e0f4f8;
+
+  /* ── Text ───────────────────────────────────────────────────── */
+  --text-primary:     var(--text);
+  --text-secondary:   var(--text-60);
+  --text-tertiary:    var(--text-30);
   --text-placeholder: #8fa8b0;
   --text-inverse:     #ffffff;
-  --text-brand:       #006880;
+  --text-brand:       var(--kc-mid);
 
-  --brand-primary:        #008eaa;
-  --brand-primary-light:  #e0f4f8;
+  /* ── Brand Aliases ──────────────────────────────────────────── */
+  --brand-primary:        var(--kc-mid);
+  --brand-primary-light:  var(--info-bg);
   --brand-primary-mid:    #b3e0ea;
-  --brand-primary-dark:   #006880;
-  --brand-primary-deeper: #004d5e;
+  --brand-primary-dark:   var(--kc-dark);
+  --brand-primary-deeper: #003840;
 
-  --border-light:  rgba(0, 142, 170, 0.12);
-  --border-medium: rgba(0, 142, 170, 0.25);
-  --border-strong: rgba(0, 142, 170, 0.40);
+  /* ── Border ─────────────────────────────────────────────────── */
+  --border-light:  var(--border);
+  --border-medium: rgba(0,79,89,0.25);
+  --border-strong: rgba(0,79,89,0.45);
 
-  --status-success-bg:   #eaf5ee;
-  --status-success-text: #1a7a3a;
-  --status-warning-bg:   #fff8e6;
-  --status-warning-text: #a06800;
-  --status-danger-bg:    #fef0f0;
-  --status-danger-text:  #b02020;
-  --status-info-bg:      #e0f4f8;
-  --status-info-text:    #006880;
-  --status-neutral-bg:   #f0f2f4;
-  --status-neutral-text: #4a6470;
+  /* ── Status ─────────────────────────────────────────────────── */
+  --status-success-bg:   var(--success-bg);
+  --status-success-text: var(--success);
+  --status-warning-bg:   var(--warn-bg);
+  --status-warning-text: var(--warn);
+  --status-danger-bg:    var(--error-bg);
+  --status-danger-text:  var(--error);
+  --status-info-bg:      var(--info-bg);
+  --status-info-text:    var(--info);
+  --status-neutral-bg:   var(--surface);
+  --status-neutral-text: var(--text-60);
 
+  /* ── Shadows ─────────────────────────────────────────────────── */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
   --shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
   --shadow-xl: 0 8px 32px rgba(0,0,0,0.10);
-  /* legacy aliases */
   --shadow-card:     var(--shadow-md);
   --shadow-elevated: var(--shadow-lg);
 
-  /* Radius */
+  /* ── Radius ─────────────────────────────────────────────────── */
   --radius-sm:  4px;
   --radius-md:  8px;
   --radius-lg:  12px;
   --radius-xl:  16px;
   --radius-2xl: 20px;
   --radius-full: 9999px;
+  /* Short aliases */
+  --r-sm: var(--radius-sm);
+  --r-md: var(--radius-md);
+  --r-lg: var(--radius-lg);
 
-  /* Spacing */
+  /* ── Spacing ─────────────────────────────────────────────────── */
   --space-1:  4px;
   --space-2:  8px;
   --space-3:  12px;
@@ -61,14 +95,17 @@
   --space-8:  32px;
   --space-10: 40px;
 
-  /* Transitions */
+  /* ── Transitions ─────────────────────────────────────────────── */
   --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow:   350ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Typography */
-  --font-sans: 'DM Sans', system-ui, sans-serif;
-  --font-mono: 'DM Mono', monospace;
+  /* ── Typography ─────────────────────────────────────────────── */
+  --font-sans:    'Noto Sans', system-ui, sans-serif;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+  /* Legacy alias kept for compatibility */
+  --font-family-base: var(--font-sans);
   --text-xs:   11px;
   --text-sm:   13px;
   --text-base: 15px;
@@ -84,179 +121,134 @@
   --leading-2xl:  1.3;
   --leading-3xl:  1.2;
 
-  /* Layout */
+  /* ── Layout ──────────────────────────────────────────────────── */
   --sidebar-width: 220px;
   --topbar-height: 56px;
 
-  /* === KOMPAGNON Brand Colors (Styleguide 2023) === */
-  --color-brand-teal:        #008EAA;
-  --color-brand-teal-dark:   #004F59;
+  /* ── Extended Brand (Styleguide 2023) ────────────────────────── */
+  --color-brand-teal:        var(--kc-mid);
+  --color-brand-teal-dark:   var(--kc-dark);
   --color-brand-teal-light:  #40B4CC;
-  --color-brand-yellow:      #FAE600;
+  --color-brand-yellow:      var(--kc-yellow);
   --color-brand-yellow-dark: #C9B800;
-
-  /* Primärfarbe auf Brand-Teal setzen */
-  --color-primary:           #008EAA;
-  --color-primary-dark:      #004F59;
+  --color-primary:           var(--kc-mid);
+  --color-primary-dark:      var(--kc-dark);
   --color-primary-light:     #40B4CC;
-
-  /* === Typografie === */
-  --font-family-base:      'Noto Sans', system-ui, -apple-system, sans-serif;
-  --font-weight-regular:   400;
-  --font-weight-bold:      700;
-  --font-weight-black:     900;
-  --font-weight-extrabold: 800;
-
-  /* Sidebar-Farben — immer dunkel, unabhängig vom Theme */
-  --kc-dark:   #004F59;
-  --kc-yellow: #FAE600;
 }
 
-/* ── Dark mode — only when system is dark AND no manual override ── */
+/* ── Dark mode — system preference ──────────────────────────── */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-app:           #0f1c20;
-    --bg-surface:       #1a2e35;
-    --bg-sidebar:       #152028;
-    --bg-elevated:      #1f3540;
-    --bg-hover:         #1f3540;
-    --bg-active:        #1a3d4a;
+    --paper:   #0f1c20;
+    --surface: #152028;
+    --border:  rgba(64,196,223,0.15);
+    --text:    #f0f4f5;
+    --text-60: #a8c0c8;
+    --text-30: #6a8f9a;
+    --kc-dark:   #003840;
+    --kc-mid:    #40c4df;
+    --kc-yellow: #FAE600;
+    --bg-sidebar: #0a1820;
 
-    --text-primary:     #f0f4f5;
-    --text-secondary:   #a8c0c8;
-    --text-tertiary:    #6a8f9a;
-    --text-inverse:     #0f1c20;
-    --text-brand:       #40c4df;
+    --bg-active:  #1a3d4a;
+    --text-brand: var(--kc-mid);
 
-    --brand-primary:        #40c4df;
+    --brand-primary:        var(--kc-mid);
     --brand-primary-light:  #1a3d4a;
     --brand-primary-mid:    #2a5a6a;
     --brand-primary-dark:   #30a0b8;
     --brand-primary-deeper: #208898;
 
-    --border-light:  rgba(64, 196, 223, 0.15);
-    --border-medium: rgba(64, 196, 223, 0.30);
-    --border-strong: rgba(64, 196, 223, 0.50);
+    --border-medium: rgba(64,196,223,0.30);
+    --border-strong: rgba(64,196,223,0.50);
 
-    --status-success-bg:   #0f2a1a;
-    --status-success-text: #4caf80;
-    --status-warning-bg:   #2a1f08;
-    --status-warning-text: #f0b040;
-    --status-danger-bg:    #2a0f0f;
-    --status-danger-text:  #f07070;
-    --status-info-bg:      #0f2a35;
-    --status-info-text:    #40c4df;
-    --status-neutral-bg:   #1a2a30;
-    --status-neutral-text: #a8c0c8;
+    --success:    #4caf80;
+    --success-bg: #0f2a1a;
+    --warn:       #f0b040;
+    --warn-bg:    #2a1f08;
+    --error:      #f07070;
+    --error-bg:   #2a0f0f;
+    --info:       #40c4df;
+    --info-bg:    #0f2a35;
 
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
     --shadow-md: 0 2px 8px rgba(0,0,0,0.5);
     --shadow-lg: 0 4px 16px rgba(0,0,0,0.6);
     --shadow-xl: 0 8px 32px rgba(0,0,0,0.7);
 
-    /* === KOMPAGNON Brand Colors (Styleguide 2023) === */
-    --color-brand-teal:        #008EAA;
-    --color-brand-teal-dark:   #004F59;
-    --color-brand-teal-light:  #40B4CC;
-    --color-brand-yellow:      #FAE600;
-    --color-brand-yellow-dark: #C9B800;
-
-    --color-primary:           #008EAA;
-    --color-primary-dark:      #004F59;
-    --color-primary-light:     #40B4CC;
+    --color-brand-teal:      var(--kc-mid);
+    --color-brand-teal-dark: var(--kc-dark);
+    --color-primary:         var(--kc-mid);
+    --color-primary-dark:    var(--kc-dark);
   }
 }
 
-/* ── Manual dark toggle — overrides media query ──────────────── */
+/* ── Manual dark override ────────────────────────────────────── */
 [data-theme="dark"] {
-  --bg-app:           #0f1c20;
-  --bg-surface:       #1a2e35;
-  --bg-sidebar:       #152028;
-  --bg-elevated:      #1f3540;
-  --bg-hover:         #1f3540;
-  --bg-active:        #1a3d4a;
+  --paper:   #0f1c20;
+  --surface: #152028;
+  --border:  rgba(64,196,223,0.15);
+  --text:    #f0f4f5;
+  --text-60: #a8c0c8;
+  --text-30: #6a8f9a;
+  --kc-dark:   #003840;
+  --kc-mid:    #40c4df;
+  --kc-yellow: #FAE600;
+  --bg-sidebar: #0a1820;
 
-  --text-primary:     #f0f4f5;
-  --text-secondary:   #a8c0c8;
-  --text-tertiary:    #6a8f9a;
-  --text-inverse:     #0f1c20;
-  --text-brand:       #40c4df;
+  --bg-active:  #1a3d4a;
+  --text-brand: var(--kc-mid);
 
-  --brand-primary:        #40c4df;
+  --brand-primary:        var(--kc-mid);
   --brand-primary-light:  #1a3d4a;
   --brand-primary-mid:    #2a5a6a;
   --brand-primary-dark:   #30a0b8;
   --brand-primary-deeper: #208898;
 
-  --border-light:  rgba(64, 196, 223, 0.15);
-  --border-medium: rgba(64, 196, 223, 0.30);
-  --border-strong: rgba(64, 196, 223, 0.50);
+  --border-medium: rgba(64,196,223,0.30);
+  --border-strong: rgba(64,196,223,0.50);
 
-  --status-success-bg:   #0f2a1a;
-  --status-success-text: #4caf80;
-  --status-warning-bg:   #2a1f08;
-  --status-warning-text: #f0b040;
-  --status-danger-bg:    #2a0f0f;
-  --status-danger-text:  #f07070;
-  --status-info-bg:      #0f2a35;
-  --status-info-text:    #40c4df;
-  --status-neutral-bg:   #1a2a30;
-  --status-neutral-text: #a8c0c8;
+  --success:    #4caf80;
+  --success-bg: #0f2a1a;
+  --warn:       #f0b040;
+  --warn-bg:    #2a1f08;
+  --error:      #f07070;
+  --error-bg:   #2a0f0f;
+  --info:       #40c4df;
+  --info-bg:    #0f2a35;
 
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
   --shadow-md: 0 2px 8px rgba(0,0,0,0.5);
   --shadow-lg: 0 4px 16px rgba(0,0,0,0.6);
   --shadow-xl: 0 8px 32px rgba(0,0,0,0.7);
 
-  /* === KOMPAGNON Brand Colors (Styleguide 2023) === */
-  --color-brand-teal:        #008EAA;
-  --color-brand-teal-dark:   #004F59;
-  --color-brand-teal-light:  #40B4CC;
-  --color-brand-yellow:      #FAE600;
-  --color-brand-yellow-dark: #C9B800;
-
-  /* Primärfarbe auf Brand-Teal setzen */
-  --color-primary:           #008EAA;
-  --color-primary-dark:      #004F59;
-  --color-primary-light:     #40B4CC;
+  --color-brand-teal:      var(--kc-mid);
+  --color-brand-teal-dark: var(--kc-dark);
+  --color-primary:         var(--kc-mid);
+  --color-primary-dark:    var(--kc-dark);
 }
 
-/* ── Manual light toggle — overrides OS dark preference ─────── */
+/* ── Manual light override ───────────────────────────────────── */
 [data-theme="light"] {
-  --bg-app:           #f4f6f8;
-  --bg-surface:       #ffffff;
-  --bg-sidebar:       #ffffff;
-  --bg-elevated:      #ffffff;
-  --bg-hover:         #f0f7f9;
-  --bg-active:        #e0f4f8;
+  --paper:   #FAFAFA;
+  --surface: #F0F4F5;
+  --border:  #D5E0E2;
+  --text:    #000000;
+  --text-60: #4A5A5C;
+  --text-30: #9AACAE;
+  --kc-dark:   #004F59;
+  --kc-mid:    #008EAA;
+  --kc-yellow: #FAE600;
+  --bg-sidebar: var(--kc-dark);
 
-  --text-primary:     #0f1c20;
-  --text-secondary:   #4a6470;
-  --text-tertiary:    #5e7a84;
-  --text-placeholder: #8fa8b0;
-  --text-inverse:     #ffffff;
-  --text-brand:       #006880;
-
-  --brand-primary:        #008eaa;
-  --brand-primary-light:  #e0f4f8;
-  --brand-primary-mid:    #b3e0ea;
-  --brand-primary-dark:   #006880;
-  --brand-primary-deeper: #004d5e;
-
-  --border-light:  rgba(0, 142, 170, 0.12);
-  --border-medium: rgba(0, 142, 170, 0.25);
-  --border-strong: rgba(0, 142, 170, 0.40);
-
-  --status-success-bg:   #eaf5ee;
-  --status-success-text: #1a7a3a;
-  --status-warning-bg:   #fff8e6;
-  --status-warning-text: #a06800;
-  --status-danger-bg:    #fef0f0;
-  --status-danger-text:  #b02020;
-  --status-info-bg:      #e0f4f8;
-  --status-info-text:    #006880;
-  --status-neutral-bg:   #f0f2f4;
-  --status-neutral-text: #4a6470;
+  --success:    #00875A;
+  --success-bg: #E3F6EF;
+  --warn:       #B8860B;
+  --warn-bg:    #FFFBE0;
+  --error:      #C0392B;
+  --error-bg:   #FDECEA;
+  --info:       #008EAA;
+  --info-bg:    #E0F4F8;
 
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
@@ -264,7 +256,7 @@
   --shadow-xl: 0 8px 32px rgba(0,0,0,0.10);
 }
 
-/* Skeleton shimmer animation */
+/* ── Skeleton shimmer ────────────────────────────────────────── */
 .skeleton {
   background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%);
   background-size: 200% 100%;

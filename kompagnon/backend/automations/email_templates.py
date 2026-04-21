@@ -39,7 +39,7 @@ Damit wir pünktlich fertig werden, brauchen wir von Ihnen noch:
 ✓ Öffnungszeiten
 ✓ Kontaktdaten (Telefon, E-Mail, Adresse)
 
-**Deadline: {deadline}**
+**Bitte bis zum {review_deadline} einreichen.**
 
 Bitte hochladen unter: {upload_link}
 
@@ -209,9 +209,22 @@ def get_template(template_key: str) -> dict:
 
 
 def render_template(template_key: str, context: dict) -> dict:
-    """Render template with context variables."""
+    """Render template with context variables. Missing keys become [KEY FEHLT]."""
+    import logging as _log
+    import string
     template = get_template(template_key)
-    return {
-        "subject": template["subject"].format(**context),
-        "body": template["body"].format(**context),
-    }
+    result = {}
+    for part in ("subject", "body"):
+        try:
+            result[part] = template[part].format(**context)
+        except KeyError as e:
+            _log.getLogger(__name__).error(
+                f"E-Mail-Template '{template_key}': Fehlender Platzhalter {e} im {part}. "
+                f"Context-Keys: {list(context.keys())}"
+            )
+            safe = {**context}
+            for _, field, _, _ in string.Formatter().parse(template[part]):
+                if field and field not in safe:
+                    safe[field] = f"[{field.upper()} FEHLT]"
+            result[part] = template[part].format(**safe)
+    return result

@@ -1,33 +1,22 @@
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import os
+"""
+Veraltet — delegiert an services/email.py.
+Nur für Rückwärtskompatibilität erhalten. Nicht für neue Aufrufer verwenden.
+"""
+import logging
+from services.email import send_email as _send_email
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SMTP_FROM = os.getenv("SMTP_FROM", "KOMPAGNON <noreply@kompagnon.de>")
+logger = logging.getLogger(__name__)
 
 PHASE_NAMES = {
     1: "Akquise", 2: "Briefing", 3: "Content",
     4: "Technik", 5: "QA", 6: "Go-Live", 7: "Post-Launch"
 }
 
-def send_email(to: str, subject: str, html_body: str):
-    if not SMTP_USER or not SMTP_PASSWORD:
-        print("[Email] SMTP nicht konfiguriert – E-Mail übersprungen.")
-        return
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = SMTP_FROM
-    msg["To"] = to
-    msg.attach(MIMEText(html_body, "html"))
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASSWORD)
-        server.sendmail(SMTP_USER, to, msg.as_string())
-    print(f"[Email] Gesendet an {to}: {subject}")
+
+def send_email(to: str, subject: str, html_body: str) -> bool:
+    """Delegiert an services/email.py."""
+    return _send_email(to_email=to, subject=subject, html_body=html_body)
+
 
 def send_phase_change_email(to: str, company: str, phase: int):
     name = PHASE_NAMES.get(phase, f"Phase {phase}")
@@ -36,10 +25,10 @@ def send_phase_change_email(to: str, company: str, phase: int):
     <h2>Gute Neuigkeiten, {company}!</h2>
     <p>Ihr Projekt ist in die nächste Phase übergegangen:</p>
     <h3>Phase {phase} von 7 — {name}</h3>
-    <p>Wir halten Sie auf dem Laufenden. Bei Fragen stehen wir jederzeit zur Verfügung.</p>
     <p>Mit freundlichen Grüßen,<br>Ihr KOMPAGNON-Team</p>
     """
-    send_email(to, subject, body)
+    _send_email(to_email=to, subject=subject, html_body=body)
+
 
 def send_audit_done_email(to: str, company: str, report_url: str = None):
     subject = f"Ihr Website-Audit für {company} ist fertig"
@@ -50,16 +39,15 @@ def send_audit_done_email(to: str, company: str, report_url: str = None):
     {link}
     <p>Mit freundlichen Grüßen,<br>Ihr KOMPAGNON-Team</p>
     """
-    send_email(to, subject, body)
+    _send_email(to_email=to, subject=subject, html_body=body)
+
 
 def send_approval_request_email(to: str, company: str, topic: str, notes: str = ""):
     subject = f"Ihre Freigabe wird benötigt – {topic}"
     body = f"""
     <h2>Freigabe erforderlich, {company}!</h2>
-    <p>Für den nächsten Schritt in Ihrem Projekt benötigen wir Ihre Freigabe:</p>
-    <h3>{topic}</h3>
+    <p>Für den nächsten Schritt benötigen wir Ihre Freigabe: <strong>{topic}</strong></p>
     {"<p>" + notes + "</p>" if notes else ""}
-    <p>Bitte antworten Sie auf diese E-Mail oder kontaktieren Sie uns direkt.</p>
     <p>Mit freundlichen Grüßen,<br>Ihr KOMPAGNON-Team</p>
     """
-    send_email(to, subject, body)
+    _send_email(to_email=to, subject=subject, html_body=body)

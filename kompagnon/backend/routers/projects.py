@@ -92,7 +92,6 @@ from pydantic import BaseModel
 from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, ProjectScrapeJob, get_db, SessionLocal
 from services.margin_calculator import MarginCalculator
 from routers.content_scraper_router import _run_content_scrape
-from email_service import send_phase_change_email, send_approval_request_email
 from routers.auth_router import require_admin, require_any_auth, get_current_user
 from automations.scheduler import (
     get_scheduler,

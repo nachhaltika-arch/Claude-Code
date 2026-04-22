@@ -563,6 +563,8 @@ def _run_migrations():
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS logo_vorhanden BOOLEAN DEFAULT false",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS fotos_vorhanden BOOLEAN DEFAULT false",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS sonstige_hinweise TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS funktionen_json TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS seo_json TEXT",
         # sitemap_pages table
         """
         CREATE TABLE IF NOT EXISTS sitemap_pages (

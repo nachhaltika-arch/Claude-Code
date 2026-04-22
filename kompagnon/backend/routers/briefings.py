@@ -27,6 +27,7 @@ FLAT_FIELDS = [
     "mitbewerber", "vorbilder", "farben", "wunschseiten", "stil",
     "logo_vorhanden", "fotos_vorhanden", "sonstige_hinweise", "status",
     "hauptziel", "aktionen", "typischer_kunde", "haeufige_anfrage",
+    "funktionen_json", "seo_json",
 ]
 
 
@@ -51,6 +52,8 @@ class BriefingBody(BaseModel):
     aktionen: Optional[str] = None
     typischer_kunde: Optional[str] = None
     haeufige_anfrage: Optional[str] = None
+    funktionen_json: Optional[str] = None
+    seo_json: Optional[str] = None
 
 
 def _serialize(b: Briefing) -> dict:
@@ -96,6 +99,8 @@ def _serialize(b: Briefing) -> dict:
         "logo_vorhanden":    bool(getattr(b, "logo_vorhanden",  False)),
         "fotos_vorhanden":   bool(getattr(b, "fotos_vorhanden", False)),
         "sonstige_hinweise": getattr(b, "sonstige_hinweise", "") or "",
+        "funktionen_json":   getattr(b, "funktionen_json",   None),
+        "seo_json":          getattr(b, "seo_json",          None),
         "status":            getattr(b, "status",            "entwurf") or "entwurf",
         "hauptziel":         getattr(b, "hauptziel",         "") or "",
         "aktionen":          getattr(b, "aktionen",          "") or "",

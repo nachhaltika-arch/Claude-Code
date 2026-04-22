@@ -4,6 +4,16 @@
 
 @import './styles/tokens.css';
 
+/* ── iOS Mobile Scroll Fix ───────────────────────── */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  html { background: #004F59; }
+}
+
 /* ══════════════════════════════════════════════════════════════
    GLOBAL RESET — KOMPAGNON Redesign
    ══════════════════════════════════════════════════════════════ */

@@ -12,6 +12,9 @@ import API_BASE_URL from '../../config';
 import Logo from '../Logo';
 import KompagnonLogo from '../KompagnonLogo';
 
+const MOBILE_HEADER_H = 52;   // px — fixed top bar
+const MOBILE_NAV_H    = 64;   // px — fixed bottom nav (ohne safe-area)
+
 // ── SVG Icons (16x16) ──────────────────────────────────────────
 
 const icons = {
@@ -185,17 +188,17 @@ const PAGE_NAMES = {
 function getMobileTabs(role, leadId) {
   if (role === 'kunde') {
     return [
-      { label: 'Start',         path: '/app/dashboard',                                   icon: 'grid'   },
-      { label: 'Mein Projekt',  path: leadId ? `/app/usercards/${leadId}` : '/app/dashboard', icon: 'users'  },
-      { label: 'Einstellungen', path: '/app/m-settings',                                  icon: 'gear'   },
+      { label: 'Start',         path: '/app/dashboard',                                        icon: 'grid'  },
+      { label: 'Mein Projekt',  path: leadId ? `/app/usercards/${leadId}` : '/app/dashboard',  icon: 'users' },
+      { label: 'Einstellungen', path: '/app/settings',                                         icon: 'gear'  },
     ];
   }
   return [
-    { label: 'Dashboard',    path: '/app/dashboard',  icon: 'grid'   },
-    { label: 'Vertrieb',     path: '/app/m-vertrieb', icon: 'chart'  },
-    { label: 'Leads',        path: '/app/m-leads',    icon: 'users', badge: true },
-    { label: 'Projekte',     path: '/app/m-projekte', icon: 'folder' },
-    { label: 'Einstellungen',path: '/app/m-settings', icon: 'gear'   },
+    { label: 'Dashboard', path: '/app/dashboard', icon: 'grid'  },
+    { label: 'Vertrieb',  path: '/app/deals',      icon: 'chart' },
+    { label: 'Leads',     path: '/app/leads',      icon: 'users', badge: true },
+    { label: 'Projekte',  path: '/app/projects',   icon: 'users' },
+    { label: 'Mehr',      path: '__more__',         icon: 'menu'  },
   ];
 }
 
@@ -557,102 +560,179 @@ function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const role = user?.role || 'nutzer';
   const tabs = getMobileTabs(role, user?.lead_id);
+  const moreItems = (role === 'admin' || role === 'superadmin') ? MORE_ITEMS_ADMIN : MORE_ITEMS;
 
   const isActive = (path) => {
-    if (path === '/app/m-vertrieb') {
-      return ['/app/m-vertrieb', '/app/deals', '/app/campaigns',
-              '/app/audit', '/app/newsletter', '/app/import', '/app/retainer']
+    if (path === '__more__') return moreOpen;
+    if (path === '/app/deals') {
+      return ['/app/deals', '/app/campaigns', '/app/audit',
+              '/app/newsletter', '/app/import', '/app/retainer', '/app/scraper']
         .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
     }
-    if (path === '/app/m-leads') {
-      return ['/app/m-leads', '/app/leads', '/app/companies']
+    if (path === '/app/leads') {
+      return ['/app/leads', '/app/companies']
         .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
     }
-    if (path === '/app/m-projekte') {
-      return ['/app/m-projekte', '/app/projects', '/app/tickets',
-              '/app/checklists', '/app/settings/templates']
+    if (path === '/app/projects') {
+      return ['/app/projects', '/app/tickets', '/app/checklists', '/app/settings/templates']
         .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
     }
-    if (path === '/app/m-settings') {
-      return location.pathname === '/app/m-settings'
-        || location.pathname.startsWith('/app/settings');
+    if (path === '/app/settings') {
+      return location.pathname.startsWith('/app/settings');
     }
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
+  const handleTab = (path) => {
+    if (path === '__more__') {
+      setMoreOpen(o => !o);
+    } else {
+      setMoreOpen(false);
+      navigate(path);
+    }
+  };
+
   return (
-    <nav style={{
-      position: 'fixed',
-      bottom: 0, left: 0, right: 0,
-      zIndex: 100,
-      background: '#004F59',
-      borderTop: '0.5px solid rgba(255,255,255,.1)',
-      display: 'flex',
-      justifyContent: 'space-around',
-      alignItems: 'flex-start',
-      height: `calc(68px + env(safe-area-inset-bottom, 0px))`,
-      paddingTop: 8,
-      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-    }}>
-      {tabs.map((tab) => {
-        const active = isActive(tab.path);
-        return (
-          <button
-            key={tab.path}
-            onClick={() => navigate(tab.path)}
+    <>
+      {/* Mehr-Overlay */}
+      {moreOpen && (
+        <>
+          <div
+            onClick={() => setMoreOpen(false)}
             style={{
-              background: 'none', border: 'none',
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', gap: 3,
-              padding: '2px 4px',
-              cursor: 'pointer', flex: 1,
-              minHeight: 44,
-              position: 'relative',
-              fontFamily: 'var(--font-sans)',
+              position: 'fixed', inset: 0,
+              background: 'rgba(0,79,89,0.6)',
+              backdropFilter: 'blur(2px)',
+              zIndex: 98,
             }}
-          >
-            {/* Gelber Strich oben beim aktiven Tab */}
-            <span style={{
-              position: 'absolute', top: -8,
-              left: '50%', transform: 'translateX(-50%)',
-              width: 22, height: 3,
-              background: active ? '#FAE600' : 'transparent',
-              borderRadius: 2, transition: 'background .12s',
-            }} />
-
-            {/* Icon */}
-            <span style={{
-              color: active ? '#FAE600' : 'rgba(255,255,255,.45)',
-              transition: 'color .12s', fontSize: 20,
-              position: 'relative',
+          />
+          <div style={{
+            position: 'fixed',
+            bottom: `calc(${MOBILE_NAV_H}px + env(safe-area-inset-bottom, 0px))`,
+            left: 0, right: 0,
+            background: '#fff',
+            borderRadius: '16px 16px 0 0',
+            padding: '16px 14px',
+            zIndex: 99,
+            boxShadow: '0 -8px 32px rgba(0,79,89,.2)',
+            animation: 'bwSlideUp .2s ease',
+          }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 8,
             }}>
-              {icons[tab.icon]}
-              {tab.badge && !active && (
-                <span style={{
-                  position: 'absolute', top: -2, right: -4,
-                  width: 7, height: 7, borderRadius: '50%',
-                  background: '#FAE600',
-                  border: '1.5px solid #004F59',
-                }} />
-              )}
-            </span>
+              {moreItems.map(item => {
+                const active = isActive(item.path);
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => { navigate(item.path); setMoreOpen(false); }}
+                    style={{
+                      background: active ? '#E0F4F8' : '#F0F4F5',
+                      border: active ? '1.5px solid #008EAA' : '0.5px solid #D5E0E2',
+                      borderRadius: 10,
+                      padding: '14px 8px',
+                      cursor: 'pointer',
+                      display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', gap: 6,
+                      minHeight: 72,
+                    }}
+                  >
+                    <span style={{ fontSize: 22 }}>{item.icon}</span>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700,
+                      color: active ? '#004F59' : '#4A5A5C',
+                      textTransform: 'uppercase',
+                      letterSpacing: '.04em',
+                      textAlign: 'center', lineHeight: 1.3,
+                      fontFamily: 'var(--font-sans)',
+                    }}>
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
 
-            {/* Label */}
-            <span style={{
-              fontSize: 9, fontWeight: active ? 700 : 400,
-              color: active ? '#FAE600' : 'rgba(255,255,255,.4)',
-              textTransform: 'uppercase', letterSpacing: '.04em',
-              transition: 'color .12s',
-            }}>
-              {tab.label}
-            </span>
-          </button>
-        );
-      })}
-    </nav>
+      {/* Bottom Bar */}
+      <nav style={{
+        position: 'fixed',
+        bottom: 0, left: 0, right: 0,
+        zIndex: 100,
+        background: '#004F59',
+        borderTop: '0.5px solid rgba(255,255,255,.1)',
+        display: 'flex',
+        justifyContent: 'space-around',
+        alignItems: 'flex-start',
+        height: `calc(${MOBILE_NAV_H}px + env(safe-area-inset-bottom, 0px))`,
+        paddingTop: 8,
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}>
+        {tabs.map((tab) => {
+          const active = isActive(tab.path);
+          return (
+            <button
+              key={tab.path}
+              onClick={() => handleTab(tab.path)}
+              style={{
+                background: 'none', border: 'none',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: 3,
+                padding: '2px 4px',
+                cursor: 'pointer', flex: 1,
+                minHeight: 44,
+                position: 'relative',
+                fontFamily: 'var(--font-sans)',
+              }}
+            >
+              {/* Gelber Strich oben beim aktiven Tab */}
+              <span style={{
+                position: 'absolute', top: -8,
+                left: '50%', transform: 'translateX(-50%)',
+                width: 24, height: 3,
+                background: active ? '#FAE600' : 'transparent',
+                borderRadius: 2, transition: 'background .12s',
+              }} />
+
+              {/* Icon */}
+              <span style={{ display: 'flex', position: 'relative',
+                color: active ? '#FAE600' : 'rgba(255,255,255,.45)',
+                transition: 'color .12s',
+              }}>
+                {icons[tab.icon]}
+                {tab.badge && !active && (
+                  <span style={{
+                    position: 'absolute', top: -2, right: -4,
+                    width: 7, height: 7, borderRadius: '50%',
+                    background: '#FAE600',
+                    border: '1.5px solid #004F59',
+                  }} />
+                )}
+              </span>
+
+              {/* Label */}
+              <span style={{
+                fontSize: 10, fontWeight: active ? 700 : 400,
+                color: active ? '#FAE600' : 'rgba(255,255,255,.4)',
+                textTransform: 'uppercase', letterSpacing: '.04em',
+                fontFamily: 'var(--font-sans)',
+                transition: 'color .12s',
+              }}>
+                {tab.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+    </>
   );
 }
 
@@ -906,9 +986,9 @@ export default function AppLayout() {
           ref={mainRef}
           style={isMobile ? {
             position: 'fixed',
-            top: 52,
+            top: MOBILE_HEADER_H,
             left: 0, right: 0,
-            bottom: `calc(68px + env(safe-area-inset-bottom, 0px))`,
+            bottom: `calc(${MOBILE_NAV_H}px + env(safe-area-inset-bottom, 0px))`,
             overflowY: 'auto',
             overflowX: 'hidden',
             WebkitOverflowScrolling: 'touch',

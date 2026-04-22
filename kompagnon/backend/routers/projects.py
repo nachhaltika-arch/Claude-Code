@@ -4394,12 +4394,12 @@ async def generate_design_json(
     lead_id = project.lead_id
 
     page = db.execute(
-        text("SELECT page_name, page_type, ziel_keyword, zweck FROM sitemap_pages WHERE id=:id"),
+        text("SELECT page_name, page_type, ziel_keyword, zweck, ki_h1, ki_hero_text, ki_abschnitt_text, ki_cta, content_generated FROM sitemap_pages WHERE id=:id"),
         {"id": page_id},
     ).fetchone()
     if not page:
         raise HTTPException(404, "Seite nicht gefunden")
-    page_name, page_type, keyword, zweck = page
+    page_name, page_type, keyword, zweck, ki_h1, ki_hero_text, ki_abschnitt_text, ki_cta, content_generated = page
 
     briefing = db.execute(
         text("SELECT gewerk, leistungen, einzugsgebiet, usp FROM briefings WHERE lead_id=:lid LIMIT 1"),
@@ -4425,19 +4425,30 @@ async def generate_design_json(
     company = getattr(lead, 'company_name', '') or ''
     phone   = getattr(lead, 'phone', '') or ''
 
+    ki_section = ""
+    if content_generated and any([ki_h1, ki_hero_text, ki_abschnitt_text, ki_cta]):
+        ki_section = (
+            f"\nKI-INHALTE fuer diese Seite (verwende diese Texte EXAKT):\n"
+            f"- headline (hero): {ki_h1 or ''}\n"
+            f"- subline (hero): {ki_hero_text or ''}\n"
+            f"- abschnitt-text (ueber-uns): {ki_abschnitt_text or ''}\n"
+            f"- cta_text: {ki_cta or ''}\n"
+        )
+
     prompt = (
-        f"Du bist Webdesigner für deutsche Handwerksbetriebe. Antworte NUR als JSON-Array.\n\n"
+        f"Du bist Webdesigner fuer deutsche Handwerksbetriebe. Antworte NUR als JSON-Array.\n\n"
         f"FIRMA: {company} | BRANCHE: {gewerk} | REGION: {region} | TEL: {phone}\n"
         f"SEITE: {page_name} ({page_type}) | PRIMARY: {brand.get('primary_color', '#004F59')}\n\n"
-        f"BLÖCKE: hero, usp-balken, leistungen-grid, ueber-uns, referenzen, cta-banner, kontakt-form, footer\n\n"
+        f"BLOECKE: hero, usp-balken, leistungen-grid, ueber-uns, referenzen, cta-banner, kontakt-form, footer\n\n"
         f"REGELN:\n"
         f"- hero: Split-Layout, fakten=[{{zahl,label}}x4]\n"
         f"- leistungen-grid: min.4 items mit Emoji-icon, titel, beschreibung\n"
         f"- cta-banner: immer phone:'{phone}'\n"
-        f"- Texte Deutsch, spezifisch für {gewerk} in {region}\n\n"
-        f"REIHENFOLGE für '{page_type}': "
+        f"- Texte Deutsch, spezifisch fuer {gewerk} in {region}\n"
+        f"{ki_section}\n"
+        f"REIHENFOLGE fuer '{page_type}': "
         f"{'hero+usp-balken+leistungen-grid+ueber-uns+referenzen+cta-banner+footer' if page_type in ('startseite', 'home') else 'hero+leistungen-grid+ueber-uns+cta-banner+footer'}\n\n"
-        f'Start: [{{"type":"hero","data":{{"headline":"Ihr {gewerk} in {region}","subline":"Schnell · Zuverlässig · Fair","cta_text":"Jetzt anfragen","cta_link":"/kontakt","cta2_text":"{phone}","cta2_link":"tel:{phone}","badge":"Meisterbetrieb","fakten":[{{"zahl":"500+","label":"Kunden"}},{{"zahl":"25 J.","label":"Erfahrung"}},{{"zahl":"4.9★","label":"Google"}},{{"zahl":"24h","label":"Notdienst"}}]}}}},...footer]'
+        f'Start: [{{"type":"hero","data":{{"headline":"{ki_h1 or f"Ihr {gewerk} in {region}"}","subline":"{ki_hero_text or "Schnell - Zuverlaessig - Fair"}","cta_text":"{ki_cta or "Jetzt anfragen"}","cta_link":"/kontakt","cta2_text":"{phone}","cta2_link":"tel:{phone}","badge":"Meisterbetrieb","fakten":[{{"zahl":"500+","label":"Kunden"}},{{"zahl":"25 J.","label":"Erfahrung"}},{{"zahl":"4.9","label":"Google"}},{{"zahl":"24h","label":"Notdienst"}}]}}}},...footer]'
     )
 
     try:
@@ -4457,9 +4468,10 @@ async def generate_design_json(
             raise ValueError("Keine Liste")
 
         return {
-            "page_id":   page_id,
-            "page_name": page_name,
-            "blocks":    blocks,
+            "page_id":    page_id,
+            "page_name":  page_name,
+            "blocks":     blocks,
+            "ki_injected": bool(ki_section),
             "brand": {
                 "primary_color":   getattr(lead, 'brand_primary_color',   '#008EAA'),
                 "secondary_color": getattr(lead, 'brand_secondary_color', '#004F59'),

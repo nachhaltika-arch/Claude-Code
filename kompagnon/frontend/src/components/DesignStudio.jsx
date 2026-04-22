@@ -3,6 +3,20 @@ import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
 import { renderPage } from '../grapesjs/handwerk-blocks';
 
+function enrichBlocksWithKiContent(blocks, kiPage) {
+  return blocks.map(block => {
+    const b = { ...block, data: { ...block.data } };
+    if (/hero/.test(block.type)) {
+      if (kiPage.ki_h1)        b.data.headline = kiPage.ki_h1;
+      if (kiPage.ki_hero_text) b.data.subline  = kiPage.ki_hero_text;
+      if (kiPage.ki_cta)       b.data.cta_text = kiPage.ki_cta;
+    } else if (block.type === 'ueber-uns' && kiPage.ki_abschnitt_text) {
+      b.data.text = kiPage.ki_abschnitt_text;
+    }
+    return b;
+  });
+}
+
 const TEMPLATE_PRESETS = [
   { id: 'modern-clean',   name: 'Modern Clean',    desc: 'Minimalistisch, viel Weissraum, klare Typografie',    icon: '⬜', style: { borderRadius: 8, shadows: 'leicht', density: 'luftig' },   preview_gradient: 'linear-gradient(135deg, #f8fafc, #e2e8f0)' },
   { id: 'handwerk-bold',  name: 'Handwerk Bold',   desc: 'Kraftvoll, erdige Toene, handwerkliches Gefuehl',     icon: '🔨', style: { borderRadius: 4, shadows: 'mittel', density: 'kompakt' },  preview_gradient: 'linear-gradient(135deg, #292524, #57534e)' },
@@ -22,6 +36,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
   const [designBrand, setDesignBrand]           = useState(null);
   const [linkReport, setLinkReport]             = useState([]);
   const [linkSummary, setLinkSummary]           = useState(null);
+  const [kiInjected, setKiInjected]             = useState(false);
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
@@ -49,7 +64,14 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || 'Generierung fehlgeschlagen');
       }
-      const { blocks, brand } = await res.json();
+      const { blocks: rawBlocks, brand, ki_injected } = await res.json();
+
+      // Client-side enrichment as safety net if ki_* content was generated
+      const kiPage = (sitemapPages || []).find(p => p.id === selectedPage.id);
+      const blocks = kiPage?.content_generated
+        ? enrichBlocksWithKiContent(rawBlocks, kiPage)
+        : rawBlocks;
+      setKiInjected(ki_injected || (kiPage?.content_generated ?? false));
 
       // 2. HTML aus Block-Bibliothek rendern
       const html = renderPage(blocks, brand);
@@ -68,7 +90,11 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
       setLinkReport(linkData.link_report || []);
       setLinkSummary(linkData.summary || {});
       setStep(4);
-      toast.success(`${blocks.length} Bloecke generiert`);
+      toast.success(
+        ki_injected || kiPage?.content_generated
+          ? `${blocks.length} Bloecke generiert · KI-Texte eingesetzt`
+          : `${blocks.length} Bloecke generiert`
+      );
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -264,8 +290,15 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
         {step === 4 && designResult && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
-                Design-Entwurf: {selectedPage?.page_name}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Design-Entwurf: {selectedPage?.page_name}
+                </div>
+                {kiInjected && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 6, background: 'rgba(0,142,170,0.10)', border: '1px solid rgba(0,142,170,0.25)' }}>
+                    <span style={{ fontSize: 11, color: 'var(--brand-primary)', fontWeight: 700 }}>KI-Texte eingesetzt</span>
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => setStep(3)} style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>

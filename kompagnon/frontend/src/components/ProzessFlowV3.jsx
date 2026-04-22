@@ -50,6 +50,7 @@ export default function ProzessFlowV3({
     crawlPages:        localCrawlPages || 0,
     brandPrimaryColor:       brandData?.primary_color || localBrandColor || null,
     brandGuidelineGenerated: !!(brandData?.guideline_generated),
+    assetsGeklaert:          !!(briefing?.logo_vorhanden !== undefined && (briefing?.logo_vorhanden || briefing?.fotos_vorhanden)),
     sitemapCount:      sitemapPages?.length || 0,
     contentCount:      (websiteContent || []).filter(p => p.ki_content).length,
     credsCount:        0,

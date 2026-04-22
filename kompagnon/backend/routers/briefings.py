@@ -11,6 +11,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -282,3 +283,83 @@ async def suggest_field(
         return {"field": field, "suggestion": suggestion}
     except Exception as e:
         raise HTTPException(500, f"Vorschlag fehlgeschlagen: {str(e)[:150]}")
+
+
+@router.get("/{lead_id}/assets-status")
+def get_assets_status(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Gibt automatisch erkannte Asset-Informationen zurück."""
+    lead     = db.query(Lead).filter(Lead.id == lead_id).first()
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    logo_url   = lead.brand_logo_url or ""
+    logo_found = bool(logo_url)
+
+    images_found = []
+    try:
+        rows = db.execute(
+            text("SELECT images FROM website_content_cache WHERE customer_id=:id LIMIT 5"),
+            {"id": lead_id}
+        ).fetchall()
+        for row in rows:
+            imgs = json.loads(row[0] or "[]")
+            for img in (imgs if isinstance(imgs, list) else []):
+                src = img.get("src", "") if isinstance(img, dict) else str(img)
+                if src and src.startswith("http"):
+                    images_found.append(src)
+    except Exception:
+        pass
+
+    photos_likely    = len(images_found) > 3
+    logo_vorhanden   = bool(briefing.logo_vorhanden)  if briefing else logo_found
+    fotos_vorhanden  = bool(briefing.fotos_vorhanden) if briefing else photos_likely
+
+    return {
+        "logo": {
+            "vorhanden":    logo_vorhanden,
+            "url":          logo_url,
+            "auto_erkannt": logo_found,
+            "quelle":       "Brand Scan" if logo_found else None,
+        },
+        "fotos": {
+            "vorhanden":    fotos_vorhanden,
+            "anzahl":       len(images_found),
+            "vorschau":     images_found[:3],
+            "auto_erkannt": True,
+            "einschaetzung": "Fotos gefunden" if photos_likely else "Wenig Bilder — Fotograf empfohlen",
+        },
+        "ci_handbuch": {
+            "vorhanden":  False,
+            "dateiname":  lead.brand_pdf_filename or None,
+        },
+    }
+
+
+@router.post("/{lead_id}/assets-save")
+def save_assets(
+    lead_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    if not briefing:
+        briefing = Briefing(lead_id=lead_id)
+        db.add(briefing)
+
+    briefing.logo_vorhanden  = bool(body.get("logo_vorhanden"))
+    briefing.fotos_vorhanden = bool(body.get("fotos_vorhanden"))
+    if "sonstige_hinweise" in body:
+        briefing.sonstige_hinweise = body["sonstige_hinweise"]
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(422, str(e)[:200])
+    return {"saved": True}

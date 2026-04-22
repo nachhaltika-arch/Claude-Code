@@ -640,6 +640,7 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_font_heading VARCHAR(100)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_font_body VARCHAR(100)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_font_accent VARCHAR(100)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_fonts_detail TEXT",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_design_tokens_json TEXT",
         # Design version history (simple form first — idempotent)
         "CREATE TABLE IF NOT EXISTS mockup_versions (id SERIAL PRIMARY KEY, lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE, sitemap_page_id INTEGER, page_name VARCHAR(100) DEFAULT 'Startseite', version_name VARCHAR(150), html_content TEXT, created_at TIMESTAMP DEFAULT NOW(), created_by VARCHAR(100))",

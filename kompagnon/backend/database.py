@@ -7,6 +7,7 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.dialects.postgresql import JSONB
 from decimal import Decimal
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./kompagnon.db")
@@ -848,6 +849,32 @@ class KasGjsData(Base):
     saved_at = Column(DateTime, default=datetime.utcnow)
 
     page = relationship("KasPage", back_populates="gjs_data")
+
+
+class GeoAnalysis(Base):
+    __tablename__ = "geo_analyses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    geo_score_total = Column(Integer, default=0)
+    llms_txt_score = Column(Integer, default=0)
+    robots_ai_score = Column(Integer, default=0)
+    structured_data_score = Column(Integer, default=0)
+    content_depth_score = Column(Integer, default=0)
+    local_signal_score = Column(Integer, default=0)
+
+    raw_checks = Column(JSONB, default=dict)
+    recommendations = Column(JSONB, default=list)
+    generated_files = Column(JSONB, default=dict)
+
+    status = Column(String(50), default="pending")
+    error_message = Column(Text, nullable=True)
+
+    upsell_active = Column(Boolean, default=False)
+    upsell_price = Column(Float, nullable=True)
 
 
 def init_db():

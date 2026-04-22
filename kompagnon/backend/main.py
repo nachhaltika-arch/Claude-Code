@@ -1021,6 +1021,11 @@ def _run_migrations():
         # Freigabe-Gates (Tor 1 + Tor 2)
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS briefing_approved_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS content_approval_token VARCHAR(255)",
+        # Ziele & Zielgruppe flat fields
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS hauptziel TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS aktionen TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS typischer_kunde TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS haeufige_anfrage TEXT",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

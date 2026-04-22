@@ -557,6 +557,10 @@ class Briefing(Base):
     fotos_vorhanden = Column(Boolean, default=False)
     sonstige_hinweise = Column(Text)
     status = Column(String(50), default='entwurf')
+    hauptziel = Column(Text)
+    aktionen = Column(Text)
+    typischer_kunde = Column(Text)
+    haeufige_anfrage = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -69,18 +69,17 @@ export function renderBlock(type, data, brand) {
     }
 
     case 'usp-balken': {
-      const usps = data.items || [];
+      const uspItems = data.items || [{icon:'\u2713',titel:'25 Jahre Erfahrung',sub:'Seit 1999'},{icon:'\u23F0',titel:'24h Notdienst',sub:'Immer erreichbar'},{icon:'\u{1F4CD}',titel:'Regional vor Ort',sub:'Schnelle Reaktion'},{icon:'\u2605',titel:'4.9 Sterne',sub:'500+ Bewertungen'}];
       return `
-<section data-block="usp-balken" style="
-  padding:32px 40px; background:${primary}; font-family:${font};
-">
-  <div style="max-width:1100px; margin:0 auto;
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:24px;">
-    ${usps.map(u => `
-    <div style="text-align:center; color:white;">
-      <div style="font-size:32px; margin-bottom:6px;">${u.icon || '\u2713'}</div>
-      <div style="font-size:16px; font-weight:700;">${u.titel}</div>
-      ${u.sub ? `<div style="font-size:13px; opacity:.8; margin-top:2px;">${u.sub}</div>` : ''}
+<section data-block="usp-balken" style="background:${primary};padding:0;font-family:${font};">
+  <div style="max-width:1140px;margin:0 auto;padding:0 40px;display:grid;grid-template-columns:repeat(${Math.min(uspItems.length,4)},1fr);">
+    ${uspItems.map((u, i) => `
+    <div style="padding:28px 24px;display:flex;align-items:center;gap:16px;border-right:${i < uspItems.length - 1 ? '1px solid rgba(255,255,255,0.15)' : 'none'};">
+      <div style="width:44px;height:44px;flex-shrink:0;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:white;">${u.icon || '\u2713'}</div>
+      <div>
+        <div style="font-weight:700;color:white;font-size:15px;">${u.titel || 'Vorteil'}</div>
+        ${u.sub ? `<div style="color:rgba(255,255,255,0.7);font-size:13px;margin-top:2px;">${u.sub}</div>` : ''}
+      </div>
     </div>`).join('')}
   </div>
 </section>`;
@@ -131,25 +130,15 @@ export function renderBlock(type, data, brand) {
 
     case 'cta-banner':
       return `
-<section data-block="cta-banner" style="
-  padding:64px 40px; background:${secondary}; text-align:center; font-family:${font};
-">
-  <h2 style="font-size:clamp(22px,3vw,36px); font-weight:700; color:white; margin:0 0 12px;">
-    ${data.headline || 'Bereit loszulegen?'}
-  </h2>
-  <p style="color:rgba(255,255,255,.85); font-size:18px; margin:0 0 32px;">
-    ${data.subline || 'Kontaktieren Sie uns noch heute'}
-  </p>
-  <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-    <a href="${data.cta_link || '/kontakt'}" style="
-      padding:16px 36px; background:white; color:${secondary};
-      border-radius:${radius}; font-weight:700; font-size:16px; text-decoration:none;
-    ">${data.cta_text || 'Jetzt anfragen'}</a>
-    ${data.phone ? `
-    <a href="tel:${data.phone}" style="
-      padding:16px 36px; border:2px solid white; color:white;
-      border-radius:${radius}; font-weight:700; font-size:16px; text-decoration:none;
-    ">${data.phone}</a>` : ''}
+<section data-block="cta-banner" style="background:linear-gradient(135deg,#111827 0%,#1F2937 100%);padding:80px 40px;font-family:${font};position:relative;overflow:hidden;">
+  <div style="position:absolute;top:-60px;left:-60px;width:300px;height:300px;background:${primary}22;border-radius:50%;"></div>
+  <div style="max-width:800px;margin:0 auto;text-align:center;position:relative;z-index:1;">
+    <h2 style="font-size:clamp(28px,4vw,44px);font-weight:800;color:white;margin:0 0 16px;">${data.headline || 'Bereit für Ihr Projekt?'}</h2>
+    <p style="color:rgba(255,255,255,0.7);font-size:18px;margin:0 0 36px;line-height:1.6;">${data.subline || 'Kostenloses Erstgespräch — wir melden uns innerhalb von 24 Stunden.'}</p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+      <a href="${data.cta_link || '/kontakt'}" style="display:inline-flex;align-items:center;gap:8px;padding:16px 36px;background:${primary};color:white;border-radius:8px;font-weight:700;font-size:16px;text-decoration:none;">${data.cta_text || 'Jetzt anfragen'} →</a>
+      ${data.phone ? `<a href="tel:${data.phone}" style="display:inline-flex;align-items:center;gap:10px;padding:16px 28px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:white;border-radius:8px;font-weight:600;font-size:16px;text-decoration:none;">☎ ${data.phone}</a>` : ''}
+    </div>
   </div>
 </section>`;
 

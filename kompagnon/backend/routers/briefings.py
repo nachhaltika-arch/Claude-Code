@@ -363,3 +363,95 @@ def save_assets(
         db.rollback()
         raise HTTPException(422, str(e)[:200])
     return {"saved": True}
+
+
+@router.get("/{lead_id}/ki-prefill-funktionen")
+def prefill_funktionen(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Regex-based pattern detection for booking, shop, multilingual, and tool integrations."""
+    import re
+
+    rows = db.execute(
+        text("SELECT url, full_text FROM website_content_cache WHERE customer_id = :lid"),
+        {"lid": lead_id},
+    ).fetchall()
+
+    all_urls  = " ".join(r[0] or "" for r in rows).lower()
+    all_text  = " ".join(r[1] or "" for r in rows).lower()
+    combined  = all_urls + " " + all_text
+
+    # Terminbuchung
+    booking_patterns = [
+        r"calendly", r"booksy", r"treatwell", r"timify", r"appointy",
+        r"termin\w*buche", r"termin\w*reserv", r"online.?termin",
+        r"jetzt\s+termin", r"wunschtermin", r"terminanfrage",
+    ]
+    booking_found = any(re.search(p, combined) for p in booking_patterns)
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    gewerk = ""
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    if briefing:
+        gewerk = (briefing.gewerk or "").lower()
+    booking_gewerk_hint = any(k in gewerk for k in [
+        "friseur", "kosmetik", "massage", "physiotherap", "arzt", "zahnarzt",
+        "nagelstudio", "tattoo", "fotograf", "coach", "berater",
+    ])
+
+    # Online-Shop
+    shop_patterns = [
+        r"woocommerce", r"shopify", r"prestashop", r"magento",
+        r"/shop/", r"/produkte/", r"/warenkorb", r"in\s+den\s+warenkorb",
+        r"kaufen", r"preis\s*:", r"€\s*\d", r"\d\s*€",
+        r"auf\s+lager", r"lieferzeit",
+    ]
+    shop_found = any(re.search(p, combined) for p in shop_patterns)
+
+    # Mehrsprachig
+    lang_patterns = [
+        r"/en/", r"/fr/", r"/es/", r"/it/", r"/pl/", r"/tr/", r"/ru/",
+        r"lang=", r"hreflang", r"wpml", r"polylang", r"gtranslate",
+        r"language\s*switcher", r"sprachauswahl",
+    ]
+    multi_found = any(re.search(p, combined) for p in lang_patterns)
+
+    # External tools
+    TOOL_PATTERNS = {
+        "Trustpilot":   r"trustpilot",
+        "Google Maps":  r"google\.com/maps|maps\.google|goo\.gl/maps",
+        "Instagram":    r"instagram\.com",
+        "Facebook":     r"facebook\.com",
+        "WhatsApp":     r"wa\.me|whatsapp",
+        "Calendly":     r"calendly\.com",
+        "Tidio":        r"tidio",
+        "Intercom":     r"intercom",
+        "YouTube":      r"youtube\.com|youtu\.be",
+    }
+    detected_tools = [name for name, pat in TOOL_PATTERNS.items() if re.search(pat, combined)]
+
+    return {
+        "terminbuchung": {
+            "vorhanden":    booking_found,
+            "auto_erkannt": booking_found,
+            "empfohlen":    booking_gewerk_hint and not booking_found,
+            "quelle":       "Crawler" if booking_found else ("Gewerk-Heuristik" if booking_gewerk_hint else None),
+        },
+        "online_shop": {
+            "vorhanden":    shop_found,
+            "auto_erkannt": shop_found,
+            "quelle":       "Crawler" if shop_found else None,
+        },
+        "mehrsprachig": {
+            "vorhanden":    multi_found,
+            "auto_erkannt": multi_found,
+            "quelle":       "Crawler" if multi_found else None,
+        },
+        "externe_tools": {
+            "liste":        detected_tools,
+            "auto_erkannt": True,
+            "quelle":       "Crawler" if detected_tools else None,
+        },
+    }

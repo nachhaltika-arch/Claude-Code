@@ -331,11 +331,12 @@ function SidebarNav({ badges }) {
             {/* VERTRIEB */}
             <span style={sectionLabelStyle}>Vertrieb</span>
             {[
-              { label: 'Pipeline',      path: '/app/deals'      },
-              { label: 'Audit-Tool',    path: '/app/audit'      },
-              { label: 'Kaltakquise',   path: '/app/scraper',   adminOnly: true },
-              { label: 'Newsletter',    path: '/app/newsletter' },
-              { label: 'Domain-Import', path: '/app/import'     },
+              { label: 'Pipeline',          path: '/app/deals'      },
+              { label: 'Audit-Tool',        path: '/app/audit'      },
+              { label: 'Kaltakquise',       path: '/app/scraper',   adminOnly: true },
+              { label: 'Newsletter',        path: '/app/newsletter' },
+              { label: 'Domain-Import',     path: '/app/import'     },
+              { label: 'Produktentwicklung', path: '/app/product',   adminOnly: true },
             ].filter(i => !i.adminOnly || hasRole('admin')).map(item => (
               <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
                 {item.label}
@@ -376,9 +377,12 @@ function SidebarNav({ badges }) {
             {[
               { label: 'Profil',             path: '/app/profile'     },
               { label: 'Sicherheit & 2FA',   path: '/app/2fa-setup'   },
-              { label: 'Benutzerverwaltung', path: '/app/admin/users', adminOnly: true },
-              { label: 'Rollenverwaltung',   path: '/app/admin/roles', adminOnly: true },
-              { label: 'System & API-Keys',  path: '/app/settings'    },
+              { label: 'Benutzerverwaltung', path: '/app/admin/users',        adminOnly: true },
+              { label: 'Rollenverwaltung',   path: '/app/admin/roles',        adminOnly: true },
+              { label: 'System & API-Keys',  path: '/app/settings'            },
+              { label: 'Produkt-Editor',     path: '/app/product-editor',     adminOnly: true },
+              { label: 'Produkte',           path: '/app/products',           adminOnly: true },
+              { label: 'Webhooks',           path: '/app/webhooks',           adminOnly: true },
             ].filter(i => !i.adminOnly || hasRole('admin')).map(item => (
               <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
                 {item.label}

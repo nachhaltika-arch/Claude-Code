@@ -246,8 +246,9 @@ export default function ProzessFlowV3({
 
   return (
     <div style={{
-      display: 'grid', gridTemplateColumns: '64px 1fr',
-      height: '100vh', background: 'var(--bg-app)',
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      display: 'flex', flexDirection: 'column',
+      zIndex: 50, background: 'var(--bg-app)',
       overflow: 'hidden', fontFamily: 'var(--font-sans)',
     }}>
       <style>{`
@@ -257,6 +258,40 @@ export default function ProzessFlowV3({
           50%      { box-shadow: 0 0 0 6px rgba(250,230,0,.15); }
         }
       `}</style>
+
+      {/* ── Eigene Topbar mit Breadcrumb ───────────────────────────────────── */}
+      <div style={{
+        height: 44, flexShrink: 0,
+        background: 'var(--bg-surface)',
+        borderBottom: '0.5px solid var(--border-light)',
+        display: 'flex', alignItems: 'center',
+        padding: '0 20px 0 16px', zIndex: 10,
+      }}>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)' }}>
+          <button onClick={() => navigate('/app/dashboard')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)', padding: 0 }}>
+            Dashboard
+          </button>
+          <span style={{ color: 'var(--text-tertiary)' }}>›</span>
+          <button onClick={() => navigate('/app/projects')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)', padding: 0 }}>
+            Kundenprojekte
+          </button>
+          <span style={{ color: 'var(--text-tertiary)' }}>›</span>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 12, fontFamily: 'var(--font-sans)' }}>
+            {companyName}
+          </span>
+        </nav>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 80, height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${gesamtPct}%`, background: 'var(--brand-primary)', borderRadius: 2, transition: 'width .5s' }} />
+          </div>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+            {fertigCount}/{SCHRITTE.length}
+          </span>
+        </div>
+      </div>
+
+      {/* ── MAIN AREA: Timeline + Content ─────────────────────────────────── */}
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '64px 1fr', minHeight: 0, overflow: 'hidden' }}>
 
       {/* ── TIMELINE (64px links) ─────────────────────────────────────────── */}
       <div style={{
@@ -310,26 +345,6 @@ export default function ProzessFlowV3({
 
       {/* ── CONTENT (rechts) ──────────────────────────────────────────────── */}
       <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-        {/* Breadcrumb */}
-        <div style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-light)', padding: '0 20px', height: 40, display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0 }}>
-          <BreadcrumbItem onClick={() => navigate('/app/dashboard')} label="Dashboard" icon={
-            <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor" style={{ flexShrink: 0, opacity: .6 }}>
-              <path d="M1 5.5L6 1.5L11 5.5V10.5H8V7.5H4V10.5H1V5.5Z"/>
-            </svg>
-          } />
-          <BreadcrumbSep />
-          <BreadcrumbItem onClick={() => navigate('/app/projects')} label="Projekte" />
-          <BreadcrumbSep />
-          <BreadcrumbItem
-            onClick={() => leadId && navigate(`/app/leads/${leadId}`)}
-            dot label={companyName}
-          />
-          <BreadcrumbSep />
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', padding: '4px 6px' }}>
-            Schritt {aktivObj.nr} · {aktivObj.label}
-          </span>
-        </div>
 
         {/* Projekt-Bar */}
         <div style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-light)', padding: '0 20px', height: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
@@ -450,6 +465,8 @@ export default function ProzessFlowV3({
           </div>
         )}
       </div>
+
+      </div>{/* end inner grid */}
     </div>
   );
 }

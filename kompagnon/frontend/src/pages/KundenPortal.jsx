@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import GeoAddonCard from '../components/GeoAddonCard';
 
 // ── Phase card ────────────────────────────────────────────────
 
@@ -92,8 +93,24 @@ export default function KundenPortal() {
   const [sending, setSending]     = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError]         = useState(null);
+  const [geoBanner, setGeoBanner] = useState(null); // 'success' | 'cancelled' | null
   const fileRef = useRef();
   const msgsEndRef = useRef();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('geo_success') === '1') {
+      setGeoBanner('success');
+    } else if (params.get('geo_cancelled') === '1') {
+      setGeoBanner('cancelled');
+    }
+    if (params.get('geo_success') || params.get('geo_cancelled')) {
+      params.delete('geo_success');
+      params.delete('geo_cancelled');
+      const qs = params.toString();
+      window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
+    }
+  }, []);
 
   useEffect(() => {
     if (user?.role !== 'kunde') return;
@@ -181,6 +198,55 @@ export default function KundenPortal() {
   return (
     <div style={{ maxWidth: 660, margin: '0 auto', paddingBottom: 48 }}>
 
+      {/* ── GEO-Buchung Banner (nach Stripe-Redirect) ── */}
+      {geoBanner === 'success' && (
+        <div style={{
+          background: 'var(--status-success-bg)',
+          border: '1px solid var(--status-success-text)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '14px 18px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-success-text)', marginBottom: 2 }}>
+              ✓ KI-Sichtbarkeit Add-on aktiviert
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              Vielen Dank! Sie erhalten eine Bestätigung per E-Mail. Das monatliche Monitoring startet sofort.
+            </div>
+          </div>
+          <button
+            onClick={() => setGeoBanner(null)}
+            style={{ background: 'none', border: 'none', fontSize: 18, color: 'var(--text-tertiary)', cursor: 'pointer' }}
+          >×</button>
+        </div>
+      )}
+      {geoBanner === 'cancelled' && (
+        <div style={{
+          background: 'var(--status-warning-bg)',
+          border: '1px solid var(--status-warning-text)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '14px 18px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            Buchung abgebrochen — kein Problem, Sie können das Add-on jederzeit später hinzufügen.
+          </div>
+          <button
+            onClick={() => setGeoBanner(null)}
+            style={{ background: 'none', border: 'none', fontSize: 18, color: 'var(--text-tertiary)', cursor: 'pointer' }}
+          >×</button>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -241,6 +307,9 @@ export default function KundenPortal() {
 
       {/* ── Inspirations-URLs ── */}
       <InspirationsSection project={project} token={token} onSaved={() => {}} />
+
+      {/* ── KI-Sichtbarkeit Add-on (Self-Service Buchung) ── */}
+      <GeoAddonCard projectId={project?.project_id} />
 
       {/* ── DNS-Guide (nur wenn Netlify-Domain gesetzt) ── */}
       {project?.netlify && project.netlify.domain && (

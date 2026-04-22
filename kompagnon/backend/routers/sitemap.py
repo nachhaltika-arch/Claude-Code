@@ -335,12 +335,13 @@ def reorder_pages(
 # ── Fallback template ─────────────────────────────────────────────────────────
 
 _FALLBACK_PAGES = [
-    {"page_name": "Startseite", "page_type": "startseite", "position": 0, "parent_id": None, "zweck": "Erster Eindruck, klare Botschaft",     "ziel_keyword": "", "cta_text": "Jetzt anfragen",   "cta_ziel": "kontakt"},
-    {"page_name": "Leistungen", "page_type": "leistung",   "position": 1, "parent_id": None, "zweck": "Übersicht aller Leistungen",            "ziel_keyword": "", "cta_text": "Mehr erfahren",    "cta_ziel": "kontakt"},
-    {"page_name": "Leistung 1", "page_type": "leistung",   "position": 2, "parent_id": 1,    "zweck": "Detail-Seite erste Leistung",           "ziel_keyword": "", "cta_text": "Angebot anfordern","cta_ziel": "kontakt"},
-    {"page_name": "Leistung 2", "page_type": "leistung",   "position": 3, "parent_id": 1,    "zweck": "Detail-Seite zweite Leistung",          "ziel_keyword": "", "cta_text": "Angebot anfordern","cta_ziel": "kontakt"},
-    {"page_name": "Über uns",   "page_type": "vertrauen",  "position": 4, "parent_id": None, "zweck": "Vertrauen aufbauen, Team vorstellen",   "ziel_keyword": "", "cta_text": "Kontakt aufnehmen","cta_ziel": "kontakt"},
-    {"page_name": "Kontakt",    "page_type": "conversion", "position": 5, "parent_id": None, "zweck": "Leadgenerierung, Kontaktformular",      "ziel_keyword": "", "cta_text": "Nachricht senden", "cta_ziel": "kontakt"},
+    {"page_name": "Startseite",                 "page_type": "startseite", "position": 0,  "parent_id": None, "zweck": "Erster Eindruck, klare Botschaft",                                               "ziel_keyword": "", "cta_text": "Jetzt anfragen",    "cta_ziel": "kontakt"},
+    {"page_name": "Leistungen",                 "page_type": "leistung",   "position": 1,  "parent_id": None, "zweck": "Übersicht aller Leistungen",                                                      "ziel_keyword": "", "cta_text": "Mehr erfahren",     "cta_ziel": "kontakt"},
+    {"page_name": "Leistung 1",                 "page_type": "leistung",   "position": 2,  "parent_id": 1,    "zweck": "Detail-Seite erste Leistung",                                                     "ziel_keyword": "", "cta_text": "Angebot anfordern", "cta_ziel": "kontakt"},
+    {"page_name": "Leistung 2",                 "page_type": "leistung",   "position": 3,  "parent_id": 1,    "zweck": "Detail-Seite zweite Leistung",                                                    "ziel_keyword": "", "cta_text": "Angebot anfordern", "cta_ziel": "kontakt"},
+    {"page_name": "Über uns",                   "page_type": "vertrauen",  "position": 4,  "parent_id": None, "zweck": "Vertrauen aufbauen, Team vorstellen",                                             "ziel_keyword": "", "cta_text": "Kontakt aufnehmen", "cta_ziel": "kontakt"},
+    {"page_name": "Kontakt",                    "page_type": "conversion", "position": 5,  "parent_id": None, "zweck": "Leadgenerierung, Kontaktformular",                                                "ziel_keyword": "", "cta_text": "Nachricht senden",  "cta_ziel": "kontakt"},
+    {"page_name": "Über uns & Informationen",   "page_type": "ground",     "position": 99, "parent_id": None, "zweck": "Maschinenlesbare Informationsseite für KI-Systeme (GEO-Optimierung)",             "ziel_keyword": "",  "cta_text": "Jetzt Kontakt aufnehmen", "cta_ziel": "kontakt", "notizen": "Ground Page — GEO/KI-Optimierung"},
 ]
 
 
@@ -436,8 +437,13 @@ async def generate_sitemap(
             "NICHT einschließen: Impressum, Datenschutz, AGB, Barrierefreiheit – "
             "diese werden automatisch ergänzt.\n"
             f"Gewerk: {gewerk}, Stadt: {city}, Leistungen: {leistungen}\n"
+            "PFLICHT: Füge IMMER genau eine Seite mit page_type='ground' ein (position 99):\n"
+            '{ "page_name": "Über uns & Informationen", "page_type": "ground", "position": 99, '
+            '"zweck": "Maschinenlesbare Informationsseite für KI-Systeme (GEO-Optimierung)", '
+            f'"ziel_keyword": "{gewerk} {city} Informationen", '
+            '"cta_text": "Jetzt Kontakt aufnehmen", "cta_ziel": "kontakt", "parent_id": null }\n'
             "Antworte NUR als JSON-Array:\n"
-            '[{ "page_name": "", "page_type": "startseite|leistung|info|vertrauen|conversion", '
+            '[{ "page_name": "", "page_type": "startseite|leistung|info|vertrauen|conversion|ground", '
             '"zweck": "", "ziel_keyword": "", "cta_text": "", "cta_ziel": "kontakt|formular|tel", '
             '"position": 0, "parent_id": null }]'
         )
@@ -478,6 +484,23 @@ async def generate_sitemap(
         except Exception as exc:
             logger.warning("Sitemap KI-Generierung fehlgeschlagen, Fallback: %s", exc)
             _insert_pages(lead_id, _FALLBACK_PAGES, db)
+
+    # Ensure at least one ground page exists regardless of AI/fallback source
+    has_ground = db.query(SitemapPage).filter(
+        SitemapPage.lead_id == lead_id,
+        SitemapPage.page_type == "ground",
+    ).first()
+    if not has_ground:
+        _insert_pages(lead_id, [{
+            "page_name": "Über uns & Informationen",
+            "page_type": "ground",
+            "position": 99,
+            "zweck": "Maschinenlesbare Informationsseite für KI-Systeme (GEO-Optimierung)",
+            "ziel_keyword": f"{gewerk} {city} Informationen",
+            "cta_text": "Jetzt Kontakt aufnehmen",
+            "cta_ziel": "kontakt",
+            "notizen": "Ground Page — GEO/KI-Optimierung",
+        }], db)
 
     # Gesamte Sitemap (Inhalt + Pflichtseiten) zurückgeben
     all_pages = (

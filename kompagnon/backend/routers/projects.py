@@ -2053,7 +2053,31 @@ def _send_dns_guide_email_and_message(project_id, lead_id, domain, guide, db):
 
         <p style="color:#4a5568;font-size:13px;line-height:1.6">
           {guide.get('instructions', '')}
-        </p>
+        </p>"""
+
+    if guide.get("email_records"):
+        html_body += """
+        <div style="margin-top:20px;padding:16px;background:#FFF7E6;border-radius:8px;
+                    border-left:3px solid #F59E0B">
+          <p style="font-size:14px;font-weight:600;color:#B45309;margin:0 0 8px">
+            E-Mail-Einträge (optional)
+          </p>
+          <p style="font-size:12px;color:#92400E;margin:0 0 8px">
+            Damit E-Mails an Ihre Domain (info@..., kontakt@...) ankommen:
+          </p>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+        """
+        for r in guide["email_records"]:
+            html_body += f"""
+            <tr>
+              <td style="padding:4px 8px;font-weight:600;color:#92400E">{r['type']}</td>
+              <td style="padding:4px 8px;font-family:monospace">{r['name']}</td>
+              <td style="padding:4px 8px;font-family:monospace">{r['value']}</td>
+              <td style="padding:4px 8px;color:#6B7280">{r.get('note','')}</td>
+            </tr>"""
+        html_body += "</table></div>"
+
+    html_body += """
         <p style="color:#4a5568;font-size:13px">
           Bei Fragen helfen wir Ihnen gerne weiter.
         </p>
@@ -2100,6 +2124,81 @@ def _send_dns_guide_email_and_message(project_id, lead_id, domain, guide, db):
             db.rollback()
         except Exception:
             pass
+
+
+class SubdomainRequest(BaseModel):
+    subdomain: str
+    subdomain_type: str = "cname"
+
+
+@router.post("/{project_id}/netlify/add-subdomain")
+async def netlify_add_subdomain(
+    project_id: int,
+    body: SubdomainRequest,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Fügt eine Subdomain zur Netlify-Site hinzu und generiert DNS-Anleitung."""
+    row = db.execute(
+        text("SELECT netlify_site_id, netlify_site_url, netlify_domain, lead_id FROM projects WHERE id=:id"),
+        {"id": project_id},
+    ).fetchone()
+    if not row or not row[0]:
+        raise HTTPException(400, "Keine Netlify-Site vorhanden")
+
+    site_id     = row[0]
+    site_url    = row[1] or ""
+    main_domain = row[2] or ""
+    lead_id     = row[3]
+
+    sub = body.subdomain.lower().strip()
+    full_sub = f"{sub}.{main_domain}" if main_domain and "." not in sub else sub
+
+    netlify_host = site_url.replace("https://", "").replace("http://", "").rstrip("/")
+
+    from services.netlify_service import set_domain_alias
+    try:
+        await set_domain_alias(site_id, full_sub)
+    except Exception as e:
+        logger.warning(f"Netlify add_domain_alias fehlgeschlagen: {e}")
+
+    subdomain_record = {
+        "type":  "CNAME",
+        "name":  sub,
+        "value": netlify_host,
+        "ttl":   "3600",
+        "note":  f"{full_sub} zeigt auf Netlify",
+    }
+
+    db2 = SessionLocal()
+    try:
+        db2.execute(text("""
+            INSERT INTO messages (lead_id, channel, content, direction, created_at, sender_role)
+            VALUES (:lid, 'in_app', :content, 'outbound', NOW(), 'system')
+        """), {
+            "lid":     lead_id,
+            "content": (
+                f"Neue Subdomain {full_sub} eingerichtet. "
+                f"Bitte tragen Sie bei Ihrem Domain-Anbieter ein: "
+                f"CNAME  {sub}  →  {netlify_host}"
+            ),
+        })
+        db2.commit()
+    except Exception as e:
+        logger.warning(f"Subdomain Portal-Nachricht Fehler: {e}")
+    finally:
+        db2.close()
+
+    return {
+        "subdomain":      full_sub,
+        "netlify_target": netlify_host,
+        "dns_record":     subdomain_record,
+        "instructions":   (
+            f"Tragen Sie bei Ihrem Domain-Anbieter ein: "
+            f"CNAME  {sub}  →  {netlify_host}. "
+            f"Aktiv in 1–24 Stunden."
+        ),
+    }
 
 
 @router.get("/{project_id}/netlify/status")

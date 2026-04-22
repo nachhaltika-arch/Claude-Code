@@ -1029,6 +1029,7 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_dns_retry_after TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_golive_mail_sent BOOLEAN DEFAULT false",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_golive_mail_sent_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_ssl_checked_at TIMESTAMP",
         # Freigabe-Gates (Tor 1 + Tor 2)
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS briefing_approved_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS content_approval_token VARCHAR(255)",

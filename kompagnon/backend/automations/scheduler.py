@@ -358,6 +358,129 @@ def job_check_netlify_dns():
         logger.info("DNS-Polling: Abgeschlossen")
 
 
+def job_check_netlify_ssl():
+    """
+    Prüft täglich ob SSL auf aktiven Netlify-Sites noch gültig ist.
+    Netlify erneuert Let's Encrypt automatisch — ABER die Erneuerung
+    schlägt fehl wenn DNS falsch konfiguriert oder Domain umgezogen wurde.
+    """
+    from sqlalchemy import text as _text
+    import asyncio
+
+    db = SessionLocal()
+    try:
+        from services.netlify_service import get_site_status
+    except Exception as e:
+        logger.warning(f"SSL-Check: service import fehlgeschlagen: {e}")
+        db.close()
+        return
+
+    try:
+        sites = db.execute(_text("""
+            SELECT id, netlify_site_id, netlify_domain,
+                   netlify_ssl_active, lead_id
+            FROM projects
+            WHERE netlify_site_id IS NOT NULL
+              AND netlify_domain IS NOT NULL
+              AND netlify_domain_status = 'active'
+        """)).fetchall()
+
+        for site in sites:
+            try:
+                live = asyncio.run(get_site_status(site[1]))
+                ssl_now = bool(live.get("ssl"))
+
+                db.execute(_text("""
+                    UPDATE projects
+                    SET netlify_ssl_active      = :ssl,
+                        netlify_ssl_checked_at  = NOW()
+                    WHERE id = :id
+                """), {"ssl": ssl_now, "id": site[0]})
+                db.commit()
+
+                if site[3] and not ssl_now:
+                    logger.warning(
+                        f"SSL-Problem: Projekt {site[0]} ({site[2]}) — Zertifikat abgelaufen/fehlt"
+                    )
+                    _send_ssl_alert(site[0], site[4], site[2], db)
+
+            except Exception as e:
+                logger.error(f"SSL-Check Fehler Projekt {site[0]}: {e}")
+
+    finally:
+        db.close()
+
+
+def _send_ssl_alert(project_id: int, lead_id: int, domain: str, db):
+    """Sendet SSL-Problem-Alert als Portal-Nachricht + E-Mail an Kunden."""
+    from sqlalchemy import text
+    try:
+        db.execute(text("""
+            INSERT INTO messages
+              (lead_id, channel, content, direction, created_at, sender_role)
+            VALUES
+              (:lid, 'in_app', :content, 'outbound', NOW(), 'system')
+        """), {
+            "lid":     lead_id,
+            "content": (
+                f"⚠️ SSL-Zertifikat Problem: {domain} hat kein gültiges SSL. "
+                f"Mögliche Ursachen: DNS-Konfiguration geändert, Domain umgezogen. "
+                f"Bitte im Netlify-Dashboard prüfen und SSL manuell erneuern."
+            ),
+        })
+        db.commit()
+        logger.info(f"SSL-Alert Portal-Nachricht gesendet für {domain}")
+    except Exception as e:
+        logger.warning(f"SSL-Alert Portal-Nachricht Fehler: {e}")
+
+    try:
+        lead = db.execute(
+            text("SELECT email, company_name FROM leads WHERE id = :id"),
+            {"id": lead_id}
+        ).fetchone()
+
+        if lead and lead[0]:
+            html_body = f"""
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+              <div style="background:#FEF2F2;border-left:4px solid #EF4444;
+                          padding:16px 20px;border-radius:8px;margin-bottom:16px">
+                <p style="font-size:15px;font-weight:600;color:#991B1B;margin:0 0 8px">
+                  ⚠️ Sicherheitshinweis für {domain}
+                </p>
+                <p style="font-size:13px;color:#7F1D1D;margin:0">
+                  Das SSL-Zertifikat Ihrer Website <strong>{domain}</strong>
+                  konnte nicht automatisch erneuert werden.
+                  Besucher sehen derzeit eine Sicherheitswarnung im Browser.
+                </p>
+              </div>
+              <p style="font-size:13px;color:#374151">
+                Wir kümmern uns sofort darum und melden uns innerhalb von
+                24 Stunden bei Ihnen.
+              </p>
+              <p style="font-size:13px;color:#374151">
+                <strong>Was Sie wissen sollten:</strong><br>
+                SSL-Zertifikate schützen die Daten Ihrer Besucher und sind
+                für die Google-Platzierung wichtig. Die Erneuerung erfolgt
+                normalerweise automatisch — in Ihrem Fall ist ein manueller
+                Eingriff nötig.
+              </p>
+              <div style="background:#F3F4F6;padding:12px 16px;border-radius:6px;
+                          font-size:12px;color:#6B7280;margin-top:16px">
+                KOMPAGNON Communications · kompagnon.eu
+              </div>
+            </div>
+            """
+            from services.email import send_email
+            send_email(
+                to_email=lead[0],
+                subject=f"Wichtig: SSL-Zertifikat für {domain} benötigt Erneuerung",
+                html_body=html_body,
+            )
+            logger.info(f"SSL-Alert E-Mail gesendet an {lead[0]}")
+    except Exception as e:
+        logger.warning(f"SSL-Alert E-Mail Fehler: {e}")
+
+
 def job_check_overdue_phases():
     """Check projects stuck in phase > 2 days and create a support ticket after 3 days."""
     from sqlalchemy import text
@@ -926,6 +1049,14 @@ class CompagnonScheduler:
             "interval", minutes=15,
             id="netlify_dns_check_every_15min",
             replace_existing=True,
+        )
+        self.scheduler.add_job(
+            job_check_netlify_ssl,
+            "cron",
+            hour=8, minute=0,
+            id="netlify_ssl_check",
+            replace_existing=True,
+            timezone="Europe/Berlin",
         )
         self.scheduler.add_job(
             job_check_overdue_phases,

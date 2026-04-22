@@ -245,7 +245,9 @@ export default function ProzessFlow({
     briefing: localBriefing,
     latestAudit: localLatestAudit,
     crawlPages:       localCrawlPages || 0,
-    brandPrimaryColor: brandData?.primary_color || localBrandColor || null,
+    brandPrimaryColor:  brandData?.primary_color || localBrandColor || null,
+    brandGuidelineDone: !!(brandData?.guideline_generated),
+    assetsGeklaert:     !!(localBriefing?.logo_vorhanden !== undefined && (localBriefing?.logo_vorhanden || localBriefing?.fotos_vorhanden)),
     sitemapCount:     sitemapPages?.length || 0,
     contentCount:     (websiteContent || []).filter(p => p.ki_content).length,
     credsCount:       0,
@@ -440,7 +442,7 @@ export default function ProzessFlow({
           </div>
 
           {/* Fehlende Felder — nicht fuer Schritte mit eingebettetem Formular */}
-          {!aktivObj.istFertig(prozessDaten) && !['BriefingUnternehmen','BriefingWebsite','ContentWerkstatt','DesignStudio','AnalyseZentrale'].includes(aktivObj.component) && aktivObj.wasFehlts && (() => {
+          {!aktivObj.istFertig(prozessDaten) && !['BriefingUnternehmen','BriefingWebsite','ContentWerkstatt','ContentSeiteninhalte','ContentAssets','ContentFreigabe','DesignStudio','AnalyseZentrale'].includes(aktivObj.component) && aktivObj.wasFehlts && (() => {
             const fehlende = aktivObj.wasFehlts(prozessDaten);
             if (!fehlende || fehlende.length === 0) return null;
             return (

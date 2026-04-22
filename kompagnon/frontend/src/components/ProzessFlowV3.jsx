@@ -51,7 +51,7 @@ export default function ProzessFlowV3({
     latestAudit: localLatestAudit,
     crawlPages:        localCrawlPages || 0,
     brandPrimaryColor:       brandData?.primary_color || localBrandColor || null,
-    brandGuidelineGenerated: !!(brandData?.guideline_generated),
+    brandGuidelineDone:      !!(brandData?.guideline_generated),
     assetsGeklaert:          !!(briefing?.logo_vorhanden !== undefined && (briefing?.logo_vorhanden || briefing?.fotos_vorhanden)),
     sitemapCount:      sitemapPages?.length || 0,
     contentCount:      (websiteContent || []).filter(p => p.ki_content).length,
@@ -72,6 +72,12 @@ export default function ProzessFlowV3({
     gbpPlaceId:        project?.gbp_place_id || null,
     screenshotBefore:  project?.screenshot_before || null,
     screenshotAfter:   project?.screenshot_after || null,
+    contentFreigabeErteilt: (() => {
+      try {
+        const f = project?.content_freigaben ? JSON.parse(project.content_freigaben) : {};
+        return Object.keys(f).length > 0 && Object.values(f).some(v => v === true);
+      } catch { return false; }
+    })(),
   };
 
   // Init: erster nicht-fertiger Schritt — nur einmal beim Mount
@@ -298,7 +304,7 @@ export default function ProzessFlowV3({
 
           {/* Missing fields warning */}
           {aktivObj && !aktivObj.istFertig(prozessDaten) &&
-           !['BriefingUnternehmen','BriefingWebsite','ContentWerkstatt','DesignStudio','AnalyseZentrale'].includes(aktivObj.component) &&
+           !['BriefingUnternehmen','BriefingWebsite','ContentWerkstatt','ContentSeiteninhalte','ContentAssets','ContentFreigabe','DesignStudio','AnalyseZentrale'].includes(aktivObj.component) &&
            (() => {
              const fehlende = aktivObj.wasFehlts?.(prozessDaten) || [];
              if (!fehlende.length) return null;

@@ -86,8 +86,9 @@ export default function LeadPipeline() {
   const navigate         = useNavigate();
   const { user, token }  = useAuth();
   const { isMobile }     = useScreenSize();
-  const [activeTab, setActiveTab] = useState(0);
-  const [cards, setCards]         = useState([]);
+  const [activeTab, setActiveTab]         = useState(0);
+  const [activeLeadTab, setActiveLeadTab] = useState('alle');
+  const [cards, setCards]                 = useState([]);
   const [loading, setLoading]     = useState(true);
   const [dragging, setDragging]   = useState(null);
   const [dragOver, setDragOver]   = useState(null);
@@ -117,10 +118,18 @@ export default function LeadPipeline() {
     finally { setLoading(false); }
   };
 
-  const getColCards = (phaseId) =>
-    cards.filter(c => c.phase === phaseId)
-         .sort((a, b) => new Date(b.lead?.created_at || b.project?.created_at || 0)
-                       - new Date(a.lead?.created_at || a.project?.created_at || 0));
+  const getColCards = (phaseId) => {
+    const src = activeLeadTab === 'alle' ? cards : cards.filter(c => {
+      const s = c.lead?.status || '';
+      if (activeLeadTab === 'neu')     return !s || s === 'neu';
+      if (activeLeadTab === 'kontakt') return s === 'kontaktiert';
+      if (activeLeadTab === 'angebot') return s === 'angebot';
+      return true;
+    });
+    return src.filter(c => c.phase === phaseId)
+              .sort((a, b) => new Date(b.lead?.created_at || b.project?.created_at || 0)
+                            - new Date(a.lead?.created_at || a.project?.created_at || 0));
+  };
 
   const updatePhase = async (card, newPhase) => {
     if (!card.projectId) return; // won-lead fallback cards can't be dragged to a different phase
@@ -155,6 +164,32 @@ export default function LeadPipeline() {
           {cards.length} aktive Projekte · Drag & Drop zum Verschieben
         </div>
       </div>
+
+      {/* Mobile status pills */}
+      {isMobile && (
+        <div style={{
+          display: 'flex', gap: 8, overflowX: 'auto',
+          scrollbarWidth: 'none', marginBottom: 12, paddingBottom: 2,
+        }}>
+          {[
+            { id: 'alle',    label: 'Alle' },
+            { id: 'neu',     label: 'Neu' },
+            { id: 'kontakt', label: 'Kontaktiert' },
+            { id: 'angebot', label: 'Angebot' },
+          ].map(p => (
+            <button key={p.id} onClick={() => setActiveLeadTab(p.id)} style={{
+              flexShrink: 0, padding: '7px 14px', borderRadius: 20,
+              fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+              border: activeLeadTab === p.id ? 'none' : '1.5px solid #D5E0E2',
+              background: activeLeadTab === p.id ? '#004F59' : '#fff',
+              color: activeLeadTab === p.id ? '#fff' : '#4A5A5C',
+              fontFamily: 'var(--font-sans)', transition: 'all .12s',
+            }}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* KPI bar */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : 'repeat(7, 1fr)', gap: 6, marginBottom: 16, minWidth: 0, width: '100%' }}>

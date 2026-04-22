@@ -231,6 +231,7 @@ function App() {
             <Route path="akademie/admin/modul/:moduleId" element={<PrivateRoute roles={['admin']}><AcademyModuleEdit /></PrivateRoute>} />
 
             {/* Mobile hub pages */}
+            <Route path="vertrieb"    element={<PrivateRoute roles={['admin','auditor']}><MobileVertrieb /></PrivateRoute>} />
             <Route path="m-vertrieb"  element={<PrivateRoute roles={['admin','auditor']}><MobileVertrieb /></PrivateRoute>} />
             <Route path="m-leads"     element={<PrivateRoute roles={['admin','auditor']}><MobileLeads /></PrivateRoute>} />
             <Route path="m-projekte"  element={<PrivateRoute roles={['admin','auditor']}><MobileProjekte /></PrivateRoute>} />

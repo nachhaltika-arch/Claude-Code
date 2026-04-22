@@ -195,10 +195,10 @@ function getMobileTabs(role, leadId) {
   }
   return [
     { label: 'Dashboard', path: '/app/dashboard', icon: 'grid'  },
-    { label: 'Vertrieb',  path: '/app/deals',      icon: 'chart' },
-    { label: 'Leads',     path: '/app/leads',      icon: 'users', badge: true },
-    { label: 'Projekte',  path: '/app/projects',   icon: 'users' },
-    { label: 'Mehr',      path: '__more__',         icon: 'menu'  },
+    { label: 'Vertrieb',  path: '/app/vertrieb',  icon: 'chart' },
+    { label: 'Leads',     path: '/app/leads',     icon: 'users', badge: true },
+    { label: 'Projekte',  path: '/app/projects',  icon: 'users' },
+    { label: 'Mehr',      path: '__more__',        icon: 'menu'  },
   ];
 }
 
@@ -568,8 +568,8 @@ function BottomNav() {
 
   const isActive = (path) => {
     if (path === '__more__') return moreOpen;
-    if (path === '/app/deals') {
-      return ['/app/deals', '/app/campaigns', '/app/audit',
+    if (path === '/app/vertrieb') {
+      return ['/app/vertrieb', '/app/deals', '/app/campaigns', '/app/audit',
               '/app/newsletter', '/app/import', '/app/retainer', '/app/scraper']
         .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
     }

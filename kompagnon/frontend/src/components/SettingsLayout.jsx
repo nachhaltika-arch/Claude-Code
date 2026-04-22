@@ -66,6 +66,24 @@ function SettingsGroup({ children }) {
   );
 }
 
+function LogoutButton() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => { logout(); navigate('/'); }}
+      style={{
+        width: '100%', border: 'none', background: '#FDECEA',
+        borderRadius: 10, padding: 13, textAlign: 'center',
+        fontSize: 13, fontWeight: 700, color: '#C0392B',
+        cursor: 'pointer', marginBottom: 16, fontFamily: 'var(--font-sans)',
+      }}
+    >
+      Abmelden
+    </button>
+  );
+}
+
 export default function SettingsLayout() {
   const { user } = useAuth();
   const { isMobile } = useScreenSize();
@@ -73,12 +91,34 @@ export default function SettingsLayout() {
   const location = useLocation();
   const items = SETTINGS_NAV.filter((i) => i.roles.includes(user?.role));
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+  const initials = ((user?.first_name?.[0] || '') + (user?.last_name?.[0] || '')).toUpperCase() || 'U';
 
   if (isMobile) {
     /* ── Mobile: grouped list view ── */
     if (location.pathname === '/app/settings') {
       return (
-        <div style={{ padding: '0 12px 24px' }}>
+        <div style={{ background: '#F0F4F5', minHeight: '100%' }}>
+
+          {/* User-Card */}
+          <div style={{ background: '#004F59', padding: '20px 16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 52, height: 52, borderRadius: '50%', background: '#008EAA',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 16, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-sans)',
+            }}>
+              {initials}
+            </div>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
+                {user?.first_name} {user?.last_name}
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 900, color: '#FAE600', textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 2 }}>
+                {user?.role || 'Nutzer'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ padding: '12px 12px 24px' }}>
 
           {/* Account */}
           <SettingsGroup>
@@ -122,6 +162,9 @@ export default function SettingsLayout() {
             <SettingRow icon="🔔" bg="#F0F4F5" label="Benachrichtigungen" val="Einstellungen" path="/app/settings/notifications" />
           </SettingsGroup>
 
+          <LogoutButton />
+
+          </div>
         </div>
       );
     }

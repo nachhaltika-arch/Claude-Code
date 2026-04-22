@@ -1875,6 +1875,25 @@ async def briefing_prefill_from_lead(
     }
 
 
+# ── Admin: manueller Performance-Report Trigger ──────────────────────────────
+
+@router.post("/admin/trigger-performance-reports")
+async def trigger_performance_reports(
+    _=Depends(require_any_auth),
+):
+    """Manueller Trigger für den monatlichen Performance-Report (Admin-Test)."""
+    import asyncio
+    from automations.scheduler import job_monthly_performance_report
+
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(None, job_monthly_performance_report)
+
+    return {
+        "message": "Performance-Report Job gestartet — prüfe Render-Logs",
+        "note": "Läuft im Hintergrund, dauert 1-3 Min. je nach Anzahl Kunden",
+    }
+
+
 # ── Kaltakquise ──────────────────────────────────────────────────────────────
 
 @router.post("/{lead_id}/kaltakquise")

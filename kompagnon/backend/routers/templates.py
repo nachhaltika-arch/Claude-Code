@@ -228,17 +228,34 @@ def get_template(template_id: int, db: Session = Depends(get_db)):
 # PUT /api/templates/{id}
 @router.put("/{template_id}")
 def update_template(template_id: int, body: dict, db: Session = Depends(get_db)):
-    row = db.execute(text("SELECT id FROM website_templates WHERE id = :id"), {"id": template_id}).fetchone()
+    import json as _json
+    row = db.execute(text("SELECT id, is_builtin FROM website_templates WHERE id = :id"), {"id": template_id}).fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="Template nicht gefunden")
-    fields = {k: v for k, v in body.items() if k in ("name","description","html_content","css_content","grapes_data","tags","category","is_active")}
+    if getattr(row, "is_builtin", False):
+        raise HTTPException(status_code=403, detail="Eingebaute Templates sind schreibgeschützt")
+
+    # Accept grapesjs_data as alias for grapes_data
+    if "grapesjs_data" in body and "grapes_data" not in body:
+        body = {**body, "grapes_data": body["grapesjs_data"]}
+
+    fields = {k: v for k, v in body.items() if k in ("name", "description", "html_content", "css_content", "grapes_data", "tags", "category", "is_active")}
     if not fields:
         raise HTTPException(status_code=400, detail="Keine gültigen Felder")
+
+    # Serialize grapes_data to JSON string if it's a dict
+    if "grapes_data" in fields and isinstance(fields["grapes_data"], dict):
+        fields["grapes_data"] = _json.dumps(fields["grapes_data"], ensure_ascii=False)
+
     set_clause = ", ".join(f"{k} = :{k}" for k in fields)
     fields["id"] = template_id
-    db.execute(text(f"UPDATE website_templates SET {set_clause}, updated_at=NOW() WHERE id = :id"), fields)
-    db.commit()
-    return {"ok": True}
+    try:
+        db.execute(text(f"UPDATE website_templates SET {set_clause}, updated_at=NOW() WHERE id = :id"), fields)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=f"Speichern fehlgeschlagen: {str(e)[:200]}")
+    return {"saved": True, "id": template_id}
 
 
 # DELETE /api/templates/{id}

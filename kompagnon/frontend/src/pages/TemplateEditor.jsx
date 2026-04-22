@@ -49,7 +49,13 @@ export default function TemplateEditor() {
             setProjectData({ pages: [{ name: 'index', component: tpl.html_content || '' }] });
           }
         } else if (tpl.html_content) {
-          setProjectData({ pages: [{ name: 'index', component: tpl.html_content }] });
+          setProjectData({
+            pages: [{
+              name:      'index',
+              component: tpl.html_content,
+              styles:    tpl.css_content || '',
+            }],
+          });
         }
         setLoaded(true);
       })
@@ -192,6 +198,55 @@ export default function TemplateEditor() {
                 type: 'self',
                 autosaveChanges: 100,
                 autosaveIntervalMs: 10000,
+                onSave: async ({ project }) => {
+                  const editor = editorRef.current;
+                  if (!editor || !name) return;
+                  try {
+                    await fetch(`${API_BASE_URL}/api/templates/${id}`, {
+                      method: 'PUT',
+                      headers: { ...headers, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        name,
+                        html_content: editor.getHtml?.() ?? '',
+                        css_content:  editor.getCss?.()  ?? '',
+                        grapes_data:  editor.getProjectData?.() ?? project ?? null,
+                      }),
+                    });
+                  } catch (e) {
+                    console.warn('Template Autosave fehlgeschlagen:', e);
+                  }
+                },
+                onLoad: async () => {
+                  try {
+                    const res = await fetch(`${API_BASE_URL}/api/templates/${id}`, { headers });
+                    if (!res.ok) return { project: { pages: [{ name: 'index', component: '' }] } };
+                    const tpl = await res.json();
+                    if (!tpl) return { project: { pages: [{ name: 'index', component: '' }] } };
+                    if (tpl.grapes_data) {
+                      try {
+                        const data = typeof tpl.grapes_data === 'string'
+                          ? JSON.parse(tpl.grapes_data) : tpl.grapes_data;
+                        if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+                          return { project: data };
+                        }
+                      } catch { /* fallthrough */ }
+                    }
+                    if (tpl.html_content) {
+                      return {
+                        project: {
+                          pages: [{
+                            name:      tpl.name || 'index',
+                            component: tpl.html_content,
+                            styles:    tpl.css_content || '',
+                          }],
+                        },
+                      };
+                    }
+                    return { project: { pages: [{ name: tpl.name || 'index', component: '' }] } };
+                  } catch {
+                    return { project: { pages: [{ name: 'index', component: '' }] } };
+                  }
+                },
               },
               plugins,
             }}

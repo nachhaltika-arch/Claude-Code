@@ -213,6 +213,7 @@ export default function ProzessFlow({
   const [localLatestAudit, setLocalLatestAudit] = useState(latestAudit);
   const [localCrawlPages, setLocalCrawlPages] = useState(crawlPages);
   const [localBrandColor, setLocalBrandColor] = useState(brandData?.primary_color || null);
+  const [localBrandData, setLocalBrandData] = useState(brandData);
   const [confirmedSteps, setConfirmedSteps] = useState(() => {
     try { return JSON.parse(project?.steps_confirmed || '{}'); } catch { return {}; }
   });
@@ -221,6 +222,7 @@ export default function ProzessFlow({
   useEffect(() => { setLocalLatestAudit(latestAudit); }, [latestAudit]); // eslint-disable-line
   useEffect(() => { setLocalCrawlPages(crawlPages); }, [crawlPages]); // eslint-disable-line
   useEffect(() => { if (brandData?.primary_color) setLocalBrandColor(brandData.primary_color); }, [brandData]); // eslint-disable-line
+  useEffect(() => { setLocalBrandData(brandData); }, [brandData]); // eslint-disable-line
 
   useEffect(() => {
     if (!project?.id || !token) return;
@@ -257,8 +259,15 @@ export default function ProzessFlow({
     latestAudit: localLatestAudit,
     crawlPages:       localCrawlPages || 0,
     brandPrimaryColor:  brandData?.primary_color || localBrandColor || null,
-    brandGuidelineDone: !!(brandData?.guideline_generated) || !!(confirmedSteps['brand-guideline']?.confirmed),
-    seoBestaetigt: !!(confirmedSteps['seo-ziele']?.confirmed),
+    brandGuidelineDone: !!(localBrandData?.guideline_generated || localBrandData?.design_tokens) || !!(confirmedSteps['brand-guideline']?.confirmed),
+    seoBestaetigt: !!(confirmedSteps['seo-ziele']?.confirmed) || (() => {
+      try {
+        const raw = localBriefing?.seo_json;
+        if (!raw) return false;
+        const p = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        return !!(p?.bestaetigt && p?.keywords?.length > 0);
+      } catch { return false; }
+    })(),
     assetsGeklaert:     !!(localBriefing?.logo_vorhanden !== undefined && (localBriefing?.logo_vorhanden || localBriefing?.fotos_vorhanden)),
     sitemapCount:     sitemapPages?.length || 0,
     contentCount:     (websiteContent || []).filter(p => p.ki_content).length,
@@ -677,8 +686,12 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
             lead={lead}
             token={token}
             leadId={leadId}
-            brandData={brandData}
+            brandData={localBrandData}
             projectId={project?.id}
+            onGuidelineGenerated={() => {
+              setLocalBrandData(prev => ({ ...prev, guideline_generated: true }));
+              if (onBrandUpdate) onBrandUpdate({ guideline_generated: true });
+            }}
             onStepConfirmed={(stepId) => {
               setConfirmedSteps(prev => ({ ...prev, [stepId]: { confirmed: true } }));
               if (onProjectRefresh) onProjectRefresh();

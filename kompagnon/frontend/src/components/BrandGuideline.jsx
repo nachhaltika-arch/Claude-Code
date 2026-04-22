@@ -5,7 +5,7 @@ import { useConfirmStep } from '../hooks/useConfirmStep';
 
 const TABS = ['Farben', 'Typografie', 'Abstände', 'Komponenten', 'Vorschau', 'Export'];
 
-export default function BrandGuideline({ project, lead, token, leadId, brandData, projectId, onStepConfirmed }) {
+export default function BrandGuideline({ project, lead, token, leadId, brandData, projectId, onStepConfirmed, onGuidelineGenerated }) {
   const [activeTab, setActiveTab] = useState('Farben');
   const [guideline, setGuideline]   = useState(null);
   const [loading, setLoading]       = useState(true);
@@ -48,6 +48,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
       const d = await res.json();
       setGuideline(d.guideline);
       toast.success('Brand Guideline generiert!');
+      if (onGuidelineGenerated) onGuidelineGenerated();
     } catch (e) {
       toast.error(e.message || 'Generierung fehlgeschlagen');
     } finally {

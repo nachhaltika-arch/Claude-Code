@@ -116,6 +116,8 @@ def get_brand_data(lead_id: int, db: Session = Depends(get_db)):
         "design_data":       design_data,
         "design_tokens":     design_tokens,
         "fonts_detail":      fonts_detail,
+        "guideline_generated": bool(getattr(lead, 'brand_guideline_generated_at', None)),
+        "guideline_generated_at": str(getattr(lead, 'brand_guideline_generated_at', '') or '')[:16] or None,
     }
 
 

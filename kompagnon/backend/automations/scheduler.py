@@ -649,6 +649,16 @@ def job_check_all_domains():
 # MONTHLY PERFORMANCE REPORT
 # ===================================================================
 
+def _run_geo_monitoring_sync():
+    """Synchroner Wrapper fuer den asynchronen GEO-Monitor-Job."""
+    import asyncio
+    try:
+        from services.geo_monitor import run_monthly_geo_check
+        asyncio.run(run_monthly_geo_check())
+    except Exception as e:
+        logger.error(f"GEO Monitoring Wrapper Fehler: {e}", exc_info=True)
+
+
 def job_monthly_performance_report():
     """
     Monatlicher Performance-Report: am 1. jeden Monats für alle aktiven Kunden.
@@ -1129,6 +1139,20 @@ class CompagnonScheduler:
             timezone="Europe/Berlin",
         )
         logger.info("✓ Monatlicher Performance-Report Job registriert (1. des Monats, 08:30)")
+
+        # GEO Monitoring — 1. des Monats, 07:00 Uhr
+        self.scheduler.add_job(
+            _run_geo_monitoring_sync,
+            "cron",
+            day=1,
+            hour=7,
+            minute=0,
+            id="geo_monthly_monitoring",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+            name="Monatlicher GEO-Sichtbarkeits-Check",
+        )
+        logger.info("✓ Monatlicher GEO-Monitoring Job registriert (1. des Monats, 07:00)")
 
     def trigger_phase_change(self, project_id: int, new_status: str):
         """Called when project phase changes. Schedules follow-up jobs."""

@@ -876,6 +876,12 @@ class GeoAnalysis(Base):
     upsell_active = Column(Boolean, default=False)
     upsell_price = Column(Float, nullable=True)
 
+    # Monitoring
+    last_monitored_at = Column(DateTime, nullable=True)
+    monitoring_history = Column(JSONB, default=list)
+    monitoring_enabled = Column(Boolean, default=True)
+    last_score_change = Column(Integer, nullable=True)
+
 
 def init_db():
     """Create all tables."""

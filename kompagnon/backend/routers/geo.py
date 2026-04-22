@@ -270,3 +270,52 @@ def get_geo_files(
     if not analysis or not analysis.generated_files:
         return {"files": {}, "message": "Noch keine Dateien generiert"}
     return {"files": analysis.generated_files}
+
+
+# ── Monitoring ────────────────────────────────────────────────────────────────
+
+@router.get("/{project_id}/monitoring")
+def get_monitoring_history(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Gibt die Monitoring-Historie zurueck (monatliche Score-Entwicklung)."""
+    analysis = db.query(GeoAnalysis).filter(GeoAnalysis.project_id == project_id).first()
+    if not analysis:
+        return {"history": [], "monitoring_enabled": False}
+
+    return {
+        "history": analysis.monitoring_history or [],
+        "monitoring_enabled": bool(analysis.monitoring_enabled),
+        "last_monitored_at": analysis.last_monitored_at.isoformat() if analysis.last_monitored_at else None,
+        "last_score_change": analysis.last_score_change,
+    }
+
+
+@router.patch("/{project_id}/monitoring/toggle")
+def toggle_monitoring(
+    project_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
+):
+    """Admin: Monitoring fuer ein Projekt aktivieren oder deaktivieren."""
+    analysis = db.query(GeoAnalysis).filter(GeoAnalysis.project_id == project_id).first()
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Keine GEO-Analyse gefunden")
+
+    if "enabled" in payload:
+        analysis.monitoring_enabled = bool(payload["enabled"])
+    db.commit()
+    return {"status": "ok", "monitoring_enabled": bool(analysis.monitoring_enabled)}
+
+
+@router.post("/admin/run-monitoring-now")
+async def run_monitoring_manually(
+    _=Depends(require_admin),
+):
+    """Admin: Monitoring sofort manuell ausloesen (fuer Tests)."""
+    from services.geo_monitor import run_monthly_geo_check
+    results = await run_monthly_geo_check()
+    return {"status": "abgeschlossen", "results": results}

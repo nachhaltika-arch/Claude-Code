@@ -20,6 +20,8 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
   const [queueStop, setQueueStop]               = useState(false);
   const [saveStatus, setSaveStatus]             = useState('idle');
   const [queueCurrentPage, setQueueCurrentPage] = useState('');
+  const [generatingAll, setGeneratingAll]       = useState(false);
+  const [allGenProgress, setAllGenProgress]     = useState({ done: 0, total: 0 });
   const queueStopRef = useRef(false);
 
   useEffect(() => {
@@ -72,6 +74,50 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
     setQueueRunning(false);
     setQueueCurrentPage('');
     if (!queueStopRef.current) toast.success('Alle Seiten generiert!');
+  };
+
+  const handleGenerateAll = async () => {
+    if (!sitemapPages || sitemapPages.length === 0) {
+      toast.error('Keine Sitemap-Seiten vorhanden. Zuerst Sitemap anlegen.');
+      return;
+    }
+    if (!window.confirm(
+      `Alle ${sitemapPages.length} Seiten mit KI-Texten befüllen?\n` +
+      'Bestehende KI-Texte werden überschrieben.'
+    )) return;
+
+    setGeneratingAll(true);
+    setAllGenProgress({ done: 0, total: sitemapPages.length });
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/projects/${project.id}/content-workshop/generate-all`,
+        { method: 'POST', headers }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Fehler beim Generieren');
+
+      setAllGenProgress({ done: data.pages_generated, total: sitemapPages.length });
+      toast.success(`${data.pages_generated} Seiten erfolgreich generiert!`);
+
+      if (data.results && Array.isArray(data.results)) {
+        const newContent = { ...pageContent };
+        data.results.forEach(item => {
+          newContent[item.page_id] = {
+            h1:               item.h1 || '',
+            hero_text:        item.hero_text || '',
+            abschnitt_text:   item.abschnitt_text || '',
+            cta:              item.cta || '',
+            meta_title:       item.meta_title || '',
+            meta_description: item.meta_description || '',
+          };
+        });
+        setPageContent(newContent);
+      }
+    } catch (err) {
+      toast.error(err.message || 'Generierung fehlgeschlagen');
+    } finally {
+      setGeneratingAll(false);
+    }
   };
 
   const saveCurrentContent = async (pageId) => {
@@ -138,7 +184,29 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
       {activeTab === 'inhalte' && (
         <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', height: 640 }}>
           <div style={{ borderRight: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', background: 'var(--bg-app)' }}>
-            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-light)', fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{sitemapPages.length} Seiten</div>
+            <div style={{ padding: '8px 10px 8px 14px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{sitemapPages.length} Seiten</span>
+              <button
+                onClick={handleGenerateAll}
+                disabled={generatingAll || !sitemapPages?.length}
+                style={{
+                  padding: '4px 8px', borderRadius: 6, border: 'none',
+                  background: generatingAll ? '#6B7280' : '#7c3aed',
+                  color: '#fff', fontSize: 10, fontWeight: 700,
+                  cursor: generatingAll ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0,
+                }}
+                title="Alle Seiten mit einem KI-API-Call generieren"
+              >
+                {generatingAll ? (
+                  <>
+                    <span style={{ width: 9, height: 9, border: '1.5px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />
+                    {allGenProgress.done}/{allGenProgress.total}
+                  </>
+                ) : '🤖 Alle'}
+              </button>
+            </div>
             <div style={{ flex: 1, overflowY: 'auto' }}>
               {sitemapPages.map(page => {
                 const hasContent = !!pageContent[page.id];

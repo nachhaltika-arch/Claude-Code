@@ -97,6 +97,15 @@ class SitemapPage(Base):
     gjs_css          = Column(Text,        default='')
     gjs_data         = Column(Text,        default='{}')
     created_at       = Column(DateTime,    server_default=func.now())
+    # KI-generierter Content (Batch-Generierung)
+    ki_h1                = Column(Text,         nullable=True)
+    ki_hero_text         = Column(Text,         nullable=True)
+    ki_abschnitt_text    = Column(Text,         nullable=True)
+    ki_cta               = Column(String(100),  nullable=True)
+    ki_meta_title        = Column(String(70),   nullable=True)
+    ki_meta_description  = Column(String(160),  nullable=True)
+    content_generated    = Column(Boolean,      default=False)
+    content_generated_at = Column(DateTime,     nullable=True)
 
 
 # ── Pydantic schemas ───────────────────────────────────────────────────────────
@@ -157,6 +166,14 @@ def _serialize(p: SitemapPage) -> dict:
         "gjs_html":         p.gjs_html or "",
         "ist_pflichtseite": bool(p.ist_pflichtseite),
         "created_at":       str(p.created_at)[:16] if p.created_at else "",
+        # KI-generierter Content
+        "ki_h1":               getattr(p, "ki_h1",               None) or "",
+        "ki_hero_text":        getattr(p, "ki_hero_text",        None) or "",
+        "ki_abschnitt_text":   getattr(p, "ki_abschnitt_text",   None) or "",
+        "ki_cta":              getattr(p, "ki_cta",              None) or "",
+        "ki_meta_title":       getattr(p, "ki_meta_title",       None) or "",
+        "ki_meta_description": getattr(p, "ki_meta_description", None) or "",
+        "content_generated":   bool(getattr(p, "content_generated", False)),
     }
 
 

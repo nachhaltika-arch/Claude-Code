@@ -1038,6 +1038,15 @@ def _run_migrations():
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS aktionen TEXT",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS typischer_kunde TEXT",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS haeufige_anfrage TEXT",
+        # Batch-Content-Generierung für Sitemap-Seiten
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_h1 TEXT",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_hero_text TEXT",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_abschnitt_text TEXT",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_cta VARCHAR(100)",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_meta_title VARCHAR(70)",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_meta_description VARCHAR(160)",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS content_generated BOOLEAN DEFAULT false",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS content_generated_at TIMESTAMP",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

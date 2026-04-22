@@ -280,21 +280,7 @@ function SidebarNav({ badges }) {
         padding: '18px 14px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)',
         cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
       }} onClick={() => navigate('/app/dashboard')}>
-        <div style={{
-          width: 32, height: 32, borderRadius: '50%',
-          background: 'var(--kc-mid)', color: '#ffffff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 12, fontWeight: 900, flexShrink: 0, letterSpacing: '-0.02em',
-          fontFamily: 'var(--font-sans)',
-        }}>kc</div>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 900, color: '#ffffff', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 1.1, fontFamily: 'var(--font-sans)' }}>
-            KOMPAGNON
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--kc-yellow)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
-            {user?.role || 'System'}
-          </div>
-        </div>
+        <KompagnonLogo variant="white" height={28} style={{ flexShrink: 0 }} />
       </div>
 
       {/* Navigation */}
@@ -949,11 +935,7 @@ export default function AppLayout() {
             position: 'fixed', top: 0, left: 0, right: 0, zIndex: 110, flexShrink: 0,
             padding: '0 18px',
           }}>
-            <div style={{
-              width: 28, height: 28, background: '#008EAA', borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, fontWeight: 900, color: '#fff',
-            }}>kc</div>
+            <KompagnonLogo variant="icon" height={28} style={{ flexShrink: 0 }} />
             <span style={{
               fontSize: 16, fontWeight: 700, color: '#fff',
               textTransform: 'uppercase', letterSpacing: '.04em',

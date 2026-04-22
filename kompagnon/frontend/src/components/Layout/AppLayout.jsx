@@ -226,6 +226,19 @@ function SidebarNav({ badges }) {
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const getDefaultOpen = () => {
+    const p = location.pathname;
+    const inSection = (paths) => paths.some(pp => p === pp || p.startsWith(pp + '/'));
+    return {
+      vertrieb:      inSection(['/app/deals', '/app/audit', '/app/scraper', '/app/newsletter', '/app/import', '/app/product']),
+      leads:         inSection(['/app/leads', '/app/companies']),
+      projekte:      inSection(['/app/projects', '/app/checklists', '/app/tickets', '/app/pages']),
+      einstellungen: inSection(['/app/profile', '/app/2fa-setup', '/app/admin', '/app/settings', '/app/product-editor', '/app/products', '/app/webhooks']),
+    };
+  };
+  const [openSections, setOpenSections] = useState(getDefaultOpen);
+  const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+
   const isActive = (path) => {
     if (path === '/app/leads') return location.pathname === '/app/leads';
     if (path === '/app/projects') return location.pathname === '/app/projects' || location.pathname.startsWith('/app/projects/');
@@ -306,7 +319,7 @@ function SidebarNav({ badges }) {
             })}
           </div>
         ) : (
-          /* ── All other roles: flat sections ── */
+          /* ── All other roles: collapsible sections ── */
           <>
             {/* Dashboard */}
             <button onClick={() => navigate('/app/dashboard')} style={{ ...navItemStyle(isActive('/app/dashboard')), marginTop: 8, display: 'flex', alignItems: 'center', gap: 9 }}>
@@ -314,14 +327,27 @@ function SidebarNav({ badges }) {
               <span>Dashboard</span>
             </button>
 
-            {/* VERTRIEB */}
-            <span style={sectionLabelStyle}>Vertrieb</span>
-            {[
-              { label: 'Pipeline',          path: '/app/deals'      },
-              { label: 'Audit-Tool',        path: '/app/audit'      },
-              { label: 'Kaltakquise',       path: '/app/scraper',   adminOnly: true },
-              { label: 'Newsletter',        path: '/app/newsletter' },
-              { label: 'Domain-Import',     path: '/app/import'     },
+            {/* ARBEIT */}
+            <span style={sectionLabelStyle}>Arbeit</span>
+
+            {/* ── VERTRIEB ── */}
+            <button onClick={() => toggleSection('vertrieb')} style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '7px 14px', border: 'none', borderLeft: '3px solid transparent',
+              background: 'transparent', cursor: 'pointer', fontSize: 13, textAlign: 'left',
+              fontFamily: 'var(--font-sans)',
+              color: openSections.vertrieb ? '#fff' : 'rgba(255,255,255,0.55)',
+              fontWeight: openSections.vertrieb ? 600 : 400,
+            }}>
+              <span>Vertrieb</span>
+              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: openSections.vertrieb ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
+            </button>
+            {openSections.vertrieb && [
+              { label: 'Pipeline',           path: '/app/deals'      },
+              { label: 'Audit-Tool',         path: '/app/audit'      },
+              { label: 'Kaltakquise',        path: '/app/scraper',   adminOnly: true },
+              { label: 'Newsletter',         path: '/app/newsletter' },
+              { label: 'Domain-Import',      path: '/app/import'     },
               { label: 'Produktentwicklung', path: '/app/product',   adminOnly: true },
             ].filter(i => !i.adminOnly || hasRole('admin')).map(item => (
               <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
@@ -329,10 +355,20 @@ function SidebarNav({ badges }) {
               </button>
             ))}
 
-            {/* LEADS */}
-            <span style={sectionLabelStyle}>Leads</span>
-            {[
-              { label: 'Alle Leads',  path: '/app/leads'    },
+            {/* ── LEADS ── */}
+            <button onClick={() => toggleSection('leads')} style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '7px 14px', border: 'none', borderLeft: '3px solid transparent',
+              background: 'transparent', cursor: 'pointer', fontSize: 13, textAlign: 'left',
+              fontFamily: 'var(--font-sans)',
+              color: openSections.leads ? '#fff' : 'rgba(255,255,255,0.55)',
+              fontWeight: openSections.leads ? 600 : 400,
+            }}>
+              <span>Leads</span>
+              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: openSections.leads ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
+            </button>
+            {openSections.leads && [
+              { label: 'Alle Leads',  path: '/app/leads'     },
               { label: 'Unternehmen', path: '/app/companies' },
             ].map(item => (
               <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
@@ -340,9 +376,19 @@ function SidebarNav({ badges }) {
               </button>
             ))}
 
-            {/* PROJEKTE */}
-            <span style={sectionLabelStyle}>Projekte</span>
-            {[
+            {/* ── PROJEKTE ── */}
+            <button onClick={() => toggleSection('projekte')} style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '7px 14px', border: 'none', borderLeft: '3px solid transparent',
+              background: 'transparent', cursor: 'pointer', fontSize: 13, textAlign: 'left',
+              fontFamily: 'var(--font-sans)',
+              color: openSections.projekte ? '#fff' : 'rgba(255,255,255,0.55)',
+              fontWeight: openSections.projekte ? 600 : 400,
+            }}>
+              <span>Projekte</span>
+              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: openSections.projekte ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
+            </button>
+            {openSections.projekte && [
               { label: 'Alle Projekte',   path: '/app/projects'   },
               { label: 'Prozess-Ansicht', path: '/app/checklists' },
               { label: 'Tickets',         path: '/app/tickets'    },
@@ -358,17 +404,30 @@ function SidebarNav({ badges }) {
               </button>
             ))}
 
-            {/* EINSTELLUNGEN */}
-            <span style={sectionLabelStyle}>Einstellungen</span>
-            {[
-              { label: 'Profil',             path: '/app/profile'     },
-              { label: 'Sicherheit & 2FA',   path: '/app/2fa-setup'   },
-              { label: 'Benutzerverwaltung', path: '/app/admin/users',        adminOnly: true },
-              { label: 'Rollenverwaltung',   path: '/app/admin/roles',        adminOnly: true },
-              { label: 'System & API-Keys',  path: '/app/settings'            },
-              { label: 'Produkt-Editor',     path: '/app/product-editor',     adminOnly: true },
-              { label: 'Produkte',           path: '/app/products',           adminOnly: true },
-              { label: 'Webhooks',           path: '/app/webhooks',           adminOnly: true },
+            {/* Separator */}
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '8px 14px' }} />
+
+            {/* ── EINSTELLUNGEN ── */}
+            <button onClick={() => toggleSection('einstellungen')} style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '7px 14px', border: 'none', borderLeft: '3px solid transparent',
+              background: 'transparent', cursor: 'pointer', fontSize: 13, textAlign: 'left',
+              fontFamily: 'var(--font-sans)',
+              color: openSections.einstellungen ? '#fff' : 'rgba(255,255,255,0.55)',
+              fontWeight: openSections.einstellungen ? 600 : 400,
+            }}>
+              <span>Einstellungen</span>
+              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: openSections.einstellungen ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
+            </button>
+            {openSections.einstellungen && [
+              { label: 'Profil',             path: '/app/profile'         },
+              { label: 'Sicherheit & 2FA',   path: '/app/2fa-setup'       },
+              { label: 'Benutzerverwaltung', path: '/app/admin/users',    adminOnly: true },
+              { label: 'Rollenverwaltung',   path: '/app/admin/roles',    adminOnly: true },
+              { label: 'System & API-Keys',  path: '/app/settings'        },
+              { label: 'Produkt-Editor',     path: '/app/product-editor', adminOnly: true },
+              { label: 'Produkte',           path: '/app/products',       adminOnly: true },
+              { label: 'Webhooks',           path: '/app/webhooks',       adminOnly: true },
             ].filter(i => !i.adminOnly || hasRole('admin')).map(item => (
               <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
                 {item.label}

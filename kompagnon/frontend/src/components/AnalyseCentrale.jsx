@@ -133,8 +133,9 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
   const [running, setRunning]         = useState(false);
   const [currentStep, setCurrentStep] = useState(-1);
   const [stepProgress, setStepProgress] = useState(0);
-  const [stepResults, setStepResults] = useState({});
-  const [stepErrors, setStepErrors]   = useState({});
+  const [stepResults, setStepResults]     = useState({});
+  const [stepErrors, setStepErrors]       = useState({});
+  const [parallelRunning, setParallelRunning] = useState(new Set());
   const [pages, setPages]             = useState([]);
   const [pagesLoading, setPagesLoading] = useState(false);
   const [hostingData, setHostingData] = useState(null);
@@ -276,6 +277,72 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
     toast.success('Alle Analysen abgeschlossen — Ergebnisse gespeichert!');
   };
 
+  // ── Parallele Vollanalyse ───────────────────────────────────────────────
+  const runParallelPipeline = async () => {
+    if (!websiteUrl) { toast.error('Keine Website-URL im Projekt'); return; }
+    setRunning(true);
+    setCurrentStep(-1);
+    setStepResults({});
+    setStepErrors({});
+    setParallelRunning(new Set());
+
+    const stepMap = Object.fromEntries(steps.map(s => [s.id, s]));
+
+    const execStep = async (stepId) => {
+      const step = stepMap[stepId];
+      if (!step) return null;
+      setParallelRunning(prev => new Set([...prev, stepId]));
+      try {
+        const result = await step.run(() => {});
+        setStepResults(prev => ({ ...prev, [stepId]: result }));
+        return result;
+      } catch (err) {
+        setStepErrors(prev => ({ ...prev, [stepId]: err.message }));
+        return null;
+      } finally {
+        setParallelRunning(prev => { const n = new Set(prev); n.delete(stepId); return n; });
+      }
+    };
+
+    try {
+      // Phase 1: url-crawl + hosting + pagespeed — alle gleichzeitig
+      const independentIds = steps
+        .filter(s => !['content-scrape', 'analytics'].includes(s.id))
+        .map(s => s.id);
+
+      const phase1 = await Promise.allSettled(
+        independentIds.map(id => execStep(id))
+      );
+
+      // Phase 2: content-scrape (braucht url-crawl)
+      const crawlIdx = independentIds.indexOf('url-crawl');
+      const crawlOk  = crawlIdx >= 0 && phase1[crawlIdx]?.status === 'fulfilled' && phase1[crawlIdx]?.value !== null;
+
+      if (crawlOk) {
+        const content = await fetch(
+          `${API_BASE_URL}/api/crawler/content/${leadId}`,
+          { headers }
+        ).then(r => r.ok ? r.json() : []).catch(() => []);
+        setPages(content);
+        if (content.length > 0 && !selectedPage) setSelectedPage(content[0]);
+
+        if (stepMap['content-scrape']) await execStep('content-scrape');
+
+        // Phase 3: analytics (braucht content-scrape)
+        if (stepMap['analytics']) await execStep('analytics');
+      }
+
+      await loadSavedResults();
+      toast.success('Vollanalyse abgeschlossen — alle Daten gespeichert!', { duration: 4000 });
+    } catch (err) {
+      toast.error('Vollanalyse unterbrochen');
+    } finally {
+      setCurrentStep(-1);
+      setParallelRunning(new Set());
+      setRunning(false);
+    }
+  };
+
   const [saveStatus, setSaveStatus] = useState(''); // '', 'saving', 'saved'
 
   // ── Gesamtfortschritt ────────────────────────────────────────────────────
@@ -302,7 +369,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* ── Header + Start-Button ── */}
+      {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
@@ -312,51 +379,75 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
             {websiteUrl || 'Keine URL hinterlegt'}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+        {doneCount > 0 && !running && (
           <button
-            onClick={runPipeline}
-            disabled={running || !websiteUrl}
+            onClick={saveResults}
+            disabled={saveStatus === 'saving'}
             style={{
-              padding: '11px 24px', borderRadius: 8, border: 'none',
-              background: running || !websiteUrl
-                ? 'var(--border-medium)'
-                : 'linear-gradient(135deg, #008EAA, #006680)',
-              color: 'white', fontSize: 13, fontWeight: 700,
-              cursor: running || !websiteUrl ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', gap: 8,
-              boxShadow: running ? 'none' : '0 2px 10px rgba(0,142,170,0.35)',
+              padding: '9px 18px', borderRadius: 8, flexShrink: 0,
+              border: saveStatus === 'saved' ? '1px solid var(--status-success-text)' : '1px solid var(--brand-primary, #008EAA)',
+              background: saveStatus === 'saved' ? 'var(--status-success-bg)' : 'transparent',
+              color: saveStatus === 'saved' ? 'var(--status-success-text)' : 'var(--brand-primary, #008EAA)',
+              fontSize: 12, fontWeight: 700,
+              cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
               fontFamily: 'var(--font-sans)',
+              display: 'flex', alignItems: 'center', gap: 6,
+              transition: 'all .2s',
             }}
           >
-            {running ? (
-              <><span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Analysiert...</>
-            ) : 'Alle Analysen starten'}
+            {saveStatus === 'saving' ? (
+              <><span style={{ width: 11, height: 11, border: '2px solid var(--border-medium)', borderTopColor: 'var(--brand-primary)', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Speichert...</>
+            ) : saveStatus === 'saved' ? '\u2713 Gespeichert' : 'Ergebnisse speichern'}
           </button>
-          {doneCount > 0 && !running && (
-            <button
-              onClick={saveResults}
-              disabled={saveStatus === 'saving'}
-              style={{
-                padding: '11px 20px', borderRadius: 8,
-                border: saveStatus === 'saved' ? '1px solid var(--status-success-text)' : '1px solid var(--brand-primary, #008EAA)',
-                background: saveStatus === 'saved' ? 'var(--status-success-bg)' : 'transparent',
-                color: saveStatus === 'saved' ? 'var(--status-success-text)' : 'var(--brand-primary, #008EAA)',
-                fontSize: 13, fontWeight: 700,
-                cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
-                fontFamily: 'var(--font-sans)',
-                display: 'flex', alignItems: 'center', gap: 6,
-                transition: 'all .2s',
-              }}
-            >
-              {saveStatus === 'saving' ? (
-                <><span style={{ width: 12, height: 12, border: '2px solid var(--border-medium)', borderTopColor: 'var(--brand-primary)', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Speichert...</>
-              ) : saveStatus === 'saved' ? '\u2713 Gespeichert' : 'Ergebnisse speichern'}
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* ── Gesamt-Fortschrittsbalken ── */}
+      {/* ── Vollanalyse-Button ── */}
+      <div style={{
+        background: running ? 'var(--bg-surface)' : 'linear-gradient(135deg, #008EAA, #006680)',
+        border: running ? '1px solid var(--border-light)' : 'none',
+        borderRadius: 12,
+        padding: '16px 20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        boxShadow: running ? 'none' : '0 4px 14px rgba(0,142,170,0.3)',
+      }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: running ? 'var(--text-primary)' : '#fff', marginBottom: 3 }}>
+            {running ? 'Vollanalyse läuft …' : 'Vollanalyse starten'}
+          </div>
+          <div style={{ fontSize: 12, color: running ? 'var(--text-secondary)' : 'rgba(255,255,255,.8)' }}>
+            {running
+              ? `${Object.keys(stepResults).length + Object.keys(stepErrors).length} / ${steps.length} Schritte abgeschlossen`
+              : 'Crawler · PageSpeed · Hosting — alles auf einmal, parallel'
+            }
+          </div>
+        </div>
+        <button
+          onClick={runParallelPipeline}
+          disabled={running || !websiteUrl}
+          style={{
+            padding: '10px 24px', borderRadius: 8, border: 'none',
+            background: running ? 'var(--border-light)' : 'rgba(255,255,255,.2)',
+            color: running ? 'var(--text-secondary)' : '#fff',
+            fontSize: 13, fontWeight: 700,
+            cursor: (running || !websiteUrl) ? 'not-allowed' : 'pointer',
+            flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
+            fontFamily: 'var(--font-sans)', transition: 'background .2s',
+          }}
+        >
+          {running ? (
+            <>
+              <span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(0,0,0,.15)', borderTopColor: 'var(--text-secondary)', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
+              Läuft …
+            </>
+          ) : '\u25b6 Vollanalyse starten'}
+        </button>
+      </div>
+
+            {/* ── Gesamt-Fortschrittsbalken ── */}
       {(running || doneCount > 0) && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>
@@ -378,11 +469,13 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
       {/* ── Schritt-Kacheln ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
         {steps.map((step, i) => {
-          const isDone    = step.id in stepResults;
-          const hasError  = step.id in stepErrors;
-          const isActive  = currentStep === i;
-          const result    = stepResults[step.id];
-          const error     = stepErrors[step.id];
+          const isDone         = step.id in stepResults;
+          const hasError       = step.id in stepErrors;
+          const isSingleActive = currentStep === i;
+          const isParallel     = parallelRunning.has(step.id);
+          const isActive       = isSingleActive || isParallel;
+          const result         = stepResults[step.id];
+          const error          = stepErrors[step.id];
 
           return (
             <div key={step.id} style={{
@@ -401,7 +494,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                 {hasError && !isActive && <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--status-danger-text)' }}>&#10007;</span>}
               </div>
 
-              {isActive && (
+              {isSingleActive && (
                 <div style={{ height: 4, background: 'var(--brand-primary-light, #E6F6FA)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 }}>
                   <div style={{ height: '100%', width: `${stepProgress}%`, background: 'var(--brand-primary, #008EAA)', borderRadius: 2, transition: 'width 0.4s' }} />
                 </div>

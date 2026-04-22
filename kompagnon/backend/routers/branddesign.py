@@ -12,6 +12,7 @@ PUT  /api/branddesign/{lead_id}/guideline          - Save manual edits to guidel
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from database import get_db, Lead
 import httpx, re, os, json, anthropic, logging
 from datetime import datetime
@@ -525,13 +526,24 @@ async def check_google_analytics(lead_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{lead_id}/guideline")
 def get_brand_guideline(lead_id: int, db: Session = Depends(get_db)):
+    # Existenz prüfen
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         logger.warning(f"get_brand_guideline: Lead {lead_id} nicht gefunden")
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
-    raw = getattr(lead, 'brand_guideline_json', None)
-    generated_at = getattr(lead, 'brand_guideline_generated_at', None)
+    # Direktes SQL — robust gegen fehlende ORM-Spalte
+    try:
+        row = db.execute(
+            text("SELECT brand_guideline_json, brand_guideline_generated_at FROM leads WHERE id = :lid"),
+            {"lid": lead_id}
+        ).fetchone()
+    except Exception as e:
+        logger.error(f"get_brand_guideline: SQL-Fehler lead_id={lead_id}: {e}")
+        return {"generated": False, "guideline": None, "error": "Spalte fehlt — Migration ausstehend"}
+
+    raw          = row[0] if row else None
+    generated_at = row[1] if row else None
 
     logger.info(
         f"get_brand_guideline: lead_id={lead_id}, "
@@ -657,11 +669,25 @@ Gib NUR valides JSON zurück, kein Markdown, keine Erklärungen. Format:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"KI-Fehler: {str(e)[:200]}")
 
-    _set(lead, 'brand_guideline_json', json.dumps(guideline, ensure_ascii=False))
-    _set(lead, 'brand_guideline_generated_at', datetime.utcnow())
-    db.commit()
+    now = datetime.utcnow()
+    try:
+        db.execute(
+            text("""
+                UPDATE leads
+                SET brand_guideline_json = :gjson,
+                    brand_guideline_generated_at = :gat
+                WHERE id = :lid
+            """),
+            {"gjson": json.dumps(guideline, ensure_ascii=False), "gat": now, "lid": lead_id}
+        )
+        db.commit()
+        logger.info(f"generate_brand_guideline: Guideline gespeichert für lead_id={lead_id}")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"generate_brand_guideline: Speichern fehlgeschlagen lead_id={lead_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Speichern fehlgeschlagen: {str(e)[:200]}")
 
-    return {"guideline": guideline, "generated_at": datetime.utcnow().isoformat()}
+    return {"guideline": guideline, "generated_at": now.isoformat()}
 
 
 @router.put("/{lead_id}/guideline")
@@ -674,8 +700,22 @@ def update_brand_guideline(lead_id: int, body: dict, db: Session = Depends(get_d
     if not guideline:
         raise HTTPException(status_code=400, detail="guideline fehlt")
 
-    _set(lead, 'brand_guideline_json', json.dumps(guideline, ensure_ascii=False))
-    _set(lead, 'brand_guideline_generated_at', datetime.utcnow())
-    db.commit()
+    now = datetime.utcnow()
+    try:
+        db.execute(
+            text("""
+                UPDATE leads
+                SET brand_guideline_json = :gjson,
+                    brand_guideline_generated_at = :gat
+                WHERE id = :lid
+            """),
+            {"gjson": json.dumps(guideline, ensure_ascii=False), "gat": now, "lid": lead_id}
+        )
+        db.commit()
+        logger.info(f"update_brand_guideline: Gespeichert lead_id={lead_id}")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"update_brand_guideline: Fehler lead_id={lead_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Speichern fehlgeschlagen: {str(e)[:200]}")
 
-    return {"ok": True, "saved_at": datetime.utcnow().isoformat()}
+    return {"ok": True, "saved_at": now.isoformat()}

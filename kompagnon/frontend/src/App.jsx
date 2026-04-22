@@ -74,6 +74,10 @@ import PageManager from './pages/PageManager';
 import PublicPageEditor from './pages/PublicPageEditor';
 import PageTemplateEditor from './pages/PageTemplateEditor';
 import ContentApprovalPage from './pages/ContentApprovalPage';
+import MobileVertrieb  from './pages/MobileVertrieb';
+import MobileLeads     from './pages/MobileLeads';
+import MobileProjekte  from './pages/MobileProjekte';
+import MobileSettings  from './pages/MobileSettings';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -225,6 +229,12 @@ function App() {
             <Route path="akademie/admin/neu" element={<PrivateRoute roles={['admin']}><AcademyEdit /></PrivateRoute>} />
             <Route path="akademie/admin/:courseId" element={<PrivateRoute roles={['admin']}><AcademyEdit /></PrivateRoute>} />
             <Route path="akademie/admin/modul/:moduleId" element={<PrivateRoute roles={['admin']}><AcademyModuleEdit /></PrivateRoute>} />
+
+            {/* Mobile hub pages */}
+            <Route path="m-vertrieb"  element={<PrivateRoute roles={['admin','auditor']}><MobileVertrieb /></PrivateRoute>} />
+            <Route path="m-leads"     element={<PrivateRoute roles={['admin','auditor']}><MobileLeads /></PrivateRoute>} />
+            <Route path="m-projekte"  element={<PrivateRoute roles={['admin','auditor']}><MobileProjekte /></PrivateRoute>} />
+            <Route path="m-settings"  element={<PrivateRoute><MobileSettings /></PrivateRoute>} />
 
             {/* Settings with sub-navigation */}
             <Route path="settings" element={<SettingsLayout />}>

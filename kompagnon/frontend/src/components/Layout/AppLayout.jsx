@@ -82,6 +82,11 @@ const icons = {
       <line x1="3" y1="5" x2="15" y2="5"/><line x1="3" y1="9" x2="15" y2="9"/><line x1="3" y1="13" x2="15" y2="13"/>
     </svg>
   ),
+  folder: (
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1.5 3.5A1 1 0 012.5 2.5h3.6l1.4 1.5H13.5A1 1 0 0114.5 5v7a1 1 0 01-1 1h-11a1 1 0 01-1-1V3.5z"/>
+    </svg>
+  ),
   gear: (
     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/>
@@ -180,17 +185,17 @@ const PAGE_NAMES = {
 function getMobileTabs(role, leadId) {
   if (role === 'kunde') {
     return [
-      { label: 'Start', path: '/app/dashboard', icon: 'grid' },
-      { label: 'Mein Projekt', path: leadId ? `/app/leads/${leadId}` : '/app/dashboard', icon: 'users' },
-      { label: 'Einstellungen', path: '/app/settings', icon: 'gear' },
+      { label: 'Start',         path: '/app/dashboard',                                   icon: 'grid'   },
+      { label: 'Mein Projekt',  path: leadId ? `/app/usercards/${leadId}` : '/app/dashboard', icon: 'users'  },
+      { label: 'Einstellungen', path: '/app/m-settings',                                  icon: 'gear'   },
     ];
   }
   return [
-    { label: 'Dashboard', path: '/app/dashboard', icon: 'grid' },
-    { label: 'Projekte', path: '/app/projects', icon: 'users' },
-    { label: 'Vertrieb', path: '/app/deals', icon: 'chart' },
-    { label: 'Audit', path: '/app/audit', icon: 'docCheck' },
-    { label: 'Mehr', path: '__more__', icon: 'menu' },
+    { label: 'Dashboard',    path: '/app/dashboard',  icon: 'grid'   },
+    { label: 'Vertrieb',     path: '/app/m-vertrieb', icon: 'chart'  },
+    { label: 'Leads',        path: '/app/m-leads',    icon: 'users', badge: true },
+    { label: 'Projekte',     path: '/app/m-projekte', icon: 'folder' },
+    { label: 'Einstellungen',path: '/app/m-settings', icon: 'gear'   },
   ];
 }
 
@@ -552,92 +557,102 @@ function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [moreOpen, setMoreOpen] = useState(false);
 
   const role = user?.role || 'nutzer';
   const tabs = getMobileTabs(role, user?.lead_id);
-  const moreItems = role === 'admin' ? MORE_ITEMS_ADMIN : MORE_ITEMS;
 
   const isActive = (path) => {
-    if (path === '__more__') return false;
+    if (path === '/app/m-vertrieb') {
+      return ['/app/m-vertrieb', '/app/deals', '/app/campaigns',
+              '/app/audit', '/app/newsletter', '/app/import', '/app/retainer']
+        .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+    }
+    if (path === '/app/m-leads') {
+      return ['/app/m-leads', '/app/leads', '/app/companies']
+        .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+    }
+    if (path === '/app/m-projekte') {
+      return ['/app/m-projekte', '/app/projects', '/app/tickets',
+              '/app/checklists', '/app/settings/templates']
+        .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+    }
+    if (path === '/app/m-settings') {
+      return location.pathname === '/app/m-settings'
+        || location.pathname.startsWith('/app/settings');
+    }
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
-  const handleTab = (path) => {
-    if (path === '__more__') { setMoreOpen(v => !v); return; }
-    setMoreOpen(false);
-    navigate(path);
-  };
-
-  useEffect(() => { setMoreOpen(false); }, [location.pathname]);
-
   return (
-    <>
-      {/* Mehr-Drawer */}
-      {moreOpen && (
-        <>
-          <div onClick={() => setMoreOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 98, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(2px)' }} />
-          <div style={{
-            position: 'fixed', bottom: 'calc(56px + env(safe-area-inset-bottom))',
-            left: 0, right: 0, zIndex: 99,
-            background: 'var(--bg-surface)', borderTop: '1px solid var(--border-light)',
-            borderRadius: 'var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0',
-            padding: '16px 16px 8px',
-            boxShadow: '0 -8px 32px rgba(0,0,0,0.12)',
-          }}>
-            <div style={{ width: 36, height: 4, background: 'var(--border-medium)', borderRadius: 2, margin: '-8px auto 16px' }} />
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Weitere Bereiche</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-              {moreItems.map(item => {
-                const active = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-                return (
-                  <button key={item.path} onClick={() => { navigate(item.path); setMoreOpen(false); }} style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                    padding: '12px 6px', background: active ? 'var(--brand-primary-light)' : 'var(--bg-app)',
-                    border: active ? '1px solid var(--brand-primary-mid, var(--border-light))' : '1px solid transparent',
-                    borderRadius: 'var(--radius-lg)', cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 72,
-                  }}>
-                    <span style={{ fontSize: 22 }} aria-hidden="true">{item.icon}</span>
-                    <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? 'var(--brand-primary-dark)' : 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.3 }}>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Bottom Bar */}
-      <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: 'var(--bg-surface)', borderTop: '1px solid var(--border-light)',
-        display: 'flex', justifyContent: 'space-around',
-        height: 'calc(56px + env(safe-area-inset-bottom))',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        alignItems: 'flex-start', paddingTop: 8, zIndex: 100,
-      }}>
-        {tabs.map((tab) => {
-          const active = tab.path === '__more__' ? moreOpen : isActive(tab.path);
-          return (
-            <button key={tab.path} onClick={() => handleTab(tab.path)} style={{
+    <nav style={{
+      position: 'fixed',
+      bottom: 0, left: 0, right: 0,
+      zIndex: 100,
+      background: '#004F59',
+      borderTop: '0.5px solid rgba(255,255,255,.1)',
+      display: 'flex',
+      justifyContent: 'space-around',
+      alignItems: 'flex-start',
+      height: `calc(68px + env(safe-area-inset-bottom, 0px))`,
+      paddingTop: 8,
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+    }}>
+      {tabs.map((tab) => {
+        const active = isActive(tab.path);
+        return (
+          <button
+            key={tab.path}
+            onClick={() => navigate(tab.path)}
+            style={{
               background: 'none', border: 'none',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              padding: '4px 8px', cursor: 'pointer', minWidth: 48, flex: 1,
-              color: active ? 'var(--brand-primary)' : 'var(--text-tertiary)',
-              transition: 'color var(--transition-fast)',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: 3,
+              padding: '2px 4px',
+              cursor: 'pointer', flex: 1,
+              minHeight: 44,
+              position: 'relative',
+              fontFamily: 'var(--font-sans)',
+            }}
+          >
+            {/* Gelber Strich oben beim aktiven Tab */}
+            <span style={{
+              position: 'absolute', top: -8,
+              left: '50%', transform: 'translateX(-50%)',
+              width: 22, height: 3,
+              background: active ? '#FAE600' : 'transparent',
+              borderRadius: 2, transition: 'background .12s',
+            }} />
+
+            {/* Icon */}
+            <span style={{
+              color: active ? '#FAE600' : 'rgba(255,255,255,.45)',
+              transition: 'color .12s', fontSize: 20,
+              position: 'relative',
             }}>
-              <span style={{ display: 'flex', position: 'relative' }} aria-hidden="true">
-                {icons[tab.icon]}
-                {tab.path === '__more__' && moreOpen && (
-                  <span style={{ position: 'absolute', top: -2, right: -2, width: 6, height: 6, borderRadius: '50%', background: 'var(--brand-primary)' }} />
-                )}
-              </span>
-              <span style={{ fontSize: 10, fontWeight: active ? 700 : 400 }}>{tab.label}</span>
-            </button>
-          );
-        })}
-      </nav>
-    </>
+              {icons[tab.icon]}
+              {tab.badge && !active && (
+                <span style={{
+                  position: 'absolute', top: -2, right: -4,
+                  width: 7, height: 7, borderRadius: '50%',
+                  background: '#FAE600',
+                  border: '1.5px solid #004F59',
+                }} />
+              )}
+            </span>
+
+            {/* Label */}
+            <span style={{
+              fontSize: 9, fontWeight: active ? 700 : 400,
+              color: active ? '#FAE600' : 'rgba(255,255,255,.4)',
+              textTransform: 'uppercase', letterSpacing: '.04em',
+              transition: 'color .12s',
+            }}>
+              {tab.label}
+            </span>
+          </button>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -783,15 +798,21 @@ export default function AppLayout() {
         {/* Mobile header */}
         {isMobile && (
           <header style={{
-            padding: '10px 16px', background: 'var(--bg-surface)',
-            borderBottom: '1px solid var(--border-light)',
+            height: 52, background: '#004F59',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, flexShrink: 0,
+            position: 'fixed', top: 0, left: 0, right: 0, zIndex: 110, flexShrink: 0,
+            padding: '0 18px',
           }}>
-            <div>
-              <KompagnonLogo height={36} variant={theme === 'dark' ? 'white' : 'color'} />
-            </div>
-            <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
+            <div style={{
+              width: 28, height: 28, background: '#008EAA', borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, fontWeight: 900, color: '#fff',
+            }}>kc</div>
+            <span style={{
+              fontSize: 16, fontWeight: 700, color: '#fff',
+              textTransform: 'uppercase', letterSpacing: '.04em',
+              fontFamily: 'var(--font-sans)',
+            }}>
               {breadcrumbs[breadcrumbs.length - 1]?.label || 'KOMPAGNON'}
             </span>
             {/* User avatar + dropdown */}
@@ -799,14 +820,14 @@ export default function AppLayout() {
               <button
                 onClick={() => setMobileMenuOpen(o => !o)}
                 style={{
-                  width: 32, height: 32, borderRadius: '50%',
-                  background: 'var(--brand-primary-light)', color: 'var(--brand-primary)',
-                  border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                  width: 30, height: 30, borderRadius: '50%',
+                  background: '#008EAA',
+                  border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 900,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'var(--font-sans)',
+                  fontFamily: 'var(--font-sans)', color: '#fff',
                 }}
               >
-                {(user?.first_name?.[0] || 'U').toUpperCase()}
+                {((user?.first_name?.[0] || '') + (user?.last_name?.[0] || '')).toUpperCase() || 'U'}
               </button>
               {mobileMenuOpen && (
                 <>
@@ -883,14 +904,21 @@ export default function AppLayout() {
         {/* Content */}
         <main
           ref={mainRef}
-          style={{
+          style={isMobile ? {
+            position: 'fixed',
+            top: 52,
+            left: 0, right: 0,
+            bottom: `calc(68px + env(safe-area-inset-bottom, 0px))`,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            WebkitOverflowScrolling: 'touch',
+            background: '#F0F4F5',
+          } : {
             flex: 1,
             overflowY: 'auto',
             overflowX: 'hidden',
             minWidth: 0, position: 'relative',
-            padding: isMobile ? 16 : '20px 28px',
-            paddingTop: isMobile ? 72 : undefined,
-            paddingBottom: isMobile ? 80 : 20,
+            padding: '20px 28px',
           }}
         >
           {/* Kaltstart-Banner */}

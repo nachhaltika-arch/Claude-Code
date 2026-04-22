@@ -556,12 +556,11 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
       return (
         <div style={{ padding: '20px 24px' }}>
           <BrandGuideline
-            leadId={project.lead_id}
+            project={project}
+            lead={lead}
             token={token}
-            projectId={project.id}
-            onStepConfirmed={() => {
-              if (onProjectRefresh) onProjectRefresh();
-            }}
+            leadId={leadId}
+            brandData={brandData}
           />
         </div>
       );

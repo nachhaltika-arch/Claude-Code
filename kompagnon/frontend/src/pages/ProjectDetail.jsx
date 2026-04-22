@@ -1216,8 +1216,20 @@ export default function ProjectDetail() {
     const currentLeadId = project.lead_id;
     fetch(`${API_BASE_URL}/api/branddesign/${currentLeadId}`, { headers })
       .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (d && (d.lead_id === undefined || d.lead_id === currentLeadId)) setBrandData(d);
+      .then(async d => {
+        if (!d || (d.lead_id !== undefined && d.lead_id !== currentLeadId)) return;
+        // Also load guideline status and attach it to brandData
+        try {
+          const glRes = await fetch(
+            `${API_BASE_URL}/api/branddesign/${currentLeadId}/guideline`,
+            { headers }
+          );
+          if (glRes.ok) {
+            const gl = await glRes.json();
+            d = { ...d, guideline_generated: gl.generated || false };
+          }
+        } catch { /* silent */ }
+        setBrandData(d);
       })
       .catch(() => {});
   }, [project?.lead_id]); // eslint-disable-line

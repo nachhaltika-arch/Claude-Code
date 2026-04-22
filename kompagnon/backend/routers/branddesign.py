@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from database import get_db, Lead
+from database import get_db, Lead, Briefing
 import httpx, re, os, json, anthropic, logging
 from datetime import datetime
 
@@ -572,99 +572,175 @@ async def generate_brand_guideline(lead_id: int, db: Session = Depends(get_db)):
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
-    # Aktuelle Brand-Daten zusammenstellen
-    primary   = getattr(lead, 'brand_primary_color',  None) or '#004F59'
-    secondary = getattr(lead, 'brand_secondary_color', None) or '#2C3E50'
-    dd_raw    = getattr(lead, 'brand_design_json', None)
-    dd        = json.loads(dd_raw) if dd_raw else {}
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
 
-    accent      = dd.get('design_brief', {}).get('akzentfarbe', '#FAE600')
-    font_head   = getattr(lead, 'brand_font_primary',   None) or dd.get('font_heading', 'Georgia')
-    font_body   = getattr(lead, 'brand_font_secondary', None) or dd.get('font_body', 'Arial')
-    font_accent = dd.get('font_accent', 'Barlow Condensed')
-    radius      = dd.get('border_radius_px', 6)
-    shadow      = dd.get('shadow_label', 'leicht')
-    style       = getattr(lead, 'brand_design_style', None) or dd.get('style_keyword', 'Modern')
-    company     = getattr(lead, 'company_name', '') or 'Unbekannt'
+    # ── Brand-Daten zusammenstellen ──────────────────────────────────────
+    primary    = getattr(lead, 'brand_primary_color',   None) or '#004F59'
+    secondary  = getattr(lead, 'brand_secondary_color', None) or '#2C3E50'
+    dd_raw     = getattr(lead, 'brand_design_json', None)
+    dd         = json.loads(dd_raw) if dd_raw else {}
+    brief      = dd.get('design_brief', {})
 
-    prompt = f"""Du bist ein Brand-Design-Experte. Erstelle eine vollständige Brand Guideline als JSON für folgendes Unternehmen:
+    accent       = brief.get('akzentfarbe', '#FAE600')
+    font_head    = getattr(lead, 'brand_font_primary',   None) or dd.get('font_heading', 'Georgia')
+    font_body    = getattr(lead, 'brand_font_secondary', None) or dd.get('font_body', 'Arial')
+    font_accent  = dd.get('font_accent', 'Barlow Condensed')
+    all_colors   = json.loads(getattr(lead, 'brand_colors', None) or '[]')
+    all_fonts    = json.loads(getattr(lead, 'brand_fonts',  None) or '[]')
+    logo_url     = getattr(lead, 'brand_logo_url', None) or ''
+    radius       = dd.get('border_radius_px', 6)
+    shadow_lbl   = dd.get('shadow_label', 'leicht')
+    btn_style    = dd.get('button_style', 'abgerundet')
+    spacing      = dd.get('spacing_density', 'normal')
+    farb_stimmung= dd.get('farb_stimmung', 'Neutral')
+    style        = getattr(lead, 'brand_design_style', None) or dd.get('style_keyword', 'Modern')
+    company      = getattr(lead, 'company_name', '') or 'Unbekannt'
+    city         = getattr(lead, 'city', '') or 'Deutschland'
+    gewerk       = (briefing.gewerk     if briefing else '') or getattr(lead, 'trade', '') or 'Handwerk'
+    leistungen   = (briefing.leistungen if briefing else '') or ''
+    usp          = (briefing.usp        if briefing else '') or ''
 
+    prompt = f"""Du bist ein professioneller UI/UX-Designer und Brand-Strategist.
+Erstelle eine vollständige UI Brand Guideline als strukturiertes JSON-Objekt.
+
+KUNDENDATEN:
 Unternehmen: {company}
+Gewerk: {gewerk} | Stadt: {city}
+Leistungen: {leistungen[:300] if leistungen else 'nicht angegeben'}
+USP: {usp[:200] if usp else 'nicht angegeben'}
+
+ERKANNTE BRAND-DATEN (aus Website-Scan):
 Primärfarbe: {primary}
 Sekundärfarbe: {secondary}
 Akzentfarbe: {accent}
+Alle erkannten Farben: {', '.join(all_colors[:8]) if all_colors else 'keine'}
 Überschriften-Font: {font_head}
 Fließtext-Font: {font_body}
-Akzent-Font: {font_accent}
-Stil: {style}
-Border-Radius: {radius}px
-Schatten: {shadow}
+Alle erkannten Fonts: {', '.join(all_fonts[:6]) if all_fonts else 'keine'}
+Stil-Keyword: {style}
+Farb-Stimmung: {farb_stimmung}
+Border-Radius: {radius}px ({btn_style})
+Schatten: {shadow_lbl}
+Abstands-Dichte: {spacing}
+Logo-URL: {logo_url or 'nicht erkannt'}
 
-Gib NUR valides JSON zurück, kein Markdown, keine Erklärungen. Format:
+Antworte NUR als JSON-Objekt (kein Markdown, keine Erklärungen):
+
 {{
   "meta": {{
-    "style_keyword": "Modern",
-    "farb_stimmung": "Kuehl",
-    "radius_label": "Rund",
-    "shadow_label": "leicht"
+    "company": "{company}",
+    "gewerk": "{gewerk}",
+    "style_keyword": "{style}",
+    "farb_stimmung": "{farb_stimmung}",
+    "radius_label": "Rund"
   }},
   "colors": {{
-    "primary": "{primary}",
-    "primary_dark": "abgedunkelte Variante",
-    "secondary": "{secondary}",
-    "accent": "{accent}",
-    "background": "#F5F5F0",
-    "surface": "#FFFFFF",
-    "text_primary": "#1A1A1A",
-    "text_secondary": "#555555",
-    "text_on_primary": "#FFFFFF",
-    "text_on_accent": "#000000",
-    "border": "#E0E0E0",
-    "success": "#00875A"
+    "primary":        "{primary}",
+    "primary_dark":   "<10% dunkler als primary>",
+    "primary_light":  "<20% heller als primary>",
+    "primary_subtle": "<primary mit 10% Deckkraft als rgba>",
+    "secondary":      "{secondary}",
+    "accent":         "{accent}",
+    "surface":        "<heller Seitenhintergrund, fast weiß>",
+    "surface_raised": "<etwas dunklere Karten-Oberfläche>",
+    "border":         "<dezente Rahmenfarbe>",
+    "text_primary":   "<Haupttextfarbe, fast schwarz>",
+    "text_secondary": "<Sekundärtextfarbe, grau>",
+    "text_tertiary":  "<dezente Labels, helles grau>",
+    "text_inverse":   "#FFFFFF",
+    "success":        "#1D9E75",
+    "warning":        "#F59E0B",
+    "error":          "#E74C3C"
   }},
   "typography": {{
-    "heading": "{font_head}",
-    "body": "{font_body}",
-    "accent": "{font_accent}"
+    "font_heading": "{font_head}",
+    "font_body":    "{font_body}",
+    "font_accent":  "{font_accent}",
+    "scale": {{
+      "h1":      {{"size": "48px", "weight": "700", "line_height": "1.1", "letter_spacing": "-0.02em"}},
+      "h2":      {{"size": "32px", "weight": "700", "line_height": "1.2", "letter_spacing": "-0.01em"}},
+      "h3":      {{"size": "24px", "weight": "600", "line_height": "1.3", "letter_spacing": "0"}},
+      "h4":      {{"size": "20px", "weight": "600", "line_height": "1.4", "letter_spacing": "0"}},
+      "body_lg": {{"size": "18px", "weight": "400", "line_height": "1.75"}},
+      "body":    {{"size": "16px", "weight": "400", "line_height": "1.75"}},
+      "body_sm": {{"size": "14px", "weight": "400", "line_height": "1.6"}},
+      "label":   {{"size": "12px", "weight": "700", "text_transform": "uppercase", "letter_spacing": "0.06em"}},
+      "button":  {{"size": "14px", "weight": "700", "text_transform": "uppercase", "letter_spacing": "0.05em"}},
+      "caption": {{"size": "11px", "weight": "400", "line_height": "1.5"}}
+    }}
   }},
   "spacing": {{
-    "border_radius": "{radius}px",
-    "shadow": "{shadow}"
+    "xs": "4px", "sm": "8px", "md": "16px", "lg": "24px",
+    "xl": "32px", "2xl": "48px", "3xl": "64px", "4xl": "96px"
+  }},
+  "border_radius": {{
+    "sm": "<radius/2>px", "md": "{radius}px",
+    "lg": "<radius*1.5>px", "xl": "<radius*2>px", "full": "9999px"
+  }},
+  "shadows": {{
+    "sm":   "<passend zu {shadow_lbl}, leicht>",
+    "md":   "<mittel>",
+    "lg":   "<stark>",
+    "none": "none"
+  }},
+  "components": {{
+    "button_primary":   {{"background": "<colors.primary>",   "color": "#FFFFFF", "border_radius": "{radius}px", "padding": "10px 24px"}},
+    "button_secondary": {{"background": "transparent", "color": "<colors.primary>", "border": "1.5px solid <colors.primary>", "border_radius": "{radius}px", "padding": "10px 24px"}},
+    "button_accent":    {{"background": "<colors.accent>",    "color": "#FFFFFF", "border_radius": "{radius}px", "padding": "10px 24px"}},
+    "card":  {{"background": "<colors.surface_raised>", "border": "0.5px solid <colors.border>", "border_radius": "<border_radius.lg>", "shadow": "<shadows.sm>", "padding": "24px"}},
+    "input": {{"background": "<colors.surface>", "border": "1px solid <colors.border>", "border_radius": "{radius}px", "padding": "10px 14px", "focus_border": "<colors.primary>"}},
+    "nav":   {{"background": "<colors.primary>", "text_color": "#FFFFFF", "height": "64px"}},
+    "hero":  {{"background": "<colors.primary>", "text_color": "#FFFFFF", "padding_y": "80px"}},
+    "footer":{{"background": "<colors.secondary>", "text_color": "rgba(255,255,255,0.7)", "padding_y": "48px"}}
+  }},
+  "css_variables": ":root {{\n  --color-primary: <primary>;\n  --color-secondary: <secondary>;\n  --color-accent: <accent>;\n  --color-surface: <surface>;\n  --color-text: <text_primary>;\n  --font-heading: \\"<font_heading>\\", serif;\n  --font-body: \\"<font_body>\\", sans-serif;\n  --radius-md: {radius}px;\n  /* alle weiteren tokens */\n}}",
+  "voice_tone": {{
+    "charakter": "<2-3 Adjektive passend zu Gewerk und Stil>",
+    "ansprache": "<Du oder Sie>",
+    "cta_beispiele": ["<CTA passend zu {gewerk} 1>", "<CTA 2>", "<CTA 3>"]
   }}
 }}"""
 
     try:
         client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
         message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=1500,
+            model="claude-sonnet-4-20250514",
+            max_tokens=4000,
             messages=[{"role": "user", "content": prompt}],
         )
         raw_text = message.content[0].text.strip()
-        # JSON aus der Antwort extrahieren
-        if raw_text.startswith('```'):
-            raw_text = raw_text.split('```')[1]
-            if raw_text.startswith('json'):
-                raw_text = raw_text[4:]
+        raw_text = re.sub(r'^```json\s*', '', raw_text)
+        raw_text = re.sub(r'\s*```$',     '', raw_text)
         guideline = json.loads(raw_text.strip())
     except json.JSONDecodeError:
-        # Fallback: strukturierte Guideline direkt erstellen
         guideline = {
-            "meta": {
-                "style_keyword": style,
-                "farb_stimmung": "Professionell",
-                "radius_label": "Rund" if radius >= 6 else "Eckig",
-                "shadow_label": shadow,
-            },
+            "meta": {"company": company, "gewerk": gewerk, "style_keyword": style, "farb_stimmung": farb_stimmung, "radius_label": "Rund" if radius >= 6 else "Eckig"},
             "colors": {
-                "primary": primary, "secondary": secondary, "accent": accent,
-                "background": "#F5F5F0", "surface": "#FFFFFF",
-                "text_primary": "#1A1A1A", "text_secondary": "#555555",
-                "text_on_primary": "#FFFFFF", "text_on_accent": "#000000",
-                "border": "#E0E0E0", "success": "#00875A",
+                "primary": primary, "primary_dark": primary, "secondary": secondary,
+                "accent": accent, "surface": "#F5F5F0", "surface_raised": "#FFFFFF",
+                "border": "#E0E0E0", "text_primary": "#1A1A1A", "text_secondary": "#555555",
+                "text_tertiary": "#999999", "text_inverse": "#FFFFFF",
+                "success": "#1D9E75", "warning": "#F59E0B", "error": "#E74C3C",
             },
-            "typography": {"heading": font_head, "body": font_body, "accent": font_accent},
-            "spacing": {"border_radius": f"{radius}px", "shadow": shadow},
+            "typography": {
+                "font_heading": font_head, "font_body": font_body, "font_accent": font_accent,
+                "scale": {
+                    "h1": {"size": "48px", "weight": "700", "line_height": "1.1"},
+                    "h2": {"size": "32px", "weight": "700", "line_height": "1.2"},
+                    "body": {"size": "16px", "weight": "400", "line_height": "1.75"},
+                    "button": {"size": "14px", "weight": "700", "text_transform": "uppercase"},
+                },
+            },
+            "spacing": {"xs": "4px", "sm": "8px", "md": "16px", "lg": "24px", "xl": "32px"},
+            "border_radius": {"sm": f"{max(2, radius//2)}px", "md": f"{radius}px", "lg": f"{int(radius*1.5)}px", "full": "9999px"},
+            "shadows": {"sm": "0 1px 3px rgba(0,0,0,.08)", "md": "0 4px 12px rgba(0,0,0,.12)", "none": "none"},
+            "components": {
+                "button_primary":   {"background": primary,   "color": "#FFFFFF", "border_radius": f"{radius}px", "padding": "10px 24px"},
+                "button_secondary": {"background": "transparent", "color": primary, "border": f"1.5px solid {primary}", "border_radius": f"{radius}px", "padding": "10px 24px"},
+                "button_accent":    {"background": accent,    "color": "#FFFFFF", "border_radius": f"{radius}px", "padding": "10px 24px"},
+            },
+            "css_variables": f":root {{\n  --color-primary: {primary};\n  --color-secondary: {secondary};\n  --color-accent: {accent};\n  --font-heading: \"{font_head}\", serif;\n  --font-body: \"{font_body}\", sans-serif;\n  --radius-md: {radius}px;\n}}",
+            "voice_tone": {"charakter": style, "ansprache": "Sie", "cta_beispiele": ["Jetzt anfragen", "Mehr erfahren", "Kontakt aufnehmen"]},
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"KI-Fehler: {str(e)[:200]}")

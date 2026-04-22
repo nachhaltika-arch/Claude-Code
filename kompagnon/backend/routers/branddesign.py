@@ -5,6 +5,9 @@ POST /api/branddesign/{lead_id}/scrape             - Scrape website for brand co
 POST /api/branddesign/{lead_id}/analyze-screenshot - Claude Vision analysis of screenshot
 POST /api/branddesign/{lead_id}/upload-pdf         - Upload brand PDF (multipart)
 GET  /api/branddesign/{lead_id}/pdf                - Download brand PDF
+GET  /api/branddesign/{lead_id}/guideline          - Load saved brand guideline
+POST /api/branddesign/{lead_id}/guideline/generate - Generate brand guideline via AI
+PUT  /api/branddesign/{lead_id}/guideline          - Save manual edits to guideline
 """
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import Response
@@ -516,3 +519,156 @@ async def check_google_analytics(lead_id: int, db: Session = Depends(get_db)):
         **ga_result,
         "ga_checked_at":  datetime.utcnow().strftime('%Y-%m-%d %H:%M'),
     }
+
+
+# ── Brand Guideline ────────────────────────────────────────────────────────────
+
+@router.get("/{lead_id}/guideline")
+def get_brand_guideline(lead_id: int, db: Session = Depends(get_db)):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        return {"generated": False, "guideline": None,
+                "debug": f"Lead {lead_id} nicht gefunden"}
+
+    raw = getattr(lead, 'brand_guideline_json', None)
+    if not raw:
+        return {"generated": False, "guideline": None, "lead_found": True}
+
+    try:
+        guideline = json.loads(raw)
+        generated_at = getattr(lead, 'brand_guideline_generated_at', None)
+        return {
+            "generated":    True,
+            "guideline":    guideline,
+            "generated_at": generated_at.isoformat() if generated_at else None,
+        }
+    except Exception as e:
+        return {"generated": False, "guideline": None,
+                "debug": f"JSON parse error: {e}"}
+
+
+@router.post("/{lead_id}/guideline/generate")
+async def generate_brand_guideline(lead_id: int, db: Session = Depends(get_db)):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+
+    # Aktuelle Brand-Daten zusammenstellen
+    primary   = getattr(lead, 'brand_primary_color',  None) or '#004F59'
+    secondary = getattr(lead, 'brand_secondary_color', None) or '#2C3E50'
+    dd_raw    = getattr(lead, 'brand_design_json', None)
+    dd        = json.loads(dd_raw) if dd_raw else {}
+
+    accent      = dd.get('design_brief', {}).get('akzentfarbe', '#FAE600')
+    font_head   = getattr(lead, 'brand_font_primary',   None) or dd.get('font_heading', 'Georgia')
+    font_body   = getattr(lead, 'brand_font_secondary', None) or dd.get('font_body', 'Arial')
+    font_accent = dd.get('font_accent', 'Barlow Condensed')
+    radius      = dd.get('border_radius_px', 6)
+    shadow      = dd.get('shadow_label', 'leicht')
+    style       = getattr(lead, 'brand_design_style', None) or dd.get('style_keyword', 'Modern')
+    company     = getattr(lead, 'company_name', '') or 'Unbekannt'
+
+    prompt = f"""Du bist ein Brand-Design-Experte. Erstelle eine vollständige Brand Guideline als JSON für folgendes Unternehmen:
+
+Unternehmen: {company}
+Primärfarbe: {primary}
+Sekundärfarbe: {secondary}
+Akzentfarbe: {accent}
+Überschriften-Font: {font_head}
+Fließtext-Font: {font_body}
+Akzent-Font: {font_accent}
+Stil: {style}
+Border-Radius: {radius}px
+Schatten: {shadow}
+
+Gib NUR valides JSON zurück, kein Markdown, keine Erklärungen. Format:
+{{
+  "meta": {{
+    "style_keyword": "Modern",
+    "farb_stimmung": "Kuehl",
+    "radius_label": "Rund",
+    "shadow_label": "leicht"
+  }},
+  "colors": {{
+    "primary": "{primary}",
+    "primary_dark": "abgedunkelte Variante",
+    "secondary": "{secondary}",
+    "accent": "{accent}",
+    "background": "#F5F5F0",
+    "surface": "#FFFFFF",
+    "text_primary": "#1A1A1A",
+    "text_secondary": "#555555",
+    "text_on_primary": "#FFFFFF",
+    "text_on_accent": "#000000",
+    "border": "#E0E0E0",
+    "success": "#00875A"
+  }},
+  "typography": {{
+    "heading": "{font_head}",
+    "body": "{font_body}",
+    "accent": "{font_accent}"
+  }},
+  "spacing": {{
+    "border_radius": "{radius}px",
+    "shadow": "{shadow}"
+  }}
+}}"""
+
+    try:
+        client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw_text = message.content[0].text.strip()
+        # JSON aus der Antwort extrahieren
+        if raw_text.startswith('```'):
+            raw_text = raw_text.split('```')[1]
+            if raw_text.startswith('json'):
+                raw_text = raw_text[4:]
+        guideline = json.loads(raw_text.strip())
+    except json.JSONDecodeError:
+        # Fallback: strukturierte Guideline direkt erstellen
+        guideline = {
+            "meta": {
+                "style_keyword": style,
+                "farb_stimmung": "Professionell",
+                "radius_label": "Rund" if radius >= 6 else "Eckig",
+                "shadow_label": shadow,
+            },
+            "colors": {
+                "primary": primary, "secondary": secondary, "accent": accent,
+                "background": "#F5F5F0", "surface": "#FFFFFF",
+                "text_primary": "#1A1A1A", "text_secondary": "#555555",
+                "text_on_primary": "#FFFFFF", "text_on_accent": "#000000",
+                "border": "#E0E0E0", "success": "#00875A",
+            },
+            "typography": {"heading": font_head, "body": font_body, "accent": font_accent},
+            "spacing": {"border_radius": f"{radius}px", "shadow": shadow},
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"KI-Fehler: {str(e)[:200]}")
+
+    _set(lead, 'brand_guideline_json', json.dumps(guideline, ensure_ascii=False))
+    _set(lead, 'brand_guideline_generated_at', datetime.utcnow())
+    db.commit()
+
+    return {"guideline": guideline, "generated_at": datetime.utcnow().isoformat()}
+
+
+@router.put("/{lead_id}/guideline")
+def update_brand_guideline(lead_id: int, body: dict, db: Session = Depends(get_db)):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+
+    guideline = body.get("guideline")
+    if not guideline:
+        raise HTTPException(status_code=400, detail="guideline fehlt")
+
+    _set(lead, 'brand_guideline_json', json.dumps(guideline, ensure_ascii=False))
+    _set(lead, 'brand_guideline_generated_at', datetime.utcnow())
+    db.commit()
+
+    return {"ok": True, "saved_at": datetime.utcnow().isoformat()}

@@ -35,6 +35,8 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
   const [fontH1,      setFontH1]      = useState(brandData?.font_heading   || brandData?.font_primary   || 'Georgia');
   const [fontBody,    setFontBody]    = useState(brandData?.font_body      || brandData?.font_secondary || 'Arial');
   const [fontAkzent,  setFontAkzent]  = useState(brandData?.font_accent    || 'Barlow Condensed');
+  const [fontSuggestions,    setFontSuggestions]    = useState(null);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   // Textfarben
   const [colorH1,     setColorH1]     = useState('#FFFFFF');
@@ -112,6 +114,22 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
     if (brandData.secondary_color) setColorBg(brandData.secondary_color);
     if (brandData.all_colors?.[2]) setColorField(brandData.all_colors[2]);
   }, [brandData]); // eslint-disable-line
+
+  const loadFontSuggestions = async () => {
+    setLoadingSuggestions(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/branddesign/${leadId}/suggest-fonts`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await res.json();
+      setFontSuggestions(d);
+    } catch {
+      toast.error('Vorschläge konnten nicht geladen werden');
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
 
   const save = async () => {
     setSaving(true);
@@ -295,62 +313,124 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
         );
       })()}
 
-      {/* 3-Rollen Schriften */}
+      {/* 3-Rollen Schriften mit KI-Erkennung */}
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Schriften & Textfarben</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em' }}>
+            Schriften &amp; Textfarben
+          </span>
+          <button onClick={loadFontSuggestions} disabled={loadingSuggestions}
+            style={{ fontSize: 10, fontWeight: 700, background: 'var(--brand-primary)', color: '#fff',
+                     border: 'none', borderRadius: 5, padding: '4px 10px', cursor: 'pointer' }}>
+            {loadingSuggestions ? '🤖…' : '🤖 KI-Vorschlag'}
+          </button>
+        </div>
+
         {[
-          { role: 'h1',     label: 'Überschriften (H1 · H2 · H3)', font: fontH1,     setFont: setFontH1,     color: colorH1,     setColor: setColorH1,     sample: 'Überschrift H1',                sampleSize: 16, sampleWeight: 700 },
-          { role: 'body',   label: 'Fließtext',                      font: fontBody,   setFont: setFontBody,   color: colorBody,   setColor: setColorBody,   sample: 'Fließtext — klar und lesbar.',  sampleSize: 12, sampleWeight: 400 },
-          { role: 'akzent', label: 'Akzent (Buttons · CTA)',         font: fontAkzent, setFont: setFontAkzent, color: colorAkzent, setColor: setColorAkzent, sample: 'JETZT ANFRAGEN',                 sampleSize: 11, sampleWeight: 700, upper: true },
-        ].map(({ role, label, font, setFont, color, setColor, sample, sampleSize, sampleWeight, upper }) => (
-          <div key={role} style={{ border: '0.5px solid var(--border-light)', borderRadius: 8, marginBottom: 8 }}>
-            <div style={{ padding: '7px 12px', background: 'var(--bg-surface)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', borderBottom: '0.5px solid var(--border-light)', borderRadius: '8px 8px 0 0' }}>
-              {label}
+          { role: 'h1',     label: 'Überschriften (H1·H2·H3)', icon: 'H', value: fontH1,     setter: setFontH1,
+            sample: 'Überschrift H1', sampleStyle: { fontSize: 16, fontWeight: 700 },
+            color: colorH1, setColor: setColorH1, colorKey: 'h1_color',
+            detected: brandData?.font_heading, suggested: fontSuggestions?.heading },
+          { role: 'body',   label: 'Fließtext',                 icon: 'P', value: fontBody,   setter: setFontBody,
+            sample: 'Fließtext — klar und lesbar.', sampleStyle: { fontSize: 12, fontWeight: 400 },
+            color: colorBody, setColor: setColorBody, colorKey: 'body_color',
+            detected: brandData?.font_body, suggested: fontSuggestions?.body },
+          { role: 'akzent', label: 'Akzent (Buttons·CTA)',      icon: 'A', value: fontAkzent, setter: setFontAkzent,
+            sample: 'JETZT ANFRAGEN', sampleStyle: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' },
+            color: colorAkzent, setColor: setColorAkzent, colorKey: 'akzent_color',
+            detected: brandData?.font_accent, suggested: fontSuggestions?.accent },
+        ].map(({ role, label, icon, value, setter, sample, sampleStyle, color, setColor, colorKey, detected, suggested }) => (
+          <div key={role} style={{ border: '0.5px solid var(--border-light)', borderRadius: 8, marginBottom: 8, overflow: 'hidden' }}>
+            {/* Header row with detection badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+                          background: 'var(--bg-surface)', borderBottom: '0.5px solid var(--border-light)' }}>
+              <div style={{ width: 22, height: 22, borderRadius: 4, background: 'var(--brand-primary)',
+                            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 10, fontWeight: 900, flexShrink: 0 }}>{icon}</div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{label}</span>
+              {detected && detected !== value && (
+                <button onClick={() => setter(detected)} title={`Von Website: ${detected}`}
+                  style={{ fontSize: 9, padding: '2px 7px', background: 'var(--surface)',
+                           border: '0.5px solid var(--border-light)', borderRadius: 4,
+                           cursor: 'pointer', color: 'var(--text-tertiary)' }}>
+                  ↺ {detected}
+                </button>
+              )}
+              {detected && detected === value && (
+                <span style={{ fontSize: 9, padding: '2px 7px', background: '#E3F6EF',
+                               color: '#00875A', borderRadius: 4, fontWeight: 700 }}>✓ Von Website</span>
+              )}
             </div>
+            {/* Body: select + color picker + preview + KI suggestion */}
             <div style={{ padding: '10px 12px' }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                <select value={font} onChange={e => setFont(e.target.value)}
-                  style={{ flex: 1, padding: '7px 10px', border: '0.5px solid var(--border-light)', borderRadius: 6, fontSize: 12, background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: font }}>
-                  {GOOGLE_FONTS.map(f => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
+                <select value={value} onChange={e => setter(e.target.value)}
+                  style={{ flex: 1, padding: '7px 10px', border: '0.5px solid var(--border-light)', borderRadius: 6,
+                           fontSize: 12, background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
+                  {GOOGLE_FONTS.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
-                {/* Farb-Picker Quadrat */}
                 <div style={{ position: 'relative' }}>
-                  <div
-                    style={{ width: 36, height: 36, borderRadius: 6, background: color, cursor: 'pointer', border: activeToken === role + '_color' ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.15)' }}
-                    onClick={() => setActiveToken(activeToken === role + '_color' ? null : role + '_color')}
-                  />
-                  {activeToken === role + '_color' && (
-                    <div style={{ position: 'absolute', right: 0, top: 40, zIndex: 10, background: 'var(--bg-surface)', border: '1.5px solid var(--brand-primary)', borderRadius: 8, padding: 10, boxShadow: '0 8px 24px rgba(0,0,0,.18)', width: 180 }}
-                      onClick={e => e.stopPropagation()}
-                    >
+                  <div style={{ width: 36, height: 36, borderRadius: 6, background: color, cursor: 'pointer',
+                                border: activeToken === colorKey ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.15)' }}
+                    onClick={() => setActiveToken(activeToken === colorKey ? null : colorKey)} />
+                  {activeToken === colorKey && (
+                    <div style={{ position: 'absolute', right: 0, top: 40, zIndex: 10, background: 'var(--bg-surface)',
+                                  border: '1.5px solid var(--brand-primary)', borderRadius: 8, padding: 10,
+                                  boxShadow: '0 8px 24px rgba(0,0,0,.18)', width: 180 }}
+                      onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
                         <div style={{ width: 28, height: 28, borderRadius: 4, background: color, flexShrink: 0 }} />
                         <input value={color} onChange={e => setColor(e.target.value)}
-                          style={{ flex: 1, padding: '4px 7px', fontSize: 11, fontFamily: 'monospace', border: '0.5px solid var(--border-light)', borderRadius: 4, background: 'var(--bg-surface)', color: 'var(--text-primary)' }} />
-                        <input type="color" value={color?.length === 7 ? color : '#ffffff'} onChange={e => setColor(e.target.value)}
+                          style={{ flex: 1, padding: '4px 7px', fontSize: 11, fontFamily: 'monospace',
+                                   border: '0.5px solid var(--border-light)', borderRadius: 4,
+                                   background: 'var(--bg-surface)', color: 'var(--text-primary)' }} />
+                        <input type="color" value={color?.length === 7 ? color : '#ffffff'}
+                          onChange={e => setColor(e.target.value)}
                           style={{ width: 28, height: 28, cursor: 'pointer', border: 'none' }} />
                       </div>
                       <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                         {['#FFFFFF', '#000000', '#FAE600', primary, secondary, accent].map((c, i) => (
                           <div key={i} onClick={() => setColor(c)}
-                            style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: 'pointer', border: c === color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)' }} />
+                            style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: 'pointer',
+                                     border: c === color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)' }} />
                         ))}
                         {(brandData?.all_colors || []).slice(0, 6).map((c, i) => (
                           <div key={'ac' + i} onClick={() => setColor(c)}
-                            style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: 'pointer', border: c === color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)' }} />
+                            style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: 'pointer',
+                                     border: c === color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)' }} />
                         ))}
                       </div>
                     </div>
                   )}
                 </div>
               </div>
-              {/* Font-Vorschau */}
-              <div style={{ fontFamily: font, fontSize: sampleSize, fontWeight: sampleWeight, color: 'var(--text-primary)', lineHeight: 1.3, textTransform: upper ? 'uppercase' : 'none', letterSpacing: upper ? '.06em' : 'normal', padding: '2px 0' }}>
-                {sample}
-              </div>
+              <div style={{ fontFamily: value, color: 'var(--text-primary)', lineHeight: 1.3, padding: '2px 0', ...sampleStyle }}>{sample}</div>
+              {suggested && (
+                <div style={{ marginTop: 8, padding: '7px 10px', background: '#E0F4F8',
+                              border: '0.5px solid #008EAA33', borderRadius: 6,
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 900, color: '#008EAA', marginBottom: 2 }}>🤖 {suggested.name}</div>
+                    <div style={{ fontSize: 10, color: '#4A5A5C' }}>{suggested.reason}</div>
+                  </div>
+                  <button onClick={() => setter(suggested.name)}
+                    style={{ fontSize: 10, fontWeight: 700, background: '#008EAA', color: '#fff',
+                             border: 'none', borderRadius: 5, padding: '5px 10px',
+                             cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    Übernehmen
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}
+
+        {fontSuggestions?.pairing_note && (
+          <div style={{ padding: '8px 12px', borderRadius: 7, background: 'var(--surface)',
+                        fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: 1.5 }}>
+            💡 {fontSuggestions.pairing_note}
+          </div>
+        )}
       </div>
 
       {/* Stil */}

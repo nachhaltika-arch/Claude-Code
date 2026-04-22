@@ -1466,17 +1466,15 @@ function DesignStudioEmbed({ project, leadId, token, headers, brandData, sitemap
 }
 
 function NetlifyEmbed({ project, headers }) {
-  const [status, setStatus]           = useState(null);
+  const [status, setStatus]             = useState(null);
   const [statusLoading, setStatusLoading] = useState(true);
-  const [token, setToken]             = useState('');
-  const [savingToken, setSavingToken] = useState(false);
-  const [creating, setCreating]       = useState(false);
-  const [deployHtml, setDeployHtml]   = useState('');
-  const [deploying, setDeploying]     = useState(false);
+  const [creating, setCreating]         = useState(false);
+  const [deployHtml, setDeployHtml]     = useState('');
+  const [deploying, setDeploying]       = useState(false);
   const [deployResult, setDeployResult] = useState(null);
-  const [domain, setDomain]           = useState('');
-  const [dnsGuide, setDnsGuide]       = useState(null);
-  const [error, setError]             = useState('');
+  const [domain, setDomain]             = useState('');
+  const [dnsGuide, setDnsGuide]         = useState(null);
+  const [error, setError]               = useState('');
 
   const inputStyle = { width:'100%', padding:'9px 12px', fontSize:13, border:'1px solid var(--border-light)', borderRadius:8, background:'var(--bg-app)', color:'var(--text-primary)', fontFamily:'var(--font-sans)', boxSizing:'border-box' };
   const btnStyle = (disabled) => ({ padding:'9px 20px', borderRadius:8, border:'none', background: disabled ? 'var(--border-medium)' : 'var(--brand-primary)', color:'#fff', fontSize:13, fontWeight:700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily:'var(--font-sans)', display:'flex', alignItems:'center', gap:6 });
@@ -1492,49 +1490,41 @@ function NetlifyEmbed({ project, headers }) {
 
   if (statusLoading) return <Spinner />;
 
+  const noToken   = status?.status === 'no_token';
+  const siteId    = status?.netlify_site_id;
+  const siteUrl   = status?.netlify_site_url;
+
   return (
     <div style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:16 }}>
       {error && <div style={{ fontSize:12, color:'var(--status-danger-text)', background:'var(--status-danger-bg)', padding:'8px 12px', borderRadius:6 }}>{error}</div>}
 
-      {/* 1: Token */}
-      <div style={cardStyle}>
-        <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>
-          {status?.has_token ? 'Netlify-Token gespeichert' : '1. Netlify API-Token des Kunden'}
+      {/* 1: Netlify-Status */}
+      <div style={{ ...cardStyle, background: noToken ? 'var(--status-danger-bg)' : '#E3F6EF', border: `1px solid ${noToken ? 'var(--status-danger-text)' : '#00875A33'}` }}>
+        <div style={{ fontSize:13, fontWeight:700, color: noToken ? 'var(--status-danger-text)' : '#00875A' }}>
+          {noToken ? '⚠️ NETLIFY_API_TOKEN nicht konfiguriert' : '✅ Netlify ist konfiguriert und bereit'}
         </div>
-        {!status?.has_token && (<>
+        {noToken && (
           <div style={{ fontSize:12, color:'var(--text-secondary)' }}>
-            Kunde erstellt Token unter: <a href="https://app.netlify.com/user/applications" target="_blank" rel="noreferrer" style={{ color:'var(--brand-primary)' }}>app.netlify.com → Personal access tokens</a>
+            Bitte <code>NETLIFY_API_TOKEN</code> als Umgebungsvariable auf dem Server setzen.
           </div>
-          <div style={{ display:'flex', gap:8 }}>
-            <input type="password" value={token} onChange={e => setToken(e.target.value)} placeholder="netlify_pat_XXXXXXXXXX" style={{ ...inputStyle, flex:1 }} />
-            <button onClick={async () => {
-              if (!token.trim()) return; setSavingToken(true); setError('');
-              try {
-                const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/save-token`, { method:'POST', headers, body: JSON.stringify({ token: token.trim() }) });
-                if (!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || 'Fehler');
-                setStatus(s => ({ ...s, has_token: true })); setToken('');
-              } catch (e) { setError(e.message); } finally { setSavingToken(false); }
-            }} disabled={savingToken || !token.trim()} style={btnStyle(savingToken || !token.trim())}>
-              {savingToken ? 'Speichert...' : 'Speichern'}
-            </button>
-          </div>
-        </>)}
+        )}
       </div>
 
       {/* 2: Site anlegen */}
-      {status?.has_token && (
+      {!noToken && (
         <div style={cardStyle}>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>
-            {status?.site_id ? 'Netlify-Site angelegt' : '2. Site auf Kunden-Account anlegen'}
+            {siteId ? '✅ Netlify-Site angelegt' : '1. Site anlegen'}
           </div>
-          {status?.site_id
-            ? <a href={status.url} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--brand-primary)' }}>{status.url}</a>
+          {siteId
+            ? <a href={siteUrl} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--brand-primary)' }}>{siteUrl}</a>
             : <button onClick={async () => {
                 setCreating(true); setError('');
                 try {
-                  const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/customer-create-site`, { method:'POST', headers });
+                  const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/create-site`, { method:'POST', headers });
                   if (!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || 'Fehler');
-                  const d = await r.json(); setStatus(s => ({ ...s, site_id: d.site_id, url: d.url }));
+                  const d = await r.json();
+                  setStatus(s => ({ ...s, netlify_site_id: d.site_id, netlify_site_url: d.site_url }));
                 } catch (e) { setError(e.message); } finally { setCreating(false); }
               }} disabled={creating} style={btnStyle(creating)}>
                 {creating ? 'Anlegen...' : 'Site anlegen'}
@@ -1544,9 +1534,9 @@ function NetlifyEmbed({ project, headers }) {
       )}
 
       {/* 3: Deploy */}
-      {status?.site_id && (
+      {siteId && (
         <div style={cardStyle}>
-          <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>3. HTML deployen</div>
+          <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>2. HTML deployen</div>
           <textarea value={deployHtml} onChange={e => setDeployHtml(e.target.value)}
             placeholder={'Nur den Body-Inhalt einfügen (kein DOCTYPE nötig — wird automatisch ergänzt)'} rows={5}
             style={{ ...inputStyle, resize:'vertical', fontFamily:'monospace', fontSize:11 }} />
@@ -1558,7 +1548,7 @@ function NetlifyEmbed({ project, headers }) {
             if (!deployHtml.trim()) { setError('HTML fehlt'); return; }
             setDeploying(true); setError('');
             try {
-              const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/customer-deploy`, { method:'POST', headers, body: JSON.stringify({ html: deployHtml }) });
+              const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/deploy`, { method:'POST', headers, body: JSON.stringify({ html: deployHtml }) });
               if (!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || 'Fehler');
               setDeployResult(await r.json());
             } catch (e) { setError(e.message); } finally { setDeploying(false); }
@@ -1574,7 +1564,7 @@ function NetlifyEmbed({ project, headers }) {
       )}
 
       {/* 3b: Multi-Page Deploy — alle Sitemap-Seiten auf einmal */}
-      {status?.site_id && (
+      {siteId && (
         <div style={cardStyle}>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>3b. Alle Seiten deployen</div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
@@ -1609,9 +1599,9 @@ function NetlifyEmbed({ project, headers }) {
       )}
 
       {/* 4: Domain */}
-      {status?.site_id && (
+      {siteId && (
         <div style={cardStyle}>
-          <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>4. Eigene Domain verbinden</div>
+          <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>3. Eigene Domain verbinden</div>
           <div style={{ display:'flex', gap:8 }}>
             <input value={domain} onChange={e => setDomain(e.target.value)} placeholder="www.kundenwebsite.de" style={{ ...inputStyle, flex:1 }} />
             <button onClick={async () => {

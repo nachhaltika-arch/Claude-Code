@@ -79,6 +79,18 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
       .catch(() => {});
   }, [leadId, token]); // eslint-disable-line
 
+  // Sync wenn brandData-Prop sich ändert (z.B. nach Scrape)
+  useEffect(() => {
+    if (!brandData) return;
+    if (brandData.primary_color)   setPrimary(brandData.primary_color);
+    if (brandData.secondary_color) setSecondary(brandData.secondary_color);
+    if (brandData.font_heading || brandData.font_primary)   setFontH1(brandData.font_heading || brandData.font_primary);
+    if (brandData.font_body    || brandData.font_secondary) setFontBody(brandData.font_body  || brandData.font_secondary);
+    if (brandData.font_accent) setFontAkzent(brandData.font_accent);
+    if (brandData.secondary_color) setColorBg(brandData.secondary_color);
+    if (brandData.all_colors?.[2]) setColorField(brandData.all_colors[2]);
+  }, [brandData]); // eslint-disable-line
+
   const save = async () => {
     setSaving(true);
     try {
@@ -126,23 +138,29 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
           </button>
         </div>
         <div style={{ background: adjustColor(primary, -20), padding: '16px' }}>
-          <div style={{ fontFamily: fontH1, fontSize: 18, fontWeight: 700, color: colorH1, marginBottom: 6 }}>
+          <div style={{ fontFamily: fontH1, fontSize: 20, fontWeight: 700, color: colorH1, marginBottom: 4 }}>
             Überschrift H1 — Ihr Handwerksbetrieb
           </div>
-          <div style={{ fontFamily: fontBody, fontSize: 13, color: colorBody, lineHeight: 1.6 }}>
-            Fließtext mit dem gewählten Body-Font. Klar, lesbar, professionell.
+          <div style={{ fontFamily: fontH1, fontSize: 15, fontWeight: 600, color: colorH1, opacity: 0.8, marginBottom: 8 }}>
+            Überschrift H2 — Unsere Leistungen
           </div>
+          <div style={{ fontFamily: fontBody, fontSize: 13, color: colorBody, lineHeight: 1.6, marginBottom: 10 }}>
+            Fließtext mit dem gewählten Body-Font — klar, lesbar und professionell.
+          </div>
+          <button style={{ background: accent, color: colorAkzent, border: 'none', borderRadius: radius, padding: '8px 16px', fontFamily: fontAkzent, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', cursor: 'default' }}>
+            Akzent-Button
+          </button>
         </div>
         <div style={{ background: colorBg, padding: '12px 16px' }}>
           <div style={{
             background: colorField, border: `0.5px solid ${adjustColor(colorField, -15)}`, borderRadius: radius, padding: 12,
             boxShadow: shadow === 'stark' ? '0 4px 16px rgba(0,0,0,.12)' : shadow === 'ohne' ? 'none' : '0 2px 6px rgba(0,0,0,.06)',
           }}>
-            <div style={{ fontFamily: fontH1, fontSize: 14, fontWeight: 700, color: secondary, marginBottom: 4 }}>
+            <div style={{ fontFamily: fontH1, fontSize: 14, fontWeight: 700, color: colorH1, marginBottom: 4 }}>
               Leistungs-Karte
             </div>
-            <div style={{ fontFamily: fontBody, fontSize: 12, color: '#555', lineHeight: 1.5 }}>
-              Karteninhalt mit Sekundärfarbe als Überschrift.
+            <div style={{ fontFamily: fontBody, fontSize: 12, color: colorBody, lineHeight: 1.5 }}>
+              Karteninhalt mit Fließtext-Font.
             </div>
           </div>
         </div>
@@ -272,6 +290,10 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                       <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                         {['#FFFFFF', '#000000', '#FAE600', primary, secondary, accent].map((c, i) => (
                           <div key={i} onClick={() => setColor(c)}
+                            style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: 'pointer', border: c === color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)' }} />
+                        ))}
+                        {(brandData?.all_colors || []).slice(0, 6).map((c, i) => (
+                          <div key={'ac' + i} onClick={() => setColor(c)}
                             style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: 'pointer', border: c === color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)' }} />
                         ))}
                       </div>

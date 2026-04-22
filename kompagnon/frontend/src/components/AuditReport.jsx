@@ -276,7 +276,7 @@ export default function AuditReport({ auditData, onClose }) {
             disabled={angebotLoading}
             title="Erstellt ein fertiges PDF-Angebot auf Basis dieses Audit-Ergebnisses"
             style={{
-              background: '#1D9E75', color: '#fff', border: 'none',
+              background: 'var(--success)', color: 'var(--text-inverse)', border: 'none',
               borderRadius: 8, padding: '8px 16px', fontSize: 13,
               fontWeight: 600, cursor: 'pointer', display: 'flex',
               alignItems: 'center', gap: 6,
@@ -560,20 +560,20 @@ export default function AuditReport({ auditData, onClose }) {
             <strong style={{ display: 'block', marginBottom: 12, fontSize: 14 }}>🤖 GEO & KI-Sichtbarkeit</strong>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ background: '#F9FAFB' }}>
-                  <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '1px solid #E5E7EB' }}>Prüfpunkt</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, color: '#374151', borderBottom: '1px solid #E5E7EB', width: 70 }}>Status</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '1px solid #E5E7EB' }}>Empfehlung</th>
+                <tr style={{ background: 'var(--bg-app)' }}>
+                  <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-light)' }}>Prüfpunkt</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-light)', width: 70 }}>Status</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-light)' }}>Empfehlung</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#F9FAFB' }}>
-                    <td style={{ padding: '8px 10px', color: '#374151', borderBottom: '1px solid #F3F4F6' }}>{row.label}</td>
-                    <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 18, borderBottom: '1px solid #F3F4F6' }}>
-                      <span style={{ color: row.ok ? '#16a34a' : '#DC2626' }}>{row.ok ? '✓' : '✗'}</span>
+                  <tr key={i} style={{ background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-app)' }}>
+                    <td style={{ padding: '8px 10px', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-light)' }}>{row.label}</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: 18, borderBottom: '1px solid var(--border-light)' }}>
+                      <span style={{ color: row.ok ? 'var(--status-success-text)' : 'var(--status-danger-text)' }}>{row.ok ? '✓' : '✗'}</span>
                     </td>
-                    <td style={{ padding: '8px 10px', color: '#6B7280', borderBottom: '1px solid #F3F4F6' }}>{row.rec}</td>
+                    <td style={{ padding: '8px 10px', color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-light)' }}>{row.rec}</td>
                   </tr>
                 ))}
               </tbody>
@@ -625,7 +625,7 @@ export default function AuditReport({ auditData, onClose }) {
                   <div style={{ background: ph.bg, padding: '12px 14px' }}>
                     <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {ph.items.map((item, i) => (
-                        <li key={i} style={{ fontSize: 12, color: '#374151', lineHeight: 1.5 }}>{item}</li>
+                        <li key={i} style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.5 }}>{item}</li>
                       ))}
                     </ul>
                   </div>

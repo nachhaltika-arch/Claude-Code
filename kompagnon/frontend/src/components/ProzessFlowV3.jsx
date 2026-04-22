@@ -152,14 +152,14 @@ export default function ProzessFlowV3({
           {/* Active step header */}
           {aktivObj && (
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 14, background: `${aktivObj.phase.color}08`, flexShrink: 0 }}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: aktivObj.istFertig(prozessDaten) ? '#059669' : aktivObj.phase.color, color: '#fff', fontSize: 15, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: aktivObj.istFertig(prozessDaten) ? 'var(--success)' : aktivObj.phase.color, color: 'var(--text-inverse)', fontSize: 15, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {aktivObj.istFertig(prozessDaten) ? '✓' : aktivObj.nr}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: aktivObj.phase.color, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>
                   {aktivObj.phase.label} · Schritt {aktivObj.nr}/{ALLE_SCHRITTE.length}
                   {aktivObj.optional && <span style={{ marginLeft: 8, opacity: .6 }}>Optional</span>}
-                  {aktivObj.istFertig(prozessDaten) && <span style={{ marginLeft: 8, background: '#dcfce7', color: '#059669', padding: '1px 6px', borderRadius: 99 }}>Fertig</span>}
+                  {aktivObj.istFertig(prozessDaten) && <span style={{ marginLeft: 8, background: 'var(--status-success-bg)', color: 'var(--status-success-text)', padding: '1px 6px', borderRadius: 99 }}>Fertig</span>}
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{aktivObj.icon} {aktivObj.label}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>
@@ -175,7 +175,7 @@ export default function ProzessFlowV3({
                 )}
                 {aktivObj.nr < ALLE_SCHRITTE.length && (
                   <button onClick={() => goTo(1)}
-                    style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: aktivObj.istFertig(prozessDaten) ? '#059669' : aktivObj.phase.color, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: aktivObj.istFertig(prozessDaten) ? 'var(--success)' : aktivObj.phase.color, color: 'var(--text-inverse)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                     Weiter →
                   </button>
                 )}
@@ -216,8 +216,8 @@ export default function ProzessFlowV3({
                <div style={{ margin: '12px 20px 0', padding: '10px 14px', background: 'rgba(220,38,38,.06)', border: '1px solid rgba(220,38,38,.2)', borderRadius: 8, display: 'flex', alignItems: 'flex-start', gap: 10, flexShrink: 0 }}>
                  <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>⚠️</span>
                  <div>
-                   <div style={{ fontSize: 11, fontWeight: 700, color: '#C0392B', marginBottom: 4 }}>Noch nicht abgeschlossen:</div>
-                   {fehlende.map((f, i) => <div key={i} style={{ fontSize: 12, color: '#C0392B', lineHeight: 1.6 }}>{f}</div>)}
+                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--status-danger-text)', marginBottom: 4 }}>Noch nicht abgeschlossen:</div>
+                   {fehlende.map((f, i) => <div key={i} style={{ fontSize: 12, color: 'var(--status-danger-text)', lineHeight: 1.6 }}>{f}</div>)}
                  </div>
                </div>
              );
@@ -259,9 +259,9 @@ function TimelinePhase({ phase, prozessDaten, aktiverSchritt, waehleSchritt, isL
         const fertig = schritt.istFertig(prozessDaten);
         const aktiv  = schritt.id === aktiverSchritt;
         const isLastInPhase = si === phase.schritte.length - 1;
-        const circleColor = fertig ? '#059669' : aktiv ? phase.color : 'var(--bg-elevated)';
-        const textColor   = fertig || aktiv ? '#fff' : 'var(--text-tertiary)';
-        const borderColor = fertig ? '#059669' : aktiv ? phase.color : 'var(--border-medium)';
+        const circleColor = fertig ? 'var(--success)' : aktiv ? phase.color : 'var(--bg-elevated)';
+        const textColor   = fertig || aktiv ? 'var(--text-inverse)' : 'var(--text-tertiary)';
+        const borderColor = fertig ? 'var(--success)' : aktiv ? phase.color : 'var(--border-medium)';
 
         return (
           <div key={schritt.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
@@ -295,7 +295,7 @@ function TimelinePhase({ phase, prozessDaten, aktiverSchritt, waehleSchritt, isL
               <div style={{
                 width: 2,
                 height: isLastInPhase ? 14 : 10,
-                background: fertig ? '#059669' : 'var(--border-light)',
+                background: fertig ? 'var(--success)' : 'var(--border-light)',
                 borderRadius: 1,
                 margin: '3px 0',
                 flexShrink: 0,

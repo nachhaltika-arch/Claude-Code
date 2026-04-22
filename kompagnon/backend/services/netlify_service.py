@@ -12,12 +12,21 @@ import re
 
 logger = logging.getLogger(__name__)
 
-NETLIFY_TOKEN = os.getenv("NETLIFY_API_TOKEN", "")
-NETLIFY_API   = "https://api.netlify.com/api/v1"
-HEADERS       = {
-    "Authorization": f"Bearer {NETLIFY_TOKEN}",
-    "Content-Type":  "application/json",
-}
+NETLIFY_API = "https://api.netlify.com/api/v1"
+
+
+def _get_headers(token: str = None) -> dict:
+    """Load token at call-time; raises ValueError if missing so callers get HTTP 400/502."""
+    t = (token or os.getenv("NETLIFY_API_TOKEN", "")).strip()
+    if not t:
+        raise ValueError(
+            "NETLIFY_API_TOKEN ist nicht gesetzt. "
+            "Bitte in Render.com unter Environment → Add Environment Variable eintragen."
+        )
+    return {
+        "Authorization": f"Bearer {t}",
+        "Content-Type":  "application/json",
+    }
 
 
 def _build_full_html(
@@ -83,7 +92,7 @@ async def create_site(site_name: str) -> dict:
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
             f"{NETLIFY_API}/sites",
-            headers=HEADERS,
+            headers=_get_headers(),
             json=payload,
         )
 
@@ -139,8 +148,11 @@ async def deploy_html(
         zf.writestr("_headers", default_headers)
     zip_bytes = buf.getvalue()
 
+    t = os.getenv("NETLIFY_API_TOKEN", "").strip()
+    if not t:
+        raise ValueError("NETLIFY_API_TOKEN fehlt")
     deploy_headers = {
-        "Authorization": f"Bearer {NETLIFY_TOKEN}",
+        "Authorization": f"Bearer {t}",
         "Content-Type":  "application/zip",
     }
 
@@ -212,8 +224,11 @@ async def deploy_all_pages(
 
     zip_bytes = buf.getvalue()
 
+    t = os.getenv("NETLIFY_API_TOKEN", "").strip()
+    if not t:
+        raise ValueError("NETLIFY_API_TOKEN fehlt")
     deploy_headers = {
-        "Authorization": f"Bearer {NETLIFY_TOKEN}",
+        "Authorization": f"Bearer {t}",
         "Content-Type":  "application/zip",
     }
 
@@ -247,7 +262,7 @@ async def set_custom_domain(site_id: str, domain: str) -> dict:
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.put(
             f"{NETLIFY_API}/sites/{site_id}",
-            headers=HEADERS,
+            headers=_get_headers(),
             json={"custom_domain": domain},
         )
 
@@ -278,7 +293,7 @@ async def get_site_status(site_id: str) -> dict:
     async with httpx.AsyncClient(timeout=20.0) as client:
         resp = await client.get(
             f"{NETLIFY_API}/sites/{site_id}",
-            headers=HEADERS,
+            headers=_get_headers(),
         )
 
     if not resp.is_success:
@@ -312,7 +327,7 @@ async def delete_site(site_id: str) -> bool:
     async with httpx.AsyncClient(timeout=20.0) as client:
         resp = await client.delete(
             f"{NETLIFY_API}/sites/{site_id}",
-            headers=HEADERS,
+            headers=_get_headers(),
         )
 
     if resp.status_code == 404:

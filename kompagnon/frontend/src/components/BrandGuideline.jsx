@@ -158,7 +158,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                 gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))',
                 gap: 10, marginBottom: 16,
               }}>
-                {Object.entries(g.colors || {}).map(([tk, hex]) => (
+                {Object.entries(g.tokens || g.colors || {}).map(([tk, hex]) => (
                   <div key={tk} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
                     <div
                       style={{
@@ -214,49 +214,74 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
           {/* ── TAB: TYPOGRAFIE ── */}
           {activeTab === 'Typografie' && (
             <div>
-              <div style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-secondary)' }}>
-                <strong>{g.typography?.font_heading}</strong> (Überschriften) ·{' '}
-                <strong>{g.typography?.font_body}</strong> (Fließtext)
-              </div>
-              {Object.entries(g.typography?.scale || {}).map(([level, spec]) => (
-                <div key={level} style={{
-                  display: 'flex', alignItems: 'baseline', gap: 14,
-                  padding: '10px 0', borderBottom: '0.5px solid var(--border-light)',
+              {/* Font-Rollen mit Farben */}
+              {[
+                { role: 'heading', label: 'Überschriften (H1 · H2 · H3)', font: g.typography?.fonts?.heading || g.typography?.font_heading, color: g.typography?.colors?.heading },
+                { role: 'body',    label: 'Fließtext',                      font: g.typography?.fonts?.body    || g.typography?.font_body,    color: g.typography?.colors?.body    },
+                { role: 'accent',  label: 'Akzent / CTA',                   font: g.typography?.fonts?.accent  || g.typography?.font_accent,  color: g.typography?.colors?.cta     },
+              ].filter(r => r.font).map(({ role, label, font, color }) => (
+                <div key={role} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0',
+                  borderBottom: '0.5px solid var(--border-light)',
                 }}>
-                  <div style={{
-                    width: 52, flexShrink: 0, fontSize: 9, fontWeight: 900,
-                    color: 'var(--text-tertiary)', textTransform: 'uppercase',
-                    letterSpacing: '.08em', background: 'var(--bg-app)',
-                    padding: '2px 6px', borderRadius: 3, textAlign: 'center',
-                  }}>
-                    {level.toUpperCase()}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 3 }}>
+                      {label}
+                    </div>
+                    <div style={{ fontFamily: font, fontSize: 15, color: 'var(--text-primary)' }}>{font}</div>
                   </div>
-                  <div style={{
-                    flex: 1,
-                    fontFamily: level.startsWith('h') ? g.typography.font_heading : g.typography.font_body,
-                    fontSize: parseInt(spec.size) > 32 ? 26 : parseInt(spec.size) > 20 ? 20 : parseInt(spec.size) > 16 ? 16 : 13,
-                    fontWeight: spec.weight || 400,
-                    letterSpacing: spec.letter_spacing || 'normal',
-                    textTransform: spec.text_transform || 'none',
-                    color: 'var(--text-primary)', lineHeight: 1.3,
-                  }}>
-                    {level === 'h1' ? 'Hauptüberschrift der Website'
-                      : level === 'h2' ? 'Abschnittsüberschrift'
-                      : level === 'h3' ? 'Karten-Überschrift'
-                      : level === 'h4' ? 'Unterüberschrift'
-                      : level === 'body_lg' ? 'Fließtext groß — Einleitungstext für wichtige Abschnitte.'
-                      : level === 'body' ? 'Standard-Fließtext für Absätze und Beschreibungen.'
-                      : level === 'body_sm' ? 'Kleiner Fließtext für Details und Hinweise.'
-                      : level === 'label' ? 'LABEL · KATEGORIE'
-                      : level === 'button' ? 'JETZT ANFRAGEN'
-                      : 'Bildunterschrift · 22. April 2026'}
-                  </div>
-                  <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textAlign: 'right', flexShrink: 0, fontFamily: 'monospace' }}>
-                    {spec.size} · {spec.weight}
-                    {spec.line_height ? ` · lh ${spec.line_height}` : ''}
-                  </div>
+                  {color && (
+                    <>
+                      <div style={{ width: 22, height: 22, borderRadius: 4, background: color, border: '0.5px solid rgba(0,0,0,.1)', flexShrink: 0 }} />
+                      <div style={{ fontSize: 9, fontFamily: 'monospace', color: 'var(--text-tertiary)', flexShrink: 0 }}>{color}</div>
+                    </>
+                  )}
                 </div>
               ))}
+
+              {/* Typografische Skala */}
+              <div style={{ marginTop: 12 }}>
+                {Object.entries(g.typography?.scale || {}).map(([level, spec]) => {
+                  const fontFamily = spec.family || (level.startsWith('h') ? (g.typography?.fonts?.heading || g.typography?.font_heading) : (g.typography?.fonts?.body || g.typography?.font_body));
+                  const textColor  = spec.color  || 'var(--text-primary)';
+                  return (
+                    <div key={level} style={{
+                      display: 'flex', alignItems: 'baseline', gap: 14,
+                      padding: '8px 0', borderBottom: '0.5px solid var(--border-light)',
+                    }}>
+                      <div style={{
+                        width: 52, flexShrink: 0, fontSize: 9, fontWeight: 900,
+                        color: 'var(--text-tertiary)', textTransform: 'uppercase',
+                        letterSpacing: '.08em', background: 'var(--bg-app)',
+                        padding: '2px 6px', borderRadius: 3, textAlign: 'center',
+                      }}>
+                        {level.toUpperCase()}
+                      </div>
+                      <div style={{
+                        flex: 1, fontFamily,
+                        fontSize: parseInt(spec.size) > 32 ? 26 : parseInt(spec.size) > 20 ? 20 : parseInt(spec.size) > 16 ? 16 : 13,
+                        fontWeight: spec.weight || 400,
+                        letterSpacing: spec.letter_spacing || 'normal',
+                        textTransform: spec.text_transform || 'none',
+                        color: textColor, lineHeight: 1.3,
+                      }}>
+                        {level === 'h1' ? 'Hauptüberschrift der Website'
+                          : level === 'h2' ? 'Abschnittsüberschrift'
+                          : level === 'h3' ? 'Karten-Überschrift'
+                          : level === 'body_lg' ? 'Fließtext groß — Einleitung.'
+                          : level === 'body' ? 'Standard-Fließtext für Absätze.'
+                          : level === 'body_sm' ? 'Kleiner Fließtext für Details.'
+                          : level === 'label' ? 'LABEL · KATEGORIE'
+                          : level === 'button' ? 'JETZT ANFRAGEN'
+                          : `${level} — Beispieltext`}
+                      </div>
+                      <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textAlign: 'right', flexShrink: 0, fontFamily: 'monospace' }}>
+                        {spec.size}{spec.weight ? ` · ${spec.weight}` : ''}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -368,7 +393,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {g.voice_tone.cta_beispiele.map((cta, i) => (
                             <span key={i} style={{
-                              background: g.colors?.primary || 'var(--brand-primary)',
+                              background: g.tokens?.primary || g.colors?.primary || g.tokens?.accent || 'var(--brand-primary)',
                               color: '#fff', fontSize: 11, fontWeight: 700,
                               padding: '4px 12px', borderRadius: 5,
                             }}>
@@ -385,19 +410,24 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
           )}
 
           {/* ── TAB: VORSCHAU ── */}
-          {activeTab === 'Vorschau' && (
+          {activeTab === 'Vorschau' && (() => {
+            const tk = g.tokens || g.colors || {};
+            const fontH = g.typography?.fonts?.heading || g.typography?.font_heading || 'Georgia';
+            const fontB = g.typography?.fonts?.body    || g.typography?.font_body    || 'Arial';
+            const colorH = g.components?.nav?.text_color || g.typography?.colors?.heading || '#FFFFFF';
+            return (
             <div style={{ border: '0.5px solid var(--border-light)', borderRadius: 10, overflow: 'hidden' }}>
               {/* Nav */}
               <div style={{
-                background: g.colors?.primary || '#004F59', padding: '0 24px',
+                background: tk.primary || '#004F59', padding: '0 24px',
                 height: g.components?.nav?.height || '64px',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
-                <span style={{ fontFamily: g.typography?.font_heading, fontSize: 18, fontWeight: 700, color: '#fff' }}>
+                <span style={{ fontFamily: fontH, fontSize: 18, fontWeight: 700, color: colorH }}>
                   {g.meta?.company || 'Unternehmen'}
                 </span>
                 <button style={{
-                  background: g.colors?.accent || '#FAE600', color: '#000',
+                  background: tk.accent || '#FAE600', color: g.components?.button_accent?.color || '#000',
                   border: 'none', borderRadius: g.border_radius?.md || '6px',
                   padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'default',
                 }}>
@@ -405,10 +435,10 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                 </button>
               </div>
               {/* Hero */}
-              <div style={{ background: g.colors?.primary || '#004F59', padding: '40px 24px' }}>
+              <div style={{ background: tk.primary || '#004F59', padding: '40px 24px' }}>
                 <div style={{
-                  fontFamily: g.typography?.font_heading,
-                  fontSize: 28, fontWeight: 700, color: '#fff', marginBottom: 10, lineHeight: 1.2,
+                  fontFamily: fontH,
+                  fontSize: 28, fontWeight: 700, color: colorH, marginBottom: 10, lineHeight: 1.2,
                 }}>
                   {g.meta?.gewerk || 'Handwerk'} in {g.meta?.company ? 'Ihrer Region' : 'Deutschland'}
                 </div>
@@ -417,14 +447,14 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button style={{
-                    background: g.colors?.accent || '#FAE600', color: '#000',
+                    background: tk.accent || '#FAE600', color: g.components?.button_accent?.color || '#000',
                     border: 'none', borderRadius: g.border_radius?.md || '6px',
                     padding: '11px 22px', fontSize: 13, fontWeight: 700, cursor: 'default',
                   }}>
                     {g.voice_tone?.cta_beispiele?.[0] || 'Anfragen'}
                   </button>
                   <button style={{
-                    background: 'transparent', color: '#fff',
+                    background: 'transparent', color: colorH,
                     border: '1.5px solid rgba(255,255,255,.5)',
                     borderRadius: g.border_radius?.md || '6px',
                     padding: '11px 22px', fontSize: 13, fontWeight: 700, cursor: 'default',
@@ -434,34 +464,35 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                 </div>
               </div>
               {/* Content */}
-              <div style={{ background: g.colors?.surface || '#F5F5F5', padding: '24px' }}>
+              <div style={{ background: tk.bg || tk.surface || '#F5F5F5', padding: '24px' }}>
                 <div style={{
-                  fontFamily: g.typography?.font_heading, fontSize: 18, fontWeight: 700,
-                  color: g.colors?.text_primary || '#1A1A1A', marginBottom: 8,
+                  fontFamily: fontH, fontSize: 18, fontWeight: 700,
+                  color: tk.primary || '#1A1A1A', marginBottom: 8,
                 }}>
                   Unsere Leistungen
                 </div>
                 <div style={{
-                  fontFamily: g.typography?.font_body, fontSize: 14,
-                  color: g.colors?.text_secondary || '#555', lineHeight: 1.7,
+                  fontFamily: fontB, fontSize: 14,
+                  color: tk.body_text || tk.text_secondary || '#555', lineHeight: 1.7,
                 }}>
                   Professionelle Leistungen für Privat- und Gewerbekunden.
                 </div>
               </div>
               {/* Footer */}
               <div style={{
-                background: g.colors?.secondary || '#2C3E50',
+                background: tk.secondary || '#2C3E50',
                 padding: '16px 24px', display: 'flex', justifyContent: 'space-between',
               }}>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', fontFamily: g.typography?.font_body }}>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', fontFamily: fontB }}>
                   © {g.meta?.company || 'Unternehmen'}
                 </span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', fontFamily: g.typography?.font_body }}>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', fontFamily: fontB }}>
                   Impressum · Datenschutz
                 </span>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* ── TAB: EXPORT ── */}
           {activeTab === 'Export' && (

@@ -114,6 +114,10 @@ class Lead(Base):
     brand_pdf_filename    = Column(String(255), nullable=True)
     brand_guideline_json         = Column(Text, nullable=True)
     brand_guideline_generated_at = Column(DateTime, nullable=True)
+    brand_font_heading           = Column(String(100), nullable=True)
+    brand_font_body              = Column(String(100), nullable=True)
+    brand_font_accent            = Column(String(100), nullable=True)
+    brand_design_tokens_json     = Column(Text, nullable=True)
 
     # Google Analytics detection
     ga_status         = Column(String(50), nullable=True)

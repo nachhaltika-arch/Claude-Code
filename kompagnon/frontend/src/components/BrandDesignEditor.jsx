@@ -57,6 +57,26 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
     return () => document.removeEventListener('mousedown', close);
   }, []);
 
+  const applyTokens = (t) => {
+    if (!t) return false;
+    if (t.primary)          setPrimary(t.primary);
+    if (t.secondary)        setSecondary(t.secondary);
+    if (t.accent)           setAccent(t.accent);
+    if (t.color_bg)         setColorBg(t.color_bg);
+    if (t.color_field)      setColorField(t.color_field);
+    if (t.color_heading)    setColorH1(t.color_heading);
+    if (t.color_text)       setColorBody(t.color_text);
+    if (t.font_h1)          setFontH1(t.font_h1);
+    if (t.font_body)        setFontBody(t.font_body);
+    if (t.font_akzent)      setFontAkzent(t.font_akzent);
+    if (t.color_font_h1)    setColorH1(t.color_font_h1);
+    if (t.color_font_body)  setColorBody(t.color_font_body);
+    if (t.color_font_cta)   setColorAkzent(t.color_font_cta);
+    if (t.radius != null)   setRadius(t.radius);
+    if (t.shadow)           setShadow(t.shadow);
+    return true;
+  };
+
   useEffect(() => {
     if (!leadId || !token) return;
     fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, {
@@ -65,6 +85,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (!d) return;
+        if (applyTokens(d.design_tokens)) return; // saved tokens have priority
         if (d.primary_color)                       setPrimary(d.primary_color);
         if (d.secondary_color)                     setSecondary(d.secondary_color);
         if (d.font_heading || d.font_primary)      setFontH1(d.font_heading || d.font_primary);
@@ -82,6 +103,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
   // Sync wenn brandData-Prop sich ändert (z.B. nach Scrape)
   useEffect(() => {
     if (!brandData) return;
+    if (applyTokens(brandData.design_tokens)) return; // saved tokens have priority
     if (brandData.primary_color)   setPrimary(brandData.primary_color);
     if (brandData.secondary_color) setSecondary(brandData.secondary_color);
     if (brandData.font_heading || brandData.font_primary)   setFontH1(brandData.font_heading || brandData.font_primary);
@@ -94,6 +116,25 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
   const save = async () => {
     setSaving(true);
     try {
+      const design_tokens = {
+        primary,
+        secondary,
+        accent,
+        color_bg:      colorBg,
+        color_field:   colorField,
+        color_heading: colorH1,
+        color_text:    colorBody,
+        font_h1:       fontH1,
+        font_body:     fontBody,
+        font_akzent:   fontAkzent,
+        color_font_h1:   colorH1,
+        color_font_body: colorBody,
+        color_font_cta:  colorAkzent,
+        radius,
+        shadow,
+        saved_at: new Date().toISOString(),
+      };
+
       await fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -105,10 +146,11 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
           font_heading:    fontH1,
           font_body:       fontBody,
           font_accent:     fontAkzent,
+          design_tokens,
         }),
       });
       toast.success('Brand Design gespeichert');
-      if (onSaved) onSaved({ primary, secondary, accent, fontH1, fontBody, fontAkzent, radius });
+      if (onSaved) onSaved({ primary, secondary, accent, fontH1, fontBody, fontAkzent, radius, design_tokens });
     } catch {
       toast.error('Speichern fehlgeschlagen');
     } finally {

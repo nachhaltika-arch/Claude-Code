@@ -78,12 +78,23 @@ def get_brand_data(lead_id: int, db: Session = Depends(get_db)):
         except Exception:
             pass
 
+    design_tokens = None
+    raw_tokens = getattr(lead, 'brand_design_tokens_json', None)
+    if raw_tokens:
+        try:
+            design_tokens = json.loads(raw_tokens)
+        except Exception:
+            pass
+
     return {
         "lead_id":         lead_id,
         "primary_color":   lead.brand_primary_color,
         "secondary_color": lead.brand_secondary_color,
         "font_primary":    lead.brand_font_primary,
         "font_secondary":  lead.brand_font_secondary,
+        "font_heading":    getattr(lead, 'brand_font_heading', None) or lead.brand_font_primary,
+        "font_body":       getattr(lead, 'brand_font_body',    None) or lead.brand_font_secondary,
+        "font_accent":     getattr(lead, 'brand_font_accent',  None),
         "logo_url":        lead.brand_logo_url,
         "all_colors":      _j(lead.brand_colors),
         "all_fonts":       _j(lead.brand_fonts),
@@ -97,6 +108,7 @@ def get_brand_data(lead_id: int, db: Session = Depends(get_db)):
         "ga_measurement_id": lead.ga_measurement_id,
         "ga_checked_at":     str(lead.ga_checked_at or '')[:16] or None,
         "design_data":       design_data,
+        "design_tokens":     design_tokens,
     }
 
 
@@ -109,19 +121,35 @@ def update_brand_design(lead_id: int, body: dict, db: Session = Depends(get_db))
     if not lead:
         raise HTTPException(404, "Lead nicht gefunden")
     mapping = {
-        "primary_color": "brand_primary_color",
+        "primary_color":   "brand_primary_color",
         "secondary_color": "brand_secondary_color",
-        "font_primary": "brand_font_primary",
-        "font_secondary": "brand_font_secondary",
-        "design_style": "brand_design_style",
-        "brand_notes": "brand_notes",
-        "logo_url": "brand_logo_url",
+        "font_primary":    "brand_font_primary",
+        "font_secondary":  "brand_font_secondary",
+        "font_heading":    "brand_font_heading",
+        "font_body":       "brand_font_body",
+        "font_accent":     "brand_font_accent",
+        "design_style":    "brand_design_style",
+        "brand_notes":     "brand_notes",
+        "logo_url":        "brand_logo_url",
     }
     updated = []
     for body_field, lead_attr in mapping.items():
         if body_field in body:
             _set(lead, lead_attr, body[body_field])
             updated.append(body_field)
+
+    if "design_tokens" in body:
+        tokens = body["design_tokens"]
+        _set(lead, 'brand_design_tokens_json',
+             json.dumps(tokens, ensure_ascii=False) if isinstance(tokens, dict) else tokens)
+        updated.append("design_tokens")
+        if isinstance(tokens, dict):
+            if tokens.get("primary"):    _set(lead, 'brand_primary_color',  tokens["primary"])
+            if tokens.get("secondary"):  _set(lead, 'brand_secondary_color', tokens["secondary"])
+            if tokens.get("font_h1"):    _set(lead, 'brand_font_heading', tokens["font_h1"])
+            if tokens.get("font_body"):  _set(lead, 'brand_font_body',    tokens["font_body"])
+            if tokens.get("font_akzent"):_set(lead, 'brand_font_accent',  tokens["font_akzent"])
+
     if updated:
         _set(lead, 'brand_scraped_at', datetime.utcnow())
         db.commit()
@@ -574,131 +602,140 @@ async def generate_brand_guideline(lead_id: int, db: Session = Depends(get_db)):
 
     briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
 
-    # ── Brand-Daten zusammenstellen ──────────────────────────────────────
-    primary    = getattr(lead, 'brand_primary_color',   None) or '#004F59'
-    secondary  = getattr(lead, 'brand_secondary_color', None) or '#2C3E50'
-    dd_raw     = getattr(lead, 'brand_design_json', None)
-    dd         = json.loads(dd_raw) if dd_raw else {}
-    brief      = dd.get('design_brief', {})
+    # ── Design-Tokens laden — Priorität: vollständiges design_tokens_json ──
+    tokens_raw = {}
+    raw_tokens = getattr(lead, 'brand_design_tokens_json', None)
+    if raw_tokens:
+        try:
+            tokens_raw = json.loads(raw_tokens)
+        except Exception:
+            pass
 
-    accent       = brief.get('akzentfarbe', '#FAE600')
-    font_head    = getattr(lead, 'brand_font_primary',   None) or dd.get('font_heading', 'Georgia')
-    font_body    = getattr(lead, 'brand_font_secondary', None) or dd.get('font_body', 'Arial')
-    font_accent  = dd.get('font_accent', 'Barlow Condensed')
-    all_colors   = json.loads(getattr(lead, 'brand_colors', None) or '[]')
-    all_fonts    = json.loads(getattr(lead, 'brand_fonts',  None) or '[]')
-    logo_url     = getattr(lead, 'brand_logo_url', None) or ''
-    radius       = dd.get('border_radius_px', 6)
-    shadow_lbl   = dd.get('shadow_label', 'leicht')
-    btn_style    = dd.get('button_style', 'abgerundet')
-    spacing      = dd.get('spacing_density', 'normal')
-    farb_stimmung= dd.get('farb_stimmung', 'Neutral')
-    style        = getattr(lead, 'brand_design_style', None) or dd.get('style_keyword', 'Modern')
-    company      = getattr(lead, 'company_name', '') or 'Unbekannt'
-    city         = getattr(lead, 'city', '') or 'Deutschland'
-    gewerk       = (briefing.gewerk     if briefing else '') or getattr(lead, 'trade', '') or 'Handwerk'
-    leistungen   = (briefing.leistungen if briefing else '') or ''
-    usp          = (briefing.usp        if briefing else '') or ''
+    dd_raw        = getattr(lead, 'brand_design_json', None)
+    dd            = json.loads(dd_raw) if dd_raw else {}
+    brief         = dd.get('design_brief', {})
+
+    primary       = tokens_raw.get("primary")       or getattr(lead, 'brand_primary_color',   None) or '#004F59'
+    secondary     = tokens_raw.get("secondary")     or getattr(lead, 'brand_secondary_color', None) or '#2C3E50'
+    accent        = tokens_raw.get("accent")        or brief.get('akzentfarbe', '#FAE600')
+    color_bg      = tokens_raw.get("color_bg")      or '#F5F5F0'
+    color_field   = tokens_raw.get("color_field")   or '#FFFFFF'
+    color_heading = tokens_raw.get("color_heading") or '#FFFFFF'
+    color_text    = tokens_raw.get("color_text")    or '#333333'
+    font_h1       = tokens_raw.get("font_h1")       or getattr(lead, 'brand_font_heading', None) or getattr(lead, 'brand_font_primary',   None) or 'Georgia'
+    font_body     = tokens_raw.get("font_body")     or getattr(lead, 'brand_font_body',    None) or getattr(lead, 'brand_font_secondary', None) or 'Arial'
+    font_akzent   = tokens_raw.get("font_akzent")   or getattr(lead, 'brand_font_accent',  None) or 'Barlow Condensed'
+    color_font_h1    = tokens_raw.get("color_font_h1")    or '#FFFFFF'
+    color_font_body  = tokens_raw.get("color_font_body")  or 'rgba(255,255,255,0.75)'
+    color_font_cta   = tokens_raw.get("color_font_cta")   or '#000000'
+    radius        = tokens_raw.get("radius")        or dd.get('border_radius_px', 6)
+    shadow_lbl    = tokens_raw.get("shadow")        or dd.get('shadow_label', 'leicht')
+    farb_stimmung = dd.get('farb_stimmung', 'Neutral')
+    style         = tokens_raw.get("style") or getattr(lead, 'brand_design_style', None) or dd.get('style_keyword', 'Modern')
+    company       = getattr(lead, 'company_name', '') or 'Unbekannt'
+    city          = getattr(lead, 'city', '') or 'Deutschland'
+    gewerk        = (briefing.gewerk     if briefing else '') or getattr(lead, 'trade', '') or 'Handwerk'
+    leistungen    = (briefing.leistungen if briefing else '') or ''
+    usp           = (briefing.usp        if briefing else '') or ''
 
     prompt = f"""Du bist ein professioneller UI/UX-Designer und Brand-Strategist.
-Erstelle eine vollständige UI Brand Guideline als strukturiertes JSON-Objekt.
+Erstelle eine vollständige UI Brand Guideline als strukturiertes JSON.
 
-KUNDENDATEN:
-Unternehmen: {company}
-Gewerk: {gewerk} | Stadt: {city}
+=== KUNDENDATEN ===
+Unternehmen: {company} | Gewerk: {gewerk} | Stadt: {city}
 Leistungen: {leistungen[:300] if leistungen else 'nicht angegeben'}
 USP: {usp[:200] if usp else 'nicht angegeben'}
 
-ERKANNTE BRAND-DATEN (aus Website-Scan):
-Primärfarbe: {primary}
-Sekundärfarbe: {secondary}
-Akzentfarbe: {accent}
-Alle erkannten Farben: {', '.join(all_colors[:8]) if all_colors else 'keine'}
-Überschriften-Font: {font_head}
-Fließtext-Font: {font_body}
-Alle erkannten Fonts: {', '.join(all_fonts[:6]) if all_fonts else 'keine'}
-Stil-Keyword: {style}
-Farb-Stimmung: {farb_stimmung}
-Border-Radius: {radius}px ({btn_style})
-Schatten: {shadow_lbl}
-Abstands-Dichte: {spacing}
-Logo-URL: {logo_url or 'nicht erkannt'}
+=== EXAKTE DESIGN-TOKENS (vom Admin festgelegt — 1:1 übernehmen) ===
+FARBEN:
+  Primär:           {primary}
+  Sekundär:         {secondary}
+  Akzent:           {accent}
+  Hintergrund:      {color_bg}
+  Felder/Inputs:    {color_field}
+  Überschrift-Text: {color_heading}
+  Fließtext:        {color_text}
 
-Antworte NUR als JSON-Objekt (kein Markdown, keine Erklärungen):
+SCHRIFTEN:
+  Überschriften (H1/H2/H3): {font_h1}   Textfarbe: {color_font_h1}
+  Fließtext:                  {font_body} Textfarbe: {color_font_body}
+  Akzent/CTA:                 {font_akzent} Textfarbe: {color_font_cta}
+
+STIL:
+  Ecken-Radius: {radius}px | Schatten: {shadow_lbl} | Stil: {style} | Farb-Stimmung: {farb_stimmung}
+
+KI-DESIGN-BRIEF:
+{json.dumps(brief, ensure_ascii=False) if brief else 'nicht vorhanden'}
+
+Antworte NUR als JSON (kein Markdown):
 
 {{
   "meta": {{
     "company": "{company}",
     "gewerk": "{gewerk}",
     "style_keyword": "{style}",
-    "farb_stimmung": "{farb_stimmung}",
-    "radius_label": "Rund"
+    "farb_stimmung": "{farb_stimmung}"
   }},
-  "colors": {{
+  "tokens": {{
     "primary":        "{primary}",
-    "primary_dark":   "<10% dunkler als primary>",
-    "primary_light":  "<20% heller als primary>",
-    "primary_subtle": "<primary mit 10% Deckkraft als rgba>",
+    "primary_dark":   "<10% dunkler als {primary}>",
+    "primary_light":  "<20% heller als {primary}>",
+    "primary_subtle": "<{primary} mit 10% Opacity als rgba>",
     "secondary":      "{secondary}",
     "accent":         "{accent}",
-    "surface":        "<heller Seitenhintergrund, fast weiß>",
-    "surface_raised": "<etwas dunklere Karten-Oberfläche>",
+    "bg":             "{color_bg}",
+    "field":          "{color_field}",
+    "heading_text":   "{color_heading}",
+    "body_text":      "{color_text}",
     "border":         "<dezente Rahmenfarbe>",
-    "text_primary":   "<Haupttextfarbe, fast schwarz>",
-    "text_secondary": "<Sekundärtextfarbe, grau>",
-    "text_tertiary":  "<dezente Labels, helles grau>",
-    "text_inverse":   "#FFFFFF",
+    "text_muted":     "<abgeschwächte Textfarbe>",
     "success":        "#1D9E75",
     "warning":        "#F59E0B",
     "error":          "#E74C3C"
   }},
   "typography": {{
-    "font_heading": "{font_head}",
-    "font_body":    "{font_body}",
-    "font_accent":  "{font_accent}",
+    "fonts": {{
+      "heading": "{font_h1}",
+      "body":    "{font_body}",
+      "accent":  "{font_akzent}"
+    }},
+    "colors": {{
+      "heading": "{color_font_h1}",
+      "body":    "{color_font_body}",
+      "cta":     "{color_font_cta}"
+    }},
     "scale": {{
-      "h1":      {{"size": "48px", "weight": "700", "line_height": "1.1", "letter_spacing": "-0.02em"}},
-      "h2":      {{"size": "32px", "weight": "700", "line_height": "1.2", "letter_spacing": "-0.01em"}},
-      "h3":      {{"size": "24px", "weight": "600", "line_height": "1.3", "letter_spacing": "0"}},
-      "h4":      {{"size": "20px", "weight": "600", "line_height": "1.4", "letter_spacing": "0"}},
-      "body_lg": {{"size": "18px", "weight": "400", "line_height": "1.75"}},
-      "body":    {{"size": "16px", "weight": "400", "line_height": "1.75"}},
-      "body_sm": {{"size": "14px", "weight": "400", "line_height": "1.6"}},
-      "label":   {{"size": "12px", "weight": "700", "text_transform": "uppercase", "letter_spacing": "0.06em"}},
-      "button":  {{"size": "14px", "weight": "700", "text_transform": "uppercase", "letter_spacing": "0.05em"}},
-      "caption": {{"size": "11px", "weight": "400", "line_height": "1.5"}}
+      "h1":      {{"size":"48px","weight":"700","family":"{font_h1}","color":"{color_font_h1}","line_height":"1.1","letter_spacing":"-0.02em"}},
+      "h2":      {{"size":"32px","weight":"700","family":"{font_h1}","color":"{color_font_h1}","line_height":"1.2"}},
+      "h3":      {{"size":"24px","weight":"600","family":"{font_h1}","color":"{color_font_h1}","line_height":"1.3"}},
+      "body_lg": {{"size":"18px","weight":"400","family":"{font_body}","color":"{color_text}","line_height":"1.75"}},
+      "body":    {{"size":"16px","weight":"400","family":"{font_body}","color":"{color_text}","line_height":"1.75"}},
+      "body_sm": {{"size":"14px","weight":"400","family":"{font_body}","color":"{color_text}","line_height":"1.6"}},
+      "label":   {{"size":"12px","weight":"700","family":"{font_body}","text_transform":"uppercase","letter_spacing":"0.06em"}},
+      "button":  {{"size":"14px","weight":"700","family":"{font_akzent}","color":"{color_font_cta}","text_transform":"uppercase","letter_spacing":"0.05em"}}
     }}
   }},
-  "spacing": {{
-    "xs": "4px", "sm": "8px", "md": "16px", "lg": "24px",
-    "xl": "32px", "2xl": "48px", "3xl": "64px", "4xl": "96px"
-  }},
-  "border_radius": {{
-    "sm": "<radius/2>px", "md": "{radius}px",
-    "lg": "<radius*1.5>px", "xl": "<radius*2>px", "full": "9999px"
-  }},
-  "shadows": {{
-    "sm":   "<passend zu {shadow_lbl}, leicht>",
-    "md":   "<mittel>",
-    "lg":   "<stark>",
-    "none": "none"
-  }},
+  "spacing": {{"xs":"4px","sm":"8px","md":"16px","lg":"24px","xl":"32px","2xl":"48px","3xl":"64px","4xl":"96px"}},
+  "border_radius": {{"sm":"<{radius}/2 px>","md":"{radius}px","lg":"<{radius}*1.5 px>","xl":"<{radius}*2 px>","full":"9999px"}},
+  "shadows": {{"none":"none","sm":"<passend zu '{shadow_lbl}'>","md":"<mittel>","lg":"<stark>"}},
   "components": {{
-    "button_primary":   {{"background": "<colors.primary>",   "color": "#FFFFFF", "border_radius": "{radius}px", "padding": "10px 24px"}},
-    "button_secondary": {{"background": "transparent", "color": "<colors.primary>", "border": "1.5px solid <colors.primary>", "border_radius": "{radius}px", "padding": "10px 24px"}},
-    "button_accent":    {{"background": "<colors.accent>",    "color": "#FFFFFF", "border_radius": "{radius}px", "padding": "10px 24px"}},
-    "card":  {{"background": "<colors.surface_raised>", "border": "0.5px solid <colors.border>", "border_radius": "<border_radius.lg>", "shadow": "<shadows.sm>", "padding": "24px"}},
-    "input": {{"background": "<colors.surface>", "border": "1px solid <colors.border>", "border_radius": "{radius}px", "padding": "10px 14px", "focus_border": "<colors.primary>"}},
-    "nav":   {{"background": "<colors.primary>", "text_color": "#FFFFFF", "height": "64px"}},
-    "hero":  {{"background": "<colors.primary>", "text_color": "#FFFFFF", "padding_y": "80px"}},
-    "footer":{{"background": "<colors.secondary>", "text_color": "rgba(255,255,255,0.7)", "padding_y": "48px"}}
+    "button_primary":   {{"background":"{primary}","color":"{color_font_cta}","font_family":"{font_akzent}","border_radius":"{radius}px","padding":"10px 24px","font_weight":"700","text_transform":"uppercase"}},
+    "button_secondary": {{"background":"transparent","color":"{primary}","border":"1.5px solid {primary}","border_radius":"{radius}px","padding":"10px 24px","font_family":"{font_akzent}"}},
+    "button_accent":    {{"background":"{accent}","color":"{color_font_cta}","border_radius":"{radius}px","padding":"10px 24px","font_family":"{font_akzent}"}},
+    "card":  {{"background":"{color_field}","border":"0.5px solid <tokens.border>","border_radius":"<border_radius.lg>","shadow":"<shadows.sm>","padding":"24px","title_font":"{font_h1}","title_color":"{color_heading}","body_font":"{font_body}","body_color":"{color_text}"}},
+    "input": {{"background":"{color_field}","border":"1px solid <tokens.border>","border_radius":"{radius}px","padding":"10px 14px","font_family":"{font_body}","color":"{color_text}","focus_border":"{primary}"}},
+    "nav":   {{"background":"{primary}","text_color":"{color_font_h1}","height":"64px","font_family":"{font_h1}"}},
+    "hero":  {{"background":"{primary}","h1_font":"{font_h1}","h1_color":"{color_font_h1}","body_font":"{font_body}","body_color":"{color_font_body}","padding_y":"80px"}},
+    "section":{{"background":"{color_bg}","h2_font":"{font_h1}","body_font":"{font_body}","body_color":"{color_text}","padding_y":"64px"}},
+    "footer": {{"background":"{secondary}","text_color":"rgba(255,255,255,0.65)","padding_y":"48px"}}
   }},
-  "css_variables": ":root {{\n  --color-primary: <primary>;\n  --color-secondary: <secondary>;\n  --color-accent: <accent>;\n  --color-surface: <surface>;\n  --color-text: <text_primary>;\n  --font-heading: \\"<font_heading>\\", serif;\n  --font-body: \\"<font_body>\\", sans-serif;\n  --radius-md: {radius}px;\n  /* alle weiteren tokens */\n}}",
+  "css_variables": "<vollständige :root {{ --token: value; }} CSS als ein String>",
   "voice_tone": {{
-    "charakter": "<2-3 Adjektive passend zu Gewerk und Stil>",
-    "ansprache": "<Du oder Sie>",
-    "cta_beispiele": ["<CTA passend zu {gewerk} 1>", "<CTA 2>", "<CTA 3>"]
-  }}
+    "charakter": "<2-3 Adjektive>",
+    "ansprache": "<Du/Sie>",
+    "cta_beispiele": ["<CTA 1 für {gewerk}>", "<CTA 2>", "<CTA 3>"]
+  }},
+  "ki_design_brief": "<100-150 Wörter: vollständige Design-System-Beschreibung für KI-Template-Generierung>"
 }}"""
 
     try:
@@ -713,34 +750,39 @@ Antworte NUR als JSON-Objekt (kein Markdown, keine Erklärungen):
         raw_text = re.sub(r'\s*```$',     '', raw_text)
         guideline = json.loads(raw_text.strip())
     except json.JSONDecodeError:
+        r = int(radius) if str(radius).isdigit() else 6
         guideline = {
-            "meta": {"company": company, "gewerk": gewerk, "style_keyword": style, "farb_stimmung": farb_stimmung, "radius_label": "Rund" if radius >= 6 else "Eckig"},
-            "colors": {
+            "meta": {"company": company, "gewerk": gewerk, "style_keyword": style, "farb_stimmung": farb_stimmung},
+            "tokens": {
                 "primary": primary, "primary_dark": primary, "secondary": secondary,
-                "accent": accent, "surface": "#F5F5F0", "surface_raised": "#FFFFFF",
-                "border": "#E0E0E0", "text_primary": "#1A1A1A", "text_secondary": "#555555",
-                "text_tertiary": "#999999", "text_inverse": "#FFFFFF",
+                "accent": accent, "bg": color_bg, "field": color_field,
+                "heading_text": color_heading, "body_text": color_text,
+                "border": "#E0E0E0", "text_muted": "#999999",
                 "success": "#1D9E75", "warning": "#F59E0B", "error": "#E74C3C",
             },
             "typography": {
-                "font_heading": font_head, "font_body": font_body, "font_accent": font_accent,
+                "fonts": {"heading": font_h1, "body": font_body, "accent": font_akzent},
+                "colors": {"heading": color_font_h1, "body": color_font_body, "cta": color_font_cta},
                 "scale": {
-                    "h1": {"size": "48px", "weight": "700", "line_height": "1.1"},
-                    "h2": {"size": "32px", "weight": "700", "line_height": "1.2"},
-                    "body": {"size": "16px", "weight": "400", "line_height": "1.75"},
-                    "button": {"size": "14px", "weight": "700", "text_transform": "uppercase"},
+                    "h1": {"size": "48px", "weight": "700", "family": font_h1, "color": color_font_h1, "line_height": "1.1"},
+                    "h2": {"size": "32px", "weight": "700", "family": font_h1, "color": color_font_h1, "line_height": "1.2"},
+                    "body": {"size": "16px", "weight": "400", "family": font_body, "color": color_text, "line_height": "1.75"},
+                    "button": {"size": "14px", "weight": "700", "family": font_akzent, "color": color_font_cta, "text_transform": "uppercase"},
                 },
             },
             "spacing": {"xs": "4px", "sm": "8px", "md": "16px", "lg": "24px", "xl": "32px"},
-            "border_radius": {"sm": f"{max(2, radius//2)}px", "md": f"{radius}px", "lg": f"{int(radius*1.5)}px", "full": "9999px"},
-            "shadows": {"sm": "0 1px 3px rgba(0,0,0,.08)", "md": "0 4px 12px rgba(0,0,0,.12)", "none": "none"},
+            "border_radius": {"sm": f"{max(2, r//2)}px", "md": f"{r}px", "lg": f"{int(r*1.5)}px", "full": "9999px"},
+            "shadows": {"none": "none", "sm": "0 1px 3px rgba(0,0,0,.08)", "md": "0 4px 12px rgba(0,0,0,.12)"},
             "components": {
-                "button_primary":   {"background": primary,   "color": "#FFFFFF", "border_radius": f"{radius}px", "padding": "10px 24px"},
-                "button_secondary": {"background": "transparent", "color": primary, "border": f"1.5px solid {primary}", "border_radius": f"{radius}px", "padding": "10px 24px"},
-                "button_accent":    {"background": accent,    "color": "#FFFFFF", "border_radius": f"{radius}px", "padding": "10px 24px"},
+                "button_primary":   {"background": primary, "color": color_font_cta, "border_radius": f"{r}px", "padding": "10px 24px"},
+                "button_secondary": {"background": "transparent", "color": primary, "border": f"1.5px solid {primary}", "border_radius": f"{r}px", "padding": "10px 24px"},
+                "button_accent":    {"background": accent, "color": color_font_cta, "border_radius": f"{r}px", "padding": "10px 24px"},
+                "nav":  {"background": primary, "text_color": color_font_h1, "height": "64px"},
+                "hero": {"background": primary, "h1_color": color_font_h1, "body_color": color_font_body},
             },
-            "css_variables": f":root {{\n  --color-primary: {primary};\n  --color-secondary: {secondary};\n  --color-accent: {accent};\n  --font-heading: \"{font_head}\", serif;\n  --font-body: \"{font_body}\", sans-serif;\n  --radius-md: {radius}px;\n}}",
+            "css_variables": f":root {{\n  --color-primary: {primary};\n  --color-secondary: {secondary};\n  --color-accent: {accent};\n  --color-bg: {color_bg};\n  --font-heading: \"{font_h1}\", serif;\n  --font-body: \"{font_body}\", sans-serif;\n  --radius-md: {r}px;\n}}",
             "voice_tone": {"charakter": style, "ansprache": "Sie", "cta_beispiele": ["Jetzt anfragen", "Mehr erfahren", "Kontakt aufnehmen"]},
+            "ki_design_brief": f"Design-System für {company}. Primärfarbe: {primary}, Akzent: {accent}. Fonts: {font_h1} (Überschriften), {font_body} (Fließtext). Stil: {style}. Radius: {r}px.",
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"KI-Fehler: {str(e)[:200]}")

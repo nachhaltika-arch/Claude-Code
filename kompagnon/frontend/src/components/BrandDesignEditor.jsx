@@ -121,6 +121,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
     { id: 'primary_d', label: 'Primär Dark',  color: adjustColor(primary,-30), setter: null          },
     { id: 'secondary', label: 'Sekundär',     color: secondary,                setter: setSecondary  },
     { id: 'accent',    label: 'Akzent',       color: accent,                   setter: setAccent     },
+    { id: 'surface',   label: 'Surface',      color: '#F5F5F0',                setter: null          },
     { id: 'bg',        label: 'Hintergrund',  color: colorBg,                  setter: setColorBg    },
     { id: 'field',     label: 'Felder',       color: colorField,               setter: setColorField },
     { id: 'h1_color',  label: 'Überschrift',  color: colorH1,                  setter: setColorH1    },
@@ -254,7 +255,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
 
       {/* 3-Rollen Schriften */}
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Schriften</div>
+        <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Schriften & Textfarben</div>
         {[
           { role: 'h1',     label: 'Überschriften (H1 · H2 · H3)', font: fontH1,     setFont: setFontH1,     color: colorH1,     setColor: setColorH1,     sample: 'Überschrift H1',                sampleSize: 16, sampleWeight: 700 },
           { role: 'body',   label: 'Fließtext',                      font: fontBody,   setFont: setFontBody,   color: colorBody,   setColor: setColorBody,   sample: 'Fließtext — klar und lesbar.',  sampleSize: 12, sampleWeight: 400 },
@@ -273,10 +274,10 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                 {/* Farb-Picker Quadrat */}
                 <div style={{ position: 'relative' }}>
                   <div
-                    style={{ width: 36, height: 36, borderRadius: 6, background: color, cursor: 'pointer', border: activeToken === role + '_c' ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.15)' }}
-                    onClick={() => setActiveToken(activeToken === role + '_c' ? null : role + '_c')}
+                    style={{ width: 36, height: 36, borderRadius: 6, background: color, cursor: 'pointer', border: activeToken === role + '_color' ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.15)' }}
+                    onClick={() => setActiveToken(activeToken === role + '_color' ? null : role + '_color')}
                   />
-                  {activeToken === role + '_c' && (
+                  {activeToken === role + '_color' && (
                     <div style={{ position: 'absolute', right: 0, top: 40, zIndex: 10, background: 'var(--bg-surface)', border: '1.5px solid var(--brand-primary)', borderRadius: 8, padding: 10, boxShadow: '0 8px 24px rgba(0,0,0,.18)', width: 180 }}
                       onClick={e => e.stopPropagation()}
                     >

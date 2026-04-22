@@ -194,6 +194,7 @@ def job_check_netlify_dns():
             WHERE netlify_domain IS NOT NULL
               AND netlify_domain_status = 'pending'
               AND (netlify_dns_retry_after IS NULL OR netlify_dns_retry_after < :now)
+              AND (netlify_golive_mail_sent IS NULL OR netlify_golive_mail_sent = false)
             ORDER BY id
             LIMIT 50
         """), {"now": now}).fetchall()
@@ -242,6 +243,84 @@ def job_check_netlify_dns():
                         })
                     except Exception as me:
                         logger.warning(f"DNS-Live-Nachricht Fehler Projekt {project_id}: {me}")
+
+                    # ── Go-Live-E-Mail an Kunden senden ─────────────────────
+                    try:
+                        lead_row = db.execute(
+                            _text("SELECT email, company_name FROM leads WHERE id = :lid"),
+                            {"lid": lead_id},
+                        ).fetchone()
+
+                        if lead_row and lead_row[0]:
+                            customer_email   = lead_row[0]
+                            customer_company = lead_row[1] or "Ihr Unternehmen"
+
+                            html_body = f"""
+<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;">
+  <div style="background:#059669;padding:28px 24px;border-radius:12px 12px 0 0;text-align:center;">
+    <div style="font-size:40px;margin-bottom:8px;">&#127881;</div>
+    <h1 style="color:#fff;font-size:22px;font-weight:700;margin:0;">
+      Ihre Website ist jetzt live!
+    </h1>
+  </div>
+  <div style="background:#f8fffe;padding:24px;border:1px solid #d1fae5;border-top:none;border-radius:0 0 12px 12px;">
+    <p style="color:#1e3a2f;font-size:15px;line-height:1.6;">
+      Hallo {customer_company},
+    </p>
+    <p style="color:#374151;font-size:14px;line-height:1.7;">
+      Ihre neue Website ist ab sofort unter folgender Adresse erreichbar:
+    </p>
+    <div style="text-align:center;margin:20px 0;">
+      <a href="https://{domain}"
+         style="display:inline-block;padding:14px 28px;background:#059669;color:#fff;
+                border-radius:8px;font-size:15px;font-weight:700;text-decoration:none;">
+        &#127760; {domain} &#246;ffnen &#8594;
+      </a>
+    </div>
+    <div style="background:#ecfdf5;border-radius:8px;padding:14px 16px;margin:16px 0;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#065f46;">
+        Was als n&#228;chstes passiert:
+      </p>
+      <ul style="margin:0;padding-left:18px;font-size:13px;color:#374151;line-height:1.8;">
+        <li>Das SSL-Zertifikat (Schloss-Symbol) wird in den n&#228;chsten Minuten automatisch aktiviert</li>
+        <li>Google indexiert Ihre Seite in den n&#228;chsten Tagen</li>
+        <li>Wir melden uns in K&#252;rze f&#252;r einen abschlie&#223;enden Qualit&#228;ts-Check</li>
+      </ul>
+    </div>
+    <p style="color:#374151;font-size:13px;line-height:1.6;">
+      Bei Fragen stehen wir Ihnen jederzeit zur Verf&#252;gung.
+    </p>
+    <p style="color:#374151;font-size:13px;margin-top:20px;">
+      Mit freundlichen Gr&#252;&#223;en,<br>
+      <strong>Ihr KOMPAGNON-Team</strong>
+    </p>
+  </div>
+</div>"""
+
+                            ok = _do_send_email(
+                                to_email=customer_email,
+                                subject=f"Ihre Website {domain} ist jetzt live!",
+                                html_body=html_body,
+                            )
+                            if ok:
+                                db.execute(
+                                    _text("""
+                                        UPDATE projects SET
+                                          netlify_golive_mail_sent    = true,
+                                          netlify_golive_mail_sent_at = NOW()
+                                        WHERE id = :id
+                                    """),
+                                    {"id": project_id},
+                                )
+                                logger.info(f"✓ Go-Live-Mail gesendet an {customer_email} (Projekt {project_id})")
+                            else:
+                                logger.warning(
+                                    f"Go-Live-Mail an {customer_email} fehlgeschlagen "
+                                    f"(Projekt {project_id}) — SMTP prüfen"
+                                )
+                    except Exception as mail_err:
+                        logger.warning(f"Go-Live-Mail Fehler Projekt {project_id}: {mail_err}")
+
                     logger.info(f"✓ DNS aktiv: {domain} (Projekt {project_id})")
                 else:
                     # Nicht aktiv — Fail-Count erhöhen, Backoff setzen

@@ -344,20 +344,58 @@ async def delete_site(site_id: str) -> bool:
 
 
 def check_dns_active(domain: str, netlify_site_url: str = "") -> bool:
-    """Prüft ob die Domain bereits auf Netlify zeigt.
-    Netlify load-balancer IPs beginnen mit 75.2 oder 99.83.
+    """
+    Prüft ob die Domain bereits auf Netlify zeigt.
+
+    Methode 1: IP-Präfix-Prüfung gegen bekannte Netlify Load-Balancer Ranges
+    Methode 2: IP-Vergleich mit der tatsächlichen Netlify-Site-IP (falls URL bekannt)
+    Methode 3: CNAME-Record-Prüfung via nslookup (prüft ob auf *.netlify.app zeigt)
     """
     import socket
+    import subprocess
+
     clean = (domain or "").lower().strip()
     if not clean:
         return False
-    for host in (clean, f"www.{clean}" if not clean.startswith("www.") else clean):
+
+    netlify_host = (netlify_site_url or "").replace("https://", "").replace("http://", "").rstrip("/")
+
+    hosts_to_check = [clean]
+    if not clean.startswith("www."):
+        hosts_to_check.append(f"www.{clean}")
+
+    # Bekannte Netlify Load-Balancer IP-Ranges (Stand 2024)
+    netlify_ip_prefixes = ("75.2.", "99.83.", "3.33.", "35.71.")
+
+    for host in hosts_to_check:
+        # Methode 1 + 2: IP auflösen
         try:
             ip = socket.gethostbyname(host)
-            if ip.startswith("75.2") or ip.startswith("99.83"):
+            if any(ip.startswith(prefix) for prefix in netlify_ip_prefixes):
+                return True
+            # Methode 2: IP mit tatsächlicher Netlify-Site vergleichen
+            if netlify_host:
+                try:
+                    netlify_ip = socket.gethostbyname(netlify_host)
+                    if ip == netlify_ip:
+                        return True
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # Methode 3: CNAME via nslookup prüfen
+        try:
+            result = subprocess.run(
+                ["nslookup", "-type=CNAME", host],
+                capture_output=True, text=True, timeout=5,
+            )
+            output = result.stdout.lower()
+            if "netlify.app" in output or (netlify_host and netlify_host.lower() in output):
                 return True
         except Exception:
-            continue
+            pass
+
     return False
 
 

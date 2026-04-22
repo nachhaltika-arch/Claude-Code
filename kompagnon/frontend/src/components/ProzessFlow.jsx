@@ -299,6 +299,13 @@ export default function ProzessFlow({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes stepPulse {
+          0%, 100% { box-shadow: 0 0 0 3px rgba(250,230,0,.3), 0 3px 12px rgba(250,230,0,.4); }
+          50%       { box-shadow: 0 0 0 6px rgba(250,230,0,.15), 0 3px 16px rgba(250,230,0,.6); }
+        }
+      `}</style>
 
       {/* Gesamtfortschritt */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -334,12 +341,14 @@ export default function ProzessFlow({
                     <button key={s.id} onClick={() => waehleSchritt(s)}
                       title={(() => { const f = s.wasFehlts?.(prozessDaten) || []; if (s.istFertig(prozessDaten)) return `${s.nr}. ${s.label} \u2713`; return f.length > 0 ? `${s.nr}. ${s.label}\n${f.join('\n')}` : `${s.nr}. ${s.label}`; })()}
                       style={{
-                        width: aktiv ? 28 : 20, height: 20,
-                        borderRadius: aktiv ? 10 : '50%', border: 'none', cursor: 'pointer',
-                        background: fertig ? 'var(--kc-dark)' : aktiv ? 'var(--kc-yellow)' : s.optional ? 'var(--border-light)' : 'var(--bg-elevated)',
-                        color: fertig ? '#fff' : aktiv ? '#000' : 'var(--text-tertiary)',
-                        fontSize: 9, fontWeight: 700, transition: 'all .2s', padding: 0,
+                        width: aktiv ? 28 : 20, height: aktiv ? 28 : 20,
+                        borderRadius: '50%', border: 'none', cursor: 'pointer',
+                        background: fertig ? '#00875A' : aktiv ? '#FAE600' : s.optional ? 'rgba(0,0,0,.08)' : 'var(--bg-elevated)',
+                        color: fertig ? '#fff' : aktiv ? '#004F59' : 'var(--text-tertiary)',
+                        fontSize: aktiv ? 11 : 9, fontWeight: 700, transition: 'all .2s', padding: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sans)',
+                        boxShadow: aktiv ? '0 0 0 3px rgba(250,230,0,.3)' : fertig ? '0 1px 4px rgba(0,135,90,.35)' : 'none',
+                        animation: aktiv ? 'stepPulse 2s ease-in-out infinite' : 'none',
                       }}>
                       {fertig ? '\u2713' : s.nr}
                     </button>

@@ -109,6 +109,13 @@ export default function ProzessFlowV3({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg-surface)' }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes stepPulse {
+          0%, 100% { box-shadow: 0 0 0 3px rgba(250,230,0,.3), 0 3px 12px rgba(250,230,0,.4); }
+          50%       { box-shadow: 0 0 0 6px rgba(250,230,0,.15), 0 3px 16px rgba(250,230,0,.6); }
+        }
+      `}</style>
 
       {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
       <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, background: 'var(--bg-app)' }}>
@@ -165,20 +172,68 @@ export default function ProzessFlowV3({
       </div>
 
       {/* ── Main: timeline + content ──────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
-        {/* Left 64px timeline */}
-        <div style={{ borderRight: '1px solid var(--border-light)', background: 'var(--bg-app)', padding: '12px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, overflowY: 'auto' }}>
-          {PHASEN.map((phase, pi) => (
-            <TimelinePhase
-              key={phase.id}
-              phase={phase}
-              prozessDaten={prozessDaten}
-              aktiverSchritt={aktiverSchritt}
-              waehleSchritt={waehleSchritt}
-              isLast={pi === PHASEN.length - 1}
-            />
-          ))}
+        {/* Left 80px timeline */}
+        <div style={{
+          width: 80,
+          background: 'linear-gradient(180deg, #004F59 0%, #003840 100%)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          height: '100%', flexShrink: 0,
+          boxShadow: '2px 0 16px rgba(0,0,0,.25)',
+        }}>
+
+          {/* SVG Logo */}
+          <div style={{ width: '100%', padding: '14px 0 12px', display: 'flex', justifyContent: 'center', alignItems: 'center', borderBottom: '0.5px solid rgba(255,255,255,.1)', marginBottom: 8, flexShrink: 0 }}>
+            <svg width="36" height="36" viewBox="0 0 107.7 107.7" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+              <path fill="#008EAA" d="M5.7,53.8c0,11.8,4.3,22.7,11.3,31.1,3.4-19.9,14-59.4,20-76.2C18.7,15.5,5.7,33.1,5.7,53.8Z" />
+              <path fill="#008EAA" d="M55.1,5.7c-1.4,5.4-6.4,24.1-10.4,38.4,7.1-8.9,16.2-15,23.5-15.5.8,0,1.4,0,2.3,0,4.5.2,14.6,4.8,15.5,13.5.3,5.4-4.1,15.5-8.2,15.8-5.1.3-9.7-6.1-9.8-7.4-.2-3,2.6-6.7,2.5-7.8,0-.4-.6-.5-1-.4-2.5.2-18.9,17.5-18,33.3.3,5.3,2.2,8.7,9.2,8.3,9.1-.6,18.2-8,28-22.4,1.1-1.6,2.4-2.3,3.5-2.4,2.3-.1,4.5,1.9,4.6,4.6,0,.8,0,1.7-.5,2.5-.7,1.4-5,8.2-10.9,14.5-7.8,8.5-17.6,13.2-26.5,14.5-4.9.7-10.6-.3-15.2-2.7-3.8-1.9-8.1-5.9-9.6-10.7-1.4,5.3-2.7,10.5-3.9,14.2,7,3.9,15,6.1,23.5,6.1,26.6,0,48.2-21.6,48.2-48.2S81.1,6.3,55.1,5.7Z" />
+            </svg>
+          </div>
+
+          {/* Step circles */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '4px 0', overflowY: 'auto', width: '100%', scrollbarWidth: 'none' }}>
+            {ALLE_SCHRITTE.map((s, idx) => {
+              const fertig = s.istFertig(prozessDaten);
+              const aktiv  = s.id === aktiverSchritt;
+              const naechster = !fertig && !aktiv &&
+                idx === ALLE_SCHRITTE.findIndex(x => x.id === aktiverSchritt) + 1;
+              const size   = aktiv ? 36 : naechster || fertig ? 30 : 26;
+              const bg     = fertig ? '#00875A' : aktiv ? '#FAE600' : naechster ? 'rgba(255,255,255,.15)' : 'rgba(255,255,255,.06)';
+              const color  = fertig ? '#fff' : aktiv ? '#004F59' : naechster ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.25)';
+              const shadow = aktiv
+                ? '0 0 0 3px rgba(250,230,0,.3), 0 3px 12px rgba(250,230,0,.4)'
+                : fertig ? '0 2px 6px rgba(0,135,90,.35)'
+                : naechster ? '0 0 0 1px rgba(255,255,255,.2)' : 'none';
+              return (
+                <div
+                  key={s.id}
+                  onClick={() => waehleSchritt(s)}
+                  title={`${s.nr}. ${s.label}`}
+                  style={{
+                    width: size, height: size, borderRadius: '50%',
+                    background: bg, color,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: aktiv ? 15 : size <= 26 ? 11 : 13,
+                    fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                    transition: 'all .2s', userSelect: 'none',
+                    boxShadow: shadow,
+                    animation: aktiv ? 'stepPulse 2s ease-in-out infinite' : 'none',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  {fertig ? '✓' : s.nr}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Progress % footer */}
+          <div style={{ width: '100%', padding: '8px 0 10px', borderTop: '0.5px solid rgba(255,255,255,.1)', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ fontSize: 9, fontWeight: 900, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+              {gesamtPct}%
+            </div>
+          </div>
         </div>
 
         {/* Right content area */}
@@ -285,63 +340,3 @@ export default function ProzessFlowV3({
   );
 }
 
-function TimelinePhase({ phase, prozessDaten, aktiverSchritt, waehleSchritt, isLast }) {
-  return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      {/* Phase label */}
-      <div style={{ fontSize: 8, fontWeight: 800, color: phase.color, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6, opacity: 0.85 }}>
-        {phase.label.slice(0, 3)}
-      </div>
-
-      {phase.schritte.map((schritt, si) => {
-        const fertig = schritt.istFertig(prozessDaten);
-        const aktiv  = schritt.id === aktiverSchritt;
-        const isLastInPhase = si === phase.schritte.length - 1;
-        const circleColor = fertig ? 'var(--success)' : aktiv ? phase.color : 'var(--bg-elevated)';
-        const textColor   = fertig || aktiv ? 'var(--text-inverse)' : 'var(--text-tertiary)';
-        const borderColor = fertig ? 'var(--success)' : aktiv ? phase.color : 'var(--border-medium)';
-
-        return (
-          <div key={schritt.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-            {/* Step circle */}
-            <button
-              onClick={() => waehleSchritt(schritt)}
-              title={`${schritt.nr}. ${schritt.label}`}
-              style={{
-                width: aktiv ? 32 : 26, height: aktiv ? 32 : 26,
-                borderRadius: '50%',
-                border: `2px solid ${borderColor}`,
-                background: circleColor,
-                color: textColor,
-                fontSize: aktiv ? 12 : 10,
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'var(--font-sans)',
-                transition: 'all .2s',
-                flexShrink: 0,
-                boxShadow: aktiv ? `0 0 0 3px ${phase.color}30` : 'none',
-                position: 'relative',
-                zIndex: 1,
-              }}
-            >
-              {fertig ? '✓' : schritt.nr}
-            </button>
-
-            {/* Connector line — between steps and between phases */}
-            {(!isLastInPhase || !isLast) && (
-              <div style={{
-                width: 2,
-                height: isLastInPhase ? 14 : 10,
-                background: fertig ? 'var(--success)' : 'var(--border-light)',
-                borderRadius: 1,
-                margin: '3px 0',
-                flexShrink: 0,
-              }} />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}

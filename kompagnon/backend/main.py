@@ -1683,6 +1683,9 @@ app.include_router(kas_router)
 from routers.geo import router as geo_router
 app.include_router(geo_router)
 
+from routers.geo_payments import router as geo_payments_router
+app.include_router(geo_payments_router)
+
 
 # Global exception handler — catches unhandled errors
 @app.exception_handler(Exception)

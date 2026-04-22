@@ -882,6 +882,15 @@ class GeoAnalysis(Base):
     monitoring_enabled = Column(Boolean, default=True)
     last_score_change = Column(Integer, nullable=True)
 
+    # Stripe Subscription
+    stripe_subscription_id = Column(String(200), nullable=True)
+    stripe_customer_id = Column(String(200), nullable=True)
+    stripe_price_id = Column(String(200), nullable=True)
+    subscription_status = Column(String(50), nullable=True)
+    subscription_started_at = Column(DateTime, nullable=True)
+    subscription_canceled_at = Column(DateTime, nullable=True)
+    subscription_current_period_end = Column(DateTime, nullable=True)
+
 
 def init_db():
     """Create all tables."""

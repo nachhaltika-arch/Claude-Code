@@ -185,3 +185,88 @@ def set_upsell(
         "upsell_active": analysis.upsell_active,
         "upsell_price": analysis.upsell_price,
     }
+
+
+# ── Dateien generieren ───────────────────────────────────────────────────────
+
+@router.post("/{project_id}/generate")
+async def generate_geo_files(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Generiert alle GEO-Optimierungsdateien (llms.txt, schema.org, Ground Page)."""
+    from services.geo_generator import GeoGeneratorAgent
+
+    analysis = db.query(GeoAnalysis).filter(GeoAnalysis.project_id == project_id).first()
+    if not analysis or analysis.status != "done":
+        raise HTTPException(
+            status_code=400,
+            detail="Bitte zuerst GEO-Analyse abschliessen (POST /analyze)",
+        )
+
+    project_data = _get_project_data(project_id, db)
+    project = db.query(Project).filter(Project.id == project_id).first()
+    lead = project.lead
+
+    briefing = {}
+    try:
+        from database import Briefing
+        b = db.query(Briefing).filter(Briefing.lead_id == lead.id).first()
+        if b:
+            briefing = {
+                "leistungen": getattr(b, "leistungen", "") or "",
+                "usp": getattr(b, "usp", "") or "",
+                "strasse": getattr(b, "strasse", "") or "",
+                "plz": getattr(b, "plz", "") or "",
+            }
+    except Exception:
+        pass
+
+    leistungen = []
+    raw = briefing.get("leistungen", "") or ""
+    if raw:
+        leistungen = [l.strip() for l in raw.split(",") if l.strip()]
+
+    blocked_bots = []
+    raw_checks = analysis.raw_checks or {}
+    if raw_checks.get("robots_ai"):
+        blocked_bots = raw_checks["robots_ai"].get("blocked_bots", [])
+
+    generator = GeoGeneratorAgent(api_key=ANTHROPIC_API_KEY)
+    files = generator.generate_all(
+        company_name=getattr(lead, "company_name", "") or "",
+        gewerk=project_data["gewerk"],
+        city=project_data["city"],
+        leistungen=leistungen,
+        usp=briefing.get("usp", ""),
+        phone=getattr(lead, "phone", "") or "",
+        email=getattr(lead, "email", "") or "",
+        website_url=project_data["website_url"],
+        street=briefing.get("strasse", "") or getattr(lead, "street", "") or "",
+        postal_code=briefing.get("plz", "") or getattr(lead, "postal_code", "") or "",
+        blocked_bots=blocked_bots,
+    )
+
+    analysis.generated_files = files
+    analysis.updated_at = datetime.utcnow()
+    db.commit()
+
+    return {
+        "status": "ok",
+        "files_generated": list(files.keys()),
+        "message": "Dateien generiert — im GEO-Tab abrufbar",
+    }
+
+
+@router.get("/{project_id}/files")
+def get_geo_files(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Gibt alle generierten GEO-Dateien zurueck."""
+    analysis = db.query(GeoAnalysis).filter(GeoAnalysis.project_id == project_id).first()
+    if not analysis or not analysis.generated_files:
+        return {"files": {}, "message": "Noch keine Dateien generiert"}
+    return {"files": analysis.generated_files}

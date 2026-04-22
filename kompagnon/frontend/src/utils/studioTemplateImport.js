@@ -23,20 +23,41 @@ export async function parseTemplateFile(file) {
       const files = Object.keys(zip.files);
 
       const gjsFile = files.find(
-        f => f.endsWith('.grapesjs') || f.endsWith('grapesjs.json'),
+        f => (f.endsWith('.grapesjs') || f.endsWith('grapesjs.json')) && !zip.files[f].dir,
       );
       if (gjsFile) {
         const text = await zip.files[gjsFile].async('string');
-        return { success: true, project: JSON.parse(text), source: 'zip-grapesjs' };
+        let project;
+        try {
+          project = JSON.parse(text);
+        } catch {
+          // fall through to HTML path
+        }
+        if (project) {
+          const cssEntry = files.find(
+            f => (f === 'style.css' || f.endsWith('/style.css')) && !zip.files[f].dir,
+          );
+          const css = cssEntry ? await zip.files[cssEntry].async('string') : '';
+          return { success: true, project, source: 'zip-grapesjs', css };
+        }
       }
 
-      const htmlFile = files.find(f => f.endsWith('index.html'));
-      const cssFile  = files.find(f => f.endsWith('style.css'));
+      const htmlFile = files.find(
+        f => (f === 'index.html' || f.endsWith('/index.html')) && !zip.files[f].dir,
+      );
+      const cssEntry = files.find(
+        f => (f === 'style.css' || f.endsWith('/style.css')) && !zip.files[f].dir,
+      );
       if (htmlFile) {
-        const html = await zip.files[htmlFile].async('string');
-        const css  = cssFile ? await zip.files[cssFile].async('string') : '';
-        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        const bodyHtml  = bodyMatch ? bodyMatch[1].trim() : html;
+        const html    = await zip.files[htmlFile].async('string');
+        const extCss  = cssEntry ? await zip.files[cssEntry].async('string') : '';
+        const bodyMatch   = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        const bodyHtml    = bodyMatch ? bodyMatch[1].trim() : html;
+        // Collect inline <style> blocks from <head>
+        const headStyles  = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
+          .map(m => m[1])
+          .join('\n');
+        const css = [extCss, headStyles].filter(Boolean).join('\n\n');
         return {
           success: true,
           source:  'zip-html',
@@ -64,8 +85,10 @@ export function applyTemplateToEditor(editor, parsed) {
   if (typeof editor.loadProjectData === 'function') {
     try {
       editor.loadProjectData(parsed.project);
+      // Append extra CSS (e.g. style.css from ZIP) without overwriting project styles
       if (parsed.css) {
-        editor.setStyle?.(parsed.css);
+        const existing = editor.getCss?.() || '';
+        editor.setStyle?.(existing + '\n\n' + parsed.css);
       }
       return;
     } catch {

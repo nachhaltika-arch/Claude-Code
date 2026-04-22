@@ -158,7 +158,11 @@ export default function GrapesEditor({
       const parsed = await parseTemplateFile(file);
       if (!parsed.success) throw new Error(parsed.error);
       applyTemplateToEditor(editorRef.current, parsed);
-      toast.success('Template importiert');
+      toast.success(
+        parsed.source === 'zip-grapesjs'
+          ? '✓ GrapesJS-Projekt geladen — alle Komponenten & Styles importiert'
+          : '✓ HTML + CSS geladen',
+      );
     } catch (err) { toast.error(err.message || 'Import fehlgeschlagen'); }
     setImporting(false);
   };

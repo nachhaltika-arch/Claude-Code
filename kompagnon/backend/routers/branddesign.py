@@ -86,6 +86,12 @@ def get_brand_data(lead_id: int, db: Session = Depends(get_db)):
         except Exception:
             pass
 
+    fonts_detail = None
+    raw_fd = getattr(lead, 'brand_fonts_detail', None)
+    if raw_fd:
+        try: fonts_detail = json.loads(raw_fd)
+        except Exception: pass
+
     return {
         "lead_id":         lead_id,
         "primary_color":   lead.brand_primary_color,
@@ -109,6 +115,7 @@ def get_brand_data(lead_id: int, db: Session = Depends(get_db)):
         "ga_checked_at":     str(lead.ga_checked_at or '')[:16] or None,
         "design_data":       design_data,
         "design_tokens":     design_tokens,
+        "fonts_detail":      fonts_detail,
     }
 
 
@@ -160,42 +167,57 @@ def update_brand_design(lead_id: int, body: dict, db: Session = Depends(get_db))
 
 @router.post("/{lead_id}/suggest-fonts")
 async def suggest_fonts(lead_id: int, db: Session = Depends(get_db)):
-    """Schlägt passende Google Fonts basierend auf dem Brand-Stil vor."""
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(404, "Lead nicht gefunden")
+    if not lead: raise HTTPException(404, "Lead nicht gefunden")
 
-    style = getattr(lead, 'brand_design_style', '') or ''
-    trade = getattr(lead, 'trade', '') or ''
-    existing_fonts = json.loads(getattr(lead, 'brand_fonts', '[]') or '[]')
+    fd = {}
+    try: fd = json.loads(getattr(lead, 'brand_fonts_detail', '') or '{}')
+    except Exception: pass
+
+    detected_heading = getattr(lead, 'brand_font_heading', None) or fd.get('heading') or ''
+    detected_body    = getattr(lead, 'brand_font_body',    None) or fd.get('body')    or ''
+    detected_accent  = getattr(lead, 'brand_font_accent',  None) or fd.get('accent')  or ''
+    google_fonts     = fd.get('google_fonts', [])
 
     api_key = os.getenv("ANTHROPIC_API_KEY", "")
     if not api_key:
-        fallback = [
-            {"name": "Inter", "category": "Sans-Serif", "use": "Fließtext"},
-            {"name": "Space Grotesk", "category": "Sans-Serif", "use": "Überschriften"},
-            {"name": "DM Sans", "category": "Sans-Serif", "use": "Interface"},
-        ]
-        return {"suggestions": fallback, "source": "fallback"}
+        return {"heading": {"name": "Playfair Display", "reason": "Klassisch für Handwerk"},
+                "body":    {"name": "Inter",            "reason": "Modern, gut lesbar"},
+                "accent":  {"name": "Barlow Condensed", "reason": "Kraftvoll für CTAs"},
+                "source": "fallback"}
 
-    prompt = f"""Du bist ein Typografie-Experte. Empfiehl 4-6 Google Fonts für einen Handwerksbetrieb.
-Gewerk: {trade or 'unbekannt'}, Stil: {style or 'Modern'}, Fonts bisher: {', '.join(existing_fonts) if existing_fonts else 'keine'}.
-Antworte NUR als JSON-Array: [{{"name":"Font","category":"Sans-Serif|Serif|Display","use":"Überschriften|Fließtext|Interface","reason":"Kurz"}}]"""
+    prompt = (
+        f"Du bist Typografie-Experte für Handwerksbetriebe.\n"
+        f"KUNDE: {lead.company_name} | Gewerk: {getattr(lead, 'trade', '')}\n"
+        f"ERKANNT AUF ALTER WEBSITE: heading={detected_heading or 'unbekannt'}, "
+        f"body={detected_body or 'unbekannt'}, accent={detected_accent or 'unbekannt'}\n"
+        f"Google Fonts: {', '.join(google_fonts) or 'keine'}\n\n"
+        f"Empfehle 3 Google Fonts (heading/body/accent) für die NEUE Website.\n"
+        f"Antworte NUR als JSON: "
+        f'{{"heading":{{"name":"...","category":"...","reason":"..."}},'
+        f'"body":{{"name":"...","category":"...","reason":"..."}},'
+        f'"accent":{{"name":"...","category":"...","reason":"..."}},'
+        f'"pairing_note":"..."}}'
+    )
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-20250514", "max_tokens": 800, "messages": [{"role": "user", "content": prompt}]},
+                json={"model": "claude-sonnet-4-20250514", "max_tokens": 500,
+                      "messages": [{"role": "user", "content": prompt}]},
             )
         resp.raise_for_status()
-        content = resp.json()["content"][0]["text"].strip()
-        content = re.sub(r'^```json\s*', '', content)
-        content = re.sub(r'\s*```$', '', content)
-        return {"suggestions": json.loads(content), "source": "claude"}
+        text = resp.json()["content"][0]["text"].strip()
+        text = re.sub(r'^```json\s*|\s*```$', '', text)
+        result = json.loads(text)
+        result["source"] = "claude"
+        result["detected"] = {"heading": detected_heading, "body": detected_body,
+                              "accent": detected_accent, "google_fonts": google_fonts}
+        return result
     except Exception as e:
-        raise HTTPException(500, f"Font-Recherche fehlgeschlagen: {str(e)[:100]}")
+        raise HTTPException(500, f"Font-Vorschläge fehlgeschlagen: {str(e)[:100]}")
 
 
 def _extract_font_roles(css_text: str, html_text: str) -> dict:
@@ -309,6 +331,9 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
 
     scrape_failed = False
     primary_color = secondary_color = font_primary = font_secondary = logo_url = None
+    font_heading = font_body_val = font_accent = None
+    google_fonts: list[str] = []
+    font_roles: dict = {}
     all_colors: list[str] = []
     all_fonts:  list[str] = []
 
@@ -332,7 +357,6 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
 
         # Colors
         hex_colors = re.findall(r'#([0-9a-fA-F]{6})', html_text)
-        fonts = re.findall(r"font-family:\s*['\"]?(.*?)['\"]?\s*[;,{]", html_text)
 
         # Deduplicate colors, skip pure black/white
         skip = {'000000', 'ffffff', 'ff0000', '00ff00', '0000ff'}
@@ -347,20 +371,22 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
         primary_color = primary
         secondary_color = all_colors[1] if len(all_colors) > 1 else None
 
-        # Fonts — deduplicate, skip generic families
-        generic = {'inherit', 'initial', 'unset', 'serif', 'sans-serif',
-                   'monospace', 'cursive', 'fantasy', 'system-ui'}
-        seen_f: set[str] = set()
-        for f in fonts:
-            name = f.strip().strip("'\"").split(',')[0].strip()
-            if name and name.lower() not in generic and name not in seen_f:
-                seen_f.add(name)
-                all_fonts.append(name)
-        all_fonts = all_fonts[:6]
+        # ── Fonts: Rollen-Analyse ──────────────────────────────────────────────
+        external_css = await _fetch_external_css(html_text, website_url)
+        combined_css = html_text + '\n' + external_css
 
-        if all_fonts:
-            font_primary   = all_fonts[0]
-            font_secondary = all_fonts[1] if len(all_fonts) > 1 else None
+        font_roles    = _extract_font_roles(combined_css, html_text)
+        font_heading  = font_roles.get("heading")
+        font_body_val = font_roles.get("body")
+        font_accent   = font_roles.get("accent")
+        all_fonts     = font_roles.get("all", [])[:6]
+        google_fonts  = font_roles.get("google_fonts", [])
+
+        # Rückwärtskompatibilität
+        font_primary   = font_heading or (all_fonts[0] if all_fonts else None)
+        font_secondary = font_body_val or (all_fonts[1] if len(all_fonts) > 1 else None)
+
+        logger.info(f"Font-Analyse {website_url}: heading={font_heading}, body={font_body_val}, accent={font_accent}, google={google_fonts}")
 
         # Logo
         from bs4 import BeautifulSoup
@@ -480,6 +506,17 @@ async def scrape_brand(lead_id: int, db: Session = Depends(get_db)):
     lead.brand_logo_url        = logo_url
     lead.brand_colors          = json.dumps(all_colors)
     lead.brand_fonts           = json.dumps(all_fonts)
+    _set(lead, 'brand_font_heading', font_heading)
+    _set(lead, 'brand_font_body',    font_body_val)
+    _set(lead, 'brand_font_accent',  font_accent)
+    _set(lead, 'brand_fonts_detail', json.dumps({
+        "heading": font_heading, "body": font_body_val, "accent": font_accent,
+        "google_fonts": google_fonts, "all": all_fonts,
+        "heading_candidates": font_roles.get("heading_candidates", []),
+        "body_candidates":    font_roles.get("body_candidates", []),
+        "accent_candidates":  font_roles.get("accent_candidates", []),
+        "source": font_roles.get("source", "unknown"),
+    }, ensure_ascii=False))
     lead.brand_scrape_failed   = scrape_failed
     lead.brand_scraped_at      = now
     if design_data:

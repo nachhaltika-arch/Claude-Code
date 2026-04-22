@@ -31,7 +31,7 @@ else:
             "keepalives_idle": 30,
             "keepalives_interval": 5,
             "keepalives_count": 3,
-            "options": "-c statement_timeout=30000",  # 30s Query-Timeout
+            "options": "-c statement_timeout=10000",  # 10s Query-Timeout
         },
     )
 

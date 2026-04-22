@@ -10,6 +10,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import OperationalError
 from pydantic import BaseModel
 
 from database import User, UserSession, get_db
@@ -36,7 +37,11 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     payload = decode_token(token)
     if payload.get("type") == "2fa_temp":
         raise HTTPException(401, "2FA-Verifizierung erforderlich")
-    user = db.query(User).filter(User.id == payload.get("user_id")).first()
+    try:
+        user = db.query(User).filter(User.id == payload.get("user_id")).first()
+    except OperationalError:
+        db.rollback()
+        raise HTTPException(503, "Datenbankverbindung temporär nicht verfügbar. Bitte erneut versuchen.")
     if not user or not user.is_active:
         raise HTTPException(401, "Nicht autorisiert")
     return user

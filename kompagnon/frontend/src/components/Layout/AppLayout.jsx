@@ -859,21 +859,23 @@ export default function AppLayout() {
   };
   const cta = ctaMap[location.pathname];
 
+  const hideSidebar = /^\/app\/projects\/\d+/.test(location.pathname);
+
   return (
     <div style={{ height: '100vh', overflow: 'hidden', display: 'flex' }}>
-      {/* Sidebar — desktop only */}
-      {!isMobile && user && <SidebarNav badges={badges} />}
+      {/* Sidebar — desktop only, hidden on project process route */}
+      {!isMobile && user && !hideSidebar && <SidebarNav badges={badges} />}
 
       {/* Main area */}
       <div style={{
         flex: 1,
         minWidth: 0,
-        marginLeft: !isMobile && user ? 'var(--sidebar-width)' : 0,
+        marginLeft: !isMobile && user && !hideSidebar ? 'var(--sidebar-width)' : 0,
         display: 'flex', flexDirection: 'column',
         height: '100vh', overflow: 'hidden',
       }}>
-        {/* Topbar — desktop only */}
-        {!isMobile && (
+        {/* Topbar — desktop only, hidden on project process route (breadcrumb is inside ProzessFlowV3) */}
+        {!isMobile && !hideSidebar && (
           <Topbar
             breadcrumbs={breadcrumbs}
             ctaLabel={cta?.label}

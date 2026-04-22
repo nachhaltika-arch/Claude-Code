@@ -108,7 +108,7 @@ export default function ProzessFlowV3({
   const companyName = lead?.company_name || project?.company_name || '';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg-surface)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'var(--bg-surface)' }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes stepPulse {

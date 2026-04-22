@@ -44,8 +44,8 @@ const SCHRITTE = [
     cta: 'Vollanalyse starten →',
     desc: 'Crawler, Brand-Farben und PageSpeed werden gleichzeitig gemessen.',
     component: 'AnalyseZentrale',
-    istFertig: (d) => (d.crawlPages || 0) >= 3 && !!(d.brandPrimaryColor),
-    fertigText: (d) => `${d.crawlPages} Seiten · Brand erkannt`,
+    istFertig: (d) => !!(d.analyseZentraleConfirmed) || ((d.crawlPages || 0) >= 3 && !!(d.brandPrimaryColor)),
+    fertigText: (d) => d.analyseZentraleConfirmed ? 'Analyse abgeschlossen' : `${d.crawlPages} Seiten · Brand erkannt`,
   },
   {
     id: 'briefing-website', nr: 4, phase: 'Analyse',
@@ -173,6 +173,13 @@ export default function ProzessFlowV3({
     }).then(r => r.ok ? r.json() : {}).then(data => setConfirmedSteps(data || {})).catch(() => {});
   }, [project?.id]); // eslint-disable-line
 
+  const handleStepConfirmed = useCallback((stepId) => {
+    setConfirmedSteps(prev => ({
+      ...prev,
+      [stepId]: { confirmed: true, confirmed_at: new Date().toISOString() },
+    }));
+  }, []);
+
   const handleAnalyseUpdate = useCallback((data) => {
     if (data.crawlPages != null) setLocalCrawlPages(data.crawlPages);
     if (data.brandPrimaryColor) setLocalBrandColor(data.brandPrimaryColor);
@@ -197,6 +204,7 @@ export default function ProzessFlowV3({
     latestAudit:       localLatestAudit,
     crawlPages:        localCrawlPages || 0,
     brandPrimaryColor: localBrandData?.primary_color || localBrandColor || null,
+    analyseZentraleConfirmed: !!(confirmedSteps['analyse-zentrale']?.confirmed),
     brandGuidelineDone: !!(localBrandData?.guideline_generated || localBrandData?.design_tokens) || !!(confirmedSteps['brand-guideline']?.confirmed),
     seoBestaetigt: !!(confirmedSteps['seo-ziele']?.confirmed) || (() => {
       try {
@@ -391,9 +399,11 @@ export default function ProzessFlowV3({
               latestAudit={localLatestAudit} onAuditComplete={handleAuditComplete}
               onAnalyseUpdate={handleAnalyseUpdate} onSitemapReload={onSitemapReload}
               sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
-              websiteContent={websiteContent} brandData={brandData}
+              websiteContent={websiteContent} brandData={localBrandData}
               netlify={netlify} qaResult={qaResult}
               onProjectRefresh={onProjectRefresh}
+              confirmedSteps={confirmedSteps}
+              onStepConfirmed={handleStepConfirmed}
             />
           )}
 
@@ -406,12 +416,18 @@ export default function ProzessFlowV3({
             )}
             {aktivObj.istFertig(prozessDaten) ? (
               aktivIdx < SCHRITTE.length - 1 && (
-                <button onClick={goWeiter} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
+                <button onClick={goWeiter} style={{ flex: 1, background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
                   Weiter →
                 </button>
               )
-            ) : !aktivObj.auto && (
-              <button style={{ background: '#FAE600', color: '#000', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'default', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
+            ) : confirmedSteps[aktivObj.id]?.confirmed ? (
+              aktivIdx < SCHRITTE.length - 1 && (
+                <button onClick={goWeiter} style={{ flex: 1, background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
+                  ✓ Abgeschlossen — Weiter →
+                </button>
+              )
+            ) : !aktivObj.auto && aktivObj.cta && (
+              <button style={{ flex: 1, background: '#FAE600', color: '#000', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'default', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
                 {aktivObj.cta}
               </button>
             )}
@@ -470,6 +486,7 @@ function SchrittContent({
   localBriefing, reloadBriefing, latestAudit, onAuditComplete,
   onAnalyseUpdate, onSitemapReload, sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult, onProjectRefresh,
+  confirmedSteps, onStepConfirmed,
 }) {
   const pad = { padding: '16px 0' };
 
@@ -490,6 +507,9 @@ function SchrittContent({
           projectId={project?.id} leadId={leadId}
           websiteUrl={lead?.website_url || project?.website_url}
           token={token} onDataUpdate={onAnalyseUpdate}
+          stepId="analyse-zentrale"
+          confirmedSteps={confirmedSteps}
+          onStepConfirmed={onStepConfirmed}
         />
       );
 

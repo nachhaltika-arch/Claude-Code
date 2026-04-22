@@ -127,10 +127,11 @@ function buildSteps(projectId, leadId, websiteUrl, headers) {
 
 // ── Haupt-Komponente ─────────────────────────────────────────────────────────
 
-export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, onDataUpdate }) {
+export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, onDataUpdate, stepId, confirmedSteps, onStepConfirmed }) {
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
   const [running, setRunning]         = useState(false);
+  const [confirmingStep, setConfirmingStep] = useState(false);
   const [currentStep, setCurrentStep] = useState(-1);
   const [stepProgress, setStepProgress] = useState(0);
   const [stepResults, setStepResults]     = useState({});
@@ -843,6 +844,58 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
           <div style={{ fontSize: 36, marginBottom: 12 }}>🔬</div>
           <div style={{ fontWeight: 600, marginBottom: 6 }}>Noch keine Analyse gestartet</div>
           <div>Alle Analysen starten um Daten zu erfassen.</div>
+        </div>
+      )}
+
+      {/* Schritt abschließen — erscheint wenn Analyse-Daten vorhanden */}
+      {!running && (pages.length > 0 || doneCount > 0) && onStepConfirmed && stepId && (
+        <div style={{ paddingTop: 16, borderTop: '0.5px solid var(--border-light)' }}>
+          {confirmedSteps?.[stepId]?.confirmed ? (
+            <div style={{
+              padding: '10px 14px', background: '#E3F6EF',
+              border: '0.5px solid #00875A33', borderRadius: 8,
+              fontSize: 12, fontWeight: 700, color: '#00875A',
+            }}>
+              ✓ Analyse-Zentrale abgeschlossen
+            </div>
+          ) : (
+            <button
+              onClick={async () => {
+                if (!projectId || confirmingStep) return;
+                setConfirmingStep(true);
+                try {
+                  const res = await fetch(
+                    `${API_BASE_URL}/api/projects/${projectId}/confirm-step`,
+                    {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', ...headers },
+                      body: JSON.stringify({ step_id: stepId }),
+                    }
+                  );
+                  if (!res.ok) throw new Error();
+                  toast.success('Analyse-Zentrale abgeschlossen ✓');
+                  onStepConfirmed(stepId);
+                } catch {
+                  toast.error('Fehler beim Speichern');
+                } finally {
+                  setConfirmingStep(false);
+                }
+              }}
+              disabled={confirmingStep}
+              style={{
+                width: '100%', padding: '12px',
+                background: '#FAE600', color: '#000',
+                border: 'none', borderRadius: 8,
+                fontSize: 13, fontWeight: 900,
+                cursor: confirmingStep ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)',
+                textTransform: 'uppercase', letterSpacing: '.05em',
+                opacity: confirmingStep ? 0.7 : 1,
+              }}
+            >
+              {confirmingStep ? 'Wird gespeichert…' : '✓ Analyse abschließen & weiter →'}
+            </button>
+          )}
         </div>
       )}
     </div>

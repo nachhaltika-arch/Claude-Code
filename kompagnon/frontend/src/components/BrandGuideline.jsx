@@ -5,11 +5,12 @@ import { useConfirmStep } from '../hooks/useConfirmStep';
 
 const TABS = ['Farben', 'Typografie', 'Abstände', 'Komponenten', 'Vorschau', 'Export'];
 
-export default function BrandGuideline({ project, lead, token, leadId, brandData, projectId, onStepConfirmed, onGuidelineGenerated }) {
+export default function BrandGuideline({ project, lead, token, leadId, brandData, projectId, onStepConfirmed, onGuidelineGenerated, confirmedSteps }) {
   const [activeTab, setActiveTab] = useState('Farben');
   const [guideline, setGuideline]   = useState(null);
   const [loading, setLoading]       = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [confirmed, setConfirmed]   = useState(() => !!(confirmedSteps?.['brand-guideline']?.confirmed));
   const { confirmStep, loading: confirming } = useConfirmStep({ projectId: projectId || project?.id, token });
 
   const headers = {
@@ -129,20 +130,33 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
               {generating ? '⏳' : '↻ Neu generieren'}
             </button>
             {(projectId || project?.id) && (
-              <button
-                onClick={() => confirmStep('brand-guideline', onStepConfirmed)}
-                disabled={confirming}
-                style={{
-                  background: '#FAE600', color: '#004F59',
-                  border: 'none', borderRadius: 6,
-                  padding: '5px 14px', fontSize: 11, fontWeight: 900,
-                  cursor: confirming ? 'not-allowed' : 'pointer',
-                  fontFamily: 'var(--font-sans)',
-                  opacity: confirming ? 0.7 : 1,
-                }}
-              >
-                {confirming ? '⏳' : '✓ Schritt abschließen →'}
-              </button>
+              confirmed ? (
+                <div style={{
+                  fontSize: 11, fontWeight: 700, color: '#00875A',
+                  padding: '5px 12px', borderRadius: 6,
+                  background: '#E3F6EF', border: '0.5px solid #00875A33',
+                }}>
+                  ✓ Guideline abgeschlossen
+                </div>
+              ) : (
+                <button
+                  onClick={() => confirmStep('brand-guideline', (stepId) => {
+                    setConfirmed(true);
+                    if (onStepConfirmed) onStepConfirmed(stepId);
+                  })}
+                  disabled={confirming}
+                  style={{
+                    background: '#FAE600', color: '#004F59',
+                    border: 'none', borderRadius: 6,
+                    padding: '5px 14px', fontSize: 11, fontWeight: 900,
+                    cursor: confirming ? 'not-allowed' : 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    opacity: confirming ? 0.7 : 1,
+                  }}
+                >
+                  {confirming ? '⏳' : '✓ Schritt abschließen →'}
+                </button>
+              )
             )}
           </div>
         </div>

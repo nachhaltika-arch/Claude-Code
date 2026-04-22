@@ -688,6 +688,7 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
             leadId={leadId}
             brandData={localBrandData}
             projectId={project?.id}
+            confirmedSteps={confirmedSteps}
             onGuidelineGenerated={() => {
               setLocalBrandData(prev => ({ ...prev, guideline_generated: true }));
               if (onBrandUpdate) onBrandUpdate({ guideline_generated: true });

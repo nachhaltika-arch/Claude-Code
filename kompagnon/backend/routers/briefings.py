@@ -455,3 +455,114 @@ def prefill_funktionen(
             "quelle":       "Crawler" if detected_tools else None,
         },
     }
+
+
+@router.post("/{lead_id}/ki-prefill-seo")
+async def ki_prefill_seo(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Generates SEO keywords via Claude, reads Google Business status and social media from crawler."""
+    import os, httpx, json as _json, re as _re
+
+    lead     = db.query(Lead).filter(Lead.id == lead_id).first()
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    gewerk     = (briefing.gewerk     if briefing else "") or getattr(lead, "trade", "") or "Handwerk"
+    leistungen = (briefing.leistungen if briefing else "") or ""
+    city       = getattr(lead, "city", "") or "Deutschland"
+    einzug     = (briefing.einzugsgebiet if briefing else "") or city
+
+    ga_status = getattr(lead, "ga_status", None) or "unbekannt"
+    ga_type   = getattr(lead, "ga_type",   None) or ""
+
+    # Google Business — detect via crawler
+    gb_status = "unbekannt"
+    try:
+        rows = db.execute(
+            text("SELECT full_text FROM website_content_cache WHERE customer_id=:id LIMIT 5"),
+            {"id": lead_id},
+        ).fetchall()
+        full_text = " ".join(r[0] or "" for r in rows).lower()
+        if _re.search(r"maps\.google|goo\.gl/maps|google\.com/maps", full_text):
+            gb_status = "Vorhanden (Link auf Website gefunden)"
+        elif _re.search(r"google business|google my business", full_text):
+            gb_status = "Wahrscheinlich vorhanden"
+    except Exception:
+        pass
+
+    # Social media — detect via crawler URLs + text
+    social_found = []
+    try:
+        rows = db.execute(
+            text("SELECT full_text, url FROM website_content_cache WHERE customer_id=:id LIMIT 5"),
+            {"id": lead_id},
+        ).fetchall()
+        all_text = " ".join((r[0] or "") + " " + (r[1] or "") for r in rows).lower()
+        SOCIAL_PATTERNS = {
+            "Facebook":      r"facebook\.com/",
+            "Instagram":     r"instagram\.com/",
+            "LinkedIn":      r"linkedin\.com/",
+            "YouTube":       r"youtube\.com/",
+            "TikTok":        r"tiktok\.com/",
+            "Pinterest":     r"pinterest\.",
+            "X/Twitter":     r"twitter\.com/|x\.com/",
+            "Xing":          r"xing\.com/",
+        }
+        for name, pat in SOCIAL_PATTERNS.items():
+            if _re.search(pat, all_text):
+                social_found.append(name)
+    except Exception:
+        pass
+
+    # Keywords via Claude
+    api_key  = os.getenv("ANTHROPIC_API_KEY", "")
+    keywords = []
+    if api_key:
+        prompt = (
+            f"Generiere die Top 5 Google-Suchbegriffe für diesen Handwerksbetrieb.\n"
+            f"Gewerk: {gewerk} | Stadt: {city} | Einzugsgebiet: {einzug}\n"
+            f"Leistungen: {leistungen}\n\n"
+            f"Regel: Immer nach Muster \"{{Leistung}} {{Stadt}}\" und \"{{Leistung}} {{Region}}\".\n"
+            f"Füge 1-2 Notfall/Spezial-Keywords hinzu wenn relevant.\n\n"
+            f"Antworte NUR als JSON-Array: [\"keyword1\", \"keyword2\", \"keyword3\", \"keyword4\", \"keyword5\"]"
+        )
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                resp = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
+                             "content-type": "application/json"},
+                    json={"model": "claude-sonnet-4-20250514", "max_tokens": 200,
+                          "messages": [{"role": "user", "content": prompt}]},
+                )
+            resp.raise_for_status()
+            raw = resp.json()["content"][0]["text"].strip()
+            raw = raw.replace("```json", "").replace("```", "").strip()
+            keywords = _json.loads(raw)
+        except Exception:
+            pass
+
+    if not keywords:
+        keywords = [f"{gewerk} {city}", f"{gewerk} {einzug}", f"{gewerk} {city} günstig"]
+
+    return {
+        "keywords":        keywords,
+        "keywords_quelle": "Claude + Gewerk/Stadt",
+        "google_business": {
+            "status": gb_status,
+            "quelle": "Crawler-Analyse",
+        },
+        "social_media": {
+            "gefunden": social_found,
+            "quelle":   f"{len(social_found)} Kanäle auf Website erkannt",
+            "auto":     True,
+        },
+        "ga_analytics": {
+            "status": ga_status,
+            "type":   ga_type,
+        },
+    }

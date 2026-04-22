@@ -413,10 +413,36 @@ async def generate_sitemap(
     # Step 1: Pflichtseiten immer zuerst sicherstellen
     _ensure_pflichtseiten(lead_id, db)
 
-    briefing   = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
-    gewerk     = (briefing.gewerk     if briefing and briefing.gewerk     else lead.trade)   or "Handwerk"
-    leistungen = (briefing.leistungen if briefing and briefing.leistungen else "")           or ""
-    city       = lead.city or "Deutschland"
+    briefing      = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    gewerk        = (getattr(briefing, "gewerk",        None) if briefing else None) or getattr(lead, "trade", None) or "Handwerk"
+    leistungen    = (getattr(briefing, "leistungen",    None) if briefing else None) or ""
+    einzugsgebiet = (getattr(briefing, "einzugsgebiet", None) if briefing else None) or getattr(lead, "city", None) or "Deutschland"
+    usp           = (getattr(briefing, "usp",           None) if briefing else None) or ""
+    zielgruppe    = (getattr(briefing, "zielgruppe",    None) if briefing else None) or "Privatkunden und Gewerbekunden"
+    wunschseiten  = (getattr(briefing, "wunschseiten",  None) if briefing else None) or ""
+    city          = getattr(lead, "city", None) or "Deutschland"
+    company       = getattr(lead, "company_name", None) or getattr(lead, "display_name", None) or ""
+
+    # Gecrawlte Seiten der alten Website laden
+    old_pages_summary = ""
+    try:
+        from sqlalchemy import text as _text
+        crawled = db.execute(
+            _text("""
+                SELECT url, h1, title
+                FROM website_content_cache
+                WHERE customer_id = :lid
+                ORDER BY scraped_at DESC
+                LIMIT 12
+            """),
+            {"lid": lead_id},
+        ).fetchall()
+        if crawled:
+            old_pages_summary = "Seiten der alten Website (gecrawlt):\n" + "\n".join(
+                [f"- {r[2] or r[1] or r[0]}" for r in crawled[:10]]
+            )
+    except Exception:
+        old_pages_summary = ""
 
     # Step 2: Nur Nicht-Pflichtseiten löschen
     db.query(SitemapPage).filter(
@@ -431,18 +457,41 @@ async def generate_sitemap(
     if not api_key:
         _insert_pages(lead_id, _FALLBACK_PAGES, db)
     else:
+        wunschseiten_hint = (
+            f"\nDer Kunde hat folgende Seiten gewünscht: {wunschseiten}"
+            if wunschseiten else ""
+        )
+        old_pages_hint = (
+            f"\n{old_pages_summary}"
+            if old_pages_summary else ""
+        )
         prompt = (
-            "Du bist ein Website-Stratege für Handwerksbetriebe.\n"
-            "Erstelle eine Sitemap mit 5-8 INHALTLICHEN Seiten für diesen Betrieb.\n"
-            "NICHT einschließen: Impressum, Datenschutz, AGB, Barrierefreiheit – "
-            "diese werden automatisch ergänzt.\n"
-            f"Gewerk: {gewerk}, Stadt: {city}, Leistungen: {leistungen}\n"
+            "Du bist ein Website-Stratege für deutsche Handwerksbetriebe.\n"
+            "Erstelle eine optimale Sitemap mit 5-8 INHALTLICHEN Seiten für diesen Betrieb.\n\n"
+            "WICHTIG — NICHT einschließen (werden automatisch ergänzt):\n"
+            "Impressum, Datenschutz, AGB, Barrierefreiheit, Cookie-Hinweise\n\n"
+            f"UNTERNEHMEN:\n"
+            f"- Firma: {company}\n"
+            f"- Gewerk/Branche: {gewerk}\n"
+            f"- Leistungen: {leistungen}\n"
+            f"- Region/Einzugsgebiet: {einzugsgebiet}\n"
+            f"- USP (Alleinstellungsmerkmal): {usp or '–'}\n"
+            f"- Zielgruppe: {zielgruppe}\n"
+            f"{wunschseiten_hint}"
+            f"{old_pages_hint}\n\n"
+            "REGELN FÜR DIE SITEMAP:\n"
+            "- Position 0 = Startseite (immer)\n"
+            "- Jede Hauptleistung bekommt eine eigene Seite (page_type='leistung')\n"
+            "- Vertrauensseite einplanen (Referenzen, Team, Über uns)\n"
+            "- Kontaktseite immer als letzte Inhaltsseite\n"
+            "- ziel_keyword auf die wichtigsten SEO-Begriffe abstimmen\n"
+            "- Branchenspezifisch denken: Was sucht die Zielgruppe wirklich?\n"
             "PFLICHT: Füge IMMER genau eine Seite mit page_type='ground' ein (position 99):\n"
             '{ "page_name": "Über uns & Informationen", "page_type": "ground", "position": 99, '
             '"zweck": "Maschinenlesbare Informationsseite für KI-Systeme (GEO-Optimierung)", '
-            f'"ziel_keyword": "{gewerk} {city} Informationen", '
-            '"cta_text": "Jetzt Kontakt aufnehmen", "cta_ziel": "kontakt", "parent_id": null }\n'
-            "Antworte NUR als JSON-Array:\n"
+            f'"ziel_keyword": "{gewerk} {einzugsgebiet} Informationen", '
+            '"cta_text": "Jetzt Kontakt aufnehmen", "cta_ziel": "kontakt", "parent_id": null }\n\n'
+            "Antworte NUR als JSON-Array — kein Markdown, keine Erklärungen:\n"
             '[{ "page_name": "", "page_type": "startseite|leistung|info|vertrauen|conversion|ground", '
             '"zweck": "", "ziel_keyword": "", "cta_text": "", "cta_ziel": "kontakt|formular|tel", '
             '"position": 0, "parent_id": null }]'

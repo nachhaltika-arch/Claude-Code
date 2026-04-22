@@ -505,9 +505,14 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
     case 'Sitemap':
       return (
         <div>
-          {sitemapPages.length === 0 && (
-            <SitemapKiVorschlag project={project} leadId={leadId} headers={headers} onGenerated={onSitemapReload} />
-          )}
+          <SitemapKiVorschlag
+            project={project}
+            leadId={leadId}
+            headers={headers}
+            onGenerated={onSitemapReload}
+            hasExistingPages={sitemapPages.length > 0}
+            existingCount={sitemapPages.filter(p => !p.ist_pflichtseite).length}
+          />
           {sitemapLoading ? <Spinner /> : (
             <SitemapEditorEmbed
               pages={sitemapPages}
@@ -1132,14 +1137,24 @@ function BriefingUnternehmenEmbed({ lead, localBriefing, reloadBriefing }) {
   );
 }
 
-function SitemapKiVorschlag({ project, leadId, headers, onGenerated }) {
-  const [loading, setLoading]       = useState(false);
-  const [done, setDone]             = useState(false);
-  const [error, setError]           = useState(null);
+function SitemapKiVorschlag({ project, leadId, headers, onGenerated, hasExistingPages, existingCount }) {
+  const [loading, setLoading]         = useState(false);
+  const [done, setDone]               = useState(false);
+  const [error, setError]             = useState(null);
   const [gateBlocked, setGateBlocked] = useState(false);
 
   const generate = async () => {
-    if (!leadId) { setError('Keine Lead-ID verfuegbar.'); return; }
+    if (!leadId) { setError('Keine Lead-ID verfügbar.'); return; }
+
+    if (hasExistingPages && existingCount > 0) {
+      const ok = window.confirm(
+        `Es gibt bereits ${existingCount} Inhaltsseiten in der Sitemap.\n\n` +
+        `Neu generieren? Die bestehenden Seiten (ohne Impressum/Datenschutz) ` +
+        `werden durch KI-Vorschläge aus dem aktuellen Briefing ersetzt.`
+      );
+      if (!ok) return;
+    }
+
     setLoading(true); setError(null); setGateBlocked(false);
     try {
       const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/generate`, { method: 'POST', headers });
@@ -1151,15 +1166,10 @@ function SitemapKiVorschlag({ project, leadId, headers, onGenerated }) {
       }
       setDone(true);
       if (onGenerated) onGenerated();
+      setTimeout(() => setDone(false), 3000);
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   };
-
-  if (done) return (
-    <div style={{ padding: '12px 18px', background: 'var(--status-success-bg)', borderRadius: 8, fontSize: 13, color: 'var(--status-success-text)', marginBottom: 12 }}>
-      Sitemap wurde generiert — wird geladen...
-    </div>
-  );
 
   if (gateBlocked) return (
     <div style={{ margin: '0 20px 16px', padding: '14px 18px', background: 'rgba(217,119,6,.06)', border: '1px solid rgba(217,119,6,.3)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -1176,17 +1186,64 @@ function SitemapKiVorschlag({ project, leadId, headers, onGenerated }) {
   );
 
   return (
-    <div style={{ margin: '0 20px 16px', padding: '14px 18px', background: 'rgba(0,142,170,.06)', border: '1px solid rgba(0,142,170,.25)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 14 }}>
-      <span style={{ fontSize: 28, flexShrink: 0 }}>🤖</span>
+    <div style={{
+      margin: '0 20px 16px',
+      padding: '14px 18px',
+      background: done
+        ? 'var(--status-success-bg)'
+        : hasExistingPages
+          ? 'rgba(124,58,237,.05)'
+          : 'rgba(0,142,170,.06)',
+      border: done
+        ? '1px solid var(--status-success-text)'
+        : hasExistingPages
+          ? '1px solid rgba(124,58,237,.25)'
+          : '1px solid rgba(0,142,170,.25)',
+      borderRadius: 10,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 14,
+    }}>
+      <span style={{ fontSize: 22, flexShrink: 0 }}>{done ? '✓' : '🤖'}</span>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>Noch keine Sitemap — KI-Vorschlag erstellen?</div>
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Claude analysiert Briefing und gecrawlte Seiten und erstellt eine passende Seitenstruktur.</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: done ? 'var(--status-success-text)' : 'var(--text-primary)', marginBottom: 3 }}>
+          {done
+            ? 'Sitemap wurde generiert!'
+            : hasExistingPages
+              ? 'Sitemap neu aus Briefing generieren'
+              : 'Noch keine Sitemap — KI-Vorschlag erstellen?'
+          }
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+          {done
+            ? 'Wird gleich angezeigt …'
+            : hasExistingPages
+              ? `${existingCount} bestehende Seiten werden durch KI-Vorschlag ersetzt · Briefing + Crawler-Daten + USP`
+              : 'Claude analysiert Briefing, USP, Zielgruppe und gecrawlte Seiten'
+          }
+        </div>
         {error && <div style={{ fontSize: 11, color: 'var(--status-danger-text)', marginTop: 6 }}>{error}</div>}
       </div>
-      <button onClick={generate} disabled={loading}
-        style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: loading ? 'var(--border-medium)' : 'var(--brand-primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-        {loading ? (<><span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Wird erstellt...</>) : 'KI-Sitemap erstellen'}
-      </button>
+      {!done && (
+        <button
+          onClick={generate}
+          disabled={loading}
+          style={{
+            padding: '9px 18px', borderRadius: 8, border: 'none',
+            background: loading
+              ? 'var(--border-medium)'
+              : hasExistingPages ? '#7c3aed' : 'var(--brand-primary)',
+            color: '#fff', fontSize: 12, fontWeight: 700,
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-sans)', flexShrink: 0,
+            display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+          }}
+        >
+          {loading ? (
+            <><span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite', display: 'inline-block' }} />Wird erstellt …</>
+          ) : hasExistingPages ? 'Neu generieren' : 'KI-Sitemap erstellen'}
+        </button>
+      )}
     </div>
   );
 }

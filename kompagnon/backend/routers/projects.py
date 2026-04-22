@@ -3922,22 +3922,35 @@ async def generate_design_json(
     phone   = getattr(lead, 'phone', '') or ''
 
     prompt = (
-        f"Du bist ein Webdesigner der eine Website-Seite als Block-JSON entwirft.\n\n"
+        f"Du bist ein erstklassiger Webdesigner für deutsche Handwerksbetriebe.\n\n"
         f"UNTERNEHMEN: {company} | Branche: {gewerk} | Region: {region} | USP: {usp} | Tel: {phone}\n"
         f"SEITE: {page_name} ({page_type}) | Keyword: {keyword or '—'} | Zweck: {zweck or '—'}\n"
-        f"STIL: {brand.get('style_keyword','Modern')} | {brand.get('design_brief',{}).get('fuer_ki_prompt','')}\n"
-        f"SEITEN FUER LINKS: {json.dumps(sitemap_list, ensure_ascii=False)}\n\n"
-        "VERFUEGBARE BLOECKE: hero, leistungen-grid, usp-balken, ueber-uns, cta-banner, kontakt-form, footer\n\n"
-        "REGELN:\n"
-        "- Startseite: hero + usp-balken + leistungen-grid + cta-banner + footer\n"
-        "- Kontakt: cta-banner + kontakt-form + footer\n"
-        "- Leistung: hero + leistungen-grid + ueber-uns + cta-banner + footer\n"
-        "- Alle internen Links NUR aus der Seiten-Liste\n"
-        f"- Telefon fuer cta2_link: tel:{phone}\n\n"
-        "Antworte NUR als JSON-Array:\n"
-        '[{"type":"hero","data":{"headline":"...","subline":"...","cta_text":"Jetzt anfragen",'
-        f'"cta_link":"/kontakt","cta2_text":"Anrufen","cta2_link":"tel:{phone}"}}}}'
-        ',{"type":"footer","data":{"firma":"' + company + '"}}]'
+        f"DESIGN-STIL: {brand.get('style_keyword', 'Modern & professionell')}\n"
+        f"PRIMARY-FARBE: {brand.get('primary_color', '#008EAA')}\n\n"
+        f"VERFUEGBARE BLOECKE:\n"
+        f"- hero: Hauptbereich mit Überschrift, Unterzeile, 1-2 Buttons, Badge\n"
+        f"- usp-balken: 3-4 Vorteile nebeneinander (icon, titel, sub)\n"
+        f"- leistungen-grid: 3-6 Leistungskacheln mit icon, titel, beschreibung\n"
+        f"- ueber-uns: Text links, Bild rechts — mit Überschrift, Text, Fakten, CTA\n"
+        f"- referenzen: 3 Kundenbewertungen mit Name, Ort, Text, Sterne\n"
+        f"- cta-banner: Abschluss-Banner mit Überschrift, Subline, Button, Telefon\n"
+        f"- kontakt-form: Kontaktformular mit Adresse\n"
+        f"- footer: Firmeninfo, Leistungslinks, Rechtliches\n\n"
+        f"DESIGN-REGELN DIE DU EINHALTEN MUSST:\n"
+        f"1. hero: IMMER Split-Layout (Text links, Fakten rechts) — KEIN zentrierter Text\n"
+        f"2. Alle data.headline-Werte: konkret und spezifisch, enthält Gewerk + Region\n"
+        f"3. Buttons: cta_text immer aktiv formuliert ('Jetzt anfragen', 'Termin buchen')\n"
+        f"4. Zahlen im hero data (fakten): {{\"zahl\": \"500+\", \"label\": \"Kunden\"}}\n"
+        f"5. Leistungen: mind. 4 Items, jedes mit passendem Emoji-Icon\n"
+        f"6. CTA-Banner: immer mit phone-Feld wenn Telefonnummer vorhanden\n\n"
+        f"SEITENTYPEN-REGELN:\n"
+        f"- startseite: hero + usp-balken + leistungen-grid + ueber-uns + referenzen + cta-banner + footer\n"
+        f"- leistung: hero + leistungen-grid + ueber-uns + cta-banner + footer\n"
+        f"- kontakt: cta-banner + kontakt-form + footer\n"
+        f"- info: hero + ueber-uns + cta-banner + footer\n\n"
+        f"Antworte NUR als JSON-Array. Beispiel:\n"
+        f'[{{"type":"hero","data":{{"headline":"Ihr Elektriker in {region}","subline":"24h-Notdienst · Festpreise · Meisterbetrieb","cta_text":"Termin anfragen","cta_link":"/kontakt","cta2_text":"☎ {phone}","cta2_link":"tel:{phone}","badge":"Seit 1987 · {region}","fakten":[{{"zahl":"500+","label":"Kunden"}},{{"zahl":"35 J.","label":"Erfahrung"}},{{"zahl":"4.9 ★","label":"Google"}},{{"zahl":"24h","label":"Notdienst"}}]}}}},\n'
+        f'{{"type":"footer","data":{{"firma":"{company}"}}}}]'
     )
 
     try:

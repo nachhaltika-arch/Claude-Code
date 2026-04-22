@@ -32,9 +32,8 @@ const SCHRITTE = [
   },
   {
     id: 'audit', nr: 2, phase: 'Analyse',
-    icon: '🔍', label: 'Website-Audit', auto: true,
-    autoText: 'Bestehende Website wird analysiert — Score, Probleme und Bericht in ~30 Sekunden.',
-    desc: 'Technische Analyse der alten Website.',
+    icon: '🔍', label: 'Website-Audit', auto: false,
+    desc: 'Technische Analyse der alten Website — Score, Probleme und Empfehlungen.',
     component: 'Audit',
     istFertig: (d) => !!(d.latestAudit?.total_score > 0),
     fertigText: (d) => `Score: ${d.latestAudit?.total_score}/100`,
@@ -122,12 +121,12 @@ const SCHRITTE = [
   },
   {
     id: 'qa', nr: 12, phase: 'Go Live',
-    icon: '✅', label: 'QA-Check', auto: true,
-    autoText: 'Website wird automatisch auf Fehler, Mobile-Darstellung und Impressum geprüft.',
-    desc: 'Links, Mobile, Impressum — automatisch.',
+    icon: '✅', label: 'QM-Audit', auto: false,
+    cta: 'QM-Audit starten →',
+    desc: 'Qualitätskontrolle der neuen Website — gleicher Audit, neue Seite.',
     component: 'QA',
     istFertig: (d) => !!(d.qaResult),
-    fertigText: () => 'QA abgeschlossen',
+    fertigText: () => 'QM abgeschlossen',
   },
   {
     id: 'abnahme', nr: 13, phase: 'Go Live',

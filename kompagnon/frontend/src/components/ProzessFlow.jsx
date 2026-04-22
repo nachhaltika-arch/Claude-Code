@@ -488,9 +488,18 @@ export default function ProzessFlow({
             onSitemapReload={onSitemapReload}
             onAnalyseUpdate={handleAnalyseUpdate}
             sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
-            websiteContent={websiteContent} brandData={brandData}
+            websiteContent={websiteContent} brandData={localBrandData}
             netlify={netlify} qaResult={qaResult}
             onProjectRefresh={onProjectRefresh}
+            confirmedSteps={confirmedSteps}
+            onStepConfirmed={(stepId) => {
+              setConfirmedSteps(prev => ({ ...prev, [stepId]: { confirmed: true } }));
+              if (onProjectRefresh) onProjectRefresh();
+            }}
+            onGuidelineGenerated={() => {
+              setLocalBrandData(prev => ({ ...prev, guideline_generated: true }));
+              if (onBrandUpdate) onBrandUpdate({ guideline_generated: true });
+            }}
           />
         </div>
       )}
@@ -502,7 +511,8 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
   briefing, latestAudit, localBriefing, reloadBriefing, onAuditComplete,
   onSitemapReload, onAnalyseUpdate, sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult, onProjectRefresh,
-  goWeiter, goZurueck }) {
+  goWeiter, goZurueck,
+  confirmedSteps, onStepConfirmed, onGuidelineGenerated }) {
 
   const pad = { padding: '20px 24px' };
 
@@ -677,7 +687,7 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
             token={token}
             projectId={project?.id}
             onStepConfirmed={(stepId) => {
-              setConfirmedSteps(prev => ({ ...prev, [stepId]: { confirmed: true } }));
+              if (onStepConfirmed) onStepConfirmed(stepId);
               if (onProjectRefresh) onProjectRefresh();
               if (goWeiter) goWeiter();
             }}
@@ -694,15 +704,14 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
             lead={lead}
             token={token}
             leadId={leadId}
-            brandData={localBrandData}
+            brandData={brandData}
             projectId={project?.id}
-            confirmedSteps={confirmedSteps}
+            confirmedSteps={confirmedSteps || {}}
             onGuidelineGenerated={() => {
-              setLocalBrandData(prev => ({ ...prev, guideline_generated: true }));
-              if (onBrandUpdate) onBrandUpdate({ guideline_generated: true });
+              if (onGuidelineGenerated) onGuidelineGenerated();
             }}
             onStepConfirmed={(stepId) => {
-              setConfirmedSteps(prev => ({ ...prev, [stepId]: { confirmed: true } }));
+              if (onStepConfirmed) onStepConfirmed(stepId);
               if (onProjectRefresh) onProjectRefresh();
             }}
           />

@@ -783,6 +783,7 @@ export default function AppLayout() {
   ]);
 
   const [projectName, setProjectName] = useState(null);
+  const [projectLeadId, setProjectLeadId] = useState(null);
   const [leadName, setLeadName] = useState(null);
 
   useEffect(() => {
@@ -790,11 +791,15 @@ export default function AppLayout() {
     const leadMatch = location.pathname.match(/^\/app\/leads\/(\d+)/);
     if (projectMatch) {
       setProjectName(null);
+      setProjectLeadId(null);
       fetch(`${API_BASE_URL}/api/projects/${projectMatch[1]}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
         .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d?.company_name) setProjectName(d.company_name); })
+        .then(d => {
+          if (d?.company_name) setProjectName(d.company_name);
+          if (d?.lead_id) setProjectLeadId(d.lead_id);
+        })
         .catch(() => {});
     } else if (leadMatch) {
       setLeadName(null);
@@ -815,8 +820,9 @@ export default function AppLayout() {
     const projectMatch = path.match(/^\/app\/projects\/(\d+)/);
     if (projectMatch) {
       return [
-        { label: 'Kundenprojekte', path: '/app/projects' },
-        { label: projectName || `Projekt #${projectMatch[1]}` },
+        { label: 'Dashboard', path: '/app/dashboard' },
+        { label: 'Projekte', path: '/app/projects' },
+        { label: projectName || `Projekt #${projectMatch[1]}`, path: projectLeadId ? `/app/leads/${projectLeadId}` : null },
       ];
     }
     const leadMatch = path.match(/^\/app\/leads\/(\d+)/);
@@ -996,10 +1002,12 @@ export default function AppLayout() {
             padding: '12px 0 0',
           } : {
             flex: 1,
-            overflowY: 'auto',
+            overflowY: location.pathname.match(/^\/app\/projects\/\d+/) ? 'hidden' : 'auto',
             overflowX: 'hidden',
             minWidth: 0, position: 'relative',
-            padding: '20px 28px',
+            padding: location.pathname.match(/^\/app\/projects\/\d+/) ? 0 : '20px 28px',
+            display: location.pathname.match(/^\/app\/projects\/\d+/) ? 'flex' : 'block',
+            flexDirection: 'column',
           }}
         >
           {/* Kaltstart-Banner */}
@@ -1026,6 +1034,7 @@ export default function AppLayout() {
           <div key={location.pathname} className="page-enter" style={{
             maxWidth: '100%',
             overflowX: 'hidden',
+            ...(location.pathname.match(/^\/app\/projects\/\d+/) ? { flex: 1, minHeight: 0, overflow: 'hidden' } : {}),
           }}>
             <Outlet />
           </div>

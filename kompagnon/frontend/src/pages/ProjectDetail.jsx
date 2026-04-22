@@ -1617,8 +1617,13 @@ export default function ProjectDetail() {
   };
 
   return (
-    <>
-      {/* ── ProzessFlowV3: full-height sidebar layout ─────────────────── */}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', fontFamily: 'var(--font-sans)' }}>
+      {loading && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, color: 'var(--text-tertiary)', fontSize: 13 }}>
+          Lädt…
+        </div>
+      )}
+      {!loading && project && (
       <ProzessFlowV3
         project={project}
         lead={lead || briefingLead}
@@ -1643,6 +1648,7 @@ export default function ProjectDetail() {
         onShowApproval={() => setShowApproval(true)}
         navigate={navigate}
       />
+      )}
 
       {/* ── Nachrichten Modal ──────────────────────────────────────────────── */}
       {showNewMessageModal && createPortal(
@@ -1711,7 +1717,7 @@ export default function ProjectDetail() {
           leadId={project.lead_id}
         /></Suspense>
       )}
-    </>
+    </div>
   );
 }
 

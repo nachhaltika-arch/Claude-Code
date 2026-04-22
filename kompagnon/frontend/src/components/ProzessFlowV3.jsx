@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PHASEN, ALLE_SCHRITTE, SchrittInhalt } from './ProzessFlow';
 import API_BASE_URL from '../config';
 
@@ -9,6 +10,7 @@ export default function ProzessFlowV3({
   websiteContent, brandData, netlify, qaResult,
   onProjectRefresh, onNavigateBack, isAdmin, onShowEdit, onShowApproval, navigate,
 }) {
+  const nav = useNavigate();
   const [aktiverSchritt, setAktiverSchritt] = useState(null);
   const [warnung, setWarnung]               = useState(null);
   const [localBriefing, setLocalBriefing]   = useState(briefing);
@@ -103,8 +105,40 @@ export default function ProzessFlowV3({
     else { setWarnung(null); setAktiverSchritt(next.id); }
   };
 
+  const companyName = lead?.company_name || project?.company_name || '';
+
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg-surface)' }}>
+
+      {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
+      <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, background: 'var(--bg-app)' }}>
+        <button onClick={() => nav('/app/dashboard')} style={{ background: 'none', border: 'none', padding: '2px 4px', borderRadius: 4, fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+          Dashboard
+        </button>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: 13, userSelect: 'none' }}>›</span>
+        <button onClick={() => nav('/app/projects')} style={{ background: 'none', border: 'none', padding: '2px 4px', borderRadius: 4, fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+          Projekte
+        </button>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: 13, userSelect: 'none' }}>›</span>
+        <span
+          onClick={() => leadId && nav(`/app/leads/${leadId}`)}
+          title="Zur Kundenkartei"
+          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '2px 6px', borderRadius: 4, fontSize: 12, color: 'var(--text-tertiary)', cursor: leadId ? 'pointer' : 'default', fontFamily: 'var(--font-sans)', transition: 'all .12s' }}
+          onMouseEnter={e => { if (leadId) { e.currentTarget.style.color = 'var(--brand-primary)'; e.currentTarget.style.background = 'var(--bg-elevated)'; } }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-tertiary)'; e.currentTarget.style.background = 'transparent'; }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--brand-primary)', display: 'inline-block', flexShrink: 0 }} />
+          {companyName || `Projekt #${project?.id}`}
+        </span>
+        {aktivObj && (
+          <>
+            <span style={{ color: 'var(--text-tertiary)', fontSize: 13, userSelect: 'none' }}>›</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
+              Schritt {aktivObj.nr} · {aktivObj.label}
+            </span>
+          </>
+        )}
+      </div>
 
       {/* ── Top progress bar ─────────────────────────────────────────────── */}
       <div style={{ padding: '10px 16px 8px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -131,10 +165,10 @@ export default function ProzessFlowV3({
       </div>
 
       {/* ── Main: timeline + content ──────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr', minHeight: 400 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
         {/* Left 64px timeline */}
-        <div style={{ borderRight: '1px solid var(--border-light)', background: 'var(--bg-app)', padding: '12px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+        <div style={{ borderRight: '1px solid var(--border-light)', background: 'var(--bg-app)', padding: '12px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, overflowY: 'auto' }}>
           {PHASEN.map((phase, pi) => (
             <TimelinePhase
               key={phase.id}
@@ -148,7 +182,7 @@ export default function ProzessFlowV3({
         </div>
 
         {/* Right content area */}
-        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
 
           {/* Active step header */}
           {aktivObj && (
@@ -224,25 +258,27 @@ export default function ProzessFlowV3({
              );
            })()}
 
-          {/* Step content */}
-          {aktivObj && (
-            <SchrittInhalt
-              schritt={aktivObj} project={project} lead={lead}
-              leadId={leadId} token={token} headers={headers}
-              briefing={briefing} latestAudit={localLatestAudit}
-              localBriefing={localBriefing} reloadBriefing={reloadBriefing}
-              onAuditComplete={handleAuditComplete}
-              onSitemapReload={onSitemapReload}
-              onAnalyseUpdate={handleAnalyseUpdate}
-              sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
-              websiteContent={websiteContent} brandData={brandData}
-              netlify={netlify} qaResult={qaResult}
-              onProjectRefresh={onProjectRefresh}
-              isAdmin={isAdmin} navigate={navigate}
-              onShowEdit={onShowEdit} onShowApproval={onShowApproval}
-              goWeiter={() => goTo(1)} goZurueck={() => goTo(-1)}
-            />
-          )}
+          {/* Step content — scrollable zone */}
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+            {aktivObj && (
+              <SchrittInhalt
+                schritt={aktivObj} project={project} lead={lead}
+                leadId={leadId} token={token} headers={headers}
+                briefing={briefing} latestAudit={localLatestAudit}
+                localBriefing={localBriefing} reloadBriefing={reloadBriefing}
+                onAuditComplete={handleAuditComplete}
+                onSitemapReload={onSitemapReload}
+                onAnalyseUpdate={handleAnalyseUpdate}
+                sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
+                websiteContent={websiteContent} brandData={brandData}
+                netlify={netlify} qaResult={qaResult}
+                onProjectRefresh={onProjectRefresh}
+                isAdmin={isAdmin} navigate={navigate}
+                onShowEdit={onShowEdit} onShowApproval={onShowApproval}
+                goWeiter={() => goTo(1)} goZurueck={() => goTo(-1)}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

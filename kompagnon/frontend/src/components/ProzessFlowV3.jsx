@@ -6,6 +6,7 @@ import AnalyseCentrale from './AnalyseCentrale';
 import ContentWerkstatt from './ContentWerkstatt';
 import DesignStudio from './DesignStudio';
 import BriefingTab from './BriefingTab';
+import GeoOptimizerStep from './GeoOptimizerStep';
 import {
   BriefingUnternehmenEmbed,
   AuditEmbed,
@@ -37,6 +38,15 @@ const SCHRITTE = [
     component: 'Audit',
     istFertig: (d) => !!(d.latestAudit?.total_score > 0),
     fertigText: (d) => `Score: ${d.latestAudit?.total_score}/100`,
+  },
+  {
+    id: 'geo-optimierung', nr: 2.5, phase: 'Analyse',
+    icon: '🤖', label: 'KI-Sichtbarkeit', auto: true,
+    autoText: 'KI-Systeme (ChatGPT, Perplexity, Google AI) werden analysiert — Score, Empfehlungen und automatische Optimierungsdateien.',
+    desc: 'GEO/GAIO Analyse: Wie gut findet KI diesen Betrieb?',
+    component: 'GeoOptimizer',
+    istFertig: (d) => typeof d.geoScore === 'number' && d.geoScore >= 0,
+    fertigText: (d) => `GEO-Score: ${d.geoScore}/100`,
   },
   {
     id: 'analyse-zentrale', nr: 3, phase: 'Analyse',
@@ -156,6 +166,7 @@ export default function ProzessFlowV3({
   const [localCrawlPages,  setLocalCrawlPages]  = useState(crawlPages);
   const [localBrandColor,  setLocalBrandColor]  = useState(brandData?.primary_color || null);
   const [localBrandData,   setLocalBrandData]   = useState(brandData);
+  const [localGeoScore,    setLocalGeoScore]    = useState(null);
   const [confirmedSteps,   setConfirmedSteps]   = useState(() => {
     try { return JSON.parse(project?.steps_confirmed || '{}'); } catch { return {}; }
   });
@@ -185,6 +196,7 @@ export default function ProzessFlowV3({
     if (data.brandPrimaryColor) setLocalBrandColor(data.brandPrimaryColor);
     if (data.brandPrimaryColor && onBrandUpdate) onBrandUpdate(data.brandData);
     if (data.crawlPages != null && onCrawlUpdate) onCrawlUpdate(data.crawlPages);
+    if (data.geoScore != null) setLocalGeoScore(data.geoScore);
   }, [onBrandUpdate, onCrawlUpdate]); // eslint-disable-line
 
   const handleAuditComplete = useCallback((audit) => {
@@ -204,6 +216,7 @@ export default function ProzessFlowV3({
     latestAudit:       localLatestAudit,
     crawlPages:        localCrawlPages || 0,
     brandPrimaryColor: localBrandData?.primary_color || localBrandColor || null,
+    geoScore:          localGeoScore,
     analyseZentraleConfirmed: !!(confirmedSteps['analyse-zentrale']?.confirmed),
     brandGuidelineDone: !!(localBrandData?.guideline_generated || localBrandData?.design_tokens) || !!(confirmedSteps['brand-guideline']?.confirmed),
     seoBestaetigt: !!(confirmedSteps['seo-ziele']?.confirmed) || (() => {
@@ -503,7 +516,7 @@ function SchrittContent({
   localBriefing, reloadBriefing, latestAudit, onAuditComplete,
   onAnalyseUpdate, onSitemapReload, sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult, onProjectRefresh,
-  confirmedSteps, onStepConfirmed,
+  confirmedSteps, onStepConfirmed, isAdmin = false,
 }) {
   const pad = { padding: '16px 0' };
 
@@ -532,6 +545,14 @@ function SchrittContent({
 
     case 'Audit':
       return <AuditEmbed project={project} lead={lead} headers={headers} latestAudit={latestAudit} onAuditComplete={onAuditComplete} />;
+
+    case 'GeoOptimizer':
+      return (
+        <GeoOptimizerStep
+          projectId={project?.id}
+          onComplete={(score) => onAnalyseUpdate && onAnalyseUpdate({ geoScore: score })}
+        />
+      );
 
     case 'Zugangsdaten':
       return <ZugangsdatenEmbed project={project} headers={headers} />;

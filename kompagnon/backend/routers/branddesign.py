@@ -198,6 +198,103 @@ Antworte NUR als JSON-Array: [{{"name":"Font","category":"Sans-Serif|Serif|Displ
         raise HTTPException(500, f"Font-Recherche fehlgeschlagen: {str(e)[:100]}")
 
 
+def _extract_font_roles(css_text: str, html_text: str) -> dict:
+    """Analysiert CSS/HTML und erkennt Schriften nach Rolle (heading/body/accent)."""
+    import re as _re
+    from collections import Counter
+
+    HEADING_SEL = [r'h[1-6]\b', r'\.heading', r'\.title', r'\.headline', r'\.hero', r'\.display']
+    BODY_SEL    = [r'\bbody\b', r'\bp\b', r'main\b', r'article\b', r'\.content\b', r'\.text\b']
+    ACCENT_SEL  = [r'\bbtn\b', r'\.btn\b', r'button\b', r'\bnav\b', r'\.cta\b', r'blockquote\b']
+
+    GENERIC = {
+        'inherit','initial','unset','serif','sans-serif','monospace','cursive',
+        'system-ui','-apple-system','blinkmacsystemfont','segoe ui',
+        'helvetica neue','helvetica','arial','times new roman','courier new',
+    }
+
+    def clean(raw):
+        name = raw.strip().strip("'\"").split(',')[0].strip()
+        return None if not name or name.lower() in GENERIC else name
+
+    def matches(selector, patterns):
+        sel = selector.lower()
+        return any(_re.search(p, sel) for p in patterns)
+
+    rule_re = _re.compile(r'([^{}@][^{}]*?)\{([^{}]*?font-family\s*:[^;}]+[^{}]*?)\}', _re.DOTALL | _re.I)
+    font_re = _re.compile(r'font-family\s*:\s*([^;}{]+)', _re.I)
+    gf_re   = _re.compile(r'fonts\.googleapis\.com/css[^"\']*[?&]family=([^"\'&]+)', _re.I)
+
+    heading_f, body_f, accent_f = [], [], []
+    all_seen, all_fonts = set(), []
+
+    for m in rule_re.finditer(css_text):
+        sel, body = m.group(1).strip(), m.group(2)
+        fm = font_re.search(body)
+        if not fm: continue
+        fn = clean(fm.group(1).split(',')[0])
+        if not fn: continue
+        if fn not in all_seen:
+            all_seen.add(fn); all_fonts.append(fn)
+        if matches(sel, HEADING_SEL): heading_f.append(fn)
+        if matches(sel, BODY_SEL):    body_f.append(fn)
+        if matches(sel, ACCENT_SEL):  accent_f.append(fn)
+
+    google_fonts = []
+    for text in [html_text, css_text]:
+        for m in gf_re.finditer(text):
+            for fam in m.group(1).split('|'):
+                n = fam.split(':')[0].replace('+', ' ').strip()
+                if n and n not in google_fonts:
+                    google_fonts.append(n)
+                    if n not in all_seen:
+                        all_seen.add(n); all_fonts.append(n)
+
+    def pick(lst, idx=0):
+        if lst: return Counter(lst).most_common(1)[0][0]
+        if google_fonts: return google_fonts[min(idx, len(google_fonts)-1)]
+        if all_fonts: return all_fonts[min(idx, len(all_fonts)-1)]
+        return None
+
+    heading = pick(heading_f, 0)
+    body    = pick(body_f,    1)
+    accent  = pick(accent_f,  2)
+    if heading and body and heading == body:
+        rem = [f for f in all_fonts if f != heading]
+        if rem: body = rem[0]
+
+    return {
+        "heading": heading, "body": body, "accent": accent,
+        "all": all_fonts[:8], "google_fonts": google_fonts,
+        "heading_candidates": list(set(heading_f))[:4],
+        "body_candidates":    list(set(body_f))[:4],
+        "accent_candidates":  list(set(accent_f))[:4],
+        "source": "css_analysis" if (heading_f or body_f) else "heuristic",
+    }
+
+
+async def _fetch_external_css(html_text: str, base_url: str) -> str:
+    """Lädt bis zu 3 externe CSS-Dateien und gibt kombinierten CSS-Text zurück."""
+    from bs4 import BeautifulSoup
+    from urllib.parse import urljoin
+    import httpx as _httpx
+
+    soup = BeautifulSoup(html_text, 'html.parser')
+    css_parts = []
+    for tag in soup.find_all('link', rel=lambda r: r and 'stylesheet' in r)[:3]:
+        href = tag.get('href', '')
+        if not href or 'fonts.googleapis.com' in href: continue
+        url = href if href.startswith('http') else urljoin(base_url, href)
+        try:
+            async with _httpx.AsyncClient(timeout=5.0, verify=False) as client:
+                resp = await client.get(url, follow_redirects=True)
+            if resp.status_code == 200:
+                css_parts.append(resp.text[:200_000])
+        except Exception:
+            pass
+    return '\n'.join(css_parts)
+
+
 # ── Endpoint 2 — Scrape ────────────────────────────────────────────────────────
 
 @router.post("/{lead_id}/scrape")

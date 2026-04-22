@@ -1,22 +1,160 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PHASEN, ALLE_SCHRITTE, SchrittInhalt } from './ProzessFlow';
 import API_BASE_URL from '../config';
+import AnalyseCentrale from './AnalyseCentrale';
+import ContentWerkstatt from './ContentWerkstatt';
+import DesignStudio from './DesignStudio';
+import BriefingTab from './BriefingTab';
+import {
+  BriefingUnternehmenEmbed,
+  AuditEmbed,
+  SitemapKiVorschlag,
+  SitemapEditorEmbed,
+  DesignStudioEmbed,
+  NetlifyEmbed,
+  DNSEmbed,
+  QAEmbed,
+  AbnahmeEmbed,
+  ZugangsdatenEmbed,
+  Spinner,
+} from './ProzessFlow';
+
+const SCHRITTE = [
+  {
+    id: 'briefing-unternehmen', nr: 1, phase: 'Analyse',
+    icon: '🏢', label: 'Briefing', auto: false,
+    cta: 'Briefing ausfüllen →',
+    desc: 'Gewerk, Leistungen und euren USP eintragen — das ist die Basis für alles.',
+    component: 'BriefingUnternehmen',
+    istFertig: (d) => !!(d.briefing?.gewerk && d.briefing?.leistungen?.trim()),
+    fertigText: (d) => d.briefing?.gewerk || 'Ausgefüllt',
+  },
+  {
+    id: 'audit', nr: 2, phase: 'Analyse',
+    icon: '🔍', label: 'Website-Audit', auto: true,
+    autoText: 'Bestehende Website wird analysiert — Score, Probleme und Bericht in ~30 Sekunden.',
+    desc: 'Technische Analyse der alten Website.',
+    component: 'Audit',
+    istFertig: (d) => !!(d.latestAudit?.total_score > 0),
+    fertigText: (d) => `Score: ${d.latestAudit?.total_score}/100`,
+  },
+  {
+    id: 'analyse-zentrale', nr: 3, phase: 'Analyse',
+    icon: '🔬', label: 'Vollanalyse', auto: false,
+    cta: 'Vollanalyse starten →',
+    desc: 'Crawler, Brand-Farben und PageSpeed werden gleichzeitig gemessen.',
+    component: 'AnalyseZentrale',
+    istFertig: (d) => (d.crawlPages || 0) >= 3 && !!(d.brandPrimaryColor),
+    fertigText: (d) => `${d.crawlPages} Seiten · Brand erkannt`,
+  },
+  {
+    id: 'briefing-website', nr: 4, phase: 'Analyse',
+    icon: '📋', label: 'Briefing: Website', auto: false,
+    cta: 'Website-Briefing ausfüllen →',
+    desc: 'Ziele, gewünschte Seiten und Design-Wünsche dokumentieren.',
+    component: 'BriefingWebsite',
+    istFertig: (d) => !!((d.briefing?.hauptziel && d.briefing?.aktionen) || d.briefing?.seiten),
+    fertigText: () => 'Ausgefüllt',
+  },
+  {
+    id: 'zugangsdaten', nr: 5, phase: 'Analyse',
+    icon: '🔑', label: 'Zugangsdaten', auto: false, optional: true,
+    cta: 'Zugangsdaten speichern →',
+    desc: 'Hosting, FTP und CMS-Zugänge sicher speichern.',
+    component: 'Zugangsdaten',
+    istFertig: (d) => (d.credsCount || 0) >= 1,
+    fertigText: (d) => `${d.credsCount} Einträge`,
+  },
+  {
+    id: 'sitemap', nr: 6, phase: 'Content',
+    icon: '🗺️', label: 'Sitemap', auto: false,
+    cta: 'KI-Sitemap generieren →',
+    desc: 'KI legt alle Seiten aus dem Briefing an — 1 Klick.',
+    component: 'Sitemap',
+    istFertig: (d) => (d.sitemapCount || 0) >= 3,
+    fertigText: (d) => `${d.sitemapCount} Seiten`,
+  },
+  {
+    id: 'content-generieren', nr: 7, phase: 'Content',
+    icon: '✍️', label: 'Texte generieren', auto: false,
+    cta: 'Alle Texte generieren →',
+    desc: 'KI schreibt alle Seiten auf einmal — ca. 60 Sekunden.',
+    component: 'ContentWerkstatt',
+    istFertig: (d) => (d.sitemapCount || 0) > 0 && (d.contentCount || 0) >= (d.sitemapCount || 1),
+    fertigText: (d) => `${d.contentCount}/${d.sitemapCount} Seiten`,
+  },
+  {
+    id: 'design-generieren', nr: 8, phase: 'Design',
+    icon: '🎨', label: 'Design wählen', auto: false,
+    cta: 'Design generieren →',
+    desc: 'KI erstellt 3 Entwürfe — du wählst den besten.',
+    component: 'DesignStudio',
+    istFertig: (d) => (d.designVersions || 0) >= 1,
+    fertigText: (d) => `${d.designVersions} Version(en)`,
+  },
+  {
+    id: 'editor', nr: 9, phase: 'Design',
+    icon: '🖊️', label: 'Feinschliff', auto: false, optional: true,
+    cta: 'Editor öffnen →',
+    desc: 'Echte Fotos einsetzen, Texte prüfen, Mobile-Ansicht testen.',
+    component: 'Editor',
+    istFertig: (d) => !!(d.editorSaved),
+    fertigText: () => 'Gespeichert',
+  },
+  {
+    id: 'netlify', nr: 10, phase: 'Go Live',
+    icon: '🚀', label: 'Veröffentlichen', auto: false,
+    cta: 'Jetzt veröffentlichen →',
+    desc: 'Website live schalten — 1 Klick, Netlify deployt automatisch.',
+    component: 'Netlify',
+    istFertig: (d) => !!(d.netlifyUrl && d.netlifyReady),
+    fertigText: (d) => d.netlifyUrl || 'Deployed',
+  },
+  {
+    id: 'dns', nr: 11, phase: 'Go Live',
+    icon: '🌍', label: 'Domain verbinden', auto: true,
+    autoText: 'DNS-Anleitung wird automatisch per E-Mail an den Kunden gesendet — du musst nichts tun.',
+    desc: 'Anleitung geht direkt an den Kunden.',
+    component: 'DNS',
+    istFertig: (d) => !!(d.domainReachable && d.domainStatusCode === 200),
+    fertigText: () => 'Domain erreichbar',
+  },
+  {
+    id: 'qa', nr: 12, phase: 'Go Live',
+    icon: '✅', label: 'QA-Check', auto: true,
+    autoText: 'Website wird automatisch auf Fehler, Mobile-Darstellung und Impressum geprüft.',
+    desc: 'Links, Mobile, Impressum — automatisch.',
+    component: 'QA',
+    istFertig: (d) => !!(d.qaResult),
+    fertigText: () => 'QA abgeschlossen',
+  },
+  {
+    id: 'abnahme', nr: 13, phase: 'Go Live',
+    icon: '🏁', label: 'Go Live!', auto: false,
+    cta: 'Abnahme erteilen →',
+    desc: 'Finale Kundenfreigabe und Go-Live.',
+    component: 'Abnahme',
+    istFertig: (d) => !!(d.goLiveConfirmed || d.projectStatus === 'fertig'),
+    fertigText: () => '🎉 Live!',
+  },
+];
 
 export default function ProzessFlowV3({
   project, lead, token, briefing, latestAudit, onAuditUpdate,
   onSitemapReload, onBrandUpdate, onCrawlUpdate,
   crawlPages, sitemapPages, sitemapLoading,
   websiteContent, brandData, netlify, qaResult,
-  onProjectRefresh, onNavigateBack, isAdmin, onShowEdit, onShowApproval, navigate,
+  onProjectRefresh,
 }) {
-  const nav = useNavigate();
-  const [aktiverSchritt, setAktiverSchritt] = useState(null);
-  const [warnung, setWarnung]               = useState(null);
-  const [localBriefing, setLocalBriefing]   = useState(briefing);
+  const navigate    = useNavigate();
+  const headers     = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+  const leadId      = project?.lead_id || lead?.id;
+  const companyName = lead?.display_name || lead?.company_name || project?.company_name || 'Projekt';
+
+  const [localBriefing,    setLocalBriefing]    = useState(briefing);
   const [localLatestAudit, setLocalLatestAudit] = useState(latestAudit);
-  const [localCrawlPages, setLocalCrawlPages]   = useState(crawlPages);
-  const [localBrandColor, setLocalBrandColor]   = useState(brandData?.primary_color || null);
+  const [localCrawlPages,  setLocalCrawlPages]  = useState(crawlPages);
+  const [localBrandColor,  setLocalBrandColor]  = useState(brandData?.primary_color || null);
 
   useEffect(() => { setLocalBriefing(briefing); }, [briefing]); // eslint-disable-line
   useEffect(() => { setLocalLatestAudit(latestAudit); }, [latestAudit]); // eslint-disable-line
@@ -28,321 +166,361 @@ export default function ProzessFlowV3({
     if (data.brandPrimaryColor) setLocalBrandColor(data.brandPrimaryColor);
     if (data.brandPrimaryColor && onBrandUpdate) onBrandUpdate(data.brandData);
     if (data.crawlPages != null && onCrawlUpdate) onCrawlUpdate(data.crawlPages);
-  }, [onBrandUpdate, onCrawlUpdate]);
+  }, [onBrandUpdate, onCrawlUpdate]); // eslint-disable-line
 
   const handleAuditComplete = useCallback((audit) => {
     setLocalLatestAudit(audit);
     if (onAuditUpdate) onAuditUpdate(audit);
-  }, [onAuditUpdate]);
-
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+  }, [onAuditUpdate]); // eslint-disable-line
 
   const reloadBriefing = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/briefings/${lead?.id || project?.lead_id}`, { headers });
+      const res = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers });
       if (res.ok) setLocalBriefing(await res.json());
     } catch { /* silent */ }
   };
 
-  const leadId = project?.lead_id || lead?.id;
-
   const prozessDaten = {
-    briefing: localBriefing,
-    latestAudit: localLatestAudit,
+    briefing:          localBriefing,
+    latestAudit:       localLatestAudit,
     crawlPages:        localCrawlPages || 0,
-    brandPrimaryColor:       brandData?.primary_color || localBrandColor || null,
-    brandGuidelineDone:      !!(brandData?.guideline_generated),
-    assetsGeklaert:          !!(briefing?.logo_vorhanden !== undefined && (briefing?.logo_vorhanden || briefing?.fotos_vorhanden)),
+    brandPrimaryColor: brandData?.primary_color || localBrandColor || null,
     sitemapCount:      sitemapPages?.length || 0,
-    contentCount:      (websiteContent || []).filter(p => p.ki_content).length,
+    contentCount:      (websiteContent || []).filter(p => p.ki_content || p.content_generated).length,
     credsCount:        0,
-    hasAssets:         (websiteContent || []).some(p => p.images?.length > 0),
     designVersions:    0,
     editorSaved:       !!(project?.editor_saved || (sitemapPages || []).some(p => p.gjs_html?.trim())),
     netlifyUrl:        netlify?.netlify_site_url || netlify?.url || project?.netlify_site_url || null,
-    netlifyReady:      !!(netlify?.state === 'ready' || netlify?.connected === true || project?.netlify_last_deploy || netlify?.netlify_last_deploy),
+    netlifyReady:      !!(netlify?.state === 'ready' || netlify?.connected === true || project?.netlify_last_deploy),
     domainReachable:   project?.domain_reachable || false,
     domainStatusCode:  project?.domain_status_code || null,
     qaResult,
     projectStatus:     project?.status || '',
     goLiveConfirmed:   !!(project?.abnahme_datum),
-    kiReportDone:      false,
-    moodboardDone:     false,
-    qmDone:            false,
-    gbpPlaceId:        project?.gbp_place_id || null,
-    screenshotBefore:  project?.screenshot_before || null,
-    screenshotAfter:   project?.screenshot_after || null,
-    contentFreigabeErteilt: (() => {
-      try {
-        const f = project?.content_freigaben ? JSON.parse(project.content_freigaben) : {};
-        return Object.keys(f).length > 0 && Object.values(f).some(v => v === true);
-      } catch { return false; }
-    })(),
   };
 
-  // Init: erster nicht-fertiger Schritt — nur einmal beim Mount
-  useEffect(() => {
-    if (aktiverSchritt) return;
-    const erster = ALLE_SCHRITTE.find(s => !s.istFertig(prozessDaten));
-    setAktiverSchritt(erster?.id || ALLE_SCHRITTE[ALLE_SCHRITTE.length - 1].id);
-  }, []); // eslint-disable-line
+  const aktiverIdx = SCHRITTE.findIndex(s => !s.istFertig(prozessDaten));
+  const aktiverId  = aktiverIdx >= 0 ? SCHRITTE[aktiverIdx].id : SCHRITTE[SCHRITTE.length - 1].id;
+  const [offenerSchritt, setOffenerSchritt] = useState(aktiverId);
 
-  const waehleSchritt = useCallback((schritt) => {
-    const idx    = ALLE_SCHRITTE.findIndex(s => s.id === schritt.id);
-    const voriger = idx > 0 ? ALLE_SCHRITTE[idx - 1] : null;
-    if (voriger && !voriger.optional && !voriger.istFertig(prozessDaten)) {
-      setWarnung({ ziel: schritt, fehlt: voriger,
-        text: `Schritt ${voriger.nr} "${voriger.label}" ist noch nicht abgeschlossen.` });
-    } else {
-      setWarnung(null);
-      setAktiverSchritt(schritt.id);
-    }
-  }, [JSON.stringify(prozessDaten)]); // eslint-disable-line
+  useEffect(() => { setOffenerSchritt(prev => prev ?? aktiverId); }, [aktiverId]); // eslint-disable-line
 
-  const aktivObj    = ALLE_SCHRITTE.find(s => s.id === aktiverSchritt);
-  const fertigCount = ALLE_SCHRITTE.filter(s => s.istFertig(prozessDaten)).length;
-  const gesamtPct   = Math.round((fertigCount / ALLE_SCHRITTE.length) * 100);
+  const fertigCount  = SCHRITTE.filter(s => s.istFertig(prozessDaten)).length;
+  const gesamtPct    = Math.round((fertigCount / SCHRITTE.length) * 100);
+  const aktivObj     = SCHRITTE.find(s => s.id === offenerSchritt) || SCHRITTE[0];
+  const aktivIdx     = SCHRITTE.findIndex(s => s.id === offenerSchritt);
+  const doneSchritte = SCHRITTE.slice(0, aktivIdx).filter(s => s.istFertig(prozessDaten));
+  const nextSchritte = SCHRITTE.slice(aktivIdx + 1, aktivIdx + 3);
 
-  const goTo = (delta) => {
-    if (!aktivObj) return;
-    const next = ALLE_SCHRITTE[aktivObj.nr - 1 + delta];
-    if (!next) return;
-    if (delta > 0) waehleSchritt(next);
-    else { setWarnung(null); setAktiverSchritt(next.id); }
-  };
-
-  const companyName = lead?.company_name || project?.company_name || '';
+  const goWeiter  = () => { if (aktivIdx < SCHRITTE.length - 1) setOffenerSchritt(SCHRITTE[aktivIdx + 1].id); };
+  const goZurueck = () => { if (aktivIdx > 0) setOffenerSchritt(SCHRITTE[aktivIdx - 1].id); };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'var(--bg-surface)' }}>
+    <div style={{
+      display: 'grid', gridTemplateColumns: '64px 1fr',
+      height: '100vh', background: 'var(--bg-app)',
+      overflow: 'hidden', fontFamily: 'var(--font-sans)',
+    }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes stepPulse {
-          0%, 100% { box-shadow: 0 0 0 3px rgba(250,230,0,.3), 0 3px 12px rgba(250,230,0,.4); }
-          50%       { box-shadow: 0 0 0 6px rgba(250,230,0,.15), 0 3px 16px rgba(250,230,0,.6); }
+          0%,100% { box-shadow: 0 0 0 3px rgba(250,230,0,.3); }
+          50%      { box-shadow: 0 0 0 6px rgba(250,230,0,.15); }
         }
       `}</style>
 
-      {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
-      <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, background: 'var(--bg-app)' }}>
-        <button onClick={() => nav('/app/dashboard')} style={{ background: 'none', border: 'none', padding: '2px 4px', borderRadius: 4, fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-          Dashboard
-        </button>
-        <span style={{ color: 'var(--text-tertiary)', fontSize: 13, userSelect: 'none' }}>›</span>
-        <button onClick={() => nav('/app/projects')} style={{ background: 'none', border: 'none', padding: '2px 4px', borderRadius: 4, fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-          Projekte
-        </button>
-        <span style={{ color: 'var(--text-tertiary)', fontSize: 13, userSelect: 'none' }}>›</span>
-        <span
-          onClick={() => leadId && nav(`/app/leads/${leadId}`)}
-          title="Zur Kundenkartei"
-          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '2px 6px', borderRadius: 4, fontSize: 12, color: 'var(--text-tertiary)', cursor: leadId ? 'pointer' : 'default', fontFamily: 'var(--font-sans)', transition: 'all .12s' }}
-          onMouseEnter={e => { if (leadId) { e.currentTarget.style.color = 'var(--brand-primary)'; e.currentTarget.style.background = 'var(--bg-elevated)'; } }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-tertiary)'; e.currentTarget.style.background = 'transparent'; }}
-        >
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--brand-primary)', display: 'inline-block', flexShrink: 0 }} />
-          {companyName || `Projekt #${project?.id}`}
-        </span>
-        {aktivObj && (
-          <>
-            <span style={{ color: 'var(--text-tertiary)', fontSize: 13, userSelect: 'none' }}>›</span>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
-              Schritt {aktivObj.nr} · {aktivObj.label}
-            </span>
-          </>
-        )}
-      </div>
+      {/* ── TIMELINE (64px links) ─────────────────────────────────────────── */}
+      <div style={{
+        background: 'linear-gradient(180deg,#004F59 0%,#003840 100%)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        padding: '14px 0', overflowY: 'auto', overflowX: 'hidden',
+      }}>
+        {/* Logo */}
+        <svg width="32" height="32" viewBox="0 0 107.7 107.7" fill="none" style={{ marginBottom: 16, flexShrink: 0 }}>
+          <path d="M53.85 0C24.1 0 0 24.1 0 53.85s24.1 53.85 53.85 53.85 53.85-24.1 53.85-53.85S83.6 0 53.85 0zm0 96.9c-23.75 0-43.05-19.3-43.05-43.05S30.1 10.8 53.85 10.8s43.05 19.3 43.05 43.05S77.6 96.9 53.85 96.9z" fill="#008EAA"/>
+          <path d="M53.85 21.6c-17.8 0-32.25 14.45-32.25 32.25S36.05 86.1 53.85 86.1 86.1 71.65 86.1 53.85 71.65 21.6 53.85 21.6zm0 53.7c-11.85 0-21.45-9.6-21.45-21.45S42 32.4 53.85 32.4s21.45 9.6 21.45 21.45S65.7 75.3 53.85 75.3z" fill="#008EAA"/>
+        </svg>
 
-      {/* ── Top progress bar ─────────────────────────────────────────────── */}
-      <div style={{ padding: '10px 16px 8px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ flex: 1, height: 5, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${gesamtPct}%`, background: 'linear-gradient(90deg,#008EAA,#059669)', borderRadius: 3, transition: 'width .5s' }} />
-        </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
-          {PHASEN.map(phase => {
-            const phaseFertig = phase.schritte.filter(s => s.istFertig(prozessDaten)).length;
-            const phaseAktiv  = phase.schritte.some(s => s.id === aktiverSchritt);
+        {/* Punkte */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, position: 'relative', padding: '4px 0', width: '100%' }}>
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,.08)' }} />
+          {SCHRITTE.map((s) => {
+            const fertig = s.istFertig(prozessDaten);
+            const aktiv  = s.id === offenerSchritt;
+            const size   = aktiv ? 14 : fertig ? 11 : 9;
+            const bg     = fertig
+              ? '#00875A'
+              : aktiv
+                ? '#FAE600'
+                : SCHRITTE[aktivIdx + 1]?.id === s.id
+                  ? 'rgba(255,255,255,.25)'
+                  : 'rgba(255,255,255,.09)';
             return (
-              <div key={phase.id} style={{ display: 'flex', alignItems: 'center', gap: 4, opacity: phaseAktiv ? 1 : 0.5 }}>
-                <span style={{ fontSize: 11 }}>{phase.icon}</span>
-                <span style={{ fontSize: 10, fontWeight: 700, color: phaseAktiv ? phase.color : 'var(--text-tertiary)' }}>
-                  {phaseFertig}/{phase.schritte.length}
-                </span>
-              </div>
+              <div
+                key={s.id}
+                onClick={() => setOffenerSchritt(s.id)}
+                title={`${s.nr}. ${s.label}`}
+                style={{
+                  position: 'relative', zIndex: 1,
+                  width: size, height: size, borderRadius: '50%',
+                  background: bg,
+                  border: aktiv ? '2px solid rgba(255,255,255,.6)' : 'none',
+                  cursor: 'pointer', transition: 'all .2s', flexShrink: 0,
+                  animation: aktiv ? 'stepPulse 2s ease-in-out infinite' : 'none',
+                }}
+              />
             );
           })}
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginLeft: 4 }}>
-            {fertigCount}/{ALLE_SCHRITTE.length} · {gesamtPct}%
-          </span>
+        </div>
+
+        {/* Fortschritt % */}
+        <div style={{ marginTop: 12, fontSize: 9, fontWeight: 900, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+          {gesamtPct}%
         </div>
       </div>
 
-      {/* ── Main: timeline + content ──────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      {/* ── CONTENT (rechts) ──────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-        {/* Left 80px timeline */}
-        <div style={{
-          width: 80,
-          background: 'linear-gradient(180deg, #004F59 0%, #003840 100%)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          height: '100%', flexShrink: 0,
-          boxShadow: '2px 0 16px rgba(0,0,0,.25)',
-        }}>
-
-          {/* SVG Logo */}
-          <div style={{ width: '100%', padding: '14px 0 12px', display: 'flex', justifyContent: 'center', alignItems: 'center', borderBottom: '0.5px solid rgba(255,255,255,.1)', marginBottom: 8, flexShrink: 0 }}>
-            <svg width="36" height="36" viewBox="0 0 107.7 107.7" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
-              <path fill="#008EAA" d="M5.7,53.8c0,11.8,4.3,22.7,11.3,31.1,3.4-19.9,14-59.4,20-76.2C18.7,15.5,5.7,33.1,5.7,53.8Z" />
-              <path fill="#008EAA" d="M55.1,5.7c-1.4,5.4-6.4,24.1-10.4,38.4,7.1-8.9,16.2-15,23.5-15.5.8,0,1.4,0,2.3,0,4.5.2,14.6,4.8,15.5,13.5.3,5.4-4.1,15.5-8.2,15.8-5.1.3-9.7-6.1-9.8-7.4-.2-3,2.6-6.7,2.5-7.8,0-.4-.6-.5-1-.4-2.5.2-18.9,17.5-18,33.3.3,5.3,2.2,8.7,9.2,8.3,9.1-.6,18.2-8,28-22.4,1.1-1.6,2.4-2.3,3.5-2.4,2.3-.1,4.5,1.9,4.6,4.6,0,.8,0,1.7-.5,2.5-.7,1.4-5,8.2-10.9,14.5-7.8,8.5-17.6,13.2-26.5,14.5-4.9.7-10.6-.3-15.2-2.7-3.8-1.9-8.1-5.9-9.6-10.7-1.4,5.3-2.7,10.5-3.9,14.2,7,3.9,15,6.1,23.5,6.1,26.6,0,48.2-21.6,48.2-48.2S81.1,6.3,55.1,5.7Z" />
+        {/* Breadcrumb */}
+        <div style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-light)', padding: '0 20px', height: 40, display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0 }}>
+          <BreadcrumbItem onClick={() => navigate('/app/dashboard')} label="Dashboard" icon={
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor" style={{ flexShrink: 0, opacity: .6 }}>
+              <path d="M1 5.5L6 1.5L11 5.5V10.5H8V7.5H4V10.5H1V5.5Z"/>
             </svg>
-          </div>
+          } />
+          <BreadcrumbSep />
+          <BreadcrumbItem onClick={() => navigate('/app/projects')} label="Projekte" />
+          <BreadcrumbSep />
+          <BreadcrumbItem
+            onClick={() => leadId && navigate(`/app/leads/${leadId}`)}
+            dot label={companyName}
+          />
+          <BreadcrumbSep />
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', padding: '4px 6px' }}>
+            Schritt {aktivObj.nr} · {aktivObj.label}
+          </span>
+        </div>
 
-          {/* Step circles */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '4px 0', overflowY: 'auto', width: '100%', scrollbarWidth: 'none' }}>
-            {ALLE_SCHRITTE.map((s, idx) => {
-              const fertig = s.istFertig(prozessDaten);
-              const aktiv  = s.id === aktiverSchritt;
-              const naechster = !fertig && !aktiv &&
-                idx === ALLE_SCHRITTE.findIndex(x => x.id === aktiverSchritt) + 1;
-              const size   = aktiv ? 36 : naechster || fertig ? 30 : 26;
-              const bg     = fertig ? '#00875A' : aktiv ? '#FAE600' : naechster ? 'rgba(255,255,255,.15)' : 'rgba(255,255,255,.06)';
-              const color  = fertig ? '#fff' : aktiv ? '#004F59' : naechster ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.25)';
-              const shadow = aktiv
-                ? '0 0 0 3px rgba(250,230,0,.3), 0 3px 12px rgba(250,230,0,.4)'
-                : fertig ? '0 2px 6px rgba(0,135,90,.35)'
-                : naechster ? '0 0 0 1px rgba(255,255,255,.2)' : 'none';
-              return (
-                <div
-                  key={s.id}
-                  onClick={() => waehleSchritt(s)}
-                  title={`${s.nr}. ${s.label}`}
-                  style={{
-                    width: size, height: size, borderRadius: '50%',
-                    background: bg, color,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: aktiv ? 15 : size <= 26 ? 11 : 13,
-                    fontWeight: 700, cursor: 'pointer', flexShrink: 0,
-                    transition: 'all .2s', userSelect: 'none',
-                    boxShadow: shadow,
-                    animation: aktiv ? 'stepPulse 2s ease-in-out infinite' : 'none',
-                    fontFamily: 'var(--font-sans)',
-                  }}
-                >
-                  {fertig ? '✓' : s.nr}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Progress % footer */}
-          <div style={{ width: '100%', padding: '8px 0 10px', borderTop: '0.5px solid rgba(255,255,255,.1)', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-            <div style={{ fontSize: 9, fontWeight: 900, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-              {gesamtPct}%
+        {/* Projekt-Bar */}
+        <div style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-light)', padding: '0 20px', height: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '.02em' }}>{companyName}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+              {lead?.city || ''}{lead?.trade ? ` · ${lead.trade}` : ''}
             </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 100, height: 5, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${gesamtPct}%`, background: 'var(--brand-primary)', borderRadius: 3, transition: 'width .5s' }} />
+            </div>
+            <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{fertigCount} / {SCHRITTE.length}</span>
           </div>
         </div>
 
-        {/* Right content area */}
-        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-
-          {/* Active step header */}
-          {aktivObj && (
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 14, background: `${aktivObj.phase.color}08`, flexShrink: 0 }}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: aktivObj.istFertig(prozessDaten) ? 'var(--success)' : aktivObj.phase.color, color: 'var(--text-inverse)', fontSize: 15, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {aktivObj.istFertig(prozessDaten) ? '✓' : aktivObj.nr}
+        {/* Erledigte Schritte (kompakt) */}
+        {doneSchritte.length > 0 && (
+          <div style={{ padding: '8px 20px 0', flexShrink: 0 }}>
+            {doneSchritte.slice(-3).map(s => (
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', padding: '2px 0' }}>
+                <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#00875A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, color: '#fff', flexShrink: 0 }}>✓</div>
+                {s.phase} · {s.label}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: aktivObj.phase.color, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>
-                  {aktivObj.phase.label} · Schritt {aktivObj.nr}/{ALLE_SCHRITTE.length}
-                  {aktivObj.optional && <span style={{ marginLeft: 8, opacity: .6 }}>Optional</span>}
-                  {aktivObj.istFertig(prozessDaten) && <span style={{ marginLeft: 8, background: 'var(--status-success-bg)', color: 'var(--status-success-text)', padding: '1px 6px', borderRadius: 99 }}>Fertig</span>}
-                </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{aktivObj.icon} {aktivObj.label}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>
-                  {aktivObj.istFertig(prozessDaten) ? aktivObj.fertigText(prozessDaten) : aktivObj.desc}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                {aktivObj.nr > 1 && (
-                  <button onClick={() => goTo(-1)}
-                    style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                    ← Zurück
-                  </button>
-                )}
-                {aktivObj.nr < ALLE_SCHRITTE.length && (
-                  <button onClick={() => goTo(1)}
-                    style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: aktivObj.istFertig(prozessDaten) ? 'var(--success)' : aktivObj.phase.color, color: 'var(--text-inverse)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                    Weiter →
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Order warning */}
-          {warnung && (
-            <div style={{ margin: '12px 16px 0', padding: '12px 16px', background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-text)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', flexShrink: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 16 }}>⚠️</span>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--status-warning-text)' }}>Empfohlene Reihenfolge</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{warnung.text}</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => { setWarnung(null); setAktiverSchritt(warnung.fehlt.id); }}
-                  style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: 'var(--status-warning-text)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                  Schritt {warnung.fehlt.nr} zuerst
-                </button>
-                <button onClick={() => { setWarnung(null); setAktiverSchritt(warnung.ziel.id); }}
-                  style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--status-warning-text)', background: 'transparent', color: 'var(--status-warning-text)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                  Trotzdem weiter
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Missing fields warning */}
-          {aktivObj && !aktivObj.istFertig(prozessDaten) &&
-           !['BriefingUnternehmen','BriefingWebsite','ContentWerkstatt','ContentSeiteninhalte','ContentAssets','ContentFreigabe','DesignStudio','AnalyseZentrale'].includes(aktivObj.component) &&
-           (() => {
-             const fehlende = aktivObj.wasFehlts?.(prozessDaten) || [];
-             if (!fehlende.length) return null;
-             return (
-               <div style={{ margin: '12px 20px 0', padding: '10px 14px', background: 'rgba(220,38,38,.06)', border: '1px solid rgba(220,38,38,.2)', borderRadius: 8, display: 'flex', alignItems: 'flex-start', gap: 10, flexShrink: 0 }}>
-                 <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>⚠️</span>
-                 <div>
-                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--status-danger-text)', marginBottom: 4 }}>Noch nicht abgeschlossen:</div>
-                   {fehlende.map((f, i) => <div key={i} style={{ fontSize: 12, color: 'var(--status-danger-text)', lineHeight: 1.6 }}>{f}</div>)}
-                 </div>
-               </div>
-             );
-           })()}
-
-          {/* Step content — scrollable zone */}
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-            {aktivObj && (
-              <SchrittInhalt
-                schritt={aktivObj} project={project} lead={lead}
-                leadId={leadId} token={token} headers={headers}
-                briefing={briefing} latestAudit={localLatestAudit}
-                localBriefing={localBriefing} reloadBriefing={reloadBriefing}
-                onAuditComplete={handleAuditComplete}
-                onSitemapReload={onSitemapReload}
-                onAnalyseUpdate={handleAnalyseUpdate}
-                sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
-                websiteContent={websiteContent} brandData={brandData}
-                netlify={netlify} qaResult={qaResult}
-                onProjectRefresh={onProjectRefresh}
-                isAdmin={isAdmin} navigate={navigate}
-                onShowEdit={onShowEdit} onShowApproval={onShowApproval}
-                goWeiter={() => goTo(1)} goZurueck={() => goTo(-1)}
-              />
+            ))}
+            {doneSchritte.length > 3 && (
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', paddingLeft: 20, fontWeight: 700 }}>+ {doneSchritte.length - 3} weitere erledigt</div>
             )}
           </div>
+        )}
+
+        {/* Aktiver Schritt */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px', overflowY: 'auto' }}>
+
+          {/* Phase + Nr */}
+          <div style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.12em', color: 'var(--text-tertiary)', marginBottom: 6 }}>
+            {aktivObj.phase} · Schritt {aktivObj.nr} von {SCHRITTE.length}
+            {aktivObj.optional && <span style={{ marginLeft: 8 }}>· Optional</span>}
+          </div>
+
+          {/* Titel */}
+          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '.01em', lineHeight: 1, marginBottom: 8 }}>
+            {aktivObj.icon} {aktivObj.label}
+          </div>
+
+          {/* Beschreibung */}
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 16, maxWidth: 500 }}>
+            {aktivObj.desc}
+          </div>
+
+          {/* Auto oder Manuell */}
+          {aktivObj.auto && !aktivObj.istFertig(prozessDaten) ? (
+            <div style={{ background: 'var(--info-bg, #EFF6FF)', border: '1px solid rgba(0,142,170,.25)', borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid rgba(0,142,170,.2)', borderTopColor: 'var(--brand-primary)', animation: 'spin .8s linear infinite', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>Läuft automatisch</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{aktivObj.autoText}</div>
+              </div>
+            </div>
+          ) : (
+            <SchrittContent
+              schritt={aktivObj}
+              project={project} lead={lead} leadId={leadId}
+              token={token} headers={headers}
+              localBriefing={localBriefing} reloadBriefing={reloadBriefing}
+              latestAudit={localLatestAudit} onAuditComplete={handleAuditComplete}
+              onAnalyseUpdate={handleAnalyseUpdate} onSitemapReload={onSitemapReload}
+              sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
+              websiteContent={websiteContent} brandData={brandData}
+              netlify={netlify} qaResult={qaResult}
+              onProjectRefresh={onProjectRefresh}
+            />
+          )}
+
+          {/* CTA-Row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 'auto', paddingTop: 16, borderTop: '1px solid var(--border-light)' }}>
+            {aktivIdx > 0 && (
+              <button onClick={goZurueck} style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '10px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
+                ← Zurück
+              </button>
+            )}
+            {aktivObj.istFertig(prozessDaten) ? (
+              aktivIdx < SCHRITTE.length - 1 && (
+                <button onClick={goWeiter} style={{ background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
+                  Weiter →
+                </button>
+              )
+            ) : !aktivObj.auto && (
+              <button style={{ background: '#FAE600', color: '#000', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'default', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
+                {aktivObj.cta}
+              </button>
+            )}
+            <div style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em' }}>
+              Schritt {aktivObj.nr} / {SCHRITTE.length}
+            </div>
+          </div>
         </div>
+
+        {/* Next Preview */}
+        {nextSchritte.length > 0 && (
+          <div style={{ padding: '10px 20px', borderTop: '1px solid var(--border-light)', background: 'var(--bg-surface)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', flexShrink: 0 }}>Danach</div>
+            {nextSchritte.map(s => (
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', background: 'var(--bg-elevated)', borderRadius: 6, fontSize: 10, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                {s.icon} {s.label}
+                {s.auto && <span style={{ padding: '1px 4px', background: '#EFF6FF', color: 'var(--brand-primary)', borderRadius: 3, fontSize: 8 }}>🤖</span>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
+function BreadcrumbItem({ onClick, icon, label, dot }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 5,
+        fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.08em',
+        color: hover ? 'var(--text-primary)' : 'var(--text-tertiary)',
+        cursor: 'pointer', padding: '4px 6px', borderRadius: 4,
+        background: hover ? 'var(--bg-elevated)' : 'transparent',
+        transition: 'all .12s', userSelect: 'none', fontFamily: 'var(--font-sans)',
+      }}
+    >
+      {icon}
+      {dot && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--brand-primary)', flexShrink: 0 }} />}
+      {label}
+    </div>
+  );
+}
+
+function BreadcrumbSep() {
+  return <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontWeight: 700, padding: '0 1px', userSelect: 'none' }}>›</span>;
+}
+
+function SchrittContent({
+  schritt, project, lead, leadId, token, headers,
+  localBriefing, reloadBriefing, latestAudit, onAuditComplete,
+  onAnalyseUpdate, onSitemapReload, sitemapPages, sitemapLoading,
+  websiteContent, brandData, netlify, qaResult, onProjectRefresh,
+}) {
+  const pad = { padding: '16px 0' };
+
+  switch (schritt.component) {
+    case 'BriefingUnternehmen':
+      return lead
+        ? <BriefingUnternehmenEmbed lead={lead} localBriefing={localBriefing} reloadBriefing={reloadBriefing} />
+        : <Spinner />;
+
+    case 'BriefingWebsite':
+      return lead
+        ? <div style={pad}><BriefingTab lead={lead} token={token} /></div>
+        : <Spinner />;
+
+    case 'AnalyseZentrale':
+      return (
+        <AnalyseCentrale
+          projectId={project?.id} leadId={leadId}
+          websiteUrl={lead?.website_url || project?.website_url}
+          token={token} onDataUpdate={onAnalyseUpdate}
+        />
+      );
+
+    case 'Audit':
+      return <AuditEmbed project={project} lead={lead} headers={headers} latestAudit={latestAudit} onAuditComplete={onAuditComplete} />;
+
+    case 'Zugangsdaten':
+      return <ZugangsdatenEmbed project={project} headers={headers} />;
+
+    case 'Sitemap':
+      return (
+        <div>
+          <SitemapKiVorschlag
+            project={project} leadId={leadId} headers={headers}
+            onGenerated={onSitemapReload}
+            hasExistingPages={sitemapPages.length > 0}
+            existingCount={sitemapPages.filter(p => !p.ist_pflichtseite).length}
+          />
+          {sitemapLoading ? <Spinner /> : (
+            <SitemapEditorEmbed pages={sitemapPages} leadId={leadId} headers={headers} onReload={onSitemapReload} />
+          )}
+        </div>
+      );
+
+    case 'ContentWerkstatt':
+      return (
+        <ContentWerkstatt
+          project={project} sitemapPages={sitemapPages} sitemapLoading={sitemapLoading}
+          token={token} leadId={leadId} websiteContent={websiteContent}
+          onProjectRefresh={onProjectRefresh}
+        />
+      );
+
+    case 'DesignStudio':
+      return <DesignStudioEmbed project={project} leadId={leadId} token={token} headers={headers} brandData={brandData} sitemapPages={sitemapPages} />;
+
+    case 'Editor':
+      return <DesignStudio project={project} leadId={leadId} token={token} brandData={brandData} sitemapPages={sitemapPages} />;
+
+    case 'Netlify':
+      return <NetlifyEmbed project={project} headers={headers} />;
+
+    case 'DNS':
+      return <DNSEmbed project={project} lead={lead} headers={headers} />;
+
+    case 'QA':
+      return <QAEmbed project={project} headers={headers} qaResult={qaResult} />;
+
+    case 'Abnahme':
+      return <AbnahmeEmbed project={project} lead={lead} headers={headers} netlify={netlify} />;
+
+    default:
+      return <div style={{ padding: '16px 0', fontSize: 13, color: 'var(--text-secondary)' }}>Wird vorbereitet …</div>;
+  }
+}

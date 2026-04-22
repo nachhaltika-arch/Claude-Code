@@ -19,7 +19,7 @@ import { parseApiError } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
-import ProzessFlowV2 from '../components/ProzessFlowV2';
+import ProzessFlowV3 from '../components/ProzessFlowV3';
 
 // Lazy-loaded: heavy components loaded on demand
 const BriefingTab = lazy(() => import('../components/BriefingTab'));
@@ -1624,7 +1624,7 @@ export default function ProjectDetail() {
         </div>
       )}
       {!loading && project && (
-      <ProzessFlowV2
+      <ProzessFlowV3
         project={project}
         lead={lead || briefingLead}
         token={token}

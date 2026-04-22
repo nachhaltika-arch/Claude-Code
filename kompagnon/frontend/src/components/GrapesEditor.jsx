@@ -149,22 +149,24 @@ export default function GrapesEditor({
     await handleSave({ project, editor });
   };
 
-  const handleImportFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (e.target) e.target.value = '';
+  const handleImportFile = async (file) => {
     if (!file) return;
     setImporting(true);
     try {
       const parsed = await parseTemplateFile(file);
       if (!parsed.success) throw new Error(parsed.error);
-      applyTemplateToEditor(editorRef.current, parsed);
-      toast.success(
-        parsed.source === 'zip-grapesjs'
-          ? '✓ GrapesJS-Projekt geladen — alle Komponenten & Styles importiert'
-          : '✓ HTML + CSS geladen',
-      );
+      const editor = editorRef.current;
+      if (!editor) throw new Error('Editor noch nicht bereit');
+      applyTemplateToEditor(editor, parsed);
+      toast.success({
+        'zip-grapesjs': '✓ GrapesJS-Projekt + CSS geladen',
+        'zip-html':     '✓ HTML + CSS geladen',
+        'grapesjs':     '✓ GrapesJS-Projekt geladen',
+      }[parsed.source] || '✓ Template geladen');
     } catch (err) { toast.error(err.message || 'Import fehlgeschlagen'); }
-    setImporting(false);
+    finally {
+      setImporting(false);
+    }
   };
 
   return createPortal(
@@ -196,7 +198,7 @@ export default function GrapesEditor({
             type="file"
             accept=".zip,.grapesjs"
             style={{ display: 'none' }}
-            onChange={handleImportFile}
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleImportFile(f); e.target.value = ''; }}
           />
           <button
             onClick={() => fileInputRef.current?.click()}

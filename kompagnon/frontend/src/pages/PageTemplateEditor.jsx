@@ -100,19 +100,26 @@ export default function PageTemplateEditor() {
   };
 
   // ── Template importieren ─────────────────────────────────
-  const handleImportFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (e.target) e.target.value = '';
+  const handleImportFile = async (file) => {
     if (!file) return;
     if (tplInfo?.is_builtin) return toast.error('Eingebaute Templates sind schreibgeschützt');
     setImporting(true);
     try {
       const parsed = await parseTemplateFile(file);
       if (!parsed.success) throw new Error(parsed.error);
-      applyTemplateToEditor(editorRef.current, parsed);
-      toast.success('Template importiert');
+      const editor = editorRef.current;
+      if (!editor) throw new Error('Editor noch nicht bereit');
+      applyTemplateToEditor(editor, parsed);
+      toast.success({
+        'zip-grapesjs': '✓ GrapesJS-Projekt + CSS geladen',
+        'zip-html':     '✓ HTML + CSS geladen',
+        'grapesjs':     '✓ GrapesJS-Projekt geladen',
+      }[parsed.source] || '✓ Template geladen');
     } catch (err) { toast.error(err.message || 'Import fehlgeschlagen'); }
-    setImporting(false);
+    finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const tbBtn = {
@@ -147,7 +154,7 @@ export default function PageTemplateEditor() {
           type="file"
           accept=".zip,.grapesjs"
           style={{ display: 'none' }}
-          onChange={handleImportFile}
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleImportFile(f); }}
         />
         <button
           onClick={() => fileInputRef.current?.click()}

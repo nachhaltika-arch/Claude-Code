@@ -105,11 +105,11 @@ export default function WebsiteDesigner({
         setImportError('Editor konnte Projekt nicht laden: ' + err.message);
         return;
       }
-      setImportMsg(
-        result.source === 'zip-grapesjs'
-          ? '✓ GrapesJS-Projekt geladen — alle Komponenten & Styles importiert'
-          : '✓ HTML + CSS geladen',
-      );
+      setImportMsg({
+        'zip-grapesjs': '✓ GrapesJS-Projekt + CSS geladen',
+        'zip-html':     '✓ HTML + CSS geladen',
+        'grapesjs':     '✓ GrapesJS-Projekt geladen',
+      }[result.source] || '✓ Template geladen');
       setShowImportModal(false);
     } else {
       setImportError(result.error || 'Import fehlgeschlagen');

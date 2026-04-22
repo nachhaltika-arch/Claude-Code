@@ -21,16 +21,10 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import AdminUsers from './pages/AdminUsers';
 import TwoFactorSetup from './pages/TwoFactorSetup';
-import Landing from './pages/Landing';
-import Checkout from './pages/Checkout';
-import CheckoutSuccess from './pages/CheckoutSuccess';
 import Settings from './pages/Settings';
 import ProductEditor from './pages/ProductEditor';
 import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
-import Impressum from './pages/Impressum';
-import Datenschutz from './pages/Datenschutz';
-import Barrierefreiheit from './pages/Barrierefreiheit';
 import ResetPassword from './pages/ResetPassword';
 import Akademie from './pages/Akademie';
 import Academy from './pages/Academy';
@@ -51,10 +45,6 @@ import KasWebsite from './pages/KasWebsite';
 import CustomerPortal from './pages/CustomerPortal';
 import CustomerDetail from './pages/CustomerDetail';
 import KundenPortal from './pages/KundenPortal';
-import PackageStarter from './pages/PackageStarter';
-import PackageKompagnon from './pages/PackageKompagnon';
-import PackagePremium from './pages/PackagePremium';
-import KampagneLandingPage from './pages/KampagneLandingPage';
 import QRGenerator from './pages/QRGenerator';
 import TemplateLibrary from './pages/TemplateLibrary';
 import TemplateEditor from './pages/TemplateEditor';
@@ -144,27 +134,20 @@ function App() {
     <Router>
       <AuthProvider>
         <Routes>
-          {/* Public pages — no app chrome */}
-          <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/checkout/success" element={<CheckoutSuccess />} />
-          <Route path="/impressum" element={<Impressum />} />
-          <Route path="/datenschutz" element={<Datenschutz />} />
-          <Route path="/barrierefreiheit" element={<Barrierefreiheit />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/portal/login" element={<PortalLogin />} />
-          <Route path="/kundenportal" element={<PortalLogin />} />
+          {/* ── Auth-Seiten — kein Marketing mehr ── */}
+          <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/register"       element={<PublicRoute><Register /></PublicRoute>} />
+          <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+
+          {/* ── Kundenportal (bleibt auf Render) ── */}
+          <Route path="/portal/login"  element={<PortalLogin />} />
+          <Route path="/kundenportal"  element={<PortalLogin />} />
           <Route path="/portal/:token" element={<CustomerPortal />} />
-          <Route path="/paket/starter" element={<PackageStarter />} />
-          <Route path="/paket/kompagnon" element={<PackageKompagnon />} />
-          <Route path="/paket/premium" element={<PackagePremium />} />
-          <Route path="/checkout/:package" element={<Checkout />} />
+
+          {/* ── Funktionale Seiten (Token-basiert — müssen auf Render bleiben) ── */}
+          <Route path="/abnahme/:projectId"        element={<Abnahme />} />
+          <Route path="/approve-content/:token"    element={<ContentApprovalPage />} />
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
-          <Route path="/kampagne/:slug" element={<KampagneLandingPage />} />
-          <Route path="/abnahme/:projectId" element={<Abnahme />} />
-          <Route path="/approve-content/:token" element={<ContentApprovalPage />} />
 
           {/* App — authenticated, with Navbar/Sidebar */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
@@ -255,7 +238,7 @@ function App() {
           </Route>
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
         <FeedbackButton />
         <Toaster

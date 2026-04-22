@@ -70,6 +70,7 @@ const PHASEN = [
         fertigText: () => 'Funktionen geklärt' },
       { id: 'seo-ziele', nr: 11, label: 'SEO-Ziele', desc: 'Keywords automatisch generiert — Google Business und Social Media aus Website erkannt.', icon: '📈', component: 'SeoZiele', optional: true,
         istFertig: (d) => {
+          if (d.seoBestaetigt) return true;
           try {
             const s = d.briefing?.seo_json;
             if (!s) return !!(d.briefing?.sonstige_hinweise?.includes('Keywords:'));
@@ -212,11 +213,21 @@ export default function ProzessFlow({
   const [localLatestAudit, setLocalLatestAudit] = useState(latestAudit);
   const [localCrawlPages, setLocalCrawlPages] = useState(crawlPages);
   const [localBrandColor, setLocalBrandColor] = useState(brandData?.primary_color || null);
+  const [confirmedSteps, setConfirmedSteps] = useState(() => {
+    try { return JSON.parse(project?.steps_confirmed || '{}'); } catch { return {}; }
+  });
 
   useEffect(() => { setLocalBriefing(briefing); }, [briefing]); // eslint-disable-line
   useEffect(() => { setLocalLatestAudit(latestAudit); }, [latestAudit]); // eslint-disable-line
   useEffect(() => { setLocalCrawlPages(crawlPages); }, [crawlPages]); // eslint-disable-line
   useEffect(() => { if (brandData?.primary_color) setLocalBrandColor(brandData.primary_color); }, [brandData]); // eslint-disable-line
+
+  useEffect(() => {
+    if (!project?.id || !token) return;
+    fetch(`${API_BASE_URL}/api/projects/${project.id}/confirmed-steps`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.ok ? r.json() : {}).then(data => setConfirmedSteps(data || {})).catch(() => {});
+  }, [project?.id]); // eslint-disable-line
 
   const handleAnalyseUpdate = useCallback((data) => {
     if (data.crawlPages != null) setLocalCrawlPages(data.crawlPages);
@@ -246,7 +257,8 @@ export default function ProzessFlow({
     latestAudit: localLatestAudit,
     crawlPages:       localCrawlPages || 0,
     brandPrimaryColor:  brandData?.primary_color || localBrandColor || null,
-    brandGuidelineDone: !!(brandData?.guideline_generated),
+    brandGuidelineDone: !!(brandData?.guideline_generated) || !!(confirmedSteps['brand-guideline']?.confirmed),
+    seoBestaetigt: !!(confirmedSteps['seo-ziele']?.confirmed),
     assetsGeklaert:     !!(localBriefing?.logo_vorhanden !== undefined && (localBriefing?.logo_vorhanden || localBriefing?.fotos_vorhanden)),
     sitemapCount:     sitemapPages?.length || 0,
     contentCount:     (websiteContent || []).filter(p => p.ki_content).length,
@@ -646,10 +658,13 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
           <SeoZiele
             leadId={leadId}
             token={token}
-            onSaved={() => {
+            projectId={project?.id}
+            onStepConfirmed={(stepId) => {
+              setConfirmedSteps(prev => ({ ...prev, [stepId]: { confirmed: true } }));
               if (onProjectRefresh) onProjectRefresh();
               if (goWeiter) goWeiter();
             }}
+            onSaved={() => { if (onProjectRefresh) onProjectRefresh(); }}
           />
         </div>
       );
@@ -663,6 +678,11 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
             token={token}
             leadId={leadId}
             brandData={brandData}
+            projectId={project?.id}
+            onStepConfirmed={(stepId) => {
+              setConfirmedSteps(prev => ({ ...prev, [stepId]: { confirmed: true } }));
+              if (onProjectRefresh) onProjectRefresh();
+            }}
           />
         </div>
       );

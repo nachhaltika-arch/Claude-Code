@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { useConfirmStep } from '../hooks/useConfirmStep';
 
 const TABS = ['Farben', 'Typografie', 'Abstände', 'Komponenten', 'Vorschau', 'Export'];
 
-export default function BrandGuideline({ project, lead, token, leadId, brandData }) {
+export default function BrandGuideline({ project, lead, token, leadId, brandData, projectId, onStepConfirmed }) {
   const [activeTab, setActiveTab] = useState('Farben');
   const [guideline, setGuideline]   = useState(null);
   const [loading, setLoading]       = useState(true);
   const [generating, setGenerating] = useState(false);
+  const { confirmStep, loading: confirming } = useConfirmStep({ projectId: projectId || project?.id, token });
 
   const headers = {
     'Content-Type': 'application/json',
@@ -105,24 +107,43 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
           borderRadius: 8, padding: '10px 14px', marginBottom: 12,
           display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', gap: 12,
+          flexWrap: 'wrap',
         }}>
           <div style={{ fontSize: 12, color: '#00875A', fontWeight: 700 }}>
             ✓ Brand Guideline generiert
             {g?.meta?.style_keyword ? ` — ${g.meta.style_keyword}` : ''}
             {g?.meta?.farb_stimmung ? ` · ${g.meta.farb_stimmung}` : ''}
           </div>
-          <button
-            onClick={generate}
-            disabled={generating}
-            style={{
-              background: 'transparent', color: '#00875A',
-              border: '1px solid #00875A44', borderRadius: 6,
-              padding: '5px 12px', fontSize: 11, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'var(--font-sans)',
-            }}
-          >
-            {generating ? '⏳' : '↻ Neu generieren'}
-          </button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              onClick={generate}
+              disabled={generating}
+              style={{
+                background: 'transparent', color: '#00875A',
+                border: '1px solid #00875A44', borderRadius: 6,
+                padding: '5px 12px', fontSize: 11, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'var(--font-sans)',
+              }}
+            >
+              {generating ? '⏳' : '↻ Neu generieren'}
+            </button>
+            {(projectId || project?.id) && (
+              <button
+                onClick={() => confirmStep('brand-guideline', onStepConfirmed)}
+                disabled={confirming}
+                style={{
+                  background: '#FAE600', color: '#004F59',
+                  border: 'none', borderRadius: 6,
+                  padding: '5px 14px', fontSize: 11, fontWeight: 900,
+                  cursor: confirming ? 'not-allowed' : 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                  opacity: confirming ? 0.7 : 1,
+                }}
+              >
+                {confirming ? '⏳' : '✓ Schritt abschließen →'}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

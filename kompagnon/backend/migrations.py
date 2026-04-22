@@ -158,6 +158,11 @@ def run_migrations():
         ON kas_gjs_data(page_id);
     """)
 
+    # Schritt-Bestätigung (steps_confirmed JSON)
+    cur.execute("""
+        ALTER TABLE projects ADD COLUMN IF NOT EXISTS steps_confirmed TEXT DEFAULT '{}';
+    """)
+
     cur.close()
     conn.close()
     print("Migrationen erfolgreich ausgefuehrt.")

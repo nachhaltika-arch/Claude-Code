@@ -155,11 +155,21 @@ export default function ProzessFlowV3({
   const [localLatestAudit, setLocalLatestAudit] = useState(latestAudit);
   const [localCrawlPages,  setLocalCrawlPages]  = useState(crawlPages);
   const [localBrandColor,  setLocalBrandColor]  = useState(brandData?.primary_color || null);
+  const [confirmedSteps,   setConfirmedSteps]   = useState(() => {
+    try { return JSON.parse(project?.steps_confirmed || '{}'); } catch { return {}; }
+  });
 
   useEffect(() => { setLocalBriefing(briefing); }, [briefing]); // eslint-disable-line
   useEffect(() => { setLocalLatestAudit(latestAudit); }, [latestAudit]); // eslint-disable-line
   useEffect(() => { setLocalCrawlPages(crawlPages); }, [crawlPages]); // eslint-disable-line
   useEffect(() => { if (brandData?.primary_color) setLocalBrandColor(brandData.primary_color); }, [brandData]); // eslint-disable-line
+
+  useEffect(() => {
+    if (!project?.id || !token) return;
+    fetch(`${API_BASE_URL}/api/projects/${project.id}/confirmed-steps`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.ok ? r.json() : {}).then(data => setConfirmedSteps(data || {})).catch(() => {});
+  }, [project?.id]); // eslint-disable-line
 
   const handleAnalyseUpdate = useCallback((data) => {
     if (data.crawlPages != null) setLocalCrawlPages(data.crawlPages);

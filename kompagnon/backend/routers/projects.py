@@ -413,7 +413,7 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
                 "abnahme_datum, abnahme_durch, "
                 "pagespeed_after_mobile, pagespeed_after_desktop, screenshot_after, "
                 "gbp_checklist_json, briefing_approved_at, "
-                "netlify_site_url, netlify_last_deploy "
+                "netlify_site_url, netlify_last_deploy, steps_confirmed "
                 "FROM projects WHERE id = :pid"
             ),
             {"pid": project_id},
@@ -478,7 +478,51 @@ def get_project(project_id: int, db: Session = Depends(get_db), current_user=Dep
         'briefing_approved_at':     row[25].isoformat() if row[25] else None,
         'netlify_site_url':         row[26] or None,
         'netlify_last_deploy':      row[27].isoformat() if row[27] else None,
+        'steps_confirmed':          row[28] or '{}',
     }
+
+
+@router.post("/{project_id}/confirm-step")
+def confirm_step(
+    project_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    import json as _json
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    step_id = (body.get("step_id") or "").strip()
+    if not step_id:
+        raise HTTPException(400, "step_id fehlt")
+    raw = getattr(project, "steps_confirmed", "{}") or "{}"
+    try:
+        confirmed = _json.loads(raw)
+    except Exception:
+        confirmed = {}
+    confirmed[step_id] = {"confirmed": True, "confirmed_at": datetime.utcnow().isoformat()}
+    project.steps_confirmed = _json.dumps(confirmed, ensure_ascii=False)
+    db.commit()
+    return {"saved": True, "step_id": step_id, "confirmed": confirmed}
+
+
+@router.get("/{project_id}/confirmed-steps")
+def get_confirmed_steps(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    import json as _json
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    raw = getattr(project, "steps_confirmed", "{}") or "{}"
+    try:
+        confirmed = _json.loads(raw)
+    except Exception:
+        confirmed = {}
+    return confirmed
 
 
 BLOCKED_KEYS = {

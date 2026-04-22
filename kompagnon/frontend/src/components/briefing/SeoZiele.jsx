@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../../config';
+import { useConfirmStep } from '../../hooks/useConfirmStep';
 
 const ALL_SOCIAL = [
   'Facebook', 'Instagram', 'LinkedIn', 'YouTube', 'TikTok',
   'Pinterest', 'X/Twitter', 'Xing', 'WhatsApp Business', 'Keine',
 ];
 
-export default function SeoZiele({ leadId, token, onSaved }) {
+export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConfirmed }) {
   const [ki,       setKi]       = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
+  const { confirmStep, loading: confirming } = useConfirmStep({ projectId, token });
   const [keywords, setKeywords] = useState([]);
   const [kwInput,  setKwInput]  = useState('');
   const [social,   setSocial]   = useState([]);
@@ -45,23 +47,41 @@ export default function SeoZiele({ leadId, token, onSaved }) {
   const toggleSocial = (s) =>
     setSocial(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s]);
 
+  const saveSeoData = async (bestaetigt = false) => {
+    await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        seo_json: JSON.stringify({
+          keywords,
+          google_business: gbStatus,
+          social_media: social,
+          bestaetigt,
+        }),
+      }),
+    });
+  };
+
   const save = async () => {
     setSaving(true);
     try {
-      await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify({
-          seo_json: JSON.stringify({
-            keywords,
-            google_business: gbStatus,
-            social_media: social,
-            bestaetigt: true,
-          }),
-        }),
-      });
+      await saveSeoData(false);
       toast.success('SEO-Ziele gespeichert');
       if (onSaved) onSaved({ keywords, social, gbStatus });
+    } catch {
+      toast.error('Fehler');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveAndConfirm = async () => {
+    setSaving(true);
+    try {
+      await saveSeoData(true);
+      toast.success('SEO-Ziele abgeschlossen');
+      if (onSaved) onSaved({ keywords, social, gbStatus });
+      await confirmStep('seo-ziele', onStepConfirmed);
     } catch {
       toast.error('Fehler');
     } finally {
@@ -220,21 +240,37 @@ export default function SeoZiele({ leadId, token, onSaved }) {
         </div>
       )}
 
-      <button
-        onClick={save}
-        disabled={saving}
-        style={{
-          width: '100%', padding: '12px',
-          background: '#FAE600', color: '#000',
-          border: 'none', borderRadius: 8,
-          fontSize: 13, fontWeight: 900,
-          cursor: saving ? 'not-allowed' : 'pointer',
-          fontFamily: 'var(--font-sans)',
-          textTransform: 'uppercase', letterSpacing: '.05em',
-        }}
-      >
-        {saving ? 'Wird gespeichert…' : '✓ SEO-Ziele bestätigen & weiter'}
-      </button>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={save}
+          disabled={saving || confirming}
+          style={{
+            flex: '0 0 auto', padding: '12px 18px',
+            background: 'var(--bg-surface)', color: 'var(--text-primary)',
+            border: '0.5px solid var(--border-light)', borderRadius: 8,
+            fontSize: 13, fontWeight: 700,
+            cursor: (saving || confirming) ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-sans)',
+          }}
+        >
+          {saving ? 'Speichert…' : 'Zwischenspeichern'}
+        </button>
+        <button
+          onClick={saveAndConfirm}
+          disabled={saving || confirming}
+          style={{
+            flex: 1, padding: '12px',
+            background: '#FAE600', color: '#000',
+            border: 'none', borderRadius: 8,
+            fontSize: 13, fontWeight: 900,
+            cursor: (saving || confirming) ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-sans)',
+            textTransform: 'uppercase', letterSpacing: '.05em',
+          }}
+        >
+          {(saving || confirming) ? 'Wird gespeichert…' : '✓ SEO abschließen & weiter →'}
+        </button>
+      </div>
     </div>
   );
 }

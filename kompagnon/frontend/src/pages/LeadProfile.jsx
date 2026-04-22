@@ -232,6 +232,12 @@ export default function LeadProfile() {
   const [seqStatus, setSeqStatus]       = useState(null);
   const [emailLoading, setEmailLoading] = useState(false);
 
+  // Kaltakquise
+  const [kaltakquiseLoading, setKaltakquiseLoading] = useState(false);
+  const [kaltakquiseDone,    setKaltakquiseDone]    = useState(false);
+  const [kaltakquiseError,   setKaltakquiseError]   = useState('');
+  const [kaltakquiseResult,  setKaltakquiseResult]  = useState(null);
+
   const h = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -618,6 +624,41 @@ export default function LeadProfile() {
 
   const startAudit = () => auditStart();
 
+  const handleKaltakquise = async () => {
+    const lead = profile?.lead;
+    if (!lead) return;
+    if (!window.confirm(
+      `Kaltakquise-E-Mail an ${lead.email} senden?\n\n` +
+      `KI generiert ein personalisiertes Anschreiben auf Basis des Audits ` +
+      `und sendet es mit dem Audit-PDF als Anhang.`
+    )) return;
+    setKaltakquiseLoading(true);
+    setKaltakquiseError('');
+    setKaltakquiseDone(false);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/leads/${lead.id}/kaltakquise`,
+        { method: 'POST', headers: h }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.status === 'no_audit') {
+          setKaltakquiseError('Kein Audit vorhanden. Bitte zuerst einen Audit starten.');
+        } else {
+          setKaltakquiseError(data.detail || 'Fehler beim Senden');
+        }
+        return;
+      }
+      setKaltakquiseResult(data);
+      setKaltakquiseDone(true);
+      toast.success(`Kaltakquise-E-Mail gesendet an ${data.email_sent_to}`);
+    } catch {
+      setKaltakquiseError('Verbindungsfehler — bitte erneut versuchen');
+    } finally {
+      setKaltakquiseLoading(false);
+    }
+  };
+
   const createScreenshot = async () => {
     if (!profile?.lead?.website_url) return;
     setScreenshotLoading(true);
@@ -866,6 +907,26 @@ export default function LeadProfile() {
             ) : '🔍 Audit starten'}
           </button>
 
+          {profile?.lead?.email && profile?.lead?.website_url && (
+            <button
+              onClick={handleKaltakquise}
+              disabled={kaltakquiseLoading}
+              style={{
+                background: kaltakquiseLoading ? 'rgba(255,255,255,0.1)' : kaltakquiseDone ? '#059669' : '#7c3aed',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: 'var(--radius-md)',
+                color: 'white', fontSize: 12, fontWeight: 700,
+                padding: '9px 14px', cursor: kaltakquiseLoading ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6,
+                width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined,
+              }}
+            >
+              {kaltakquiseLoading ? (
+                <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />KI schreibt Anschreiben …</>
+              ) : kaltakquiseDone ? '✓ Kaltakquise gesendet' : '📧 Kaltakquise starten'}
+            </button>
+          )}
+
           <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 500, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
             ✏️ Bearbeiten
           </button>
@@ -920,6 +981,18 @@ export default function LeadProfile() {
             <option value="lost">Verloren</option>
           </select>
         </div>
+
+        {/* Kaltakquise status messages */}
+        {kaltakquiseError && (
+          <div style={{ marginTop: 8, fontSize: 11, color: 'var(--status-danger-text)', padding: '6px 10px', background: 'var(--status-danger-bg)', borderRadius: 6 }}>
+            {kaltakquiseError}
+          </div>
+        )}
+        {kaltakquiseDone && kaltakquiseResult && (
+          <div style={{ marginTop: 8, fontSize: 11, color: 'var(--status-success-text)', padding: '6px 10px', background: 'var(--status-success-bg)', borderRadius: 6 }}>
+            ✓ Gesendet an {kaltakquiseResult.email_sent_to} · Score {kaltakquiseResult.audit_score}/100 ·{kaltakquiseResult.with_pdf ? ' mit PDF-Anhang' : ' ohne PDF'}
+          </div>
+        )}
       </div>
 
       {/* Briefing status */}

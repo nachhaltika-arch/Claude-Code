@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import SitemapVorschlaege from './SitemapVorschlaege';
 import AnalyseCentrale from './AnalyseCentrale';
 import ContentWerkstatt from './ContentWerkstatt';
 import DesignStudio from './DesignStudio';
@@ -531,6 +532,13 @@ function SchrittContent({
           {sitemapLoading ? <Spinner /> : (
             <SitemapEditorEmbed pages={sitemapPages} leadId={leadId} headers={headers} onReload={onSitemapReload} />
           )}
+          <div style={{ padding: '0 24px 20px' }}>
+            <SitemapVorschlaege
+              leadId={leadId}
+              token={token}
+              onAdded={onSitemapReload}
+            />
+          </div>
         </div>
       );
 

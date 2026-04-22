@@ -15,6 +15,7 @@ import Funktionen from './briefing/Funktionen';
 import SeoZiele from './briefing/SeoZiele';
 import ZieleZielgruppe from './briefing/ZieleZielgruppe';
 import { useAudit } from '../hooks/useAudit';
+import SitemapVorschlaege from './SitemapVorschlaege';
 import API_BASE_URL from '../config';
 
 const PHASEN = [
@@ -553,6 +554,13 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
               onReload={onSitemapReload}
             />
           )}
+          <div style={{ padding: '0 24px 20px' }}>
+            <SitemapVorschlaege
+              leadId={leadId}
+              token={token}
+              onAdded={onSitemapReload}
+            />
+          </div>
         </div>
       );
 

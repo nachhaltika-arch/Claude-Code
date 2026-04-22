@@ -179,30 +179,95 @@ def _serialize(p: SitemapPage) -> dict:
 
 # ── Pflichtseiten ──────────────────────────────────────────────────────────────
 
-PFLICHTSEITEN = [
-    {"page_name": "Impressum",                 "page_type": "rechtlich", "position": 90, "zweck": "Gesetzlich vorgeschriebene Pflichtangaben"},
-    {"page_name": "Datenschutzerklärung",      "page_type": "rechtlich", "position": 91, "zweck": "Informationen zur Datenverarbeitung gemäß DSGVO"},
-    {"page_name": "Barrierefreiheitserklärung","page_type": "rechtlich", "position": 92, "zweck": "Konformitätserklärung gemäß BFSG / BITV 2.0"},
-    {"page_name": "AGB",                       "page_type": "rechtlich", "position": 93, "zweck": "Allgemeine Geschäftsbedingungen"},
+# Immer-Pflichtseiten (für jeden Kunden)
+PFLICHTSEITEN_IMMER = [
+    {
+        "page_name": "Impressum",
+        "page_type": "rechtlich",
+        "position": 90,
+        "zweck": "Gesetzlich vorgeschriebene Pflichtangaben gemäß §5 TMG",
+        "ziel_keyword": "Impressum",
+        "bedingung": None,
+    },
+    {
+        "page_name": "Datenschutzerklärung",
+        "page_type": "rechtlich",
+        "position": 91,
+        "zweck": "Informationen zur Datenverarbeitung gemäß DSGVO",
+        "ziel_keyword": "Datenschutz",
+        "bedingung": None,
+    },
+]
+
+# Bedingte Pflichtseiten (nur unter Voraussetzungen)
+PFLICHTSEITEN_BEDINGT = [
+    {
+        "page_name": "Barrierefreiheitserklärung",
+        "page_type": "rechtlich",
+        "position": 92,
+        "zweck": "Konformitätserklärung gemäß BFSG / BITV 2.0 — erforderlich für öffentliche Stellen und B2C-Websites ab 28.06.2025",
+        "ziel_keyword": "Barrierefreiheit",
+        "bedingung": "bfsg",
+    },
+    {
+        "page_name": "AGB",
+        "page_type": "rechtlich",
+        "position": 93,
+        "zweck": "Allgemeine Geschäftsbedingungen — erforderlich bei Online-Shop / E-Commerce",
+        "ziel_keyword": "AGB",
+        "bedingung": "ecommerce",
+    },
+]
+
+# Alle Pflichtseiten kombiniert (für Abwärtskompatibilität)
+PFLICHTSEITEN = PFLICHTSEITEN_IMMER + PFLICHTSEITEN_BEDINGT
+
+# Optionale Zusatzseiten (Vorschlagskatalog)
+OPTIONALE_SEITEN = [
+    # Basis-Seiten
+    {"page_name": "Startseite",     "page_type": "startseite", "position":  1, "zweck": "Hauptseite des Auftritts — erster Eindruck, Hero-Bereich, USP, CTA",                    "ziel_keyword": "Startseite Home",               "empfohlen_fuer": ["alle"],                                           "gruppe": "basis"},
+    {"page_name": "Leistungen",     "page_type": "leistung",   "position":  2, "zweck": "Übersicht aller angebotenen Leistungen — zentraler SEO-Treiber",                         "ziel_keyword": "Leistungen Angebote",            "empfohlen_fuer": ["alle"],                                           "gruppe": "basis"},
+    {"page_name": "Über uns",       "page_type": "info",       "position":  3, "zweck": "Geschichte, Team und Werte des Unternehmens — baut Vertrauen auf",                       "ziel_keyword": "Über uns Unternehmen",           "empfohlen_fuer": ["alle"],                                           "gruppe": "basis"},
+    {"page_name": "Kontakt",        "page_type": "conversion", "position":  4, "zweck": "Kontaktformular, Adresse, Öffnungszeiten — Hauptkonversionspunkt",                       "ziel_keyword": "Kontakt Anfrage",                "empfohlen_fuer": ["alle"],                                           "gruppe": "basis"},
+    {"page_name": "Landingpage",    "page_type": "conversion", "position":  5, "zweck": "Kampagnen-spezifische Zielseite für Ads / Aktionen — hohe Konversionsrate",              "ziel_keyword": "Angebot Aktion",                 "empfohlen_fuer": ["alle"],                                           "gruppe": "basis"},
+    # Vertrauen & Inhalte
+    {"page_name": "FAQ",            "page_type": "info",       "position": 10, "zweck": "Häufige Fragen und Antworten — stärkt Vertrauen, reduziert Supportaufwand",              "ziel_keyword": "FAQ häufige Fragen",             "empfohlen_fuer": ["alle"],                                           "gruppe": "inhalte"},
+    {"page_name": "Blog / News",    "page_type": "info",       "position": 11, "zweck": "Aktuelle Beiträge, Neuigkeiten und Expertise — gut für SEO und Reichweite",              "ziel_keyword": "News Aktuelles Blog",            "empfohlen_fuer": ["alle"],                                           "gruppe": "inhalte"},
+    {"page_name": "Galerie",        "page_type": "vertrauen",  "position": 12, "zweck": "Fotos abgeschlossener Projekte — visueller Beweis der Qualität",                         "ziel_keyword": "Galerie Referenzbilder Projekte","empfohlen_fuer": ["handwerk", "bau", "garten", "maler", "fotograf"], "gruppe": "inhalte"},
+    {"page_name": "Referenzen",     "page_type": "vertrauen",  "position": 13, "zweck": "Kundenstimmen und abgeschlossene Projekte — Social Proof",                               "ziel_keyword": "Referenzen Kundenprojekte",      "empfohlen_fuer": ["alle"],                                           "gruppe": "inhalte"},
+    {"page_name": "Team",           "page_type": "vertrauen",  "position": 14, "zweck": "Mitarbeitervorstellung — schafft Nähe, Vertrauen und Persönlichkeit",                    "ziel_keyword": "Team Mitarbeiter Experten",      "empfohlen_fuer": ["alle"],                                           "gruppe": "inhalte"},
+    # Conversion & Spezial
+    {"page_name": "Preise",         "page_type": "conversion", "position": 20, "zweck": "Preistransparenz — reduziert Anfragehürde, qualifiziert Leads vorab",                   "ziel_keyword": "Preise Kosten Angebot",          "empfohlen_fuer": ["dienstleistung", "beratung", "coaching"],         "gruppe": "conversion"},
+    {"page_name": "Karriere / Jobs","page_type": "info",       "position": 21, "zweck": "Offene Stellen und Ausbildungsplätze — Fachkräftegewinnung",                            "ziel_keyword": "Jobs Karriere Ausbildung",       "empfohlen_fuer": ["alle"],                                           "gruppe": "conversion"},
+    {"page_name": "Online-Shop",    "page_type": "conversion", "position": 22, "zweck": "Produkte online kaufen — E-Commerce-Integration",                                       "ziel_keyword": "Shop Produkte bestellen kaufen", "empfohlen_fuer": ["handel", "ecommerce"],                            "gruppe": "conversion"},
+    {"page_name": "Notfallservice", "page_type": "conversion", "position": 23, "zweck": "24h Notdienst — wichtig für Handwerker mit Bereitschaftsdienst",                        "ziel_keyword": "Notfall Notdienst 24h",          "empfohlen_fuer": ["elektriker", "sanitaer", "heizung", "schlosserei"],"gruppe": "conversion"},
+    {"page_name": "Terminbuchung",  "page_type": "conversion", "position": 24, "zweck": "Online-Terminbuchung — reduziert Telefon-Aufwand, erhöht Konversion",                  "ziel_keyword": "Termin buchen online",           "empfohlen_fuer": ["dienstleistung", "beratung", "handwerk"],         "gruppe": "conversion"},
 ]
 
 
 def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
-    """Insert missing Pflichtseiten for a lead (idempotent)."""
+    """Insert missing Immer-Pflichtseiten for a lead (idempotent). Bedingte Pflichtseiten are added via /suggest."""
+    pflicht_count = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.ist_pflichtseite.is_(True))
+        .count()
+    )
+    if pflicht_count >= len(PFLICHTSEITEN_IMMER):
+        return
+
     existing_names = {
         p.page_name
-        for p in db.query(SitemapPage.page_name)
-        .filter(SitemapPage.lead_id == lead_id, SitemapPage.ist_pflichtseite.is_(True))
-        .all()
+        for p in db.query(SitemapPage).filter(SitemapPage.lead_id == lead_id).all()
     }
-    for pf in PFLICHTSEITEN:
-        if pf["page_name"] not in existing_names:
+    for seite in PFLICHTSEITEN_IMMER:
+        if seite["page_name"] not in existing_names:
             db.add(SitemapPage(
                 lead_id=lead_id,
-                page_name=pf["page_name"],
-                page_type=pf["page_type"],
-                position=pf["position"],
-                zweck=pf["zweck"],
+                page_name=seite["page_name"],
+                page_type=seite["page_type"],
+                position=seite["position"],
+                zweck=seite.get("zweck", ""),
+                ziel_keyword=seite.get("ziel_keyword", ""),
                 status="geplant",
                 ist_pflichtseite=True,
             ))
@@ -773,6 +838,137 @@ def _generate_sitemap_pdf(pages: list, company_name: str) -> bytes:
 
     doc.build(story, onFirstPage=_on_page, onLaterPages=_on_page)
     return buf.getvalue()
+
+
+@router.get("/{lead_id}/suggest")
+def suggest_pages(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Return bedingte Pflichtseiten + optional pages as suggestions for the admin to pick from."""
+    existing_names = {
+        p.page_name
+        for p in db.query(SitemapPage).filter(SitemapPage.lead_id == lead_id).all()
+    }
+
+    bedingte = [
+        {**s, "bereits_vorhanden": s["page_name"] in existing_names, "kategorie": "bedingt_pflicht"}
+        for s in PFLICHTSEITEN_BEDINGT
+    ]
+    optional = [
+        {**s, "bereits_vorhanden": s["page_name"] in existing_names, "kategorie": "optional"}
+        for s in OPTIONALE_SEITEN
+    ]
+
+    return {"bedingte_pflichtseiten": bedingte, "optionale_seiten": optional}
+
+
+@router.get("/{lead_id}/ki-empfehlung")
+async def ki_seitenempfehlung(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Let Claude generate individual page recommendations based on this customer's briefing."""
+    import os, httpx, json as _json
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    briefing   = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    existing   = [p.page_name for p in db.query(SitemapPage).filter(SitemapPage.lead_id == lead_id).all()]
+    gewerk     = (getattr(briefing, "gewerk",      None) if briefing else None) or (getattr(lead, "trade", None) or "Handwerk")
+    leistungen = (getattr(briefing, "leistungen",  None) if briefing else None) or ""
+    usp        = (getattr(briefing, "usp",         None) if briefing else None) or ""
+    zielgruppe = (getattr(briefing, "zielgruppe",  None) if briefing else None) or ""
+    mitbewerber= (getattr(briefing, "mitbewerber", None) if briefing else None) or ""
+    city       = getattr(lead, "city", None) or "Deutschland"
+    company    = getattr(lead, "company_name", None) or ""
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    prompt = f"""Du bist ein Website-Stratege für Handwerksbetriebe.
+
+KUNDE: {company}
+Gewerk: {gewerk}
+Stadt: {city}
+Leistungen: {leistungen}
+USP: {usp}
+Zielgruppe: {zielgruppe}
+Wettbewerber: {mitbewerber}
+
+Bereits geplante Seiten: {', '.join(existing) or 'keine'}
+
+Empfehle 3-5 spezifische Seiten die für DIESEN Betrieb besonders wichtig sind.
+Berücksichtige Gewerk, USP und Zielgruppe — gib individuelle, nicht generische Empfehlungen.
+
+Antworte NUR als JSON-Array:
+[{{
+  "page_name": "<Seitenname>",
+  "page_type": "startseite|leistung|info|vertrauen|conversion|ground",
+  "zweck": "<1-2 Sätze warum diese Seite für DIESEN Betrieb wichtig ist>",
+  "ziel_keyword": "<Haupt-Keyword>",
+  "position": <Zahl>,
+  "ki_begruendung": "<Individueller Grund warum genau diese Seite für {company} sinnvoll ist>"
+}}]"""
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 1500,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+        resp.raise_for_status()
+        raw = resp.json()["content"][0]["text"].strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        empfehlungen = _json.loads(raw)
+        empfehlungen = [e for e in empfehlungen if e.get("page_name") not in existing]
+        return {"empfehlungen": empfehlungen, "company": company, "gewerk": gewerk}
+    except Exception as e:
+        raise HTTPException(500, f"KI-Empfehlung fehlgeschlagen: {str(e)[:200]}")
+
+
+@router.post("/{lead_id}/add-suggested")
+def add_suggested_page(
+    lead_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Add a suggested page (bedingt-Pflicht or optional) to the sitemap."""
+    page_name = (body.get("page_name") or "").strip()
+    if not page_name:
+        raise HTTPException(400, "page_name fehlt")
+
+    alle_vorschlaege = PFLICHTSEITEN_BEDINGT + OPTIONALE_SEITEN
+    vorlage = next((s for s in alle_vorschlaege if s["page_name"] == page_name), None)
+    ist_pflicht = bool(vorlage and vorlage.get("bedingung"))
+
+    db.add(SitemapPage(
+        lead_id=lead_id,
+        page_name=page_name,
+        page_type=body.get("page_type") or (vorlage["page_type"] if vorlage else "info"),
+        position=body.get("position") or (vorlage["position"] if vorlage else 50),
+        zweck=body.get("zweck") or (vorlage["zweck"] if vorlage else ""),
+        ziel_keyword=body.get("ziel_keyword") or (vorlage["ziel_keyword"] if vorlage else ""),
+        ist_pflichtseite=ist_pflicht,
+        status="geplant",
+    ))
+    db.commit()
+    return {"ok": True, "page_name": page_name}
 
 
 @router.get("/{lead_id}/pdf")

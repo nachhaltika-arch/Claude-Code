@@ -993,6 +993,7 @@ export default function AppLayout() {
             overflowX: 'hidden',
             WebkitOverflowScrolling: 'touch',
             background: '#F0F4F5',
+            padding: '12px 0 0',
           } : {
             flex: 1,
             overflowY: 'auto',

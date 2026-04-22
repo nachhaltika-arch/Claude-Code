@@ -5,6 +5,10 @@
   --kc-yellow: #FAE600;   /* Pantone 3945 — Akzent/CTA */
   --kc-black:  #000000;
 
+  /* ── iOS Safe Area ──────────────────────────────────────────── */
+  --safe-area-top:    env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
   /* ── Primitive Surface Colors (Light Mode) ──────────────────── */
   --paper:   #FAFAFA;
   --surface: #F0F4F5;

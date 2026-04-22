@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 
@@ -9,35 +9,56 @@ export default function BrandGuideline({ leadId, token, brandData }) {
   const [savedAt,      setSavedAt]      = useState(null);
   const [editedColors, setEditedColors] = useState({});
 
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+  // FIX: leadId direkt als Dependency — feuert erneut wenn leadId ankommt
+  useEffect(() => {
+    if (!leadId) return;
+    setLoading(true);
+    setGuideline(null);
 
-  const load = useCallback(async () => {
+    fetch(
+      `${API_BASE_URL}/api/branddesign/${leadId}/guideline`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.generated && d?.guideline) {
+          setGuideline(d.guideline);
+          if (d.generated_at) setSavedAt(new Date(d.generated_at));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [leadId, token]); // eslint-disable-line
+
+  // Manuelles Neu-Laden (z.B. nach Speichern von Edits)
+  const load = async () => {
     if (!leadId) return;
     setLoading(true);
     try {
       const res = await fetch(
         `${API_BASE_URL}/api/branddesign/${leadId}/guideline`,
-        { headers }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.ok) {
         const d = await res.json();
-        if (d.generated && d.guideline) {
+        if (d?.generated && d?.guideline) {
           setGuideline(d.guideline);
           if (d.generated_at) setSavedAt(new Date(d.generated_at));
         }
       }
     } catch { /* silent */ }
     finally { setLoading(false); }
-  }, [leadId]); // eslint-disable-line
-
-  useEffect(() => { load(); }, [load]);
+  };
 
   const generate = async () => {
     setGenerating(true);
     try {
       const res = await fetch(
         `${API_BASE_URL}/api/branddesign/${leadId}/guideline/generate`,
-        { method: 'POST', headers }
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        }
       );
       if (!res.ok) throw new Error((await res.json()).detail || 'Fehler');
       const d = await res.json();
@@ -53,14 +74,11 @@ export default function BrandGuideline({ leadId, token, brandData }) {
   };
 
   const saveEdits = async () => {
-    const updated = {
-      ...guideline,
-      colors: { ...guideline.colors, ...editedColors },
-    };
+    const updated = { ...guideline, colors: { ...guideline.colors, ...editedColors } };
     try {
       await fetch(`${API_BASE_URL}/api/branddesign/${leadId}/guideline`, {
         method: 'PUT',
-        headers,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ guideline: updated }),
       });
       setGuideline(updated);
@@ -72,50 +90,87 @@ export default function BrandGuideline({ leadId, token, brandData }) {
     }
   };
 
+  // ── Lade-Spinner ──────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
-        Lädt…
+      <div style={{
+        padding: '32px 24px', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', gap: 12, color: 'var(--text-tertiary)',
+      }}>
+        <div style={{
+          width: 32, height: 32, borderRadius: '50%',
+          border: '3px solid var(--border-light)',
+          borderTopColor: 'var(--brand-primary, #004F59)',
+          animation: 'spin .8s linear infinite',
+        }} />
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        <div style={{ fontSize: 12 }}>Brand Guideline wird geladen…</div>
+        {leadId && (
+          <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>
+            Lead-ID: {leadId}
+          </div>
+        )}
       </div>
     );
   }
 
+  // ── Kein leadId ───────────────────────────────────────────────────────────
+  if (!leadId) {
+    return (
+      <div style={{
+        padding: '20px 24px', background: '#FEF3DC',
+        borderRadius: 10, fontSize: 13, color: '#8A5C00',
+      }}>
+        Fehler: Keine Lead-ID verfügbar. Bitte Seite neu laden.
+      </div>
+    );
+  }
+
+  // ── Noch keine Guideline → Generate-Button ────────────────────────────────
   if (!guideline) {
     return (
-      <div style={{ padding: '28px 0', textAlign: 'center' }}>
-        <div style={{ fontSize: 32, marginBottom: 10 }}>🎨</div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
-          Noch keine Guideline generiert
+      <div>
+        <div style={{
+          background: 'linear-gradient(135deg, #004F59, #008EAA)',
+          borderRadius: 12, padding: '18px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+        }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: '#FAE600', marginBottom: 4 }}>
+              Brand Guideline noch nicht generiert
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', lineHeight: 1.5 }}>
+              Claude liest Brand Design, Briefing und Stil-Daten — ca. 15 Sekunden.
+            </div>
+          </div>
+          <button
+            onClick={generate}
+            disabled={generating}
+            style={{
+              background: '#FAE600', color: '#004F59',
+              border: 'none', borderRadius: 8,
+              padding: '11px 22px', fontSize: 12, fontWeight: 900,
+              cursor: generating ? 'not-allowed' : 'pointer',
+              whiteSpace: 'nowrap', flexShrink: 0,
+              fontFamily: 'var(--font-sans)',
+              opacity: generating ? 0.7 : 1,
+            }}
+          >
+            {generating ? 'Generiert…' : 'Guideline generieren →'}
+          </button>
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 18, lineHeight: 1.6 }}>
-          Die KI erstellt eine vollständige Brand Guideline<br />
-          auf Basis der gespeicherten Brand-Daten.
-        </div>
-        <button
-          onClick={generate}
-          disabled={generating}
-          style={{
-            background: generating ? 'var(--border-light)' : 'var(--brand-primary, #004F59)',
-            color: generating ? 'var(--text-tertiary)' : '#fff',
-            border: 'none', borderRadius: 8,
-            padding: '11px 22px', fontSize: 13, fontWeight: 900,
-            cursor: generating ? 'not-allowed' : 'pointer',
-            fontFamily: 'var(--font-sans)',
-          }}
-        >
-          {generating ? '🤖 KI generiert Guideline…' : 'Guideline generieren →'}
-        </button>
       </div>
     );
   }
 
+  // ── Guideline vorhanden ───────────────────────────────────────────────────
   const g = guideline;
   const allColors = { ...g.colors, ...editedColors };
 
   return (
     <div style={{ fontFamily: 'var(--font-sans)' }}>
 
-      {/* ── Status-Bar ── */}
+      {/* Status-Bar */}
       <div style={{
         background: 'var(--status-success-bg, #E3F6EF)',
         border: '0.5px solid #00875A33',
@@ -152,11 +207,11 @@ export default function BrandGuideline({ leadId, token, brandData }) {
         </button>
       </div>
 
-      {/* ── Farb-Tokens ── */}
+      {/* Farb-Tokens */}
       {Object.keys(allColors).length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>
-            Farb-Tokens — klick zum Kopieren · Doppelklick zum Bearbeiten
+            Farb-Tokens — Klick kopiert · Doppelklick bearbeitet
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 8 }}>
             {Object.entries(allColors).slice(0, 16).map(([tk, hex]) => {
@@ -171,26 +226,21 @@ export default function BrandGuideline({ leadId, token, brandData }) {
                         setEditedColors(prev => ({ ...prev, [tk]: newHex }));
                       }
                     }}
-                    title={`${tk}: ${hex} — Klick zum Kopieren, Doppelklick zum Bearbeiten`}
+                    title={`${tk}: ${hex} — Klick kopieren, Doppelklick bearbeiten`}
                     style={{
-                      height: 44, borderRadius: 7,
-                      background: hex,
-                      border: isEdited
-                        ? '2px solid var(--brand-primary, #004F59)'
-                        : '0.5px solid rgba(0,0,0,.08)',
+                      height: 44, borderRadius: 7, background: hex,
+                      border: isEdited ? '2px solid var(--brand-primary, #004F59)' : '0.5px solid rgba(0,0,0,.08)',
                       cursor: 'pointer', marginBottom: 4,
                     }}
                   />
                   <div style={{ fontSize: 8, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{hex}</div>
-                  <div style={{ fontSize: 8, color: isEdited ? 'var(--brand-primary)' : 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.03em', fontWeight: isEdited ? 700 : 400 }}>
+                  <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '.03em', fontWeight: isEdited ? 700 : 400, color: isEdited ? 'var(--brand-primary)' : 'var(--text-tertiary)' }}>
                     {tk.replace(/_/g, ' ')}
                   </div>
                 </div>
               );
             })}
           </div>
-
-          {/* Änderungen speichern */}
           {Object.keys(editedColors).length > 0 && (
             <button
               onClick={saveEdits}
@@ -208,16 +258,16 @@ export default function BrandGuideline({ leadId, token, brandData }) {
         </div>
       )}
 
-      {/* ── Typografie-Vorschau ── */}
+      {/* Typografie-Vorschau */}
       {(g.typography || brandData) && (
         <div style={{ border: '0.5px solid var(--border-light)', borderRadius: 8, padding: '12px 14px', marginBottom: 12 }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
             Typografie
           </div>
           {[
-            { label: 'Überschrift', font: g.typography?.heading || brandData?.font_heading || brandData?.font_primary, size: 18, weight: 700 },
-            { label: 'Unterüberschrift', font: g.typography?.heading || brandData?.font_heading, size: 14, weight: 600 },
-            { label: 'Fließtext', font: g.typography?.body || brandData?.font_body || brandData?.font_secondary, size: 12, weight: 400 },
+            { label: 'Überschrift',     font: g.typography?.heading || brandData?.font_heading || brandData?.font_primary,   size: 18, weight: 700 },
+            { label: 'Unterüberschrift', font: g.typography?.heading || brandData?.font_heading,                               size: 14, weight: 600 },
+            { label: 'Fließtext',       font: g.typography?.body    || brandData?.font_body    || brandData?.font_secondary,  size: 12, weight: 400 },
           ].filter(r => r.font).map(({ label, font, size, weight }) => (
             <div key={label} style={{ marginBottom: 10 }}>
               <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 2 }}>{label} — {font}</div>
@@ -233,7 +283,7 @@ export default function BrandGuideline({ leadId, token, brandData }) {
         </div>
       )}
 
-      {/* ── Stil-Keywords ── */}
+      {/* Stil-Keywords */}
       {g.meta && (
         <div style={{ padding: '10px 14px', background: 'var(--bg-app)', borderRadius: 8, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
           {g.meta.style_keyword && <span style={{ marginRight: 8 }}>Stil: <strong>{g.meta.style_keyword}</strong></span>}

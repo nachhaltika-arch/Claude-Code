@@ -527,24 +527,31 @@ async def check_google_analytics(lead_id: int, db: Session = Depends(get_db)):
 def get_brand_guideline(lead_id: int, db: Session = Depends(get_db)):
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
-        return {"generated": False, "guideline": None,
-                "debug": f"Lead {lead_id} nicht gefunden"}
+        logger.warning(f"get_brand_guideline: Lead {lead_id} nicht gefunden")
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
     raw = getattr(lead, 'brand_guideline_json', None)
+    generated_at = getattr(lead, 'brand_guideline_generated_at', None)
+
+    logger.info(
+        f"get_brand_guideline: lead_id={lead_id}, "
+        f"hat_guideline={bool(raw)}, "
+        f"generated_at={generated_at}"
+    )
+
     if not raw:
-        return {"generated": False, "guideline": None, "lead_found": True}
+        return {"generated": False, "guideline": None}
 
     try:
         guideline = json.loads(raw)
-        generated_at = getattr(lead, 'brand_guideline_generated_at', None)
         return {
             "generated":    True,
             "guideline":    guideline,
             "generated_at": generated_at.isoformat() if generated_at else None,
         }
     except Exception as e:
-        return {"generated": False, "guideline": None,
-                "debug": f"JSON parse error: {e}"}
+        logger.error(f"get_brand_guideline: JSON parse Fehler lead_id={lead_id}: {e}")
+        return {"generated": False, "guideline": None}
 
 
 @router.post("/{lead_id}/guideline/generate")

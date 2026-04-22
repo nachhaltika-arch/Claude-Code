@@ -72,11 +72,12 @@ export default function ProzessFlowV3({
     screenshotAfter:   project?.screenshot_after || null,
   };
 
+  // Init: erster nicht-fertiger Schritt — nur einmal beim Mount
   useEffect(() => {
     if (aktiverSchritt) return;
     const erster = ALLE_SCHRITTE.find(s => !s.istFertig(prozessDaten));
     setAktiverSchritt(erster?.id || ALLE_SCHRITTE[ALLE_SCHRITTE.length - 1].id);
-  }, [JSON.stringify(prozessDaten)]); // eslint-disable-line
+  }, []); // eslint-disable-line
 
   const waehleSchritt = useCallback((schritt) => {
     const idx    = ALLE_SCHRITTE.findIndex(s => s.id === schritt.id);
@@ -239,6 +240,7 @@ export default function ProzessFlowV3({
               onProjectRefresh={onProjectRefresh}
               isAdmin={isAdmin} navigate={navigate}
               onShowEdit={onShowEdit} onShowApproval={onShowApproval}
+              goWeiter={() => goTo(1)} goZurueck={() => goTo(-1)}
             />
           )}
         </div>

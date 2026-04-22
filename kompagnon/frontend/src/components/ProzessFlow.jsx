@@ -58,11 +58,25 @@ const PHASEN = [
         wasFehlts: () => ['Assets noch nicht bestätigt'],
         fertigText: () => 'Assets geklärt' },
       { id: 'funktionen', nr: 10, label: 'Funktionen', desc: 'Terminbuchung, Shop, Mehrsprachigkeit — automatisch erkannt.', icon: '⚙️', component: 'Funktionen', optional: true,
-        istFertig: (d) => !!(d.briefing?.sonstige_hinweise?.includes('Funktionen:')),
+        istFertig: (d) => {
+          try {
+            const f = d.briefing?.funktionen_json;
+            if (!f) return !!(d.briefing?.sonstige_hinweise?.includes('Funktionen:'));
+            const p = typeof f === 'string' ? JSON.parse(f) : f;
+            return !!p?.bestaetigt;
+          } catch { return false; }
+        },
         wasFehlts: () => ['Funktionen noch nicht bestätigt'],
         fertigText: () => 'Funktionen geklärt' },
       { id: 'seo-ziele', nr: 11, label: 'SEO-Ziele', desc: 'Keywords automatisch generiert — Google Business und Social Media aus Website erkannt.', icon: '📈', component: 'SeoZiele', optional: true,
-        istFertig: (d) => !!(d.briefing?.sonstige_hinweise?.includes('Keywords:')),
+        istFertig: (d) => {
+          try {
+            const s = d.briefing?.seo_json;
+            if (!s) return !!(d.briefing?.sonstige_hinweise?.includes('Keywords:'));
+            const p = typeof s === 'string' ? JSON.parse(s) : s;
+            return !!(p?.bestaetigt && p?.keywords?.length > 0);
+          } catch { return false; }
+        },
         wasFehlts: () => ['SEO-Ziele noch nicht bestätigt'],
         fertigText: () => 'SEO-Ziele gesetzt' },
     ],
@@ -260,12 +274,12 @@ export default function ProzessFlow({
     })(),
   };
 
-  // Auto-Vorschlag: erster nicht-fertiger Schritt
+  // Init: erster nicht-fertiger Schritt — nur einmal beim Mount
   useEffect(() => {
     if (aktiverSchritt) return;
     const erster = ALLE_SCHRITTE.find(s => !s.istFertig(prozessDaten));
     setAktiverSchritt(erster?.id || ALLE_SCHRITTE[ALLE_SCHRITTE.length - 1].id);
-  }, [JSON.stringify(prozessDaten)]); // eslint-disable-line
+  }, []); // eslint-disable-line
 
   const waehleSchritt = useCallback((schritt) => {
     const idx    = ALLE_SCHRITTE.findIndex(s => s.id === schritt.id);
@@ -454,7 +468,8 @@ export default function ProzessFlow({
 export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
   briefing, latestAudit, localBriefing, reloadBriefing, onAuditComplete,
   onSitemapReload, onAnalyseUpdate, sitemapPages, sitemapLoading,
-  websiteContent, brandData, netlify, qaResult, onProjectRefresh }) {
+  websiteContent, brandData, netlify, qaResult, onProjectRefresh,
+  goWeiter, goZurueck }) {
 
   const pad = { padding: '20px 24px' };
 
@@ -601,7 +616,10 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
           <Funktionen
             leadId={leadId}
             token={token}
-            onSaved={() => { if (onProjectRefresh) onProjectRefresh(); }}
+            onSaved={() => {
+              if (onProjectRefresh) onProjectRefresh();
+              if (goWeiter) goWeiter();
+            }}
           />
         </div>
       );
@@ -612,7 +630,10 @@ export function SchrittInhalt({ schritt, project, lead, leadId, token, headers,
           <SeoZiele
             leadId={leadId}
             token={token}
-            onSaved={() => { if (onProjectRefresh) onProjectRefresh(); }}
+            onSaved={() => {
+              if (onProjectRefresh) onProjectRefresh();
+              if (goWeiter) goWeiter();
+            }}
           />
         </div>
       );

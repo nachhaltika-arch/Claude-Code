@@ -20,34 +20,49 @@ export default function Dashboard() {
   const [campaignStats, setCampaignStats] = useState([]);
   const [leads, setLeads] = useState([]);
   const [audits, setAudits] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingKpis, setLoadingKpis] = useState(true);
+  const [loadingLeads, setLoadingLeads] = useState(true);
+  const [loadingSecondary, setLoadingSecondary] = useState(true);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
     const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+
+    // Chain A — KPIs: rendert die obere Kennzahlen-Reihe zuerst
+    fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h })
+      .then(r => r.json())
+      .then(data => setKpis(data))
+      .catch(() => {})
+      .finally(() => setLoadingKpis(false));
+
+    // Chain B — Leads: nur 8 werden angezeigt, Fallback auf usercards wenn leer
+    fetch(`${API_BASE_URL}/api/leads/?limit=8`, { headers: h })
+      .then(r => r.json())
+      .catch(() => [])
+      .then(async leadsData => {
+        let rows = Array.isArray(leadsData) ? leadsData : [];
+        if (rows.length === 0) {
+          try {
+            const uc = await fetch(`${API_BASE_URL}/api/usercards/`, { headers: h }).then(r => r.json());
+            if (Array.isArray(uc) && uc.length > 0) rows = uc;
+          } catch (_) {}
+        }
+        setLeads(rows.slice(0, 8));
+      })
+      .finally(() => setLoadingLeads(false));
+
+    // Chain C — Sekundaerdaten: Audits, Deal-Stats, Kampagnen-Stats
     Promise.all([
-      fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h }).then(r => r.json()).catch(() => null),
-      fetch(`${API_BASE_URL}/api/leads/`, { headers: h }).then(r => r.json()).catch(() => []),
-      fetch(`${API_BASE_URL}/api/audit/recent`, { headers: h }).then(r => r.json()).catch(() => []),
-      fetch(`${API_BASE_URL}/api/deals/stats`, { headers: h }).then(r => r.json()).catch(() => null),
+      fetch(`${API_BASE_URL}/api/audit/recent`,    { headers: h }).then(r => r.json()).catch(() => []),
+      fetch(`${API_BASE_URL}/api/deals/stats`,     { headers: h }).then(r => r.json()).catch(() => null),
       fetch(`${API_BASE_URL}/api/campaigns/stats`, { headers: h }).then(r => r.json()).catch(() => []),
-    ]).then(async ([kpiData, leadsData, auditData, dealsData, campaignData]) => {
-      setKpis(kpiData);
+    ]).then(([auditData, dealsData, campaignData]) => {
+      setAudits(Array.isArray(auditData) ? auditData.slice(0, 5) : []);
       setDealStats(dealsData);
       setCampaignStats(Array.isArray(campaignData) ? campaignData : []);
-      let rows = Array.isArray(leadsData) ? leadsData : [];
-      // Fallback: if leads table is empty, try usercards
-      if (rows.length === 0) {
-        try {
-          const uc = await fetch(`${API_BASE_URL}/api/usercards/`, { headers: h }).then(r => r.json());
-          if (Array.isArray(uc) && uc.length > 0) rows = uc;
-        } catch (_) {}
-      }
-      setLeads(rows.slice(0, 8));
-      setAudits(Array.isArray(auditData) ? auditData.slice(0, 5) : []);
-    }).finally(() => setLoading(false));
+    }).finally(() => setLoadingSecondary(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -81,7 +96,7 @@ export default function Dashboard() {
 
   const KpiCard = ({ label, value, icon, delta, color }) => (
     <div style={{ background: 'var(--paper)', border: '0.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '16px 18px' }}>
-      {loading ? (
+      {loadingKpis ? (
         <Skeleton height={32} width={80} />
       ) : (
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: color || 'var(--kc-dark)', lineHeight: 1 }}>
@@ -89,7 +104,7 @@ export default function Dashboard() {
         </div>
       )}
       <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-30)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>{label}</div>
-      {delta !== undefined && !loading && (
+      {delta !== undefined && !loadingKpis && (
         <div style={{ fontSize: 10, fontWeight: 700, marginTop: 3, color: delta > 0 ? 'var(--success)' : 'var(--text-30)', fontFamily: 'var(--font-sans)' }}>
           {delta > 0 ? '▲' : '▼'} {Math.abs(delta)} diese Woche
         </div>
@@ -295,7 +310,7 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {loading ? (
+          {loadingLeads ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '8px 4px' }}>
               {[1,2,3,4].map(i => <Skeleton key={i} height={40} />)}
             </div>
@@ -369,7 +384,7 @@ export default function Dashboard() {
             Letzte Audits
           </div>
 
-          {loading ? (
+          {loadingSecondary ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '4px' }}>
               {[1,2,3].map(i => <Skeleton key={i} height={48} />)}
             </div>
@@ -420,7 +435,7 @@ export default function Dashboard() {
             })
           )}
 
-          {!loading && audits.length > 0 && (
+          {!loadingSecondary && audits.length > 0 && (
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
               marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-light)',

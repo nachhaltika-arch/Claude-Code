@@ -161,9 +161,11 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     if not WEBHOOK_SECRET:
         logger.error(
             "Stripe Webhook empfangen aber STRIPE_WEBHOOK_SECRET nicht gesetzt — "
-            "Zahlung kann nicht verarbeitet werden! Bitte Env-Var in Render setzen."
+            "Zahlung wird NICHT verarbeitet. Bitte Env-Var in Render setzen."
         )
-        return {"status": "skipped", "reason": "webhook_secret_not_configured"}
+        # 503 statt 200: Stripe macht Retry und der Fehler bleibt sichtbar,
+        # bis die Konfiguration nachgezogen wird.
+        raise HTTPException(status_code=503, detail="webhook_secret_not_configured")
 
     try:
         event = stripe.Webhook.construct_event(payload, sig, WEBHOOK_SECRET)

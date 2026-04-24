@@ -9,6 +9,7 @@ import asyncio
 import os
 import json
 import logging
+import secrets
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
@@ -1083,9 +1084,15 @@ def _run_migrations():
 
 
 def _create_default_admin():
-    """Create demo users for all 4 roles — only in development environment."""
-    if os.getenv("ENVIRONMENT", "development").lower() == "production":
-        logger.info("⏭  Demo-User-Erstellung übersprungen (ENVIRONMENT=production)")
+    """Create demo users for all 4 roles — only in explicit development mode.
+
+    Whitelist: laeuft nur bei ENVIRONMENT in {development, dev, local}.
+    Passwoerter kommen ausschliesslich aus ENV-Vars; fehlen sie, wird ein
+    Zufallspasswort generiert und einmalig geloggt.
+    """
+    env = os.getenv("ENVIRONMENT", "development").lower()
+    if env not in ("development", "dev", "local"):
+        logger.info(f"⏭  Demo-User-Erstellung übersprungen (ENVIRONMENT={env})")
         return
 
     from database import SessionLocal, User
@@ -1093,15 +1100,21 @@ def _create_default_admin():
     db = SessionLocal()
     try:
         demo_users = [
-            {"email": os.getenv("ADMIN_EMAIL", "admin@kompagnon.de"), "password": os.getenv("ADMIN_PASSWORD", "Admin2025!"), "first_name": "Admin", "last_name": "KOMPAGNON", "role": "admin"},
-            {"email": "auditor@kompagnon.de", "password": "Auditor2025!", "first_name": "Max", "last_name": "Auditor", "role": "auditor", "position": "Senior Auditor"},
-            {"email": "nutzer@kompagnon.de", "password": "Nutzer2025!", "first_name": "Lisa", "last_name": "Nutzer", "role": "nutzer"},
-            {"email": "kunde@kompagnon.de", "password": "Kunde2025!", "first_name": "Thomas", "last_name": "Mustermann", "role": "kunde"},
+            {"email": os.getenv("ADMIN_EMAIL",   "admin@kompagnon.de"),   "password": os.getenv("ADMIN_PASSWORD",   ""), "first_name": "Admin",  "last_name": "KOMPAGNON",  "role": "admin"},
+            {"email": os.getenv("AUDITOR_EMAIL", "auditor@kompagnon.de"), "password": os.getenv("AUDITOR_PASSWORD", ""), "first_name": "Max",    "last_name": "Auditor",    "role": "auditor", "position": "Senior Auditor"},
+            {"email": os.getenv("NUTZER_EMAIL",  "nutzer@kompagnon.de"),  "password": os.getenv("NUTZER_PASSWORD",  ""), "first_name": "Lisa",   "last_name": "Nutzer",     "role": "nutzer"},
+            {"email": os.getenv("KUNDE_EMAIL",   "kunde@kompagnon.de"),   "password": os.getenv("KUNDE_PASSWORD",   ""), "first_name": "Thomas", "last_name": "Mustermann", "role": "kunde"},
         ]
         created = 0
         for ud in demo_users:
             if not db.query(User).filter(User.email == ud["email"]).first():
                 pw = ud.pop("password")
+                if not pw:
+                    pw = secrets.token_urlsafe(12)
+                    logger.warning(
+                        f"⚠ Demo-User {ud['email']}: kein Passwort in ENV gesetzt, "
+                        f"generiertes Dev-Passwort: {pw}  (NUR einmalig beim Anlegen)"
+                    )
                 pos = ud.pop("position", "")
                 user = User(**ud, password_hash=hash_password(pw), position=pos, is_active=True, is_verified=True)
                 db.add(user)

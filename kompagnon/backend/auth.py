@@ -5,6 +5,7 @@ JWT tokens, password hashing, TOTP 2FA, OAuth helpers.
 import os
 import io
 import base64
+import logging
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional
@@ -21,7 +22,24 @@ try:
 except ImportError:
     HAS_TOTP = False
 
-SECRET_KEY = os.getenv("SECRET_KEY", "kompagnon-secret-2025-change-in-production")
+_logger = logging.getLogger(__name__)
+
+SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+_env = os.getenv("ENVIRONMENT", "development").lower()
+
+if not SECRET_KEY:
+    if _env == "production":
+        raise RuntimeError(
+            "SECRET_KEY ist nicht gesetzt. In production Pflicht. "
+            "Bitte in Render.com Environment konfigurieren (min. 32 Zeichen Zufall)."
+        )
+    # Dev/Staging: ephemerer Key — Server-Neustart invalidiert bestehende Tokens.
+    SECRET_KEY = secrets.token_urlsafe(64)
+    _logger.warning(
+        "SECRET_KEY nicht gesetzt — ephemerer Entwicklungs-Key generiert. "
+        "Tokens werden bei jedem Server-Restart ungueltig."
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8  # 8 hours
 

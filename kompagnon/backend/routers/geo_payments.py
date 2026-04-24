@@ -129,18 +129,18 @@ async def geo_stripe_webhook(
     sig = request.headers.get("stripe-signature")
 
     if not STRIPE_WEBHOOK_SECRET_GEO:
-        logger.warning("STRIPE_WEBHOOK_SECRET_GEO nicht gesetzt — Signatur wird nicht validiert")
-        try:
-            event = json.loads(payload)
-        except Exception as e:
-            logger.error("GEO Webhook Payload nicht parsbar: %s", e)
-            raise HTTPException(400, "Ungueltiges Payload")
-    else:
-        try:
-            event = stripe.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET_GEO)
-        except Exception as e:
-            logger.error("GEO Webhook Verifikation fehlgeschlagen: %s", e)
-            raise HTTPException(400, "Webhook Fehler")
+        logger.error(
+            "GEO Stripe Webhook empfangen aber STRIPE_WEBHOOK_SECRET_GEO nicht gesetzt — "
+            "Abo-Event wird NICHT verarbeitet. Bitte Env-Var in Render setzen."
+        )
+        # 503 statt still akzeptieren: Stripe macht Retry, Fehler bleibt sichtbar.
+        raise HTTPException(status_code=503, detail="webhook_secret_not_configured")
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET_GEO)
+    except Exception as e:
+        logger.error("GEO Webhook Verifikation fehlgeschlagen: %s", e)
+        raise HTTPException(400, "Webhook Fehler")
 
     event_type = event["type"]
     logger.info("GEO Webhook Event: %s", event_type)

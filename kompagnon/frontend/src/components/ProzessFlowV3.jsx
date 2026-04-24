@@ -7,6 +7,7 @@ import ContentWerkstatt from './ContentWerkstatt';
 import DesignStudio from './DesignStudio';
 import BriefingTab from './BriefingTab';
 import GeoOptimizerStep from './GeoOptimizerStep';
+import { LeistungsseitenStep } from './LeistungsseitenWizard';
 import {
   BriefingUnternehmenEmbed,
   AuditEmbed,
@@ -67,7 +68,27 @@ const SCHRITTE = [
     fertigText: () => 'Ausgefüllt',
   },
   {
-    id: 'zugangsdaten', nr: 5, phase: 'Analyse',
+    id: 'leistungsseite', nr: 5, phase: 'Analyse',
+    icon: '🎯', label: 'Leistungsseite', auto: false,
+    cta: 'Fragebogen starten →',
+    desc: 'Pro Leistung eine eigene Seite — Zielgruppe, USP, Beweise und CTA in 5 Schritten.',
+    component: 'LeistungsseitenWizard',
+    istFertig: (d) => {
+      const raw = d.steps_confirmed;
+      let obj = raw;
+      if (typeof raw === 'string') { try { obj = JSON.parse(raw); } catch { obj = {}; } }
+      return Array.isArray(obj?.leistungsseiten) && obj.leistungsseiten.length > 0;
+    },
+    fertigText: (d) => {
+      const raw = d.steps_confirmed;
+      let obj = raw;
+      if (typeof raw === 'string') { try { obj = JSON.parse(raw); } catch { obj = {}; } }
+      const n = Array.isArray(obj?.leistungsseiten) ? obj.leistungsseiten.length : 0;
+      return `${n} Leistungsseite(n) angelegt`;
+    },
+  },
+  {
+    id: 'zugangsdaten', nr: 6, phase: 'Analyse',
     icon: '🔑', label: 'Zugangsdaten', auto: false, optional: true,
     cta: 'Zugangsdaten speichern →',
     desc: 'Hosting, FTP und CMS-Zugänge sicher speichern.',
@@ -76,7 +97,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.credsCount} Einträge`,
   },
   {
-    id: 'sitemap', nr: 6, phase: 'Content',
+    id: 'sitemap', nr: 7, phase: 'Content',
     icon: '🗺️', label: 'Sitemap', auto: false,
     cta: 'KI-Sitemap generieren →',
     desc: 'KI legt alle Seiten aus dem Briefing an — 1 Klick.',
@@ -85,7 +106,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.sitemapCount} Seiten`,
   },
   {
-    id: 'content-generieren', nr: 7, phase: 'Content',
+    id: 'content-generieren', nr: 8, phase: 'Content',
     icon: '✍️', label: 'Texte generieren', auto: false,
     cta: 'Alle Texte generieren →',
     desc: 'KI schreibt alle Seiten auf einmal — ca. 60 Sekunden.',
@@ -94,7 +115,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.contentCount}/${d.sitemapCount} Seiten`,
   },
   {
-    id: 'design-generieren', nr: 8, phase: 'Design',
+    id: 'design-generieren', nr: 9, phase: 'Design',
     icon: '🎨', label: 'Design wählen', auto: false,
     cta: 'Design generieren →',
     desc: 'KI erstellt 3 Entwürfe — du wählst den besten.',
@@ -103,7 +124,7 @@ const SCHRITTE = [
     fertigText: (d) => `${d.designVersions} Version(en)`,
   },
   {
-    id: 'editor', nr: 9, phase: 'Design',
+    id: 'editor', nr: 10, phase: 'Design',
     icon: '🖊️', label: 'Feinschliff', auto: false, optional: true,
     cta: 'Editor öffnen →',
     desc: 'Echte Fotos einsetzen, Texte prüfen, Mobile-Ansicht testen.',
@@ -112,7 +133,7 @@ const SCHRITTE = [
     fertigText: () => 'Gespeichert',
   },
   {
-    id: 'netlify', nr: 10, phase: 'Go Live',
+    id: 'netlify', nr: 11, phase: 'Go Live',
     icon: '🚀', label: 'Veröffentlichen', auto: false,
     cta: 'Jetzt veröffentlichen →',
     desc: 'Website live schalten — 1 Klick, Netlify deployt automatisch.',
@@ -121,7 +142,7 @@ const SCHRITTE = [
     fertigText: (d) => d.netlifyUrl || 'Deployed',
   },
   {
-    id: 'dns', nr: 11, phase: 'Go Live',
+    id: 'dns', nr: 12, phase: 'Go Live',
     icon: '🌍', label: 'Domain verbinden', auto: true,
     autoText: 'DNS-Anleitung wird automatisch per E-Mail an den Kunden gesendet — du musst nichts tun.',
     desc: 'Anleitung geht direkt an den Kunden.',
@@ -130,7 +151,7 @@ const SCHRITTE = [
     fertigText: () => 'Domain erreichbar',
   },
   {
-    id: 'qa', nr: 12, phase: 'Go Live',
+    id: 'qa', nr: 13, phase: 'Go Live',
     icon: '✅', label: 'QM-Audit', auto: false,
     cta: 'QM-Audit starten →',
     desc: 'Qualitätskontrolle der neuen Website — gleicher Audit, neue Seite.',
@@ -139,7 +160,7 @@ const SCHRITTE = [
     fertigText: () => 'QM abgeschlossen',
   },
   {
-    id: 'abnahme', nr: 13, phase: 'Go Live',
+    id: 'abnahme', nr: 14, phase: 'Go Live',
     icon: '🏁', label: 'Go Live!', auto: false,
     cta: 'Abnahme erteilen →',
     desc: 'Finale Kundenfreigabe und Go-Live.',
@@ -239,6 +260,7 @@ export default function ProzessFlowV3({
     qaResult,
     projectStatus:     project?.status || '',
     goLiveConfirmed:   !!(project?.abnahme_datum),
+    steps_confirmed:   project?.steps_confirmed,
   };
 
   const aktiverIdx = SCHRITTE.findIndex(s => !s.istFertig(prozessDaten));
@@ -530,6 +552,18 @@ function SchrittContent({
       return lead
         ? <div style={pad}><BriefingTab lead={lead} token={token} /></div>
         : <Spinner />;
+
+    case 'LeistungsseitenWizard':
+      return (
+        <LeistungsseitenStep
+          projectId={project?.id}
+          leadId={leadId}
+          token={token}
+          brandData={brandData}
+          confirmedSteps={project?.steps_confirmed}
+          onSave={() => { onProjectRefresh?.(); }}
+        />
+      );
 
     case 'AnalyseZentrale':
       return (

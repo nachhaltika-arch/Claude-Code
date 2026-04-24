@@ -240,6 +240,37 @@ class MarginResponse(BaseModel):
     min_acceptable_margin: float
 
 
+class LeistungsseitenCreate(BaseModel):
+    """Fragebogen-Eingabe fuer eine neue Leistungsseite (Teil 1 Stub).
+
+    Pflichtfelder werden client-seitig im Wizard validiert; server-seitig
+    sind alle Felder optional, damit Teil-2-Erweiterungen problemlos moeglich
+    sind und kein 422 den Stub-Save blockiert.
+    """
+    # Schritt 1 — Leistung definieren
+    leistung: str = ""
+    gebiet: str = ""
+    zielgruppe: str = ""
+    # Schritt 2 — Zielkunde & Problem
+    idealer_kunde: str = ""
+    problem: str = ""
+    problem_folgen: str = ""
+    # Schritt 3 — USP & Preis
+    usp: str = ""
+    einstiegspreis: str = ""
+    inkludiert: str = ""
+    # Schritt 4 — Beweis & Vertrauen
+    referenzen: str = ""
+    projekt_anzahl: str = ""
+    kundenstimmen: str = ""
+    zertifikate: str = ""
+    # Schritt 5 — Kontakt & CTA
+    kontakt_kanal: str = ""
+    telefon: str = ""
+    cta_text: str = ""
+    dringlichkeit: str = ""
+
+
 @router.get("/debug")
 def debug_projects(db: Session = Depends(get_db)):
     """Diagnostic: raw project + lead counts and sample rows."""
@@ -523,6 +554,51 @@ def get_confirmed_steps(
     except Exception:
         confirmed = {}
     return confirmed
+
+
+@router.post("/{project_id}/leistungsseiten")
+def create_leistungsseite(
+    project_id: int,
+    body: LeistungsseitenCreate,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Speichert einen Leistungsseiten-Fragebogen (Teil 1 Stub).
+
+    Der Datensatz wird als Eintrag in steps_confirmed["leistungsseiten"]
+    (Array) abgelegt. Die tatsaechliche Seiten-Generierung folgt in Teil 2.
+    """
+    import json as _json
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    raw = getattr(project, "steps_confirmed", "{}") or "{}"
+    try:
+        confirmed = _json.loads(raw)
+    except Exception:
+        confirmed = {}
+    if not isinstance(confirmed, dict):
+        confirmed = {}
+
+    existing = confirmed.get("leistungsseiten")
+    if not isinstance(existing, list):
+        existing = []
+
+    entry = body.model_dump() if hasattr(body, "model_dump") else body.dict()
+    entry["saved_at"] = datetime.utcnow().isoformat()
+    existing.append(entry)
+    confirmed["leistungsseiten"] = existing
+
+    project.steps_confirmed = _json.dumps(confirmed, ensure_ascii=False)
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Fragebogen gespeichert",
+        "leistung": body.leistung,
+        "status": "fragebogen_ausgefuellt",
+    }
 
 
 BLOCKED_KEYS = {

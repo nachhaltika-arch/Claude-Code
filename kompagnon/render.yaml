@@ -1,22 +1,56 @@
+# KAS — Render Blueprint
+#
+# Bestehende Services wurden manuell angelegt — dieses Blueprint dient
+# als Wahrheits-/Dokumentations-Datei und für künftige neue Services.
+# Bei Änderung im Render Dashboard: bitte hier nachziehen.
+#
+# Region: frankfurt (EU) — DSGVO-relevant, nicht ändern ohne Datenschutz-Prüfung.
+
+databases:
+  - name: kompagnon-db
+    plan: starter
+    region: frankfurt
+    postgresMajorVersion: "16"
+    ipAllowList: []   # nur interner Zugriff aus Render-Services
+
 services:
-  # ── Backend (FastAPI) ──────────────────────────────────────────────────────
+  # ── Backend (FastAPI) ────────────────────────────────────────────────────────
   - type: web
     name: claude-code-znq2
     runtime: python
+    region: frankfurt
+    plan: starter
     rootDir: kompagnon/backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 30
+    healthCheckPath: /health
+    autoDeploy: true
     envVars:
+      # Runtime
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: "3.11.0"
       - key: ENVIRONMENT
         value: production
+
+      # Database (automatisch aus Postgres-Service oben gezogen)
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: kompagnon-db
+          property: connectionString
+
+      # Auth / Security
       - key: SECRET_KEY
         sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+      # AI (Anthropic / Claude)
       - key: ANTHROPIC_API_KEY
         sync: false
+
+      # SMTP (Transaktionsmails)
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
@@ -25,24 +59,53 @@ services:
         sync: false
       - key: SMTP_PASSWORD
         sync: false
+      - key: SMTP_SENDER_NAME
+        sync: false
+      - key: SMTP_SENDER_EMAIL
+        sync: false
       - key: FROM_EMAIL
         sync: false
+
+      # Brevo (Newsletter)
+      - key: BREVO_API_KEY
+        sync: false
+
+      # Stripe (Payments + GEO Add-On)
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: STRIPE_WEBHOOK_SECRET_GEO
+        sync: false
+
+      # Netlify (Customer Site Hosting)
+      - key: NETLIFY_API_TOKEN
+        sync: false
+
+      # Google PageSpeed Insights (Audit)
       - key: GOOGLE_PAGESPEED_API_KEY
         sync: false
 
-  # ── Frontend (React) ───────────────────────────────────────────────────────
+      # Admin-Seed (nur initial befüllt, kann leer sein)
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+
+  # ── Frontend (React) ─────────────────────────────────────────────────────────
   - type: web
     name: kompagnon-frontend
     runtime: node
+    region: frankfurt
+    plan: starter
     rootDir: kompagnon/frontend
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci --legacy-peer-deps && npm run build
     startCommand: npx serve -s build -l $PORT
+    autoDeploy: true
     envVars:
       - key: NODE_VERSION
-        value: 18.20.0
+        value: "18.20.0"
       - key: REACT_APP_API_URL
         value: https://claude-code-znq2.onrender.com
+      - key: CI
+        value: "false"   # Build nicht durch React-Warnings abbrechen

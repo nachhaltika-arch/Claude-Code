@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [staging, main]
+  pull_request:
+    branches: [staging, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-lint:
+    name: Backend — Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ruff
+        run: pip install ruff==0.6.9
+      - name: Run ruff (critical rules only)
+        working-directory: kompagnon/backend
+        run: ruff check --select E9,F63,F7,F82 --output-format=github .
+
+  backend-import:
+    name: Backend — Smoke import
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: kompagnon/backend/requirements.txt
+      - name: Install dependencies
+        working-directory: kompagnon/backend
+        run: pip install -r requirements.txt
+      - name: Smoke-import main
+        working-directory: kompagnon/backend
+        env:
+          DATABASE_URL: sqlite:///./ci.db
+          SECRET_KEY: ci-dummy-secret-key-not-for-prod
+          ANTHROPIC_API_KEY: ci-dummy
+          ENVIRONMENT: development
+        run: |
+          python -c "import main; routes = len(main.app.routes); print(f'OK: {routes} routes registered'); assert routes > 30, f'expected > 30 routes, got {routes}'"
+
+  frontend-build:
+    name: Frontend — Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: npm
+          cache-dependency-path: kompagnon/frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: kompagnon/frontend
+        run: npm ci --legacy-peer-deps
+      - name: Build
+        working-directory: kompagnon/frontend
+        env:
+          CI: false
+          REACT_APP_API_URL: https://claude-code-znq2.onrender.com
+        run: npm run build
+      - name: Report bundle size
+        working-directory: kompagnon/frontend
+        run: du -sh build && du -sh build/static/js
+
+  secrets-scan:
+    name: Secrets — Gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar -xz
+          sudo mv gitleaks /usr/local/bin/
+          gitleaks version
+      - name: Scan repository
+        run: gitleaks detect --source . --no-banner --redact --verbose

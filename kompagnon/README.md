@@ -184,19 +184,22 @@ Alle Agenten nutzen **Anthropic Claude** (`claude-sonnet-4-6`).
 
 ## Repository- und Deployment-Struktur
 
-Das Repository hat zwei langlebige Branches:
+Single-Trunk-Workflow (Migration 2026-04-30):
 
 | Branch | Zweck | Auto-Deploy-Ziel |
 |---|---|---|
-| `main` | Produktion (live) | Produktiv-Server auf Render |
-| `staging` | Entwicklung / Test | Stage-Server auf Render |
+| `main` | Einzige langlebige Branch — produktiv/live | Render Backend + Frontend |
+| `claude/*` | Kurzlebige Feature-Branches für Multi-Commit-Arbeit | — |
 
 **Entwicklungs-Workflow:**
-1. Entwicklung findet ausschließlich auf `staging` statt. Auf `main` wird **niemals** direkt gepusht.
-2. Jeder Push auf `staging` löst automatisch ein Deployment auf die Stage-Server aus:
-   - Frontend Stage: `https://kompagnon-frontend.onrender.com`
-   - Backend Stage: `https://claude-code-znq2.onrender.com`
-3. Produktions-Release erfolgt ausschließlich über einen Pull Request `staging → main` mit manuellem Merge. Render zieht den Produktiv-Server nach dem Merge automatisch nach.
+1. Arbeit findet auf einem Feature-Branch statt (`claude/<kurze-beschreibung>`). Direkter Push auf `main` ist durch GitHub-Branch-Protection blockiert.
+2. Push des Feature-Branches → Pull Request auf `main`.
+3. CI muss grün durchlaufen (vier Jobs: backend-lint, backend-import, frontend-build, secrets-scan). PRs ohne grüne CI können nicht gemergt werden.
+4. Manueller Merge durch den Nutzer. Nach Merge:
+   - Render deployed automatisch:
+     - Frontend: `https://kompagnon-frontend.onrender.com`
+     - Backend: `https://claude-code-znq2.onrender.com`
+   - Feature-Branch sollte gelöscht werden (lokal + remote).
 
 ---
 

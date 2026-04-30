@@ -250,6 +250,45 @@ Frontend: `http://localhost:3000`
 
 ---
 
+## In Arbeit / Offene Punkte
+
+Bündelt Themen, die aktuell begonnen oder identifiziert sind, damit sie zwischen Sessions nicht verloren gehen. Detail-Dokumente liegen in [`docs/`](docs/).
+
+### Geplante Erweiterungen
+
+- **Umami Analytics** als kostenpflichtiges Kunden-Add-On + interne Akquise-Verwendung. Vollständiger Implementierungsplan: [`docs/umami-analytics-plan.md`](docs/umami-analytics-plan.md). Offene Entscheidungen **vor Phase 1**: Pricing (Vorschlag 29 €/Monat), Subdomain-Strategie (`analytics.kompagnon.eu` allein oder Split mit `track.kompagnon.eu`), Render-Postgres-Plan-Größe, Datenschutz-Text für Pre-Sales-Tracking.
+- **OpenReplay** als Premium-Tier *nach* Umami — Session-Replay / UX-Insights / Conversion-Funnel-Debugging. Komplementär zu Umami. Hosting-Pfad offen: OpenReplay Cloud (saas.openreplay.com, $9–49/Monat) vs. Hetzner k3s (~€25–45/Monat, EU-DSGVO) vs. Docker-Compose (~€20/Monat, kein offizieller Production-Support). Erhöhte DSGVO-Anforderungen: Cookie-Consent wird Pflicht (TTDSG § 25), DPIA wahrscheinlich, höheres Pricing pro Kunde realistisch (€79–149/Monat).
+
+### Rechtliche Dokumente
+
+Bestandsaufnahme + Anwalt-Briefing: [`docs/rechtsdokumente-bestandsaufnahme.md`](docs/rechtsdokumente-bestandsaufnahme.md) (auch als `.docx` exportiert).
+
+- **Kritisch — Abmahnrisiko**: Google Fonts werden in `frontend/public/index.html:10–12` direkt von Google geladen. Nach LG München I (Az. 3 O 17493/20) Datenschutz-Verstoß. Lokal hosten via `@fontsource/...`. Aufwand ~1 Stunde.
+- **AVVs** mit allen Subprocessors abschließen: Anthropic, Stripe, Brevo, Render, Netlify, Google PageSpeed, Trackdesk, ggf. thum.io / microlink.
+- **DSGVO-Workflow im KAS implementieren**: aktuell weder Daten-Export- noch Account-Löschungs-Endpoint vorhanden (Art. 15 + 17 DSGVO Pflicht).
+- **Pre-Sales-Audit fremder Websites**: Rechtsgrundlage mit Fachanwalt klären (Art. 6 Abs. 1 lit. f vs. Einwilligung) — aktuell wird im Akquiseprozess gescannt, ohne dass Lead Vertragspartner ist.
+- **Lösch-Routinen** für Lead- und Audit-Daten nach Aufbewahrungsfrist (Cron-Job in `automations/scheduler.py` erforderlich).
+- **Datenschutzbeauftragter-Pflicht** prüfen (§ 38 BDSG, abhängig von Anzahl Beschäftigter + Tätigkeitsart).
+- DSE, AGB und Impressum vom Anwalt finalisieren lassen.
+
+### Technische Schulden
+
+Quelle: Tagesreport vom 2026-04-30 + Bug-Liste.
+
+- **Bug #2 — Email-Service-Cleanup** (Konsolidierung zu ~95 % erledigt, Reste entfernen):
+  - `kompagnon/backend/services/email_service.py` ist toter Code (`EmailService` und `MockEmailService` werden nirgends importiert, nur über `services/__init__.py` re-exportiert).
+  - `kompagnon/backend/email_service.py` (top-level): nur eine echte Verwendung in `routers/audit.py` (`send_audit_done_email`); `send_email`, `send_phase_change_email`, `send_approval_request_email` sind ungenutzt.
+  - Kanon: `kompagnon/backend/services/email.py` mit ~18 aktiven Aufrufern.
+- **Router-Prefix-Konsolidierung** (Kollisionsrisiko): `/api/briefings` ist über zwei Router (`briefing.py` + `briefings.py`) belegt; `/api/admin` doppelt (`admin_settings.py` + `auth_router.py`); `/api/customers` vierfach (`customers.py` + `cms_connect.py` + Aliase aus `leads.py` + `usercards.py`).
+- **Hardcoded Farbwerte** durch CSS-Variablen aus `tokens.css` ersetzen: `NewProjectModal`, `SitemapPlaner`, `BriefingWizard`, `index.css:297`.
+
+### CI / Deployment (manuelle UI-Schritte)
+
+- **GitHub Branch Protection für `main`**: Ruleset `protect-main` existiert + Target ist gesetzt. Noch zu tun: **Required Status Checks aktivieren** und alle vier CI-Jobs (`Backend — Lint (ruff)`, `Backend — Smoke import`, `Frontend — Build`, `Secrets — Gitleaks`) als Required hinzufügen. Geht erst, wenn die Jobs mindestens einmal grün gelaufen sind.
+- **Render Blueprint** (`kompagnon/render.yaml`) ist erweitert (Postgres-Service, alle Env-Vars, region: frankfurt). Bestehende Services laufen unverändert; Blueprint dient als Wahrheits-Datei. Bei neuen Services (z. B. Umami) Blueprint via Render Dashboard → "Blueprints" → "New Blueprint Instance" nutzen.
+
+---
+
 ## Lizenz und Kontakt
 
 Proprietär — KOMPAGNON Communications BP GmbH.

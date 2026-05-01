@@ -7,27 +7,32 @@ Bevor irgendein Code angefasst wird, führe aus:
 
 Erwartetes Ergebnis:
   origin → https://github.com/nachhaltika-arch/Claude-Code
-  current branch → main (oder ein Feature-Branch davon)
+  current branch → staging (oder main, falls nur lesend)
 
 Falls das Repo nicht stimmt:
   → STOPPE sofort
   → Melde: "Falsches Repo. Bitte prüfen."
   → Führe NICHTS aus bis der Nutzer bestätigt
 
-## Branch-Regeln (single-trunk, IEAR-Style)
+## Branch-Regeln (staging → main, dual-branch, ab 2026-05-01)
 
-- **Hauptbranch:** `main` — produktiv/live, einzige langlebige Branch
-- **Keine permanente `staging`-Branch** (Umstellung 2026-04-30)
-- **Feature-Branches** sind erlaubt für Multi-Commit-Arbeit; Naming: `claude/<kurze-beschreibung>`
-- **Direkt auf `main` pushen ist blockiert** durch GitHub-Branch-Protection (Ruleset `protect-main`) — alle Änderungen via Pull Request
-- Branch löschen NACH Merge (nicht stehen lassen)
+| Branch  | Zweck            | Wer pusht                        | Auto-Deploy           |
+|---------|------------------|----------------------------------|-----------------------|
+| main    | Produktiv / Live | Nur via Pull Request aus staging | Render Produktiv      |
+| staging | Test / Stage     | Direkter Push erlaubt            | Render Staging-Server |
+
+- Claude Code arbeitet IMMER auf: `staging`
+- NIE direkt auf `main` pushen — Branch-Protection blockt es ohnehin
+- KEINE zusätzlichen langlebigen Branches erstellen (`claude/*`, `feature/*` etc. sind verworfen)
+- Nach jedem Commit sofort: `git push origin staging`
 
 ## Workflow
 
-1. **Kleine Änderung (ein Commit):** Feature-Branch anlegen, Commit, push, PR auf `main`, CI grün abwarten, mergen lassen.
-2. **Größere Arbeit:** eigener Feature-Branch, mehrere Commits, dann ein PR.
-3. Claude erstellt **nie** den Merge selbst — Merge führt der Nutzer durch.
-4. Nach Merge: Render deployed automatisch aus `main` → live.
+1. Arbeit auf `staging`: Code ändern → committen → pushen.
+2. Render deployt automatisch auf den **Staging-Server** — dort testen.
+3. Wenn Test grün ist: GitHub-PR `staging → main` öffnen, CI grün abwarten.
+4. **Nutzer merged manuell** in `main`. Claude Code merged NIE selbst.
+5. Render deployt automatisch auf den **Produktiv-Server** → live.
 
 ## Repo-Regel
 - Einziges erlaubtes Repo: `nachhaltika-arch/Claude-Code`
@@ -38,10 +43,14 @@ Falls das Repo nicht stimmt:
 - Conventional-Commit-Style: `feat:`, `fix:`, `docs:`, `chore:`, `ci:`, `refactor:`, `perf:`, `test:`
 
 ## Deploy-Info
-Render.com deployt automatisch bei jedem Merge auf `main`.
+- **Staging**: Render deployt auf jeden Push zu `staging`
+- **Produktiv**: Render deployt auf jeden Merge in `main`
 
+Produktiv-URLs:
 - Frontend: https://kompagnon-frontend.onrender.com
 - Backend:  https://claude-code-znq2.onrender.com
+
+Staging-URLs: einzurichten (Render Dashboard, eigener Web-Service + Static Site auf Branch `staging`).
 
 ## CI-Schutz
 GitHub Actions (`.github/workflows/ci.yml`) läuft auf jede PR Richtung `main` mit vier Jobs:

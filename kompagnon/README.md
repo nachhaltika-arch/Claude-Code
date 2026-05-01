@@ -184,22 +184,22 @@ Alle Agenten nutzen **Anthropic Claude** (`claude-sonnet-4-6`).
 
 ## Repository- und Deployment-Struktur
 
-Single-Trunk-Workflow (Migration 2026-04-30):
+Dual-Branch-Workflow `staging → main` (ab 2026-05-01):
 
 | Branch | Zweck | Auto-Deploy-Ziel |
 |---|---|---|
-| `main` | Einzige langlebige Branch — produktiv/live | Render Backend + Frontend |
-| `claude/*` | Kurzlebige Feature-Branches für Multi-Commit-Arbeit | — |
+| `main` | Produktiv / Live — nur via PR aus `staging` | Render Produktiv-Services |
+| `staging` | Test- / Stage-Branch — direkter Push erlaubt | Render Staging-Services |
 
 **Entwicklungs-Workflow:**
-1. Arbeit findet auf einem Feature-Branch statt (`claude/<kurze-beschreibung>`). Direkter Push auf `main` ist durch GitHub-Branch-Protection blockiert.
-2. Push des Feature-Branches → Pull Request auf `main`.
+1. Arbeit findet direkt auf `staging` statt. Push auf `staging` löst automatischen Deploy auf den Staging-Server aus.
+2. Manuelles Testen auf dem Staging-Server. Wenn alles grün läuft: Pull Request `staging → main` öffnen.
 3. CI muss grün durchlaufen (vier Jobs: backend-lint, backend-import, frontend-build, secrets-scan). PRs ohne grüne CI können nicht gemergt werden.
 4. Manueller Merge durch den Nutzer. Nach Merge:
-   - Render deployed automatisch:
+   - Render deployed automatisch auf Produktiv:
      - Frontend: `https://kompagnon-frontend.onrender.com`
      - Backend: `https://claude-code-znq2.onrender.com`
-   - Feature-Branch sollte gelöscht werden (lokal + remote).
+5. `staging` bleibt langlebig stehen — wird nicht gelöscht. Keine zusätzlichen `claude/*`- oder `feature/*`-Branches.
 
 ---
 

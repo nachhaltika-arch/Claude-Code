@@ -1,8 +1,10 @@
 # Branch-Migration: zwei Branches → single-trunk (IEAR-Style)
 
-**Status:** Runbook v1
+> **VERWORFEN am 2026-05-01.** Die single-trunk-Umstellung wurde nicht abgeschlossen — wir bleiben beim dual-branch-Modell `staging → main`, weil Tests auf einem dedizierten Staging-Server vor Live-Deploy ausdrücklich gewünscht sind. Aktuell gültige Workflow-Beschreibung steht in `CLAUDE.md` und `kompagnon/README.md`. Dieses Runbook ist als Historie behalten und sollte nicht mehr Schritt-für-Schritt ausgeführt werden.
+
+**Status:** Runbook v1 — verworfen
 **Erstellt:** 2026-04-30
-**Ziel:** KAS auf gleiches Workflow-Modell wie IEARV4 umstellen — nur `main`, alle Änderungen via PR mit grüner CI.
+**Ziel (ursprünglich):** KAS auf gleiches Workflow-Modell wie IEARV4 umstellen — nur `main`, alle Änderungen via PR mit grüner CI.
 
 ---
 

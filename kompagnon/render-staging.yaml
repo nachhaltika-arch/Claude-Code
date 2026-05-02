@@ -1,0 +1,121 @@
+# KAS — Render Blueprint (STAGING)
+#
+# Erstellt zwei Services auf Branch `staging`:
+#   - kompagnon-backend-staging  (FastAPI)
+#   - kompagnon-frontend-staging (React)
+#
+# Die Staging-Postgres-DB wird NICHT von diesem Blueprint angelegt —
+# sie existiert bereits manuell. DATABASE_URL muss nach der Service-Erstellung
+# einmalig im Dashboard gesetzt werden (Internal Database URL der Staging-DB).
+#
+# Blueprint anwenden:
+#   1. Diese Datei committen + nach `staging` pushen
+#   2. Render Dashboard → New → Blueprint
+#   3. Repo `nachhaltika-arch/Claude-Code` auswählen, Branch `staging`
+#   4. Blueprint-Pfad: kompagnon/render-staging.yaml
+#   5. Nach Erstellung: alle `sync: false`-Variablen im Dashboard befüllen
+#      (siehe Kommentare unten)
+#
+# WICHTIG für Staging:
+#   - Stripe: TEST-Keys verwenden (sk_test_…, pk_test_…)
+#   - SMTP: Test-/Sandbox-Account oder gleicher SMTP wie Live (egal — Staging sendet nur an dich)
+#   - CORS_ALLOWED_ORIGINS / FRONTEND_URL: Staging-Frontend-URL eintragen
+#   - REACT_APP_API_URL (Frontend): Staging-Backend-URL eintragen, sobald Backend deployed ist
+
+services:
+  # ── Backend Staging (FastAPI) ────────────────────────────────────────────────
+  - type: web
+    name: kompagnon-backend-staging
+    runtime: python
+    region: frankfurt
+    plan: starter
+    branch: staging
+    rootDir: kompagnon/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 30
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Runtime
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: ENVIRONMENT
+        value: staging
+
+      # Database — manuell setzen: Internal Database URL der Staging-DB
+      - key: DATABASE_URL
+        sync: false
+
+      # Auth / Security — eigene Werte für Staging (NICHT Produktiv-Secrets recyceln)
+      - key: SECRET_KEY
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+      # AI (Anthropic / Claude) — kann gleicher Key wie Produktiv sein, oder Test-Workspace-Key
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+      # SMTP (Transaktionsmails)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_SENDER_NAME
+        sync: false
+      - key: SMTP_SENDER_EMAIL
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+
+      # Brevo (Newsletter) — Test-Account oder leer lassen für Staging
+      - key: BREVO_API_KEY
+        sync: false
+
+      # Stripe — PFLICHT: Test-Keys (sk_test_…) auf Staging
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET_GEO
+        sync: false
+
+      # Netlify (Customer Site Hosting) — eigener Test-Token oder gleicher Token mit anderem Site-Prefix
+      - key: NETLIFY_API_TOKEN
+        sync: false
+
+      # Google PageSpeed Insights — gleicher Key wie Produktiv ist OK (read-only Quota)
+      - key: GOOGLE_PAGESPEED_API_KEY
+        sync: false
+
+      # Admin-Seed
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+
+  # ── Frontend Staging (React) ─────────────────────────────────────────────────
+  - type: web
+    name: kompagnon-frontend-staging
+    runtime: node
+    region: frankfurt
+    plan: starter
+    branch: staging
+    rootDir: kompagnon/frontend
+    buildCommand: npm ci --legacy-peer-deps && npm run build
+    startCommand: npx serve -s build -l $PORT
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "18.20.0"
+      # Manuell nach Backend-Deploy setzen: https://kompagnon-backend-staging.onrender.com
+      - key: REACT_APP_API_URL
+        sync: false
+      - key: CI
+        value: "false"

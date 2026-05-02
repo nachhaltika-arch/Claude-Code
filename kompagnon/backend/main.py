@@ -1084,14 +1084,14 @@ def _run_migrations():
 
 
 def _create_default_admin():
-    """Create demo users for all 4 roles — only in explicit development mode.
+    """Create demo users for all 4 roles — only in explicit non-production environments.
 
-    Whitelist: laeuft nur bei ENVIRONMENT in {development, dev, local}.
+    Whitelist: laeuft nur bei ENVIRONMENT in {development, dev, local, staging}.
     Passwoerter kommen ausschliesslich aus ENV-Vars; fehlen sie, wird ein
     Zufallspasswort generiert und einmalig geloggt.
     """
     env = os.getenv("ENVIRONMENT", "development").lower()
-    if env not in ("development", "dev", "local"):
+    if env not in ("development", "dev", "local", "staging"):
         logger.info(f"⏭  Demo-User-Erstellung übersprungen (ENVIRONMENT={env})")
         return
 

@@ -1,12 +1,15 @@
 # KAS — Render Blueprint (STAGING)
 #
-# Erstellt zwei Services auf Branch `staging`:
-#   - kompagnon-backend-staging  (FastAPI)
-#   - kompagnon-frontend-staging (React)
+# Definiert die komplette Staging-Umgebung auf Branch `staging`:
+#   - kompagnon-staging-db        (Postgres)
+#   - kompagnon-backend-staging   (FastAPI)
+#   - kompagnon-frontend-staging  (React)
 #
-# Die Staging-Postgres-DB wird NICHT von diesem Blueprint angelegt —
-# sie existiert bereits manuell. DATABASE_URL muss nach der Service-Erstellung
-# einmalig im Dashboard gesetzt werden (Internal Database URL der Staging-DB).
+# Die DB `kompagnon-staging-db` wurde am 2026-05-02 manuell angelegt.
+# Render erkennt den Namen und nimmt die existierende DB in den Blueprint
+# auf (Doku-Modus, wie bei kompagnon/render.yaml für Produktiv).
+# DATABASE_URL wird automatisch via fromDatabase befüllt — KEIN manueller
+# Eintrag nötig.
 #
 # Blueprint anwenden:
 #   1. Diese Datei committen + nach `staging` pushen
@@ -21,6 +24,13 @@
 #   - SMTP: Test-/Sandbox-Account oder gleicher SMTP wie Live (egal — Staging sendet nur an dich)
 #   - CORS_ALLOWED_ORIGINS / FRONTEND_URL: Staging-Frontend-URL eintragen
 #   - REACT_APP_API_URL (Frontend): Staging-Backend-URL eintragen, sobald Backend deployed ist
+
+databases:
+  - name: kompagnon-staging-db
+    plan: starter
+    region: frankfurt
+    postgresMajorVersion: "16"
+    ipAllowList: []   # nur interner Zugriff aus Render-Services
 
 services:
   # ── Backend Staging (FastAPI) ────────────────────────────────────────────────
@@ -42,9 +52,11 @@ services:
       - key: ENVIRONMENT
         value: staging
 
-      # Database — manuell setzen: Internal Database URL der Staging-DB
+      # Database — automatisch aus Postgres-Service oben gezogen
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: kompagnon-staging-db
+          property: connectionString
 
       # Auth / Security — eigene Werte für Staging (NICHT Produktiv-Secrets recyceln)
       - key: SECRET_KEY

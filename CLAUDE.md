@@ -50,7 +50,11 @@ Produktiv-URLs:
 - Frontend: https://kompagnon-frontend.onrender.com
 - Backend:  https://claude-code-znq2.onrender.com
 
-Staging-URLs: einzurichten (Render Dashboard, eigener Web-Service + Static Site auf Branch `staging`).
+Staging-URLs (live seit 2026-05-02):
+- Frontend: https://kompagnon-frontend-staging.onrender.com
+- Backend:  https://kompagnon-backend-staging.onrender.com
+- DB:       kompagnon-staging-db (Postgres 18, Basic, Frankfurt)
+- Blueprint: `kompagnon/render-staging.yaml`
 
 ## CI-Schutz
 GitHub Actions (`.github/workflows/ci.yml`) läuft auf jede PR Richtung `main` mit vier Jobs:

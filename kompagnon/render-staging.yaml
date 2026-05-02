@@ -27,9 +27,9 @@
 
 databases:
   - name: kompagnon-staging-db
-    plan: starter
+    plan: basic_256mb
     region: frankfurt
-    postgresMajorVersion: "16"
+    postgresMajorVersion: "18"
     ipAllowList: []   # nur interner Zugriff aus Render-Services
 
 services:

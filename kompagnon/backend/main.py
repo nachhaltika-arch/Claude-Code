@@ -1477,6 +1477,16 @@ async def lifespan(app: FastAPI):
             finally:
                 _db.close()
 
+        def _component_library_seed():
+            """Step C: HTML-Block-Templates aus Frontend-Repo in DB syncen."""
+            from seeds.seed_component_library import seed_component_library
+            from database import SessionLocal
+            _db = SessionLocal()
+            try:
+                seed_component_library(_db)
+            finally:
+                _db.close()
+
         def _ping_db():
             """Simple DB ping to ensure connection is ready."""
             from sqlalchemy import text
@@ -1531,6 +1541,7 @@ async def lifespan(app: FastAPI):
                 ("Disable demo accounts", _disable_demo_accounts_in_production, 10.0),
                 ("Academy seed",  _academy_seed,         10.0),
                 ("Deals migration", _deals_migration,    15.0),
+                ("Component library seed", _component_library_seed, 15.0),
                 ("Scheduler",     start_scheduler,       15.0),
             ]
             for name, fn, timeout in phases:

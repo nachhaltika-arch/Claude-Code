@@ -73,6 +73,72 @@ def _t(text: str) -> str:
 router = APIRouter(prefix="/api/sitemap", tags=["sitemap"])
 
 
+# ── Hormozi-Section-Katalog (Wireframe-Library-Mapping) ──────────────────────
+# Bridge zwischen Sitemap (Stage 2) und Wireframes (Stage 3). AI wählt aus
+# dieser Liste pro Page; jeder Key entspricht später einer React-Komponente
+# in kompagnon/frontend/src/wireframes/sections/. Begründung pro Section
+# steht in docs/conversion-spec-shk.md.
+SECTION_CATALOG = {
+    # Hero-Varianten
+    "hero_value_equation": "Hero mit Hormozi-Outcome+Time+Effort-Versprechen (Startseite)",
+    "hero_service":        "Hero für Service-Detail-Page mit klarem Outcome",
+    "hero_minimal":        "Kompakter Hero — für Über uns / Kontakt / Rechtliches",
+
+    # Conversion-Sections
+    "problem":             "Pain-Point-Section — typische Schmerzen der Zielgruppe",
+    "offer_stack":         "Hormozi-Wertbox: EUR-Positionen + Gesamtwert + Anker",
+    "process_steps":       "4-6 nummerierte Schritte mit Zeitangabe (Friction-Reducer)",
+    "guarantee_block":     "5 AGB-konforme Garantien (Risk Reversal)",
+    "urgency_block":       "Echte Stichtage (BAFA/GEG/Slot-Cap) — Honest Scarcity",
+
+    # Trust / Social Proof
+    "trust_strip":         "Logo-Streifen (Innung, Hersteller, Zertifikate, Bewertungen)",
+    "fallstudien_3":       "3 Fallstudien-Cards mit Ort/Heizlast/Einsparung-Zahlen",
+
+    # Info-/Content-Sections
+    "service_grid":        "Übersicht aller Services — für Startseite/Leistungen",
+    "team":                "Team/Meister-Vorstellung mit Fotos",
+    "faq":                 "Allgemeine FAQ — 8-12 Fragen",
+    "faq_service":         "Service-spezifische FAQ (Einwand-Behandlung mit Zahlen)",
+    "content_richtext":    "Reiner Fließtext-Block — für Info-/Rechtsseiten",
+
+    # CTA
+    "cta_inline":          "Inline-CTA zwischen Sections",
+    "cta_final":           "Finale CTA + Sticky-Mobile-Bottom-Bar (Pflicht auf Conversion-Pages)",
+    "contact_form":        "Kontakt-Formular mit Telefon/Mail/WhatsApp",
+
+    # Footer/Legal
+    "footer_legal":        "Footer mit Pflicht-Links (Impressum, Datenschutz, AGB)",
+}
+
+# Fallback / Default-Section-Sets falls AI keine Sections liefert.
+# Reihenfolge ist relevant — wird 1:1 als Render-Order genommen.
+DEFAULT_SECTIONS_BY_PAGETYPE: dict[str, list[str]] = {
+    "startseite":  ["hero_value_equation", "problem", "service_grid", "offer_stack",
+                    "trust_strip", "fallstudien_3", "guarantee_block", "faq", "cta_final"],
+    "leistung":    ["hero_service", "problem", "offer_stack", "process_steps",
+                    "fallstudien_3", "trust_strip", "guarantee_block", "faq_service", "cta_final"],
+    "vertrauen":   ["hero_minimal", "team", "fallstudien_3", "trust_strip", "cta_inline"],
+    "conversion":  ["hero_minimal", "offer_stack", "guarantee_block", "urgency_block",
+                    "contact_form", "cta_final"],
+    "info":        ["hero_minimal", "content_richtext", "faq", "cta_inline"],
+    "ground":      ["hero_minimal", "service_grid", "faq", "contact_form"],
+    "rechtlich":   ["hero_minimal", "content_richtext"],
+}
+
+
+def _resolve_sections(page_dict: dict) -> list[str]:
+    """Pick a section list from the AI output, falling back to the page-type default.
+    Filters unknown keys against SECTION_CATALOG so we never persist garbage."""
+    raw = page_dict.get("sections")
+    if isinstance(raw, list) and raw:
+        cleaned = [str(s) for s in raw if isinstance(s, str) and s in SECTION_CATALOG]
+        if cleaned:
+            return cleaned
+    page_type = str(page_dict.get("page_type") or "info")
+    return DEFAULT_SECTIONS_BY_PAGETYPE.get(page_type, DEFAULT_SECTIONS_BY_PAGETYPE["info"])
+
+
 # ── ORM model (defined here, not in database.py to keep the diff small) ──────
 
 class SitemapPage(Base):
@@ -277,6 +343,9 @@ def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
     }
     for seite in PFLICHTSEITEN_IMMER:
         if seite["page_name"] not in existing_names:
+            default_sections = DEFAULT_SECTIONS_BY_PAGETYPE.get(
+                seite["page_type"], DEFAULT_SECTIONS_BY_PAGETYPE["info"]
+            )
             db.add(SitemapPage(
                 lead_id=lead_id,
                 page_name=seite["page_name"],
@@ -286,6 +355,7 @@ def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
                 ziel_keyword=seite.get("ziel_keyword", ""),
                 status="geplant",
                 ist_pflichtseite=True,
+                sections_json=json.dumps(default_sections, ensure_ascii=False),
             ))
     db.commit()
 
@@ -449,6 +519,7 @@ def _insert_pages(lead_id: int, raw_pages: list, db: Session) -> list:
     id_map: dict[int, int] = {}  # old position-based index → new DB id (for parent linking)
 
     for i, p in enumerate(raw_pages):
+        sections = _resolve_sections(p)
         page = SitemapPage(
             lead_id=lead_id,
             page_name=str(p.get("page_name", "Seite"))[:100],
@@ -461,6 +532,7 @@ def _insert_pages(lead_id: int, raw_pages: list, db: Session) -> list:
             cta_ziel=str(p.get("cta_ziel") or "kontakt")[:50],
             notizen=p.get("notizen") or "",
             status="geplant",
+            sections_json=json.dumps(sections, ensure_ascii=False),
         )
         db.add(page)
         db.flush()  # get page.id
@@ -563,9 +635,15 @@ async def generate_sitemap(
             f"\n{old_pages_summary}"
             if old_pages_summary else ""
         )
+        # Section-Katalog kompakt für den Prompt (key: kurzbeschreibung)
+        section_catalog_text = "\n".join(
+            f"  - {key}: {desc}" for key, desc in SECTION_CATALOG.items()
+        )
         prompt = (
             "Du bist ein Website-Stratege für deutsche Handwerksbetriebe.\n"
-            "Erstelle eine optimale Sitemap mit 5-8 INHALTLICHEN Seiten für diesen Betrieb.\n\n"
+            "Erstelle eine optimale Sitemap mit 5-8 INHALTLICHEN Seiten für diesen Betrieb.\n"
+            "Pro Seite gibst du auch an, WELCHE Conversion-Sections (siehe Section-Katalog unten) "
+            "in welcher Reihenfolge auf der Seite stehen sollen — basierend auf Hormozi-Conversion-Spec.\n\n"
             "WICHTIG — NICHT einschließen (werden automatisch ergänzt):\n"
             "Impressum, Datenschutz, AGB, Barrierefreiheit, Cookie-Hinweise\n\n"
             f"UNTERNEHMEN:\n"
@@ -577,22 +655,38 @@ async def generate_sitemap(
             f"- Zielgruppe: {zielgruppe}\n"
             f"{wunschseiten_hint}"
             f"{old_pages_hint}\n\n"
+            "SECTION-KATALOG (du wählst pro Page eine geordnete Liste aus diesen Keys):\n"
+            f"{section_catalog_text}\n\n"
             "REGELN FÜR DIE SITEMAP:\n"
             "- Position 0 = Startseite (immer)\n"
             "- Jede Hauptleistung bekommt eine eigene Seite (page_type='leistung')\n"
             "- Vertrauensseite einplanen (Referenzen, Team, Über uns)\n"
             "- Kontaktseite immer als letzte Inhaltsseite\n"
             "- ziel_keyword auf die wichtigsten SEO-Begriffe abstimmen\n"
-            "- Branchenspezifisch denken: Was sucht die Zielgruppe wirklich?\n"
+            "- Branchenspezifisch denken: Was sucht die Zielgruppe wirklich?\n\n"
+            "REGELN FÜR DIE SECTION-AUSWAHL pro Page:\n"
+            "- Startseite: hero_value_equation am Anfang, mind. offer_stack ODER service_grid, "
+            "  trust_strip, fallstudien_3, guarantee_block, faq, cta_final am Ende. Reihenfolge wichtig.\n"
+            "- Leistung: hero_service am Anfang, problem, offer_stack (Service-spezifisch), "
+            "  process_steps, fallstudien_3, guarantee_block, faq_service, cta_final am Ende.\n"
+            "- Vertrauen: hero_minimal, team, fallstudien_3, trust_strip, cta_inline.\n"
+            "- Conversion (Landingpage): hero_minimal, offer_stack, guarantee_block, urgency_block, "
+            "  contact_form, cta_final.\n"
+            "- Ground (GEO): hero_minimal, service_grid, faq, contact_form.\n"
+            "- Info-Seite: hero_minimal, content_richtext, faq, cta_inline.\n"
+            "- Pro Seite mind. 4, max. 9 Sections. Keine Duplikate. cta_final immer am Ende von "
+            "  Conversion-relevanten Pages.\n\n"
             "PFLICHT: Füge IMMER genau eine Seite mit page_type='ground' ein (position 99):\n"
             '{ "page_name": "Über uns & Informationen", "page_type": "ground", "position": 99, '
             '"zweck": "Maschinenlesbare Informationsseite für KI-Systeme (GEO-Optimierung)", '
             f'"ziel_keyword": "{gewerk} {einzugsgebiet} Informationen", '
-            '"cta_text": "Jetzt Kontakt aufnehmen", "cta_ziel": "kontakt", "parent_id": null }\n\n'
+            '"cta_text": "Jetzt Kontakt aufnehmen", "cta_ziel": "kontakt", "parent_id": null, '
+            '"sections": ["hero_minimal","service_grid","faq","contact_form"] }\n\n'
             "Antworte NUR als JSON-Array — kein Markdown, keine Erklärungen:\n"
             '[{ "page_name": "", "page_type": "startseite|leistung|info|vertrauen|conversion|ground", '
             '"zweck": "", "ziel_keyword": "", "cta_text": "", "cta_ziel": "kontakt|formular|tel", '
-            '"position": 0, "parent_id": null }]'
+            '"position": 0, "parent_id": null, '
+            '"sections": ["hero_xxx","..."] }]'
         )
         try:
             from anthropic import Anthropic

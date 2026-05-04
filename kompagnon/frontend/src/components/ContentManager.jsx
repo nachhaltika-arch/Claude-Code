@@ -317,7 +317,28 @@ function PageContent({ page, token, onPageUpdated }) {
   async function generateAll() {
     setGenAllLoading(true);
     try {
-      await fetch(`${API_BASE_URL}/api/content/page/${page.sitemap_page_id}/generate-all`, { method: 'POST', headers: h });
+      // Backend startet einen Background-Job und returnt sofort eine job_id.
+      // Wir pollen, bis der Job 'done' oder 'error' meldet — bei 8-12 Slots
+      // dauert das mehrere Minuten, deshalb kein direktes await.
+      const startRes = await fetch(
+        `${API_BASE_URL}/api/content/page/${page.sitemap_page_id}/generate-all`,
+        { method: 'POST', headers: h }
+      );
+      if (!startRes.ok) throw new Error('Job-Start fehlgeschlagen');
+      const { job_id } = await startRes.json();
+      if (!job_id) throw new Error('Keine job_id vom Server');
+
+      const POLL_INTERVAL_MS = 3000;
+      const MAX_POLLS = 200; // ~10 min Timeout-Safety
+      for (let i = 0; i < MAX_POLLS; i += 1) {
+        await new Promise((res) => setTimeout(res, POLL_INTERVAL_MS));
+        const pollRes = await fetch(`${API_BASE_URL}/api/content/jobs/${job_id}`, { headers: h });
+        if (pollRes.status === 404) break; // Job bereits abgeholt
+        if (!pollRes.ok) continue;
+        const job = await pollRes.json();
+        if (job.status === 'done' || job.status === 'error') break;
+      }
+
       const r = await fetch(`${API_BASE_URL}/api/content/page/${page.sitemap_page_id}`, { headers: h });
       setData(await r.json());
       onPageUpdated?.();

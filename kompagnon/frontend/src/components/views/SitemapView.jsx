@@ -44,7 +44,9 @@ export default function SitemapView({
     if (!leadId) return;
     let cancelled = false;
     setLoading(true);
-    fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pages`, { headers })
+    // Backend liefert die Pages unter GET /api/sitemap/{lead_id} (returnt
+    // direkt ein Array). Den falschen Pfad /pages gibt es nur für POST.
+    fetch(`${API_BASE_URL}/api/sitemap/${leadId}`, { headers })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((data) => {
         if (!cancelled) setPages(Array.isArray(data) ? data : data.pages || []);

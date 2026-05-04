@@ -109,7 +109,9 @@ export default function OnlineFertigEditor() {
       .then((r) => (r.ok ? r.json() : null))
       .then(setLatestAudit)
       .catch(() => {});
-    fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pages`, { headers })
+    // GET /api/sitemap/{lead_id} returnt direkt ein Array — der Pfad mit
+    // /pages am Ende ist nur fuer POST (create_page) registriert.
+    fetch(`${API_BASE_URL}/api/sitemap/${leadId}`, { headers })
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => setSitemapPages(Array.isArray(data) ? data : data?.pages || []))
       .catch(() => {});
@@ -130,7 +132,7 @@ export default function OnlineFertigEditor() {
   const reloadSitemap = useCallback(async () => {
     if (!project?.lead_id) return;
     try {
-      const r = await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id}/pages`, { headers });
+      const r = await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id}`, { headers });
       if (r.ok) {
         const data = await r.json();
         setSitemapPages(Array.isArray(data) ? data : data?.pages || []);

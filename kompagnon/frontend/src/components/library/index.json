@@ -455,6 +455,122 @@
       ],
       "ki_prompt_hint": "Pflicht-Block für die /ueber-uns-Seite. Auch sinnvoll auf der Startseite als emotionale Einleitung, wenn Familienbetrieb-Story erzählenswert ist (Mehrgenerationen, lokale Verwurzelung). KI soll konkrete Jahreszahlen und Personen aus dem Briefing extrahieren, nie generisch bleiben.",
       "preview_note": "Bild links, Story-Titel + langer Erzähltext + 3 Stat-Zellen rechts. Generös, vertrauensvoll."
+    },
+
+    {
+      "slug": "seo-faq",
+      "name": "FAQ Akkordeon",
+      "category": "SEO",
+      "tags": ["faq", "seo", "questions", "schema"],
+      "slots": [
+        { "key": "section_headline","label": "Section-Headline","type": "text", "default": "Häufige Fragen" },
+        { "key": "section_subline", "label": "Section-Untertitel","type": "text", "default": "Die Antworten, die unsere Kunden vor dem Auftrag wissen möchten." },
+        { "key": "q1", "label": "Frage 1", "type": "text", "default": "Was kostet eine Wärmepumpen-Installation?" },
+        { "key": "a1", "label": "Antwort 1", "type": "text", "default": "Eine Luft-Wasser-Wärmepumpe inkl. Installation kostet zwischen 22 000 € und 35 000 €. Mit der BAFA-Förderung (bis zu 70 %) reduziert sich der Eigenanteil oft auf 8 000–14 000 €. Wir berechnen Ihren konkreten Restbetrag im kostenfreien Beratungsgespräch." },
+        { "key": "q2", "label": "Frage 2", "type": "text", "default": "Wie lange dauert eine Bad-Komplettsanierung?" },
+        { "key": "a2", "label": "Antwort 2", "type": "text", "default": "Ein normales Familienbad sanieren wir in 8–12 Werktagen. Den exakten Zeitplan halten wir vertraglich fest — wenn wir uns verspäten, erstatten wir den Tagessatz." },
+        { "key": "q3", "label": "Frage 3", "type": "text", "default": "Bieten Sie einen Notdienst an?" },
+        { "key": "a3", "label": "Antwort 3", "type": "text", "default": "Ja, 24/7 in Koblenz und 50 km Umkreis. Mittlere Reaktionszeit: 60 Minuten. Notdienst-Stundensatz transparent auf unserer Website." },
+        { "key": "q4", "label": "Frage 4", "type": "text", "default": "Übernehmen Sie den BAFA-Förderantrag?" },
+        { "key": "a4", "label": "Antwort 4", "type": "text", "default": "Ja, wir bereiten den kompletten Antrag vor, inkl. aller Nachweise. Sie unterschreiben — wir kümmern uns um den Rest." },
+        { "key": "q5", "label": "Frage 5", "type": "text", "default": "Wie lange ist die Garantie auf die Anlagen?" },
+        { "key": "a5", "label": "Antwort 5", "type": "text", "default": "Hersteller-Garantie 5–10 Jahre (je nach Produkt). Auf unsere Installationsleistung 5 Jahre. Wir empfehlen einen Wartungsvertrag, der die Hersteller-Garantie auf bis zu 10 Jahre verlängert." }
+      ],
+      "ki_prompt_hint": "FAQ ist SEO-Gold (Long-Tail-Keywords + Featured Snippets). Pflicht für jede Leistungsseite. KI soll 5–8 KONKRETE Fragen aus dem Briefing extrahieren — generische 'Was machen Sie'-Fragen vermeiden. Antworten mit echten Zahlen/Zeiträumen wirken am stärksten.",
+      "preview_note": "Stateless via <details>, alle 5 Fragen einklappbar. Erste Frage default offen für Above-the-Fold-Effekt. Mit Schema.org-Markup-Hinweis für SEO."
+    },
+    {
+      "slug": "seo-lokal",
+      "name": "Lokaler SEO-Block (Karte + Einzugsgebiet)",
+      "category": "SEO",
+      "tags": ["local-seo", "map", "service-area"],
+      "slots": [
+        { "key": "section_headline", "label": "Section-Headline", "type": "text", "default": "Wir sind in Ihrer Nähe" },
+        { "key": "service_area",     "label": "Einzugsgebiet-Text","type": "text", "default": "Wir bedienen ganz Koblenz, Andernach, Mayen, Neuwied, Bendorf, Lahnstein und alle Orte im Umkreis von 50 km. Anfahrt im Umkreis ist kostenfrei, außerhalb berechnen wir 0,80 €/km." },
+        { "key": "address",          "label": "Adresse",           "type": "text", "default": "Hauptstraße 12 · 56068 Koblenz" },
+        { "key": "phone",            "label": "Telefon",           "type": "text", "default": "0261 / 123 456" },
+        { "key": "phone_url",        "label": "Telefon-Link",      "type": "text", "default": "tel:+4926112345" },
+        { "key": "map_embed_url",    "label": "Google-Maps Embed-URL","type": "text", "default": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2543.0!2d7.6!3d50.36" }
+      ],
+      "ki_prompt_hint": "Pflicht für jede lokale Handwerker-Site. Einzugsgebiet KONKRET mit Stadtnamen aus der Region (nicht 'Großraum XY'). Hilft GBP-Indexierung und Ask-Maps-Sichtbarkeit. Adresse muss exakt mit dem Google Business Profile übereinstimmen.",
+      "preview_note": "Split-Layout: Adresse + Telefon + Einzugsgebiet-Text links, Google-Maps-iframe rechts (Höhe ~360px)."
+    },
+    {
+      "slug": "seo-blog",
+      "name": "Blog-Teaser (3 Artikel)",
+      "category": "SEO",
+      "tags": ["blog", "content-marketing", "long-tail"],
+      "slots": [
+        { "key": "section_headline","label": "Section-Headline","type": "text", "default": "Aus unserem Wissensblog" },
+        { "key": "section_subline", "label": "Section-Untertitel","type": "text", "default": "Was Sie wissen sollten — bevor Sie Handwerker beauftragen." },
+        { "key": "post_1_image",   "label": "Post 1 Bild",    "type": "text", "default": "/placeholder-blog-1.jpg" },
+        { "key": "post_1_title",   "label": "Post 1 Titel",   "type": "text", "default": "Wärmepumpe vs. Brennwertheizung: Was rechnet sich für Ihr Haus?" },
+        { "key": "post_1_excerpt", "label": "Post 1 Auszug",  "type": "text", "default": "Die ehrliche Antwort hängt von 4 Faktoren ab — wir zeigen Ihnen, welche das sind und welche Daten Sie kennen müssen." },
+        { "key": "post_1_url",     "label": "Post 1 Link",    "type": "text", "default": "/blog/waermepumpe-vs-gasheizung" },
+        { "key": "post_1_date",    "label": "Post 1 Datum",   "type": "text", "default": "12. März 2026" },
+        { "key": "post_2_image",   "label": "Post 2 Bild",    "type": "text", "default": "/placeholder-blog-2.jpg" },
+        { "key": "post_2_title",   "label": "Post 2 Titel",   "type": "text", "default": "BAFA-Förderung 2026: Wer bekommt wie viel?" },
+        { "key": "post_2_excerpt", "label": "Post 2 Auszug",  "type": "text", "default": "Die wichtigsten Förderquoten und Stichtage auf einen Blick. Ohne Marketing-Sprech, ohne Versprechen die nicht haltbar sind." },
+        { "key": "post_2_url",     "label": "Post 2 Link",    "type": "text", "default": "/blog/bafa-foerderung-2026" },
+        { "key": "post_2_date",    "label": "Post 2 Datum",   "type": "text", "default": "5. März 2026" },
+        { "key": "post_3_image",   "label": "Post 3 Bild",    "type": "text", "default": "/placeholder-blog-3.jpg" },
+        { "key": "post_3_title",   "label": "Post 3 Titel",   "type": "text", "default": "Bad sanieren: 8 Fehler, die Sie 5.000 € kosten können" },
+        { "key": "post_3_excerpt", "label": "Post 3 Auszug",  "type": "text", "default": "Die häufigsten Bad-Sanierungs-Fallen aus 25 Jahren Praxis — und wie Sie sie vermeiden." },
+        { "key": "post_3_url",     "label": "Post 3 Link",    "type": "text", "default": "/blog/bad-sanieren-fehler" },
+        { "key": "post_3_date",    "label": "Post 3 Datum",   "type": "text", "default": "27. Februar 2026" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block nur, wenn der Kunde tatsächlich plant, einen Blog zu pflegen — nicht aus Pflicht. Long-Tail-SEO funktioniert nur mit ehrlicher Substanz. Wenn nicht, durch seo-faq ersetzen oder weglassen.",
+      "preview_note": "3 Karten mit Bild oben, Datum + Titel + Auszug + 'Weiterlesen'-Link. Brand-Teal-Akzent für Datum."
+    },
+    {
+      "slug": "seo-leistung-hero",
+      "name": "Leistungsseiten-Hero (keyword-fokussiert)",
+      "category": "SEO",
+      "tags": ["service-page", "hero", "keyword"],
+      "slots": [
+        { "key": "breadcrumb",    "label": "Breadcrumb-Pfad",   "type": "text", "default": "Startseite › Leistungen › Wärmepumpen" },
+        { "key": "h1",            "label": "H1 (Keyword)",       "type": "text", "default": "Wärmepumpen-Installation in Koblenz" },
+        { "key": "intro",         "label": "Intro-Text",         "type": "text", "default": "Luft-Wasser- und Sole-Wasser-Wärmepumpen vom Meisterbetrieb. Mit Förderantragsservice, Festpreisgarantie und 14 Tagen Bedenkzeit." },
+        { "key": "cta_text",      "label": "Button-Text",        "type": "text", "default": "Kostenfreie Beratung" },
+        { "key": "cta_url",       "label": "Button-Ziel",        "type": "text", "default": "#kontakt" },
+        { "key": "image_url",     "label": "Bild-URL",           "type": "text", "default": "/placeholder-service-hero.jpg" },
+        { "key": "image_alt",     "label": "Alt-Text",           "type": "text", "default": "Wärmepumpe vor saniertem Haus" }
+      ],
+      "ki_prompt_hint": "Pflicht-Block für JEDE Leistungs-Unterseite (z. B. /waermepumpen, /badsanierung, /notdienst). H1 muss das Haupt-Keyword + lokale Komponente enthalten. Breadcrumb hilft Indexierung. Funktioniert für Stage-3-Performance-Marketing-Landingpages perfekt.",
+      "preview_note": "Schmaler Hero (Höhe ~360px), H1 mit Brand-Teal, kurzer Intro, CTA. Bild als Akzent rechts (Mobile: oben)."
+    },
+    {
+      "slug": "seo-textblock",
+      "name": "Textblock mit Bild (Long-Form-SEO)",
+      "category": "SEO",
+      "tags": ["text", "content", "long-form"],
+      "slots": [
+        { "key": "title",     "label": "Überschrift", "type": "text", "default": "Was kostet eine Wärmepumpe wirklich — und wie viel sparen Sie?" },
+        { "key": "paragraph_1","label": "Absatz 1",    "type": "text", "default": "Die Antwort hängt von vier Faktoren ab: Hausgröße, Dämmstandard, gewünschte Vorlauftemperatur und Strompreis. Eine 8-kW-Luft-Wasser-Wärmepumpe für ein 140-m²-Einfamilienhaus kostet inklusive Installation zwischen 22 000 und 28 000 Euro." },
+        { "key": "paragraph_2","label": "Absatz 2",    "type": "text", "default": "Mit BAFA-Förderung von 35 % (Basis) bis 70 % (Klima-Bonus + Effizienz-Bonus) reduziert sich der Eigenanteil auf 7 000 bis 18 000 Euro. Im Vergleich zu einer neuen Gasheizung sparen Sie bei aktuellen Energiepreisen 1.200 bis 2.400 Euro pro Jahr — die Anlage amortisiert sich nach 6 bis 9 Jahren." },
+        { "key": "paragraph_3","label": "Absatz 3",    "type": "text", "default": "Wichtig: Eine Wärmepumpe rechnet sich nur, wenn das Haus die Vorlauftemperaturen unter 55 °C halten kann. Wir prüfen das im Vor-Ort-Termin und sagen Ihnen ehrlich, ob sich der Umstieg lohnt — oder ob eine Brennwertheizung in Ihrem Fall die bessere Wahl ist." },
+        { "key": "image_url", "label": "Bild-URL",     "type": "text", "default": "/placeholder-content.jpg" },
+        { "key": "image_alt", "label": "Alt-Text",     "type": "text", "default": "Wärmepumpen-Außeneinheit installiert" },
+        { "key": "image_caption","label": "Bildunterschrift","type": "text", "default": "Luft-Wasser-Wärmepumpe nach unserer Installation in Andernach (März 2026)." }
+      ],
+      "ki_prompt_hint": "Long-Form-Content für SEO + E-E-A-T-Signale. Wähle diesen Block für tiefe Themen-Seiten (>800 Wörter). Konkrete Zahlen aus Briefing übernehmen, generische Marketing-Sprache vermeiden. Funktioniert in Kombination mit seo-faq am Ende.",
+      "preview_note": "Drei lange Textabsätze + ein eingebettetes Bild rechts (oder unter dem 2. Absatz auf Mobile)."
+    },
+    {
+      "slug": "seo-notdienst",
+      "name": "Notdienst-Block (große Telefonnummer)",
+      "category": "SEO",
+      "tags": ["notdienst", "emergency", "phone", "conversion"],
+      "slots": [
+        { "key": "headline", "label": "Headline",       "type": "text", "default": "24/7 Notdienst" },
+        { "key": "subline",  "label": "Untertitel",     "type": "text", "default": "Wasserschaden, Heizung kalt, Toilette dicht? Wir sind in 60 Minuten bei Ihnen." },
+        { "key": "phone",    "label": "Telefon",        "type": "text", "default": "0261 / 123 456" },
+        { "key": "phone_url","label": "Telefon-Link",   "type": "text", "default": "tel:+4926112345" },
+        { "key": "service_area","label": "Einzugsgebiet","type": "text", "default": "Koblenz · Andernach · Mayen · 50 km Umkreis" },
+        { "key": "rate_info","label": "Preis-Hinweis",  "type": "text", "default": "Wochentage 18-22 h: 89 €/h · Wochenende & Nachts: 119 €/h · Anfahrt im Einzugsgebiet kostenfrei" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block für Handwerker mit echtem Notdienst (SHK, Elektrik, Schlüsseldienst, Schädlinge). Telefonnummer EXTREM groß und prominent — Conversion-Element für hohe Auftragswerte (Wasserschaden = oft 2 000–5 000 € Auftrag). Preis-Transparenz baut Vertrauen auch in Stress-Situation auf.",
+      "preview_note": "Roter Hintergrund, weiße Schrift, Telefonnummer als 4xl-Klick-Element zentriert. Einzugsgebiet + Preis darunter klein."
     }
   ]
 }

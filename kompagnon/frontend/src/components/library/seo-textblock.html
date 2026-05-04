@@ -1,0 +1,22 @@
+<!--
+  Block: seo-textblock — Textblock mit Bild (Long-Form-SEO)
+  Kategorie: SEO
+  Slots: title, paragraph_1, paragraph_2, paragraph_3,
+         image_url, image_alt, image_caption
+-->
+<section data-block="seo-textblock" class="bg-white py-14 md:py-20 px-6" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-3xl mx-auto">
+    <h2 class="text-2xl md:text-3xl font-black uppercase text-[#004F59] tracking-tight leading-tight mb-6">{{title}}</h2>
+    <div class="prose prose-slate max-w-none">
+      <p class="text-base md:text-lg text-slate-700 leading-relaxed mb-5">{{paragraph_1}}</p>
+
+      <figure class="my-8 rounded-2xl overflow-hidden shadow-lg">
+        <img src="{{image_url}}" alt="{{image_alt}}" class="w-full h-72 md:h-80 object-cover" loading="lazy">
+        <figcaption class="bg-slate-50 px-5 py-3 text-xs md:text-sm text-slate-500 italic">{{image_caption}}</figcaption>
+      </figure>
+
+      <p class="text-base md:text-lg text-slate-700 leading-relaxed mb-5">{{paragraph_2}}</p>
+      <p class="text-base md:text-lg text-slate-700 leading-relaxed">{{paragraph_3}}</p>
+    </div>
+  </div>
+</section>

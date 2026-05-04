@@ -1,0 +1,17 @@
+# Claude Code — personal settings + scheduled task lock files
+# These are local to each developer and should never be committed.
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE — root level (subdirs covered by their own .gitignore)
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local env files (rare at root but defensive)
+.env
+.env.local

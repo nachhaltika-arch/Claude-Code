@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Dashboard from './pages/Dashboard';
 import LeadPipeline from './pages/LeadPipeline';
 import ProjectDetail from './pages/ProjectDetail';
+import OnlineFertigEditor from './components/OnlineFertigEditor';
 import Checklists from './pages/Checklists';
 import Customers from './pages/Customers';
 import ContactImport from './pages/ContactImport';
@@ -148,6 +149,16 @@ function App() {
           <Route path="/abnahme/:projectId"        element={<Abnahme />} />
           <Route path="/approve-content/:token"    element={<ContentApprovalPage />} />
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
+
+          {/* ── Online-Fertig-Editor (Step G) — Vollbild, eigene Sidebar ── */}
+          <Route
+            path="/app/projects/:id/online-fertig"
+            element={
+              <PrivateRoute roles={['admin', 'auditor']}>
+                <OnlineFertigEditor />
+              </PrivateRoute>
+            }
+          />
 
           {/* App — authenticated, with Navbar/Sidebar */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>

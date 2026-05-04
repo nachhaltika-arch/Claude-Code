@@ -120,7 +120,15 @@ class WireframePage(BaseModel):
 
 
 class WireframeData(BaseModel):
+    """
+    Persistent store fuer den Online-Fertig-Editor.
+    pages              — vom KI-Wireframe-Generator oder manuellem Block-Tausch
+    style_guide        — Tokens aus StyleGuideView (Farben/Typo/Buttons/Spacing)
+    style_guide_approved — Gate fuer DesignView (Step E)
+    """
     pages: list[WireframePage] = []
+    style_guide: Optional[dict] = None
+    style_guide_approved: Optional[bool] = False
 
 
 @wireframe_router.get("/{project_id}/wireframe")
@@ -370,10 +378,16 @@ def _run_wireframe_job(job_id: str, project_id: int, api_key: str) -> None:
             }
             return
 
-        # Persistieren — frische Query, weil der Thread eine andere Session hat
+        # Persistieren — frische Query, weil der Thread eine andere Session hat.
+        # Style-Guide + Freigabe-Flag werden NICHT ueberschrieben — KI-Generator
+        # bestimmt nur die pages-Struktur, alles andere bleibt erhalten.
         proj_for_write = db.query(Project).filter(Project.id == project_id).first()
         if proj_for_write is not None:
-            proj_for_write.wireframe_data = wireframe
+            existing = proj_for_write.wireframe_data or {}
+            if not isinstance(existing, dict):
+                existing = {}
+            merged = {**existing, "pages": wireframe.get("pages") or []}
+            proj_for_write.wireframe_data = merged
             db.commit()
 
         _wireframe_jobs[job_id] = {

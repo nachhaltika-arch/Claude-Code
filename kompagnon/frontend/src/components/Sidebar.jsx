@@ -3,59 +3,99 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import KompagnonLogo from './KompagnonLogo';
 
+// Sidebar-Bereiche aligned mit der 5-Stage-Vision (siehe docs/audit-2026-05-04.md)
+//   AKQUISE     — Stage 1: Lead-Quellen & Audit
+//   PROJEKTE    — Stage 2: Briefing → Asset → Go-Live
+//   PERFORMANCE — Stage 3: Ads, Funnels, Tracking, Reports
+//   BESTAND     — Stage 4: Aktive Kunden, Upsell, Tickets
+//   KOMPAGNON   — Eigen-Marketing (admin only)
+//
+// Items mit comingSoon=true sind im Konzept verankert, aber noch nicht gebaut —
+// werden im Menü greyed-out angezeigt und sind nicht klickbar.
 const AREAS = {
-  sales: {
-    label: 'Sales', icon: '💼', color: 'var(--brand-primary)',
+  akquise: {
+    label: 'Akquise', icon: '🎯', color: 'var(--brand-primary)',
     items: [
-      { label: 'Dashboard',        path: '/app/dashboard', icon: '🏠' },
-      { label: 'Vertriebspipeline',path: '/app/sales',      icon: '📊' },
-      { label: 'Unternehmen',      path: '/app/companies',  icon: '🏢' },
-      { label: 'Website Audit',    path: '/app/audit',      icon: '🔍' },
-      { label: 'Akademie',         path: '/app/academy',    icon: '🎓' },
+      { label: 'Dashboard',           path: '/app/dashboard', icon: '🏠' },
+      { label: 'Lead-Inbox',          path: '/app/leads',     icon: '📥' },
+      { label: 'Vertriebspipeline',   path: '/app/deals',     icon: '💼' },
+      { label: 'Kampagnen',           path: '/app/campaigns', icon: '📊', adminOnly: true },
+      { label: 'Website-Audit',       path: '/app/audit',     icon: '🔍' },
+      { label: 'Unternehmen',         path: '/app/companies', icon: '🏢' },
+      { label: 'Akademie',            path: '/app/academy',   icon: '🎓' },
     ],
   },
-  delivery: {
-    label: 'Delivery', icon: '🚀', color: '#7c3aed',
+  projekte: {
+    label: 'Projekte', icon: '🚀', color: '#7c3aed',
     items: [
-      { label: 'Dashboard',      path: '/app/dashboard', icon: '🏠' },
-      { label: 'Projektpipeline',path: '/app/leads',     icon: '👥' },
-      { label: 'Kundenprojekte', path: '/app/projects',  icon: '📋' },
-      { label: 'Akademie',       path: '/app/academy',   icon: '🎓' },
+      { label: 'Dashboard',           path: '/app/dashboard',  icon: '🏠' },
+      { label: 'Aktive Projekte',     path: '/app/projects',   icon: '📋' },
+      { label: 'Briefings',           path: '/app/briefings',  icon: '✏️', comingSoon: true },
+      { label: 'Checklisten',         path: '/app/checklists', icon: '✅' },
+      { label: 'Public Pages',        path: '/app/pages',      icon: '🎨', adminOnly: true },
+      { label: 'Akademie',            path: '/app/academy',    icon: '🎓' },
     ],
   },
-  quality: {
-    label: 'Quality', icon: '✅', color: '#059669',
+  performance: {
+    label: 'Performance', icon: '📊', color: '#059669',
     items: [
-      { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
-      { label: 'Support Tickets', path: '/app/tickets', icon: '🎫' },
-      { label: 'Checklisten', path: '/app/checklists', icon: '📝' },
-      { label: 'Akademy', path: '/app/academy', icon: '🎓' },
+      { label: 'Dashboard',             path: '/app/dashboard', icon: '🏠' },
+      { label: 'Ads-Kampagnen',         path: '/app/ads',       icon: '💰', comingSoon: true },
+      { label: 'Funnels',               path: '/app/funnels',   icon: '🔄', comingSoon: true },
+      { label: 'A/B-Tests',             path: '/app/ab-tests',  icon: '🧪', comingSoon: true },
+      { label: 'Performance-Reports',   path: '/app/retainer',  icon: '📈', adminOnly: true },
+      { label: 'Webhook-Status',        path: '/app/webhooks',  icon: '⚡', adminOnly: true },
+      { label: 'Akademie',              path: '/app/academy',   icon: '🎓' },
     ],
   },
-  upsales: {
-    label: 'Upsales', icon: '📈', color: '#d97706',
+  bestand: {
+    label: 'Bestand', icon: '🏢', color: '#d97706',
     items: [
-      { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
-      { label: 'Kunden', path: '/app/customers', icon: '👤' },
-      { label: 'Akademy', path: '/app/academy', icon: '🎓' },
+      { label: 'Dashboard',         path: '/app/dashboard',  icon: '🏠' },
+      { label: 'Aktive Kunden',     path: '/app/customers',  icon: '👤' },
+      { label: 'Upsell-Pipeline',   path: '/app/retainer',   icon: '💎', adminOnly: true },
+      { label: 'Support-Tickets',   path: '/app/tickets',    icon: '🎫' },
+      { label: 'Newsletter',        path: '/app/newsletter', icon: '📧' },
+      { label: 'Akademie',          path: '/app/academy',    icon: '🎓' },
     ],
   },
-  product: {
-    label: 'Produkt', icon: '🛠️', color: '#0891b2', adminOnly: true,
+  kompagnon: {
+    label: 'KOMPAGNON', icon: '🔧', color: '#0891b2', adminOnly: true,
     items: [
-      { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
-      { label: 'Produktentwicklung', path: '/app/product', icon: '🛠️' },
-      { label: 'Support Tickets', path: '/app/tickets', icon: '🎫' },
-      { label: 'Akademy', path: '/app/academy', icon: '🎓' },
+      { label: 'Dashboard',           path: '/app/dashboard',            icon: '🏠' },
+      { label: 'KAS-Website',         path: '/app/settings/kas-website', icon: '🌐' },
+      { label: 'Eigene Funnels',      path: '/app/pages',                icon: '🎯' },
+      { label: 'Newsletter',          path: '/app/newsletter',           icon: '📧' },
+      { label: 'Akademie-Admin',      path: '/app/academy/admin',        icon: '🎓' },
+      { label: 'Produktentwicklung',  path: '/app/product',              icon: '🛠️' },
+      { label: 'Produkte & Preise',   path: '/app/products',             icon: '📦' },
     ],
   },
 };
+
+// Migration der alten Bereichs-Namen aus localStorage auf neue 5-Stage-Vision-Bereiche.
+// Beim ersten Login nach Deploy mappen wir alte Bereiche → neue Bereiche, damit User
+// nicht in einem nicht-existenten Bereich landen.
+const LEGACY_AREA_MAP = {
+  sales:    'akquise',
+  delivery: 'projekte',
+  quality:  'projekte',
+  upsales:  'bestand',
+  product:  'kompagnon',
+};
+
+function _resolveInitialArea() {
+  const stored = localStorage.getItem('kompagnon_area');
+  if (stored && AREAS[stored]) return stored;
+  if (stored && LEGACY_AREA_MAP[stored]) return LEGACY_AREA_MAP[stored];
+  return 'akquise';
+}
 
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, hasRole } = useAuth();
-  const [activeArea, setActiveArea] = useState(localStorage.getItem('kompagnon_area') || 'sales');
+  const [activeArea, setActiveArea] = useState(_resolveInitialArea);
   const [areaOpen, setAreaOpen] = useState(false);
 
   // Close area dropdown on outside click (must be before early return to satisfy rules-of-hooks)
@@ -114,7 +154,7 @@ export default function Sidebar() {
   }
 
   const switchArea = (id) => { setActiveArea(id); localStorage.setItem('kompagnon_area', id); setAreaOpen(false); navigate('/app/dashboard'); };
-  const currentArea = AREAS[activeArea] || AREAS.sales;
+  const currentArea = AREAS[activeArea] || AREAS.akquise;
 
   return (
     <aside className="sidebar">
@@ -166,21 +206,41 @@ export default function Sidebar() {
 
       {/* Navigation from active area */}
       <nav className="flex-1 px-2 py-3 overflow-y-auto" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {currentArea.items.map((item) => {
-          const active = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-          return (
-            <button key={item.path} onClick={() => navigate(item.path)} style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-              background: active ? `${currentArea.color}20` : 'transparent', border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer',
-              color: active ? '#fff' : 'rgba(255,255,255,0.65)', textAlign: 'left',
-              borderLeft: active ? `3px solid ${currentArea.color}` : '3px solid transparent',
-              fontWeight: active ? 600 : 400, fontSize: 14, transition: 'all 0.15s',
-            }}>
-              <span style={{ fontSize: 18, flexShrink: 0 }} aria-hidden="true">{item.icon}</span>
-              {item.label}
-            </button>
-          );
-        })}
+        {currentArea.items
+          .filter((item) => !item.adminOnly || hasRole('admin'))
+          .map((item) => {
+            const active   = !item.comingSoon && (location.pathname === item.path || location.pathname.startsWith(item.path + '/'));
+            const disabled = !!item.comingSoon;
+            return (
+              <button
+                key={item.path}
+                onClick={disabled ? (e) => e.preventDefault() : () => navigate(item.path)}
+                title={disabled ? 'In Entwicklung — Sprint 2-3' : undefined}
+                aria-disabled={disabled}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                  background: active ? `${currentArea.color}20` : 'transparent', border: 'none', borderRadius: 'var(--radius-md)',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  color: disabled ? 'rgba(255,255,255,0.30)' : (active ? '#fff' : 'rgba(255,255,255,0.65)'),
+                  textAlign: 'left',
+                  borderLeft: active ? `3px solid ${currentArea.color}` : '3px solid transparent',
+                  fontWeight: active ? 600 : 400, fontSize: 14, transition: 'all 0.15s',
+                  opacity: disabled ? 0.55 : 1,
+                }}
+              >
+                <span style={{ fontSize: 18, flexShrink: 0 }} aria-hidden="true">{item.icon}</span>
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {disabled && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
+                    padding: '2px 6px', borderRadius: 4,
+                    background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)',
+                    textTransform: 'uppercase',
+                  }}>Bald</span>
+                )}
+              </button>
+            );
+          })}
 
         {/* Admin section — always visible */}
         {hasRole('admin') && (

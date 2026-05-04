@@ -46,6 +46,106 @@
       ],
       "ki_prompt_hint": "Wähle diesen Block ZUSÄTZLICH zu nav-standard oder nav-telefon, wenn der Betrieb einen 24h-Notdienst anbietet (Sanitär bei Wasserschaden, Elektrik bei Stromausfall, Schlüsseldienst). Sticky-Bar bleibt beim Scrollen oben sichtbar, signalisiert Verfügbarkeit.",
       "preview_note": "Roter Sticky-Banner ÜBER dem normalen Header. Weißer Text + gelber Telefon-CTA. Maximale Sichtbarkeit für Notfall-Conversion."
+    },
+
+    {
+      "slug": "hero-standard",
+      "name": "Hero Split (Bild + Text)",
+      "category": "HERO",
+      "tags": ["hero", "split", "image", "default"],
+      "slots": [
+        { "key": "headline",  "label": "Hauptüberschrift", "type": "text", "default": "Ihr Fachbetrieb für Heizung & Sanitär in Koblenz" },
+        { "key": "subline",   "label": "Untertitel",       "type": "text", "default": "Wärmepumpen, Wartung, Notdienst — seit 1998 in Familienhand." },
+        { "key": "cta_text",  "label": "Button-Text",      "type": "text", "default": "Kostenfreies Angebot" },
+        { "key": "cta_url",   "label": "Button-Ziel",      "type": "text", "default": "#kontakt" },
+        { "key": "image_url", "label": "Bild-URL",         "type": "text", "default": "/placeholder-hero.jpg" },
+        { "key": "image_alt", "label": "Alt-Text",         "type": "text", "default": "Handwerker bei der Arbeit" }
+      ],
+      "ki_prompt_hint": "Standard-Hero für die meisten Handwerker-Startseiten. Klares Split-Layout: Text links + Bild rechts. Wähle diesen Block, wenn ein gutes echtes Foto vom Betrieb verfügbar ist (Team, Werkstatt, Fahrzeug). Default-Wahl bei Unsicherheit.",
+      "preview_note": "Headline + Subline + CTA links, großes Foto rechts. Mobile: Foto oben, Text drunter."
+    },
+    {
+      "slug": "hero-formular",
+      "name": "Hero mit Direkt-Formular",
+      "category": "HERO",
+      "tags": ["hero", "form", "lead-capture", "conversion"],
+      "slots": [
+        { "key": "headline",     "label": "Hauptüberschrift", "type": "text", "default": "In 24 Stunden vor Ort." },
+        { "key": "subline",      "label": "Untertitel",       "type": "text", "default": "Beschreiben Sie uns kurz Ihr Anliegen — wir melden uns garantiert noch heute zurück." },
+        { "key": "form_action",  "label": "Formular-Endpoint","type": "text", "default": "/api/leads/quick-capture" },
+        { "key": "submit_text",  "label": "Submit-Button",    "type": "text", "default": "Rückruf anfordern" },
+        { "key": "trust_line",   "label": "Vertrauenszeile",  "type": "text", "default": "✓ Antwort in 1 Std · ✓ Festpreisgarantie · ✓ Meisterbetrieb" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block, wenn Lead-Capture das Hauptziel ist (z. B. bei Performance-Marketing-Kampagnen). Reduziert die Klick-Distanz Headline → Formular auf Null. Funktioniert besonders gut für Notdienst, Wallbox-Installation, Wärmepumpen-Anfragen mit hohem Auftragswert.",
+      "preview_note": "Headline + Subline links, Lead-Formular (Name/Telefon/Anliegen) direkt rechts daneben. Zwei-Spalten-Layout, Mobile: gestapelt."
+    },
+    {
+      "slug": "hero-centered",
+      "name": "Hero Centered (zentriert)",
+      "category": "HERO",
+      "tags": ["hero", "centered", "two-cta"],
+      "slots": [
+        { "key": "headline",            "label": "Hauptüberschrift",  "type": "text", "default": "Heizung, Sanitär, Wärmepumpen — alles aus einer Hand." },
+        { "key": "subline",             "label": "Untertitel",        "type": "text", "default": "Wir planen, installieren und warten Ihre Haustechnik in Koblenz und Umgebung." },
+        { "key": "primary_cta_text",    "label": "Primärer Button",   "type": "text", "default": "Kostenfreies Angebot" },
+        { "key": "primary_cta_url",     "label": "Primärer Link",     "type": "text", "default": "#kontakt" },
+        { "key": "secondary_cta_text",  "label": "Sekundärer Button", "type": "text", "default": "Mehr erfahren" },
+        { "key": "secondary_cta_url",   "label": "Sekundärer Link",   "type": "text", "default": "#leistungen" },
+        { "key": "bg_image_url",        "label": "Hintergrundbild",   "type": "text", "default": "/placeholder-hero-bg.jpg" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block für Leistungsseiten oder wenn das Bild eine starke Atmosphäre/Emotion transportiert (z. B. moderne Wärmepumpe, Solarthermie auf Dach). Two-CTA-Layout für Customer Journey: Hauptaktion (Angebot) + Soft-Action (Leistungen anschauen).",
+      "preview_note": "Vollflächiges Hintergrundbild mit dunklem Overlay. Headline + Subline + 2 Buttons zentriert in der Mitte. Premium-Look."
+    },
+    {
+      "slug": "hero-video",
+      "name": "Hero mit Hintergrund-Video",
+      "category": "HERO",
+      "tags": ["hero", "video", "premium", "atmosphere"],
+      "slots": [
+        { "key": "headline",      "label": "Hauptüberschrift", "type": "text", "default": "Handwerk, das Sie spüren." },
+        { "key": "subline",       "label": "Untertitel",       "type": "text", "default": "Über 25 Jahre Erfahrung in Heizung, Sanitär und erneuerbaren Energien." },
+        { "key": "cta_text",      "label": "Button-Text",      "type": "text", "default": "Jetzt unverbindlich anfragen" },
+        { "key": "cta_url",       "label": "Button-Ziel",      "type": "text", "default": "#kontakt" },
+        { "key": "video_url",     "label": "Video-URL (mp4)",  "type": "text", "default": "/placeholder-hero.mp4" },
+        { "key": "video_poster",  "label": "Poster-Bild",      "type": "text", "default": "/placeholder-hero.jpg" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block NUR, wenn der Kunde ein qualitativ hochwertiges Video (10-30 Sek, ruhig, ohne Sprache) hat oder bereit ist eines anzufertigen. Premium-Look, aber Ladezeit-Kosten — keine gute Wahl für SHK mit niedrigem Auftragswert. Geeignet für Premium-Handwerker, Architekten, Innenausbauer.",
+      "preview_note": "Hintergrundvideo (autoplay, muted, loop) mit dunklem Overlay. Text + CTA zentriert. Poster-Bild als Fallback bevor Video lädt."
+    },
+    {
+      "slug": "hero-badges",
+      "name": "Hero mit Vertrauens-Badges",
+      "category": "HERO",
+      "tags": ["hero", "trust", "badges", "split"],
+      "slots": [
+        { "key": "headline",  "label": "Hauptüberschrift", "type": "text", "default": "Heizung & Sanitär — Meisterbetrieb seit 1998." },
+        { "key": "subline",   "label": "Untertitel",       "type": "text", "default": "Festpreis. Festtermin. Mit Garantie." },
+        { "key": "cta_text",  "label": "Button-Text",      "type": "text", "default": "Kostenfrei beraten lassen" },
+        { "key": "cta_url",   "label": "Button-Ziel",      "type": "text", "default": "#kontakt" },
+        { "key": "image_url", "label": "Bild-URL",         "type": "text", "default": "/placeholder-hero.jpg" },
+        { "key": "image_alt", "label": "Alt-Text",         "type": "text", "default": "Meister im Einsatz" },
+        { "key": "badge_1",   "label": "Badge 1 (z. B. Sterne)", "type": "text", "default": "★★★★★ 4,9 / 5" },
+        { "key": "badge_2",   "label": "Badge 2 (z. B. Auszeichnung)", "type": "text", "default": "Meisterbetrieb HwK" },
+        { "key": "badge_3",   "label": "Badge 3 (z. B. Erfahrung)",    "type": "text", "default": "25+ Jahre Erfahrung" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block bei etablierten Handwerksbetrieben mit echter Reputation. Direkt unter dem Hero stehen drei Vertrauenssignale (Bewertungs-Score, HwK-Auszeichnung, Erfahrung). Funktioniert besonders bei Wärmepumpen-Investitionen (5-stellig), wo Vertrauen die Conversion entscheidet.",
+      "preview_note": "Standard-Split-Hero (Bild + Text), darunter ein farbiger Badge-Streifen mit 3 Vertrauens-Signalen."
+    },
+    {
+      "slug": "hero-split-dark",
+      "name": "Hero Split Dark",
+      "category": "HERO",
+      "tags": ["hero", "split", "dark", "premium"],
+      "slots": [
+        { "key": "headline",  "label": "Hauptüberschrift", "type": "text", "default": "Wärmepumpe oder Brennwertheizung?" },
+        { "key": "subline",   "label": "Untertitel",       "type": "text", "default": "Wir analysieren Ihr Haus und sagen Ihnen ehrlich, was sich rechnet — vor dem Angebot." },
+        { "key": "cta_text",  "label": "Button-Text",      "type": "text", "default": "Beratungsgespräch buchen" },
+        { "key": "cta_url",   "label": "Button-Ziel",      "type": "text", "default": "#kontakt" },
+        { "key": "image_url", "label": "Bild-URL",         "type": "text", "default": "/placeholder-hero.jpg" },
+        { "key": "image_alt", "label": "Alt-Text",         "type": "text", "default": "Modernes Haustechnik-Setup" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block bei Premium-Handwerkern oder wenn ein hoher Beratungsanspruch transportiert werden soll (z. B. Energieberater, Architekt-Anbindung, Wärmepumpen-Spezialist). Dunkle linke Hälfte signalisiert Seriosität, helle Bildhälfte zeigt das Produkt.",
+      "preview_note": "Linke Hälfte: dunkles Teal #004F59 mit weißer Headline + CTA. Rechte Hälfte: helles Foto. 50/50-Split, klare Kontrast-Komposition."
     }
   ]
 }

@@ -227,15 +227,32 @@ def job_check_netlify_dns():
                 is_active = check_dns_active(domain, site_url)
 
                 if is_active:
+                    # Bug #4 (phase_5 -> phase_6): Site ist live, also auch
+                    # Project-Status auf phase_6 transitionen + actual_go_live
+                    # setzen (falls noch null). Idempotent ueber den WHERE-Filter
+                    # weiter oben (netlify_golive_mail_sent IS NULL/false), d.h.
+                    # dieser Block laeuft pro Project nur einmal.
                     db.execute(_text("""
                         UPDATE projects SET
                           netlify_domain_status   = 'active',
                           netlify_ssl_active      = TRUE,
                           netlify_dns_fail_count  = 0,
                           netlify_dns_retry_after = NULL,
+                          status                  = 'phase_6',
+                          current_phase           = 6,
+                          actual_go_live          = COALESCE(actual_go_live, NOW()),
                           updated_at              = NOW()
                         WHERE id = :id
                     """), {"id": project_id})
+
+                    # Folge-Jobs (Day-5/14/21/30) schedulen
+                    try:
+                        get_scheduler().trigger_phase_change(project_id, "phase_6")
+                    except Exception as tpc_err:
+                        logger.warning(
+                            f"trigger_phase_change(phase_6) Fehler "
+                            f"Projekt {project_id}: {tpc_err}"
+                        )
                     # Portal-Benachrichtigung
                     try:
                         db.execute(_text("""
@@ -612,6 +629,55 @@ def job_send_briefing_reminders():
                 f"(Tag {days_since} ohne Briefing)"
             )
             _send_phase_email(project.id, template_key)
+    finally:
+        db.close()
+
+
+def job_phase_postgolive_transitions():
+    """
+    Bug #4: Auto-Transitions nach Go-Live.
+    - phase_6 -> phase_7 sieben Tage nach actual_go_live (Post-Launch-Phase)
+    - phase_7 -> completed nach 30 Tagen post-Go-Live (Projekt formal abgeschlossen)
+    Idempotent ueber den status-Filter im UPDATE — sobald sich der status aendert,
+    faellt das Project aus dem naechsten Lauf.
+    """
+    from sqlalchemy import text as _text
+
+    db = SessionLocal()
+    try:
+        rows_67 = db.execute(_text("""
+            UPDATE projects
+            SET status        = 'phase_7',
+                current_phase = 7,
+                updated_at    = NOW()
+            WHERE status = 'phase_6'
+              AND actual_go_live IS NOT NULL
+              AND actual_go_live < NOW() - INTERVAL '7 days'
+            RETURNING id
+        """)).fetchall()
+        for row in rows_67:
+            logger.info(f"📅 Phase-Transition phase_6 -> phase_7 (Projekt {row[0]})")
+
+        rows_7c = db.execute(_text("""
+            UPDATE projects
+            SET status        = 'completed',
+                current_phase = 8,
+                updated_at    = NOW()
+            WHERE status = 'phase_7'
+              AND actual_go_live IS NOT NULL
+              AND actual_go_live < NOW() - INTERVAL '30 days'
+            RETURNING id
+        """)).fetchall()
+        for row in rows_7c:
+            logger.info(f"📅 Phase-Transition phase_7 -> completed (Projekt {row[0]})")
+
+        db.commit()
+    except Exception as e:
+        logger.error(f"Phase-Postgolive-Transition Fehler: {e}", exc_info=True)
+        try:
+            db.rollback()
+        except Exception:
+            pass
     finally:
         db.close()
 
@@ -1161,6 +1227,16 @@ class CompagnonScheduler:
             "cron",
             hour=9, minute=30,
             id="daily_send_briefing_reminders",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+        )
+        # Bug #4: Auto-Transitions phase_6 -> phase_7 (7d) und phase_7 -> completed (30d).
+        # phase_5 -> phase_6 wird direkt im DNS-Polling-Job ausgeloest (sobald Site live).
+        self.scheduler.add_job(
+            job_phase_postgolive_transitions,
+            "cron",
+            hour=11, minute=0,
+            id="daily_phase_postgolive_transitions",
             replace_existing=True,
             timezone="Europe/Berlin",
         )

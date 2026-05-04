@@ -1,0 +1,60 @@
+<!--
+  Block: cta-kontakt-split — Kontakt Split (Adresse + Formular)
+  Kategorie: CTA
+  Slots: section_headline, address, phone, phone_url, email,
+         hours, form_action, submit_text
+-->
+<section data-block="cta-kontakt-split" class="bg-white py-16 md:py-20 px-6" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="text-3xl md:text-4xl font-black uppercase text-[#004F59] tracking-tight text-center mb-12">{{section_headline}}</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12">
+      <div class="space-y-5">
+        <div class="flex items-start gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#008EAA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-0.5">Adresse</div>
+            <div class="text-base text-slate-800">{{address}}</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#008EAA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-0.5">Telefon</div>
+            <a href="{{phone_url}}" class="text-base font-bold text-[#008EAA] hover:underline">{{phone}}</a>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#008EAA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-0.5">E-Mail</div>
+            <a href="mailto:{{email}}" class="text-base text-slate-800 hover:text-[#008EAA] transition">{{email}}</a>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#008EAA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-0.5">Öffnungszeiten</div>
+            <div class="text-base text-slate-800">{{hours}}</div>
+          </div>
+        </div>
+      </div>
+      <form action="{{form_action}}" method="post" class="bg-slate-50 rounded-2xl p-7 space-y-4">
+        <label class="block">
+          <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Name *</span>
+          <input type="text" name="name" required class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#008EAA] focus:outline-none focus:ring-2 focus:ring-[#008EAA]/30 text-base bg-white">
+        </label>
+        <label class="block">
+          <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Telefon *</span>
+          <input type="tel" name="phone" required class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#008EAA] focus:outline-none focus:ring-2 focus:ring-[#008EAA]/30 text-base bg-white">
+        </label>
+        <label class="block">
+          <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Nachricht *</span>
+          <textarea name="message" rows="4" required class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#008EAA] focus:outline-none focus:ring-2 focus:ring-[#008EAA]/30 text-base bg-white"></textarea>
+        </label>
+        <button type="submit" class="w-full bg-[#008EAA] text-white font-bold py-3.5 rounded-lg uppercase tracking-wide hover:bg-[#004F59] transition text-base">
+          {{submit_text}}
+        </button>
+      </form>
+    </div>
+  </div>
+</section>

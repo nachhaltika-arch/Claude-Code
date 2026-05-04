@@ -1,0 +1,40 @@
+<!--
+  Block: cta-formular — Kontaktformular (DSGVO + Brevo)
+  Kategorie: CTA
+  Slots: section_headline, section_subline, form_action, submit_text, privacy_url
+-->
+<section data-block="cta-formular" class="bg-slate-50 py-16 md:py-20 px-6" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-2xl mx-auto">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl md:text-4xl font-black uppercase text-[#004F59] tracking-tight mb-3">{{section_headline}}</h2>
+      <p class="text-base text-slate-600 leading-relaxed">{{section_subline}}</p>
+    </div>
+    <form action="{{form_action}}" method="post" class="bg-white rounded-2xl shadow-md p-7 md:p-9 space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <label class="block">
+          <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Name *</span>
+          <input type="text" name="name" required class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#008EAA] focus:outline-none focus:ring-2 focus:ring-[#008EAA]/30 text-base">
+        </label>
+        <label class="block">
+          <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Telefon *</span>
+          <input type="tel" name="phone" required inputmode="tel" class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#008EAA] focus:outline-none focus:ring-2 focus:ring-[#008EAA]/30 text-base">
+        </label>
+      </div>
+      <label class="block">
+        <span class="text-xs font-bold uppercase tracking-wide text-slate-500">E-Mail</span>
+        <input type="email" name="email" class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#008EAA] focus:outline-none focus:ring-2 focus:ring-[#008EAA]/30 text-base">
+      </label>
+      <label class="block">
+        <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Ihr Anliegen *</span>
+        <textarea name="message" rows="4" required class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#008EAA] focus:outline-none focus:ring-2 focus:ring-[#008EAA]/30 text-base"></textarea>
+      </label>
+      <label class="flex items-start gap-2 text-xs text-slate-600">
+        <input type="checkbox" name="privacy" required class="mt-0.5 accent-[#008EAA]">
+        <span>Ich habe die <a href="{{privacy_url}}" class="underline text-[#008EAA]">Datenschutzerklärung</a> gelesen und akzeptiere sie.</span>
+      </label>
+      <button type="submit" class="w-full bg-[#008EAA] text-white font-bold py-3.5 rounded-lg uppercase tracking-wide hover:bg-[#004F59] transition text-base">
+        {{submit_text}}
+      </button>
+    </form>
+  </div>
+</section>

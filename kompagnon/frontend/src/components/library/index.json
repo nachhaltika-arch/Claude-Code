@@ -571,6 +571,97 @@
       ],
       "ki_prompt_hint": "Wähle diesen Block für Handwerker mit echtem Notdienst (SHK, Elektrik, Schlüsseldienst, Schädlinge). Telefonnummer EXTREM groß und prominent — Conversion-Element für hohe Auftragswerte (Wasserschaden = oft 2 000–5 000 € Auftrag). Preis-Transparenz baut Vertrauen auch in Stress-Situation auf.",
       "preview_note": "Roter Hintergrund, weiße Schrift, Telefonnummer als 4xl-Klick-Element zentriert. Einzugsgebiet + Preis darunter klein."
+    },
+
+    {
+      "slug": "cta-formular",
+      "name": "Kontaktformular (DSGVO + Brevo)",
+      "category": "CTA",
+      "tags": ["form", "lead", "dsgvo"],
+      "slots": [
+        { "key": "section_headline","label": "Section-Headline","type": "text", "default": "Bereit für Ihr Projekt?" },
+        { "key": "section_subline", "label": "Section-Untertitel","type": "text", "default": "Beschreiben Sie uns kurz Ihr Anliegen — wir melden uns innerhalb von 24 h zurück." },
+        { "key": "form_action",     "label": "Formular-Endpoint","type": "text", "default": "/api/leads/quick-capture" },
+        { "key": "submit_text",     "label": "Submit-Button",   "type": "text", "default": "Anfrage senden" },
+        { "key": "privacy_url",     "label": "Datenschutz-Link","type": "text", "default": "/datenschutz" }
+      ],
+      "ki_prompt_hint": "Standard-Lead-Capture für unten/Mitte der Seite. Felder: Name, Telefon, E-Mail, Anliegen. Stilistisch ruhig (kein Drängen), DSGVO-Hinweis pflicht.",
+      "preview_note": "Helles Off-White Background, zentriertes Formular max. 640px breit, primärer Submit in Brand-Teal."
+    },
+    {
+      "slug": "cta-banner",
+      "name": "CTA-Banner (Streifen mit 1 Button)",
+      "category": "CTA",
+      "tags": ["cta", "banner", "compact"],
+      "slots": [
+        { "key": "headline",  "label": "Banner-Headline", "type": "text", "default": "Heute angefragt — übermorgen Termin." },
+        { "key": "subline",   "label": "Banner-Untertitel","type": "text", "default": "Wir antworten meistens noch am gleichen Werktag." },
+        { "key": "cta_text",  "label": "Button-Text",     "type": "text", "default": "Termin vereinbaren" },
+        { "key": "cta_url",   "label": "Button-Ziel",     "type": "text", "default": "#kontakt" }
+      ],
+      "ki_prompt_hint": "Schmaler dunkler Streifen, ideal als Wiederholungs-CTA in der Mitte langer Seiten oder direkt vor dem Footer. Reduziert die Klick-Distanz für unentschlossene Besucher.",
+      "preview_note": "Dunkler Hintergrund #004F59, weiße Headline + Subline links, gelber CTA-Button rechts."
+    },
+    {
+      "slug": "cta-termin",
+      "name": "Terminbuchung (Datum-Auswahl)",
+      "category": "CTA",
+      "tags": ["booking", "appointment", "form"],
+      "slots": [
+        { "key": "section_headline","label": "Section-Headline","type": "text", "default": "Wählen Sie Ihren Wunschtermin" },
+        { "key": "section_subline", "label": "Section-Untertitel","type": "text", "default": "Wir bestätigen jeden Termin innerhalb von 2 h schriftlich." },
+        { "key": "form_action",     "label": "Formular-Endpoint","type": "text", "default": "/api/leads/booking" },
+        { "key": "submit_text",     "label": "Submit-Button",   "type": "text", "default": "Termin anfragen" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block, wenn ein lockerer Termin-Workflow ausreicht (kein echtes Calendly/cal.com nötig). Felder: Name, Telefon, Wunschdatum, Wunschzeit-Fenster, Anliegen. Bei wirklichem Booking-Bedarf später durch Calendly-Embed ersetzen.",
+      "preview_note": "Formular im Card-Style, Datum-Input + Uhrzeit-Select + Textarea + Submit. Helles Background."
+    },
+    {
+      "slug": "cta-kontakt-split",
+      "name": "Kontakt Split (Adresse + Formular)",
+      "category": "CTA",
+      "tags": ["contact", "split", "address", "form"],
+      "slots": [
+        { "key": "section_headline","label": "Section-Headline","type": "text", "default": "Sprechen Sie uns an" },
+        { "key": "address",         "label": "Adresse",         "type": "text", "default": "Hauptstraße 12 · 56068 Koblenz" },
+        { "key": "phone",           "label": "Telefon",         "type": "text", "default": "0261 / 123 456" },
+        { "key": "phone_url",       "label": "Telefon-Link",    "type": "text", "default": "tel:+4926112345" },
+        { "key": "email",           "label": "E-Mail",          "type": "text", "default": "info@beispiel-handwerk.de" },
+        { "key": "hours",           "label": "Öffnungszeiten",  "type": "text", "default": "Mo–Fr 7:30–17:00 · Sa nach Vereinbarung" },
+        { "key": "form_action",     "label": "Formular-Endpoint","type": "text", "default": "/api/leads/contact" },
+        { "key": "submit_text",     "label": "Submit-Button",   "type": "text", "default": "Nachricht senden" }
+      ],
+      "ki_prompt_hint": "Pflicht-Block für /kontakt-Seite. Kombiniert Adress-Information (Telefon, Mail, Zeiten) mit Lead-Capture-Formular — Besucher kann je nach Präferenz reagieren.",
+      "preview_note": "Zwei-Spalten: Links Adresse mit Icons, rechts Formular. Mobile: untereinander."
+    },
+    {
+      "slug": "cta-whatsapp",
+      "name": "WhatsApp Floating-Button",
+      "category": "CTA",
+      "tags": ["whatsapp", "floating", "fixed"],
+      "slots": [
+        { "key": "phone_intl", "label": "Telefon international (ohne +)", "type": "text", "default": "4926112345" },
+        { "key": "message",    "label": "Vorausgefüllte Nachricht", "type": "text", "default": "Hallo, ich interessiere mich für Ihr Angebot." }
+      ],
+      "ki_prompt_hint": "Floating-Button rechts unten — global auf jeder Seite sichtbar. Wähle diesen Block, wenn der Kunde WhatsApp Business aktiv nutzt (Antwortzeit < 4 h). Sonst durch cta-banner ersetzen.",
+      "preview_note": "Fixed bottom-right, runder grüner Button mit WhatsApp-Icon. Hover zeigt Tooltip 'WhatsApp uns'."
+    },
+    {
+      "slug": "cta-angebot",
+      "name": "Angebot anfordern (Mehrstufig)",
+      "category": "CTA",
+      "tags": ["multi-step", "lead-capture", "premium"],
+      "slots": [
+        { "key": "section_headline","label": "Section-Headline","type": "text", "default": "Kostenfreies Angebot in 3 Schritten" },
+        { "key": "section_subline", "label": "Section-Untertitel","type": "text", "default": "Sagen Sie uns, was Sie brauchen — wir antworten innerhalb von 24 h mit einem konkreten Vorschlag." },
+        { "key": "step_1_label","label": "Schritt 1 Label","type": "text", "default": "Welche Leistung?" },
+        { "key": "step_2_label","label": "Schritt 2 Label","type": "text", "default": "Ihre Kontaktdaten" },
+        { "key": "step_3_label","label": "Schritt 3 Label","type": "text", "default": "Wann passt es Ihnen?" },
+        { "key": "form_action", "label": "Formular-Endpoint","type": "text", "default": "/api/leads/multi-step" },
+        { "key": "submit_text", "label": "Submit-Button",   "type": "text", "default": "Angebot anfragen" }
+      ],
+      "ki_prompt_hint": "Mehrstufiges Formular für höhere Auftragswerte (Wärmepumpe, Bad-Komplettsanierung). Reduziert Eingabe-Hürde durch Aufteilen in 3 Schritte. Conversion-Rate erhöht ~30 % gegenüber One-Page-Form bei langen Forms.",
+      "preview_note": "Card mit Step-Indicator oben (1/2/3), aktuell aktive Stufe sichtbar, Buttons 'Zurück' + 'Weiter'."
     }
   ]
 }

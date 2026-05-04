@@ -1,0 +1,28 @@
+<!--
+  Block: nav-standard — Navbar Standard
+  Kategorie: NAV
+  Slots: logo_text, cta_text, cta_url
+  Brand-Farben: #004F59 (dark), #008EAA (primary), #FAE600 (accent)
+-->
+<header data-block="nav-standard" class="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
+    <a href="#" class="text-xl font-black tracking-tight text-[#004F59] uppercase">{{logo_text}}</a>
+
+    <nav class="hidden md:flex items-center gap-7 text-sm font-semibold text-slate-700">
+      <a href="#leistungen" class="hover:text-[#008EAA] transition">Leistungen</a>
+      <a href="#ueber-uns"  class="hover:text-[#008EAA] transition">Über uns</a>
+      <a href="#referenzen" class="hover:text-[#008EAA] transition">Referenzen</a>
+      <a href="#kontakt"    class="hover:text-[#008EAA] transition">Kontakt</a>
+    </nav>
+
+    <a href="{{cta_url}}"
+       class="hidden md:inline-flex items-center gap-2 bg-[#008EAA] text-white font-bold px-5 py-2.5 rounded-lg text-sm hover:bg-[#004F59] transition">
+      {{cta_text}}
+    </a>
+
+    <button type="button" aria-label="Menü öffnen"
+            class="md:hidden p-2 text-[#004F59] focus:outline-none focus:ring-2 focus:ring-[#008EAA] rounded">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+</header>

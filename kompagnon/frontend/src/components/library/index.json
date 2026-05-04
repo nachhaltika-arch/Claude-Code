@@ -1,0 +1,51 @@
+{
+  "_comment": "Component-Library Metadaten — Quelle für seed_component_library.py (Schritt C). Alle Slugs müssen mit den HTML-Dateinamen in diesem Verzeichnis übereinstimmen. Schema siehe database.py:ComponentLibrary.",
+  "_brand": {
+    "kc_dark":   "#004F59",
+    "kc_mid":    "#008EAA",
+    "kc_yellow": "#FAE600",
+    "kc_black":  "#000000",
+    "font":      "Noto Sans"
+  },
+  "components": [
+    {
+      "slug": "nav-standard",
+      "name": "Navbar Standard",
+      "category": "NAV",
+      "tags": ["navigation", "header", "responsive"],
+      "slots": [
+        { "key": "logo_text", "label": "Firmenname (Logo-Text)", "type": "text", "default": "FIRMENNAME" },
+        { "key": "cta_text",  "label": "Button-Text",            "type": "text", "default": "Termin vereinbaren" },
+        { "key": "cta_url",   "label": "Button-Ziel",            "type": "text", "default": "#kontakt" }
+      ],
+      "ki_prompt_hint": "Standard-Navbar für die meisten Handwerker-Sites. Wähle diesen Block, wenn keine starke Notdienst-Kommunikation nötig ist und der Kunde primär per Formular/Termin-Buchung gewonnen werden soll. Default-Wahl bei Unsicherheit.",
+      "preview_note": "Logo links, 4 Nav-Links Mitte (Leistungen/Über uns/Referenzen/Kontakt), CTA-Button rechts in Brand-Teal. Mobile: Hamburger-Menü."
+    },
+    {
+      "slug": "nav-telefon",
+      "name": "Navbar mit Telefon",
+      "category": "NAV",
+      "tags": ["navigation", "header", "phone", "handwerk"],
+      "slots": [
+        { "key": "logo_text", "label": "Firmenname",         "type": "text", "default": "FIRMENNAME" },
+        { "key": "phone",     "label": "Telefon (Anzeige)",  "type": "text", "default": "0261 / 123 456" },
+        { "key": "phone_url", "label": "Telefon (tel:-Link)","type": "text", "default": "tel:+4926112345" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block für klassische Handwerksbetriebe (SHK, Elektrik, Schreinerei), bei denen direkter Telefonkontakt das primäre Conversion-Ziel ist. Telefonnummer ist prominent in Brand-Teal sichtbar — funktioniert besonders gut bei älterer Zielgruppe.",
+      "preview_note": "Logo links, Nav-Links Mitte, große Telefon-Pille rechts (Brand-Teal #008EAA). Mobile: Telefonnummer bleibt sticky."
+    },
+    {
+      "slug": "nav-notdienst",
+      "name": "Sticky Notfall-Banner",
+      "category": "NAV",
+      "tags": ["navigation", "notdienst", "urgency", "sticky"],
+      "slots": [
+        { "key": "message",   "label": "Banner-Text", "type": "text", "default": "24h Notdienst – Jetzt anrufen!" },
+        { "key": "phone",     "label": "Telefon (Anzeige)",  "type": "text", "default": "0261 / 123 456" },
+        { "key": "phone_url", "label": "Telefon (tel:-Link)","type": "text", "default": "tel:+4926112345" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block ZUSÄTZLICH zu nav-standard oder nav-telefon, wenn der Betrieb einen 24h-Notdienst anbietet (Sanitär bei Wasserschaden, Elektrik bei Stromausfall, Schlüsseldienst). Sticky-Bar bleibt beim Scrollen oben sichtbar, signalisiert Verfügbarkeit.",
+      "preview_note": "Roter Sticky-Banner ÜBER dem normalen Header. Weißer Text + gelber Telefon-CTA. Maximale Sichtbarkeit für Notfall-Conversion."
+    }
+  ]
+}

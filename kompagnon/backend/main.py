@@ -1056,6 +1056,26 @@ def _run_migrations():
         #       "fallstudien_3","guarantee_block","faq","cta_final"]
         # Siehe docs/conversion-spec-shk.md + docs/kas-pipeline-architecture.md
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS sections_json TEXT",
+        # ── Component Library (Wireframe-Blocks) — Schritt A ────────────────
+        # Speichert die 41 HTML+Tailwind-Templates fuer den KI-Wireframe-
+        # Generator. Seed via seeds/seed_component_library.py (Schritt C).
+        # Siehe database.py:ComponentLibrary fuer das ORM-Mapping.
+        """CREATE TABLE IF NOT EXISTS component_library (
+            id              SERIAL PRIMARY KEY,
+            slug            VARCHAR(50) UNIQUE NOT NULL,
+            name            VARCHAR(100) NOT NULL,
+            category        VARCHAR(50) NOT NULL,
+            tags            JSONB DEFAULT '[]'::jsonb,
+            html_template   TEXT NOT NULL,
+            slots           JSONB DEFAULT '[]'::jsonb,
+            ki_prompt_hint  TEXT,
+            preview_note    TEXT,
+            created_at      TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_component_library_category ON component_library(category)",
+        # Wireframe-Daten pro Projekt: Block-Zuweisungen + Slot-Werte pro
+        # Sitemap-Seite. Wird vom KI-Generator (Schritt D) befuellt.
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS wireframe_data JSONB DEFAULT '[]'::jsonb",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

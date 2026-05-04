@@ -238,6 +238,10 @@ class Project(Base):
     briefing_approved_at    = Column(DateTime)
     content_approval_token  = Column(String(255))
 
+    # Wireframe (Block-Zuweisungen pro Sitemap-Seite, vom KI-Agent gefuellt)
+    # Struktur: {"pages": [{"page_id": int, "blocks": [{"slug": str, "order": int, "slots": {...}}]}]}
+    wireframe_data          = Column(JSONB, default=list)
+
     # Relationships
     lead = relationship("Lead", back_populates="projects", foreign_keys=[lead_id])
     checklists = relationship("ProjectChecklist", back_populates="project", cascade="all, delete-orphan")
@@ -890,6 +894,32 @@ class GeoAnalysis(Base):
     subscription_started_at = Column(DateTime, nullable=True)
     subscription_canceled_at = Column(DateTime, nullable=True)
     subscription_current_period_end = Column(DateTime, nullable=True)
+
+
+class ComponentLibrary(Base):
+    """
+    Wireframe-Block-Bibliothek (41 HTML+Tailwind-Templates).
+
+    Wird vom KI-Agent (siehe routers/component_library.py — Schritt D)
+    zur Wireframe-Generation genutzt. HTML-Quelle liegt im Repo unter
+    kompagnon/frontend/src/components/library/{slug}.html, Seed via
+    kompagnon/backend/seeds/seed_component_library.py.
+
+    Kategorien: NAV, HERO, LEIST, TRUST, SEO, CTA, HW, FOOT.
+    """
+    __tablename__ = "component_library"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    slug            = Column(String(50), unique=True, nullable=False, index=True)
+    name            = Column(String(100), nullable=False)
+    category        = Column(String(50), nullable=False, index=True)
+    tags            = Column(JSONB, default=list)
+    html_template   = Column(Text, nullable=False)
+    # slots: [{"key": "headline", "label": "Hauptueberschrift", "type": "text", "default": "..."}, ...]
+    slots           = Column(JSONB, default=list)
+    ki_prompt_hint  = Column(Text, nullable=True)
+    preview_note    = Column(Text, nullable=True)
+    created_at      = Column(DateTime, default=datetime.utcnow)
 
 
 def init_db():

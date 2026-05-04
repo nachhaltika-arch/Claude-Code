@@ -1627,7 +1627,7 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
     if not website_url:
         raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
 
-    api_key = os.getenv("PAGESPEED_API_KEY") or os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+    api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
     base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
     params_base = {"url": website_url}
     if api_key:

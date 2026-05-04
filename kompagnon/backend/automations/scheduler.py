@@ -849,7 +849,7 @@ def job_monthly_performance_report():
             report_count    = row[9] or 0
 
             try:
-                api_key = os.getenv("PAGESPEED_API_KEY", "")
+                api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
                 new_mobile, new_desktop = current_mobile, current_desktop
 
                 if api_key and website_url:

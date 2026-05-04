@@ -7,15 +7,7 @@ export default function PackageKompagnon() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const cancelled = params.get('cancelled');
-  const [form, setForm] = useState({
-    name:        '',
-    company:     '',
-    email:       '',
-    phone:       '',
-    website_url: '',
-  });
-  const set = (field) => (e) =>
-    setForm(prev => ({ ...prev, [field]: e.target.value }));
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -23,23 +15,11 @@ export default function PackageKompagnon() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    if (!form.email || !form.name || !form.company) {
-      setError('Bitte Name, Firma und E-Mail ausfüllen.');
-      setLoading(false);
-      return;
-    }
     try {
-      const res = await fetch(`${API_BASE_URL}/api/payments/create-checkout`, {
+      const res = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          package:     'kompagnon',
-          email:       form.email,
-          name:        form.name,
-          company:     form.company,
-          phone:       form.phone,
-          website_url: form.website_url,
-        }),
+        body: JSON.stringify({ package: 'kompagnon', email }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail);
@@ -65,20 +45,6 @@ export default function PackageKompagnon() {
     'Eine Korrekturschleife',
     'Nachbetreuung nach Go-Live',
   ];
-
-  const inp = {
-    width: '100%', padding: '11px 14px',
-    border: '1.5px solid var(--border-light)',
-    borderRadius: 10, fontSize: 16,
-    fontFamily: 'inherit', color: 'var(--text-primary)',
-    background: 'var(--bg-app)', boxSizing: 'border-box',
-    marginBottom: 14, outline: 'none',
-  };
-  const lbl = {
-    display: 'block', fontSize: 11, fontWeight: 600,
-    color: '#8fa8b0', textTransform: 'uppercase',
-    letterSpacing: '0.06em', marginBottom: 6,
-  };
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-app)', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
@@ -145,27 +111,10 @@ export default function PackageKompagnon() {
             <div style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 24 }}>Einmalige Zahlung · keine laufenden Kosten</div>
             {error && <div style={{ background: 'var(--status-danger-bg)', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{error}</div>}
             <form onSubmit={handleCheckout}>
-              <div>
-                <label style={lbl}>Ihr Name *</label>
-                <input type="text" value={form.name} onChange={set('name')} placeholder="Max Mustermann" required style={inp} />
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="kontakt@ihrbetrieb.de" required style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--border-light)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: 'var(--text-primary)', background: 'var(--bg-app)', boxSizing: 'border-box', transition: 'all 0.15s' }} />
               </div>
-              <div>
-                <label style={lbl}>Firmenname *</label>
-                <input type="text" value={form.company} onChange={set('company')} placeholder="Mustermann GmbH" required style={inp} />
-              </div>
-              <div>
-                <label style={lbl}>Geschäftliche E-Mail *</label>
-                <input type="email" value={form.email} onChange={set('email')} placeholder="kontakt@ihrbetrieb.de" required style={inp} />
-              </div>
-              <div>
-                <label style={lbl}>Ihre aktuelle Website</label>
-                <input type="url" value={form.website_url} onChange={set('website_url')} placeholder="https://ihre-website.de" style={inp} />
-              </div>
-              <div>
-                <label style={lbl}>Telefon</label>
-                <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+49 261 123 456" style={inp} />
-              </div>
-              <p style={{ fontSize: 11, color: '#94a3b8', marginTop: -6, marginBottom: 16 }}>* Pflichtfelder</p>
               <button type="submit" disabled={loading} className="cta-btn" style={{ width: '100%', padding: '14px', background: loading ? '#8fa8b0' : '#d4a017', color: 'white', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                 {loading ? 'Wird weitergeleitet...' : 'Jetzt sicher bezahlen →'}
               </button>

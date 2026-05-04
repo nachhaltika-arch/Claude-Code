@@ -24,7 +24,7 @@ export default function AcademyEdit() {
   const { courseId } = useParams();
   const isNew = !courseId || courseId === 'neu';
   const navigate = useNavigate();
-  const { token, user } = useAuth();
+  const { token, user, hasRole } = useAuth();
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
   const [loading, setLoading] = useState(!isNew);
@@ -130,7 +130,7 @@ export default function AcademyEdit() {
     finally { setModuleLoading(false); }
   };
 
-  if (user?.role !== 'admin') return (
+  if (!hasRole('admin')) return (
     <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-tertiary)' }}>
       <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
       <div style={{ fontSize: 14 }}>Nur für Administratoren</div>

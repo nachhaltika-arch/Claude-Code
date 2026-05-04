@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/portal", tags=["portal"])
 PHASE_META = [
     (1, "Kickoff & Strategie",    "Ziele, Zielgruppe und Sitemap definiert"),
     (2, "Texterstellung",          "Alle Seiteninhalte verfasst und freigegeben"),
-    (3, "Design & Design",         "Startseite & Unterseiten im Design-Tool"),
+    (3, "Design & Mockup",         "Startseite & Unterseiten im Design-Tool"),
     (4, "Entwicklung",             "Technische Umsetzung im CMS"),
     (5, "SEO & GEO-Optimierung",  "Meta-Tags, Ladezeit, lokale Sichtbarkeit"),
     (6, "Review & Freigabe",       "Gemeinsame Abnahme aller Seiten"),
@@ -34,7 +34,7 @@ PHASE_META = [
 
 STATUS_LABEL = {
     "phase_1": "Kickoff läuft",    "phase_2": "Texterstellung",
-    "phase_3": "Design & Design",  "phase_4": "In Entwicklung",
+    "phase_3": "Design & Mockup",  "phase_4": "In Entwicklung",
     "phase_5": "SEO & Optimierung","phase_6": "Review",
     "phase_7": "Go-live",          "completed": "Abgeschlossen",
 }

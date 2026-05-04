@@ -19,7 +19,7 @@ const COLUMNS = [
 
 export default function SalesPipeline() {
   const navigate = useNavigate();
-  const { token, user } = useAuth();
+  const { token, user, hasRole } = useAuth();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dragging, setDragging] = useState(null);
@@ -94,6 +94,10 @@ export default function SalesPipeline() {
         const res = await fetch(`${API_BASE_URL}/api/projects/from-lead/${leadId}`, { method: 'POST', headers: h });
         if (res.ok) toast.success('Projekt wurde angelegt!');
         else if (res.status === 409) toast.error('Projekt bereits vorhanden');
+        else if (res.status === 422) {
+          const data = await res.json().catch(() => null);
+          toast.error(data?.detail?.message || 'Domain fehlt — bitte zuerst im Kundenprofil ergänzen.');
+        }
         else toast.error('Fehler beim Anlegen des Projekts');
       } catch { toast.error('Fehler beim Anlegen des Projekts'); }
     }
@@ -235,7 +239,7 @@ export default function SalesPipeline() {
                   onDelete={() => setDeleteConfirm(lead.id)}
                   onStatusChange={updateStatus}
                   onProjectClick={(pid) => navigate(`/app/projects/${pid}`)}
-                  isAdmin={user?.role === 'admin'}
+                  isAdmin={hasRole('admin')}
                 />
               ))
             )}
@@ -271,7 +275,7 @@ export default function SalesPipeline() {
                     <SalesCard key={lead.id} lead={lead} col={col} columns={COLUMNS} project={leadProjects[lead.id]} onDragStart={handleDragStart}
                       onOpen={() => navigate(`/app/leads/${lead.id}`)}
                       onAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
-                      onDelete={() => setDeleteConfirm(lead.id)} onStatusChange={updateStatus} onProjectClick={(pid) => navigate(`/app/projects/${pid}`)} isAdmin={user?.role === 'admin'} />
+                      onDelete={() => setDeleteConfirm(lead.id)} onStatusChange={updateStatus} onProjectClick={(pid) => navigate(`/app/projects/${pid}`)} isAdmin={hasRole('admin')} />
                   ))}
                   {colLeads.length === 0 && (
                     <div style={{ padding: '14px 8px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 11, border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>Leer</div>

@@ -3,30 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 
-function getPageName(pathname) {
-  const p = pathname.replace(/\/$/, '');
-  if (/\/app\/customers\/\d+\/projects\/\d+/.test(p)) return 'Projektdetail';
-  if (/\/app\/customers\/\d+/.test(p)) return 'Kundenprofil';
-  if (/\/app\/settings\/templates\/\d+/.test(p)) return 'Template-Editor';
-  if (p === '/app/settings/templates') return 'Template-Bibliothek';
-  if (p.startsWith('/app/settings')) return 'Einstellungen';
-  if (p === '/app/dashboard' || p === '/app') return 'Dashboard';
-  if (p === '/app/customers') return 'Kunden-Übersicht';
-  if (/\/app\/leads\/\d+/.test(p)) return 'Lead-Profil';
-  if (p === '/app/leads') return 'Lead-Pipeline';
-  if (p === '/app/tickets') return 'Support-Tickets';
-  if (p === '/app/projects') return 'Projekte';
-  if (p === '/app/checklists') return 'Checklisten';
-  if (p === '/app/audit') return 'Audit-Tool';
-  if (p === '/app/profile') return 'Mein Profil';
-  if (p === '/app/admin/users') return 'Benutzerverwaltung';
-  if (p === '/app/roles') return 'Rollenverwaltung';
-  if (p === '/app/export') return 'Export';
-  if (p === '/app/import') return 'Import';
-  if (p === '/app/academy') return 'Academy';
-  return p.split('/').filter(Boolean).pop() || 'Unbekannte Seite';
-}
-
 const TYPES = [
   { id: 'bug', label: 'Fehler melden', color: '#dc2626' },
   { id: 'feature', label: 'Idee vorschlagen', color: '#7c3aed' },
@@ -51,7 +27,7 @@ export default function FeedbackButton() {
       if (token) h.Authorization = `Bearer ${token}`;
       const res = await fetch(`${API_BASE_URL}/api/tickets/`, {
         method: 'POST', headers: h,
-        body: JSON.stringify({ ...form, page_url: window.location.href, page_name: getPageName(window.location.pathname), browser_info: navigator.userAgent, user_email: user?.email || '', user_name: user ? `${user.first_name} ${user.last_name}` : '' }),
+        body: JSON.stringify({ ...form, page_url: window.location.href, browser_info: navigator.userAgent, user_email: user?.email || '', user_name: user ? `${user.first_name} ${user.last_name}` : '' }),
       });
       const data = await res.json();
       setTicketNr(data.ticket_number || '');

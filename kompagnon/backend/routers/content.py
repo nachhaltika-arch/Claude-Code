@@ -462,6 +462,25 @@ async def generate_all_sections(
     user=Depends(require_any_auth),
 ):
     """KI-Entwurf für alle Text-Slots der Seite generieren (sequenziell)."""
+    from routers.sitemap import SitemapPage
+    from database import Briefing
+    page = db.query(SitemapPage).filter(SitemapPage.id == sitemap_page_id).first()
+    if page:
+        briefing_obj = db.query(Briefing).filter(Briefing.lead_id == page.lead_id).first()
+        if briefing_obj and briefing_obj.freigaben:
+            import json as _json
+            try:
+                fg = _json.loads(briefing_obj.freigaben)
+                if fg and not fg.get("briefing", {}).get("approved"):
+                    raise HTTPException(
+                        status_code=403,
+                        detail={
+                            "code": "BRIEFING_PENDING_APPROVAL",
+                            "message": "Das Briefing wurde noch nicht freigegeben. Bitte warten bis die Kundenfreigabe erteilt wurde.",
+                        }
+                    )
+            except (ValueError, TypeError):
+                pass
     sections = db.query(ContentSection).filter_by(sitemap_page_id=sitemap_page_id).all()
     generated, errors = 0, []
     for s in sections:

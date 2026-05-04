@@ -30,8 +30,8 @@ function initials(title = '') {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function Courses() {
-  const { user, token } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const { user, token, hasRole } = useAuth();
+  const isAdmin = hasRole('admin');
 
   // List state
   const [courses, setCourses]         = useState([]);

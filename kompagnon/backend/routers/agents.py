@@ -129,7 +129,7 @@ class ContentBriefing(BaseModel):
     city: str = ""
     trade: str = ""
     usp: str = ""
-    services: list = []
+    services: list[str] = []
     target_audience: str = ""
     page_name: str = "Startseite"
     zweck: str = ""
@@ -138,21 +138,20 @@ class ContentBriefing(BaseModel):
     team_size: int = 1
     team_info: str = ""
     years_in_business: int = 0
-    awards_or_certifications: list = []
-    lead_id: int = None
+    awards_or_certifications: list[str] = []
     # Context fields from audit / pagespeed / crawler / briefing
-    audit_score: int = None
-    audit_problems: list = []
-    pagespeed_mobile: int = None
-    crawler_titles: list = []
+    audit_score: int | None = None
+    audit_problems: list[str] = []
+    pagespeed_mobile: int | None = None
+    crawler_titles: list[str] = []
     briefing_usp: str = ""
     briefing_leistungen: str = ""
     briefing_zielgruppe: str = ""
     # Brand design context
-    brand_primary_color: str = None
-    brand_secondary_color: str = None
-    brand_font_primary: str = None
-    brand_design_style: str = None
+    brand_primary_color: str | None = None
+    brand_secondary_color: str | None = None
+    brand_font_primary: str | None = None
+    brand_design_style: str | None = None
 
 
 class CompanyData(BaseModel):
@@ -184,56 +183,29 @@ class ReviewInput(BaseModel):
 
 
 @router.post("/{project_id}/content")
-def run_content_agent(
+def start_content_agent(
     project_id: int,
     briefing: ContentBriefing,
     db: Session = Depends(get_db),
 ):
-    """Run content writer agent synchronously. Returns result directly."""
-    # Wenn lead_id vorhanden: Daten aus DB ergänzen
-    if briefing.lead_id:
-        from database import Lead
-        lead = db.query(Lead).filter(Lead.id == briefing.lead_id).first()
-        if lead:
-            if not briefing.company_name:
-                briefing.company_name = lead.company_name or ""
-            if not briefing.city:
-                briefing.city = lead.city or ""
-            if not briefing.trade:
-                briefing.trade = lead.trade or ""
-
-    # Wenn Projekt-ID nicht gefunden: trotzdem weitermachen mit Lead-Daten
+    """Start content writer job. Returns job_id immediately — poll /api/agents/jobs/{job_id}."""
     project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
 
-    briefing_dict = briefing.dict()
+    job_id = str(uuid.uuid4())
+    _jobs[job_id] = {"status": "running"}
 
-    try:
-        use_mock = not os.getenv("ANTHROPIC_API_KEY")
-        if not use_mock:
-            from agents import ContentWriterAgent
-            agent = ContentWriterAgent()
-            result = agent.write_content(briefing_dict)
-        else:
-            from agents import ContentWriterAgent
-            result = ContentWriterAgent.get_mock_content(
-                briefing.company_name,
-                briefing.city,
-                briefing.trade,
-            )
+    use_mock = not os.getenv("ANTHROPIC_API_KEY")
+    t = threading.Thread(
+        target=_run_content_job,
+        args=(job_id, briefing.dict(), use_mock,
+              briefing.company_name, briefing.city, briefing.trade),
+        daemon=True,
+    )
+    t.start()
 
-        if "error" in result:
-            raise HTTPException(status_code=500, detail=result["error"])
-
-        return {
-            "project_id": project_id,
-            "agent": "ContentWriterAgent",
-            "result": result,
-            "status": "success",
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Agent failed: {str(e)}")
+    return {"job_id": job_id, "status": "running"}
 
 
 @router.get("/jobs/{job_id}")

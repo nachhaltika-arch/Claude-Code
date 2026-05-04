@@ -566,12 +566,12 @@ function ApprovalModal({ projectId, token, onClose }) {
 export default function ProjectDetail() {
   const { id }         = useParams();
   const navigate       = useNavigate();
-  const { token, user } = useAuth();
+  const { token, user, hasRole } = useAuth();
   const { isMobile }   = useScreenSize();
   const phaseScrollRef = useRef(null);
   const headers          = token ? { Authorization: `Bearer ${token}` } : {};
   const hdr              = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-  const isAdmin          = user?.role === 'admin';
+  const isAdmin          = hasRole('admin');
 
   const [project, setProject]         = useState(null);
   const [lead, setLead]               = useState(null);

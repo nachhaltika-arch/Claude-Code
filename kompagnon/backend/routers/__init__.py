@@ -39,5 +39,4 @@ __all__ = [
     "settings_router",
     "payments_router",
     "tickets_router",
-    "newsletter_router",
 ]

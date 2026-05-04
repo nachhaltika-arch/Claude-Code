@@ -20,7 +20,7 @@ export default function QRGenerator() {
   };
 
   return (
-    <div style={{ width: '100%', boxSizing: 'border-box', padding: '32px 16px' }}>
+    <div style={{ maxWidth: 560, margin: '0 auto', padding: '32px 16px' }}>
       <h1 style={{
         fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 22,
         color: 'var(--text-primary)', margin: '0 0 6px',

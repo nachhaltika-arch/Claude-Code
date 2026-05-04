@@ -1,19 +1,5 @@
 import React from 'react';
 
-const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
-  if (loading) return <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>⏳ Prüfe...</span>;
-  const date = checkedAt ? new Date(checkedAt).toLocaleDateString('de-DE') : null;
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-      <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: reachable === null ? '#f3f4f6' : reachable ? '#dcfce7' : '#fee2e2', color: reachable === null ? '#6b7280' : reachable ? '#166534' : '#991b1b' }}>
-        {reachable === null ? '● Nicht geprüft' : reachable ? '✓ Erreichbar' : '✗ Nicht erreichbar'}
-      </span>
-      {date && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{date}</span>}
-      {onCheck && <button onClick={onCheck} title="Jetzt prüfen" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-tertiary)', padding: '0 2px' }}>🔄</button>}
-    </span>
-  );
-};
-
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const PHASES = [
@@ -105,15 +91,15 @@ function Divider() {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function ProjectCard({ project, onDomainCheck, domainChecking }) {
+export default function ProjectCard({ project }) {
   if (!project) return null;
 
   const activeIdx   = phaseIndex(project.status);
   const activePhase = PHASES[activeIdx];
   const progressPct = 60; // placeholder — replace with real checklist % if available
 
-  const speedM      = project.pagespeed_mobile  ?? project.ps_mobile  ?? null;
-  const speedD      = project.pagespeed_desktop ?? project.ps_desktop ?? null;
+  const speedM      = project.pagespeed_mobile;
+  const speedD      = project.pagespeed_desktop;
   const speedMColor = speedColor(speedM);
   const speedDColor = speedColor(speedD);
 
@@ -121,20 +107,13 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
 
   const auditInfo   = AUDIT_LEVELS[(project.audit_level || '').toLowerCase()];
 
-  const rawPages     = project.desired_pages ?? project.seiten ?? null;
-  const desiredPages = rawPages
-    ? rawPages.split(',').map(s => s.trim()).filter(Boolean)
+  const desiredPages = project.desired_pages
+    ? project.desired_pages.split(',').map(s => s.trim()).filter(Boolean)
     : [];
 
-  const rawProblems = project.top_issues ?? project.probleme ?? null;
-  const topProblems = rawProblems
-    ? rawProblems.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 3)
+  const topProblems = project.top_problems
+    ? project.top_problems.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 3)
     : [];
-
-  const contactName = project.contact_name || project.ansprechpartner || '—';
-  const logoReceived    = project.logo_received    ?? false;
-  const briefingReceived = project.briefing_received ?? false;
-  const photosReceived  = project.photos_received  ?? false;
 
   const card = {
     background: 'var(--bg-surface)',
@@ -233,7 +212,6 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
               ? <a href={project.website_url} target="_blank" rel="noreferrer" style={{ color: '#185FA5', textDecoration: 'none', fontSize: 12, wordBreak: 'break-all' }}>{project.website_url}</a>
               : <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>–</span>
             }
-            <DomainBadge reachable={project.domain_reachable ?? null} checkedAt={project.domain_checked_at} loading={domainChecking} onCheck={onDomainCheck} />
             {project.cms_type && (
               <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{project.cms_type}</div>
             )}
@@ -242,20 +220,16 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
         <Divider />
         <div style={{ ...col, paddingLeft: 16 }}>
           <InfoBlock label="PageSpeed">
-            {speedM === null && speedD === null ? (
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Nicht gemessen</span>
-            ) : (
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <Badge
-                  label={speedM !== null && speedM !== undefined ? `📱 ${speedM}` : '📱 –'}
-                  colorStyle={speedMColor}
-                />
-                <Badge
-                  label={speedD !== null && speedD !== undefined ? `🖥 ${speedD}` : '🖥 –'}
-                  colorStyle={speedDColor}
-                />
-              </div>
-            )}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <Badge
+                label={speedM !== null && speedM !== undefined ? `📱 ${speedM}` : '📱 –'}
+                colorStyle={speedMColor}
+              />
+              <Badge
+                label={speedD !== null && speedD !== undefined ? `🖥 ${speedD}` : '🖥 –'}
+                colorStyle={speedDColor}
+              />
+            </div>
           </InfoBlock>
         </div>
         <Divider />
@@ -289,7 +263,7 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
                 ))}
               </div>
             ) : (
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Noch nicht angegeben</span>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>–</span>
             )}
           </InfoBlock>
         </div>
@@ -297,9 +271,9 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
         <div style={{ ...col, paddingLeft: 16 }}>
           <InfoBlock label="Assets">
             {[
-              { label: 'Logo',     val: logoReceived },
-              { label: 'Briefing', val: briefingReceived },
-              { label: 'Fotos',    val: photosReceived },
+              { label: 'Logo',     val: project.has_logo },
+              { label: 'Briefing', val: project.has_briefing },
+              { label: 'Fotos',    val: project.has_photos },
             ].map(({ label, val }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                 <span style={{ color: val ? '#1D9E75' : '#E24B4A', fontWeight: 700 }}>{val ? '✓' : '✗'}</span>
@@ -346,7 +320,7 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
                 })}
               </div>
             ) : (
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Kein Audit vorhanden</span>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>–</span>
             )}
           </InfoBlock>
         </div>
@@ -355,7 +329,7 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
           <InfoBlock label="Ansprechpartner">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
               <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                {contactName}
+                {project.contact_name || '–'}
               </div>
               {project.contact_phone && (
                 <a href={`tel:${project.contact_phone}`} style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
@@ -366,6 +340,9 @@ export default function ProjectCard({ project, onDomainCheck, domainChecking }) 
                 <a href={`mailto:${project.contact_email}`} style={{ color: '#185FA5', textDecoration: 'none', wordBreak: 'break-all' }}>
                   ✉ {project.contact_email}
                 </a>
+              )}
+              {!project.contact_phone && !project.contact_email && !project.contact_name && (
+                <span style={{ color: 'var(--text-tertiary)' }}>–</span>
               )}
             </div>
           </InfoBlock>

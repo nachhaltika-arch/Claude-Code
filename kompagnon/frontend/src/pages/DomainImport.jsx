@@ -131,7 +131,7 @@ export default function DomainImport() {
   const statusIcon = (s) => s === 'completed' ? '✅' : s === 'failed' ? '❌' : s === 'already_exists' ? '⏭️' : '⏳';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease', width: '100%', boxSizing: 'border-box' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease', maxWidth: 900, margin: '0 auto', width: '100%' }}>
 
       <div>
         <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>Domain-Import</h1>

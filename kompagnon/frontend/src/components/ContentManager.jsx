@@ -3,7 +3,6 @@
  * Props: { leadId, leadName, token, onClose }
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
 
@@ -152,7 +151,7 @@ function SectionCard({ section, token, onUpdated }) {
           <textarea
             value={final}
             onChange={e => { setFinal(e.target.value); saveFinal(e.target.value); }}
-            placeholder="Finaler Text für den Design..."
+            placeholder="Finaler Text für den Mockup..."
             rows={4}
             style={{ width: '100%', fontSize: 12, border: '1px solid #A7F3D0', borderRadius: 6, padding: '6px 8px', resize: 'vertical', fontFamily: 'var(--font-sans)', background: '#F7FEF9', color: 'var(--text-primary)', boxSizing: 'border-box' }}
           />
@@ -441,7 +440,7 @@ export default function ContentManager({ leadId, leadName, token, onClose }) {
     return type === 'startseite' ? '🏠' : type === 'leistung' ? '🔧' : type === 'info' ? 'ℹ️' : type === 'vertrauen' ? '⭐' : type === 'conversion' ? '📞' : '📄';
   }
 
-  return createPortal(
+  return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 16 }}>
       <div style={{ background: 'var(--bg-surface)', borderRadius: isMobile ? '16px 16px 0 0' : 12, width: '100%', maxWidth: 1100, height: isMobile ? '94vh' : '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }}>
 
@@ -514,7 +513,6 @@ export default function ContentManager({ leadId, leadName, token, onClose }) {
           </div>
         </div>
       </div>
-    </div>,
-    document.body
+    </div>
   );
 }

@@ -34,6 +34,12 @@ def update_briefing(lead_id: int, data: dict, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(422, f"Speichern fehlgeschlagen: {str(e)[:200]}")
+
+    try:
+        from routers.briefings import _maybe_mark_submitted
+        _maybe_mark_submitted(db, briefing, lead_id)
+    except Exception as e:
+        logger.warning(f"Briefing-Submit-Hook (PATCH) fehlgeschlagen für Lead {lead_id}: {e}")
     return _serialize(briefing)
 
 

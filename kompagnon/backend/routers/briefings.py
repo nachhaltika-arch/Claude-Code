@@ -15,7 +15,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from typing import Optional
 
-from database import get_db, Briefing, Lead
+from database import get_db, Briefing, Lead, Project
 from routers.auth_router import require_any_auth
 
 logger = logging.getLogger(__name__)
@@ -29,6 +29,74 @@ FLAT_FIELDS = [
     "hauptziel", "aktionen", "typischer_kunde", "haeufige_anfrage",
     "funktionen_json", "seo_json",
 ]
+
+# Substantive text fields used to decide whether a briefing has meaningful content.
+# A briefing is considered "submitted" once 3+ of these are filled (>=10 chars after strip).
+_SUBSTANTIVE_FIELDS = [
+    "gewerk", "leistungen", "einzugsgebiet", "usp", "mitbewerber",
+    "vorbilder", "wunschseiten", "stil", "hauptziel", "aktionen",
+    "typischer_kunde", "haeufige_anfrage", "sonstige_hinweise",
+]
+
+
+def _is_briefing_meaningful(briefing: Briefing) -> bool:
+    """True once 3+ substantive fields have non-trivial content."""
+    filled = 0
+    for field in _SUBSTANTIVE_FIELDS:
+        val = (getattr(briefing, field, None) or "").strip()
+        if len(val) >= 10:
+            filled += 1
+            if filled >= 3:
+                return True
+    return False
+
+
+def _maybe_mark_submitted(db: Session, briefing: Briefing, lead_id: int) -> None:
+    """If the briefing now has meaningful content, mark its project as briefing-submitted
+    and (if still in phase_1) transition to phase_2 + trigger welcome automations."""
+    if not _is_briefing_meaningful(briefing):
+        return
+
+    project = db.query(Project).filter(Project.lead_id == lead_id).first()
+    if not project:
+        return  # No project yet (kampagne-lead pre-purchase) — skip
+    if project.has_briefing:
+        return  # Already marked
+
+    now = datetime.utcnow()
+    project.has_briefing = True
+    if not project.briefing_submitted_at:
+        project.briefing_submitted_at = now
+    if briefing.status != "eingereicht":
+        briefing.status = "eingereicht"
+
+    triggered_transition = False
+    if project.status == "phase_1":
+        project.status = "phase_2"
+        if hasattr(project, "current_phase"):
+            project.current_phase = 2
+        triggered_transition = True
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Briefing-Submit commit fehlgeschlagen (lead {lead_id}): {e}")
+        return
+
+    if triggered_transition:
+        try:
+            from automations.scheduler import get_scheduler
+            scheduler = get_scheduler()
+            if scheduler:
+                scheduler.trigger_phase_change(project.id, "phase_2")
+        except Exception as e:
+            logger.warning(f"Phase-2-Trigger fehlgeschlagen für Project {project.id}: {e}")
+
+    logger.info(
+        f"Briefing #{briefing.id} (Lead {lead_id}) als eingereicht markiert; "
+        f"Project {project.id} {'→ phase_2 (Auto-Trigger)' if triggered_transition else '(unverändert phase ' + str(project.status) + ')'}"
+    )
 
 
 class BriefingBody(BaseModel):
@@ -159,6 +227,8 @@ def create_briefing(
         db.rollback()
         logger.error(f"Briefing POST commit failed: {e}")
         raise HTTPException(422, f"Speichern fehlgeschlagen: {str(e)[:200]}")
+
+    _maybe_mark_submitted(db, briefing, lead_id)
     return _serialize(briefing)
 
 
@@ -212,6 +282,8 @@ def update_briefing(
         db.rollback()
         logger.error(f"Briefing PUT commit failed: {e}")
         raise HTTPException(422, f"Speichern fehlgeschlagen: {str(e)[:200]}")
+
+    _maybe_mark_submitted(db, briefing, lead_id)
     return _serialize(briefing)
 
 

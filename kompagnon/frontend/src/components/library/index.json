@@ -731,6 +731,45 @@
       ],
       "ki_prompt_hint": "Wähle diesen Block, wenn der Kunde Hersteller-Partnerschaften hat (Viessmann-Premium, Bosch-Partner). Signalisiert: hier wird mit Markenqualität gearbeitet, nicht No-Name. Unterscheidet sich von trust-zertifikate (Innungen) durch Produkt-Fokus.",
       "preview_note": "5 Marken-Logos in einer Reihe (auf Mobile 2-3 Spalten), gedimmt mit hover→volle Farbe."
+    },
+
+    {
+      "slug": "foot-standard",
+      "name": "Footer Standard (4 Spalten)",
+      "category": "FOOT",
+      "tags": ["footer", "default"],
+      "slots": [
+        { "key": "logo_text",   "label": "Firmenname (Logo)",  "type": "text", "default": "FIRMENNAME" },
+        { "key": "tagline",     "label": "Tagline / Claim",    "type": "text", "default": "Heizung · Sanitär · Wärmepumpen · Notdienst — Meisterbetrieb seit 1998." },
+        { "key": "address",     "label": "Adresse",            "type": "text", "default": "Hauptstraße 12 · 56068 Koblenz" },
+        { "key": "phone",       "label": "Telefon",            "type": "text", "default": "0261 / 123 456" },
+        { "key": "phone_url",   "label": "Telefon-Link",       "type": "text", "default": "tel:+4926112345" },
+        { "key": "email",       "label": "E-Mail",             "type": "text", "default": "info@beispiel-handwerk.de" },
+        { "key": "impressum_url",  "label": "Impressum-URL",   "type": "text", "default": "/impressum" },
+        { "key": "datenschutz_url","label": "Datenschutz-URL", "type": "text", "default": "/datenschutz" },
+        { "key": "agb_url",        "label": "AGB-URL",         "type": "text", "default": "/agb" },
+        { "key": "social_facebook","label": "Facebook-URL",    "type": "text", "default": "https://facebook.com/" },
+        { "key": "social_instagram","label": "Instagram-URL",  "type": "text", "default": "https://instagram.com/" },
+        { "key": "copyright_year", "label": "Copyright-Jahr",  "type": "text", "default": "2026" }
+      ],
+      "ki_prompt_hint": "Default-Footer für die meisten Sites. Vier Spalten: Brand+Tagline, Schnell-Nav, Kontaktdaten, Social-Icons. Rechtliche Links (Impressum/Datenschutz/AGB) immer im unteren Bar-Bereich.",
+      "preview_note": "Dunkles Teal #004F59, weiße Schrift, gelbe Akzente bei Hover. Mobile: gestapelt, kompakter."
+    },
+    {
+      "slug": "foot-kompakt",
+      "name": "Footer Kompakt (1 Reihe)",
+      "category": "FOOT",
+      "tags": ["footer", "compact", "minimal"],
+      "slots": [
+        { "key": "logo_text",  "label": "Firmenname (Logo)",  "type": "text", "default": "FIRMENNAME" },
+        { "key": "phone",      "label": "Telefon",            "type": "text", "default": "0261 / 123 456" },
+        { "key": "phone_url",  "label": "Telefon-Link",       "type": "text", "default": "tel:+4926112345" },
+        { "key": "impressum_url","label": "Impressum-URL",   "type": "text", "default": "/impressum" },
+        { "key": "datenschutz_url","label": "Datenschutz-URL", "type": "text", "default": "/datenschutz" },
+        { "key": "copyright_year", "label": "Copyright-Jahr",  "type": "text", "default": "2026" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block für kleine Single-Page-Sites oder Performance-Marketing-Landingpages, wo viel Footer-Content ablenkt. Nur Brand + Telefon + minimale Rechtliches.",
+      "preview_note": "Einzeiler mit Logo links, Telefon Mitte, Rechts-Links rechts. Sehr schlank."
     }
   ]
 }

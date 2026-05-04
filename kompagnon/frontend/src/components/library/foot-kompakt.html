@@ -1,0 +1,19 @@
+<!--
+  Block: foot-kompakt — Footer Kompakt (1 Reihe)
+  Kategorie: FOOT
+  Slots: logo_text, phone, phone_url, impressum_url, datenschutz_url, copyright_year
+-->
+<footer data-block="foot-kompakt" class="bg-[#004F59] text-white" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
+    <div class="flex items-center gap-3">
+      <span class="text-base font-black uppercase tracking-tight">{{logo_text}}</span>
+      <span class="text-white/40 hidden md:inline">·</span>
+      <span class="text-white/70 text-xs">© {{copyright_year}}</span>
+    </div>
+    <a href="{{phone_url}}" class="font-bold text-[#FAE600] hover:text-yellow-300 transition">{{phone}}</a>
+    <div class="flex items-center gap-4 text-xs text-white/70">
+      <a href="{{impressum_url}}" class="hover:text-[#FAE600] transition">Impressum</a>
+      <a href="{{datenschutz_url}}" class="hover:text-[#FAE600] transition">Datenschutz</a>
+    </div>
+  </div>
+</footer>

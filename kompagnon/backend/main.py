@@ -1707,6 +1707,16 @@ app.include_router(webhooks.router)
 from routers import retainer
 app.include_router(retainer.router)
 
+# Component-Library + KI-Wireframe-Generator (Step D des Online-Fertig-Redesigns).
+# Zwei Router in einer Datei: /api/components fuer die Bibliothek, /api/projects/...
+# fuer Wireframe-CRUD + Generator-Job.
+from routers.component_library import (
+    component_router as component_library_router,
+    wireframe_router as wireframe_router,
+)
+app.include_router(component_library_router)
+app.include_router(wireframe_router)
+
 
 from routers.products import router as products_router
 app.include_router(products_router)

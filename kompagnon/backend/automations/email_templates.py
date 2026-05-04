@@ -26,24 +26,27 @@ Viele Grüße,
 Ihr KOMPAGNON-Team""",
     },
     "material_reminder": {
-        "subject": "Erinnerung: Materialsammlung {company_name}",
+        "subject": "Erinnerung: Materialien für Ihre Website — {company_name}",
         "body": """Lieber {contact_name},
 
-Sie haben eine Website bei KOMPAGNON in Auftrag gegeben — sehr gut! 👍
+damit wir Ihre neue Website pünktlich fertigstellen können, benötigen wir noch einige Unterlagen von Ihnen.
 
-Damit wir pünktlich fertig werden, brauchen wir von Ihnen noch:
+Bitte stellen Sie uns folgende Materialien zur Verfügung:
 
-✓ Unternehmensfotos (mind. 3)
+✓ Unternehmensfotos (mind. 3 aktuelle Fotos)
 ✓ Leistungsbeschreibung (was machen Sie genau?)
-✓ Team-Informationen (wie viele Mitarbeiter, Expertise)
+✓ Team-Informationen (Mitarbeiterzahl, Expertise)
 ✓ Öffnungszeiten
 ✓ Kontaktdaten (Telefon, E-Mail, Adresse)
 
-**Bitte bis zum {review_deadline} einreichen.**
+Bitte bis zum {review_deadline} einreichen.
 
-Bitte hochladen unter: {upload_link}
+Upload-Link: {upload_link}
 
-Danke!
+Bei Fragen erreichen Sie uns unter:
+{contact_person_phone} | {contact_person_email}
+
+Herzliche Grüße,
 {assigned_person}
 KOMPAGNON-Team""",
     },
@@ -209,22 +212,27 @@ def get_template(template_key: str) -> dict:
 
 
 def render_template(template_key: str, context: dict) -> dict:
-    """Render template with context variables. Missing keys become [KEY FEHLT]."""
-    import logging as _log
+    """Render template with context variables. Missing keys are replaced with placeholder text."""
+    import logging
     import string
+    log = logging.getLogger(__name__)
     template = get_template(template_key)
-    result = {}
-    for part in ("subject", "body"):
+
+    def safe_format(text: str) -> str:
         try:
-            result[part] = template[part].format(**context)
+            return text.format(**context)
         except KeyError as e:
-            _log.getLogger(__name__).error(
-                f"E-Mail-Template '{template_key}': Fehlender Platzhalter {e} im {part}. "
-                f"Context-Keys: {list(context.keys())}"
+            log.error(
+                f"Template '{template_key}': missing placeholder {e}. "
+                f"Available keys: {list(context.keys())}"
             )
-            safe = {**context}
-            for _, field, _, _ in string.Formatter().parse(template[part]):
-                if field and field not in safe:
-                    safe[field] = f"[{field.upper()} FEHLT]"
-            result[part] = template[part].format(**safe)
-    return result
+            safe_ctx = {**context}
+            for _, field_name, _, _ in string.Formatter().parse(text):
+                if field_name and field_name not in safe_ctx:
+                    safe_ctx[field_name] = f"[{field_name.upper()} FEHLT]"
+            return text.format(**safe_ctx)
+
+    return {
+        "subject": safe_format(template["subject"]),
+        "body": safe_format(template["body"]),
+    }

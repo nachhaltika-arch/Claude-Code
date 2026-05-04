@@ -4,10 +4,34 @@ from sqlalchemy import text
 from database import get_db
 from routers.auth_router import require_admin, get_current_user
 from datetime import datetime
-import json, os, logging
+import json, os, logging, re
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/products", tags=["products"])
+
+
+def _slugify(name: str) -> str:
+    """URL-sicheren Slug aus deutschem Produktnamen erzeugen."""
+    if not name:
+        return ""
+    s = name.lower().strip()
+    s = s.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    s = re.sub(r"[^a-z0-9]+", "-", s)
+    return s.strip("-")
+
+
+def _unique_slug(base: str, db: Session) -> str:
+    """Eindeutigen Slug sicherstellen — hängt -2, -3 etc. an falls nötig."""
+    if not base:
+        base = "produkt"
+    slug = base
+    counter = 2
+    while db.execute(
+        text("SELECT id FROM products WHERE slug = :s"), {"s": slug}
+    ).first():
+        slug = f"{base}-{counter}"
+        counter += 1
+    return slug
 
 
 def _row(r):
@@ -50,16 +74,27 @@ def get_product(slug: str, db: Session = Depends(get_db)):
 @router.post("/", status_code=201)
 def create_product(data: dict, db: Session = Depends(get_db),
                    _=Depends(require_admin)):
-    slug = data.get("slug", "").strip()
+    # Slug aus Frontend oder automatisch aus Namen generieren
+    slug = (data.get("slug") or "").strip()
     if not slug:
-        raise HTTPException(400, "Slug fehlt")
+        name = (data.get("name") or "").strip()
+        if not name:
+            raise HTTPException(400, "Name oder Slug muss angegeben werden")
+        slug = _unique_slug(_slugify(name), db)
+    else:
+        # Vom User angegebener Slug — trotzdem eindeutig machen
+        existing = db.execute(
+            text("SELECT id FROM products WHERE slug = :s"), {"s": slug}
+        ).first()
+        if existing:
+            slug = _unique_slug(_slugify(slug), db)
     db.execute(text("""
         INSERT INTO products (slug, name, short_desc, long_desc,
           price_brutto, price_netto, tax_rate, payment_type,
           delivery_days, highlighted, highlight_label,
           features, checkout_fields, webhook_actions, status, sort_order)
         VALUES (:slug, :name, :sd, :ld, :pb, :pn, :tr, :pt,
-          :dd, :hl, :hll, :feat::jsonb, :cf::jsonb, :wa::jsonb, :status, :so)
+          :dd, :hl, :hll, CAST(:feat AS jsonb), CAST(:cf AS jsonb), CAST(:wa AS jsonb), :status, :so)
     """), {
         "slug":   slug,
         "name":   data.get("name", ""),
@@ -109,7 +144,7 @@ def update_product(slug: str, data: dict,
             params[p] = data[k]
     for f in ["features", "checkout_fields", "webhook_actions"]:
         if f in data:
-            fields.append(f"{f}=:{f}::jsonb")
+            fields.append(f"{f}=CAST(:{f} AS jsonb)")
             params[f] = json.dumps(data[f])
     if not fields:
         return get_product(slug, db)

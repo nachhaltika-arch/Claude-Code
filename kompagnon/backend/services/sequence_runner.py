@@ -15,90 +15,108 @@ def run_email_sequences():
     """
     Wird stündlich vom Scheduler aufgerufen.
     Prüft alle Leads mit aktiver Sequenz und sendet die nächste E-Mail.
+    Einzelne Lead-Fehler brechen die Schleife NICHT ab.
     """
     db = SessionLocal()
     try:
-        leads = db.query(Lead).filter(
-            Lead.sequence_active == True,
-            Lead.sequence_paused == False,
-            Lead.email != None,
-            Lead.email != "",
-        ).all()
+        try:
+            leads = db.query(Lead).filter(
+                Lead.sequence_active == True,
+                Lead.sequence_paused != True,
+                Lead.email != None,
+                Lead.email != "",
+            ).all()
+        except Exception as e:
+            import traceback
+            logger.error(f"Sequenz-Runner DB-Query Fehler: {e}")
+            logger.error(traceback.format_exc())
+            return 0
 
         sent_count = 0
         for lead in leads:
-            step      = lead.sequence_step or 0
-            last_sent = lead.sequence_last_sent
-            now       = datetime.utcnow()
+            try:
+                step      = lead.sequence_step or 0
+                last_sent = lead.sequence_last_sent
+                now       = datetime.utcnow()
 
-            # Schritt 1 (step=0): sofort senden
-            # Schritt 2 (step=1): nach 3 Tagen
-            # Schritt 3 (step=2): nach 7 Tagen
-            # step=3: Sequenz beendet
+                # Schritt 1 (step=0): sofort senden
+                # Schritt 2 (step=1): nach 3 Tagen
+                # Schritt 3 (step=2): nach 7 Tagen
+                # step=3: Sequenz beendet
 
-            if step >= 3:
-                lead.sequence_active = False
-                db.commit()
-                continue
+                if step >= 3:
+                    lead.sequence_active = False
+                    db.commit()
+                    continue
 
-            delay_days = SEQUENCE_DELAYS.get(step + 1, 999)
-            if last_sent and (now - last_sent).days < delay_days:
-                continue  # Noch nicht Zeit
+                delay_days = SEQUENCE_DELAYS.get(step + 1, 999)
+                if last_sent and (now - last_sent).days < delay_days:
+                    continue  # Noch nicht Zeit
 
-            template_key = f"sequence_step_{step + 1}"
+                template_key = f"sequence_step_{step + 1}"
 
-            # Platzhalter befüllen
-            domain = ""
-            if lead.website_url:
-                domain = (
-                    lead.website_url
-                    .replace("https://", "")
-                    .replace("http://", "")
-                    .replace("www.", "")
-                    .split("/")[0]
+                # Platzhalter befüllen
+                domain = ""
+                if lead.website_url:
+                    domain = (
+                        lead.website_url
+                        .replace("https://", "")
+                        .replace("http://", "")
+                        .replace("www.", "")
+                        .split("/")[0]
+                    )
+
+                tipps = _build_tipps(lead)
+                data = {
+                    "firma":       lead.company_name or lead.email or "dort",
+                    "domain":      domain or lead.website_url or "",
+                    "top_problem": _get_top_problem(lead),
+                    "tipps_html":  tipps,
+                }
+
+                rendered = render(template_key, data)
+                ok = send_email(
+                    to_email  = lead.email,
+                    subject   = rendered["subject"],
+                    html_body = rendered["html"],
                 )
 
-            tipps = _build_tipps(lead)
-            data = {
-                "firma":       lead.company_name or lead.email or "dort",
-                "domain":      domain or lead.website_url or "",
-                "top_problem": _get_top_problem(lead),
-                "tipps_html":  tipps,
-            }
+                # Protokoll
+                db.execute(text("""
+                    INSERT INTO email_logs
+                        (lead_id, to_email, subject, template_key, status)
+                    VALUES
+                        (:lid, :to, :sub, :tpl, :status)
+                """), {
+                    "lid":    lead.id,
+                    "to":     lead.email,
+                    "sub":    rendered["subject"],
+                    "tpl":    template_key,
+                    "status": "sent" if ok else "failed",
+                })
 
-            rendered = render(template_key, data)
-            ok = send_email(
-                to_email  = lead.email,
-                subject   = rendered["subject"],
-                html_body = rendered["html"],
-            )
+                if ok:
+                    lead.sequence_step      = step + 1
+                    lead.sequence_last_sent = now
+                    sent_count += 1
 
-            # Protokoll
-            db.execute(text("""
-                INSERT INTO email_logs
-                    (lead_id, to_email, subject, template_key, status)
-                VALUES
-                    (:lid, :to, :sub, :tpl, :status)
-            """), {
-                "lid":    lead.id,
-                "to":     lead.email,
-                "sub":    rendered["subject"],
-                "tpl":    template_key,
-                "status": "sent" if ok else "failed",
-            })
+                db.commit()
 
-            if ok:
-                lead.sequence_step      = step + 1
-                lead.sequence_last_sent = now
-                sent_count += 1
-
-            db.commit()
+            except Exception as e:
+                logger.error(f"Sequenz Fehler für Lead {getattr(lead, 'id', '?')}: {e}")
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+                continue  # Nächsten Lead verarbeiten
 
         logger.info(f"E-Mail-Sequenz: {sent_count} E-Mails gesendet")
         return sent_count
 
     except Exception as e:
+        import traceback
         logger.error(f"Sequenz-Runner Fehler: {e}")
+        logger.error(traceback.format_exc())
         return 0
     finally:
         db.close()

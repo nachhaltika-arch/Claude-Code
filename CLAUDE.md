@@ -7,46 +7,60 @@ Bevor irgendein Code angefasst wird, führe aus:
 
 Erwartetes Ergebnis:
   origin → https://github.com/nachhaltika-arch/Claude-Code
-  current branch → staging
+  current branch → staging (oder main, falls nur lesend)
 
-Falls EINES davon nicht stimmt:
+Falls das Repo nicht stimmt:
   → STOPPE sofort
-  → Melde: "Falsches Repo oder falscher Branch. Bitte prüfen."
+  → Melde: "Falsches Repo. Bitte prüfen."
   → Führe NICHTS aus bis der Nutzer bestätigt
 
-## Branch-Regeln
+## Branch-Regeln (staging → main, dual-branch, ab 2026-05-01)
 
-| Branch  | Zweck            | Wer darf pushen                  |
-|---------|------------------|----------------------------------|
-| main    | Produktiv / Live | Nur via Pull Request aus staging |
-| staging | Test / Stage     | Claude Code direkt               |
+| Branch  | Zweck            | Wer pusht                        | Auto-Deploy           |
+|---------|------------------|----------------------------------|-----------------------|
+| main    | Produktiv / Live | Nur via Pull Request aus staging | Render Produktiv      |
+| staging | Test / Stage     | Direkter Push erlaubt            | Render Staging-Server |
 
-- Claude Code arbeitet IMMER auf: staging
-- NIE direkt auf main pushen
-- NIE neue zusätzliche Branches erstellen
-- Nach jedem Commit sofort: git push origin staging
+- Claude Code arbeitet IMMER auf: `staging`
+- NIE direkt auf `main` pushen — Branch-Protection blockt es ohnehin
+- KEINE zusätzlichen langlebigen Branches erstellen (`claude/*`, `feature/*` etc. sind verworfen)
+- Nach jedem Commit sofort: `git push origin staging`
+
+## Workflow
+
+1. Arbeit auf `staging`: Code ändern → committen → pushen.
+2. Render deployt automatisch auf den **Staging-Server** — dort testen.
+3. Wenn Test grün ist: GitHub-PR `staging → main` öffnen, CI grün abwarten.
+4. **Nutzer merged manuell** in `main`. Claude Code merged NIE selbst.
+5. Render deployt automatisch auf den **Produktiv-Server** → live.
 
 ## Repo-Regel
-- Einziges erlaubtes Repo: nachhaltika-arch/Claude-Code
+- Einziges erlaubtes Repo: `nachhaltika-arch/Claude-Code`
 - NIE in anderen Repos Änderungen machen
 
 ## Commit-Regel
-- Nach jedem Prompt: genau ein Commit + sofortiger Push
-- Commit-Message immer auf Englisch
-- Branch immer staging
+- Commit-Messages auf Englisch
+- Conventional-Commit-Style: `feat:`, `fix:`, `docs:`, `chore:`, `ci:`, `refactor:`, `perf:`, `test:`
 
 ## Deploy-Info
-Render.com deployt automatisch bei jedem Push:
-- staging → Stage-Server (Test)
-- main    → Produktiv-Server (Live, nur nach PR-Merge)
+- **Staging**: Render deployt auf jeden Push zu `staging`
+- **Produktiv**: Render deployt auf jeden Merge in `main`
 
-Frontend Stage: https://kompagnon-frontend.onrender.com
-Backend Stage:  https://claude-code-znq2.onrender.com
+Produktiv-URLs:
+- Frontend: https://kompagnon-frontend.onrender.com
+- Backend:  https://claude-code-znq2.onrender.com
 
-## Release-Prozess (Stage → Produktion)
-1. Auf staging entwickeln und testen
-2. Auf GitHub: Pull Request staging → main erstellen
-3. PR prüfen und manuell mergen
-4. Render deployt automatisch auf Produktion
+Staging-URLs (live seit 2026-05-02):
+- Frontend: https://kompagnon-frontend-staging.onrender.com
+- Backend:  https://kompagnon-backend-staging.onrender.com
+- DB:       kompagnon-staging-db (Postgres 18, Basic, Frankfurt)
+- Blueprint: `kompagnon/render-staging.yaml`
 
-Claude Code erstellt NIEMALS selbst einen PR oder merged in main.
+## CI-Schutz
+GitHub Actions (`.github/workflows/ci.yml`) läuft auf jede PR Richtung `main` mit vier Jobs:
+- Backend — Lint (ruff)
+- Backend — Smoke import
+- Frontend — Build
+- Secrets — Gitleaks
+
+Bei rotem CI: erst fixen, dann mergen. Nicht durchmergen mit "Bypass" — das umgeht den Schutz.

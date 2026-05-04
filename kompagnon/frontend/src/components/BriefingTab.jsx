@@ -1,90 +1,105 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 
 const SECTIONS = [
-  { id: 'projektrahmen', label: 'Projektrahmen', icon: '🏗️', fields: [
-    { key: 'kunde', label: 'Kunde / Unternehmen', type: 'text' },
-    { key: 'url_aktuell', label: 'URL der bestehenden Website', type: 'text' },
-    { key: 'branche_zielgruppe', label: 'Branche / Zielgruppe', type: 'text' },
-    { key: 'ansprechpartner', label: 'Ansprechpartner (Design, Content, Technik)', type: 'textarea' },
+
+  // 1. Unternehmen & Projekt
+  { id: 'projektrahmen', label: 'Unternehmen & Projekt', icon: '🏢', fields: [
+    { key: 'kunde', label: 'Unternehmensname', type: 'text', placeholder: 'z.B. Sanitaer Mueller GmbH', hint: 'Wird automatisch aus der Kundenkartei uebernommen.' },
+    { key: 'url_aktuell', label: 'Aktuelle Website-URL', type: 'text', placeholder: 'https://www.beispiel.de' },
+    { key: 'branche', label: 'Branche / Gewerk', type: 'text', placeholder: 'z.B. Sanitaer & Heizung, Steuerberatung, Kosmetikstudio' },
+    { key: 'ansprechpartner', label: 'Ansprechpartner (Name, Telefon, E-Mail)', type: 'textarea', placeholder: 'Wer ist fuer Freigaben und Rueckfragen zustaendig?', rows: 3 },
   ]},
-  { id: 'positionierung', label: 'Positionierung & Ziele', icon: '🎯', fields: [
-    { key: 'usps', label: 'USPs des Unternehmens', type: 'textarea' },
-    { key: 'ziele', label: 'Ziele der neuen Website (Leads, Verkäufe, Branding)', type: 'textarea' },
-    { key: 'aktionen', label: 'Welche Aktionen soll die Website auslösen?', type: 'textarea' },
-    { key: 'marketing', label: 'Wie kann die Website das Marketing entlasten?', type: 'textarea' },
+
+  // 2. Ziele & Erfolg
+  { id: 'positionierung', label: 'Ziele & Erfolg', icon: '🎯', fields: [
+    { key: 'hauptziel', label: 'Was ist das Hauptziel der neuen Website?', type: 'textarea', placeholder: 'z.B. Mehr Anfragen generieren, Vertrauen aufbauen, Mitarbeiter gewinnen', rows: 3 },
+    { key: 'aktionen', label: 'Was soll ein Besucher auf der Website als Erstes tun?', type: 'text', options: ['Anrufen', 'Kontaktformular ausfuellen', 'WhatsApp schreiben', 'Termin buchen', 'Angebot anfragen', 'Newsletter abonnieren'], placeholder: 'Primaere Call-to-Action' },
+    { key: 'problem', label: 'Welches Problem loest das Unternehmen fuer seine Kunden?', type: 'textarea', placeholder: 'z.B. Kunden wissen nicht, an wen sie sich bei einem Rohrbruch wenden sollen — wir sind 24/7 erreichbar.', rows: 3 },
+    { key: 'erfolg', label: 'Woran messen wir gemeinsam, ob die Website erfolgreich ist?', type: 'textarea', placeholder: 'z.B. 20 Anfragen/Monat, Sichtbarkeit fuer "Elektriker Koblenz", Bewerbungen ueber die Website', rows: 3 },
   ]},
+
+  // 3. Zielgruppe
   { id: 'zielgruppe', label: 'Zielgruppe', icon: '👥', fields: [
-    { key: 'primaer', label: 'Primäre Zielgruppe (B2B, B2C, beides)', type: 'text' },
-    { key: 'informationen', label: 'Verfügbare Infos zur Zielgruppe', type: 'textarea' },
-    { key: 'erwartungen', label: 'Erwartungen der Kunden an die Website', type: 'textarea' },
+    { key: 'primaer', label: 'Wer ist die primaere Zielgruppe?', type: 'text', options: ['Privatkunden (B2C)', 'Geschaeftskunden (B2B)', 'Beides'] },
+    { key: 'typischer_kunde', label: 'Beschreibe deinen idealen Kunden', type: 'textarea', placeholder: 'z.B. Eigenheimbesitzer, 40-60 Jahre, plant Badsanierung, sucht lokalen Fachbetrieb dem er vertrauen kann.', rows: 3 },
+    { key: 'haeufigste_anfrage', label: 'Was fragen Kunden am haeufigsten an?', type: 'text', placeholder: 'z.B. Kostenanfrage Heizungstausch, Notdienst Rohrbruch, Jahreswartung' },
+    { key: 'region', label: 'Fuer welche Region wird die Website optimiert?', type: 'text', placeholder: 'z.B. Koblenz und Umgebung, ca. 40 km Radius' },
   ]},
-  { id: 'wettbewerb', label: 'Wettbewerb', icon: '🔍', fields: [
-    { key: 'top5', label: 'Top 5 Mitbewerber', type: 'textarea' },
-    { key: 'gut_schlecht', label: 'Was machen Mitbewerber gut / schlecht?', type: 'textarea' },
-    { key: 'vorbild', label: 'Vorbilder aus dem Wettbewerb', type: 'textarea' },
+
+  // 4. Alleinstellung & Wettbewerb
+  { id: 'wettbewerb', label: 'Alleinstellung & Wettbewerb', icon: '🏆', fields: [
+    { key: 'usp', label: 'Was macht das Unternehmen einzigartig? (USP)', type: 'textarea', placeholder: 'z.B. 25 Jahre Erfahrung, 24h-Notdienst, Festpreisgarantie, familiengefuehrt seit 3 Generationen', rows: 4 },
+    { key: 'mitbewerber', label: 'Welche Mitbewerber sind bekannt?', type: 'textarea', placeholder: 'z.B. Firma Schmidt Sanitaer (stark: guenstiger Preis), Installateur Meyer (stark: gute Google-Bewertungen)', rows: 3 },
+    { key: 'vorbilder', label: 'Gibt es Websites, die als Vorbild dienen? (URLs)', type: 'textarea', placeholder: 'Was gefaellt daran besonders? z.B. https://www.beispiel.de — tolle Bildsprache, klar strukturiert', rows: 3 },
   ]},
-  { id: 'inhalte', label: 'Inhalte & Content', icon: '📝', fields: [
-    { key: 'uebernehmen', label: 'Inhalte von bestehender Seite übernehmen', type: 'textarea' },
-    { key: 'fehlen', label: 'Fehlende Inhalte', type: 'textarea' },
-    { key: 'nicht_migrieren', label: 'Inhalte die NICHT migriert werden sollen', type: 'textarea' },
-    { key: 'lieferant', label: 'Wer liefert die fehlenden Inhalte?', type: 'text', options: ['Kunde', 'Agentur', 'Beides'] },
-    { key: 'medientypen', label: 'Medientypen (Text, Bild, Video, Karten)', type: 'text' },
-    { key: 'llm_content', label: 'Content für Mensch UND KI/LLM?', type: 'textarea' },
+
+  // 5. Seiten & Struktur
+  { id: 'inhalte', label: 'Seiten & Struktur', icon: '🗺️', fields: [
+    { key: 'seiten', label: 'Welche Seiten soll die neue Website haben?', type: 'textarea', placeholder: 'z.B. Startseite, Ueber uns, Leistungen (je Seite: Badsanierung / Heizung / Notdienst), Referenzen, Stellenangebote, Kontakt', rows: 4 },
+    { key: 'hauptbotschaft', label: 'Was ist die Hauptbotschaft der Startseite?', type: 'textarea', placeholder: 'Was soll ein Besucher in den ersten 3 Sekunden verstehen?', rows: 3 },
+    { key: 'besondere_seiten', label: 'Gibt es besondere Seiten oder Funktionen die unbedingt rein muessen?', type: 'textarea', placeholder: 'z.B. Bewerbungsseite, Bildergalerie, Preisliste, Terminbuchung, Referenz-Projekte mit Vorher/Nachher-Fotos', rows: 3 },
+    { key: 'nicht_migrieren', label: 'Was von der alten Website soll NICHT uebernommen werden?', type: 'textarea', placeholder: 'z.B. veraltete Preislisten, alte Teamfotos, nicht mehr angebotene Leistungen', rows: 2 },
   ]},
-  { id: 'funktionen', label: 'Funktionen & Features', icon: '⚙️', fields: [
-    { key: 'seo_umfang', label: 'SEO — gewünschter Umfang', type: 'textarea' },
-    { key: 'social_media', label: 'Social Media Integration gewünscht?', type: 'text', options: ['Ja', 'Nein', 'Ggf. später'] },
-    { key: 'newsletter', label: 'Newsletter Integration? (z.B. Mailchimp)', type: 'text', options: ['Ja', 'Nein', 'Ggf. später'] },
-    { key: 'funktionale_anforderungen', label: 'Funktionale Anforderungen (Shop, Buchung...)', type: 'textarea' },
-    { key: 'mehrsprachigkeit', label: 'Mehrsprachigkeit gewünscht?', type: 'text', options: ['Nein', 'DE + EN', 'DE + EN + weitere'] },
-    { key: 'drittsysteme', label: 'Drittsysteme im Einsatz?', type: 'textarea' },
+
+  // 6. Design & Stil
+  { id: 'branding', label: 'Design & Stil', icon: '🎨', fields: [
+    { key: 'stil', label: 'Welche Stilrichtung passt zum Unternehmen?', type: 'text', options: ['Modern & Minimalistisch', 'Klassisch & Serioes', 'Frisch & Freundlich', 'Industriell & Handwerklich', 'Hochwertig & Premium', 'Noch offen — Vorschlag gewuenscht'] },
+    { key: 'stimmung', label: 'Welche Stimmung soll die Website transportieren?', type: 'textarea', placeholder: 'z.B. Vertrauen und Sicherheit, modern aber nicht kalt, handwerklich-bodenstaendig', rows: 3 },
+    { key: 'farben', label: 'Gibt es Farbvorgaben oder Praeferenzen?', type: 'textarea', placeholder: 'z.B. Firmenfarbe Blau (#0056b3), kein Rot, gerne erdige Toene, aus CI-Handbuch', rows: 2 },
+    { key: 'schrift', label: 'Gibt es Vorgaben zur Typografie / Schrift?', type: 'text', placeholder: 'z.B. serifenlos und modern, oder aus bestehendem CI uebernehmen' },
+    { key: 'bildsprache', label: 'Welche Bildsprache ist gewuenscht?', type: 'textarea', placeholder: 'z.B. echte Mitarbeiterfotos statt Stockfotos, Baustellen-Atmosphaere, helle Stimmung', rows: 3 },
   ]},
-  { id: 'branding', label: 'Branding & Design', icon: '🎨', fields: [
-    { key: 'styleguide', label: 'Marken-Styleguide / CI-CD vorhanden?', type: 'text', options: ['Ja', 'Nein', 'In Arbeit'] },
-    { key: 'schriften', label: 'Schriften vorhanden?', type: 'text' },
-    { key: 'logo_formate', label: 'Logo-Dateien vorhanden? Welche Formate?', type: 'text' },
-    { key: 'farben', label: 'Farbwerte definiert?', type: 'text' },
-    { key: 'design_gefallt', label: 'Websites die vom Design gefallen', type: 'textarea' },
-    { key: 'design_nicht_gefallt', label: 'Websites die NICHT gefallen', type: 'textarea' },
+
+  // 7. Inhalte & Assets
+  { id: 'funktionen', label: 'Inhalte & Assets', icon: '📦', fields: [
+    { key: 'logo', label: 'Logo vorhanden?', type: 'text', options: ['Ja, als Vektordatei (SVG/AI/EPS)', 'Ja, nur als PNG/JPG', 'Nein — Logo muss neu erstellt werden', 'Logo soll ueberarbeitet werden'] },
+    { key: 'fotos', label: 'Fotos vorhanden?', type: 'text', options: ['Ja, professionelle Fotos', 'Ja, aber nur Handy-Fotos', 'Nein — Fotoshooting wird organisiert', 'Stockfotos sind okay'] },
+    { key: 'texte', label: 'Wer liefert die Texte?', type: 'text', options: ['Kunde liefert fertige Texte', 'Agentur erstellt Texte (KI-gestuetzt)', 'Gemeinsam — Kunde liefert Infos, Agentur textet'] },
+    { key: 'sonstige_assets', label: 'Weitere Assets vorhanden? (Videos, PDFs, Zertifikate, Auszeichnungen)', type: 'textarea', placeholder: 'z.B. Imagefilm vorhanden, Zertifikat Meisterbetrieb, Innungsauszeichnung', rows: 3 },
   ]},
-  { id: 'hosting', label: 'Hosting & Technik', icon: '🖥️', fields: [
-    { key: 'provider', label: 'Aktueller Hosting-Provider', type: 'text' },
-    { key: 'zugangsdaten', label: 'Zugangsdaten verfügbar?', type: 'text', options: ['Ja', 'Nein', 'Wird nachgereicht'] },
-    { key: 'cookie_banner', label: 'Cookie-Consent Anforderungen', type: 'textarea' },
-    { key: 'datenschutz_lieferant', label: 'Wer liefert Datenschutz & Impressum?', type: 'text', options: ['Kunde', 'Anwalt', 'Wir erstellen'] },
+
+  // 8. Technik & Funktionen
+  { id: 'struktur', label: 'Technik & Funktionen', icon: '⚙️', fields: [
+    { key: 'formulare', label: 'Welche Formulare oder Funktionen werden benoetigt?', type: 'textarea', placeholder: 'z.B. Kontaktformular, Terminbuchung, Rueckruf-Button, WhatsApp-Chat, Bewerbungsformular', rows: 3 },
+    { key: 'mehrsprachigkeit', label: 'Mehrsprachigkeit gewuenscht?', type: 'text', options: ['Nein, nur Deutsch', 'Ja — Deutsch + Englisch', 'Ja — andere Sprache(n)'] },
+    { key: 'rechtliches', label: 'Impressum & Datenschutz — wer ist zustaendig?', type: 'text', options: ['Wir erstellen (Standard)', 'Kunde hat eigenen Anwalt', 'Bestehendes Impressum uebernehmen'] },
+    { key: 'integrationen', label: 'Sollen externe Dienste eingebunden werden?', type: 'textarea', placeholder: 'z.B. Google Maps, Instagram-Feed, Trustpilot-Widget, Calendly, Mailchimp', rows: 3 },
   ]},
-  { id: 'seo', label: 'SEO & Analytics', icon: '📈', fields: [
-    { key: 'analytics_vorhanden', label: 'Google Analytics bereits im Einsatz?', type: 'text', options: ['Ja', 'Nein'] },
-    { key: 'ga_konto', label: 'Google Analytics Konto vorhanden?', type: 'text', options: ['Ja', 'Nein', 'Neu anlegen'] },
-    { key: 'search_console', label: 'Push über Search Console bei Go-Live?', type: 'text', options: ['Ja', 'Nein'] },
-    { key: 'social_media_pflege', label: 'Social Media aktiv? Welche Kanäle?', type: 'textarea' },
+
+  // 9. SEO & Marketing
+  { id: 'seo', label: 'SEO & Marketing', icon: '📈', fields: [
+    { key: 'keywords', label: 'Fuer welche Suchbegriffe soll die Website gefunden werden?', type: 'textarea', placeholder: 'z.B. "Sanitaer Koblenz", "Heizung installieren Neuwied", "Notdienst Rohrbruch"', rows: 3 },
+    { key: 'google_business', label: 'Ist ein Google Business Profil vorhanden?', type: 'text', options: ['Ja, aktiv gepflegt', 'Ja, aber veraltet', 'Nein — wird angelegt', 'Weiss ich nicht'] },
+    { key: 'social_media', label: 'Welche Social-Media-Kanaele sind aktiv?', type: 'checkboxes', options: [
+      'Facebook', 'Instagram', 'LinkedIn', 'YouTube', 'TikTok', 'Pinterest', 'X (Twitter)', 'Xing', 'Google Business', 'WhatsApp Business', 'Keine'
+    ] },
   ]},
-  { id: 'projektplan', label: 'Projektplan & Timeline', icon: '📅', fields: [
-    { key: 'go_live', label: 'Gewünschter Go-Live Termin', type: 'date' },
-    { key: 'design_von_bis', label: 'Design-Erstellung: von / bis', type: 'text' },
-    { key: 'content_von_bis', label: 'Inhalte erstellen: von / bis', type: 'text' },
-    { key: 'programmierung_von_bis', label: 'Entwicklung: von / bis', type: 'text' },
-    { key: 'testphase_von_bis', label: 'Preview / Testphase: von / bis', type: 'text' },
-    { key: 'go_live_termin', label: 'Finaler Go-Live: Datum', type: 'date' },
+
+  // 10. Zeitplan & Sonstiges
+  { id: 'projektplan', label: 'Zeitplan & Sonstiges', icon: '📅', fields: [
+    { key: 'go_live', label: 'Gewuenschter Go-Live Termin', type: 'date', hint: 'Realistisch einplanen: Briefing > Design > Content > Entwicklung > Abnahme = 6-10 Wochen.' },
+    { key: 'besonderheiten', label: 'Gibt es zeitliche Einschraenkungen oder besondere Ereignisse?', type: 'textarea', placeholder: 'z.B. Messe im Maerz, Betriebsurlaub im August, Jubilaeum im Oktober', rows: 2 },
+    { key: 'wartung', label: 'Wer pflegt die Website nach dem Go-Live?', type: 'text', options: ['Kunde selbst', 'Agentur uebernimmt Wartung', 'Noch offen'] },
+    { key: 'anmerkungen', label: 'Weitere Anmerkungen, Wuensche oder offene Fragen', type: 'textarea', placeholder: 'Alles was noch wichtig ist — auch wenn es noch keine Antwort gibt.', rows: 4 },
   ]},
+
 ];
 
 const FREIGABEN = [
-  { key: 'auftragserteilung', label: 'Auftragserteilung', phase: '1.1' },
-  { key: 'branding_materialien', label: 'Lieferung Branding-Materialien', phase: '1.2' },
-  { key: 'pflichtenheft', label: 'Freigabe Pflichtenheft & Sitemap', phase: '1.3' },
-  { key: 'sitemap_navigation', label: 'Freigabe finale Sitemap', phase: '2.2' },
-  { key: 'content_verantwortung', label: 'Content-Verantwortung klären', phase: '2.3' },
-  { key: 'stilrichtung', label: 'Auswahl Stilrichtung', phase: '3.1' },
-  { key: 'wireframes', label: 'Freigabe Wireframes', phase: '3.2' },
-  { key: 'design_final', label: 'Finale Design-Freigabe', phase: '3.4' },
-  { key: 'hosting_domain', label: 'Hosting & Domain gewählt', phase: '4.1' },
-  { key: 'content_freigabe', label: 'Content-Freigabe', phase: '6.3' },
-  { key: 'google_business', label: 'Google Business Profile', phase: '7.2' },
-  { key: 'rechtliches', label: 'Rechtliche Inhalte geprüft', phase: '10.7' },
-  { key: 'abnahme_go_live', label: 'Finale Abnahme & Go-Live', phase: '11.2' },
+  { key: 'auftragserteilung',    label: 'Auftragserteilung & Anzahlung',         phase: '1.0' },
+  { key: 'assets_geliefert',     label: 'Logo, Fotos & Texte eingegangen',        phase: '1.2' },
+  { key: 'sitemap_freigabe',     label: 'Seitenstruktur & Sitemap freigegeben',   phase: '2.0' },
+  { key: 'design_entwurf',       label: 'Design-Entwurf Startseite freigegeben',  phase: '3.0' },
+  { key: 'design_final',         label: 'Finales Design aller Seiten freigegeben',phase: '3.2' },
+  { key: 'content_freigabe',     label: 'Alle Inhalte geprueft & freigegeben',    phase: '4.0' },
+  { key: 'testphase',            label: 'Testversion auf Staging geprueft',        phase: '5.0' },
+  { key: 'rechtliches',          label: 'Impressum & Datenschutz geprueft',        phase: '5.1' },
+  { key: 'google_business',      label: 'Google Business Profil aktualisiert',    phase: '6.0' },
+  { key: 'abnahme_go_live',      label: 'Finale Abnahme & Go-Live Freigabe',      phase: '6.2' },
+  { key: 'einweisung',           label: 'Einweisung CMS / Website-Pflege',        phase: '7.0' },
 ];
 
 export default function BriefingTab({ lead, isMobile }) {
@@ -98,6 +113,8 @@ export default function BriefingTab({ lead, isMobile }) {
   const [saved, setSaved] = useState(false);
   const [loadingZielgruppe, setLoadingZielgruppe] = useState(false);
   const [loadingWettbewerb, setLoadingWettbewerb] = useState(false);
+  const [prefilling, setPrefilling] = useState(false);
+  const [prefillDone, setPrefillDone] = useState(false);
 
   useEffect(() => { loadBriefing(); }, [lead.id]); // eslint-disable-line
 
@@ -107,15 +124,40 @@ export default function BriefingTab({ lead, isMobile }) {
       const res = await fetch(`${API_BASE_URL}/api/briefings/${lead.id}`, { headers: h });
       if (res.ok) {
         const data = await res.json();
-        // Auto-fill from contact data
         const autoFilled = { ...data };
-        if (!autoFilled.projektrahmen?.kunde) {
-          autoFilled.projektrahmen = {
-            ...(autoFilled.projektrahmen || {}),
-            kunde: lead.display_name || lead.company_name || '',
-            url_aktuell: lead.website_url || '',
-          };
+
+        // Schicht 1 — Stammdaten aus Lead auto-fill
+        autoFilled.projektrahmen = {
+          ...(autoFilled.projektrahmen || {}),
+          kunde:       autoFilled.projektrahmen?.kunde || lead.display_name || lead.company_name || '',
+          url_aktuell: autoFilled.projektrahmen?.url_aktuell || lead.website_url || '',
+          branche:     autoFilled.projektrahmen?.branche || lead.trade || '',
+          ansprechpartner: autoFilled.projektrahmen?.ansprechpartner || lead.contact_name || '',
+        };
+
+        // Schicht 2 — Flat Wizard-Felder in JSON-Sektionen uebernehmen (nur leere Felder)
+        const fill = (section, key, flatKey) => {
+          if (!autoFilled[section]?.[key] && data[flatKey]) {
+            autoFilled[section] = { ...(autoFilled[section] || {}), [key]: data[flatKey] };
+          }
+        };
+        fill('wettbewerb', 'usp', 'usp');
+        fill('wettbewerb', 'mitbewerber', 'mitbewerber');
+        fill('wettbewerb', 'vorbilder', 'vorbilder');
+        fill('branding', 'stil', 'stil');
+        fill('branding', 'farben', 'farben');
+        fill('positionierung', 'hauptziel', 'leistungen');
+        fill('zielgruppe', 'region', 'einzugsgebiet');
+        fill('inhalte', 'seiten', 'wunschseiten');
+
+        // Schicht 3 — Projekt-Flags in Assets-Sektion
+        if (data.logo_vorhanden && !autoFilled.funktionen?.logo) {
+          autoFilled.funktionen = { ...(autoFilled.funktionen || {}), logo: 'Ja, als Vektordatei (SVG/AI/EPS)' };
         }
+        if (data.fotos_vorhanden && !autoFilled.funktionen?.fotos) {
+          autoFilled.funktionen = { ...(autoFilled.funktionen || {}), fotos: 'Ja, professionelle Fotos' };
+        }
+
         setLocalData(autoFilled);
       }
     } catch (e) { console.error(e); }
@@ -157,6 +199,25 @@ export default function BriefingTab({ lead, isMobile }) {
       }
     } catch (e) { console.error(e); }
     finally { setLoadingZielgruppe(false); }
+  };
+
+  const prefillFromWebsite = async () => {
+    if (!lead?.project_id && !lead?.id) return;
+    setPrefilling(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/leads/${lead.id}/briefing-prefill`, { method: 'POST', headers: h });
+      if (!res.ok) { const err = await res.json().catch(() => ({})); toast.error(err.detail || 'Vorausfüllen fehlgeschlagen'); return; }
+      const data = await res.json();
+      const updates = {};
+      for (const field of ['gewerk', 'leistungen', 'einzugsgebiet', 'usp', 'wunschseiten', 'zielgruppe']) {
+        if (data[field] && !localData[field]?.trim?.()) updates[field] = data[field];
+      }
+      if (Object.keys(updates).length === 0) { toast('Alle Felder bereits ausgefüllt', { icon: 'ℹ️' }); return; }
+      setLocalData(prev => ({ ...prev, ...updates }));
+      setPrefillDone(true);
+      toast.success(`${Object.keys(updates).length} Felder aus Website vorausgefüllt`);
+    } catch { toast.error('Verbindungsfehler beim Vorausfüllen'); }
+    finally { setPrefilling(false); }
   };
 
   const runWettbewerbsanalyse = async () => {
@@ -219,6 +280,18 @@ export default function BriefingTab({ lead, isMobile }) {
           <div style={{ width: `${progress}%`, height: '100%', background: progress >= 80 ? 'var(--status-success-text)' : progress >= 40 ? 'var(--status-warning-text)' : 'var(--brand-primary)', borderRadius: 3, transition: 'width 0.4s ease' }} />
         </div>
       </div>
+
+      {/* Prefill from website button */}
+      <button onClick={prefillFromWebsite} disabled={prefilling} style={{
+        padding: '8px 16px', background: prefillDone ? 'var(--status-success-bg)' : 'var(--brand-primary-light)',
+        color: prefillDone ? 'var(--status-success-text)' : 'var(--brand-primary-dark)',
+        border: `1px solid ${prefillDone ? 'var(--status-success-text)' : 'var(--brand-primary-mid, var(--border-light))'}`,
+        borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,
+        cursor: prefilling ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
+        display: 'flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+      }}>
+        {prefilling ? (<><span style={{ width: 12, height: 12, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Analysiere Website…</>) : prefillDone ? '✓ Vorausgefüllt' : '🔍 Aus Website vorausfüllen'}
+      </button>
 
       {/* ── MOBILE: Step counter + progress bar ── */}
       {isMobile && (
@@ -361,13 +434,13 @@ export default function BriefingTab({ lead, isMobile }) {
                     Wettbewerbsanalyse für Region "{lead.city || '—'}" + 50 km Umkreis
                   </div>
                   <button onClick={runWettbewerbsanalyse} disabled={loadingWettbewerb} style={{
-                    padding: '9px 18px', background: loadingWettbewerb ? 'var(--bg-surface)' : '#d4a017',
+                    padding: '9px 18px', background: loadingWettbewerb ? 'var(--bg-surface)' : 'var(--status-warning-text)',
                     color: loadingWettbewerb ? 'var(--text-tertiary)' : 'white', border: '1px solid var(--border-medium)',
                     borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,
                     cursor: loadingWettbewerb ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                   }}>
-                    {loadingWettbewerb ? <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: '#d4a017', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Analyse läuft...</> : '🔍 KI-Wettbewerbsanalyse starten'}
+                    {loadingWettbewerb ? <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--status-warning-text)', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Analyse läuft...</> : '🔍 KI-Wettbewerbsanalyse starten'}
                   </button>
                   {localData.wettbewerb?.analyse && (
                     <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
@@ -383,11 +456,44 @@ export default function BriefingTab({ lead, isMobile }) {
               <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {currentSection.fields.map(field => {
                   const val = (localData[activeSection] || {})[field.key] || '';
-                  const inputStyle = { width: '100%', padding: isMobile ? '12px' : '9px 12px', minHeight: isMobile ? 44 : undefined, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box' };
+                  const ph = field.placeholder || `${field.label}...`;
+                  const inputStyle = { width: '100%', padding: isMobile ? '12px' : '9px 12px', minHeight: isMobile ? 44 : undefined, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box', outline: 'none' };
                   return (
                     <div key={field.key}>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 5 }}>{field.label}</label>
-                      {field.options ? (
+                      {field.hint && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6, lineHeight: 1.5 }}>{field.hint}</div>}
+                      {field.type === 'checkboxes' && field.options ? (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {field.options.map(opt => {
+                            const selected = (val || '').split(', ').filter(Boolean);
+                            const isChecked = selected.includes(opt);
+                            const toggle = () => {
+                              let next;
+                              if (opt === 'Keine') {
+                                next = isChecked ? '' : 'Keine';
+                              } else {
+                                const without = selected.filter(s => s !== 'Keine' && s !== opt);
+                                next = isChecked ? without.join(', ') : [...without, opt].join(', ');
+                              }
+                              updateField(activeSection, field.key, next);
+                            };
+                            return (
+                              <button key={opt} onClick={toggle} style={{
+                                padding: isMobile ? '10px 16px' : '6px 14px', minHeight: isMobile ? 44 : undefined,
+                                background: isChecked ? 'var(--brand-primary)' : 'var(--bg-app)',
+                                color: isChecked ? 'white' : 'var(--text-secondary)',
+                                border: `1px solid ${isChecked ? 'var(--brand-primary)' : 'var(--border-medium)'}`,
+                                borderRadius: 'var(--radius-full)', fontSize: 12, cursor: 'pointer',
+                                fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
+                                display: 'flex', alignItems: 'center', gap: 5,
+                              }}>
+                                <span style={{ fontSize: 11 }}>{isChecked ? '\u2713' : ''}</span>
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : field.options ? (
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {field.options.map(opt => (
                             <button key={opt} onClick={() => updateField(activeSection, field.key, opt)} style={{
@@ -399,13 +505,12 @@ export default function BriefingTab({ lead, isMobile }) {
                           ))}
                         </div>
                       ) : field.type === 'textarea' ? (
-                        <textarea value={val} onChange={e => updateField(activeSection, field.key, e.target.value)} rows={3}
-                          placeholder={`${field.label}...`}
+                        <textarea value={val} onChange={e => updateField(activeSection, field.key, e.target.value)}
+                          rows={field.rows || 3} placeholder={ph}
                           style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5, minHeight: isMobile ? 88 : undefined }} />
                       ) : (
                         <input type={field.type || 'text'} value={val} onChange={e => updateField(activeSection, field.key, e.target.value)}
-                          placeholder={`${field.label}...`}
-                          style={inputStyle} />
+                          placeholder={ph} style={inputStyle} />
                       )}
                     </div>
                   );

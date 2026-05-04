@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import EmptyState from '../components/ui/EmptyState';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 
@@ -192,14 +193,14 @@ export default function Customers() {
 
       {/* ── Customer List ── */}
       {filtered.length === 0 ? (
-        <Card style={{ textAlign: 'center', padding: '48px 20px', width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
-          <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.4 }}>🔍</div>
-          <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 4 }}>
-            Keine Ergebnisse
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-            Passen Sie Ihre Suche oder Filter an
-          </div>
+        <Card style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
+          <EmptyState
+            icon="🏢"
+            title={search ? `Keine Treffer für „${search}"` : 'Noch keine Unternehmen'}
+            description={search ? 'Andere Suchbegriffe ausprobieren oder Filter zurücksetzen.' : 'Importiere Leads aus einer CSV-Datei oder füge ein Unternehmen manuell hinzu.'}
+            action={!search ? { label: '+ Leads importieren', onClick: () => navigate('/app/import') } : undefined}
+            secondaryAction={search ? { label: 'Suche zurücksetzen', onClick: () => setSearch('') } : undefined}
+          />
         </Card>
       ) : (
         <Card padding="sm" style={{ padding: 0, overflow: 'hidden', width: '100%', boxSizing: 'border-box', minWidth: 0 }}>

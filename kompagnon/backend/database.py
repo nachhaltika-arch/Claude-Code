@@ -3,10 +3,11 @@ SQLAlchemy database setup and models for KOMPAGNON system.
 """
 import os
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, create_engine
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, JSON, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.dialects.postgresql import JSONB
 from decimal import Decimal
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./kompagnon.db")
@@ -21,17 +22,31 @@ else:
         DATABASE_URL,
         pool_pre_ping=True,
         pool_recycle=300,
-        pool_size=5,
-        max_overflow=5,
-        pool_timeout=10,
+        pool_size=5,          # 5 pro Worker × max 2 Worker = 10 Verbindungen
+        max_overflow=5,       # Burst bis max 20 total — weit unter 97 Limit
+        pool_timeout=20,      # 20s warten dann Fehler (nicht 60s)
+        echo=False,
         connect_args={
-            "connect_timeout": 5,
+            "connect_timeout": 10,
             "keepalives": 1,
             "keepalives_idle": 30,
             "keepalives_interval": 5,
             "keepalives_count": 3,
+            "options": "-c statement_timeout=10000",  # 10s Query-Timeout
         },
     )
+
+    # Connection Pool Event-Handler für besseres Logging
+    from sqlalchemy import event
+
+    @event.listens_for(engine, "connect")
+    def connect(dbapi_connection, connection_record):
+        pass  # Verbindung etabliert
+
+    @event.listens_for(engine, "checkout")
+    def checkout(dbapi_connection, connection_record, connection_proxy):
+        pass  # Verbindung aus Pool geholt
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -83,6 +98,39 @@ class Lead(Base):
     pagespeed_checked_at    = Column(DateTime, nullable=True)
     geschaeftsfuehrer       = Column(String, nullable=True)
     favicon_url             = Column(String(500), default='')
+
+    # Brand Design (stored per-lead from website scrape)
+    brand_primary_color   = Column(String(20), nullable=True)
+    brand_secondary_color = Column(String(20), nullable=True)
+    brand_font_primary    = Column(String(100), nullable=True)
+    brand_font_secondary  = Column(String(100), nullable=True)
+    brand_logo_url        = Column(Text, nullable=True)
+    brand_colors          = Column(Text, nullable=True)
+    brand_fonts           = Column(Text, nullable=True)
+    brand_scrape_failed   = Column(Boolean, default=False, nullable=True)
+    brand_scraped_at      = Column(DateTime, nullable=True)
+    brand_design_json     = Column(Text, nullable=True)
+    brand_design_style    = Column(String(100), nullable=True)
+    brand_notes           = Column(Text, nullable=True)
+    brand_pdf_filename    = Column(String(255), nullable=True)
+    brand_guideline_json         = Column(Text, nullable=True)
+    brand_guideline_generated_at = Column(DateTime, nullable=True)
+    brand_font_heading           = Column(String(100), nullable=True)
+    brand_font_body              = Column(String(100), nullable=True)
+    brand_font_accent            = Column(String(100), nullable=True)
+    brand_design_tokens_json     = Column(Text, nullable=True)
+
+    # Google Analytics detection
+    ga_status         = Column(String(50), nullable=True)
+    ga_type           = Column(String(50), nullable=True)
+    ga_measurement_id = Column(String(50), nullable=True)
+    ga_checked_at     = Column(DateTime, nullable=True)
+
+    # E-Mail-Sequenz (Drip-Campaign)
+    sequence_active    = Column(Boolean, default=False, nullable=True)
+    sequence_step      = Column(Integer, default=0,     nullable=True)
+    sequence_paused    = Column(Boolean, default=False, nullable=True)
+    sequence_last_sent = Column(DateTime, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -149,6 +197,46 @@ class Project(Base):
     industry = Column(String(100))
     email_notifications_enabled = Column(Boolean, default=True)
     customer_email = Column(String(255))
+
+    # QA Scanner
+    qa_result = Column(Text)         # JSON from KI QA evaluation
+    qa_score = Column(Integer)       # 0-100
+    qa_golive_ok = Column(Boolean)   # Go-Live recommendation
+    qa_run_at = Column(DateTime)     # Last scan timestamp
+
+    # Domain check
+    domain_reachable = Column(Boolean)
+    domain_status_code = Column(Integer)
+    domain_checked_at = Column(DateTime)
+
+    # Go-Live PageSpeed after
+    pagespeed_after_mobile = Column(Integer)
+    pagespeed_after_desktop = Column(Integer)
+
+    # Scrape Cache (persistierte Scraper-Ergebnisse)
+    scrape_full_data = Column(Text)      # JSON: SEO + text + assets + links
+    scrape_full_at   = Column(DateTime)  # Zeitpunkt des letzten Scrapes
+
+    # Netlify-Integration
+    netlify_site_id       = Column(String(100))
+    netlify_site_url      = Column(String(500))
+    netlify_deploy_id     = Column(String(100))
+    netlify_domain        = Column(String(255))
+    netlify_domain_status = Column(String(50))
+    netlify_ssl_active    = Column(Boolean, default=False)
+    netlify_last_deploy   = Column(DateTime)
+
+    # Screenshots before/after
+    screenshot_before       = Column(Text)
+    screenshot_before_date  = Column(DateTime)
+    screenshot_after        = Column(Text)
+    screenshot_after_date   = Column(DateTime)
+    screenshot_url_before   = Column(String(500))
+    screenshot_url_after    = Column(String(500))
+
+    # Freigabe-Gates
+    briefing_approved_at    = Column(DateTime)
+    content_approval_token  = Column(String(255))
 
     # Relationships
     lead = relationship("Lead", back_populates="projects", foreign_keys=[lead_id])
@@ -457,19 +545,23 @@ class Briefing(Base):
     freigaben = Column(Text, default='{}')
     # Flat project briefing fields
     project_id = Column(Integer, nullable=True)
-    gewerk = Column(String(100))
+    gewerk = Column(Text)
     leistungen = Column(Text)
-    einzugsgebiet = Column(String(100))
+    einzugsgebiet = Column(Text)
     usp = Column(Text)
     mitbewerber = Column(Text)
     vorbilder = Column(Text)
-    farben = Column(String(100))
+    farben = Column(Text)
     wunschseiten = Column(Text)
-    stil = Column(String(50))
+    stil = Column(Text)
     logo_vorhanden = Column(Boolean, default=False)
     fotos_vorhanden = Column(Boolean, default=False)
     sonstige_hinweise = Column(Text)
     status = Column(String(50), default='entwurf')
+    hauptziel = Column(Text)
+    aktionen = Column(Text)
+    typischer_kunde = Column(Text)
+    haeufige_anfrage = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -706,22 +798,112 @@ class ProjectScrapeJob(Base):
     completed_at = Column(DateTime)
 
 
+class Message(Base):
+    __tablename__ = "messages"
+    id          = Column(Integer, primary_key=True)
+    lead_id     = Column(Integer, ForeignKey("leads.id"), nullable=False)
+    sender_role = Column(String, nullable=False)   # "admin" | "kunde"
+    sender_name = Column(String)                   # z.B. "David" oder Firmenname
+    channel     = Column(String, default="in_app") # "in_app" | "email"
+    subject     = Column(String)                   # nur bei channel="email"
+    content     = Column(Text, nullable=False)
+    is_read     = Column(Boolean, default=False)
+    read_at     = Column(DateTime, nullable=True)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+
+
+# ── KAS Website (KOMPAGNON-eigene Seiten) ─────────────────────────────────────
+
+class KasPage(Base):
+    """KOMPAGNON-eigene Website-Seiten (KAS = KOMPAGNON Agentur Seiten)."""
+    __tablename__ = "kas_pages"
+
+    id               = Column(Integer, primary_key=True, index=True)
+    titel            = Column(String(255), nullable=False)
+    pfad             = Column(String(255), nullable=False)
+    meta_description = Column(Text, default="")
+    position         = Column(Integer, default=0)
+    status           = Column(String(50), default="draft")
+    ist_startseite   = Column(Boolean, default=False)
+    notizen          = Column(Text, default="")
+    created_at       = Column(DateTime, default=datetime.utcnow)
+    updated_at       = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    gjs_data = relationship(
+        "KasGjsData",
+        back_populates="page",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+
+class KasGjsData(Base):
+    """GrapesJS-Inhalt pro KAS-Seite (separate Tabelle fuer Performance)."""
+    __tablename__ = "kas_gjs_data"
+
+    id       = Column(Integer, primary_key=True, index=True)
+    page_id  = Column(Integer, ForeignKey("kas_pages.id", ondelete="CASCADE"))
+    html     = Column(Text, default="")
+    css      = Column(Text, default="")
+    gjs_data = Column(JSON, default=dict)
+    saved_at = Column(DateTime, default=datetime.utcnow)
+
+    page = relationship("KasPage", back_populates="gjs_data")
+
+
+class GeoAnalysis(Base):
+    __tablename__ = "geo_analyses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    geo_score_total = Column(Integer, default=0)
+    llms_txt_score = Column(Integer, default=0)
+    robots_ai_score = Column(Integer, default=0)
+    structured_data_score = Column(Integer, default=0)
+    content_depth_score = Column(Integer, default=0)
+    local_signal_score = Column(Integer, default=0)
+
+    raw_checks = Column(JSONB, default=dict)
+    recommendations = Column(JSONB, default=list)
+    generated_files = Column(JSONB, default=dict)
+
+    status = Column(String(50), default="pending")
+    error_message = Column(Text, nullable=True)
+
+    upsell_active = Column(Boolean, default=False)
+    upsell_price = Column(Float, nullable=True)
+
+    # Monitoring
+    last_monitored_at = Column(DateTime, nullable=True)
+    monitoring_history = Column(JSONB, default=list)
+    monitoring_enabled = Column(Boolean, default=True)
+    last_score_change = Column(Integer, nullable=True)
+
+    # Stripe Subscription
+    stripe_subscription_id = Column(String(200), nullable=True)
+    stripe_customer_id = Column(String(200), nullable=True)
+    stripe_price_id = Column(String(200), nullable=True)
+    subscription_status = Column(String(50), nullable=True)
+    subscription_started_at = Column(DateTime, nullable=True)
+    subscription_canceled_at = Column(DateTime, nullable=True)
+    subscription_current_period_end = Column(DateTime, nullable=True)
+
+
 def init_db():
     """Create all tables."""
     Base.metadata.create_all(bind=engine)
 
 
 def get_db():
-    """Dependency for getting DB session with retry on connection errors."""
+    """DB-Session Dependency — mit sauberem Cleanup."""
     db = SessionLocal()
     try:
         yield db
-    except OperationalError:
-        db.close()
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()

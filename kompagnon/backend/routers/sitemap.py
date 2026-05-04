@@ -28,7 +28,7 @@ from reportlab.platypus import (
     PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
 )
 from reportlab.platypus.flowables import HRFlowable
-from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime, ForeignKey, text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
@@ -73,6 +73,72 @@ def _t(text: str) -> str:
 router = APIRouter(prefix="/api/sitemap", tags=["sitemap"])
 
 
+# ── Hormozi-Section-Katalog (Wireframe-Library-Mapping) ──────────────────────
+# Bridge zwischen Sitemap (Stage 2) und Wireframes (Stage 3). AI wählt aus
+# dieser Liste pro Page; jeder Key entspricht später einer React-Komponente
+# in kompagnon/frontend/src/wireframes/sections/. Begründung pro Section
+# steht in docs/conversion-spec-shk.md.
+SECTION_CATALOG = {
+    # Hero-Varianten
+    "hero_value_equation": "Hero mit Hormozi-Outcome+Time+Effort-Versprechen (Startseite)",
+    "hero_service":        "Hero für Service-Detail-Page mit klarem Outcome",
+    "hero_minimal":        "Kompakter Hero — für Über uns / Kontakt / Rechtliches",
+
+    # Conversion-Sections
+    "problem":             "Pain-Point-Section — typische Schmerzen der Zielgruppe",
+    "offer_stack":         "Hormozi-Wertbox: EUR-Positionen + Gesamtwert + Anker",
+    "process_steps":       "4-6 nummerierte Schritte mit Zeitangabe (Friction-Reducer)",
+    "guarantee_block":     "5 AGB-konforme Garantien (Risk Reversal)",
+    "urgency_block":       "Echte Stichtage (BAFA/GEG/Slot-Cap) — Honest Scarcity",
+
+    # Trust / Social Proof
+    "trust_strip":         "Logo-Streifen (Innung, Hersteller, Zertifikate, Bewertungen)",
+    "fallstudien_3":       "3 Fallstudien-Cards mit Ort/Heizlast/Einsparung-Zahlen",
+
+    # Info-/Content-Sections
+    "service_grid":        "Übersicht aller Services — für Startseite/Leistungen",
+    "team":                "Team/Meister-Vorstellung mit Fotos",
+    "faq":                 "Allgemeine FAQ — 8-12 Fragen",
+    "faq_service":         "Service-spezifische FAQ (Einwand-Behandlung mit Zahlen)",
+    "content_richtext":    "Reiner Fließtext-Block — für Info-/Rechtsseiten",
+
+    # CTA
+    "cta_inline":          "Inline-CTA zwischen Sections",
+    "cta_final":           "Finale CTA + Sticky-Mobile-Bottom-Bar (Pflicht auf Conversion-Pages)",
+    "contact_form":        "Kontakt-Formular mit Telefon/Mail/WhatsApp",
+
+    # Footer/Legal
+    "footer_legal":        "Footer mit Pflicht-Links (Impressum, Datenschutz, AGB)",
+}
+
+# Fallback / Default-Section-Sets falls AI keine Sections liefert.
+# Reihenfolge ist relevant — wird 1:1 als Render-Order genommen.
+DEFAULT_SECTIONS_BY_PAGETYPE: dict[str, list[str]] = {
+    "startseite":  ["hero_value_equation", "problem", "service_grid", "offer_stack",
+                    "trust_strip", "fallstudien_3", "guarantee_block", "faq", "cta_final"],
+    "leistung":    ["hero_service", "problem", "offer_stack", "process_steps",
+                    "fallstudien_3", "trust_strip", "guarantee_block", "faq_service", "cta_final"],
+    "vertrauen":   ["hero_minimal", "team", "fallstudien_3", "trust_strip", "cta_inline"],
+    "conversion":  ["hero_minimal", "offer_stack", "guarantee_block", "urgency_block",
+                    "contact_form", "cta_final"],
+    "info":        ["hero_minimal", "content_richtext", "faq", "cta_inline"],
+    "ground":      ["hero_minimal", "service_grid", "faq", "contact_form"],
+    "rechtlich":   ["hero_minimal", "content_richtext"],
+}
+
+
+def _resolve_sections(page_dict: dict) -> list[str]:
+    """Pick a section list from the AI output, falling back to the page-type default.
+    Filters unknown keys against SECTION_CATALOG so we never persist garbage."""
+    raw = page_dict.get("sections")
+    if isinstance(raw, list) and raw:
+        cleaned = [str(s) for s in raw if isinstance(s, str) and s in SECTION_CATALOG]
+        if cleaned:
+            return cleaned
+    page_type = str(page_dict.get("page_type") or "info")
+    return DEFAULT_SECTIONS_BY_PAGETYPE.get(page_type, DEFAULT_SECTIONS_BY_PAGETYPE["info"])
+
+
 # ── ORM model (defined here, not in database.py to keep the diff small) ──────
 
 class SitemapPage(Base):
@@ -97,6 +163,20 @@ class SitemapPage(Base):
     gjs_css          = Column(Text,        default='')
     gjs_data         = Column(Text,        default='{}')
     created_at       = Column(DateTime,    server_default=func.now())
+    # KI-generierter Content (Batch-Generierung)
+    ki_h1                = Column(Text,         nullable=True)
+    ki_hero_text         = Column(Text,         nullable=True)
+    ki_abschnitt_text    = Column(Text,         nullable=True)
+    ki_cta               = Column(String(100),  nullable=True)
+    ki_meta_title        = Column(String(70),   nullable=True)
+    ki_meta_description  = Column(String(160),  nullable=True)
+    content_generated    = Column(Boolean,      default=False)
+    content_generated_at = Column(DateTime,     nullable=True)
+    # Hormozi-Spec Section-Plan (Wireframe-Stage 3): JSON-Array von Section-Keys.
+    # Wird vom Sitemap-Generator je nach page_type/Branche gefüllt, z.B.
+    # ["hero_value_equation","problem","offer_stack","trust_strip","fallstudien_3",
+    #  "guarantee_block","faq","cta_final"]
+    sections_json        = Column(Text,         nullable=True)
 
 
 # ── Pydantic schemas ───────────────────────────────────────────────────────────
@@ -140,6 +220,15 @@ class ReorderItem(BaseModel):
 # ── Serializer ─────────────────────────────────────────────────────────────────
 
 def _serialize(p: SitemapPage) -> dict:
+    raw_sections = getattr(p, "sections_json", None)
+    sections: List[str] = []
+    if raw_sections:
+        try:
+            parsed = json.loads(raw_sections)
+            if isinstance(parsed, list):
+                sections = [str(s) for s in parsed if s]
+        except (json.JSONDecodeError, TypeError):
+            sections = []
     return {
         "id":           p.id,
         "lead_id":      p.lead_id,
@@ -154,39 +243,119 @@ def _serialize(p: SitemapPage) -> dict:
         "notizen":      p.notizen or "",
         "status":           p.status or "geplant",
         "mockup_html":      p.mockup_html or "",
+        "gjs_html":         p.gjs_html or "",
         "ist_pflichtseite": bool(p.ist_pflichtseite),
         "created_at":       str(p.created_at)[:16] if p.created_at else "",
+        # KI-generierter Content
+        "ki_h1":               getattr(p, "ki_h1",               None) or "",
+        "ki_hero_text":        getattr(p, "ki_hero_text",        None) or "",
+        "ki_abschnitt_text":   getattr(p, "ki_abschnitt_text",   None) or "",
+        "ki_cta":              getattr(p, "ki_cta",              None) or "",
+        "ki_meta_title":       getattr(p, "ki_meta_title",       None) or "",
+        "ki_meta_description": getattr(p, "ki_meta_description", None) or "",
+        "content_generated":   bool(getattr(p, "content_generated", False)),
+        # Hormozi-Spec Section-Plan (Wireframe-Mapping)
+        "sections":            sections,
     }
 
 
 # ── Pflichtseiten ──────────────────────────────────────────────────────────────
 
-PFLICHTSEITEN = [
-    {"page_name": "Impressum",                 "page_type": "rechtlich", "position": 90, "zweck": "Gesetzlich vorgeschriebene Pflichtangaben"},
-    {"page_name": "Datenschutzerklärung",      "page_type": "rechtlich", "position": 91, "zweck": "Informationen zur Datenverarbeitung gemäß DSGVO"},
-    {"page_name": "Barrierefreiheitserklärung","page_type": "rechtlich", "position": 92, "zweck": "Konformitätserklärung gemäß BFSG / BITV 2.0"},
-    {"page_name": "AGB",                       "page_type": "rechtlich", "position": 93, "zweck": "Allgemeine Geschäftsbedingungen"},
+# Immer-Pflichtseiten (für jeden Kunden)
+PFLICHTSEITEN_IMMER = [
+    {
+        "page_name": "Impressum",
+        "page_type": "rechtlich",
+        "position": 90,
+        "zweck": "Gesetzlich vorgeschriebene Pflichtangaben gemäß §5 TMG",
+        "ziel_keyword": "Impressum",
+        "bedingung": None,
+    },
+    {
+        "page_name": "Datenschutzerklärung",
+        "page_type": "rechtlich",
+        "position": 91,
+        "zweck": "Informationen zur Datenverarbeitung gemäß DSGVO",
+        "ziel_keyword": "Datenschutz",
+        "bedingung": None,
+    },
+]
+
+# Bedingte Pflichtseiten (nur unter Voraussetzungen)
+PFLICHTSEITEN_BEDINGT = [
+    {
+        "page_name": "Barrierefreiheitserklärung",
+        "page_type": "rechtlich",
+        "position": 92,
+        "zweck": "Konformitätserklärung gemäß BFSG / BITV 2.0 — erforderlich für öffentliche Stellen und B2C-Websites ab 28.06.2025",
+        "ziel_keyword": "Barrierefreiheit",
+        "bedingung": "bfsg",
+    },
+    {
+        "page_name": "AGB",
+        "page_type": "rechtlich",
+        "position": 93,
+        "zweck": "Allgemeine Geschäftsbedingungen — erforderlich bei Online-Shop / E-Commerce",
+        "ziel_keyword": "AGB",
+        "bedingung": "ecommerce",
+    },
+]
+
+# Alle Pflichtseiten kombiniert (für Abwärtskompatibilität)
+PFLICHTSEITEN = PFLICHTSEITEN_IMMER + PFLICHTSEITEN_BEDINGT
+
+# Optionale Zusatzseiten (Vorschlagskatalog)
+OPTIONALE_SEITEN = [
+    # Basis-Seiten
+    {"page_name": "Startseite",     "page_type": "startseite", "position":  1, "zweck": "Hauptseite des Auftritts — erster Eindruck, Hero-Bereich, USP, CTA",                    "ziel_keyword": "Startseite Home",               "empfohlen_fuer": ["alle"],                                           "gruppe": "basis"},
+    {"page_name": "Leistungen",     "page_type": "leistung",   "position":  2, "zweck": "Übersicht aller angebotenen Leistungen — zentraler SEO-Treiber",                         "ziel_keyword": "Leistungen Angebote",            "empfohlen_fuer": ["alle"],                                           "gruppe": "basis"},
+    {"page_name": "Über uns",       "page_type": "info",       "position":  3, "zweck": "Geschichte, Team und Werte des Unternehmens — baut Vertrauen auf",                       "ziel_keyword": "Über uns Unternehmen",           "empfohlen_fuer": ["alle"],                                           "gruppe": "basis"},
+    {"page_name": "Kontakt",        "page_type": "conversion", "position":  4, "zweck": "Kontaktformular, Adresse, Öffnungszeiten — Hauptkonversionspunkt",                       "ziel_keyword": "Kontakt Anfrage",                "empfohlen_fuer": ["alle"],                                           "gruppe": "basis"},
+    {"page_name": "Landingpage",    "page_type": "conversion", "position":  5, "zweck": "Kampagnen-spezifische Zielseite für Ads / Aktionen — hohe Konversionsrate",              "ziel_keyword": "Angebot Aktion",                 "empfohlen_fuer": ["alle"],                                           "gruppe": "basis"},
+    # Vertrauen & Inhalte
+    {"page_name": "FAQ",            "page_type": "info",       "position": 10, "zweck": "Häufige Fragen und Antworten — stärkt Vertrauen, reduziert Supportaufwand",              "ziel_keyword": "FAQ häufige Fragen",             "empfohlen_fuer": ["alle"],                                           "gruppe": "inhalte"},
+    {"page_name": "Blog / News",    "page_type": "info",       "position": 11, "zweck": "Aktuelle Beiträge, Neuigkeiten und Expertise — gut für SEO und Reichweite",              "ziel_keyword": "News Aktuelles Blog",            "empfohlen_fuer": ["alle"],                                           "gruppe": "inhalte"},
+    {"page_name": "Galerie",        "page_type": "vertrauen",  "position": 12, "zweck": "Fotos abgeschlossener Projekte — visueller Beweis der Qualität",                         "ziel_keyword": "Galerie Referenzbilder Projekte","empfohlen_fuer": ["handwerk", "bau", "garten", "maler", "fotograf"], "gruppe": "inhalte"},
+    {"page_name": "Referenzen",     "page_type": "vertrauen",  "position": 13, "zweck": "Kundenstimmen und abgeschlossene Projekte — Social Proof",                               "ziel_keyword": "Referenzen Kundenprojekte",      "empfohlen_fuer": ["alle"],                                           "gruppe": "inhalte"},
+    {"page_name": "Team",           "page_type": "vertrauen",  "position": 14, "zweck": "Mitarbeitervorstellung — schafft Nähe, Vertrauen und Persönlichkeit",                    "ziel_keyword": "Team Mitarbeiter Experten",      "empfohlen_fuer": ["alle"],                                           "gruppe": "inhalte"},
+    # Conversion & Spezial
+    {"page_name": "Preise",         "page_type": "conversion", "position": 20, "zweck": "Preistransparenz — reduziert Anfragehürde, qualifiziert Leads vorab",                   "ziel_keyword": "Preise Kosten Angebot",          "empfohlen_fuer": ["dienstleistung", "beratung", "coaching"],         "gruppe": "conversion"},
+    {"page_name": "Karriere / Jobs","page_type": "info",       "position": 21, "zweck": "Offene Stellen und Ausbildungsplätze — Fachkräftegewinnung",                            "ziel_keyword": "Jobs Karriere Ausbildung",       "empfohlen_fuer": ["alle"],                                           "gruppe": "conversion"},
+    {"page_name": "Online-Shop",    "page_type": "conversion", "position": 22, "zweck": "Produkte online kaufen — E-Commerce-Integration",                                       "ziel_keyword": "Shop Produkte bestellen kaufen", "empfohlen_fuer": ["handel", "ecommerce"],                            "gruppe": "conversion"},
+    {"page_name": "Notfallservice", "page_type": "conversion", "position": 23, "zweck": "24h Notdienst — wichtig für Handwerker mit Bereitschaftsdienst",                        "ziel_keyword": "Notfall Notdienst 24h",          "empfohlen_fuer": ["elektriker", "sanitaer", "heizung", "schlosserei"],"gruppe": "conversion"},
+    {"page_name": "Terminbuchung",  "page_type": "conversion", "position": 24, "zweck": "Online-Terminbuchung — reduziert Telefon-Aufwand, erhöht Konversion",                  "ziel_keyword": "Termin buchen online",           "empfohlen_fuer": ["dienstleistung", "beratung", "handwerk"],         "gruppe": "conversion"},
 ]
 
 
 def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
-    """Insert missing Pflichtseiten for a lead (idempotent)."""
+    """Insert missing Immer-Pflichtseiten for a lead (idempotent). Bedingte Pflichtseiten are added via /suggest."""
+    pflicht_count = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.ist_pflichtseite.is_(True))
+        .count()
+    )
+    if pflicht_count >= len(PFLICHTSEITEN_IMMER):
+        return
+
     existing_names = {
         p.page_name
-        for p in db.query(SitemapPage.page_name)
-        .filter(SitemapPage.lead_id == lead_id, SitemapPage.ist_pflichtseite.is_(True))
-        .all()
+        for p in db.query(SitemapPage).filter(SitemapPage.lead_id == lead_id).all()
     }
-    for pf in PFLICHTSEITEN:
-        if pf["page_name"] not in existing_names:
+    for seite in PFLICHTSEITEN_IMMER:
+        if seite["page_name"] not in existing_names:
+            default_sections = DEFAULT_SECTIONS_BY_PAGETYPE.get(
+                seite["page_type"], DEFAULT_SECTIONS_BY_PAGETYPE["info"]
+            )
             db.add(SitemapPage(
                 lead_id=lead_id,
-                page_name=pf["page_name"],
-                page_type=pf["page_type"],
-                position=pf["position"],
-                zweck=pf["zweck"],
+                page_name=seite["page_name"],
+                page_type=seite["page_type"],
+                position=seite["position"],
+                zweck=seite.get("zweck", ""),
+                ziel_keyword=seite.get("ziel_keyword", ""),
                 status="geplant",
                 ist_pflichtseite=True,
+                sections_json=json.dumps(default_sections, ensure_ascii=False),
             ))
     db.commit()
 
@@ -268,51 +437,6 @@ def delete_page(
 pages_router = APIRouter(prefix="/api/pages", tags=["pages"])
 
 
-@pages_router.get("/")
-def list_pages(
-    page_type: Optional[str] = None,
-    lead_id: Optional[int] = None,
-    limit: int = 200,
-    offset: int = 0,
-    db: Session = Depends(get_db),
-    _=Depends(require_any_auth),
-):
-    limit = min(limit, 500)
-    offset = max(offset, 0)
-
-    q = db.query(SitemapPage)
-    if page_type:
-        q = q.filter(SitemapPage.page_type == page_type)
-    if lead_id:
-        q = q.filter(SitemapPage.lead_id == lead_id)
-
-    total = q.count()
-    pages = q.order_by(SitemapPage.lead_id, SitemapPage.position).offset(offset).limit(limit).all()
-
-    return {
-        "total": total,
-        "limit": limit,
-        "offset": offset,
-        "items": [
-            {
-                "id": p.id,
-                "lead_id": p.lead_id,
-                "parent_id": p.parent_id,
-                "position": p.position,
-                "page_name": p.page_name,
-                "page_type": p.page_type,
-                "zweck": p.zweck,
-                "ziel_keyword": p.ziel_keyword,
-                "cta_text": p.cta_text,
-                "cta_ziel": p.cta_ziel,
-                "status": p.status,
-                "ist_pflichtseite": p.ist_pflichtseite,
-            }
-            for p in pages
-        ],
-    }
-
-
 class GjsData(BaseModel):
     html:    str  = ""
     css:     str  = ""
@@ -379,12 +503,13 @@ def reorder_pages(
 # ── Fallback template ─────────────────────────────────────────────────────────
 
 _FALLBACK_PAGES = [
-    {"page_name": "Startseite", "page_type": "startseite", "position": 0, "parent_id": None, "zweck": "Erster Eindruck, klare Botschaft",     "ziel_keyword": "", "cta_text": "Jetzt anfragen",   "cta_ziel": "kontakt"},
-    {"page_name": "Leistungen", "page_type": "leistung",   "position": 1, "parent_id": None, "zweck": "Übersicht aller Leistungen",            "ziel_keyword": "", "cta_text": "Mehr erfahren",    "cta_ziel": "kontakt"},
-    {"page_name": "Leistung 1", "page_type": "leistung",   "position": 2, "parent_id": 1,    "zweck": "Detail-Seite erste Leistung",           "ziel_keyword": "", "cta_text": "Angebot anfordern","cta_ziel": "kontakt"},
-    {"page_name": "Leistung 2", "page_type": "leistung",   "position": 3, "parent_id": 1,    "zweck": "Detail-Seite zweite Leistung",          "ziel_keyword": "", "cta_text": "Angebot anfordern","cta_ziel": "kontakt"},
-    {"page_name": "Über uns",   "page_type": "vertrauen",  "position": 4, "parent_id": None, "zweck": "Vertrauen aufbauen, Team vorstellen",   "ziel_keyword": "", "cta_text": "Kontakt aufnehmen","cta_ziel": "kontakt"},
-    {"page_name": "Kontakt",    "page_type": "conversion", "position": 5, "parent_id": None, "zweck": "Leadgenerierung, Kontaktformular",      "ziel_keyword": "", "cta_text": "Nachricht senden", "cta_ziel": "kontakt"},
+    {"page_name": "Startseite",                 "page_type": "startseite", "position": 0,  "parent_id": None, "zweck": "Erster Eindruck, klare Botschaft",                                               "ziel_keyword": "", "cta_text": "Jetzt anfragen",    "cta_ziel": "kontakt"},
+    {"page_name": "Leistungen",                 "page_type": "leistung",   "position": 1,  "parent_id": None, "zweck": "Übersicht aller Leistungen",                                                      "ziel_keyword": "", "cta_text": "Mehr erfahren",     "cta_ziel": "kontakt"},
+    {"page_name": "Leistung 1",                 "page_type": "leistung",   "position": 2,  "parent_id": 1,    "zweck": "Detail-Seite erste Leistung",                                                     "ziel_keyword": "", "cta_text": "Angebot anfordern", "cta_ziel": "kontakt"},
+    {"page_name": "Leistung 2",                 "page_type": "leistung",   "position": 3,  "parent_id": 1,    "zweck": "Detail-Seite zweite Leistung",                                                    "ziel_keyword": "", "cta_text": "Angebot anfordern", "cta_ziel": "kontakt"},
+    {"page_name": "Über uns",                   "page_type": "vertrauen",  "position": 4,  "parent_id": None, "zweck": "Vertrauen aufbauen, Team vorstellen",                                             "ziel_keyword": "", "cta_text": "Kontakt aufnehmen", "cta_ziel": "kontakt"},
+    {"page_name": "Kontakt",                    "page_type": "conversion", "position": 5,  "parent_id": None, "zweck": "Leadgenerierung, Kontaktformular",                                                "ziel_keyword": "", "cta_text": "Nachricht senden",  "cta_ziel": "kontakt"},
+    {"page_name": "Über uns & Informationen",   "page_type": "ground",     "position": 99, "parent_id": None, "zweck": "Maschinenlesbare Informationsseite für KI-Systeme (GEO-Optimierung)",             "ziel_keyword": "",  "cta_text": "Jetzt Kontakt aufnehmen", "cta_ziel": "kontakt", "notizen": "Ground Page — GEO/KI-Optimierung"},
 ]
 
 
@@ -394,6 +519,7 @@ def _insert_pages(lead_id: int, raw_pages: list, db: Session) -> list:
     id_map: dict[int, int] = {}  # old position-based index → new DB id (for parent linking)
 
     for i, p in enumerate(raw_pages):
+        sections = _resolve_sections(p)
         page = SitemapPage(
             lead_id=lead_id,
             page_name=str(p.get("page_name", "Seite"))[:100],
@@ -406,6 +532,7 @@ def _insert_pages(lead_id: int, raw_pages: list, db: Session) -> list:
             cta_ziel=str(p.get("cta_ziel") or "kontakt")[:50],
             notizen=p.get("notizen") or "",
             status="geplant",
+            sections_json=json.dumps(sections, ensure_ascii=False),
         )
         db.add(page)
         db.flush()  # get page.id
@@ -436,29 +563,56 @@ async def generate_sitemap(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
-    briefing_obj = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
-    if briefing_obj and briefing_obj.freigaben:
-        import json as _json
-        try:
-            fg = _json.loads(briefing_obj.freigaben)
-            if fg and not fg.get("briefing", {}).get("approved"):
-                raise HTTPException(
-                    status_code=403,
-                    detail={
-                        "code": "BRIEFING_PENDING_APPROVAL",
-                        "message": "Das Briefing wurde noch nicht freigegeben. Bitte warten bis die Kundenfreigabe erteilt wurde.",
-                    }
-                )
-        except (ValueError, TypeError):
-            pass
+    # Tor 1: Briefing muss vom Kunden freigegeben sein
+    proj_row = db.execute(
+        text(
+            "SELECT briefing_approved_at FROM projects "
+            "WHERE lead_id=:lid ORDER BY id DESC LIMIT 1"
+        ),
+        {"lid": lead_id},
+    ).fetchone()
+    if not proj_row or not proj_row[0]:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "BRIEFING_NOT_APPROVED",
+                "message": "Das Briefing wurde noch nicht freigegeben. Bitte zuerst eine Freigabe-E-Mail senden und die Kundenfreigabe einholen.",
+            },
+        )
 
     # Step 1: Pflichtseiten immer zuerst sicherstellen
     _ensure_pflichtseiten(lead_id, db)
 
-    briefing   = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
-    gewerk     = (briefing.gewerk     if briefing and briefing.gewerk     else lead.trade)   or "Handwerk"
-    leistungen = (briefing.leistungen if briefing and briefing.leistungen else "")           or ""
-    city       = lead.city or "Deutschland"
+    briefing      = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    gewerk        = (getattr(briefing, "gewerk",        None) if briefing else None) or getattr(lead, "trade", None) or "Handwerk"
+    leistungen    = (getattr(briefing, "leistungen",    None) if briefing else None) or ""
+    einzugsgebiet = (getattr(briefing, "einzugsgebiet", None) if briefing else None) or getattr(lead, "city", None) or "Deutschland"
+    usp           = (getattr(briefing, "usp",           None) if briefing else None) or ""
+    zielgruppe    = (getattr(briefing, "zielgruppe",    None) if briefing else None) or "Privatkunden und Gewerbekunden"
+    wunschseiten  = (getattr(briefing, "wunschseiten",  None) if briefing else None) or ""
+    city          = getattr(lead, "city", None) or "Deutschland"
+    company       = getattr(lead, "company_name", None) or getattr(lead, "display_name", None) or ""
+
+    # Gecrawlte Seiten der alten Website laden
+    old_pages_summary = ""
+    try:
+        from sqlalchemy import text as _text
+        crawled = db.execute(
+            _text("""
+                SELECT url, h1, title
+                FROM website_content_cache
+                WHERE customer_id = :lid
+                ORDER BY scraped_at DESC
+                LIMIT 12
+            """),
+            {"lid": lead_id},
+        ).fetchall()
+        if crawled:
+            old_pages_summary = "Seiten der alten Website (gecrawlt):\n" + "\n".join(
+                [f"- {r[2] or r[1] or r[0]}" for r in crawled[:10]]
+            )
+    except Exception:
+        old_pages_summary = ""
 
     # Step 2: Nur Nicht-Pflichtseiten löschen
     db.query(SitemapPage).filter(
@@ -473,23 +627,73 @@ async def generate_sitemap(
     if not api_key:
         _insert_pages(lead_id, _FALLBACK_PAGES, db)
     else:
+        wunschseiten_hint = (
+            f"\nDer Kunde hat folgende Seiten gewünscht: {wunschseiten}"
+            if wunschseiten else ""
+        )
+        old_pages_hint = (
+            f"\n{old_pages_summary}"
+            if old_pages_summary else ""
+        )
+        # Section-Katalog kompakt für den Prompt (key: kurzbeschreibung)
+        section_catalog_text = "\n".join(
+            f"  - {key}: {desc}" for key, desc in SECTION_CATALOG.items()
+        )
         prompt = (
-            "Du bist ein Website-Stratege für Handwerksbetriebe.\n"
-            "Erstelle eine Sitemap mit 5-8 INHALTLICHEN Seiten für diesen Betrieb.\n"
-            "NICHT einschließen: Impressum, Datenschutz, AGB, Barrierefreiheit – "
-            "diese werden automatisch ergänzt.\n"
-            f"Gewerk: {gewerk}, Stadt: {city}, Leistungen: {leistungen}\n"
-            "Antworte NUR als JSON-Array:\n"
-            '[{ "page_name": "", "page_type": "startseite|leistung|info|vertrauen|conversion", '
+            "Du bist ein Website-Stratege für deutsche Handwerksbetriebe.\n"
+            "Erstelle eine optimale Sitemap mit 5-8 INHALTLICHEN Seiten für diesen Betrieb.\n"
+            "Pro Seite gibst du auch an, WELCHE Conversion-Sections (siehe Section-Katalog unten) "
+            "in welcher Reihenfolge auf der Seite stehen sollen — basierend auf Hormozi-Conversion-Spec.\n\n"
+            "WICHTIG — NICHT einschließen (werden automatisch ergänzt):\n"
+            "Impressum, Datenschutz, AGB, Barrierefreiheit, Cookie-Hinweise\n\n"
+            f"UNTERNEHMEN:\n"
+            f"- Firma: {company}\n"
+            f"- Gewerk/Branche: {gewerk}\n"
+            f"- Leistungen: {leistungen}\n"
+            f"- Region/Einzugsgebiet: {einzugsgebiet}\n"
+            f"- USP (Alleinstellungsmerkmal): {usp or '–'}\n"
+            f"- Zielgruppe: {zielgruppe}\n"
+            f"{wunschseiten_hint}"
+            f"{old_pages_hint}\n\n"
+            "SECTION-KATALOG (du wählst pro Page eine geordnete Liste aus diesen Keys):\n"
+            f"{section_catalog_text}\n\n"
+            "REGELN FÜR DIE SITEMAP:\n"
+            "- Position 0 = Startseite (immer)\n"
+            "- Jede Hauptleistung bekommt eine eigene Seite (page_type='leistung')\n"
+            "- Vertrauensseite einplanen (Referenzen, Team, Über uns)\n"
+            "- Kontaktseite immer als letzte Inhaltsseite\n"
+            "- ziel_keyword auf die wichtigsten SEO-Begriffe abstimmen\n"
+            "- Branchenspezifisch denken: Was sucht die Zielgruppe wirklich?\n\n"
+            "REGELN FÜR DIE SECTION-AUSWAHL pro Page:\n"
+            "- Startseite: hero_value_equation am Anfang, mind. offer_stack ODER service_grid, "
+            "  trust_strip, fallstudien_3, guarantee_block, faq, cta_final am Ende. Reihenfolge wichtig.\n"
+            "- Leistung: hero_service am Anfang, problem, offer_stack (Service-spezifisch), "
+            "  process_steps, fallstudien_3, guarantee_block, faq_service, cta_final am Ende.\n"
+            "- Vertrauen: hero_minimal, team, fallstudien_3, trust_strip, cta_inline.\n"
+            "- Conversion (Landingpage): hero_minimal, offer_stack, guarantee_block, urgency_block, "
+            "  contact_form, cta_final.\n"
+            "- Ground (GEO): hero_minimal, service_grid, faq, contact_form.\n"
+            "- Info-Seite: hero_minimal, content_richtext, faq, cta_inline.\n"
+            "- Pro Seite mind. 4, max. 9 Sections. Keine Duplikate. cta_final immer am Ende von "
+            "  Conversion-relevanten Pages.\n\n"
+            "PFLICHT: Füge IMMER genau eine Seite mit page_type='ground' ein (position 99):\n"
+            '{ "page_name": "Über uns & Informationen", "page_type": "ground", "position": 99, '
+            '"zweck": "Maschinenlesbare Informationsseite für KI-Systeme (GEO-Optimierung)", '
+            f'"ziel_keyword": "{gewerk} {einzugsgebiet} Informationen", '
+            '"cta_text": "Jetzt Kontakt aufnehmen", "cta_ziel": "kontakt", "parent_id": null, '
+            '"sections": ["hero_minimal","service_grid","faq","contact_form"] }\n\n'
+            "Antworte NUR als JSON-Array — kein Markdown, keine Erklärungen:\n"
+            '[{ "page_name": "", "page_type": "startseite|leistung|info|vertrauen|conversion|ground", '
             '"zweck": "", "ziel_keyword": "", "cta_text": "", "cta_ziel": "kontakt|formular|tel", '
-            '"position": 0, "parent_id": null }]'
+            '"position": 0, "parent_id": null, '
+            '"sections": ["hero_xxx","..."] }]'
         )
         try:
             from anthropic import Anthropic
             client = Anthropic(api_key=api_key, max_retries=0, timeout=60.0)
             response = client.messages.create(
                 model="claude-sonnet-4-6",
-                max_tokens=1500,
+                max_tokens=3000,
                 messages=[{"role": "user", "content": prompt}],
             )
             raw = response.content[0].text.strip()
@@ -498,7 +702,22 @@ async def generate_sitemap(
                     line for line in raw.splitlines()
                     if not line.strip().startswith("```")
                 ).strip()
-            raw_pages = json.loads(raw)
+            # Truncated JSON repair: close open strings/objects/arrays
+            try:
+                raw_pages = json.loads(raw)
+            except json.JSONDecodeError:
+                repaired = raw.rstrip().rstrip(",")
+                if not repaired.endswith("]"):
+                    # Close any unterminated string
+                    if repaired.count('"') % 2 != 0:
+                        repaired += '"'
+                    # Close unterminated object
+                    open_braces = repaired.count("{") - repaired.count("}")
+                    repaired += "}" * max(0, open_braces)
+                    # Close array
+                    if not repaired.endswith("]"):
+                        repaired += "]"
+                raw_pages = json.loads(repaired)
             if not isinstance(raw_pages, list) or not raw_pages:
                 raise ValueError("Ungültige Antwortstruktur")
             _insert_pages(lead_id, raw_pages, db)
@@ -506,6 +725,23 @@ async def generate_sitemap(
         except Exception as exc:
             logger.warning("Sitemap KI-Generierung fehlgeschlagen, Fallback: %s", exc)
             _insert_pages(lead_id, _FALLBACK_PAGES, db)
+
+    # Ensure at least one ground page exists regardless of AI/fallback source
+    has_ground = db.query(SitemapPage).filter(
+        SitemapPage.lead_id == lead_id,
+        SitemapPage.page_type == "ground",
+    ).first()
+    if not has_ground:
+        _insert_pages(lead_id, [{
+            "page_name": "Über uns & Informationen",
+            "page_type": "ground",
+            "position": 99,
+            "zweck": "Maschinenlesbare Informationsseite für KI-Systeme (GEO-Optimierung)",
+            "ziel_keyword": f"{gewerk} {city} Informationen",
+            "cta_text": "Jetzt Kontakt aufnehmen",
+            "cta_ziel": "kontakt",
+            "notizen": "Ground Page — GEO/KI-Optimierung",
+        }], db)
 
     # Gesamte Sitemap (Inhalt + Pflichtseiten) zurückgeben
     all_pages = (
@@ -712,6 +948,137 @@ def _generate_sitemap_pdf(pages: list, company_name: str) -> bytes:
 
     doc.build(story, onFirstPage=_on_page, onLaterPages=_on_page)
     return buf.getvalue()
+
+
+@router.get("/{lead_id}/suggest")
+def suggest_pages(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Return bedingte Pflichtseiten + optional pages as suggestions for the admin to pick from."""
+    existing_names = {
+        p.page_name
+        for p in db.query(SitemapPage).filter(SitemapPage.lead_id == lead_id).all()
+    }
+
+    bedingte = [
+        {**s, "bereits_vorhanden": s["page_name"] in existing_names, "kategorie": "bedingt_pflicht"}
+        for s in PFLICHTSEITEN_BEDINGT
+    ]
+    optional = [
+        {**s, "bereits_vorhanden": s["page_name"] in existing_names, "kategorie": "optional"}
+        for s in OPTIONALE_SEITEN
+    ]
+
+    return {"bedingte_pflichtseiten": bedingte, "optionale_seiten": optional}
+
+
+@router.get("/{lead_id}/ki-empfehlung")
+async def ki_seitenempfehlung(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Let Claude generate individual page recommendations based on this customer's briefing."""
+    import os, httpx, json as _json
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(404, "Lead nicht gefunden")
+
+    briefing   = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    existing   = [p.page_name for p in db.query(SitemapPage).filter(SitemapPage.lead_id == lead_id).all()]
+    gewerk     = (getattr(briefing, "gewerk",      None) if briefing else None) or (getattr(lead, "trade", None) or "Handwerk")
+    leistungen = (getattr(briefing, "leistungen",  None) if briefing else None) or ""
+    usp        = (getattr(briefing, "usp",         None) if briefing else None) or ""
+    zielgruppe = (getattr(briefing, "zielgruppe",  None) if briefing else None) or ""
+    mitbewerber= (getattr(briefing, "mitbewerber", None) if briefing else None) or ""
+    city       = getattr(lead, "city", None) or "Deutschland"
+    company    = getattr(lead, "company_name", None) or ""
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    prompt = f"""Du bist ein Website-Stratege für Handwerksbetriebe.
+
+KUNDE: {company}
+Gewerk: {gewerk}
+Stadt: {city}
+Leistungen: {leistungen}
+USP: {usp}
+Zielgruppe: {zielgruppe}
+Wettbewerber: {mitbewerber}
+
+Bereits geplante Seiten: {', '.join(existing) or 'keine'}
+
+Empfehle 3-5 spezifische Seiten die für DIESEN Betrieb besonders wichtig sind.
+Berücksichtige Gewerk, USP und Zielgruppe — gib individuelle, nicht generische Empfehlungen.
+
+Antworte NUR als JSON-Array:
+[{{
+  "page_name": "<Seitenname>",
+  "page_type": "startseite|leistung|info|vertrauen|conversion|ground",
+  "zweck": "<1-2 Sätze warum diese Seite für DIESEN Betrieb wichtig ist>",
+  "ziel_keyword": "<Haupt-Keyword>",
+  "position": <Zahl>,
+  "ki_begruendung": "<Individueller Grund warum genau diese Seite für {company} sinnvoll ist>"
+}}]"""
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 1500,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+        resp.raise_for_status()
+        raw = resp.json()["content"][0]["text"].strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        empfehlungen = _json.loads(raw)
+        empfehlungen = [e for e in empfehlungen if e.get("page_name") not in existing]
+        return {"empfehlungen": empfehlungen, "company": company, "gewerk": gewerk}
+    except Exception as e:
+        raise HTTPException(500, f"KI-Empfehlung fehlgeschlagen: {str(e)[:200]}")
+
+
+@router.post("/{lead_id}/add-suggested")
+def add_suggested_page(
+    lead_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Add a suggested page (bedingt-Pflicht or optional) to the sitemap."""
+    page_name = (body.get("page_name") or "").strip()
+    if not page_name:
+        raise HTTPException(400, "page_name fehlt")
+
+    alle_vorschlaege = PFLICHTSEITEN_BEDINGT + OPTIONALE_SEITEN
+    vorlage = next((s for s in alle_vorschlaege if s["page_name"] == page_name), None)
+    ist_pflicht = bool(vorlage and vorlage.get("bedingung"))
+
+    db.add(SitemapPage(
+        lead_id=lead_id,
+        page_name=page_name,
+        page_type=body.get("page_type") or (vorlage["page_type"] if vorlage else "info"),
+        position=body.get("position") or (vorlage["position"] if vorlage else 50),
+        zweck=body.get("zweck") or (vorlage["zweck"] if vorlage else ""),
+        ziel_keyword=body.get("ziel_keyword") or (vorlage["ziel_keyword"] if vorlage else ""),
+        ist_pflichtseite=ist_pflicht,
+        status="geplant",
+    ))
+    db.commit()
+    return {"ok": True, "page_name": page_name}
 
 
 @router.get("/{lead_id}/pdf")

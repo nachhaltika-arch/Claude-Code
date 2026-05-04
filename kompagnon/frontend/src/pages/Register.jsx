@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import KompagnonLogo from '../components/KompagnonLogo';
 
 
 const AMBER = '#D4A017';
@@ -85,11 +86,8 @@ export default function Register() {
       <div style={{ width: '100%', maxWidth: 420 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div onClick={() => navigate('/')} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: AMBER, fontWeight: 900, fontSize: 14 }}>HS</span>
-            </div>
-            <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>KOMPAGNON</span>
+          <div onClick={() => navigate('/')} style={{ display: 'inline-flex', cursor: 'pointer' }}>
+            <KompagnonLogo variant="color" height={36} />
           </div>
         </div>
 

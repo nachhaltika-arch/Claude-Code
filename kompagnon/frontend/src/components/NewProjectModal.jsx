@@ -6,6 +6,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
   const token = localStorage.getItem("kompagnon_token");
   const h = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
+  // Stufe: "search" | "create"
   const [stufe, setStufe] = useState("search");
   const [suche, setSuche] = useState("");
   const [sucheErgebnisse, setSucheErgebnisse] = useState([]);
@@ -94,6 +95,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
           Bitte wähle ein bestehendes Unternehmen oder lege ein neues an.
         </p>
 
+        {/* Tab-Wahl */}
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           <button
             onClick={() => setStufe("search")}
@@ -113,6 +115,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
           >Neues Unternehmen</button>
         </div>
 
+        {/* Stufe: Suche */}
         {stufe === "search" && (
           <div>
             <input
@@ -139,10 +142,10 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{lead.company_name}</div>
                       <div style={{ fontSize: 12, color: lead.website_url ? "#008EAA" : "#f59e0b" }}>
-                        {lead.website_url || "Keine Domain hinterlegt"}
+                        {lead.website_url || "⚠ Keine Domain hinterlegt"}
                       </div>
                     </div>
-                    <span style={{ fontSize: 12, color: "#999" }}>&rarr;</span>
+                    <span style={{ fontSize: 12, color: "#999" }}>→</span>
                   </div>
                 ))}
               </div>
@@ -150,14 +153,13 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
             {suche.length >= 2 && !sucheLoading && sucheErgebnisse.length === 0 && (
               <p style={{ color: "#888", fontSize: 13, margin: "8px 0 0" }}>
                 Kein Unternehmen gefunden.{" "}
-                <button onClick={() => setStufe("create")} style={{ color: "#008EAA", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
-                  Neu anlegen &rarr;
-                </button>
+                <button onClick={() => setStufe("create")} style={{ color: "#008EAA", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Neu anlegen →</button>
               </p>
             )}
           </div>
         )}
 
+        {/* Stufe: Neu anlegen */}
         {stufe === "create" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {[
@@ -181,12 +183,14 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
           </div>
         )}
 
+        {/* Fehlermeldung */}
         {fehler && (
           <div style={{ marginTop: 16, padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, color: "#dc2626", fontSize: 13 }}>
             {fehler}
           </div>
         )}
 
+        {/* Buttons */}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 24 }}>
           <button
             onClick={onClose}

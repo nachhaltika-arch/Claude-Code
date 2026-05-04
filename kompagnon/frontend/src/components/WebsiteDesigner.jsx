@@ -1,237 +1,358 @@
-import { useEffect, useRef, useState } from 'react';
-import grapesjs from 'grapesjs';
-import grapesjsPresetWebpage from 'grapesjs-preset-webpage';
-import grapesjsBlocksBasic from 'grapesjs-blocks-basic';
-import 'grapesjs/dist/css/grapes.min.css';
+import { StudioEditor } from '@grapesjs/studio-sdk/react';
+import '@grapesjs/studio-sdk/style';
+import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
-import API_BASE_URL from '../config';
+// processClipboardImage now handled by useGrapesAssetManager hook
+import { useGrapesAssetManager } from '../hooks/useGrapesAssetManager';
+// API_BASE_URL now handled by useGrapesAssetManager hook
+import { useScreenSize } from '../utils/responsive';
+import { STUDIO_LICENSE_KEY, buildStudioPlugins } from '../utils/studioEditorConfig';
+import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplateImport';
+import handwerkPlugin from '../grapesjs/handwerk-plugin';
+import { renderBlock } from '../grapesjs/handwerk-blocks';
 
-const TOOLBAR_H = 52;
+export default function WebsiteDesigner({
+  projectId, leadId, initialHtml, initialCss, onSave, onClose, brandData,
+}) {
+  const { isMobile } = useScreenSize();
+  const editorRef = useRef(null);
+  const plugins = useMemo(() => buildStudioPlugins(), []);
 
-export default function WebsiteDesigner({ customerId, customerName, onClose }) {
-  const containerRef = useRef(null);
-  const editorRef    = useRef(null);
-  const [kiLoading, setKiLoading]   = useState(false);
-  const [cmsLoading, setCmsLoading] = useState(false);
-  const [cmsConn, setCmsConn]       = useState(null); // {cms_type, has_cms_connection}
-
+  // Listen for assets from ProjectFilesSection "→ Editor" button
   useEffect(() => {
-    if (!containerRef.current) return;
+    const onAssetAdd = (e) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const { src, name, category } = e.detail || {};
+      if (!src) return;
+      try { editor.AssetManager?.add({ type: 'image', src, name: name || src, category }); } catch { /* silent */ }
+    };
+    window.addEventListener('kompagnon:asset-add', onAssetAdd);
 
-    const editor = grapesjs.init({
-      container: containerRef.current,
-      height: `calc(100vh - ${TOOLBAR_H}px)`,
-      width: '100%',
-      plugins: [grapesjsPresetWebpage, grapesjsBlocksBasic],
-      pluginsOpts: {
-        [grapesjsPresetWebpage]: {},
-        [grapesjsBlocksBasic]: {},
-      },
-      storageManager: false,
-      components: '',
-      style: '',
-    });
-
-    editorRef.current = editor;
+    // Listen for open-editor from DesignStudio
+    const onOpenEditor = (e) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const { html, blocks, brand } = e.detail || {};
+      if (blocks && blocks.length > 0 && brand) {
+        editor.setComponents('');
+        blocks.forEach(block => {
+          const blockHtml = renderBlock(block.type, block.data || {}, brand);
+          editor.addComponents(blockHtml);
+        });
+      } else if (html) {
+        editor.setComponents(html);
+      }
+    };
+    window.addEventListener('kompagnon:open-editor', onOpenEditor);
 
     return () => {
-      editor.destroy();
-      editorRef.current = null;
+      window.removeEventListener('kompagnon:asset-add', onAssetAdd);
+      window.removeEventListener('kompagnon:open-editor', onOpenEditor);
     };
-  }, []); // eslint-disable-line
+  }, []);
 
-  // Load CMS connection info for dynamic button label
-  useEffect(() => {
-    const token = localStorage.getItem('kompagnon_token');
-    fetch(`${API_BASE_URL}/api/customers/${customerId}/cms-connection`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setCmsConn(d); })
-      .catch(() => {});
-  }, [customerId]); // eslint-disable-line
+  // Clipboard paste is now handled by useGrapesAssetManager hook
 
-  const handleLoadKiEntwurf = async () => {
-    const editor = editorRef.current;
-    if (!editor || kiLoading) return;
-    setKiLoading(true);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importing, setImporting]   = useState(false);
+  const [importMsg, setImportMsg]   = useState('');
+  const [importError, setImportError] = useState('');
+  const [saving, setSaving]         = useState(false);
+  const fileInputRef = useRef(null);
+
+  // Token aus localStorage (AuthContext-kompatibel)
+  const token = localStorage.getItem('token') || '';
+
+  // ── Asset Manager — zentraler Hook ──
+  const { onAssetsLoad, onAssetsUpload, editorRef: assetEditorRef, refreshAssets, assetCount } = useGrapesAssetManager({ leadId, projectId, token });
+  const [assetsRefreshing, setAssetsRefreshing] = useState(false);
+
+  // ── Save-Handler (Studio SDK ruft das on demand auf) ──────
+  const handleSave = useCallback(async ({ project, editor }) => {
+    setSaving(true);
     try {
-      const token = localStorage.getItem('kompagnon_token');
-      const res = await fetch(
-        `${API_BASE_URL}/api/customers/${customerId}/generate-mockup`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `Fehler ${res.status}`);
-      }
-      const data = await res.json();
-      editor.setComponents(data.html);
-    } catch (e) {
-      console.error('KI-Entwurf laden fehlgeschlagen:', e);
-      alert(`KI-Entwurf fehlgeschlagen: ${e.message}`);
-    } finally {
-      setKiLoading(false);
+      const html = editor?.getHtml?.() || '';
+      const css  = editor?.getCss?.()  || '';
+      if (onSave) await onSave(html, css, project);
+      toast.success('Gespeichert!');
+    } catch {
+      toast.error('Speichern fehlgeschlagen');
     }
+    setSaving(false);
+  }, [onSave]);
+
+  // ── Manuelles Speichern (Toolbar-Button) ──────────────────
+  const handleManualSave = async () => {
+    const editor = editorRef.current;
+    if (!editor) return toast.error('Editor noch nicht bereit');
+    const project = editor.getProjectData?.() || {};
+    await handleSave({ project, editor });
   };
 
-  const handlePushToCms = async () => {
-    const editor = editorRef.current;
-    if (!editor || cmsLoading) return;
-    setCmsLoading(true);
-    try {
-      const token = localStorage.getItem('kompagnon_token');
-      const authHeader = { Authorization: `Bearer ${token}` };
-
-      // 1. Check which CMS is configured
-      const connRes = await fetch(
-        `${API_BASE_URL}/api/customers/${customerId}/cms-connection`,
-        { headers: authHeader }
-      );
-      if (!connRes.ok) throw new Error('CMS-Verbindung konnte nicht geladen werden');
-      const conn = await connRes.json();
-
-      if (!conn.has_cms_connection || conn.cms_type === 'none' || !conn.cms_type) {
-        toast.error('Keine CMS-Verbindung konfiguriert. Bitte zuerst CMS-Zugangsdaten hinterlegen.');
+  // ── ZIP/.grapesjs Import-Handler (shared parser) ──────────
+  const handleImportFile = async (e) => {
+    const file = e?.target?.files?.[0];
+    if (!file || !editorRef.current) return;
+    setImporting(true); setImportMsg(''); setImportError('');
+    const result = await parseTemplateFile(file);
+    setImporting(false);
+    if (result.success) {
+      try {
+        applyTemplateToEditor(editorRef.current, result);
+      } catch (err) {
+        setImportError('Editor konnte Projekt nicht laden: ' + err.message);
         return;
       }
-
-      // 2. Update local conn state for label refresh
-      setCmsConn(conn);
-
-      // 3. Combine HTML + CSS and push
-      const html = editor.getHtml() + `<style>${editor.getCss()}</style>`;
-      const pubRes = await fetch(
-        `${API_BASE_URL}/api/customers/${customerId}/publish`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeader },
-          body: JSON.stringify({ html, page_title: customerName || `Kunde #${customerId}` }),
-        }
-      );
-      const result = await pubRes.json().catch(() => ({}));
-
-      if (pubRes.ok && result.success) {
-        const cmsName = conn.cms_type === 'webflow' ? 'Webflow' : 'WordPress';
-        toast.success(
-          result.page_url
-            ? <span>✅ Seite als Entwurf in {cmsName} erstellt – <a href={result.page_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Seite öffnen ↗</a></span>
-            : `✅ Seite als Entwurf in ${cmsName} erstellt`,
-          { duration: 6000 }
-        );
-      } else {
-        throw new Error(result.detail || result.message || `HTTP ${pubRes.status}`);
-      }
-    } catch (e) {
-      toast.error(`CMS Push fehlgeschlagen: ${e.message}`, { duration: 5000 });
-    } finally {
-      setCmsLoading(false);
+      setImportMsg({
+        'zip-grapesjs': '✓ GrapesJS-Projekt + CSS geladen',
+        'zip-html':     '✓ HTML + CSS geladen',
+        'grapesjs':     '✓ GrapesJS-Projekt geladen',
+      }[result.source] || '✓ Template geladen');
+      setShowImportModal(false);
+    } else {
+      setImportError(result.error || 'Import fehlgeschlagen');
     }
+    if (e?.target) e.target.value = '';
   };
 
-  const handleDownloadHtml = () => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    const html = `<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>${customerName || 'Website'}</title>
-  <style>${editor.getCss()}</style>
-</head>
-<body>${editor.getHtml()}</body>
-</html>`;
-    const blob = new Blob([html], { type: 'text/html' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `website-${customerId}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const btnStyle = {
-    padding: '8px 16px',
-    border: 'none',
-    borderRadius: 6,
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: 'pointer',
-    fontFamily: 'var(--font-sans, system-ui)',
-    background: 'rgba(255,255,255,0.15)',
-    color: '#fff',
-    transition: 'background 0.15s',
-  };
-
-  return (
+  return createPortal(
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 9999,
-      background: '#fff', display: 'flex', flexDirection: 'column',
+      position: 'fixed',
+      top: 0,
+      left: isMobile ? 0 : 'var(--sidebar-width)',
+      right: 0,
+      bottom: 0,
+      zIndex: 500,
+      display: 'flex', flexDirection: 'column',
+      background: '#fff',
     }}>
       {/* Toolbar */}
-      <div style={{
-        height: TOOLBAR_H, flexShrink: 0,
-        background: '#1A2C32',
-        display: 'flex', alignItems: 'center',
-        gap: 8, padding: '0 16px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-      }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginRight: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
-          {customerName || `Kunde #${customerId}`}
+      <div style={{ padding: '8px 16px', background: 'var(--bg-sidebar)',
+                    display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span style={{ color: 'var(--text-inverse)', fontWeight: 600 }}>Website Designer</span>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
+          {projectId ? `Projekt #${projectId}` : 'Neues Design'}
         </span>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".zip,.grapesjs"
+          style={{ display: 'none' }}
+          onChange={handleImportFile}
+        />
+
+        <button
+          onClick={() => setShowImportModal(true)}
+          disabled={importing}
+          style={{
+            padding: '7px 14px',
+            background: importing ? '#94a3b8' : '#7c3aed',
+            color: '#fff', border: 'none', borderRadius: 7,
+            fontSize: 12, fontWeight: 600,
+            cursor: importing ? 'not-allowed' : 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}
+        >
+          {importing ? '⏳ Lädt...' : '📂 Template importieren'}
+        </button>
+
+        {importMsg && (
+          <span style={{ fontSize: 11, color: '#1D9E75', fontWeight: 500 }}>
+            {importMsg}
+          </span>
+        )}
+        {importError && !showImportModal && (
+          <span style={{ fontSize: 11, color: '#E24B4A', fontWeight: 500 }}>
+            ✗ {importError}
+          </span>
+        )}
 
         <div style={{ flex: 1 }} />
 
+        {/* Asset refresh + count */}
         <button
-          style={{ ...btnStyle, opacity: kiLoading ? 0.7 : 1, cursor: kiLoading ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }}
-          onClick={handleLoadKiEntwurf}
-          disabled={kiLoading}
+          onClick={async () => { setAssetsRefreshing(true); await refreshAssets(); setAssetsRefreshing(false); }}
+          disabled={assetsRefreshing}
+          title="Neue Kunden-Uploads laden"
+          style={{
+            background: 'none', border: '1px solid rgba(255,255,255,0.2)',
+            color: assetsRefreshing ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.6)',
+            borderRadius: 4, padding: '4px 8px', cursor: assetsRefreshing ? 'not-allowed' : 'pointer',
+            fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)',
+          }}
         >
-          {kiLoading
-            ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block', flexShrink: 0 }} /> KI erstellt deinen Entwurf...</>
-            : '🤖 KI-Entwurf laden'
-          }
-        </button>
-        {(() => {
-          const hasCms = cmsConn?.has_cms_connection;
-          const cmsType = cmsConn?.cms_type;
-          const label = cmsType === 'wordpress_elementor' ? '🚀 Zu WordPress pushen'
-            : cmsType === 'webflow' ? '🚀 Zu Webflow pushen'
-            : '🚀 Zum CMS pushen';
-          const pushingLabel = cmsType === 'webflow' ? 'Pushe zu Webflow...' : 'Pushe zu WordPress...';
-          const disabled = cmsLoading || !hasCms;
-          return (
-            <button
-              style={{ ...btnStyle, opacity: disabled ? 0.45 : 1, cursor: disabled ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }}
-              onClick={handlePushToCms}
-              disabled={disabled}
-              title={!hasCms ? 'CMS-Verbindung im Kundenprofil einrichten' : undefined}
-            >
-              {cmsLoading
-                ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block', flexShrink: 0 }} />{pushingLabel}</>
-                : label
-              }
-            </button>
-          );
-        })()}
-        <button style={btnStyle} onClick={handleDownloadHtml}>
-          📥 Als HTML herunterladen
+          <span style={{ display: 'inline-block', animation: assetsRefreshing ? 'spin 0.8s linear infinite' : 'none' }}>↻</span>
+          {assetCount > 0 ? `${assetCount} Bilder` : 'Assets'}
         </button>
 
+        {/* Paste hint */}
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <kbd style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 3, padding: '1px 4px', fontFamily: 'monospace', fontSize: 9 }}>⌘V</kbd>
+          Bild
+        </span>
+
+        {saving && (
+          <span style={{ color: '#94a3b8', fontSize: 12 }}>Wird gespeichert…</span>
+        )}
+
         <button
-          onClick={onClose}
-          style={{ ...btnStyle, background: 'rgba(255,255,255,0.08)', marginLeft: 8, fontSize: 18, lineHeight: 1, padding: '6px 12px' }}
-        >
-          ✕
+          onClick={handleManualSave}
+          disabled={saving}
+          style={{
+            padding: '7px 14px',
+            background: saving ? '#475569' : '#16a34a',
+            color: '#fff', border: 'none', borderRadius: 7,
+            fontSize: 12, fontWeight: 600,
+            cursor: saving ? 'not-allowed' : 'pointer',
+          }}>
+          💾 Speichern
         </button>
+
+        {onClose && (
+          <button
+            onClick={onClose}
+            title="Editor schließen"
+            style={{
+              padding: '7px 12px',
+              background: 'rgba(255,255,255,0.15)',
+              color: '#fff', border: 'none', borderRadius: 7,
+              fontSize: 14, fontWeight: 600, cursor: 'pointer',
+            }}>
+            ✕
+          </button>
+        )}
       </div>
 
-      {/* GrapesJS canvas */}
-      <div ref={containerRef} style={{ flex: 1, overflow: 'hidden' }} />
-    </div>
+      {/* Studio SDK Editor */}
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <StudioEditor
+          options={{
+            licenseKey: STUDIO_LICENSE_KEY,
+            project: {
+              type: 'web',
+              default: {
+                pages: [{ name: 'index', component: initialHtml || '' }],
+              },
+            },
+            storage: {
+              type: 'self',
+              autosaveChanges: 100,
+              autosaveIntervalMs: 10000,
+              onSave: handleSave,
+            },
+            assets: {
+              storageType: 'self',
+              onLoad:   onAssetsLoad,
+              onUpload: onAssetsUpload,
+            },
+            canvas: {
+              styles: [
+                'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css',
+                'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+              ],
+            },
+            plugins,
+          }}
+          onReady={(editor) => {
+            editorRef.current = editor;
+            assetEditorRef.current = editor;
+            // Register Handwerk blocks plugin
+            try { handwerkPlugin(editor, { brand: brandData || {} }); } catch (e) { console.warn('Handwerk plugin:', e); }
+            // Ctrl+S save
+            editor.on('kompagnon:save', () => handleManualSave());
+          }}
+        />
+      </div>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999,
+        }}>
+          <div style={{
+            background: 'var(--bg-surface, #fff)', borderRadius: 12,
+            padding: 32, width: 480, maxWidth: '90vw',
+          }}>
+            <h3 style={{ margin: '0 0 16px' }}>
+              ZIP-Template importieren
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary, #64748b)',
+                        marginBottom: 20 }}>
+              ZIP mit <code>index.html</code> hochladen. Optional: <code>style.css</code>.
+              Oder eine <code>.grapesjs</code>-Datei.
+            </p>
+
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const f = e.dataTransfer.files[0];
+                if (f) {
+                  const synth = { target: { files: [f], value: '' } };
+                  handleImportFile(synth);
+                }
+              }}
+              style={{
+                border: '2px dashed #cbd5e1', borderRadius: 8,
+                padding: '32px 20px', textAlign: 'center',
+                cursor: 'pointer', background: '#f8fafc', marginBottom: 16,
+              }}
+            >
+              {importing ? (
+                <p style={{ margin: 0 }}>Verarbeitung...</p>
+              ) : (
+                <>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>📦</div>
+                  <p style={{ margin: 0, fontSize: 14, color: 'var(--text-tertiary)' }}>
+                    ZIP oder .grapesjs hier ablegen oder klicken
+                  </p>
+                </>
+              )}
+            </div>
+
+            {importError && (
+              <p style={{
+                color: '#b91c1c', background: '#fee2e2',
+                padding: '8px 12px', borderRadius: 6,
+                fontSize: 13, marginBottom: 12,
+              }}>
+                {importError}
+              </p>
+            )}
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => { setShowImportModal(false); setImportError(''); }}
+                style={{
+                  padding: '8px 20px', border: '1px solid #cbd5e1',
+                  borderRadius: 6, background: 'transparent',
+                  color: 'var(--text-tertiary)', cursor: 'pointer',
+                }}
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+                style={{
+                  padding: '8px 20px', border: 'none', borderRadius: 6,
+                  background: '#0d6efd', color: '#fff',
+                  cursor: 'pointer', fontWeight: 600,
+                }}
+              >
+                Datei auswählen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>,
+    document.body
   );
 }

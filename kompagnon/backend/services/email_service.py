@@ -2,38 +2,45 @@
 VERALTET — Bitte direkt verwenden:
     from services.email import send_email
 
-Diese Datei bleibt nur fuer Rueckwaertskompatibilitaet erhalten.
-Neue Aufrufer MUESSEN services/email.py direkt importieren.
+Diese Datei bleibt nur für Rückwärtskompatibilität erhalten.
+Neue Aufrufer MÜSSEN services/email.py direkt importieren.
 """
 import logging
-from services.email import send_email as _canonical_send_email
-from database import Communication
 from datetime import datetime
+from typing import Optional
+
 from sqlalchemy.orm import Session
-from typing import Optional, List
+
+from services.email import send_email as _canonical_send_email
 
 logger = logging.getLogger(__name__)
 
 
 class EmailService:
+    """Rückwärtskompatibilität. Nicht für neue Aufrufer verwenden."""
+
     def send_email(self, to: str, subject: str, body: str = "",
-                   cc: Optional[List[str]] = None, bcc: Optional[List[str]] = None,
                    html: bool = False, **kwargs) -> bool:
         html_body = body if html else f"<pre>{body}</pre>"
-        return _canonical_send_email(to_email=to, subject=subject, html_body=html_body)
+        ok = _canonical_send_email(to_email=to, subject=subject, html_body=html_body)
+        if not ok:
+            logger.warning(f"E-Mail an {to} konnte nicht gesendet werden")
+        return ok
 
     @staticmethod
     def log_communication(db: Session, project_id: int, email_type: str,
-                          direction: str, subject: str, body: str,
-                          is_automated: bool = False, template_key: Optional[str] = None):
+                          direction: str, subject: str, body: str = "",
+                          is_automated: bool = False,
+                          template_key: Optional[str] = None):
         try:
+            from database import Communication
             comm = Communication(
                 project_id=project_id,
                 type="email",
                 direction=direction,
                 channel="email",
                 subject=subject,
-                body=body,
+                body=body[:500] if body else "",
                 is_automated=is_automated,
                 template_key=template_key,
                 sent_at=datetime.utcnow(),
@@ -49,7 +56,8 @@ class EmailService:
 
 
 class MockEmailService(EmailService):
-    sent_emails = []
+    """Nur für Tests. Sendet keine echten E-Mails."""
+    sent_emails: list = []
 
     def send_email(self, to: str, subject: str, body: str = "", **kwargs) -> bool:
         self.sent_emails.append({"to": to, "subject": subject, "body": body})

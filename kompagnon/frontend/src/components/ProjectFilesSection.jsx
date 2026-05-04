@@ -41,6 +41,7 @@ export default function ProjectFilesSection({ leadId }) {
   const [uploadError, setUploadError]   = useState(null);
   const [dragOver, setDragOver]         = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [sentToEditorId, setSentToEditorId] = useState(null);
   const [deleting, setDeleting]           = useState(null);
 
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
@@ -109,6 +110,23 @@ export default function ProjectFilesSection({ leadId }) {
     a.href = `${API_BASE_URL}/api/files/download/${fileId}`;
     a.target = '_blank'; a.rel = 'noreferrer';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  };
+
+  const isImageFile = (filename) => {
+    if (!filename) return false;
+    const ext = filename.split('.').pop().toLowerCase();
+    return ['jpg','jpeg','png','gif','svg','webp'].includes(ext);
+  };
+
+  const handleSendToEditor = (f) => {
+    const url = `${API_BASE_URL}/api/files/download/${f.id}`;
+    const name = f.original_filename || `datei-${f.id}`;
+    const category = f.file_type === 'logo' ? 'Logo' : 'Fotos';
+    window.dispatchEvent(new CustomEvent('kompagnon:asset-add', {
+      detail: { src: url, name, category },
+    }));
+    setSentToEditorId(f.id);
+    setTimeout(() => setSentToEditorId(null), 2000);
   };
 
   const dropZoneStyle = {
@@ -193,14 +211,14 @@ export default function ProjectFilesSection({ leadId }) {
           <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-tertiary)', fontSize: 13 }}>Noch keine Dateien hochgeladen.</div>
         ) : (
           <div style={{ overflowX: 'auto', marginTop: 4 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 70px 90px 130px 80px', minWidth: 560, gap: 10, padding: '6px 12px', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--border-light)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 70px 90px 120px auto', minWidth: 560, gap: 10, padding: '6px 12px', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--border-light)' }}>
               <span>Typ</span><span>Dateiname</span><span>Größe</span><span>Von</span><span>Datum</span><span>Aktionen</span>
             </div>
             {files.map(f => {
               const badge = FILE_TYPE_BADGES[f.file_type] || FILE_TYPE_BADGES.sonstiges;
               const isConfirming = confirmDelete === f.id;
               return (
-                <div key={f.id} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 70px 90px 130px 80px', minWidth: 560, gap: 10, padding: '10px 12px', alignItems: 'center', borderBottom: '1px solid var(--border-light)', transition: 'background var(--transition-fast)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-app)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <div key={f.id} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 70px 90px 120px auto', minWidth: 560, gap: 10, padding: '10px 12px', alignItems: 'center', borderBottom: '1px solid var(--border-light)', transition: 'background var(--transition-fast)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-app)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, background: badge.bg, color: badge.color }}>{badge.label}</span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_filename}</div>
@@ -218,10 +236,20 @@ export default function ProjectFilesSection({ leadId }) {
                     ) : (
                       <>
                         <button onClick={() => handleDownload(f.id)} title="Herunterladen" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand-primary)', padding: 4, borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', opacity: 0.7 }} onMouseEnter={e => e.currentTarget.style.opacity = '1'} onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}>
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2v9M4.5 7.5L8 11l3.5-3.5"/><path d="M2.5 13.5h11"/></svg>
+                          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2v9M4.5 7.5L8 11l3.5-3.5"/><path d="M2.5 13.5h11"/></svg>
                         </button>
+                        {isImageFile(f.original_filename) && (
+                          <button onClick={() => handleSendToEditor(f)} title="In GrapesJS-Editor laden" style={{
+                            padding: '3px 7px', fontSize: 10, fontWeight: 600, borderRadius: 'var(--radius-sm)', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
+                            background: sentToEditorId === f.id ? 'var(--status-success-bg)' : 'var(--brand-primary-light)',
+                            border: `1px solid ${sentToEditorId === f.id ? 'var(--status-success-text)' : 'var(--brand-primary-mid, var(--border-light))'}`,
+                            color: sentToEditorId === f.id ? 'var(--status-success-text)' : 'var(--brand-primary-dark)',
+                          }}>
+                            {sentToEditorId === f.id ? '✓' : '→ Editor'}
+                          </button>
+                        )}
                         <button onClick={() => setConfirmDelete(f.id)} title="Löschen" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--status-danger-text)', padding: 4, borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', opacity: 0.6 }} onMouseEnter={e => e.currentTarget.style.opacity = '1'} onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}>
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.8 9.5h6.4L12 4"/></svg>
+                          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.8 9.5h6.4L12 4"/></svg>
                         </button>
                       </>
                     )}

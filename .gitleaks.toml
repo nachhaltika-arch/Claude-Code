@@ -1,0 +1,25 @@
+title = "KAS gitleaks config"
+
+# Inherit all default rules from gitleaks
+[extend]
+useDefault = true
+
+# Known false positives.
+# These were development fallback keys (base64 of "thisisafake_keyfordevonlyuse123"),
+# removed from the codebase in commit 7ea99bf ("security: harden secrets, webhooks
+# and remove duplicate endpoints"). The current code uses os.getenv with empty default
+# and fail-fast — no real secrets ever shipped. Allowlisting historical commits only.
+[allowlist]
+description = "Historical dev fallback key removed in 7ea99bf — not a real secret"
+# Match the exact fake-key string ("thisisafake_keyfordevonlyuse123" in base64).
+# Was a placeholder fallback in old commits, never a real credential.
+regexTarget = "match"
+regexes = [
+  '''dGhpc2lzYWZha2Vf[A-Za-z0-9+/=]+''',
+]
+# Also allowlist by historical commit hash for belt-and-braces:
+commits = [
+  "e7038a0381005a9f7cf826553d62dd768eca64d6",
+  "14a722fa33c78c86f3524db9259a6ddbc233dbf9",
+  "70f4c5b7a1ff0bc66d9bb4c763d786ed717dd69c",
+]

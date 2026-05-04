@@ -6,6 +6,7 @@ import { useScreenSize } from '../utils/responsive';
 
 
 const ROLE_META = {
+  superadmin: { icon: '⚡', label: 'Superadmin', desc: 'Systemkritische Aktionen, KAS-Deploy', locked: true, bg: '#7c3aed', fg: '#fff' },
   admin: { icon: '👑', label: 'Admin', desc: 'Vollstaendige Systemrechte', locked: true, bg: 'var(--text-primary)', fg: '#fff' },
   auditor: { icon: '🔍', label: 'Auditor', desc: 'Zugriff auf Audit-Funktionen', locked: false, bg: '#2a5aa0', fg: '#fff' },
   nutzer: { icon: '👤', label: 'Nutzer', desc: 'Eingeschraenkter Zugriff', locked: false, bg: '#4a5a7a', fg: '#fff' },
@@ -29,6 +30,8 @@ const PERM_LABELS = {
   manage_settings: 'Einstellungen aendern',
   view_billing: 'Rechnungen einsehen',
   manage_billing: 'Abonnement verwalten',
+  deploy_kas_pages: 'KAS-Seiten live deployen',
+  manage_system_settings: 'Systemkritische Einstellungen aendern',
 };
 
 export default function RoleManagement() {
@@ -102,8 +105,8 @@ export default function RoleManagement() {
                   const allowed = perms[perm] !== false;
                   return (
                     <div key={perm} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13 }}>
-                      <span style={{ color: allowed ? '#2a9a5a' : '#c8c8c8', fontWeight: 700, width: 16 }}>{allowed ? '✓' : '—'}</span>
-                      <span style={{ color: allowed ? 'var(--brand-primary)' : '#c8c8c8' }}>{label}</span>
+                      <span style={{ color: allowed ? 'var(--status-success-text)' : 'var(--border-strong)', fontWeight: 700, width: 16 }}>{allowed ? '✓' : '—'}</span>
+                      <span style={{ color: allowed ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{label}</span>
                     </div>
                   );
                 })}
@@ -129,7 +132,7 @@ export default function RoleManagement() {
             {Object.entries(PERM_LABELS).map(([perm, label]) => (
               <label key={perm} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 0', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', fontSize: 14,
+                padding: '10px 0', borderBottom: '1px solid var(--border-light)', cursor: 'pointer', fontSize: 14,
               }}>
                 <span style={{ color: 'var(--text-primary)' }}>{label}</span>
                 <input type="checkbox" checked={editPerms[perm] !== false}

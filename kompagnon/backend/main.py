@@ -9,12 +9,14 @@ import asyncio
 import os
 import json
 import logging
+import secrets
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
+from datetime import datetime
 from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
@@ -73,6 +75,9 @@ def _run_migrations():
     """Führt alle fehlenden Spalten-Migrationen aus."""
     from database import engine
     migrations = [
+        # Ensure the users.role column can hold 'superadmin' (and drop any
+        # legacy CHECK constraint that might reject it)
+        "ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check",
         # NOT NULL Constraints entfernen
         "ALTER TABLE leads ALTER COLUMN contact_name DROP NOT NULL",
         "ALTER TABLE leads ALTER COLUMN phone DROP NOT NULL",
@@ -271,6 +276,103 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS geschaeftsfuehrer VARCHAR",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS whatsapp_nummer VARCHAR(50)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS kampagne_quelle VARCHAR(100)",
+        # Campaign Manager
+        """CREATE TABLE IF NOT EXISTS campaigns (
+            id            SERIAL PRIMARY KEY,
+            name          VARCHAR(500) NOT NULL,
+            slug          VARCHAR(200) UNIQUE NOT NULL,
+            source        VARCHAR(100) NOT NULL,
+            medium        VARCHAR(100),
+            channel       VARCHAR(100),
+            description   TEXT,
+            target_url    VARCHAR(1000) DEFAULT 'https://kompagnon.eu',
+            is_active     BOOLEAN DEFAULT TRUE,
+            created_by    INTEGER,
+            created_at    TIMESTAMP DEFAULT NOW(),
+            archived_at   TIMESTAMP
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_campaigns_slug ON campaigns(slug)",
+        "CREATE INDEX IF NOT EXISTS idx_campaigns_source ON campaigns(source)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS kampagne_id INTEGER",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_source VARCHAR(200)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_medium VARCHAR(200)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS utm_campaign VARCHAR(200)",
+        # Trackdesk / Affiliate Partner Tracking
+        """CREATE TABLE IF NOT EXISTS affiliate_conversions (
+            id                SERIAL PRIMARY KEY,
+            trackdesk_id      VARCHAR(200) UNIQUE,
+            event_type        VARCHAR(100),
+            affiliate_id      VARCHAR(200),
+            affiliate_email   VARCHAR(500),
+            affiliate_name    VARCHAR(500),
+            customer_email    VARCHAR(500),
+            customer_name     VARCHAR(500),
+            conversion_value  NUMERIC(12,2),
+            commission_value  NUMERIC(12,2),
+            currency          VARCHAR(10) DEFAULT 'EUR',
+            status            VARCHAR(100),
+            lead_id           INTEGER REFERENCES leads(id) ON DELETE SET NULL,
+            raw_payload       TEXT,
+            received_at       TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_affiliate_conversions_lead ON affiliate_conversions(lead_id)",
+        "CREATE INDEX IF NOT EXISTS idx_affiliate_conversions_affiliate ON affiliate_conversions(affiliate_id)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS affiliate_id VARCHAR(200)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS affiliate_name VARCHAR(500)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS affiliate_conversion_id INTEGER",
+        # ── Seiten-Manager (öffentliche Seiten + Templates) ──
+        """CREATE TABLE IF NOT EXISTS public_pages (
+            id              SERIAL PRIMARY KEY,
+            slug            VARCHAR(200) UNIQUE NOT NULL,
+            name            VARCHAR(200) NOT NULL,
+            description     TEXT DEFAULT '',
+            page_type       VARCHAR(50) DEFAULT 'custom',
+            status          VARCHAR(20) DEFAULT 'draft',
+            html_content    TEXT DEFAULT '',
+            grapesjs_data   JSONB DEFAULT '{}',
+            css_content     TEXT DEFAULT '',
+            react_component VARCHAR(100) DEFAULT '',
+            product_id      INTEGER,
+            template_id     INTEGER,
+            meta_title      VARCHAR(200) DEFAULT '',
+            meta_description VARCHAR(300) DEFAULT '',
+            published_at    TIMESTAMP,
+            created_at      TIMESTAMP DEFAULT NOW(),
+            updated_at      TIMESTAMP DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS page_templates (
+            id              SERIAL PRIMARY KEY,
+            name            VARCHAR(200) NOT NULL,
+            description     TEXT DEFAULT '',
+            category        VARCHAR(100) DEFAULT 'allgemein',
+            thumbnail_url   VARCHAR(500) DEFAULT '',
+            grapesjs_data   JSONB DEFAULT '{}',
+            html_content    TEXT DEFAULT '',
+            css_content     TEXT DEFAULT '',
+            is_builtin      BOOLEAN DEFAULT FALSE,
+            sort_order      INTEGER DEFAULT 0,
+            created_at      TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_public_pages_slug ON public_pages(slug)",
+        "CREATE INDEX IF NOT EXISTS idx_public_pages_type ON public_pages(page_type)",
+        # Seed: bekannte öffentliche Seiten vorbelegen
+        """INSERT INTO public_pages (slug, name, page_type, status, react_component)
+           VALUES
+             ('/', 'Landing Page', 'landing', 'live', 'Landing'),
+             ('/paket/starter', 'Paket: Starter', 'paket', 'live', 'PackageStarter'),
+             ('/paket/kompagnon', 'Paket: Kompagnon', 'paket', 'live', 'PackageKompagnon'),
+             ('/paket/premium', 'Paket: Premium', 'paket', 'draft', 'PackagePremium'),
+             ('/checkout', 'Checkout', 'transaktional', 'live', 'Checkout'),
+             ('/checkout/success', 'Checkout Erfolg', 'transaktional', 'draft', 'CheckoutSuccess'),
+             ('/login', 'Login', 'auth', 'live', 'Login'),
+             ('/register', 'Registrierung', 'auth', 'live', 'Register'),
+             ('/reset-password', 'Passwort zurücksetzen', 'auth', 'live', 'ResetPassword'),
+             ('/portal/login', 'Kunden-Portal Login', 'portal', 'live', 'PortalLogin'),
+             ('/impressum', 'Impressum', 'legal', 'live', 'Impressum'),
+             ('/datenschutz', 'Datenschutz', 'legal', 'live', 'Datenschutz'),
+             ('/barrierefreiheit', 'Barrierefreiheit', 'legal', 'live', 'Barrierefreiheit')
+           ON CONFLICT (slug) DO NOTHING
+        """,
         "CREATE TABLE IF NOT EXISTS lead_domains (id SERIAL PRIMARY KEY, lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE, url VARCHAR(500) NOT NULL, label VARCHAR(100) DEFAULT '', is_primary BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())",
         "CREATE INDEX IF NOT EXISTS idx_lead_domains_lead_id ON lead_domains(lead_id)",
         # Courses table + optional columns
@@ -454,9 +556,16 @@ def _run_migrations():
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS farben VARCHAR(100)",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS wunschseiten TEXT",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS stil VARCHAR(50)",
+        # Widen VARCHAR columns to TEXT for KI-generated content
+        "ALTER TABLE briefings ALTER COLUMN gewerk TYPE TEXT",
+        "ALTER TABLE briefings ALTER COLUMN farben TYPE TEXT",
+        "ALTER TABLE briefings ALTER COLUMN stil TYPE TEXT",
+        "ALTER TABLE briefings ALTER COLUMN einzugsgebiet TYPE TEXT",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS logo_vorhanden BOOLEAN DEFAULT false",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS fotos_vorhanden BOOLEAN DEFAULT false",
         "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS sonstige_hinweise TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS funktionen_json TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS seo_json TEXT",
         # sitemap_pages table
         """
         CREATE TABLE IF NOT EXISTS sitemap_pages (
@@ -482,6 +591,7 @@ def _run_migrations():
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS gjs_html TEXT DEFAULT ''",
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS gjs_css TEXT DEFAULT ''",
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS gjs_data TEXT DEFAULT '{}'",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS slug TEXT",
         # content_sections + content_media
         """CREATE TABLE IF NOT EXISTS content_sections (
           id SERIAL PRIMARY KEY,
@@ -527,6 +637,20 @@ def _run_migrations():
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_pdf_filename VARCHAR(255)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_design_style VARCHAR(100)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_notes TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_design_json TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_guideline_json TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_guideline_generated_at TIMESTAMP",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_font_heading VARCHAR(100)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_font_body VARCHAR(100)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_font_accent VARCHAR(100)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_fonts_detail TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS brand_design_tokens_json TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS kaltakquise_gesendet_at TIMESTAMP",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS kaltakquise_count INTEGER DEFAULT 0",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS perf_report_last_mobile INTEGER",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS perf_report_last_desktop INTEGER",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS perf_report_sent_at TIMESTAMP",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS perf_report_sent_count INTEGER DEFAULT 0",
         # Design version history (simple form first — idempotent)
         "CREATE TABLE IF NOT EXISTS mockup_versions (id SERIAL PRIMARY KEY, lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE, sitemap_page_id INTEGER, page_name VARCHAR(100) DEFAULT 'Startseite', version_name VARCHAR(150), html_content TEXT, created_at TIMESTAMP DEFAULT NOW(), created_by VARCHAR(100))",
         "ALTER TABLE mockup_versions ADD COLUMN IF NOT EXISTS sitemap_page_id INTEGER",
@@ -561,10 +685,42 @@ def _run_migrations():
           created_at     TIMESTAMP DEFAULT NOW(),
           updated_at     TIMESTAMP DEFAULT NOW()
         )""",
+        # Template library extension columns
+        "ALTER TABLE website_templates ADD COLUMN IF NOT EXISTS slug VARCHAR(200)",
+        "ALTER TABLE website_templates ADD COLUMN IF NOT EXISTS style_tags TEXT",
+        "ALTER TABLE website_templates ADD COLUMN IF NOT EXISTS gewerk_tags TEXT",
+        "ALTER TABLE website_templates ADD COLUMN IF NOT EXISTS source_file VARCHAR(500)",
+        "ALTER TABLE website_templates ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_website_templates_slug ON website_templates(slug)",
+        # Inspiration URLs for briefing + portal
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS inspiration_url_1 TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS inspiration_url_2 TEXT",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS inspiration_url_3 TEXT",
+        # Google Analytics detection
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ga_status VARCHAR(30) DEFAULT 'unbekannt'",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ga_measurement_id VARCHAR(50)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ga_type VARCHAR(20)",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS ga_checked_at TIMESTAMP",
+        # Website version generation (KI picks 3 templates)
+        """CREATE TABLE IF NOT EXISTS website_versions (
+            id             SERIAL PRIMARY KEY,
+            project_id     INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+            version_label  VARCHAR(10) DEFAULT 'A',
+            template_id    INTEGER REFERENCES website_templates(id) ON DELETE SET NULL,
+            html           TEXT,
+            css            TEXT,
+            gjs_data       TEXT,
+            ki_reasoning   TEXT,
+            selected       BOOLEAN DEFAULT FALSE,
+            created_at     TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_website_versions_project ON website_versions(project_id)",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES website_templates(id) ON DELETE SET NULL",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS template_id INTEGER REFERENCES website_templates(id) ON DELETE SET NULL",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_before TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_before_date TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS moodboard_data TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS moodboard_updated_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_after TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_after_date TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_url_before VARCHAR",
@@ -615,6 +771,7 @@ def _run_migrations():
         """CREATE INDEX IF NOT EXISTS idx_website_content_cache_customer
            ON website_content_cache(customer_id)""",
         # Netlify-Integration (NETLIFY_API_TOKEN env-Variable erforderlich)
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_token TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_site_id VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_site_url VARCHAR",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_deploy_id VARCHAR",
@@ -710,6 +867,13 @@ def _run_migrations():
         )""",
         "CREATE INDEX IF NOT EXISTS idx_crawl_jobs_customer ON crawl_jobs(customer_id)",
         "CREATE INDEX IF NOT EXISTS idx_crawl_results_job ON crawl_results(job_id)",
+        "CREATE INDEX IF NOT EXISTS idx_crawl_results_customer_id ON crawl_results(customer_id)",
+        # ── Performance-Indizes fuer haeufige Sortierungen ──────────
+        "CREATE INDEX IF NOT EXISTS idx_leads_created_at ON leads(created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_projects_id ON projects(id DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)",
+        "CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)",
+        "CREATE INDEX IF NOT EXISTS idx_audit_results_lead_id ON audit_results(lead_id, created_at DESC)",
         # ── Webhook log ────────────────────────────────────────────────
         """CREATE TABLE IF NOT EXISTS webhook_log (
             id SERIAL PRIMARY KEY,
@@ -761,6 +925,9 @@ def _run_migrations():
         # QA-Scanner Ergebnisse
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_result JSONB",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_score INTEGER",
+        # Scrape Cache
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scrape_full_data TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS scrape_full_at TIMESTAMP",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_golive_ok BOOLEAN",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS qa_run_at TIMESTAMP",
         # Auftragsbestätigung PDF
@@ -787,7 +954,8 @@ def _run_migrations():
             notes               TEXT,
             created_at          TIMESTAMP DEFAULT NOW()
         )""",
-        # Google Business Profile
+        "ALTER TABLE project_credentials ADD COLUMN IF NOT EXISTS typ VARCHAR(50) DEFAULT 'sonstiges'",
+        "CREATE INDEX IF NOT EXISTS idx_project_credentials_pid ON project_credentials(project_id)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_place_id VARCHAR",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_claimed BOOLEAN DEFAULT false",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS gbp_rating FLOAT",
@@ -830,6 +998,64 @@ def _run_migrations():
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS features JSONB DEFAULT '[]'",
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS checkout_fields JSONB DEFAULT '[]'",
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS webhook_actions JSONB DEFAULT '[]'",
+        # ── Deals (CRM-Pipeline) ──────────────────────────────────
+        """CREATE TABLE IF NOT EXISTS deals (
+            id            SERIAL PRIMARY KEY,
+            title         VARCHAR(500) NOT NULL,
+            company_id    INTEGER REFERENCES leads(id) ON DELETE SET NULL,
+            status        VARCHAR(50) DEFAULT 'neu',
+            total_value   NUMERIC(12,2) DEFAULT 0,
+            currency      VARCHAR(3) DEFAULT 'EUR',
+            notes         TEXT,
+            assigned_to   INTEGER,
+            won_at        TIMESTAMP,
+            lost_at       TIMESTAMP,
+            created_at    TIMESTAMP DEFAULT NOW(),
+            updated_at    TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_deals_company ON deals(company_id)",
+        "CREATE INDEX IF NOT EXISTS idx_deals_status ON deals(status)",
+        """CREATE TABLE IF NOT EXISTS deal_items (
+            id          SERIAL PRIMARY KEY,
+            deal_id     INTEGER REFERENCES deals(id) ON DELETE CASCADE,
+            position    VARCHAR(500) NOT NULL,
+            quantity    NUMERIC(10,2) DEFAULT 1,
+            unit_price  NUMERIC(12,2) DEFAULT 0,
+            total_price NUMERIC(12,2) DEFAULT 0,
+            product_id  INTEGER,
+            sort_order  INTEGER DEFAULT 0
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_deal_items_deal ON deal_items(deal_id)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS deal_id INTEGER",
+        # DNS-Polling backoff (exponential backoff on repeated failures)
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_dns_fail_count INTEGER DEFAULT 0",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_dns_retry_after TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_golive_mail_sent BOOLEAN DEFAULT false",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_golive_mail_sent_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS netlify_ssl_checked_at TIMESTAMP",
+        # Freigabe-Gates (Tor 1 + Tor 2)
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS briefing_approved_at TIMESTAMP",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS content_approval_token VARCHAR(255)",
+        # Ziele & Zielgruppe flat fields
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS hauptziel TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS aktionen TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS typischer_kunde TEXT",
+        "ALTER TABLE briefings ADD COLUMN IF NOT EXISTS haeufige_anfrage TEXT",
+        # Batch-Content-Generierung für Sitemap-Seiten
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_h1 TEXT",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_hero_text TEXT",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_abschnitt_text TEXT",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_cta VARCHAR(100)",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_meta_title VARCHAR(70)",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_meta_description VARCHAR(160)",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS content_generated BOOLEAN DEFAULT false",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS content_generated_at TIMESTAMP",
+        # Hormozi-Spec Section-Plan pro Page (Pipeline-Stage 2 → 3)
+        # Speichert ein JSON-Array von Section-Keys aus der Wireframe-Library,
+        # z.B. ["hero_value_equation","problem","offer_stack","trust_strip",
+        #       "fallstudien_3","guarantee_block","faq","cta_final"]
+        # Siehe docs/conversion-spec-shk.md + docs/kas-pipeline-architecture.md
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS sections_json TEXT",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -866,21 +1092,37 @@ def _run_migrations():
 
 
 def _create_default_admin():
-    """Create demo users for all 4 roles if they don't exist."""
+    """Create demo users for all 4 roles — only in explicit non-production environments.
+
+    Whitelist: laeuft nur bei ENVIRONMENT in {development, dev, local, staging}.
+    Passwoerter kommen ausschliesslich aus ENV-Vars; fehlen sie, wird ein
+    Zufallspasswort generiert und einmalig geloggt.
+    """
+    env = os.getenv("ENVIRONMENT", "development").lower()
+    if env not in ("development", "dev", "local", "staging"):
+        logger.info(f"⏭  Demo-User-Erstellung übersprungen (ENVIRONMENT={env})")
+        return
+
     from database import SessionLocal, User
     from auth import hash_password
     db = SessionLocal()
     try:
         demo_users = [
-            {"email": os.getenv("ADMIN_EMAIL", "admin@kompagnon.de"), "password": os.getenv("ADMIN_PASSWORD", "Admin2025!"), "first_name": "Admin", "last_name": "KOMPAGNON", "role": "admin"},
-            {"email": "auditor@kompagnon.de", "password": "Auditor2025!", "first_name": "Max", "last_name": "Auditor", "role": "auditor", "position": "Senior Auditor"},
-            {"email": "nutzer@kompagnon.de", "password": "Nutzer2025!", "first_name": "Lisa", "last_name": "Nutzer", "role": "nutzer"},
-            {"email": "kunde@kompagnon.de", "password": "Kunde2025!", "first_name": "Thomas", "last_name": "Mustermann", "role": "kunde"},
+            {"email": os.getenv("ADMIN_EMAIL",   "admin@kompagnon.de"),   "password": os.getenv("ADMIN_PASSWORD",   ""), "first_name": "Admin",  "last_name": "KOMPAGNON",  "role": "admin"},
+            {"email": os.getenv("AUDITOR_EMAIL", "auditor@kompagnon.de"), "password": os.getenv("AUDITOR_PASSWORD", ""), "first_name": "Max",    "last_name": "Auditor",    "role": "auditor", "position": "Senior Auditor"},
+            {"email": os.getenv("NUTZER_EMAIL",  "nutzer@kompagnon.de"),  "password": os.getenv("NUTZER_PASSWORD",  ""), "first_name": "Lisa",   "last_name": "Nutzer",     "role": "nutzer"},
+            {"email": os.getenv("KUNDE_EMAIL",   "kunde@kompagnon.de"),   "password": os.getenv("KUNDE_PASSWORD",   ""), "first_name": "Thomas", "last_name": "Mustermann", "role": "kunde"},
         ]
         created = 0
         for ud in demo_users:
             if not db.query(User).filter(User.email == ud["email"]).first():
                 pw = ud.pop("password")
+                if not pw:
+                    pw = secrets.token_urlsafe(12)
+                    logger.warning(
+                        f"⚠ Demo-User {ud['email']}: kein Passwort in ENV gesetzt, "
+                        f"generiertes Dev-Passwort: {pw}  (NUR einmalig beim Anlegen)"
+                    )
                 pos = ud.pop("position", "")
                 user = User(**ud, password_hash=hash_password(pw), position=pos, is_active=True, is_verified=True)
                 db.add(user)
@@ -1136,6 +1378,40 @@ def _create_default_admin():
         logger.warning(f"Produkt-Seed Fehler: {e}")
 
 
+def _disable_demo_accounts_in_production():
+    """Deaktiviert Demo-Konten wenn ENVIRONMENT=production gesetzt ist."""
+    if os.getenv("ENVIRONMENT", "development").lower() != "production":
+        return
+
+    DEMO_EMAILS = [
+        "admin@kompagnon.de",
+        "auditor@kompagnon.de",
+        "nutzer@kompagnon.de",
+        "kunde@kompagnon.de",
+    ]
+
+    from database import SessionLocal, User
+    db = SessionLocal()
+    try:
+        deactivated = 0
+        for email in DEMO_EMAILS:
+            user = db.query(User).filter(User.email == email).first()
+            if user and user.is_active:
+                user.is_active = False
+                deactivated += 1
+                logger.warning(f"🔒 Demo-Konto deaktiviert: {email}")
+        if deactivated:
+            db.commit()
+            logger.warning(f"🔒 {deactivated} Demo-Konten in Produktion deaktiviert")
+        else:
+            logger.info("✓ Keine aktiven Demo-Konten gefunden")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Demo-Deaktivierung fehlgeschlagen: {e}")
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("🚀 KOMPAGNON Backend Starting...")
@@ -1150,52 +1426,109 @@ async def lifespan(app: FastAPI):
     logger.info("✅ Port wird geöffnet...")
 
     async def _background_init():
-        """Alle DB-Operationen laufen NACH dem Start im Hintergrund."""
-        await asyncio.sleep(3)  # 3 Sekunden warten bis Server stabil ist
-        loop = asyncio.get_event_loop()
+        """Sequenzielle Initialisierung mit DB-Retry für Render Free Tier.
 
-        def _db_ops():
+        PHASE 1: DB-Verbindung herstellen (3 Versuche à 45s)
+        PHASE 2: Migrations (60s)
+        PHASE 3: DB init (30s)
+        PHASE 4: Default admin + Academy seed (10s je)
+        PHASE 5: Scheduler ZULETZT (nach DB ready)
+        """
+        import time
+        start = time.time()
+        await asyncio.sleep(3)  # 3s warten bis Server stabil ist
+        logger.info("🔄 Hintergrund-Init gestartet...")
+
+        def _academy_seed():
+            from routers.academy import seed_academy_courses
+            from database import SessionLocal
+            _db = SessionLocal()
             try:
-                _run_migrations()
-                logger.info("✓ Migrations OK")
-            except Exception as e:
-                logger.warning(f"⚠ Migrations: {e}")
-            try:
-                init_db()
-                logger.info("✓ DB init OK")
-            except Exception as e:
-                logger.warning(f"⚠ init_db: {e}")
-            try:
-                _create_default_admin()
-                logger.info("✓ Admin OK")
-            except Exception as e:
-                logger.warning(f"⚠ Admin: {e}")
-            try:
-                from routers.academy import seed_academy_courses
-                from database import SessionLocal
-                _db = SessionLocal()
                 seed_academy_courses(_db)
+            finally:
                 _db.close()
-                logger.info("✓ Academy seed OK")
-            except Exception as e:
-                logger.warning(f"⚠ Academy: {e}")
+
+        def _deals_migration():
+            from routers.deals import migrate_leads_to_deals
+            from database import SessionLocal
+            _db = SessionLocal()
             try:
-                start_scheduler()
-                logger.info("✓ Scheduler OK")
-            except Exception as e:
-                logger.warning(f"⚠ Scheduler: {e}")
-            logger.info("✅ Hintergrund-Init abgeschlossen")
+                migrate_leads_to_deals(_db)
+            finally:
+                _db.close()
+
+        def _ping_db():
+            """Simple DB ping to ensure connection is ready."""
+            from sqlalchemy import text
+            from database import SessionLocal
+            _db = SessionLocal()
+            try:
+                _db.execute(text("SELECT 1"))
+                _db.commit()
+            finally:
+                _db.close()
 
         with ThreadPoolExecutor(max_workers=1) as pool:
-            try:
-                await asyncio.wait_for(
-                    loop.run_in_executor(pool, _db_ops),
-                    timeout=15.0
-                )
-            except asyncio.TimeoutError:
-                logger.warning("⚠ Hintergrund-Init Timeout nach 15s — Server läuft trotzdem")
-            except Exception as e:
-                logger.warning(f"⚠ Hintergrund-Init Fehler: {e}")
+            loop = asyncio.get_event_loop()
+
+            async def _run(fn, timeout):
+                def _wrap():
+                    try:
+                        fn()
+                        return None
+                    except Exception as ex:
+                        return ex
+                return await asyncio.wait_for(loop.run_in_executor(pool, _wrap), timeout=timeout)
+
+            # PHASE 1: DB connection with retry
+            db_ready = False
+            for attempt in range(1, 4):
+                step_start = time.time()
+                logger.info(f"  DB-Verbindung Versuch {attempt}/3...")
+                try:
+                    result = await _run(_ping_db, 45.0)
+                    if result is None:
+                        db_ready = True
+                        logger.info(f"  ✓ DB verbunden ({time.time() - step_start:.1f}s)")
+                        break
+                    logger.warning(f"  ⚠ DB-Versuch {attempt}: {result}")
+                except asyncio.TimeoutError:
+                    logger.warning(f"  ⚠ DB-Versuch {attempt} Timeout nach 45s")
+                except Exception as e:
+                    logger.warning(f"  ⚠ DB-Versuch {attempt} Fehler: {e}")
+                if attempt < 3:
+                    await asyncio.sleep(2)
+
+            if not db_ready:
+                logger.error(f"❌ DB-Verbindung fehlgeschlagen — Server läuft ohne DB (Scheduler übersprungen)")
+                return
+
+            # PHASE 2-5: Each step isolated
+            phases = [
+                ("Migrations",    _run_migrations,       60.0),
+                ("DB init",       init_db,               30.0),
+                ("Default admin", _create_default_admin, 10.0),
+                ("Disable demo accounts", _disable_demo_accounts_in_production, 10.0),
+                ("Academy seed",  _academy_seed,         10.0),
+                ("Deals migration", _deals_migration,    15.0),
+                ("Scheduler",     start_scheduler,       15.0),
+            ]
+            for name, fn, timeout in phases:
+                step_start = time.time()
+                try:
+                    result = await _run(fn, timeout)
+                    dt = time.time() - step_start
+                    if result is None:
+                        logger.info(f"  ✓ {name} ({dt:.1f}s)")
+                    else:
+                        logger.warning(f"  ⚠ {name} Fehler: {result}")
+                except asyncio.TimeoutError:
+                    logger.warning(f"  ⚠ {name} Timeout nach {timeout}s — übersprungen")
+                except Exception as e:
+                    logger.warning(f"  ⚠ {name} unerwarteter Fehler: {e}")
+
+        total = time.time() - start
+        logger.info(f"✅ Hintergrund-Init abgeschlossen in {total:.1f}s")
 
     try:
         task = asyncio.create_task(_background_init())
@@ -1244,6 +1577,7 @@ for _o in _default_origins:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
+    allow_origin_regex=r"https://.*\.netlify\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1284,28 +1618,32 @@ from routers.courses import router as courses_router
 app.include_router(courses_router)
 
 try:
-    from app.routers.academy import router as _academy_router
-except ImportError:
     from routers.academy import router as _academy_router
-app.include_router(_academy_router)
+    app.include_router(_academy_router)
+    logger.info("✓ Academy Router geladen")
+except Exception as e:
+    logger.warning(f"⚠ Academy Router nicht geladen: {e}")
 
 try:
     from routers.crawler import router as _crawler_router
     app.include_router(_crawler_router)
-except ImportError:
-    logger.warning("⚠ Crawler Router nicht gefunden — wird übersprungen")
+    logger.info("✓ Crawler Router geladen")
+except Exception as e:
+    logger.warning(f"⚠ Crawler Router nicht geladen: {e}")
 
 try:
-    from app.routers.files import router as _files_router
-except ImportError:
     from routers.files import router as _files_router
-app.include_router(_files_router)
+    app.include_router(_files_router)
+    logger.info("✓ Files Router geladen")
+except Exception as e:
+    logger.warning(f"⚠ Files Router nicht geladen: {e}")
 
 try:
     from routers import website_mockup
     app.include_router(website_mockup.router, prefix="/api")
-except ImportError as e:
-    logger.warning(f"⚠ Website-Mockup router nicht gefunden: {e}")
+    logger.info("✓ Website-Mockup Router geladen")
+except Exception as e:
+    logger.warning(f"⚠ Website-Mockup Router nicht geladen: {e}")
 
 from routers import sitemap
 app.include_router(sitemap.router)
@@ -1326,6 +1664,9 @@ app.include_router(branddesign_router)
 from routers import templates as templates_router
 app.include_router(templates_router.router)
 
+from routers import website_templates as website_templates_router
+app.include_router(website_templates_router.router)
+
 from routers import messages as messages_router
 app.include_router(messages_router.router)
 
@@ -1338,6 +1679,33 @@ app.include_router(retainer.router)
 
 from routers.products import router as products_router
 app.include_router(products_router)
+
+from routers.deals import router as deals_router
+app.include_router(deals_router)
+
+from routers.campaigns import router as campaigns_router
+app.include_router(campaigns_router)
+
+from routers import webhooks_trackdesk as trackdesk_router
+app.include_router(trackdesk_router.router)
+
+from routers import assets as assets_router
+app.include_router(assets_router.router)
+
+from routers import pages as public_pages_router
+app.include_router(public_pages_router.router)
+
+from routers.export import router as export_router
+app.include_router(export_router)
+
+from routers.kas_router import router as kas_router
+app.include_router(kas_router)
+
+from routers.geo import router as geo_router
+app.include_router(geo_router)
+
+from routers.geo_payments import router as geo_payments_router
+app.include_router(geo_payments_router)
 
 
 # Global exception handler — catches unhandled errors
@@ -1353,6 +1721,16 @@ async def global_exception_handler(request, exc):
 
 
 # Health check endpoint
+@app.get("/api/health")
+async def api_health():
+    """Lightweight keepalive — no DB call, responds instantly."""
+    return {"status": "ok", "timestamp": datetime.utcnow().isoformat(), "service": "kompagnon-backend"}
+
+@app.get("/api/ping")
+async def api_ping():
+    """Ultra-lightweight keepalive alias."""
+    return "pong"
+
 @app.get("/health")
 def health_check():
     """Check if backend and database are running."""
@@ -1379,7 +1757,47 @@ def health_check():
         return {"status": "degraded", "database": db_status, "detail": str(e)}
 
 
+@app.get("/api/scheduler/status")
+def scheduler_status():
+    """Check if scheduler is running and list active jobs."""
+    try:
+        scheduler = get_scheduler()
+        return {
+            "running": scheduler.scheduler.running,
+            "jobs": [
+                {
+                    "id": job.id,
+                    "next_run": str(job.next_run_time) if job.next_run_time else None,
+                }
+                for job in scheduler.scheduler.get_jobs()
+            ],
+        }
+    except Exception as e:
+        return {"running": False, "error": str(e)}
+
+
+@app.post("/api/scheduler/restart")
+def scheduler_restart():
+    """Manually (re)start the scheduler — useful if background_init failed."""
+    try:
+        start_scheduler()
+        scheduler = get_scheduler()
+        return {
+            "status": "ok",
+            "running": scheduler.scheduler.running,
+            "job_count": len(scheduler.scheduler.get_jobs()),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Scheduler-Neustart fehlgeschlagen: {e}")
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+def robots_txt():
+    return "User-agent: *\nAllow: /\n"
+
+
 @app.get("/")
+@app.head("/")
 def root():
     """API root with documentation link."""
     return {

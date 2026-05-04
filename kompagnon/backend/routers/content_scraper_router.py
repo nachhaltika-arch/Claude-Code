@@ -12,7 +12,7 @@ from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from database import get_db, ProjectScrapeJob, ProjectScrapedPage, Project
+from database import get_db, ProjectScrapeJob, ProjectScrapedPage, Project, SessionLocal
 from routers.auth_router import require_admin, require_any_auth
 
 logger = logging.getLogger(__name__)
@@ -79,6 +79,86 @@ def _run_content_scrape(job_id: int, project_id: int, website_url: str):
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
+
+@router.post("/{project_id}/scrape-full")
+async def scrape_full_analysis(
+    project_id: int,
+    force: bool = False,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Single-page full analysis: SEO, text, assets, links, contact.
+    Cache: reuses existing result if < 24h old unless force=true.
+    Persists result in projects.scrape_full_data.
+    """
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+    url = project.website_url or ""
+    if not url:
+        raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
+    if not url.startswith("http"):
+        url = "https://" + url
+
+    # ── Cache-Check: 24h TTL ──
+    if not force and project.scrape_full_data and project.scrape_full_at:
+        age = (datetime.utcnow() - project.scrape_full_at).total_seconds()
+        if age < 86400:  # 24h
+            try:
+                cached = json.loads(project.scrape_full_data)
+                cached["_cached"] = True
+                cached["_cached_at"] = str(project.scrape_full_at)[:19]
+                cached["_cache_age_minutes"] = int(age / 60)
+                logger.info(f"scrape-full cache hit project {project_id} ({int(age/60)}min alt)")
+                return cached
+            except json.JSONDecodeError:
+                pass  # Broken cache → re-scrape
+
+    # DB-Verbindung vor externem Scrape freigeben
+    db.close()
+
+    # ── Fresh scrape ──
+    from services.content_scraper import scrape_page_full
+    result = await scrape_page_full(url)
+
+    # ── Persist — neue Session ──
+    db2 = SessionLocal()
+    try:
+        project = db2.query(Project).filter(Project.id == project_id).first()
+        if project:
+            project.scrape_full_data = json.dumps(result, ensure_ascii=False)
+            project.scrape_full_at   = datetime.utcnow()
+            db2.commit()
+        result["_cached"] = False
+    except Exception as e:
+        logger.warning(f"scrape-full persist error project {project_id}: {e}")
+        db2.rollback()
+    finally:
+        db2.close()
+
+    return result
+
+
+@router.get("/{project_id}/scrape-full")
+def get_scrape_full_cached(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Returns cached scrape-full result. Fast, no network call."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+    if not project.scrape_full_data:
+        return {"status": "no_cache", "message": "Noch kein Scrape durchgeführt"}
+    try:
+        data = json.loads(project.scrape_full_data)
+    except json.JSONDecodeError as e:
+        logger.error(f"scrape_full_data parse error project {project_id}: {e}")
+        return {"status": "parse_error", "message": str(e)}
+    data["_cached_at"] = str(project.scrape_full_at)[:19] if project.scrape_full_at else None
+    return data
+
 
 @router.post("/{project_id}/scrape")
 def start_scrape(

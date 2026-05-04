@@ -43,15 +43,16 @@ export function AuthProvider({ children }) {
   };
 
   const hasRole = (...roles) => {
-    const r = user?.role;
-    if (!r) return false;
-    if (roles.includes(r)) return true;
-    if (r === 'superadmin' && roles.includes('admin')) return true;
-    return false;
+    if (!user?.role) return false;
+    // Superadmin inherits admin rights — passes any admin check
+    if (user.role === 'superadmin' && roles.includes('admin')) return true;
+    return roles.includes(user.role);
   };
 
+  const isSuperadmin = () => user?.role === 'superadmin';
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, hasRole }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, hasRole, isSuperadmin }}>
       {children}
     </AuthContext.Provider>
   );

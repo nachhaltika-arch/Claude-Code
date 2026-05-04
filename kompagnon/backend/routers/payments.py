@@ -25,6 +25,24 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
 
+
+def _check_stripe_config():
+    if not stripe.api_key:
+        logger.error(
+            "STRIPE_SECRET_KEY nicht gesetzt — Stripe-Calls werden fehlschlagen. "
+            "Bitte in Render.com Environment konfigurieren."
+        )
+    if not WEBHOOK_SECRET:
+        logger.error(
+            "STRIPE_WEBHOOK_SECRET nicht gesetzt — Webhook-Verifikation deaktiviert. "
+            "Zahlungen werden NICHT verarbeitet. "
+            "Bitte in Render.com Environment konfigurieren."
+        )
+    elif stripe.api_key and WEBHOOK_SECRET:
+        logger.info("✓ Stripe-Konfiguration vollständig")
+
+_check_stripe_config()
+
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
 PACKAGE_NAMES = {
@@ -143,15 +161,17 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     if not WEBHOOK_SECRET:
         logger.error(
             "Stripe Webhook empfangen aber STRIPE_WEBHOOK_SECRET nicht gesetzt — "
-            "Zahlung kann nicht verarbeitet werden! Bitte Env-Var in Render setzen."
+            "Zahlung wird NICHT verarbeitet. Bitte Env-Var in Render setzen."
         )
-        return {"status": "skipped", "reason": "webhook_secret_not_configured"}
+        # 503 statt 200: Stripe macht Retry und der Fehler bleibt sichtbar,
+        # bis die Konfiguration nachgezogen wird.
+        raise HTTPException(status_code=503, detail="webhook_secret_not_configured")
 
     try:
         event = stripe.Webhook.construct_event(payload, sig, WEBHOOK_SECRET)
     except stripe.error.SignatureVerificationError as e:
-        logger.error(f"Stripe Signatur ungueltig: {e}")
-        raise HTTPException(400, "Ungueltige Webhook-Signatur")
+        logger.error(f"Stripe Signatur ungültig: {e}")
+        raise HTTPException(400, "Ungültige Webhook-Signatur")
     except Exception as e:
         logger.error(f"Stripe Webhook Fehler: {e}")
         raise HTTPException(400, "Webhook Fehler")
@@ -162,7 +182,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             _handle_successful_payment(session_obj, db)
         except Exception as e:
             logger.error(
-                f"Stripe: _handle_successful_payment Fehler fuer "
+                f"Stripe: _handle_successful_payment Fehler für "
                 f"Session {session_obj.get('id', '?')}: {e}",
                 exc_info=True,
             )
@@ -191,21 +211,25 @@ def _handle_successful_payment(session: dict, db: Session):
     amount      = (session.get("amount_total", 0) or 0) / 100
     stripe_session_id = session.get("id", "")
 
+    # ── IDEMPOTENZ-GUARD ─────────────────────────────────────────────────────
+    # Stripe sendet Webhooks mehrfach bei Timeout. Ohne diesen Guard entstehen
+    # doppelte Leads, User und Projekte. Notes-Feld enthält die Session-ID.
     if stripe_session_id:
         from sqlalchemy import text as _text
         existing_lead = db.execute(_text(
-            "SELECT id FROM leads WHERE notes LIKE :pattern LIMIT 1"
-        ), {"pattern": f"%{stripe_session_id}%"}).fetchone()
+            "SELECT id FROM leads WHERE notes LIKE :session_pattern LIMIT 1"
+        ), {"session_pattern": f"%{stripe_session_id}%"}).fetchone()
+
         if existing_lead:
             logger.info(
                 f"Stripe Webhook: Session {stripe_session_id} bereits verarbeitet "
-                f"(Lead {existing_lead[0]}) — uebersprungen"
+                f"(Lead {existing_lead[0]}) — übersprungen"
             )
             return
 
     logger.info(
-        f"Stripe: Neue Zahlung — {company} ({email}) | "
-        f"{amount:.2f} EUR | Session: {stripe_session_id}"
+        f"Stripe: Neue Zahlung wird verarbeitet — "
+        f"{company} ({email}) | {amount:.2f} EUR | Session: {stripe_session_id}"
     )
 
     name_parts = name.split(" ", 1)
@@ -261,16 +285,17 @@ def _handle_successful_payment(session: dict, db: Session):
         ).first()
         if not existing_project:
             project = Project(
-                lead_id      = lead.id,
-                status       = "phase_1",
-                start_date   = datetime.utcnow(),
-                fixed_price  = {
+                lead_id        = lead.id,
+                status         = "phase_1",
+                payment_status = "bezahlt",
+                start_date     = datetime.utcnow(),
+                fixed_price    = {
                     "starter":   1500.0,
                     "kompagnon": 2000.0,
                     "premium":   2800.0,
                 }.get(package_id, 2000.0),
-                hourly_rate   = 45.0,
-                ai_tool_costs = 50.0,
+                hourly_rate    = 45.0,
+                ai_tool_costs  = 50.0,
             )
             db.add(project)
             db.flush()
@@ -460,14 +485,17 @@ def _handle_successful_payment(session: dict, db: Session):
             </div>
             """
 
-            send_email(
+            ok = send_email(
                 to_email        = email,
                 subject         = "Willkommen bei KOMPAGNON — Ihre Zugangsdaten",
                 html_body       = html_body,
                 attachment_path = pdf_path,
                 attachment_name = "KOMPAGNON-Auftragsbestaetigung.pdf",
             )
-            logger.info(f"Stripe: Willkommens-E-Mail gesendet an {email}")
+            if ok:
+                logger.info(f"Stripe: Willkommens-E-Mail gesendet an {email}")
+            else:
+                logger.warning(f"Stripe: Willkommens-E-Mail an {email} fehlgeschlagen")
 
         except Exception as e:
             logger.error(f"Stripe: Willkommens-E-Mail Fehler: {e}")
@@ -524,20 +552,3 @@ async def get_session_status(session_id: str):
         }
     except Exception as e:
         raise HTTPException(400, str(e))
-
-
-def _check_stripe_config():
-    if not stripe.api_key:
-        logger.error(
-            "STRIPE_SECRET_KEY nicht gesetzt — Stripe-Calls werden fehlschlagen. "
-            "Bitte in Render.com Environment konfigurieren."
-        )
-    if not WEBHOOK_SECRET:
-        logger.error(
-            "STRIPE_WEBHOOK_SECRET nicht gesetzt — Webhook-Verifikation deaktiviert. "
-            "Zahlungen werden NICHT verarbeitet."
-        )
-    if stripe.api_key and WEBHOOK_SECRET:
-        logger.info("Stripe-Konfiguration vollstaendig")
-
-_check_stripe_config()

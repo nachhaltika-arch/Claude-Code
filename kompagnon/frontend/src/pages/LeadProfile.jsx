@@ -1,4 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useAudit } from '../hooks/useAudit';
+import { parseApiError } from '../utils/apiError';
+import EmptyState from '../components/ui/EmptyState';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -37,11 +40,11 @@ const STATUS_MAP = {
 };
 
 const LEVEL_COLORS = {
-  'Homepage Standard Platin': '#4a90d9',
-  'Homepage Standard Gold': '#b8860b',
-  'Homepage Standard Silber': '#708090',
+  'Homepage Standard Platin': 'var(--status-info-text)',
+  'Homepage Standard Gold':   '#b8860b',
+  'Homepage Standard Silber': 'var(--text-tertiary)',
   'Homepage Standard Bronze': '#cd7f32',
-  'Nicht konform': 'var(--status-danger-text)',
+  'Nicht konform':            'var(--status-danger-text)',
 };
 
 const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
@@ -49,7 +52,7 @@ const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
   const date = checkedAt ? new Date(checkedAt).toLocaleDateString('de-DE') : null;
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: reachable === null ? '#f3f4f6' : reachable ? '#dcfce7' : '#fee2e2', color: reachable === null ? '#6b7280' : reachable ? '#166534' : '#991b1b' }}>
+      <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: reachable === null ? 'var(--status-neutral-bg)' : reachable ? 'var(--status-success-bg)' : 'var(--status-danger-bg)', color: reachable === null ? 'var(--status-neutral-text)' : reachable ? 'var(--status-success-text)' : 'var(--status-danger-text)' }}>
         {reachable === null ? '● Nicht geprüft' : reachable ? '✓ Erreichbar' : '✗ Nicht erreichbar'}
       </span>
       {date && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{date}</span>}
@@ -60,6 +63,7 @@ const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
 
 const TABS = [
   { id: 'overview',   label: 'Übersicht',   icon: '⊞' },
+  { id: 'deals',      label: 'Deals',       icon: '💼' },
   { id: 'messages',   label: 'Nachrichten', icon: '💬' },
   { id: 'contact',    label: 'Kontakt',     icon: '👤' },
   { id: 'audits',     label: 'Audits',      icon: '✓' },
@@ -124,6 +128,36 @@ const GbpBadge = ({ lead }) => {
   );
 };
 
+function CrawledImagesGallery({ leadId, headers }) {
+  const [images, setImages] = useState([]);
+  const [showAll, setShowAll] = useState(false);
+  useEffect(() => {
+    if (!leadId) return;
+    fetch(`${API_BASE_URL}/api/files/${leadId}/grapesjs-assets?include_crawled=true`, { headers })
+      .then(r => r.ok ? r.json() : [])
+      .then(assets => setImages((Array.isArray(assets) ? assets : []).filter(a => a.category?.startsWith('Website:'))))
+      .catch(() => {});
+  }, [leadId]); // eslint-disable-line
+  if (images.length === 0) return null;
+  const visible = showAll ? images : images.slice(0, 12);
+  return (
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 16, marginTop: 8 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>{images.length} Bilder von der Website gecrawlt</span>
+        {images.length > 12 && <button onClick={() => setShowAll(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--brand-primary)', fontFamily: 'var(--font-sans)' }}>{showAll ? 'Weniger' : `Alle ${images.length}`}</button>}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 6 }}>
+        {visible.map((img, i) => (
+          <div key={i} title={img.name} style={{ position: 'relative', paddingBottom: '75%', background: 'var(--bg-app)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: '1px solid var(--border-light)' }}>
+            <img src={img.src} alt={img.name} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.parentNode.style.display = 'none'; }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10 }}>Diese Bilder sind im GrapesJS-Editor unter „Website: ..." verfügbar.</div>
+    </div>
+  );
+}
+
 export default function LeadProfile() {
   const { leadId } = useParams();
   const navigate = useNavigate();
@@ -142,8 +176,7 @@ export default function LeadProfile() {
   const [displayName, setDisplayName] = useState('');
   const [openAudit, setOpenAudit] = useState(null);
   const [deleteAuditId, setDeleteAuditId] = useState(null);
-  const [auditRunning, setAuditRunning] = useState(false);
-  const [auditProgress, setAuditProgress] = useState('');
+
   const [screenshotLoading, setScreenshotLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [extracting, setExtracting] = useState(false);
@@ -155,6 +188,8 @@ export default function LeadProfile() {
   const [crawlJob, setCrawlJob] = useState(null);
   const [crawlResults, setCrawlResults] = useState([]);
   const [crawlLoading, setCrawlLoading] = useState(false);
+  const [crawlElapsed, setCrawlElapsed] = useState(0);
+  const crawlIntervalRef = useRef(null);
   const [crawlSort, setCrawlSort] = useState({ col: 'crawled_at', asc: true });
   const [crawlExpandedRow, setCrawlExpandedRow] = useState(null);
   // Domains
@@ -182,6 +217,9 @@ export default function LeadProfile() {
   const [allTemplates, setAllTemplates] = useState([]);
   // Domain-Check
   const [domainLoading, setDomainLoading] = useState(false);
+  // Deals
+  const [companyDeals, setCompanyDeals] = useState([]);
+  const [dealsLoading, setDealsLoading] = useState(false);
   // Nachrichten
   const [messages, setMessages] = useState([]);
   const [msgLoading, setMsgLoading] = useState(false);
@@ -194,10 +232,34 @@ export default function LeadProfile() {
   const [seqStatus, setSeqStatus]       = useState(null);
   const [emailLoading, setEmailLoading] = useState(false);
 
+  // Kaltakquise
+  const [kaltakquiseLoading, setKaltakquiseLoading] = useState(false);
+  const [kaltakquiseDone,    setKaltakquiseDone]    = useState(false);
+  const [kaltakquiseError,   setKaltakquiseError]   = useState('');
+  const [kaltakquiseResult,  setKaltakquiseResult]  = useState(null);
+
   const h = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
+
+  const { phase: auditPhase, progress: auditProgress, start: auditStart } = useAudit({
+    leadId:      parseInt(leadId),
+    websiteUrl:  profile?.lead?.website_url,
+    companyName: profile?.lead?.company_name || '',
+    city:        profile?.lead?.city  || '',
+    trade:       profile?.lead?.trade || '',
+    headers:     h,
+    autoStart:   false,
+  });
+  const auditRunning = auditPhase === 'running';
+
+  useEffect(() => {
+    if (auditPhase === 'done') {
+      loadProfile();
+      setActiveTab('audits');
+    }
+  }, [auditPhase]); // eslint-disable-line
 
   useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); loadAssignedTemplate(); }, [leadId]); // eslint-disable-line
 
@@ -227,6 +289,18 @@ export default function LeadProfile() {
     const interval = setInterval(loadMessages, 30000);
     return () => clearInterval(interval);
   }, [activeTab, leadId]); // eslint-disable-line
+
+  // Load deals for this company when deals tab opens
+  useEffect(() => {
+    if (activeTab !== 'deals' || !leadId) return;
+    setDealsLoading(true);
+    fetch(`${API_BASE_URL}/api/deals/?company_id=${leadId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => { setCompanyDeals(Array.isArray(d) ? d : []); setDealsLoading(false); })
+      .catch(() => setDealsLoading(false));
+  }, [activeTab, leadId, token]);
 
   useEffect(() => {
     if (activeTab === 'emails') loadEmailData();
@@ -378,7 +452,7 @@ export default function LeadProfile() {
         setShowTemplateModal(false);
         await loadAssignedTemplate();
       }
-    } catch { toast.error('Fehler beim Zuweisen'); }
+    } catch (e) { toast.error(parseApiError(e)); }
   };
 
   const generateDesign = async () => {
@@ -552,65 +626,41 @@ export default function LeadProfile() {
     } catch {}
   };
 
-  const startAudit = async () => {
-    if (!profile?.lead?.website_url) return;
-    setAuditRunning(true);
-    setAuditProgress('Audit wird gestartet...');
+  const startAudit = () => auditStart();
+
+  const handleKaltakquise = async () => {
+    const lead = profile?.lead;
+    if (!lead) return;
+    if (!window.confirm(
+      `Kaltakquise-E-Mail an ${lead.email} senden?\n\n` +
+      `KI generiert ein personalisiertes Anschreiben auf Basis des Audits ` +
+      `und sendet es mit dem Audit-PDF als Anhang.`
+    )) return;
+    setKaltakquiseLoading(true);
+    setKaltakquiseError('');
+    setKaltakquiseDone(false);
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/audit/start`,
-        {
-          method: 'POST', headers: h,
-          body: JSON.stringify({
-            website_url: profile.lead.website_url,
-            lead_id: parseInt(leadId),
-            company_name: profile.lead.company_name,
-            city: profile.lead.city,
-            trade: profile.lead.trade,
-          }),
-        }
+        `${API_BASE_URL}/api/leads/${lead.id}/kaltakquise`,
+        { method: 'POST', headers: h }
       );
       const data = await res.json();
-      if (!data.audit_id) throw new Error();
-      pollAudit(data.audit_id);
-    } catch { setAuditRunning(false); setAuditProgress(''); }
-  };
-
-  const pollAudit = (auditId) => {
-    const msgs = [
-      '🔍 Website wird analysiert...',
-      '⚡ Performance wird gemessen...',
-      '⚖️ Rechtliches wird geprüft...',
-      '📸 Screenshot wird erstellt...',
-      '🤖 KI-Analyse läuft...',
-    ];
-    let i = 0;
-    const iv = setInterval(async () => {
-      i = (i + 1) % msgs.length;
-      setAuditProgress(msgs[i]);
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/api/audit/${auditId}`,
-          { headers: h }
-        );
-        const d = await res.json();
-        if (d.status === 'completed') {
-          clearInterval(iv);
-          setAuditProgress('✓ Audit abgeschlossen!');
-          setTimeout(async () => {
-            setAuditRunning(false);
-            setAuditProgress('');
-            await loadProfile();
-            setActiveTab('audits');
-          }, 1500);
-        } else if (d.status === 'failed') {
-          clearInterval(iv);
-          setAuditRunning(false);
-          setAuditProgress('');
+      if (!res.ok) {
+        if (data.status === 'no_audit') {
+          setKaltakquiseError('Kein Audit vorhanden. Bitte zuerst einen Audit starten.');
+        } else {
+          setKaltakquiseError(data.detail || 'Fehler beim Senden');
         }
-      } catch {}
-    }, 4000);
-    setTimeout(() => { clearInterval(iv); setAuditRunning(false); }, 180000);
+        return;
+      }
+      setKaltakquiseResult(data);
+      setKaltakquiseDone(true);
+      toast.success(`Kaltakquise-E-Mail gesendet an ${data.email_sent_to}`);
+    } catch {
+      setKaltakquiseError('Verbindungsfehler — bitte erneut versuchen');
+    } finally {
+      setKaltakquiseLoading(false);
+    }
   };
 
   const createScreenshot = async () => {
@@ -727,9 +777,32 @@ export default function LeadProfile() {
 
   // LOADING STATE
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: 12 }}>
-      <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
-      <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Kundenkartei wird geladen...</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-lg)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14, opacity: 0.5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div className="skeleton" style={{ width: 56, height: 56, borderRadius: '50%' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+            <div className="skeleton" style={{ height: 20, width: '40%', borderRadius: 4 }} />
+            <div className="skeleton" style={{ height: 12, width: '25%', borderRadius: 3 }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[1,2,3,4,5].map(i => (<div key={i} className="skeleton" style={{ height: 32, width: 90, borderRadius: 'var(--radius-md)' }} />))}
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {[1,2].map(col => (
+          <div key={col} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="skeleton" style={{ height: 13, width: '50%', borderRadius: 4 }} />
+            {[1,2,3,4].map(i => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div className="skeleton" style={{ height: 9, width: '40%', borderRadius: 3 }} />
+                <div className="skeleton" style={{ height: 13, width: `${50 + i * 10}%`, borderRadius: 3 }} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 
@@ -838,6 +911,26 @@ export default function LeadProfile() {
             ) : '🔍 Audit starten'}
           </button>
 
+          {profile?.lead?.email && profile?.lead?.website_url && (
+            <button
+              onClick={handleKaltakquise}
+              disabled={kaltakquiseLoading}
+              style={{
+                background: kaltakquiseLoading ? 'rgba(255,255,255,0.1)' : kaltakquiseDone ? '#059669' : '#7c3aed',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: 'var(--radius-md)',
+                color: 'white', fontSize: 12, fontWeight: 700,
+                padding: '9px 14px', cursor: kaltakquiseLoading ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6,
+                width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'center' : undefined,
+              }}
+            >
+              {kaltakquiseLoading ? (
+                <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />KI schreibt Anschreiben …</>
+              ) : kaltakquiseDone ? '✓ Kaltakquise gesendet' : '📧 Kaltakquise starten'}
+            </button>
+          )}
+
           <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: 12, fontWeight: 500, padding: '7px 14px', cursor: 'pointer', fontFamily: 'var(--font-sans)', width: isMobile ? '100%' : undefined }}>
             ✏️ Bearbeiten
           </button>
@@ -892,6 +985,18 @@ export default function LeadProfile() {
             <option value="lost">Verloren</option>
           </select>
         </div>
+
+        {/* Kaltakquise status messages */}
+        {kaltakquiseError && (
+          <div style={{ marginTop: 8, fontSize: 11, color: 'var(--status-danger-text)', padding: '6px 10px', background: 'var(--status-danger-bg)', borderRadius: 6 }}>
+            {kaltakquiseError}
+          </div>
+        )}
+        {kaltakquiseDone && kaltakquiseResult && (
+          <div style={{ marginTop: 8, fontSize: 11, color: 'var(--status-success-text)', padding: '6px 10px', background: 'var(--status-success-bg)', borderRadius: 6 }}>
+            ✓ Gesendet an {kaltakquiseResult.email_sent_to} · Score {kaltakquiseResult.audit_score}/100 ·{kaltakquiseResult.with_pdf ? ' mit PDF-Anhang' : ' ohne PDF'}
+          </div>
+        )}
       </div>
 
       {/* Briefing status */}
@@ -973,7 +1078,7 @@ export default function LeadProfile() {
                 <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: 32 }}>Nachrichten werden geladen…</div>
               )}
               {!msgLoading && messages.length === 0 && (
-                <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: 32 }}>Noch keine Nachrichten. Schreib die erste Nachricht!</div>
+                <EmptyState icon="💬" title="Noch keine Nachrichten" description="Schreibe die erste Nachricht an den Kunden — sie erscheint direkt im Kundenportal. Nutze das Eingabefeld unten." compact />
               )}
               {grouped.map((item, i) => {
                 if (item.type === 'sep') return (
@@ -991,15 +1096,15 @@ export default function LeadProfile() {
                       <span style={{ fontWeight: 600 }}>{m.sender_name || (isAdmin ? 'Admin' : lead.company_name)}</span>
                       <span>{fmtTime(m.created_at)}</span>
                       {isAdmin && (
-                        <span style={{ background: m.channel === 'email' ? '#fef3c7' : '#dcfce7', color: m.channel === 'email' ? '#92400e' : '#166534', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 600 }}>
+                        <span style={{ background: m.channel === 'email' ? 'var(--status-warning-bg)' : 'var(--status-success-bg)', color: m.channel === 'email' ? 'var(--status-warning-text)' : 'var(--status-success-text)', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 600 }}>
                           {m.channel === 'email' ? '✉️ E-Mail' : '💬 In-App'}
                         </span>
                       )}
                       {!isAdmin && !m.is_read && (
-                        <span style={{ color: '#3b82f6', fontSize: 10 }}>🔵 Ungelesen</span>
+                        <span style={{ color: 'var(--status-info-text)', fontSize: 10 }}>🔵 Ungelesen</span>
                       )}
                     </div>
-                    <div style={{ maxWidth: '75%', padding: '10px 14px', borderRadius: isAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: isAdmin ? '#E6F1FB' : 'var(--bg-surface)', border: '1px solid var(--border-light)', fontSize: 13, lineHeight: 1.6, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    <div style={{ maxWidth: '75%', padding: '10px 14px', borderRadius: isAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: isAdmin ? 'var(--brand-primary-light)' : 'var(--bg-surface)', border: '1px solid var(--border-light)', fontSize: 13, lineHeight: 1.6, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                       {m.content}
                     </div>
                   </div>
@@ -1035,7 +1140,7 @@ export default function LeadProfile() {
                   ))}
                 </div>
                 <button onClick={sendMessage} disabled={msgSending || !msgText.trim()}
-                  style={{ padding: '8px 20px', background: '#0d6efd', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
+                  style={{ padding: '8px 20px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}>
                   {msgSending ? 'Senden…' : 'Senden →'}
                 </button>
               </div>
@@ -1067,6 +1172,37 @@ export default function LeadProfile() {
 
       {/* ÜBERSICHT TAB */}
       {activeTab === 'overview' && (
+        <>
+        {/* Lead-Quelle (nur intern) */}
+        {(lead.utm_source || lead.kampagne_quelle) && (() => {
+          const SOURCE_MAP = {
+            facebook:   { icon: '📘', label: 'Facebook' },
+            linkedin:   { icon: '💼', label: 'LinkedIn' },
+            google_ads: { icon: '🔍', label: 'Google Ads' },
+            briefkarte: { icon: '📬', label: 'Briefkarte' },
+            instagram:  { icon: '📸', label: 'Instagram' },
+            email:      { icon: '✉️', label: 'E-Mail' },
+            postkarte:  { icon: '📬', label: 'Postkarte' },
+            sonstige:   { icon: '📌', label: 'Sonstige' },
+          };
+          const src = lead.utm_source || lead.kampagne_quelle;
+          const cfg = SOURCE_MAP[src] || { icon: '📌', label: src };
+          return (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 14px', background: 'var(--bg-surface)',
+              border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+              fontSize: 12, marginBottom: 12, width: 'fit-content',
+            }}>
+              <span style={{ fontSize: 16 }}>{cfg.icon}</span>
+              <span style={{ color: 'var(--text-tertiary)' }}>Quelle:</span>
+              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{cfg.label}</span>
+              {lead.utm_campaign && (
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>· {lead.utm_campaign}</span>
+              )}
+            </div>
+          );
+        })()}
         <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '340px 1fr' : isTablet ? '280px 1fr' : '1fr', gap: 16, alignItems: 'flex-start', minWidth: 0, width: '100%', overflowX: 'hidden' }}>
 
           {/* Linke Spalte */}
@@ -1430,6 +1566,7 @@ export default function LeadProfile() {
             </Card>
           </div>
         </div>
+        </>
       )}
 
       {/* KONTAKT TAB */}
@@ -1699,6 +1836,77 @@ export default function LeadProfile() {
         </div>
       )}
 
+      {/* DEALS TAB */}
+      {activeTab === 'deals' && (
+        <div style={{ maxWidth: 900 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>💼 Deals</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                {companyDeals.length} Deal{companyDeals.length !== 1 ? 's' : ''} · Gesamt{' '}
+                {companyDeals.reduce((s, d) => s + (d.total_value || 0), 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+              </div>
+            </div>
+            <a
+              href="/app/deals"
+              style={{
+                padding: '9px 18px', background: 'var(--brand-primary)', color: '#fff',
+                border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600,
+                textDecoration: 'none', fontFamily: 'var(--font-sans)',
+              }}
+            >
+              Zur Deal-Pipeline →
+            </a>
+          </div>
+
+          {dealsLoading && (
+            <div style={{ color: 'var(--text-tertiary)', fontSize: 13, padding: 20 }}>Deals werden geladen…</div>
+          )}
+
+          {!dealsLoading && companyDeals.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 48, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>💼</div>
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
+                Noch keine Deals für dieses Unternehmen.
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                Lege einen neuen Deal in der <a href="/app/deals" style={{ color: 'var(--brand-primary)' }}>Deal-Pipeline</a> an.
+              </div>
+            </div>
+          )}
+
+          {companyDeals.map(deal => (
+            <div key={deal.id} style={{
+              padding: '14px 18px', borderRadius: 'var(--radius-lg)', marginBottom: 10,
+              background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{deal.title}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                  {deal.created_at?.slice(0, 10)}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 4,
+                  background: deal.status === 'gewonnen' ? 'var(--status-success-bg)'
+                    : deal.status === 'verloren' ? 'var(--status-danger-bg)' : 'var(--status-info-bg)',
+                  color: deal.status === 'gewonnen' ? 'var(--status-success-text)'
+                    : deal.status === 'verloren' ? 'var(--status-danger-text)' : 'var(--status-info-text)',
+                  textTransform: 'capitalize',
+                }}>
+                  {deal.status?.replace('_', ' ')}
+                </span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--brand-primary)', minWidth: 110, textAlign: 'right' }}>
+                  {Number(deal.total_value || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* DATEIEN TAB */}
       {activeTab === 'dateien' && <ProjectFilesSection leadId={lead.id} />}
 
@@ -1931,21 +2139,25 @@ export default function LeadProfile() {
         };
         const startCrawl = () => {
           const url = lead?.website_url;
-          if (!url) return;
+          if (!url || crawlLoading || crawlJob?.status === 'running') return;
           setCrawlLoading(true);
+          setCrawlElapsed(0);
+          let elapsed = 0;
+          if (crawlIntervalRef.current) clearInterval(crawlIntervalRef.current);
+          crawlIntervalRef.current = setInterval(() => { elapsed += 1; setCrawlElapsed(elapsed); }, 1000);
           fetch(`${API_BASE_URL}/api/crawler/start/${leadId}`, {
             method: 'POST', headers: h,
             body: JSON.stringify({ url, max_pages: 50 }),
           }).then(r => r.json()).then(d => {
             setCrawlJob(d);
             setCrawlResults([]);
-            // Poll while running
             const interval = setInterval(() => {
               fetch(`${API_BASE_URL}/api/crawler/status/${leadId}`, { headers: h })
                 .then(r => r.json()).then(status => {
                   setCrawlJob(status);
                   if (status.status === 'completed' || status.status === 'failed') {
                     clearInterval(interval);
+                    clearInterval(crawlIntervalRef.current);
                     setCrawlLoading(false);
                     if (status.status === 'completed') {
                       fetch(`${API_BASE_URL}/api/crawler/results/${leadId}`, { headers: h })
@@ -1954,7 +2166,7 @@ export default function LeadProfile() {
                   }
                 });
             }, 3000);
-          }).catch(e => { console.error(e); setCrawlLoading(false); });
+          }).catch(e => { console.error(e); setCrawlLoading(false); clearInterval(crawlIntervalRef.current); });
         };
 
         if (!crawlJob && !crawlLoading) loadCrawlStatus();
@@ -1989,14 +2201,55 @@ export default function LeadProfile() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>🕷️ Website-Crawler</div>
               <button onClick={startCrawl} disabled={crawlLoading || crawlJob?.status === 'running'} style={{
-                padding: '8px 18px', background: '#16a34a', color: 'white',
+                padding: '8px 18px', background: (crawlLoading || crawlJob?.status === 'running') ? 'var(--border-medium)' : '#16a34a', color: 'white',
                 border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 700,
-                cursor: crawlLoading || crawlJob?.status === 'running' ? 'not-allowed' : 'pointer',
-                fontFamily: 'var(--font-sans)', opacity: crawlLoading || crawlJob?.status === 'running' ? 0.7 : 1,
+                cursor: (crawlLoading || crawlJob?.status === 'running') ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6,
               }}>
-                {crawlJob?.status === 'running' ? '⏳ Läuft…' : '▶ Crawler starten'}
+                {(crawlLoading || crawlJob?.status === 'running') ? (
+                  <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.7s linear infinite' }} />Analysiert…</>
+                ) : '▶ Crawler starten'}
               </button>
             </div>
+
+            {/* Progress Box — nur während Crawler läuft */}
+            {(crawlJob?.status === 'running' || (crawlLoading && !crawlJob)) && (() => {
+              const elapsed = crawlJob?.duration_seconds ?? crawlElapsed;
+              const found = crawlJob?.total_urls || 0;
+              const phase = elapsed < 5 ? { icon: '🔌', text: 'Verbindung wird aufgebaut…' }
+                : elapsed < 15 ? { icon: '🏠', text: 'Startseite wird analysiert…' }
+                : elapsed < 30 ? { icon: '🔗', text: `Links werden entdeckt — ${found} URLs bisher` }
+                : elapsed < 45 ? { icon: '📄', text: `Unterseiten durchsucht — ${found} URLs gecrawlt` }
+                : { icon: '⚡', text: `Tiefe Analyse — ${found} URLs, Abschluss in Kürze` };
+              return (
+                <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--brand-primary-mid, var(--border-light))', borderRadius: 'var(--radius-lg)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--brand-primary-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Crawler analysiert {lead?.website_url?.replace(/^https?:\/\//, '').split('/')[0]}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Seiten werden automatisch entdeckt und analysiert</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--brand-primary-light)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--brand-primary-dark)', fontWeight: 500 }}>
+                    <span style={{ fontSize: 18 }}>{phase.icon}</span><span>{phase.text}</span>
+                  </div>
+                  <div>
+                    <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${Math.min(95, (elapsed / 44) * 100)}%`, background: 'var(--brand-primary)', borderRadius: 3, transition: 'width 1s linear' }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 5 }}>
+                      <span>{found > 0 ? `${found} URLs gefunden` : 'Suche läuft…'}</span>
+                      <span>{elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`}</span>
+                    </div>
+                  </div>
+                  {elapsed > 35 && (
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', padding: '8px 12px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                      Große Websites dauern bis zu 60 Sekunden. Die Analyse läuft im Hintergrund — kein erneuter Klick nötig.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Status cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
@@ -2014,6 +2267,9 @@ export default function LeadProfile() {
             </div>
 
             {/* Status bar chart */}
+            {/* Gecrawlte Bilder Galerie */}
+            <CrawledImagesGallery leadId={leadId} headers={h} />
+
             {crawlResults.length > 0 && (
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>URLs nach Status-Code</div>

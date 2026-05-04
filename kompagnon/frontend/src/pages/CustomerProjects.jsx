@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import EmptyState from '../components/ui/EmptyState';
+import NewProjectModal from '../components/NewProjectModal';
+import toast from 'react-hot-toast';
 
 const PHASES = [
   { id: 'phase_1', label: 'Onboarding',  color: '#008EAA' },
@@ -55,16 +59,12 @@ function ProjectListCard({ project, lead, onClick }) {
 
   return (
     <div
+      className="kc-list-row--card"
       onClick={onClick}
       style={{
-        background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
-        borderRadius: 'var(--radius-lg)', padding: '14px 16px', cursor: 'pointer',
-        display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-        transition: 'border-color 0.15s, box-shadow 0.15s',
+        flexWrap: 'wrap', gap: 16,
         borderLeft: ph ? `4px solid ${ph.color}` : undefined,
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = ph?.color || 'var(--border-medium)'; e.currentTarget.style.boxShadow = 'var(--shadow-elevated)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.boxShadow = 'none'; }}
     >
       {/* Avatar */}
       <div style={{
@@ -94,7 +94,7 @@ function ProjectListCard({ project, lead, onClick }) {
           {pNum ? `Phase ${pNum} von 7 · ${ph?.label}` : project.status || '–'}
         </div>
         <div style={{ height: 5, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{ width: pNum ? `${(pNum / 7) * 100}%` : '0%', height: '100%', background: '#0d6efd', borderRadius: 3 }} />
+          <div style={{ width: pNum ? `${(pNum / 7) * 100}%` : '0%', height: '100%', background: pNum && pNum > 5 ? 'var(--success)' : 'var(--kc-mid)', borderRadius: 3 }} />
         </div>
       </div>
 
@@ -117,10 +117,292 @@ function ProjectListCard({ project, lead, onClick }) {
   );
 }
 
+const EMPTY_FORM = { paket: 'kompagnon', company_name: '', website_url: '', contact_name: '', email: '', phone: '' };
+
+// ── Online Fertig Modal ───────────────────────────────────────────────────────
+function OnlineFertigModal({ token, onClose, onCreated }) {
+  const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [saving, setSaving] = useState(false);
+  const { isMobile } = useScreenSize();
+  const h = token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.company_name.trim()) { toast.error('Bitte Unternehmensname eingeben'); return; }
+    if (!form.website_url.trim())  { toast.error('Bitte Website / Domain eingeben'); return; }
+
+    const websiteUrl = form.website_url.trim().startsWith('http')
+      ? form.website_url.trim()
+      : `https://${form.website_url.trim()}`;
+
+    setSaving(true);
+    try {
+      const leadRes = await fetch(`${API_BASE_URL}/api/leads/`, {
+        method: 'POST', headers: h,
+        body: JSON.stringify({
+          company_name: form.company_name.trim(),
+          website_url:  websiteUrl,
+          contact_name: form.contact_name.trim(),
+          email:        form.email.trim(),
+          phone:        form.phone.trim(),
+          lead_source:  'manual',
+          status:       'won',
+          package_type: form.paket,
+        }),
+      });
+      if (!leadRes.ok) {
+        const err = await leadRes.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${leadRes.status}`);
+      }
+      const lead = await leadRes.json();
+
+      const projRes = await fetch(`${API_BASE_URL}/api/projects/from-lead/${lead.id}`, {
+        method: 'POST', headers: h,
+      });
+      if (!projRes.ok && projRes.status !== 409) {
+        throw new Error('Projekt konnte nicht angelegt werden');
+      }
+      const proj = await projRes.json();
+      toast.success(`Projekt für ${form.company_name} angelegt`);
+      onCreated(proj.project_id);
+    } catch (err) {
+      toast.error(err.message || 'Fehler beim Anlegen');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inp = {
+    width: '100%', boxSizing: 'border-box', padding: '9px 12px',
+    border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
+    background: 'var(--bg-surface)', color: 'var(--text-primary)',
+    fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none',
+  };
+  const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 };
+
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
+        <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Online Fertig Projekt</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Manuelles Projekt anlegen (ohne Stripe-Checkout)</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, padding: '0 2px' }}>×</button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Paket */}
+          <div>
+            <label style={lbl}>Paket</label>
+            <select value={form.paket} onChange={set('paket')} style={inp}>
+              <option value="starter">Starter — 1.500 €</option>
+              <option value="kompagnon">Kompagnon — 3.500 €</option>
+              <option value="premium">Premium — 2.500 €</option>
+            </select>
+          </div>
+
+          {/* Unternehmensname */}
+          <div>
+            <label style={lbl}>Unternehmensname *</label>
+            <input value={form.company_name} onChange={set('company_name')} placeholder="z.B. Müller Haustechnik GmbH" style={inp} autoFocus />
+          </div>
+
+          {/* Website / Domain — Pflichtfeld */}
+          <div>
+            <label style={lbl}>Website / Domain *</label>
+            <input value={form.website_url} onChange={set('website_url')} placeholder="z.B. mueller-haustechnik.de" style={inp} autoComplete="url" />
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>Ohne Domain kann kein Audit und kein Website-Projekt gestartet werden.</div>
+          </div>
+
+          {/* Ansprechpartner + Telefon */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>Ansprechpartner</label>
+              <input value={form.contact_name} onChange={set('contact_name')} placeholder="Vor- und Nachname" style={inp} />
+            </div>
+            <div>
+              <label style={lbl}>Telefon</label>
+              <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+49 261 …" style={inp} />
+            </div>
+          </div>
+
+          {/* E-Mail */}
+          <div>
+            <label style={lbl}>E-Mail</label>
+            <input type="email" value={form.email} onChange={set('email')} placeholder="info@firma.de" style={inp} />
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 4 }}>
+            <button type="button" onClick={onClose} style={{ padding: '9px 18px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              Abbrechen
+            </button>
+            <button type="submit" disabled={saving} style={{ padding: '9px 22px', background: saving ? 'var(--text-tertiary)' : 'var(--kc-dark)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+              {saving ? 'Anlegen…' : '✓ Projekt anlegen'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+const IMPULS_EMPTY = { company_name: '', website_url: '', contact_name: '', email: '', phone: '', isb_antrag_datum: '', isb_bewilligung_datum: '', foerder_volumen: 20000, tagewerke: 20 };
+
+// ── IMPULS-Projekt Modal ──────────────────────────────────────────────────────
+function ImpulsModal({ token, onClose, onCreated }) {
+  const [form, setForm] = useState({ ...IMPULS_EMPTY });
+  const [saving, setSaving] = useState(false);
+  const { isMobile } = useScreenSize();
+  const h = token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.company_name.trim()) { toast.error('Bitte Unternehmensname eingeben'); return; }
+    if (!form.website_url.trim())  { toast.error('Bitte Website / Domain eingeben'); return; }
+
+    const websiteUrl = form.website_url.trim().startsWith('http')
+      ? form.website_url.trim()
+      : `https://${form.website_url.trim()}`;
+
+    const isbNotes = [
+      form.isb_antrag_datum      ? `ISB-Antrag: ${form.isb_antrag_datum}` : '',
+      form.isb_bewilligung_datum ? `ISB-Bewilligung: ${form.isb_bewilligung_datum}` : '',
+      form.foerder_volumen       ? `Fördervolumen: ${form.foerder_volumen} €` : '',
+      form.tagewerke             ? `Tagewerke: ${form.tagewerke}` : '',
+    ].filter(Boolean).join(' | ');
+
+    setSaving(true);
+    try {
+      const leadRes = await fetch(`${API_BASE_URL}/api/leads/`, {
+        method: 'POST', headers: h,
+        body: JSON.stringify({
+          company_name: form.company_name.trim(),
+          website_url:  websiteUrl,
+          contact_name: form.contact_name.trim(),
+          email:        form.email.trim(),
+          phone:        form.phone.trim(),
+          lead_source:  'isb_impuls',
+          status:       'won',
+          notes:        isbNotes || undefined,
+        }),
+      });
+      if (!leadRes.ok) {
+        const err = await leadRes.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${leadRes.status}`);
+      }
+      const lead = await leadRes.json();
+
+      const projRes = await fetch(`${API_BASE_URL}/api/projects/from-lead/${lead.id}`, {
+        method: 'POST', headers: h,
+      });
+      if (!projRes.ok && projRes.status !== 409) throw new Error('Projekt konnte nicht angelegt werden');
+      const proj = await projRes.json();
+      toast.success(`IMPULS-Projekt für ${form.company_name} angelegt`);
+      onCreated(proj.project_id);
+    } catch (err) {
+      toast.error(err.message || 'Fehler beim Anlegen');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inp = { width: '100%', boxSizing: 'border-box', padding: '9px 12px', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' };
+  const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 };
+  const numInp = { ...inp, width: '100%' };
+
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
+      <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 500, display: 'flex', flexDirection: 'column', margin: 'auto' }}>
+        {/* Header */}
+        <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>IMPULS-Projekt anlegen</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>ISB-Förderprojekt (ISB-158)</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)', lineHeight: 1, padding: '0 2px' }}>×</button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Kontaktdaten */}
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Kontaktdaten</div>
+
+          <div>
+            <label style={lbl}>Unternehmensname *</label>
+            <input value={form.company_name} onChange={set('company_name')} placeholder="Mustermann GmbH" style={inp} autoFocus />
+          </div>
+
+          <div>
+            <label style={lbl}>Website / Domain *</label>
+            <input value={form.website_url} onChange={set('website_url')} placeholder="mustermann-gmbh.de" style={inp} autoComplete="url" />
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>Für Audit und Website-Erstellung erforderlich.</div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>Ansprechpartner</label>
+              <input value={form.contact_name} onChange={set('contact_name')} placeholder="Vor- und Nachname" style={inp} />
+            </div>
+            <div>
+              <label style={lbl}>Telefon</label>
+              <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+49 261 …" style={inp} />
+            </div>
+          </div>
+
+          <div>
+            <label style={lbl}>E-Mail</label>
+            <input type="email" value={form.email} onChange={set('email')} placeholder="info@firma.de" style={inp} />
+          </div>
+
+          {/* ISB-Förderdaten */}
+          <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>ISB-Förderdaten</div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={lbl}>Antragsdatum</label>
+                <input type="date" value={form.isb_antrag_datum} onChange={set('isb_antrag_datum')} style={inp} />
+              </div>
+              <div>
+                <label style={lbl}>Bewilligungsdatum</label>
+                <input type="date" value={form.isb_bewilligung_datum} onChange={set('isb_bewilligung_datum')} style={inp} />
+              </div>
+              <div>
+                <label style={lbl}>Fördervolumen (€)</label>
+                <input type="number" value={form.foerder_volumen} onChange={set('foerder_volumen')} style={numInp} min={0} />
+              </div>
+              <div>
+                <label style={lbl}>Tagewerke gesamt</label>
+                <input type="number" value={form.tagewerke} onChange={set('tagewerke')} style={numInp} min={1} />
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 4 }}>
+            <button type="button" onClick={onClose} style={{ padding: '9px 18px', background: 'var(--bg-app)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              Abbrechen
+            </button>
+            <button type="submit" disabled={saving} style={{ padding: '9px 22px', background: saving ? 'var(--text-tertiary)' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+              {saving ? 'Anlegen…' : '✓ IMPULS-Projekt anlegen'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function CustomerProjects() {
   const navigate     = useNavigate();
-  const { token }    = useAuth();
+  const { token, hasRole } = useAuth();
   const h            = token ? { Authorization: `Bearer ${token}` } : {};
 
   const [projects, setProjects]   = useState([]);
@@ -128,6 +410,9 @@ export default function CustomerProjects() {
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
   const [phaseFilter, setPhaseFilter] = useState('');
+  const [showOnlineFertig, setShowOnlineFertig] = useState(false);
+  const [showImpuls, setShowImpuls] = useState(false);
+  const [showNewProject, setShowNewProject] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -149,6 +434,13 @@ export default function CustomerProjects() {
     })();
   }, []); // eslint-disable-line
 
+  // Pull-to-refresh support
+  useEffect(() => {
+    const onRefresh = () => window.location.reload();
+    window.addEventListener('kompagnon:refresh', onRefresh);
+    return () => window.removeEventListener('kompagnon:refresh', onRefresh);
+  }, []);
+
   const filtered = projects.filter(p => {
     const lead = leadsMap[p.lead_id];
     const name = (lead?.company_name || p.company_name || '').toLowerCase();
@@ -165,10 +457,34 @@ export default function CustomerProjects() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Kundenprojekte</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, margin: 0 }}>Kundenprojekte</h1>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--text-30)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
             {loading ? 'Lädt…' : `${filtered.length} von ${projects.length} Projekten`}
-          </p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setShowNewProject(true)}
+            style={{ padding: '9px 18px', background: 'var(--kc-yellow)', color: '#000', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.04em' }}
+          >
+            + Neues Projekt
+          </button>
+          {hasRole('admin') && (
+            <>
+              <button
+                onClick={() => setShowImpuls(true)}
+                style={{ padding: '8px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                + IMPULS-PROJEKT
+              </button>
+              <button
+                onClick={() => setShowOnlineFertig(true)}
+                style={{ padding: '8px 16px', background: 'var(--kc-dark)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                + Online Fertig
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -197,20 +513,32 @@ export default function CustomerProjects() {
         )}
       </div>
 
-      {/* Loading */}
+      {/* Loading Skeleton */}
       {loading && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="skeleton" style={{ height: 40, borderRadius: 'var(--radius-md)' }} />
+          {[1,2,3,4,5].map(i => (
+            <div key={i} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, minHeight: 64 }}>
+              <div className="skeleton" style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div className="skeleton" style={{ height: 13, width: '55%', borderRadius: 4 }} />
+                <div className="skeleton" style={{ height: 10, width: '35%', borderRadius: 4 }} />
+              </div>
+              <div className="skeleton" style={{ height: 22, width: 80, borderRadius: 20 }} />
+            </div>
+          ))}
         </div>
       )}
 
       {/* Empty state */}
       {!loading && filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-tertiary)' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{projects.length === 0 ? 'Noch keine Projekte' : 'Keine Treffer'}</div>
-          <div style={{ fontSize: 13 }}>Suche anpassen oder Filter zurücksetzen.</div>
-        </div>
+        <EmptyState
+          icon="📋"
+          title={search ? `Keine Projekte für „${search}"` : 'Noch keine Projekte'}
+          description={search ? 'Passe den Suchbegriff an oder entferne den Filter.' : 'Wenn ein Lead als „Gewonnen" markiert wird, erscheint hier automatisch ein Projekt.'}
+          action={!search ? { label: '→ Zur Lead-Pipeline', onClick: () => navigate('/app/leads') } : undefined}
+          secondaryAction={search ? { label: 'Filter zurücksetzen', onClick: () => setSearch('') } : undefined}
+        />
       )}
 
       {/* List */}
@@ -225,6 +553,41 @@ export default function CustomerProjects() {
             />
           ))}
         </div>
+      )}
+
+      {/* Neues Projekt Modal */}
+      {showNewProject && (
+        <NewProjectModal
+          onClose={() => setShowNewProject(false)}
+          onProjectCreated={(projekt) => {
+            setShowNewProject(false);
+            navigate(`/app/projects/${projekt.id}`);
+          }}
+        />
+      )}
+
+      {/* Online Fertig Modal */}
+      {showOnlineFertig && (
+        <OnlineFertigModal
+          token={token}
+          onClose={() => setShowOnlineFertig(false)}
+          onCreated={(projectId) => {
+            setShowOnlineFertig(false);
+            navigate(`/app/projects/${projectId}`);
+          }}
+        />
+      )}
+
+      {/* IMPULS-Projekt Modal */}
+      {showImpuls && (
+        <ImpulsModal
+          token={token}
+          onClose={() => setShowImpuls(false)}
+          onCreated={(projectId) => {
+            setShowImpuls(false);
+            navigate(`/app/projects/${projectId}`);
+          }}
+        />
       )}
     </div>
   );

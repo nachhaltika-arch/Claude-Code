@@ -3,77 +3,113 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import Card from '../components/ui/Card';
+import EmptyState from '../components/ui/EmptyState';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import API_BASE_URL from '../config';
+import OnboardingWizard from '../components/OnboardingWizard';
 
 export default function Dashboard() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
   const navigate = useNavigate();
   const { isMobile } = useScreenSize();
   const [kpis, setKpis] = useState(null);
+  const [dealStats, setDealStats] = useState(null);
+  const [campaignStats, setCampaignStats] = useState([]);
   const [leads, setLeads] = useState([]);
   const [audits, setAudits] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingKpis, setLoadingKpis] = useState(true);
+  const [loadingLeads, setLoadingLeads] = useState(true);
+  const [loadingSecondary, setLoadingSecondary] = useState(true);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
     const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+
+    // Chain A — KPIs: rendert die obere Kennzahlen-Reihe zuerst
+    fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h })
+      .then(r => r.json())
+      .then(data => setKpis(data))
+      .catch(() => {})
+      .finally(() => setLoadingKpis(false));
+
+    // Chain B — Leads: nur 8 werden angezeigt, Fallback auf usercards wenn leer
+    fetch(`${API_BASE_URL}/api/leads/?limit=8`, { headers: h })
+      .then(r => r.json())
+      .catch(() => [])
+      .then(async leadsData => {
+        let rows = Array.isArray(leadsData) ? leadsData : [];
+        if (rows.length === 0) {
+          try {
+            const uc = await fetch(`${API_BASE_URL}/api/usercards/`, { headers: h }).then(r => r.json());
+            if (Array.isArray(uc) && uc.length > 0) rows = uc;
+          } catch (_) {}
+        }
+        setLeads(rows.slice(0, 8));
+      })
+      .finally(() => setLoadingLeads(false));
+
+    // Chain C — Sekundaerdaten: Audits, Deal-Stats, Kampagnen-Stats
     Promise.all([
-      fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h }).then(r => r.json()),
-      fetch(`${API_BASE_URL}/api/leads/`, { headers: h }).then(r => r.json()).catch(() => []),
-      fetch(`${API_BASE_URL}/api/audit/recent`, { headers: h }).then(r => r.json().catch(() => [])),
-    ]).then(async ([kpiData, leadsData, auditData]) => {
-      setKpis(kpiData);
-      let rows = Array.isArray(leadsData) ? leadsData : [];
-      // Fallback: if leads table is empty, try usercards
-      if (rows.length === 0) {
-        try {
-          const uc = await fetch(`${API_BASE_URL}/api/usercards/`, { headers: h }).then(r => r.json());
-          if (Array.isArray(uc) && uc.length > 0) rows = uc;
-        } catch (_) {}
-      }
-      setLeads(rows.slice(0, 8));
+      fetch(`${API_BASE_URL}/api/audit/recent`,    { headers: h }).then(r => r.json()).catch(() => []),
+      fetch(`${API_BASE_URL}/api/deals/stats`,     { headers: h }).then(r => r.json()).catch(() => null),
+      fetch(`${API_BASE_URL}/api/campaigns/stats`, { headers: h }).then(r => r.json()).catch(() => []),
+    ]).then(([auditData, dealsData, campaignData]) => {
       setAudits(Array.isArray(auditData) ? auditData.slice(0, 5) : []);
-    }).finally(() => setLoading(false));
+      setDealStats(dealsData);
+      setCampaignStats(Array.isArray(campaignData) ? campaignData : []);
+    }).finally(() => setLoadingSecondary(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!user || onboardingChecked) return;
+    setOnboardingChecked(true);
+
+    // Nur für Kunden mit verknüpftem Lead
+    if (user.role !== 'kunde' || !user.lead_id) return;
+
+    // Onboarding-Status vom Server prüfen
+    const checkOnboarding = async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/auth/me`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('kompagnon_token')}`,
+            },
+          }
+        );
+        if (res.ok) {
+          const me = await res.json();
+          if (me.onboarding_completed === false) {
+            setShowOnboarding(true);
+          }
+        }
+      } catch {}
+    };
+    checkOnboarding();
+  }, [user, onboardingChecked]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const KpiCard = ({ label, value, icon, delta, color }) => (
-    <Card>
-      <div style={{
-        display: 'flex', alignItems: 'flex-start',
-        justifyContent: 'space-between', marginBottom: 12,
-      }}>
-        <span style={{
-          fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em',
-          color: 'var(--text-tertiary)', fontWeight: 500,
-        }}>
-          {label}
-        </span>
-        <span style={{ fontSize: 18, opacity: 0.6 }}>{icon}</span>
-      </div>
-      {loading ? (
+    <div style={{ background: 'var(--paper)', border: '0.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '16px 18px' }}>
+      {loadingKpis ? (
         <Skeleton height={32} width={80} />
       ) : (
-        <div style={{
-          fontSize: 28, fontWeight: 500,
-          color: color || 'var(--text-primary)',
-          lineHeight: 1, marginBottom: delta ? 8 : 0,
-        }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: color || 'var(--kc-dark)', lineHeight: 1 }}>
           {value ?? '—'}
         </div>
       )}
-      {delta && !loading && (
-        <div style={{
-          fontSize: 11,
-          color: delta > 0 ? 'var(--status-success-text)' : 'var(--status-danger-text)',
-        }}>
-          {delta > 0 ? '↑' : '↓'} {Math.abs(delta)} diese Woche
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text-30)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>{label}</div>
+      {delta !== undefined && !loadingKpis && (
+        <div style={{ fontSize: 10, fontWeight: 700, marginTop: 3, color: delta > 0 ? 'var(--success)' : 'var(--text-30)', fontFamily: 'var(--font-sans)' }}>
+          {delta > 0 ? '▲' : '▼'} {Math.abs(delta)} diese Woche
         </div>
       )}
-    </Card>
+    </div>
   );
 
   const avgScore = audits.length
@@ -101,6 +137,75 @@ export default function Dashboard() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, animation: 'fadeIn 0.3s ease', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
 
+      {showOnboarding && (
+        <OnboardingWizard
+          user={user}
+          onComplete={() => {
+            setShowOnboarding(false);
+            setOnboardingChecked(true);
+          }}
+        />
+      )}
+
+      {/* Page Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+        <div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, margin: 0 }}>
+            Dashboard
+          </h1>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-30)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
+            {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </div>
+        </div>
+        <button
+          onClick={() => navigate('/app/leads')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: 'var(--kc-yellow)', color: '#000', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
+          + Neuer Lead
+        </button>
+      </div>
+
+      {/* Deal-Metriken */}
+      {dealStats && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 12,
+          minWidth: 0, width: '100%',
+        }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: '18px 22px', border: '1px solid var(--border-light)' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+              💰 Heute gewonnen
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--status-success-text)' }}>
+              {Number(dealStats.won_today).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+              {dealStats.deals_won_today} Deal{dealStats.deals_won_today !== 1 ? 's' : ''}
+            </div>
+          </div>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: '18px 22px', border: '1px solid var(--border-light)' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+              📅 Diesen Monat
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--status-success-text)' }}>
+              {Number(dealStats.won_this_month).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+            </div>
+          </div>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: '18px 22px', border: '1px solid var(--border-light)' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+              💼 Pipeline offen
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--brand-primary)' }}>
+              {Number(dealStats.pipeline_value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+              {dealStats.deals_open} offene Deal{dealStats.deals_open !== 1 ? 's' : ''}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* KPI Grid */}
       <div style={{
         display: 'grid',
@@ -124,6 +229,65 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Leads nach Herkunft */}
+      {campaignStats.length > 0 && (() => {
+        const SRC = {
+          facebook:   { icon: '📘', label: 'Facebook' },
+          linkedin:   { icon: '💼', label: 'LinkedIn' },
+          google_ads: { icon: '🔍', label: 'Google Ads' },
+          briefkarte: { icon: '📬', label: 'Briefkarte' },
+          instagram:  { icon: '📸', label: 'Instagram' },
+          email:      { icon: '✉️', label: 'E-Mail' },
+          postkarte:  { icon: '📬', label: 'Postkarte' },
+          sonstige:   { icon: '📌', label: 'Sonstige' },
+          direkt:     { icon: '🔗', label: 'Direkt' },
+        };
+        const maxCount = Math.max(...campaignStats.map(s => s.lead_count || 0), 1);
+        return (
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+            padding: '18px 22px', border: '1px solid var(--border-light)',
+            width: '100%', boxSizing: 'border-box',
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14, color: 'var(--text-primary)' }}>
+              📊 Leads nach Herkunft
+            </div>
+            {campaignStats.map(stat => {
+              const cfg = SRC[stat.source] || { icon: stat.source_icon || '📌', label: stat.source_label || stat.source };
+              const cnt = stat.lead_count || 0;
+              const won = stat.won_count || 0;
+              const pct = cnt > 0 ? Math.round((won / cnt) * 100) : 0;
+              const widthPct = Math.round((cnt / maxCount) * 100);
+              return (
+                <div key={stat.source} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10,
+                }}>
+                  <span style={{ fontSize: 16, width: 24, flexShrink: 0 }}>{cfg.icon}</span>
+                  <span style={{ fontSize: 12, width: 100, color: 'var(--text-secondary)', flexShrink: 0 }}>{cfg.label}</span>
+                  <div style={{ flex: 1, height: 8, background: 'var(--bg-app)', borderRadius: 4, overflow: 'hidden', minWidth: 50 }}>
+                    <div style={{
+                      width: `${widthPct}%`, height: '100%',
+                      background: 'var(--brand-primary)',
+                      borderRadius: 4, transition: 'width 0.5s ease',
+                    }} />
+                  </div>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', minWidth: 70, textAlign: 'right', flexShrink: 0 }}>
+                    {cnt} Lead{cnt !== 1 ? 's' : ''}
+                  </span>
+                  <span style={{
+                    fontSize: 11,
+                    color: pct > 30 ? 'var(--status-success-text)' : 'var(--text-tertiary)',
+                    minWidth: 42, textAlign: 'right', flexShrink: 0, fontWeight: 600,
+                  }}>
+                    {pct}% ✓
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
       {/* Zwei-Spalten */}
       <div style={{
         display: 'grid',
@@ -134,25 +298,19 @@ export default function Dashboard() {
 
         {/* Leads */}
         <Card padding="sm" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '4px 4px 12px', borderBottom: '1px solid var(--border-light)', marginBottom: 4,
-          }}>
-            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--border-light)', marginBottom: 4 }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '.08em' }}>
               Aktuelle Leads
             </span>
             <button
-              onClick={() => navigate('/app/sales')}
-              style={{
-                fontSize: 11, color: 'var(--brand-primary)', background: 'none',
-                border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)',
-              }}
+              onClick={() => navigate('/app/deals')}
+              style={{ fontSize: 11, color: 'var(--kc-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}
             >
-              Alle anzeigen →
+              Alle →
             </button>
           </div>
 
-          {loading ? (
+          {loadingLeads ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '8px 4px' }}>
               {[1,2,3,4].map(i => <Skeleton key={i} height={40} />)}
             </div>
@@ -222,21 +380,16 @@ export default function Dashboard() {
 
         {/* Letzte Audits */}
         <Card padding="sm" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
-          <div style={{
-            fontSize: 13, fontWeight: 500, color: 'var(--text-primary)',
-            padding: '4px 4px 12px', borderBottom: '1px solid var(--border-light)', marginBottom: 8,
-          }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '.08em', paddingBottom: 12, borderBottom: '1px solid var(--border-light)', marginBottom: 8 }}>
             Letzte Audits
           </div>
 
-          {loading ? (
+          {loadingSecondary ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '4px' }}>
               {[1,2,3].map(i => <Skeleton key={i} height={48} />)}
             </div>
           ) : audits.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 12px', color: 'var(--text-tertiary)', fontSize: 13 }}>
-              Noch keine Audits
-            </div>
+            <EmptyState icon="📊" title="Noch keine Audits" description="Starte dein erstes Website-Audit um Optimierungspotenziale zu entdecken." action={{ label: 'Erstes Audit starten', onClick: () => navigate('/app/audit') }} compact />
           ) : (
             audits.map((audit, i) => {
               const score = audit.total_score || 0;
@@ -282,7 +435,7 @@ export default function Dashboard() {
             })
           )}
 
-          {!loading && audits.length > 0 && (
+          {!loadingSecondary && audits.length > 0 && (
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
               marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-light)',

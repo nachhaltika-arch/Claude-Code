@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import GeoAddonCard from '../components/GeoAddonCard';
 
 // ── Phase card ────────────────────────────────────────────────
 
@@ -92,8 +93,24 @@ export default function KundenPortal() {
   const [sending, setSending]     = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError]         = useState(null);
+  const [geoBanner, setGeoBanner] = useState(null); // 'success' | 'cancelled' | null
   const fileRef = useRef();
   const msgsEndRef = useRef();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('geo_success') === '1') {
+      setGeoBanner('success');
+    } else if (params.get('geo_cancelled') === '1') {
+      setGeoBanner('cancelled');
+    }
+    if (params.get('geo_success') || params.get('geo_cancelled')) {
+      params.delete('geo_success');
+      params.delete('geo_cancelled');
+      const qs = params.toString();
+      window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
+    }
+  }, []);
 
   useEffect(() => {
     if (user?.role !== 'kunde') return;
@@ -181,6 +198,55 @@ export default function KundenPortal() {
   return (
     <div style={{ maxWidth: 660, margin: '0 auto', paddingBottom: 48 }}>
 
+      {/* ── GEO-Buchung Banner (nach Stripe-Redirect) ── */}
+      {geoBanner === 'success' && (
+        <div style={{
+          background: 'var(--status-success-bg)',
+          border: '1px solid var(--status-success-text)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '14px 18px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-success-text)', marginBottom: 2 }}>
+              ✓ KI-Sichtbarkeit Add-on aktiviert
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              Vielen Dank! Sie erhalten eine Bestätigung per E-Mail. Das monatliche Monitoring startet sofort.
+            </div>
+          </div>
+          <button
+            onClick={() => setGeoBanner(null)}
+            style={{ background: 'none', border: 'none', fontSize: 18, color: 'var(--text-tertiary)', cursor: 'pointer' }}
+          >×</button>
+        </div>
+      )}
+      {geoBanner === 'cancelled' && (
+        <div style={{
+          background: 'var(--status-warning-bg)',
+          border: '1px solid var(--status-warning-text)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '14px 18px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            Buchung abgebrochen — kein Problem, Sie können das Add-on jederzeit später hinzufügen.
+          </div>
+          <button
+            onClick={() => setGeoBanner(null)}
+            style={{ background: 'none', border: 'none', fontSize: 18, color: 'var(--text-tertiary)', cursor: 'pointer' }}
+          >×</button>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -226,6 +292,77 @@ export default function KundenPortal() {
           <PhaseCard key={phase.number} phase={phase} isLast={i === phases.length - 1} />
         ))}
       </div>
+
+      {/* ── Website-Versionen zur Auswahl ── */}
+      <WebsiteVersionsSection
+        project={project}
+        token={token}
+        onReload={async () => {
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/portal/me`, { headers: { Authorization: `Bearer ${token}` } });
+            if (res.ok) setProject(await res.json());
+          } catch (_) {}
+        }}
+      />
+
+      {/* ── Inspirations-URLs ── */}
+      <InspirationsSection project={project} token={token} onSaved={() => {}} />
+
+      {/* ── KI-Sichtbarkeit Add-on (Self-Service Buchung) ── */}
+      <GeoAddonCard projectId={project?.project_id} />
+
+      {/* ── DNS-Guide (nur wenn Netlify-Domain gesetzt) ── */}
+      {project?.netlify && project.netlify.domain && (
+        <div style={{
+          ...sectionCard,
+          background: project.netlify.ssl_active
+            ? 'var(--status-success-bg)'
+            : 'var(--status-warning-bg)',
+          border: `1px solid ${project.netlify.ssl_active ? 'var(--status-success-text)' : 'var(--status-warning-text)'}`,
+        }}>
+          {project.netlify.ssl_active ? (
+            <>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-success-text)', marginBottom: 6 }}>
+                🎉 Ihre Website ist jetzt live!
+              </div>
+              <a
+                href={`https://${project.netlify.domain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: 13, color: 'var(--brand-primary)', fontWeight: 600, textDecoration: 'none' }}
+              >
+                {project.netlify.domain} öffnen →
+              </a>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-warning-text)', marginBottom: 6 }}>
+                ⚡ Letzter Schritt: Domain verbinden
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.6 }}>
+                Tragen Sie bitte folgende DNS-Einstellungen bei Ihrem Domain-Anbieter
+                (z.B. IONOS, Strato, united-domains) für <strong>{project.netlify.domain}</strong> ein.
+                Sie haben diese Anleitung auch per E-Mail erhalten.
+              </p>
+              <div style={{ background: 'var(--bg-surface)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-light)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr', padding: '8px 12px', background: 'var(--bg-app)', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <span>Typ</span><span>Name</span><span>Wert</span>
+                </div>
+                {(project.netlify.guide?.records || []).map((r, i) => (
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr', padding: '10px 12px', borderTop: '1px solid var(--border-light)', fontSize: 12, alignItems: 'center' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--brand-primary)' }}>{r.type}</span>
+                    <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>{r.name}</span>
+                    <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)', wordBreak: 'break-all' }}>{r.value}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.5 }}>
+                DNS-Änderungen werden innerhalb von 1–48 Stunden aktiv. Wir benachrichtigen Sie automatisch, sobald Ihre Website live ist.
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ── Nachrichten ── */}
       <div style={sectionCard}>
@@ -306,6 +443,198 @@ export default function KundenPortal() {
 
       <div style={{ marginTop: 24, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
         Bei Fragen wende dich an dein KOMPAGNON-Team.
+      </div>
+    </div>
+  );
+}
+
+
+function WebsiteVersionsSection({ project, token, onReload }) {
+  const [selecting, setSelecting] = useState(false);
+  const versions = Array.isArray(project?.versions) ? project.versions : [];
+  if (versions.length === 0) return null;
+
+  const selected = versions.find(v => v.selected);
+
+  const selectVersion = async (versionId) => {
+    setSelecting(true);
+    try {
+      await fetch(`${API_BASE_URL}/api/portal/versions/${versionId}/select`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (onReload) await onReload();
+    } catch (_) {}
+    setSelecting(false);
+  };
+
+  // Wenn bereits eine ausgewählt ist → Bestätigungs-Banner
+  if (selected) {
+    return (
+      <div style={{
+        background: 'var(--status-success-bg)',
+        border: '1px solid var(--status-success-text)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '18px 20px',
+        marginTop: 24,
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-success-text)', marginBottom: 6 }}>
+          ✓ Ihre Auswahl ist gespeichert — Version {selected.version_label}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+          Wir beginnen jetzt mit der Umsetzung Ihrer gewählten Version.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      background: 'var(--bg-surface)',
+      border: '2px solid var(--brand-primary)',
+      borderRadius: 'var(--radius-lg)',
+      padding: '20px 22px',
+      marginTop: 24,
+    }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand-primary)', marginBottom: 4 }}>
+        🎨 Ihre 3 Website-Entwürfe sind bereit!
+      </div>
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.5 }}>
+        Wählen Sie Ihren Favoriten — wir setzen ihn dann für Sie um.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {versions.map(v => {
+          let reasoning = {};
+          try { reasoning = JSON.parse(v.ki_reasoning || '{}'); } catch {}
+          return (
+            <div key={v.id} style={{
+              border: '1px solid var(--border-light)',
+              borderRadius: 'var(--radius-md)',
+              overflow: 'hidden',
+              background: 'var(--bg-app)',
+            }}>
+              <div style={{ height: 200, overflow: 'hidden', position: 'relative', background: 'var(--bg-surface)' }}>
+                <iframe
+                  title={`preview-v${v.id}`}
+                  src={`${API_BASE_URL}/api/portal/versions/${v.id}/preview`}
+                  style={{
+                    width: '200%', height: '400px',
+                    transform: 'scale(0.5)', transformOrigin: 'top left',
+                    border: 'none', pointerEvents: 'none',
+                  }}
+                />
+              </div>
+              <div style={{ padding: '14px 16px' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                  Version {v.version_label}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+                  {reasoning.titel || `Entwurf ${v.version_label}`}
+                </div>
+                {reasoning.beschreibung && (
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>
+                    {reasoning.beschreibung}
+                  </div>
+                )}
+                <button
+                  onClick={() => selectVersion(v.id)}
+                  disabled={selecting}
+                  style={{
+                    width: '100%', padding: '11px',
+                    background: 'var(--brand-primary)', color: '#fff',
+                    border: 'none', borderRadius: 'var(--radius-md)',
+                    fontSize: 13, fontWeight: 600,
+                    cursor: selecting ? 'wait' : 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  {selecting ? 'Wird gespeichert…' : 'Diese Version auswählen →'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+function InspirationsSection({ project, token }) {
+  const [urls, setUrls] = useState({ 1: '', 2: '', 3: '' });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (project?.inspirations) {
+      setUrls({
+        1: project.inspirations.url_1 || '',
+        2: project.inspirations.url_2 || '',
+        3: project.inspirations.url_3 || '',
+      });
+    }
+  }, [project?.inspirations]);
+
+  const save = async () => {
+    if (!project?.lead_id) return;
+    setSaving(true);
+    try {
+      await fetch(`${API_BASE_URL}/api/leads/${project.lead_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          inspiration_url_1: urls[1] || null,
+          inspiration_url_2: urls[2] || null,
+          inspiration_url_3: urls[3] || null,
+        }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) { /* ignore */ }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{
+      background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+      borderRadius: 'var(--radius-lg)', padding: '18px 20px', marginTop: 24,
+    }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+        Ihre Inspirationen
+      </div>
+      <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 14, lineHeight: 1.5 }}>
+        Welche Websites gefallen Ihnen? (bis zu 3 URLs — optional). Wir nutzen sie als Referenz für Ihren Entwurf.
+      </p>
+      {[1, 2, 3].map(n => (
+        <div key={n} style={{ marginBottom: 10 }}>
+          <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+            Website {n}
+          </label>
+          <input
+            value={urls[n]}
+            onChange={e => setUrls(p => ({ ...p, [n]: e.target.value }))}
+            placeholder="https://www.beispiel.de"
+            style={{
+              width: '100%', boxSizing: 'border-box', padding: '9px 12px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-light)',
+              background: 'var(--bg-app)', color: 'var(--text-primary)',
+              fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none',
+            }}
+          />
+        </div>
+      ))}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
+        <button onClick={save} disabled={saving} style={{
+          padding: '8px 20px', borderRadius: 'var(--radius-md)',
+          background: 'var(--brand-primary)', color: 'white',
+          border: 'none', fontSize: 13, fontWeight: 600,
+          cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)',
+        }}>
+          {saving ? 'Speichern…' : 'Speichern'}
+        </button>
+        {saved && <span style={{ fontSize: 12, color: 'var(--status-success-text)' }}>✓ Gespeichert</span>}
       </div>
     </div>
   );

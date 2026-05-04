@@ -86,8 +86,9 @@ export default function LeadPipeline() {
   const navigate         = useNavigate();
   const { user, token }  = useAuth();
   const { isMobile }     = useScreenSize();
-  const [activeTab, setActiveTab] = useState(0);
-  const [cards, setCards]         = useState([]);
+  const [activeTab, setActiveTab]         = useState(0);
+  const [activeLeadTab, setActiveLeadTab] = useState('alle');
+  const [cards, setCards]                 = useState([]);
   const [loading, setLoading]     = useState(true);
   const [dragging, setDragging]   = useState(null);
   const [dragOver, setDragOver]   = useState(null);
@@ -117,10 +118,18 @@ export default function LeadPipeline() {
     finally { setLoading(false); }
   };
 
-  const getColCards = (phaseId) =>
-    cards.filter(c => c.phase === phaseId)
-         .sort((a, b) => new Date(b.lead?.created_at || b.project?.created_at || 0)
-                       - new Date(a.lead?.created_at || a.project?.created_at || 0));
+  const getColCards = (phaseId) => {
+    const src = activeLeadTab === 'alle' ? cards : cards.filter(c => {
+      const s = c.lead?.status || '';
+      if (activeLeadTab === 'neu')     return !s || s === 'neu';
+      if (activeLeadTab === 'kontakt') return s === 'kontaktiert';
+      if (activeLeadTab === 'angebot') return s === 'angebot';
+      return true;
+    });
+    return src.filter(c => c.phase === phaseId)
+              .sort((a, b) => new Date(b.lead?.created_at || b.project?.created_at || 0)
+                            - new Date(a.lead?.created_at || a.project?.created_at || 0));
+  };
 
   const updatePhase = async (card, newPhase) => {
     if (!card.projectId) return; // won-lead fallback cards can't be dragged to a different phase
@@ -150,11 +159,37 @@ export default function LeadPipeline() {
     <div style={{ animation: 'fadeIn 0.3s ease', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
       {/* Header */}
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Projektpipeline</h1>
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--kc-dark)', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, margin: 0 }}>Projektpipeline</h1>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--text-30)', marginTop: 4, fontFamily: 'var(--font-sans)' }}>
           {cards.length} aktive Projekte · Drag & Drop zum Verschieben
         </div>
       </div>
+
+      {/* Mobile status pills */}
+      {isMobile && (
+        <div style={{
+          display: 'flex', gap: 8, overflowX: 'auto',
+          scrollbarWidth: 'none', marginBottom: 12, paddingBottom: 2,
+        }}>
+          {[
+            { id: 'alle',    label: 'Alle' },
+            { id: 'neu',     label: 'Neu' },
+            { id: 'kontakt', label: 'Kontaktiert' },
+            { id: 'angebot', label: 'Angebot' },
+          ].map(p => (
+            <button key={p.id} onClick={() => setActiveLeadTab(p.id)} style={{
+              flexShrink: 0, padding: '7px 14px', borderRadius: 20,
+              fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+              border: activeLeadTab === p.id ? 'none' : '1.5px solid #D5E0E2',
+              background: activeLeadTab === p.id ? '#004F59' : '#fff',
+              color: activeLeadTab === p.id ? '#fff' : '#4A5A5C',
+              fontFamily: 'var(--font-sans)', transition: 'all .12s',
+            }}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* KPI bar */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : 'repeat(7, 1fr)', gap: 6, marginBottom: 16, minWidth: 0, width: '100%' }}>
@@ -285,7 +320,7 @@ function ProjectKanbanCard({ card, phase, onDragStart, onOpen }) {
           {type === 'lead' ? 'Gewonnen · kein Projekt' : `Phase ${pNum} von 7 · ${phase?.label}`}
         </div>
         <div style={{ height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{ width: type === 'project' ? `${((pNum || 1) / 7) * 100}%` : '8%', height: '100%', background: type === 'lead' ? '#0d6efd' : '#0d6efd', borderRadius: 2 }} />
+          <div style={{ width: type === 'project' ? `${((pNum || 1) / 7) * 100}%` : '8%', height: '100%', background: 'var(--kc-mid)', borderRadius: 2 }} />
         </div>
       </div>
 

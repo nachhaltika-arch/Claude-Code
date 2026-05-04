@@ -21,15 +21,10 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import AdminUsers from './pages/AdminUsers';
 import TwoFactorSetup from './pages/TwoFactorSetup';
-import Landing from './pages/Landing';
-import Checkout from './pages/Checkout';
-import CheckoutSuccess from './pages/CheckoutSuccess';
 import Settings from './pages/Settings';
+import ProductEditor from './pages/ProductEditor';
 import RoleManagement from './pages/RoleManagement';
 import SettingsLayout from './components/SettingsLayout';
-import Impressum from './pages/Impressum';
-import Datenschutz from './pages/Datenschutz';
-import Barrierefreiheit from './pages/Barrierefreiheit';
 import ResetPassword from './pages/ResetPassword';
 import Akademie from './pages/Akademie';
 import Academy from './pages/Academy';
@@ -41,19 +36,38 @@ import AcademyAdminLesson from './pages/AcademyAdminLesson';
 import AcademyEdit from './pages/AcademyEdit';
 import AcademyModuleEdit from './pages/AcademyModuleEdit';
 import AcademyCertificate from './pages/AcademyCertificate';
-import SalesPipeline from './pages/SalesPipeline';
 import Companies from './pages/Companies';
 import CustomerDashboard from './pages/CustomerDashboard';
 import Courses from './pages/Courses';
 import DomainImport from './pages/DomainImport';
+import ScraperControl from './pages/ScraperControl';
+import KasWebsite from './pages/KasWebsite';
 import CustomerPortal from './pages/CustomerPortal';
 import CustomerDetail from './pages/CustomerDetail';
 import KundenPortal from './pages/KundenPortal';
-import PackageStarter from './pages/PackageStarter';
-import PackageKompagnon from './pages/PackageKompagnon';
-import PackagePremium from './pages/PackagePremium';
-import KampagneLandingPage from './pages/KampagneLandingPage';
 import QRGenerator from './pages/QRGenerator';
+import TemplateLibrary from './pages/TemplateLibrary';
+import TemplateEditor from './pages/TemplateEditor';
+import NewsletterDesigner from './components/NewsletterDesigner';
+import Newsletter from './pages/Newsletter';
+import PortalLogin from './pages/PortalLogin';
+import WebhookDashboard from './pages/WebhookDashboard';
+import RetainerDashboard from './pages/RetainerDashboard';
+import Abnahme from './pages/Abnahme';
+import ProductManager from './pages/ProductManager';
+import SupportTickets from './pages/customer/SupportTickets';
+import Freigaben from './pages/customer/Freigaben';
+import MeineRechnungen from './pages/customer/MeineRechnungen';
+import Deals from './pages/Deals';
+import CampaignManager from './pages/CampaignManager';
+import PageManager from './pages/PageManager';
+import PublicPageEditor from './pages/PublicPageEditor';
+import PageTemplateEditor from './pages/PageTemplateEditor';
+import ContentApprovalPage from './pages/ContentApprovalPage';
+import MobileVertrieb  from './pages/MobileVertrieb';
+import MobileLeads     from './pages/MobileLeads';
+import MobileProjekte  from './pages/MobileProjekte';
+import MobileSettings  from './pages/MobileSettings';
 
 import AppLayout from './components/Layout/AppLayout';
 
@@ -80,7 +94,13 @@ function PrivateRoute({ children, roles }) {
   if (user.role === 'kunde' && roles && !roles.includes('kunde')) {
     return <Navigate to={user.lead_id ? `/app/usercards/${user.lead_id}` : '/app/dashboard'} replace />;
   }
-  if (roles && !roles.includes(user.role)) return <Navigate to="/app/dashboard" replace />;
+  if (roles) {
+    // Superadmin inherits admin access — gets in anywhere admin does
+    const effectiveRoles = roles.includes('admin') && !roles.includes('superadmin')
+      ? [...roles, 'superadmin']
+      : roles;
+    if (!effectiveRoles.includes(user.role)) return <Navigate to="/app/dashboard" replace />;
+  }
   return children;
 }
 
@@ -114,30 +134,33 @@ function App() {
     <Router>
       <AuthProvider>
         <Routes>
-          {/* Public pages — no app chrome */}
-          <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/checkout/success" element={<CheckoutSuccess />} />
-          <Route path="/impressum" element={<Impressum />} />
-          <Route path="/datenschutz" element={<Datenschutz />} />
-          <Route path="/barrierefreiheit" element={<Barrierefreiheit />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          {/* ── Auth-Seiten — kein Marketing mehr ── */}
+          <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/register"       element={<PublicRoute><Register /></PublicRoute>} />
+          <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+
+          {/* ── Kundenportal (bleibt auf Render) ── */}
+          <Route path="/portal/login"  element={<PortalLogin />} />
+          <Route path="/kundenportal"  element={<PortalLogin />} />
           <Route path="/portal/:token" element={<CustomerPortal />} />
-          <Route path="/paket/starter" element={<PackageStarter />} />
-          <Route path="/paket/kompagnon" element={<PackageKompagnon />} />
-          <Route path="/paket/premium" element={<PackagePremium />} />
-          <Route path="/checkout/:package" element={<Checkout />} />
+
+          {/* ── Funktionale Seiten (Token-basiert — müssen auf Render bleiben) ── */}
+          <Route path="/abnahme/:projectId"        element={<Abnahme />} />
+          <Route path="/approve-content/:token"    element={<ContentApprovalPage />} />
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
-          <Route path="/kampagne/:slug" element={<KampagneLandingPage />} />
 
           {/* App — authenticated, with Navbar/Sidebar */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
             <Route index element={<Navigate to="/app/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardRoute />} />
             <Route path="usercards/:id" element={<PrivateRoute><CustomerDashboard /></PrivateRoute>} />
-            <Route path="sales" element={<PrivateRoute roles={['admin', 'auditor']}><SalesPipeline /></PrivateRoute>} />
+            {/* Vertriebspipeline durch Deals ersetzt — alte URL leitet weiter */}
+            <Route path="sales" element={<Navigate to="/app/deals" replace />} />
+            <Route path="deals" element={<PrivateRoute roles={['admin', 'auditor']}><Deals /></PrivateRoute>} />
+            <Route path="campaigns" element={<PrivateRoute roles={['admin']}><CampaignManager /></PrivateRoute>} />
+            <Route path="pages" element={<PrivateRoute roles={['admin']}><PageManager /></PrivateRoute>} />
+            <Route path="pages/templates/:id/editor" element={<PrivateRoute roles={['admin']}><PageTemplateEditor /></PrivateRoute>} />
+            <Route path="pages/:pageId/editor" element={<PrivateRoute roles={['admin']}><PublicPageEditor /></PrivateRoute>} />
             <Route path="companies" element={<PrivateRoute roles={['admin', 'auditor']}><Companies /></PrivateRoute>} />
             <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
             <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
@@ -148,6 +171,7 @@ function App() {
             <Route path="customers" element={<PrivateRoute><Customers /></PrivateRoute>} />
             <Route path="customers/:customerId" element={<PrivateRoute roles={['admin']}><CustomerDetail /></PrivateRoute>} />
             <Route path="import" element={<PrivateRoute roles={['admin', 'auditor']}><DomainImport /></PrivateRoute>} />
+            <Route path="scraper" element={<PrivateRoute roles={['admin']}><ScraperControl /></PrivateRoute>} />
             <Route path="export" element={<PrivateRoute roles={['admin', 'auditor']}><MassExport /></PrivateRoute>} />
             <Route path="audit" element={<PrivateRoute><AuditTool /></PrivateRoute>} />
             <Route path="profile" element={<Profile />} />
@@ -155,10 +179,20 @@ function App() {
             <Route path="admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
             <Route path="tickets" element={<PrivateRoute roles={['admin', 'auditor']}><Tickets /></PrivateRoute>} />
             <Route path="product" element={<PrivateRoute roles={['admin']}><ProductDevelopment /></PrivateRoute>} />
+            <Route path="product-editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
             <Route path="qr-generator" element={<PrivateRoute roles={['admin']}><QRGenerator /></PrivateRoute>} />
+            <Route path="webhooks" element={<PrivateRoute roles={['admin']}><WebhookDashboard /></PrivateRoute>} />
+            <Route path="retainer" element={<PrivateRoute roles={['admin']}><RetainerDashboard /></PrivateRoute>} />
+            <Route path="products" element={<PrivateRoute roles={['admin']}><ProductManager /></PrivateRoute>} />
+            <Route path="products/editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
+            <Route path="newsletter" element={<PrivateRoute><Newsletter /></PrivateRoute>} />
+            <Route path="newsletter/editor/:id" element={<PrivateRoute><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}
             <Route path="courses" element={<PrivateRoute roles={['admin', 'auditor']}><Courses /></PrivateRoute>} />
             <Route path="portal" element={<PrivateRoute roles={['kunde']}><KundenPortal /></PrivateRoute>} />
+            <Route path="support" element={<PrivateRoute><SupportTickets /></PrivateRoute>} />
+            <Route path="freigaben" element={<PrivateRoute><Freigaben /></PrivateRoute>} />
+            <Route path="rechnungen" element={<PrivateRoute><MeineRechnungen /></PrivateRoute>} />
             <Route path="academy" element={<Academy />} />
             <Route path="academy/:id" element={<AcademyCourseNew />} />
             <Route path="academy/admin" element={<PrivateRoute roles={['admin']}><AcademyAdmin /></PrivateRoute>} />
@@ -179,6 +213,13 @@ function App() {
             <Route path="akademie/admin/:courseId" element={<PrivateRoute roles={['admin']}><AcademyEdit /></PrivateRoute>} />
             <Route path="akademie/admin/modul/:moduleId" element={<PrivateRoute roles={['admin']}><AcademyModuleEdit /></PrivateRoute>} />
 
+            {/* Mobile hub pages */}
+            <Route path="vertrieb"    element={<PrivateRoute roles={['admin','auditor']}><MobileVertrieb /></PrivateRoute>} />
+            <Route path="m-vertrieb"  element={<PrivateRoute roles={['admin','auditor']}><MobileVertrieb /></PrivateRoute>} />
+            <Route path="m-leads"     element={<PrivateRoute roles={['admin','auditor']}><MobileLeads /></PrivateRoute>} />
+            <Route path="m-projekte"  element={<PrivateRoute roles={['admin','auditor']}><MobileProjekte /></PrivateRoute>} />
+            <Route path="m-settings"  element={<PrivateRoute><MobileSettings /></PrivateRoute>} />
+
             {/* Settings with sub-navigation */}
             <Route path="settings" element={<SettingsLayout />}>
               <Route index element={<Navigate to="/app/settings/profile" replace />} />
@@ -187,22 +228,52 @@ function App() {
               <Route path="roles" element={<PrivateRoute roles={['admin']}><RoleManagement /></PrivateRoute>} />
               <Route path="users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
               <Route path="system" element={<PrivateRoute roles={['admin']}><Settings tab="system" /></PrivateRoute>} />
+              <Route path="kas-website" element={<PrivateRoute roles={['admin', 'superadmin']}><KasWebsite /></PrivateRoute>} />
               <Route path="notifications" element={<Settings tab="notifications" />} />
               <Route path="subscription" element={<PrivateRoute roles={['admin']}><Settings tab="subscription" /></PrivateRoute>} />
+              <Route path="templates" element={<PrivateRoute roles={['admin']}><TemplateLibrary /></PrivateRoute>} />
             </Route>
+            {/* Template Editor — fullscreen, outside settings layout */}
+            <Route path="settings/templates/:id" element={<PrivateRoute roles={['admin']}><TemplateEditor /></PrivateRoute>} />
           </Route>
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
         <FeedbackButton />
         <Toaster
           position="top-right"
+          gutter={8}
           toastOptions={{
+            duration: 4000,
             style: {
               fontFamily: 'var(--font-sans)',
-              fontSize: 13,
-              borderRadius: 'var(--radius-md)',
+              fontSize: 12,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              borderRadius: 'var(--r-md)',
+              maxWidth: 380,
+              padding: '12px 14px',
+              border: '0.5px solid',
+            },
+            success: {
+              duration: 3000,
+              style: {
+                background: 'var(--success-bg)',
+                color: 'var(--success)',
+                borderColor: 'rgba(0,135,90,0.3)',
+              },
+              icon: '✓',
+            },
+            error: {
+              duration: 6000,
+              style: {
+                background: 'var(--error-bg)',
+                color: 'var(--error)',
+                borderColor: 'rgba(192,57,43,0.3)',
+              },
+              icon: '✕',
             },
           }}
         />

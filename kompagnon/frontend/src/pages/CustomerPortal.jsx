@@ -119,7 +119,7 @@ function FileUploadSection({ token }) {
     <div style={{ marginBottom: 16 }}>
       {/* Header */}
       <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
           Unterlagen einreichen
         </div>
         <p style={{ fontSize: 13, color: '#4a6470', lineHeight: 1.6, margin: '0 0 14px' }}>
@@ -167,7 +167,7 @@ function FileUploadSection({ token }) {
           onDrop={handleDrop}
           onClick={() => !pendingFile && fileInputRef.current?.click()}
           style={{
-            border: `2px dashed ${dragOver ? '#008eaa' : pendingFile ? '#22c55e' : '#d4d8e8'}`,
+            border: `2px dashed ${dragOver ? 'var(--brand-primary)' : pendingFile ? '#22c55e' : 'var(--border-medium)'}`,
             borderRadius: 10,
             padding: '20px 16px',
             textAlign: 'center',
@@ -182,10 +182,10 @@ function FileUploadSection({ token }) {
             <div>
               <div style={{ fontSize: 22, marginBottom: 4 }}>📎</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#4a6470', marginBottom: 2 }}>{pendingFile.name}</div>
-              <div style={{ fontSize: 11, color: '#8fa8b0' }}>{formatSize(pendingFile.size)}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{formatSize(pendingFile.size)}</div>
               <button
                 onClick={(e) => { e.stopPropagation(); setPendingFile(null); fileInputRef.current.value = ''; }}
-                style={{ marginTop: 8, background: 'none', border: 'none', fontSize: 11, color: '#8fa8b0', cursor: 'pointer', textDecoration: 'underline' }}
+                style={{ marginTop: 8, background: 'none', border: 'none', fontSize: 11, color: 'var(--text-tertiary)', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 Andere Datei wählen
               </button>
@@ -194,7 +194,7 @@ function FileUploadSection({ token }) {
             <div>
               <div style={{ fontSize: 28, marginBottom: 6 }}>📤</div>
               <div style={{ fontSize: 13, color: '#4a6470', fontWeight: 500 }}>Datei hierher ziehen oder tippen zum Auswählen</div>
-              <div style={{ fontSize: 11, color: '#8fa8b0', marginTop: 4 }}>PDF, DOCX, JPG, PNG, SVG, AI, EPS, ZIP — max. 20 MB</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>PDF, DOCX, JPG, PNG, SVG, AI, EPS, ZIP — max. 20 MB</div>
             </div>
           )}
         </div>
@@ -203,7 +203,7 @@ function FileUploadSection({ token }) {
         {pendingFile && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
                 Dateityp
               </label>
               <select
@@ -211,7 +211,7 @@ function FileUploadSection({ token }) {
                 name="portal-file-type"
                 value={fileType}
                 onChange={e => setFileType(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d8e8', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: 'var(--bg-surface)', color: 'var(--text-primary)', outline: 'none' }}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: 'var(--bg-surface)', color: 'var(--text-primary)', outline: 'none' }}
               >
                 {Object.entries(FILE_TYPE_LABELS).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
@@ -219,7 +219,7 @@ function FileUploadSection({ token }) {
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
                 Anmerkung (optional)
               </label>
               <input
@@ -229,9 +229,9 @@ function FileUploadSection({ token }) {
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 placeholder="z.B. Hauptlogo in Farbe"
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d8e8', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', color: 'var(--text-primary)' }}
-                onFocus={e => e.target.style.borderColor = '#008eaa'}
-                onBlur={e => e.target.style.borderColor = '#d4d8e8'}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', color: 'var(--text-primary)' }}
+                onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                onBlur={e => e.target.style.borderColor = 'var(--border-medium)'}
               />
             </div>
           </div>
@@ -240,12 +240,12 @@ function FileUploadSection({ token }) {
         {/* Progress bar */}
         {uploading && (
           <div style={{ marginBottom: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#8fa8b0', marginBottom: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>
               <span>Wird hochgeladen…</span>
               <span>{uploadProgress}%</span>
             </div>
-            <div style={{ height: 4, background: '#e0f4f8', borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ width: `${uploadProgress}%`, height: '100%', background: '#008eaa', borderRadius: 2, transition: 'width 0.2s ease' }} />
+            <div style={{ height: 4, background: 'var(--brand-primary-light)', borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{ width: `${uploadProgress}%`, height: '100%', background: 'var(--brand-primary)', borderRadius: 2, transition: 'width 0.2s ease' }} />
             </div>
           </div>
         )}
@@ -255,7 +255,7 @@ function FileUploadSection({ token }) {
           disabled={!pendingFile || uploading}
           style={{
             width: '100%', padding: 12,
-            background: !pendingFile || uploading ? '#8fa8b0' : '#008eaa',
+            background: !pendingFile || uploading ? 'var(--text-tertiary)' : 'var(--brand-primary)',
             color: 'white', border: 'none', borderRadius: 8,
             fontSize: 14, fontWeight: 600,
             cursor: !pendingFile || uploading ? 'not-allowed' : 'pointer',
@@ -268,13 +268,13 @@ function FileUploadSection({ token }) {
 
       {/* Existing files */}
       <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
           Eingereichte Dateien
         </div>
         {loadingFiles ? (
-          <div style={{ color: '#8fa8b0', fontSize: 13 }}>Wird geladen…</div>
+          <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Wird geladen…</div>
         ) : files.length === 0 ? (
-          <div style={{ color: '#8fa8b0', fontSize: 13 }}>Noch keine Dateien eingereicht.</div>
+          <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Noch keine Dateien eingereicht.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {files.map(f => {
@@ -288,7 +288,7 @@ function FileUploadSection({ token }) {
                     <div style={{ fontSize: 13, color: '#4a6470', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {f.original_filename}
                     </div>
-                    <div style={{ fontSize: 11, color: '#8fa8b0', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
                       {f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('de-DE') : '—'} · {formatSize(f.file_size)}
                       {f.note && ` · ${f.note}`}
                     </div>
@@ -310,6 +310,23 @@ function FileUploadSection({ token }) {
   );
 }
 
+const PHASEN = [
+  { nr: 1, label: 'Onboarding',  icon: '👋', beschreibung: 'Strategie-Workshop & Briefing' },
+  { nr: 2, label: 'Briefing',    icon: '📋', beschreibung: 'Inhalte & Ziele festlegen' },
+  { nr: 3, label: 'Content',     icon: '✏️', beschreibung: 'Texte, Bilder & Sitemap' },
+  { nr: 4, label: 'Technik',     icon: '⚙️', beschreibung: 'Entwicklung & Umsetzung' },
+  { nr: 5, label: 'Q&A',         icon: '🔍', beschreibung: 'Qualitätsprüfung & Abnahme' },
+  { nr: 6, label: 'Go-Live',     icon: '🚀', beschreibung: 'Website geht online' },
+  { nr: 7, label: 'Post-Launch', icon: '⭐', beschreibung: 'Nachbetreuung & Optimierung' },
+];
+
+const getPhaseStatus = (phaseNr, currentPhase) => {
+  if (!currentPhase) return 'ausstehend';
+  if (phaseNr < currentPhase)  return 'abgeschlossen';
+  if (phaseNr === currentPhase) return 'aktiv';
+  return 'ausstehend';
+};
+
 export default function CustomerPortal() {
   const { token } = useParams();
   const [step, setStep] = useState('loading');
@@ -320,8 +337,59 @@ export default function CustomerPortal() {
   const [verifiedData, setVerifiedData] = useState(null);
   const [error, setError] = useState('');
   const [portalTab, setPortalTab] = useState('uebersicht');
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [onboardingData, setOnboardingData] = useState({
+    website_url: '',
+    gewerk: '',
+    leistungen: '',
+    einzugsgebiet: '',
+    has_logo: false,
+    has_photos: false,
+    anmerkungen: '',
+  });
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [msgText, setMsgText] = useState('');
+  const [msgSending, setMsgSending] = useState(false);
+  const [msgSuccess, setMsgSuccess] = useState('');
+  const [msgError, setMsgError] = useState('');
+  const msgEndRef = useRef(null);
 
   useEffect(() => { loadPortal(); }, [token]); // eslint-disable-line
+
+  const loadMessages = async () => {
+    if (!data?.lead_id) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/messages/${data.lead_id}/kunde?token=${token}`);
+      if (res.ok) {
+        const msgs = await res.json();
+        setMessages(msgs);
+        setTimeout(() => msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      }
+    } catch { /* silent */ }
+  };
+
+  const sendMessage = async () => {
+    if (!msgText.trim() || msgSending || !data?.lead_id) return;
+    setMsgSending(true); setMsgSuccess(''); setMsgError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/messages/${data.lead_id}/kunde`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: msgText.trim(), token }),
+      });
+      if (res.ok) {
+        setMsgText('');
+        setMsgSuccess('✓ Nachricht gesendet — wir melden uns bald!');
+        await loadMessages();
+        setTimeout(() => setMsgSuccess(''), 4000);
+      } else { setMsgError('Verbindungsfehler — bitte erneut versuchen.'); }
+    } catch { setMsgError('Verbindungsfehler — bitte erneut versuchen.'); }
+    finally { setMsgSending(false); }
+  };
+
+  useEffect(() => {
+    if (portalTab === 'nachrichten') loadMessages();
+  }, [portalTab, data?.lead_id]); // eslint-disable-line
 
   const loadPortal = async () => {
     try {
@@ -345,19 +413,47 @@ export default function CustomerPortal() {
       const d = await res.json();
       if (!res.ok) { setVerifyError(d.detail || 'Verifikation fehlgeschlagen'); return; }
       setVerifiedData(d);
-      setStep('dashboard');
+      if (!data?.onboarding_completed) {
+        setOnboardingData(prev => ({ ...prev, website_url: data?.website_url || '' }));
+        setStep('onboarding');
+      } else {
+        setStep('dashboard');
+      }
     } catch { setVerifyError('Verbindungsfehler'); }
     finally { setVerifying(false); }
   };
 
-  const levelColor = data?.current_level ? LEVEL_COLORS[data.current_level] : '#8fa8b0';
+  const toggleField = (field) =>
+    setOnboardingData(prev => ({ ...prev, [field]: !prev[field] }));
+
+  const completeOnboarding = async () => {
+    setOnboardingLoading(true);
+    try {
+      await fetch(
+        `${API_BASE_URL}/api/leads/portal/${token}/complete-onboarding`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(onboardingData),
+        }
+      );
+      setStep('dashboard');
+    } catch (e) {
+      console.error(e);
+      setStep('dashboard');
+    } finally {
+      setOnboardingLoading(false);
+    }
+  };
+
+  const levelColor = data?.current_level ? LEVEL_COLORS[data.current_level] : 'var(--text-tertiary)';
 
   // LOADING
   if (step === 'loading') return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sans, system-ui)' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #e0f4f8', borderTopColor: '#008eaa', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-        <div style={{ color: '#8fa8b0', fontSize: 13 }}>Wird geladen...</div>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #e0f4f8', borderTopColor: 'var(--brand-primary)', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+        <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Wird geladen...</div>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -369,7 +465,7 @@ export default function CustomerPortal() {
       <div style={{ background: 'var(--bg-surface)', borderRadius: 16, padding: 40, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🔗</div>
         <h2 style={{ fontSize: 18, color: 'var(--text-primary)', marginBottom: 8 }}>Ungültiger Link</h2>
-        <p style={{ fontSize: 13, color: '#8fa8b0' }}>{error}</p>
+        <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{error}</p>
       </div>
     </div>
   );
@@ -382,28 +478,28 @@ export default function CustomerPortal() {
         <Logo size="small" />
       </div>
       <div style={{ maxWidth: 420, margin: '40px auto', padding: '0 20px' }}>
-        <div style={{ background: '#008eaa', borderRadius: 16, padding: 24, color: 'white', marginBottom: 20, textAlign: 'center' }}>
+        <div style={{ background: 'var(--brand-primary)', borderRadius: 16, padding: 24, color: 'white', marginBottom: 20, textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 8 }}>👋</div>
           <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 6px' }}>Willkommen, {data?.company_name}!</h1>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', margin: 0 }}>Ihr persönlicher Homepage-Audit Zugang</p>
         </div>
         <div style={{ background: 'var(--bg-surface)', borderRadius: 16, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
           <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6, marginTop: 0 }}>Identität bestätigen</h2>
-          <p style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 20, lineHeight: 1.6 }}>
-            Bitte geben Sie eine E-Mail-Adresse mit der Domain <strong style={{ color: '#008eaa' }}>@{data?.email_domain}</strong> ein.
+          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 20, lineHeight: 1.6 }}>
+            Bitte geben Sie eine E-Mail-Adresse mit der Domain <strong style={{ color: 'var(--brand-primary)' }}>@{data?.email_domain}</strong> ein.
           </p>
           {verifyError && (
             <div style={{ background: 'var(--status-danger-bg)', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{verifyError}</div>
           )}
           <form onSubmit={handleVerify}>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={`name@${data?.email_domain}`} required
-                style={{ width: '100%', padding: '14px 16px', border: '1px solid #d4d8e8', borderRadius: 8, fontSize: 16, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)' }}
-                onFocus={e => e.target.style.borderColor = '#008eaa'} onBlur={e => e.target.style.borderColor = '#d4d8e8'} />
+                style={{ width: '100%', padding: '14px 16px', border: '1px solid var(--border-medium)', borderRadius: 8, fontSize: 16, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)' }}
+                onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'} onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
             </div>
             <button type="submit" disabled={verifying} style={{
-              width: '100%', padding: 12, background: verifying ? '#8fa8b0' : '#008eaa', color: 'white',
+              width: '100%', padding: 12, background: verifying ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: 'white',
               border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: verifying ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
@@ -413,7 +509,191 @@ export default function CustomerPortal() {
             </button>
           </form>
         </div>
-        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: '#8fa8b0' }}>🔒 Ihre Daten sind sicher — nur Sie haben Zugriff.</div>
+        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: 'var(--text-tertiary)' }}>🔒 Ihre Daten sind sicher — nur Sie haben Zugriff.</div>
+      </div>
+    </div>
+  );
+
+  // ONBOARDING WIZARD
+  const inputStyle = {
+    fontSize: 16, padding: '12px 14px', border: '1px solid var(--border-light)',
+    borderRadius: 8, width: '100%', boxSizing: 'border-box',
+    background: 'var(--bg-surface)', color: 'var(--text-primary)', outline: 'none',
+  };
+  const labelStyle = { display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 };
+
+  if (step === 'onboarding') return (
+    <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px', fontFamily: 'var(--font-sans, system-ui)' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ width: '100%', maxWidth: 560 }}>
+
+        {/* Header */}
+        <div style={{ background: 'var(--brand-primary)', borderRadius: '16px 16px 0 0', padding: '28px 32px', textAlign: 'center' }}>
+          <div style={{ color: 'white', fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px' }}>KOMPAGNON</div>
+          <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, marginTop: 4 }}>Willkommen! Bitte kurz einrichten.</div>
+        </div>
+
+        {/* Progress dots */}
+        <div style={{ background: 'var(--bg-surface)', padding: '20px 32px 0', display: 'flex', justifyContent: 'center', gap: 10 }}>
+          {[1, 2, 3].map(n => (
+            <div key={n} style={{
+              width: n === onboardingStep ? 28 : 10,
+              height: 10, borderRadius: 5,
+              background: n <= onboardingStep ? 'var(--brand-primary)' : 'var(--border-light)',
+              transition: 'all 0.3s',
+            }} />
+          ))}
+        </div>
+
+        {/* Card */}
+        <div style={{ background: 'var(--bg-surface)', borderRadius: '0 0 16px 16px', padding: '24px 32px 32px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+
+          {/* ── Schritt 1 ── */}
+          {onboardingStep === 1 && (
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                  Herzlich willkommen, {data?.company_name || 'dort'}!
+                </h2>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+                  Ihr Projekt startet jetzt. Wir führen Sie in 3 kurzen Schritten durch die ersten Informationen die wir benötigen.
+                </p>
+              </div>
+              <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '20px 0' }} />
+              <label style={labelStyle}>Ihre Website-URL</label>
+              <input
+                type="url"
+                value={onboardingData.website_url}
+                onChange={e => setOnboardingData(prev => ({ ...prev, website_url: e.target.value }))}
+                placeholder="https://ihre-website.de"
+                style={inputStyle}
+              />
+              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 6, marginBottom: 0 }}>
+                Falls Sie noch keine Website haben, lassen Sie das Feld leer.
+              </p>
+            </div>
+          )}
+
+          {/* ── Schritt 2 ── */}
+          {onboardingStep === 2 && (
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🏢</div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                  Erzählen Sie uns von Ihrem Betrieb
+                </h2>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+                  Diese Informationen helfen uns Ihre neue Website perfekt auf Ihren Betrieb zuzuschneiden.
+                </p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Gewerk / Branche</label>
+                  <input
+                    type="text"
+                    value={onboardingData.gewerk}
+                    onChange={e => setOnboardingData(prev => ({ ...prev, gewerk: e.target.value }))}
+                    placeholder="z.B. Sanitär, Elektriker, Maler..."
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Ihre Leistungen</label>
+                  <textarea
+                    value={onboardingData.leistungen}
+                    onChange={e => setOnboardingData(prev => ({ ...prev, leistungen: e.target.value }))}
+                    placeholder="Was bieten Sie an? z.B. Badezimmer, Heizung, Notdienst, Wartung..."
+                    rows={3}
+                    style={{ ...inputStyle, resize: 'vertical' }}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Einzugsgebiet / Region</label>
+                  <input
+                    type="text"
+                    value={onboardingData.einzugsgebiet}
+                    onChange={e => setOnboardingData(prev => ({ ...prev, einzugsgebiet: e.target.value }))}
+                    placeholder="z.B. Koblenz und Umgebung, Rhein-Mosel-Kreis"
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Schritt 3 ── */}
+          {onboardingStep === 3 && (
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                  Fast geschafft!
+                </h2>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+                  Haben Sie bereits Unterlagen die wir für Ihre neue Website verwenden können?
+                </p>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                {[
+                  { field: 'has_logo', icon: '🎨', title: 'Logo vorhanden', text: 'Wir haben bereits ein Firmenlogo' },
+                  { field: 'has_photos', icon: '📷', title: 'Fotos vorhanden', text: 'Wir haben Fotos vom Betrieb / Team' },
+                ].map(({ field, icon, title, text }) => (
+                  <div key={field} onClick={() => toggleField(field)} style={{
+                    border: onboardingData[field] ? '2px solid #008eaa' : '2px solid var(--border-light)',
+                    background: onboardingData[field] ? '#E1F5EE' : '#f8f9fa',
+                    borderRadius: 12, padding: '16px 12px', cursor: 'pointer',
+                    textAlign: 'center', transition: 'all 0.2s',
+                  }}>
+                    <div style={{ fontSize: 28, marginBottom: 6 }}>{icon}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{title}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{text}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle}>Sonstige Hinweise (optional)</label>
+                <textarea
+                  value={onboardingData.anmerkungen}
+                  onChange={e => setOnboardingData(prev => ({ ...prev, anmerkungen: e.target.value }))}
+                  placeholder="Gibt es noch etwas das wir wissen sollten?"
+                  rows={2}
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                />
+              </div>
+              <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '16px 0' }} />
+              <div style={{ background: 'var(--brand-primary-light)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>✓ Was jetzt passiert:</div>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#3b5a8a', lineHeight: 2 }}>
+                  <li>Wir melden uns innerhalb von 24 Stunden</li>
+                  <li>Strategy Workshop vereinbaren (ca. 60 Min.)</li>
+                  <li>Ihre neue Website in 14 Werktagen</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation Buttons */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+            {onboardingStep > 1 && (
+              <button onClick={() => setOnboardingStep(s => s - 1)}
+                style={{ flex: 1, padding: '13px 20px', border: '1px solid var(--border-light)', borderRadius: 8, background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 15, cursor: 'pointer', fontWeight: 500 }}>
+                ← Zurück
+              </button>
+            )}
+            {onboardingStep < 3 ? (
+              <button onClick={() => setOnboardingStep(s => s + 1)}
+                style={{ flex: 2, padding: '13px 20px', border: 'none', borderRadius: 8, background: 'var(--brand-primary)', color: 'white', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}>
+                Weiter →
+              </button>
+            ) : (
+              <button onClick={completeOnboarding} disabled={onboardingLoading}
+                style={{ flex: 2, padding: '13px 20px', border: 'none', borderRadius: 8, background: 'var(--brand-primary)', color: 'white', fontSize: 15, cursor: 'pointer', fontWeight: 600, opacity: onboardingLoading ? 0.7 : 1 }}>
+                {onboardingLoading ? 'Wird gespeichert...' : 'Jetzt starten! 🚀'}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -424,7 +704,7 @@ export default function CustomerPortal() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Header */}
-      <div style={{ background: '#008eaa', padding: '16px 20px 0' }}>
+      <div style={{ background: 'var(--brand-primary)', padding: '16px 20px 0' }}>
         <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <Logo size="small" />
           <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{data?.company_name}</div>
@@ -444,7 +724,7 @@ export default function CustomerPortal() {
 
         {/* Tab bar */}
         <div style={{ maxWidth: 700, margin: '16px auto 0', display: 'flex', gap: 4 }}>
-          {[['uebersicht', 'Übersicht'], ['unterlagen', 'Unterlagen']].map(([id, label]) => (
+          {[['uebersicht', 'Übersicht'], ['nachrichten', '💬 Nachrichten'], ['unterlagen', 'Unterlagen']].map(([id, label]) => (
             <button
               key={id}
               onClick={() => setPortalTab(id)}
@@ -452,7 +732,7 @@ export default function CustomerPortal() {
                 padding: '8px 16px', border: 'none', borderRadius: '8px 8px 0 0',
                 fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                 background: portalTab === id ? 'var(--bg-app)' : 'rgba(255,255,255,0.15)',
-                color: portalTab === id ? '#008eaa' : 'rgba(255,255,255,0.85)',
+                color: portalTab === id ? 'var(--brand-primary)' : 'rgba(255,255,255,0.85)',
               }}
             >
               {label}
@@ -464,15 +744,97 @@ export default function CustomerPortal() {
       {/* Tab content */}
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '20px 16px' }}>
         {portalTab === 'uebersicht' && <>
+
+          {/* ── Projektstatus / Phasen ── */}
+          {data?.project_id ? (
+            <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid var(--border-light)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Ihr Projektstatus
+                </div>
+                {data.go_live_date && (
+                  <div style={{ fontSize: 11, color: 'var(--brand-primary)', fontWeight: 500, background: '#E1F5EE', padding: '3px 8px', borderRadius: 20 }}>
+                    Go-Live: {new Date(data.go_live_date).toLocaleDateString('de-DE')}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {PHASEN.map((phase) => {
+                  const status = getPhaseStatus(phase.nr, data.current_phase);
+                  const istAbgeschlossen = status === 'abgeschlossen';
+                  const istAktiv         = status === 'aktiv';
+                  const istAusstehend    = status === 'ausstehend';
+                  return (
+                    <div key={phase.nr} style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 12px', borderRadius: 8,
+                      background: istAktiv ? '#E1F5EE' : 'transparent',
+                      border: istAktiv ? '1.5px solid #1D9E75' : '1.5px solid transparent',
+                      transition: 'all 0.2s',
+                    }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 14, fontWeight: 600,
+                        background: istAbgeschlossen ? '#1D9E75' : istAktiv ? 'var(--brand-primary)' : 'var(--border-light)',
+                        color: (istAbgeschlossen || istAktiv) ? 'white' : '#94a3b8',
+                        boxShadow: istAktiv ? '0 0 0 4px rgba(0,142,170,0.15)' : 'none',
+                      }}>
+                        {istAbgeschlossen ? '✓' : phase.nr}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: istAktiv ? 600 : 500, color: istAbgeschlossen ? '#1D9E75' : istAktiv ? '#085041' : '#94a3b8' }}>
+                          {phase.icon} {phase.label}
+                          {istAktiv && (
+                            <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: 'var(--brand-primary)', color: 'white', padding: '2px 6px', borderRadius: 10, verticalAlign: 'middle' }}>
+                              Aktuell
+                            </span>
+                          )}
+                        </div>
+                        {(istAktiv || istAbgeschlossen) && (
+                          <div style={{ fontSize: 11, color: istAktiv ? '#0F6E56' : '#94a3b8', marginTop: 1 }}>
+                            {phase.beschreibung}
+                          </div>
+                        )}
+                      </div>
+                      {istAbgeschlossen && <div style={{ fontSize: 16, color: '#1D9E75', flexShrink: 0 }}>✓</div>}
+                      {istAusstehend    && <div style={{ width: 16, height: 2, background: 'var(--border-light)', borderRadius: 1, flexShrink: 0 }} />}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94a3b8', marginBottom: 6 }}>
+                  <span>Gesamtfortschritt</span>
+                  <span>{data.current_phase ? `Phase ${data.current_phase} von 7` : 'Noch nicht gestartet'}</span>
+                </div>
+                <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: 3,
+                    background: 'linear-gradient(90deg, #1D9E75, #008eaa)',
+                    width: `${data.current_phase ? Math.min(100, ((data.current_phase - 1) / 6) * 100) : 0}%`,
+                    transition: 'width 0.6s ease',
+                  }} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 12, padding: '14px 16px', marginBottom: 16, fontSize: 13, color: '#92400E' }}>
+              Ihr Projekt wird gerade vorbereitet. Wir melden uns innerhalb von 24 Stunden.
+            </div>
+          )}
+
           {data?.ai_summary && (
-            <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e0f4f8' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Zusammenfassung</div>
+            <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid var(--border-light)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Zusammenfassung</div>
               <p style={{ fontSize: 13, color: '#4a6470', lineHeight: 1.6, margin: 0 }}>{data.ai_summary}</p>
             </div>
           )}
           {data?.rc_score !== null && (
             <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Ihre Ergebnisse im Detail</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Ihre Ergebnisse im Detail</div>
               {[
                 ['Rechtliche Compliance', data.rc_score, 30],
                 ['Technische Performance', data.tp_score, 20],
@@ -499,11 +861,11 @@ export default function CustomerPortal() {
           )}
           {data?.website_screenshot && (
             <div style={{ background: 'var(--bg-surface)', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Ihre Website</div>
-              <div style={{ background: 'var(--bg-app)', borderRadius: 8, overflow: 'hidden', border: '1px solid #e0f4f8' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Ihre Website</div>
+              <div style={{ background: 'var(--bg-app)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-light)' }}>
                 <div style={{ background: 'var(--brand-primary-light)', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
                   {['#ef4444','#f59e0b','#22c55e'].map(c => <div key={c} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />)}
-                  <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: 4, padding: '2px 8px', fontSize: 10, color: '#8fa8b0', marginLeft: 6 }}>{data.website_url}</div>
+                  <div style={{ flex: 1, background: 'var(--bg-surface)', borderRadius: 4, padding: '2px 8px', fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 6 }}>{data.website_url}</div>
                 </div>
                 <img src={data.website_screenshot} alt="Website" style={{ width: '100%', display: 'block', maxHeight: 240, objectFit: 'cover', objectPosition: 'top' }} />
               </div>
@@ -515,11 +877,96 @@ export default function CustomerPortal() {
               KOMPAGNON bringt Ihre Homepage auf Homepage Standard Gold oder Platin — in 14 Werktagen, zum Festpreis.
             </p>
             <a href="https://www.kompagnon.eu" target="_blank" rel="noopener noreferrer" style={{
-              display: 'block', width: '100%', maxWidth: 320, margin: '0 auto', padding: '14px 24px', background: '#008eaa', color: 'white', textAlign: 'center',
+              display: 'block', width: '100%', maxWidth: 320, margin: '0 auto', padding: '14px 24px', background: 'var(--brand-primary)', color: 'white', textAlign: 'center',
               borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none',
             }}>Jetzt anfragen →</a>
           </div>
         </>}
+
+        {portalTab === 'nachrichten' && (() => {
+          const fmtTime = (iso) => {
+            if (!iso) return '';
+            return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+          };
+          const fmtDay = (iso) => {
+            if (!iso) return '';
+            const d = new Date(iso);
+            const today = new Date();
+            const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+            if (d.toDateString() === today.toDateString()) return 'Heute';
+            if (d.toDateString() === yesterday.toDateString()) return 'Gestern';
+            return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          };
+          const unreadCount = messages.filter(m => m.sender_role === 'admin' && !m.is_read).length;
+          const grouped = [];
+          let lastDay = null;
+          for (const m of messages) {
+            const day = fmtDay(m.created_at);
+            if (day !== lastDay) { grouped.push({ type: 'sep', day }); lastDay = day; }
+            grouped.push({ type: 'msg', msg: m });
+          }
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>💬 Ihre Nachrichten von KOMPAGNON</div>
+
+              {unreadCount > 0 && (
+                <div style={{ background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-text)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--status-warning-text)', fontWeight: 500 }}>
+                  Sie haben {unreadCount} neue Nachricht{unreadCount !== 1 ? 'en' : ''} von uns.
+                </div>
+              )}
+
+              {/* Verlauf */}
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 12, maxHeight: 400, overflowY: 'auto', padding: '14px 14px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {messages.length === 0 && (
+                  <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, padding: 24 }}>Noch keine Nachrichten.</div>
+                )}
+                {grouped.map((item, i) => {
+                  if (item.type === 'sep') return (
+                    <div key={`sep-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)', fontSize: 11 }}>
+                      <div style={{ flex: 1, height: 1, background: 'var(--brand-primary-light)' }} />
+                      {item.day}
+                      <div style={{ flex: 1, height: 1, background: 'var(--brand-primary-light)' }} />
+                    </div>
+                  );
+                  const m = item.msg;
+                  const isAdmin = m.sender_role === 'admin';
+                  return (
+                    <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isAdmin ? 'flex-start' : 'flex-end' }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 3, display: 'flex', gap: 5, alignItems: 'center' }}>
+                        <span style={{ fontWeight: 600 }}>{isAdmin ? 'KOMPAGNON' : 'Sie'}</span>
+                        <span>{fmtTime(m.created_at)}</span>
+                      </div>
+                      <div style={{ maxWidth: '80%', padding: '9px 13px', borderRadius: isAdmin ? '12px 12px 12px 3px' : '12px 12px 3px 12px', background: isAdmin ? 'var(--brand-primary-light)' : 'var(--bg-surface)', border: '1px solid var(--border-light)', fontSize: 13, lineHeight: 1.6, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                        {m.content}
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={msgEndRef} />
+              </div>
+
+              {/* Eingabe */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <textarea
+                  value={msgText}
+                  onChange={e => setMsgText(e.target.value)}
+                  placeholder="Hier antworten..."
+                  rows={2}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-light)', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-app)' }}
+                />
+                {msgSuccess && <div style={{ fontSize: 12, color: '#1a7a3a', fontWeight: 500 }}>{msgSuccess}</div>}
+                {msgError && <div style={{ fontSize: 12, color: '#b02020', fontWeight: 500 }}>{msgError}</div>}
+                <button
+                  onClick={sendMessage}
+                  disabled={msgSending || !msgText.trim()}
+                  style={{ padding: '10px 20px', background: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: msgSending || !msgText.trim() ? 'not-allowed' : 'pointer', opacity: msgSending || !msgText.trim() ? 0.6 : 1, fontFamily: 'inherit', alignSelf: 'flex-end' }}
+                >
+                  {msgSending ? 'Wird gesendet…' : 'Nachricht senden'}
+                </button>
+              </div>
+            </div>
+          );
+        })()}
 
         {portalTab === 'unterlagen' && <FileUploadSection token={token} />}
       </div>

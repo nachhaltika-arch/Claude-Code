@@ -13,9 +13,39 @@ GET /api/projects/{id}/margin - Get margin
 import logging
 import threading
 import os
+import json as _json_mod
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 logger = logging.getLogger(__name__)
+
+
+def safe_json_parse(raw, default=None):
+    """Gibt ein Python-Objekt zurück egal ob die DB den Wert als String
+    oder bereits als dict/list liefert (PostgreSQL JSONB-Spalten kommen
+    oft schon geparst zurück).
+
+    - None / leer     → default
+    - dict / list     → direkt zurück
+    - str/bytes       → json.loads()
+    - JSONDecodeError → default (mit Log)
+    - Sonst           → default
+    """
+    if raw is None or raw == "":
+        return default
+    if isinstance(raw, (dict, list)):
+        return raw
+    if isinstance(raw, (bytes, bytearray)):
+        try:
+            raw = raw.decode("utf-8")
+        except Exception:
+            return default
+    if isinstance(raw, str):
+        try:
+            return _json_mod.loads(raw)
+        except _json_mod.JSONDecodeError as e:
+            logger.warning(f"safe_json_parse: {e} (len={len(raw)}, tail={raw[-80:]!r})")
+            return default
+    return default
 
 
 def _get_fernet():
@@ -23,32 +53,46 @@ def _get_fernet():
     Gibt eine Fernet-Instanz zurück.
     CREDENTIALS_KEY muss ein 32-Byte URL-safe base64 Key sein.
     Generierung: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+    Kein Fallback: wenn CREDENTIALS_KEY fehlt oder ungültig ist,
+    wird eine RuntimeError geworfen — niemals zufällige oder unsichere Keys.
     """
     from cryptography.fernet import Fernet
     key = os.getenv("CREDENTIALS_KEY", "")
     if not key:
-        logger.warning(
-            "CREDENTIALS_KEY nicht gesetzt — nutze unsicheren Fallback. "
-            "Bitte in Render Environment setzen."
+        raise RuntimeError(
+            "CREDENTIALS_KEY Umgebungsvariable nicht gesetzt. "
+            "Bitte in Render.com Environment eintragen. "
+            "Generieren mit: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
         )
-        key = "dGhpc2lzYWZha2Vfa2V5Zm9yZGV2b25seXVzZTEyMw=="
     try:
         return Fernet(key.encode() if isinstance(key, str) else key)
     except Exception as e:
-        logger.error(f"Fernet Init Fehler: {e}")
-        from cryptography.fernet import Fernet as F
-        return F(F.generate_key())
+        raise RuntimeError(
+            f"CREDENTIALS_KEY ist ungültig ({e}). "
+            f"Muss ein 32-Byte URL-safe base64-encoded Fernet-Key sein."
+        ) from e
+
+
+def _fernet_available() -> bool:
+    """True wenn CREDENTIALS_KEY gültig gesetzt ist."""
+    try:
+        _get_fernet()
+        return True
+    except Exception:
+        return False
+
+
 from fastapi.responses import FileResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
-from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, ProjectScrapeJob, get_db
+from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, ProjectScrapeJob, get_db, SessionLocal
 from services.margin_calculator import MarginCalculator
 from routers.content_scraper_router import _run_content_scrape
-from email_service import send_phase_change_email, send_approval_request_email
-from routers.auth_router import require_admin, get_current_user
+from routers.auth_router import require_admin, require_any_auth, get_current_user
 from automations.scheduler import (
     get_scheduler,
     job_tag_5_followup,
@@ -196,6 +240,37 @@ class MarginResponse(BaseModel):
     min_acceptable_margin: float
 
 
+class LeistungsseitenCreate(BaseModel):
+    """Fragebogen-Eingabe fuer eine neue Leistungsseite (Teil 1 Stub).
+
+    Pflichtfelder werden client-seitig im Wizard validiert; server-seitig
+    sind alle Felder optional, damit Teil-2-Erweiterungen problemlos moeglich
+    sind und kein 422 den Stub-Save blockiert.
+    """
+    # Schritt 1 — Leistung definieren
+    leistung: str = ""
+    gebiet: str = ""
+    zielgruppe: str = ""
+    # Schritt 2 — Zielkunde & Problem
+    idealer_kunde: str = ""
+    problem: str = ""
+    problem_folgen: str = ""
+    # Schritt 3 — USP & Preis
+    usp: str = ""
+    einstiegspreis: str = ""
+    inkludiert: str = ""
+    # Schritt 4 — Beweis & Vertrauen
+    referenzen: str = ""
+    projekt_anzahl: str = ""
+    kundenstimmen: str = ""
+    zertifikate: str = ""
+    # Schritt 5 — Kontakt & CTA
+    kontakt_kanal: str = ""
+    telefon: str = ""
+    cta_text: str = ""
+    dringlichkeit: str = ""
+
+
 @router.get("/debug")
 def debug_projects(db: Session = Depends(get_db)):
     """Diagnostic: raw project + lead counts and sample rows."""
@@ -295,9 +370,23 @@ def seed_projects(db: Session = Depends(get_db)):
 def list_projects(
     status: str = Query(None),
     skip: int = Query(0),
-    limit: int = Query(200),
+    limit: int = Query(100),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
+    # Kunden sehen nur ihre eigenen Projekte
+    customer_filter = ""
+    params = {"limit": limit, "skip": skip}
+    if current_user.role == "kunde":
+        customer_filter = "WHERE lead_id = :lead_id "
+        params["lead_id"] = current_user.lead_id
+        if status:
+            customer_filter += "AND status = :status "
+            params["status"] = status
+    elif status:
+        customer_filter = "WHERE status = :status "
+        params["status"] = status
+
     try:
         rows = db.execute(
             text(
@@ -305,10 +394,10 @@ def list_projects(
                 "ai_tool_costs, margin_percent, scope_creep_flags, created_at, "
                 "company_name, website_url, contact_name "
                 "FROM projects "
-                + ("WHERE status = :status " if status else "")
+                + customer_filter
                 + "ORDER BY id DESC LIMIT :limit OFFSET :skip"
             ),
-            {"status": status, "limit": limit, "skip": skip} if status else {"limit": limit, "skip": skip},
+            params,
         ).fetchall()
     except Exception as e:
         logger.error(f"list_projects query error: {e}")
@@ -343,7 +432,7 @@ def list_projects(
 
 
 @router.get("/{project_id}")
-def get_project(project_id: int, db: Session = Depends(get_db)):
+def get_project(project_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """Get project detail via raw SQL — bypasses ORM column mapping issues."""
     try:
         row = db.execute(
@@ -354,7 +443,8 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
                 "sitemap_json, sitemap_freigabe, content_freigaben, qa_checklist_json, "
                 "abnahme_datum, abnahme_durch, "
                 "pagespeed_after_mobile, pagespeed_after_desktop, screenshot_after, "
-                "gbp_checklist_json "
+                "gbp_checklist_json, briefing_approved_at, "
+                "netlify_site_url, netlify_last_deploy, steps_confirmed "
                 "FROM projects WHERE id = :pid"
             ),
             {"pid": project_id},
@@ -367,6 +457,10 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Project not found")
 
     lead_id = row[1]
+    # Kunden dürfen nur ihr eigenes Projekt sehen
+    if current_user.role == "kunde" and lead_id != current_user.lead_id:
+        raise HTTPException(status_code=403, detail="Kein Zugriff auf dieses Projekt")
+
     lead = db.query(Lead).filter(Lead.id == lead_id).first() if lead_id else None
     company = row[12] or (lead.company_name if lead else '') or ''
     website = row[13] or (lead.website_url if lead else '') or ''
@@ -412,6 +506,98 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
         'gbp_rating':               getattr(lead, 'gbp_rating', None),
         'gbp_ratings_total':        getattr(lead, 'gbp_ratings_total', None),
         'gbp_checklist_json':       row[24],
+        'briefing_approved_at':     row[25].isoformat() if row[25] else None,
+        'netlify_site_url':         row[26] or None,
+        'netlify_last_deploy':      row[27].isoformat() if row[27] else None,
+        'steps_confirmed':          row[28] or '{}',
+    }
+
+
+@router.post("/{project_id}/confirm-step")
+def confirm_step(
+    project_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    import json as _json
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    step_id = (body.get("step_id") or "").strip()
+    if not step_id:
+        raise HTTPException(400, "step_id fehlt")
+    raw = getattr(project, "steps_confirmed", "{}") or "{}"
+    try:
+        confirmed = _json.loads(raw)
+    except Exception:
+        confirmed = {}
+    confirmed[step_id] = {"confirmed": True, "confirmed_at": datetime.utcnow().isoformat()}
+    project.steps_confirmed = _json.dumps(confirmed, ensure_ascii=False)
+    db.commit()
+    return {"saved": True, "step_id": step_id, "confirmed": confirmed}
+
+
+@router.get("/{project_id}/confirmed-steps")
+def get_confirmed_steps(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    import json as _json
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    raw = getattr(project, "steps_confirmed", "{}") or "{}"
+    try:
+        confirmed = _json.loads(raw)
+    except Exception:
+        confirmed = {}
+    return confirmed
+
+
+@router.post("/{project_id}/leistungsseiten")
+def create_leistungsseite(
+    project_id: int,
+    body: LeistungsseitenCreate,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Speichert einen Leistungsseiten-Fragebogen (Teil 1 Stub).
+
+    Der Datensatz wird als Eintrag in steps_confirmed["leistungsseiten"]
+    (Array) abgelegt. Die tatsaechliche Seiten-Generierung folgt in Teil 2.
+    """
+    import json as _json
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    raw = getattr(project, "steps_confirmed", "{}") or "{}"
+    try:
+        confirmed = _json.loads(raw)
+    except Exception:
+        confirmed = {}
+    if not isinstance(confirmed, dict):
+        confirmed = {}
+
+    existing = confirmed.get("leistungsseiten")
+    if not isinstance(existing, list):
+        existing = []
+
+    entry = body.model_dump() if hasattr(body, "model_dump") else body.dict()
+    entry["saved_at"] = datetime.utcnow().isoformat()
+    existing.append(entry)
+    confirmed["leistungsseiten"] = existing
+
+    project.steps_confirmed = _json.dumps(confirmed, ensure_ascii=False)
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Fragebogen gespeichert",
+        "leistung": body.leistung,
+        "status": "fragebogen_ausgefuellt",
     }
 
 
@@ -692,7 +878,8 @@ def request_approval(
     db: Session = Depends(get_db),
     _: object = Depends(require_admin),
 ):
-    """Admin: send a approval-request e-mail to the customer."""
+    """Admin: generate approval token, store it, send email with frontend link."""
+    import uuid
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -704,18 +891,54 @@ def request_approval(
         return {"success": False, "message": "Keine E-Mail hinterlegt"}
 
     company = getattr(project, "company_name", "") or f"Projekt #{project_id}"
+
+    # Generate and persist approval token (Tor 2)
+    token = str(uuid.uuid4())
+    db.execute(
+        text("UPDATE projects SET content_approval_token=:t WHERE id=:id"),
+        {"t": token, "id": project_id},
+    )
+    db.commit()
+
+    frontend_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
+    approval_url = f"{frontend_url}/approve-content/{token}"
+
     try:
-        send_approval_request_email(
-            to=to_email,
-            company=company,
-            topic=body.topic,
-            notes=body.notes,
-        )
+        from services.email import send_email as _send_email
+        subject = f"Freigabe benötigt: {body.topic} — {company}"
+        html = f"""
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;color:#1A2C32">
+  <div style="background:#008EAA;padding:24px 32px;border-radius:12px 12px 0 0">
+    <div style="color:white;font-size:20px;font-weight:700">KOMPAGNON</div>
+    <div style="color:rgba(255,255,255,.8);font-size:14px;margin-top:4px">Freigabe erforderlich</div>
+  </div>
+  <div style="background:#fff;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px">
+    <p>Guten Tag,</p>
+    <p>für Ihr Projekt <strong>{company}</strong> benötigen wir Ihre Freigabe:</p>
+    <div style="background:#f4f6f8;border-left:4px solid #008EAA;padding:14px 18px;border-radius:0 8px 8px 0;margin:20px 0">
+      <div style="font-weight:700;font-size:15px">{body.topic}</div>
+      {f'<div style="margin-top:8px;font-size:14px;color:#64748b">{body.notes}</div>' if body.notes else ''}
+    </div>
+    <p>Bitte klicken Sie auf den folgenden Button, um Ihre Freigabe zu erteilen:</p>
+    <div style="text-align:center;margin:28px 0">
+      <a href="{approval_url}"
+         style="background:#008EAA;color:white;padding:14px 32px;border-radius:8px;
+                text-decoration:none;font-weight:700;font-size:16px;display:inline-block">
+        Jetzt freigeben ✓
+      </a>
+    </div>
+    <p style="font-size:12px;color:#94a3b8">
+      Alternativ: <a href="{approval_url}" style="color:#008EAA">{approval_url}</a>
+    </p>
+    <p>Mit freundlichen Grüßen,<br><strong>Ihr KOMPAGNON-Team</strong></p>
+  </div>
+</div>"""
+        threading.Thread(target=_send_email, args=(to_email, subject, html), daemon=True).start()
     except Exception as exc:
         logger.warning(f"Freigabe-E-Mail fehlgeschlagen für Projekt {project_id}: {exc}")
         return {"success": False, "message": f"E-Mail-Versand fehlgeschlagen: {exc}"}
 
-    return {"success": True, "message": "Freigabe-E-Mail gesendet"}
+    return {"success": True, "message": "Freigabe-E-Mail gesendet", "token": token}
 
 
 # ── Go-Live Automation ────────────────────────────────────────────────────────
@@ -980,14 +1203,15 @@ async def _golive_automation(project_id: int):
                     </div>
                     """
 
-                    send_email(
+                    ok = send_email(
                         to_email  = customer_email,
                         subject   = f"🚀 Ihre Website ist live — {company}",
                         html_body = html,
                     )
-                    logger.info(
-                        f"Go-Live: E-Mail gesendet an {customer_email}"
-                    )
+                    if ok:
+                        logger.info(f"Go-Live: E-Mail gesendet an {customer_email}")
+                    else:
+                        logger.warning(f"Go-Live: E-Mail an {customer_email} fehlgeschlagen")
                 except Exception as e:
                     logger.error(f"Go-Live: E-Mail Fehler: {e}")
 
@@ -1112,6 +1336,10 @@ async def scrape_project_website(
     url = lead.website_url
     if not url.startswith("http"):
         url = "https://" + url
+    lead_id = lead.id
+
+    # DB-Verbindung vor dem externen Scrape-Call freigeben
+    db.close()
 
     try:
         async with httpx.AsyncClient(timeout=15.0, headers={
@@ -1132,15 +1360,22 @@ async def scrape_project_website(
         secondary = ('#' + hex_colors[1]) if len(hex_colors) > 1 else None
         font_primary = fonts[0].strip() if fonts else None
 
-        lead.brand_primary_color = primary
-        lead.brand_secondary_color = secondary
-        lead.brand_font_primary = font_primary
-        lead.brand_logo_url = logo_url
-        lead.brand_colors = json.dumps(['#' + c for c in hex_colors])
-        lead.brand_fonts = json.dumps(fonts)
-        lead.brand_scrape_failed = False
-        lead.brand_scraped_at = dt.utcnow()
-        db.commit()
+        # Neue Session zum Speichern
+        db2 = SessionLocal()
+        try:
+            lead = db2.query(Lead).filter(Lead.id == lead_id).first()
+            if lead:
+                lead.brand_primary_color = primary
+                lead.brand_secondary_color = secondary
+                lead.brand_font_primary = font_primary
+                lead.brand_logo_url = logo_url
+                lead.brand_colors = json.dumps(['#' + c for c in hex_colors])
+                lead.brand_fonts = json.dumps(fonts)
+                lead.brand_scrape_failed = False
+                lead.brand_scraped_at = dt.utcnow()
+                db2.commit()
+        finally:
+            db2.close()
 
         return {
             "success": True,
@@ -1155,8 +1390,16 @@ async def scrape_project_website(
         }
 
     except Exception as e:
-        lead.brand_scrape_failed = True
-        db.commit()
+        db2 = SessionLocal()
+        try:
+            lead = db2.query(Lead).filter(Lead.id == lead_id).first()
+            if lead:
+                lead.brand_scrape_failed = True
+                db2.commit()
+        except Exception:
+            db2.rollback()
+        finally:
+            db2.close()
         return {
             "success": False,
             "scrape_failed": True,
@@ -1168,9 +1411,12 @@ async def scrape_project_website(
 @router.post("/{project_id}/hosting-scan")
 async def hosting_scan(
     project_id: int,
+    force: bool = False,
     db: Session = Depends(get_db),
 ):
-    """Scannt Hosting, DNS, WHOIS und WordPress-Erkennung für das Projekt."""
+    """Scannt Hosting, DNS, WHOIS und WordPress-Erkennung für das Projekt.
+    Cache: liefert gespeicherten Scan wenn < 12h alt (außer force=true).
+    """
     from services.hosting_scraper import scrape_hosting_info
 
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -1184,44 +1430,83 @@ async def hosting_scan(
     if not website_url.startswith("http"):
         website_url = "https://" + website_url
 
+    # ── Cache-Check: 12h TTL ──
+    row = db.execute(text(
+        "SELECT hosting_provider, hosting_org, hosting_ip, hosting_country, "
+        "dns_provider, nameservers, domain_registrar, domain_created, domain_expires, "
+        "server_software, wordpress_hosting, is_wordpress, detected_technologies, "
+        "hosting_checked_at FROM projects WHERE id = :id"
+    ), {"id": project_id}).fetchone()
+
+    if not force and row and row[13]:  # hosting_checked_at
+        age = (datetime.utcnow() - row[13]).total_seconds()
+        if age < 43200:  # 12h
+            logger.info(f"hosting-scan cache hit project {project_id} ({int(age/60)}min alt)")
+            return {
+                "hosting_provider":      row[0],
+                "hosting_org":           row[1],
+                "hosting_ip":            row[2],
+                "hosting_country":       row[3],
+                "dns_provider":          row[4],
+                "nameservers":           row[5],
+                "domain_registrar":      row[6],
+                "domain_created":        row[7],
+                "domain_expires":        row[8],
+                "server_software":       row[9],
+                "wordpress_hosting":     row[10],
+                "is_wordpress":          row[11],
+                "detected_technologies": row[12],
+                "hosting_checked_at":    row[13].isoformat() if row[13] else None,
+                "website_url":           website_url,
+                "_cached":               True,
+                "_cache_age_minutes":    int(age / 60),
+            }
+
+    # DB-Verbindung vor externem hosting scrape freigeben
+    db.close()
+
     data = await scrape_hosting_info(website_url)
 
-    db.execute(text("""
-        UPDATE projects SET
-            hosting_provider    = :hosting_provider,
-            hosting_org         = :hosting_org,
-            hosting_ip          = :hosting_ip,
-            hosting_country     = :hosting_country,
-            dns_provider        = :dns_provider,
-            nameservers         = :nameservers,
-            domain_registrar    = :domain_registrar,
-            domain_created      = :domain_created,
-            domain_expires      = :domain_expires,
-            server_software     = :server_software,
-            wordpress_hosting        = :wordpress_hosting,
-            is_wordpress             = :is_wordpress,
-            detected_technologies    = :detected_technologies,
-            hosting_checked_at       = NOW()
-        WHERE id = :project_id
-    """), {
-        "project_id":            project_id,
-        "hosting_provider":      data.get("hosting_provider"),
-        "hosting_org":           data.get("hosting_org"),
-        "hosting_ip":            data.get("ip_address"),
-        "hosting_country":       data.get("country"),
-        "dns_provider":          data.get("dns_provider"),
-        "nameservers":           ",".join(data.get("nameservers") or []) or None,
-        "domain_registrar":      data.get("registrar"),
-        "domain_created":        data.get("domain_created"),
-        "domain_expires":        data.get("domain_expires"),
-        "server_software":       data.get("server_software"),
-        "wordpress_hosting":     data.get("wordpress_hosting"),
-        "is_wordpress":          data.get("is_wordpress"),
-        "detected_technologies": ",".join(data.get("detected_technologies") or []) or None,
-    })
-    db.commit()
+    # Neue Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        db2.execute(text("""
+            UPDATE projects SET
+                hosting_provider    = :hosting_provider,
+                hosting_org         = :hosting_org,
+                hosting_ip          = :hosting_ip,
+                hosting_country     = :hosting_country,
+                dns_provider        = :dns_provider,
+                nameservers         = :nameservers,
+                domain_registrar    = :domain_registrar,
+                domain_created      = :domain_created,
+                domain_expires      = :domain_expires,
+                server_software     = :server_software,
+                wordpress_hosting        = :wordpress_hosting,
+                is_wordpress             = :is_wordpress,
+                detected_technologies    = :detected_technologies,
+                hosting_checked_at       = NOW()
+            WHERE id = :project_id
+        """), {
+            "project_id":            project_id,
+            "hosting_provider":      data.get("hosting_provider"),
+            "hosting_org":           data.get("hosting_org"),
+            "hosting_ip":            data.get("ip_address"),
+            "hosting_country":       data.get("country"),
+            "dns_provider":          data.get("dns_provider"),
+            "nameservers":           ",".join(data.get("nameservers") or []) or None,
+            "domain_registrar":      data.get("registrar"),
+            "domain_created":        data.get("domain_created"),
+            "domain_expires":        data.get("domain_expires"),
+            "server_software":       data.get("server_software"),
+            "wordpress_hosting":     data.get("wordpress_hosting"),
+            "is_wordpress":          data.get("is_wordpress"),
+            "detected_technologies": ",".join(data.get("detected_technologies") or []) or None,
+        })
+        db2.commit()
+    finally:
+        db2.close()
 
-    from datetime import datetime
     return {
         "hosting_provider":      data.get("hosting_provider"),
         "hosting_org":           data.get("hosting_org"),
@@ -1388,6 +1673,9 @@ async def domain_check_project(
     if not url.startswith("http"):
         url = "https://" + url
 
+    # DB-Verbindung vor externen Checks freigeben
+    db.close()
+
     from urllib.parse import urlparse
     import socket
     import ssl
@@ -1446,87 +1734,21 @@ async def domain_check_project(
     except Exception:
         result["ssl"] = "none_or_error"
 
-    # Persist reachability to project
+    # Persist reachability to project — neue Session
+    db2 = SessionLocal()
     try:
-        project.domain_reachable   = result["reachable"]
-        project.domain_status_code = result.get("status_code")
-        project.domain_checked_at  = datetime.utcnow()
-        db.commit()
+        project = db2.query(Project).filter(Project.id == project_id).first()
+        if project:
+            project.domain_reachable   = result["reachable"]
+            project.domain_status_code = result.get("status_code")
+            project.domain_checked_at  = datetime.utcnow()
+            db2.commit()
     except Exception:
-        pass
+        db2.rollback()
+    finally:
+        db2.close()
 
     return result
-
-
-@router.post("/{project_id}/screenshot/before")
-async def screenshot_before(project_id: int, db: Session = Depends(get_db)):
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
-        raise HTTPException(404, "Projekt nicht gefunden")
-    lead = project.lead
-    if not lead or not lead.website_url:
-        raise HTTPException(400, "Keine Website-URL beim verknüpften Lead hinterlegt")
-    url = lead.website_url
-    if not url.startswith("http"):
-        url = "https://" + url
-    from services.screenshot import capture_screenshot
-    screenshot_b64 = await capture_screenshot(url)
-    if not screenshot_b64:
-        raise HTTPException(500, "Screenshot konnte nicht erstellt werden")
-    db.execute(
-        text("UPDATE projects SET screenshot_before = :s, screenshot_before_date = :d WHERE id = :id"),
-        {"s": screenshot_b64, "d": datetime.utcnow(), "id": project_id},
-    )
-    db.commit()
-    return {
-        "success": True,
-        "screenshot_url": f"data:image/jpeg;base64,{screenshot_b64}",
-        "type": "before",
-    }
-
-
-@router.post("/{project_id}/screenshot/after")
-async def screenshot_after(project_id: int, db: Session = Depends(get_db)):
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
-        raise HTTPException(404, "Projekt nicht gefunden")
-    lead = project.lead
-    if not lead or not lead.website_url:
-        raise HTTPException(400, "Keine Website-URL beim verknüpften Lead hinterlegt")
-    url = lead.website_url
-    if not url.startswith("http"):
-        url = "https://" + url
-    from services.screenshot import capture_screenshot
-    screenshot_b64 = await capture_screenshot(url)
-    if not screenshot_b64:
-        raise HTTPException(500, "Screenshot konnte nicht erstellt werden")
-    db.execute(
-        text("UPDATE projects SET screenshot_after = :s, screenshot_after_date = :d WHERE id = :id"),
-        {"s": screenshot_b64, "d": datetime.utcnow(), "id": project_id},
-    )
-    db.commit()
-    return {
-        "success": True,
-        "screenshot_url": f"data:image/jpeg;base64,{screenshot_b64}",
-        "type": "after",
-    }
-
-
-@router.get("/{project_id}/screenshots")
-def get_screenshots(project_id: int, db: Session = Depends(get_db)):
-    row = db.execute(
-        text(
-            "SELECT screenshot_before, screenshot_after, screenshot_before_date, screenshot_after_date "
-            "FROM projects WHERE id = :id"
-        ),
-        {"id": project_id},
-    ).fetchone()
-    if not row:
-        raise HTTPException(404, "Projekt nicht gefunden")
-    return {
-        "before": {"data": f"data:image/jpeg;base64,{row[0]}" if row[0] else None, "date": row[2].isoformat() if row[2] else None, "url": None},
-        "after":  {"data": f"data:image/jpeg;base64,{row[1]}" if row[1] else None, "date": row[3].isoformat() if row[3] else None, "url": None},
-    }
 
 
 # ── Netlify-Integration ───────────────────────────────────────────────────────
@@ -1535,6 +1757,9 @@ class NetlifyDeployRequest(BaseModel):
     html:      str
     css:       str = ""
     redirects: str = ""
+    page_title:       str = "Website"
+    meta_description: str = ""
+    company_name:     str = ""
 
 class NetlifyDomainRequest(BaseModel):
     domain: str
@@ -1565,17 +1790,25 @@ async def netlify_create_site(
         or f"projekt-{project_id}"
     )
 
+    # DB-Verbindung vor externem Netlify-API-Call freigeben
+    db.close()
+
     from services.netlify_service import create_site
     result = await create_site(company)
 
-    db.execute(
-        text(
-            "UPDATE projects SET netlify_site_id = :sid, netlify_site_url = :url "
-            "WHERE id = :id"
-        ),
-        {"sid": result["site_id"], "url": result["site_url"], "id": project_id},
-    )
-    db.commit()
+    # Neue Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        db2.execute(
+            text(
+                "UPDATE projects SET netlify_site_id = :sid, netlify_site_url = :url "
+                "WHERE id = :id"
+            ),
+            {"sid": result["site_id"], "url": result["site_url"], "id": project_id},
+        )
+        db2.commit()
+    finally:
+        db2.close()
     return {"site_id": result["site_id"], "site_url": result["site_url"]}
 
 
@@ -1588,28 +1821,166 @@ async def netlify_deploy(
 ):
     """Deployt HTML auf die Netlify-Site des Projekts (nur Admin)."""
     row = db.execute(
-        text("SELECT netlify_site_id FROM projects WHERE id = :id"),
+        text(
+            "SELECT p.netlify_site_id, COALESCE(l.company_name, '') "
+            "FROM projects p LEFT JOIN leads l ON l.id = p.lead_id "
+            "WHERE p.id = :id"
+        ),
         {"id": project_id},
     ).fetchone()
     if not row or not row[0]:
         raise HTTPException(400, "Keine Netlify-Site vorhanden. Zuerst Site anlegen.")
 
-    site_id = row[0]
-    from services.netlify_service import deploy_html
-    result = await deploy_html(site_id, body.html, body.css, body.redirects)
+    site_id       = row[0]
+    company_name  = body.company_name or row[1] or ""
+    page_title    = body.page_title or company_name or "Website"
 
-    db.execute(
-        text(
-            "UPDATE projects SET netlify_deploy_id = :did, netlify_last_deploy = :ts "
-            "WHERE id = :id"
-        ),
-        {"did": result["deploy_id"], "ts": datetime.utcnow(), "id": project_id},
+    # DB-Verbindung vor externem Netlify-Deploy freigeben
+    db.close()
+
+    from services.netlify_service import deploy_html
+    result = await deploy_html(
+        site_id,
+        body.html,
+        body.css,
+        body.redirects,
+        page_title=page_title,
+        meta_description=body.meta_description,
+        company_name=company_name,
     )
-    db.commit()
+
+    # Neue Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        db2.execute(
+            text(
+                "UPDATE projects SET netlify_deploy_id = :did, netlify_last_deploy = :ts "
+                "WHERE id = :id"
+            ),
+            {"did": result["deploy_id"], "ts": datetime.utcnow(), "id": project_id},
+        )
+        db2.commit()
+    finally:
+        db2.close()
     return {
         "deploy_id":  result["deploy_id"],
         "deploy_url": result["deploy_url"],
         "state":      result["state"],
+    }
+
+
+def _slugify_page_name(name: str) -> str:
+    """URL-safe slug for sitemap page names (used by Multi-Page Deploy)."""
+    import re
+    s = (name or "").lower()
+    s = s.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+    return s or "seite"
+
+
+@router.post("/{project_id}/netlify/deploy-all")
+async def netlify_deploy_all(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """
+    Deployt alle gespeicherten GrapesJS-Seiten eines Projekts auf Netlify.
+    Jede Seite wird als eigene HTML-Datei abgelegt (Pfad = Ordner).
+
+    Startseite (position=0 oder Name Startseite/Home) → /index.html
+    Andere Seiten → /{slug}/index.html
+    """
+    row = db.execute(
+        text(
+            "SELECT p.netlify_site_id, p.lead_id, COALESCE(l.company_name, '') "
+            "FROM projects p LEFT JOIN leads l ON l.id = p.lead_id "
+            "WHERE p.id = :id"
+        ),
+        {"id": project_id},
+    ).fetchone()
+    if not row or not row[0]:
+        raise HTTPException(400, "Keine Netlify-Site vorhanden. Zuerst Site anlegen.")
+    if not row[1]:
+        raise HTTPException(400, "Kein Lead verknuepft")
+
+    site_id      = row[0]
+    lead_id      = row[1]
+    company_name = row[2] or "Website"
+
+    pages = db.execute(
+        text("""
+            SELECT page_name, gjs_html, gjs_css, zweck, position, ist_pflichtseite
+            FROM sitemap_pages
+            WHERE lead_id = :lid
+            ORDER BY position, id
+        """),
+        {"lid": lead_id},
+    ).fetchall()
+
+    if not pages:
+        raise HTTPException(400, "Keine Seiten in der Sitemap gefunden.")
+
+    # ── Seiten-Dateien zusammenstellen ────────────────────────────────────
+    page_files: dict = {}
+    css_parts: list = []
+    used_slugs: dict = {}
+
+    for page in pages:
+        page_name, gjs_html, gjs_css, zweck, position, ist_pflichtseite = page
+        html = gjs_html or "<p>Diese Seite hat noch keinen Inhalt.</p>"
+        css  = gjs_css or ""
+        if css:
+            css_parts.append(css)
+
+        slug = _slugify_page_name(page_name)
+        if slug in used_slugs:
+            used_slugs[slug] += 1
+            slug = f"{slug}-{used_slugs[slug]}"
+        else:
+            used_slugs[slug] = 0
+
+        is_home = (position == 0) or slug in ("startseite", "home", "index")
+        filename = "index.html" if is_home else f"{slug}/index.html"
+
+        page_files[filename] = {
+            "html":       html,
+            "css":        css,
+            "page_title": f"{page_name} — {company_name}" if not is_home else company_name,
+            "meta_desc":  zweck or f"{page_name} — {company_name}",
+        }
+
+    # Deduplicate CSS (gemeinsame Styles)
+    shared_css = "\n".join(dict.fromkeys(css_parts))
+
+    # DB-Verbindung vor externem API-Call freigeben
+    db.close()
+
+    from services.netlify_service import deploy_all_pages
+    try:
+        result = await deploy_all_pages(site_id, page_files, shared_css, company_name)
+    except Exception as e:
+        raise HTTPException(500, f"Netlify Deploy Fehler: {str(e)[:200]}")
+
+    # Deploy-Info speichern
+    db2 = SessionLocal()
+    try:
+        db2.execute(
+            text(
+                "UPDATE projects SET netlify_deploy_id = :did, netlify_last_deploy = :ts "
+                "WHERE id = :id"
+            ),
+            {"did": result["deploy_id"], "ts": datetime.utcnow(), "id": project_id},
+        )
+        db2.commit()
+    finally:
+        db2.close()
+
+    return {
+        "deploy_id":      result["deploy_id"],
+        "deploy_url":     result["deploy_url"],
+        "state":          result["state"],
+        "pages_deployed": list(page_files.keys()),
     }
 
 
@@ -1620,30 +1991,265 @@ async def netlify_set_domain(
     db: Session = Depends(get_db),
     _: object = Depends(require_admin),
 ):
-    """Setzt eine Custom-Domain auf der Netlify-Site (nur Admin)."""
+    """Setzt eine Custom-Domain auf der Netlify-Site, generiert DNS-Guide,
+    sendet E-Mail an Kunden und legt eine Portal-Nachricht an."""
     row = db.execute(
-        text("SELECT netlify_site_id FROM projects WHERE id = :id"),
+        text("SELECT netlify_site_id, netlify_site_url, lead_id FROM projects WHERE id = :id"),
         {"id": project_id},
     ).fetchone()
     if not row or not row[0]:
         raise HTTPException(400, "Keine Netlify-Site vorhanden.")
 
-    site_id = row[0]
-    from services.netlify_service import set_custom_domain
-    result = await set_custom_domain(site_id, body.domain)
+    site_id       = row[0]
+    site_url      = row[1] or ""
+    lead_id       = row[2]
 
-    db.execute(
-        text(
-            "UPDATE projects SET netlify_domain = :domain, netlify_domain_status = 'pending' "
-            "WHERE id = :id"
-        ),
-        {"domain": body.domain, "id": project_id},
-    )
-    db.commit()
+    # DB-Verbindung vor externem Netlify-Call freigeben
+    db.close()
+
+    from services.netlify_service import set_custom_domain, generate_dns_guide
+    try:
+        result = await set_custom_domain(site_id, body.domain)
+    except Exception as e:
+        logger.warning(f"Netlify set_custom_domain Fehler: {e}")
+        result = {"custom_domain": body.domain}
+
+    # DNS-Guide generieren
+    guide = generate_dns_guide(body.domain, site_url)
+
+    # Neue Session zum Speichern + Mail/Nachricht
+    db2 = SessionLocal()
+    try:
+        db2.execute(
+            text(
+                "UPDATE projects SET netlify_domain = :domain, netlify_domain_status = 'pending' "
+                "WHERE id = :id"
+            ),
+            {"domain": body.domain, "id": project_id},
+        )
+        db2.commit()
+
+        # Asynchron: E-Mail + Portal-Nachricht senden (Fehler werden nur geloggt)
+        try:
+            _send_dns_guide_email_and_message(project_id, lead_id, body.domain, guide, db2)
+        except Exception as e:
+            logger.warning(f"DNS-Guide E-Mail/Nachricht Fehler: {e}")
+    finally:
+        db2.close()
+
     return {
-        "custom_domain":       result["custom_domain"],
+        "custom_domain":       result.get("custom_domain", body.domain),
         "required_dns_record": result.get("required_dns_record"),
         "cname_target":        f"{body.domain}.netlify.app",
+        "guide":               guide,
+        "status":              "pending",
+    }
+
+
+def _send_dns_guide_email_and_message(project_id, lead_id, domain, guide, db):
+    """Sendet DNS-Guide per E-Mail an den Kunden und legt eine Portal-Nachricht an."""
+    if not lead_id:
+        return
+    lead = db.execute(
+        text("SELECT email, company_name FROM leads WHERE id = :id"),
+        {"id": lead_id},
+    ).fetchone()
+    if not lead:
+        return
+
+    # HTML-Tabelle für die E-Mail
+    records_html = "".join([
+        f"""<tr>
+          <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#2d3748">{r['type']}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-family:monospace">{r['name']}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-family:monospace;color:#008eaa;word-break:break-all">{r['value']}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;color:#718096;font-size:12px">{r['note']}</td>
+        </tr>"""
+        for r in guide["records"]
+    ])
+
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;background:#f7fafc;padding:20px">
+      <div style="background:#008eaa;padding:32px;border-radius:12px 12px 0 0;text-align:center">
+        <h1 style="color:white;margin:0;font-size:24px">Ihre Website ist bereit!</h1>
+        <p style="color:rgba(255,255,255,0.9);margin:8px 0 0;font-size:14px">
+          Nur noch ein Schritt bis zum Go-Live
+        </p>
+      </div>
+      <div style="padding:32px;background:#ffffff">
+        <p style="color:#2d3748">Sehr geehrte Damen und Herren,</p>
+        <p style="color:#4a5568;line-height:1.7">
+          Ihre neue Website für <strong>{lead.company_name or 'Ihr Unternehmen'}</strong> ist fertig und bereit für den Go-Live.
+          Um Ihre Domain <strong>{domain}</strong> mit der Website zu verbinden,
+          tragen Sie bitte folgende Einstellungen bei Ihrem Domain-Anbieter ein:
+        </p>
+
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+          <thead>
+            <tr style="background:#f7fafc">
+              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#718096;text-transform:uppercase;letter-spacing:0.05em">Typ</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#718096;text-transform:uppercase;letter-spacing:0.05em">Name</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#718096;text-transform:uppercase;letter-spacing:0.05em">Wert</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11px;color:#718096;text-transform:uppercase;letter-spacing:0.05em">Info</th>
+            </tr>
+          </thead>
+          <tbody>{records_html}</tbody>
+        </table>
+
+        <div style="background:#f0fff4;border:1px solid #c6f6d5;border-radius:8px;padding:16px;margin:20px 0">
+          <p style="margin:0;color:#276749;font-size:13px">
+            <strong>Zeitrahmen:</strong> DNS-Änderungen werden innerhalb von 1–48 Stunden aktiv.
+            Wir informieren Sie automatisch sobald Ihre Domain live ist.
+          </p>
+        </div>
+
+        <p style="color:#4a5568;font-size:13px;line-height:1.6">
+          {guide.get('instructions', '')}
+        </p>"""
+
+    if guide.get("email_records"):
+        html_body += """
+        <div style="margin-top:20px;padding:16px;background:#FFF7E6;border-radius:8px;
+                    border-left:3px solid #F59E0B">
+          <p style="font-size:14px;font-weight:600;color:#B45309;margin:0 0 8px">
+            E-Mail-Einträge (optional)
+          </p>
+          <p style="font-size:12px;color:#92400E;margin:0 0 8px">
+            Damit E-Mails an Ihre Domain (info@..., kontakt@...) ankommen:
+          </p>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+        """
+        for r in guide["email_records"]:
+            html_body += f"""
+            <tr>
+              <td style="padding:4px 8px;font-weight:600;color:#92400E">{r['type']}</td>
+              <td style="padding:4px 8px;font-family:monospace">{r['name']}</td>
+              <td style="padding:4px 8px;font-family:monospace">{r['value']}</td>
+              <td style="padding:4px 8px;color:#6B7280">{r.get('note','')}</td>
+            </tr>"""
+        html_body += "</table></div>"
+
+    html_body += """
+        <p style="color:#4a5568;font-size:13px">
+          Bei Fragen helfen wir Ihnen gerne weiter.
+        </p>
+      </div>
+      <div style="background:#f7fafc;padding:16px;text-align:center;border-radius:0 0 12px 12px;font-size:12px;color:#718096">
+        KOMPAGNON Communications
+      </div>
+    </div>
+    """
+
+    # E-Mail versenden
+    if lead.email:
+        from services.email import send_email
+        ok = send_email(
+            to_email=lead.email,
+            subject=f"DNS-Einstellungen für {domain} — letzter Schritt vor Go-Live",
+            html_body=html_body,
+        )
+        if ok:
+            logger.info(f"DNS-Guide E-Mail gesendet an {lead.email}")
+        else:
+            logger.warning(f"DNS-Guide E-Mail an {lead.email} fehlgeschlagen")
+
+    # Portal-Nachricht anlegen
+    try:
+        records_text = "\n".join([
+            f"  • {r['type']}  {r['name']}  →  {r['value']}" for r in guide["records"]
+        ])
+        msg = (
+            f"Ihre Website ist bereit! Um {domain} zu verbinden, tragen Sie bitte "
+            f"folgende DNS-Einträge bei Ihrem Domain-Anbieter ein:\n\n"
+            f"{records_text}\n\n"
+            f"Die Änderungen werden innerhalb von 1–48 Stunden aktiv. "
+            f"Sie haben diese Anleitung auch per E-Mail erhalten."
+        )
+        db.execute(text("""
+            INSERT INTO messages (lead_id, channel, content, direction, created_at, sender_role)
+            VALUES (:lead_id, 'in_app', :content, 'outbound', NOW(), 'system')
+        """), {"lead_id": lead_id, "content": msg})
+        db.commit()
+    except Exception as e:
+        logger.warning(f"DNS-Guide Portal-Nachricht Fehler: {e}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
+class SubdomainRequest(BaseModel):
+    subdomain: str
+    subdomain_type: str = "cname"
+
+
+@router.post("/{project_id}/netlify/add-subdomain")
+async def netlify_add_subdomain(
+    project_id: int,
+    body: SubdomainRequest,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Fügt eine Subdomain zur Netlify-Site hinzu und generiert DNS-Anleitung."""
+    row = db.execute(
+        text("SELECT netlify_site_id, netlify_site_url, netlify_domain, lead_id FROM projects WHERE id=:id"),
+        {"id": project_id},
+    ).fetchone()
+    if not row or not row[0]:
+        raise HTTPException(400, "Keine Netlify-Site vorhanden")
+
+    site_id     = row[0]
+    site_url    = row[1] or ""
+    main_domain = row[2] or ""
+    lead_id     = row[3]
+
+    sub = body.subdomain.lower().strip()
+    full_sub = f"{sub}.{main_domain}" if main_domain and "." not in sub else sub
+
+    netlify_host = site_url.replace("https://", "").replace("http://", "").rstrip("/")
+
+    from services.netlify_service import set_domain_alias
+    try:
+        await set_domain_alias(site_id, full_sub)
+    except Exception as e:
+        logger.warning(f"Netlify add_domain_alias fehlgeschlagen: {e}")
+
+    subdomain_record = {
+        "type":  "CNAME",
+        "name":  sub,
+        "value": netlify_host,
+        "ttl":   "3600",
+        "note":  f"{full_sub} zeigt auf Netlify",
+    }
+
+    db2 = SessionLocal()
+    try:
+        db2.execute(text("""
+            INSERT INTO messages (lead_id, channel, content, direction, created_at, sender_role)
+            VALUES (:lid, 'in_app', :content, 'outbound', NOW(), 'system')
+        """), {
+            "lid":     lead_id,
+            "content": (
+                f"Neue Subdomain {full_sub} eingerichtet. "
+                f"Bitte tragen Sie bei Ihrem Domain-Anbieter ein: "
+                f"CNAME  {sub}  →  {netlify_host}"
+            ),
+        })
+        db2.commit()
+    except Exception as e:
+        logger.warning(f"Subdomain Portal-Nachricht Fehler: {e}")
+    finally:
+        db2.close()
+
+    return {
+        "subdomain":      full_sub,
+        "netlify_target": netlify_host,
+        "dns_record":     subdomain_record,
+        "instructions":   (
+            f"Tragen Sie bei Ihrem Domain-Anbieter ein: "
+            f"CNAME  {sub}  →  {netlify_host}. "
+            f"Aktiv in 1–24 Stunden."
+        ),
     }
 
 
@@ -1651,8 +2257,11 @@ async def netlify_set_domain(
 async def netlify_status(
     project_id: int,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
-    """Ruft den Netlify-Status des Projekts ab."""
+    """Ruft den Netlify-Status des Projekts ab.
+    Gibt IMMER 200 mit status-Feld zurück — nie 404/500 für fehlende Site.
+    """
     row = db.execute(
         text(
             "SELECT netlify_site_id, netlify_site_url, netlify_deploy_id, "
@@ -1661,23 +2270,57 @@ async def netlify_status(
         ),
         {"id": project_id},
     ).fetchone()
-    if not row or not row[0]:
-        raise HTTPException(404, "Keine Netlify-Site für dieses Projekt vorhanden.")
+
+    if not row:
+        return {"connected": False, "status": "project_not_found", "project_id": project_id}
+    if not row[0]:
+        return {
+            "connected": False,
+            "status": "not_connected",
+            "message": "Keine Netlify-Site verbunden",
+            "project_id": project_id,
+        }
+
+    # Check if NETLIFY_API_TOKEN is configured
+    if not os.getenv("NETLIFY_API_TOKEN"):
+        return {
+            "connected": False,
+            "status": "no_token",
+            "message": "NETLIFY_API_TOKEN nicht konfiguriert",
+            "netlify_site_id": row[0],
+            "netlify_site_url": row[1],
+        }
 
     site_id = row[0]
-    from services.netlify_service import get_site_status
-    live = await get_site_status(site_id)
+    try:
+        from services.netlify_service import get_site_status
+        live = await get_site_status(site_id)
+    except Exception as e:
+        logger.error(f"Netlify get_site_status Fehler: {e}")
+        return {
+            "connected": False,
+            "status": "api_error",
+            "message": str(e),
+            "netlify_site_id": row[0],
+            "netlify_site_url": row[1],
+        }
 
     # SSL-Status in DB aktualisieren
     ssl_active = bool(live.get("ssl"))
-    db.execute(
-        text("UPDATE projects SET netlify_ssl_active = :ssl WHERE id = :id"),
-        {"ssl": ssl_active, "id": project_id},
-    )
-    db.commit()
+    try:
+        db.execute(
+            text("UPDATE projects SET netlify_ssl_active = :ssl WHERE id = :id"),
+            {"ssl": ssl_active, "id": project_id},
+        )
+        db.commit()
+    except Exception as e:
+        logger.warning(f"Netlify SSL-Status update Fehler: {e}")
+        db.rollback()
 
     return {
         **live,
+        "connected":             True,
+        "status":                "connected",
         "netlify_site_id":       row[0],
         "netlify_site_url":      row[1],
         "netlify_deploy_id":     row[2],
@@ -1686,6 +2329,317 @@ async def netlify_status(
         "netlify_ssl_active":    ssl_active,
         "netlify_last_deploy":   row[6].isoformat() if row[6] else None,
     }
+
+
+# ── Website-Versionen (KI generiert 3 Entwürfe) ───────────────────────────────
+
+@router.post("/{project_id}/generate-versions")
+async def generate_website_versions(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Generiert 3 Website-Versionen basierend auf Briefing, Inspirationen und Templates."""
+    import json as _json
+    import os as _os
+
+    # Projektdaten + Lead laden (inkl. Briefing-Felder)
+    project_row = db.execute(text("""
+        SELECT p.id as pid, p.lead_id as lead_id, p.company_name as p_company,
+               l.company_name as l_company, l.trade, l.wz_title,
+               l.inspiration_url_1, l.inspiration_url_2, l.inspiration_url_3
+        FROM projects p
+        LEFT JOIN leads l ON p.lead_id = l.id
+        WHERE p.id = :id
+    """), {"id": project_id}).fetchone()
+    if not project_row:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    lead_id = project_row.lead_id
+    company_name = project_row.p_company or project_row.l_company or f"Projekt {project_id}"
+
+    # Briefing-Daten (separate Tabelle)
+    briefing = None
+    try:
+        briefing = db.execute(text("""
+            SELECT gewerk, leistungen, einzugsgebiet, usp, mitbewerber,
+                   farben, wunschseiten, stil
+            FROM briefings WHERE lead_id = :id
+            ORDER BY created_at DESC LIMIT 1
+        """), {"id": lead_id}).fetchone()
+    except Exception:
+        pass
+
+    gewerk = (briefing.gewerk if briefing else None) or project_row.trade or project_row.wz_title or ""
+    stil   = (briefing.stil if briefing else None) or "modern"
+
+    # Alte Website-Content Teaser
+    old_content_rows = []
+    try:
+        old_content_rows = db.execute(text("""
+            SELECT title, h1, text_preview
+            FROM website_content_cache
+            WHERE customer_id = :cid
+            ORDER BY scraped_at DESC LIMIT 5
+        """), {"cid": lead_id}).fetchall()
+    except Exception:
+        pass
+
+    # Templates filtern: passend zum Gewerk oder "alle"
+    templates = db.execute(text("""
+        SELECT id, name, slug,
+               COALESCE(style_tags, '') AS style_tags,
+               COALESCE(gewerk_tags, '') AS gewerk_tags
+        FROM website_templates
+        WHERE COALESCE(is_active, TRUE) = TRUE
+          AND (gewerk_tags ILIKE :gewerk OR gewerk_tags ILIKE '%alle%' OR gewerk_tags IS NULL OR gewerk_tags = '')
+        ORDER BY RANDOM()
+        LIMIT 9
+    """), {"gewerk": f"%{gewerk.lower()[:20]}%"}).fetchall()
+
+    if len(templates) < 3:
+        templates = db.execute(text("""
+            SELECT id, name, slug,
+                   COALESCE(style_tags, '') AS style_tags,
+                   COALESCE(gewerk_tags, '') AS gewerk_tags
+            FROM website_templates
+            WHERE COALESCE(is_active, TRUE) = TRUE
+            ORDER BY RANDOM() LIMIT 9
+        """)).fetchall()
+
+    if len(templates) < 1:
+        raise HTTPException(400, "Keine Templates vorhanden. Bitte erst welche importieren.")
+
+    template_options = "\n".join([
+        f"Template {i+1}: ID={t.id}, Name={t.name}, Stile={t.style_tags}"
+        for i, t in enumerate(templates[:9])
+    ])
+
+    old_content_text = "\n".join([
+        f"- {r.title or ''}: {(r.text_preview or '')[:200]}"
+        for r in old_content_rows if r.title
+    ]) or "Keine Inhalte von alter Website vorhanden"
+
+    inspirations = "\n".join(filter(None, [
+        project_row.inspiration_url_1,
+        project_row.inspiration_url_2,
+        project_row.inspiration_url_3,
+    ])) or "Keine Inspirationsseiten angegeben"
+
+    system_prompt = (
+        "Du bist ein professioneller Webdesigner und Markenstratege "
+        "für deutsche Handwerksbetriebe. Du analysierst alle verfügbaren "
+        "Informationen und wählst die 3 besten passenden Templates aus. "
+        "Du denkst dabei PROAKTIV: Wenn der Kunde kein starkes Brand hat, "
+        "machst du konkrete Optimierungsvorschläge für Farben, Stil und "
+        "Positionierung die seine Zielgruppe ansprechen.\n\n"
+        "Antworte AUSSCHLIESSLICH als valides JSON. Kein Markdown. "
+        "Kein Text davor oder danach."
+    )
+
+    user_prompt = f"""
+KUNDENINFORMATIONEN:
+Firma: {company_name}
+Gewerk: {gewerk or 'nicht angegeben'}
+Leistungen: {(briefing.leistungen if briefing else None) or 'nicht angegeben'}
+Einzugsgebiet: {(briefing.einzugsgebiet if briefing else None) or 'nicht angegeben'}
+USPs: {(briefing.usp if briefing else None) or 'nicht angegeben'}
+Gewünschte Farben: {(briefing.farben if briefing else None) or 'nicht angegeben'}
+Gewünschter Stil: {stil}
+
+INHALTE DER ALTEN WEBSITE:
+{old_content_text}
+
+INSPIRATIONSSEITEN DES KUNDEN:
+{inspirations}
+
+VERFÜGBARE TEMPLATES:
+{template_options}
+
+AUFGABE:
+Wähle 3 verschiedene Templates aus den verfügbaren aus und begründe die Wahl.
+Jede Version soll einen anderen Ansatz verfolgen:
+- Version A: nah am Kundenwunsch
+- Version B: optimierte/moderne Variante
+- Version C: mutigere/auffälligere Variante
+
+Antworte als JSON:
+{{
+  "versions": [
+    {{
+      "label": "A",
+      "template_id": <ID>,
+      "titel": "Kurzer Titel (max 6 Wörter)",
+      "beschreibung": "2-3 Sätze",
+      "optimierungen": "Was wird gegenüber der alten Website verbessert",
+      "farb_empfehlung": "Konkrete Farbempfehlung",
+      "zielgruppen_ansprache": "Wie das Design die Zielgruppe anspricht"
+    }},
+    {{"label": "B", ...}},
+    {{"label": "C", ...}}
+  ],
+  "gesamt_empfehlung": "Welche Version empfohlen wird und warum"
+}}
+"""
+
+    # Template-Infos als einfache dicts speichern (für Fallback nach DB-Close)
+    templates_data = [
+        {"id": t.id, "name": t.name, "style_tags": t.style_tags}
+        for t in templates
+    ]
+    available_ids = {t["id"] for t in templates_data}
+
+    # DB-Verbindung vor dem externen Claude-Call freigeben
+    db.close()
+
+    # Fallback ohne KI: zufällig 3 Templates
+    result = None
+    try:
+        from anthropic import Anthropic
+        api_key = _os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise RuntimeError("ANTHROPIC_API_KEY nicht gesetzt")
+        client = Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=3000,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+        raw = response.content[0].text.strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        result = _json.loads(raw)
+    except Exception as e:
+        logger.warning(f"KI-Versionierung Fehler, nutze Zufallsauswahl: {e}")
+        # Fallback: zufällig 3 Templates
+        chosen = templates_data[:3]
+        labels = ["A", "B", "C"]
+        result = {
+            "versions": [
+                {
+                    "label": labels[i],
+                    "template_id": t["id"],
+                    "titel":        f"Version {labels[i]}: {t['name']}",
+                    "beschreibung": "Automatische Auswahl (KI nicht verfügbar).",
+                    "optimierungen": "",
+                    "farb_empfehlung": "",
+                    "zielgruppen_ansprache": "",
+                }
+                for i, t in enumerate(chosen)
+            ],
+            "gesamt_empfehlung": "KI war nicht verfügbar — 3 Templates zufällig gewählt.",
+        }
+
+    # Neue Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        # Alte Versionen löschen
+        db2.execute(text("DELETE FROM website_versions WHERE project_id = :id"), {"id": project_id})
+
+        # 3 Versionen speichern
+        saved = []
+        template_ids_in_result = {int(v.get("template_id", 0)) for v in result.get("versions", []) if v.get("template_id")}
+
+        for v in result.get("versions", [])[:3]:
+            tid = v.get("template_id")
+            # Absicherung: falls KI eine falsche ID vorschlägt, nimm ein zufälliges verfügbares
+            if not tid or tid not in available_ids:
+                tid = next(iter(available_ids - template_ids_in_result), next(iter(available_ids)))
+                template_ids_in_result.add(tid)
+
+            tpl = db2.execute(text(
+                "SELECT html_content, css_content, grapes_data FROM website_templates WHERE id = :id"
+            ), {"id": tid}).fetchone()
+
+            row = db2.execute(text("""
+                INSERT INTO website_versions
+                  (project_id, version_label, template_id, html, css, gjs_data, ki_reasoning)
+                VALUES (:pid, :label, :tid, :html, :css, :gjs, :reasoning)
+                RETURNING id
+            """), {
+                "pid":       project_id,
+                "label":     v.get("label", "A"),
+                "tid":       tid,
+                "html":      (tpl.html_content if tpl else "") or "",
+                "css":       (tpl.css_content if tpl else "") or "",
+                "gjs":       _json.dumps(tpl.grapes_data) if (tpl and tpl.grapes_data) else None,
+                "reasoning": _json.dumps({
+                    "titel":             v.get("titel"),
+                    "beschreibung":      v.get("beschreibung"),
+                    "optimierungen":     v.get("optimierungen"),
+                    "farb_empfehlung":   v.get("farb_empfehlung"),
+                    "zielgruppe":        v.get("zielgruppen_ansprache"),
+                }, ensure_ascii=False),
+            })
+            saved.append({"version": v.get("label", "A"), "id": row.fetchone()[0]})
+
+        db2.commit()
+    finally:
+        db2.close()
+
+    return {
+        "versions":     saved,
+        "empfehlung":   result.get("gesamt_empfehlung"),
+        "project_id":   project_id,
+    }
+
+
+@router.get("/{project_id}/versions")
+def list_versions(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    """Alle generierten Versionen für ein Projekt."""
+    rows = db.execute(text("""
+        SELECT v.id, v.version_label, v.template_id, v.selected, v.ki_reasoning,
+               v.created_at, t.name as template_name, t.thumbnail_url
+        FROM website_versions v
+        LEFT JOIN website_templates t ON v.template_id = t.id
+        WHERE v.project_id = :pid
+        ORDER BY v.version_label
+    """), {"pid": project_id}).fetchall()
+    return [dict(r._mapping) for r in rows]
+
+
+@router.post("/{project_id}/versions/{version_id}/select")
+def select_version(
+    project_id: int,
+    version_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    """Eine Version als ausgewählt markieren (alle anderen deaktivieren)."""
+    db.execute(text("UPDATE website_versions SET selected=FALSE WHERE project_id=:pid"), {"pid": project_id})
+    db.execute(text("""
+        UPDATE website_versions SET selected=TRUE
+        WHERE id=:vid AND project_id=:pid
+    """), {"vid": version_id, "pid": project_id})
+    db.commit()
+    return {"selected": version_id}
+
+
+@router.get("/{project_id}/versions/{version_id}/preview")
+def version_preview(
+    project_id: int,
+    version_id: int,
+    db: Session = Depends(get_db),
+):
+    """HTML-Preview einer Version für iframe-Einbettung."""
+    from fastapi.responses import HTMLResponse
+    row = db.execute(text("""
+        SELECT html, css FROM website_versions
+        WHERE id = :vid AND project_id = :pid
+    """), {"vid": version_id, "pid": project_id}).fetchone()
+    if not row:
+        raise HTTPException(404, "Version nicht gefunden")
+    html = row.html or "<p>Kein Inhalt</p>"
+    css  = row.css or ""
+    return HTMLResponse(
+        f"""<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>{css}</style></head><body>{html}</body></html>"""
+    )
 
 
 # ── Scrape Website Content ─────────────────────────────────────────────────────
@@ -1798,19 +2752,37 @@ async def run_project_qa(project_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{project_id}/qa/result")
 def get_qa_result(project_id: int, db: Session = Depends(get_db)):
-    """Gibt das zuletzt gespeicherte QA-Ergebnis zurück."""
-    import json as _json
+    """Gibt das zuletzt gespeicherte QA-Ergebnis zurück.
+    Funktioniert egal ob qa_result als Text-JSON oder JSONB-Dict kommt.
+    """
+    try:
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project:
+            return {"status": "no_result", "message": "Projekt nicht gefunden"}
+        if not project.qa_result:
+            return {"status": "no_result", "message": "Noch kein QA-Scan für dieses Projekt"}
 
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project or not project.qa_result:
-        raise HTTPException(404, "Noch kein QA-Scan vorhanden")
+        parsed = safe_json_parse(project.qa_result, default=None)
+        if parsed is None:
+            return {
+                "status": "parse_error",
+                "message": "QA-Ergebnis konnte nicht gelesen werden",
+                "score": project.qa_score,
+                "run_at": str(project.qa_run_at)[:16] if project.qa_run_at else None,
+            }
 
-    return {
-        "score": project.qa_score,
-        "golive_ok": project.qa_golive_ok,
-        "run_at": str(project.qa_run_at)[:16] if project.qa_run_at else None,
-        "result": _json.loads(project.qa_result),
-    }
+        return {
+            "score": project.qa_score,
+            "golive_ok": project.qa_golive_ok,
+            "run_at": str(project.qa_run_at)[:16] if project.qa_run_at else None,
+            "result": parsed,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        logger.error(f"QA-Result unerwarteter Fehler: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/{project_id}/credentials")
@@ -1818,13 +2790,13 @@ def add_credential(
     project_id: int,
     data: dict,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin),
+    current_user=Depends(require_any_auth),
 ):
     label    = (data.get("label") or "").strip()
-    username = (data.get("username") or "").strip()
-    password = (data.get("password") or "").strip()
+    username = (data.get("username") or data.get("benutzername") or "").strip()
+    password = (data.get("password") or data.get("passwort") or "").strip()
     url      = (data.get("url") or "").strip()
-    notes    = (data.get("notes") or "").strip()
+    notes    = (data.get("notes") or data.get("notizen") or "").strip()
 
     if not label:
         raise HTTPException(400, "Label ist Pflichtfeld")
@@ -1838,18 +2810,26 @@ def add_credential(
         try:
             f = _get_fernet()
             encrypted = f.encrypt(password.encode()).decode()
+        except RuntimeError as e:
+            logger.error(f"CREDENTIALS_KEY Fehler: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="Zugangsdaten-Safe nicht verfügbar: CREDENTIALS_KEY nicht konfiguriert. Bitte Administrator kontaktieren.",
+            )
         except Exception as e:
             logger.error(f"Verschluesselung Fehler: {e}")
             raise HTTPException(500, "Verschluesselung fehlgeschlagen")
 
+    typ = (data.get("typ") or "sonstiges").strip()
     db.execute(text("""
         INSERT INTO project_credentials
-            (project_id, label, username, password_encrypted, url, notes)
+            (project_id, label, typ, username, password_encrypted, url, notes)
         VALUES
-            (:pid, :label, :username, :pw, :url, :notes)
+            (:pid, :label, :typ, :username, :pw, :url, :notes)
     """), {
         "pid":      project_id,
         "label":    label,
+        "typ":      typ,
         "username": username,
         "pw":       encrypted,
         "url":      url,
@@ -1876,17 +2856,24 @@ def add_credential(
 def get_credentials(
     project_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin),
+    current_user=Depends(require_any_auth),
 ):
     rows = db.execute(text("""
-        SELECT id, label, username, password_encrypted,
+        SELECT id, label, COALESCE(typ,'sonstiges') as typ, username, password_encrypted,
                url, notes, created_at
         FROM project_credentials
         WHERE project_id = :pid
         ORDER BY created_at ASC
     """), {"pid": project_id}).mappings().all()
 
-    f = _get_fernet()
+    try:
+        f = _get_fernet()
+    except RuntimeError as e:
+        logger.error(f"CREDENTIALS_KEY Fehler: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Zugangsdaten-Safe nicht verfügbar: CREDENTIALS_KEY nicht konfiguriert. Bitte Administrator kontaktieren.",
+        )
     result = []
     for r in rows:
         decrypted = ""
@@ -1898,6 +2885,7 @@ def get_credentials(
         result.append({
             "id":         r["id"],
             "label":      r["label"],
+            "typ":        r["typ"] or "sonstiges",
             "username":   r["username"] or "",
             "password":   decrypted,
             "url":        r["url"] or "",
@@ -1912,7 +2900,7 @@ def delete_credential(
     project_id: int,
     cred_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin),
+    current_user=Depends(require_any_auth),
 ):
     db.execute(text("""
         DELETE FROM project_credentials
@@ -1958,12 +2946,7 @@ def get_sitemap(
     ).fetchone()
     if not row:
         raise HTTPException(404, "Projekt nicht gefunden")
-    seiten = []
-    if row[0]:
-        try:
-            seiten = json.loads(row[0])
-        except Exception:
-            seiten = []
+    seiten = safe_json_parse(row[0], default=[])
     return {
         "seiten":           seiten,
         "sitemap_freigabe": str(row[1])[:16] if row[1] else None,
@@ -2054,12 +3037,7 @@ def request_approval(
     customer_email = row[2] or ""
     company_name   = row[3] or "Kunde"
 
-    freigaben = {}
-    if row[1]:
-        try:
-            freigaben = json.loads(row[1])
-        except Exception:
-            freigaben = {}
+    freigaben = safe_json_parse(row[1], default={}) or {}
 
     now_str = datetime.utcnow().strftime("%d.%m.%Y %H:%M")
 
@@ -2153,12 +3131,7 @@ def confirm_approval(
     if not row:
         raise HTTPException(404, "Nicht gefunden")
 
-    freigaben = {}
-    if row[0]:
-        try:
-            freigaben = json.loads(row[0])
-        except Exception:
-            freigaben = {}
+    freigaben = safe_json_parse(row[0], default={}) or {}
 
     now_str = datetime.utcnow().strftime("%d.%m.%Y %H:%M")
     if seite_id in freigaben:
@@ -2251,6 +3224,10 @@ async def go_live_pagespeed(
         raise HTTPException(400, "Keine Website-URL hinterlegt")
 
     url     = row[0]
+
+    # DB-Verbindung vor externen PageSpeed + Screenshot Calls freigeben
+    db.close()
+
     api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
     base    = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
     params  = {"url": url}
@@ -2285,19 +3262,24 @@ async def go_live_pagespeed(
     except Exception as e:
         logger.warning(f"Go-Live Screenshot Fehler: {e}")
 
-    db.execute(text("""
-        UPDATE projects SET
-          pagespeed_after_mobile=:mob,
-          pagespeed_after_desktop=:desk,
-          screenshot_after=:sc
-        WHERE id=:id
-    """), {
-        "mob":  mob_score,
-        "desk": desk_score,
-        "sc":   screenshot_after,
-        "id":   project_id,
-    })
-    db.commit()
+    # Neue Session zum Speichern
+    db2 = SessionLocal()
+    try:
+        db2.execute(text("""
+            UPDATE projects SET
+              pagespeed_after_mobile=:mob,
+              pagespeed_after_desktop=:desk,
+              screenshot_after=:sc
+            WHERE id=:id
+        """), {
+            "mob":  mob_score,
+            "desk": desk_score,
+            "sc":   screenshot_after,
+            "id":   project_id,
+        })
+        db2.commit()
+    finally:
+        db2.close()
 
     return {
         "success":                 True,
@@ -2409,3 +3391,1209 @@ def save_gbp_checklist(
     )
     db.commit()
     return {"success": True}
+
+
+@router.post("/{project_id}/ki-report")
+async def generate_ki_report(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """
+    Sammelt alle Onboarding-Daten und lässt Claude einen strukturierten
+    Report mit Lückenanalyse erstellen.
+    """
+    import httpx, json, re
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    lead_id = project.lead_id
+    if not lead_id:
+        raise HTTPException(400, "Kein Lead verknüpft")
+
+    # ── Alle verfügbaren Onboarding-Daten sammeln ──
+    data_parts = []
+
+    # 1. Lead-Basisdaten
+    lead = db.execute(
+        text("""
+            SELECT company_name, website_url, email, phone, city,
+                   trade, wz_code, wz_title, brand_primary_color,
+                   brand_secondary_color, brand_font_primary, brand_design_style
+            FROM leads WHERE id = :lid
+        """),
+        {"lid": lead_id},
+    ).fetchone()
+    if lead:
+        data_parts.append(f"""## Unternehmensdaten
+Firma: {lead.company_name or '–'}
+Website: {lead.website_url or '–'}
+E-Mail: {lead.email or '–'}
+Telefon: {lead.phone or '–'}
+Stadt: {lead.city or '–'}
+Gewerk: {lead.trade or '–'}
+WZ-Code: {lead.wz_code or '–'} — {lead.wz_title or '–'}
+Primärfarbe: {lead.brand_primary_color or '–'}
+Sekundärfarbe: {lead.brand_secondary_color or '–'}
+Schriftart: {lead.brand_font_primary or '–'}
+Designstil: {lead.brand_design_style or '–'}""")
+
+    # 2. Briefing-Daten
+    briefing = db.execute(
+        text("""
+            SELECT gewerk, leistungen, einzugsgebiet, zielgruppe,
+                   usp, mitbewerber, wunschseiten, farben, stil,
+                   sonstige_hinweise, logo_vorhanden, fotos_vorhanden
+            FROM briefings WHERE lead_id = :lid
+            ORDER BY id DESC LIMIT 1
+        """),
+        {"lid": lead_id},
+    ).fetchone()
+    if briefing:
+        data_parts.append(f"""## Briefing-Daten
+Gewerk: {briefing.gewerk or '–'}
+Leistungen: {briefing.leistungen or '–'}
+Einzugsgebiet: {briefing.einzugsgebiet or '–'}
+Zielgruppe: {briefing.zielgruppe or '–'}
+USP: {briefing.usp or '–'}
+Mitbewerber: {briefing.mitbewerber or '–'}
+Wunschseiten: {briefing.wunschseiten or '–'}
+Farben: {briefing.farben or '–'}
+Stil: {briefing.stil or '–'}
+Sonstige Hinweise: {briefing.sonstige_hinweise or '–'}
+Logo vorhanden: {'Ja' if briefing.logo_vorhanden else 'Nein'}
+Fotos vorhanden: {'Ja' if briefing.fotos_vorhanden else 'Nein'}""")
+
+    # 3. Letzter Audit (Tabelle: audit_results)
+    try:
+        audit = db.execute(
+            text("""
+                SELECT total_score, ai_summary
+                FROM audit_results WHERE lead_id = :lid
+                ORDER BY created_at DESC LIMIT 1
+            """),
+            {"lid": lead_id},
+        ).fetchone()
+        if audit:
+            data_parts.append(f"""## Audit
+Score: {audit[0] or '–'}/100
+Zusammenfassung: {audit[1] or '–'}""")
+    except Exception:
+        pass
+
+    # 4. PageSpeed (aus leads-Tabelle, nicht separate Tabelle)
+    try:
+        ps = db.execute(
+            text("SELECT pagespeed_mobile_score, pagespeed_desktop_score FROM leads WHERE id = :lid"),
+            {"lid": lead_id},
+        ).fetchone()
+        if ps and (ps[0] or ps[1]):
+            data_parts.append(f"""## PageSpeed
+Mobil: {ps[0] or '–'}/100
+Desktop: {ps[1] or '–'}/100""")
+    except Exception:
+        pass
+
+    # 5. Crawler (Tabelle: crawl_results, Spalte: customer_id)
+    try:
+        crawler_count = db.execute(
+            text("SELECT COUNT(*) FROM crawl_results WHERE customer_id = :lid"),
+            {"lid": lead_id},
+        ).scalar()
+        if crawler_count:
+            data_parts.append(f"## Crawler\nGecrawlte Seiten: {crawler_count}")
+    except Exception:
+        pass
+
+    # 6. Sitemap-Seiten
+    sitemap_pages = db.execute(
+        text("SELECT page_name, page_type, ziel_keyword FROM sitemap_pages WHERE lead_id = :lid AND ist_pflichtseite = false ORDER BY position"),
+        {"lid": lead_id},
+    ).fetchall()
+    if sitemap_pages:
+        seiten_text = "\n".join([
+            f"- {p.page_name} ({p.page_type}){' → ' + p.ziel_keyword if p.ziel_keyword else ''}"
+            for p in sitemap_pages
+        ])
+        data_parts.append(f"## Geplante Seiten (Sitemap)\n{seiten_text}")
+
+    if not data_parts:
+        raise HTTPException(400, "Keine Onboarding-Daten vorhanden. Bitte zuerst Audit, Briefing und Crawler ausführen.")
+
+    all_data = "\n\n".join(data_parts)
+
+    # DB-Verbindung vor externem API-Call freigeben
+    db.close()
+
+    # ── KI-Analyse via Claude ──
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    prompt = f"""Du bist ein Website-Stratege bei KOMPAGNON. Analysiere die folgenden Onboarding-Daten eines Kunden und erstelle einen strukturierten Report.
+
+{all_data}
+
+Erstelle einen JSON-Report mit GENAU dieser Struktur (nur JSON, kein Markdown):
+{{
+  "completeness_score": <0-100, wie vollständig sind die Daten>,
+  "data_points_count": <Anzahl vorhandener Datenpunkte>,
+  "gaps_count": <Anzahl fehlender wichtiger Informationen>,
+  "summary": "<3-5 Sätze: Wer ist der Kunde, was macht er, wo steht er>",
+  "available_data": [
+    "<Was vorhanden ist, z.B. 'Briefing mit USP und Zielgruppe'>",
+    "<weiterer Punkt>"
+  ],
+  "gaps": [
+    {{
+      "field": "<Name des fehlenden Feldes, z.B. 'Fotos/Bildmaterial'>",
+      "impact": "<Warum das fehlt ist ein Problem für die Content-Erstellung>",
+      "action": "<Was konkret getan werden kann>"
+    }}
+  ],
+  "recommendation": "<1-2 Sätze: Kann man jetzt mit Content-Erstellung beginnen oder was fehlt noch>",
+  "content_brief": "<Kompakter Steckbrief in 10-15 Zeilen für die spätere Content-KI: Firma, Gewerk, USP, Zielgruppe, Leistungen, Keyword-Fokus, Tonalität>"
+}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 2000,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+        resp.raise_for_status()
+        content = resp.json()["content"][0]["text"].strip()
+
+        # JSON parsen — eventuelle Markdown-Backticks entfernen
+        content = re.sub(r'^```json\s*', '', content)
+        content = re.sub(r'\s*```$', '', content)
+        report_data = json.loads(content)
+
+        return report_data
+
+    except Exception as e:
+        raise HTTPException(500, f"KI-Report fehlgeschlagen: {str(e)[:200]}")
+
+
+@router.post("/{project_id}/moodboard")
+async def save_moodboard(
+    project_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Speichert die Moodboard-Auswahl zum Projekt."""
+    import json as _json
+    db.execute(
+        text("""
+            UPDATE projects SET
+              moodboard_data = :data,
+              moodboard_updated_at = NOW()
+            WHERE id = :id
+        """),
+        {"data": _json.dumps(body, ensure_ascii=False), "id": project_id},
+    )
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/{project_id}/moodboard/preview")
+async def generate_moodboard_preview(
+    project_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Lässt Claude eine Moodboard-Beschreibung + Farbpalette generieren."""
+    import httpx, json, re
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    # DB-Verbindung vor externem Call freigeben
+    db.close()
+
+    stilrichtung = body.get("stilrichtung", "")
+    farbstimmung = body.get("farbstimmung", "")
+    typografie   = body.get("typografie", "")
+    bildsprache  = body.get("bildsprache", [])
+    notizen      = body.get("notizen", "")
+
+    prompt = f"""Du bist ein Website-Designer für Handwerksbetriebe. Erstelle auf Basis dieser Moodboard-Auswahl eine konkrete Designbeschreibung und Farbpalette.
+
+Stilrichtung: {stilrichtung}
+Farbstimmung: {farbstimmung}
+Typografie: {typografie}
+Bildsprache: {', '.join(bildsprache) if bildsprache else 'nicht festgelegt'}
+Besondere Wünsche: {notizen or 'keine'}
+
+Antworte NUR mit diesem JSON (kein Markdown, keine Erklärungen):
+{{
+  "description": "<3-4 Sätze: Wie wird die Website aussehen, welche Atmosphäre entsteht, was macht sie besonders>",
+  "color_palette": [
+    {{"hex": "#FARBCODE", "role": "Primärfarbe"}},
+    {{"hex": "#FARBCODE", "role": "Sekundärfarbe"}},
+    {{"hex": "#FARBCODE", "role": "Akzentfarbe"}},
+    {{"hex": "#FARBCODE", "role": "Hintergrund"}},
+    {{"hex": "#FARBCODE", "role": "Text"}}
+  ]
+}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 600,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+        resp.raise_for_status()
+        content = resp.json()["content"][0]["text"].strip()
+        content = re.sub(r'^```json\s*', '', content)
+        content = re.sub(r'\s*```$', '', content)
+        return json.loads(content)
+    except Exception as e:
+        raise HTTPException(500, f"Preview-Generierung fehlgeschlagen: {str(e)[:200]}")
+
+
+@router.post("/{project_id}/briefing-prefill")
+async def briefing_prefill_from_content(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Analysiert gecrawlten Website-Content und gibt Briefing-Vorschläge zurück."""
+    import os, httpx, json, re
+    from urllib.parse import urlparse
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    lead_id = project.lead_id
+    if not lead_id:
+        raise HTTPException(400, "Kein Lead verknüpft")
+
+    rows = db.execute(
+        text("""
+            SELECT url, title, meta_description, h1, h2s, text_preview
+            FROM website_content_cache
+            WHERE customer_id = :lid ORDER BY scraped_at DESC LIMIT 20
+        """),
+        {"lid": lead_id},
+    ).fetchall()
+
+    if not rows:
+        raise HTTPException(400, "Kein Website-Content vorhanden. Bitte zuerst Crawler + Content-Scraping ausführen.")
+
+    # Kontaktdaten
+    try:
+        contact = db.execute(
+            text("SELECT contact_phone, contact_email, contact_address FROM project_scraped_pages WHERE project_id = :pid LIMIT 1"),
+            {"pid": project_id},
+        ).fetchone()
+    except Exception:
+        contact = None
+
+    pages_text = []
+    all_h2s = []
+    all_titles = []
+    page_names = []
+
+    for row in rows:
+        url, title, meta, h1, h2s_json, preview = row
+        all_titles.append(title or h1 or '')
+        try:
+            h2s = json.loads(h2s_json or '[]')
+            all_h2s.extend(h2s)
+        except Exception:
+            pass
+        if preview:
+            pages_text.append(f"URL: {url}\nH1: {h1 or title}\nVorschau: {preview[:400]}")
+        try:
+            path = urlparse(url).path.strip('/').split('/')[-1]
+            if path and len(path) > 1:
+                name = path.replace('-', ' ').replace('_', ' ').title()
+                if name not in page_names:
+                    page_names.append(name)
+        except Exception:
+            pass
+
+    wunschseiten = ', '.join(page_names[:8])
+
+    def heuristic():
+        return {
+            "gewerk": (all_titles[0] if all_titles else '')[:80],
+            "leistungen": '\n'.join(set(all_h2s[:10])),
+            "einzugsgebiet": (contact[2] if contact and contact[2] else ''),
+            "wunschseiten": wunschseiten,
+            "source": "heuristic",
+        }
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return heuristic()
+
+    content_summary = "\n---\n".join(pages_text[:8])
+    prompt = f"""Analysiere diesen Website-Content eines Handwerksbetriebs.
+{content_summary}
+
+Gib NUR JSON zurück:
+{{"gewerk":"<max 60 Zeichen>","leistungen":"<kommagetrennt, max 300>","einzugsgebiet":"<Stadt/Region>","usp":"<max 200>","wunschseiten":"{wunschseiten}","zielgruppe":"Privatkunden|Gewerbekunden|Beides"}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514", "max_tokens": 600, "messages": [{"role": "user", "content": prompt}]},
+            )
+        resp.raise_for_status()
+        txt = resp.json()["content"][0]["text"].strip()
+        txt = re.sub(r'^```json\s*', '', txt)
+        txt = re.sub(r'\s*```$', '', txt)
+        result = json.loads(txt)
+        result["source"] = "claude"
+        return result
+    except Exception:
+        return heuristic()
+
+
+@router.post("/{project_id}/content-workshop/generate-all")
+async def generate_all_pages_content(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Generiert KI-Content für ALLE Sitemap-Seiten in einem einzigen Claude-API-Call."""
+    import os, json, re
+    import httpx as _httpx
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    lead    = project.lead
+    lead_id = project.lead_id
+
+    pages = db.execute(
+        text("""
+            SELECT id, page_name, page_type, ziel_keyword, zweck
+            FROM sitemap_pages
+            WHERE lead_id = :lid
+            ORDER BY position
+        """),
+        {"lid": lead_id},
+    ).fetchall()
+
+    if not pages:
+        raise HTTPException(400, "Keine Sitemap-Seiten gefunden. Zuerst Sitemap anlegen.")
+
+    briefing = db.execute(
+        text("SELECT gewerk, leistungen, einzugsgebiet, usp, zielgruppe FROM briefings WHERE lead_id = :lid LIMIT 1"),
+        {"lid": lead_id},
+    ).fetchone()
+
+    brand_json = getattr(lead, "brand_design_json", None)
+    brand = json.loads(brand_json) if brand_json else {}
+
+    crawled_rows = db.execute(
+        text("""
+            SELECT url, h1, text_preview
+            FROM website_content_cache
+            WHERE customer_id = :lid
+            ORDER BY scraped_at DESC
+            LIMIT 20
+        """),
+        {"lid": lead_id},
+    ).fetchall()
+    crawled_summary = "\n".join(
+        [f"- {r[1] or r[0]}: {(r[2] or '')[:200]}" for r in crawled_rows[:8]]
+    ) or "Kein gecrawlter Content vorhanden."
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    gewerk     = briefing[0] if briefing else "Handwerksbetrieb"
+    leistungen = briefing[1] if briefing else ""
+    region     = briefing[2] if briefing else ""
+    usp        = briefing[3] if briefing else ""
+    zielgruppe = briefing[4] if briefing else "Privatkunden"
+    company    = getattr(lead, "company_name", "") or ""
+    phone      = getattr(lead, "phone", "") or ""
+
+    pages_for_prompt = [
+        {"id": p[0], "name": p[1], "type": p[2], "keyword": p[3] or "", "zweck": p[4] or ""}
+        for p in pages
+    ]
+    pages_json_str = json.dumps(pages_for_prompt, ensure_ascii=False, indent=2)
+
+    prompt = f"""Du bist ein professioneller Werbetexter für deutsche Handwerksbetriebe.
+
+UNTERNEHMEN:
+- Firma: {company}
+- Branche/Gewerk: {gewerk}
+- Leistungen: {leistungen}
+- Region: {region}
+- USP: {usp}
+- Telefon: {phone}
+- Zielgruppe: {zielgruppe}
+- Design-Stil: {brand.get("style_keyword", "Modern & professionell")}
+
+BESTEHENDE WEBSITE (gecrawlt):
+{crawled_summary}
+
+Schreibe jetzt für JEDE der folgenden Seiten professionelle deutsche Texte.
+Ton: direkt, vertrauenswürdig, keine Floskeln. Regional konkret. Immer den USP einbauen.
+
+SEITEN:
+{pages_json_str}
+
+Antworte NUR mit einem JSON-Array. Ein Objekt pro Seite:
+[
+  {{
+    "page_id": <int, die id aus der Seiten-Liste>,
+    "h1": "<Hauptüberschrift, max 70 Zeichen, enthält Gewerk + Region>",
+    "hero_text": "<Hero-Fliesstext, 2-3 Sätze, Nutzen für den Kunden>",
+    "abschnitt_text": "<Haupttext der Seite, 3-5 Sätze, ausführlicher>",
+    "cta": "<Call-to-Action Text, max 40 Zeichen, aktiv formuliert>",
+    "meta_title": "<SEO-Title, max 60 Zeichen, Keyword + Firmenname>",
+    "meta_description": "<SEO-Description, max 155 Zeichen, Nutzen + CTA>"
+  }}
+]
+
+Nur JSON, kein Markdown, keine Erklärungen."""
+
+    db.close()
+
+    try:
+        async with _httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 4000,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+        resp.raise_for_status()
+        raw = resp.json()["content"][0]["text"].strip()
+        raw = re.sub(r"^```json\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+        results = json.loads(raw)
+    except Exception as e:
+        raise HTTPException(500, f"KI-Generierung fehlgeschlagen: {str(e)[:200]}")
+
+    db2 = SessionLocal()
+    saved = []
+    try:
+        for item in results:
+            page_id = item.get("page_id")
+            if not page_id:
+                continue
+            db2.execute(
+                text("""
+                    UPDATE sitemap_pages SET
+                        ki_h1               = :h1,
+                        ki_hero_text        = :hero,
+                        ki_abschnitt_text   = :abschnitt,
+                        ki_cta              = :cta,
+                        ki_meta_title       = :meta_title,
+                        ki_meta_description = :meta_desc,
+                        content_generated   = true,
+                        content_generated_at = NOW()
+                    WHERE id = :pid
+                """),
+                {
+                    "h1":         item.get("h1", ""),
+                    "hero":       item.get("hero_text", ""),
+                    "abschnitt":  item.get("abschnitt_text", ""),
+                    "cta":        item.get("cta", ""),
+                    "meta_title": item.get("meta_title", ""),
+                    "meta_desc":  item.get("meta_description", ""),
+                    "pid":        page_id,
+                },
+            )
+            saved.append(page_id)
+        db2.commit()
+    except Exception as e:
+        db2.rollback()
+        raise HTTPException(500, f"DB-Speichern fehlgeschlagen: {str(e)[:200]}")
+    finally:
+        db2.close()
+
+    return {
+        "success": True,
+        "pages_generated": len(saved),
+        "page_ids": saved,
+        "results": results,
+    }
+
+
+@router.post("/{project_id}/content-workshop/{page_id}")
+async def generate_page_content(
+    project_id: int,
+    page_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Generiert KI-Content fuer eine Sitemap-Seite basierend auf Crawler-Daten + Briefing."""
+    import os, httpx, json, re
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    # Tor 1: Briefing muss vom Kunden freigegeben sein
+    if not getattr(project, "briefing_approved_at", None):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "BRIEFING_NOT_APPROVED",
+                "message": "Das Briefing wurde noch nicht vom Kunden freigegeben. Bitte zuerst eine Freigabe-E-Mail senden.",
+            },
+        )
+
+    lead_id = project.lead_id
+
+    page = db.execute(
+        text("SELECT page_name, page_type, ziel_keyword, zweck FROM sitemap_pages WHERE id = :id"),
+        {"id": page_id},
+    ).fetchone()
+    if not page:
+        raise HTTPException(404, "Seite nicht gefunden")
+
+    page_name, page_type, keyword, zweck = page
+
+    briefing = db.execute(
+        text("SELECT gewerk, leistungen, einzugsgebiet, usp, zielgruppe FROM briefings WHERE lead_id = :lid LIMIT 1"),
+        {"lid": lead_id},
+    ).fetchone()
+
+    crawled = db.execute(
+        text(
+            "SELECT url, h1, h2s, text_preview, full_text "
+            "FROM website_content_cache "
+            "WHERE customer_id = :lid "
+            "AND (url ILIKE :name OR h1 ILIKE :name OR title ILIKE :name) "
+            "ORDER BY scraped_at DESC LIMIT 1"
+        ),
+        {"lid": lead_id, "name": f"%{page_name.lower().replace(' ', '%')}%"},
+    ).fetchone()
+
+    old_content = ""
+    if crawled:
+        old_content = f"URL: {crawled[0]}\nH1: {crawled[1]}\n"
+        try:
+            h2s = json.loads(crawled[2] or '[]')
+            if h2s:
+                old_content += "H2: " + " | ".join(h2s[:5]) + "\n"
+        except Exception:
+            pass
+        old_content += f"Text: {(crawled[4] or crawled[3] or '')[:1500]}"
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    gewerk     = briefing[0] if briefing else "Handwerksbetrieb"
+    leistungen = briefing[1] if briefing else ""
+    region     = briefing[2] if briefing else ""
+    usp        = briefing[3] if briefing else ""
+    zielgruppe = briefing[4] if briefing else "Privatkunden"
+
+    old_section = f"\nBestehender Content:\n{old_content}" if old_content else "\nKein bestehender Content — komplett neu schreiben."
+
+    prompt = (
+        f"Du bist ein professioneller Webtexter fuer lokale Unternehmen.\n"
+        f"Schreibe den Content fuer die Seite \"{page_name}\" ({page_type}).\n\n"
+        f"Unternehmen: {gewerk}\nLeistungen: {leistungen}\nRegion: {region}\nUSP: {usp}\nZielgruppe: {zielgruppe}\n"
+        f"Seite: {page_name}\nZweck: {zweck or 'Informieren und ueberzeugen'}\nKeyword: {keyword or 'nicht definiert'}\n"
+        f"{old_section}\n\n"
+        "Antworte NUR als JSON:\n"
+        '{"headline":"<H1 max 60 Zeichen>","subheadline":"<max 100 Zeichen>","intro":"<2-3 Saetze>",'
+        '"sections":[{"titel":"<H2>","text":"<3-5 Saetze>"}],'
+        '"cta":"<Call-to-Action>","meta_title":"<max 60>","meta_description":"<max 155>"}'
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=45.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514", "max_tokens": 3000, "messages": [{"role": "user", "content": prompt}]},
+            )
+        resp.raise_for_status()
+        raw_text = resp.json()["content"][0]["text"].strip()
+        raw_text = re.sub(r'^```json\s*', '', raw_text)
+        raw_text = re.sub(r'\s*```$', '', raw_text)
+        # JSON repair for truncated responses
+        try:
+            result = json.loads(raw_text)
+        except json.JSONDecodeError:
+            repaired = raw_text.rstrip().rstrip(",")
+            if repaired.count('"') % 2 != 0:
+                repaired += '"'
+            open_brackets = repaired.count('[') - repaired.count(']')
+            repaired += ']' * max(0, open_brackets)
+            open_braces = repaired.count('{') - repaired.count('}')
+            repaired += '}' * max(0, open_braces)
+            result = json.loads(repaired)
+        result["old_content"] = old_content
+        result["page_name"] = page_name
+        result["page_id"] = page_id
+        return result
+    except json.JSONDecodeError as e:
+        raise HTTPException(500, f"KI-Antwort nicht parsebar: {str(e)[:100]}")
+    except Exception as e:
+        raise HTTPException(500, f"Content-Generierung fehlgeschlagen: {str(e)[:200]}")
+
+
+# ── Ground Page ────────────────────────────────────────────────────────────────
+
+def _build_schema_jsonld(data: dict, company: str, city: str, website: str,
+                          phone: str, rating: str, rating_count: str,
+                          founded: str, employees: str, leistungen: str) -> dict:
+    schema = {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "name": company,
+        "url": website or "",
+        "telephone": phone or "",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": city,
+            "addressCountry": "DE",
+        },
+        "description": data.get("meta_description", ""),
+    }
+    if rating and rating != "—":
+        try:
+            schema["aggregateRating"] = {
+                "@type": "AggregateRating",
+                "ratingValue": str(rating),
+                "reviewCount": str(rating_count or "0"),
+            }
+        except Exception:
+            pass
+    if founded and founded != "—":
+        schema["foundingDate"] = str(founded)
+    if employees and employees != "—":
+        schema["numberOfEmployees"] = str(employees)
+    services = [s.strip() for s in (leistungen or "").split(",") if s.strip()]
+    if services:
+        schema["hasOfferCatalog"] = {
+            "@type": "OfferCatalog",
+            "name": "Leistungen",
+            "itemListElement": services[:10],
+        }
+    faq_items = data.get("faq", [])
+    if faq_items:
+        schema["mainEntity"] = [
+            {
+                "@type": "Question",
+                "name": item["frage"],
+                "acceptedAnswer": {"@type": "Answer", "text": item["antwort"]},
+            }
+            for item in faq_items
+        ]
+    return schema
+
+
+@router.post("/{project_id}/ground-page")
+async def generate_ground_page(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Generiert eine Ground Page für GEO/KI-Optimierung (Fakten, Keywords, FAQ, Schema.org)."""
+    import os, httpx, json, re
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    lead    = project.lead
+    lead_id = project.lead_id
+
+    briefing = db.execute(
+        text("""
+            SELECT gewerk, leistungen, einzugsgebiet, usp,
+                   zielgruppe, hauptziel, aktionen,
+                   telefon, email, gruendungsjahr,
+                   mitarbeiterzahl, google_bewertung,
+                   google_bewertung_anzahl, zertifikate,
+                   auszeichnungen, sonstige_hinweise
+            FROM briefings WHERE lead_id = :lid LIMIT 1
+        """),
+        {"lid": lead_id},
+    ).fetchone()
+
+    company    = getattr(lead, 'company_name', '') or ''
+    city       = getattr(lead, 'city', '') or ''
+    website    = getattr(lead, 'website_url', '') or ''
+    phone      = getattr(lead, 'phone', '') or ''
+
+    gewerk         = (briefing[0]  if briefing else '') or ''
+    leistungen     = (briefing[1]  if briefing else '') or ''
+    einzugsgebiet  = (briefing[2]  if briefing else city) or city
+    usp            = (briefing[3]  if briefing else '') or ''
+    zielgruppe     = (briefing[4]  if briefing else 'Privatkunden') or 'Privatkunden'
+    hauptziel      = (briefing[5]  if briefing else '') or ''
+    telefon_b      = (briefing[7]  if briefing else phone) or phone
+    gruendungsjahr = (briefing[9]  if briefing else '') or ''
+    mitarbeiter    = (briefing[10] if briefing else '') or ''
+    g_bewertung    = (briefing[11] if briefing else '') or ''
+    g_anzahl       = (briefing[12] if briefing else '') or ''
+    zertifikate    = (briefing[13] if briefing else '') or ''
+    auszeichnungen = (briefing[14] if briefing else '') or ''
+    hinweise       = (briefing[15] if briefing else '') or ''
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    prompt = f"""Du erstellst eine Ground Page für ein Handwerksunternehmen.
+Eine Ground Page ist eine maschinenlesbare Seite für KI-Systeme (ChatGPT, Perplexity, Google AI).
+Sie soll das Unternehmen bei relevanten KI-Suchanfragen empfehlenswert machen.
+
+UNTERNEHMENSDATEN:
+- Name: {company}
+- Branche/Gewerk: {gewerk}
+- Stadt: {city}
+- Einzugsgebiet: {einzugsgebiet}
+- Website: {website}
+- Telefon: {telefon_b or phone}
+- Gegründet: {gruendungsjahr or '—'}
+- Mitarbeiter: {mitarbeiter or '—'}
+- Google-Bewertung: {g_bewertung or '—'} ({g_anzahl or '—'} Bewertungen)
+- Zertifikate: {zertifikate or '—'}
+- Auszeichnungen: {auszeichnungen or '—'}
+- Leistungen: {leistungen}
+- USP: {usp}
+- Zielgruppe: {zielgruppe}
+- Hauptziel: {hauptziel}
+- Hinweise: {hinweise}
+
+AUFGABE: Erstelle NUR gültiges JSON mit GENAU dieser Struktur:
+
+{{
+  "page_title": "Über uns & Informationen — {company}",
+  "meta_description": "<155 Zeichen: Wer wir sind, was wir anbieten, wo wir sind>",
+  "intro": "<2-3 Sätze Einleitung, direkt und informativ für KI-Systeme>",
+  "fakten": {{
+    "name": "{company}",
+    "branche": "<Gewerk>",
+    "standort": "<Stadt, Bundesland, Deutschland>",
+    "einzugsgebiet": "<Region mit Städten>",
+    "gegruendet": "<Jahr oder —>",
+    "mitarbeiter": "<Zahl oder —>",
+    "telefon": "<Telefon>",
+    "website": "<URL>",
+    "notdienst": "<Ja 24/7 / Ja Mo-Fr / Nein>",
+    "sprachen": "Deutsch"
+  }},
+  "leistungen_keywords": [
+    "<Leistung + Stadt, z.B. Wallbox installieren München>",
+    "<weitere 7-9 GEO-optimierte Leistungs-Keywords>"
+  ],
+  "usp_saetze": [
+    "<USP 1 als vollständiger Satz für KI-Verständnis>",
+    "<USP 2>",
+    "<USP 3>"
+  ],
+  "faq": [
+    {{"frage": "<Frage genau wie Nutzer sie in ChatGPT eintippen würden>", "antwort": "<Direkte informative Antwort mit Firmenname und Kontakt>"}},
+    {{"frage": "<Frage 2>", "antwort": "<Antwort 2>"}},
+    {{"frage": "<Frage 3>", "antwort": "<Antwort 3>"}},
+    {{"frage": "<Frage 4>", "antwort": "<Antwort 4>"}},
+    {{"frage": "<Frage 5>", "antwort": "<Antwort 5>"}}
+  ],
+  "vertrauen": {{
+    "google_bewertung": "{g_bewertung or '—'}",
+    "google_anzahl": "{g_anzahl or '—'}",
+    "zertifikate": "<Zertifikate aufgelistet oder —>",
+    "auszeichnungen": "<Auszeichnungen aufgelistet oder —>",
+    "seit": "<Gründungsjahr oder —>",
+    "projekte": "<Geschätzte Projektanzahl falls ableitbar, sonst —>"
+  }},
+  "schema_type": "LocalBusiness",
+  "letzte_aktualisierung": "2026-04"
+}}
+
+Gib NUR das JSON zurück, keine Erklärung, kein Markdown."""
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 3000,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+        resp.raise_for_status()
+        raw = resp.json()["content"][0]["text"].strip()
+        raw = re.sub(r'^```json\s*', '', raw)
+        raw = re.sub(r'\s*```$', '', raw)
+        ground_data = json.loads(raw)
+
+        ground_data["schema_jsonld"] = _build_schema_jsonld(
+            ground_data, company, city, website,
+            telefon_b or phone, g_bewertung, g_anzahl,
+            gruendungsjahr, mitarbeiter, leistungen,
+        )
+
+        # Persist to website_content of the ground sitemap page
+        ground_page = db.execute(
+            text("SELECT id FROM sitemap_pages WHERE lead_id = :lid AND page_type = 'ground' LIMIT 1"),
+            {"lid": lead_id},
+        ).fetchone()
+        if ground_page:
+            db.execute(
+                text("""
+                    INSERT INTO website_content (sitemap_page_id, ki_content, content_generated, updated_at)
+                    VALUES (:pid, :content, TRUE, NOW())
+                    ON CONFLICT (sitemap_page_id)
+                    DO UPDATE SET ki_content = EXCLUDED.ki_content,
+                                  content_generated = TRUE,
+                                  updated_at = NOW()
+                """),
+                {"pid": ground_page[0], "content": json.dumps(ground_data, ensure_ascii=False)},
+            )
+            db.commit()
+
+        return {"ok": True, "ground_page": ground_data}
+
+    except json.JSONDecodeError:
+        raise HTTPException(500, "KI-Antwort konnte nicht verarbeitet werden")
+    except Exception as e:
+        raise HTTPException(500, f"Ground Page Generierung fehlgeschlagen: {str(e)[:300]}")
+
+
+# ── Link-Resolver ─────────────────────────────────────────────────────────────
+
+import re as _re
+
+def _make_slug(name: str) -> str:
+    slug = name.lower().strip()
+    slug = slug.replace('ae', 'ae').replace('oe', 'oe').replace('ue', 'ue').replace('ss', 'ss')
+    slug = _re.sub(r'[^a-z0-9]+', '-', slug).strip('-')
+    SLUG_MAP = {
+        'startseite': '', 'home': '', 'impressum': 'impressum',
+        'datenschutz': 'datenschutz', 'datenschutzerklaerung': 'datenschutz',
+        'agb': 'agb', 'kontakt': 'kontakt', 'contact': 'kontakt',
+        'ueber-uns': 'ueber-uns', 'uber-uns': 'ueber-uns', 'about': 'ueber-uns',
+        'leistungen': 'leistungen', 'services': 'leistungen',
+        'referenzen': 'referenzen', 'galerie': 'galerie',
+        'blog': 'blog', 'news': 'news', 'karriere': 'karriere',
+        'jobs': 'karriere', 'stellenangebote': 'karriere',
+        'preise': 'preise', 'pricing': 'preise',
+    }
+    return SLUG_MAP.get(slug, slug)
+
+
+def _build_sitemap_register(project_id: int, db) -> list:
+    lead_row = db.execute(text("SELECT lead_id FROM projects WHERE id = :pid"), {"pid": project_id}).fetchone()
+    lead_id = lead_row[0] if lead_row else None
+    if not lead_id:
+        return []
+    rows = db.execute(
+        text("SELECT id, page_name, page_type, '' as slug FROM sitemap_pages WHERE lead_id = :lid ORDER BY position, id"),
+        {"lid": lead_id},
+    ).fetchall()
+    result = []
+    for row in rows:
+        page_id, name, ptype, slug = row
+        if not slug:
+            slug = _make_slug(name)
+            db.execute(text("UPDATE sitemap_pages SET slug = :slug WHERE id = :id"), {"slug": slug, "id": page_id})
+        result.append({"id": page_id, "name": name, "type": ptype, "slug": slug, "path": f"/{slug}" if slug else "/"})
+    db.commit()
+    return result
+
+
+def _resolve_links(html: str, sitemap: list, phone: str = "", email: str = "") -> tuple:
+    if not html:
+        return html, []
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, 'html.parser')
+    report = []
+    path_map = {}
+    for page in sitemap:
+        for kw in [page['name'].lower(), page['slug'].lower(), page['type'].lower()]:
+            if kw:
+                path_map[kw] = page['path']
+    extras = {
+        'kontakt': '/kontakt', 'contact': '/kontakt', 'anfrage': '/kontakt',
+        'angebot': '/kontakt', 'beratung': '/kontakt', 'termin': '/kontakt',
+        'impressum': '/impressum', 'datenschutz': '/datenschutz', 'agb': '/agb',
+        'leistungen': '/leistungen', 'services': '/leistungen',
+        'referenzen': '/referenzen', 'galerie': '/galerie',
+        'startseite': '/', 'home': '/', 'mehr erfahren': '/leistungen',
+        'jetzt anfragen': '/kontakt', 'kostenlos': '/kontakt',
+    }
+    if phone:
+        extras['anrufen'] = f'tel:{phone}'
+    if email:
+        extras['e-mail'] = f'mailto:{email}'
+        extras['email'] = f'mailto:{email}'
+    path_map.update(extras)
+
+    def _find(text):
+        t = text.lower().strip()
+        if t in path_map:
+            return path_map[t]
+        for kw, p in path_map.items():
+            if kw in t or t in kw:
+                return p
+        return None
+
+    for tag in soup.find_all(['a', 'button']):
+        txt = tag.get_text(strip=True)
+        href = tag.get('href', '')
+        is_broken = not href or href in ['#', '#!', 'javascript:void(0)', 'javascript:;'] or href.startswith('http://example') or href == 'URL_HIER'
+        resolved = _find(txt)
+        if is_broken and resolved:
+            if tag.name == 'a':
+                tag['href'] = resolved
+            else:
+                tag['onclick'] = f"window.location.href='{resolved}'"
+            status = 'auto_fixed'
+        elif is_broken:
+            status = 'unresolved'
+        else:
+            status = 'ok'
+        report.append({'text': txt[:50], 'tag': tag.name, 'original': href, 'resolved': resolved, 'href': tag.get('href', tag.get('onclick', '')), 'status': status})
+
+    return str(soup), report
+
+
+@router.post("/{project_id}/resolve-links")
+async def resolve_project_links(
+    project_id: int, data: dict,
+    db: Session = Depends(get_db), _=Depends(require_any_auth),
+):
+    html = data.get("html", "")
+    page_id = data.get("page_id")
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    lead = project.lead
+    phone = getattr(lead, 'phone', '') or ''
+    email = getattr(lead, 'email', '') or ''
+    sitemap = _build_sitemap_register(project_id, db)
+    fixed_html, link_report = _resolve_links(html, sitemap, phone, email)
+    auto_fixed = sum(1 for r in link_report if r['status'] == 'auto_fixed')
+    unresolved = sum(1 for r in link_report if r['status'] == 'unresolved')
+    return {
+        "html": fixed_html,
+        "link_report": link_report,
+        "summary": {
+            "total": len(link_report),
+            "ok": sum(1 for r in link_report if r['status'] == 'ok'),
+            "auto_fixed": auto_fixed,
+            "unresolved": unresolved,
+        },
+    }
+
+
+@router.get("/{project_id}/sitemap-register")
+def get_sitemap_register(
+    project_id: int, db: Session = Depends(get_db), _=Depends(require_any_auth),
+):
+    return _build_sitemap_register(project_id, db)
+
+
+@router.post("/{project_id}/design-json/{page_id}")
+async def generate_design_json(
+    project_id: int,
+    page_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Claude liefert Block-JSON statt rohem HTML."""
+    import os, httpx, json, re
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    lead    = project.lead
+    lead_id = project.lead_id
+
+    page = db.execute(
+        text("SELECT page_name, page_type, ziel_keyword, zweck, ki_h1, ki_hero_text, ki_abschnitt_text, ki_cta, content_generated FROM sitemap_pages WHERE id=:id"),
+        {"id": page_id},
+    ).fetchone()
+    if not page:
+        raise HTTPException(404, "Seite nicht gefunden")
+    page_name, page_type, keyword, zweck, ki_h1, ki_hero_text, ki_abschnitt_text, ki_cta, content_generated = page
+
+    briefing = db.execute(
+        text("SELECT gewerk, leistungen, einzugsgebiet, usp FROM briefings WHERE lead_id=:lid LIMIT 1"),
+        {"lid": lead_id},
+    ).fetchone()
+
+    brand_json = getattr(lead, 'brand_design_json', None)
+    brand = json.loads(brand_json) if brand_json else {}
+
+    sitemap = db.execute(
+        text("SELECT page_name, '' as slug FROM sitemap_pages WHERE lead_id=:lid ORDER BY position"),
+        {"lid": lead_id},
+    ).fetchall()
+    sitemap_list = [{"name": r[0], "path": f"/{r[1]}" if r[1] else "/"} for r in sitemap]
+
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY fehlt")
+
+    gewerk  = briefing[0] if briefing else "Handwerksbetrieb"
+    region  = briefing[2] if briefing else ""
+    usp     = briefing[3] if briefing else ""
+    company = getattr(lead, 'company_name', '') or ''
+    phone   = getattr(lead, 'phone', '') or ''
+
+    ki_section = ""
+    if content_generated and any([ki_h1, ki_hero_text, ki_abschnitt_text, ki_cta]):
+        ki_section = (
+            f"\nKI-INHALTE fuer diese Seite (verwende diese Texte EXAKT):\n"
+            f"- headline (hero): {ki_h1 or ''}\n"
+            f"- subline (hero): {ki_hero_text or ''}\n"
+            f"- abschnitt-text (ueber-uns): {ki_abschnitt_text or ''}\n"
+            f"- cta_text: {ki_cta or ''}\n"
+        )
+
+    prompt = (
+        f"Du bist Webdesigner fuer deutsche Handwerksbetriebe. Antworte NUR als JSON-Array.\n\n"
+        f"FIRMA: {company} | BRANCHE: {gewerk} | REGION: {region} | TEL: {phone}\n"
+        f"SEITE: {page_name} ({page_type}) | PRIMARY: {brand.get('primary_color', '#004F59')}\n\n"
+        f"BLOECKE: hero, usp-balken, leistungen-grid, ueber-uns, referenzen, cta-banner, kontakt-form, footer\n\n"
+        f"REGELN:\n"
+        f"- hero: Split-Layout, fakten=[{{zahl,label}}x4]\n"
+        f"- leistungen-grid: min.4 items mit Emoji-icon, titel, beschreibung\n"
+        f"- cta-banner: immer phone:'{phone}'\n"
+        f"- Texte Deutsch, spezifisch fuer {gewerk} in {region}\n"
+        f"{ki_section}\n"
+        f"REIHENFOLGE fuer '{page_type}': "
+        f"{'hero+usp-balken+leistungen-grid+ueber-uns+referenzen+cta-banner+footer' if page_type in ('startseite', 'home') else 'hero+leistungen-grid+ueber-uns+cta-banner+footer'}\n\n"
+        f'Start: [{{"type":"hero","data":{{"headline":"{ki_h1 or f"Ihr {gewerk} in {region}"}","subline":"{ki_hero_text or "Schnell - Zuverlaessig - Fair"}","cta_text":"{ki_cta or "Jetzt anfragen"}","cta_link":"/kontakt","cta2_text":"{phone}","cta2_link":"tel:{phone}","badge":"Meisterbetrieb","fakten":[{{"zahl":"500+","label":"Kunden"}},{{"zahl":"25 J.","label":"Erfahrung"}},{{"zahl":"4.9","label":"Google"}},{{"zahl":"24h","label":"Notdienst"}}]}}}},...footer]'
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-20250514", "max_tokens": 4000,
+                      "messages": [{"role": "user", "content": prompt}]},
+            )
+        resp.raise_for_status()
+        text_resp = resp.json()["content"][0]["text"].strip()
+        text_resp = re.sub(r'^```json\s*', '', text_resp)
+        text_resp = re.sub(r'\s*```$', '', text_resp)
+        blocks = json.loads(text_resp)
+        if not isinstance(blocks, list):
+            raise ValueError("Keine Liste")
+
+        return {
+            "page_id":    page_id,
+            "page_name":  page_name,
+            "blocks":     blocks,
+            "ki_injected": bool(ki_section),
+            "brand": {
+                "primary_color":   getattr(lead, 'brand_primary_color',   '#008EAA'),
+                "secondary_color": getattr(lead, 'brand_secondary_color', '#004F59'),
+                "font_primary":    getattr(lead, 'brand_font_primary',    'Inter'),
+                "border_radius":   brand.get('design_brief', {}).get('radius_token', '8px'),
+            }
+        }
+
+    except json.JSONDecodeError as e:
+        raise HTTPException(500, f"JSON-Parse-Fehler: {str(e)[:100]}")
+    except Exception as e:
+        raise HTTPException(500, f"Fehler: {str(e)[:200]}")
+
+# sitemap-suggest removed — use /api/sitemap/{lead_id}/generate instead
+
+
+# ── Öffentliche Freigabe-Endpoints (kein Login erforderlich) ─────────────────
+
+@router.get("/approve-content/{token}")
+def get_approve_content(
+    token: str,
+    db: Session = Depends(get_db),
+):
+    """Öffentlich: Projektinfo anhand des Freigabe-Tokens abrufen."""
+    row = db.execute(
+        text(
+            "SELECT id, company_name, briefing_approved_at "
+            "FROM projects WHERE content_approval_token=:t LIMIT 1"
+        ),
+        {"t": token},
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, "Ungültiger oder abgelaufener Freigabe-Link")
+    return {
+        "project_id":       row[0],
+        "company_name":     row[1] or "Ihr Projekt",
+        "already_approved": bool(row[2]),
+    }
+
+
+@router.post("/approve-content/{token}")
+def post_approve_content(
+    token: str,
+    db: Session = Depends(get_db),
+):
+    """Öffentlich: Freigabe erteilen — setzt briefing_approved_at auf dem Projekt."""
+    from datetime import datetime as _dt
+    row = db.execute(
+        text(
+            "SELECT id, briefing_approved_at "
+            "FROM projects WHERE content_approval_token=:t LIMIT 1"
+        ),
+        {"t": token},
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, "Ungültiger oder abgelaufener Freigabe-Link")
+    project_id, already_approved = row[0], row[1]
+    if already_approved:
+        return {"success": True, "already_approved": True}
+    now = _dt.utcnow()
+    db.execute(
+        text("UPDATE projects SET briefing_approved_at=:ts WHERE id=:id"),
+        {"ts": now, "id": project_id},
+    )
+    db.commit()
+    return {"success": True, "already_approved": False, "approved_at": str(now)[:16]}

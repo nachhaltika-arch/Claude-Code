@@ -8,7 +8,18 @@ from sqlalchemy.orm import Session
 
 from routers.auth_router import get_current_user
 from database import get_db
-from services.brevo_service import BrevoService
+
+try:
+    from services.brevo_service import BrevoService
+    _brevo_ok = True
+except Exception:
+    BrevoService = None
+    _brevo_ok = False
+
+
+def _require_brevo():
+    if not _brevo_ok or BrevoService is None:
+        raise HTTPException(503, "Newsletter-Service nicht verfuegbar (Brevo SDK fehlt)")
 
 router = APIRouter(prefix="/api/newsletter", tags=["Newsletter"])
 
@@ -155,6 +166,7 @@ def send_campaign(
 
     brevo_list_id = brevo_list_rows[0]["brevo_list_id"]
 
+    _require_brevo()
     brevo = BrevoService()
     result = brevo.create_email_campaign(
         title=newsletter["title"],
@@ -206,6 +218,7 @@ def campaign_stats(
     if not row["brevo_campaign_id"]:
         raise HTTPException(status_code=400, detail="Kampagne wurde noch nicht an Brevo gesendet")
 
+    _require_brevo()
     brevo = BrevoService()
     stats = brevo.get_campaign_stats(row["brevo_campaign_id"])
     if isinstance(stats, str):
@@ -236,6 +249,7 @@ def create_list(
     user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    _require_brevo()
     brevo = BrevoService()
     brevo_list_id = brevo.create_list(body.name)
     if isinstance(brevo_list_id, str):
@@ -272,6 +286,7 @@ def sync_crm(
         text("SELECT id, email, first_name, last_name FROM users WHERE role = 'customer'")
     ).mappings().all()
 
+    _require_brevo()
     brevo = BrevoService()
     synced = 0
 
@@ -321,6 +336,7 @@ def import_contacts(
     if not nl:
         raise HTTPException(status_code=404, detail="Liste nicht gefunden")
 
+    _require_brevo()
     brevo = BrevoService()
     imported = 0
 

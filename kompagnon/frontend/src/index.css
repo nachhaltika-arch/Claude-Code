@@ -4,6 +4,16 @@
 
 @import './styles/tokens.css';
 
+/* ── iOS Mobile Scroll Fix ───────────────────────── */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  html { background: #004F59; }
+}
+
 /* ══════════════════════════════════════════════════════════════
    GLOBAL RESET — KOMPAGNON Redesign
    ══════════════════════════════════════════════════════════════ */
@@ -21,13 +31,13 @@ html, body, #root {
 body {
   background: var(--bg-app);
   color: var(--text-primary);
-  font-family: var(--font-family-base);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-family-base);
-  font-weight: var(--font-weight-black);
+  font-family: var(--font-sans);
+  font-weight: 900;
 }
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font-family: inherit; }
@@ -45,109 +55,86 @@ input, select, textarea { font-family: inherit; }
   outline-offset: 2px;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   LEGACY kc-* VARIABLES (backward compat for pages not yet migrated)
-   ══════════════════════════════════════════════════════════════ */
+/* LEGACY kc-* ALIASES - point to modern token system (tokens.css)
+   All kc-* now reference brand/text/bg tokens for automatic dark mode. */
 
 :root {
-  --kc-anthrazit: #002535;
-  --kc-anthrazit-80: #003d52;
-  --kc-anthrazit-20: #a0e0ea;
-  --kc-rot: #008EAA;
-  --kc-rot-hover: #007090;
-  --kc-rot-subtle: #f0fafa;
-  --kc-weiss: #FFFFFF;
-  --kc-hell: #f8fafc;
-  --kc-mittel: #64748b;
-  --kc-rand: #e2e8f0;
-  --kc-text-primaer: #0f172a;
-  --kc-text-sekundaer: #475569;
-  --kc-text-subtil: #64748b;
-  --kc-text-invers: #FFFFFF;
-  --kc-success: #16a34a;
-  --kc-warning: #ea580c;
-  --kc-info: #0284c7;
-  --kc-font-display: 'DM Sans', system-ui, sans-serif;
-  --kc-font-body: 'DM Sans', system-ui, sans-serif;
-  --kc-font-mono: 'DM Mono', monospace;
-  --kc-text-xs: 0.75rem;
-  --kc-text-sm: 0.875rem;
+  /* Farben → brand tokens */
+  --kc-rot:            var(--brand-primary);
+  --kc-rot-hover:      var(--brand-primary-dark);
+  --kc-rot-subtle:     var(--brand-primary-light);
+
+  /* Hintergründe → bg tokens */
+  --kc-weiss:          var(--bg-surface);
+  --kc-hell:           var(--bg-app);
+
+  /* Text → text tokens */
+  --kc-anthrazit:      var(--text-primary);
+  --kc-anthrazit-80:   var(--text-secondary);
+  --kc-anthrazit-20:   var(--text-tertiary);
+  --kc-text-primaer:   var(--text-primary);
+  --kc-text-sekundaer: var(--text-secondary);
+  --kc-text-subtil:    var(--text-tertiary);
+  --kc-text-invers:    var(--text-inverse);
+  --kc-mittel:         var(--text-tertiary);
+
+  /* Rahmen → border tokens */
+  --kc-rand:           var(--border-light);
+
+  /* Status → status tokens */
+  --kc-success:        var(--status-success-text);
+  --kc-warning:        var(--status-warning-text);
+  --kc-info:           var(--status-info-text);
+
+  /* Typografie → font tokens */
+  --kc-font-display: var(--font-sans);
+  --kc-font-body:    var(--font-sans);
+  --kc-font-mono:    var(--font-mono);
+
+  /* Größen → unveränderlich, bleiben als Werte */
+  --kc-text-xs:   0.75rem;
+  --kc-text-sm:   0.875rem;
   --kc-text-base: 1rem;
-  --kc-text-lg: 1.125rem;
-  --kc-text-xl: 1.25rem;
-  --kc-text-2xl: 1.5rem;
-  --kc-text-3xl: 1.875rem;
-  --kc-text-4xl: 2.25rem;
-  --kc-leading-tight: 1.2;
-  --kc-leading-normal: 1.6;
+  --kc-text-lg:   1.125rem;
+  --kc-text-xl:   1.25rem;
+  --kc-text-2xl:  1.5rem;
+  --kc-text-3xl:  1.875rem;
+  --kc-text-4xl:  2.25rem;
+
+  --kc-leading-tight:   1.2;
+  --kc-leading-normal:  1.6;
   --kc-leading-relaxed: 1.75;
-  --kc-tracking-tight: -0.02em;
-  --kc-tracking-normal: 0em;
-  --kc-tracking-wide: 0.05em;
-  --kc-tracking-wider: 0.1em;
-  --kc-space-1: 0.25rem;
-  --kc-space-2: 0.5rem;
-  --kc-space-3: 0.75rem;
-  --kc-space-4: 1rem;
-  --kc-space-6: 1.5rem;
-  --kc-space-8: 2rem;
+
+  --kc-tracking-tight:  -0.02em;
+  --kc-tracking-normal:  0em;
+  --kc-tracking-wide:    0.05em;
+  --kc-tracking-wider:   0.1em;
+
+  --kc-space-1:  0.25rem;
+  --kc-space-2:  0.5rem;
+  --kc-space-3:  0.75rem;
+  --kc-space-4:  1rem;
+  --kc-space-6:  1.5rem;
+  --kc-space-8:  2rem;
   --kc-space-10: 2.5rem;
   --kc-space-12: 3rem;
   --kc-space-16: 4rem;
   --kc-space-20: 5rem;
-  --kc-container-xl: 1280px;
+
+  --kc-container-xl:  1280px;
   --kc-container-pad: clamp(1rem, 5vw, 4rem);
-  --kc-radius-sm: 2px;
-  --kc-radius-md: 6px;
-  --kc-radius-lg: 12px;
+
+  --kc-radius-sm:   2px;
+  --kc-radius-md:   6px;
+  --kc-radius-lg:   12px;
   --kc-radius-full: 9999px;
+
   --kc-transition-fast: 0.15s ease;
   --kc-transition-base: 0.25s ease;
   --kc-transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── kc-* dark mode overrides ──────────────────────────────── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --kc-weiss:          #1a2e35;
-    --kc-hell:           #0f1c20;
-    --kc-rot:            #40c4df;
-    --kc-rot-hover:      #30a0b8;
-    --kc-rot-subtle:     #0f2a35;
-    --kc-anthrazit:      #f0f4f5;
-    --kc-text-primaer:   #f0f4f5;
-    --kc-text-sekundaer: #a8c0c8;
-    --kc-text-subtil:    #6a8f9a;
-    --kc-rand:           rgba(64, 196, 223, 0.20);
-    --kc-mittel:         #6a8f9a;
-  }
-}
-[data-theme="dark"] {
-  --kc-weiss:          #1a2e35;
-  --kc-hell:           #0f1c20;
-  --kc-rot:            #40c4df;
-  --kc-rot-hover:      #30a0b8;
-  --kc-rot-subtle:     #0f2a35;
-  --kc-anthrazit:      #f0f4f5;
-  --kc-text-primaer:   #f0f4f5;
-  --kc-text-sekundaer: #a8c0c8;
-  --kc-text-subtil:    #6a8f9a;
-  --kc-rand:           rgba(64, 196, 223, 0.20);
-  --kc-mittel:         #6a8f9a;
-}
-[data-theme="light"] {
-  --kc-weiss:          #FFFFFF;
-  --kc-hell:           #f8fafc;
-  --kc-rot:            #008EAA;
-  --kc-rot-hover:      #007090;
-  --kc-rot-subtle:     #f0fafa;
-  --kc-anthrazit:      #002535;
-  --kc-text-primaer:   #0f172a;
-  --kc-text-sekundaer: #475569;
-  --kc-text-subtil:    #64748b;
-  --kc-rand:           #e2e8f0;
-  --kc-mittel:         #64748b;
-}
+/* Dark mode overrides for kc-* removed - tokens.css handles them automatically. */
 
 /* ── Global form element styles ────────────────────────────── */
 input, select, textarea {
@@ -263,6 +250,8 @@ textarea::placeholder {
   animation: page-enter 150ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 @keyframes crawlHintIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes scanPulse { 0% { width: 30%; } 100% { width: 90%; } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
 /* Academy card hover */
 .academy-card { transition: box-shadow 0.3s ease, transform 0.2s ease; cursor: pointer; }
@@ -405,3 +394,557 @@ input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
   .kc-grid-3 { grid-template-columns: 1fr !important; }
   .kc-grid-4 { grid-template-columns: 1fr 1fr !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   INTERACTIVE STATE UTILITIES
+   Einheitliche Hover/Active/Disabled-Zustände für alle Buttons.
+   Verwendung: className="kc-nav-item" statt onMouseEnter/Leave
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar Nav-Item ─────────────────────────────────────────── */
+.kc-nav-item {
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.kc-nav-item:hover:not(.kc-nav-item--active) {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+.kc-nav-item--active {
+  background: var(--bg-active);
+  color: var(--brand-primary);
+  font-weight: 500;
+}
+.kc-nav-item:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: -2px;
+  background: var(--bg-hover);
+}
+
+/* ── Dark Sidebar Nav-Item (#004F59 Hintergrund) ──────────────── */
+.kc-sidebar-item {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  border-left: 3px solid transparent;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.kc-sidebar-item:hover:not(.kc-sidebar-item--active) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+.kc-sidebar-item--active {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  font-weight: 500;
+  border-left: 3px solid var(--kc-yellow) !important;
+}
+.kc-sidebar-item:focus-visible {
+  outline: 2px solid var(--kc-yellow);
+  outline-offset: -2px;
+}
+
+/* Tool tile focus ring */
+button[aria-pressed]:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* ── Primary Button ───────────────────────────────────────────── */
+.kc-btn-primary {
+  transition: background var(--transition-fast), opacity var(--transition-fast);
+}
+.kc-btn-primary:hover:not(:disabled) {
+  background: var(--brand-primary-dark) !important;
+}
+.kc-btn-primary:active:not(:disabled) {
+  opacity: 0.88;
+}
+.kc-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.kc-btn-primary:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* ── Ghost Button (transparenter Hintergrund) ─────────────────── */
+.kc-btn-ghost {
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.kc-btn-ghost:hover:not(:disabled) {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+.kc-btn-ghost:active:not(:disabled) {
+  background: var(--bg-active) !important;
+}
+.kc-btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.kc-btn-ghost:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* ── Danger Ghost Button ──────────────────────────────────────── */
+.kc-btn-danger-ghost {
+  transition: background var(--transition-fast);
+}
+.kc-btn-danger-ghost:hover:not(:disabled) {
+  background: var(--status-danger-bg) !important;
+}
+.kc-btn-danger-ghost:focus-visible {
+  outline: 2px solid var(--status-danger-text);
+  outline-offset: 2px;
+}
+
+/* ── Small utility button ─────────────────────────────────────── */
+.kc-btn-sm {
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+}
+.kc-btn-sm:hover:not(:disabled) {
+  opacity: 0.85;
+}
+.kc-btn-sm:active:not(:disabled) {
+  opacity: 0.7;
+}
+.kc-btn-sm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TYPOGRAPHY SYSTEM
+   Semantische Klassen statt roher px-Werte.
+   Mapping: 10px→micro, 11px→caption/label, 13px→body-sm,
+            15px→body, 17px→heading, 24px+→display
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Display — große KPI-Zahlen, Hero-Überschriften ──────────── */
+.ty-display {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  line-height: var(--leading-2xl);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+/* ── Heading — Karten-Titel, Abschnittsköpfe ─────────────────── */
+.ty-heading {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: var(--leading-lg);
+  color: var(--text-primary);
+}
+
+/* ── Subheading — untergeordnete Überschriften ───────────────── */
+.ty-subheading {
+  font-size: var(--text-base);
+  font-weight: 600;
+  line-height: var(--leading-base);
+  color: var(--text-primary);
+}
+
+/* ── Body — Standard-Fließtext ───────────────────────────────── */
+.ty-body {
+  font-size: var(--text-base);
+  font-weight: 400;
+  line-height: var(--leading-base);
+  color: var(--text-primary);
+}
+
+/* ── Body Small — sekundärer Text in Karten, Tabellen ───────── */
+.ty-body-sm {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: var(--leading-sm);
+  color: var(--text-secondary);
+}
+
+/* ── Label — Beschriftungen, Tabellenköpfe ───────────────────── */
+.ty-label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* ── Caption — Zeitstempel, Metadaten, Hilfstexte ────────────── */
+.ty-caption {
+  font-size: var(--text-xs);
+  font-weight: 400;
+  line-height: var(--leading-sm);
+  color: var(--text-tertiary);
+}
+
+/* ── Micro — Badges, Status-Pillen ───────────────────────────── */
+.ty-micro {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Modifier: Textfarben ────────────────────────────────────── */
+.ty-muted     { color: var(--text-tertiary) !important; }
+.ty-secondary { color: var(--text-secondary) !important; }
+.ty-brand     { color: var(--brand-primary) !important; }
+.ty-danger    { color: var(--status-danger-text) !important; }
+.ty-success   { color: var(--status-success-text) !important; }
+.ty-warning   { color: var(--status-warning-text) !important; }
+
+/* ── Modifier: Gewicht ───────────────────────────────────────── */
+.ty-medium   { font-weight: 500 !important; }
+.ty-semibold { font-weight: 600 !important; }
+.ty-bold     { font-weight: 700 !important; }
+
+/* ── Modifier: Mono ──────────────────────────────────────────── */
+.ty-mono { font-family: var(--font-mono); }
+
+/* ══════════════════════════════════════════════════════════════
+   LIST ROW UTILITIES — ergonomische Mindestzeilenhöhe (44px)
+   ══════════════════════════════════════════════════════════════ */
+
+.kc-list-row {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-light);
+  transition: background var(--transition-fast);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.kc-list-row:hover {
+  background: var(--bg-hover);
+}
+.kc-list-row:last-child {
+  border-bottom: none;
+}
+.kc-list-row--card {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-sizing: border-box;
+}
+.kc-list-row--card:hover {
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Skeleton Utilities ─────────────────────────────────────── */
+.sk-line    { height: 13px; border-radius: 4px; }
+.sk-line-sm { height: 10px; border-radius: 3px; }
+.sk-circle  { border-radius: 50%; }
+.sk-pill    { border-radius: 20px; }
+
+/* ── Placeholder — decorative, exempt from WCAG 4.5:1 ────── */
+::placeholder {
+  color: var(--text-placeholder, #8fa8b0);
+  opacity: 1;
+}
+
+/* ── Mobile scroll — hide scrollbar for touch-snap areas ─── */
+@media (max-width: 767px) {
+  .phase-scroll::-webkit-scrollbar,
+  .tool-scroll::-webkit-scrollbar { display: none; }
+}
+
+/* ══ KOMPAGNON BUTTON SYSTEM ══════════════════════════════ */
+
+.kc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: var(--r-md);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: all 0.12s;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+/* PRIMARY — Dunkelgrün, für wichtige Aktionen */
+.kc-btn-primary {
+  background: var(--kc-dark);
+  color: #fff;
+  border-color: var(--kc-dark);
+}
+.kc-btn-primary:hover { background: #003940; }
+
+/* YELLOW — Gelb, für DEN EINEN CTA pro Screen */
+.kc-btn-yellow {
+  background: var(--kc-yellow);
+  color: #000;
+  border-color: var(--kc-yellow);
+}
+.kc-btn-yellow:hover { background: #e6d400; }
+
+/* BRAND — Teal, für sekundäre Hauptaktionen */
+.kc-btn-brand {
+  background: var(--kc-mid);
+  color: #fff;
+  border-color: var(--kc-mid);
+}
+.kc-btn-brand:hover { background: #006e87; }
+
+/* OUTLINE — Transparent mit Rahmen */
+.kc-btn-outline {
+  background: transparent;
+  color: var(--kc-dark);
+  border-color: var(--kc-dark);
+}
+.kc-btn-outline:hover { background: var(--surface); }
+
+/* GHOST — Sehr dezent */
+.kc-btn-ghost {
+  background: transparent;
+  color: var(--text-60);
+  border-color: var(--border);
+}
+.kc-btn-ghost:hover { background: var(--surface); }
+
+/* DANGER GHOST */
+.kc-btn-danger-ghost {
+  background: transparent;
+  color: var(--error);
+  border-color: transparent;
+}
+.kc-btn-danger-ghost:hover { background: var(--error-bg); }
+
+/* SIZE MODIFIERS */
+.kc-btn-sm   { padding: 6px 12px; font-size: 11px; }
+.kc-btn-lg   { padding: 12px 24px; font-size: 13px; }
+.kc-btn-full { width: 100%; justify-content: center; }
+
+/* DISABLED */
+.kc-btn:disabled,
+.kc-btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* LOADING STATE */
+.kc-btn-loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* ══ SEITEN-TYPOGRAFIE ════════════════════════════════════ */
+
+.kc-page-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--kc-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.kc-page-sub {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-30);
+  margin-top: 4px;
+}
+
+.kc-section-label {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-30);
+  margin-bottom: 10px;
+}
+
+.kc-card-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--kc-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kc-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-60);
+  margin-bottom: 5px;
+  margin-top: 12px;
+}
+
+/* ══ CARD SYSTEM ═══════════════════════════════════════════ */
+
+.kc-card {
+  background: var(--paper);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+
+.kc-card-clickable {
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.kc-card-clickable:hover {
+  background: var(--surface);
+  border-color: var(--kc-mid);
+}
+
+.kc-card-active {
+  border: 2px solid var(--kc-mid);
+  background: var(--info-bg);
+}
+
+.kc-card-info {
+  background: var(--info-bg);
+  border-color: rgba(0,142,170,0.3);
+}
+
+.kc-kpi {
+  background: var(--paper);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+}
+.kc-kpi-number {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--kc-dark);
+  line-height: 1;
+}
+.kc-kpi-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-30);
+  margin-top: 4px;
+}
+.kc-kpi-delta {
+  font-size: 10px;
+  font-weight: 700;
+  margin-top: 3px;
+}
+.kc-kpi-up   { color: var(--success); }
+.kc-kpi-down { color: var(--error); }
+
+/* ══ TABELLEN ══════════════════════════════════════════════ */
+
+.kc-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.kc-table thead tr {
+  background: var(--kc-dark);
+}
+.kc-table thead th {
+  padding: 9px 14px;
+  font-size: 10px;
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: left;
+}
+.kc-table thead th:first-child { border-radius: var(--r-sm) 0 0 0; }
+.kc-table thead th:last-child  { border-radius: 0 var(--r-sm) 0 0; }
+
+.kc-table tbody tr {
+  border-bottom: 0.5px solid var(--border);
+  transition: background 0.1s;
+}
+.kc-table tbody tr:hover { background: var(--surface); }
+.kc-table tbody tr:last-child { border-bottom: none; }
+
+.kc-table tbody td {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-60);
+}
+.kc-table tbody td:first-child {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* ══ BADGES ════════════════════════════════════════════════ */
+
+.kc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--r-sm);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.kc-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.kc-badge-success { background: var(--success-bg); color: var(--success); }
+.kc-badge-warn    { background: var(--warn-bg);    color: var(--warn); }
+.kc-badge-error   { background: var(--error-bg);   color: var(--error); }
+.kc-badge-info    { background: var(--info-bg);    color: var(--kc-dark); }
+.kc-badge-neutral { background: var(--surface);    color: var(--text-60); }
+.kc-badge-yellow  { background: var(--kc-yellow);  color: #000; }
+
+/* ══ TOASTS ════════════════════════════════════════════════ */
+
+.kc-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 0.5px solid;
+  font-size: 12px;
+}
+.kc-toast-title {
+  font-weight: 900;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+.kc-toast-success { background: var(--success-bg); color: var(--success); border-color: rgba(0,135,90,0.3); }
+.kc-toast-warn    { background: var(--warn-bg);    color: var(--warn);    border-color: rgba(184,134,11,0.3); }
+.kc-toast-error   { background: var(--error-bg);   color: var(--error);   border-color: rgba(192,57,43,0.3); }
+.kc-toast-info    { background: var(--info-bg);    color: var(--kc-dark); border-color: rgba(0,142,170,0.3); }

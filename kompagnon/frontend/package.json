@@ -6,6 +6,8 @@
   "homepage": "/",
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.4.0",
+    "@grapesjs/studio-sdk": "^1.0.60",
+    "@grapesjs/studio-sdk-plugins": "^1.0.36",
     "@heroicons/react": "^2.0.18",
     "autoprefixer": "^10.4.16",
     "axios": "^1.6.2",
@@ -16,6 +18,7 @@
     "grapesjs": "^0.22.14",
     "grapesjs-blocks-basic": "^1.0.2",
     "grapesjs-preset-webpage": "^1.0.3",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.363.0",
     "postcss": "^8.4.32",
     "qrcode.react": "^4.2.0",

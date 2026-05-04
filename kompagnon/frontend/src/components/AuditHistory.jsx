@@ -285,27 +285,22 @@ export default function AuditHistory({ leadId }) {
                     cursor: downloadingId === openAudit.id ? 'not-allowed' : 'pointer',
                     fontFamily: 'var(--font-sans)',
                     opacity: downloadingId === openAudit.id ? 0.5 : 1,
-                    transition: 'background var(--transition-fast)',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  className="kc-btn-ghost"
                 >
                   {downloadingId === openAudit.id ? '⏳ Erstellt…' : '📄 PDF'}
                 </button>
                 <button
                   onClick={() => setOpenAudit(null)}
+                  className="kc-btn-ghost"
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6,
-                    background: 'transparent',
                     border: '0.5px solid var(--border-medium)',
                     color: 'var(--text-secondary)',
                     borderRadius: 'var(--radius-md)',
                     padding: '5px 12px', fontSize: 12, fontWeight: 500,
                     cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                    transition: 'background var(--transition-fast)',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   ✕ Schließen
                 </button>

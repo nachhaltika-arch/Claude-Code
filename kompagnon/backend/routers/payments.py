@@ -253,6 +253,13 @@ def _handle_successful_payment(session: dict, db: Session):
     )
     db.add(lead)
     db.flush()  # lead.id jetzt verfuegbar
+
+    # Customer-Token fuer den Token-basierten Portal-Zugang (/portal/{token}).
+    # Erlaubt direkten Login ohne Passwort-Eingabe, Sicherheit via Email-Domain-Verify.
+    from services.qr_service import generate_token
+    lead.customer_token = generate_token()
+    lead.customer_token_created_at = datetime.utcnow()
+
     logger.info(f"Stripe: Lead {lead.id} angelegt fuer {company}")
 
     # ── 2. USER ANLEGEN ──────────────────────────────────────
@@ -350,10 +357,17 @@ def _handle_successful_payment(session: dict, db: Session):
     if email:
         try:
             from services.email import send_email
-            portal_url = os.getenv(
-                "FRONTEND_URL",
-                "https://kompagnon-frontend.onrender.com"
-            ) + "/portal/login"
+            from services.qr_service import get_portal_url
+            # Token-Direktlink als primaerer Einstieg (passwortfrei, Domain-Verify).
+            # Fallback auf /portal/login bleibt im Mail-Body als Login-Daten.
+            portal_url = (
+                get_portal_url(lead.customer_token)
+                if lead.customer_token
+                else os.getenv(
+                    "FRONTEND_URL",
+                    "https://kompagnon-frontend.onrender.com",
+                ) + "/portal/login"
+            )
             paket_name = PACKAGE_NAMES.get(package_id, package_id)
 
             # Passwort-Abschnitt: nur anzeigen wenn neuer User

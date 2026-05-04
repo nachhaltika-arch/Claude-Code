@@ -1056,6 +1056,11 @@ def _run_migrations():
         #       "fallstudien_3","guarantee_block","faq","cta_final"]
         # Siehe docs/conversion-spec-shk.md + docs/kas-pipeline-architecture.md
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS sections_json TEXT",
+        # ── Hotfix 2026-05-04: steps_confirmed war nur in migrations.py
+        # (Standalone-Script, lief nie beim Backend-Start). Auf der frischen
+        # Staging-DB fehlte die Spalte komplett — routers/projects.py warf
+        # 500 Internal Server Error bei jedem GET /api/projects/{id}.
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS steps_confirmed TEXT DEFAULT '{}'",
         # ── Component Library (Wireframe-Blocks) — Schritt A ────────────────
         # Speichert die 41 HTML+Tailwind-Templates fuer den KI-Wireframe-
         # Generator. Seed via seeds/seed_component_library.py (Schritt C).

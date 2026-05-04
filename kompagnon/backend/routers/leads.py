@@ -1627,6 +1627,11 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
     if not website_url:
         raise HTTPException(status_code=400, detail="Keine Website-URL hinterlegt")
 
+    # DB-Verbindung VOR dem externen PageSpeed-Call freigeben — der Call kann
+    # bis zu 60s dauern und wuerde sonst eine Pool-Connection blockieren.
+    # Persistiert wird unten ueber eine frische SessionLocal().
+    db.close()
+
     api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
     base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
     params_base = {"url": website_url}
@@ -1671,9 +1676,11 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
     if mobile_score is None and desktop_score is None:
         raise HTTPException(status_code=502, detail="PageSpeed konnte keine Scores ermitteln — Google API hat keine Ergebnisse geliefert")
 
-    # Per Raw-SQL speichern (schnell, kein ORM-Overhead, kein Timeout)
+    # Per Raw-SQL speichern (schnell, kein ORM-Overhead, kein Timeout) —
+    # frische Session, da die urspruengliche vor dem PageSpeed-Call geschlossen wurde.
+    db2 = SessionLocal()
     try:
-        db.execute(sa_text("""
+        db2.execute(sa_text("""
             UPDATE leads SET
                 pagespeed_mobile_score  = :mobile,
                 pagespeed_desktop_score = :desktop,
@@ -1693,11 +1700,13 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
             "checked": datetime.utcnow(),
             "lid": lead_id,
         })
-        db.commit()
+        db2.commit()
     except Exception as e:
-        db.rollback()
+        db2.rollback()
         logger.error(f"PageSpeed save failed for lead {lead_id}: {e}")
         raise HTTPException(500, f"Speichern fehlgeschlagen: {str(e)[:100]}")
+    finally:
+        db2.close()
 
     return {
         "mobile_score": mobile_score,

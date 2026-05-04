@@ -1,0 +1,60 @@
+<!--
+  Block: leist-preise — Preistabelle (3 Pakete)
+  Kategorie: LEIST
+  Slots: section_headline, section_subline,
+         pkg1_*, pkg2_* (mit pkg2_badge), pkg3_*
+-->
+<section data-block="leist-preise" class="bg-slate-50 py-16 md:py-24 px-6" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-12 max-w-2xl mx-auto">
+      <h2 class="text-3xl md:text-4xl font-black uppercase text-[#004F59] tracking-tight mb-3">{{section_headline}}</h2>
+      <p class="text-base text-slate-600 leading-relaxed">{{section_subline}}</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 items-stretch">
+
+      <article class="bg-white rounded-2xl p-7 shadow-sm border border-slate-200 flex flex-col">
+        <h3 class="text-lg font-black uppercase text-[#004F59] tracking-tight mb-4">{{pkg1_title}}</h3>
+        <div class="mb-6">
+          <span class="text-4xl font-black text-[#004F59]">{{pkg1_price}}</span>
+          <span class="text-sm text-slate-500 ml-1">{{pkg1_period}}</span>
+        </div>
+        <ul class="space-y-3 mb-7 flex-1">
+          <li class="flex items-start gap-2.5 text-sm text-slate-700"><span class="text-[#008EAA] font-bold mt-0.5">✓</span><span>{{pkg1_feature_1}}</span></li>
+          <li class="flex items-start gap-2.5 text-sm text-slate-700"><span class="text-[#008EAA] font-bold mt-0.5">✓</span><span>{{pkg1_feature_2}}</span></li>
+          <li class="flex items-start gap-2.5 text-sm text-slate-700"><span class="text-[#008EAA] font-bold mt-0.5">✓</span><span>{{pkg1_feature_3}}</span></li>
+        </ul>
+        <a href="{{pkg1_cta_url}}" class="block text-center border-2 border-[#008EAA] text-[#008EAA] font-bold py-3 rounded-lg text-sm uppercase tracking-wide hover:bg-[#008EAA] hover:text-white transition">{{pkg1_cta_text}}</a>
+      </article>
+
+      <article class="bg-[#004F59] text-white rounded-2xl p-7 shadow-xl border-2 border-[#FAE600] flex flex-col relative md:-translate-y-3">
+        <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#FAE600] text-black text-xs font-black px-4 py-1 rounded-full uppercase tracking-wider whitespace-nowrap">{{pkg2_badge}}</span>
+        <h3 class="text-lg font-black uppercase tracking-tight mb-4">{{pkg2_title}}</h3>
+        <div class="mb-6">
+          <span class="text-4xl font-black">{{pkg2_price}}</span>
+          <span class="text-sm text-white/70 ml-1">{{pkg2_period}}</span>
+        </div>
+        <ul class="space-y-3 mb-7 flex-1">
+          <li class="flex items-start gap-2.5 text-sm"><span class="text-[#FAE600] font-bold mt-0.5">✓</span><span>{{pkg2_feature_1}}</span></li>
+          <li class="flex items-start gap-2.5 text-sm"><span class="text-[#FAE600] font-bold mt-0.5">✓</span><span>{{pkg2_feature_2}}</span></li>
+          <li class="flex items-start gap-2.5 text-sm"><span class="text-[#FAE600] font-bold mt-0.5">✓</span><span>{{pkg2_feature_3}}</span></li>
+        </ul>
+        <a href="{{pkg2_cta_url}}" class="block text-center bg-[#FAE600] text-black font-black py-3 rounded-lg text-sm uppercase tracking-wide hover:bg-yellow-300 transition">{{pkg2_cta_text}}</a>
+      </article>
+
+      <article class="bg-white rounded-2xl p-7 shadow-sm border border-slate-200 flex flex-col">
+        <h3 class="text-lg font-black uppercase text-[#004F59] tracking-tight mb-4">{{pkg3_title}}</h3>
+        <div class="mb-6">
+          <span class="text-4xl font-black text-[#004F59]">{{pkg3_price}}</span>
+          <span class="text-sm text-slate-500 ml-1">{{pkg3_period}}</span>
+        </div>
+        <ul class="space-y-3 mb-7 flex-1">
+          <li class="flex items-start gap-2.5 text-sm text-slate-700"><span class="text-[#008EAA] font-bold mt-0.5">✓</span><span>{{pkg3_feature_1}}</span></li>
+          <li class="flex items-start gap-2.5 text-sm text-slate-700"><span class="text-[#008EAA] font-bold mt-0.5">✓</span><span>{{pkg3_feature_2}}</span></li>
+          <li class="flex items-start gap-2.5 text-sm text-slate-700"><span class="text-[#008EAA] font-bold mt-0.5">✓</span><span>{{pkg3_feature_3}}</span></li>
+        </ul>
+        <a href="{{pkg3_cta_url}}" class="block text-center border-2 border-[#008EAA] text-[#008EAA] font-bold py-3 rounded-lg text-sm uppercase tracking-wide hover:bg-[#008EAA] hover:text-white transition">{{pkg3_cta_text}}</a>
+      </article>
+
+    </div>
+  </div>
+</section>

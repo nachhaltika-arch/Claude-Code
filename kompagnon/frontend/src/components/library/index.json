@@ -146,6 +146,165 @@
       ],
       "ki_prompt_hint": "Wähle diesen Block bei Premium-Handwerkern oder wenn ein hoher Beratungsanspruch transportiert werden soll (z. B. Energieberater, Architekt-Anbindung, Wärmepumpen-Spezialist). Dunkle linke Hälfte signalisiert Seriosität, helle Bildhälfte zeigt das Produkt.",
       "preview_note": "Linke Hälfte: dunkles Teal #004F59 mit weißer Headline + CTA. Rechte Hälfte: helles Foto. 50/50-Split, klare Kontrast-Komposition."
+    },
+
+    {
+      "slug": "leist-grid-3",
+      "name": "Leistungen 3er-Grid",
+      "category": "LEIST",
+      "tags": ["services", "grid", "icons", "default"],
+      "slots": [
+        { "key": "section_headline", "label": "Abschnitt-Überschrift", "type": "text", "default": "Unsere Leistungen" },
+        { "key": "section_subline",  "label": "Untertitel",            "type": "text", "default": "Drei Kernbereiche, in denen wir Ihnen Zeit, Energie und Geld sparen." },
+        { "key": "service_1_title",  "label": "Leistung 1 Titel",       "type": "text", "default": "Wärmepumpen" },
+        { "key": "service_1_desc",   "label": "Leistung 1 Beschreibung","type": "text", "default": "Planung, Installation und Wartung moderner Luft-Wasser- und Sole-Wasser-Wärmepumpen." },
+        { "key": "service_1_icon",   "label": "Leistung 1 Icon (Emoji)","type": "text", "default": "🔥" },
+        { "key": "service_2_title",  "label": "Leistung 2 Titel",       "type": "text", "default": "Sanitär & Bad" },
+        { "key": "service_2_desc",   "label": "Leistung 2 Beschreibung","type": "text", "default": "Komplette Badrenovierung, barrierefreie Lösungen und Reparaturservice rund um die Uhr." },
+        { "key": "service_2_icon",   "label": "Leistung 2 Icon",        "type": "text", "default": "🚿" },
+        { "key": "service_3_title",  "label": "Leistung 3 Titel",       "type": "text", "default": "Notdienst 24/7" },
+        { "key": "service_3_desc",   "label": "Leistung 3 Beschreibung","type": "text", "default": "Bei Wasserschaden oder Heizungsausfall sind wir innerhalb von 60 Minuten bei Ihnen." },
+        { "key": "service_3_icon",   "label": "Leistung 3 Icon",        "type": "text", "default": "🚨" }
+      ],
+      "ki_prompt_hint": "Default-Block für die Leistungs-Übersicht. Wähle ihn, wenn der Kunde 3 Hauptleistungen klar voneinander abgrenzen will. Icons sind Emojis (für Universal-Compatibility), können später durch SVG ersetzt werden. Wenn der Kunde mehr als 3 Leistungen hat, kombiniere mit leist-liste.",
+      "preview_note": "3 gleichgroße Cards mit Icon oben, Titel, Kurztext. Mobile: gestapelt. Brand-Teal-Header pro Card."
+    },
+    {
+      "slug": "leist-foto",
+      "name": "Leistungen mit Foto (alternierend)",
+      "category": "LEIST",
+      "tags": ["services", "image", "alternating", "premium"],
+      "slots": [
+        { "key": "section_headline", "label": "Abschnitt-Überschrift", "type": "text", "default": "Was wir für Sie tun" },
+        { "key": "item_1_title",     "label": "Item 1 Titel",          "type": "text", "default": "Heizungssanierung" },
+        { "key": "item_1_desc",      "label": "Item 1 Text",           "type": "text", "default": "Wir tauschen Ihre alte Öl- oder Gasheizung gegen ein modernes, förderfähiges System aus. Mit BAFA-Antragsservice." },
+        { "key": "item_1_image",     "label": "Item 1 Bild",           "type": "text", "default": "/placeholder-service-1.jpg" },
+        { "key": "item_1_alt",       "label": "Item 1 Alt-Text",       "type": "text", "default": "Wärmepumpe-Außeneinheit" },
+        { "key": "item_2_title",     "label": "Item 2 Titel",          "type": "text", "default": "Badrenovierung" },
+        { "key": "item_2_desc",      "label": "Item 2 Text",           "type": "text", "default": "Vom barrierefreien Duschbad bis zum Wellness-Bad — alles aus einer Hand, mit Festpreisgarantie." },
+        { "key": "item_2_image",     "label": "Item 2 Bild",           "type": "text", "default": "/placeholder-service-2.jpg" },
+        { "key": "item_2_alt",       "label": "Item 2 Alt-Text",       "type": "text", "default": "Modernes Badezimmer" },
+        { "key": "item_3_title",     "label": "Item 3 Titel",          "type": "text", "default": "Wartung & Service" },
+        { "key": "item_3_desc",      "label": "Item 3 Text",           "type": "text", "default": "Jährliche Wartung Ihrer Heizung — pflicht für die Garantie und spart bis zu 15 % Energiekosten." },
+        { "key": "item_3_image",     "label": "Item 3 Bild",           "type": "text", "default": "/placeholder-service-3.jpg" },
+        { "key": "item_3_alt",       "label": "Item 3 Alt-Text",       "type": "text", "default": "Techniker bei Wartung" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block, wenn jede Hauptleistung eine eigene Geschichte erzählen soll (z. B. mit echten Vorher/Nachher-Fotos). Höherer Storytelling-Wert als leist-grid-3, aber braucht echtes Bildmaterial — sonst wirkt es generisch.",
+      "preview_note": "3 Items abwechselnd: Bild links/Text rechts, dann Text links/Bild rechts. Generös Spacing, Premium-Feeling."
+    },
+    {
+      "slug": "leist-tabbed",
+      "name": "Leistungen Tabbed (CSS-only)",
+      "category": "LEIST",
+      "tags": ["services", "tabs", "interactive"],
+      "slots": [
+        { "key": "section_headline", "label": "Abschnitt-Überschrift", "type": "text", "default": "Was Sie buchen können" },
+        { "key": "tab_1_title",      "label": "Tab 1 Titel",           "type": "text", "default": "Wärmepumpe" },
+        { "key": "tab_1_content",    "label": "Tab 1 Inhalt",          "type": "text", "default": "Luft-Wasser-Wärmepumpen ab 13 500 € (vor BAFA-Förderung). Wir berechnen Ihre tatsächliche Förderung und Restkosten in 2 Werktagen." },
+        { "key": "tab_2_title",      "label": "Tab 2 Titel",           "type": "text", "default": "Bad-Komplett" },
+        { "key": "tab_2_content",    "label": "Tab 2 Inhalt",          "type": "text", "default": "Komplettbad ab 18 900 € inkl. Fliesen, Sanitär, Elektrik. Festpreisgarantie nach Ortstermin." },
+        { "key": "tab_3_title",      "label": "Tab 3 Titel",           "type": "text", "default": "Notdienst" },
+        { "key": "tab_3_content",    "label": "Tab 3 Inhalt",          "type": "text", "default": "Wasserschaden, Heizung kalt, Toilette dicht — innerhalb von 60 Min vor Ort, transparente Stundensätze." }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block, wenn der Kunde mehrere Hauptleistungen mit nennenswerten Detailtexten hat (200+ Zeichen pro Leistung). Tabs reduzieren Scroll-Tiefe. CSS-only über <details>/<summary> oder Radio-Inputs — keine JS-Abhängigkeit.",
+      "preview_note": "Tabs oben (Brand-Teal aktiv), darunter dynamisch wechselnder Content. Mobile: untereinander als Akkordeon."
+    },
+    {
+      "slug": "leist-highlight",
+      "name": "Produkt-Highlight (eine Leistung groß)",
+      "category": "LEIST",
+      "tags": ["services", "highlight", "product", "campaign"],
+      "slots": [
+        { "key": "section_headline", "label": "Section-Headline", "type": "text", "default": "Unser Spezial-Angebot" },
+        { "key": "highlight_title",  "label": "Produkttitel",     "type": "text", "default": "Komplettpaket Wärmepumpe + Photovoltaik" },
+        { "key": "highlight_desc",   "label": "Beschreibung",     "type": "text", "default": "Wir kombinieren Luft-Wasser-Wärmepumpe und 8-kWp-PV-Anlage zu einem aufeinander abgestimmten System. Sie produzieren Ihren Strom für die Heizung selbst und sparen langfristig 60 % Heizkosten." },
+        { "key": "highlight_image",  "label": "Bild-URL",         "type": "text", "default": "/placeholder-highlight.jpg" },
+        { "key": "highlight_alt",    "label": "Bild Alt-Text",    "type": "text", "default": "Wärmepumpe und Solaranlage" },
+        { "key": "cta_text",         "label": "Button-Text",      "type": "text", "default": "Jetzt Beratung anfragen" },
+        { "key": "cta_url",          "label": "Button-Ziel",      "type": "text", "default": "#kontakt" },
+        { "key": "feature_1",        "label": "Vorteil 1",        "type": "text", "default": "Bis zu 70 % BAFA-Förderung" },
+        { "key": "feature_2",        "label": "Vorteil 2",        "type": "text", "default": "Festpreisgarantie über 14 Tage" },
+        { "key": "feature_3",        "label": "Vorteil 3",        "type": "text", "default": "Mit Förderantragsservice inklusive" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block für eine zentrale Conversion-Leistung mit hohem Auftragswert. Z. B. das Produkt aus dem Briefing mit höchster Marge oder eine zeitlich begrenzte Aktion. Funktioniert ideal in Verbindung mit Performance-Marketing.",
+      "preview_note": "Großer Split-Block: Bild links, Titel + Beschreibung + 3 Häkchen-Vorteile + CTA rechts. Brand-Teal-Akzente."
+    },
+    {
+      "slug": "leist-preise",
+      "name": "Preistabelle (3 Pakete)",
+      "category": "LEIST",
+      "tags": ["pricing", "packages", "conversion"],
+      "slots": [
+        { "key": "section_headline", "label": "Section-Headline", "type": "text", "default": "Transparente Pakete" },
+        { "key": "section_subline",  "label": "Section-Untertitel","type": "text", "default": "Was wir können, was es kostet — alles auf einen Blick." },
+        { "key": "pkg1_title",       "label": "Paket 1 Name",     "type": "text", "default": "Wartung Basic" },
+        { "key": "pkg1_price",       "label": "Paket 1 Preis",    "type": "text", "default": "129 €" },
+        { "key": "pkg1_period",      "label": "Paket 1 Zeitraum", "type": "text", "default": "/ Jahr" },
+        { "key": "pkg1_feature_1",   "label": "Paket 1 Vorteil 1","type": "text", "default": "Jährliche Wartung Ihrer Heizung" },
+        { "key": "pkg1_feature_2",   "label": "Paket 1 Vorteil 2","type": "text", "default": "Sicherheits-Check Wasser & Gas" },
+        { "key": "pkg1_feature_3",   "label": "Paket 1 Vorteil 3","type": "text", "default": "Wartungsprotokoll für Versicherung" },
+        { "key": "pkg1_cta_text",    "label": "Paket 1 Button",   "type": "text", "default": "Buchen" },
+        { "key": "pkg1_cta_url",     "label": "Paket 1 Link",     "type": "text", "default": "#kontakt" },
+        { "key": "pkg2_title",       "label": "Paket 2 Name",     "type": "text", "default": "Wartung Plus" },
+        { "key": "pkg2_price",       "label": "Paket 2 Preis",    "type": "text", "default": "229 €" },
+        { "key": "pkg2_period",      "label": "Paket 2 Zeitraum", "type": "text", "default": "/ Jahr" },
+        { "key": "pkg2_feature_1",   "label": "Paket 2 Vorteil 1","type": "text", "default": "Alles aus Wartung Basic" },
+        { "key": "pkg2_feature_2",   "label": "Paket 2 Vorteil 2","type": "text", "default": "Notdienst-Garantie 60 Min" },
+        { "key": "pkg2_feature_3",   "label": "Paket 2 Vorteil 3","type": "text", "default": "Verschleißteile inklusive" },
+        { "key": "pkg2_cta_text",    "label": "Paket 2 Button",   "type": "text", "default": "Buchen" },
+        { "key": "pkg2_cta_url",     "label": "Paket 2 Link",     "type": "text", "default": "#kontakt" },
+        { "key": "pkg2_badge",       "label": "Paket 2 Badge",    "type": "text", "default": "Beliebteste Wahl" },
+        { "key": "pkg3_title",       "label": "Paket 3 Name",     "type": "text", "default": "Komplett-Service" },
+        { "key": "pkg3_price",       "label": "Paket 3 Preis",    "type": "text", "default": "499 €" },
+        { "key": "pkg3_period",      "label": "Paket 3 Zeitraum", "type": "text", "default": "/ Jahr" },
+        { "key": "pkg3_feature_1",   "label": "Paket 3 Vorteil 1","type": "text", "default": "Alles aus Wartung Plus" },
+        { "key": "pkg3_feature_2",   "label": "Paket 3 Vorteil 2","type": "text", "default": "2 zusätzliche Hausbesuche" },
+        { "key": "pkg3_feature_3",   "label": "Paket 3 Vorteil 3","type": "text", "default": "Priorität bei Reparaturen" },
+        { "key": "pkg3_cta_text",    "label": "Paket 3 Button",   "type": "text", "default": "Buchen" },
+        { "key": "pkg3_cta_url",     "label": "Paket 3 Link",     "type": "text", "default": "#kontakt" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block für Wartungsverträge, Service-Abos oder Beratungspakete mit Festpreisen. Mittlere Karte ist visuell hervorgehoben — das ist die strategische 'Anchor'-Wahl. Funktioniert sehr gut in Verbindung mit Hormozi-Wertbox-Logik.",
+      "preview_note": "3 Pakete nebeneinander, mittleres mit dunkelteal Hintergrund + Badge. Mobile: gestapelt, mittleres bleibt visuell prominent."
+    },
+    {
+      "slug": "leist-prozess",
+      "name": "Prozess-Schritte (4 nummeriert)",
+      "category": "LEIST",
+      "tags": ["process", "steps", "trust", "transparency"],
+      "slots": [
+        { "key": "section_headline", "label": "Section-Headline", "type": "text", "default": "So läuft es bei uns ab" },
+        { "key": "section_subline",  "label": "Section-Untertitel","type": "text", "default": "Vier transparente Schritte — keine Überraschungen." },
+        { "key": "step_1_title",     "label": "Schritt 1 Titel",  "type": "text", "default": "Anfrage" },
+        { "key": "step_1_desc",      "label": "Schritt 1 Text",   "type": "text", "default": "Sie schildern uns Ihr Anliegen — telefonisch oder per Formular." },
+        { "key": "step_2_title",     "label": "Schritt 2 Titel",  "type": "text", "default": "Ortstermin" },
+        { "key": "step_2_desc",      "label": "Schritt 2 Text",   "type": "text", "default": "Wir prüfen vor Ort und nehmen Maße & Anschlüsse auf — kostenfrei." },
+        { "key": "step_3_title",     "label": "Schritt 3 Titel",  "type": "text", "default": "Festpreis-Angebot" },
+        { "key": "step_3_desc",      "label": "Schritt 3 Text",   "type": "text", "default": "Sie erhalten innerhalb von 5 Werktagen ein verbindliches Angebot mit Festpreis." },
+        { "key": "step_4_title",     "label": "Schritt 4 Titel",  "type": "text", "default": "Umsetzung" },
+        { "key": "step_4_desc",      "label": "Schritt 4 Text",   "type": "text", "default": "Wir arbeiten zum vereinbarten Termin, sauber und garantiert." }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block, um Vertrauen aufzubauen — er erklärt den Prozess transparent und reduziert Unsicherheit. Funktioniert besonders bei Erstkunden mit hohem Auftragswert (Wärmepumpen, Bad-Komplettsanierung). Kombiniere mit leist-preise für komplette Conversion-Strecke.",
+      "preview_note": "Horizontale 4er-Reihe mit nummerierten Kreisen (Brand-Teal). Mobile: untereinander mit Verbindungslinie."
+    },
+    {
+      "slug": "leist-liste",
+      "name": "Leistungen Häkchen-Liste",
+      "category": "LEIST",
+      "tags": ["services", "list", "checkmarks", "compact"],
+      "slots": [
+        { "key": "section_headline", "label": "Section-Headline", "type": "text", "default": "Auf einen Blick: Was wir alles machen" },
+        { "key": "section_subline",  "label": "Section-Untertitel","type": "text", "default": "Über 20 Jahre Handwerk in Familienhand — und jeden Tag dazulernen." },
+        { "key": "item_1",           "label": "Punkt 1",           "type": "text", "default": "Heizungsmodernisierung & Wärmepumpen" },
+        { "key": "item_2",           "label": "Punkt 2",           "type": "text", "default": "Bad-Sanierung & barrierefreie Lösungen" },
+        { "key": "item_3",           "label": "Punkt 3",           "type": "text", "default": "Solarthermie & Photovoltaik" },
+        { "key": "item_4",           "label": "Punkt 4",           "type": "text", "default": "Trinkwasser-Hygiene & Legionellen-Prüfung" },
+        { "key": "item_5",           "label": "Punkt 5",           "type": "text", "default": "Wartung & Inspektion (alle Fabrikate)" },
+        { "key": "item_6",           "label": "Punkt 6",           "type": "text", "default": "Notdienst 24/7 in Koblenz und 50 km Umkreis" },
+        { "key": "item_7",           "label": "Punkt 7",           "type": "text", "default": "Energieberatung & BAFA-Förderantragsservice" },
+        { "key": "item_8",           "label": "Punkt 8",           "type": "text", "default": "Gas- & Wasser-Installationen nach DVGW" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block als kompakte Ergänzung zu leist-grid-3, wenn der Betrieb viele Spezial-Leistungen hat, die nicht alle eigene Cards verdienen. Funktioniert ideal als 'mehr-Leistungen'-Sektion auf der Startseite oder als vollständige Liste auf einer Leistungs-Übersichtsseite.",
+      "preview_note": "8 Punkte in 2 Spalten mit Häkchen-Icons (Brand-Teal). Mobile: 1 Spalte."
     }
   ]
 }

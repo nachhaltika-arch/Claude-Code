@@ -1,0 +1,33 @@
+<!--
+  Block: leist-grid-3 — Leistungen 3er-Grid
+  Kategorie: LEIST
+  Slots: section_headline, section_subline,
+         service_1_title, service_1_desc, service_1_icon,
+         service_2_title, service_2_desc, service_2_icon,
+         service_3_title, service_3_desc, service_3_icon
+-->
+<section data-block="leist-grid-3" class="bg-slate-50 py-16 md:py-20 px-6" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-12 max-w-2xl mx-auto">
+      <h2 class="text-3xl md:text-4xl font-black uppercase text-[#004F59] tracking-tight mb-3">{{section_headline}}</h2>
+      <p class="text-base text-slate-600 leading-relaxed">{{section_subline}}</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <article class="bg-white rounded-2xl p-7 shadow-sm hover:shadow-md transition border-t-4 border-[#008EAA]">
+        <div class="text-4xl mb-4" aria-hidden="true">{{service_1_icon}}</div>
+        <h3 class="text-xl font-black text-[#004F59] uppercase mb-3 tracking-tight">{{service_1_title}}</h3>
+        <p class="text-sm text-slate-600 leading-relaxed">{{service_1_desc}}</p>
+      </article>
+      <article class="bg-white rounded-2xl p-7 shadow-sm hover:shadow-md transition border-t-4 border-[#008EAA]">
+        <div class="text-4xl mb-4" aria-hidden="true">{{service_2_icon}}</div>
+        <h3 class="text-xl font-black text-[#004F59] uppercase mb-3 tracking-tight">{{service_2_title}}</h3>
+        <p class="text-sm text-slate-600 leading-relaxed">{{service_2_desc}}</p>
+      </article>
+      <article class="bg-white rounded-2xl p-7 shadow-sm hover:shadow-md transition border-t-4 border-[#008EAA]">
+        <div class="text-4xl mb-4" aria-hidden="true">{{service_3_icon}}</div>
+        <h3 class="text-xl font-black text-[#004F59] uppercase mb-3 tracking-tight">{{service_3_title}}</h3>
+        <p class="text-sm text-slate-600 leading-relaxed">{{service_3_desc}}</p>
+      </article>
+    </div>
+  </div>
+</section>

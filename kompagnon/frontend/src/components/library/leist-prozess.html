@@ -1,0 +1,47 @@
+<!--
+  Block: leist-prozess — Prozess-Schritte (4 nummeriert)
+  Kategorie: LEIST
+  Slots: section_headline, section_subline,
+         step_1_title, step_1_desc,
+         step_2_title, step_2_desc,
+         step_3_title, step_3_desc,
+         step_4_title, step_4_desc
+-->
+<section data-block="leist-prozess" class="bg-white py-16 md:py-24 px-6" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-14 max-w-2xl mx-auto">
+      <h2 class="text-3xl md:text-4xl font-black uppercase text-[#004F59] tracking-tight mb-3">{{section_headline}}</h2>
+      <p class="text-base text-slate-600 leading-relaxed">{{section_subline}}</p>
+    </div>
+    <ol class="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-6 relative">
+      <li class="relative md:before:content-[''] md:before:absolute md:before:top-7 md:before:left-[60%] md:before:right-[-40%] md:before:h-0.5 md:before:bg-[#008EAA]/30">
+        <div class="flex flex-col items-center md:items-start text-center md:text-left">
+          <span class="flex-shrink-0 w-14 h-14 rounded-full bg-[#008EAA] text-white text-xl font-black flex items-center justify-center mb-4 shadow-md">1</span>
+          <h3 class="text-lg font-black uppercase text-[#004F59] tracking-tight mb-2">{{step_1_title}}</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">{{step_1_desc}}</p>
+        </div>
+      </li>
+      <li class="relative md:before:content-[''] md:before:absolute md:before:top-7 md:before:left-[60%] md:before:right-[-40%] md:before:h-0.5 md:before:bg-[#008EAA]/30">
+        <div class="flex flex-col items-center md:items-start text-center md:text-left">
+          <span class="flex-shrink-0 w-14 h-14 rounded-full bg-[#008EAA] text-white text-xl font-black flex items-center justify-center mb-4 shadow-md">2</span>
+          <h3 class="text-lg font-black uppercase text-[#004F59] tracking-tight mb-2">{{step_2_title}}</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">{{step_2_desc}}</p>
+        </div>
+      </li>
+      <li class="relative md:before:content-[''] md:before:absolute md:before:top-7 md:before:left-[60%] md:before:right-[-40%] md:before:h-0.5 md:before:bg-[#008EAA]/30">
+        <div class="flex flex-col items-center md:items-start text-center md:text-left">
+          <span class="flex-shrink-0 w-14 h-14 rounded-full bg-[#008EAA] text-white text-xl font-black flex items-center justify-center mb-4 shadow-md">3</span>
+          <h3 class="text-lg font-black uppercase text-[#004F59] tracking-tight mb-2">{{step_3_title}}</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">{{step_3_desc}}</p>
+        </div>
+      </li>
+      <li>
+        <div class="flex flex-col items-center md:items-start text-center md:text-left">
+          <span class="flex-shrink-0 w-14 h-14 rounded-full bg-[#FAE600] text-black text-xl font-black flex items-center justify-center mb-4 shadow-md">4</span>
+          <h3 class="text-lg font-black uppercase text-[#004F59] tracking-tight mb-2">{{step_4_title}}</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">{{step_4_desc}}</p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>

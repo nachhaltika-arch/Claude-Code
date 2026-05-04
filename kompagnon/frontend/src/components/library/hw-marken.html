@@ -1,0 +1,27 @@
+<!--
+  Block: hw-marken — Marken & Hersteller (Logo-Strip)
+  Kategorie: HW
+  Slots: section_headline, brand_1..5_label, brand_1..5_image
+-->
+<section data-block="hw-marken" class="bg-white py-12 md:py-14 px-6 border-y border-slate-100" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-5xl mx-auto">
+    <p class="text-xs md:text-sm font-bold uppercase tracking-widest text-slate-500 text-center mb-7">{{section_headline}}</p>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 md:gap-8 items-center">
+      <div class="flex items-center justify-center grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition">
+        <img src="{{brand_1_image}}" alt="{{brand_1_label}}" class="max-h-12 md:max-h-14 w-auto" loading="lazy">
+      </div>
+      <div class="flex items-center justify-center grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition">
+        <img src="{{brand_2_image}}" alt="{{brand_2_label}}" class="max-h-12 md:max-h-14 w-auto" loading="lazy">
+      </div>
+      <div class="flex items-center justify-center grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition">
+        <img src="{{brand_3_image}}" alt="{{brand_3_label}}" class="max-h-12 md:max-h-14 w-auto" loading="lazy">
+      </div>
+      <div class="flex items-center justify-center grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition">
+        <img src="{{brand_4_image}}" alt="{{brand_4_label}}" class="max-h-12 md:max-h-14 w-auto" loading="lazy">
+      </div>
+      <div class="flex items-center justify-center grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition col-span-2 sm:col-span-1">
+        <img src="{{brand_5_image}}" alt="{{brand_5_label}}" class="max-h-12 md:max-h-14 w-auto" loading="lazy">
+      </div>
+    </div>
+  </div>
+</section>

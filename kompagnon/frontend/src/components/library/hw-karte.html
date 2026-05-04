@@ -1,0 +1,20 @@
+<!--
+  Block: hw-karte — Einzugsgebiet-Karte (mit Radius)
+  Kategorie: HW
+  Slots: section_headline, section_subline, city_list, map_embed_url
+-->
+<section data-block="hw-karte" class="bg-slate-50 py-16 md:py-20 px-6" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-stretch">
+    <div class="flex flex-col justify-center">
+      <h2 class="text-3xl md:text-4xl font-black uppercase text-[#004F59] tracking-tight mb-4">{{section_headline}}</h2>
+      <p class="text-base text-slate-600 leading-relaxed mb-6">{{section_subline}}</p>
+      <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <div class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Wir bedienen u. a.</div>
+        <div class="text-base text-slate-800 leading-relaxed">{{city_list}}</div>
+      </div>
+    </div>
+    <div class="rounded-2xl overflow-hidden shadow-lg min-h-[360px]">
+      <iframe src="{{map_embed_url}}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="w-full h-full border-0" title="Einzugsgebiet auf Google Maps" aria-label="Karte mit unserem Einzugsgebiet"></iframe>
+    </div>
+  </div>
+</section>

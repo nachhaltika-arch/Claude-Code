@@ -662,6 +662,75 @@
       ],
       "ki_prompt_hint": "Mehrstufiges Formular für höhere Auftragswerte (Wärmepumpe, Bad-Komplettsanierung). Reduziert Eingabe-Hürde durch Aufteilen in 3 Schritte. Conversion-Rate erhöht ~30 % gegenüber One-Page-Form bei langen Forms.",
       "preview_note": "Card mit Step-Indicator oben (1/2/3), aktuell aktive Stufe sichtbar, Buttons 'Zurück' + 'Weiter'."
+    },
+
+    {
+      "slug": "hw-karte",
+      "name": "Einzugsgebiet-Karte (mit Radius)",
+      "category": "HW",
+      "tags": ["map", "service-area", "local"],
+      "slots": [
+        { "key": "section_headline","label": "Section-Headline","type": "text", "default": "Unser Einzugsgebiet" },
+        { "key": "section_subline", "label": "Section-Untertitel","type": "text", "default": "50 km Umkreis Koblenz — Anfahrt im gesamten Gebiet kostenfrei." },
+        { "key": "city_list",       "label": "Städte-Liste",     "type": "text", "default": "Koblenz · Andernach · Mayen · Neuwied · Bendorf · Lahnstein · Vallendar · Boppard · Cochem · Diez" },
+        { "key": "map_embed_url",   "label": "Maps Embed-URL",   "type": "text", "default": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2543.0!2d7.6!3d50.36" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block, wenn der Kunde explizit ein definiertes lokales Einzugsgebiet bedient (50 km, Landkreis-Grenze, etc.). Verstärkt lokale SEO-Signale, signalisiert klar wo Fahrten stattfinden. Städte-Liste mit konkreten Namen aus dem Briefing.",
+      "preview_note": "Split: Karten-iframe rechts, Städte-Liste + Headline links. Helles Grau-Background."
+    },
+    {
+      "slug": "hw-oeffnungszeiten",
+      "name": "Öffnungszeiten + Notdienst-Hinweis",
+      "category": "HW",
+      "tags": ["hours", "schedule", "emergency"],
+      "slots": [
+        { "key": "section_headline","label": "Section-Headline","type": "text", "default": "Öffnungszeiten" },
+        { "key": "mo_fr",           "label": "Mo–Fr Zeiten",     "type": "text", "default": "07:30 – 17:00" },
+        { "key": "sa",              "label": "Samstag Zeiten",   "type": "text", "default": "Nach Vereinbarung" },
+        { "key": "so",              "label": "Sonntag Zeiten",   "type": "text", "default": "Geschlossen (Notdienst aktiv)" },
+        { "key": "notdienst_text",  "label": "Notdienst-Hinweis","type": "text", "default": "24/7 Notdienst für Wasserschäden und Heizungsausfälle — innerhalb 60 Min vor Ort." },
+        { "key": "notdienst_phone", "label": "Notdienst-Telefon","type": "text", "default": "0261 / 123 456" },
+        { "key": "notdienst_url",   "label": "Notdienst-Tel-Link","type": "text", "default": "tel:+4926112345" }
+      ],
+      "ki_prompt_hint": "Pflicht-Block für jede Handwerker-Site (auch wenn kein Notdienst angeboten wird — dann nur Kern-Öffnungszeiten). Wichtig für Google Business Profile-Konsistenz.",
+      "preview_note": "Tabellen-Look: Wochentag-Liste links, Notdienst-Card rechts mit Telefon-Button."
+    },
+    {
+      "slug": "hw-vor-ort",
+      "name": "Vor-Ort-Termin (Wir kommen zu Ihnen)",
+      "category": "HW",
+      "tags": ["onsite", "appointment", "service"],
+      "slots": [
+        { "key": "headline",  "label": "Headline",      "type": "text", "default": "Wir kommen zu Ihnen — kostenfrei" },
+        { "key": "subline",   "label": "Untertitel",    "type": "text", "default": "Aufmaß, Beratung, Angebotserstellung — alles direkt bei Ihnen vor Ort, ohne versteckte Kosten." },
+        { "key": "radius_km", "label": "Radius in km",  "type": "text", "default": "50" },
+        { "key": "city",      "label": "Zentralstadt",  "type": "text", "default": "Koblenz" },
+        { "key": "cta_text",  "label": "Button-Text",   "type": "text", "default": "Termin vereinbaren" },
+        { "key": "cta_url",   "label": "Button-Ziel",   "type": "text", "default": "#kontakt" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block für mobile Handwerksdienste (SHK, Elektrik, Heizung, Schreinerei). Funktioniert besonders gut nach dem ersten Audit-CTA — kostenfreier Vor-Ort-Termin reduziert Kauf-Hürde maximal.",
+      "preview_note": "Brand-Teal-Background, weiße Schrift, großer kostenfreier-Termin-CTA."
+    },
+    {
+      "slug": "hw-marken",
+      "name": "Marken & Hersteller (Logo-Strip)",
+      "category": "HW",
+      "tags": ["brands", "manufacturers", "trust"],
+      "slots": [
+        { "key": "section_headline","label": "Section-Headline","type": "text", "default": "Wir arbeiten mit den Besten" },
+        { "key": "brand_1_label", "label": "Marke 1 Name",  "type": "text", "default": "Viessmann" },
+        { "key": "brand_1_image", "label": "Marke 1 Logo",  "type": "text", "default": "/placeholder-brand-1.svg" },
+        { "key": "brand_2_label", "label": "Marke 2 Name",  "type": "text", "default": "Bosch" },
+        { "key": "brand_2_image", "label": "Marke 2 Logo",  "type": "text", "default": "/placeholder-brand-2.svg" },
+        { "key": "brand_3_label", "label": "Marke 3 Name",  "type": "text", "default": "Vaillant" },
+        { "key": "brand_3_image", "label": "Marke 3 Logo",  "type": "text", "default": "/placeholder-brand-3.svg" },
+        { "key": "brand_4_label", "label": "Marke 4 Name",  "type": "text", "default": "Buderus" },
+        { "key": "brand_4_image", "label": "Marke 4 Logo",  "type": "text", "default": "/placeholder-brand-4.svg" },
+        { "key": "brand_5_label", "label": "Marke 5 Name",  "type": "text", "default": "Wolf" },
+        { "key": "brand_5_image", "label": "Marke 5 Logo",  "type": "text", "default": "/placeholder-brand-5.svg" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block, wenn der Kunde Hersteller-Partnerschaften hat (Viessmann-Premium, Bosch-Partner). Signalisiert: hier wird mit Markenqualität gearbeitet, nicht No-Name. Unterscheidet sich von trust-zertifikate (Innungen) durch Produkt-Fokus.",
+      "preview_note": "5 Marken-Logos in einer Reihe (auf Mobile 2-3 Spalten), gedimmt mit hover→volle Farbe."
     }
   ]
 }

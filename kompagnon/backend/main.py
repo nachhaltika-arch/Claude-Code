@@ -768,6 +768,14 @@ def _run_migrations():
         "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS full_text TEXT",
         "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS images TEXT DEFAULT '[]'",
         "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS files TEXT DEFAULT '[]'",
+        # Hotfix 2026-05-04: h3s + links_internal + links_external waren nur
+        # in routers/crawler.py:190-195 als Lazy-Migration registriert (laeuft
+        # erst beim ersten Crawler-Save). Auf frischer Staging-DB fehlten sie
+        # daher dem GET /api/crawler/content/{lead_id} Endpoint, der mit 500
+        # crashte (UndefinedColumn h3s).
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS h3s TEXT DEFAULT '[]'",
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS links_internal TEXT DEFAULT '[]'",
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS links_external TEXT DEFAULT '[]'",
         """CREATE INDEX IF NOT EXISTS idx_website_content_cache_customer
            ON website_content_cache(customer_id)""",
         # Netlify-Integration (NETLIFY_API_TOKEN env-Variable erforderlich)

@@ -46,14 +46,22 @@ def _send_phase_email(project_id: int, template_key: str):
 
         lead = project.lead
         frontend_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
+        # Token-Direktlink wenn vorhanden, sonst Login-Fallback. Verwendet
+        # in Briefing-Remindern (Bug #5) und überall wo das Portal verlinkt wird.
+        briefing_link = (
+            f"{frontend_url}/portal/{lead.customer_token}"
+            if lead.customer_token
+            else f"{frontend_url}/portal/login"
+        )
         context = {
             "company_name":         lead.company_name or "Ihr Unternehmen",
             "contact_name":         lead.contact_name or "liebe Kundin / lieber Kunde",
             "assigned_person":      "KOMPAGNON-Team",
             "contact_person_phone": os.getenv("CONTACT_PHONE", "+49 (0) 261 88 44 70"),
             "contact_person_email": os.getenv("CONTACT_EMAIL", "info@kompagnon.eu"),
-            "preview_link":         f"{frontend_url}/portal",
-            "upload_link":          f"{frontend_url}/portal",
+            "preview_link":         briefing_link,
+            "upload_link":          briefing_link,
+            "briefing_link":        briefing_link,
             "review_deadline":      (datetime.utcnow() + timedelta(days=5)).strftime("%d.%m.%Y"),
             "kickoff_date":         (datetime.utcnow() + timedelta(days=2)).strftime("%d.%m.%Y"),
             "new_visitors":         "—",
@@ -542,6 +550,68 @@ def job_check_missing_materials():
                 if days_since_start > 5:
                     logger.info(f"📧 Sending material reminder for Project {project.id}")
                     _send_phase_email(project.id, "material_reminder")
+    finally:
+        db.close()
+
+
+# Eskalation: ab Tag 3 sanft, Tag 7 klar, Tag 14 letzte Erinnerung. Danach
+# kein weiterer Reminder — Project ist dann ohnehin fest stuck und braucht
+# manuelle Intervention (siehe job_check_overdue_phases).
+_BRIEFING_REMINDER_STAGES = (
+    (3,  "briefing_reminder_day_3"),
+    (7,  "briefing_reminder_day_7"),
+    (14, "briefing_reminder_day_14"),
+)
+
+
+def job_send_briefing_reminders():
+    """
+    Bug #5: Sendet Briefing-Erinnerungen an phase_1-Projekte ohne eingereichtes
+    Briefing. Idempotent über die Communication-Tabelle (template_key+project_id
+    werden dort beim erfolgreichen Send geloggt).
+    """
+    db = SessionLocal()
+    try:
+        projects = db.query(Project).filter(
+            Project.status == "phase_1",
+            Project.has_briefing.is_(False),
+        ).all()
+
+        if not projects:
+            logger.info("Briefing-Reminder: keine offenen phase_1-Projekte")
+            return
+
+        logger.info(f"Briefing-Reminder: {len(projects)} phase_1-Projekte zu prüfen")
+
+        for project in projects:
+            if not project.start_date:
+                continue
+            if not project.lead or not project.lead.email:
+                continue
+
+            days_since = (datetime.utcnow() - project.start_date).days
+            # _BRIEFING_REMINDER_STAGES ist absteigend zu durchlaufen, damit
+            # an Tag 14 das _day_14-Template gewählt wird (statt _day_3).
+            template_key = None
+            for threshold, tpl in reversed(_BRIEFING_REMINDER_STAGES):
+                if days_since >= threshold:
+                    template_key = tpl
+                    break
+            if not template_key:
+                continue
+
+            already_sent = db.query(Communication).filter(
+                Communication.project_id == project.id,
+                Communication.template_key == template_key,
+            ).first()
+            if already_sent:
+                continue
+
+            logger.info(
+                f"📧 Briefing-Reminder ({template_key}) für Projekt {project.id} "
+                f"(Tag {days_since} ohne Briefing)"
+            )
+            _send_phase_email(project.id, template_key)
     finally:
         db.close()
 
@@ -1081,6 +1151,16 @@ class CompagnonScheduler:
             "cron",
             hour=9, minute=0,
             id="daily_check_missing_materials",
+            replace_existing=True,
+            timezone="Europe/Berlin",
+        )
+        # Bug #5: Briefing-Reminder fuer phase_1-Projekte ohne has_briefing.
+        # Eskalation Tag 3 / 7 / 14, idempotent ueber Communication.template_key.
+        self.scheduler.add_job(
+            job_send_briefing_reminders,
+            "cron",
+            hour=9, minute=30,
+            id="daily_send_briefing_reminders",
             replace_existing=True,
             timezone="Europe/Berlin",
         )

@@ -177,6 +177,67 @@ eine Monat live — Zeit für ein kurzes Gespräch! ☕
 
 {assigned_person}""",
     },
+    "briefing_reminder_day_3": {
+        "subject": "Erinnerung: Ihr Briefing wartet noch — {company_name}",
+        "body": """Lieber {contact_name},
+
+vielen Dank für Ihren KOMPAGNON-Auftrag! 🚀
+
+Damit wir mit der Konzeption Ihrer Website starten können, brauchen wir noch Ihr ausgefülltes Briefing. Es dauert nur **5–10 Minuten** und ist der wichtigste Schritt für ein passgenaues Ergebnis.
+
+**👉 Briefing jetzt ausfüllen:** {briefing_link}
+
+Was Sie dort einreichen:
+✓ Ihre Leistungen und Zielgruppe
+✓ Wunsch-Stil & bevorzugte Farben
+✓ Kontaktdaten & Öffnungszeiten
+
+Sobald Ihr Briefing da ist, melden wir uns innerhalb von 24 Stunden für den Strategy-Workshop.
+
+Falls Sie Fragen haben oder Hilfe brauchen — melden Sie sich kurz:
+{contact_person_phone} | {contact_person_email}
+
+Herzliche Grüße,
+{assigned_person}""",
+    },
+    "briefing_reminder_day_7": {
+        "subject": "Wichtig: Ihr Briefing fehlt noch — {company_name}",
+        "body": """Lieber {contact_name},
+
+Ihr KOMPAGNON-Projekt liegt seit einer Woche bei uns auf Wartestellung — wir können noch nicht starten, weil das Briefing fehlt.
+
+**Bitte einmal kurz hier ausfüllen:** {briefing_link}
+
+Das Formular dauert 5–10 Minuten und enthält alles, was wir für Ihre Website brauchen. Ohne Briefing können wir nicht mit der Konzeption beginnen — und Ihr Liefertermin verzögert sich.
+
+Falls etwas unklar ist oder Sie kurz mit uns sprechen möchten:
+📞 {contact_person_phone}
+✉ {contact_person_email}
+
+Wir helfen gern weiter — auch telefonisch durch das Briefing.
+
+Herzliche Grüße,
+{assigned_person}""",
+    },
+    "briefing_reminder_day_14": {
+        "subject": "Letzte Erinnerung: Briefing für {company_name}",
+        "body": """Lieber {contact_name},
+
+zwei Wochen sind seit Ihrem Auftrag vergangen — Ihr Briefing fehlt uns weiterhin. Damit Ihr Projekt nicht weiter blockiert bleibt, möchten wir den Stand kurz mit Ihnen klären.
+
+**Briefing-Link:** {briefing_link}
+
+Falls etwas Sie davon abhält oder Sie Hilfe beim Ausfüllen brauchen, rufen Sie uns bitte an — wir machen das in 10 Minuten gemeinsam am Telefon:
+
+📞 {contact_person_phone}
+
+Sollten sich an Ihrer Planung etwas geändert haben, melden Sie sich bitte kurz unter {contact_person_email}, damit wir gemeinsam den nächsten Schritt finden.
+
+Wir freuen uns, von Ihnen zu hören.
+
+{assigned_person}
+KOMPAGNON-Team""",
+    },
     "day_30_geo_check": {
         "subject": "GEO-Check: Wie gut rankt {company_name} lokal?",
         "body": """Lieber {contact_name},

@@ -285,16 +285,17 @@ def _handle_successful_payment(session: dict, db: Session):
         ).first()
         if not existing_project:
             project = Project(
-                lead_id      = lead.id,
-                status       = "phase_1",
-                start_date   = datetime.utcnow(),
-                fixed_price  = {
+                lead_id        = lead.id,
+                status         = "phase_1",
+                payment_status = "bezahlt",
+                start_date     = datetime.utcnow(),
+                fixed_price    = {
                     "starter":   1500.0,
                     "kompagnon": 2000.0,
                     "premium":   2800.0,
                 }.get(package_id, 2000.0),
-                hourly_rate   = 45.0,
-                ai_tool_costs = 50.0,
+                hourly_rate    = 45.0,
+                ai_tool_costs  = 50.0,
             )
             db.add(project)
             db.flush()

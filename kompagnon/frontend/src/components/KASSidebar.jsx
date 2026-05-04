@@ -34,35 +34,43 @@ const KC_YELLOW = '#FAE600';
 const GREEN = '#1D9E75';
 
 // ── 17 Schritte in 6 Phasen — aus dem Online-Fertig-Spec ────────────────────
+//
+// view       — schaltet die rechte Spalte auf eine der 4 neuen Views
+//              (SitemapView/WireframeView/StyleGuideView/DesignView)
+// component  — fuer Steps OHNE view: rendert SchrittInhalt aus
+//              ProzessFlow.jsx mit dem entsprechenden case-Branch
+//              (BriefingUnternehmenEmbed, AuditEmbed, etc.)
+// gate       — Gate-Schritt mit Lock-Icon (Customer-Approval)
+// optional   — kein Pflichtschritt fuer Fortschritt
 export const SCHRITTE = [
   // Phase 1 — Analyse (5)
-  { id: 'briefing-unternehmen', nr: 1,  phase: 'Analyse',     name: 'Briefing: Unternehmen', view: null },
-  { id: 'audit',                nr: 2,  phase: 'Analyse',     name: 'Website-Audit',          view: null },
-  { id: 'content-vollanalyse',  nr: 3,  phase: 'Analyse',     name: 'Content-Vollanalyse',    view: null },
-  { id: 'briefing-website',     nr: 4,  phase: 'Analyse',     name: 'Briefing: Website',      view: null },
-  { id: 'zugangsdaten',         nr: 5,  phase: 'Analyse',     name: 'Zugangsdaten',           view: null, optional: true },
+  { id: 'briefing-unternehmen', nr: 1,  phase: 'Analyse',     name: 'Briefing: Unternehmen', view: null,         component: 'BriefingUnternehmen' },
+  { id: 'audit',                nr: 2,  phase: 'Analyse',     name: 'Website-Audit',          view: null,         component: 'Audit' },
+  { id: 'content-vollanalyse',  nr: 3,  phase: 'Analyse',     name: 'Content-Vollanalyse',    view: null,         component: 'AnalyseZentrale' },
+  { id: 'briefing-website',     nr: 4,  phase: 'Analyse',     name: 'Briefing: Website',      view: null,         component: 'BriefingWebsite' },
+  { id: 'zugangsdaten',         nr: 5,  phase: 'Analyse',     name: 'Zugangsdaten',           view: null,         component: 'Zugangsdaten', optional: true },
 
   // Phase 2 — Sitemap + Wireframe (2)
-  { id: 'sitemap-ki',           nr: 6,  phase: 'Sitemap',     name: 'KI-Sitemap',             view: 'sitemap' },
-  { id: 'wireframe-ki',         nr: 7,  phase: 'Sitemap',     name: 'KI-Wireframe',           view: 'wireframe' },
+  { id: 'sitemap-ki',           nr: 6,  phase: 'Sitemap',     name: 'KI-Sitemap',             view: 'sitemap',    component: null },
+  { id: 'wireframe-ki',         nr: 7,  phase: 'Sitemap',     name: 'KI-Wireframe',           view: 'wireframe',  component: null },
 
   // Phase 3 — Style Guide + Design (2, mit Gate)
-  { id: 'style-guide',          nr: 8,  phase: 'Design',      name: 'Style Guide',            view: 'styleguide', gate: true },
-  { id: 'finales-design',       nr: 9,  phase: 'Design',      name: 'Finales Design',         view: 'design' },
+  { id: 'style-guide',          nr: 8,  phase: 'Design',      name: 'Style Guide',            view: 'styleguide', component: null, gate: true },
+  { id: 'finales-design',       nr: 9,  phase: 'Design',      name: 'Finales Design',         view: 'design',     component: null },
 
   // Phase 4 — Produktion (2)
-  { id: 'ki-content',           nr: 10, phase: 'Produktion',  name: 'KI-Content',             view: null },
-  { id: 'netlify-deploy',       nr: 11, phase: 'Produktion',  name: 'Netlify Deploy',         view: null },
+  { id: 'ki-content',           nr: 10, phase: 'Produktion',  name: 'KI-Content',             view: null,         component: 'ContentWerkstatt' },
+  { id: 'netlify-deploy',       nr: 11, phase: 'Produktion',  name: 'Netlify Deploy',         view: null,         component: 'Netlify' },
 
   // Phase 5 — Go Live (3, mit Gate)
-  { id: 'dns',                  nr: 12, phase: 'GoLive',      name: 'DNS',                    view: null },
-  { id: 'qa',                   nr: 13, phase: 'GoLive',      name: 'QA-Check',               view: null },
-  { id: 'abnahme',              nr: 14, phase: 'GoLive',      name: 'Abnahme',                view: null, gate: true },
+  { id: 'dns',                  nr: 12, phase: 'GoLive',      name: 'DNS',                    view: null,         component: 'DNS' },
+  { id: 'qa',                   nr: 13, phase: 'GoLive',      name: 'QA-Check',               view: null,         component: 'QA' },
+  { id: 'abnahme',              nr: 14, phase: 'GoLive',      name: 'Abnahme',                view: null,         component: 'Abnahme', gate: true },
 
-  // Phase 6 — Post-Launch (3)
-  { id: 'umami',                nr: 15, phase: 'PostLaunch',  name: 'Umami einrichten',       view: null },
-  { id: 'heatmap',              nr: 16, phase: 'PostLaunch',  name: 'Heatmap einrichten',     view: null },
-  { id: 'monats-report',        nr: 17, phase: 'PostLaunch',  name: 'Monats-Report',          view: null },
+  // Phase 6 — Post-Launch (3) — noch keine Legacy-Components, nur Placeholder
+  { id: 'umami',                nr: 15, phase: 'PostLaunch',  name: 'Umami einrichten',       view: null,         component: null },
+  { id: 'heatmap',              nr: 16, phase: 'PostLaunch',  name: 'Heatmap einrichten',     view: null,         component: null },
+  { id: 'monats-report',        nr: 17, phase: 'PostLaunch',  name: 'Monats-Report',          view: null,         component: null },
 ];
 
 const PHASE_META = {

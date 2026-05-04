@@ -24,6 +24,10 @@ import SitemapView from './views/SitemapView';
 import WireframeView from './views/WireframeView';
 import StyleGuideView from './views/StyleGuideView';
 import DesignView from './views/DesignView';
+// SchrittInhalt rendert die Legacy-Step-Inhalte (Briefing/Audit/etc.) aus
+// ProzessFlowV3 — wir reichen es im Step-Detail-Panel durch wenn der aktive
+// Step ein component-Mapping hat (KASSidebar SCHRITTE).
+import { SchrittInhalt } from './ProzessFlow';
 
 const KC_DARK = '#004F59';
 const KC_MID = '#008EAA';
@@ -39,11 +43,17 @@ export default function OnlineFertigEditor() {
   );
 
   const [project, setProject] = useState(null);
+  const [lead, setLead] = useState(null);
+  const [briefing, setBriefing] = useState(null);
+  const [latestAudit, setLatestAudit] = useState(null);
+  const [sitemapPages, setSitemapPages] = useState([]);
+  const [brandData, setBrandData] = useState(null);
   const [loadingProject, setLoadingProject] = useState(true);
   const [wireframeData, setWireframeData] = useState({ pages: [] });
   const [activeView, setActiveView] = useState('sitemap');
   const [activeStep, setActiveStep] = useState('sitemap-ki');
   const [generateStatus, setGenerateStatus] = useState(null); // null | 'running' | { error } | 'done'
+  const [confirmedSteps, setConfirmedSteps] = useState({});
   const pollTimerRef = useRef(null);
 
   // ── Initial load: Project + Wireframe ──────────────────────────────────────
@@ -64,6 +74,13 @@ export default function OnlineFertigEditor() {
         if (cancelled) return;
         setProject(proj);
         setWireframeData(wf || { pages: [] });
+        // Daten fuer die Legacy-SchrittInhalt-Embeds direkt ziehen
+        if (proj?.lead_id) loadLegacyData(proj.lead_id);
+        // confirmed-steps separat (Endpoint ist optional)
+        fetch(`${API_BASE_URL}/api/projects/${projectId}/confirmed-steps`, { headers })
+          .then((r) => (r.ok ? r.json() : {}))
+          .then((d) => !cancelled && setConfirmedSteps(d || {}))
+          .catch(() => {});
       })
       .catch(() => {})
       .finally(() => !cancelled && setLoadingProject(false));
@@ -71,7 +88,62 @@ export default function OnlineFertigEditor() {
       cancelled = true;
       if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, token, headers]);
+
+  // ── Legacy-Daten fuer SchrittInhalt (Briefing/Audit/Sitemap/Brand) ────────
+  const loadLegacyData = useCallback((leadId) => {
+    if (!leadId) return;
+    // Diese Endpoints haben jeweils ihre eigenen Faulehoelzer — wenn einer
+    // 404 liefert, bleibt der State auf null und der Embed zeigt einen
+    // Spinner / leere Form. Kein blocking.
+    fetch(`${API_BASE_URL}/api/leads/${leadId}`, { headers })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setLead)
+      .catch(() => {});
+    fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setBriefing)
+      .catch(() => {});
+    fetch(`${API_BASE_URL}/api/audit/lead/${leadId}/latest`, { headers })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setLatestAudit)
+      .catch(() => {});
+    fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pages`, { headers })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setSitemapPages(Array.isArray(data) ? data : data?.pages || []))
+      .catch(() => {});
+    fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setBrandData)
+      .catch(() => {});
+  }, [headers]);
+
+  const reloadBriefing = useCallback(async () => {
+    if (!project?.lead_id) return;
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers });
+      if (r.ok) setBriefing(await r.json());
+    } catch { /* silent */ }
+  }, [project?.lead_id, headers]);
+
+  const reloadSitemap = useCallback(async () => {
+    if (!project?.lead_id) return;
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id}/pages`, { headers });
+      if (r.ok) {
+        const data = await r.json();
+        setSitemapPages(Array.isArray(data) ? data : data?.pages || []);
+      }
+    } catch { /* silent */ }
+  }, [project?.lead_id, headers]);
+
+  const handleStepConfirmed = useCallback((stepId) => {
+    setConfirmedSteps((prev) => ({
+      ...prev,
+      [stepId]: { confirmed: true, confirmed_at: new Date().toISOString() },
+    }));
+  }, []);
 
   // ── Persistierung des wireframe_data ───────────────────────────────────────
 
@@ -259,6 +331,9 @@ export default function OnlineFertigEditor() {
   const styleGuide = wireframeData.style_guide || null;
   const approved = !!wireframeData.style_guide_approved;
   const activeStepDef = SCHRITTE.find((s) => s.id === activeStep);
+  // Step-Detail wird gezeigt wenn der aktive Step keine eigene View hat
+  // (also Briefing/Audit/etc.). Steps mit view-Property zeigen die neue
+  // 4-View-Architektur rechts.
   const showStepDetail = activeStepDef && !activeStepDef.view;
 
   return (
@@ -348,7 +423,53 @@ export default function OnlineFertigEditor() {
         {/* Aktiver View oder Step-Detail */}
         <div style={{ flex: 1, overflow: 'auto' }}>
           {showStepDetail ? (
-            <StepDetailPanel step={activeStepDef} project={project} projectId={projectId} navigate={navigate} />
+            activeStepDef.component ? (
+              // Legacy-Inhalt aus ProzessFlow.SchrittInhalt — voll funktionsfaehig,
+              // braucht aber die geladenen Daten (lead/briefing/audit/sitemap/brand).
+              <div style={{ padding: 20 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
+                  Phase {activeStepDef.phase} · Schritt {activeStepDef.nr}{activeStepDef.optional ? ' · Optional' : ''}{activeStepDef.gate ? ' · Gate' : ''}
+                </div>
+                <h1 style={{ fontSize: 24, fontWeight: 900, color: KC_DARK, textTransform: 'uppercase', margin: '0 0 16px', letterSpacing: '-0.02em' }}>
+                  {activeStepDef.name}
+                </h1>
+                <SchrittInhalt
+                  schritt={{ ...activeStepDef, label: activeStepDef.name, component: activeStepDef.component }}
+                  project={project}
+                  lead={lead}
+                  leadId={project.lead_id}
+                  token={token}
+                  headers={headers}
+                  briefing={briefing}
+                  localBriefing={briefing}
+                  reloadBriefing={reloadBriefing}
+                  latestAudit={latestAudit}
+                  onAuditComplete={setLatestAudit}
+                  onSitemapReload={reloadSitemap}
+                  onAnalyseUpdate={() => {}}
+                  sitemapPages={sitemapPages}
+                  sitemapLoading={false}
+                  websiteContent={[]}
+                  brandData={brandData}
+                  netlify={null}
+                  qaResult={project?.qa_result}
+                  onProjectRefresh={() => {
+                    fetch(`${API_BASE_URL}/api/projects/${projectId}`, { headers })
+                      .then((r) => (r.ok ? r.json() : null))
+                      .then((p) => p && setProject(p))
+                      .catch(() => {});
+                  }}
+                  goWeiter={() => {}}
+                  goZurueck={() => {}}
+                  confirmedSteps={confirmedSteps}
+                  onStepConfirmed={handleStepConfirmed}
+                  onGuidelineGenerated={() => {}}
+                />
+              </div>
+            ) : (
+              // Steps ohne component (umami / heatmap / monats-report) — Placeholder
+              <StepDetailPanel step={activeStepDef} project={project} projectId={projectId} navigate={navigate} />
+            )
           ) : activeView === 'sitemap' ? (
             <SitemapView
               projectId={projectId}
@@ -406,19 +527,19 @@ function StepDetailPanel({ step, project, projectId, navigate }) {
         padding: 24, fontSize: 14, color: '#475569', lineHeight: 1.7,
       }}>
         <p style={{ marginTop: 0 }}>
-          Dieser Schritt ist Teil des Online-Fertig-Workflows, hat aber noch keine eigene Editor-View
-          im neuen 4-View-Modus. Die Bearbeitung erfolgt aktuell über den Legacy-ProzessFlowV3.
+          Dieser Post-Launch-Schritt ist konzeptionell Teil des Workflows, hat aber noch keine
+          Backend-Anbindung — er kommt in einem späteren Sprint (Umami / Heatmap / Performance-Reports).
         </p>
         <button
           type="button"
           onClick={() => navigate(`/app/projects/${projectId}`)}
           style={{
-            background: KC_MID, color: '#fff', border: 'none',
+            background: 'transparent', color: KC_MID, border: `1.5px solid ${KC_MID}`,
             borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700,
             cursor: 'pointer', marginTop: 12,
           }}
         >
-          Im Legacy-Editor öffnen →
+          Zum Legacy-Editor (alle Schritte)
         </button>
       </div>
     </div>

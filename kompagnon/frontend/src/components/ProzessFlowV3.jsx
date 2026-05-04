@@ -316,6 +316,20 @@ export default function ProzessFlowV3({
           </span>
         </nav>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+          {project?.id && (
+            <button
+              onClick={() => navigate(`/app/projects/${project.id}/online-fertig`)}
+              title="Neuer 4-View-Editor (Sitemap / Wireframe / Style Guide / Design)"
+              style={{
+                background: '#FAE600', color: '#000', border: 'none',
+                borderRadius: 6, padding: '5px 11px', fontSize: 10,
+                fontWeight: 800, cursor: 'pointer', textTransform: 'uppercase',
+                letterSpacing: '.06em', fontFamily: 'var(--font-sans)',
+              }}
+            >
+              Online-Fertig-Editor →
+            </button>
+          )}
           <div style={{ width: 80, height: 4, background: 'var(--border-light)', borderRadius: 2, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${gesamtPct}%`, background: 'var(--brand-primary)', borderRadius: 2, transition: 'width .5s' }} />
           </div>

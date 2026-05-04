@@ -1,0 +1,22 @@
+<!--
+  Block: trust-testimonial — Einzel-Testimonial (groß)
+  Kategorie: TRUST
+  Slots: quote, author_name, author_role, author_image, author_alt
+-->
+<section data-block="trust-testimonial" class="bg-slate-50 py-16 md:py-24 px-6" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-4xl mx-auto">
+    <figure class="bg-white rounded-3xl shadow-xl p-8 md:p-12 relative">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="#008EAA" class="absolute top-6 left-6 md:top-8 md:left-8 opacity-15" aria-hidden="true"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1zm12 0c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 .985 0 1 0 1 1v1c0 1-1 2-2 2-.985 0-1 .008-1 1.031V20c0 1 0 1 1 1z"/></svg>
+      <blockquote class="text-lg md:text-xl text-slate-800 leading-relaxed font-medium relative z-10 mb-7 md:mb-9 md:pl-14">
+        {{quote}}
+      </blockquote>
+      <figcaption class="flex items-center gap-4 md:pl-14">
+        <img src="{{author_image}}" alt="{{author_alt}}" class="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover ring-4 ring-[#008EAA]/20" loading="lazy">
+        <div>
+          <div class="font-black text-[#004F59] text-base">{{author_name}}</div>
+          <div class="text-sm text-slate-500">{{author_role}}</div>
+        </div>
+      </figcaption>
+    </figure>
+  </div>
+</section>

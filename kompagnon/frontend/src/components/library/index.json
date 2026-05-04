@@ -305,6 +305,156 @@
       ],
       "ki_prompt_hint": "Wähle diesen Block als kompakte Ergänzung zu leist-grid-3, wenn der Betrieb viele Spezial-Leistungen hat, die nicht alle eigene Cards verdienen. Funktioniert ideal als 'mehr-Leistungen'-Sektion auf der Startseite oder als vollständige Liste auf einer Leistungs-Übersichtsseite.",
       "preview_note": "8 Punkte in 2 Spalten mit Häkchen-Icons (Brand-Teal). Mobile: 1 Spalte."
+    },
+
+    {
+      "slug": "trust-bewertungen",
+      "name": "Google-Bewertungen (3er-Reihe)",
+      "category": "TRUST",
+      "tags": ["reviews", "social-proof", "google", "stars"],
+      "slots": [
+        { "key": "section_headline", "label": "Section-Headline", "type": "text", "default": "Was unsere Kunden sagen" },
+        { "key": "section_subline",  "label": "Section-Untertitel","type": "text", "default": "Über 200 echte Google-Bewertungen mit Ø 4,9 / 5 Sternen." },
+        { "key": "review_1_text",    "label": "Bewertung 1 Text",  "type": "text", "default": "Schnelle Terminvergabe, sauber gearbeitet, fairer Preis. Das Team von der Anfrage bis zur Abnahme einfach freundlich. Klare Empfehlung." },
+        { "key": "review_1_author",  "label": "Bewertung 1 Autor", "type": "text", "default": "Markus K." },
+        { "key": "review_1_role",    "label": "Bewertung 1 Beruf/Ort", "type": "text", "default": "Hausbesitzer, Koblenz" },
+        { "key": "review_1_date",    "label": "Bewertung 1 Datum", "type": "text", "default": "vor 2 Wochen" },
+        { "key": "review_2_text",    "label": "Bewertung 2 Text",  "type": "text", "default": "Wärmepumpe in 3 Tagen installiert, BAFA-Antrag direkt mit erledigt. So stelle ich mir Handwerk vor." },
+        { "key": "review_2_author",  "label": "Bewertung 2 Autor", "type": "text", "default": "Sabine M." },
+        { "key": "review_2_role",    "label": "Bewertung 2 Beruf/Ort", "type": "text", "default": "Eigentümerin, Andernach" },
+        { "key": "review_2_date",    "label": "Bewertung 2 Datum", "type": "text", "default": "vor 1 Monat" },
+        { "key": "review_3_text",    "label": "Bewertung 3 Text",  "type": "text", "default": "Notdienst um 22 Uhr — innerhalb einer Stunde war jemand da. Wasserschaden gebannt, danach saubere Reparatur. Top-Service." },
+        { "key": "review_3_author",  "label": "Bewertung 3 Autor", "type": "text", "default": "Thomas R." },
+        { "key": "review_3_role",    "label": "Bewertung 3 Beruf/Ort", "type": "text", "default": "Mieter, Mayen" },
+        { "key": "review_3_date",    "label": "Bewertung 3 Datum", "type": "text", "default": "vor 3 Wochen" }
+      ],
+      "ki_prompt_hint": "Pflicht-Block für jeden Handwerker mit > 10 Google-Bewertungen. Echte Reviews mit konkreten Details (Wärmepumpe, Notdienst, Förderantrag) wirken 5x stärker als generische Lobreden. Wenn der Kunde keine eigenen Reviews hat, zuerst Reviews-Sammelkampagne starten — Block dann temporär durch trust-zertifikate ersetzen.",
+      "preview_note": "3 Cards mit 5-Sterne-Zeile, Quote-Text, Author + Beruf/Ort + Datum. Brand-Teal-Akzente."
+    },
+    {
+      "slug": "trust-zertifikate",
+      "name": "Zertifikate & Partner-Logos",
+      "category": "TRUST",
+      "tags": ["certifications", "logos", "trust"],
+      "slots": [
+        { "key": "section_headline","label": "Section-Headline (klein)", "type": "text", "default": "Zertifiziert · Geprüft · Empfohlen" },
+        { "key": "cert_1_label",    "label": "Logo 1 Label",     "type": "text", "default": "Meisterbetrieb HwK" },
+        { "key": "cert_1_image",    "label": "Logo 1 Bild",      "type": "text", "default": "/placeholder-cert-1.svg" },
+        { "key": "cert_2_label",    "label": "Logo 2 Label",     "type": "text", "default": "Innung SHK" },
+        { "key": "cert_2_image",    "label": "Logo 2 Bild",      "type": "text", "default": "/placeholder-cert-2.svg" },
+        { "key": "cert_3_label",    "label": "Logo 3 Label",     "type": "text", "default": "Viessmann Partner" },
+        { "key": "cert_3_image",    "label": "Logo 3 Bild",      "type": "text", "default": "/placeholder-cert-3.svg" },
+        { "key": "cert_4_label",    "label": "Logo 4 Label",     "type": "text", "default": "Bosch Premium" },
+        { "key": "cert_4_image",    "label": "Logo 4 Bild",      "type": "text", "default": "/placeholder-cert-4.svg" },
+        { "key": "cert_5_label",    "label": "Logo 5 Label",     "type": "text", "default": "Vaillant Fachpartner" },
+        { "key": "cert_5_image",    "label": "Logo 5 Bild",      "type": "text", "default": "/placeholder-cert-5.svg" },
+        { "key": "cert_6_label",    "label": "Logo 6 Label",     "type": "text", "default": "BAFA-zertifiziert" },
+        { "key": "cert_6_image",    "label": "Logo 6 Bild",      "type": "text", "default": "/placeholder-cert-6.svg" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block, wenn der Kunde Innungs-, Hersteller- oder Förder-Zertifizierungen hat. Funktioniert besonders gut UNMITTELBAR über dem Hauptbereich (zwischen Hero und Leistungen) — als 'Trust-Strip' der signalisiert: hier ist Substanz. Wenn keine Logos verfügbar, durch trust-kennzahlen ersetzen.",
+      "preview_note": "6 Logos in einer Reihe (auf Mobile 2-3 Spalten), gedimmt-grau, hover→volle Farbe. Subtile, nicht aufdringliche Trust-Bar."
+    },
+    {
+      "slug": "trust-kennzahlen",
+      "name": "Kennzahlen-Banner",
+      "category": "TRUST",
+      "tags": ["stats", "kpis", "trust"],
+      "slots": [
+        { "key": "kpi_1_value", "label": "Kennzahl 1 Wert",  "type": "text", "default": "25+" },
+        { "key": "kpi_1_label", "label": "Kennzahl 1 Label", "type": "text", "default": "Jahre Erfahrung" },
+        { "key": "kpi_2_value", "label": "Kennzahl 2 Wert",  "type": "text", "default": "2.400" },
+        { "key": "kpi_2_label", "label": "Kennzahl 2 Label", "type": "text", "default": "Zufriedene Kunden" },
+        { "key": "kpi_3_value", "label": "Kennzahl 3 Wert",  "type": "text", "default": "4,9 ★" },
+        { "key": "kpi_3_label", "label": "Kennzahl 3 Label", "type": "text", "default": "Google-Bewertung" },
+        { "key": "kpi_4_value", "label": "Kennzahl 4 Wert",  "type": "text", "default": "60 min" },
+        { "key": "kpi_4_label", "label": "Kennzahl 4 Label", "type": "text", "default": "Notdienst-Reaktionszeit" }
+      ],
+      "ki_prompt_hint": "Quick-Trust-Block für VOR den eigentlichen Hauptinhalten. Funktioniert für jeden Betrieb — auch ohne Reviews oder Zertifikate, weil Kennzahlen wie 'Jahre Erfahrung' und 'Anzahl Kunden' immer verfügbar sind. Werte aus dem Briefing extrahieren, sonst seriöse Schätzungen verwenden.",
+      "preview_note": "4 Spalten, große Zahl in Brand-Teal, Mini-Label drunter. Dunkler Hintergrund #004F59 oder Weiß mit Trennlinien."
+    },
+    {
+      "slug": "trust-testimonial",
+      "name": "Einzel-Testimonial (groß)",
+      "category": "TRUST",
+      "tags": ["testimonial", "quote", "premium"],
+      "slots": [
+        { "key": "quote",        "label": "Zitat",            "type": "text", "default": "Die Familie Müller hat unsere alte Ölheizung in 4 Tagen durch eine moderne Wärmepumpe ersetzt — termingerecht, ordentlich, mit BAFA-Antragsservice. Heute sparen wir 1.800 € pro Jahr." },
+        { "key": "author_name",  "label": "Name",             "type": "text", "default": "Familie Schmidt" },
+        { "key": "author_role",  "label": "Beruf / Ort",      "type": "text", "default": "Bauherrin, Bendorf" },
+        { "key": "author_image", "label": "Foto",             "type": "text", "default": "/placeholder-customer.jpg" },
+        { "key": "author_alt",   "label": "Foto Alt-Text",    "type": "text", "default": "Zufriedene Kundin vor Ihrem Haus" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block für die emotional stärkste Story aus dem Briefing — eine konkrete Verwandlung mit greifbarem Ergebnis (Heizkosten-Ersparnis, Renovierungs-Zeitraum, Notfall-Lösung). Höchste Wirkung in der unteren Hälfte der Seite, kurz vor der finalen CTA-Sektion. Echte Kundenfotos > Stockfotos.",
+      "preview_note": "Großes Quote-Mark-Icon links, langes Testimonial Mittig, Foto + Name + Ort rechts. Helles Off-White Hintergrund, lockere Atmosphäre."
+    },
+    {
+      "slug": "trust-galerie",
+      "name": "Referenz-Galerie (Vorher/Nachher)",
+      "category": "TRUST",
+      "tags": ["gallery", "before-after", "portfolio"],
+      "slots": [
+        { "key": "section_headline", "label": "Section-Headline", "type": "text", "default": "Unsere Arbeit in Bildern" },
+        { "key": "section_subline",  "label": "Section-Untertitel","type": "text", "default": "Echte Projekte aus Koblenz und Umgebung — Vorher/Nachher." },
+        { "key": "img_1_url",   "label": "Bild 1 URL",    "type": "text", "default": "/placeholder-gallery-1.jpg" },
+        { "key": "img_1_caption","label": "Bild 1 Caption","type": "text", "default": "Bad-Komplettsanierung · Koblenz-Lützel" },
+        { "key": "img_2_url",   "label": "Bild 2 URL",    "type": "text", "default": "/placeholder-gallery-2.jpg" },
+        { "key": "img_2_caption","label": "Bild 2 Caption","type": "text", "default": "Wärmepumpe-Installation · Mayen" },
+        { "key": "img_3_url",   "label": "Bild 3 URL",    "type": "text", "default": "/placeholder-gallery-3.jpg" },
+        { "key": "img_3_caption","label": "Bild 3 Caption","type": "text", "default": "Solarthermie · Andernach" },
+        { "key": "img_4_url",   "label": "Bild 4 URL",    "type": "text", "default": "/placeholder-gallery-4.jpg" },
+        { "key": "img_4_caption","label": "Bild 4 Caption","type": "text", "default": "Barrierefreie Dusche · Neuwied" },
+        { "key": "img_5_url",   "label": "Bild 5 URL",    "type": "text", "default": "/placeholder-gallery-5.jpg" },
+        { "key": "img_5_caption","label": "Bild 5 Caption","type": "text", "default": "Heizungsmodernisierung · Bendorf" },
+        { "key": "img_6_url",   "label": "Bild 6 URL",    "type": "text", "default": "/placeholder-gallery-6.jpg" },
+        { "key": "img_6_caption","label": "Bild 6 Caption","type": "text", "default": "Sanitär-Wartung · Lahnstein" }
+      ],
+      "ki_prompt_hint": "Pflicht für Handwerker mit echten Projekt-Fotos (Vorher/Nachher). Höchste Wirkung wenn Kunde lokale Erfolgsstories präsentiert (mit Stadt-Bezug). Wenn keine echten Fotos, weglassen oder durch trust-team ersetzen — Stockfotos hier zerstören Glaubwürdigkeit.",
+      "preview_note": "Asymmetrisches 6er-Grid mit unterschiedlich hohen Bildern (Masonry-Style). Hover zeigt Caption mit Brand-Teal Overlay."
+    },
+    {
+      "slug": "trust-team",
+      "name": "Team-Vorstellung (4 Personen)",
+      "category": "TRUST",
+      "tags": ["team", "people", "human"],
+      "slots": [
+        { "key": "section_headline", "label": "Section-Headline", "type": "text", "default": "Das Team hinter dem Handwerk" },
+        { "key": "section_subline",  "label": "Section-Untertitel","type": "text", "default": "Zwei Generationen, ein Anspruch: ehrliche, saubere Arbeit." },
+        { "key": "member_1_image","label": "Person 1 Foto",      "type": "text", "default": "/placeholder-team-1.jpg" },
+        { "key": "member_1_name", "label": "Person 1 Name",      "type": "text", "default": "Hans Müller" },
+        { "key": "member_1_role", "label": "Person 1 Position",  "type": "text", "default": "Geschäftsführer · Heizungsbauermeister" },
+        { "key": "member_2_image","label": "Person 2 Foto",      "type": "text", "default": "/placeholder-team-2.jpg" },
+        { "key": "member_2_name", "label": "Person 2 Name",      "type": "text", "default": "Lisa Müller" },
+        { "key": "member_2_role", "label": "Person 2 Position",  "type": "text", "default": "Innendienst · Energieberaterin (HwK)" },
+        { "key": "member_3_image","label": "Person 3 Foto",      "type": "text", "default": "/placeholder-team-3.jpg" },
+        { "key": "member_3_name", "label": "Person 3 Name",      "type": "text", "default": "Thomas K." },
+        { "key": "member_3_role", "label": "Person 3 Position",  "type": "text", "default": "Servicetechniker · Sanitärinstallateur" },
+        { "key": "member_4_image","label": "Person 4 Foto",      "type": "text", "default": "/placeholder-team-4.jpg" },
+        { "key": "member_4_name", "label": "Person 4 Name",      "type": "text", "default": "Jonas M." },
+        { "key": "member_4_role", "label": "Person 4 Position",  "type": "text", "default": "Auszubildender SHK · 3. Lehrjahr" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block für familiengeführte oder kleine Betriebe (≤ 8 Mitarbeiter). Personalisierung baut Vertrauen auf wie nichts anderes — gerade bei Wärmepumpen-Investitionen will der Kunde wissen, wer ins Haus kommt. Auszubildende ALWAYS dazu, signalisiert Investition + Kontinuität.",
+      "preview_note": "4 Cards mit kreisrundem Foto oben, Name + Funktion drunter. Auf Mobile 2 Spalten."
+    },
+    {
+      "slug": "trust-ueber-uns",
+      "name": "Über uns Split (Story + Stats)",
+      "category": "TRUST",
+      "tags": ["about", "story", "history", "stats"],
+      "slots": [
+        { "key": "section_headline","label": "Section-Headline", "type": "text", "default": "Über uns" },
+        { "key": "story_title",     "label": "Story-Titel",      "type": "text", "default": "Vom Lehrling zum Meisterbetrieb — seit 1998 in Koblenz." },
+        { "key": "story_text",      "label": "Story-Text",       "type": "text", "default": "Hans Müller hat seine Lehre 1990 in einem kleinen Betrieb in der Koblenzer Altstadt begonnen. Acht Jahre später stand er mit eigener Werkstatt da — und einem Versprechen, das bis heute gilt: keine Lieferschlagung, keine Ausreden, faire Preise. Heute zählen wir 12 Mitarbeiter, betreuen 2.400 Stammkunden und bilden in 3. Generation aus." },
+        { "key": "image_url",       "label": "Bild-URL",         "type": "text", "default": "/placeholder-about.jpg" },
+        { "key": "image_alt",       "label": "Bild Alt-Text",    "type": "text", "default": "Werkstatt und Team" },
+        { "key": "stat_1_value",    "label": "Stat 1 Wert",      "type": "text", "default": "1998" },
+        { "key": "stat_1_label",    "label": "Stat 1 Label",     "type": "text", "default": "Gegründet" },
+        { "key": "stat_2_value",    "label": "Stat 2 Wert",      "type": "text", "default": "12" },
+        { "key": "stat_2_label",    "label": "Stat 2 Label",     "type": "text", "default": "Mitarbeiter" },
+        { "key": "stat_3_value",    "label": "Stat 3 Wert",      "type": "text", "default": "3" },
+        { "key": "stat_3_label",    "label": "Stat 3 Label",     "type": "text", "default": "Generationen" }
+      ],
+      "ki_prompt_hint": "Pflicht-Block für die /ueber-uns-Seite. Auch sinnvoll auf der Startseite als emotionale Einleitung, wenn Familienbetrieb-Story erzählenswert ist (Mehrgenerationen, lokale Verwurzelung). KI soll konkrete Jahreszahlen und Personen aus dem Briefing extrahieren, nie generisch bleiben.",
+      "preview_note": "Bild links, Story-Titel + langer Erzähltext + 3 Stat-Zellen rechts. Generös, vertrauensvoll."
     }
   ]
 }

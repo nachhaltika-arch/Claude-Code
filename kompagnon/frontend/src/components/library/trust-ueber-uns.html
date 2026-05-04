@@ -1,0 +1,32 @@
+<!--
+  Block: trust-ueber-uns — Über uns Split (Story + Stats)
+  Kategorie: TRUST
+  Slots: section_headline, story_title, story_text, image_url, image_alt,
+         stat_1..3_value, stat_1..3_label
+-->
+<section data-block="trust-ueber-uns" class="bg-white py-16 md:py-24 px-6" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 items-center">
+    <div class="rounded-3xl overflow-hidden shadow-xl">
+      <img src="{{image_url}}" alt="{{image_alt}}" class="w-full h-80 md:h-[28rem] object-cover" loading="lazy">
+    </div>
+    <div>
+      <p class="text-sm font-bold uppercase tracking-widest text-[#008EAA] mb-3">{{section_headline}}</p>
+      <h2 class="text-3xl md:text-4xl font-black uppercase text-[#004F59] tracking-tight leading-tight mb-5">{{story_title}}</h2>
+      <p class="text-base text-slate-600 leading-relaxed mb-8">{{story_text}}</p>
+      <div class="grid grid-cols-3 gap-4 pt-6 border-t border-slate-200">
+        <div>
+          <div class="text-3xl md:text-4xl font-black text-[#004F59] tracking-tight">{{stat_1_value}}</div>
+          <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mt-1">{{stat_1_label}}</div>
+        </div>
+        <div>
+          <div class="text-3xl md:text-4xl font-black text-[#004F59] tracking-tight">{{stat_2_value}}</div>
+          <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mt-1">{{stat_2_label}}</div>
+        </div>
+        <div>
+          <div class="text-3xl md:text-4xl font-black text-[#004F59] tracking-tight">{{stat_3_value}}</div>
+          <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mt-1">{{stat_3_label}}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

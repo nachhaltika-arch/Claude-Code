@@ -1048,6 +1048,12 @@ def _run_migrations():
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ki_meta_description VARCHAR(160)",
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS content_generated BOOLEAN DEFAULT false",
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS content_generated_at TIMESTAMP",
+        # Hormozi-Spec Section-Plan pro Page (Pipeline-Stage 2 → 3)
+        # Speichert ein JSON-Array von Section-Keys aus der Wireframe-Library,
+        # z.B. ["hero_value_equation","problem","offer_stack","trust_strip",
+        #       "fallstudien_3","guarantee_block","faq","cta_final"]
+        # Siehe docs/conversion-spec-shk.md + docs/kas-pipeline-architecture.md
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS sections_json TEXT",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

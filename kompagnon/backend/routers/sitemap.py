@@ -106,6 +106,11 @@ class SitemapPage(Base):
     ki_meta_description  = Column(String(160),  nullable=True)
     content_generated    = Column(Boolean,      default=False)
     content_generated_at = Column(DateTime,     nullable=True)
+    # Hormozi-Spec Section-Plan (Wireframe-Stage 3): JSON-Array von Section-Keys.
+    # Wird vom Sitemap-Generator je nach page_type/Branche gefüllt, z.B.
+    # ["hero_value_equation","problem","offer_stack","trust_strip","fallstudien_3",
+    #  "guarantee_block","faq","cta_final"]
+    sections_json        = Column(Text,         nullable=True)
 
 
 # ── Pydantic schemas ───────────────────────────────────────────────────────────
@@ -149,6 +154,15 @@ class ReorderItem(BaseModel):
 # ── Serializer ─────────────────────────────────────────────────────────────────
 
 def _serialize(p: SitemapPage) -> dict:
+    raw_sections = getattr(p, "sections_json", None)
+    sections: List[str] = []
+    if raw_sections:
+        try:
+            parsed = json.loads(raw_sections)
+            if isinstance(parsed, list):
+                sections = [str(s) for s in parsed if s]
+        except (json.JSONDecodeError, TypeError):
+            sections = []
     return {
         "id":           p.id,
         "lead_id":      p.lead_id,
@@ -174,6 +188,8 @@ def _serialize(p: SitemapPage) -> dict:
         "ki_meta_title":       getattr(p, "ki_meta_title",       None) or "",
         "ki_meta_description": getattr(p, "ki_meta_description", None) or "",
         "content_generated":   bool(getattr(p, "content_generated", False)),
+        # Hormozi-Spec Section-Plan (Wireframe-Mapping)
+        "sections":            sections,
     }
 
 

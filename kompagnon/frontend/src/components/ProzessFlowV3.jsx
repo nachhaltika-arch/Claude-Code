@@ -318,8 +318,8 @@ export default function ProzessFlowV3({
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
           {project?.id && (
             <button
-              onClick={() => navigate(`/app/projects/${project.id}/online-fertig`)}
-              title="Neuer 4-View-Editor (Sitemap / Wireframe / Style Guide / Design)"
+              onClick={() => navigate(`/app/projects/${project.id}`)}
+              title="Online-Fertig-Editor (Sitemap / Wireframe / Style Guide / Design + alle Schritte)"
               style={{
                 background: '#FAE600', color: '#000', border: 'none',
                 borderRadius: 6, padding: '5px 11px', fontSize: 10,

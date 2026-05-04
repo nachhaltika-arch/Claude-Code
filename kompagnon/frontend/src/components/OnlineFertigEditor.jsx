@@ -267,8 +267,8 @@ export default function OnlineFertigEditor() {
 
   const handleOpenGrapesJS = () => {
     // ProzessFlowV3 / DesignStudio enthält den GrapesEditor — wir nehmen den
-    // Legacy-Pfad bis das in Step G+ integriert ist.
-    navigate(`/app/projects/${projectId}`);
+    // Legacy-Pfad bis das in den neuen Editor integriert ist.
+    navigate(`/app/projects/${projectId}/legacy`);
   };
 
   const handleNetlifyDeploy = async () => {
@@ -402,7 +402,7 @@ export default function OnlineFertigEditor() {
             )}
             <button
               type="button"
-              onClick={() => navigate(`/app/projects/${projectId}`)}
+              onClick={() => navigate(`/app/projects/${projectId}/legacy`)}
               style={{
                 background: 'transparent',
                 color: '#64748b',
@@ -532,7 +532,7 @@ function StepDetailPanel({ step, project, projectId, navigate }) {
         </p>
         <button
           type="button"
-          onClick={() => navigate(`/app/projects/${projectId}`)}
+          onClick={() => navigate(`/app/projects/${projectId}/legacy`)}
           style={{
             background: 'transparent', color: KC_MID, border: `1.5px solid ${KC_MID}`,
             borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700,

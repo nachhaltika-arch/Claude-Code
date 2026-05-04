@@ -150,7 +150,20 @@ function App() {
           <Route path="/approve-content/:token"    element={<ContentApprovalPage />} />
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
 
-          {/* ── Online-Fertig-Editor (Step G) — Vollbild, eigene Sidebar ── */}
+          {/* ── Online-Fertig-Editor — jetzt Default für /app/projects/:id ──
+            * Vollbild, eigene KASSidebar, ausserhalb des AppLayout.
+            * /app/projects/:id              → Default (neu)
+            * /app/projects/:id/online-fertig → Alias (alte URL, bleibt aktiv)
+            * Der Legacy-ProzessFlowV3 ist auf /app/projects/:id/legacy
+            * umgezogen (siehe AppLayout-Block weiter unten). */}
+          <Route
+            path="/app/projects/:id"
+            element={
+              <PrivateRoute roles={['admin', 'auditor']}>
+                <OnlineFertigEditor />
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/app/projects/:id/online-fertig"
             element={
@@ -176,7 +189,10 @@ function App() {
             <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
             <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
             <Route path="projects" element={<PrivateRoute roles={['admin', 'auditor']}><CustomerProjects /></PrivateRoute>} />
-            <Route path="projects/:id" element={<PrivateRoute roles={['admin', 'auditor']}><ProjectDetail /></PrivateRoute>} />
+            {/* Legacy ProzessFlowV3 (das alte Vollbild mit 12 Schritten) —
+              * der frühere Default ist auf /legacy umgezogen, weil
+              * /app/projects/:id jetzt den Online-Fertig-Editor zeigt. */}
+            <Route path="projects/:id/legacy" element={<PrivateRoute roles={['admin', 'auditor']}><ProjectDetail /></PrivateRoute>} />
             <Route path="checklists" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             <Route path="customers" element={<PrivateRoute><Customers /></PrivateRoute>} />

@@ -25,6 +25,7 @@ import {
   MiniMap,
   Handle,
   Position,
+  Panel,
 } from '@xyflow/react';
 import dagre from 'dagre';
 import '@xyflow/react/dist/style.css';
@@ -228,6 +229,83 @@ export default function SitemapView({
 
   useEffect(() => { loadPages(); }, [loadPages]);
 
+  // ── Phase 4: re-parent via edge connect, entparent via edge click ──────────
+
+  const isAncestor = useCallback((potentialAncestorId, descendantId) => {
+    // Walk up the parent chain from descendantId; return true if we hit
+    // potentialAncestorId. Used to reject edges that would create a cycle.
+    const byId = new Map(pages.map((p) => [p.id, p]));
+    let current = byId.get(descendantId);
+    let safety = pages.length + 1;
+    while (current && current.parent_id && safety-- > 0) {
+      if (current.parent_id === potentialAncestorId) return true;
+      current = byId.get(current.parent_id);
+    }
+    return false;
+  }, [pages]);
+
+  const persistParentChange = useCallback(async (childId, newParentId) => {
+    // Only the changed page needs to be sent — backend's /reorder is a partial
+    // update keyed by id. We keep the page's existing position untouched.
+    const child = pages.find((p) => p.id === childId);
+    if (!child) return;
+    const body = [{ id: childId, position: child.position ?? 0, parent_id: newParentId }];
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/reorder`, {
+        method: 'PUT', headers, body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const detail = err.detail;
+        const msg = typeof detail === 'string' ? detail : detail?.message || `Fehler ${res.status}`;
+        throw new Error(msg);
+      }
+      // Optimistic local update so the tree re-layouts without a round-trip
+      setPages((prev) => prev.map((p) =>
+        p.id === childId ? { ...p, parent_id: newParentId } : p,
+      ));
+    } catch (e) {
+      toast.error(`Speichern fehlgeschlagen: ${e.message}`);
+      loadPages(); // resync to server state on failure
+    }
+  }, [pages, leadId, headers, loadPages]);
+
+  const handleConnect = useCallback((conn) => {
+    const sourceId = parseInt(conn.source, 10);
+    const targetId = parseInt(conn.target, 10);
+    if (!sourceId || !targetId || sourceId === targetId) return;
+
+    const target = pages.find((p) => p.id === targetId);
+    const source = pages.find((p) => p.id === sourceId);
+    if (!target || !source) return;
+    if (target.ist_pflichtseite) {
+      toast.error('Pflichtseiten können nicht umgehängt werden.');
+      return;
+    }
+    if (target.parent_id === sourceId) return; // no-op
+    if (isAncestor(targetId, sourceId)) {
+      toast.error('Verbindung erzeugt eine Schleife — abgebrochen.');
+      return;
+    }
+    persistParentChange(targetId, sourceId);
+    toast.success(`„${target.page_name}" ist jetzt Kind von „${source.page_name}"`);
+  }, [pages, isAncestor, persistParentChange]);
+
+  const handleEdgeClick = useCallback((_evt, edge) => {
+    // Only parent edges (id prefix 'e-') are removable. Replace-mapping edges
+    // (prefix 'r-') are derived from replaces_page_ids and read-only.
+    if (!edge.id.startsWith('e-')) return;
+    const targetId = parseInt(edge.target, 10);
+    const target = pages.find((p) => p.id === targetId);
+    if (!target) return;
+    if (target.ist_pflichtseite) {
+      toast.error('Pflichtseiten können nicht umgehängt werden.');
+      return;
+    }
+    if (!window.confirm(`Verbindung lösen — „${target.page_name}" wird zur Top-Level-Seite. Fortfahren?`)) return;
+    persistParentChange(targetId, null);
+  }, [pages, persistParentChange]);
+
   const handleImportExisting = async () => {
     if (!leadId) return;
     if (!window.confirm(
@@ -272,7 +350,15 @@ export default function SitemapView({
 
   const { nodes, edges } = useMemo(() => {
     if (pages.length === 0) return { nodes: [], edges: [] };
-    return layoutTree(pages, blocksByPageId);
+    const out = layoutTree(pages, blocksByPageId);
+    // Lock Pflichtseiten — they cannot be reparented; UX makes that explicit.
+    const locked = out.nodes.map((n) => {
+      const isPflicht = !!n.data?.page?.ist_pflichtseite;
+      return isPflicht
+        ? { ...n, draggable: false, connectable: false }
+        : n;
+    });
+    return { nodes: locked, edges: out.edges };
   }, [pages, blocksByPageId]);
 
   return (
@@ -411,13 +497,22 @@ export default function SitemapView({
               fitViewOptions={{ padding: 0.2 }}
               minZoom={0.2}
               maxZoom={1.5}
-              nodesDraggable={false}
-              nodesConnectable={false}
-              elementsSelectable={true}
+              nodesDraggable
+              nodesConnectable
+              elementsSelectable
+              onConnect={handleConnect}
+              onEdgeClick={handleEdgeClick}
               defaultEdgeOptions={{ type: 'smoothstep' }}
             >
               <Background gap={16} color="#e2e8f0" />
               <Controls showInteractive={false} />
+              <Panel position="top-left" style={{
+                background: 'rgba(255,255,255,0.92)', border: '1px solid #e2e8f0',
+                borderRadius: 8, padding: '6px 10px', fontSize: 11, color: '#475569',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              }}>
+                💡 Kartenrand → Kartenrand ziehen = neue Hierarchie · Linie klicken = entkoppeln
+              </Panel>
               <MiniMap
                 pannable zoomable
                 nodeColor={(n) => {

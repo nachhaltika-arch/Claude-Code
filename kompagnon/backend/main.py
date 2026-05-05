@@ -494,6 +494,14 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS go_live_date DATE",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS package_type VARCHAR DEFAULT 'kompagnon'",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS payment_status VARCHAR DEFAULT 'offen'",
+        # ── Project-Type + ISB-Förder-Felder (IMPULS-Projekt, ISB-158) ──────
+        # Vorher landeten Antrag/Bewilligung/Volumen/Tagewerke als Pipe-Text
+        # in leads.notes — nicht queryable. Jetzt strukturiert auf projects.
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_type VARCHAR(20) DEFAULT 'standard'",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS isb_antrag_datum DATE",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS isb_bewilligung_datum DATE",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS foerder_volumen NUMERIC(10,2)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS isb_tagewerke INTEGER",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS desired_pages TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS has_logo BOOLEAN DEFAULT false",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS has_briefing BOOLEAN DEFAULT false",

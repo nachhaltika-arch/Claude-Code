@@ -3,7 +3,7 @@ SQLAlchemy database setup and models for KOMPAGNON system.
 """
 import os
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, JSON, create_engine
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, DateTime, Numeric, Text, ForeignKey, JSON, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.exc import OperationalError
@@ -185,6 +185,13 @@ class Project(Base):
     go_live_date = Column(String(20))  # stored as ISO date string
     package_type = Column(String(50), default="kompagnon")
     payment_status = Column(String(50), default="offen")
+    # Project-Type ('standard' oder 'impuls') — orthogonal zu package_type.
+    # ISB-158-Förder-Felder werden nur bei project_type='impuls' gefüllt.
+    project_type = Column(String(20), default="standard")
+    isb_antrag_datum = Column(Date, nullable=True)
+    isb_bewilligung_datum = Column(Date, nullable=True)
+    foerder_volumen = Column(Numeric(10, 2), nullable=True)
+    isb_tagewerke = Column(Integer, nullable=True)
     desired_pages = Column(Text)
     has_logo = Column(Boolean, default=False)
     has_briefing = Column(Boolean, default=False)

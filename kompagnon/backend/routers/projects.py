@@ -1232,9 +1232,14 @@ def create_project_from_lead(
     """
     Create a project from any lead (Nutzerkartei).
 
-    Optional body: {"package_type": "starter" | "kompagnon" | "premium"}.
-    Falls back to the projects.package_type DB default ('kompagnon') if
-    omitted or invalid.
+    Optional body fields (all skipped if omitted / invalid, falling back
+    to DB defaults):
+      - package_type:  'starter' | 'kompagnon' | 'premium'
+      - project_type:  'standard' | 'impuls'
+      - isb_antrag_datum:       ISO date "YYYY-MM-DD"
+      - isb_bewilligung_datum:  ISO date "YYYY-MM-DD"
+      - foerder_volumen:        number (€)
+      - isb_tagewerke:          integer
 
     - 404 if lead not found
     - 409 if a project for this lead already exists
@@ -1281,11 +1286,43 @@ def create_project_from_lead(
         created_at=now,
         updated_at=now,
     )
-    # Optional package_type from body — only accept the three known values,
-    # otherwise let the projects.package_type DB default kick in.
-    package_type = (body or {}).get("package_type")
+    # Optional fields from body — whitelist + parse, fall back to DB defaults.
+    body = body or {}
+    package_type = body.get("package_type")
     if package_type not in ("starter", "kompagnon", "premium"):
         package_type = None
+    project_type = body.get("project_type")
+    if project_type not in ("standard", "impuls"):
+        project_type = None
+
+    def _parse_date(val):
+        if not val:
+            return None
+        try:
+            return datetime.strptime(str(val)[:10], "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return None
+
+    def _parse_num(val):
+        if val in (None, "", "null"):
+            return None
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return None
+
+    def _parse_int(val):
+        if val in (None, "", "null"):
+            return None
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return None
+
+    isb_antrag = _parse_date(body.get("isb_antrag_datum"))
+    isb_bewilligung = _parse_date(body.get("isb_bewilligung_datum"))
+    foerder_volumen = _parse_num(body.get("foerder_volumen"))
+    isb_tagewerke = _parse_int(body.get("isb_tagewerke"))
 
     # Set extra columns via setattr so missing ORM fields don't crash
     extras = [
@@ -1296,6 +1333,16 @@ def create_project_from_lead(
     ]
     if package_type:
         extras.append(("package_type", package_type))
+    if project_type:
+        extras.append(("project_type", project_type))
+    if isb_antrag is not None:
+        extras.append(("isb_antrag_datum", isb_antrag))
+    if isb_bewilligung is not None:
+        extras.append(("isb_bewilligung_datum", isb_bewilligung))
+    if foerder_volumen is not None:
+        extras.append(("foerder_volumen", foerder_volumen))
+    if isb_tagewerke is not None:
+        extras.append(("isb_tagewerke", isb_tagewerke))
     for col, val in extras:
         try:
             setattr(project, col, val)

@@ -286,13 +286,6 @@ function ImpulsModal({ token, onClose, onCreated }) {
       ? form.website_url.trim()
       : `https://${form.website_url.trim()}`;
 
-    const isbNotes = [
-      form.isb_antrag_datum      ? `ISB-Antrag: ${form.isb_antrag_datum}` : '',
-      form.isb_bewilligung_datum ? `ISB-Bewilligung: ${form.isb_bewilligung_datum}` : '',
-      form.foerder_volumen       ? `Fördervolumen: ${form.foerder_volumen} €` : '',
-      form.tagewerke             ? `Tagewerke: ${form.tagewerke}` : '',
-    ].filter(Boolean).join(' | ');
-
     setSaving(true);
     try {
       const leadRes = await fetch(`${API_BASE_URL}/api/leads/`, {
@@ -305,7 +298,6 @@ function ImpulsModal({ token, onClose, onCreated }) {
           phone:        form.phone.trim(),
           lead_source:  'isb_impuls',
           status:       'won',
-          notes:        isbNotes || undefined,
         }),
       });
       if (!leadRes.ok) {
@@ -316,6 +308,13 @@ function ImpulsModal({ token, onClose, onCreated }) {
 
       const projRes = await fetch(`${API_BASE_URL}/api/projects/from-lead/${lead.id}`, {
         method: 'POST', headers: h,
+        body: JSON.stringify({
+          project_type:          'impuls',
+          isb_antrag_datum:      form.isb_antrag_datum || undefined,
+          isb_bewilligung_datum: form.isb_bewilligung_datum || undefined,
+          foerder_volumen:       form.foerder_volumen || undefined,
+          isb_tagewerke:         form.tagewerke || undefined,
+        }),
       });
       const projBody = await projRes.json().catch(() => ({}));
       if (projRes.status === 409) {

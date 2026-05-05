@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
@@ -35,6 +36,7 @@ export default function PageManager() {
   const [showNewPage, setShowNewPage] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [newPage, setNewPage] = useState({ slug: '', name: '', page_type: 'custom', description: '' });
+  const [creating, setCreating] = useState(false);
   const [uploadForm, setUploadForm] = useState({ name: '', category: 'allgemein', file: null });
   const [uploading, setUploading] = useState(false);
 
@@ -62,27 +64,33 @@ export default function PageManager() {
     navigate(`/app/pages/templates/${tpl.id}/editor`);
   };
 
-  const handleCreatePage = async () => {
+  const handleCreatePage = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (creating) return;
     if (!newPage.slug || !newPage.name) {
       toast.error('Slug und Name sind Pflichtfelder');
       return;
     }
+    setCreating(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/pages/`, {
         method: 'POST', headers: h, body: JSON.stringify(newPage),
       });
       if (!res.ok) {
-        const d = await res.json();
+        const d = await res.json().catch(() => ({}));
         throw new Error(d.detail || 'Fehler');
       }
       toast.success('Seite angelegt');
       setShowNewPage(false);
       setNewPage({ slug: '', name: '', page_type: 'custom', description: '' });
       loadData();
-    } catch (e) { toast.error(e.message); }
+    } catch (err) { toast.error(err.message); }
+    finally { setCreating(false); }
   };
 
-  const handleUploadTemplate = async () => {
+  const handleUploadTemplate = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (uploading) return;
     if (!uploadForm.name || !uploadForm.file) {
       toast.error('Name und Datei sind Pflichtfelder');
       return;
@@ -363,14 +371,15 @@ export default function PageManager() {
       )}
 
       {/* Modal: Neue Seite */}
-      {showNewPage && (
+      {showNewPage && createPortal(
         <div onClick={() => setShowNewPage(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',
           zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         }}>
-          <div onClick={e => e.stopPropagation()} style={{
+          <form onSubmit={handleCreatePage} onClick={e => e.stopPropagation()} style={{
             background: 'var(--bg-surface)', borderRadius: 12, padding: 24,
             width: '100%', maxWidth: 480,
+            maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
           }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--text-primary)' }}>
               Neue Seite anlegen
@@ -379,7 +388,7 @@ export default function PageManager() {
               ['name', 'Name (intern)', 'Paket: Mein Produkt'],
               ['slug', 'URL-Pfad (slug)', '/paket/mein-produkt'],
               ['description', 'Beschreibung (optional)', ''],
-            ].map(([key, label, ph]) => (
+            ].map(([key, label, ph], idx) => (
               <div key={key} style={{ marginBottom: 12 }}>
                 <label style={{
                   display: 'block', fontSize: 11, fontWeight: 600,
@@ -393,6 +402,7 @@ export default function PageManager() {
                   value={newPage[key]}
                   onChange={e => setNewPage(p => ({ ...p, [key]: e.target.value }))}
                   style={S.input}
+                  autoFocus={idx === 0}
                 />
               </div>
             ))}
@@ -414,22 +424,26 @@ export default function PageManager() {
               </select>
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button style={S.btn(false)} onClick={() => setShowNewPage(false)}>Abbrechen</button>
-              <button style={S.btn(true)} onClick={handleCreatePage}>Anlegen →</button>
+              <button type="button" style={S.btn(false)} onClick={() => setShowNewPage(false)}>Abbrechen</button>
+              <button type="submit" style={{ ...S.btn(true), opacity: creating ? 0.6 : 1, cursor: creating ? 'wait' : 'pointer' }} disabled={creating}>
+                {creating ? 'Anlegen…' : 'Anlegen →'}
+              </button>
             </div>
-          </div>
-        </div>
+          </form>
+        </div>,
+        document.body,
       )}
 
       {/* Modal: Template Upload */}
-      {showUpload && (
+      {showUpload && createPortal(
         <div onClick={() => setShowUpload(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',
           zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         }}>
-          <div onClick={e => e.stopPropagation()} style={{
+          <form onSubmit={handleUploadTemplate} onClick={e => e.stopPropagation()} style={{
             background: 'var(--bg-surface)', borderRadius: 12, padding: 24,
             width: '100%', maxWidth: 440,
+            maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
           }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--text-primary)' }}>
               Template hochladen
@@ -442,7 +456,8 @@ export default function PageManager() {
               }}>Name</label>
               <input placeholder="Mein Template" value={uploadForm.name}
                 onChange={e => setUploadForm(f => ({ ...f, name: e.target.value }))}
-                style={S.input}/>
+                style={S.input}
+                autoFocus/>
             </div>
             <div style={{ marginBottom: 12 }}>
               <label style={{
@@ -471,13 +486,14 @@ export default function PageManager() {
                 style={{ ...S.input, padding: '6px 12px', cursor: 'pointer' }}/>
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button style={S.btn(false)} onClick={() => setShowUpload(false)}>Abbrechen</button>
-              <button style={S.btn(true)} onClick={handleUploadTemplate} disabled={uploading}>
+              <button type="button" style={S.btn(false)} onClick={() => setShowUpload(false)}>Abbrechen</button>
+              <button type="submit" style={{ ...S.btn(true), opacity: uploading ? 0.6 : 1, cursor: uploading ? 'wait' : 'pointer' }} disabled={uploading}>
                 {uploading ? 'Wird hochgeladen…' : '⬆ Hochladen'}
               </button>
             </div>
-          </div>
-        </div>
+          </form>
+        </div>,
+        document.body,
       )}
     </div>
   );

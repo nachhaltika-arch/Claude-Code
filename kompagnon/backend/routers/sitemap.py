@@ -177,6 +177,13 @@ class SitemapPage(Base):
     # ["hero_value_equation","problem","offer_stack","trust_strip","fallstudien_3",
     #  "guarantee_block","faq","cta_final"]
     sections_json        = Column(Text,         nullable=True)
+    # Phase-1 Crawl-Import: woher stammt die Page?
+    # 'manual' (CRUD), 'ki_generated' (KI-Vorschlag), 'crawled' (Bestand)
+    source               = Column(String(20),   default='manual')
+    original_url         = Column(Text,         nullable=True)
+    # JSON-Array von sitemap_page-IDs, die diese (KI-vorgeschlagene) Page
+    # aus dem gecrawlten Bestand konsolidiert / ersetzt
+    replaces_page_ids    = Column(Text,         nullable=True)
 
 
 # ── Pydantic schemas ───────────────────────────────────────────────────────────
@@ -256,7 +263,30 @@ def _serialize(p: SitemapPage) -> dict:
         "content_generated":   bool(getattr(p, "content_generated", False)),
         # Hormozi-Spec Section-Plan (Wireframe-Mapping)
         "sections":            sections,
+        # Phase-1 Crawl-Import-Metadaten
+        "source":              getattr(p, "source",       None) or "manual",
+        "original_url":        getattr(p, "original_url", None) or "",
+        "replaces_page_ids":   _parse_id_list(getattr(p, "replaces_page_ids", None)),
     }
+
+
+def _parse_id_list(raw: Optional[str]) -> List[int]:
+    """Parse a JSON-encoded INT-array; tolerate junk by returning []."""
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    out: List[int] = []
+    for item in parsed:
+        try:
+            out.append(int(item))
+        except (TypeError, ValueError):
+            continue
+    return out
 
 
 # ── Pflichtseiten ──────────────────────────────────────────────────────────────
@@ -948,6 +978,196 @@ def _generate_sitemap_pdf(pages: list, company_name: str) -> bytes:
 
     doc.build(story, onFirstPage=_on_page, onLaterPages=_on_page)
     return buf.getvalue()
+
+
+# ── Phase-1 Crawl-Import: Bestands-Website → sitemap_pages ────────────────────
+
+# URL-Path-Keywords, die eine Pflichtseite kennzeichnen.
+# Wert = (page_type, ist_pflichtseite).
+_PFLICHT_KEYWORDS: dict[str, tuple[str, bool]] = {
+    "impressum":             ("rechtlich", True),
+    "datenschutz":           ("rechtlich", True),
+    "datenschutzerklaerung": ("rechtlich", True),
+    "agb":                   ("rechtlich", True),
+    "barrierefreiheit":      ("rechtlich", True),
+    "widerruf":              ("rechtlich", True),
+}
+
+# Page-Type-Heuristik: tuple_of_keywords → page_type
+_TYPE_HEURISTICS: list[tuple[tuple[str, ...], str]] = [
+    (("leistung", "service", "angebot", "produkt"),                  "leistung"),
+    (("kontakt", "contact", "anfrage"),                              "conversion"),
+    (("ueber", "about", "team", "unternehmen"),                      "vertrauen"),
+    (("referenz", "projekt", "fallstudie", "case"),                  "vertrauen"),
+    (("blog", "news", "aktuell", "magazin", "beitrag", "artikel", "info"), "info"),
+]
+
+
+def _humanize_slug(slug: str) -> str:
+    """`wallbox-installation` → `Wallbox Installation`."""
+    return slug.replace("-", " ").replace("_", " ").strip().title()
+
+
+def _classify_path(segments: list[str]) -> tuple[str, bool]:
+    """Map URL-path segments to (page_type, ist_pflichtseite)."""
+    joined = "/".join(segments).lower()
+    for kw, val in _PFLICHT_KEYWORDS.items():
+        if kw in joined:
+            return val
+    for keywords, ptype in _TYPE_HEURISTICS:
+        if any(kw in joined for kw in keywords):
+            return ptype, False
+    return "sonstige", False
+
+
+def _import_urls_as_pages(
+    lead_id: int,
+    start_url: str,
+    urls: list[str],
+    db: Session,
+) -> int:
+    """Convert a flat URL list into a SitemapPage hierarchy.
+
+    Hierarchy comes from URL-path depth: `/leistungen/wallbox` becomes a child
+    of `/leistungen` (or root if `/leistungen` is missing). Pages are written
+    in path-depth order so parent IDs are available before children reference
+    them.
+    """
+    from urllib.parse import urlparse
+
+    base_netloc = urlparse(start_url).netloc.lower().replace("www.", "")
+
+    # Normalize + dedupe by path
+    seen: set[str] = set()
+    items: list[tuple[str, str, list[str], int]] = []
+    for raw in urls:
+        parsed = urlparse(raw)
+        netloc = parsed.netloc.lower().replace("www.", "")
+        if netloc != base_netloc:
+            continue
+        path = parsed.path.rstrip("/").lower()
+        if path in seen:
+            continue
+        seen.add(path)
+        segments = [s for s in path.split("/") if s]
+        items.append((raw, path, segments, len(segments)))
+
+    # Root first, then by path alphabetically
+    items.sort(key=lambda x: (x[3], x[1]))
+
+    path_to_id: dict[str, int] = {}
+    pos = 0
+    for url, path, segments, _depth in items:
+        if not segments:
+            page_name, page_type, ist_pflicht, parent_id = "Startseite", "startseite", False, None
+        else:
+            page_name = _humanize_slug(segments[-1])
+            page_type, ist_pflicht = _classify_path(segments)
+            parent_path = "/" + "/".join(segments[:-1]) if len(segments) > 1 else ""
+            parent_id = path_to_id.get(parent_path)
+
+        page = SitemapPage(
+            lead_id=lead_id,
+            parent_id=parent_id,
+            position=pos,
+            page_name=page_name[:100] or "Seite",
+            page_type=page_type,
+            ist_pflichtseite=ist_pflicht,
+            status="live",
+            source="crawled",
+            original_url=url,
+        )
+        db.add(page)
+        db.flush()
+        path_to_id[path] = page.id
+        pos += 1
+
+    return len(items)
+
+
+@router.post("/{lead_id}/import-existing")
+def import_existing_sitemap(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Crawl the lead's website and import the live page structure.
+
+    Source preference:
+      1. Reuse existing CrawlResult rows for this lead (fast).
+      2. Otherwise live-crawl via `crawler_service.crawl_website` (~10-30s, max 30 pages).
+
+    Idempotent: existing `source='crawled'` rows for this lead are deleted
+    first. Manual / KI-generated pages are kept.
+    """
+    from database import CrawlResult
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+
+    start_url = (lead.website_url or "").strip()
+    if not start_url:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "NO_WEBSITE_URL",
+                    "message": "Lead hat keine Website-URL hinterlegt — Bestand kann nicht gecrawlt werden."},
+        )
+    if not start_url.startswith("http"):
+        start_url = "https://" + start_url
+
+    cached_urls = [
+        r.url for r in db.query(CrawlResult).filter(
+            CrawlResult.customer_id == lead_id,
+            CrawlResult.status_code == 200,
+        ).all()
+    ]
+
+    used_cache = bool(cached_urls)
+    if used_cache:
+        urls = cached_urls
+    else:
+        from services.crawler_service import crawl_website
+        try:
+            results = crawl_website(start_url, max_pages=30)
+        except Exception as e:
+            logger.exception("Crawl für Lead %s fehlgeschlagen", lead_id)
+            raise HTTPException(
+                status_code=502,
+                detail={"code": "CRAWL_FAILED",
+                        "message": f"Crawl der Website fehlgeschlagen: {e}"},
+            )
+        urls = [r["url"] for r in results if r.get("status_code") == 200]
+
+    if not urls:
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "NO_PAGES_FOUND",
+                    "message": "Keine erreichbaren Seiten auf der Website gefunden."},
+        )
+
+    # Idempotenz: bestehende crawled-Pages für diesen Lead löschen
+    db.query(SitemapPage).filter(
+        SitemapPage.lead_id == lead_id,
+        SitemapPage.source == "crawled",
+    ).delete(synchronize_session=False)
+    db.commit()
+
+    imported = _import_urls_as_pages(lead_id, start_url, urls, db)
+    db.commit()
+
+    pages = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id)
+        .order_by(SitemapPage.position, SitemapPage.id)
+        .all()
+    )
+    return {
+        "imported":   imported,
+        "url_source": "cache" if used_cache else "live_crawl",
+        "start_url":  start_url,
+        "pages":      [_serialize(p) for p in pages],
+    }
 
 
 @router.get("/{lead_id}/suggest")

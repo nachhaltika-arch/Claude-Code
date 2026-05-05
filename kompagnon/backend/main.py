@@ -1064,6 +1064,14 @@ def _run_migrations():
         #       "fallstudien_3","guarantee_block","faq","cta_final"]
         # Siehe docs/conversion-spec-shk.md + docs/kas-pipeline-architecture.md
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS sections_json TEXT",
+        # ── Phase 1 Crawl-Import (2026-05-05): Bestand-Sitemap aus Kunden-Site ─
+        # source unterscheidet 'manual' (CRUD), 'ki_generated' (KI-Vorschlag),
+        # 'crawled' (aus Bestands-Website importiert). original_url speichert die
+        # ursprüngliche URL bei gecrawlten Seiten. replaces_page_ids ist ein
+        # JSON-Array von sitemap_page-IDs, die ein KI-Vorschlag konsolidiert.
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'manual'",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS original_url TEXT",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS replaces_page_ids TEXT",
         # ── Hotfix 2026-05-04: steps_confirmed war nur in migrations.py
         # (Standalone-Script, lief nie beim Backend-Start). Auf der frischen
         # Staging-DB fehlte die Spalte komplett — routers/projects.py warf

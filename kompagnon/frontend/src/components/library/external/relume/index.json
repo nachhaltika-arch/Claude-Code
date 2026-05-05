@@ -1,0 +1,9 @@
+{
+  "_source":      "Relume Library (https://www.relume.io)",
+  "_license":     "Proprietary — Relume subscription required",
+  "_attribution": "© Relume",
+  "_warning":     "Internal use only. DO NOT push this folder to a public repo.",
+  "_imported_at": "2026-05-05",
+  "_workflow":    "Pro Section: HTML-Tab in Relume kopieren → als relume-{slug}.html ablegen → Eintrag hier ergänzen → Backend neustart oder seed_component_library erneut laufen lassen.",
+  "components": []
+}

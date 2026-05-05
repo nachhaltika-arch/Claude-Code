@@ -94,6 +94,25 @@ export default function WireframeView({
     return list;
   }, [library, activeCategory, searchQuery]);
 
+  // W2: Empfohlen-Top-3 für den aktuellen Slot. Basis:
+  //  - swap-Mode → gleiche Kategorie wie der zu tauschende Block, exkl. selbst & existierende
+  //  - add-Mode  → noch-nicht-verwendete Library-Items
+  // Nicht durch Filter / Suche beeinflusst — bleibt bewusst above-fold sichtbar.
+  const recommendations = useMemo(() => {
+    if (!swapPanel.open || library.length === 0) return [];
+    const usedSlugs = new Set(activeBlocks.map((b) => b.slug));
+    if (swapPanel.mode === 'swap') {
+      const target = activeBlocks[swapPanel.targetIdx];
+      if (!target) return [];
+      const targetEntry = library.find((c) => c.slug === target.slug);
+      if (!targetEntry) return [];
+      return library
+        .filter((c) => c.category === targetEntry.category && c.slug !== target.slug && !usedSlugs.has(c.slug))
+        .slice(0, 3);
+    }
+    return library.filter((c) => !usedSlugs.has(c.slug)).slice(0, 3);
+  }, [swapPanel.open, swapPanel.mode, swapPanel.targetIdx, library, activeBlocks]);
+
   // ── Mutationen am Wireframe ─────────────────────────────────────────────────
 
   const persist = useCallback(
@@ -159,6 +178,44 @@ export default function WireframeView({
       pages: pages.map((p) => (p.page_id === activePageId ? { ...p, blocks: nextBlocks } : p)),
     };
     persist(nextData);
+  };
+
+  // W2: KI-Variation — fragt Backend nach Alternativ-Block gleicher Kategorie
+  // und tauscht den aktuellen Block dadurch aus. Other Blocks der Page werden
+  // als exclude_slugs mitgegeben, damit kein Duplikat vorgeschlagen wird.
+  const requestVariation = async (targetIdx) => {
+    if (!activePage) return;
+    const current = activeBlocks[targetIdx];
+    if (!current) return;
+    try {
+      const otherSlugs = activeBlocks
+        .filter((_, i) => i !== targetIdx)
+        .map((b) => b.slug);
+      const res = await fetch(`${API_BASE_URL}/api/components/variation`, {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          current_slug:  current.slug,
+          exclude_slugs: otherSlugs,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = body?.detail;
+        const msg = typeof detail === 'string' ? detail : `Fehler ${res.status}`;
+        // eslint-disable-next-line no-console
+        console.warn('variation failed:', msg);
+        return;
+      }
+      // Library-Cache mit dem neuen Eintrag aktualisieren falls der noch nicht drin
+      // (sollte er aber sein — eager-Load am Mount).
+      if (body?.slug && !library.find((c) => c.slug === body.slug)) {
+        setLibrary((prev) => [...prev, body]);
+      }
+      swapBlock(targetIdx, body.slug);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('variation request failed:', e);
+    }
   };
 
   // W1: Drag-Reorder — verschiebt Block von fromIdx an toIdx, persistiert.
@@ -345,6 +402,7 @@ export default function WireframeView({
                 onDrop={() => { moveBlock(draggedIdx, idx); setDraggedIdx(null); setDragOverIdx(null); }}
                 onDragEnd={() => { setDraggedIdx(null); setDragOverIdx(null); }}
                 onSwap={() => setSwapPanel({ open: true, targetIdx: idx, mode: 'swap' })}
+                onVariation={() => requestVariation(idx)}
                 onRemove={() => removeBlock(idx)}
               />
             ))}
@@ -441,67 +499,40 @@ export default function WireframeView({
                 Keine Treffer.
               </div>
             )}
-            {/* W1: Section-Cards mit Live-Thumbnail. Die Vorschau wird in
-                einer 320px-breiten, auf 30% skalierten Box gerendert — das
-                gibt einen ~96-px breiten Mini-Render. Pointer-Events aus,
-                der ganze Card-Klick fügt die Section ein. */}
-            {filteredLibrary.map((c) => (
-              <button
-                key={c.slug}
-                type="button"
-                onClick={() => (swapPanel.mode === 'swap' ? swapBlock(swapPanel.targetIdx, c.slug) : addBlock(c.slug))}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: 0,
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 8,
-                  background: '#fff',
-                  marginBottom: 8,
-                  cursor: 'pointer',
-                  overflow: 'hidden',
-                  transition: 'border-color 0.15s, background 0.15s, transform 0.1s',
-                  fontFamily: 'inherit',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = KC_MID;
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#e2e8f0';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                {/* Live Thumbnail */}
-                {c.html_template ? (
-                  <div style={{
-                    height: 90, overflow: 'hidden',
-                    background: '#f8fafc',
-                    borderBottom: '1px solid #e2e8f0',
-                    position: 'relative',
-                  }}>
-                    <div style={{
-                      width: 1200, transform: 'scale(0.25)', transformOrigin: 'top left',
-                      pointerEvents: 'none',
-                    }}
-                      dangerouslySetInnerHTML={{ __html: c.html_template }}
-                    />
-                  </div>
-                ) : (
-                  <div style={{
-                    height: 60, background: '#f1f5f9',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#94a3b8', fontSize: 10, fontStyle: 'italic',
-                  }}>
-                    Keine Vorschau
-                  </div>
-                )}
-                <div style={{ padding: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: KC_DARK, marginBottom: 2 }}>{c.name}</div>
-                  <div style={{ fontSize: 9, color: '#64748b', fontFamily: 'ui-monospace, monospace' }}>{c.slug}</div>
+            {/* W2: „Empfohlen für diesen Slot" — Top-3 Vorschläge.
+                Sichtbar nur wenn keine User-Filter aktiv (Default-Zustand),
+                damit gefilterte Suche nicht durch eine Empfehlungs-Liste
+                verwirrt wird. */}
+            {recommendations.length > 0 && !searchQuery && activeCategory === 'Alle' && (
+              <div style={{
+                marginBottom: 12, padding: 8,
+                background: '#FEF3C7', border: '1px solid #FCD34D',
+                borderRadius: 8,
+              }}>
+                <div style={{
+                  fontSize: 10, fontWeight: 800, color: '#92400E',
+                  textTransform: 'uppercase', letterSpacing: '0.06em',
+                  marginBottom: 6, padding: '0 2px',
+                }}>
+                  💡 Empfohlen für diesen Slot
                 </div>
-              </button>
+                {recommendations.map((c) => (
+                  <LibraryCard
+                    key={`rec-${c.slug}`}
+                    item={c}
+                    onPick={() => (swapPanel.mode === 'swap' ? swapBlock(swapPanel.targetIdx, c.slug) : addBlock(c.slug))}
+                    compact
+                  />
+                ))}
+              </div>
+            )}
+
+            {filteredLibrary.map((c) => (
+              <LibraryCard
+                key={c.slug}
+                item={c}
+                onPick={() => (swapPanel.mode === 'swap' ? swapBlock(swapPanel.targetIdx, c.slug) : addBlock(c.slug))}
+              />
             ))}
           </div>
         </aside>
@@ -514,7 +545,7 @@ function BlockCard({
   idx, block, libraryEntry,
   isDragOver, isDragging,
   onDragStart, onDragOver, onDrop, onDragEnd,
-  onSwap, onRemove,
+  onSwap, onVariation, onRemove,
 }) {
   const html = libraryEntry?.html_template || '';
   const name = libraryEntry?.name || block.slug;
@@ -565,6 +596,16 @@ function BlockCard({
           #{idx + 1}
         </span>
         <button
+          type="button" onClick={onVariation}
+          title="Variante aus gleicher Kategorie vorschlagen"
+          style={{
+            background: '#7c3aed', color: '#fff',
+            border: 'none', borderRadius: 4,
+            padding: '3px 8px', fontSize: 10, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >🔄 Variante</button>
+        <button
           type="button" onClick={onSwap}
           style={{
             background: 'transparent', color: KC_MID,
@@ -603,5 +644,67 @@ function BlockCard({
         )}
       </div>
     </div>
+  );
+}
+
+// ── W2: Library-Card (wiederverwendbar — auch in der "Empfohlen"-Sektion) ─────
+
+function LibraryCard({ item, onPick, compact = false }) {
+  const thumbHeight = compact ? 70 : 90;
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      style={{
+        display: 'block',
+        width: '100%',
+        textAlign: 'left',
+        padding: 0,
+        border: '1px solid #e2e8f0',
+        borderRadius: 8,
+        background: '#fff',
+        marginBottom: compact ? 6 : 8,
+        cursor: 'pointer',
+        overflow: 'hidden',
+        transition: 'border-color 0.15s, transform 0.1s',
+        fontFamily: 'inherit',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = KC_MID;
+        e.currentTarget.style.transform = 'translateY(-1px)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = '#e2e8f0';
+        e.currentTarget.style.transform = 'translateY(0)';
+      }}
+    >
+      {item.html_template ? (
+        <div style={{
+          height: thumbHeight, overflow: 'hidden',
+          background: '#f8fafc',
+          borderBottom: '1px solid #e2e8f0',
+          position: 'relative',
+        }}>
+          <div style={{
+            width: 1200, transform: 'scale(0.25)', transformOrigin: 'top left',
+            pointerEvents: 'none',
+          }}
+            dangerouslySetInnerHTML={{ __html: item.html_template }}
+          />
+        </div>
+      ) : (
+        <div style={{
+          height: 60, background: '#f1f5f9',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#94a3b8', fontSize: 10, fontStyle: 'italic',
+        }}>
+          Keine Vorschau
+        </div>
+      )}
+      <div style={{ padding: compact ? '6px 8px' : 8 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: KC_DARK, marginBottom: 2 }}>{item.name}</div>
+        <div style={{ fontSize: 9, color: '#64748b', fontFamily: 'ui-monospace, monospace' }}>{item.slug}</div>
+      </div>
+    </button>
   );
 }

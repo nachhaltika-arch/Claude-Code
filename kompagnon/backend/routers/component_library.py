@@ -108,6 +108,57 @@ def get_component(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Wireframe-W2: Variation-Vorschlag
+# ─────────────────────────────────────────────────────────────────────────────
+
+class VariationRequest(BaseModel):
+    current_slug:  str
+    exclude_slugs: Optional[list[str]] = None
+
+
+@component_router.post("/variation")
+def get_block_variation(
+    body: VariationRequest,
+    db: Session = Depends(get_db),
+    user=Depends(require_any_auth),
+):
+    """Schlaegt eine alternative Section gleicher Kategorie vor.
+
+    Body:
+      - current_slug:  Pflicht. Aktueller Block, fuer den eine Variation gesucht ist.
+      - exclude_slugs: Optional, Liste von slugs die NICHT vorgeschlagen werden
+                       sollen (z.B. die anderen Bloecke der Page, damit nicht
+                       doppelt vorgeschlagen wird).
+
+    Returnt: kompletter ComponentLibrary-Eintrag mit html_template.
+    Erste Iteration: Random-Pick aus gleicher Kategorie. KI-basierte Auswahl
+    folgt in spaeterem Pass falls noetig.
+    """
+    import random as _rnd
+
+    current = db.query(ComponentLibrary).filter(ComponentLibrary.slug == body.current_slug).first()
+    if not current:
+        raise HTTPException(status_code=404, detail=f"Block '{body.current_slug}' nicht gefunden")
+
+    q = db.query(ComponentLibrary).filter(
+        ComponentLibrary.category == current.category,
+        ComponentLibrary.slug != body.current_slug,
+    )
+    if body.exclude_slugs:
+        q = q.filter(~ComponentLibrary.slug.in_(body.exclude_slugs))
+    candidates = q.all()
+
+    if not candidates:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Keine Alternativen in Kategorie '{current.category}' verfuegbar",
+        )
+
+    chosen = _rnd.choice(candidates)
+    return _serialize_component(chosen, include_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Wireframe pro Projekt: Read / manueller Save / KI-Generator
 # ─────────────────────────────────────────────────────────────────────────────
 

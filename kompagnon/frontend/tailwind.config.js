@@ -1,16 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // Relume preset NICHT eingebunden — es überschreibt Tailwind-Defaults für
-  // boxShadow / fontSize / screens / container / maxWidth (theme: statt extend),
-  // was alle existierenden KAS-Komponenten bricht. Stattdessen werden
-  // Relume-Custom-Tokens beim Import durch Standard-Tailwind ersetzt
-  // (siehe library/external/relume/README.md, Mapping-Tabelle).
-  // @relume_io/relume-ui Komponenten bleiben aber installiert und nutzbar
-  // — falls künftig im KAS-Admin-UI direkt importiert.
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
-    "./node_modules/@relume_io/relume-ui/dist/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {

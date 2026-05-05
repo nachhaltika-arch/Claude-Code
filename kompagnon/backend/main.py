@@ -1086,6 +1086,11 @@ def _run_migrations():
         # visuelle Organisation (vs page_type-Farbe, die fix vom Type kommt).
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ai_prompt TEXT",
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS color_tag VARCHAR(7)",
+        # ── Relume-Parität R2 Feature 4 (2026-05-05): Alternative-Sitemap-Variants.
+        # 'primary' = aktuelle Live-Sitemap. 'variant' = parallele KI-Alternative
+        # zum Vergleich. Pflichtseiten + Bestand sind immer 'primary'; nur
+        # KI-Vorschläge können 'variant' sein. Promote ersetzt primary durch variant.
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS variant VARCHAR(20) DEFAULT 'primary'",
         # ── Hotfix 2026-05-04: steps_confirmed war nur in migrations.py
         # (Standalone-Script, lief nie beim Backend-Start). Auf der frischen
         # Staging-DB fehlte die Spalte komplett — routers/projects.py warf

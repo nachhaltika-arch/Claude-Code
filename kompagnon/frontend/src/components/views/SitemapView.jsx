@@ -290,17 +290,30 @@ export default function SitemapView({
   const [pageCount, setPageCount] = useState(0);
   // R2 Relume-Parität: „+ Mehr Pages"-Dialog (Continue-generating)
   const [moreState, setMoreState] = useState(null); // null | { count: N, busy: bool }
+  // R2 Feature 4: Variant-Slot — 'primary' (live) oder 'variant' (Alternative)
+  const [currentVariant, setCurrentVariant] = useState('primary');
+  const [variantPagesCount, setVariantPagesCount] = useState(0);
 
   const loadPages = useCallback(() => {
     if (!leadId) return;
     setLoading(true);
     setError('');
-    fetch(`${API_BASE_URL}/api/sitemap/${leadId}`, { headers })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((data) => setPages(Array.isArray(data) ? data : data.pages || []))
+    // Lade aktuellen Tab + parallel Variant-Count (für Tab-Bar-Anzeige)
+    Promise.all([
+      fetch(`${API_BASE_URL}/api/sitemap/${leadId}?variant=${currentVariant}`, { headers })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))),
+      fetch(`${API_BASE_URL}/api/sitemap/${leadId}?variant=variant`, { headers })
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => []),
+    ])
+      .then(([data, variantData]) => {
+        setPages(Array.isArray(data) ? data : data.pages || []);
+        const variantList = Array.isArray(variantData) ? variantData : variantData.pages || [];
+        setVariantPagesCount(variantList.length);
+      })
       .catch((e) => setError(e.message || 'Sitemap konnte nicht geladen werden'))
       .finally(() => setLoading(false));
-  }, [leadId, headers]);
+  }, [leadId, headers, currentVariant]);
 
   useEffect(() => { loadPages(); }, [loadPages]);
 
@@ -388,6 +401,70 @@ export default function SitemapView({
       return null;
     }
   }, [headers]);
+
+  // ── R2 Feature 4: Variant-Slot (alternative Sitemap zum Vergleich) ────────
+
+  const generateVariant = useCallback(async (count) => {
+    if (!leadId) return;
+    const t = toast.loading('KI generiert Alternative…');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/generate`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ as_variant: true, page_count: count || 0 }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = body?.detail;
+        const msg = typeof detail === 'string' ? detail : detail?.message || `Fehler ${res.status}`;
+        throw new Error(msg);
+      }
+      toast.success(`Alternative mit ${body.pages?.length || 0} Seiten generiert`, { id: t });
+      setCurrentVariant('variant');
+      // loadPages wird durch currentVariant-Effect getriggert
+    } catch (e) {
+      toast.error(e.message, { id: t });
+    }
+  }, [leadId, headers]);
+
+  const promoteVariant = useCallback(async () => {
+    if (!leadId) return;
+    if (!window.confirm(
+      'Variante als Hauptversion übernehmen?\n\n' +
+      'Aktuelle KI-Vorschläge im Primary werden ersetzt. Bestand und manuelle Seiten bleiben.',
+    )) return;
+    const t = toast.loading('Variante wird übernommen…');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/promote-variant`, {
+        method: 'POST', headers,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Fehler ${res.status}`);
+      }
+      toast.success('Variante ist jetzt Hauptversion', { id: t });
+      setCurrentVariant('primary');
+    } catch (e) {
+      toast.error(e.message, { id: t });
+    }
+  }, [leadId, headers]);
+
+  const discardVariant = useCallback(async () => {
+    if (!leadId) return;
+    if (!window.confirm('Variante endgültig verwerfen?')) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/discard-variant`, {
+        method: 'DELETE', headers,
+      });
+      if (!res.ok && res.status !== 204) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Fehler ${res.status}`);
+      }
+      toast.success('Variante verworfen');
+      setCurrentVariant('primary');
+    } catch (e) {
+      toast.error(e.message);
+    }
+  }, [leadId, headers]);
 
   // ── R2: Continue-generating (POST /api/sitemap/:leadId/generate-more) ──────
 
@@ -534,43 +611,89 @@ export default function SitemapView({
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button
-            type="button" onClick={handleImportExisting} disabled={importing}
-            style={{
-              background: 'transparent', color: KC_MID,
-              border: `1.5px solid ${KC_MID}`, borderRadius: 8,
-              padding: '9px 16px', fontSize: 13, fontWeight: 700,
-              cursor: importing ? 'wait' : 'pointer',
-              opacity: importing ? 0.6 : 1,
-            }}
-          >
-            {importing ? 'Crawlt…' : '📥 Bestand importieren'}
-          </button>
-          <button
-            type="button" onClick={() => setAddPageState({ parent_id: null })}
-            style={{
-              background: 'transparent', color: KC_MID,
-              border: `1.5px solid ${KC_MID}`, borderRadius: 8,
-              padding: '9px 16px', fontSize: 13, fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            + Neue Seite
-          </button>
+          {currentVariant === 'primary' && (
+            <button
+              type="button" onClick={handleImportExisting} disabled={importing}
+              style={{
+                background: 'transparent', color: KC_MID,
+                border: `1.5px solid ${KC_MID}`, borderRadius: 8,
+                padding: '9px 16px', fontSize: 13, fontWeight: 700,
+                cursor: importing ? 'wait' : 'pointer',
+                opacity: importing ? 0.6 : 1,
+              }}
+            >
+              {importing ? 'Crawlt…' : '📥 Bestand importieren'}
+            </button>
+          )}
+          {currentVariant === 'primary' && (
+            <button
+              type="button" onClick={() => setAddPageState({ parent_id: null })}
+              style={{
+                background: 'transparent', color: KC_MID,
+                border: `1.5px solid ${KC_MID}`, borderRadius: 8,
+                padding: '9px 16px', fontSize: 13, fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              + Neue Seite
+            </button>
+          )}
           <button
             type="button" onClick={() => setMoreState({ count: 3 })}
-            disabled={pages.length === 0}
+            disabled={pages.length === 0 || currentVariant !== 'primary'}
             style={{
               background: 'transparent', color: '#7c3aed',
               border: '1.5px solid #7c3aed', borderRadius: 8,
               padding: '9px 16px', fontSize: 13, fontWeight: 700,
-              cursor: pages.length === 0 ? 'not-allowed' : 'pointer',
-              opacity: pages.length === 0 ? 0.5 : 1,
+              cursor: pages.length === 0 || currentVariant !== 'primary' ? 'not-allowed' : 'pointer',
+              opacity: pages.length === 0 || currentVariant !== 'primary' ? 0.5 : 1,
             }}
-            title="KI schlägt N weitere Seiten vor — bestehende bleiben"
+            title={currentVariant !== 'primary'
+              ? 'Nur im Primary-Tab verfügbar'
+              : 'KI schlägt N weitere Seiten vor — bestehende bleiben'}
           >
             + Mehr KI-Vorschläge
           </button>
+          {currentVariant === 'primary' && (
+            <button
+              type="button" onClick={() => generateVariant(pageCount)}
+              style={{
+                background: '#fff', color: KC_DARK,
+                border: `1.5px dashed ${KC_DARK}`, borderRadius: 8,
+                padding: '9px 16px', fontSize: 13, fontWeight: 700,
+                cursor: 'pointer',
+              }}
+              title="Generiere parallele KI-Alternative — Primary bleibt unangetastet"
+            >
+              ⊕ Alternative generieren
+            </button>
+          )}
+          {currentVariant === 'variant' && (
+            <>
+              <button
+                type="button" onClick={promoteVariant}
+                style={{
+                  background: '#059669', color: '#fff',
+                  border: 'none', borderRadius: 8,
+                  padding: '10px 18px', fontSize: 13, fontWeight: 800,
+                  cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.04em',
+                }}
+              >
+                ✓ Variante übernehmen
+              </button>
+              <button
+                type="button" onClick={discardVariant}
+                style={{
+                  background: '#fff', color: '#dc2626',
+                  border: '1.5px solid #dc2626', borderRadius: 8,
+                  padding: '9px 16px', fontSize: 13, fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                × Variante verwerfen
+              </button>
+            </>
+          )}
           <select
             value={pageCount}
             onChange={(e) => setPageCount(parseInt(e.target.value, 10) || 0)}
@@ -590,10 +713,14 @@ export default function SitemapView({
           <button
             type="button"
             onClick={async () => {
-              await onRegenerateSitemap?.(pageCount);
-              // Parent feuert nur den POST und schlucks Errors. Wir laden
-              // die Tree-View nach 1.5 s neu, damit der Vorschlag sichtbar wird.
-              setTimeout(loadPages, 1500);
+              if (currentVariant === 'variant') {
+                await generateVariant(pageCount);
+              } else {
+                await onRegenerateSitemap?.(pageCount);
+                // Parent feuert nur den POST und schlucks Errors. Wir laden
+                // die Tree-View nach 1.5 s neu, damit der Vorschlag sichtbar wird.
+                setTimeout(loadPages, 1500);
+              }
             }}
             style={{
               background: 'transparent', color: KC_DARK,
@@ -602,35 +729,77 @@ export default function SitemapView({
               cursor: 'pointer',
             }}
           >
-            Sitemap neu generieren
+            {currentVariant === 'variant' ? '↻ Variante neu generieren' : 'Sitemap neu generieren'}
           </button>
-          <button
-            type="button" onClick={onGenerateWireframe} disabled={pages.length === 0}
-            style={{
-              background: KC_YELLOW, color: '#000',
-              border: 'none', borderRadius: 8,
-              padding: '10px 18px', fontSize: 13, fontWeight: 800,
-              cursor: pages.length === 0 ? 'not-allowed' : 'pointer',
-              opacity: pages.length === 0 ? 0.5 : 1,
-              textTransform: 'uppercase', letterSpacing: '0.04em',
-            }}
-          >
-            KI-Wireframe erzeugen
-          </button>
-          <button
-            type="button" onClick={onNavigateToWireframe} disabled={totalBlocks === 0}
-            style={{
-              background: KC_MID, color: '#fff',
-              border: 'none', borderRadius: 8,
-              padding: '10px 18px', fontSize: 13, fontWeight: 700,
-              cursor: totalBlocks === 0 ? 'not-allowed' : 'pointer',
-              opacity: totalBlocks === 0 ? 0.5 : 1,
-            }}
-          >
-            Zu Wireframe →
-          </button>
+          {currentVariant === 'primary' && (
+            <button
+              type="button" onClick={onGenerateWireframe} disabled={pages.length === 0}
+              style={{
+                background: KC_YELLOW, color: '#000',
+                border: 'none', borderRadius: 8,
+                padding: '10px 18px', fontSize: 13, fontWeight: 800,
+                cursor: pages.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: pages.length === 0 ? 0.5 : 1,
+                textTransform: 'uppercase', letterSpacing: '0.04em',
+              }}
+            >
+              KI-Wireframe erzeugen
+            </button>
+          )}
+          {currentVariant === 'primary' && (
+            <button
+              type="button" onClick={onNavigateToWireframe} disabled={totalBlocks === 0}
+              style={{
+                background: KC_MID, color: '#fff',
+                border: 'none', borderRadius: 8,
+                padding: '10px 18px', fontSize: 13, fontWeight: 700,
+                cursor: totalBlocks === 0 ? 'not-allowed' : 'pointer',
+                opacity: totalBlocks === 0 ? 0.5 : 1,
+              }}
+            >
+              Zu Wireframe →
+            </button>
+          )}
         </div>
       </div>
+
+      {/* R2 Feature 4: Variant-Tabs — sichtbar nur wenn eine Alternative existiert */}
+      {variantPagesCount > 0 && (
+        <div style={{
+          display: 'flex', gap: 0, marginBottom: 16, flexShrink: 0,
+          borderBottom: '1px solid #e2e8f0',
+        }}>
+          {[
+            { id: 'primary', label: 'Primary (live)' },
+            { id: 'variant', label: `Alternative (${variantPagesCount})` },
+          ].map((tab) => {
+            const isActive = currentVariant === tab.id;
+            return (
+              <button
+                key={tab.id} type="button"
+                onClick={() => setCurrentVariant(tab.id)}
+                style={{
+                  padding: '8px 18px',
+                  background: 'transparent', border: 'none',
+                  borderBottom: isActive ? `2px solid ${KC_MID}` : '2px solid transparent',
+                  color: isActive ? KC_DARK : '#64748b',
+                  fontSize: 13, fontWeight: isActive ? 800 : 500,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  marginBottom: -1,
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+          <div style={{ flex: 1 }} />
+          {currentVariant === 'variant' && (
+            <span style={{ alignSelf: 'center', fontSize: 11, color: '#94a3b8', padding: '0 8px' }}>
+              Pflichtseiten + Bestand werden bei Übernahme aus Primary mitgenommen
+            </span>
+          )}
+        </div>
+      )}
 
       {loading && <div style={{ color: '#64748b', fontSize: 14 }}>Sitemap wird geladen…</div>}
       {error && (

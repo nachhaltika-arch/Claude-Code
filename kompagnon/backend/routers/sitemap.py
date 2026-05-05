@@ -187,6 +187,8 @@ class SitemapPage(Base):
     # Relume-Parität R1: Per-Page-KI-Prompt + User-Color-Tag
     ai_prompt            = Column(Text,         nullable=True)
     color_tag            = Column(String(7),    nullable=True)
+    # Relume-Parität R2 Feature 4: 'primary' (live) | 'variant' (Alternative)
+    variant              = Column(String(20),   default='primary')
 
 
 # ── Pydantic schemas ───────────────────────────────────────────────────────────
@@ -279,6 +281,8 @@ def _serialize(p: SitemapPage) -> dict:
         # Relume-Parität R1
         "ai_prompt":           getattr(p, "ai_prompt", None) or "",
         "color_tag":           getattr(p, "color_tag", None) or "",
+        # Relume-Parität R2 Feature 4
+        "variant":             getattr(p, "variant", None) or "primary",
     }
 
 
@@ -398,6 +402,7 @@ def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
                 status="geplant",
                 ist_pflichtseite=True,
                 sections_json=json.dumps(default_sections, ensure_ascii=False),
+                variant="primary",
             ))
     db.commit()
 
@@ -407,14 +412,24 @@ def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
 @router.get("/{lead_id}")
 def get_sitemap(
     lead_id: int,
+    variant: str = "primary",
     db: Session = Depends(get_db),
     _=Depends(require_any_auth),
 ):
-    """Return all sitemap pages for a lead as a flat list (parent_id indicates hierarchy)."""
-    _ensure_pflichtseiten(lead_id, db)
+    """Return sitemap pages for a lead in the given variant slot.
+
+    `variant` query param:
+      - 'primary' (default): live sitemap incl. Pflichtseiten + Bestand + KI
+      - 'variant': nur die KI-Alternativ-Vorschläge (kein Pflicht/Bestand)
+    """
+    if variant not in ("primary", "variant"):
+        variant = "primary"
+    # Pflichtseiten nur im primary-Slot sicherstellen
+    if variant == "primary":
+        _ensure_pflichtseiten(lead_id, db)
     pages = (
         db.query(SitemapPage)
-        .filter(SitemapPage.lead_id == lead_id)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.variant == variant)
         .order_by(SitemapPage.position)
         .all()
     )
@@ -572,6 +587,7 @@ def _insert_pages(
     raw_pages: list,
     db: Session,
     source: str = "ki_generated",
+    variant: str = "primary",
 ) -> list:
     """Persist a list of page dicts, return serialized results.
 
@@ -580,6 +596,8 @@ def _insert_pages(
     raw_page may include a `replaces_page_ids` list — if present and non-empty,
     it is JSON-encoded into sitemap_pages.replaces_page_ids (Phase-3 mapping
     of "this AI suggestion replaces these crawled bestand pages").
+    `variant` ('primary' | 'variant') determines which slot the pages live in
+    — see the R2-Variants doc on the column.
     """
     created = []
     id_map: dict[int, int] = {}  # old position-based index → new DB id (for parent linking)
@@ -612,6 +630,7 @@ def _insert_pages(
             sections_json=json.dumps(sections, ensure_ascii=False),
             source=source,
             replaces_page_ids=replaces_json,
+            variant=variant,
         )
         db.add(page)
         db.flush()  # get page.id
@@ -640,8 +659,12 @@ async def generate_sitemap(
 ):
     """Generate sitemap pages via Claude AI (or fallback template).
 
-    Optional body: {"page_count": N} — geclamped auf 3..15. Default 6.
+    Optional body:
+      - "page_count": N — geclamped auf 3..15. Default: KI entscheidet (5-8).
+      - "as_variant": bool — true = parallele Alternative, false = neue Live.
     """
+    as_variant = bool((body or {}).get("as_variant"))
+    target_variant = "variant" if as_variant else "primary"
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
@@ -663,8 +686,11 @@ async def generate_sitemap(
             },
         )
 
-    # Step 1: Pflichtseiten immer zuerst sicherstellen
-    _ensure_pflichtseiten(lead_id, db)
+    # Step 1: Pflichtseiten nur bei primary-Generation sicherstellen.
+    # Pflichtseiten leben ausschließlich im Primary-Slot — der Variant-Tab
+    # zeigt nur die KI-Alternativvorschläge.
+    if not as_variant:
+        _ensure_pflichtseiten(lead_id, db)
 
     briefing      = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
     gewerk        = (getattr(briefing, "gewerk",        None) if briefing else None) or getattr(lead, "trade", None) or "Handwerk"
@@ -697,19 +723,21 @@ async def generate_sitemap(
     except Exception:
         old_pages_summary = ""
 
-    # Step 2: Nur frühere KI-Vorschläge löschen — Bestand (source='crawled')
-    # und manuell angelegte Pages bleiben erhalten, damit der Generator nicht
-    # User-Edits oder Phase-1-Crawl-Daten zerstört.
+    # Step 2: Frühere KI-Vorschläge im Ziel-Slot (primary oder variant) löschen.
+    # Bestand und manuelle Pages bleiben erhalten. Bei variant-Generation wird
+    # primary nicht angefasst.
     db.query(SitemapPage).filter(
         SitemapPage.lead_id == lead_id,
         SitemapPage.ist_pflichtseite.is_(False),
         SitemapPage.source == "ki_generated",
+        SitemapPage.variant == target_variant,
     ).delete(synchronize_session=False)
     db.commit()
 
     # Phase 3: Bestand (source='crawled') als Prompt-Input für die KI lesen.
     # Pro Bestandsseite gibt der Prompt id/name/type/url, damit die KI im
     # Output `replaces_page_ids: [<bestands-id>, ...]` setzen kann.
+    # Bestand lebt immer in primary, deshalb keine variant-Filter hier.
     crawled_pages = (
         db.query(SitemapPage)
         .filter(SitemapPage.lead_id == lead_id, SitemapPage.source == "crawled")
@@ -729,7 +757,7 @@ async def generate_sitemap(
     api_key = os.getenv("ANTHROPIC_API_KEY")
     source = "fallback"
     if not api_key:
-        _insert_pages(lead_id, _FALLBACK_PAGES, db)
+        _insert_pages(lead_id, _FALLBACK_PAGES, db, variant=target_variant)
     else:
         wunschseiten_hint = (
             f"\nDer Kunde hat folgende Seiten gewünscht: {wunschseiten}"
@@ -845,17 +873,23 @@ async def generate_sitemap(
                 raw_pages = json.loads(repaired)
             if not isinstance(raw_pages, list) or not raw_pages:
                 raise ValueError("Ungültige Antwortstruktur")
-            _insert_pages(lead_id, raw_pages, db)
+            _insert_pages(lead_id, raw_pages, db, variant=target_variant)
             source = "ai"
         except Exception as exc:
             logger.warning("Sitemap KI-Generierung fehlgeschlagen, Fallback: %s", exc)
-            _insert_pages(lead_id, _FALLBACK_PAGES, db)
+            _insert_pages(lead_id, _FALLBACK_PAGES, db, variant=target_variant)
 
-    # Ensure at least one ground page exists regardless of AI/fallback source
-    has_ground = db.query(SitemapPage).filter(
-        SitemapPage.lead_id == lead_id,
-        SitemapPage.page_type == "ground",
-    ).first()
+    # Ensure at least one ground page exists regardless of AI/fallback source.
+    # Bei variant-Generation übernehmen wir die ground-Page aus primary —
+    # wir brauchen sie im Variant-Tab nicht zu duplizieren.
+    if not as_variant:
+        has_ground = db.query(SitemapPage).filter(
+            SitemapPage.lead_id == lead_id,
+            SitemapPage.page_type == "ground",
+            SitemapPage.variant == "primary",
+        ).first()
+    else:
+        has_ground = True  # skip — primary kümmert sich
     if not has_ground:
         _insert_pages(lead_id, [{
             "page_name": "Über uns & Informationen",
@@ -868,14 +902,15 @@ async def generate_sitemap(
             "notizen": "Ground Page — GEO/KI-Optimierung",
         }], db)
 
-    # Gesamte Sitemap (Inhalt + Pflichtseiten) zurückgeben
+    # Sitemap des Ziel-Slots zurückgeben (primary inkl. Pflicht/Bestand,
+    # variant nur die KI-Vorschläge der Alternative).
     all_pages = (
         db.query(SitemapPage)
-        .filter(SitemapPage.lead_id == lead_id)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.variant == target_variant)
         .order_by(SitemapPage.position)
         .all()
     )
-    return {"pages": [_serialize(p) for p in all_pages], "source": source}
+    return {"pages": [_serialize(p) for p in all_pages], "source": source, "variant": target_variant}
 
 
 # ── ENDPOINT: Continue-generating (R2 Relume-Parität) ─────────────────────────
@@ -906,9 +941,11 @@ async def generate_more_pages(
     if not api_key:
         raise HTTPException(status_code=503, detail="KI-API nicht konfiguriert")
 
+    # generate-more arbeitet nur am primary-Slot — wer Alternativen will, nimmt
+    # /generate mit as_variant=true.
     existing = (
         db.query(SitemapPage)
-        .filter(SitemapPage.lead_id == lead_id)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.variant == "primary")
         .order_by(SitemapPage.position)
         .all()
     )
@@ -956,15 +993,74 @@ async def generate_more_pages(
         p_data["position"] = max_pos + 1 + i
         p_data["parent_id"] = None
 
-    _insert_pages(lead_id, new_pages, db, source="ki_generated")
+    _insert_pages(lead_id, new_pages, db, source="ki_generated", variant="primary")
 
     all_pages = (
         db.query(SitemapPage)
-        .filter(SitemapPage.lead_id == lead_id)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.variant == "primary")
         .order_by(SitemapPage.position)
         .all()
     )
     return {"added": len(new_pages), "pages": [_serialize(p) for p in all_pages]}
+
+
+# ── ENDPOINTS: Variant-Slot-Verwaltung (R2 Feature 4) ─────────────────────────
+
+@router.post("/{lead_id}/promote-variant")
+def promote_variant(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Macht aus dem 'variant'-Slot den neuen 'primary'-Slot.
+
+    Schritte:
+    1. Alle primary-Pages mit source='ki_generated' und !ist_pflichtseite löschen.
+       Bestand (source='crawled') und manuelle Pages bleiben primary, weil
+       sie variant-agnostisch sind.
+    2. Alle 'variant'-Pages → variant='primary' setzen.
+    """
+    has_variant = db.query(SitemapPage).filter(
+        SitemapPage.lead_id == lead_id,
+        SitemapPage.variant == "variant",
+    ).first()
+    if not has_variant:
+        raise HTTPException(status_code=400, detail="Keine Variante zum Übernehmen vorhanden")
+
+    db.query(SitemapPage).filter(
+        SitemapPage.lead_id == lead_id,
+        SitemapPage.variant == "primary",
+        SitemapPage.source == "ki_generated",
+        SitemapPage.ist_pflichtseite.is_(False),
+    ).delete(synchronize_session=False)
+
+    db.query(SitemapPage).filter(
+        SitemapPage.lead_id == lead_id,
+        SitemapPage.variant == "variant",
+    ).update({SitemapPage.variant: "primary"}, synchronize_session=False)
+
+    db.commit()
+    pages = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.variant == "primary")
+        .order_by(SitemapPage.position)
+        .all()
+    )
+    return {"promoted": True, "pages": [_serialize(p) for p in pages]}
+
+
+@router.delete("/{lead_id}/discard-variant", status_code=204)
+def discard_variant(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Verwirft alle 'variant'-Pages eines Leads. Primary bleibt unangetastet."""
+    db.query(SitemapPage).filter(
+        SitemapPage.lead_id == lead_id,
+        SitemapPage.variant == "variant",
+    ).delete(synchronize_session=False)
+    db.commit()
 
 
 # ── ENDPOINT: PDF-Export ──────────────────────────────────────────────────────
@@ -1260,6 +1356,7 @@ def _import_urls_as_pages(
             status="live",
             source="crawled",
             original_url=url,
+            variant="primary",
         )
         db.add(page)
         db.flush()

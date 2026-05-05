@@ -227,12 +227,13 @@ export default function OnlineFertigEditor() {
     // Brevo-Mail-Trigger ist later work — heute nur das Flag setzen
   };
 
-  const handleRegenerateSitemap = async () => {
+  const handleRegenerateSitemap = async (pageCount) => {
     if (!project?.lead_id) return;
     try {
       await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id}/generate`, {
         method: 'POST',
         headers,
+        body: JSON.stringify({ page_count: pageCount || 0 }),
       });
     } catch {
       // SitemapView lädt sich selbst neu beim nächsten Mount/Update

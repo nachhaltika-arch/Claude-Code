@@ -99,6 +99,28 @@ const STATUS_OPTIONS = [
   { value: 'live',           label: 'Live' },
 ];
 
+// Color-Tag-Presets (R1 Relume-Parität). Empty string = kein Tag.
+const COLOR_TAG_PRESETS = [
+  { value: '',        label: 'Kein Tag' },
+  { value: '#FAE600', label: 'Gelb' },
+  { value: '#008EAA', label: 'Teal' },
+  { value: '#004F59', label: 'Dunkel-Teal' },
+  { value: '#DC2626', label: 'Rot' },
+  { value: '#059669', label: 'Grün' },
+  { value: '#7C3AED', label: 'Violett' },
+];
+
+const PAGE_COUNT_OPTIONS = [
+  { value: 0,  label: 'Auto (KI entscheidet)' },
+  { value: 4,  label: '4 Seiten' },
+  { value: 5,  label: '5 Seiten' },
+  { value: 6,  label: '6 Seiten' },
+  { value: 7,  label: '7 Seiten' },
+  { value: 8,  label: '8 Seiten' },
+  { value: 10, label: '10 Seiten' },
+  { value: 12, label: '12 Seiten' },
+];
+
 const NODE_W = 240;
 const NODE_H = 110;
 
@@ -108,12 +130,14 @@ function PageNode({ data }) {
   const { page, blockCount } = data;
   const meta = TYPE_META[page.page_type] || TYPE_META.info;
   const sourceBadge = SOURCE_BADGE[page.source] || SOURCE_BADGE.manual;
+  const hasColorTag = !!page.color_tag;
 
   return (
     <div style={{
       width: NODE_W,
       background: '#fff',
       border: `2px solid ${meta.color}`,
+      borderLeft: hasColorTag ? `6px solid ${page.color_tag}` : `2px solid ${meta.color}`,
       borderRadius: 12,
       padding: '10px 12px',
       boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
@@ -262,6 +286,8 @@ export default function SitemapView({
   const [selectedPageId, setSelectedPageId] = useState(null);
   // Lücke 2: Quick-Add-Form — null = aus, sonst { parent_id: number|null } oder 'top' für Top-Level
   const [addPageState, setAddPageState] = useState(null);
+  // R1 Relume-Parität: User-gewählte Page-Anzahl beim KI-Generate (0 = Auto)
+  const [pageCount, setPageCount] = useState(0);
 
   const loadPages = useCallback(() => {
     if (!leadId) return;
@@ -507,8 +533,30 @@ export default function SitemapView({
           >
             + Neue Seite
           </button>
+          <select
+            value={pageCount}
+            onChange={(e) => setPageCount(parseInt(e.target.value, 10) || 0)}
+            title="Seitenanzahl beim KI-Vorschlag"
+            style={{
+              padding: '9px 10px',
+              border: '1.5px solid #cbd5e1', borderRadius: 8,
+              background: '#fff', color: '#475569',
+              fontSize: 12, cursor: 'pointer',
+              fontFamily: 'var(--font-sans, system-ui)',
+            }}
+          >
+            {PAGE_COUNT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
           <button
-            type="button" onClick={onRegenerateSitemap}
+            type="button"
+            onClick={async () => {
+              await onRegenerateSitemap?.(pageCount);
+              // Parent feuert nur den POST und schlucks Errors. Wir laden
+              // die Tree-View nach 1.5 s neu, damit der Vorschlag sichtbar wird.
+              setTimeout(loadPages, 1500);
+            }}
             style={{
               background: 'transparent', color: KC_DARK,
               border: `1.5px solid ${KC_DARK}`, borderRadius: 8,
@@ -680,6 +728,8 @@ function PageDetailPanel({ page, onClose, onSave, onAddChild }) {
     page_type: page?.page_type || 'info',
     status:    page?.status    || 'geplant',
     sections:  Array.isArray(page?.sections) ? [...page.sections] : [],
+    ai_prompt: page?.ai_prompt || '',
+    color_tag: page?.color_tag || '',
   }));
   const [saving, setSaving] = useState(false);
   const [addingSection, setAddingSection] = useState(false);
@@ -690,6 +740,8 @@ function PageDetailPanel({ page, onClose, onSave, onAddChild }) {
       page_type: page?.page_type || 'info',
       status:    page?.status    || 'geplant',
       sections:  Array.isArray(page?.sections) ? [...page.sections] : [],
+      ai_prompt: page?.ai_prompt || '',
+      color_tag: page?.color_tag || '',
     });
   }, [page?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -782,6 +834,47 @@ function PageDetailPanel({ page, onClose, onSave, onAddChild }) {
             >
               {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
+          </div>
+        </div>
+
+        <div>
+          <label style={lblStyle}>Color-Tag</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {COLOR_TAG_PRESETS.map((c) => {
+              const isSelected = form.color_tag === c.value;
+              return (
+                <button
+                  key={c.value || 'none'} type="button"
+                  onClick={() => setForm((f) => ({ ...f, color_tag: c.value }))}
+                  title={c.label}
+                  style={{
+                    width: 24, height: 24, borderRadius: 6,
+                    background: c.value || 'transparent',
+                    border: c.value ? '1px solid rgba(0,0,0,0.1)' : '1px dashed #cbd5e1',
+                    boxShadow: isSelected ? `0 0 0 2px ${KC_MID}` : 'none',
+                    cursor: 'pointer', padding: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#94a3b8', fontSize: 11,
+                  }}
+                >
+                  {!c.value ? '×' : ''}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <label style={lblStyle}>Goal / KI-Anweisung (optional)</label>
+          <textarea
+            value={form.ai_prompt}
+            onChange={(e) => setForm((f) => ({ ...f, ai_prompt: e.target.value }))}
+            placeholder="z.B. „Lead-Capture für Wallbox-Interessenten — Fokus auf Förderung 2026"
+            rows={3}
+            style={{ ...inpStyle(false), resize: 'vertical', fontFamily: 'inherit', minHeight: 60 }}
+          />
+          <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+            Wird beim KI-Content-Generator als Per-Page-Kontext mitgegeben.
           </div>
         </div>
 

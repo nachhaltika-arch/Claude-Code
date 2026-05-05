@@ -16,7 +16,7 @@ from datetime import datetime
 from io import BytesIO
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 from reportlab.lib import colors
@@ -184,6 +184,9 @@ class SitemapPage(Base):
     # JSON-Array von sitemap_page-IDs, die diese (KI-vorgeschlagene) Page
     # aus dem gecrawlten Bestand konsolidiert / ersetzt
     replaces_page_ids    = Column(Text,         nullable=True)
+    # Relume-Parität R1: Per-Page-KI-Prompt + User-Color-Tag
+    ai_prompt            = Column(Text,         nullable=True)
+    color_tag            = Column(String(7),    nullable=True)
 
 
 # ── Pydantic schemas ───────────────────────────────────────────────────────────
@@ -218,6 +221,9 @@ class PageUpdate(BaseModel):
     # Hormozi-Spec Section-Plan — erlaubt Frontend-Editor (Lücke 1 vs Relume).
     # Werte werden gegen SECTION_CATALOG gefiltert; unbekannte Keys verworfen.
     sections:     Optional[List[str]] = None
+    # Relume-Parität R1: per-Page-KI-Prompt + User-Color-Tag.
+    ai_prompt:    Optional[str]       = None
+    color_tag:    Optional[str]       = None
     # ist_pflichtseite is intentionally excluded – cannot be changed via API
 
 
@@ -270,6 +276,9 @@ def _serialize(p: SitemapPage) -> dict:
         "source":              getattr(p, "source",       None) or "manual",
         "original_url":        getattr(p, "original_url", None) or "",
         "replaces_page_ids":   _parse_id_list(getattr(p, "replaces_page_ids", None)),
+        # Relume-Parität R1
+        "ai_prompt":           getattr(p, "ai_prompt", None) or "",
+        "color_tag":           getattr(p, "color_tag", None) or "",
     }
 
 
@@ -441,8 +450,13 @@ def update_page(
     updates = body.model_dump(exclude_unset=True)
     if page.ist_pflichtseite:
         # Only content fields may be changed; structural fields are locked
-        allowed = {"zweck", "notizen", "status", "sections"}
+        allowed = {"zweck", "notizen", "status", "sections", "ai_prompt", "color_tag"}
         updates = {k: v for k, v in updates.items() if k in allowed}
+    # color_tag muss Hex-Format sein oder leerer String — sonst verwerfen
+    if "color_tag" in updates:
+        ct = updates["color_tag"]
+        if ct and not (isinstance(ct, str) and len(ct) == 7 and ct.startswith("#")):
+            updates["color_tag"] = None
     # `sections` ist Frontend-friendly (List[str]) — Backend-Spalte ist
     # `sections_json` (JSON-String). Validierung gegen SECTION_CATALOG, damit
     # kein Garbage in der DB landet.
@@ -620,10 +634,14 @@ def _insert_pages(
 @router.post("/{lead_id}/generate")
 async def generate_sitemap(
     lead_id: int,
+    body: dict = Body(default={}),
     db: Session = Depends(get_db),
     _=Depends(require_any_auth),
 ):
-    """Generate sitemap pages via Claude AI (or fallback template)."""
+    """Generate sitemap pages via Claude AI (or fallback template).
+
+    Optional body: {"page_count": N} — geclamped auf 3..15. Default 6.
+    """
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
@@ -734,9 +752,18 @@ async def generate_sitemap(
         section_catalog_text = "\n".join(
             f"  - {key}: {desc}" for key, desc in SECTION_CATALOG.items()
         )
+        # User-gewählte Seitenanzahl (R1) — geclamped auf vernünftige Range.
+        try:
+            page_count = int((body or {}).get("page_count") or 0)
+        except (TypeError, ValueError):
+            page_count = 0
+        if page_count < 3 or page_count > 15:
+            page_count_text = "5-8"
+        else:
+            page_count_text = str(page_count)
         prompt = (
             "Du bist ein Website-Stratege für deutsche Handwerksbetriebe.\n"
-            "Erstelle eine optimale Sitemap mit 5-8 INHALTLICHEN Seiten für diesen Betrieb.\n"
+            f"Erstelle eine optimale Sitemap mit {page_count_text} INHALTLICHEN Seiten für diesen Betrieb.\n"
             "Pro Seite gibst du auch an, WELCHE Conversion-Sections (siehe Section-Katalog unten) "
             "in welcher Reihenfolge auf der Seite stehen sollen — basierend auf Hormozi-Conversion-Spec.\n\n"
             "WICHTIG — NICHT einschließen (werden automatisch ergänzt):\n"

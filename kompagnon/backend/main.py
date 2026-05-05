@@ -1080,6 +1080,12 @@ def _run_migrations():
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'manual'",
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS original_url TEXT",
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS replaces_page_ids TEXT",
+        # ── Relume-Parität R1 (2026-05-05): per-Page-KI-Prompt + User-Color-Tag.
+        # ai_prompt: optionaler Per-Page-„Goal"-Text, der dem KI-Content-Writer
+        # zusätzlichen Kontext gibt. color_tag: User-frei wählbarer Hex-Code für
+        # visuelle Organisation (vs page_type-Farbe, die fix vom Type kommt).
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ai_prompt TEXT",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS color_tag VARCHAR(7)",
         # ── Hotfix 2026-05-04: steps_confirmed war nur in migrations.py
         # (Standalone-Script, lief nie beim Backend-Start). Auf der frischen
         # Staging-DB fehlte die Spalte komplett — routers/projects.py warf

@@ -79,6 +79,10 @@ router = APIRouter(prefix="/api/sitemap", tags=["sitemap"])
 # in kompagnon/frontend/src/wireframes/sections/. Begründung pro Section
 # steht in docs/conversion-spec-shk.md.
 SECTION_CATALOG = {
+    # Frame (Header + Footer) — global anmutend, aber als reguläre Sections
+    # geführt, damit pro Page anpassbar (z.B. Landingpage ohne Hauptnav).
+    "header_nav":          "Sticky-Header: Logo + Hauptnavigation + ggf. CTA-Button",
+
     # Hero-Varianten
     "hero_value_equation": "Hero mit Hormozi-Outcome+Time+Effort-Versprechen (Startseite)",
     "hero_service":        "Hero für Service-Detail-Page mit klarem Outcome",
@@ -114,16 +118,16 @@ SECTION_CATALOG = {
 # Fallback / Default-Section-Sets falls AI keine Sections liefert.
 # Reihenfolge ist relevant — wird 1:1 als Render-Order genommen.
 DEFAULT_SECTIONS_BY_PAGETYPE: dict[str, list[str]] = {
-    "startseite":  ["hero_value_equation", "problem", "service_grid", "offer_stack",
-                    "trust_strip", "fallstudien_3", "guarantee_block", "faq", "cta_final"],
-    "leistung":    ["hero_service", "problem", "offer_stack", "process_steps",
-                    "fallstudien_3", "trust_strip", "guarantee_block", "faq_service", "cta_final"],
-    "vertrauen":   ["hero_minimal", "team", "fallstudien_3", "trust_strip", "cta_inline"],
-    "conversion":  ["hero_minimal", "offer_stack", "guarantee_block", "urgency_block",
-                    "contact_form", "cta_final"],
-    "info":        ["hero_minimal", "content_richtext", "faq", "cta_inline"],
-    "ground":      ["hero_minimal", "service_grid", "faq", "contact_form"],
-    "rechtlich":   ["hero_minimal", "content_richtext"],
+    "startseite":  ["header_nav", "hero_value_equation", "problem", "service_grid", "offer_stack",
+                    "trust_strip", "fallstudien_3", "guarantee_block", "faq", "cta_final", "footer_legal"],
+    "leistung":    ["header_nav", "hero_service", "problem", "offer_stack", "process_steps",
+                    "fallstudien_3", "trust_strip", "guarantee_block", "faq_service", "cta_final", "footer_legal"],
+    "vertrauen":   ["header_nav", "hero_minimal", "team", "fallstudien_3", "trust_strip", "cta_inline", "footer_legal"],
+    "conversion":  ["header_nav", "hero_minimal", "offer_stack", "guarantee_block", "urgency_block",
+                    "contact_form", "cta_final", "footer_legal"],
+    "info":        ["header_nav", "hero_minimal", "content_richtext", "faq", "cta_inline", "footer_legal"],
+    "ground":      ["header_nav", "hero_minimal", "service_grid", "faq", "contact_form", "footer_legal"],
+    "rechtlich":   ["header_nav", "hero_minimal", "content_richtext", "footer_legal"],
 }
 
 

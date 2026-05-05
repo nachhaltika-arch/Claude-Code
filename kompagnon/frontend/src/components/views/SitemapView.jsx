@@ -60,6 +60,7 @@ const SOURCE_BADGE = {
 // Backend hier neue Section-Keys einführt, muss das hier nachgezogen werden —
 // ist aber bewusst kein eigener Endpoint, weil die Liste statisch ist.
 const SECTION_CATALOG = {
+  header_nav:          'Sticky-Header: Logo + Hauptnavigation + ggf. CTA-Button',
   hero_value_equation: 'Hero mit Hormozi-Outcome+Time+Effort-Versprechen (Startseite)',
   hero_service:        'Hero für Service-Detail-Page mit klarem Outcome',
   hero_minimal:        'Kompakter Hero — für Über uns / Kontakt / Rechtliches',

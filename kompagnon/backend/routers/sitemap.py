@@ -543,13 +543,36 @@ _FALLBACK_PAGES = [
 ]
 
 
-def _insert_pages(lead_id: int, raw_pages: list, db: Session) -> list:
-    """Persist a list of page dicts, return serialized results."""
+def _insert_pages(
+    lead_id: int,
+    raw_pages: list,
+    db: Session,
+    source: str = "ki_generated",
+) -> list:
+    """Persist a list of page dicts, return serialized results.
+
+    `source` is written into sitemap_pages.source. Defaults to 'ki_generated'
+    because all current callers are the AI generator (or its fallback). Each
+    raw_page may include a `replaces_page_ids` list — if present and non-empty,
+    it is JSON-encoded into sitemap_pages.replaces_page_ids (Phase-3 mapping
+    of "this AI suggestion replaces these crawled bestand pages").
+    """
     created = []
     id_map: dict[int, int] = {}  # old position-based index → new DB id (for parent linking)
 
     for i, p in enumerate(raw_pages):
         sections = _resolve_sections(p)
+        replaces_raw = p.get("replaces_page_ids")
+        replaces_json: Optional[str] = None
+        if isinstance(replaces_raw, list) and replaces_raw:
+            cleaned_ids: list[int] = []
+            for item in replaces_raw:
+                try:
+                    cleaned_ids.append(int(item))
+                except (TypeError, ValueError):
+                    continue
+            if cleaned_ids:
+                replaces_json = json.dumps(cleaned_ids)
         page = SitemapPage(
             lead_id=lead_id,
             page_name=str(p.get("page_name", "Seite"))[:100],
@@ -563,6 +586,8 @@ def _insert_pages(lead_id: int, raw_pages: list, db: Session) -> list:
             notizen=p.get("notizen") or "",
             status="geplant",
             sections_json=json.dumps(sections, ensure_ascii=False),
+            source=source,
+            replaces_page_ids=replaces_json,
         )
         db.add(page)
         db.flush()  # get page.id
@@ -644,12 +669,33 @@ async def generate_sitemap(
     except Exception:
         old_pages_summary = ""
 
-    # Step 2: Nur Nicht-Pflichtseiten löschen
+    # Step 2: Nur frühere KI-Vorschläge löschen — Bestand (source='crawled')
+    # und manuell angelegte Pages bleiben erhalten, damit der Generator nicht
+    # User-Edits oder Phase-1-Crawl-Daten zerstört.
     db.query(SitemapPage).filter(
         SitemapPage.lead_id == lead_id,
         SitemapPage.ist_pflichtseite.is_(False),
-    ).delete()
+        SitemapPage.source == "ki_generated",
+    ).delete(synchronize_session=False)
     db.commit()
+
+    # Phase 3: Bestand (source='crawled') als Prompt-Input für die KI lesen.
+    # Pro Bestandsseite gibt der Prompt id/name/type/url, damit die KI im
+    # Output `replaces_page_ids: [<bestands-id>, ...]` setzen kann.
+    crawled_pages = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.source == "crawled")
+        .order_by(SitemapPage.position, SitemapPage.id)
+        .all()
+    )
+    bestand_section = ""
+    if crawled_pages:
+        lines = ["BESTANDS-SEITEN (Phase-1 Crawl der aktuellen Website):"]
+        for cp in crawled_pages[:30]:
+            url = cp.original_url or ""
+            ptype = cp.page_type or "sonstige"
+            lines.append(f"  ID {cp.id} | {cp.page_name} | {ptype} | {url}")
+        bestand_section = "\n".join(lines)
 
     # Step 3: KI oder Fallback
     api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -664,6 +710,15 @@ async def generate_sitemap(
         old_pages_hint = (
             f"\n{old_pages_summary}"
             if old_pages_summary else ""
+        )
+        bestand_hint = f"\n\n{bestand_section}" if bestand_section else ""
+        bestand_mapping_rule = (
+            "\n- Wenn BESTANDS-SEITEN vorhanden sind: pro neuer Inhaltsseite "
+            "OPTIONAL `replaces_page_ids: [<id>, ...]` setzen mit den IDs der "
+            "Bestandsseiten, die diese neue Seite konsolidiert oder ersetzt. "
+            "Leer lassen / weglassen wenn die neue Seite keinen Bestandsbezug hat. "
+            "Eine Bestandsseite darf von mehreren neuen Pages referenziert werden."
+            if bestand_section else ""
         )
         # Section-Katalog kompakt für den Prompt (key: kurzbeschreibung)
         section_catalog_text = "\n".join(
@@ -684,7 +739,8 @@ async def generate_sitemap(
             f"- USP (Alleinstellungsmerkmal): {usp or '–'}\n"
             f"- Zielgruppe: {zielgruppe}\n"
             f"{wunschseiten_hint}"
-            f"{old_pages_hint}\n\n"
+            f"{old_pages_hint}"
+            f"{bestand_hint}\n\n"
             "SECTION-KATALOG (du wählst pro Page eine geordnete Liste aus diesen Keys):\n"
             f"{section_catalog_text}\n\n"
             "REGELN FÜR DIE SITEMAP:\n"
@@ -693,7 +749,8 @@ async def generate_sitemap(
             "- Vertrauensseite einplanen (Referenzen, Team, Über uns)\n"
             "- Kontaktseite immer als letzte Inhaltsseite\n"
             "- ziel_keyword auf die wichtigsten SEO-Begriffe abstimmen\n"
-            "- Branchenspezifisch denken: Was sucht die Zielgruppe wirklich?\n\n"
+            "- Branchenspezifisch denken: Was sucht die Zielgruppe wirklich?"
+            f"{bestand_mapping_rule}\n\n"
             "REGELN FÜR DIE SECTION-AUSWAHL pro Page:\n"
             "- Startseite: hero_value_equation am Anfang, mind. offer_stack ODER service_grid, "
             "  trust_strip, fallstudien_3, guarantee_block, faq, cta_final am Ende. Reihenfolge wichtig.\n"
@@ -716,7 +773,8 @@ async def generate_sitemap(
             '[{ "page_name": "", "page_type": "startseite|leistung|info|vertrauen|conversion|ground", '
             '"zweck": "", "ziel_keyword": "", "cta_text": "", "cta_ziel": "kontakt|formular|tel", '
             '"position": 0, "parent_id": null, '
-            '"sections": ["hero_xxx","..."] }]'
+            '"sections": ["hero_xxx","..."], '
+            '"replaces_page_ids": [] }]'
         )
         try:
             from anthropic import Anthropic

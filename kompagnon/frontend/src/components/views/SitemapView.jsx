@@ -157,7 +157,7 @@ function layoutTree(pages, blocksByPageId) {
     };
   });
 
-  const edges = pages
+  const parentEdges = pages
     .filter((p) => p.parent_id)
     .map((p) => ({
       id: `e-${p.parent_id}-${p.id}`,
@@ -167,7 +167,31 @@ function layoutTree(pages, blocksByPageId) {
       style: { stroke: '#94a3b8', strokeWidth: 1.5 },
     }));
 
-  return { nodes, edges };
+  // Phase 3: "Ersetzt"-Mappings — KI-Vorschlag → konsolidierte Bestandsseiten.
+  // Visuell als gestrichelte rote Edge, die auf den ersten Blick zeigt, welche
+  // Bestandspages durch den KI-Vorschlag entfallen / ersetzt werden.
+  const pageIdSet = new Set(pages.map((p) => p.id));
+  const replaceEdges = [];
+  pages.forEach((p) => {
+    const ids = Array.isArray(p.replaces_page_ids) ? p.replaces_page_ids : [];
+    ids.forEach((bestandId) => {
+      if (!pageIdSet.has(bestandId) || bestandId === p.id) return;
+      replaceEdges.push({
+        id: `r-${p.id}-${bestandId}`,
+        source: String(p.id),
+        target: String(bestandId),
+        type: 'straight',
+        animated: false,
+        label: 'ersetzt',
+        labelStyle: { fill: '#DC2626', fontSize: 10, fontWeight: 700 },
+        labelBgStyle: { fill: '#FEF2F2' },
+        labelBgPadding: [4, 2],
+        style: { stroke: '#DC2626', strokeWidth: 1.5, strokeDasharray: '6 4' },
+      });
+    });
+  });
+
+  return { nodes, edges: [...parentEdges, ...replaceEdges] };
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────

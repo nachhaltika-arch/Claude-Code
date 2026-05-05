@@ -23,6 +23,33 @@ const STATUS_LABELS = {
 
 const TABS = ['Alle Seiten', 'Templates', 'Produkt-Seiten'];
 
+// "Mein Produkt" → "/mein-produkt", "Über uns!" → "/ueber-uns"
+function slugify(text) {
+  const cleaned = (text || '')
+    .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9/]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/\/+/g, '/');
+  return cleaned ? `/${cleaned.replace(/^\//, '')}` : '';
+}
+
+// Erlaubt: führender /, dann segmente aus a-z, 0-9 und Bindestrich, getrennt
+// durch /. Keine Leerzeichen, keine Großbuchstaben, keine Sonderzeichen.
+const SLUG_REGEX = /^\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*\/?$/;
+
+function validateSlug(slug) {
+  if (!slug) return 'Slug ist Pflichtfeld';
+  if (!slug.startsWith('/')) return 'Slug muss mit / beginnen';
+  if (slug.includes('//')) return 'Slug darf keine doppelten / enthalten';
+  if (!SLUG_REGEX.test(slug)) return 'Nur kleinbuchstaben, ziffern, - und / erlaubt';
+  return null;
+}
+
 export default function PageManager() {
   const { token } = useAuth();
   const { isMobile } = useScreenSize();
@@ -36,6 +63,9 @@ export default function PageManager() {
   const [showNewPage, setShowNewPage] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [newPage, setNewPage] = useState({ slug: '', name: '', page_type: 'custom', description: '' });
+  // Tracks ob der User den Slug schon manuell editiert hat — sobald ja, stoppt
+  // das Auto-Suggest aus dem Name-Feld, damit User-Input nicht überschrieben wird.
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [creating, setCreating] = useState(false);
   const [uploadForm, setUploadForm] = useState({ name: '', category: 'allgemein', file: null });
   const [uploading, setUploading] = useState(false);
@@ -67,8 +97,13 @@ export default function PageManager() {
   const handleCreatePage = async (e) => {
     if (e?.preventDefault) e.preventDefault();
     if (creating) return;
-    if (!newPage.slug || !newPage.name) {
-      toast.error('Slug und Name sind Pflichtfelder');
+    if (!newPage.name.trim()) {
+      toast.error('Name ist Pflichtfeld');
+      return;
+    }
+    const slugErr = validateSlug(newPage.slug);
+    if (slugErr) {
+      toast.error(slugErr);
       return;
     }
     setCreating(true);
@@ -83,9 +118,16 @@ export default function PageManager() {
       toast.success('Seite angelegt');
       setShowNewPage(false);
       setNewPage({ slug: '', name: '', page_type: 'custom', description: '' });
+      setSlugManuallyEdited(false);
       loadData();
     } catch (err) { toast.error(err.message); }
     finally { setCreating(false); }
+  };
+
+  const closeNewPageModal = () => {
+    setShowNewPage(false);
+    setNewPage({ slug: '', name: '', page_type: 'custom', description: '' });
+    setSlugManuallyEdited(false);
   };
 
   const handleUploadTemplate = async (e) => {
@@ -372,7 +414,7 @@ export default function PageManager() {
 
       {/* Modal: Neue Seite */}
       {showNewPage && createPortal(
-        <div onClick={() => setShowNewPage(false)} style={{
+        <div onClick={closeNewPageModal} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',
           zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         }}>
@@ -384,28 +426,77 @@ export default function PageManager() {
             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--text-primary)' }}>
               Neue Seite anlegen
             </h3>
-            {[
-              ['name', 'Name (intern)', 'Paket: Mein Produkt'],
-              ['slug', 'URL-Pfad (slug)', '/paket/mein-produkt'],
-              ['description', 'Beschreibung (optional)', ''],
-            ].map(([key, label, ph], idx) => (
-              <div key={key} style={{ marginBottom: 12 }}>
-                <label style={{
-                  display: 'block', fontSize: 11, fontWeight: 600,
-                  textTransform: 'uppercase', letterSpacing: '.06em',
-                  color: 'var(--text-secondary)', marginBottom: 4,
-                }}>
-                  {label}
-                </label>
-                <input
-                  type="text" placeholder={ph}
-                  value={newPage[key]}
-                  onChange={e => setNewPage(p => ({ ...p, [key]: e.target.value }))}
-                  style={S.input}
-                  autoFocus={idx === 0}
-                />
-              </div>
-            ))}
+
+            {/* Name (intern) — Slug wird daraus auto-suggeriert solange der
+                User den Slug nicht selbst editiert hat. */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{
+                display: 'block', fontSize: 11, fontWeight: 600,
+                textTransform: 'uppercase', letterSpacing: '.06em',
+                color: 'var(--text-secondary)', marginBottom: 4,
+              }}>Name (intern)</label>
+              <input
+                type="text" placeholder="Paket: Mein Produkt"
+                value={newPage.name}
+                onChange={e => {
+                  const name = e.target.value;
+                  setNewPage(p => ({
+                    ...p,
+                    name,
+                    slug: slugManuallyEdited ? p.slug : slugify(name),
+                  }));
+                }}
+                style={S.input}
+                autoFocus
+              />
+            </div>
+
+            {/* Slug — sobald angefasst, kein Auto-Override mehr */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{
+                display: 'block', fontSize: 11, fontWeight: 600,
+                textTransform: 'uppercase', letterSpacing: '.06em',
+                color: 'var(--text-secondary)', marginBottom: 4,
+              }}>URL-Pfad (slug)</label>
+              <input
+                type="text" placeholder="/paket/mein-produkt"
+                value={newPage.slug}
+                onChange={e => {
+                  setSlugManuallyEdited(true);
+                  setNewPage(p => ({ ...p, slug: e.target.value }));
+                }}
+                style={{
+                  ...S.input,
+                  borderColor: newPage.slug && validateSlug(newPage.slug) ? '#dc2626' : 'var(--border-light)',
+                  fontFamily: 'monospace',
+                }}
+              />
+              {newPage.slug && validateSlug(newPage.slug) && (
+                <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>
+                  {validateSlug(newPage.slug)}
+                </div>
+              )}
+              {!slugManuallyEdited && newPage.name && (
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                  Wird automatisch aus dem Namen erzeugt — beim Tippen übernimmst du.
+                </div>
+              )}
+            </div>
+
+            {/* Beschreibung */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{
+                display: 'block', fontSize: 11, fontWeight: 600,
+                textTransform: 'uppercase', letterSpacing: '.06em',
+                color: 'var(--text-secondary)', marginBottom: 4,
+              }}>Beschreibung (optional)</label>
+              <input
+                type="text"
+                value={newPage.description}
+                onChange={e => setNewPage(p => ({ ...p, description: e.target.value }))}
+                style={S.input}
+              />
+            </div>
             <div style={{ marginBottom: 20 }}>
               <label style={{
                 display: 'block', fontSize: 11, fontWeight: 600,
@@ -424,7 +515,7 @@ export default function PageManager() {
               </select>
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button type="button" style={S.btn(false)} onClick={() => setShowNewPage(false)}>Abbrechen</button>
+              <button type="button" style={S.btn(false)} onClick={closeNewPageModal}>Abbrechen</button>
               <button type="submit" style={{ ...S.btn(true), opacity: creating ? 0.6 : 1, cursor: creating ? 'wait' : 'pointer' }} disabled={creating}>
                 {creating ? 'Anlegen…' : 'Anlegen →'}
               </button>

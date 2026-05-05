@@ -122,7 +122,19 @@ const PAGE_COUNT_OPTIONS = [
 ];
 
 const NODE_W = 240;
-const NODE_H = 110;
+// Höhe variabel je nach Section-Anzahl. Min 110, +14 px pro sichtbarer Section
+// (max 5 sichtbar, Rest als „+N more"-Zeile). Wird beim Layout pro Node
+// berechnet, damit dagre die Karten kollisionsfrei platziert.
+const NODE_H_BASE = 110;
+const SECTION_LINE_H = 14;
+const MAX_VISIBLE_SECTIONS = 5;
+
+function nodeHeightForSections(sectionCount) {
+  if (sectionCount <= 0) return NODE_H_BASE;
+  const visible = Math.min(sectionCount, MAX_VISIBLE_SECTIONS);
+  const overflow = sectionCount > MAX_VISIBLE_SECTIONS ? 1 : 0;
+  return NODE_H_BASE + (visible + overflow) * SECTION_LINE_H + 8;
+}
 
 // ── Custom Node ──────────────────────────────────────────────────────────────
 
@@ -191,6 +203,32 @@ function PageNode({ data }) {
           </a>
         ) : null}
       </div>
+
+      {/* Section-Liste — zeigt die Hormozi-Sections der Page direkt im Tree */}
+      {Array.isArray(page.sections) && page.sections.length > 0 && (
+        <div style={{
+          marginTop: 8, paddingTop: 8,
+          borderTop: '1px dashed #e2e8f0',
+          display: 'flex', flexDirection: 'column', gap: 2,
+        }}>
+          {page.sections.slice(0, MAX_VISIBLE_SECTIONS).map((key, idx) => (
+            <div key={`${key}-${idx}`} style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              fontSize: 9, color: '#64748b',
+              lineHeight: 1.3, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+            }}>
+              <span style={{ color: meta.color, fontWeight: 700, flexShrink: 0 }}>·</span>
+              <code style={{ fontSize: 9, color: KC_MID, fontWeight: 600 }}>{key}</code>
+            </div>
+          ))}
+          {page.sections.length > MAX_VISIBLE_SECTIONS && (
+            <div style={{ fontSize: 9, color: '#94a3b8', fontStyle: 'italic' }}>
+              + {page.sections.length - MAX_VISIBLE_SECTIONS} weitere
+            </div>
+          )}
+        </div>
+      )}
+
       <Handle type="source" position={Position.Bottom}
         style={{ background: meta.color, width: 8, height: 8, border: 'none' }}
       />
@@ -207,8 +245,14 @@ function layoutTree(pages, blocksByPageId) {
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 70 });
 
+  // Pro-Node-Höhe je nach Section-Anzahl, damit dagre die Karten kollisionsfrei
+  // platziert wenn manche Karten viele Sections haben.
+  const heightById = new Map();
   pages.forEach((p) => {
-    g.setNode(String(p.id), { width: NODE_W, height: NODE_H });
+    const sCount = Array.isArray(p.sections) ? p.sections.length : 0;
+    const h = nodeHeightForSections(sCount);
+    heightById.set(p.id, h);
+    g.setNode(String(p.id), { width: NODE_W, height: h });
   });
   pages.forEach((p) => {
     if (p.parent_id) g.setEdge(String(p.parent_id), String(p.id));
@@ -217,10 +261,11 @@ function layoutTree(pages, blocksByPageId) {
 
   const nodes = pages.map((p) => {
     const pos = g.node(String(p.id));
+    const h = heightById.get(p.id) || NODE_H_BASE;
     return {
       id: String(p.id),
       type: 'page',
-      position: { x: pos.x - NODE_W / 2, y: pos.y - NODE_H / 2 },
+      position: { x: pos.x - NODE_W / 2, y: pos.y - h / 2 },
       data: { page: p, blockCount: (blocksByPageId.get(p.id) || []).length },
     };
   });

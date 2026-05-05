@@ -316,6 +316,9 @@ PFLICHTSEITEN_IMMER = [
         "zweck": "Gesetzlich vorgeschriebene Pflichtangaben gemäß §5 TMG",
         "ziel_keyword": "Impressum",
         "bedingung": None,
+        # Substring (lowercase) zur Existenz-Prüfung — fängt 'Impressum',
+        # 'Impressum & Kontakt', 'impressum-koblenz', etc.
+        "match_kw": "impressum",
     },
     {
         "page_name": "Datenschutzerklärung",
@@ -324,6 +327,7 @@ PFLICHTSEITEN_IMMER = [
         "zweck": "Informationen zur Datenverarbeitung gemäß DSGVO",
         "ziel_keyword": "Datenschutz",
         "bedingung": None,
+        "match_kw": "datenschutz",  # fängt 'Datenschutz' UND 'Datenschutzerklärung'
     },
 ]
 
@@ -374,36 +378,47 @@ OPTIONALE_SEITEN = [
 
 
 def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
-    """Insert missing Immer-Pflichtseiten for a lead (idempotent). Bedingte Pflichtseiten are added via /suggest."""
-    pflicht_count = (
-        db.query(SitemapPage)
-        .filter(SitemapPage.lead_id == lead_id, SitemapPage.ist_pflichtseite.is_(True))
-        .count()
-    )
-    if pflicht_count >= len(PFLICHTSEITEN_IMMER):
-        return
+    """Insert missing Immer-Pflichtseiten for a lead (idempotent).
 
-    existing_names = {
-        p.page_name
-        for p in db.query(SitemapPage).filter(SitemapPage.lead_id == lead_id).all()
-    }
+    Existing pages are matched by the `match_kw` substring (lowercase) — that
+    way a crawled „Datenschutz" doesn't get a duplicate manual „Datenschutz-
+    erklärung" inserted next to it. If a matching page exists but isn't yet
+    flagged as Pflichtseite, we promote it in place.
+    """
+    all_pages = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id)
+        .all()
+    )
     for seite in PFLICHTSEITEN_IMMER:
-        if seite["page_name"] not in existing_names:
-            default_sections = DEFAULT_SECTIONS_BY_PAGETYPE.get(
-                seite["page_type"], DEFAULT_SECTIONS_BY_PAGETYPE["info"]
-            )
-            db.add(SitemapPage(
-                lead_id=lead_id,
-                page_name=seite["page_name"],
-                page_type=seite["page_type"],
-                position=seite["position"],
-                zweck=seite.get("zweck", ""),
-                ziel_keyword=seite.get("ziel_keyword", ""),
-                status="geplant",
-                ist_pflichtseite=True,
-                sections_json=json.dumps(default_sections, ensure_ascii=False),
-                variant="primary",
-            ))
+        kw = seite.get("match_kw") or seite["page_name"].lower()
+        match = next(
+            (p for p in all_pages if kw in (p.page_name or "").lower()),
+            None,
+        )
+        if match is not None:
+            # Existiert bereits — als Pflichtseite markieren falls nicht schon.
+            if not match.ist_pflichtseite:
+                match.ist_pflichtseite = True
+                if not match.page_type or match.page_type == "sonstige":
+                    match.page_type = seite["page_type"]
+            continue
+        # Keine passende Seite vorhanden — neu anlegen.
+        default_sections = DEFAULT_SECTIONS_BY_PAGETYPE.get(
+            seite["page_type"], DEFAULT_SECTIONS_BY_PAGETYPE["info"]
+        )
+        db.add(SitemapPage(
+            lead_id=lead_id,
+            page_name=seite["page_name"],
+            page_type=seite["page_type"],
+            position=seite["position"],
+            zweck=seite.get("zweck", ""),
+            ziel_keyword=seite.get("ziel_keyword", ""),
+            status="geplant",
+            ist_pflichtseite=True,
+            sections_json=json.dumps(default_sections, ensure_ascii=False),
+            variant="primary",
+        ))
     db.commit()
 
 
@@ -1273,6 +1288,18 @@ _PFLICHT_KEYWORDS: dict[str, tuple[str, bool]] = {
     "widerruf":              ("rechtlich", True),
 }
 
+# Datei-Endungen, die KEINE eigenen Inhaltsseiten sind — Assets vom Crawler
+# rausfiltern (CSS-Bundles, Bilder, Webfonts, PDFs, Archive, Mediafiles).
+_ASSET_EXTENSIONS: frozenset[str] = frozenset({
+    ".css", ".js", ".mjs", ".map",
+    ".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp", ".avif", ".ico", ".bmp",
+    ".woff", ".woff2", ".ttf", ".eot", ".otf",
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".zip", ".rar", ".7z", ".tar", ".gz",
+    ".mp4", ".webm", ".mp3", ".wav", ".ogg",
+    ".xml", ".json", ".txt",
+})
+
 # Page-Type-Heuristik: tuple_of_keywords → page_type
 _TYPE_HEURISTICS: list[tuple[tuple[str, ...], str]] = [
     (("leistung", "service", "angebot", "produkt"),                  "leistung"),
@@ -1317,7 +1344,8 @@ def _import_urls_as_pages(
 
     base_netloc = urlparse(start_url).netloc.lower().replace("www.", "")
 
-    # Normalize + dedupe by path
+    # Normalize + dedupe by path. Filter Assets (Bilder, CSS, JS, Fonts, PDF, …)
+    # — die haben im Sitemap-Tree nichts verloren.
     seen: set[str] = set()
     items: list[tuple[str, str, list[str], int]] = []
     for raw in urls:
@@ -1326,6 +1354,13 @@ def _import_urls_as_pages(
         if netloc != base_netloc:
             continue
         path = parsed.path.rstrip("/").lower()
+        # Asset-Filter: letzter Pfad-Bestandteil hat eine Datei-Endung aus der Liste
+        last_seg = path.rsplit("/", 1)[-1]
+        ext_idx = last_seg.rfind(".")
+        if ext_idx > 0:
+            ext = last_seg[ext_idx:].lower()
+            if ext in _ASSET_EXTENSIONS:
+                continue
         if path in seen:
             continue
         seen.add(path)

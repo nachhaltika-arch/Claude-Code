@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+
+const TRADE_OPTIONS = [
+  'Heizung', 'Sanitär', 'Elektriker', 'Klempner',
+  'Dachdecker', 'Maler', 'Schreiner', 'Fliesenleger', 'Sonstiges',
+];
 
 const STATUS_COLORS = {
   new:      { bg: '#EAF4E0', text: '#3B6D11' },
@@ -64,6 +71,7 @@ export default function Companies() {
   const [sourceFilter, setSourceFilter] = useState('Alle');
   const [sortKey, setSortKey]   = useState('company_name');
   const [sortAsc, setSortAsc]   = useState(true);
+  const [showNewCompany, setShowNewCompany] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -169,6 +177,24 @@ export default function Companies() {
             <option value="HWK-Rheinhessen">HWK Rheinhessen</option>
             <option value="manual">Manuell</option>
           </select>
+          <button
+            type="button"
+            onClick={() => setShowNewCompany(true)}
+            style={{
+              padding: '8px 16px',
+              background: 'var(--brand-primary)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            + Neues Unternehmen
+          </button>
         </div>
       </div>
 
@@ -312,6 +338,243 @@ export default function Companies() {
           </div>
         </div>
       )}
+
+      {showNewCompany && (
+        <NewCompanyModal
+          token={token}
+          onClose={() => setShowNewCompany(false)}
+          onCreated={(lead) => {
+            setShowNewCompany(false);
+            load();
+            // Optional: direkt zur neuen Lead-Profile-Page
+            if (lead?.id) navigate(`/app/leads/${lead.id}`);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+// ── Modal: Neues Unternehmen ──────────────────────────────────────────────────
+
+function NewCompanyModal({ token, onClose, onCreated }) {
+  const [form, setForm] = useState({
+    company_name: '',
+    website_url:  '',
+    contact_name: '',
+    email:        '',
+    phone:        '',
+    city:         '',
+    trade:        '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (saving) return;
+    if (!form.company_name.trim()) {
+      toast.error('Firmenname ist Pflichtfeld');
+      return;
+    }
+    let websiteUrl = form.website_url.trim();
+    if (websiteUrl && !websiteUrl.startsWith('http')) {
+      websiteUrl = `https://${websiteUrl}`;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/leads/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          company_name: form.company_name.trim(),
+          website_url:  websiteUrl || undefined,
+          contact_name: form.contact_name.trim() || undefined,
+          email:        form.email.trim() || undefined,
+          phone:        form.phone.trim() || undefined,
+          city:         form.city.trim() || undefined,
+          trade:        form.trade || undefined,
+          status:       'new',
+          lead_source:  'manual',
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = body?.detail;
+        const msg = typeof detail === 'string' ? detail : detail?.message || `Fehler ${res.status}`;
+        throw new Error(msg);
+      }
+      toast.success(`„${form.company_name}" angelegt`);
+      onCreated(body);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inp = {
+    width: '100%', boxSizing: 'border-box', padding: '9px 12px',
+    border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
+    background: 'var(--bg-surface)', color: 'var(--text-primary)',
+    fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none',
+  };
+  const lbl = {
+    display: 'block', fontSize: 11, fontWeight: 600,
+    color: 'var(--text-tertiary)', textTransform: 'uppercase',
+    letterSpacing: '0.06em', marginBottom: 4,
+  };
+
+  return createPortal(
+    <div
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 2000,
+        background: 'rgba(0,0,0,0.55)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16,
+      }}
+    >
+      <form
+        onSubmit={handleSubmit}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'var(--bg-surface)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-lg)',
+          width: '100%', maxWidth: 520,
+          maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          padding: '18px 22px 14px',
+          borderBottom: '1px solid var(--border-light)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+              Neues Unternehmen anlegen
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
+              Manueller Lead — kann später für Audit / Projekt genutzt werden
+            </div>
+          </div>
+          <button
+            type="button" onClick={onClose}
+            style={{
+              background: 'none', border: 'none', fontSize: 20,
+              cursor: 'pointer', color: 'var(--text-tertiary)',
+              lineHeight: 1, padding: '0 2px',
+            }}
+            aria-label="Schließen"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={lbl}>Firmenname *</label>
+            <input
+              value={form.company_name} onChange={set('company_name')}
+              placeholder="z.B. Müller Haustechnik GmbH"
+              style={inp} autoFocus
+            />
+          </div>
+          <div>
+            <label style={lbl}>Website / Domain</label>
+            <input
+              value={form.website_url} onChange={set('website_url')}
+              placeholder="z.B. mueller-haustechnik.de"
+              style={inp} autoComplete="url"
+            />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>Ansprechpartner</label>
+              <input
+                value={form.contact_name} onChange={set('contact_name')}
+                placeholder="Vor- und Nachname" style={inp}
+              />
+            </div>
+            <div>
+              <label style={lbl}>Telefon</label>
+              <input
+                type="tel" value={form.phone} onChange={set('phone')}
+                placeholder="+49 …" style={inp}
+              />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>E-Mail</label>
+              <input
+                type="email" value={form.email} onChange={set('email')}
+                placeholder="info@firma.de" style={inp}
+              />
+            </div>
+            <div>
+              <label style={lbl}>Stadt</label>
+              <input
+                value={form.city} onChange={set('city')}
+                placeholder="Boppard" style={inp}
+              />
+            </div>
+          </div>
+          <div>
+            <label style={lbl}>Gewerk</label>
+            <select value={form.trade} onChange={set('trade')} style={{ ...inp, cursor: 'pointer' }}>
+              <option value="">Bitte wählen…</option>
+              {TRADE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: '14px 22px',
+          borderTop: '1px solid var(--border-light)',
+          display: 'flex', justifyContent: 'flex-end', gap: 10,
+        }}>
+          <button
+            type="button" onClick={onClose}
+            style={{
+              padding: '9px 18px',
+              background: 'var(--bg-app)',
+              border: '1px solid var(--border-light)',
+              color: 'var(--text-secondary)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: 13, cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+            }}
+          >
+            Abbrechen
+          </button>
+          <button
+            type="submit" disabled={saving}
+            style={{
+              padding: '9px 22px',
+              background: saving ? 'var(--text-tertiary)' : 'var(--brand-primary)',
+              color: '#fff', border: 'none',
+              borderRadius: 'var(--radius-md)',
+              fontSize: 13, fontWeight: 600,
+              cursor: saving ? 'wait' : 'pointer',
+              fontFamily: 'var(--font-sans)',
+              opacity: saving ? 0.6 : 1,
+            }}
+          >
+            {saving ? 'Anlegen…' : '✓ Unternehmen anlegen'}
+          </button>
+        </div>
+      </form>
+    </div>,
+    document.body,
   );
 }

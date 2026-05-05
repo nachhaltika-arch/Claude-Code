@@ -16,6 +16,19 @@ hier automatisch beim Backend-Start ein und schreibt sie in `component_library`.
 3. **Speichern als** `relume-{kategorie}-{n}.html`
    Beispiele: `relume-hero-1.html`, `relume-cta-3.html`, `relume-pricing-2.html`.
 
+   **Cleanup-Regeln** (immer anwenden, ich mache das automatisch beim Einreichen):
+   - `<section id="relume">` → `<section>` (id entfernen — kein Branding-Marker)
+   - Cloudfront-URLs (`https://d22po4pjz3o32e.cloudfront.net/...`) durch
+     lokale Placeholder ersetzen:
+     - Logo-Bilder → `/placeholder-logo.svg`
+     - Avatar-/User-Bilder → `/placeholder-avatar.svg`
+     - Allgemeine Demo-Bilder → `/placeholder-image.svg`
+   - Andere Vorkommen des Wortes „relume" in IDs / Comments innerhalb
+     des Render-HTML → entfernen (Attribution-Header oben **bleibt**).
+   - Tailwind-Klassen mit Relume-Tokens (`border-border-primary`,
+     `bg-background-primary`, `text-neutral` etc.) bleiben erstmal —
+     siehe TOKEN-Hinweis unten.
+
 4. **Eintrag in `index.json`** ergänzen — Schema siehe unten.
 
 5. Backend redeployen oder lokal `python -m seeds.seed_component_library`
@@ -66,6 +79,38 @@ nutzt das später, um die richtigen Templates pro Sitemap-Section vorzuschlagen.
 
 Wenn das Repo jemals öffentlich werden soll: **dieses Verzeichnis vorher entfernen
 oder in `.gitignore` aufnehmen.**
+
+## ⚠️ Tailwind-Token-Hinweis
+
+Relume nutzt **eigene Tailwind-Custom-Tokens**:
+- `border-border-primary`, `border-border-alternative`, `border-border-secondary`
+- `bg-background-primary`, `bg-background-secondary`, `bg-background-alternative`
+- `text-neutral`, `text-text-primary`, `text-text-alternative`
+- `placeholder:text-neutral`
+
+Diese Klassen funktionieren **nur**, wenn das Relume-Tailwind-Preset
+installiert ist (`@relume_io/relume-tailwind`) und im
+`tailwind.config.js` eingebunden:
+
+```js
+// tailwind.config.js
+import { relumeTailwindConfig } from '@relume_io/relume-tailwind';
+export default {
+  presets: [relumeTailwindConfig],
+  // ...
+};
+```
+
+**Ohne Preset:** rendern die Sections ohne Borders/Backgrounds —
+sehen kaputt aus. Status: noch nicht installiert. TODO entscheiden:
+
+- **Option A:** Preset im KAS-Frontend installieren → alle Relume-Sections
+  rendern korrekt im Editor-Preview.
+- **Option B:** Tokens beim Import durch Standard-Tailwind ersetzen
+  (`border-border-primary` → `border-gray-200`, `bg-background-primary`
+  → `bg-white`, etc.) — entkoppelt KAS von Relume's Token-System.
+- **Option C:** Beide parallel — Preset für Editor-Preview, Replace beim
+  Endkunden-Site-Build.
 
 ## Source-Tracking
 

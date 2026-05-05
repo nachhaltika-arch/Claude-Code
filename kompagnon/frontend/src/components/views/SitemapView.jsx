@@ -56,6 +56,49 @@ const SOURCE_BADGE = {
   manual:       { label: null,      bg: null,      color: null },
 };
 
+// Spiegelung des Backend-SECTION_CATALOG (routers/sitemap.py:81). Wenn das
+// Backend hier neue Section-Keys einführt, muss das hier nachgezogen werden —
+// ist aber bewusst kein eigener Endpoint, weil die Liste statisch ist.
+const SECTION_CATALOG = {
+  hero_value_equation: 'Hero mit Hormozi-Outcome+Time+Effort-Versprechen (Startseite)',
+  hero_service:        'Hero für Service-Detail-Page mit klarem Outcome',
+  hero_minimal:        'Kompakter Hero — für Über uns / Kontakt / Rechtliches',
+  problem:             'Pain-Point-Section — typische Schmerzen der Zielgruppe',
+  offer_stack:         'Hormozi-Wertbox: EUR-Positionen + Gesamtwert + Anker',
+  process_steps:       '4-6 nummerierte Schritte mit Zeitangabe',
+  guarantee_block:     '5 AGB-konforme Garantien (Risk Reversal)',
+  urgency_block:       'Echte Stichtage (BAFA/GEG/Slot-Cap)',
+  trust_strip:         'Logo-Streifen (Innung, Hersteller, Zertifikate)',
+  fallstudien_3:       '3 Fallstudien-Cards mit Zahlen',
+  service_grid:        'Übersicht aller Services',
+  team:                'Team-/Meister-Vorstellung mit Fotos',
+  faq:                 'Allgemeine FAQ — 8-12 Fragen',
+  faq_service:         'Service-spezifische FAQ',
+  content_richtext:    'Reiner Fließtext-Block — für Info-/Rechtsseiten',
+  cta_inline:          'Inline-CTA zwischen Sections',
+  cta_final:           'Finale CTA + Sticky-Mobile-Bottom-Bar',
+  contact_form:        'Kontakt-Formular mit Tel/Mail/WhatsApp',
+  footer_legal:        'Footer mit Pflicht-Links',
+};
+
+const PAGE_TYPE_OPTIONS = [
+  { value: 'startseite', label: 'Startseite' },
+  { value: 'leistung',   label: 'Leistungsseite' },
+  { value: 'info',       label: 'Info-Seite' },
+  { value: 'vertrauen',  label: 'Vertrauensseite' },
+  { value: 'conversion', label: 'Kontakt' },
+  { value: 'rechtlich',  label: 'Rechtlich' },
+  { value: 'sonstige',   label: 'Sonstige' },
+  { value: 'ground',     label: 'Übersicht' },
+];
+
+const STATUS_OPTIONS = [
+  { value: 'geplant',        label: 'Geplant' },
+  { value: 'in_bearbeitung', label: 'In Bearbeitung' },
+  { value: 'freigegeben',    label: 'Freigegeben' },
+  { value: 'live',           label: 'Live' },
+];
+
 const NODE_W = 240;
 const NODE_H = 110;
 
@@ -215,6 +258,10 @@ export default function SitemapView({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [importing, setImporting] = useState(false);
+  // Lücke 1 (Relume-Vergleich): Side-Panel rechts beim Klick auf eine Page-Card
+  const [selectedPageId, setSelectedPageId] = useState(null);
+  // Lücke 2: Quick-Add-Form — null = aus, sonst { parent_id: number|null } oder 'top' für Top-Level
+  const [addPageState, setAddPageState] = useState(null);
 
   const loadPages = useCallback(() => {
     if (!leadId) return;
@@ -290,6 +337,57 @@ export default function SitemapView({
     persistParentChange(targetId, sourceId);
     toast.success(`„${target.page_name}" ist jetzt Kind von „${source.page_name}"`);
   }, [pages, isAncestor, persistParentChange]);
+
+  // ── Lücke 1: Page-Detail bearbeiten (PUT /api/sitemap/pages/:id) ───────────
+
+  const savePageDetails = useCallback(async (pageId, updates) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/pages/${pageId}`, {
+        method: 'PUT', headers,
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const detail = err.detail;
+        throw new Error(typeof detail === 'string' ? detail : detail?.message || `Fehler ${res.status}`);
+      }
+      const fresh = await res.json();
+      setPages((prev) => prev.map((p) => (p.id === pageId ? fresh : p)));
+      toast.success('Gespeichert');
+      return fresh;
+    } catch (e) {
+      toast.error(`Speichern fehlgeschlagen: ${e.message}`);
+      return null;
+    }
+  }, [headers]);
+
+  // ── Lücke 2: Page anlegen (POST /api/sitemap/:leadId/pages) ────────────────
+
+  const createPage = useCallback(async (parentId, name, pageType) => {
+    if (!leadId || !name?.trim()) return null;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pages`, {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          page_name: name.trim(),
+          page_type: pageType || 'info',
+          parent_id: parentId || null,
+          position: pages.length,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Fehler ${res.status}`);
+      }
+      const created = await res.json();
+      toast.success(`„${created.page_name}" angelegt`);
+      loadPages();
+      return created;
+    } catch (e) {
+      toast.error(`Anlegen fehlgeschlagen: ${e.message}`);
+      return null;
+    }
+  }, [leadId, headers, pages.length, loadPages]);
 
   const handleEdgeClick = useCallback((_evt, edge) => {
     // Only parent edges (id prefix 'e-') are removable. Replace-mapping edges
@@ -399,6 +497,17 @@ export default function SitemapView({
             {importing ? 'Crawlt…' : '📥 Bestand importieren'}
           </button>
           <button
+            type="button" onClick={() => setAddPageState({ parent_id: null })}
+            style={{
+              background: 'transparent', color: KC_MID,
+              border: `1.5px solid ${KC_MID}`, borderRadius: 8,
+              padding: '9px 16px', fontSize: 13, fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            + Neue Seite
+          </button>
+          <button
             type="button" onClick={onRegenerateSitemap}
             style={{
               background: 'transparent', color: KC_DARK,
@@ -484,48 +593,367 @@ export default function SitemapView({
       )}
 
       {!loading && !error && pages.length > 0 && (
-        <div style={{
-          flex: 1, minHeight: 500,
-          background: '#f8fafc', borderRadius: 12,
-          border: '1px solid #e2e8f0',
-          overflow: 'hidden',
-        }}>
-          <ReactFlowProvider>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={NODE_TYPES}
-              fitView
-              fitViewOptions={{ padding: 0.2 }}
-              minZoom={0.2}
-              maxZoom={1.5}
-              nodesDraggable
-              nodesConnectable
-              elementsSelectable
-              onConnect={handleConnect}
-              onEdgeClick={handleEdgeClick}
-              defaultEdgeOptions={{ type: 'smoothstep' }}
-            >
-              <Background gap={16} color="#e2e8f0" />
-              <Controls showInteractive={false} />
-              <Panel position="top-left" style={{
-                background: 'rgba(255,255,255,0.92)', border: '1px solid #e2e8f0',
-                borderRadius: 8, padding: '6px 10px', fontSize: 11, color: '#475569',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-              }}>
-                💡 Kartenrand → Kartenrand ziehen = neue Hierarchie · Linie klicken = entkoppeln
-              </Panel>
-              <MiniMap
-                pannable zoomable
-                nodeColor={(n) => {
-                  const meta = TYPE_META[n.data?.page?.page_type] || TYPE_META.info;
-                  return meta.color;
+        <div style={{ flex: 1, minHeight: 500, display: 'flex', gap: 12 }}>
+          <div style={{
+            flex: 1, minWidth: 0,
+            background: '#f8fafc', borderRadius: 12,
+            border: '1px solid #e2e8f0',
+            overflow: 'hidden',
+          }}>
+            <ReactFlowProvider>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={NODE_TYPES}
+                fitView
+                fitViewOptions={{ padding: 0.2 }}
+                minZoom={0.2}
+                maxZoom={1.5}
+                nodesDraggable
+                nodesConnectable
+                elementsSelectable
+                onConnect={handleConnect}
+                onEdgeClick={handleEdgeClick}
+                onNodeClick={(_e, node) => {
+                  const pageId = parseInt(node.id, 10);
+                  if (pageId) setSelectedPageId(pageId);
                 }}
-              />
-            </ReactFlow>
-          </ReactFlowProvider>
+                defaultEdgeOptions={{ type: 'smoothstep' }}
+              >
+                <Background gap={16} color="#e2e8f0" />
+                <Controls showInteractive={false} />
+                <Panel position="top-left" style={{
+                  background: 'rgba(255,255,255,0.92)', border: '1px solid #e2e8f0',
+                  borderRadius: 8, padding: '6px 10px', fontSize: 11, color: '#475569',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                }}>
+                  💡 Karte klicken = Details rechts · Kartenrand ziehen = neue Hierarchie · Linie klicken = entkoppeln
+                </Panel>
+                <MiniMap
+                  pannable zoomable
+                  nodeColor={(n) => {
+                    const meta = TYPE_META[n.data?.page?.page_type] || TYPE_META.info;
+                    return meta.color;
+                  }}
+                />
+              </ReactFlow>
+            </ReactFlowProvider>
+          </div>
+
+          {/* Lücke 1: Side-Panel — Page-Details + Section-Editor */}
+          {selectedPageId && (
+            <PageDetailPanel
+              page={pages.find((p) => p.id === selectedPageId) || null}
+              onClose={() => setSelectedPageId(null)}
+              onSave={(updates) => savePageDetails(selectedPageId, updates)}
+              onAddChild={() => setAddPageState({ parent_id: selectedPageId })}
+            />
+          )}
         </div>
+      )}
+
+      {/* Lücke 2: Add-Page-Dialog (top-level oder als Sub-Page) */}
+      {addPageState && (
+        <AddPageDialog
+          parentId={addPageState.parent_id}
+          parentName={addPageState.parent_id
+            ? (pages.find((p) => p.id === addPageState.parent_id)?.page_name || '')
+            : null}
+          onClose={() => setAddPageState(null)}
+          onSubmit={async (name, type) => {
+            const created = await createPage(addPageState.parent_id, name, type);
+            if (created) setAddPageState(null);
+          }}
+        />
       )}
     </div>
   );
 }
+
+// ── Lücke 1: Side-Panel mit Section-Editor ────────────────────────────────────
+
+function PageDetailPanel({ page, onClose, onSave, onAddChild }) {
+  // Lokaler Form-State, damit User mehrere Felder ändern und mit einem Save
+  // committen kann. Beim Wechsel der Seite (page.id ändert) wird neu gefüllt.
+  const [form, setForm] = useState(() => ({
+    page_name: page?.page_name || '',
+    page_type: page?.page_type || 'info',
+    status:    page?.status    || 'geplant',
+    sections:  Array.isArray(page?.sections) ? [...page.sections] : [],
+  }));
+  const [saving, setSaving] = useState(false);
+  const [addingSection, setAddingSection] = useState(false);
+
+  useEffect(() => {
+    setForm({
+      page_name: page?.page_name || '',
+      page_type: page?.page_type || 'info',
+      status:    page?.status    || 'geplant',
+      sections:  Array.isArray(page?.sections) ? [...page.sections] : [],
+    });
+  }, [page?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!page) return null;
+  const isPflicht = !!page.ist_pflichtseite;
+
+  const moveSection = (idx, dir) => {
+    const next = [...form.sections];
+    const target = idx + dir;
+    if (target < 0 || target >= next.length) return;
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setForm((f) => ({ ...f, sections: next }));
+  };
+  const removeSection = (idx) => {
+    setForm((f) => ({ ...f, sections: f.sections.filter((_, i) => i !== idx) }));
+  };
+  const addSection = (key) => {
+    if (!key || !SECTION_CATALOG[key]) return;
+    setForm((f) => ({ ...f, sections: [...f.sections, key] }));
+    setAddingSection(false);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(form);
+    setSaving(false);
+  };
+
+  const meta = TYPE_META[form.page_type] || TYPE_META.info;
+  const availableSections = Object.keys(SECTION_CATALOG); // alle verfügbar — User kann auch Duplikate setzen wenn er will
+
+  return (
+    <aside style={{
+      width: 360, flexShrink: 0,
+      background: '#fff', borderRadius: 12,
+      border: '1px solid #e2e8f0',
+      display: 'flex', flexDirection: 'column',
+      overflow: 'hidden',
+      fontFamily: 'var(--font-sans, system-ui)',
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: '12px 14px', borderBottom: '1px solid #e2e8f0',
+        background: meta.color + '0d',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <span style={{ fontSize: 18 }}>{meta.icon}</span>
+          <div style={{ fontSize: 13, fontWeight: 700, color: KC_DARK, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {form.page_name || 'Seite'}
+          </div>
+        </div>
+        <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: '#64748b', padding: 0 }} aria-label="Schließen">×</button>
+      </div>
+
+      {/* Body */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {isPflicht && (
+          <div style={{ fontSize: 11, color: '#92400E', background: '#FEF3C7', padding: '6px 8px', borderRadius: 6 }}>
+            🔒 Pflichtseite — nur Status / Notizen / Sections änderbar
+          </div>
+        )}
+
+        <div>
+          <label style={lblStyle}>Page-Name</label>
+          <input
+            type="text" value={form.page_name} disabled={isPflicht}
+            onChange={(e) => setForm((f) => ({ ...f, page_name: e.target.value }))}
+            style={inpStyle(isPflicht)}
+          />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div>
+            <label style={lblStyle}>Type</label>
+            <select
+              value={form.page_type} disabled={isPflicht}
+              onChange={(e) => setForm((f) => ({ ...f, page_type: e.target.value }))}
+              style={{ ...inpStyle(isPflicht), cursor: isPflicht ? 'not-allowed' : 'pointer' }}
+            >
+              {PAGE_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={lblStyle}>Status</label>
+            <select
+              value={form.status}
+              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+              style={{ ...inpStyle(false), cursor: 'pointer' }}
+            >
+              {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+            <label style={lblStyle}>Sections ({form.sections.length})</label>
+            <button
+              type="button"
+              onClick={() => setAddingSection((v) => !v)}
+              style={{
+                background: 'none', border: 'none', color: KC_MID,
+                fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0,
+              }}
+            >
+              {addingSection ? '× Schließen' : '+ Section'}
+            </button>
+          </div>
+
+          {addingSection && (
+            <div style={{ marginBottom: 10, padding: 8, background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+              <select
+                onChange={(e) => addSection(e.target.value)}
+                value=""
+                style={{ ...inpStyle(false), cursor: 'pointer' }}
+              >
+                <option value="">— Section auswählen —</option>
+                {availableSections.map((key) => (
+                  <option key={key} value={key}>{key} — {SECTION_CATALOG[key]}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {form.sections.length === 0 ? (
+            <div style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic', padding: '6px 0' }}>
+              Keine Sections — KI-Vorschläge oder manuell ergänzen.
+            </div>
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {form.sections.map((key, idx) => (
+                <li key={`${key}-${idx}`} style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 8px', background: '#f8fafc',
+                  border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 11,
+                }}>
+                  <span style={{ color: '#64748b', fontVariantNumeric: 'tabular-nums', minWidth: 16 }}>{idx + 1}.</span>
+                  <code style={{ fontSize: 11, color: KC_MID, fontWeight: 700, flexShrink: 0 }}>{key}</code>
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#475569' }}>
+                    {SECTION_CATALOG[key] || '—'}
+                  </span>
+                  <button type="button" onClick={() => moveSection(idx, -1)} disabled={idx === 0} title="Nach oben"
+                    style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'default' : 'pointer', color: idx === 0 ? '#cbd5e1' : '#64748b', padding: '0 2px', fontSize: 11 }}>↑</button>
+                  <button type="button" onClick={() => moveSection(idx, 1)} disabled={idx === form.sections.length - 1} title="Nach unten"
+                    style={{ background: 'none', border: 'none', cursor: idx === form.sections.length - 1 ? 'default' : 'pointer', color: idx === form.sections.length - 1 ? '#cbd5e1' : '#64748b', padding: '0 2px', fontSize: 11 }}>↓</button>
+                  <button type="button" onClick={() => removeSection(idx)} title="Section entfernen"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '0 2px', fontSize: 12 }}>×</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12 }}>
+          <button
+            type="button" onClick={onAddChild}
+            style={{
+              width: '100%', padding: '8px 12px',
+              background: 'transparent', color: KC_MID,
+              border: `1.5px dashed ${KC_MID}`, borderRadius: 8,
+              fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            + Sub-Seite unter „{form.page_name || 'dieser Seite'}"
+          </button>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        padding: '10px 14px', borderTop: '1px solid #e2e8f0',
+        display: 'flex', gap: 8, background: '#f8fafc',
+      }}>
+        <button type="button" onClick={onClose}
+          style={{ flex: 1, padding: '8px 12px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, cursor: 'pointer', color: '#64748b' }}>
+          Abbrechen
+        </button>
+        <button type="button" onClick={handleSave} disabled={saving}
+          style={{ flex: 1, padding: '8px 12px', background: saving ? '#94a3b8' : KC_MID, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
+          {saving ? 'Speichert…' : '✓ Speichern'}
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+// ── Lücke 2: Add-Page-Dialog (kleines Modal) ──────────────────────────────────
+
+function AddPageDialog({ parentId, parentName, onClose, onSubmit }) {
+  const [name, setName] = useState('');
+  const [pageType, setPageType] = useState('info');
+  const [busy, setBusy] = useState(false);
+
+  const handleSubmit = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (!name.trim() || busy) return;
+    setBusy(true);
+    await onSubmit(name, pageType);
+    setBusy(false);
+  };
+
+  return (
+    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+    }}>
+      <form onSubmit={handleSubmit} style={{
+        background: '#fff', borderRadius: 12, padding: 20,
+        width: '100%', maxWidth: 420,
+        boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+      }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: KC_DARK }}>
+          Neue Seite anlegen
+        </h3>
+        <p style={{ margin: '0 0 14px', fontSize: 11, color: '#64748b' }}>
+          {parentId
+            ? `Wird als Sub-Seite von „${parentName}" angelegt.`
+            : 'Wird als Top-Level-Seite angelegt.'}
+        </p>
+        <div style={{ marginBottom: 10 }}>
+          <label style={lblStyle}>Seitenname *</label>
+          <input
+            type="text" value={name} onChange={(e) => setName(e.target.value)}
+            placeholder="z.B. Wallbox-Installation"
+            style={inpStyle(false)} autoFocus
+          />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label style={lblStyle}>Page-Type</label>
+          <select value={pageType} onChange={(e) => setPageType(e.target.value)} style={{ ...inpStyle(false), cursor: 'pointer' }}>
+            {PAGE_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button type="button" onClick={onClose}
+            style={{ padding: '8px 14px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, cursor: 'pointer', color: '#64748b' }}>
+            Abbrechen
+          </button>
+          <button type="submit" disabled={!name.trim() || busy}
+            style={{
+              padding: '8px 18px',
+              background: !name.trim() || busy ? '#94a3b8' : KC_MID,
+              color: '#fff', border: 'none', borderRadius: 8,
+              fontSize: 12, fontWeight: 700,
+              cursor: !name.trim() || busy ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {busy ? 'Anlegen…' : '+ Anlegen'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+const lblStyle = {
+  display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b',
+  textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4,
+};
+const inpStyle = (disabled) => ({
+  width: '100%', boxSizing: 'border-box', padding: '7px 10px',
+  border: '1px solid #e2e8f0', borderRadius: 6,
+  background: disabled ? '#f8fafc' : '#fff',
+  color: disabled ? '#94a3b8' : '#1A2C32',
+  fontSize: 12, fontFamily: 'inherit', outline: 'none',
+});

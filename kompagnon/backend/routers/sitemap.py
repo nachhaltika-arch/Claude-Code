@@ -204,17 +204,20 @@ class PageCreate(BaseModel):
 
 
 class PageUpdate(BaseModel):
-    page_name:    Optional[str]  = None
-    parent_id:    Optional[int]  = None
-    position:     Optional[int]  = None
-    page_type:    Optional[str]  = None
-    zweck:        Optional[str]  = None
-    ziel_keyword: Optional[str]  = None
-    cta_text:     Optional[str]  = None
-    cta_ziel:     Optional[str]  = None
-    notizen:      Optional[str]  = None
-    status:       Optional[str]  = None
-    mockup_html:  Optional[str]  = None
+    page_name:    Optional[str]       = None
+    parent_id:    Optional[int]       = None
+    position:     Optional[int]       = None
+    page_type:    Optional[str]       = None
+    zweck:        Optional[str]       = None
+    ziel_keyword: Optional[str]       = None
+    cta_text:     Optional[str]       = None
+    cta_ziel:     Optional[str]       = None
+    notizen:      Optional[str]       = None
+    status:       Optional[str]       = None
+    mockup_html:  Optional[str]       = None
+    # Hormozi-Spec Section-Plan — erlaubt Frontend-Editor (Lücke 1 vs Relume).
+    # Werte werden gegen SECTION_CATALOG gefiltert; unbekannte Keys verworfen.
+    sections:     Optional[List[str]] = None
     # ist_pflichtseite is intentionally excluded – cannot be changed via API
 
 
@@ -438,8 +441,15 @@ def update_page(
     updates = body.model_dump(exclude_unset=True)
     if page.ist_pflichtseite:
         # Only content fields may be changed; structural fields are locked
-        allowed = {"zweck", "notizen", "status"}
+        allowed = {"zweck", "notizen", "status", "sections"}
         updates = {k: v for k, v in updates.items() if k in allowed}
+    # `sections` ist Frontend-friendly (List[str]) — Backend-Spalte ist
+    # `sections_json` (JSON-String). Validierung gegen SECTION_CATALOG, damit
+    # kein Garbage in der DB landet.
+    if "sections" in updates:
+        raw_sections = updates.pop("sections") or []
+        cleaned = [str(s) for s in raw_sections if isinstance(s, str) and s in SECTION_CATALOG]
+        page.sections_json = json.dumps(cleaned, ensure_ascii=False)
     for field, value in updates.items():
         setattr(page, field, value)
     db.commit()

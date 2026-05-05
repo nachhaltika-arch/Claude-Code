@@ -307,13 +307,12 @@ export default function SitemapView({
   }, [pages, persistParentChange]);
 
   const handleImportExisting = async () => {
-    if (!leadId) return;
-    if (!window.confirm(
-      'Die Bestands-Website wird automatisch gecrawlt.\n\n' +
-      'Bestehende „Bestand"-Seiten werden ersetzt — manuelle und KI-Vorschläge bleiben.\n\n' +
-      'Fortfahren?'
-    )) return;
+    if (!leadId) {
+      toast.error('Lead-ID fehlt — Bestand kann nicht geladen werden.');
+      return;
+    }
     setImporting(true);
+    const t = toast.loading('Bestand wird gecrawlt — kann 10-30 s dauern…');
     try {
       const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/import-existing`, {
         method: 'POST', headers,
@@ -326,10 +325,13 @@ export default function SitemapView({
           : detail?.message || detail?.code || `Fehler ${res.status}`;
         throw new Error(msg);
       }
-      toast.success(`${body.imported} Seite${body.imported === 1 ? '' : 'n'} aus Bestand importiert`);
+      toast.success(
+        `${body.imported} Seite${body.imported === 1 ? '' : 'n'} aus Bestand importiert`,
+        { id: t },
+      );
       loadPages();
     } catch (e) {
-      toast.error(e.message);
+      toast.error(e.message, { id: t });
     } finally {
       setImporting(false);
     }

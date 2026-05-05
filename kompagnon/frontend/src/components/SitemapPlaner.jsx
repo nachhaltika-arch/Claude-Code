@@ -558,7 +558,14 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
       const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/generate`, {
         method: 'POST', headers: authHeaders(),
       });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `Fehler ${res.status}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const detail = body.detail;
+        const msg = typeof detail === 'string'
+          ? detail
+          : detail?.message || detail?.code || `Fehler ${res.status}`;
+        throw new Error(msg);
+      }
       const data = await res.json();
       setPages(data.pages || []);
     } catch (e) {

@@ -3,6 +3,10 @@ module.exports = {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
+    // Tailwind muss die Klassen aus den Section-HTML-Templates kennen, damit
+    // sie im Bundle landen — sonst rendert die Live-Preview im WireframeView
+    // (W1) ohne Styles. Deckt KAS-Eigen + external/hyperui + external/relume ab.
+    "./src/components/library/**/*.html",
   ],
   theme: {
     extend: {

@@ -20,6 +20,14 @@ const KC_YELLOW = '#FAE600';
 
 const CATEGORIES = ['Alle', 'NAV', 'HERO', 'LEIST', 'TRUST', 'SEO', 'CTA', 'HW', 'FOOT'];
 
+// W1 Relume-Parität: Responsive-Preview-Breiten. Werte entsprechen den
+// Standard-Devices, die Relume's Wireframe-Builder anbietet.
+const PREVIEW_WIDTHS = {
+  mobile:  '375px',
+  tablet:  '768px',
+  desktop: '100%',
+};
+
 export default function WireframeView({
   projectId,
   leadId,
@@ -41,6 +49,11 @@ export default function WireframeView({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('Alle');
   const [saving, setSaving] = useState(false);
+  // W1 Relume-Parität: Preview-Width-Toggle ('mobile' | 'tablet' | 'desktop')
+  const [previewSize, setPreviewSize] = useState('desktop');
+  // W1 Drag-Reorder-State (native HTML5 DnD)
+  const [draggedIdx, setDraggedIdx] = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
 
   // Default-Page auf erste setzen sobald Daten reinkommen
   useEffect(() => {
@@ -49,15 +62,17 @@ export default function WireframeView({
     }
   }, [pages, activePageId]);
 
-  // Component-Library beim ersten Öffnen des Panels lazy laden
+  // Component-Library beim ersten Mount eagerly laden — die BlockCards
+  // brauchen html_template für Live-Preview, sonst zeigen sie leere Karten
+  // bevor der User das Swap-Panel öffnet.
   useEffect(() => {
-    if (!swapPanel.open || library.length > 0) return;
+    if (library.length > 0) return;
     setLibraryLoading(true);
     fetch(`${API_BASE_URL}/api/components`, { headers })
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => setLibrary(Array.isArray(data) ? data : []))
       .finally(() => setLibraryLoading(false));
-  }, [swapPanel.open, library.length, headers]);
+  }, [library.length, headers]);
 
   const activePage = pages.find((p) => p.page_id === activePageId) || null;
   const activeBlocks = (activePage?.blocks || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -140,6 +155,19 @@ export default function WireframeView({
     const nextBlocks = activeBlocks
       .filter((_, i) => i !== targetIdx)
       .map((b, i) => ({ ...b, order: i }));
+    const nextData = {
+      pages: pages.map((p) => (p.page_id === activePageId ? { ...p, blocks: nextBlocks } : p)),
+    };
+    persist(nextData);
+  };
+
+  // W1: Drag-Reorder — verschiebt Block von fromIdx an toIdx, persistiert.
+  const moveBlock = (fromIdx, toIdx) => {
+    if (!activePage || fromIdx === toIdx || fromIdx == null || toIdx == null) return;
+    const next = [...activeBlocks];
+    const [moved] = next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, moved);
+    const nextBlocks = next.map((b, i) => ({ ...b, order: i }));
     const nextData = {
       pages: pages.map((p) => (p.page_id === activePageId ? { ...p, blocks: nextBlocks } : p)),
     };
@@ -229,7 +257,35 @@ export default function WireframeView({
               {saving && ' · speichert…'}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {/* W1 Relume-Parität: Responsive-Preview-Toggle */}
+            <div style={{
+              display: 'inline-flex', gap: 0,
+              border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden',
+            }}>
+              {[
+                { id: 'mobile',  label: '📱', title: 'Mobile (375px)' },
+                { id: 'tablet',  label: '📲', title: 'Tablet (768px)' },
+                { id: 'desktop', label: '🖥', title: 'Desktop (volle Breite)' },
+              ].map((s) => {
+                const active = previewSize === s.id;
+                return (
+                  <button
+                    key={s.id} type="button" title={s.title}
+                    onClick={() => setPreviewSize(s.id)}
+                    style={{
+                      background: active ? KC_DARK : 'transparent',
+                      color: active ? '#fff' : '#475569',
+                      border: 'none', cursor: 'pointer',
+                      padding: '6px 10px', fontSize: 14, lineHeight: 1,
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
             <button
               type="button"
               onClick={() => setSwapPanel({ open: true, targetIdx: null, mode: 'add' })}
@@ -267,31 +323,46 @@ export default function WireframeView({
           </div>
         </div>
 
-        {/* Block-Liste */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {activeBlocks.map((b, idx) => (
-            <BlockRow
-              key={`${b.slug}-${idx}`}
-              block={b}
-              libraryEntry={library.find((c) => c.slug === b.slug)}
-              onSwap={() => setSwapPanel({ open: true, targetIdx: idx, mode: 'swap' })}
-              onRemove={() => removeBlock(idx)}
-            />
-          ))}
-          {activeBlocks.length === 0 && (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: 32,
-                border: '2px dashed #cbd5e1',
-                borderRadius: 12,
-                color: '#94a3b8',
-                fontSize: 13,
-              }}
-            >
-              Diese Seite hat noch keine Blöcke. Klick auf „+ Block hinzufügen“.
-            </div>
-          )}
+        {/* W1: Block-Liste mit Live-Preview + native Drag-Reorder.
+            Container-Width entspricht dem Preview-Size-Toggle (mobile/tablet/desktop). */}
+        <div style={{
+          margin: '0 auto',
+          maxWidth: PREVIEW_WIDTHS[previewSize],
+          width: '100%',
+          transition: 'max-width 0.2s ease',
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {activeBlocks.map((b, idx) => (
+              <BlockCard
+                key={`${b.slug}-${idx}`}
+                idx={idx}
+                block={b}
+                libraryEntry={library.find((c) => c.slug === b.slug)}
+                isDragOver={dragOverIdx === idx && draggedIdx !== idx}
+                isDragging={draggedIdx === idx}
+                onDragStart={() => setDraggedIdx(idx)}
+                onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx); }}
+                onDrop={() => { moveBlock(draggedIdx, idx); setDraggedIdx(null); setDragOverIdx(null); }}
+                onDragEnd={() => { setDraggedIdx(null); setDragOverIdx(null); }}
+                onSwap={() => setSwapPanel({ open: true, targetIdx: idx, mode: 'swap' })}
+                onRemove={() => removeBlock(idx)}
+              />
+            ))}
+            {activeBlocks.length === 0 && (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: 32,
+                  border: '2px dashed #cbd5e1',
+                  borderRadius: 12,
+                  color: '#94a3b8',
+                  fontSize: 13,
+                }}
+              >
+                Diese Seite hat noch keine Blöcke. Klick auf „+ Block hinzufügen".
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
@@ -370,6 +441,10 @@ export default function WireframeView({
                 Keine Treffer.
               </div>
             )}
+            {/* W1: Section-Cards mit Live-Thumbnail. Die Vorschau wird in
+                einer 320px-breiten, auf 30% skalierten Box gerendert — das
+                gibt einen ~96-px breiten Mini-Render. Pointer-Events aus,
+                der ganze Card-Klick fügt die Section ein. */}
             {filteredLibrary.map((c) => (
               <button
                 key={c.slug}
@@ -379,28 +454,53 @@ export default function WireframeView({
                   display: 'block',
                   width: '100%',
                   textAlign: 'left',
-                  padding: 10,
+                  padding: 0,
                   border: '1px solid #e2e8f0',
                   borderRadius: 8,
                   background: '#fff',
-                  marginBottom: 6,
+                  marginBottom: 8,
                   cursor: 'pointer',
-                  transition: 'border-color 0.15s, background 0.15s',
+                  overflow: 'hidden',
+                  transition: 'border-color 0.15s, background 0.15s, transform 0.1s',
+                  fontFamily: 'inherit',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = KC_MID;
-                  e.currentTarget.style.background = '#f0f9ff';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = '#e2e8f0';
-                  e.currentTarget.style.background = '#fff';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                <div style={{ fontSize: 12, fontWeight: 700, color: KC_DARK, marginBottom: 2 }}>{c.name}</div>
-                <div style={{ fontSize: 10, color: '#64748b', fontFamily: 'ui-monospace, monospace' }}>{c.slug}</div>
-                {c.preview_note && (
-                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4, lineHeight: 1.4 }}>{c.preview_note}</div>
+                {/* Live Thumbnail */}
+                {c.html_template ? (
+                  <div style={{
+                    height: 90, overflow: 'hidden',
+                    background: '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
+                    position: 'relative',
+                  }}>
+                    <div style={{
+                      width: 1200, transform: 'scale(0.25)', transformOrigin: 'top left',
+                      pointerEvents: 'none',
+                    }}
+                      dangerouslySetInnerHTML={{ __html: c.html_template }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{
+                    height: 60, background: '#f1f5f9',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#94a3b8', fontSize: 10, fontStyle: 'italic',
+                  }}>
+                    Keine Vorschau
+                  </div>
                 )}
+                <div style={{ padding: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: KC_DARK, marginBottom: 2 }}>{c.name}</div>
+                  <div style={{ fontSize: 9, color: '#64748b', fontFamily: 'ui-monospace, monospace' }}>{c.slug}</div>
+                </div>
               </button>
             ))}
           </div>
@@ -410,79 +510,97 @@ export default function WireframeView({
   );
 }
 
-function BlockRow({ block, libraryEntry, onSwap, onRemove }) {
+function BlockCard({
+  idx, block, libraryEntry,
+  isDragOver, isDragging,
+  onDragStart, onDragOver, onDrop, onDragEnd,
+  onSwap, onRemove,
+}) {
+  const html = libraryEntry?.html_template || '';
+  const name = libraryEntry?.name || block.slug;
+  const category = libraryEntry?.category || '—';
+
   return (
     <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: 10,
+        position: 'relative',
         background: '#fff',
-        border: '1px solid #e2e8f0',
+        border: isDragOver ? `2px dashed ${KC_MID}` : '1px solid #e2e8f0',
         borderRadius: 8,
+        overflow: 'hidden',
+        opacity: isDragging ? 0.4 : 1,
+        transition: 'opacity 0.1s',
       }}
     >
+      {/* Compact-Header — Drag-Handle + Name + Category-Badge + Hover-Actions */}
       <div
         style={{
-          width: 56,
-          height: 36,
-          background: '#cbd5e1',
-          borderRadius: 4,
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#475569',
-          fontSize: 9,
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '6px 10px',
+          background: '#f8fafc', borderBottom: '1px solid #e2e8f0',
+          fontSize: 11,
         }}
-        aria-hidden
       >
-        {libraryEntry?.category || '—'}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: KC_DARK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {libraryEntry?.name || block.slug}
-        </div>
-        <div style={{ fontSize: 10, color: '#94a3b8', fontFamily: 'ui-monospace, monospace' }}>{block.slug}</div>
-      </div>
-      <div style={{ display: 'flex', gap: 6 }}>
+        <span
+          aria-hidden title="Ziehen zum Sortieren"
+          style={{ cursor: 'grab', color: '#94a3b8', fontSize: 14, lineHeight: 1, userSelect: 'none' }}
+        >⠿</span>
+        <span style={{
+          background: '#e2e8f0', color: '#475569',
+          fontSize: 9, fontWeight: 700,
+          padding: '2px 6px', borderRadius: 3,
+          textTransform: 'uppercase', letterSpacing: '0.05em',
+        }}>{category}</span>
+        <span style={{
+          flex: 1, minWidth: 0,
+          fontSize: 11, fontWeight: 700, color: KC_DARK,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{name}</span>
+        <span style={{ color: '#94a3b8', fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>
+          #{idx + 1}
+        </span>
         <button
-          type="button"
-          onClick={onSwap}
+          type="button" onClick={onSwap}
           style={{
-            background: 'transparent',
-            color: KC_MID,
-            border: `1px solid ${KC_MID}`,
-            borderRadius: 6,
-            padding: '5px 10px',
-            fontSize: 11,
-            fontWeight: 700,
-            cursor: 'pointer',
+            background: 'transparent', color: KC_MID,
+            border: `1px solid ${KC_MID}`, borderRadius: 4,
+            padding: '2px 8px', fontSize: 10, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
           }}
-        >
-          Tauschen
-        </button>
+        >Tauschen</button>
         <button
-          type="button"
-          onClick={onRemove}
-          aria-label="Block entfernen"
+          type="button" onClick={onRemove} aria-label="Block entfernen"
           style={{
-            background: 'transparent',
-            color: '#dc2626',
-            border: '1px solid #fca5a5',
-            borderRadius: 6,
-            padding: '5px 10px',
-            fontSize: 11,
-            fontWeight: 700,
-            cursor: 'pointer',
+            background: 'transparent', color: '#dc2626',
+            border: '1px solid #fca5a5', borderRadius: 4,
+            padding: '2px 8px', fontSize: 11, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
           }}
-        >
-          ✕
-        </button>
+        >✕</button>
+      </div>
+
+      {/* Live HTML-Preview — pointerEvents:none damit Klicks im Section-Inhalt
+          (Links, Buttons) nicht aktiv sind. Section rendert sich responsiv,
+          weil die outer-width vom Preview-Size-Toggle bestimmt wird. */}
+      <div
+        style={{
+          background: '#fff',
+          minHeight: 80,
+          pointerEvents: 'none',
+        }}
+      >
+        {html ? (
+          <div dangerouslySetInnerHTML={{ __html: html }} />
+        ) : (
+          <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 12, fontStyle: 'italic' }}>
+            Keine Vorschau verfügbar (Library-Eintrag fehlt)
+          </div>
+        )}
       </div>
     </div>
   );

@@ -76,15 +76,22 @@ def _serialize_component(row: ComponentLibrary, include_html: bool = False) -> d
 @component_router.get("")
 def list_components(
     category: Optional[str] = None,
+    include_html: bool = True,
     db: Session = Depends(get_db),
     user=Depends(require_any_auth),
 ):
-    """Alle Bibliotheks-Bloecke. Optional: ?category=HERO filtert nach Kategorie."""
+    """Alle Bibliotheks-Bloecke. Optional: ?category=HERO filtert nach Kategorie.
+
+    `include_html=true` (Default) liefert auch das `html_template` zurueck,
+    weil das Wireframe-Frontend Live-Previews pro Block rendert. Caller
+    der nur Metadaten brauchen koennen mit `?include_html=false` opt-out
+    (~80% kleinere Response).
+    """
     q = db.query(ComponentLibrary)
     if category:
         q = q.filter(ComponentLibrary.category == category.upper())
     rows = q.order_by(ComponentLibrary.category, ComponentLibrary.slug).all()
-    return [_serialize_component(r) for r in rows]
+    return [_serialize_component(r, include_html=include_html) for r in rows]
 
 
 @component_router.get("/{slug}")

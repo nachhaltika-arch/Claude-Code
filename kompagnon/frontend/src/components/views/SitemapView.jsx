@@ -288,6 +288,8 @@ export default function SitemapView({
   const [addPageState, setAddPageState] = useState(null);
   // R1 Relume-Parität: User-gewählte Page-Anzahl beim KI-Generate (0 = Auto)
   const [pageCount, setPageCount] = useState(0);
+  // R2 Relume-Parität: „+ Mehr Pages"-Dialog (Continue-generating)
+  const [moreState, setMoreState] = useState(null); // null | { count: N, busy: bool }
 
   const loadPages = useCallback(() => {
     if (!leadId) return;
@@ -386,6 +388,28 @@ export default function SitemapView({
       return null;
     }
   }, [headers]);
+
+  // ── R2: Continue-generating (POST /api/sitemap/:leadId/generate-more) ──────
+
+  const generateMore = useCallback(async (additional) => {
+    if (!leadId || !additional) return;
+    const t = toast.loading(`KI ergänzt ${additional} weitere Seiten…`);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/generate-more`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ additional_pages: additional }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = body?.detail;
+        throw new Error(typeof detail === 'string' ? detail : detail?.message || `Fehler ${res.status}`);
+      }
+      toast.success(`${body.added} Seite${body.added === 1 ? '' : 'n'} ergänzt`, { id: t });
+      loadPages();
+    } catch (e) {
+      toast.error(e.message, { id: t });
+    }
+  }, [leadId, headers, loadPages]);
 
   // ── Lücke 2: Page anlegen (POST /api/sitemap/:leadId/pages) ────────────────
 
@@ -532,6 +556,20 @@ export default function SitemapView({
             }}
           >
             + Neue Seite
+          </button>
+          <button
+            type="button" onClick={() => setMoreState({ count: 3 })}
+            disabled={pages.length === 0}
+            style={{
+              background: 'transparent', color: '#7c3aed',
+              border: '1.5px solid #7c3aed', borderRadius: 8,
+              padding: '9px 16px', fontSize: 13, fontWeight: 700,
+              cursor: pages.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: pages.length === 0 ? 0.5 : 1,
+            }}
+            title="KI schlägt N weitere Seiten vor — bestehende bleiben"
+          >
+            + Mehr KI-Vorschläge
           </button>
           <select
             value={pageCount}
@@ -714,6 +752,78 @@ export default function SitemapView({
           }}
         />
       )}
+
+      {/* R2: Continue-generating dialog */}
+      {moreState && (
+        <MorePagesDialog
+          initial={moreState.count}
+          onClose={() => setMoreState(null)}
+          onSubmit={async (count) => {
+            setMoreState({ count, busy: true });
+            await generateMore(count);
+            setMoreState(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── R2: Continue-generating Dialog ────────────────────────────────────────────
+
+function MorePagesDialog({ initial, onClose, onSubmit }) {
+  const [count, setCount] = useState(initial || 3);
+  const [busy, setBusy] = useState(false);
+
+  const handleSubmit = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (busy || count < 1) return;
+    setBusy(true);
+    await onSubmit(count);
+    setBusy(false);
+  };
+
+  return (
+    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+    }}>
+      <form onSubmit={handleSubmit} style={{
+        background: '#fff', borderRadius: 12, padding: 20,
+        width: '100%', maxWidth: 380, boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+      }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: KC_DARK }}>
+          Mehr KI-Vorschläge generieren
+        </h3>
+        <p style={{ margin: '0 0 16px', fontSize: 11, color: '#64748b' }}>
+          Bestehende Seiten bleiben unverändert. Die KI schlägt nur zusätzliche Inhaltsseiten vor.
+        </p>
+        <div style={{ marginBottom: 16 }}>
+          <label style={lblStyle}>Anzahl</label>
+          <select value={count} onChange={(e) => setCount(parseInt(e.target.value, 10) || 3)}
+            style={{ ...inpStyle(false), cursor: 'pointer' }}>
+            {[1, 2, 3, 4, 5, 6, 8, 10].map((n) => (
+              <option key={n} value={n}>{n} {n === 1 ? 'Seite' : 'Seiten'}</option>
+            ))}
+          </select>
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button type="button" onClick={onClose} disabled={busy}
+            style={{ padding: '8px 14px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, cursor: 'pointer', color: '#64748b' }}>
+            Abbrechen
+          </button>
+          <button type="submit" disabled={busy}
+            style={{
+              padding: '8px 18px',
+              background: busy ? '#94a3b8' : '#7c3aed',
+              color: '#fff', border: 'none', borderRadius: 8,
+              fontSize: 12, fontWeight: 700,
+              cursor: busy ? 'wait' : 'pointer',
+            }}>
+            {busy ? 'KI läuft…' : '+ Generieren'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
@@ -733,6 +843,8 @@ function PageDetailPanel({ page, onClose, onSave, onAddChild }) {
   }));
   const [saving, setSaving] = useState(false);
   const [addingSection, setAddingSection] = useState(false);
+  // R2 Feature 6: Search-Filter für den Section-Catalog beim Hinzufügen
+  const [sectionSearch, setSectionSearch] = useState('');
 
   useEffect(() => {
     setForm({
@@ -762,6 +874,7 @@ function PageDetailPanel({ page, onClose, onSave, onAddChild }) {
     if (!key || !SECTION_CATALOG[key]) return;
     setForm((f) => ({ ...f, sections: [...f.sections, key] }));
     setAddingSection(false);
+    setSectionSearch('');
   };
 
   const handleSave = async () => {
@@ -883,7 +996,7 @@ function PageDetailPanel({ page, onClose, onSave, onAddChild }) {
             <label style={lblStyle}>Sections ({form.sections.length})</label>
             <button
               type="button"
-              onClick={() => setAddingSection((v) => !v)}
+              onClick={() => { setAddingSection((v) => !v); setSectionSearch(''); }}
               style={{
                 background: 'none', border: 'none', color: KC_MID,
                 fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0,
@@ -895,16 +1008,49 @@ function PageDetailPanel({ page, onClose, onSave, onAddChild }) {
 
           {addingSection && (
             <div style={{ marginBottom: 10, padding: 8, background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-              <select
-                onChange={(e) => addSection(e.target.value)}
-                value=""
-                style={{ ...inpStyle(false), cursor: 'pointer' }}
-              >
-                <option value="">— Section auswählen —</option>
-                {availableSections.map((key) => (
-                  <option key={key} value={key}>{key} — {SECTION_CATALOG[key]}</option>
-                ))}
-              </select>
+              <input
+                type="search" placeholder="Suchen (Name oder Beschreibung)…"
+                value={sectionSearch}
+                onChange={(e) => setSectionSearch(e.target.value)}
+                autoFocus
+                style={{ ...inpStyle(false), marginBottom: 6 }}
+              />
+              <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {availableSections
+                  .filter((key) => {
+                    const q = sectionSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    const desc = SECTION_CATALOG[key].toLowerCase();
+                    return key.toLowerCase().includes(q) || desc.includes(q);
+                  })
+                  .map((key) => (
+                    <button
+                      key={key} type="button"
+                      onClick={() => addSection(key)}
+                      style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 8,
+                        padding: '6px 8px',
+                        background: '#fff', border: '1px solid #e2e8f0', borderRadius: 4,
+                        cursor: 'pointer', textAlign: 'left', fontSize: 11,
+                        fontFamily: 'inherit', color: 'inherit',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = KC_MID; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                    >
+                      <code style={{ color: KC_MID, fontWeight: 700, minWidth: 110, flexShrink: 0 }}>{key}</code>
+                      <span style={{ color: '#475569', flex: 1, lineHeight: 1.35 }}>{SECTION_CATALOG[key]}</span>
+                    </button>
+                  ))}
+                {availableSections.filter((key) => {
+                  const q = sectionSearch.trim().toLowerCase();
+                  if (!q) return true;
+                  return key.toLowerCase().includes(q) || SECTION_CATALOG[key].toLowerCase().includes(q);
+                }).length === 0 && (
+                  <div style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic', padding: '8px 4px' }}>
+                    Keine Section passt zu „{sectionSearch}".
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

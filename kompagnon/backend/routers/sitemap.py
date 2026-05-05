@@ -878,6 +878,95 @@ async def generate_sitemap(
     return {"pages": [_serialize(p) for p in all_pages], "source": source}
 
 
+# ── ENDPOINT: Continue-generating (R2 Relume-Parität) ─────────────────────────
+
+@router.post("/{lead_id}/generate-more")
+async def generate_more_pages(
+    lead_id: int,
+    body: dict = Body(default={}),
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Append N additional content pages via Claude AI.
+
+    Im Gegensatz zu /generate werden hier KEINE bestehenden Pages gelöscht.
+    Body: {"additional_pages": N}, geclamped auf 1..10. Default 3.
+    """
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+
+    try:
+        n = int((body or {}).get("additional_pages") or 3)
+    except (TypeError, ValueError):
+        n = 3
+    n = max(1, min(10, n))
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="KI-API nicht konfiguriert")
+
+    existing = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id)
+        .order_by(SitemapPage.position)
+        .all()
+    )
+    existing_summary = "\n".join(f"- {p.page_name} ({p.page_type})" for p in existing) or "(leer)"
+
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    company   = getattr(lead, "company_name", "") or ""
+    gewerk    = (getattr(briefing, "gewerk", None) if briefing else None) or getattr(lead, "trade", None) or "Handwerk"
+    leistungen = (getattr(briefing, "leistungen", None) if briefing else None) or ""
+
+    prompt = (
+        "Du bist ein Website-Stratege für deutsche Handwerksbetriebe.\n"
+        f"Schlage GENAU {n} WEITERE Inhaltsseiten für die bestehende Sitemap vor.\n"
+        "WICHTIG: KEINE Duplikate zu existierenden Seiten anlegen, KEINE Pflichtseiten "
+        "(Impressum, Datenschutz, AGB, Barrierefreiheit) — die werden separat verwaltet.\n\n"
+        f"UNTERNEHMEN:\n- Firma: {company}\n- Gewerk: {gewerk}\n- Leistungen: {leistungen}\n\n"
+        f"BEREITS BESTEHENDE SEITEN:\n{existing_summary}\n\n"
+        "Antworte NUR als JSON-Array (kein Markdown):\n"
+        '[{ "page_name":"", "page_type":"leistung|info|vertrauen|conversion|sonstige", '
+        '"zweck":"", "ziel_keyword":"", "cta_text":"", "cta_ziel":"kontakt", '
+        '"sections":["hero_minimal","content_richtext","cta_inline"] }]'
+    )
+
+    try:
+        from anthropic import Anthropic
+        client = Anthropic(api_key=api_key, max_retries=0, timeout=60.0)
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = response.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = "\n".join(line for line in raw.splitlines() if not line.strip().startswith("```")).strip()
+        new_pages = json.loads(raw)
+        if not isinstance(new_pages, list) or not new_pages:
+            raise ValueError("Erwarte nicht-leeres JSON-Array")
+    except Exception as exc:
+        logger.exception("generate-more failed: %s", exc)
+        raise HTTPException(status_code=502, detail=f"KI-Generation fehlgeschlagen: {exc}")
+
+    max_pos = max((p.position or 0 for p in existing), default=0)
+    for i, p_data in enumerate(new_pages):
+        # parent bleibt None (top-level) — KI hat keine IDs zum Verlinken
+        p_data["position"] = max_pos + 1 + i
+        p_data["parent_id"] = None
+
+    _insert_pages(lead_id, new_pages, db, source="ki_generated")
+
+    all_pages = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id)
+        .order_by(SitemapPage.position)
+        .all()
+    )
+    return {"added": len(new_pages), "pages": [_serialize(p) for p in all_pages]}
+
+
 # ── ENDPOINT: PDF-Export ──────────────────────────────────────────────────────
 
 def _on_page(canvas, doc):

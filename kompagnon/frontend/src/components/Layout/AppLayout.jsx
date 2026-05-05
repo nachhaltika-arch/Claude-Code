@@ -230,10 +230,16 @@ function SidebarNav({ badges }) {
     const p = location.pathname;
     const inSection = (paths) => paths.some(pp => p === pp || p.startsWith(pp + '/'));
     return {
-      vertrieb:      inSection(['/app/deals', '/app/audit', '/app/scraper', '/app/newsletter', '/app/import', '/app/product']),
-      leads:         inSection(['/app/leads', '/app/companies']),
-      projekte:      inSection(['/app/projects', '/app/checklists', '/app/tickets', '/app/pages']),
-      einstellungen: inSection(['/app/profile', '/app/2fa-setup', '/app/admin', '/app/settings', '/app/product-editor', '/app/products', '/app/webhooks']),
+      // Akquise — Pre-Sales / Cold Outreach
+      akquise:       inSection(['/app/scraper', '/app/import', '/app/audit', '/app/newsletter', '/app/campaigns', '/app/export', '/app/webhooks']),
+      // Leads — Sales-Pipeline / Erstkontakt bis Vertragsabschluss
+      leads:         inSection(['/app/deals', '/app/companies']),
+      // Projekte — Aktive Lieferung (17-Step-Workflow)
+      projekte:      inSection(['/app/projects', '/app/leads', '/app/checklists']),
+      // Kompagnon — Backoffice / interne Tools
+      kompagnon:     inSection(['/app/tickets', '/app/pages', '/app/product-editor', '/app/products', '/app/product', '/app/qr-generator', '/app/retainer']),
+      // Einstellungen — Account & System
+      einstellungen: inSection(['/app/profile', '/app/2fa-setup', '/app/admin', '/app/settings']),
     };
   };
   const [openSections, setOpenSections] = useState(getDefaultOpen);
@@ -330,79 +336,82 @@ function SidebarNav({ badges }) {
             {/* ARBEIT */}
             <span style={sectionLabelStyle}>Arbeit</span>
 
-            {/* ── VERTRIEB ── */}
-            <button onClick={() => toggleSection('vertrieb')} style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '7px 14px', border: 'none', borderLeft: '3px solid transparent',
-              background: 'transparent', cursor: 'pointer', fontSize: 13, textAlign: 'left',
-              fontFamily: 'var(--font-sans)',
-              color: openSections.vertrieb ? '#fff' : 'rgba(255,255,255,0.55)',
-              fontWeight: openSections.vertrieb ? 600 : 400,
-            }}>
-              <span>Vertrieb</span>
-              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: openSections.vertrieb ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
-            </button>
-            {openSections.vertrieb && [
-              { label: 'Pipeline',           path: '/app/deals'      },
-              { label: 'Audit-Tool',         path: '/app/audit'      },
-              { label: 'Kaltakquise',        path: '/app/scraper',   adminOnly: true },
-              { label: 'Newsletter',         path: '/app/newsletter' },
-              { label: 'Domain-Import',      path: '/app/import'     },
-              { label: 'Produktentwicklung', path: '/app/product',   adminOnly: true },
-            ].filter(i => !i.adminOnly || hasRole('admin')).map(item => (
-              <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
-                {item.label}
-              </button>
-            ))}
-
-            {/* ── LEADS ── */}
-            <button onClick={() => toggleSection('leads')} style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '7px 14px', border: 'none', borderLeft: '3px solid transparent',
-              background: 'transparent', cursor: 'pointer', fontSize: 13, textAlign: 'left',
-              fontFamily: 'var(--font-sans)',
-              color: openSections.leads ? '#fff' : 'rgba(255,255,255,0.55)',
-              fontWeight: openSections.leads ? 600 : 400,
-            }}>
-              <span>Leads</span>
-              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: openSections.leads ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
-            </button>
-            {openSections.leads && [
-              { label: 'Alle Leads',  path: '/app/leads'     },
-              { label: 'Unternehmen', path: '/app/companies' },
-            ].map(item => (
-              <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
-                {item.label}
-              </button>
-            ))}
-
-            {/* ── PROJEKTE ── */}
-            <button onClick={() => toggleSection('projekte')} style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '7px 14px', border: 'none', borderLeft: '3px solid transparent',
-              background: 'transparent', cursor: 'pointer', fontSize: 13, textAlign: 'left',
-              fontFamily: 'var(--font-sans)',
-              color: openSections.projekte ? '#fff' : 'rgba(255,255,255,0.55)',
-              fontWeight: openSections.projekte ? 600 : 400,
-            }}>
-              <span>Projekte</span>
-              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: openSections.projekte ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
-            </button>
-            {openSections.projekte && [
-              { label: 'Alle Projekte',   path: '/app/projects'   },
-              { label: 'Prozess-Ansicht', path: '/app/checklists' },
-              { label: 'Tickets',         path: '/app/tickets'    },
-              { label: 'Templates',       path: '/app/pages',     adminOnly: true },
-            ].filter(i => !i.adminOnly || hasRole('admin')).map(item => (
-              <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
-                {item.label}
-                {item.badgeKey && badges[item.badgeKey] > 0 && (
-                  <span style={{ marginLeft: 'auto', fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'var(--kc-yellow)', color: 'var(--kc-dark)', fontWeight: 700 }}>
-                    {badges[item.badgeKey]}
-                  </span>
-                )}
-              </button>
-            ))}
+            {/* Customer-Journey-orientierte Struktur:
+                Akquise → Leads → Projekte → Kompagnon (Backoffice) → Einstellungen */}
+            {[
+              {
+                key: 'akquise',
+                label: 'Akquise',
+                items: [
+                  { label: 'Kaltakquise',          path: '/app/scraper',    adminOnly: true },
+                  { label: 'Domain-Import',        path: '/app/import'     },
+                  { label: 'Audit-Tool',           path: '/app/audit'      },
+                  { label: 'Newsletter',           path: '/app/newsletter' },
+                  { label: 'Kampagnen',            path: '/app/campaigns',  adminOnly: true },
+                  { label: 'Export',               path: '/app/export'     },
+                  { label: 'Webhooks',             path: '/app/webhooks',   adminOnly: true },
+                ],
+              },
+              {
+                key: 'leads',
+                label: 'Leads',
+                items: [
+                  { label: 'Pipeline',             path: '/app/deals'      },
+                  { label: 'Unternehmen',          path: '/app/companies'  },
+                ],
+              },
+              {
+                key: 'projekte',
+                label: 'Projekte',
+                items: [
+                  { label: 'Alle Projekte',        path: '/app/projects'   },
+                  { label: 'Projektpipeline',      path: '/app/leads'      },
+                  { label: 'Prozess-Ansicht',      path: '/app/checklists' },
+                ],
+              },
+              {
+                key: 'kompagnon',
+                label: 'Kompagnon',
+                items: [
+                  { label: 'Tickets',              path: '/app/tickets'    },
+                  { label: 'Templates',            path: '/app/pages',           adminOnly: true },
+                  { label: 'Produkt-Editor',       path: '/app/product-editor',  adminOnly: true },
+                  { label: 'Produkte',             path: '/app/products',        adminOnly: true },
+                  { label: 'Produktentwicklung',   path: '/app/product',         adminOnly: true },
+                  { label: 'QR-Generator',         path: '/app/qr-generator',    adminOnly: true },
+                  { label: 'Retainer',             path: '/app/retainer',        adminOnly: true },
+                ],
+              },
+            ].map((section) => {
+              const visibleItems = section.items.filter((i) => !i.adminOnly || hasRole('admin'));
+              if (visibleItems.length === 0) return null;
+              const isOpen = openSections[section.key];
+              return (
+                <React.Fragment key={section.key}>
+                  <button onClick={() => toggleSection(section.key)} style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '7px 14px', border: 'none', borderLeft: '3px solid transparent',
+                    background: 'transparent', cursor: 'pointer', fontSize: 13, textAlign: 'left',
+                    fontFamily: 'var(--font-sans)',
+                    color: isOpen ? '#fff' : 'rgba(255,255,255,0.55)',
+                    fontWeight: isOpen ? 600 : 400,
+                  }}>
+                    <span>{section.label}</span>
+                    <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: isOpen ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
+                  </button>
+                  {isOpen && visibleItems.map((item) => (
+                    <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
+                      {item.label}
+                      {item.badgeKey && badges[item.badgeKey] > 0 && (
+                        <span style={{ marginLeft: 'auto', fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'var(--kc-yellow)', color: 'var(--kc-dark)', fontWeight: 700 }}>
+                          {badges[item.badgeKey]}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </React.Fragment>
+              );
+            })}
 
             {/* Separator */}
             <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '8px 14px' }} />
@@ -420,14 +429,11 @@ function SidebarNav({ badges }) {
               <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: openSections.einstellungen ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
             </button>
             {openSections.einstellungen && [
-              { label: 'Profil',             path: '/app/profile'         },
-              { label: 'Sicherheit & 2FA',   path: '/app/2fa-setup'       },
-              { label: 'Benutzerverwaltung', path: '/app/admin/users',    adminOnly: true },
-              { label: 'Rollenverwaltung',   path: '/app/admin/roles',    adminOnly: true },
-              { label: 'System & API-Keys',  path: '/app/settings'        },
-              { label: 'Produkt-Editor',     path: '/app/product-editor', adminOnly: true },
-              { label: 'Produkte',           path: '/app/products',       adminOnly: true },
-              { label: 'Webhooks',           path: '/app/webhooks',       adminOnly: true },
+              { label: 'Profil',             path: '/app/profile'      },
+              { label: 'Sicherheit & 2FA',   path: '/app/2fa-setup'    },
+              { label: 'System & API-Keys',  path: '/app/settings'     },
+              { label: 'Benutzerverwaltung', path: '/app/admin/users', adminOnly: true },
+              { label: 'Rollenverwaltung',   path: '/app/admin/roles', adminOnly: true },
             ].filter(i => !i.adminOnly || hasRole('admin')).map(item => (
               <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
                 {item.label}

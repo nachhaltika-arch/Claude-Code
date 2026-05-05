@@ -150,7 +150,6 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
           phone:        form.phone.trim(),
           lead_source:  'manual',
           status:       'won',
-          package_type: form.paket,
         }),
       });
       if (!leadRes.ok) {
@@ -161,6 +160,7 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
 
       const projRes = await fetch(`${API_BASE_URL}/api/projects/from-lead/${lead.id}`, {
         method: 'POST', headers: h,
+        body: JSON.stringify({ package_type: form.paket }),
       });
       const projBody = await projRes.json().catch(() => ({}));
       if (projRes.status === 409) {

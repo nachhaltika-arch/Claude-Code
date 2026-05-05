@@ -14,7 +14,7 @@ import logging
 import threading
 import os
 import json as _json_mod
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
 
 logger = logging.getLogger(__name__)
 
@@ -1223,9 +1223,18 @@ async def _golive_automation(project_id: int):
 
 
 @router.post("/from-lead/{lead_id}", status_code=201)
-def create_project_from_lead(lead_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def create_project_from_lead(
+    lead_id: int,
+    background_tasks: BackgroundTasks,
+    body: dict = Body(default={}),
+    db: Session = Depends(get_db),
+):
     """
     Create a project from any lead (Nutzerkartei).
+
+    Optional body: {"package_type": "starter" | "kompagnon" | "premium"}.
+    Falls back to the projects.package_type DB default ('kompagnon') if
+    omitted or invalid.
 
     - 404 if lead not found
     - 409 if a project for this lead already exists
@@ -1272,13 +1281,22 @@ def create_project_from_lead(lead_id: int, background_tasks: BackgroundTasks, db
         created_at=now,
         updated_at=now,
     )
+    # Optional package_type from body — only accept the three known values,
+    # otherwise let the projects.package_type DB default kick in.
+    package_type = (body or {}).get("package_type")
+    if package_type not in ("starter", "kompagnon", "premium"):
+        package_type = None
+
     # Set extra columns via setattr so missing ORM fields don't crash
-    for col, val in [
+    extras = [
         ("company_name", company_name),
         ("website_url",  lead.website_url),
         ("contact_name", lead.contact_name),
         ("contact_email", lead.email),
-    ]:
+    ]
+    if package_type:
+        extras.append(("package_type", package_type))
+    for col, val in extras:
         try:
             setattr(project, col, val)
         except Exception:

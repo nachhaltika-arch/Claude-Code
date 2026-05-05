@@ -80,37 +80,34 @@ nutzt das später, um die richtigen Templates pro Sitemap-Section vorzuschlagen.
 Wenn das Repo jemals öffentlich werden soll: **dieses Verzeichnis vorher entfernen
 oder in `.gitignore` aufnehmen.**
 
-## ⚠️ Tailwind-Token-Hinweis
+## Tailwind-Token-Replace (Pflicht beim Import)
 
-Relume nutzt **eigene Tailwind-Custom-Tokens**:
-- `border-border-primary`, `border-border-alternative`, `border-border-secondary`
-- `bg-background-primary`, `bg-background-secondary`, `bg-background-alternative`
-- `text-neutral`, `text-text-primary`, `text-text-alternative`
-- `placeholder:text-neutral`
+Relume nutzt eigene Custom-Tokens, die in Standard-Tailwind nicht
+existieren. **KAS-Entscheidung: Tokens werden beim Import durch
+Standard-Tailwind-Klassen ersetzt** (kein Relume-Preset, KAS bleibt
+unabhängig). Mapping-Tabelle:
 
-Diese Klassen funktionieren **nur**, wenn das Relume-Tailwind-Preset
-installiert ist (`@relume_io/relume-tailwind`) und im
-`tailwind.config.js` eingebunden:
+| Relume-Token                | Standard-Tailwind          |
+|-----------------------------|----------------------------|
+| `border-border-primary`     | `border-gray-200`          |
+| `border-border-alternative` | `border-gray-300`          |
+| `border-border-secondary`   | `border-gray-100`          |
+| `bg-background-primary`     | `bg-white`                 |
+| `bg-background-secondary`   | `bg-gray-50`               |
+| `bg-background-alternative` | `bg-gray-100`              |
+| `text-text-primary`         | `text-gray-900`            |
+| `text-text-alternative`     | `text-gray-600`            |
+| `text-neutral`              | `text-gray-500`            |
+| `placeholder:text-neutral`  | `placeholder:text-gray-500`|
 
-```js
-// tailwind.config.js
-import { relumeTailwindConfig } from '@relume_io/relume-tailwind';
-export default {
-  presets: [relumeTailwindConfig],
-  // ...
-};
-```
+Wenn beim Import ein **neuer Relume-Token** auftaucht, der nicht in der
+Tabelle steht: kurz prüfen welche neutrale Tailwind-Klasse semantisch
+passt, Mapping hier ergänzen, anwenden, committen. Keine `border-*-*`
+oder `bg-background-*` Tokens dürfen im finalen HTML stehenbleiben.
 
-**Ohne Preset:** rendern die Sections ohne Borders/Backgrounds —
-sehen kaputt aus. Status: noch nicht installiert. TODO entscheiden:
-
-- **Option A:** Preset im KAS-Frontend installieren → alle Relume-Sections
-  rendern korrekt im Editor-Preview.
-- **Option B:** Tokens beim Import durch Standard-Tailwind ersetzen
-  (`border-border-primary` → `border-gray-200`, `bg-background-primary`
-  → `bg-white`, etc.) — entkoppelt KAS von Relume's Token-System.
-- **Option C:** Beide parallel — Preset für Editor-Preview, Replace beim
-  Endkunden-Site-Build.
+KAS-spezifische Brand-Farben (`#FAE600`, `#008EAA`, `#004F59`) werden
+NICHT durch dieses Mapping zugewiesen — die kommen pro Section gezielt
+über Slots oder im KI-Color-Sweep, sonst sieht jede Page gleich aus.
 
 ## Source-Tracking
 

@@ -116,6 +116,17 @@ class VariationRequest(BaseModel):
     exclude_slugs: Optional[list[str]] = None
 
 
+class SaveCustomRequest(BaseModel):
+    new_slug:       str
+    new_name:       str
+    html_template:  str
+    category:       Optional[str] = "CUSTOM"
+    source_slug:    Optional[str] = None
+    slots:          Optional[list] = None
+    ki_prompt_hint: Optional[str] = ""
+    preview_note:   Optional[str] = ""
+
+
 @component_router.post("/variation")
 def get_block_variation(
     body: VariationRequest,
@@ -156,6 +167,61 @@ def get_block_variation(
 
     chosen = _rnd.choice(candidates)
     return _serialize_component(chosen, include_html=True)
+
+
+@component_router.post("/save-custom")
+def save_custom_component(
+    body: SaveCustomRequest,
+    db: Session = Depends(get_db),
+    user=Depends(require_any_auth),
+):
+    """Speichert ein User-modifiziertes HTML als neuen Custom-Library-Eintrag.
+
+    Aufruf erfolgt aus dem Slot-Editor wenn der User „Als Custom speichern"
+    auswaehlt. Der neue Eintrag erscheint danach automatisch in der
+    Wireframe-Library und ist wiederverwendbar.
+
+    Validierung:
+      - new_slug darf nicht existieren (UNIQUE-Constraint waere ohnehin Fehler)
+      - new_slug auf Lower-/Hyphen-Pattern beschraenkt
+      - html_template darf nicht leer sein
+    """
+    import re as _re
+
+    slug = (body.new_slug or "").strip().lower()
+    name = (body.new_name or "").strip()
+    html = (body.html_template or "").strip()
+    category = (body.category or "CUSTOM").strip().upper()
+
+    if not slug or not _re.match(r"^[a-z0-9][a-z0-9-]*$", slug):
+        raise HTTPException(400, "new_slug muss kleinbuchstaben, ziffern, bindestriche enthalten")
+    if not name:
+        raise HTTPException(400, "new_name darf nicht leer sein")
+    if not html or len(html) < 20:
+        raise HTTPException(400, "html_template fehlt oder zu kurz")
+
+    existing = db.query(ComponentLibrary).filter(ComponentLibrary.slug == slug).first()
+    if existing:
+        raise HTTPException(409, f"Slug '{slug}' existiert bereits")
+
+    tags = ["custom", "user-saved"]
+    if body.source_slug:
+        tags.append(f"source:{body.source_slug}")
+
+    row = ComponentLibrary(
+        slug=slug,
+        name=name,
+        category=category,
+        tags=tags,
+        html_template=html,
+        slots=body.slots or [],
+        ki_prompt_hint=body.ki_prompt_hint or f"Custom-Section, abgeleitet von {body.source_slug or 'unknown'}",
+        preview_note=body.preview_note or "Vom User gespeicherte Custom-Variante",
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _serialize_component(row, include_html=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -28,6 +28,23 @@ const PREVIEW_WIDTHS = {
   desktop: '100%',
 };
 
+// W3: ersetzt {{key}}-Marker im html_template durch slot-Werte (HTML-escaped).
+// Wird in BlockCard's Live-Preview angewendet — User sieht seine Edits sofort.
+function renderSlots(html, slotValues) {
+  if (!html) return '';
+  if (!slotValues || typeof slotValues !== 'object') return html;
+  const escape = (s) => String(s).replace(/[<>&"']/g, (c) => (
+    { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+  let result = html;
+  Object.entries(slotValues).forEach(([key, value]) => {
+    if (value == null) return;
+    const re = new RegExp(`\\{\\{\\s*${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\}\\}`, 'g');
+    result = result.replace(re, escape(value));
+  });
+  return result;
+}
+
 export default function WireframeView({
   projectId,
   leadId,
@@ -54,6 +71,8 @@ export default function WireframeView({
   // W1 Drag-Reorder-State (native HTML5 DnD)
   const [draggedIdx, setDraggedIdx] = useState(null);
   const [dragOverIdx, setDragOverIdx] = useState(null);
+  // W3 Slot-Editor: { idx } oder null
+  const [editPanel, setEditPanel] = useState(null);
 
   // Default-Page auf erste setzen sobald Daten reinkommen
   useEffect(() => {
@@ -215,6 +234,44 @@ export default function WireframeView({
     } catch (e) {
       // eslint-disable-next-line no-console
       console.warn('variation request failed:', e);
+    }
+  };
+
+  // W3: Slot-Werte eines Blocks updaten + persistieren.
+  const updateBlockSlots = (targetIdx, nextSlots) => {
+    if (!activePage) return;
+    const nextBlocks = activeBlocks.map((b, i) =>
+      i === targetIdx ? { ...b, slots: nextSlots } : b,
+    );
+    const nextData = {
+      pages: pages.map((p) => (p.page_id === activePageId ? { ...p, blocks: nextBlocks } : p)),
+    };
+    persist(nextData);
+  };
+
+  // W3: Block-HTML als neuer Custom-Library-Eintrag speichern. Antwort enthält
+  // den neuen ComponentLibrary-Eintrag — wir cachen ihn lokal und tauschen den
+  // Block der aktuellen Page auf den neuen Slug aus.
+  const saveAsCustom = async (targetIdx, payload) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/components/save-custom`, {
+        method: 'POST', headers,
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = body?.detail;
+        const msg = typeof detail === 'string' ? detail : `Fehler ${res.status}`;
+        throw new Error(msg);
+      }
+      // Library-Cache erweitern + Block auf neuen Slug umstellen
+      setLibrary((prev) => [...prev, body]);
+      swapBlock(targetIdx, body.slug);
+      return body;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('save-custom failed:', e);
+      return null;
     }
   };
 
@@ -403,6 +460,7 @@ export default function WireframeView({
                 onDragEnd={() => { setDraggedIdx(null); setDragOverIdx(null); }}
                 onSwap={() => setSwapPanel({ open: true, targetIdx: idx, mode: 'swap' })}
                 onVariation={() => requestVariation(idx)}
+                onEdit={() => setEditPanel({ idx })}
                 onRemove={() => removeBlock(idx)}
               />
             ))}
@@ -423,6 +481,28 @@ export default function WireframeView({
           </div>
         </div>
       </main>
+
+      {/* W3: Slot-Editor-Modal */}
+      {editPanel && (() => {
+        const target = activeBlocks[editPanel.idx];
+        const lib = target ? library.find((c) => c.slug === target.slug) : null;
+        if (!target) return null;
+        return (
+          <SlotEditorModal
+            block={target}
+            libraryEntry={lib}
+            onClose={() => setEditPanel(null)}
+            onSaveSlots={(values) => {
+              updateBlockSlots(editPanel.idx, values);
+              setEditPanel(null);
+            }}
+            onSaveAsCustom={async (payload) => {
+              const created = await saveAsCustom(editPanel.idx, payload);
+              if (created) setEditPanel(null);
+            }}
+          />
+        );
+      })()}
 
       {/* Rechtes Slide-In-Panel: Block-Tausch / Hinzufügen */}
       {swapPanel.open && (
@@ -545,9 +625,10 @@ function BlockCard({
   idx, block, libraryEntry,
   isDragOver, isDragging,
   onDragStart, onDragOver, onDrop, onDragEnd,
-  onSwap, onVariation, onRemove,
+  onSwap, onVariation, onEdit, onRemove,
 }) {
-  const html = libraryEntry?.html_template || '';
+  // W3: Slot-Werte aus dem Block in die Live-Preview einrendern
+  const html = renderSlots(libraryEntry?.html_template || '', block?.slots);
   const name = libraryEntry?.name || block.slug;
   const category = libraryEntry?.category || '—';
 
@@ -595,6 +676,16 @@ function BlockCard({
         <span style={{ color: '#94a3b8', fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>
           #{idx + 1}
         </span>
+        <button
+          type="button" onClick={onEdit}
+          title="Slots editieren / als Custom speichern"
+          style={{
+            background: 'transparent', color: KC_DARK,
+            border: `1px solid ${KC_DARK}`, borderRadius: 4,
+            padding: '2px 8px', fontSize: 10, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >✏️ Edit</button>
         <button
           type="button" onClick={onVariation}
           title="Variante aus gleicher Kategorie vorschlagen"
@@ -706,5 +797,208 @@ function LibraryCard({ item, onPick, compact = false }) {
         <div style={{ fontSize: 9, color: '#64748b', fontFamily: 'ui-monospace, monospace' }}>{item.slug}</div>
       </div>
     </button>
+  );
+}
+
+// ── W3: Slot-Editor-Modal ─────────────────────────────────────────────────────
+
+function SlotEditorModal({ block, libraryEntry, onClose, onSaveSlots, onSaveAsCustom }) {
+  const slots = libraryEntry?.slots || [];
+  const html  = libraryEntry?.html_template || '';
+  const [values, setValues] = useState(() => {
+    const init = {};
+    slots.forEach((s) => {
+      init[s.key] = (block?.slots && block.slots[s.key]) ?? s.default ?? '';
+    });
+    return init;
+  });
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customSlug, setCustomSlug] = useState(`${block.slug}-custom`);
+  const [customName, setCustomName] = useState(libraryEntry?.name ? `${libraryEntry.name} (Custom)` : 'Custom Section');
+  const [showRawHtml, setShowRawHtml] = useState(false);
+  const [rawHtml, setRawHtml] = useState(html);
+  const [saving, setSaving] = useState(false);
+
+  const previewHtml = useMemo(() => {
+    const baseHtml = showRawHtml ? rawHtml : html;
+    return renderSlots(baseHtml, values);
+  }, [html, rawHtml, values, showRawHtml]);
+
+  const hasSlots = slots.length > 0;
+
+  const handleSlotSave = () => {
+    if (saving) return;
+    setSaving(true);
+    onSaveSlots(values);
+  };
+
+  const handleCustomSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    await onSaveAsCustom({
+      new_slug:       customSlug.trim().toLowerCase(),
+      new_name:       customName.trim(),
+      html_template:  showRawHtml ? rawHtml : renderSlots(html, values),
+      category:       libraryEntry?.category || 'CUSTOM',
+      source_slug:    block.slug,
+      slots:          showRawHtml ? [] : (libraryEntry?.slots || []),
+      ki_prompt_hint: libraryEntry?.ki_prompt_hint || '',
+      preview_note:   `Custom-Variante von ${libraryEntry?.name || block.slug}`,
+    });
+    setSaving(false);
+  };
+
+  return (
+    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{
+      position: 'fixed', inset: 0, zIndex: 2000,
+      background: 'rgba(0,0,0,0.55)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+    }}>
+      <div style={{
+        background: '#fff', borderRadius: 12,
+        width: '100%', maxWidth: 920, maxHeight: 'calc(100vh - 32px)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '14px 18px', borderBottom: '1px solid #e2e8f0',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: '#f8fafc',
+        }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: KC_DARK }}>
+              {libraryEntry?.name || block.slug}
+            </div>
+            <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'ui-monospace, monospace' }}>
+              {block.slug}
+            </div>
+          </div>
+          <button type="button" onClick={onClose}
+            style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#64748b', lineHeight: 1 }}>×</button>
+        </div>
+
+        {/* Body: 2-Spalten — Form links, Live-Preview rechts */}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* Form */}
+          <div style={{ flex: '0 0 360px', padding: 16, overflowY: 'auto', borderRight: '1px solid #e2e8f0' }}>
+            {!hasSlots && !showRawHtml && (
+              <div style={{
+                padding: 12, fontSize: 12, color: '#92400e',
+                background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 6,
+                marginBottom: 12,
+              }}>
+                Diese Section hat keine definierten Slots. Klick „HTML direkt bearbeiten" für volle Kontrolle.
+              </div>
+            )}
+
+            {hasSlots && !showRawHtml && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {slots.map((s) => (
+                  <div key={s.key}>
+                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>
+                      {s.label || s.key}
+                    </label>
+                    <input
+                      type="text"
+                      value={values[s.key] ?? ''}
+                      onChange={(e) => setValues((v) => ({ ...v, [s.key]: e.target.value }))}
+                      placeholder={s.default || ''}
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }}
+                    />
+                    <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2, fontFamily: 'ui-monospace, monospace' }}>
+                      {`{{${s.key}}}`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {showRawHtml && (
+              <div>
+                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
+                  HTML-Template (Tailwind)
+                </label>
+                <textarea
+                  value={rawHtml}
+                  onChange={(e) => setRawHtml(e.target.value)}
+                  rows={20}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: 10, border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 11, fontFamily: 'ui-monospace, monospace', resize: 'vertical' }}
+                />
+                <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
+                  Änderungen werden nur sichtbar wenn du als Custom-Section speicherst.
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed #e2e8f0' }}>
+              <button type="button"
+                onClick={() => setShowRawHtml((v) => !v)}
+                style={{ background: 'none', border: 'none', color: KC_MID, fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+                {showRawHtml ? '← Slot-Modus' : 'HTML direkt bearbeiten →'}
+              </button>
+            </div>
+
+            {showCustomForm && (
+              <div style={{ marginTop: 14, padding: 10, background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#92400e', marginBottom: 3 }}>Custom-Slug</label>
+                  <input value={customSlug} onChange={(e) => setCustomSlug(e.target.value)}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '6px 8px', border: '1px solid #FCD34D', borderRadius: 4, fontSize: 11, fontFamily: 'ui-monospace, monospace' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#92400e', marginBottom: 3 }}>Anzeigename</label>
+                  <input value={customName} onChange={(e) => setCustomName(e.target.value)}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '6px 8px', border: '1px solid #FCD34D', borderRadius: 4, fontSize: 11 }} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Live-Preview rechts */}
+          <div style={{ flex: 1, overflow: 'auto', background: '#f8fafc', padding: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+              Live-Preview
+            </div>
+            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden', pointerEvents: 'none' }}>
+              {previewHtml ? (
+                <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+              ) : (
+                <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 12 }}>Keine Vorschau</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: '12px 18px', borderTop: '1px solid #e2e8f0',
+          display: 'flex', justifyContent: 'space-between', gap: 8,
+          background: '#f8fafc',
+        }}>
+          <button type="button" onClick={() => setShowCustomForm((v) => !v)}
+            style={{ padding: '8px 14px', background: '#fff', border: `1px solid ${KC_MID}`, color: KC_MID, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            {showCustomForm ? '× Custom abbrechen' : '💾 Als Custom-Section speichern'}
+          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={onClose} disabled={saving}
+              style={{ padding: '8px 14px', background: '#fff', border: '1px solid #cbd5e1', color: '#64748b', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>
+              Abbrechen
+            </button>
+            {showCustomForm ? (
+              <button type="button" onClick={handleCustomSave} disabled={saving || !customSlug.trim() || !customName.trim()}
+                style={{ padding: '8px 18px', background: saving ? '#94a3b8' : KC_MID, color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
+                {saving ? 'Speichert…' : '✓ Custom speichern + anwenden'}
+              </button>
+            ) : (
+              <button type="button" onClick={handleSlotSave} disabled={saving || (!hasSlots && !showRawHtml)}
+                style={{ padding: '8px 18px', background: saving || (!hasSlots && !showRawHtml) ? '#94a3b8' : KC_DARK, color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
+                {saving ? 'Speichert…' : '✓ Slots speichern'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

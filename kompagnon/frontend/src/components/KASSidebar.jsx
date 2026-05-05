@@ -265,15 +265,19 @@ export default function KASSidebar({
                   {group.steps.map((step) => {
                     const status = stepStatus[step.id] || 'pending';
                     const isActive = step.id === activeStep;
+                    const isLocked = status === 'locked';
                     const dotColor =
                       status === 'completed' ? GREEN :
-                      status === 'active' || isActive ? KC_YELLOW :
-                      'rgba(255,255,255,0.2)';
+                      isActive ? KC_YELLOW :
+                      status === 'ready' ? 'rgba(255,255,255,0.5)' :
+                      'rgba(255,255,255,0.15)';
                     return (
                       <li key={step.id}>
                         <button
                           type="button"
                           onClick={() => onStepClick?.(step.id)}
+                          aria-disabled={isLocked}
+                          title={isLocked ? 'Gesperrt — vorherigen Schritt zuerst abschließen' : step.name}
                           style={{
                             width: '100%',
                             display: 'flex',
@@ -283,8 +287,9 @@ export default function KASSidebar({
                             background: isActive ? 'rgba(255,255,255,0.06)' : 'transparent',
                             border: 'none',
                             borderLeft: isActive ? `2px solid ${KC_YELLOW}` : '2px solid transparent',
-                            color: isActive ? '#fff' : 'rgba(255,255,255,0.5)',
-                            cursor: 'pointer',
+                            color: isActive ? '#fff' : isLocked ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.55)',
+                            cursor: isLocked ? 'not-allowed' : 'pointer',
+                            opacity: isLocked ? 0.55 : 1,
                             textAlign: 'left',
                             fontSize: 10,
                             fontWeight: isActive ? 700 : 500,
@@ -305,11 +310,17 @@ export default function KASSidebar({
                           <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {step.nr}. {step.name}
                           </span>
-                          {step.optional && (
+                          {status === 'completed' && (
+                            <span aria-label="Abgeschlossen" style={{ fontSize: 9, color: GREEN, fontWeight: 700 }}>✓</span>
+                          )}
+                          {isLocked && (
+                            <span aria-label="Gesperrt" style={{ fontSize: 9, opacity: 0.65 }}>🔒</span>
+                          )}
+                          {step.optional && !isLocked && status !== 'completed' && (
                             <span style={{ fontSize: 8, opacity: 0.5, fontStyle: 'italic' }}>opt.</span>
                           )}
-                          {step.gate && (
-                            <span aria-label="Gate" title="Gate-Schritt" style={{ fontSize: 9, opacity: 0.55 }}>🔒</span>
+                          {step.gate && !isLocked && status !== 'completed' && (
+                            <span aria-label="Gate" title="Gate-Schritt" style={{ fontSize: 9, opacity: 0.55 }}>⚑</span>
                           )}
                         </button>
                       </li>

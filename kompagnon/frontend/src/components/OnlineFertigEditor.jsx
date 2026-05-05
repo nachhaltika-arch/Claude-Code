@@ -17,6 +17,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { useAuth } from '../context/AuthContext';
 import KASSidebar, { SCHRITTE } from './KASSidebar';
@@ -50,8 +51,11 @@ export default function OnlineFertigEditor() {
   const [brandData, setBrandData] = useState(null);
   const [loadingProject, setLoadingProject] = useState(true);
   const [wireframeData, setWireframeData] = useState({ pages: [] });
-  const [activeView, setActiveView] = useState('sitemap');
-  const [activeStep, setActiveStep] = useState('sitemap-ki');
+  // Default: Schritt 1 = briefing-unternehmen (linearer Flow von oben).
+  // Alte Default-Werte 'sitemap' / 'sitemap-ki' (Phase 2) waren bei einem
+  // frischen Projekt 'locked' → User landete in einer gesperrten View.
+  const [activeView, setActiveView] = useState(null);
+  const [activeStep, setActiveStep] = useState('briefing-unternehmen');
   const [generateStatus, setGenerateStatus] = useState(null); // null | 'running' | { error } | 'done'
   const [confirmedSteps, setConfirmedSteps] = useState({});
   const pollTimerRef = useRef(null);
@@ -140,12 +144,30 @@ export default function OnlineFertigEditor() {
     } catch { /* silent */ }
   }, [project?.lead_id, headers]);
 
-  const handleStepConfirmed = useCallback((stepId) => {
+  const handleStepConfirmed = useCallback(async (stepId) => {
+    if (!stepId || !projectId) return;
+    // Optimistic local update — die Sidebar zeigt 'completed' sofort
     setConfirmedSteps((prev) => ({
       ...prev,
       [stepId]: { confirmed: true, confirmed_at: new Date().toISOString() },
     }));
-  }, []);
+    // Persistenz über das bestehende Backend-Endpoint
+    try {
+      await fetch(`${API_BASE_URL}/api/projects/${projectId}/confirm-step`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ step_id: stepId }),
+      });
+    } catch (e) {
+      toast.error('Speichern des Status fehlgeschlagen — wird beim nächsten Reload geprüft.');
+    }
+    // Auto-Advance: zum nächsten Schritt springen, falls vorhanden
+    const idx = SCHRITTE.findIndex((s) => s.id === stepId);
+    const next = SCHRITTE[idx + 1];
+    if (next) {
+      setActiveStep(next.id);
+      setActiveView(next.view || null);
+    }
+  }, [projectId, headers]);
 
   // ── Persistierung des wireframe_data ───────────────────────────────────────
 
@@ -167,16 +189,24 @@ export default function OnlineFertigEditor() {
   // ── Handlers für die Views ─────────────────────────────────────────────────
 
   const handleViewChange = (view) => {
-    setActiveView(view);
     // Korrespondenz: View → erster passender Step in der Sidebar
     const matching = SCHRITTE.find((s) => s.view === view);
+    if (matching && stepStatus[matching.id] === 'locked') {
+      toast.error('Schritt ist gesperrt — schließe zuerst die vorherigen Schritte ab.');
+      return;
+    }
+    setActiveView(view);
     if (matching) setActiveStep(matching.id);
   };
 
   const handleStepClick = (stepId) => {
+    if (stepStatus[stepId] === 'locked') {
+      toast.error('Schritt ist gesperrt — schließe zuerst die vorherigen Schritte ab.');
+      return;
+    }
     setActiveStep(stepId);
     const step = SCHRITTE.find((s) => s.id === stepId);
-    if (step?.view) setActiveView(step.view);
+    setActiveView(step?.view || null);
   };
 
   const handleWireframeChange = (next) => {
@@ -294,8 +324,8 @@ export default function OnlineFertigEditor() {
   // ── Step-Status für die Sidebar-Dots ──────────────────────────────────────
 
   const stepStatus = useMemo(
-    () => computeStepStatus(project, wireframeData),
-    [project, wireframeData],
+    () => computeStepStatus(project, wireframeData, confirmedSteps),
+    [project, wireframeData, confirmedSteps],
   );
 
   // ── Rendering ──────────────────────────────────────────────────────────────
@@ -401,6 +431,30 @@ export default function OnlineFertigEditor() {
               <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 700 }}>
                 ✗ {generateStatus.error.slice(0, 60)}
               </span>
+            )}
+            {/* Schritt abschließen ✓ — markiert aktuellen Step als confirmed,
+                persistiert in projects.steps_confirmed und springt zum nächsten.
+                Versteckt bei bereits-confirmed activeStep oder am letzten Schritt. */}
+            {activeStep && !confirmedSteps?.[activeStep]?.confirmed && (
+              <button
+                type="button"
+                onClick={() => handleStepConfirmed(activeStep)}
+                style={{
+                  background: KC_YELLOW,
+                  color: '#000',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '6px 14px',
+                  fontSize: 11,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                }}
+                title={`Schritt ${SCHRITTE.find((s) => s.id === activeStep)?.nr} abschließen und zum nächsten Schritt`}
+              >
+                ✓ Schritt abschließen
+              </button>
             )}
             <button
               type="button"
@@ -550,7 +604,7 @@ function StepDetailPanel({ step, project, projectId, navigate }) {
 
 // ── Step-Status berechnen ───────────────────────────────────────────────────
 
-function computeStepStatus(project, wireframeData) {
+function computeStepStatus(project, wireframeData, confirmedSteps) {
   if (!project) return {};
   const status = {};
 
@@ -585,6 +639,25 @@ function computeStepStatus(project, wireframeData) {
   status['umami'] = 'pending';
   status['heatmap'] = 'pending';
   status['monats-report'] = 'pending';
+
+  // User-Bestätigung überschreibt Heuristik (höchste Priorität).
+  // Schema: confirmedSteps = { stepId: { confirmed: true, confirmed_at: '…' } }
+  Object.entries(confirmedSteps || {}).forEach(([stepId, val]) => {
+    if (val && val.confirmed) status[stepId] = 'completed';
+  });
+
+  // Lock-Logik (Variante C): nur consecutive-completed + nächster Schritt sind
+  // freigegeben. Spätere Schritte sind 'locked' bis der User aufholt.
+  let consecutiveDoneIdx = -1;
+  for (let i = 0; i < SCHRITTE.length; i++) {
+    if (status[SCHRITTE[i].id] === 'completed') consecutiveDoneIdx = i;
+    else break;
+  }
+  SCHRITTE.forEach((s, idx) => {
+    if (status[s.id] === 'completed') return;
+    if (idx <= consecutiveDoneIdx + 1) status[s.id] = 'ready';
+    else status[s.id] = 'locked';
+  });
 
   return status;
 }

@@ -27,6 +27,8 @@ from typing import Iterator
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from database import ComponentLibrary
+
 logger = logging.getLogger(__name__)
 
 # Pfad-Math: seeds/seed_component_library.py
@@ -53,10 +55,15 @@ class SeedSummary(dict):
     """Tally — wie viele Eintraege inserted/updated/skipped/errored sind."""
 
     def __init__(self) -> None:
-        super().__init__(inserted=0, updated=0, skipped=0, errors=0)
+        super().__init__(inserted=0, updated=0, skipped=0, errors=0, deleted=0)
 
     def total(self) -> int:
         return self["inserted"] + self["updated"]
+
+
+# Tags, die einen Eintrag als externe-Quelle markieren (HyperUI / Relume / etc.).
+# Werden vom Auto-Cleanup genutzt, um orphaned-Eintraege zu erkennen.
+_EXTERNAL_SOURCE_TAGS = frozenset({"hyperui", "relume", "open-source"})
 
 
 def _iter_components() -> Iterator[tuple[dict, Path]]:
@@ -163,6 +170,42 @@ def _upsert_component(db: Session, comp: dict, html: str) -> str:
     return "inserted" if (row and row[0]) else "updated"
 
 
+def _cleanup_orphaned_externals(db: Session, expected_external_slugs: set) -> int:
+    """Loescht Component-Library-Eintraege, die einer externen Quelle gehoeren,
+    aber nicht mehr im aktuellen Manifest stehen.
+
+    Erkennung: ein Eintrag gilt als "externe Quelle", wenn seine `tags` einen
+    der `_EXTERNAL_SOURCE_TAGS` enthalten. KAS-eigene Eintraege haben diese
+    Tags nicht — sie werden nie geloescht, auch nicht wenn der Slug fehlt.
+
+    Returnt die Anzahl geloeschter Zeilen.
+    """
+    deleted = 0
+    candidates = db.query(ComponentLibrary).all()
+    for row in candidates:
+        tags = row.tags or []
+        if isinstance(tags, str):
+            try:
+                tags = json.loads(tags)
+            except (json.JSONDecodeError, TypeError):
+                tags = []
+        if not any(t in _EXTERNAL_SOURCE_TAGS for t in tags):
+            continue  # KAS-eigener Eintrag, nicht anfassen
+        if row.slug in expected_external_slugs:
+            continue  # steht noch im Manifest
+        db.delete(row)
+        deleted += 1
+    if deleted:
+        try:
+            db.commit()
+        except Exception as exc:
+            logger.warning(f"seed_component_library: cleanup commit failed: {exc}")
+            db.rollback()
+            return 0
+        logger.info(f"seed_component_library: {deleted} verwaiste externe Eintraege geloescht.")
+    return deleted
+
+
 def seed_component_library(db: Session) -> SeedSummary:
     """
     Befuellt component_library aus den HTML-Templates im Frontend-Repo.
@@ -183,9 +226,19 @@ def seed_component_library(db: Session) -> SeedSummary:
     components = list(_iter_components())
     if not components:
         logger.info("seed_component_library: nichts zu seeden (leere Komponentenliste).")
+        # Trotzdem cleanup-Pass: alle externen orphans entfernen (Repo komplett geleert?)
+        summary["deleted"] = _cleanup_orphaned_externals(db, set())
         return summary
 
     logger.info(f"🌱 Component-Library Seed: {len(components)} Eintraege werden verarbeitet…")
+
+    # Sammle alle externen Slugs (alles unter library/external/*) fuer den
+    # Cleanup-Pass am Ende: was nicht mehr im Manifest steht, wird geloescht.
+    expected_external_slugs: set = {
+        comp.get("slug")
+        for comp, html_dir in components
+        if html_dir != LIBRARY_DIR and comp.get("slug")
+    }
 
     for comp, html_dir in components:
         slug = comp.get("slug")
@@ -216,10 +269,14 @@ def seed_component_library(db: Session) -> SeedSummary:
         summary["errors"] += summary.total()
         return summary
 
+    # Auto-Cleanup: alle externen Eintraege ohne Manifest-Match loeschen
+    summary["deleted"] = _cleanup_orphaned_externals(db, expected_external_slugs)
+
     logger.info(
         f"✓ Component-Library Seed fertig: "
         f"{summary['inserted']} neu, {summary['updated']} aktualisiert, "
-        f"{summary['skipped']} uebersprungen, {summary['errors']} Fehler."
+        f"{summary['skipped']} uebersprungen, {summary['deleted']} geloescht, "
+        f"{summary['errors']} Fehler."
     )
     return summary
 
@@ -238,7 +295,8 @@ def main() -> None:
         summary = seed_component_library(db)
         print(
             f"Inserted: {summary['inserted']}  Updated: {summary['updated']}  "
-            f"Skipped: {summary['skipped']}  Errors: {summary['errors']}"
+            f"Skipped: {summary['skipped']}  Deleted: {summary['deleted']}  "
+            f"Errors: {summary['errors']}"
         )
         if summary["errors"]:
             raise SystemExit(1)

@@ -1236,10 +1236,19 @@ def create_project_from_lead(lead_id: int, background_tasks: BackgroundTasks, db
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
-    # 2. Guard against duplicates
+    # 2. Guard against duplicates — return the existing project_id so the
+    # caller can navigate to it instead of guessing or 404'ing.
     existing = db.query(Project).filter(Project.lead_id == lead_id).first()
     if existing:
-        raise HTTPException(status_code=409, detail="Für diesen Lead existiert bereits ein Projekt")
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "PROJECT_EXISTS",
+                "message": "Für diesen Lead existiert bereits ein Projekt",
+                "project_id": existing.id,
+                "lead_id": lead_id,
+            },
+        )
 
     # 3. Guard: Website-URL ist Pflicht für Projekterstellung
     if not lead.website_url or not lead.website_url.strip():

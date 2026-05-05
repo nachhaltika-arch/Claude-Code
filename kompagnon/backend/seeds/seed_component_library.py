@@ -43,6 +43,10 @@ LIBRARY_DIR = (
     / "frontend" / "src" / "components" / "library"
 )
 INDEX_FILE = LIBRARY_DIR / "index.json"
+# Externe Quellen (Open-Source-Bibliotheken, MIT-lizenziert): jede Quelle hat
+# einen eigenen Sub-Ordner mit eigenem index.json + HTML-Files. Aktuell:
+# external/hyperui (https://github.com/markmead/hyperui).
+EXTERNAL_DIR = LIBRARY_DIR / "external"
 
 
 class SeedSummary(dict):
@@ -55,31 +59,60 @@ class SeedSummary(dict):
         return self["inserted"] + self["updated"]
 
 
-def _iter_components() -> Iterator[dict]:
-    """Liest index.json und yieldet jeden Block-Eintrag."""
+def _iter_components() -> Iterator[tuple[dict, Path]]:
+    """Liest die Manifeste und yieldet (component_dict, html_directory)-Tupel.
+
+    Quellen:
+      1. Haupt-Bibliothek (KAS-eigen): LIBRARY_DIR/index.json + LIBRARY_DIR/{slug}.html
+      2. Externe Quellen (Open-Source, MIT): LIBRARY_DIR/external/{source}/index.json
+         + LIBRARY_DIR/external/{source}/{slug}.html
+
+    Pro Eintrag wird die zugehörige HTML-Directory mitgegeben, damit
+    _read_html den richtigen Pfad nutzt.
+    """
+    # 1. Haupt-Bibliothek (KAS-eigen)
     if not INDEX_FILE.exists():
-        raise FileNotFoundError(
-            f"Component-Library Index nicht gefunden: {INDEX_FILE}. "
-            f"Erwarteter Pfad ist relativ zu diesem Skript: "
-            f"../../frontend/src/components/library/index.json"
+        logger.warning(
+            f"seed_component_library: Haupt-Index fehlt: {INDEX_FILE} — "
+            f"externe Quellen werden trotzdem geseedet falls vorhanden."
         )
+    else:
+        try:
+            with INDEX_FILE.open("r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            for comp in (data.get("components") or []):
+                yield comp, LIBRARY_DIR
+        except Exception as exc:
+            logger.warning(f"seed_component_library: Haupt-Index nicht lesbar: {exc}")
 
-    with INDEX_FILE.open("r", encoding="utf-8") as fh:
-        data = json.load(fh)
+    # 2. Externe Quellen (jeder Sub-Ordner unter library/external/)
+    if EXTERNAL_DIR.is_dir():
+        for source_dir in sorted(p for p in EXTERNAL_DIR.iterdir() if p.is_dir()):
+            ext_index = source_dir / "index.json"
+            if not ext_index.exists():
+                continue
+            try:
+                with ext_index.open("r", encoding="utf-8") as fh:
+                    ext_data = json.load(fh)
+                ext_comps = ext_data.get("components") or []
+                logger.info(
+                    f"seed_component_library: external/{source_dir.name} → "
+                    f"{len(ext_comps)} Eintraege"
+                )
+                for comp in ext_comps:
+                    yield comp, source_dir
+            except Exception as exc:
+                logger.warning(
+                    f"seed_component_library: external/{source_dir.name} "
+                    f"konnte nicht gelesen werden: {exc}"
+                )
 
-    components = data.get("components") or []
-    if not components:
-        logger.warning("seed_component_library: index.json enthaelt keine 'components'")
-        return
 
-    yield from components
-
-
-def _read_html(slug: str) -> str | None:
-    """Liest das HTML-Template fuer einen Slug. Returnt None bei Fehler."""
-    html_path = LIBRARY_DIR / f"{slug}.html"
+def _read_html(slug: str, html_dir: Path = LIBRARY_DIR) -> str | None:
+    """Liest das HTML-Template aus dem angegebenen Verzeichnis."""
+    html_path = html_dir / f"{slug}.html"
     if not html_path.exists():
-        logger.warning(f"seed_component_library: HTML-Datei fehlt: {html_path.name}")
+        logger.warning(f"seed_component_library: HTML-Datei fehlt: {html_path}")
         return None
     try:
         return html_path.read_text(encoding="utf-8")
@@ -154,14 +187,14 @@ def seed_component_library(db: Session) -> SeedSummary:
 
     logger.info(f"🌱 Component-Library Seed: {len(components)} Eintraege werden verarbeitet…")
 
-    for comp in components:
+    for comp, html_dir in components:
         slug = comp.get("slug")
         if not slug:
             logger.warning(f"seed_component_library: Eintrag ohne slug: {comp}")
             summary["skipped"] += 1
             continue
 
-        html = _read_html(slug)
+        html = _read_html(slug, html_dir)
         if html is None:
             summary["skipped"] += 1
             continue

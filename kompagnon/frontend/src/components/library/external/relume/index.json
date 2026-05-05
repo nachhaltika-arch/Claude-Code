@@ -5,5 +5,17 @@
   "_warning":     "Internal use only. DO NOT push this folder to a public repo.",
   "_imported_at": "2026-05-05",
   "_workflow":    "Pro Section: HTML-Tab in Relume kopieren → als relume-{slug}.html ablegen → Eintrag hier ergänzen → Backend neustart oder seed_component_library erneut laufen lassen.",
-  "components": []
+  "components": [
+    {
+      "slug":           "relume-headers-1",
+      "name":           "Relume · Header #1 (Application Shell)",
+      "category":       "NAV",
+      "section_hint":   "header_nav",
+      "tags":           ["header", "navbar", "sticky", "search", "notifications", "avatar", "application", "relume", "tailwind"],
+      "slots":          [],
+      "ki_prompt_hint": "Sticky-Header für Application/Dashboard-Sites — Logo links, Search-Input mittig (lg only), Notification-Bell mit Badge + User-Avatar rechts. Mobile: Hamburger-Menu. Untere Nav-Reihe mit 3 Links + 1 Dropdown ('Link Four'). Geeignet als Header für Portal-/SaaS-/Backoffice-Pages, weniger für klassische Marketing-Landing.",
+      "preview_note":   "Inkludiert eine Main-Section mit dashed-border Empty-State-Placeholdern ('Click and paste Page Header' / 'Main Content'). Diese sollten beim Rendern in der Endkunden-Site durch echten Content ersetzt werden.",
+      "source":         "relume"
+    }
+  ]
 }

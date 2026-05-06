@@ -60,3 +60,73 @@ Bei 1541 Komponenten:
 Das Skript ist **read-only** auf relume.io — es klickt nur den HTML-Tab,
 liest den Code, navigiert. Keine Form-Submissions, kein Auth-Handling.
 GM-Storage liegt lokal in Tampermonkey, nichts geht an externe Server.
+
+---
+
+## import-relume-bulk.mjs
+
+Node-Script das nach dem Walker-Lauf alle gesammelten HTML-Files
+durchnudelt: Token-Mapping, Slot-Detection, schreibt die fertigen
+Snippets ins Repo, generiert/updated index.json.
+
+### Usage
+
+```bash
+node tools/import-relume-bulk.mjs <inputDir> [--smart] [--dry-run] [--limit=N]
+```
+
+- `<inputDir>` — Pfad zum Walker-Output (z.B. `C:/Users/DavidVaeth/Desktop/relume-raw`)
+- `--smart` — Slot-Detection ueber Claude Haiku 4.5 (semantisch).
+  Braucht `ANTHROPIC_API_KEY` env var. Kostet ~$0.001 pro Snippet,
+  bei 1524 also ~$1.50.
+- `--dry-run` — Schreibt nichts, zeigt nur was passieren wuerde.
+- `--limit=N` — Verarbeitet nur die ersten N Files (zum Testen).
+
+### Beispiele
+
+Test-Lauf auf 5 Files ohne Schreiben:
+
+```bash
+node tools/import-relume-bulk.mjs C:/Users/DavidVaeth/Desktop/relume-raw --dry-run --limit=5
+```
+
+Smart-Mode auf 10 Files (zum Pricing testen):
+
+```bash
+$env:ANTHROPIC_API_KEY="sk-ant-..."; node tools/import-relume-bulk.mjs C:/Users/DavidVaeth/Desktop/relume-raw --smart --limit=10
+```
+
+Voller Lauf mit Pattern-Mode:
+
+```bash
+node tools/import-relume-bulk.mjs C:/Users/DavidVaeth/Desktop/relume-raw
+```
+
+### Was das Script macht
+
+1. Liest `relume-{category}-{slug}.html` aus dem Input-Folder.
+2. Cleanup: alle Relume-Tokens (`border-border-primary` etc.) auf
+   Standard-Tailwind gemappt; `id="relume"` raus; Cloudfront-Logo durch
+   `{{logo_text}}`-Slot ersetzt.
+3. Slot-Detection:
+   - **Pattern**: `<h1>/<h2>` -> `headline`/`subheadline`,
+     Buttons mit "Button"-Text -> `cta_label_N`,
+     Links mit "Link One/Two/..." -> `nav_link_N`.
+   - **Smart**: Claude Haiku schlaegt Slots semantisch vor
+     (`hero_headline`, `cta_primary`, `feature_title_1` ...).
+4. Schreibt fertige HTML-Files nach
+   `kompagnon/frontend/src/components/library/external/relume/{slug}.html`.
+5. Merged `index.json` — manuell kuratierte Eintraege bleiben unangetastet
+   (`relume-navbar-1/-2/-3`).
+
+### Nach dem Lauf
+
+`seed_component_library.py` triggert sich nicht selbst — du musst noch:
+
+1. `LIBRARY_VERSION_LOG` in `kompagnon/backend/seeds/seed_component_library.py`
+   um einen Eintrag erweitern (z.B. `"2026-05-XX.X: bulk-import N relume sections"`)
+2. Commit + Push -> Render redeployt Backend -> Seed laeuft -> alle Snippets in DB.
+
+Erwartete Laufzeiten bei 1524 Snippets:
+- Pattern-Mode: ~10 Sekunden
+- Smart-Mode: ~25 min (1500 Haiku-Calls, ~1 sec each)

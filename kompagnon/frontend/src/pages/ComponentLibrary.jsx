@@ -26,6 +26,25 @@ const SOURCES = [
   { id: 'custom', label: 'Custom' },
 ];
 
+// Branchen-Dropdown im KI-Generator. Default 'shk' = aktuelle KAS-Niche.
+// Backend kennt 'shk' / 'bauhandwerk' / 'gala' / 'maler' / 'kfz' /
+// 'steuer-anwalt' / 'medizin' / 'gastro' / 'kosmetik' / 'fitness' /
+// 'custom' / 'none'.
+const INDUSTRIES = [
+  { id: 'shk',           label: 'SHK (Heizung/Sanitaer/Elektrik)' },
+  { id: 'bauhandwerk',   label: 'Bauhandwerk (Maurer, Dachdecker, Trockenbau)' },
+  { id: 'gala',          label: 'Garten- und Landschaftsbau' },
+  { id: 'maler',         label: 'Maler & Stuckateur' },
+  { id: 'kfz',           label: 'KFZ-Werkstatt / Auto-Service' },
+  { id: 'steuer-anwalt', label: 'Steuerberater / Anwalt / Versicherung' },
+  { id: 'medizin',       label: 'Arzt / Zahnarzt / Praxis' },
+  { id: 'gastro',        label: 'Gastronomie / Hotel / Restaurant' },
+  { id: 'kosmetik',      label: 'Friseur / Kosmetik / Wellness' },
+  { id: 'fitness',       label: 'Fitness / Sport / Yoga' },
+  { id: 'custom',        label: 'Custom (selbst beschreiben)…' },
+  { id: 'none',          label: 'Keine — generisch' },
+];
+
 function detectSource(tags) {
   const t = (tags || []).map((x) => String(x).toLowerCase());
   if (t.includes('hyperui')) return 'hyperui';
@@ -86,7 +105,8 @@ export default function ComponentLibrary() {
   // AI-Generator (Component-Designer)
   const [aiOpen, setAiOpen] = useState(false);
   const [aiForm, setAiForm] = useState({
-    category: 'HERO', style_vibe: 'elegant', user_prompt: '', shk_context: true,
+    category: 'HERO', style_vibe: 'elegant', user_prompt: '',
+    industry: 'shk', industry_custom: '',
   });
   const [aiStatus, setAiStatus] = useState('idle'); // idle | running | done | error
   const [aiJobId, setAiJobId] = useState(null);
@@ -591,15 +611,27 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
               </div>
             </Field>
 
-            <Field label="SHK-Branchen-Kontext">
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#475569' }}>
-                <input type="checkbox"
-                  checked={form.shk_context}
-                  onChange={(e) => setForm({ ...form, shk_context: e.target.checked })}
+            <Field label="Branche">
+              <select
+                value={form.industry}
+                onChange={(e) => setForm({ ...form, industry: e.target.value })}
+                disabled={status === 'running'}
+                style={inputStyle(false)}
+              >
+                {INDUSTRIES.map((i) => (
+                  <option key={i.id} value={i.id}>{i.label}</option>
+                ))}
+              </select>
+              {form.industry === 'custom' && (
+                <textarea
+                  value={form.industry_custom}
+                  onChange={(e) => setForm({ ...form, industry_custom: e.target.value })}
                   disabled={status === 'running'}
+                  rows={3}
+                  placeholder="Beschreibe die Branche: typische Themen, Vokabular, Trust-Marker, Pain-Points. Z.B.: 'IT-Beratung fuer Mittelstand — Cloud-Migration, Cyber-Security, DSGVO-Compliance, ITIL-Zertifizierung, On-Site + Remote.'"
+                  style={{ ...inputStyle(false), marginTop: 6, resize: 'vertical', fontSize: 11 }}
                 />
-                <span>Heizung/Sanitaer/Elektrik-spezifisch (Waermepumpe, Wallbox, Foerderung etc.)</span>
-              </label>
+              )}
             </Field>
 
             <Field label="Free-Form-Wunsch (optional)">

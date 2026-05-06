@@ -379,11 +379,14 @@ def delete_component(
 # ─────────────────────────────────────────────────────────────────────────────
 
 class GenerateComponentRequest(BaseModel):
-    category:    str                    # NAV / HERO / LEIST / TRUST / SEO / CTA / HW / FOOT / CUSTOM
-    style_vibe:  Optional[str] = "elegant"  # minimal | elegant | bold
-    user_prompt: Optional[str] = ""     # Free-Form-Wunsch vom User (z.B. "Hero mit Foerder-Badge")
-    shk_context: Optional[bool] = True  # SHK-Branche-Kontext im Prompt setzen
-    section_hint: Optional[str] = None  # Optional: spezifischer KAS-section_catalog-Hint
+    category:        str                       # NAV / HERO / LEIST / TRUST / SEO / CTA / HW / FOOT / CUSTOM
+    style_vibe:      Optional[str] = "elegant"  # minimal | elegant | bold
+    user_prompt:     Optional[str] = ""         # Free-Form-Wunsch vom User
+    industry:        Optional[str] = "shk"      # Branchen-Key (siehe _INDUSTRIES). 'custom' nutzt industry_custom, 'none' = generisch
+    industry_custom: Optional[str] = None       # Free-Form-Branchen-Beschreibung wenn industry='custom'
+    section_hint:    Optional[str] = None       # Optional: spezifischer KAS-section_catalog-Hint
+    # Backwards-compat: shk_context wird ignoriert wenn industry gesetzt ist
+    shk_context:     Optional[bool] = None
 
 
 @component_router.post("/generate")
@@ -456,26 +459,107 @@ _STYLE_GUIDANCE = {
     "bold":    "Starke Farben (Tailwind: gray-900, indigo-600, amber-500). Grosse Headlines (text-4xl/5xl). Hohe Kontraste. Solid-Buttons mit eindeutigen CTAs. Mutige Akzent-Sections.",
 }
 
-_SHK_CONTEXT = """
-SHK-BRANCHEN-KONTEXT (Heizung/Sanitaer/Elektrik):
-Themen die in der Section vorkommen koennen, abhaengig von Kategorie:
-- Waermepumpe-Beratung, Installation, Foerderung (BAFA, KfW)
-- Wallbox-Installation mit THG-Quote, Foerderungs-Hinweisen
-- Heizungstausch / Modernisierung mit gesetzlichen Aspekten (GEG)
-- Notdienst 24/7 / Wartungsvertrag
-- Beratungstermin / Kostenvoranschlag / Vor-Ort-Besichtigung
-- Lokale Verankerung (Region, Meisterbetrieb, Innungsmitglied)
-
-DEFAULT-WERTE: Verwende SHK-spezifische Texte. Keine "Lorem ipsum", keine
-"Link One/Two", keine "Button" als Default-Texte. Realistisch,
-verkaufs-fokussiert, deutscher Ton.
-"""
+# Branchen-Kontexte. Tuple (label, topic-list). Topic-Liste wird in den Prompt
+# eingebaut, damit Sonnet branchen-spezifische Default-Werte schreibt.
+_INDUSTRIES = {
+    "shk": (
+        "SHK (Heizung/Sanitaer/Elektrik)",
+        "Waermepumpe-Beratung/-Installation/-Foerderung (BAFA, KfW), Wallbox-Installation mit THG-Quote, "
+        "Heizungstausch/Modernisierung (GEG), Notdienst 24/7, Wartungsvertrag, Beratungstermin/Kostenvoranschlag, "
+        "Innung/Meisterbetrieb, lokale Verankerung."
+    ),
+    "bauhandwerk": (
+        "Bauhandwerk (Maurer, Dachdecker, Trockenbau, Zimmerei)",
+        "Sanierung, Neubau, Dachdaemmung/Energetische Sanierung, Gewerk-Koordination, Festpreis-Angebot, "
+        "Termintreue, Innung, Bauleitung, Referenzobjekte."
+    ),
+    "gala": (
+        "Garten- und Landschaftsbau",
+        "Aussenanlagen-Gestaltung, Pflasterung/Wegebau, Gartendesign, Bewaesserung, Hecken-/Baumschnitt, "
+        "Teich/Pool, Saisonpflege, Gartenplanung mit 3D-Visualisierung."
+    ),
+    "maler": (
+        "Maler & Stuckateur",
+        "Innen-/Aussenanstrich, Fassadenrenovierung, Stuckarbeiten, Daemmsysteme (WDVS), Schimmelsanierung, "
+        "Tapezierarbeiten, Sonderwuensche/Dekorputz, Farbberatung."
+    ),
+    "kfz": (
+        "KFZ-Werkstatt / Auto-Service",
+        "Inspektion, TUEV/AU, Reifenwechsel, Klimaservice, E-Auto-Service inkl. Hochvolt-Zertifizierung, "
+        "Unfallinstandsetzung, Hol-/Bring-Service, Hersteller-Zertifizierungen."
+    ),
+    "steuer-anwalt": (
+        "Steuerberater / Rechtsanwalt / Versicherungsmakler",
+        "Erstberatung, Mandant-Onboarding, digitale Aktenuebergabe, Spezialisierungen (z.B. Erbrecht, "
+        "Existenzgruendung, IT-Recht), Honorar-Transparenz, Vertraulichkeit, persoenliche Erreichbarkeit."
+    ),
+    "medizin": (
+        "Arzt / Zahnarzt / Praxis / Therapie",
+        "Termin-Buchung online, Sprechzeiten, Notdienst-Hinweis, Spezialisierungen, Vorsorge/Praeventiv, "
+        "barrierefreier Zugang, Privat/Kassen, Patienten-Komfort."
+    ),
+    "gastro": (
+        "Gastronomie / Hotel / Restaurant",
+        "Reservierung, Speisekarte, Events/Catering, Oeffnungszeiten, regionale Kueche/Bio-Zutaten, "
+        "Wein-/Getraenkekarte, Atmosphaere, Gutscheine, Gaeste-Bewertungen."
+    ),
+    "kosmetik": (
+        "Friseur / Kosmetik / Wellness / Spa",
+        "Online-Termin, Behandlungs-Menue, Produkt-Linien, Preisstaffel (Damen/Herren), "
+        "Specials/Saison-Aktionen, Geschenkgutscheine, Ambiente/Studio-Tour."
+    ),
+    "fitness": (
+        "Fitness-Studio / Sport / Yoga / Personal Training",
+        "Probetraining, Mitgliedschaft (Tarife), Kursplan, Trainer-Profile, Geraete/Equipment, "
+        "Ernaehrungs-/Reha-Coaching, Online-Kurse, Family-/Studenten-Tarife."
+    ),
+}
 
 _GENERIC_CONTEXT = """
 ALLGEMEINER KONTEXT:
 Die Section wird in einer Marketing-Site verwendet. Verwende sinnvolle
-Default-Texte (keine "Lorem ipsum"). Wenn ohne spezifische Branche, halte
-Texte allgemein professionell.
+Default-Texte (keine "Lorem ipsum", keine "Link One/Two"). Realistisch,
+professionell, deutscher Ton.
+"""
+
+
+def _industry_block(req: GenerateComponentRequest) -> str:
+    """Baut den Branchen-Kontext-Block fuer den Prompt."""
+    ind = (req.industry or "shk").lower()
+
+    # Backwards-compat: alte shk_context=False ohne industry-Field
+    if req.shk_context is False and req.industry is None:
+        return _GENERIC_CONTEXT
+
+    if ind == "none":
+        return _GENERIC_CONTEXT
+
+    if ind == "custom":
+        custom = (req.industry_custom or "").strip()
+        if not custom:
+            return _GENERIC_CONTEXT
+        return f"""
+BRANCHEN-KONTEXT (Custom):
+{custom}
+
+DEFAULT-WERTE: Verwende branchen-spezifische Texte. Keine "Lorem ipsum",
+keine "Link One/Two", keine "Button" als Default-Texte. Realistisch,
+verkaufs-fokussiert, deutscher Ton.
+"""
+
+    entry = _INDUSTRIES.get(ind)
+    if not entry:
+        return _GENERIC_CONTEXT
+
+    label, topics = entry
+    return f"""
+BRANCHEN-KONTEXT — {label}:
+Typische Themen je nach Section-Kategorie:
+{topics}
+
+DEFAULT-WERTE: Verwende branchen-spezifische Texte. Keine "Lorem ipsum",
+keine "Link One/Two", keine "Button" als Default-Texte. Realistisch,
+verkaufs-fokussiert, deutscher Ton.
 """
 
 
@@ -484,7 +568,7 @@ def _build_designer_prompt(req: GenerateComponentRequest) -> str:
     style = (req.style_vibe or "elegant").lower()
     style_text = _STYLE_GUIDANCE.get(style, _STYLE_GUIDANCE["elegant"])
     cat_text = _CATEGORY_GUIDANCE.get(cat, _CATEGORY_GUIDANCE["CUSTOM"])
-    context = _SHK_CONTEXT if req.shk_context else _GENERIC_CONTEXT
+    context = _industry_block(req)
     user_extra = (req.user_prompt or "").strip()
     user_block = f"\nZUSAETZLICHER USER-WUNSCH:\n{user_extra}\n" if user_extra else ""
 

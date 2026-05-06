@@ -40,6 +40,13 @@ logger = logging.getLogger(__name__)
 # Funktioniert lokal und auf Render, weil das gesamte Repo gecloned wird —
 # Render's "rootDir" beeinflusst nur die Run-/Build-Commands, der Code
 # kann via .parent.parent... auf Geschwister-Verzeichnisse zugreifen.
+#
+# WICHTIG: Aenderungen rein an library/-Files (HTML/index.json) loesen KEIN
+# automatisches Backend-Redeploy auf Render aus, weil sie ausserhalb des
+# rootDir=kompagnon/backend liegen. Workflow: nach reinen library-Updates
+# entweder einen trivial-Edit im Backend mit-committen oder im Render-
+# Dashboard manuell "Manual Deploy" triggern, sonst seedet die Pipeline
+# den neuen Eintrag erst beim naechsten Backend-Start.
 LIBRARY_DIR = (
     Path(__file__).resolve().parent.parent.parent
     / "frontend" / "src" / "components" / "library"

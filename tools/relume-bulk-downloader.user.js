@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KAS — Relume Bulk Downloader
 // @namespace    kas-kompagnon
-// @version      1.1.0
+// @version      1.1.1
 // @description  Walks Relume's component library, scrapes each HTML-Tab snippet, downloads as files. Used to bulk-import sections into KAS Kompagnon's component library.
 // @author       KAS Kompagnon
 // @match        https://www.relume.io/*
@@ -16,6 +16,10 @@
 /* eslint-disable no-undef */
 (function () {
   'use strict';
+
+  // Boot-Marker — eindeutiger Log damit man im DevTools sofort sieht obs laeuft
+  console.log('%c[KAS Walker] script loaded v1.1.1 @ ' + location.href,
+              'background:#0f172a;color:#fbbf24;padding:2px 6px;border-radius:3px;font-weight:700');
 
   // ── Config ────────────────────────────────────────────────────────────────
 

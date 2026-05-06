@@ -92,6 +92,31 @@ function renderSlots(html, slotValues) {
 
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]*$/;
 
+// Slugify mit deutschen Sonderzeichen-Mapping (vor normalize damit ae/oe/ue/ss
+// nicht durch NFD-Decomposition zu a/o/u/s reduziert werden).
+function slugify(text) {
+  return (text || '')
+    .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+// Macht slug eindeutig gegen die aktuelle Library — haengt -2/-3/... an wenn noetig.
+function generateUniqueSlug(base, existingSlugs) {
+  if (!base) return '';
+  const existing = new Set(existingSlugs);
+  if (!existing.has(base)) return base;
+  let n = 2;
+  while (existing.has(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
+}
+
 function emptyForm() {
   return {
     slug: '',
@@ -217,28 +242,33 @@ export default function ComponentLibrary() {
     return renderSlots(form.html_template, defaults);
   }, [form.html_template, form.slots]);
 
-  const validate = () => {
-    if (!form.slug || !SLUG_REGEX.test(form.slug)) {
-      return 'Slug muss kleinbuchstaben, ziffern, bindestriche enthalten';
-    }
-    if (!form.name.trim()) return 'Name darf nicht leer sein';
-    if (!form.html_template || form.html_template.trim().length < 20) {
-      return 'HTML-Template fehlt oder zu kurz';
-    }
-    if (!form.category.trim()) return 'Kategorie waehlen';
-    return null;
-  };
-
   const save = async () => {
-    const err = validate();
-    if (err) { toast.error(err); return; }
+    // Bei NEU + leerem Slug: Auto-Generation aus Name. Sonst: Slug muss valide sein.
+    let effectiveSlug = form.slug.trim();
+    if (isNew && !effectiveSlug && form.name.trim()) {
+      const base = slugify(form.name);
+      effectiveSlug = generateUniqueSlug(base, items.map((i) => i.slug));
+      setForm((f) => ({ ...f, slug: effectiveSlug }));
+    }
+
+    if (!effectiveSlug || !SLUG_REGEX.test(effectiveSlug)) {
+      toast.error('Slug muss kleinbuchstaben, ziffern, bindestriche enthalten');
+      return;
+    }
+    if (!form.name.trim()) { toast.error('Name darf nicht leer sein'); return; }
+    if (!form.html_template || form.html_template.trim().length < 20) {
+      toast.error('HTML-Template fehlt oder zu kurz');
+      return;
+    }
+    if (!form.category.trim()) { toast.error('Kategorie waehlen'); return; }
+
     setSaving(true);
     try {
       if (isNew) {
         const res = await fetch(`${API_BASE_URL}/api/components`, {
           method: 'POST', headers,
           body: JSON.stringify({
-            slug:           form.slug,
+            slug:           effectiveSlug,
             name:           form.name,
             category:       form.category,
             tags:           form.tags,
@@ -348,14 +378,16 @@ export default function ComponentLibrary() {
   };
 
   // Uebernimmt das KI-Resultat in den Editor (als neue Komponente).
-  // User muss noch einen Slug eingeben + speichern.
+  // Slug wird automatisch aus Name slugifiziert + eindeutig gemacht.
   const useAiResult = () => {
     if (!aiResult) return;
     if (dirty && !window.confirm('Ungespeicherte Aenderungen verwerfen?')) return;
+    const baseSlug = slugify(aiResult.name || `${aiForm.category.toLowerCase()}-ai`);
+    const uniqueSlug = generateUniqueSlug(baseSlug, items.map((i) => i.slug));
     setSelectedSlug(null);
     setIsNew(true);
     setForm({
-      slug: '',
+      slug: uniqueSlug,
       name: aiResult.name || '',
       category: aiResult.category || aiForm.category,
       tags: aiResult.tags || [],
@@ -366,7 +398,7 @@ export default function ComponentLibrary() {
     });
     setDirty(true);
     closeAiModal();
-    toast.success('KI-Komponente uebernommen — Slug eingeben und speichern');
+    toast.success(`KI-Komponente uebernommen — Slug: ${uniqueSlug}`);
   };
 
   const remove = async () => {
@@ -877,10 +909,10 @@ function Editor({
             <input
               type="text" value={form.slug} disabled={!isNew}
               onChange={(e) => updateForm({ slug: e.target.value.toLowerCase() })}
-              placeholder="z.b. my-hero-1"
+              placeholder={isNew ? 'leer lassen → wird aus Name erzeugt' : ''}
               style={inputStyle(!isNew)}
             />
-            <Hint>{isNew ? 'Kleinbuchstaben, Ziffern, Bindestriche.' : 'Slug ist nicht editierbar.'}</Hint>
+            <Hint>{isNew ? 'Kleinbuchstaben, Ziffern, Bindestriche. Leer lassen → automatisch aus Name (z.B. „SHK Hero Premium" → „shk-hero-premium").' : 'Slug ist nicht editierbar.'}</Hint>
           </Field>
 
           <Field label="Name">

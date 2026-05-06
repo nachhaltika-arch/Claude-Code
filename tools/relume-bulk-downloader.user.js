@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KAS — Relume Bulk Downloader
 // @namespace    kas-kompagnon
-// @version      1.1.1
+// @version      1.1.2
 // @description  Walks Relume's component library, scrapes each HTML-Tab snippet, downloads as files. Used to bulk-import sections into KAS Kompagnon's component library.
 // @author       KAS Kompagnon
 // @match        https://www.relume.io/*
@@ -13,37 +13,37 @@
 // @run-at       document-idle
 // ==/UserScript==
 
-/* eslint-disable no-undef */
+/* eslint-disable */
 (function () {
   'use strict';
 
   // Boot-Marker — eindeutiger Log damit man im DevTools sofort sieht obs laeuft
-  console.log('%c[KAS Walker] script loaded v1.1.1 @ ' + location.href,
+  console.log('%c[KAS Walker] script loaded v1.1.2 @ ' + location.href,
               'background:#0f172a;color:#fbbf24;padding:2px 6px;border-radius:3px;font-weight:700');
 
   // ── Config ────────────────────────────────────────────────────────────────
 
   const STORAGE = {
-    queue:  'kas_relume_queue',    // URLs noch abzuarbeiten
-    done:   'kas_relume_done',     // erfolgreich runtergeladene slugs
-    failed: 'kas_relume_failed',   // Fehlgeschlagene mit reason
-    running: 'kas_relume_running', // bool: Walker laeuft
+    queue: 'kas_relume_queue',
+    done: 'kas_relume_done',
+    failed: 'kas_relume_failed',
+    running: 'kas_relume_running',
   };
 
-  const NAV_DELAY_MS  = 3000; // Pause zwischen 2 Component-Pages (anti-bot, react-render)
-  const TAB_DELAY_MS  = 1500; // Wartezeit nach HTML-Tab-Klick bis Code da ist
-  const MAX_WAIT_MS   = 10000; // Max-Wait fuer Code-Block bis zum Aufgeben
+  const NAV_DELAY_MS = 3000;
+  const TAB_DELAY_MS = 1500;
+  const MAX_WAIT_MS = 10000;
 
   // ── State helpers (persistent ueber GM-Storage) ───────────────────────────
 
-  const getQueue  = () => GM_getValue(STORAGE.queue, []);
-  const getDone   = () => GM_getValue(STORAGE.done, []);
+  const getQueue = () => GM_getValue(STORAGE.queue, []);
+  const getDone = () => GM_getValue(STORAGE.done, []);
   const getFailed = () => GM_getValue(STORAGE.failed, []);
   const isRunning = () => GM_getValue(STORAGE.running, false);
 
-  const setQueue   = (q) => GM_setValue(STORAGE.queue, q);
-  const setDone    = (d) => GM_setValue(STORAGE.done, d);
-  const setFailed  = (f) => GM_setValue(STORAGE.failed, f);
+  const setQueue = (q) => GM_setValue(STORAGE.queue, q);
+  const setDone = (d) => GM_setValue(STORAGE.done, d);
+  const setFailed = (f) => GM_setValue(STORAGE.failed, f);
   const setRunning = (b) => GM_setValue(STORAGE.running, b);
 
   const resetAll = () => {
@@ -271,9 +271,9 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:4px">
         ${onComp ? `
-          <button data-act="step"  style="${btn('#3b82f6')}">📥 Aktuelle Seite scrapen</button>
+          <button data-act="step" style="${btn('#3b82f6')}">📥 Aktuelle Seite scrapen</button>
         ` : `
-          <button data-act="add"   style="${btn('#3b82f6')}">➕ Sichtbare Links zur Queue</button>
+          <button data-act="add" style="${btn('#3b82f6')}">➕ Sichtbare Links zur Queue</button>
         `}
         <button data-act="start" ${queue.length === 0 ? 'disabled' : ''} style="${btn('#10b981', queue.length === 0)}">▶ Walker starten</button>
         <button data-act="stop"  ${!running ? 'disabled' : ''} style="${btn('#ef4444', !running)}">⏸ Stop</button>

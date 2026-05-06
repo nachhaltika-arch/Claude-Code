@@ -621,18 +621,40 @@ def _run_wireframe_job(job_id: str, project_id: int, api_key: str) -> None:
         prompt = _build_prompt(briefing, pages, components)
 
         client = Anthropic(api_key=api_key)
+        # max_tokens=32000 deckt grosse Sitemaps ab (~50 Seiten x 8 Bloecke).
+        # Vorher 4000 → JSON wurde bei groesseren Wireframes mitten im String
+        # abgeschnitten, json.loads kippte mit "Unterminated string". Anthropic
+        # rechnet nur tatsaechlich generierte Tokens ab, daher kein Cost-Risiko.
         response = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=4000,
+            max_tokens=32000,
             messages=[{"role": "user", "content": prompt}],
         )
+        stop_reason = getattr(response, "stop_reason", None)
         raw_text = _extract_text_from_response(response)
+
+        # Wenn das Modell wegen max_tokens gestoppt hat, ist der JSON-Output
+        # garantiert truncated — klarer Fehler statt obskurem JSON-Parse-Error.
+        if stop_reason == "max_tokens":
+            logger.warning(
+                f"wireframe job {job_id}: stop_reason=max_tokens, output truncated "
+                f"({len(raw_text)} chars); pages={len(pages)}, components={len(components)}"
+            )
+            _wireframe_jobs[job_id] = {
+                "status": "error",
+                "error": (
+                    "KI-Output wurde abgeschnitten (max_tokens erreicht). "
+                    "Sitemap mit weniger Seiten erneut generieren oder Limit erhoehen."
+                ),
+            }
+            return
 
         try:
             wireframe = json.loads(raw_text)
         except json.JSONDecodeError as exc:
             logger.warning(
                 f"wireframe job {job_id}: JSON-Parsing fehlgeschlagen: {exc}; "
+                f"stop_reason={stop_reason}; raw_len={len(raw_text)}; "
                 f"raw[:300]={raw_text[:300]!r}"
             )
             _wireframe_jobs[job_id] = {

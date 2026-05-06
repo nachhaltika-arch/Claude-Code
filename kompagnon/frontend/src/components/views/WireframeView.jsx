@@ -305,51 +305,38 @@ export default function WireframeView({
   }
 
   return (
-    <div style={{ display: 'flex', height: '100%', fontFamily: 'var(--font-sans, "Noto Sans", sans-serif)' }}>
-      {/* Linke Spalte: Seiten-Liste */}
-      <aside
-        style={{
-          width: 180,
-          flexShrink: 0,
-          background: '#f8fafc',
-          borderRight: '1px solid #e2e8f0',
-          padding: '16px 8px',
-          overflowY: 'auto',
-        }}
-      >
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 8px', marginBottom: 8 }}>
-          Seiten
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: 'var(--font-sans, "Noto Sans", sans-serif)' }}>
+      {/* Storyboard oben — alle Pages horizontal scrollbar (Relume-Style) */}
+      <aside style={{
+        flexShrink: 0,
+        background: '#f8fafc',
+        borderBottom: '1px solid #e2e8f0',
+        padding: '12px 16px 14px',
+        overflowX: 'auto', overflowY: 'hidden',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Pages · {pages.length}
+          </div>
+          <div style={{ fontSize: 10, color: '#94a3b8' }}>
+            Klick auf eine Page um sie unten zu bearbeiten
+          </div>
         </div>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
           {pages.map((p) => (
-            <li key={p.page_id}>
-              <button
-                type="button"
-                onClick={() => setActivePageId(p.page_id)}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '8px 10px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: p.page_id === activePageId ? KC_DARK : 'transparent',
-                  color: p.page_id === activePageId ? '#fff' : '#334155',
-                  fontSize: 12,
-                  fontWeight: p.page_id === activePageId ? 700 : 500,
-                  cursor: 'pointer',
-                }}
-              >
-                <div>{p.page_name || `Seite ${p.page_id}`}</div>
-                <div style={{ fontSize: 10, opacity: 0.7, marginTop: 2 }}>
-                  {(p.blocks || []).length} Blöcke
-                </div>
-              </button>
-            </li>
+            <PageThumb
+              key={p.page_id}
+              page={p}
+              library={library}
+              isActive={p.page_id === activePageId}
+              onClick={() => setActivePageId(p.page_id)}
+            />
           ))}
-        </ul>
+        </div>
       </aside>
 
-      {/* Mittlere Spalte: Block-Canvas der aktiven Seite */}
+      {/* Hauptbereich: Block-Canvas der aktiven Seite + optional Slide-In rechts */}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
       <main style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
         {/* Topbar */}
         <div
@@ -617,7 +604,90 @@ export default function WireframeView({
           </div>
         </aside>
       )}
+      </div>
     </div>
+  );
+}
+
+// ── Page-Thumbnail (Storyboard-Item) ─────────────────────────────────────────
+
+function PageThumb({ page, library, isActive, onClick }) {
+  const blocks = (page.blocks || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const blockCount = blocks.length;
+
+  // Echte Mini-Preview: Sections in 1200px-Container, dann 0.13x scaled.
+  // Container width 156px (1200 * 0.13), height auto.
+  const SCALE = 0.13;
+  const PAGE_W = 156;
+  const VIRTUAL_W = Math.round(PAGE_W / SCALE);
+  const PREVIEW_H = 220;
+
+  return (
+    <button
+      type="button" onClick={onClick}
+      title={page.page_name || `Seite ${page.page_id}`}
+      style={{
+        width: PAGE_W, flexShrink: 0,
+        background: '#fff',
+        border: isActive ? '2px solid #008EAA' : '1px solid #e2e8f0',
+        borderRadius: 6, overflow: 'hidden',
+        cursor: 'pointer', padding: 0,
+        boxShadow: isActive ? '0 4px 12px rgba(0,142,170,0.20)' : 'none',
+        transition: 'border-color 120ms, box-shadow 120ms',
+        fontFamily: 'inherit',
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        height: 22, padding: '0 6px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: isActive ? '#004F59' : '#f8fafc',
+        color: isActive ? '#fff' : '#334155',
+        fontSize: 10, fontWeight: 700,
+        whiteSpace: 'nowrap', overflow: 'hidden',
+      }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {page.page_name || `#${page.page_id}`}
+        </span>
+        <span style={{ fontSize: 9, opacity: 0.7, marginLeft: 4, flexShrink: 0 }}>
+          {blockCount}
+        </span>
+      </div>
+      {/* Mini-Preview */}
+      <div style={{
+        height: PREVIEW_H, overflow: 'hidden',
+        background: '#fff', position: 'relative',
+        pointerEvents: 'none',
+      }}>
+        {blockCount === 0 ? (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#cbd5e1', fontSize: 9, fontStyle: 'italic',
+          }}>leer</div>
+        ) : (
+          <div style={{
+            width: VIRTUAL_W,
+            transform: `scale(${SCALE})`,
+            transformOrigin: 'top left',
+          }}>
+            {blocks.map((b, i) => {
+              const lib = library.find((c) => c.slug === b.slug);
+              const html = renderSlots(lib?.html_template || '', b?.slots);
+              return html ? (
+                <div key={i} dangerouslySetInnerHTML={{ __html: html }} />
+              ) : (
+                <div key={i} style={{
+                  height: 80, background: '#f1f5f9',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#94a3b8', fontSize: 16,
+                }}>{b.slug}</div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </button>
   );
 }
 

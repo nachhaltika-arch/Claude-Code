@@ -403,6 +403,7 @@ export default function OnlineFertigEditor() {
             alignItems: 'center',
             padding: '0 16px',
             gap: 12,
+            position: 'relative',
           }}
         >
           <button
@@ -416,6 +417,46 @@ export default function OnlineFertigEditor() {
           <span style={{ fontSize: 12, fontWeight: 700, color: KC_DARK, textTransform: 'uppercase', letterSpacing: '-0.01em' }}>
             {project.company_name || `Projekt #${project.id}`}
           </span>
+
+          {/* Phase-Tabs Top-Center — Sitemap | Wireframe | Style Guide | Design */}
+          <nav style={{
+            position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+            display: 'flex', gap: 0,
+            background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 8,
+            padding: 2,
+          }}>
+            {[
+              { id: 'sitemap',    label: 'Sitemap' },
+              { id: 'wireframe',  label: 'Wireframe' },
+              { id: 'styleguide', label: 'Style Guide' },
+              { id: 'design',     label: 'Design' },
+            ].map((tab) => {
+              const active = activeView === tab.id;
+              const matchingStep = SCHRITTE.find((s) => s.view === tab.id);
+              const locked = matchingStep && stepStatus[matchingStep.id] === 'locked';
+              return (
+                <button
+                  key={tab.id} type="button"
+                  onClick={() => handleViewChange(tab.id)}
+                  disabled={locked}
+                  title={locked ? 'Vorherige Schritte abschliessen' : tab.label}
+                  style={{
+                    background: active ? '#fff' : 'transparent',
+                    color: active ? KC_DARK : (locked ? '#cbd5e1' : '#64748b'),
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '5px 14px',
+                    fontSize: 12,
+                    fontWeight: active ? 700 : 500,
+                    cursor: locked ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit',
+                    transition: 'background 120ms, color 120ms',
+                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  }}
+                >{tab.label}</button>
+              );
+            })}
+          </nav>
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
             {generateStatus === 'running' && (

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KAS — Relume Bulk Downloader
 // @namespace    kas-kompagnon
-// @version      1.0.0
+// @version      1.1.0
 // @description  Walks Relume's component library, scrapes each HTML-Tab snippet, downloads as files. Used to bulk-import sections into KAS Kompagnon's component library.
 // @author       KAS Kompagnon
 // @match        https://www.relume.io/*
@@ -331,13 +331,64 @@
 
   // ── Boot ──────────────────────────────────────────────────────────────────
 
+  let lastUrl = location.href;
+  let walkerTriggeredFor = null; // welche URL wurde schon getriggert (verhindert Doppel-Scrape)
+
+  function ensurePanel() {
+    // Relume ist eine React-SPA — bei Route-Wechseln wird das Panel ggf. aus
+    // dem DOM entfernt. Watch-Interval prueft alle 1.5s ob's noch da ist und
+    // re-mountet bei Bedarf.
+    if (!document.getElementById('kas-relume-walker')) {
+      panel = null;
+      renderUI();
+    }
+  }
+
+  function maybeAutoStep() {
+    if (!isRunning()) return;
+    if (!isComponentPage()) return;
+    if (walkerTriggeredFor === location.href) return; // schon angetriggert
+    walkerTriggeredFor = location.href;
+    setTimeout(() => {
+      if (isRunning() && location.href === walkerTriggeredFor) walkerStep();
+    }, 1800);
+  }
+
+  function watchRouteChanges() {
+    // pushState / replaceState patchen, damit wir bei React-Router-Navigation
+    // ein Event triggern (Browser feuert nativ nur popstate, nicht pushState).
+    ['pushState', 'replaceState'].forEach((method) => {
+      const orig = history[method];
+      history[method] = function () {
+        const ret = orig.apply(this, arguments);
+        window.dispatchEvent(new Event('kas-routechange'));
+        return ret;
+      };
+    });
+    window.addEventListener('popstate', () => window.dispatchEvent(new Event('kas-routechange')));
+    window.addEventListener('kas-routechange', () => {
+      lastUrl = location.href;
+      walkerTriggeredFor = null; // neue URL → neu triggern erlauben
+      // Bei SPA-Navigation Panel ggf. neu mounten + Walker-Step triggern
+      setTimeout(() => { ensurePanel(); maybeAutoStep(); }, 600);
+    });
+  }
+
   function boot() {
     renderUI();
-    // Auto-Walk: wenn running aktiv ist und wir auf einer Component-Page sind
-    if (isRunning() && isComponentPage()) {
-      // Kleine Verzoegerung damit React den Tab-Content fertig rendert
-      setTimeout(walkerStep, 1500);
-    }
+    watchRouteChanges();
+    // Watchdog — alle 1.5s pruefen ob Panel noch da ist + maybe Auto-Step
+    setInterval(() => {
+      ensurePanel();
+      // Falls URL sich geaendert hat ohne dass pushState gefeuert hat (full reload)
+      if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        walkerTriggeredFor = null;
+      }
+      maybeAutoStep();
+    }, 1500);
+    // Initial-Trigger
+    maybeAutoStep();
   }
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KAS — Relume Bulk Downloader
 // @namespace    kas-kompagnon
-// @version      1.1.2
+// @version      1.2.0
 // @description  Walks Relume's component library, scrapes each HTML-Tab snippet, downloads as files. Used to bulk-import sections into KAS Kompagnon's component library.
 // @author       KAS Kompagnon
 // @match        https://www.relume.io/*
@@ -18,7 +18,7 @@
   'use strict';
 
   // Boot-Marker — eindeutiger Log damit man im DevTools sofort sieht obs laeuft
-  console.log('%c[KAS Walker] script loaded v1.1.2 @ ' + location.href,
+  console.log('%c[KAS Walker] script loaded v1.2.0 @ ' + location.href,
               'background:#0f172a;color:#fbbf24;padding:2px 6px;border-radius:3px;font-weight:700');
 
   // ── Config ────────────────────────────────────────────────────────────────
@@ -171,36 +171,33 @@
 
     const filename = buildFilename(codeEl, slug);
     const blob = new Blob([html], { type: 'text/html' });
-    const dataUrl = URL.createObjectURL(blob);
+    const objectUrl = URL.createObjectURL(blob);
 
-    return new Promise((resolve) => {
-      GM_download({
-        url: dataUrl,
-        name: filename,
-        saveAs: false,
-        onload: () => {
-          URL.revokeObjectURL(dataUrl);
-          const done = getDone();
-          if (!done.includes(slug)) done.push(slug);
-          setDone(done);
-          resolve(true);
-        },
-        onerror: (e) => {
-          URL.revokeObjectURL(dataUrl);
-          const failed = getFailed();
-          failed.push({ slug, reason: `download failed: ${JSON.stringify(e)}`, t: Date.now() });
-          setFailed(failed);
-          resolve(false);
-        },
-        ontimeout: () => {
-          URL.revokeObjectURL(dataUrl);
-          const failed = getFailed();
-          failed.push({ slug, reason: 'download timeout', t: Date.now() });
-          setFailed(failed);
-          resolve(false);
-        },
-      });
-    });
+    // Native <a download>-Klick statt GM_download. GM_download hat eine
+    // Whitelist-Logik die .html-Files blockt ("not_whitelisted" Error).
+    // Voraussetzung: Auto-Downloads fuer relume.io erlaubt
+    // (chrome://settings/content/automaticDownloads).
+    try {
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 200);
+
+      const done = getDone();
+      if (!done.includes(slug)) done.push(slug);
+      setDone(done);
+      return true;
+    } catch (e) {
+      URL.revokeObjectURL(objectUrl);
+      const failed = getFailed();
+      failed.push({ slug, reason: `download failed: ${e.message || e}`, t: Date.now() });
+      setFailed(failed);
+      return false;
+    }
   }
 
   async function walkerStep() {

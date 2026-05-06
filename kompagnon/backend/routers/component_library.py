@@ -127,6 +127,27 @@ class SaveCustomRequest(BaseModel):
     preview_note:   Optional[str] = ""
 
 
+class CreateComponentRequest(BaseModel):
+    slug:           str
+    name:           str
+    html_template:  str
+    category:       str
+    tags:           Optional[list[str]] = None
+    slots:          Optional[list] = None
+    ki_prompt_hint: Optional[str] = ""
+    preview_note:   Optional[str] = ""
+
+
+class UpdateComponentRequest(BaseModel):
+    name:           Optional[str] = None
+    html_template:  Optional[str] = None
+    category:       Optional[str] = None
+    tags:           Optional[list[str]] = None
+    slots:          Optional[list] = None
+    ki_prompt_hint: Optional[str] = None
+    preview_note:   Optional[str] = None
+
+
 @component_router.post("/variation")
 def get_block_variation(
     body: VariationRequest,
@@ -222,6 +243,131 @@ def save_custom_component(
     db.commit()
     db.refresh(row)
     return _serialize_component(row, include_html=True)
+
+
+@component_router.post("")
+def create_component(
+    body: CreateComponentRequest,
+    db: Session = Depends(get_db),
+    user=Depends(require_any_auth),
+):
+    """Legt einen neuen Library-Eintrag an (Component-Manager UI Phase 1).
+
+    Anders als `/save-custom` ist dieser Endpoint fuer den expliziten
+    "Neu anlegen"-Flow im Komponenten-Manager — Tags / Kategorie werden
+    direkt vom User gewaehlt statt automatisch auf "custom" gesetzt.
+    """
+    import re as _re
+
+    slug = (body.slug or "").strip().lower()
+    name = (body.name or "").strip()
+    html = (body.html_template or "").strip()
+    category = (body.category or "").strip().upper()
+
+    if not slug or not _re.match(r"^[a-z0-9][a-z0-9-]*$", slug):
+        raise HTTPException(400, "slug muss kleinbuchstaben, ziffern, bindestriche enthalten")
+    if not name:
+        raise HTTPException(400, "name darf nicht leer sein")
+    if not html or len(html) < 20:
+        raise HTTPException(400, "html_template fehlt oder zu kurz")
+    if not category:
+        raise HTTPException(400, "category darf nicht leer sein")
+
+    if db.query(ComponentLibrary).filter(ComponentLibrary.slug == slug).first():
+        raise HTTPException(409, f"Slug '{slug}' existiert bereits")
+
+    row = ComponentLibrary(
+        slug=slug,
+        name=name,
+        category=category,
+        tags=body.tags or [],
+        html_template=html,
+        slots=body.slots or [],
+        ki_prompt_hint=body.ki_prompt_hint or "",
+        preview_note=body.preview_note or "",
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _serialize_component(row, include_html=True)
+
+
+@component_router.put("/{slug}")
+def update_component(
+    slug: str,
+    body: UpdateComponentRequest,
+    db: Session = Depends(get_db),
+    user=Depends(require_any_auth),
+):
+    """Aktualisiert einen Library-Eintrag. Nur uebermittelte Felder werden geaendert."""
+    row = db.query(ComponentLibrary).filter(ComponentLibrary.slug == slug).first()
+    if not row:
+        raise HTTPException(404, f"Slug '{slug}' nicht gefunden")
+
+    if body.name is not None:
+        name = body.name.strip()
+        if not name:
+            raise HTTPException(400, "name darf nicht leer sein")
+        row.name = name
+    if body.html_template is not None:
+        html = body.html_template.strip()
+        if not html or len(html) < 20:
+            raise HTTPException(400, "html_template fehlt oder zu kurz")
+        row.html_template = html
+    if body.category is not None:
+        cat = body.category.strip().upper()
+        if not cat:
+            raise HTTPException(400, "category darf nicht leer sein")
+        row.category = cat
+    if body.tags is not None:
+        row.tags = body.tags
+    if body.slots is not None:
+        row.slots = body.slots
+    if body.ki_prompt_hint is not None:
+        row.ki_prompt_hint = body.ki_prompt_hint
+    if body.preview_note is not None:
+        row.preview_note = body.preview_note
+
+    db.commit()
+    db.refresh(row)
+    return _serialize_component(row, include_html=True)
+
+
+@component_router.delete("/{slug}")
+def delete_component(
+    slug: str,
+    db: Session = Depends(get_db),
+    user=Depends(require_any_auth),
+):
+    """Loescht einen Library-Eintrag. Schutz: Eintraege die in einem aktiven
+    Wireframe verwendet werden, koennen nicht geloescht werden — der Caller
+    muss den Block dort erst tauschen."""
+    row = db.query(ComponentLibrary).filter(ComponentLibrary.slug == slug).first()
+    if not row:
+        raise HTTPException(404, f"Slug '{slug}' nicht gefunden")
+
+    # Defensiv: pruefen ob ein Projekt diesen slug noch im wireframe_data nutzt.
+    # JSONB-Pfad: pages[*].blocks[*].slug
+    in_use = db.execute(
+        text("""
+            SELECT id, lead_id
+            FROM projects
+            WHERE wireframe_data IS NOT NULL
+              AND wireframe_data::text LIKE :pattern
+            LIMIT 1
+        """),
+        {"pattern": f'%"slug": "{slug}"%'},
+    ).fetchone()
+    if in_use:
+        raise HTTPException(
+            409,
+            f"Slug '{slug}' wird in Projekt #{in_use[0]} (Lead {in_use[1]}) noch verwendet — "
+            "bitte dort erst tauschen.",
+        )
+
+    db.delete(row)
+    db.commit()
+    return {"status": "deleted", "slug": slug}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

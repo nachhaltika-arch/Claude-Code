@@ -183,6 +183,7 @@ const PAGE_NAMES = {
   '/app/product':         'Produktentwicklung',
   '/app/product-editor':  'Produkteditor',
   '/app/pages':           'Seiten-Manager',
+  '/app/settings/component-library': 'Komponenten-Bibliothek',
 };
 
 function getMobileTabs(role, leadId) {
@@ -429,11 +430,12 @@ function SidebarNav({ badges }) {
               <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)', transform: openSections.einstellungen ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s', lineHeight: 1 }}>›</span>
             </button>
             {openSections.einstellungen && [
-              { label: 'Profil',             path: '/app/profile'      },
-              { label: 'Sicherheit & 2FA',   path: '/app/2fa-setup'    },
-              { label: 'System & API-Keys',  path: '/app/settings'     },
-              { label: 'Benutzerverwaltung', path: '/app/admin/users', adminOnly: true },
-              { label: 'Rollenverwaltung',   path: '/app/admin/roles', adminOnly: true },
+              { label: 'Profil',                 path: '/app/profile'      },
+              { label: 'Sicherheit & 2FA',       path: '/app/2fa-setup'    },
+              { label: 'System & API-Keys',      path: '/app/settings'     },
+              { label: 'Komponenten-Bibliothek', path: '/app/settings/component-library', adminOnly: true },
+              { label: 'Benutzerverwaltung',     path: '/app/admin/users', adminOnly: true },
+              { label: 'Rollenverwaltung',       path: '/app/admin/roles', adminOnly: true },
             ].filter(i => !i.adminOnly || hasRole('admin')).map(item => (
               <button key={item.path} onClick={() => navigate(item.path)} style={subItemStyle(isActive(item.path))}>
                 {item.label}

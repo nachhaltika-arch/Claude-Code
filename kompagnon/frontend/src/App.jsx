@@ -49,6 +49,7 @@ import KundenPortal from './pages/KundenPortal';
 import QRGenerator from './pages/QRGenerator';
 import TemplateLibrary from './pages/TemplateLibrary';
 import TemplateEditor from './pages/TemplateEditor';
+import ComponentLibrary from './pages/ComponentLibrary';
 import NewsletterDesigner from './components/NewsletterDesigner';
 import Newsletter from './pages/Newsletter';
 import PortalLogin from './pages/PortalLogin';
@@ -259,6 +260,7 @@ function App() {
               <Route path="notifications" element={<Settings tab="notifications" />} />
               <Route path="subscription" element={<PrivateRoute roles={['admin']}><Settings tab="subscription" /></PrivateRoute>} />
               <Route path="templates" element={<PrivateRoute roles={['admin']}><TemplateLibrary /></PrivateRoute>} />
+              <Route path="component-library" element={<PrivateRoute roles={['admin']}><ComponentLibrary /></PrivateRoute>} />
             </Route>
             {/* Template Editor — fullscreen, outside settings layout */}
             <Route path="settings/templates/:id" element={<PrivateRoute roles={['admin']}><TemplateEditor /></PrivateRoute>} />

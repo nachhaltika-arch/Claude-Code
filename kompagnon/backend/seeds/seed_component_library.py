@@ -43,6 +43,7 @@ LIBRARY_VERSION_LOG = [
     "2026-05-05.1: relume-navbar-1 added",
     "2026-05-06.1: relume-navbar-2 added (dual-CTA flex layout)",
     "2026-05-06.2: relume-navbar-3 added (centered logo, left burger, drawer)",
+    "2026-05-06.3: ALL Relume sections REMOVED (license-compliance, see external/relume/README.md). Auto-cleanup-pipeline loescht orphaned 'relume'-tagged DB rows beim Start.",
 ]
 LIBRARY_VERSION = LIBRARY_VERSION_LOG[-1].split(":")[0]
 

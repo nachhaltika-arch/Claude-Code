@@ -2,7 +2,7 @@
  * ComponentLibrary — UI Phase 1 fuer den Component-Manager.
  *
  * Liste aller Library-Eintraege links, Editor rechts. Ueber Quelle (KAS /
- * HyperUI / Relume / Custom) und Kategorie filterbar. Live-Preview rendert
+ * HyperUI / Custom) und Kategorie filterbar. Live-Preview rendert
  * `{{slot}}`-Marker mit Default-Werten — gleiche Logik wie WireframeView.
  *
  * Backend: GET/POST/PUT/DELETE auf /api/components.
@@ -23,14 +23,12 @@ const SOURCES = [
   { id: 'all',    label: 'Alle' },
   { id: 'kas',    label: 'KAS' },
   { id: 'hyperui', label: 'HyperUI' },
-  { id: 'relume', label: 'Relume' },
   { id: 'custom', label: 'Custom' },
 ];
 
 function detectSource(tags) {
   const t = (tags || []).map((x) => String(x).toLowerCase());
   if (t.includes('hyperui')) return 'hyperui';
-  if (t.includes('relume')) return 'relume';
   if (t.includes('custom') || t.includes('user-saved')) return 'custom';
   return 'kas';
 }
@@ -122,7 +120,7 @@ export default function ComponentLibrary() {
   }, [items, sourceFilter, categoryFilter, searchQuery]);
 
   const counts = useMemo(() => {
-    const c = { all: items.length, kas: 0, hyperui: 0, relume: 0, custom: 0 };
+    const c = { all: items.length, kas: 0, hyperui: 0, custom: 0 };
     items.forEach((it) => { c[detectSource(it.tags)] += 1; });
     return c;
   }, [items]);

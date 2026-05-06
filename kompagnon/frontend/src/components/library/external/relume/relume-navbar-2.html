@@ -1,0 +1,113 @@
+<!--
+  Relume - Navbar 2 (Logo links + 4 Nav-Links + Dual-CTA rechts)
+  Quelle: Relume Library (HTML-Tab Export, https://www.relume.io)
+  Lizenz: Proprietaer - Relume-Subscription, INTERNE NUTZUNG.
+
+  Unterschied zu navbar-1:
+    - Container ist Flex (lg:flex lg:justify-between) statt 3-Spalten-Grid
+    - Mobile hat keinen CTA-Button vor dem Burger (sauberer)
+    - Statt 1 CTA rechts: 2 CTAs am Ende der Link-Liste (Outline + Solid)
+    - Dropdown-Label ist links-aligned statt zentriert
+
+  Cleanup angewandt:
+    - id="relume" entfernt
+    - Cloudfront-Logo durch Text-Slot ersetzt (Endkunden brauchen Brand-Logo)
+    - Relume-Design-Tokens auf Standard-Tailwind gemappt:
+        border-border-primary       -> border-gray-200 (Section-Border)
+                                       border-gray-300 (Button-Border)
+        bg-background-primary       -> bg-white
+        bg-background-alternative   -> bg-gray-900
+        text-text-primary           -> text-gray-900
+        text-text-alternative       -> text-white
+        focus-visible:ring-border-primary -> focus-visible:ring-gray-300
+        text-md                     -> text-base
+        min-h-18                    -> min-h-[4.5rem]
+
+  Limitierung:
+    Mobile-Burger ist statisch (Relume-React-Original nutzt useState +
+    framer-motion). Auf Desktop voll funktional, Mobile-Menue klappt
+    ohne JS nicht auf. Fuer Endkunden-Sites kann ein einfacher
+    <details>-Wrapper oder Alpine.js spaeter ergaenzt werden.
+-->
+<section
+  class="z-[999] flex w-full items-center border-b border-gray-200 bg-white lg:min-h-[4.5rem] lg:px-[5%]"
+>
+  <div class="size-full lg:flex lg:items-center lg:justify-between">
+    <div
+      class="flex min-h-16 items-center justify-between px-[5%] md:min-h-[4.5rem] lg:min-h-full lg:px-0"
+    >
+      <a href="#" class="flex items-center">
+        <span class="text-xl font-bold text-gray-900">{{logo_text}}</span>
+      </a>
+      <button
+        class="-mr-2 flex size-12 flex-col items-center justify-center lg:hidden"
+        aria-label="Menue"
+      >
+        <span class="my-[3px] h-0.5 w-6 bg-black"></span>
+        <span class="my-[3px] h-0.5 w-6 bg-black"></span>
+        <span class="my-[3px] h-0.5 w-6 bg-black"></span>
+      </button>
+    </div>
+    <div
+      class="overflow-hidden px-[5%] lg:flex lg:items-center lg:px-0 lg:[--height-closed:auto] lg:[--height-open:auto]"
+      style="height: var(--height-closed, 0)"
+    >
+      <a
+        href="#"
+        class="block py-3 text-base first:pt-7 lg:px-4 lg:py-2 first:lg:pt-2"
+        >{{nav_link_1}}</a
+      >
+      <a
+        href="#"
+        class="block py-3 text-base first:pt-7 lg:px-4 lg:py-2 first:lg:pt-2"
+        >{{nav_link_2}}</a
+      >
+      <a
+        href="#"
+        class="block py-3 text-base first:pt-7 lg:px-4 lg:py-2 first:lg:pt-2"
+        >{{nav_link_3}}</a
+      >
+      <div>
+        <button
+          class="flex w-full items-center justify-between gap-2 py-3 text-left text-base lg:flex-none lg:justify-start lg:px-4 lg:py-2"
+          aria-haspopup="true"
+        >
+          <span>{{nav_link_4}}</span>
+          <span>
+            <svg
+              stroke="currentColor"
+              fill="none"
+              stroke-width="0"
+              viewBox="0 0 15 15"
+              height="1em"
+              width="1em"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M3.13523 6.15803C3.3241 5.95657 3.64052 5.94637 3.84197 6.13523L7.5 9.56464L11.158 6.13523C11.3595 5.94637 11.6759 5.95657 11.8648 6.15803C12.0536 6.35949 12.0434 6.67591 11.842 6.86477L7.84197 10.6148C7.64964 10.7951 7.35036 10.7951 7.15803 10.6148L3.15803 6.86477C2.95657 6.67591 2.94637 6.35949 3.13523 6.15803Z"
+                fill="currentColor"
+              ></path>
+            </svg>
+          </span>
+        </button>
+      </div>
+      <div class="mt-6 flex flex-col items-center gap-4 lg:ml-4 lg:mt-0 lg:flex-row">
+        <button
+          class="focus-visible:ring-gray-300 inline-flex gap-3 items-center justify-center whitespace-nowrap ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-gray-300 text-gray-900 bg-white px-5 py-2 w-full"
+          title="{{cta_secondary_label}}"
+        >
+          {{cta_secondary_label}}
+        </button>
+        <button
+          class="focus-visible:ring-gray-300 inline-flex gap-3 items-center justify-center whitespace-nowrap ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-gray-300 bg-gray-900 text-white px-5 py-2 w-full"
+          title="{{cta_primary_label}}"
+        >
+          {{cta_primary_label}}
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

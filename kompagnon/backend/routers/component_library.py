@@ -384,6 +384,7 @@ class GenerateComponentRequest(BaseModel):
     user_prompt:     Optional[str] = ""         # Free-Form-Wunsch vom User
     industry:        Optional[str] = "shk"      # Branchen-Key (siehe _INDUSTRIES). 'custom' nutzt industry_custom, 'none' = generisch
     industry_custom: Optional[str] = None       # Free-Form-Branchen-Beschreibung wenn industry='custom'
+    elements:        Optional[dict] = None      # Pflicht-Elemente: {headline:2, buttons:2, images:4, logo:true, dropdown:false, ...}
     section_hint:    Optional[str] = None       # Optional: spezifischer KAS-section_catalog-Hint
     # Backwards-compat: shk_context wird ignoriert wenn industry gesetzt ist
     shk_context:     Optional[bool] = None
@@ -563,12 +564,53 @@ verkaufs-fokussiert, deutscher Ton.
 """
 
 
+_ELEMENT_LABELS = {
+    "headline":    "Headlines (H1/H2/H3)",
+    "subtext":     "Subtexte / Paragraphen",
+    "buttons":     "Buttons / CTAs",
+    "links":       "Links / Nav-Links",
+    "images":      "Bilder",
+    "icons":       "Icons (SVG inline)",
+    "cards":       "Karten / Feature-Items / Service-Items",
+    "avatars":     "Avatare / Personen-Bilder",
+    "stats":       "Statistik-Counter / Zahlen-Badges",
+    "form_fields": "Formular-Felder",
+    "logo":        "Logo (als Text-Slot oder Image-Placeholder)",
+    "dropdown":    "Dropdown / Select-Menue",
+    "search":      "Such-Feld",
+    "rating":      "Star-Rating-Anzeige",
+    "video":       "Video / iframe-Embed",
+    "list":        "Liste (bullet oder numbered)",
+}
+
+
+def _format_elements_block(elements) -> str:
+    """Baut den 'Pflicht-Elemente'-Block fuer den Prompt. Leerer String wenn nichts gewaehlt."""
+    if not elements or not isinstance(elements, dict):
+        return ""
+    lines = []
+    for key, val in elements.items():
+        label = _ELEMENT_LABELS.get(key, key)
+        if val is True:
+            lines.append(f"- {label}: ja, einbauen")
+        elif isinstance(val, int) and val > 0:
+            lines.append(f"- {label}: genau {val}")
+        # 0 / False / None → User will keine Vorgabe → KI entscheidet selbst
+    if not lines:
+        return ""
+    return f"""
+PFLICHT-ELEMENTE — diese muessen exakt in der Section vorkommen, in den
+angegebenen Anzahlen. Andere Elemente nur bei klarem Layout-Bedarf:
+""" + "\n".join(lines) + "\n"
+
+
 def _build_designer_prompt(req: GenerateComponentRequest) -> str:
     cat = req.category.upper()
     style = (req.style_vibe or "elegant").lower()
     style_text = _STYLE_GUIDANCE.get(style, _STYLE_GUIDANCE["elegant"])
     cat_text = _CATEGORY_GUIDANCE.get(cat, _CATEGORY_GUIDANCE["CUSTOM"])
     context = _industry_block(req)
+    elements_block = _format_elements_block(req.elements)
     user_extra = (req.user_prompt or "").strip()
     user_block = f"\nZUSAETZLICHER USER-WUNSCH:\n{user_extra}\n" if user_extra else ""
 
@@ -582,6 +624,7 @@ STYLE-VIBE: {style}
 {style_text}
 
 {context}
+{elements_block}
 {user_block}
 
 HARTE REGELN:

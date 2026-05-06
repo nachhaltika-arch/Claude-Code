@@ -7,7 +7,7 @@
  *
  * Backend: GET/POST/PUT/DELETE auf /api/components.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
@@ -24,6 +24,29 @@ const SOURCES = [
   { id: 'kas',    label: 'KAS' },
   { id: 'hyperui', label: 'HyperUI' },
   { id: 'custom', label: 'Custom' },
+];
+
+// Element-Picker im KI-Generator. Counts: User legt Anzahl fest (0 = KI entscheidet).
+// Bools: User aktiviert/deaktiviert ein Element (false/leer = KI entscheidet).
+const COUNT_ELEMENTS = [
+  { key: 'headline',    label: 'Headlines',    max: 4 },
+  { key: 'subtext',     label: 'Subtexte',     max: 5 },
+  { key: 'buttons',     label: 'Buttons / CTAs', max: 4 },
+  { key: 'links',       label: 'Links',        max: 12 },
+  { key: 'images',      label: 'Bilder',       max: 12 },
+  { key: 'icons',       label: 'Icons',        max: 12 },
+  { key: 'cards',       label: 'Karten',       max: 12 },
+  { key: 'avatars',     label: 'Avatare',      max: 6 },
+  { key: 'stats',       label: 'Stat-Counter', max: 6 },
+  { key: 'form_fields', label: 'Formular-Felder', max: 8 },
+];
+const BOOL_ELEMENTS = [
+  { key: 'logo',     label: 'Logo' },
+  { key: 'dropdown', label: 'Dropdown' },
+  { key: 'search',   label: 'Such-Feld' },
+  { key: 'rating',   label: 'Star-Rating' },
+  { key: 'video',    label: 'Video / iframe' },
+  { key: 'list',     label: 'Liste (bullet)' },
 ];
 
 // Branchen-Dropdown im KI-Generator. Default 'shk' = aktuelle KAS-Niche.
@@ -107,6 +130,7 @@ export default function ComponentLibrary() {
   const [aiForm, setAiForm] = useState({
     category: 'HERO', style_vibe: 'elegant', user_prompt: '',
     industry: 'shk', industry_custom: '',
+    elements: {}, // { headline: 2, buttons: 2, logo: true, ... }
   });
   const [aiStatus, setAiStatus] = useState('idle'); // idle | running | done | error
   const [aiJobId, setAiJobId] = useState(null);
@@ -632,6 +656,62 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
                   style={{ ...inputStyle(false), marginTop: 6, resize: 'vertical', fontSize: 11 }}
                 />
               )}
+            </Field>
+
+            <Field label="Pflicht-Elemente (optional — leer = KI entscheidet)">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px', gap: '4px 8px', fontSize: 11, marginBottom: 8 }}>
+                {COUNT_ELEMENTS.map((el) => (
+                  <React.Fragment key={el.key}>
+                    <label htmlFor={`el-${el.key}`} style={{ alignSelf: 'center', color: '#475569' }}>{el.label}</label>
+                    <input
+                      id={`el-${el.key}`}
+                      type="number" min={0} max={el.max}
+                      value={form.elements[el.key] ?? 0}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10) || 0;
+                        const next = { ...form.elements };
+                        if (v > 0) next[el.key] = v; else delete next[el.key];
+                        setForm({ ...form, elements: next });
+                      }}
+                      disabled={status === 'running'}
+                      style={{
+                        padding: '4px 6px', border: '1px solid #cbd5e1',
+                        borderRadius: 4, fontSize: 11, fontFamily: 'inherit',
+                        textAlign: 'center', boxSizing: 'border-box', width: '100%',
+                      }}
+                    />
+                  </React.Fragment>
+                ))}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 8px', marginTop: 4 }}>
+                {BOOL_ELEMENTS.map((el) => {
+                  const checked = !!form.elements[el.key];
+                  return (
+                    <label
+                      key={el.key}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        fontSize: 11, color: '#475569', cursor: 'pointer',
+                        background: checked ? '#ede9fe' : '#f1f5f9',
+                        border: '1px solid ' + (checked ? '#a78bfa' : '#e2e8f0'),
+                        padding: '3px 8px', borderRadius: 12,
+                      }}
+                    >
+                      <input
+                        type="checkbox" checked={checked}
+                        onChange={(e) => {
+                          const next = { ...form.elements };
+                          if (e.target.checked) next[el.key] = true; else delete next[el.key];
+                          setForm({ ...form, elements: next });
+                        }}
+                        disabled={status === 'running'}
+                        style={{ margin: 0 }}
+                      />
+                      {el.label}
+                    </label>
+                  );
+                })}
+              </div>
             </Field>
 
             <Field label="Free-Form-Wunsch (optional)">

@@ -31,6 +31,22 @@ from database import ComponentLibrary
 
 logger = logging.getLogger(__name__)
 
+# Library-Version-Stamp. Pro Library-Update (neue/geaenderte HTML-Files in
+# frontend/src/components/library/external/**) hier einen neuen Eintrag
+# anhaengen. Zweck:
+#   - bei Library-Only-Commits triggert die Aenderung dieser Datei einen
+#     Backend-Redeploy auf Render (rootDir-Watch greift)
+#   - Audit-Trail: Git-Blame zeigt welche Snippets in welchem Push reinkamen
+#   - Beim Backend-Start wird die aktuelle Version geloggt (siehe
+#     _component_library_seed in main.py)
+LIBRARY_VERSION_LOG = [
+    "2026-05-05.1: relume-navbar-1 added",
+    "2026-05-06.1: relume-navbar-2 added (dual-CTA flex layout)",
+    "2026-05-06.2: relume-navbar-3 added (centered logo, left burger, drawer)",
+]
+LIBRARY_VERSION = LIBRARY_VERSION_LOG[-1].split(":")[0]
+
+
 # Pfad-Math: seeds/seed_component_library.py
 #   .parent           -> seeds/
 #   .parent.parent    -> backend/

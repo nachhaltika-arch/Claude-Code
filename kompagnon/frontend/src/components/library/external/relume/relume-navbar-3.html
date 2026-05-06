@@ -1,0 +1,105 @@
+<!--
+  Relume - Navbar 3 (Burger links, Logo zentriert, CTA rechts)
+  Quelle: Relume Library (HTML-Tab Export, https://www.relume.io)
+  Lizenz: Proprietaer - Relume-Subscription, INTERNE NUTZUNG.
+
+  Layout-Unterschied zu navbar-1/-2:
+    - Burger LINKS statt rechts (mobile)
+    - Logo ist MITTIG zentriert (3-col-grid: [1fr_max-content_1fr])
+    - Mobile-Menue ist Sidebar/Drawer (slide-in von links) statt Klapp-Akkordeon
+
+  Cleanup angewandt:
+    - id="relume" entfernt
+    - Cloudfront-Logo (2x: einmal im Drawer, einmal mittig) durch Text-Slot
+    - Relume-Design-Tokens auf Standard-Tailwind gemappt:
+        border-border-primary       -> border-gray-200 (Section)
+                                       border-gray-300 (Buttons)
+        bg-background-primary       -> bg-white
+        bg-background-alternative   -> bg-gray-900
+        text-text-alternative       -> text-white
+        focus-visible:ring-border-primary -> focus-visible:ring-gray-300
+        text-md                     -> text-base
+        md:min-h-18                 -> md:min-h-[4.5rem]
+
+  Limitierung:
+    Mobile-Drawer ist statisch (Relume-React-Original nutzt useState +
+    framer-motion fuer den Slide-In). Auf Desktop voll funktional, Drawer
+    klappt ohne JS nicht auf.
+-->
+<section
+  class="z-[999] grid w-full grid-cols-[1fr_max-content_1fr] items-center justify-between border-b border-gray-200 bg-white px-[5%] md:min-h-[4.5rem]"
+>
+  <button class="flex size-12 flex-col justify-center lg:hidden" aria-label="Menue">
+    <span class="my-[3px] h-0.5 w-6 bg-black lg:hidden"></span>
+    <span class="my-[3px] h-0.5 w-6 bg-black lg:hidden"></span>
+    <span class="my-[3px] h-0.5 w-6 bg-black lg:hidden"></span>
+  </button>
+  <div
+    class="absolute left-0 top-0 z-50 flex h-dvh w-[90%] flex-col border-r border-gray-200 bg-white px-[5%] pb-4 md:w-[80%] lg:visible lg:static lg:-ml-4 lg:flex lg:h-auto lg:w-auto lg:flex-row lg:border-none lg:px-0 lg:pb-0 lg:[--opacity-closed:100%] lg:[--x-closed:0%]"
+    style="opacity: var(--opacity-closed, 0%); transform: translateX(var(--x-closed, -100%))"
+  >
+    <a href="#" class="mb-8 mt-10 flex flex-shrink-0 lg:hidden">
+      <span class="text-xl font-bold text-gray-900">{{logo_text}}</span>
+    </a>
+    <div class="w-full lg:w-auto">
+      <a href="#" class="relative block py-3 text-base lg:px-4 lg:py-2"
+        >{{nav_link_1}}</a
+      >
+    </div>
+    <div class="w-full lg:w-auto">
+      <a href="#" class="relative block py-3 text-base lg:px-4 lg:py-2"
+        >{{nav_link_2}}</a
+      >
+    </div>
+    <div class="w-full lg:w-auto">
+      <div>
+        <button
+          class="flex w-full items-center justify-between gap-2 py-3 text-base lg:flex-none lg:justify-start lg:px-4 lg:py-2"
+          aria-haspopup="true"
+        >
+          <span>{{nav_link_3}}</span>
+          <span>
+            <svg
+              stroke="currentColor"
+              fill="none"
+              stroke-width="0"
+              viewBox="0 0 15 15"
+              height="1em"
+              width="1em"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M3.13523 6.15803C3.3241 5.95657 3.64052 5.94637 3.84197 6.13523L7.5 9.56464L11.158 6.13523C11.3595 5.94637 11.6759 5.95657 11.8648 6.15803C12.0536 6.35949 12.0434 6.67591 11.842 6.86477L7.84197 10.6148C7.64964 10.7951 7.35036 10.7951 7.15803 10.6148L3.15803 6.86477C2.95657 6.67591 2.94637 6.35949 3.13523 6.15803Z"
+                fill="currentColor"
+              ></path>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+    <div class="mt-6 lg:hidden">
+      <button
+        class="focus-visible:ring-gray-300 inline-flex gap-3 items-center justify-center whitespace-nowrap ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-gray-300 bg-gray-900 text-white px-5 py-2 w-full"
+        title="{{cta_mobile_label}}"
+      >
+        {{cta_mobile_label}}
+      </button>
+    </div>
+  </div>
+  <a href="#" class="flex min-h-16 flex-shrink-0 items-center">
+    <span class="text-xl font-bold text-gray-900">{{logo_text}}</span>
+  </a>
+  <div class="flex min-h-16 items-center justify-end gap-x-4">
+    <div>
+      <button
+        class="focus-visible:ring-gray-300 inline-flex gap-3 items-center justify-center whitespace-nowrap ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-gray-300 bg-gray-900 text-white px-4 py-1 md:px-6 md:py-2"
+        title="{{cta_label}}"
+      >
+        {{cta_label}}
+      </button>
+    </div>
+  </div>
+</section>

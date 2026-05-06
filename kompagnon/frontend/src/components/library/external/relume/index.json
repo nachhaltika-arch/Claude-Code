@@ -56,6 +56,32 @@
       "ki_prompt_hint": "Marketing-Site-Header mit Logo links, Hauptnavigation (4 Links inkl. einem Dropdown) und Dual-CTA rechts (Outline-Button fuer sekundaere Aktion + Solid-Button fuer primaere). Geeignet wenn neben dem Haupt-CTA noch eine zweite Aktion prominent angeboten werden soll (z.B. 'Anrufen' + 'Termin').",
       "preview_note": "Relume Navbar 2 - HTML-Export. Flex-Layout (kein 3-Spalten-Grid). Mobile-Burger statisch (Original nutzt React-State).",
       "source": "relume"
+    },
+    {
+      "slug": "relume-navbar-3",
+      "name": "Relume - Navbar 3 (Logo zentriert + Burger links)",
+      "category": "NAV",
+      "section_hint": "header_nav",
+      "tags": [
+        "headers",
+        "relume",
+        "open-source",
+        "tailwind",
+        "navbar",
+        "centered-logo",
+        "drawer"
+      ],
+      "slots": [
+        { "key": "logo_text",        "label": "Logo-Text",                 "default": "KOMPAGNON" },
+        { "key": "nav_link_1",       "label": "Nav-Link 1",                "default": "Leistungen" },
+        { "key": "nav_link_2",       "label": "Nav-Link 2",                "default": "Referenzen" },
+        { "key": "nav_link_3",       "label": "Nav-Link 3 (Dropdown)",     "default": "Service" },
+        { "key": "cta_label",        "label": "CTA-Button (Desktop)",      "default": "Termin vereinbaren" },
+        { "key": "cta_mobile_label", "label": "CTA-Button (Mobile-Drawer)", "default": "Termin vereinbaren" }
+      ],
+      "ki_prompt_hint": "Marketing-Site-Header mit zentriertem Logo, 3 Nav-Links (letzter als Dropdown) und CTA rechts. Mobile zeigt Burger-Icon links statt rechts und oeffnet einen Slide-in-Drawer. Layout fuer Marken-fokussierte Seiten wo das Logo prominent in der Mitte stehen soll.",
+      "preview_note": "Relume Navbar 3 - HTML-Export. 3-Spalten-Grid mit zentriertem Logo. Mobile-Drawer statisch (Original nutzt React-State + framer-motion fuer Slide-In).",
+      "source": "relume"
     }
   ]
 }

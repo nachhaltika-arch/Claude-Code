@@ -585,7 +585,7 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
               ✨ Komponenten-Designer (KI)
             </div>
             <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2 }}>
-              Sonnet 4.6 · ~$0.05 pro Generation · Output: HTML+Tailwind mit Slots
+              Sonnet 4.6 · Wireframe-Stil (neutral grau) · CI-Design folgt im Projekt-Prozess
             </div>
           </div>
           <button type="button" onClick={onClose} disabled={status === 'running'}
@@ -607,12 +607,12 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
               </select>
             </Field>
 
-            <Field label="Style-Vibe">
+            <Field label="Layout-Dichte">
               <div style={{ display: 'flex', gap: 4 }}>
                 {[
-                  { id: 'minimal', label: 'Minimal' },
-                  { id: 'elegant', label: 'Elegant' },
-                  { id: 'bold', label: 'Bold' },
+                  { id: 'minimal', label: 'Sparsam' },
+                  { id: 'elegant', label: 'Ausgewogen' },
+                  { id: 'bold', label: 'Dicht' },
                 ].map((s) => {
                   const active = form.style_vibe === s.id;
                   return (

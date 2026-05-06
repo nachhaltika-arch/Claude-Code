@@ -454,11 +454,54 @@ _CATEGORY_GUIDANCE = {
     "CUSTOM": "Allgemeine Section, semantisch nicht festgelegt. Folge den User-Vorgaben.",
 }
 
+# Layout-Dichte (NICHT Farb-Stil! Komponenten sind immer Wireframe-grau).
+# Beeinflusst Whitespace, Headline-Groessen, Anzahl Elemente pro Section.
 _STYLE_GUIDANCE = {
-    "minimal": "Klares Layout mit viel Whitespace. Neutrale Farben (Grautoene, Weiss). Sans-Serif. Wenig Deko, max. ein Akzent. Borders sparsam. Tailwind: text-gray-700, bg-white, border-gray-200.",
-    "elegant": "Refinierte Typografie mit klarer Hierarchie. Akzentfarbe gezielt einsetzen (Tailwind: indigo-600, teal-600, oder slate-800). Leichte Schatten, runde Ecken (rounded-lg). Padding grosszuegig.",
-    "bold":    "Starke Farben (Tailwind: gray-900, indigo-600, amber-500). Grosse Headlines (text-4xl/5xl). Hohe Kontraste. Solid-Buttons mit eindeutigen CTAs. Mutige Akzent-Sections.",
+    "minimal": "Sparsam — viel Whitespace, wenige Elemente, ruhige Komposition. Headlines text-2xl/3xl, Body text-base. Padding grosszuegig (py-16, lg:py-24). Single-Column oder max. 2-Spalten-Layout.",
+    "elegant": "Ausgewogen — klassisches Marketing-Site-Layout. Headlines text-3xl/4xl, Body text-base. Padding mittel (py-12, lg:py-20). Bis zu 3-Spalten-Grids.",
+    "bold":    "Dicht — viele Elemente pro Section, breite Layouts, grosse Headlines (text-4xl/5xl). Padding kompakt (py-8, lg:py-16). 3-4-Spalten-Grids, viele Trust/Stat/Card-Items moeglich.",
 }
+
+# Wireframe-Stil-Constraints — gilt fuer ALLE Generierungen, unabhaengig vom
+# Style-Vibe. Komponenten kommen in eine Wireframe-Bibliothek; das eigentliche
+# CI-Design (Brand-Farben, Schriften, Akzente) wird spaeter im Projekt-Prozess
+# pro Kunde appliziert. Hier zaehlt nur Struktur + Hierarchie.
+_WIREFRAME_CONSTRAINTS = """
+WIREFRAME-STIL (PFLICHT — KEINE Brand-Farben, KEINE bunten Akzente):
+
+Farb-Palette — NUR diese Tailwind-Klassen:
+- Hintergruende: bg-white, bg-gray-50, bg-gray-100
+- Borders: border-gray-200, border-gray-300
+- Text: text-gray-900 (Headlines), text-gray-700 (Body), text-gray-500 (Subtext/Mutiert)
+- Primary-Button: bg-gray-900 text-white
+- Secondary-Button: bg-white border border-gray-300 text-gray-900
+- Inverted-Section (sparsam): bg-gray-900 text-white
+
+VERBOTEN: bg-blue-*, bg-indigo-*, bg-amber-*, bg-emerald-*, bg-rose-*, bg-purple-*,
+text-blue-*, text-indigo-* etc. Keine bunten Tailwind-Farben.
+VERBOTEN: Gradients (bg-gradient-*), starke Schatten (shadow-xl, shadow-2xl).
+VERBOTEN: Custom-Hex (#FF...).
+ERLAUBT: shadow-sm, shadow (subtle, einsetzen wenn Layout-relevant).
+
+Bilder/Logos/Avatare als neutrale Placeholder:
+- Statt <img src="..."> immer ein Tailwind-Placeholder-Block:
+  <div class="bg-gray-200 aspect-video flex items-center justify-center text-gray-500">
+    <svg ...>Bild-Icon</svg>
+  </div>
+  Aspect-Ratios: aspect-video (16:9), aspect-square (1:1), aspect-[4/3] etc.
+- Logos werden zu Text-Slots ({{logo_text}}) — KEIN Image.
+- Avatare als runde Placeholder: <div class="size-12 rounded-full bg-gray-300">
+
+Icons:
+- Inline-SVG mit fill="none" stroke="currentColor". Klassen: text-gray-700, size-5 oder size-6.
+- Keine Emojis, keine externen Icon-Libraries (kein lucide-react, kein heroicons-cdn).
+- Generic genug halten: heart, check, arrow-right, plus, search, menu, x, mail, phone.
+
+Hintergrund-Hinweis fuer Sonnet: Diese Section kommt in eine Wireframe-Bibliothek.
+Das eigentliche Brand-Design (CI-Farben, Schriften, dekorative Akzente) wird
+spaeter im Projekt-Prozess pro Kunde appliziert. Wireframe = Struktur + Hierarchie +
+Semantik. Es ist NICHT das finale Design.
+"""
 
 # Branchen-Kontexte. Tuple (label, topic-list). Topic-Liste wird in den Prompt
 # eingebaut, damit Sonnet branchen-spezifische Default-Werte schreibt.
@@ -615,14 +658,15 @@ def _build_designer_prompt(req: GenerateComponentRequest) -> str:
     user_block = f"\nZUSAETZLICHER USER-WUNSCH:\n{user_extra}\n" if user_extra else ""
 
     return f"""Du bist Senior Web-Designer fuer Marketing-Sites. Generiere genau EINE Section
-in HTML+Tailwind, die in eine bestehende Komponenten-Bibliothek aufgenommen wird.
+in HTML+Tailwind als Wireframe, die in eine bestehende Komponenten-Bibliothek aufgenommen wird.
 
 KATEGORIE: {cat}
 {cat_text}
 
-STYLE-VIBE: {style}
+LAYOUT-DICHTE: {style}
 {style_text}
 
+{_WIREFRAME_CONSTRAINTS}
 {context}
 {elements_block}
 {user_block}

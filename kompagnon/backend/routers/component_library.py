@@ -50,6 +50,10 @@ logger = logging.getLogger(__name__)
 # { job_id: { "status": "running"|"done"|"error", "result": dict|None, "error": str|None } }
 _wireframe_jobs: dict = {}
 
+# Separater Job-Store fuer den Component-Designer (KI-Komponenten-Generator).
+# { job_id: { "status": "running"|"done"|"error", "result": dict|None, "error": str|None } }
+_component_gen_jobs: dict = {}
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Component-Library: read-only Endpoints
@@ -368,6 +372,234 @@ def delete_component(
     db.delete(row)
     db.commit()
     return {"status": "deleted", "slug": slug}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Component-Designer: KI generiert neue Komponenten on-demand
+# ─────────────────────────────────────────────────────────────────────────────
+
+class GenerateComponentRequest(BaseModel):
+    category:    str                    # NAV / HERO / LEIST / TRUST / SEO / CTA / HW / FOOT / CUSTOM
+    style_vibe:  Optional[str] = "elegant"  # minimal | elegant | bold
+    user_prompt: Optional[str] = ""     # Free-Form-Wunsch vom User (z.B. "Hero mit Foerder-Badge")
+    shk_context: Optional[bool] = True  # SHK-Branche-Kontext im Prompt setzen
+    section_hint: Optional[str] = None  # Optional: spezifischer KAS-section_catalog-Hint
+
+
+@component_router.post("/generate")
+def generate_component(
+    body: GenerateComponentRequest,
+    user=Depends(require_any_auth),
+):
+    """Startet KI-Komponenten-Generierung als Background-Job.
+
+    Returnt sofort {job_id, status: 'running'}. Frontend pollt
+    GET /api/components/generate/{job_id} bis status=done|error.
+
+    Generiert eine vollstaendige Komponente: HTML+Tailwind mit {{slot}}-Markern,
+    plus Slot-Definitionen, Name, ki_prompt_hint, preview_note. Wird NICHT
+    automatisch in die DB geschrieben — User muss explizit speichern via
+    POST /api/components.
+    """
+    if not Anthropic:
+        raise HTTPException(500, "anthropic-Library nicht installiert")
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY nicht konfiguriert")
+
+    cat = (body.category or "").strip().upper()
+    if cat not in {"NAV", "HERO", "LEIST", "TRUST", "SEO", "CTA", "HW", "FOOT", "CUSTOM"}:
+        raise HTTPException(400, f"category '{cat}' ungueltig")
+
+    job_id = str(uuid.uuid4())
+    _component_gen_jobs[job_id] = {"status": "running"}
+
+    threading.Thread(
+        target=_run_component_gen_job,
+        args=(job_id, body, api_key),
+        daemon=True,
+    ).start()
+
+    return {"job_id": job_id, "status": "running"}
+
+
+@component_router.get("/generate/{job_id}")
+def get_component_gen_job(job_id: str, user=Depends(require_any_auth)):
+    """Polling fuer Component-Designer-Job. Cleanup nach erstem done/error-Read."""
+    job = _component_gen_jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job nicht gefunden oder bereits abgeholt")
+    if job["status"] in ("done", "error"):
+        snapshot = dict(job)
+        _component_gen_jobs.pop(job_id, None)
+        return snapshot
+    return job
+
+
+# ── Generator-Logik (Background-Thread) ──────────────────────────────────────
+
+_CATEGORY_GUIDANCE = {
+    "NAV":   "Header-Navigation am oberen Rand der Site. Logo + Nav-Links + ggf. CTA-Button. Mobile-Burger.",
+    "HERO":  "Hero-Section direkt unter der Navigation. Grosse Headline, Subtext, primaerer + sekundaerer CTA. Optional Hero-Bild oder Visual-Slot.",
+    "LEIST": "Leistungs-/Feature-Section. Drei bis sechs Service-Karten oder ein Grid-Layout mit Icons + Titeln + Kurztexten.",
+    "TRUST": "Trust-/Social-Proof-Section. Testimonials, Kunden-Logos, Statistiken, oder Zertifikate. Vermittelt Glaubwuerdigkeit.",
+    "SEO":   "Content-Section fuer SEO. Lange Textblocks mit H2/H3-Struktur, ggf. begleitendes Bild oder Inline-CTA.",
+    "CTA":   "Call-to-Action-Section. Klare Handlungs-Aufforderung: Termin vereinbaren, Anrufen, Angebot anfordern. Kontrastreiche Optik.",
+    "HW":    "Hardware-/Produkt-Section. Produkt-Karten, Preise, Spezifikationen. Z.B. Waermepumpe-Modelle oder Wallbox-Pakete.",
+    "FOOT":  "Footer am Site-Ende. Kontakt-Daten, Sitemap-Links, Rechtliches (Impressum, Datenschutz, AGB), ggf. Social-Icons.",
+    "CUSTOM": "Allgemeine Section, semantisch nicht festgelegt. Folge den User-Vorgaben.",
+}
+
+_STYLE_GUIDANCE = {
+    "minimal": "Klares Layout mit viel Whitespace. Neutrale Farben (Grautoene, Weiss). Sans-Serif. Wenig Deko, max. ein Akzent. Borders sparsam. Tailwind: text-gray-700, bg-white, border-gray-200.",
+    "elegant": "Refinierte Typografie mit klarer Hierarchie. Akzentfarbe gezielt einsetzen (Tailwind: indigo-600, teal-600, oder slate-800). Leichte Schatten, runde Ecken (rounded-lg). Padding grosszuegig.",
+    "bold":    "Starke Farben (Tailwind: gray-900, indigo-600, amber-500). Grosse Headlines (text-4xl/5xl). Hohe Kontraste. Solid-Buttons mit eindeutigen CTAs. Mutige Akzent-Sections.",
+}
+
+_SHK_CONTEXT = """
+SHK-BRANCHEN-KONTEXT (Heizung/Sanitaer/Elektrik):
+Themen die in der Section vorkommen koennen, abhaengig von Kategorie:
+- Waermepumpe-Beratung, Installation, Foerderung (BAFA, KfW)
+- Wallbox-Installation mit THG-Quote, Foerderungs-Hinweisen
+- Heizungstausch / Modernisierung mit gesetzlichen Aspekten (GEG)
+- Notdienst 24/7 / Wartungsvertrag
+- Beratungstermin / Kostenvoranschlag / Vor-Ort-Besichtigung
+- Lokale Verankerung (Region, Meisterbetrieb, Innungsmitglied)
+
+DEFAULT-WERTE: Verwende SHK-spezifische Texte. Keine "Lorem ipsum", keine
+"Link One/Two", keine "Button" als Default-Texte. Realistisch,
+verkaufs-fokussiert, deutscher Ton.
+"""
+
+_GENERIC_CONTEXT = """
+ALLGEMEINER KONTEXT:
+Die Section wird in einer Marketing-Site verwendet. Verwende sinnvolle
+Default-Texte (keine "Lorem ipsum"). Wenn ohne spezifische Branche, halte
+Texte allgemein professionell.
+"""
+
+
+def _build_designer_prompt(req: GenerateComponentRequest) -> str:
+    cat = req.category.upper()
+    style = (req.style_vibe or "elegant").lower()
+    style_text = _STYLE_GUIDANCE.get(style, _STYLE_GUIDANCE["elegant"])
+    cat_text = _CATEGORY_GUIDANCE.get(cat, _CATEGORY_GUIDANCE["CUSTOM"])
+    context = _SHK_CONTEXT if req.shk_context else _GENERIC_CONTEXT
+    user_extra = (req.user_prompt or "").strip()
+    user_block = f"\nZUSAETZLICHER USER-WUNSCH:\n{user_extra}\n" if user_extra else ""
+
+    return f"""Du bist Senior Web-Designer fuer Marketing-Sites. Generiere genau EINE Section
+in HTML+Tailwind, die in eine bestehende Komponenten-Bibliothek aufgenommen wird.
+
+KATEGORIE: {cat}
+{cat_text}
+
+STYLE-VIBE: {style}
+{style_text}
+
+{context}
+{user_block}
+
+HARTE REGELN:
+1. Output ist VALIDES HTML+Tailwind. Kein React, kein JSX, keine onClick-Handler.
+2. Eine einzige aeussere `<section>` (oder `<header>`/`<footer>`) als Wurzel — kein `<html>`/`<body>`.
+3. Mobile-first responsive: nutze sm:/md:/lg:-Praefixe wo sinnvoll.
+4. Nur Standard-Tailwind-Klassen. Keine erfundenen Klassen, keine Custom-Properties
+   (kein `bg-background-primary`, kein `text-text-alternative`).
+5. Semantisches HTML: `<h1>/<h2>/<h3>` fuer Headlines, `<button>` fuer Aktionen,
+   `<a>` fuer Links, `<ul>/<li>` fuer Listen.
+6. Accessibility: aria-label fuer icon-only-Buttons, alt="" fuer Bilder, semantic landmarks.
+7. Slot-Markierung: ALLE wiederverwendbaren Texte als `{{{{slot_key}}}}`-Marker
+   (doppelte geschweifte Klammern, snake_case). Beispiele: `{{{{headline}}}}`,
+   `{{{{cta_label}}}}`, `{{{{feature_1_title}}}}`. Headlines, Subtexte, Button-Labels,
+   Link-Texte, Logo-Text, Listen-Items werden zu Slots. Nicht jeder kleine Text —
+   max. 5-15 Slots pro Section.
+8. Bilder: nutze `<img>` mit `src=""` oder einen schlichten Placeholder-`<div>`
+   mit Tailwind-Background. KEINE externen Bild-URLs.
+
+OUTPUT-FORMAT — antworte AUSSCHLIESSLICH als valides JSON, KEIN Markdown-Wrapper, KEINE Erklaerung:
+
+{{
+  "name":           "<menschenlesbarer Name auf Deutsch, max 60 Zeichen>",
+  "html_template":  "<das vollstaendige HTML als String, mit \\\" escaped wenn noetig>",
+  "slots": [
+    {{"key": "<snake_case_key>", "label": "<deutsches Label>", "default": "<sinnvoller Default>"}}
+  ],
+  "ki_prompt_hint": "<1-2 Saetze: wofuer ist diese Section ideal? Welche Briefing-Aspekte triggern sie?>",
+  "preview_note":   "<1 Satz technische Notiz: z.B. 'Mobile-Burger statisch, ohne JS' oder 'Drei-Spalten-Grid auf Desktop'>",
+  "tags":           ["<{cat.lower()}>", "kas-ai", "tailwind", "<style: {style}>"]
+}}
+"""
+
+
+def _run_component_gen_job(job_id: str, req: GenerateComponentRequest, api_key: str) -> None:
+    """Background-Thread: ruft Sonnet, parst JSON, speichert Resultat in Job-Store."""
+    try:
+        prompt = _build_designer_prompt(req)
+        client = Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=8000,  # ein Section-HTML ist ~2-5k tokens, mit Slots-JSON ~6-7k
+            messages=[{"role": "user", "content": prompt}],
+        )
+        stop_reason = getattr(response, "stop_reason", None)
+        raw = _extract_text_from_response(response)
+
+        if stop_reason == "max_tokens":
+            _component_gen_jobs[job_id] = {
+                "status": "error",
+                "error": "Generierung wurde abgeschnitten (max_tokens). Bitte einfacheren Style/Prompt waehlen.",
+            }
+            return
+
+        try:
+            result = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            logger.warning(
+                f"component_gen job {job_id}: JSON-Parsing fehlgeschlagen: {exc}; "
+                f"raw[:300]={raw[:300]!r}"
+            )
+            _component_gen_jobs[job_id] = {
+                "status": "error",
+                "error": f"KI-Output kein valides JSON: {exc}",
+            }
+            return
+
+        # Validation
+        for field in ("name", "html_template", "slots"):
+            if field not in result:
+                _component_gen_jobs[job_id] = {
+                    "status": "error",
+                    "error": f"KI-Output fehlt Pflichtfeld '{field}'",
+                }
+                return
+        if not isinstance(result["html_template"], str) or len(result["html_template"]) < 50:
+            _component_gen_jobs[job_id] = {
+                "status": "error",
+                "error": "html_template fehlt oder zu kurz",
+            }
+            return
+        if not isinstance(result["slots"], list):
+            _component_gen_jobs[job_id] = {
+                "status": "error",
+                "error": "slots muss Array sein",
+            }
+            return
+
+        # Defaults setzen + Kategorie/section_hint anreichern
+        result.setdefault("ki_prompt_hint", "")
+        result.setdefault("preview_note", "")
+        result.setdefault("tags", [])
+        if "kas-ai" not in result["tags"]:
+            result["tags"].append("kas-ai")
+        result["category"] = req.category.upper()
+        if req.section_hint:
+            result["section_hint"] = req.section_hint
+
+        _component_gen_jobs[job_id] = {"status": "done", "result": result}
+    except Exception as exc:
+        logger.error(f"component_gen job {job_id} crashed: {exc}", exc_info=True)
+        _component_gen_jobs[job_id] = {"status": "error", "error": str(exc)}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

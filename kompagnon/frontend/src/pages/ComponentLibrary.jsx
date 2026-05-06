@@ -83,6 +83,16 @@ export default function ComponentLibrary() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // AI-Generator (Component-Designer)
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiForm, setAiForm] = useState({
+    category: 'HERO', style_vibe: 'elegant', user_prompt: '', shk_context: true,
+  });
+  const [aiStatus, setAiStatus] = useState('idle'); // idle | running | done | error
+  const [aiJobId, setAiJobId] = useState(null);
+  const [aiResult, setAiResult] = useState(null);
+  const [aiError, setAiError] = useState(null);
+
   const reload = useCallback(async () => {
     setLoading(true);
     try {
@@ -227,6 +237,94 @@ export default function ComponentLibrary() {
     }
   };
 
+  // ── AI-Generator-Logik ────────────────────────────────────────────────────
+
+  const startAiGenerate = async () => {
+    setAiStatus('running');
+    setAiError(null);
+    setAiResult(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/components/generate`, {
+        method: 'POST', headers,
+        body: JSON.stringify(aiForm),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.detail || `HTTP ${res.status}`);
+      setAiJobId(body.job_id);
+    } catch (e) {
+      setAiStatus('error');
+      setAiError(e.message);
+    }
+  };
+
+  // Poll job-status every 2 sec while running
+  useEffect(() => {
+    if (!aiJobId || aiStatus !== 'running') return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/components/generate/${aiJobId}`, { headers });
+        if (cancelled) return;
+        if (res.status === 404) {
+          // Job verschwunden — als Fehler behandeln
+          setAiStatus('error');
+          setAiError('Job nicht gefunden');
+          setAiJobId(null);
+          return;
+        }
+        const body = await res.json();
+        if (body.status === 'done') {
+          setAiResult(body.result);
+          setAiStatus('done');
+          setAiJobId(null);
+        } else if (body.status === 'error') {
+          setAiStatus('error');
+          setAiError(body.error || 'Unbekannter Fehler');
+          setAiJobId(null);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setAiStatus('error');
+          setAiError(e.message);
+          setAiJobId(null);
+        }
+      }
+    };
+    const t = setInterval(tick, 2000);
+    tick(); // sofort einmal pollen
+    return () => { cancelled = true; clearInterval(t); };
+  }, [aiJobId, aiStatus, headers]);
+
+  const closeAiModal = () => {
+    setAiOpen(false);
+    setAiStatus('idle');
+    setAiJobId(null);
+    setAiResult(null);
+    setAiError(null);
+  };
+
+  // Uebernimmt das KI-Resultat in den Editor (als neue Komponente).
+  // User muss noch einen Slug eingeben + speichern.
+  const useAiResult = () => {
+    if (!aiResult) return;
+    if (dirty && !window.confirm('Ungespeicherte Aenderungen verwerfen?')) return;
+    setSelectedSlug(null);
+    setIsNew(true);
+    setForm({
+      slug: '',
+      name: aiResult.name || '',
+      category: aiResult.category || aiForm.category,
+      tags: aiResult.tags || [],
+      html_template: aiResult.html_template || '',
+      slots: aiResult.slots || [],
+      ki_prompt_hint: aiResult.ki_prompt_hint || '',
+      preview_note: aiResult.preview_note || '',
+    });
+    setDirty(true);
+    closeAiModal();
+    toast.success('KI-Komponente uebernommen — Slug eingeben und speichern');
+  };
+
   const remove = async () => {
     if (isNew || !form.slug) return;
     if (!window.confirm(`Komponente "${form.name}" (${form.slug}) wirklich loeschen?`)) return;
@@ -262,14 +360,24 @@ export default function ComponentLibrary() {
             {loading ? 'Laedt…' : `${items.length} Eintraege · ${filtered.length} sichtbar`}
           </p>
         </div>
-        <button
-          type="button" onClick={openNew}
-          style={{
-            background: KC_DARK, color: '#fff', border: 'none',
-            borderRadius: 8, padding: '9px 16px', fontSize: 12, fontWeight: 700,
-            cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.04em',
-          }}
-        >+ Neue Komponente</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            type="button" onClick={() => { setAiOpen(true); setAiStatus('idle'); }}
+            style={{
+              background: '#7c3aed', color: '#fff', border: 'none',
+              borderRadius: 8, padding: '9px 16px', fontSize: 12, fontWeight: 700,
+              cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.04em',
+            }}
+          >✨ Mit KI generieren</button>
+          <button
+            type="button" onClick={openNew}
+            style={{
+              background: KC_DARK, color: '#fff', border: 'none',
+              borderRadius: 8, padding: '9px 16px', fontSize: 12, fontWeight: 700,
+              cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.04em',
+            }}
+          >+ Neue Komponente</button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -381,6 +489,208 @@ export default function ComponentLibrary() {
             />
           )}
         </main>
+      </div>
+
+      {/* AI-Generator-Modal */}
+      {aiOpen && (
+        <AiGeneratorModal
+          form={aiForm} setForm={setAiForm}
+          status={aiStatus} result={aiResult} error={aiError}
+          onGenerate={startAiGenerate}
+          onUseResult={useAiResult}
+          onClose={closeAiModal}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── AI-Generator-Modal ───────────────────────────────────────────────────────
+
+function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, onUseResult, onClose }) {
+  const previewHtml = useMemo(() => {
+    if (!result?.html_template) return '';
+    const defaults = (result.slots || []).reduce((acc, s) => {
+      if (s.key) acc[s.key] = s.default ?? '';
+      return acc;
+    }, {});
+    return renderSlots(result.html_template, defaults);
+  }, [result]);
+
+  return (
+    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{
+      position: 'fixed', inset: 0, zIndex: 2000,
+      background: 'rgba(0,0,0,0.55)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+    }}>
+      <div style={{
+        background: '#fff', borderRadius: 12,
+        width: '100%', maxWidth: 1100, maxHeight: 'calc(100vh - 32px)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        fontFamily: 'inherit',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '14px 18px', borderBottom: '1px solid #e2e8f0',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)', color: '#fff',
+        }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              ✨ Komponenten-Designer (KI)
+            </div>
+            <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2 }}>
+              Sonnet 4.6 · ~$0.05 pro Generation · Output: HTML+Tailwind mit Slots
+            </div>
+          </div>
+          <button type="button" onClick={onClose} disabled={status === 'running'}
+            style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#fff', lineHeight: 1, opacity: status === 'running' ? 0.4 : 1 }}>×</button>
+        </div>
+
+        {/* Body: 2 Spalten — Form links, Preview/Result rechts */}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* Form */}
+          <div style={{ flex: '0 0 360px', padding: 16, overflowY: 'auto', borderRight: '1px solid #e2e8f0', background: '#f8fafc' }}>
+            <Field label="Kategorie">
+              <select
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                disabled={status === 'running'}
+                style={inputStyle(false)}
+              >
+                {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </Field>
+
+            <Field label="Style-Vibe">
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[
+                  { id: 'minimal', label: 'Minimal' },
+                  { id: 'elegant', label: 'Elegant' },
+                  { id: 'bold', label: 'Bold' },
+                ].map((s) => {
+                  const active = form.style_vibe === s.id;
+                  return (
+                    <button
+                      key={s.id} type="button"
+                      onClick={() => setForm({ ...form, style_vibe: s.id })}
+                      disabled={status === 'running'}
+                      style={{
+                        flex: 1, padding: '7px 10px',
+                        background: active ? '#7c3aed' : '#fff',
+                        color: active ? '#fff' : '#475569',
+                        border: '1px solid ' + (active ? '#7c3aed' : '#cbd5e1'),
+                        borderRadius: 6, fontSize: 11, fontWeight: 700,
+                        cursor: status === 'running' ? 'not-allowed' : 'pointer',
+                        textTransform: 'uppercase',
+                      }}
+                    >{s.label}</button>
+                  );
+                })}
+              </div>
+            </Field>
+
+            <Field label="SHK-Branchen-Kontext">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#475569' }}>
+                <input type="checkbox"
+                  checked={form.shk_context}
+                  onChange={(e) => setForm({ ...form, shk_context: e.target.checked })}
+                  disabled={status === 'running'}
+                />
+                <span>Heizung/Sanitaer/Elektrik-spezifisch (Waermepumpe, Wallbox, Foerderung etc.)</span>
+              </label>
+            </Field>
+
+            <Field label="Free-Form-Wunsch (optional)">
+              <textarea
+                value={form.user_prompt}
+                onChange={(e) => setForm({ ...form, user_prompt: e.target.value })}
+                disabled={status === 'running'}
+                rows={4}
+                placeholder="z.B.: Hero mit Foerder-Badge oben links, grosse Headline, Subtext, primaerer CTA + Telefonnummer als sekundaere Aktion"
+                style={{ ...inputStyle(false), resize: 'vertical' }}
+              />
+            </Field>
+
+            <button
+              type="button" onClick={onGenerate}
+              disabled={status === 'running'}
+              style={{
+                width: '100%', marginTop: 8,
+                padding: '10px 14px',
+                background: status === 'running' ? '#94a3b8' : '#7c3aed',
+                color: '#fff', border: 'none', borderRadius: 8,
+                fontSize: 12, fontWeight: 700,
+                cursor: status === 'running' ? 'wait' : 'pointer',
+                textTransform: 'uppercase', letterSpacing: '0.04em',
+              }}
+            >
+              {status === 'running' ? 'Generiert…' : (status === 'done' ? '🔄 Nochmal generieren' : '✨ Generieren')}
+            </button>
+          </div>
+
+          {/* Preview / Status */}
+          <div style={{ flex: 1, overflowY: 'auto', background: '#fff', padding: 16 }}>
+            {status === 'idle' && (
+              <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                Form ausfuellen und „Generieren" klicken.<br/>Erwartete Wartezeit: 8–15 Sekunden.
+              </div>
+            )}
+            {status === 'running' && (
+              <div style={{ padding: 32, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+                Sonnet 4.6 schreibt deine Komponente…<br/>
+                <div style={{ fontSize: 11, marginTop: 8, color: '#94a3b8' }}>Polling alle 2s · Background-Job</div>
+              </div>
+            )}
+            {status === 'error' && (
+              <div style={{ padding: 16, background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, color: '#991b1b', fontSize: 12 }}>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>Fehler:</div>
+                {error || 'Unbekannter Fehler'}
+              </div>
+            )}
+            {status === 'done' && result && (
+              <div>
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>{result.name}</div>
+                  <div style={{ fontSize: 11, color: '#64748b' }}>{result.preview_note}</div>
+                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
+                    {(result.slots || []).length} Slots · {(result.tags || []).join(' · ')}
+                  </div>
+                </div>
+                <div style={{
+                  border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden',
+                  background: '#fff', pointerEvents: 'none', marginBottom: 12,
+                }}>
+                  {previewHtml ? (
+                    <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                  ) : (
+                    <div style={{ padding: 16, textAlign: 'center', color: '#94a3b8', fontSize: 12 }}>Keine Preview</div>
+                  )}
+                </div>
+                <div style={{
+                  background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6,
+                  padding: 10, fontSize: 11, color: '#475569', marginBottom: 12,
+                }}>
+                  <div style={{ fontWeight: 700, fontSize: 10, textTransform: 'uppercase', color: '#64748b', marginBottom: 4 }}>
+                    KI-Prompt-Hint:
+                  </div>
+                  {result.ki_prompt_hint || '(leer)'}
+                </div>
+                <button
+                  type="button" onClick={onUseResult}
+                  style={{
+                    width: '100%', padding: '10px 14px',
+                    background: '#10b981', color: '#fff', border: 'none', borderRadius: 8,
+                    fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                    textTransform: 'uppercase', letterSpacing: '0.04em',
+                  }}
+                >✓ In Editor uebernehmen (Slug eingeben + speichern)</button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

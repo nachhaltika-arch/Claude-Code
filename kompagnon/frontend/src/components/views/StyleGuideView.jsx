@@ -1013,6 +1013,9 @@ function ColorSection({
     Object.keys(paletteOverrides?.dark  || {}).length +
     Object.keys(semanticOverrides?.light || {}).length +
     Object.keys(semanticOverrides?.dark  || {}).length > 0;
+  // Detail-Editor ein-/ausklappbar — Default zu, sodass die Concept- und
+  // Semantic-Display den primaeren Eindruck dominieren.
+  const [editorOpen, setEditorOpen] = useState(false);
 
   return (
     <div>
@@ -1076,104 +1079,193 @@ function ColorSection({
         })}
       </div>
 
-      {/* Brand-Token-Editor — pro Token Color-Picker + Hex-Input + Reset */}
+      {/* Section-Header mit Toggle "Tokens anpassen" + Reset-All */}
       <div style={{
-        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-        marginBottom: 8, gap: 8,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 8, gap: 8, flexWrap: 'wrap',
       }}>
         <div style={{
           fontSize: 13, fontWeight: 800, color: KC_DARK,
           textTransform: 'uppercase', letterSpacing: '-0.01em',
         }}>
-          Brand-Tokens · {lightDark === 'dark' ? 'Dark' : 'Light'}
+          Semantische Status-Farben
         </div>
-        {hasAnyOverride && (
-          <button type="button" onClick={onResetAll}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {hasAnyOverride && (
+            <button type="button" onClick={onResetAll}
+              style={{
+                background: 'transparent', color: '#dc2626',
+                border: '1px solid #fca5a5', borderRadius: 6,
+                padding: '4px 10px', fontSize: 10, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+              ↺ Alle Overrides verwerfen
+            </button>
+          )}
+          <button type="button" onClick={() => setEditorOpen((v) => !v)}
             style={{
-              background: 'transparent', color: '#dc2626',
-              border: '1px solid #fca5a5', borderRadius: 6,
-              padding: '4px 10px', fontSize: 10, fontWeight: 700,
+              background: editorOpen ? '#7c3aed' : 'transparent',
+              color: editorOpen ? '#fff' : '#7c3aed',
+              border: '1px solid #7c3aed', borderRadius: 6,
+              padding: '5px 12px', fontSize: 11, fontWeight: 700,
               cursor: 'pointer', fontFamily: 'inherit',
             }}>
-            ↺ Alle Overrides verwerfen
+            🔧 Tokens anpassen {editorOpen ? '▲' : '▼'}
           </button>
-        )}
-      </div>
-      <div style={{
-        fontSize: 11, color: '#64748b', marginBottom: 14, lineHeight: 1.5,
-      }}>
-        Konzept-Defaults oben — pro Token überschreibbar via Color-Picker oder Hex-Input.
-        Override gilt nur für den aktuellen {lightDark === 'dark' ? 'Dark' : 'Light'}-Modus.
-      </div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10,
-        marginBottom: 22,
-      }}>
-        {PALETTE_TOKEN_KEYS.map((key) => (
-          <TokenEditor
-            key={key}
-            label={PALETTE_TOKEN_LABELS[key]}
-            value={palette[key]}
-            defaultValue={conceptDefaultPalette[key]}
-            isOverridden={key in lvlOvr}
-            onChange={(v) => onSetPaletteToken(key, v)}
-            onReset={() => onResetPaletteToken(key)}
-          />
-        ))}
+        </div>
       </div>
 
-      {/* Semantic-Token-Editor — pro Status × {fg, bg, border} */}
-      <div style={{
-        fontSize: 13, fontWeight: 800, color: KC_DARK,
-        textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 8,
-      }}>
-        Semantische Status-Farben · {lightDark === 'dark' ? 'Dark' : 'Light'}
-      </div>
+      {/* Read-only Semantic-Display (alter Look) */}
       <div style={{
         fontSize: 11, color: '#64748b', marginBottom: 14, lineHeight: 1.5,
       }}>
-        Industry-Konvention als Default — pro Status drei Slots editierbar
-        (Vordergrund / Background / Border).
+        Industry-Konvention für Status-Kommunikation.
+        Light/Dark folgt dem Modus oben.
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {SEMANTIC_KEYS.map((status) => {
-          const c = semantic[status];
-          const def = semanticDefault[status];
-          const ovrStatus = semOvr[status] || {};
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10,
+        marginBottom: editorOpen ? 22 : 0,
+      }}>
+        {[
+          { key: 'success', label: 'Erfolg / Aktiv',   note: 'Abgeschlossen, bewilligt' },
+          { key: 'warn',    label: 'Hinweis / Offen',  note: 'In Bearbeitung, ausstehend' },
+          { key: 'error',   label: 'Fehler',           note: 'Abgelehnt, blockiert' },
+          { key: 'info',    label: 'Info / Neutral',   note: 'Information, Hinweis' },
+        ].map((s) => {
+          const colors = semantic[s.key];
+          const isOverridden = s.key in semOvr;
           return (
-            <div key={status} style={{
+            <div key={s.key} style={{
               padding: 12,
-              background: c.bg,
-              border: `1px solid ${c.border}`,
+              background: colors.bg,
+              border: `1px solid ${colors.border}`,
               borderRadius: 8,
+              position: 'relative',
             }}>
+              {isOverridden && (
+                <span title="Token überschrieben"
+                  style={{
+                    position: 'absolute', top: 6, right: 6,
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: '#7c3aed',
+                  }} />
+              )}
               <div style={{
-                fontSize: 11, fontWeight: 800, color: c.fg,
-                textTransform: 'uppercase', letterSpacing: '0.06em',
-                marginBottom: 10,
+                fontSize: 9, fontWeight: 800, color: colors.fg,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                marginBottom: 4,
               }}>
-                {SEMANTIC_LABELS[status]}
+                {s.label}
               </div>
-              <div style={{
-                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8,
-              }}>
-                {['fg', 'bg', 'border'].map((slot) => (
-                  <TokenEditor
-                    key={slot}
-                    label={slot === 'fg' ? 'Vordergrund' : slot === 'bg' ? 'Background' : 'Border'}
-                    value={c[slot]}
-                    defaultValue={def[slot]}
-                    isOverridden={slot in ovrStatus}
-                    onChange={(v) => onSetSemanticToken(status, slot, v)}
-                    onReset={() => onResetSemanticToken(status, slot)}
-                    compact
-                  />
-                ))}
+              <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11, color: colors.fg, fontWeight: 700 }}>
+                {colors.fg}
+              </div>
+              <div style={{ fontSize: 10, color: colors.fg, opacity: 0.85, marginTop: 4 }}>
+                {s.note}
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Detail-Editor — nur wenn ausgeklappt */}
+      {editorOpen && (
+        <>
+          <div style={{
+            background: '#faf5ff', border: '1px solid #e9d5ff',
+            borderRadius: 8, padding: 14, marginTop: 8,
+          }}>
+            <div style={{
+              fontSize: 12, fontWeight: 800, color: '#6b21a8',
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              marginBottom: 4,
+            }}>
+              Brand-Tokens · {lightDark === 'dark' ? 'Dark' : 'Light'}
+            </div>
+            <div style={{ fontSize: 11, color: '#7e22ce', marginBottom: 12, lineHeight: 1.5 }}>
+              8 Slots aus dem aktuellen Konzept. Override pro Token via Color-Picker
+              oder Hex/RGB. Override gilt nur für {lightDark === 'dark' ? 'Dark' : 'Light'}.
+            </div>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10,
+            }}>
+              {PALETTE_TOKEN_KEYS.map((key) => (
+                <TokenEditor
+                  key={key}
+                  label={PALETTE_TOKEN_LABELS[key]}
+                  value={palette[key]}
+                  defaultValue={conceptDefaultPalette[key]}
+                  isOverridden={key in lvlOvr}
+                  onChange={(v) => onSetPaletteToken(key, v)}
+                  onReset={() => onResetPaletteToken(key)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div style={{
+            background: '#faf5ff', border: '1px solid #e9d5ff',
+            borderRadius: 8, padding: 14, marginTop: 12,
+          }}>
+            <div style={{
+              fontSize: 12, fontWeight: 800, color: '#6b21a8',
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              marginBottom: 4,
+            }}>
+              Semantic-Slots · {lightDark === 'dark' ? 'Dark' : 'Light'}
+            </div>
+            <div style={{ fontSize: 11, color: '#7e22ce', marginBottom: 12, lineHeight: 1.5 }}>
+              Pro Status drei Slots: Vordergrund / Background / Border.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {SEMANTIC_KEYS.map((status) => {
+                const c = semantic[status];
+                const def = semanticDefault[status];
+                const ovrStatus = semOvr[status] || {};
+                return (
+                  <div key={status} style={{
+                    padding: 10,
+                    background: '#fff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 6,
+                  }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
+                    }}>
+                      <span style={{
+                        width: 14, height: 14, borderRadius: 3,
+                        background: c.fg, flexShrink: 0,
+                      }} />
+                      <span style={{
+                        fontSize: 11, fontWeight: 800, color: KC_DARK,
+                        textTransform: 'uppercase', letterSpacing: '0.06em',
+                      }}>
+                        {SEMANTIC_LABELS[status]}
+                      </span>
+                    </div>
+                    <div style={{
+                      display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8,
+                    }}>
+                      {['fg', 'bg', 'border'].map((slot) => (
+                        <TokenEditor
+                          key={slot}
+                          label={slot === 'fg' ? 'Vordergrund' : slot === 'bg' ? 'Background' : 'Border'}
+                          value={c[slot]}
+                          defaultValue={def[slot]}
+                          isOverridden={slot in ovrStatus}
+                          onChange={(v) => onSetSemanticToken(status, slot, v)}
+                          onReset={() => onResetSemanticToken(status, slot)}
+                          compact
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

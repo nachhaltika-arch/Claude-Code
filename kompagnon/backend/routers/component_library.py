@@ -1144,11 +1144,20 @@ def _run_wireframe_job(job_id: str, project_id: int, api_key: str) -> None:
         # Vorher 4000 → JSON wurde bei groesseren Wireframes mitten im String
         # abgeschnitten, json.loads kippte mit "Unterminated string". Anthropic
         # rechnet nur tatsaechlich generierte Tokens ab, daher kein Cost-Risiko.
-        response = client.messages.create(
+        #
+        # Streaming-Pflicht ab 2025: Die Anthropic-SDK weigert sich, non-streaming
+        # Calls mit hoher max_tokens-Erwartung > ~10min zu starten und wirft
+        # ValueError("Streaming is required..."). Daher hier ueber stream() —
+        # final_message hat dieselbe Struktur wie ein gewoehnliches Response.
+        with client.messages.stream(
             model="claude-sonnet-4-6",
             max_tokens=32000,
             messages=[{"role": "user", "content": prompt}],
-        )
+        ) as stream:
+            # Iterator konsumieren, damit der Akkumulator das final_message baut.
+            for _ in stream.text_stream:
+                pass
+            response = stream.get_final_message()
         stop_reason = getattr(response, "stop_reason", None)
         raw_text = _extract_text_from_response(response)
 

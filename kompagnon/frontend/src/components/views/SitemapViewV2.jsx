@@ -100,6 +100,22 @@ const PAGE_W = 280;       // Pixel-Breite einer Page-Karte
 const COL_GAP = 40;       // Abstand zwischen Geschwister-Spalten
 const ROW_GAP = 56;       // Abstand zwischen Eltern und Kinder-Reihe (inkl. Connector)
 
+// Phase 2: Globale Sections — werden konventionell auf jeder Seite verwendet.
+// In der Add-Sidebar oben hervorgehoben mit Instance-Count.
+const GLOBAL_SECTION_KEYS = ['header_nav', 'footer_legal'];
+
+// Kategorien fuer die Add-Sidebar — gruppiert nach semantischer Naehe.
+const SIDEBAR_CATEGORIES = [
+  { label: 'Hero',                items: ['hero_value_equation', 'hero_service', 'hero_minimal'] },
+  { label: 'Problem & Offer',     items: ['problem', 'offer_stack'] },
+  { label: 'Trust / Social Proof', items: ['guarantee_block', 'urgency_block', 'trust_strip', 'fallstudien_3'] },
+  { label: 'Process',             items: ['process_steps'] },
+  { label: 'Service & Team',      items: ['service_grid', 'team'] },
+  { label: 'FAQ',                 items: ['faq', 'faq_service'] },
+  { label: 'Content',             items: ['content_richtext'] },
+  { label: 'CTA & Contact',       items: ['cta_inline', 'cta_final', 'contact_form'] },
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function SitemapViewV2({
@@ -334,8 +350,21 @@ export default function SitemapViewV2({
         </div>
       </div>
 
-      {/* Canvas */}
+      {/* Canvas + Sidebars */}
       <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
+        {/* Phase 2: Linke Add-Sidebar — Sections per Klick zur active-Page hinzufuegen */}
+        <AddSidebar
+          pages={pages}
+          activePageId={selectedPageId}
+          onAddToActivePage={(sectionKey) => {
+            if (!selectedPageId) {
+              toast('Wähle erst eine Seite aus, bevor du eine Section hinzufügst.');
+              return;
+            }
+            addSectionToPage(selectedPageId, sectionKey);
+          }}
+        />
+
         <div style={{
           flex: 1, overflow: 'auto',
           padding: '40px 24px',
@@ -815,6 +844,231 @@ function AddPagePlus({ onClick, large = false }) {
       }}
     >
       +
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 2: AddSidebar — links, Search + Global Sections + Categories
+// ─────────────────────────────────────────────────────────────────────────────
+
+function AddSidebar({ pages, activePageId, onAddToActivePage }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [search, setSearch] = useState('');
+  // Default: alle Categories collapsed; "Global" ist immer offen.
+  const [openCategories, setOpenCategories] = useState({});
+
+  // Instance-Count pro Section-Key — wieviele Pages nutzen sie
+  const instanceCount = useMemo(() => {
+    const map = new Map();
+    pages.forEach((p) => {
+      (p.sections || []).forEach((key) => {
+        map.set(key, (map.get(key) || 0) + 1);
+      });
+    });
+    return map;
+  }, [pages]);
+
+  const matchesSearch = useCallback((key) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    const desc = SECTION_CATALOG[key] || '';
+    const label = SECTION_LABEL[key] || key;
+    return key.toLowerCase().includes(q)
+      || desc.toLowerCase().includes(q)
+      || label.toLowerCase().includes(q);
+  }, [search]);
+
+  // Wenn Suche aktiv: alle Categories temporaer aufklappen, damit Treffer sichtbar sind
+  const isSearching = search.trim().length > 0;
+
+  if (collapsed) {
+    return (
+      <aside style={{
+        width: 36, flexShrink: 0,
+        background: '#fff', borderRight: '1px solid #e2e8f0',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        padding: '12px 0',
+      }}>
+        <button
+          type="button" onClick={() => setCollapsed(false)}
+          aria-label="Add-Sidebar einblenden"
+          title="Add-Sidebar einblenden"
+          style={{
+            background: 'none', border: 'none',
+            color: KC_MID, fontSize: 18, cursor: 'pointer', padding: 4,
+          }}
+        >
+          ➕
+        </button>
+      </aside>
+    );
+  }
+
+  return (
+    <aside style={{
+      width: 280, flexShrink: 0,
+      background: '#fff', borderRight: '1px solid #e2e8f0',
+      display: 'flex', flexDirection: 'column',
+      overflow: 'hidden',
+      fontFamily: 'inherit',
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px 14px', borderBottom: '1px solid #e2e8f0',
+      }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: KC_DARK, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          Add
+        </div>
+        <button type="button" onClick={() => setCollapsed(true)}
+          aria-label="Sidebar einklappen" title="Sidebar einklappen"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 14, padding: 0 }}>
+          ×
+        </button>
+      </div>
+
+      {/* Search */}
+      <div style={{ padding: 10, borderBottom: '1px solid #e2e8f0' }}>
+        <input
+          type="search" placeholder="Suchen…"
+          value={search} onChange={(e) => setSearch(e.target.value)}
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            padding: '7px 10px',
+            border: '1px solid #e2e8f0', borderRadius: 6,
+            fontSize: 12, fontFamily: 'inherit', outline: 'none',
+          }}
+        />
+      </div>
+
+      {/* Scroll-Bereich */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+        {!activePageId && (
+          <div style={{
+            margin: '0 0 10px',
+            padding: '8px 10px', fontSize: 11, color: '#92400e',
+            background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 6,
+            lineHeight: 1.4,
+          }}>
+            Tipp: Klick erst auf eine Seite, dann auf eine Section um sie hinzuzufügen.
+          </div>
+        )}
+
+        {/* Global Sections — immer offen */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{
+            padding: '4px 6px',
+            fontSize: 10, fontWeight: 700, color: '#64748b',
+            textTransform: 'uppercase', letterSpacing: '0.08em',
+          }}>
+            Global Sections
+          </div>
+          {GLOBAL_SECTION_KEYS.filter(matchesSearch).map((key) => (
+            <SidebarSectionItem
+              key={key} sectionKey={key}
+              count={instanceCount.get(key) || 0}
+              global
+              onPick={() => onAddToActivePage(key)}
+            />
+          ))}
+        </div>
+
+        {/* Categories */}
+        {SIDEBAR_CATEGORIES.map((cat) => {
+          const items = cat.items.filter(matchesSearch);
+          if (items.length === 0) return null;
+          const isOpen = isSearching || openCategories[cat.label] || false;
+          return (
+            <div key={cat.label} style={{ marginBottom: 4 }}>
+              <button
+                type="button"
+                onClick={() => setOpenCategories((s) => ({ ...s, [cat.label]: !isOpen }))}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, width: '100%',
+                  padding: '8px 10px',
+                  background: 'transparent', border: 'none',
+                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                  borderRadius: 6,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                <span style={{ color: '#94a3b8', fontSize: 10, flexShrink: 0 }}>
+                  {isOpen ? '▼' : '▶'}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: KC_DARK }}>
+                  {cat.label}
+                </span>
+                <span style={{ flex: 1 }} />
+                <span style={{ fontSize: 10, color: '#94a3b8' }}>{items.length}</span>
+              </button>
+              {isOpen && (
+                <div style={{ paddingLeft: 4 }}>
+                  {items.map((key) => (
+                    <SidebarSectionItem
+                      key={key} sectionKey={key}
+                      count={instanceCount.get(key) || 0}
+                      onPick={() => onAddToActivePage(key)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </aside>
+  );
+}
+
+function SidebarSectionItem({ sectionKey, count, global = false, onPick }) {
+  const label = SECTION_LABEL[sectionKey] || sectionKey;
+  const desc = SECTION_CATALOG[sectionKey] || '';
+
+  return (
+    <button
+      type="button" onClick={onPick}
+      title={desc}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+        padding: '6px 8px', marginBottom: 2,
+        background: global ? '#ecfdf5' : 'transparent',
+        border: '1px solid transparent', borderRadius: 6,
+        cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+        fontSize: 11,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = global ? '#d1fae5' : '#eff6ff';
+        e.currentTarget.style.borderColor = KC_MID;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = global ? '#ecfdf5' : 'transparent';
+        e.currentTarget.style.borderColor = 'transparent';
+      }}
+    >
+      <span style={{
+        width: 6, height: 6, borderRadius: '50%',
+        background: global ? '#10b981' : '#cbd5e1', flexShrink: 0,
+      }} />
+      <span style={{
+        flex: 1, minWidth: 0,
+        fontWeight: 600, color: KC_DARK,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {label}
+      </span>
+      {count > 0 && (
+        <span style={{
+          fontSize: 9, fontWeight: 700,
+          padding: '1px 6px', borderRadius: 10,
+          background: '#f1f5f9', color: '#64748b',
+          flexShrink: 0,
+        }}>
+          {count}
+        </span>
+      )}
+      <span style={{ color: KC_MID, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>+</span>
     </button>
   );
 }

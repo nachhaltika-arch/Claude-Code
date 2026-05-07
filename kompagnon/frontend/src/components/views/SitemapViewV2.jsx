@@ -100,6 +100,66 @@ const PAGE_W = 280;       // Pixel-Breite einer Page-Karte
 const COL_GAP = 40;       // Abstand zwischen Geschwister-Spalten
 const ROW_GAP = 56;       // Abstand zwischen Eltern und Kinder-Reihe (inkl. Connector)
 
+// Phase C: Link-Extraktion aus Block-Slots
+// ─────────────────────────────────────────────────────────────────────────────
+// Heuristik: ein Slot ist ein Link wenn:
+//   - sein Key 'url'/'link'/'href' enthaelt, ODER
+//   - sein Wert mit http(s)://, /, oder # beginnt
+// Externe Links: http(s):// (nicht auf eine eigene sitemap_page deutend)
+// Interne Links: relativer Pfad oder URL deren letzter Path-Teil mit einer
+//                Page in dieser Sitemap matcht (slugified page_name).
+
+function slugify(s) {
+  if (!s || typeof s !== 'string') return '';
+  return s.toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function isUrlSlot(key, value) {
+  if (!value || typeof value !== 'string') return false;
+  const k = (key || '').toLowerCase();
+  if (k.includes('url') || k.includes('link') || k.includes('href')) return true;
+  return /^(https?:\/\/|\/|#)/.test(value.trim());
+}
+
+function isExternalUrl(value) {
+  return /^https?:\/\//i.test(value || '');
+}
+
+// Versucht, einen Link-Wert auf eine Page in der Sitemap zu mappen.
+// Strategien:
+//   - relativer Pfad (/wallbox-installation) → Slug-Match
+//   - http(s)://eigene-domain/path → Path-Match
+//   - reines Page-Name-Fragment → Slug-Match
+function matchInternalPage(value, pageSlugMap) {
+  if (!value || typeof value !== 'string') return null;
+  let v = value.trim();
+  // http(s):// strippen, um den Path zu bekommen
+  if (/^https?:\/\//i.test(v)) {
+    try {
+      const url = new URL(v);
+      v = url.pathname + (url.hash || '');
+    } catch (_) {
+      return null;
+    }
+  }
+  // Hash-/Anker-Links '#section' sind seitenintern → nicht auf andere Page mappen
+  if (v.startsWith('#')) return null;
+  // Slashes + trailing entfernen
+  const cleaned = v.replace(/^\/+|\/+$/g, '').toLowerCase();
+  if (!cleaned) return null;
+  // Direkter Slug-Match
+  if (pageSlugMap.has(cleaned)) return pageSlugMap.get(cleaned);
+  // Erstes Segment als Slug versuchen (z.B. /wallbox-installation/foerderung)
+  const firstSegment = cleaned.split('/')[0];
+  if (firstSegment && pageSlugMap.has(firstSegment)) return pageSlugMap.get(firstSegment);
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Phase 2: Globale Sections — werden konventionell auf jeder Seite verwendet.
 // In der Add-Sidebar oben hervorgehoben mit Instance-Count.
 const GLOBAL_SECTION_KEYS = ['header_nav', 'footer_legal'];
@@ -364,6 +424,47 @@ export default function SitemapViewV2({
     return map;
   }, [wireframeData]);
 
+  // Phase C: Link-Map pro Page — zeigt Abhaengigkeiten in der Navigation an.
+  // Schluessel: page_id; Wert: { internal: [{toPageId, slot, value}], external: [{url, slot}] }
+  // Die Slug-Map nutzt das slugified page_name als Schluessel.
+  const linksByPageId = useMemo(() => {
+    const slugMap = new Map();
+    pages.forEach((p) => {
+      const s = slugify(p.page_name);
+      if (s) slugMap.set(s, p.id);
+    });
+    const result = new Map();
+    (wireframeData?.pages || []).forEach((wp) => {
+      const internal = [];
+      const external = [];
+      (wp.blocks || []).forEach((block) => {
+        Object.entries(block.slots || {}).forEach(([key, value]) => {
+          if (!isUrlSlot(key, value)) return;
+          if (isExternalUrl(value)) {
+            // Externe URLs koennten trotzdem auf die eigene Domain zeigen — wenn
+            // matchInternalPage was zurueckgibt, behandeln wir es als intern.
+            const mapped = matchInternalPage(value, slugMap);
+            if (mapped) {
+              internal.push({ toPageId: mapped, slot: key, value });
+            } else {
+              external.push({ url: value, slot: key });
+            }
+          } else {
+            const mapped = matchInternalPage(value, slugMap);
+            if (mapped) {
+              internal.push({ toPageId: mapped, slot: key, value });
+            } else if (value && !value.startsWith('#')) {
+              // Unauflösbarer interner Pfad — als external mit Hinweis "unbekannt"
+              external.push({ url: value, slot: key, unresolved: true });
+            }
+          }
+        });
+      });
+      result.set(wp.page_id, { internal, external });
+    });
+    return result;
+  }, [pages, wireframeData]);
+
   const totalBlocks = (wireframeData?.pages || []).reduce(
     (sum, p) => sum + (p.blocks?.length || 0), 0,
   );
@@ -498,6 +599,8 @@ export default function SitemapViewV2({
                   setDropTarget={setDropTarget}
                   moveSection={moveSection}
                   endDrag={endDrag}
+                  linksByPageId={linksByPageId}
+                  pages={pages}
                 />
               ))}
               {/* "+" am rechten Ende: neue Top-Level-Seite */}
@@ -561,6 +664,7 @@ function PageColumn({
   isFirstSibling = false,
   dragState, setDragState, dropTarget, setDropTarget, moveSection, endDrag,
   inheritedSections = null,  // Phase 4: nicht-null wenn Eltern-Page eine Gruppe ist
+  linksByPageId = null, pages = null,
 }) {
   const children = tree.get(page.id) || [];
   const isActive = selectedPageId === page.id;
@@ -585,6 +689,9 @@ function PageColumn({
           setDropTarget={setDropTarget}
           moveSection={moveSection}
           endDrag={endDrag}
+          links={linksByPageId?.get(page.id)}
+          pages={pages}
+          onSelectPage={onSelect}
         />
         {/* "+" zwischen Geschwistern (rechts von dieser Karte) */}
         <AddPagePlus
@@ -635,6 +742,8 @@ function PageColumn({
                 moveSection={moveSection}
                 endDrag={endDrag}
                 inheritedSections={page.is_group ? (page.group_template_sections || []) : null}
+                linksByPageId={linksByPageId}
+                pages={pages}
               />
             ))}
           </div>
@@ -672,7 +781,12 @@ function PageCard({
   onAddChild, onDelete, onDuplicate, onAddSection, onRemoveSection, onToggleGroup,
   inheritedSections = null,
   dragState, setDragState, dropTarget, setDropTarget, moveSection, endDrag,
+  links = null, pages = null, onSelectPage = null,
 }) {
+  const [linksOpen, setLinksOpen] = useState(false);
+  const internalLinks = links?.internal || [];
+  const externalLinks = links?.external || [];
+  const hasLinks = internalLinks.length > 0 || externalLinks.length > 0;
   const meta = TYPE_META[page.page_type] || TYPE_META.info;
   // Phase 4: Section-Anzeige bestimmen.
   // - Page ist selbst Gruppe? → group_template_sections (editierbar als Template)
@@ -874,6 +988,130 @@ function PageCard({
           </>
         )}
       </div>
+
+      {/* Phase C: Link-Footer — zeigt Anzahl interner/externer Links der Page */}
+      {hasLinks && (
+        <div data-noselect style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '6px 12px',
+          borderTop: '1px solid #e2e8f0',
+          background: linksOpen ? '#eff6ff' : '#f8fafc',
+          fontSize: 10,
+          cursor: 'pointer',
+        }} onClick={(e) => { e.stopPropagation(); setLinksOpen((v) => !v); }}>
+          {internalLinks.length > 0 && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              padding: '2px 6px', borderRadius: 4,
+              background: '#dbeafe', color: '#1e40af',
+              fontWeight: 700,
+            }}>
+              🔗 {internalLinks.length} intern
+            </span>
+          )}
+          {externalLinks.length > 0 && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              padding: '2px 6px', borderRadius: 4,
+              background: '#f1f5f9', color: '#64748b',
+              fontWeight: 700,
+            }}>
+              ↗ {externalLinks.length} extern
+            </span>
+          )}
+          <span style={{ flex: 1 }} />
+          <span style={{ color: '#94a3b8', fontSize: 9 }}>
+            {linksOpen ? '▲' : '▼'}
+          </span>
+        </div>
+      )}
+
+      {/* Phase C: Link-Detail-Popover — eingeklappte Liste der Ziele */}
+      {hasLinks && linksOpen && (
+        <div data-noselect onClick={(e) => e.stopPropagation()} style={{
+          padding: '8px 10px',
+          background: '#f8fafc',
+          borderTop: '1px solid #e2e8f0',
+          fontSize: 10, color: '#475569',
+          maxHeight: 200, overflowY: 'auto',
+        }}>
+          {internalLinks.length > 0 && (
+            <>
+              <div style={{
+                fontSize: 9, fontWeight: 700, color: '#1e40af',
+                textTransform: 'uppercase', letterSpacing: '0.06em',
+                marginBottom: 4,
+              }}>
+                Intern ({internalLinks.length})
+              </div>
+              {internalLinks.map((l, i) => {
+                const target = pages?.find((p) => p.id === l.toPageId);
+                return (
+                  <button
+                    key={`int-${i}`} type="button"
+                    onClick={() => { setLinksOpen(false); onSelectPage?.(l.toPageId); }}
+                    title={`Slot „${l.slot}" → ${l.value}`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 4, width: '100%',
+                      padding: '4px 6px', marginBottom: 2,
+                      background: '#fff', border: '1px solid #dbeafe', borderRadius: 4,
+                      fontSize: 10, fontFamily: 'inherit', color: '#1e40af',
+                      cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ flex: 1, minWidth: 0,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600,
+                    }}>
+                      → {target?.page_name || `Page #${l.toPageId}`}
+                    </span>
+                    <code style={{ fontSize: 9, color: '#64748b', fontFamily: 'ui-monospace, monospace' }}>
+                      {l.slot}
+                    </code>
+                  </button>
+                );
+              })}
+            </>
+          )}
+          {externalLinks.length > 0 && (
+            <>
+              <div style={{
+                fontSize: 9, fontWeight: 700, color: '#475569',
+                textTransform: 'uppercase', letterSpacing: '0.06em',
+                marginTop: internalLinks.length > 0 ? 6 : 0, marginBottom: 4,
+              }}>
+                Extern ({externalLinks.length})
+              </div>
+              {externalLinks.map((l, i) => (
+                <a key={`ext-${i}`}
+                  href={l.url} target="_blank" rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  title={`Slot „${l.slot}"${l.unresolved ? ' — interner Pfad ohne Ziel' : ''}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '4px 6px', marginBottom: 2,
+                    background: '#fff',
+                    border: `1px solid ${l.unresolved ? '#fca5a5' : '#e2e8f0'}`,
+                    borderRadius: 4,
+                    fontSize: 10, color: l.unresolved ? '#991B1B' : '#475569',
+                    textDecoration: 'none',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <span style={{ flex: 1, minWidth: 0,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {l.unresolved ? '⚠ ' : '↗ '}
+                    {l.url}
+                  </span>
+                  <code style={{ fontSize: 9, color: '#94a3b8', fontFamily: 'ui-monospace, monospace' }}>
+                    {l.slot}
+                  </code>
+                </a>
+              ))}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Context-Menu (Dropdown) */}
       {menuOpen && (

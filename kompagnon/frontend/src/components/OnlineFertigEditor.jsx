@@ -216,6 +216,68 @@ export default function OnlineFertigEditor() {
     // WireframeView persistiert schon selbst — wir aktualisieren nur lokal
   };
 
+  // Phase D: Project-Name editable. Click auf Name in der Topbar oeffnet
+  // einen Input; Enter/Blur speichert via PUT /api/projects/{id}.
+  const [editingName, setEditingName] = useState(false);
+  const handleProjectNameSave = async (newName) => {
+    const trimmed = (newName || '').trim();
+    if (!trimmed || trimmed === project.company_name) {
+      setEditingName(false);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
+        method: 'PUT', headers,
+        body: JSON.stringify({ company_name: trimmed }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setProject({ ...project, company_name: trimmed });
+      toast.success('Projektname gespeichert');
+    } catch (e) {
+      toast.error(`Speichern fehlgeschlagen: ${e.message}`);
+    } finally {
+      setEditingName(false);
+    }
+  };
+
+  // Phase D: Keyboard-Shortcuts. Esc = panels schliessen / edit beenden.
+  // g+s/w/y/d = View-Switch (G fuer "Goto", analog zu GMail/Linear).
+  useEffect(() => {
+    let gPressed = false;
+    let gTimer = null;
+    const handler = (e) => {
+      // Eingabe-Felder ignorieren — Shortcuts duerfen Tipp-Eingabe nicht stoeren
+      const tag = e.target?.tagName?.toLowerCase();
+      const isInput = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target?.isContentEditable;
+      if (e.key === 'Escape') {
+        if (editingName) setEditingName(false);
+      }
+      if (isInput) return;
+      if (e.key === 'g' && !gPressed) {
+        gPressed = true;
+        if (gTimer) clearTimeout(gTimer);
+        gTimer = setTimeout(() => { gPressed = false; }, 800);
+        return;
+      }
+      if (gPressed) {
+        const map = { s: 'sitemap', w: 'wireframe', y: 'styleguide', d: 'design' };
+        const view = map[e.key.toLowerCase()];
+        if (view) {
+          gPressed = false;
+          if (gTimer) clearTimeout(gTimer);
+          handleViewChange(view);
+          e.preventDefault();
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => {
+      window.removeEventListener('keydown', handler);
+      if (gTimer) clearTimeout(gTimer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingName]);
+
   const handleStyleGuideChange = (sg) => {
     const next = { ...wireframeData, style_guide: sg };
     setWireframeData(next);
@@ -416,9 +478,43 @@ export default function OnlineFertigEditor() {
             ← Dashboard
           </button>
           <span style={{ color: '#cbd5e1' }}>·</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: KC_DARK, textTransform: 'uppercase', letterSpacing: '-0.01em' }}>
-            {project.company_name || `Projekt #${project.id}`}
-          </span>
+          {editingName ? (
+            <input
+              type="text"
+              defaultValue={project.company_name || `Projekt #${project.id}`}
+              autoFocus
+              onBlur={(e) => handleProjectNameSave(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); handleProjectNameSave(e.target.value); }
+                if (e.key === 'Escape') { setEditingName(false); }
+              }}
+              style={{
+                fontSize: 12, fontWeight: 700, color: KC_DARK,
+                textTransform: 'uppercase', letterSpacing: '-0.01em',
+                padding: '4px 8px', border: `1px solid ${KC_MID}`,
+                borderRadius: 4, outline: 'none', minWidth: 200,
+                fontFamily: 'inherit',
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingName(true)}
+              title="Klick zum Umbenennen"
+              style={{
+                fontSize: 12, fontWeight: 700, color: KC_DARK,
+                textTransform: 'uppercase', letterSpacing: '-0.01em',
+                background: 'none', border: 'none', cursor: 'text',
+                padding: '4px 6px', borderRadius: 4,
+                fontFamily: 'inherit',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              {project.company_name || `Projekt #${project.id}`}
+              <span style={{ marginLeft: 4, opacity: 0.4, fontSize: 10 }}>✏</span>
+            </button>
+          )}
 
           {/* Phase-Tabs Top-Center — Sitemap | Wireframe | Style Guide | Design */}
           <nav style={{

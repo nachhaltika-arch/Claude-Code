@@ -21,7 +21,9 @@ import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 import { useAuth } from '../context/AuthContext';
 import KASSidebar, { SCHRITTE } from './KASSidebar';
-import SitemapView from './views/SitemapView';
+// V2 = Phase-1-Rebuild: Relume-Style horizontaler Tree mit Section-Liste inline.
+// V1 (./views/SitemapView) bleibt im Repo als Fallback bis V2 produktiv abgenommen ist.
+import SitemapView from './views/SitemapViewV2';
 import WireframeView from './views/WireframeView';
 import StyleGuideView from './views/StyleGuideView';
 import DesignView from './views/DesignView';

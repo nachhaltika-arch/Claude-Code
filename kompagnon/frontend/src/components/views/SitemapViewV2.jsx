@@ -17,7 +17,7 @@
  *   PUT    /api/sitemap/pages/{id}            — Page-Details aktualisieren (incl sections)
  *   DELETE /api/sitemap/pages/{id}            — Page loeschen (Pflichtseiten geblockt)
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../../config';
 import { useAuth } from '../../context/AuthContext';
@@ -139,6 +139,14 @@ export default function SitemapViewV2({
   const [addPageState, setAddPageState] = useState(null);   // null | { parent_id, position }
   const [addSectionState, setAddSectionState] = useState(null); // null | { page_id, position }
 
+  // Phase 3: DnD-State fuer Section-Reorder + Cross-Page-Move + Sidebar-Drop
+  // dragState: { fromPageId|null, fromIdx|null, sectionKey } — null wenn nichts gezogen wird.
+  // fromPageId=null bedeutet: Drag aus der Add-Sidebar (Quelle ist die Library, kein Origin-Page).
+  const [dragState, setDragState] = useState(null);
+  // dropTarget signalisiert dem aktuell ueberfahrenen DropZone, dass er hervorgehoben wird.
+  // { pageId, position } | null
+  const [dropTarget, setDropTarget] = useState(null);
+
   // Pages laden
   const loadPages = useCallback(() => {
     if (!leadId) return;
@@ -254,6 +262,55 @@ export default function SitemapViewV2({
     savePageDetails(pageId, { sections: next });
   }, [pages, savePageDetails]);
 
+  // Phase 3: Section verschieben — within-page reorder + cross-page move +
+  // drop-from-sidebar. Bei cross-page macht das zwei PUTs nacheinander.
+  // Optimistisches Local-Update damit das UI sofort reagiert; loadPages am
+  // Ende nicht noetig (savePageDetails patcht den State).
+  const moveSection = useCallback(async ({ fromPageId, fromIdx, toPageId, toIdx, sectionKey }) => {
+    if (!toPageId) return;
+    const dst = pages.find((p) => p.id === toPageId);
+    if (!dst) return;
+
+    // Source kann null sein (Sidebar-Drop) — dann nur Insert in Destination.
+    if (fromPageId == null) {
+      const next = [...(dst.sections || [])];
+      const insertAt = Math.max(0, Math.min(toIdx, next.length));
+      next.splice(insertAt, 0, sectionKey);
+      await savePageDetails(toPageId, { sections: next });
+      return;
+    }
+
+    if (fromPageId === toPageId) {
+      // Within-page reorder
+      const arr = [...(dst.sections || [])];
+      if (fromIdx == null || fromIdx < 0 || fromIdx >= arr.length) return;
+      const [moved] = arr.splice(fromIdx, 1);
+      // Insert-Index korrigieren wenn wir vor der Quelle landen, nach dem Splice
+      // hat sich der Index verschoben.
+      const insertAt = toIdx > fromIdx ? toIdx - 1 : toIdx;
+      arr.splice(Math.max(0, Math.min(insertAt, arr.length)), 0, moved);
+      await savePageDetails(toPageId, { sections: arr });
+      return;
+    }
+
+    // Cross-page: aus Source entfernen + in Destination einfuegen
+    const src = pages.find((p) => p.id === fromPageId);
+    if (!src) return;
+    const sourceArr = (src.sections || []).filter((_, i) => i !== fromIdx);
+    const dstArr = [...(dst.sections || [])];
+    const insertAt = Math.max(0, Math.min(toIdx, dstArr.length));
+    dstArr.splice(insertAt, 0, sectionKey);
+    // Sequentiell: erst source, dann destination (verhindert Race wo dst-Save
+    // mit alten src-Daten ueberlaeuft).
+    await savePageDetails(fromPageId, { sections: sourceArr });
+    await savePageDetails(toPageId, { sections: dstArr });
+  }, [pages, savePageDetails]);
+
+  const endDrag = useCallback(() => {
+    setDragState(null);
+    setDropTarget(null);
+  }, []);
+
   // ── Tree-Struktur: Pages nach parent_id gruppieren ────────────────────────
 
   const tree = useMemo(() => {
@@ -352,7 +409,9 @@ export default function SitemapViewV2({
 
       {/* Canvas + Sidebars */}
       <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
-        {/* Phase 2: Linke Add-Sidebar — Sections per Klick zur active-Page hinzufuegen */}
+        {/* Phase 2: Linke Add-Sidebar — Sections per Klick zur active-Page hinzufuegen.
+            Phase 3: Sections koennen alternativ per Drag-and-Drop in eine Page droppen
+            (Quelle: fromPageId=null, Ziel: beliebige DropZone). */}
         <AddSidebar
           pages={pages}
           activePageId={selectedPageId}
@@ -363,6 +422,8 @@ export default function SitemapViewV2({
             }
             addSectionToPage(selectedPageId, sectionKey);
           }}
+          setDragState={setDragState}
+          endDrag={endDrag}
         />
 
         <div style={{
@@ -401,6 +462,12 @@ export default function SitemapViewV2({
                   onAddSection={(pageId, position) => setAddSectionState({ page_id: pageId, position })}
                   onRemoveSection={removeSectionFromPage}
                   isFirstSibling={idx === 0}
+                  dragState={dragState}
+                  setDragState={setDragState}
+                  dropTarget={dropTarget}
+                  setDropTarget={setDropTarget}
+                  moveSection={moveSection}
+                  endDrag={endDrag}
                 />
               ))}
               {/* "+" am rechten Ende: neue Top-Level-Seite */}
@@ -462,6 +529,7 @@ function PageColumn({
   selectedPageId, onSelect,
   onAddSibling, onAddChild, onDelete, onDuplicate, onAddSection, onRemoveSection,
   isFirstSibling = false,
+  dragState, setDragState, dropTarget, setDropTarget, moveSection, endDrag,
 }) {
   const children = tree.get(page.id) || [];
   const isActive = selectedPageId === page.id;
@@ -478,6 +546,12 @@ function PageColumn({
           onDuplicate={onDuplicate}
           onAddSection={onAddSection}
           onRemoveSection={onRemoveSection}
+          dragState={dragState}
+          setDragState={setDragState}
+          dropTarget={dropTarget}
+          setDropTarget={setDropTarget}
+          moveSection={moveSection}
+          endDrag={endDrag}
         />
         {/* "+" zwischen Geschwistern (rechts von dieser Karte) */}
         <AddPagePlus
@@ -520,6 +594,12 @@ function PageColumn({
                 onAddSection={onAddSection}
                 onRemoveSection={onRemoveSection}
                 isFirstSibling={idx === 0}
+                dragState={dragState}
+                setDragState={setDragState}
+                dropTarget={dropTarget}
+                setDropTarget={setDropTarget}
+                moveSection={moveSection}
+                endDrag={endDrag}
               />
             ))}
           </div>
@@ -555,6 +635,7 @@ function PageCard({
   page,
   isActive, onSelect,
   onAddChild, onDelete, onDuplicate, onAddSection, onRemoveSection,
+  dragState, setDragState, dropTarget, setDropTarget, moveSection, endDrag,
 }) {
   const meta = TYPE_META[page.page_type] || TYPE_META.info;
   const sections = Array.isArray(page.sections) ? page.sections : [];
@@ -666,13 +747,29 @@ function PageCard({
           </div>
         ) : (
           <>
+            {/* DropZone vor erster Section */}
+            <DropZone
+              pageId={page.id} position={0}
+              dragState={dragState} dropTarget={dropTarget}
+              setDropTarget={setDropTarget}
+              onDrop={moveSection} endDrag={endDrag}
+            />
             {sections.map((key, idx) => (
-              <SectionRow
-                key={`${key}-${idx}`}
-                sectionKey={key} idx={idx}
-                onRemove={() => onRemoveSection(page.id, idx)}
-                onAddBelow={() => onAddSection(page.id, idx + 1)}
-              />
+              <Fragment key={`${key}-${idx}`}>
+                <SectionRow
+                  sectionKey={key} idx={idx} pageId={page.id}
+                  onRemove={() => onRemoveSection(page.id, idx)}
+                  onAddBelow={() => onAddSection(page.id, idx + 1)}
+                  dragState={dragState} setDragState={setDragState}
+                  endDrag={endDrag}
+                />
+                <DropZone
+                  pageId={page.id} position={idx + 1}
+                  dragState={dragState} dropTarget={dropTarget}
+                  setDropTarget={setDropTarget}
+                  onDrop={moveSection} endDrag={endDrag}
+                />
+              </Fragment>
             ))}
             {/* "+" unter der letzten Section */}
             <button
@@ -743,15 +840,32 @@ function MenuItem({ children, onClick, danger, disabled }) {
   );
 }
 
-// Eine Section-Reihe in der Page-Karte
-function SectionRow({ sectionKey, idx, onRemove, onAddBelow }) {
+// Eine Section-Reihe in der Page-Karte. Phase 3: native HTML5 drag — die
+// Section selbst ist die Drag-Quelle. Drop-Targets sind die DropZones zwischen
+// den Sections.
+function SectionRow({
+  sectionKey, idx, pageId, onRemove, onAddBelow,
+  dragState, setDragState, endDrag,
+}) {
   const label = SECTION_LABEL[sectionKey] || sectionKey;
   const desc = SECTION_CATALOG[sectionKey] || '';
   const [hover, setHover] = useState(false);
 
+  const isBeingDragged =
+    dragState && dragState.fromPageId === pageId && dragState.fromIdx === idx;
+
   return (
     <div
       data-noselect
+      draggable
+      onDragStart={(e) => {
+        e.stopPropagation();
+        setDragState({ fromPageId: pageId, fromIdx: idx, sectionKey });
+        // Damit Firefox den Drag akzeptiert — Payload wird per State gefuehrt
+        try { e.dataTransfer.setData('text/plain', sectionKey); } catch (_) {}
+        e.dataTransfer.effectAllowed = 'move';
+      }}
+      onDragEnd={(e) => { e.stopPropagation(); endDrag(); }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -760,12 +874,15 @@ function SectionRow({ sectionKey, idx, onRemove, onAddBelow }) {
         background: hover ? '#f8fafc' : '#fff',
         border: '1px solid #e2e8f0', borderRadius: 6,
         fontSize: 11,
-        cursor: 'default',
+        cursor: 'grab',
+        opacity: isBeingDragged ? 0.4 : 1,
+        transition: 'opacity 0.1s',
       }}
     >
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2,
       }}>
+        <span aria-hidden style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1, userSelect: 'none' }}>⠿</span>
         <span style={{ color: '#cbd5e1', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 10 }}>
           {idx + 1}
         </span>
@@ -795,7 +912,7 @@ function SectionRow({ sectionKey, idx, onRemove, onAddBelow }) {
       }}>
         {desc}
       </div>
-      {hover && (
+      {hover && !dragState && (
         <button
           type="button" onClick={(e) => { e.stopPropagation(); onAddBelow(); }}
           aria-label="Section darunter einfügen"
@@ -814,6 +931,61 @@ function SectionRow({ sectionKey, idx, onRemove, onAddBelow }) {
         </button>
       )}
     </div>
+  );
+}
+
+// Phase 3: DropZone — duenner Spacer zwischen / nach Sections, der bei aktivem
+// Drag als Drop-Target fungiert. Highlightet sich wenn der gezogene Eintrag
+// drueber schwebt.
+function DropZone({ pageId, position, dragState, dropTarget, setDropTarget, onDrop, endDrag }) {
+  const isActive = !!dragState; // nur sichtbar wenn etwas gezogen wird
+  const isHighlighted =
+    dropTarget && dropTarget.pageId === pageId && dropTarget.position === position;
+
+  // Self-drop nicht erlauben — ein Section kann nicht direkt vor oder hinter
+  // sich selbst gedroppt werden (no-op Move).
+  const isSelfPosition =
+    dragState
+    && dragState.fromPageId === pageId
+    && (dragState.fromIdx === position || dragState.fromIdx + 1 === position);
+
+  return (
+    <div
+      data-noselect
+      onDragOver={(e) => {
+        if (!isActive || isSelfPosition) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'move';
+        if (!isHighlighted) setDropTarget({ pageId, position });
+      }}
+      onDragLeave={(e) => {
+        // Leave-Events feuern auch fuer Kinder; nur reagieren wenn wir wirklich
+        // den DropZone verlassen.
+        if (e.currentTarget.contains(e.relatedTarget)) return;
+        if (isHighlighted) setDropTarget(null);
+      }}
+      onDrop={(e) => {
+        if (!isActive || isSelfPosition) return;
+        e.preventDefault();
+        e.stopPropagation();
+        onDrop({
+          fromPageId: dragState.fromPageId,
+          fromIdx:    dragState.fromIdx,
+          toPageId:   pageId,
+          toIdx:      position,
+          sectionKey: dragState.sectionKey,
+        });
+        endDrag();
+      }}
+      style={{
+        height: isActive ? (isHighlighted ? 14 : 8) : 2,
+        margin: isActive ? '2px 0' : 0,
+        borderRadius: 3,
+        background: isHighlighted ? KC_MID : 'transparent',
+        transition: 'height 0.1s, background 0.1s',
+      }}
+    />
   );
 }
 
@@ -852,7 +1024,7 @@ function AddPagePlus({ onClick, large = false }) {
 // Phase 2: AddSidebar — links, Search + Global Sections + Categories
 // ─────────────────────────────────────────────────────────────────────────────
 
-function AddSidebar({ pages, activePageId, onAddToActivePage }) {
+function AddSidebar({ pages, activePageId, onAddToActivePage, setDragState, endDrag }) {
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState('');
   // Default: alle Categories collapsed; "Global" ist immer offen.
@@ -970,6 +1142,7 @@ function AddSidebar({ pages, activePageId, onAddToActivePage }) {
               count={instanceCount.get(key) || 0}
               global
               onPick={() => onAddToActivePage(key)}
+              setDragState={setDragState} endDrag={endDrag}
             />
           ))}
         </div>
@@ -1010,6 +1183,7 @@ function AddSidebar({ pages, activePageId, onAddToActivePage }) {
                       key={key} sectionKey={key}
                       count={instanceCount.get(key) || 0}
                       onPick={() => onAddToActivePage(key)}
+                      setDragState={setDragState} endDrag={endDrag}
                     />
                   ))}
                 </div>
@@ -1022,13 +1196,21 @@ function AddSidebar({ pages, activePageId, onAddToActivePage }) {
   );
 }
 
-function SidebarSectionItem({ sectionKey, count, global = false, onPick }) {
+function SidebarSectionItem({ sectionKey, count, global = false, onPick, setDragState, endDrag }) {
   const label = SECTION_LABEL[sectionKey] || sectionKey;
   const desc = SECTION_CATALOG[sectionKey] || '';
 
   return (
     <button
       type="button" onClick={onPick}
+      draggable={!!setDragState}
+      onDragStart={(e) => {
+        if (!setDragState) return;
+        setDragState({ fromPageId: null, fromIdx: null, sectionKey });
+        try { e.dataTransfer.setData('text/plain', sectionKey); } catch (_) {}
+        e.dataTransfer.effectAllowed = 'copy';
+      }}
+      onDragEnd={() => endDrag && endDrag()}
       title={desc}
       style={{
         display: 'flex', alignItems: 'center', gap: 8, width: '100%',

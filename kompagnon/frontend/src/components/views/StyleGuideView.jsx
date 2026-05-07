@@ -244,12 +244,96 @@ const UI_STYLES = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Phase E1: Spacing-Scales — Whitespace-Konzepte
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Jeder Scale liefert eine konsistente 8er-Token-Reihe + Container-Width
+// + Section-Padding. Wirkt sich global auf gerenderte Komponenten und
+// die Live-Preview aus.
+
+const SPACING_SCALES = [
+  {
+    id: 'tight', label: 'Eng',
+    description: 'Kompakt, B2B-Look — viele Inhalte auf engem Raum.',
+    base: 4, scale: [4, 8, 12, 16, 20, 24, 32, 40],
+    container: 1100, section_y: 48, gap: 12,
+  },
+  {
+    id: 'default', label: 'Standard',
+    description: 'Ausgewogen — klassisches Marketing-Site-Verhältnis.',
+    base: 8, scale: [4, 8, 12, 16, 24, 32, 48, 64],
+    container: 1200, section_y: 64, gap: 16,
+  },
+  {
+    id: 'comfortable', label: 'Großzügig',
+    description: 'Offen — viel Whitespace, hochwertige Markenanmutung.',
+    base: 8, scale: [8, 12, 16, 24, 32, 48, 64, 96],
+    container: 1280, section_y: 80, gap: 24,
+  },
+  {
+    id: 'spacious', label: 'Editorial',
+    description: 'Magazinhaft — generöse Pausen, Premium-Feel.',
+    base: 8, scale: [8, 16, 24, 32, 48, 64, 96, 128],
+    container: 1360, section_y: 112, gap: 32,
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase E1: Semantic Colors (Status) — KOMPAGNON-Brand-Standard pro Light/Dark
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Werte aus dem KOMPAGNON-UI/UX-Guidelines-Doc (success/warn/error/info).
+// Sind nicht pro Kunde editierbar — Industry-Konvention, soll konsistent
+// bleiben. Light/Dark werden vom aktuellen Color-Concept-Modus getriggert.
+
+const SEMANTIC_COLORS = {
+  light: {
+    success: { fg: '#00875A', bg: '#E3F6EF', border: 'rgba(0,135,90,0.2)' },
+    warn:    { fg: '#B8860B', bg: '#FFFBE0', border: 'rgba(184,134,11,0.2)' },
+    error:   { fg: '#C0392B', bg: '#FDECEA', border: 'rgba(192,57,43,0.2)' },
+    info:    { fg: '#0C7A8E', bg: '#E0F4F8', border: 'rgba(12,122,142,0.2)' },
+  },
+  dark: {
+    success: { fg: '#34D399', bg: 'rgba(52,211,153,0.10)',  border: 'rgba(52,211,153,0.30)' },
+    warn:    { fg: '#FBBF24', bg: 'rgba(251,191,36,0.10)',  border: 'rgba(251,191,36,0.30)' },
+    error:   { fg: '#F87171', bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.30)' },
+    info:    { fg: '#22D3EE', bg: 'rgba(34,211,238,0.10)',  border: 'rgba(34,211,238,0.30)' },
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase E1: Button-Hierarchien — wie ausgepraegt der Primary-CTA wirkt
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Beeinflusst den Kontrast / Gewicht der Primary- vs Secondary-Variants.
+// 'standard'    → klare Hierarchie, Primary = solid bunt
+// 'subtle'      → flache Hierarchie, alle Buttons schlicht
+// 'prominent'   → starker Primary-Akzent, sehr auffällig
+
+const BUTTON_HIERARCHIES = [
+  {
+    id: 'standard', label: 'Standard',
+    description: 'Solid Primary, Outline Secondary, Ghost Tertiary.',
+  },
+  {
+    id: 'subtle', label: 'Subtil',
+    description: 'Alle Buttons schlicht — flache Hierarchie für editorielle Sites.',
+  },
+  {
+    id: 'prominent', label: 'Prominent',
+    description: 'Sehr auffälliger Primary mit Schatten — Conversion-Sites.',
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Default Style-Guide & Derivation
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DEFAULT_CONCEPT = COLOR_CONCEPTS[0]; // Industrial
 const DEFAULT_TYPO    = TYPO_PAIRINGS[0];  // Modern Sans
 const DEFAULT_UI      = UI_STYLES[0];      // Soft Cards
+const DEFAULT_SPACING = SPACING_SCALES[1]; // Standard
+const DEFAULT_BUTTON_HIER = BUTTON_HIERARCHIES[0]; // Standard
 
 function findColorConcept(id) {
   return COLOR_CONCEPTS.find((c) => c.id === id) || DEFAULT_CONCEPT;
@@ -260,11 +344,48 @@ function findTypoPairing(id) {
 function findUIStyle(id) {
   return UI_STYLES.find((u) => u.id === id) || DEFAULT_UI;
 }
+function findSpacingScale(id) {
+  return SPACING_SCALES.find((s) => s.id === id) || DEFAULT_SPACING;
+}
+function findButtonHierarchy(id) {
+  return BUTTON_HIERARCHIES.find((b) => b.id === id) || DEFAULT_BUTTON_HIER;
+}
+
+// Phase E1: Buttons — pro Hierarchie ein Set Variants (primary/secondary/
+// tertiary/destructive). Werte aus palette + ui_style + semantic.
+function deriveButtonVariants(palette, uiStyle, hierarchy, semantic) {
+  if (hierarchy.id === 'subtle') {
+    return {
+      primary:     { bg: palette.bg_surface, fg: palette.text_primary, border: palette.border, shadow: 'none' },
+      secondary:   { bg: 'transparent', fg: palette.text_primary, border: palette.border, shadow: 'none' },
+      tertiary:    { bg: 'transparent', fg: palette.text_muted, border: 'transparent', shadow: 'none' },
+      destructive: { bg: 'transparent', fg: semantic.error.fg, border: semantic.error.border, shadow: 'none' },
+    };
+  }
+  if (hierarchy.id === 'prominent') {
+    return {
+      primary:     { bg: palette.accent_1, fg: palette.bg_primary, border: palette.accent_1, shadow: '0 4px 14px rgba(0,0,0,0.15)' },
+      secondary:   { bg: palette.bg_surface, fg: palette.accent_1, border: palette.accent_1, shadow: 'none' },
+      tertiary:    { bg: 'transparent', fg: palette.accent_1, border: 'transparent', shadow: 'none' },
+      destructive: { bg: semantic.error.fg, fg: '#fff', border: semantic.error.fg, shadow: '0 4px 14px rgba(192,57,43,0.20)' },
+    };
+  }
+  // 'standard'
+  return {
+    primary:     { bg: palette.accent_1, fg: palette.bg_primary, border: palette.accent_1, shadow: uiStyle.shadow },
+    secondary:   { bg: 'transparent', fg: palette.accent_1, border: palette.accent_1, shadow: 'none' },
+    tertiary:    { bg: 'transparent', fg: palette.text_primary, border: 'transparent', shadow: 'none' },
+    destructive: { bg: semantic.error.fg, fg: '#fff', border: semantic.error.fg, shadow: 'none' },
+  };
+}
 
 // Aus Concept-Auswahl die Legacy-Felder ableiten (backwards-compat fuer
 // DesignView, Export-Pipeline, etc., die colors.primary etc. erwarten).
-function deriveLegacyTokens(concept, lightDark, typoPairing, uiStyle) {
+// Phase E1: zusaetzlich semantic + spacing_scale + button_variants.
+function deriveLegacyTokens(concept, lightDark, typoPairing, uiStyle, spacingScale, buttonHierarchy) {
   const palette = lightDark === 'dark' ? concept.dark : concept.light;
+  const semantic = SEMANTIC_COLORS[lightDark === 'dark' ? 'dark' : 'light'];
+  const buttonVariants = deriveButtonVariants(palette, uiStyle, buttonHierarchy, semantic);
   return {
     colors: {
       primary:    palette.accent_1,
@@ -284,8 +405,15 @@ function deriveLegacyTokens(concept, lightDark, typoPairing, uiStyle) {
     },
     spacing: {
       radius:  uiStyle.card_radius,
-      section: 64,
+      section: spacingScale.section_y,
+      base:    spacingScale.base,
+      scale:   spacingScale.scale,
+      container: spacingScale.container,
+      gap:     spacingScale.gap,
     },
+    // Phase E1 — neue Felder, additiv
+    semantic,
+    button_variants: buttonVariants,
   };
 }
 
@@ -299,24 +427,34 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
   const lightDark = styleGuide?.light_dark || 'light';
   const typoId    = styleGuide?.typography_pairing_id || DEFAULT_TYPO.id;
   const uiId      = styleGuide?.ui_style_id || DEFAULT_UI.id;
+  const spacingId = styleGuide?.spacing_scale_id || DEFAULT_SPACING.id;
+  const btnHierId = styleGuide?.button_hierarchy_id || DEFAULT_BUTTON_HIER.id;
 
-  const concept     = findColorConcept(conceptId);
-  const typoPairing = findTypoPairing(typoId);
-  const uiStyle     = findUIStyle(uiId);
-  const palette     = lightDark === 'dark' ? concept.dark : concept.light;
+  const concept       = findColorConcept(conceptId);
+  const typoPairing   = findTypoPairing(typoId);
+  const uiStyle       = findUIStyle(uiId);
+  const spacingScale  = findSpacingScale(spacingId);
+  const buttonHier    = findButtonHierarchy(btnHierId);
+  const palette       = lightDark === 'dark' ? concept.dark : concept.light;
+  const semantic      = SEMANTIC_COLORS[lightDark === 'dark' ? 'dark' : 'light'];
+  const buttonVariants = deriveButtonVariants(palette, uiStyle, buttonHier, semantic);
 
   const updateSelection = (updates) => {
     const merged = {
       ...(styleGuide || {}),
-      color_concept_id:        updates.conceptId       || conceptId,
-      light_dark:              updates.lightDark       || lightDark,
-      typography_pairing_id:   updates.typoId          || typoId,
-      ui_style_id:             updates.uiId            || uiId,
+      color_concept_id:      updates.conceptId  ?? conceptId,
+      light_dark:            updates.lightDark  ?? lightDark,
+      typography_pairing_id: updates.typoId     ?? typoId,
+      ui_style_id:           updates.uiId       ?? uiId,
+      spacing_scale_id:      updates.spacingId  ?? spacingId,
+      button_hierarchy_id:   updates.btnHierId  ?? btnHierId,
     };
-    const newConcept = findColorConcept(merged.color_concept_id);
-    const newTypo    = findTypoPairing(merged.typography_pairing_id);
-    const newUI      = findUIStyle(merged.ui_style_id);
-    const derived    = deriveLegacyTokens(newConcept, merged.light_dark, newTypo, newUI);
+    const newConcept  = findColorConcept(merged.color_concept_id);
+    const newTypo     = findTypoPairing(merged.typography_pairing_id);
+    const newUI       = findUIStyle(merged.ui_style_id);
+    const newSpacing  = findSpacingScale(merged.spacing_scale_id);
+    const newBtnHier  = findButtonHierarchy(merged.button_hierarchy_id);
+    const derived     = deriveLegacyTokens(newConcept, merged.light_dark, newTypo, newUI, newSpacing, newBtnHier);
     onChange?.({ ...merged, ...derived });
   };
 
@@ -324,14 +462,19 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
     const randConcept = COLOR_CONCEPTS[Math.floor(Math.random() * COLOR_CONCEPTS.length)];
     const randTypo    = TYPO_PAIRINGS[Math.floor(Math.random() * TYPO_PAIRINGS.length)];
     const randUI      = UI_STYLES[Math.floor(Math.random() * UI_STYLES.length)];
+    const randSpacing = SPACING_SCALES[Math.floor(Math.random() * SPACING_SCALES.length)];
+    const randBtnHier = BUTTON_HIERARCHIES[Math.floor(Math.random() * BUTTON_HIERARCHIES.length)];
     updateSelection({
       conceptId: randConcept.id,
       typoId: randTypo.id,
       uiId: randUI.id,
+      spacingId: randSpacing.id,
+      btnHierId: randBtnHier.id,
     });
   };
 
-  const [activeSection, setActiveSection] = useState('color'); // color | typography | ui
+  // Phase E1: 5 Tabs — color, typography, ui, spacing, buttons
+  const [activeSection, setActiveSection] = useState('color');
 
   return (
     <div style={{
@@ -400,11 +543,13 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
           borderRight: '1px solid #e2e8f0',
         }}>
           {/* Section-Tabs */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
             {[
               { id: 'color',      label: '🎨 Farbe' },
               { id: 'typography', label: '🔤 Typografie' },
+              { id: 'spacing',    label: '📐 Spacing' },
               { id: 'ui',         label: '🧩 UI' },
+              { id: 'buttons',    label: '🔘 Buttons' },
             ].map((tab) => {
               const isActive = activeSection === tab.id;
               return (
@@ -431,6 +576,7 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
             <ColorSection
               conceptId={conceptId}
               lightDark={lightDark}
+              semantic={semantic}
               onSelect={(id) => updateSelection({ conceptId: id })}
               onToggleLightDark={() => updateSelection({ lightDark: lightDark === 'dark' ? 'light' : 'dark' })}
               onShuffle={() => {
@@ -449,6 +595,17 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
               }}
             />
           )}
+          {activeSection === 'spacing' && (
+            <SpacingSection
+              spacingId={spacingId}
+              palette={palette}
+              onSelect={(id) => updateSelection({ spacingId: id })}
+              onShuffle={() => {
+                const r = SPACING_SCALES[Math.floor(Math.random() * SPACING_SCALES.length)];
+                updateSelection({ spacingId: r.id });
+              }}
+            />
+          )}
           {activeSection === 'ui' && (
             <UIStyleSection
               uiId={uiId}
@@ -457,6 +614,18 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
               onShuffle={() => {
                 const r = UI_STYLES[Math.floor(Math.random() * UI_STYLES.length)];
                 updateSelection({ uiId: r.id });
+              }}
+            />
+          )}
+          {activeSection === 'buttons' && (
+            <ButtonsSection
+              btnHierId={btnHierId}
+              palette={palette} typo={typoPairing} ui={uiStyle}
+              variants={buttonVariants}
+              onSelect={(id) => updateSelection({ btnHierId: id })}
+              onShuffle={() => {
+                const r = BUTTON_HIERARCHIES[Math.floor(Math.random() * BUTTON_HIERARCHIES.length)];
+                updateSelection({ btnHierId: r.id });
               }}
             />
           )}
@@ -470,9 +639,12 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
         }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b',
             textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-            Live-Preview · {concept.label} · {lightDark === 'dark' ? 'Dark' : 'Light'} · {typoPairing.label} · {uiStyle.label}
+            Live-Preview · {concept.label} · {lightDark === 'dark' ? 'Dark' : 'Light'} · {typoPairing.label} · {uiStyle.label} · {spacingScale.label} · {buttonHier.label}
           </div>
-          <LivePreview palette={palette} typo={typoPairing} ui={uiStyle} />
+          <LivePreview
+            palette={palette} typo={typoPairing} ui={uiStyle}
+            spacing={spacingScale} variants={buttonVariants} semantic={semantic}
+          />
         </div>
       </div>
     </div>
@@ -483,7 +655,7 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
 // ColorSection — Concept-Karten mit Light/Dark-Toggle
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ColorSection({ conceptId, lightDark, onSelect, onToggleLightDark, onShuffle }) {
+function ColorSection({ conceptId, lightDark, semantic, onSelect, onToggleLightDark, onShuffle }) {
   return (
     <div>
       <SectionHeader title="Farb-Konzepte" onShuffle={onShuffle}>
@@ -500,6 +672,7 @@ function ColorSection({ conceptId, lightDark, onSelect, onToggleLightDark, onShu
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
         gap: 12,
+        marginBottom: 22,
       }}>
         {COLOR_CONCEPTS.map((c) => {
           const palette = lightDark === 'dark' ? c.dark : c.light;
@@ -541,6 +714,55 @@ function ColorSection({ conceptId, lightDark, onSelect, onToggleLightDark, onShu
                 {c.description}
               </div>
             </button>
+          );
+        })}
+      </div>
+
+      {/* Phase E1: Semantic Colors — fixiert (KOMPAGNON-Brand-Standard).
+          Light/Dark wird automatisch aus dem Concept-Modus uebernommen. */}
+      <div style={{
+        fontSize: 13, fontWeight: 800, color: KC_DARK, textTransform: 'uppercase',
+        letterSpacing: '-0.01em', marginBottom: 8,
+      }}>
+        Semantische Status-Farben
+      </div>
+      <div style={{
+        fontSize: 11, color: '#64748b', marginBottom: 14, lineHeight: 1.5,
+      }}>
+        Industry-Konvention für Status-Kommunikation — fest, nicht editierbar.
+        Light/Dark folgt dem Modus oben.
+      </div>
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10,
+      }}>
+        {[
+          { key: 'success', label: 'Erfolg / Aktiv',   note: 'Abgeschlossen, bewilligt' },
+          { key: 'warn',    label: 'Hinweis / Offen',  note: 'In Bearbeitung, ausstehend' },
+          { key: 'error',   label: 'Fehler',           note: 'Abgelehnt, blockiert' },
+          { key: 'info',    label: 'Info / Neutral',   note: 'Information, Hinweis' },
+        ].map((s) => {
+          const colors = semantic[s.key];
+          return (
+            <div key={s.key} style={{
+              padding: 12,
+              background: colors.bg,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 8,
+            }}>
+              <div style={{
+                fontSize: 9, fontWeight: 800, color: colors.fg,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                marginBottom: 4,
+              }}>
+                {s.label}
+              </div>
+              <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11, color: colors.fg, fontWeight: 700 }}>
+                {colors.fg}
+              </div>
+              <div style={{ fontSize: 10, color: colors.fg, opacity: 0.85, marginTop: 4 }}>
+                {s.note}
+              </div>
+            </div>
           );
         })}
       </div>
@@ -690,10 +912,251 @@ function UIStyleSection({ uiId, palette, onSelect, onShuffle }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Phase E1: SpacingSection — Spacing-Scale Konzept-Karten
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SpacingSection({ spacingId, palette, onSelect, onShuffle }) {
+  return (
+    <div>
+      <SectionHeader title="Spacing-Scale" onShuffle={onShuffle} />
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+        gap: 12,
+      }}>
+        {SPACING_SCALES.map((s) => {
+          const isSelected = s.id === spacingId;
+          return (
+            <button
+              key={s.id} type="button"
+              onClick={() => onSelect(s.id)}
+              style={{
+                textAlign: 'left',
+                background: '#fff',
+                border: isSelected ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
+                borderRadius: 8,
+                padding: 14, cursor: 'pointer',
+                boxShadow: isSelected ? `0 4px 12px ${KC_MID}33` : 'none',
+                fontFamily: 'inherit',
+              }}
+            >
+              {/* Visualisierung der Scale: 8 unterschiedlich grosse Bloecke */}
+              <div style={{
+                display: 'flex', alignItems: 'flex-end', gap: 3,
+                marginBottom: 10, height: 40,
+              }}>
+                {s.scale.map((value, idx) => (
+                  <div key={idx} style={{
+                    width: 6,
+                    height: `${Math.min(100, (value / 128) * 100)}%`,
+                    background: palette.accent_1,
+                    opacity: 0.4 + (idx / s.scale.length) * 0.6,
+                    borderRadius: 1,
+                  }} />
+                ))}
+              </div>
+              <div style={{
+                fontSize: 12, fontWeight: 800, color: KC_DARK,
+                marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                {isSelected && <span style={{ color: KC_MID }}>✓</span>}
+                {s.label}
+              </div>
+              <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4, marginBottom: 6 }}>
+                {s.description}
+              </div>
+              <div style={{
+                fontSize: 9, color: '#94a3b8',
+                fontFamily: 'ui-monospace, monospace',
+              }}>
+                Base {s.base}px · Container {s.container}px · Section-Y {s.section_y}px
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Token-Tabelle */}
+      <div style={{ marginTop: 22 }}>
+        <div style={{
+          fontSize: 13, fontWeight: 800, color: KC_DARK,
+          textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 8,
+        }}>
+          Spacing-Tokens
+        </div>
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 8,
+        }}>
+          {findSpacingScale(spacingId).scale.map((value, idx) => (
+            <div key={idx} style={{
+              padding: 10, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6,
+              textAlign: 'center',
+            }}>
+              <div style={{
+                fontSize: 9, fontWeight: 700, color: '#64748b',
+                textTransform: 'uppercase', letterSpacing: '0.06em',
+              }}>
+                token-{idx + 1}
+              </div>
+              <div style={{
+                fontSize: 14, fontWeight: 800, color: KC_DARK,
+                fontFamily: 'ui-monospace, monospace',
+                marginTop: 4,
+              }}>
+                {value}px
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase E1: ButtonsSection — Button-Hierarchie + 4 Variants × 3 Sizes Demo
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ButtonsSection({ btnHierId, palette, typo, ui, variants, onSelect, onShuffle }) {
+  return (
+    <div>
+      <SectionHeader title="Button-Hierarchie" onShuffle={onShuffle} />
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+        gap: 12, marginBottom: 22,
+      }}>
+        {BUTTON_HIERARCHIES.map((h) => {
+          const isSelected = h.id === btnHierId;
+          // Pro Karte eine kleine Mini-Demo (3 Buttons)
+          const demoVariants = deriveButtonVariants(palette, ui, h, SEMANTIC_COLORS.light);
+          return (
+            <button
+              key={h.id} type="button"
+              onClick={() => onSelect(h.id)}
+              style={{
+                textAlign: 'left',
+                background: '#fff',
+                border: isSelected ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
+                borderRadius: 8,
+                padding: 14, cursor: 'pointer',
+                boxShadow: isSelected ? `0 4px 12px ${KC_MID}33` : 'none',
+                fontFamily: 'inherit',
+              }}
+            >
+              <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+                <MiniButton v={demoVariants.primary} ui={ui} typo={typo}>Primary</MiniButton>
+                <MiniButton v={demoVariants.secondary} ui={ui} typo={typo}>Outline</MiniButton>
+                <MiniButton v={demoVariants.tertiary} ui={ui} typo={typo}>Ghost</MiniButton>
+              </div>
+              <div style={{
+                fontSize: 12, fontWeight: 800, color: KC_DARK,
+                marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                {isSelected && <span style={{ color: KC_MID }}>✓</span>}
+                {h.label}
+              </div>
+              <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>
+                {h.description}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Volle Variants × Sizes Matrix */}
+      <div style={{
+        fontSize: 13, fontWeight: 800, color: KC_DARK,
+        textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 8,
+      }}>
+        4 Variants × 3 Sizes
+      </div>
+      <div style={{
+        background: palette.bg_primary, padding: 16, borderRadius: 8,
+        border: `1px solid ${palette.border}`,
+      }}>
+        {[
+          { name: 'Primary',     v: variants.primary },
+          { name: 'Secondary',   v: variants.secondary },
+          { name: 'Tertiary',    v: variants.tertiary },
+          { name: 'Destructive', v: variants.destructive },
+        ].map((row) => (
+          <div key={row.name} style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            padding: '10px 0',
+            borderBottom: `1px solid ${palette.border}`,
+          }}>
+            <div style={{
+              minWidth: 90,
+              fontSize: 10, fontWeight: 700, color: palette.text_muted,
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              fontFamily: typo.body,
+            }}>
+              {row.name}
+            </div>
+            <SizedButton v={row.v} ui={ui} typo={typo} size="small">Klein</SizedButton>
+            <SizedButton v={row.v} ui={ui} typo={typo} size="medium">Standard</SizedButton>
+            <SizedButton v={row.v} ui={ui} typo={typo} size="large">Groß</SizedButton>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MiniButton({ v, ui, typo, children }) {
+  return (
+    <span style={{
+      display: 'inline-block',
+      padding: '5px 10px',
+      background: v.bg, color: v.fg,
+      border: `1px solid ${v.border}`,
+      borderRadius: ui.button_radius,
+      fontSize: 10, fontWeight: 700, fontFamily: typo.body,
+      boxShadow: v.shadow,
+    }}>
+      {children}
+    </span>
+  );
+}
+
+function SizedButton({ v, ui, typo, size, children }) {
+  const sizes = {
+    small:  { padding: '6px 14px',  fontSize: 11 },
+    medium: { padding: '9px 18px',  fontSize: 13 },
+    large:  { padding: '12px 24px', fontSize: 14 },
+  };
+  const sz = sizes[size];
+  return (
+    <button type="button"
+      style={{
+        padding: sz.padding,
+        background: v.bg, color: v.fg,
+        border: `1px solid ${v.border}`,
+        borderRadius: ui.button_radius,
+        fontSize: sz.fontSize, fontWeight: 700, fontFamily: typo.body,
+        boxShadow: v.shadow,
+        cursor: 'pointer',
+      }}
+      onClick={(e) => e.preventDefault()}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // LivePreview — Sample Wireframe-Section mit aktuellen Tokens
 // ─────────────────────────────────────────────────────────────────────────────
 
-function LivePreview({ palette, typo, ui }) {
+function LivePreview({ palette, typo, ui, spacing, variants, semantic }) {
+  // Phase E1: Spacing-Scale fließt in Padding/Gap-Werte ein.
+  const spX = spacing?.scale?.[5] ?? 32;       // ~32px Standard
+  const spY = spacing?.section_y ?? 64;        // Section vertical
+  const gap = spacing?.gap ?? 16;
+  // Variants kommen vom Parent (Button-Hierarchy + Color-Concept). Falls fehlt
+  // (alte aufrufer ohne Phase-E1-Felder), Fallback auf naive Defaults.
+  const primary   = variants?.primary   || { bg: palette.accent_1, fg: palette.bg_primary, border: palette.accent_1, shadow: ui.shadow };
+  const secondary = variants?.secondary || { bg: 'transparent', fg: palette.accent_1, border: palette.accent_1, shadow: 'none' };
+
   return (
     <div style={{
       background: palette.bg_primary,
@@ -701,9 +1164,9 @@ function LivePreview({ palette, typo, ui }) {
       border: `1px solid ${palette.border}`,
       boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
     }}>
-      {/* Hero-Sample */}
+      {/* Hero-Sample — Padding aus Spacing-Scale */}
       <div style={{
-        padding: '40px 32px',
+        padding: `${spY * 0.6}px ${spX}px`,
         background: palette.bg_primary,
         color: palette.text_primary,
         fontFamily: typo.body,
@@ -718,30 +1181,30 @@ function LivePreview({ palette, typo, ui }) {
         </div>
         <h1 style={{
           fontFamily: typo.heading, fontWeight: typo.heading_weight,
-          fontSize: 32, lineHeight: 1.15, margin: '0 0 14px',
+          fontSize: 32, lineHeight: 1.15, margin: `0 0 ${gap}px`,
           color: palette.text_primary,
         }}>
           Förderfähige Wallbox in 14 Tagen — fix installiert.
         </h1>
         <p style={{
           fontSize: 15, lineHeight: 1.5, color: palette.text_muted,
-          margin: '0 0 22px', maxWidth: 480,
+          margin: `0 0 ${gap * 1.5}px`, maxWidth: 480,
         }}>
           Wir kümmern uns um Beratung, Antrag, Installation und Anmeldung beim
           Netzbetreiber. Festpreis vorab — keine Überraschungen.
         </p>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: gap * 0.6, flexWrap: 'wrap' }}>
           <button type="button" style={{
-            background: palette.accent_1, color: palette.bg_primary,
-            border: 'none', borderRadius: ui.button_radius,
+            background: primary.bg, color: primary.fg,
+            border: `1px solid ${primary.border}`, borderRadius: ui.button_radius,
             padding: '10px 20px', fontSize: 13, fontWeight: 700,
-            fontFamily: typo.body, cursor: 'pointer',
+            fontFamily: typo.body, cursor: 'pointer', boxShadow: primary.shadow,
           }}>
             Festpreis anfragen
           </button>
           <button type="button" style={{
-            background: 'transparent', color: palette.accent_1,
-            border: `${ui.border_width} solid ${palette.accent_1}`,
+            background: secondary.bg, color: secondary.fg,
+            border: `${ui.border_width} solid ${secondary.border}`,
             borderRadius: ui.button_radius,
             padding: '10px 20px', fontSize: 13, fontWeight: 700,
             fontFamily: typo.body, cursor: 'pointer',
@@ -749,6 +1212,33 @@ function LivePreview({ palette, typo, ui }) {
             Beratung vereinbaren
           </button>
         </div>
+
+        {/* Phase E1: Status-Streifen mit Semantic Colors */}
+        {semantic && (
+          <div style={{
+            display: 'flex', gap: gap * 0.5, flexWrap: 'wrap',
+            marginTop: gap * 1.5,
+          }}>
+            {[
+              { key: 'success', label: '✓ Förderung bewilligt' },
+              { key: 'warn',    label: '⏱ Termin in Bearbeitung' },
+              { key: 'info',    label: 'ℹ THG-Quote inklusive' },
+            ].map((s) => {
+              const c = semantic[s.key];
+              return (
+                <span key={s.key} style={{
+                  padding: '4px 10px',
+                  background: c.bg, color: c.fg,
+                  border: `1px solid ${c.border}`,
+                  borderRadius: ui.button_radius,
+                  fontSize: 10, fontWeight: 700, fontFamily: typo.body,
+                }}>
+                  {s.label}
+                </span>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Trust-Strip */}

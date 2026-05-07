@@ -1316,43 +1316,25 @@ function UIStyleSection({ uiId, palette, onSelect, onShuffle }) {
 // Phase E1: SpacingSection — Spacing-Scale Konzept-Karten
 // ─────────────────────────────────────────────────────────────────────────────
 
-function SpacingSection({ spacingId, palette, onSelect }) {
-  const styleOptions = SPACING_SCALES.map((s) => ({
-    id: s.id, label: s.label, description: s.description,
-  }));
-  const current = findSpacingScale(spacingId);
+function SpacingSection({ spacingId, onSelect }) {
+  // 'editorial' entfernt — fuer normale Sites zu exotisch.
+  // 3 Optionen passen breitenmaessig besser zur Edit-Spalte.
+  const SHOWN = ['tight', 'default', 'comfortable'];
+  const styleOptions = SPACING_SCALES
+    .filter((s) => SHOWN.includes(s.id))
+    .map((s) => ({ id: s.id, label: s.label, description: s.description }));
+  const current = findSpacingScale(SHOWN.includes(spacingId) ? spacingId : 'default');
   return (
     <div>
       <label style={lblStyle}>Whitespace-Dichte</label>
-      <div style={{ marginBottom: 14 }}>
-        <StyleSwitcher options={styleOptions} value={spacingId} onChange={onSelect} />
+      <div style={{ marginBottom: 10 }}>
+        <StyleSwitcher options={styleOptions} value={current.id} onChange={onSelect} />
       </div>
-
-      <label style={lblStyle}>Vorschau</label>
       <div style={{
-        background: '#fff', padding: 14, borderRadius: 6,
-        border: '1px solid #D5E0E2',
+        fontSize: 10, color: '#64748b',
+        fontFamily: 'ui-monospace, monospace',
       }}>
-        <div style={{
-          display: 'flex', alignItems: 'flex-end', gap: 3,
-          marginBottom: 8, height: 36,
-        }}>
-          {current.scale.map((value, idx) => (
-            <div key={idx} style={{
-              width: 8,
-              height: `${Math.min(100, (value / 128) * 100)}%`,
-              background: palette.accent_1,
-              opacity: 0.35 + (idx / current.scale.length) * 0.65,
-              borderRadius: 1,
-            }} title={`${value}px`} />
-          ))}
-        </div>
-        <div style={{
-          fontSize: 10, color: '#64748b',
-          fontFamily: 'ui-monospace, monospace',
-        }}>
-          Container {current.container}px · Section-Y {current.section_y}px
-        </div>
+        Container {current.container}px · Section-Padding {current.section_y}px
       </div>
     </div>
   );

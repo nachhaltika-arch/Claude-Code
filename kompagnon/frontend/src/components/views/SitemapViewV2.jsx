@@ -212,6 +212,8 @@ export default function SitemapViewV2({
   const cardRefs = useRef(new Map());
   const canvasInnerRef = useRef(null);
   const [edgeTick, setEdgeTick] = useState(0);
+  // Phase D: Zoom-Level fuer das Sitemap-Canvas. 1.0 = 100%, 0.5 = 50% (Vogelperspektive).
+  const [zoom, setZoom] = useState(1.0);
   const setCardRef = useCallback((pageId, node) => {
     if (node) cardRefs.current.set(pageId, node);
     else cardRefs.current.delete(pageId);
@@ -239,6 +241,27 @@ export default function SitemapViewV2({
     const obs = new ResizeObserver(() => setEdgeTick((t) => t + 1));
     obs.observe(canvasInnerRef.current);
     return () => obs.disconnect();
+  }, []);
+
+  // Phase D: Zoom-Shortcuts (Strg+/-/0). Ignoriert Inputs/Textareas.
+  useEffect(() => {
+    const handler = (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      const tag = e.target?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        setZoom((z) => Math.min(1.5, +(z + 0.1).toFixed(2)));
+      } else if (e.key === '-') {
+        e.preventDefault();
+        setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)));
+      } else if (e.key === '0') {
+        e.preventDefault();
+        setZoom(1.0);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, []);
 
   // ── Mutationen ────────────────────────────────────────────────────────────
@@ -558,7 +581,7 @@ export default function SitemapViewV2({
       </div>
 
       {/* Canvas + Sidebars */}
-      <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
         {/* Phase 2: Linke Add-Sidebar — Sections per Klick zur active-Page hinzufuegen.
             Phase 3: Sections koennen alternativ per Drag-and-Drop in eine Page droppen
             (Quelle: fromPageId=null, Ziel: beliebige DropZone). */}
@@ -599,6 +622,9 @@ export default function SitemapViewV2({
               display: 'flex', alignItems: 'flex-start',
               gap: COL_GAP / 2, minWidth: 'max-content',
               position: 'relative',
+              transform: `scale(${zoom})`,
+              transformOrigin: 'top left',
+              transition: 'transform 0.15s ease-out',
             }}>
               {topLevelPages.map((p, idx) => (
                 <PageColumn
@@ -648,6 +674,17 @@ export default function SitemapViewV2({
             onClose={() => setSelectedPageId(null)}
             onSave={(updates) => savePageDetails(selectedPageId, updates)}
             onDelete={() => deletePage(selectedPageId)}
+          />
+        )}
+
+        {/* Phase D: Bottom-Toolbar mit Zoom-Controls */}
+        {!loading && !error && pages.length > 0 && (
+          <BottomToolbar
+            zoom={zoom}
+            onZoomIn={() => setZoom((z) => Math.min(1.5, +(z + 0.1).toFixed(2)))}
+            onZoomOut={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))}
+            onZoomReset={() => setZoom(1.0)}
+            pageCount={pages.length}
           />
         )}
       </div>
@@ -1429,6 +1466,69 @@ function AddPagePlus({ onClick, large = false }) {
       }}
     >
       +
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase D: Bottom-Toolbar — schwebt unten im Canvas, Zoom + Page-Count
+// ─────────────────────────────────────────────────────────────────────────────
+
+function BottomToolbar({ zoom, onZoomIn, onZoomOut, onZoomReset, pageCount }) {
+  return (
+    <div style={{
+      position: 'absolute',
+      bottom: 16, left: '50%',
+      transform: 'translateX(-50%)',
+      display: 'flex', alignItems: 'center', gap: 6,
+      padding: 4,
+      background: '#fff',
+      border: '1px solid #e2e8f0',
+      borderRadius: 10,
+      boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
+      zIndex: 50,
+      fontFamily: 'inherit',
+    }}>
+      <ToolbarButton onClick={onZoomOut} disabled={zoom <= 0.4} title="Verkleinern (Strg+-)">−</ToolbarButton>
+      <button
+        type="button" onClick={onZoomReset}
+        title="Zoom zuruecksetzen (Strg+0)"
+        style={{
+          minWidth: 60, padding: '6px 10px',
+          background: 'transparent', border: 'none',
+          cursor: 'pointer', color: KC_DARK,
+          fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {Math.round(zoom * 100)}%
+      </button>
+      <ToolbarButton onClick={onZoomIn} disabled={zoom >= 1.5} title="Vergroessern (Strg++)">+</ToolbarButton>
+      <div style={{ width: 1, height: 20, background: '#e2e8f0', margin: '0 4px' }} />
+      <span style={{ padding: '6px 10px', fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+        {pageCount} {pageCount === 1 ? 'Seite' : 'Seiten'}
+      </span>
+    </div>
+  );
+}
+
+function ToolbarButton({ children, onClick, disabled, title }) {
+  return (
+    <button
+      type="button" onClick={onClick} disabled={disabled} title={title}
+      style={{
+        width: 30, height: 30,
+        background: 'transparent', border: 'none', borderRadius: 6,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        color: disabled ? '#cbd5e1' : KC_DARK,
+        fontSize: 16, fontWeight: 700, fontFamily: 'inherit',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 0,
+      }}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = '#f1f5f9'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+    >
+      {children}
     </button>
   );
 }

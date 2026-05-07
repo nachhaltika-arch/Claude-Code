@@ -193,6 +193,11 @@ class SitemapPage(Base):
     color_tag            = Column(String(7),    nullable=True)
     # Relume-Parität R2 Feature 4: 'primary' (live) | 'variant' (Alternative)
     variant              = Column(String(20),   default='primary')
+    # Phase 4 (2026-05-07): Page-Groups. Eine Gruppe kapselt mehrere Kind-Pages
+    # mit identischer Section-Struktur. Kinder *erben* group_template_sections
+    # automatisch wenn ihre eigene sections_json leer/null ist.
+    is_group                 = Column(Boolean, default=False)
+    group_template_sections  = Column(Text,    nullable=True)
 
 
 # ── Pydantic schemas ───────────────────────────────────────────────────────────
@@ -230,6 +235,11 @@ class PageUpdate(BaseModel):
     # Relume-Parität R1: per-Page-KI-Prompt + User-Color-Tag.
     ai_prompt:    Optional[str]       = None
     color_tag:    Optional[str]       = None
+    # Phase 4: Page-Groups. is_group toggelt die Karte zwischen Page und
+    # Gruppen-Container; group_template_sections sind die geteilten Sections,
+    # die alle Kind-Pages der Gruppe erben.
+    is_group:                 Optional[bool]      = None
+    group_template_sections:  Optional[List[str]] = None
     # ist_pflichtseite is intentionally excluded – cannot be changed via API
 
 
@@ -287,7 +297,23 @@ def _serialize(p: SitemapPage) -> dict:
         "color_tag":           getattr(p, "color_tag", None) or "",
         # Relume-Parität R2 Feature 4
         "variant":             getattr(p, "variant", None) or "primary",
+        # Phase 4 — Page-Groups
+        "is_group":                bool(getattr(p, "is_group", False)),
+        "group_template_sections": _parse_str_list(getattr(p, "group_template_sections", None)),
     }
+
+
+def _parse_str_list(raw: Optional[str]) -> List[str]:
+    """Parse a JSON-encoded string-array; tolerate junk by returning []."""
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [str(s) for s in parsed if isinstance(s, str)]
 
 
 def _parse_id_list(raw: Optional[str]) -> List[int]:
@@ -498,6 +524,11 @@ def update_page(
         raw_sections = updates.pop("sections") or []
         cleaned = [str(s) for s in raw_sections if isinstance(s, str) and s in SECTION_CATALOG]
         page.sections_json = json.dumps(cleaned, ensure_ascii=False)
+    # Phase 4: group_template_sections — gleiche Validierung wie sections.
+    if "group_template_sections" in updates:
+        raw_tpl = updates.pop("group_template_sections") or []
+        cleaned_tpl = [str(s) for s in raw_tpl if isinstance(s, str) and s in SECTION_CATALOG]
+        page.group_template_sections = json.dumps(cleaned_tpl, ensure_ascii=False)
     for field, value in updates.items():
         setattr(page, field, value)
     db.commit()

@@ -1091,6 +1091,13 @@ def _run_migrations():
         # zum Vergleich. Pflichtseiten + Bestand sind immer 'primary'; nur
         # KI-Vorschläge können 'variant' sein. Promote ersetzt primary durch variant.
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS variant VARCHAR(20) DEFAULT 'primary'",
+        # ── Phase 4 (2026-05-07): Page-Groups. Eine Page kann als 'Gruppe'
+        # markiert sein — die Gruppe traegt einen Default-Section-Plan, alle
+        # Kind-Seiten erben den Plan automatisch (Showcase/Portfolio-Pattern).
+        # is_group=true verwandelt die Karte visuell in einen Gruppen-Container,
+        # group_template_sections speichert die geteilten Sections als JSON-Array.
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS is_group BOOLEAN DEFAULT false",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS group_template_sections TEXT",
         # ── Hotfix 2026-05-04: steps_confirmed war nur in migrations.py
         # (Standalone-Script, lief nie beim Backend-Start). Auf der frischen
         # Staging-DB fehlte die Spalte komplett — routers/projects.py warf

@@ -311,6 +311,35 @@ export default function SitemapViewV2({
     setDropTarget(null);
   }, []);
 
+  // Phase 4: Page-Groups. Eine Page wird zu einer Gruppe gemacht:
+  //   - is_group → true
+  //   - sections → group_template_sections (Inhalt wandert, Sections selbst leer)
+  // Beim Zuruecksetzen das Umgekehrte. Children der Gruppe zeigen das
+  // group_template_sections automatisch (Visual nur, nichts in der DB ueberschreiben).
+  const toggleGroup = useCallback(async (pageId) => {
+    const target = pages.find((p) => p.id === pageId);
+    if (!target) return;
+    if (target.ist_pflichtseite) {
+      toast.error('Pflichtseiten können keine Gruppen werden.');
+      return;
+    }
+    if (!target.is_group) {
+      // Zur Gruppe machen — bestehende Sections werden Template
+      await savePageDetails(pageId, {
+        is_group: true,
+        group_template_sections: target.sections || [],
+        sections: [],
+      });
+    } else {
+      // Zurueck zu normaler Page — Template wieder in Sections
+      await savePageDetails(pageId, {
+        is_group: false,
+        group_template_sections: [],
+        sections: target.group_template_sections || [],
+      });
+    }
+  }, [pages, savePageDetails]);
+
   // ── Tree-Struktur: Pages nach parent_id gruppieren ────────────────────────
 
   const tree = useMemo(() => {
@@ -461,6 +490,7 @@ export default function SitemapViewV2({
                   onDuplicate={duplicatePage}
                   onAddSection={(pageId, position) => setAddSectionState({ page_id: pageId, position })}
                   onRemoveSection={removeSectionFromPage}
+                  onToggleGroup={toggleGroup}
                   isFirstSibling={idx === 0}
                   dragState={dragState}
                   setDragState={setDragState}
@@ -527,9 +557,10 @@ export default function SitemapViewV2({
 function PageColumn({
   page, tree,
   selectedPageId, onSelect,
-  onAddSibling, onAddChild, onDelete, onDuplicate, onAddSection, onRemoveSection,
+  onAddSibling, onAddChild, onDelete, onDuplicate, onAddSection, onRemoveSection, onToggleGroup,
   isFirstSibling = false,
   dragState, setDragState, dropTarget, setDropTarget, moveSection, endDrag,
+  inheritedSections = null,  // Phase 4: nicht-null wenn Eltern-Page eine Gruppe ist
 }) {
   const children = tree.get(page.id) || [];
   const isActive = selectedPageId === page.id;
@@ -546,6 +577,8 @@ function PageColumn({
           onDuplicate={onDuplicate}
           onAddSection={onAddSection}
           onRemoveSection={onRemoveSection}
+          onToggleGroup={onToggleGroup}
+          inheritedSections={inheritedSections}
           dragState={dragState}
           setDragState={setDragState}
           dropTarget={dropTarget}
@@ -593,6 +626,7 @@ function PageColumn({
                 onDuplicate={onDuplicate}
                 onAddSection={onAddSection}
                 onRemoveSection={onRemoveSection}
+                onToggleGroup={onToggleGroup}
                 isFirstSibling={idx === 0}
                 dragState={dragState}
                 setDragState={setDragState}
@@ -600,6 +634,7 @@ function PageColumn({
                 setDropTarget={setDropTarget}
                 moveSection={moveSection}
                 endDrag={endDrag}
+                inheritedSections={page.is_group ? (page.group_template_sections || []) : null}
               />
             ))}
           </div>
@@ -634,11 +669,23 @@ function ChildPageColumn(props) {
 function PageCard({
   page,
   isActive, onSelect,
-  onAddChild, onDelete, onDuplicate, onAddSection, onRemoveSection,
+  onAddChild, onDelete, onDuplicate, onAddSection, onRemoveSection, onToggleGroup,
+  inheritedSections = null,
   dragState, setDragState, dropTarget, setDropTarget, moveSection, endDrag,
 }) {
   const meta = TYPE_META[page.page_type] || TYPE_META.info;
-  const sections = Array.isArray(page.sections) ? page.sections : [];
+  // Phase 4: Section-Anzeige bestimmen.
+  // - Page ist selbst Gruppe? → group_template_sections (editierbar als Template)
+  // - Eltern ist Gruppe? → inheritedSections (read-only, vom Template uebernommen)
+  // - Sonst: page.sections
+  const isGroup = !!page.is_group;
+  const isInherited = !isGroup && inheritedSections != null;
+  const sections = isGroup
+    ? (Array.isArray(page.group_template_sections) ? page.group_template_sections : [])
+    : isInherited
+    ? inheritedSections
+    : (Array.isArray(page.sections) ? page.sections : []);
+  const sectionsEditable = !isInherited; // Inherited = read-only
   const [menuOpen, setMenuOpen] = useState(false);
   const cardRef = useRef(null);
 
@@ -665,7 +712,11 @@ function PageCard({
         position: 'relative',
         width: PAGE_W, flexShrink: 0,
         background: '#fff',
-        border: isActive ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
+        border: isActive
+          ? `2px solid ${KC_MID}`
+          : isGroup
+          ? `1px solid ${KC_MID}`
+          : '1px solid #e2e8f0',
         borderRadius: 10,
         boxShadow: isActive
           ? `0 4px 16px ${KC_MID}33`
@@ -678,11 +729,13 @@ function PageCard({
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '10px 12px',
-        background: '#f8fafc',
+        background: isGroup ? '#ecfeff' : '#f8fafc',
         borderBottom: '1px solid #e2e8f0',
         borderTopLeftRadius: 10, borderTopRightRadius: 10,
       }}>
-        <span style={{ fontSize: 14, flexShrink: 0 }}>{meta.icon}</span>
+        <span style={{ fontSize: 14, flexShrink: 0 }}>
+          {isGroup ? '📂' : meta.icon}
+        </span>
         <div style={{
           flex: 1, minWidth: 0,
           fontSize: 12, fontWeight: 700, color: KC_DARK,
@@ -690,6 +743,15 @@ function PageCard({
         }}>
           {page.page_name}
         </div>
+        {isGroup && (
+          <span style={{
+            fontSize: 9, fontWeight: 800, color: '#fff', background: KC_MID,
+            padding: '2px 6px', borderRadius: 4,
+            textTransform: 'uppercase', letterSpacing: '0.06em',
+          }}>
+            Gruppe
+          </span>
+        )}
         {page.ist_pflichtseite && (
           <span title="Pflichtseite" style={{ fontSize: 11 }}>🔒</span>
         )}
@@ -709,6 +771,26 @@ function PageCard({
 
       {/* Section-Liste */}
       <div style={{ padding: '8px 12px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {isInherited && (
+          <div style={{
+            marginBottom: 4, padding: '4px 8px',
+            fontSize: 10, color: '#0e7490',
+            background: '#ecfeff', border: '1px solid #a5f3fc',
+            borderRadius: 4,
+          }}>
+            🔗 Sections aus übergeordneter Gruppe — Änderungen oben in der Gruppe.
+          </div>
+        )}
+        {isGroup && (
+          <div style={{
+            marginBottom: 4, padding: '4px 8px',
+            fontSize: 10, color: '#0e7490',
+            background: '#ecfeff', border: '1px solid #a5f3fc',
+            borderRadius: 4,
+          }}>
+            📂 Section-Template — wird automatisch von allen Kind-Pages übernommen.
+          </div>
+        )}
         {sections.length === 0 ? (
           <div data-noselect style={{
             padding: '20px 8px', textAlign: 'center',
@@ -745,6 +827,11 @@ function PageCard({
               ✨ Generate content
             </button>
           </div>
+        ) : isInherited ? (
+          // Phase 4: read-only Anzeige der geerbten Sections (vom Eltern-Group).
+          sections.map((key, idx) => (
+            <InheritedSectionRow key={`${key}-${idx}`} sectionKey={key} idx={idx} />
+          ))
         ) : (
           <>
             {/* DropZone vor erster Section */}
@@ -801,9 +888,21 @@ function PageCard({
           }}
         >
           <MenuItem onClick={() => { setMenuOpen(false); onAddChild(page.id); }}>+ Sub-Seite</MenuItem>
-          <MenuItem onClick={() => { setMenuOpen(false); onAddSection(page.id, (page.sections || []).length); }}>+ Section</MenuItem>
+          <MenuItem
+            onClick={() => { setMenuOpen(false); onAddSection(page.id, sections.length); }}
+            disabled={isInherited}
+          >
+            + Section
+          </MenuItem>
           <MenuItem onClick={() => { setMenuOpen(false); onDuplicate(page.id); }}>📋 Duplizieren</MenuItem>
           <MenuItem onClick={() => { setMenuOpen(false); onSelect(page.id); }}>✏️ Bearbeiten…</MenuItem>
+          <div style={{ height: 1, background: '#e2e8f0', margin: '4px 2px' }} />
+          <MenuItem
+            onClick={() => { setMenuOpen(false); onToggleGroup(page.id); }}
+            disabled={page.ist_pflichtseite}
+          >
+            {isGroup ? '↩ Zurück zur Page' : '📂 Als Gruppe markieren'}
+          </MenuItem>
           <div style={{ height: 1, background: '#e2e8f0', margin: '4px 2px' }} />
           <MenuItem
             danger
@@ -930,6 +1029,41 @@ function SectionRow({
           +
         </button>
       )}
+    </div>
+  );
+}
+
+// Phase 4: Read-only-Variante einer Section-Zeile, fuer Kinder einer Gruppe.
+// Keine Drag-Handles, keine Remove/Add-Buttons — Aenderungen muessen am
+// Eltern-Group gemacht werden.
+function InheritedSectionRow({ sectionKey, idx }) {
+  const label = SECTION_LABEL[sectionKey] || sectionKey;
+  const desc = SECTION_CATALOG[sectionKey] || '';
+  return (
+    <div data-noselect style={{
+      padding: '8px 10px',
+      background: '#f8fafc',
+      border: '1px dashed #cbd5e1', borderRadius: 6,
+      fontSize: 11,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+        <span style={{ color: '#cbd5e1', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 10 }}>
+          {idx + 1}
+        </span>
+        <span style={{ fontWeight: 700, color: '#475569', flex: 1, minWidth: 0,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {label}
+        </span>
+      </div>
+      <div style={{
+        fontSize: 10, color: '#64748b',
+        lineHeight: 1.35,
+        display: '-webkit-box',
+        WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+      }}>
+        {desc}
+      </div>
     </div>
   );
 }

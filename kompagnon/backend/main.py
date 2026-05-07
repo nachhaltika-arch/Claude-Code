@@ -1103,6 +1103,11 @@ def _run_migrations():
         # Staging-DB fehlte die Spalte komplett — routers/projects.py warf
         # 500 Internal Server Error bei jedem GET /api/projects/{id}.
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS steps_confirmed TEXT DEFAULT '{}'",
+        # ── Hotfix 2026-05-07: briefing_submitted_at ist im manuellen SQL-Script
+        # (migrations/manual/2026-05-04-backfill-phase2.sql) befuellt, das ALTER
+        # TABLE wurde aber nie auto-ausgefuehrt. Resultat: AttributeError beim
+        # POST /api/briefings/{id}, weil routers/briefings.py die Spalte setzt.
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS briefing_submitted_at TIMESTAMP",
         # ── Component Library (Wireframe-Blocks) — Schritt A ────────────────
         # Speichert die 41 HTML+Tailwind-Templates fuer den KI-Wireframe-
         # Generator. Seed via seeds/seed_component_library.py (Schritt C).

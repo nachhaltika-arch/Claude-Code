@@ -211,6 +211,12 @@ class Project(Base):
     qa_golive_ok = Column(Boolean)   # Go-Live recommendation
     qa_run_at = Column(DateTime)     # Last scan timestamp
 
+    # Briefing-Submit-Timestamp — wird von routers/briefings.py beim ersten
+    # meaningful-content-Save gesetzt. Ohne diese Spalte crashte POST /api/briefings/{id}
+    # mit AttributeError (das manuelle SQL-Migration 2026-05-04-backfill-phase2.sql
+    # befuellte die Spalte, aber das ALTER TABLE wurde nie automatisch ausgefuehrt).
+    briefing_submitted_at = Column(DateTime, nullable=True)
+
     # Domain check
     domain_reachable = Column(Boolean)
     domain_status_code = Column(Integer)

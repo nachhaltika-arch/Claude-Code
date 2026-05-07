@@ -194,6 +194,122 @@ def get_block_variation(
     return _serialize_component(chosen, include_html=True)
 
 
+class GenerateCopyRequest(BaseModel):
+    """Sync KI-Call: generiert Slot-Werte fuer eine bestehende Library-Section.
+
+    Wird vom Section-Detail-Panel im WireframeView aufgerufen, wenn der User
+    auf 'Generate copy' klickt. Anders als /generate (Background-Job, neue
+    Section) ist das hier synchron und schnell — nur Slot-Werte, kein HTML.
+    """
+    slug:           str
+    ai_prompt:      str                                 # Free-Form-Wunsch fuer diese Section
+    asset_type:     Optional[str] = None                # 'image' | 'video' | None
+    element_type:   Optional[str] = None                # 'form' | 'button' | None
+    current_slots:  Optional[dict] = None               # bestehende Werte als Kontext
+
+
+@component_router.post("/generate-copy")
+def generate_section_copy(
+    body: GenerateCopyRequest,
+    db: Session = Depends(get_db),
+    user=Depends(require_any_auth),
+):
+    """Generiert KI-Slot-Werte fuer eine Library-Section auf Basis eines
+    Free-Form-Prompts. Sync, weil Antwort klein (~1-2k tokens) und der User
+    sofort feedback erwartet.
+
+    Returnt {"slots": {key: value, ...}} — exakt die Slot-Keys der Library-Section.
+    Frontend ueberschreibt damit die Slot-Inputs im Side-Panel.
+    """
+    if not Anthropic:
+        raise HTTPException(500, "anthropic-Library nicht installiert")
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY nicht konfiguriert")
+
+    row = db.query(ComponentLibrary).filter(ComponentLibrary.slug == body.slug).first()
+    if not row:
+        raise HTTPException(404, f"Slug '{body.slug}' nicht gefunden")
+
+    slots = row.slots or []
+    if not slots:
+        raise HTTPException(400, f"Section '{body.slug}' hat keine Slots")
+
+    user_prompt = (body.ai_prompt or "").strip()
+    if not user_prompt:
+        raise HTTPException(400, "ai_prompt darf nicht leer sein")
+
+    # Asset-/Element-Hints in den Prompt einbauen — Sonnet beruecksichtigt sie
+    # beim Slot-Wert-Generieren (z.B. Button-Label wenn element_type=button).
+    extra_hints = []
+    if body.asset_type == "image":
+        extra_hints.append("- Diese Section soll ein Bild zeigen (alt-Texte / Bild-Beschreibungen entsprechend formulieren).")
+    elif body.asset_type == "video":
+        extra_hints.append("- Diese Section soll ein Video einbinden (Texte koennen darauf Bezug nehmen, z.B. 'Video ansehen').")
+    if body.element_type == "form":
+        extra_hints.append("- Diese Section enthaelt ein Formular (CTA-Texte / Labels formular-bezogen formulieren).")
+    elif body.element_type == "button":
+        extra_hints.append("- Diese Section betont einen Button-CTA (klare Handlungsaufforderung im Button-Slot).")
+    extras_text = "\n".join(extra_hints) if extra_hints else ""
+
+    slot_lines = "\n".join([
+        f"- {s.get('key')}: {s.get('label', s.get('key'))} (Default: {s.get('default', '')})"
+        for s in slots if s.get("key")
+    ])
+
+    prompt = f"""Du befuellst Slots einer Marketing-Section mit Copy.
+
+SECTION: {row.name} ({row.category})
+HINT: {row.ki_prompt_hint or '-'}
+
+VERFUEGBARE SLOTS (genau diese Keys, nichts erfinden):
+{slot_lines}
+
+USER-WUNSCH:
+{user_prompt}
+
+{extras_text}
+
+REGELN:
+- Antworte AUSSCHLIESSLICH als valides JSON, KEIN Markdown-Wrapper, KEINE Erklaerung.
+- Schluessel = Slot-Key, Wert = generierter Text (deutsch, professionell, verkaufs-fokussiert).
+- Keine Lorem ipsum, keine Platzhalter-Texte.
+- Headlines praegnant (max 60 Zeichen), Subtexte 1-2 Saetze, Button-Labels max 25 Zeichen.
+
+Output:
+{{
+{', '.join([f'  "{s.get("key")}": "<wert>"' for s in slots if s.get("key")])}
+}}
+"""
+
+    try:
+        client = Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = _extract_text_from_response(response)
+        try:
+            generated = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            logger.warning(f"generate-copy: JSON-Parse fehlgeschlagen: {exc}; raw[:300]={raw[:300]!r}")
+            raise HTTPException(502, f"KI-Output kein valides JSON: {exc}")
+
+        if not isinstance(generated, dict):
+            raise HTTPException(502, "KI-Output ist kein Object")
+
+        # Filter auf valide Slot-Keys — KI haette sich erfundene Keys ausdenken koennen
+        valid_keys = {s.get("key") for s in slots if s.get("key")}
+        result = {k: str(v) for k, v in generated.items() if k in valid_keys}
+        return {"slots": result}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"generate-copy crashed: {exc}", exc_info=True)
+        raise HTTPException(500, f"KI-Aufruf fehlgeschlagen: {exc}")
+
+
 @component_router.post("/save-custom")
 def save_custom_component(
     body: SaveCustomRequest,

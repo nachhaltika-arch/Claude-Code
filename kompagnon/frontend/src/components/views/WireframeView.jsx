@@ -389,7 +389,10 @@ export default function WireframeView({
             </div>
             <button
               type="button"
-              onClick={() => setSwapPanel({ open: true, targetIdx: null, mode: 'add' })}
+              onClick={() => {
+                setEditPanel(null);
+                setSwapPanel({ open: true, targetIdx: null, mode: 'add' });
+              }}
               style={{
                 background: 'transparent',
                 color: KC_DARK,
@@ -445,9 +448,15 @@ export default function WireframeView({
                 onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx); }}
                 onDrop={() => { moveBlock(draggedIdx, idx); setDraggedIdx(null); setDragOverIdx(null); }}
                 onDragEnd={() => { setDraggedIdx(null); setDragOverIdx(null); }}
-                onSwap={() => setSwapPanel({ open: true, targetIdx: idx, mode: 'swap' })}
+                onSwap={() => {
+                  setEditPanel(null);
+                  setSwapPanel({ open: true, targetIdx: idx, mode: 'swap' });
+                }}
                 onVariation={() => requestVariation(idx)}
-                onEdit={() => setEditPanel({ idx })}
+                onEdit={() => {
+                  setSwapPanel({ open: false, targetIdx: null, mode: 'swap' });
+                  setEditPanel({ idx });
+                }}
                 onRemove={() => removeBlock(idx)}
               />
             ))}
@@ -469,15 +478,18 @@ export default function WireframeView({
         </div>
       </main>
 
-      {/* W3: Slot-Editor-Modal */}
-      {editPanel && (() => {
+      {/* Phase B: Section-Detail-Panel als Inline-Side-Panel rechts.
+          Mutually exclusive mit swapPanel — kann nicht gleichzeitig offen sein
+          (siehe state-coordination in onEdit / setSwapPanel). */}
+      {editPanel && !swapPanel.open && (() => {
         const target = activeBlocks[editPanel.idx];
         const lib = target ? library.find((c) => c.slug === target.slug) : null;
         if (!target) return null;
         return (
-          <SlotEditorModal
+          <SectionDetailPanel
             block={target}
             libraryEntry={lib}
+            headers={headers}
             onClose={() => setEditPanel(null)}
             onSaveSlots={(values) => {
               updateBlockSlots(editPanel.idx, values);
@@ -702,6 +714,11 @@ function BlockCard({
   const name = libraryEntry?.name || block.slug;
   const category = libraryEntry?.category || '—';
 
+  // Phase B: Klick auf die ganze Card oeffnet das Detail-Panel (Relume-UX).
+  // Buttons im Header bekommen stopPropagation, damit sie nicht zusaetzlich
+  // den Card-Click ausloesen.
+  const stop = (e) => e.stopPropagation();
+
   return (
     <div
       draggable
@@ -709,6 +726,7 @@ function BlockCard({
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
+      onClick={onEdit}
       style={{
         position: 'relative',
         background: '#fff',
@@ -717,6 +735,7 @@ function BlockCard({
         overflow: 'hidden',
         opacity: isDragging ? 0.4 : 1,
         transition: 'opacity 0.1s',
+        cursor: 'pointer',
       }}
     >
       {/* Compact-Header — Drag-Handle + Name + Category-Badge + Hover-Actions */}
@@ -747,7 +766,7 @@ function BlockCard({
           #{idx + 1}
         </span>
         <button
-          type="button" onClick={onEdit}
+          type="button" onClick={(e) => { stop(e); onEdit(); }}
           title="Slots editieren / als Custom speichern"
           style={{
             background: 'transparent', color: KC_DARK,
@@ -757,7 +776,7 @@ function BlockCard({
           }}
         >✏️ Edit</button>
         <button
-          type="button" onClick={onVariation}
+          type="button" onClick={(e) => { stop(e); onVariation(); }}
           title="Variante aus gleicher Kategorie vorschlagen"
           style={{
             background: '#7c3aed', color: '#fff',
@@ -767,7 +786,7 @@ function BlockCard({
           }}
         >🔄 Variante</button>
         <button
-          type="button" onClick={onSwap}
+          type="button" onClick={(e) => { stop(e); onSwap(); }}
           style={{
             background: 'transparent', color: KC_MID,
             border: `1px solid ${KC_MID}`, borderRadius: 4,
@@ -776,7 +795,7 @@ function BlockCard({
           }}
         >Tauschen</button>
         <button
-          type="button" onClick={onRemove} aria-label="Block entfernen"
+          type="button" onClick={(e) => { stop(e); onRemove(); }} aria-label="Block entfernen"
           style={{
             background: 'transparent', color: '#dc2626',
             border: '1px solid #fca5a5', borderRadius: 4,
@@ -870,11 +889,19 @@ function LibraryCard({ item, onPick, compact = false }) {
   );
 }
 
-// ── W3: Slot-Editor-Modal ─────────────────────────────────────────────────────
+// ── Phase B: Section-Detail-Panel (Inline-Side-Panel rechts) ─────────────────
+//
+// Ersetzt das alte SlotEditorModal — kein Overlay mehr, sondern ein Panel das
+// neben dem Block-Canvas sitzt. Erweitert um:
+//   - Free-Form-KI-Prompt + Asset/Element-Toggles + "Generate copy"-Button,
+//     der via /api/components/generate-copy die Slot-Werte in einem Rutsch
+//     vom KI-Modell (Sonnet) befuellen laesst.
+//   - Erweiterter Modus (HTML editieren / Custom speichern) ist eingeklappt.
 
-function SlotEditorModal({ block, libraryEntry, onClose, onSaveSlots, onSaveAsCustom }) {
+function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots, onSaveAsCustom }) {
   const slots = libraryEntry?.slots || [];
   const html  = libraryEntry?.html_template || '';
+
   const [values, setValues] = useState(() => {
     const init = {};
     slots.forEach((s) => {
@@ -882,19 +909,77 @@ function SlotEditorModal({ block, libraryEntry, onClose, onSaveSlots, onSaveAsCu
     });
     return init;
   });
+  // Phase-B-Felder — transient, nicht persistiert. Bei Bedarf spaeter
+  // auf den Block schreiben.
+  const [aiPrompt, setAiPrompt]     = useState('');
+  const [assetType, setAssetType]   = useState('none');
+  const [elementType, setElementType] = useState('none');
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState('');
+
+  // Erweiterte Bereiche (eingeklappt)
+  const [showAdvanced, setShowAdvanced]   = useState(false);
   const [showCustomForm, setShowCustomForm] = useState(false);
-  const [customSlug, setCustomSlug] = useState(`${block.slug}-custom`);
-  const [customName, setCustomName] = useState(libraryEntry?.name ? `${libraryEntry.name} (Custom)` : 'Custom Section');
-  const [showRawHtml, setShowRawHtml] = useState(false);
-  const [rawHtml, setRawHtml] = useState(html);
+  const [showRawHtml, setShowRawHtml]     = useState(false);
+  const [rawHtml, setRawHtml]             = useState(html);
+  const [customSlug, setCustomSlug]       = useState(`${block.slug}-custom`);
+  const [customName, setCustomName]       = useState(
+    libraryEntry?.name ? `${libraryEntry.name} (Custom)` : 'Custom Section',
+  );
   const [saving, setSaving] = useState(false);
 
-  const previewHtml = useMemo(() => {
-    const baseHtml = showRawHtml ? rawHtml : html;
-    return renderSlots(baseHtml, values);
-  }, [html, rawHtml, values, showRawHtml]);
+  // Beim Wechsel der Section (anderer Block angeklickt ohne Unmount): re-init
+  useEffect(() => {
+    const init = {};
+    slots.forEach((s) => {
+      init[s.key] = (block?.slots && block.slots[s.key]) ?? s.default ?? '';
+    });
+    setValues(init);
+    setAiPrompt('');
+    setAssetType('none');
+    setElementType('none');
+    setGenerateError('');
+    setRawHtml(html);
+    setCustomSlug(`${block.slug}-custom`);
+    setCustomName(libraryEntry?.name ? `${libraryEntry.name} (Custom)` : 'Custom Section');
+    setShowAdvanced(false);
+    setShowCustomForm(false);
+    setShowRawHtml(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [block?.slug]);
 
   const hasSlots = slots.length > 0;
+
+  const handleGenerateCopy = async () => {
+    if (generating || !aiPrompt.trim() || !hasSlots) return;
+    setGenerating(true);
+    setGenerateError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/components/generate-copy`, {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          slug:          block.slug,
+          ai_prompt:     aiPrompt,
+          asset_type:    assetType === 'none' ? null : assetType,
+          element_type:  elementType === 'none' ? null : elementType,
+          current_slots: values,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = body?.detail;
+        const msg = typeof detail === 'string' ? detail : detail?.message || `Fehler ${res.status}`;
+        throw new Error(msg);
+      }
+      // Generierte Werte ueber bestehende mergen — User-Edits nicht ueberschreiben
+      // wenn KI fuer den Key nichts liefert.
+      setValues((prev) => ({ ...prev, ...(body.slots || {}) }));
+    } catch (e) {
+      setGenerateError(e.message || 'KI-Aufruf fehlgeschlagen');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const handleSlotSave = () => {
     if (saving) return;
@@ -918,157 +1003,277 @@ function SlotEditorModal({ block, libraryEntry, onClose, onSaveSlots, onSaveAsCu
     setSaving(false);
   };
 
+  const lblStyle = {
+    display: 'block', fontSize: 10, fontWeight: 700,
+    color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em',
+    marginBottom: 4,
+  };
+  const inpStyle = {
+    width: '100%', boxSizing: 'border-box',
+    padding: '7px 10px',
+    border: '1px solid #cbd5e1', borderRadius: 6,
+    fontSize: 12, fontFamily: 'inherit', outline: 'none',
+    background: '#fff',
+  };
+
   return (
-    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{
-      position: 'fixed', inset: 0, zIndex: 2000,
-      background: 'rgba(0,0,0,0.55)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+    <aside style={{
+      width: 380, flexShrink: 0,
+      background: '#fff', borderLeft: '1px solid #e2e8f0',
+      display: 'flex', flexDirection: 'column',
+      boxShadow: '-4px 0 12px rgba(0,0,0,0.04)',
+      fontFamily: 'var(--font-sans, system-ui)',
     }}>
+      {/* Header */}
       <div style={{
-        background: '#fff', borderRadius: 12,
-        width: '100%', maxWidth: 920, maxHeight: 'calc(100vh - 32px)',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        padding: '12px 14px', borderBottom: '1px solid #e2e8f0',
+        background: '#f8fafc',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10,
       }}>
-        {/* Header */}
-        <div style={{
-          padding: '14px 18px', borderBottom: '1px solid #e2e8f0',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: '#f8fafc',
-        }}>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: KC_DARK }}>
-              {libraryEntry?.name || block.slug}
-            </div>
-            <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'ui-monospace, monospace' }}>
-              {block.slug}
-            </div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{
+            fontSize: 13, fontWeight: 800, color: KC_DARK,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {libraryEntry?.name || block.slug}
           </div>
-          <button type="button" onClick={onClose}
-            style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#64748b', lineHeight: 1 }}>×</button>
+          <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'ui-monospace, monospace', marginTop: 2 }}>
+            {block.slug}
+          </div>
+          {libraryEntry?.preview_note && (
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, lineHeight: 1.4 }}>
+              {libraryEntry.preview_note}
+            </div>
+          )}
         </div>
+        <button type="button" onClick={onClose} aria-label="Schließen"
+          style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748b', lineHeight: 1, padding: 0, flexShrink: 0 }}>
+          ×
+        </button>
+      </div>
 
-        {/* Body: 2-Spalten — Form links, Live-Preview rechts */}
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-          {/* Form */}
-          <div style={{ flex: '0 0 360px', padding: 16, overflowY: 'auto', borderRight: '1px solid #e2e8f0' }}>
-            {!hasSlots && !showRawHtml && (
-              <div style={{
-                padding: 12, fontSize: 12, color: '#92400e',
-                background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 6,
-                marginBottom: 12,
-              }}>
-                Diese Section hat keine definierten Slots. Klick „HTML direkt bearbeiten" für volle Kontrolle.
-              </div>
-            )}
-
-            {hasSlots && !showRawHtml && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {slots.map((s) => (
-                  <div key={s.key}>
-                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>
-                      {s.label || s.key}
-                    </label>
-                    <input
-                      type="text"
-                      value={values[s.key] ?? ''}
-                      onChange={(e) => setValues((v) => ({ ...v, [s.key]: e.target.value }))}
-                      placeholder={s.default || ''}
-                      style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }}
-                    />
-                    <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2, fontFamily: 'ui-monospace, monospace' }}>
-                      {`{{${s.key}}}`}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {showRawHtml && (
+      {/* Body — scrollbar */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* AI-Generate-Block (Phase B Hauptfeature) */}
+        {hasSlots && (
+          <div style={{
+            padding: 10,
+            background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8,
+          }}>
+            <label style={lblStyle}>✨ KI-Anweisung</label>
+            <textarea
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              placeholder='z.B. "Fokus auf Wallbox-Installation, sympathisch, lokal verankert"'
+              rows={3}
+              style={{ ...inpStyle, resize: 'vertical', minHeight: 60, marginBottom: 8 }}
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
-                  HTML-Template (Tailwind)
-                </label>
-                <textarea
-                  value={rawHtml}
-                  onChange={(e) => setRawHtml(e.target.value)}
-                  rows={20}
-                  style={{ width: '100%', boxSizing: 'border-box', padding: 10, border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 11, fontFamily: 'ui-monospace, monospace', resize: 'vertical' }}
+                <label style={lblStyle}>Asset</label>
+                <select
+                  value={assetType}
+                  onChange={(e) => setAssetType(e.target.value)}
+                  style={{ ...inpStyle, cursor: 'pointer', padding: '6px 8px' }}
+                >
+                  <option value="none">Kein Asset</option>
+                  <option value="image">Bild</option>
+                  <option value="video">Video</option>
+                </select>
+              </div>
+              <div>
+                <label style={lblStyle}>Element</label>
+                <select
+                  value={elementType}
+                  onChange={(e) => setElementType(e.target.value)}
+                  style={{ ...inpStyle, cursor: 'pointer', padding: '6px 8px' }}
+                >
+                  <option value="none">Standard</option>
+                  <option value="form">Formular</option>
+                  <option value="button">Button</option>
+                </select>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleGenerateCopy}
+              disabled={generating || !aiPrompt.trim()}
+              style={{
+                width: '100%', padding: '8px 12px',
+                background: generating || !aiPrompt.trim() ? '#94a3b8' : '#0284c7',
+                color: '#fff', border: 'none', borderRadius: 6,
+                fontSize: 12, fontWeight: 700,
+                cursor: generating || !aiPrompt.trim() ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {generating ? 'KI generiert…' : '✨ Generate copy'}
+            </button>
+            {generateError && (
+              <div style={{
+                marginTop: 8, padding: '6px 8px',
+                background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 4,
+                fontSize: 11, color: '#991B1B',
+              }}>
+                {generateError}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Slots */}
+        {hasSlots ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Slots ({slots.length})
+            </div>
+            {slots.map((s) => (
+              <div key={s.key}>
+                <label style={lblStyle}>{s.label || s.key}</label>
+                <input
+                  type="text"
+                  value={values[s.key] ?? ''}
+                  onChange={(e) => setValues((v) => ({ ...v, [s.key]: e.target.value }))}
+                  placeholder={s.default || ''}
+                  style={inpStyle}
                 />
-                <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
-                  Änderungen werden nur sichtbar wenn du als Custom-Section speicherst.
+                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2, fontFamily: 'ui-monospace, monospace' }}>
+                  {`{{${s.key}}}`}
                 </div>
               </div>
-            )}
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            padding: 10, fontSize: 11, color: '#92400e',
+            background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 6,
+          }}>
+            Diese Section hat keine definierten Slots. Nutze „HTML direkt bearbeiten" unten für volle Kontrolle.
+          </div>
+        )}
 
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed #e2e8f0' }}>
-              <button type="button"
-                onClick={() => setShowRawHtml((v) => !v)}
-                style={{ background: 'none', border: 'none', color: KC_MID, fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+        {/* Erweiterter Bereich — eingeklappt */}
+        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10 }}>
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((v) => !v)}
+            style={{
+              background: 'none', border: 'none',
+              color: KC_MID, fontSize: 11, fontWeight: 700,
+              cursor: 'pointer', padding: 0, fontFamily: 'inherit',
+            }}
+          >
+            {showAdvanced ? '▼ Erweitert' : '▶ Erweitert (HTML / Custom speichern)'}
+          </button>
+
+          {showAdvanced && (
+            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                type="button" onClick={() => setShowRawHtml((v) => !v)}
+                style={{
+                  background: '#fff', border: '1px solid #cbd5e1',
+                  color: '#475569', fontSize: 11, fontWeight: 600,
+                  padding: '6px 10px', borderRadius: 6,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  textAlign: 'left',
+                }}
+              >
                 {showRawHtml ? '← Slot-Modus' : 'HTML direkt bearbeiten →'}
               </button>
-            </div>
+              {showRawHtml && (
+                <>
+                  <textarea
+                    value={rawHtml}
+                    onChange={(e) => setRawHtml(e.target.value)}
+                    rows={12}
+                    style={{ ...inpStyle, fontFamily: 'ui-monospace, monospace', fontSize: 11, resize: 'vertical' }}
+                  />
+                  <div style={{ fontSize: 10, color: '#94a3b8' }}>
+                    Wird nur sichtbar wenn du als Custom-Section speicherst.
+                  </div>
+                </>
+              )}
 
-            {showCustomForm && (
-              <div style={{ marginTop: 14, padding: 10, background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#92400e', marginBottom: 3 }}>Custom-Slug</label>
-                  <input value={customSlug} onChange={(e) => setCustomSlug(e.target.value)}
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '6px 8px', border: '1px solid #FCD34D', borderRadius: 4, fontSize: 11, fontFamily: 'ui-monospace, monospace' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#92400e', marginBottom: 3 }}>Anzeigename</label>
-                  <input value={customName} onChange={(e) => setCustomName(e.target.value)}
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '6px 8px', border: '1px solid #FCD34D', borderRadius: 4, fontSize: 11 }} />
-                </div>
-              </div>
-            )}
-          </div>
+              <button
+                type="button" onClick={() => setShowCustomForm((v) => !v)}
+                style={{
+                  background: '#fff', border: `1px solid ${KC_MID}`,
+                  color: KC_MID, fontSize: 11, fontWeight: 700,
+                  padding: '6px 10px', borderRadius: 6,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  textAlign: 'left',
+                }}
+              >
+                {showCustomForm ? '× Custom abbrechen' : '💾 Als Custom-Section speichern'}
+              </button>
 
-          {/* Live-Preview rechts */}
-          <div style={{ flex: 1, overflow: 'auto', background: '#f8fafc', padding: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-              Live-Preview
-            </div>
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden', pointerEvents: 'none' }}>
-              {previewHtml ? (
-                <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
-              ) : (
-                <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 12 }}>Keine Vorschau</div>
+              {showCustomForm && (
+                <div style={{
+                  padding: 8, background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 6,
+                  display: 'flex', flexDirection: 'column', gap: 6,
+                }}>
+                  <div>
+                    <label style={{ ...lblStyle, color: '#92400e' }}>Slug</label>
+                    <input value={customSlug} onChange={(e) => setCustomSlug(e.target.value)}
+                      style={{ ...inpStyle, padding: '6px 8px', fontFamily: 'ui-monospace, monospace', borderColor: '#FCD34D' }} />
+                  </div>
+                  <div>
+                    <label style={{ ...lblStyle, color: '#92400e' }}>Name</label>
+                    <input value={customName} onChange={(e) => setCustomName(e.target.value)}
+                      style={{ ...inpStyle, padding: '6px 8px', borderColor: '#FCD34D' }} />
+                  </div>
+                  <button
+                    type="button" onClick={handleCustomSave}
+                    disabled={saving || !customSlug.trim() || !customName.trim()}
+                    style={{
+                      padding: '6px 10px', marginTop: 2,
+                      background: saving ? '#94a3b8' : KC_MID, color: '#fff',
+                      border: 'none', borderRadius: 4,
+                      fontSize: 11, fontWeight: 700,
+                      cursor: saving ? 'wait' : 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {saving ? 'Speichert…' : '✓ Custom speichern + anwenden'}
+                  </button>
+                </div>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div style={{
-          padding: '12px 18px', borderTop: '1px solid #e2e8f0',
-          display: 'flex', justifyContent: 'space-between', gap: 8,
-          background: '#f8fafc',
-        }}>
-          <button type="button" onClick={() => setShowCustomForm((v) => !v)}
-            style={{ padding: '8px 14px', background: '#fff', border: `1px solid ${KC_MID}`, color: KC_MID, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            {showCustomForm ? '× Custom abbrechen' : '💾 Als Custom-Section speichern'}
-          </button>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={onClose} disabled={saving}
-              style={{ padding: '8px 14px', background: '#fff', border: '1px solid #cbd5e1', color: '#64748b', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>
-              Abbrechen
-            </button>
-            {showCustomForm ? (
-              <button type="button" onClick={handleCustomSave} disabled={saving || !customSlug.trim() || !customName.trim()}
-                style={{ padding: '8px 18px', background: saving ? '#94a3b8' : KC_MID, color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
-                {saving ? 'Speichert…' : '✓ Custom speichern + anwenden'}
-              </button>
-            ) : (
-              <button type="button" onClick={handleSlotSave} disabled={saving || (!hasSlots && !showRawHtml)}
-                style={{ padding: '8px 18px', background: saving || (!hasSlots && !showRawHtml) ? '#94a3b8' : KC_DARK, color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
-                {saving ? 'Speichert…' : '✓ Slots speichern'}
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </div>
-    </div>
+
+      {/* Footer */}
+      <div style={{
+        padding: '10px 14px', borderTop: '1px solid #e2e8f0',
+        display: 'flex', gap: 8, background: '#f8fafc',
+      }}>
+        <button
+          type="button" onClick={onClose}
+          style={{
+            flex: 1, padding: '8px 12px',
+            background: '#fff', border: '1px solid #e2e8f0',
+            borderRadius: 8, fontSize: 12, cursor: 'pointer',
+            color: '#64748b', fontFamily: 'inherit',
+          }}
+        >
+          Schließen
+        </button>
+        <button
+          type="button" onClick={handleSlotSave}
+          disabled={saving || !hasSlots}
+          style={{
+            flex: 1, padding: '8px 12px',
+            background: saving || !hasSlots ? '#94a3b8' : KC_DARK,
+            color: '#fff', border: 'none',
+            borderRadius: 8, fontSize: 12, fontWeight: 700,
+            cursor: saving || !hasSlots ? 'not-allowed' : 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          {saving ? 'Speichert…' : '✓ Slots speichern'}
+        </button>
+      </div>
+    </aside>
   );
 }

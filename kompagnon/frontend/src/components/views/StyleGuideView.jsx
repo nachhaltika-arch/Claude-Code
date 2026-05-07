@@ -1017,6 +1017,14 @@ function ColorSection({
   // Semantic-Display den primaeren Eindruck dominieren.
   const [editorOpen, setEditorOpen] = useState(false);
 
+  // Primaerfarben-Quick-Edit: Hex-Input + Color-Picker fuer accent_1/2/3.
+  // Schnell-Edit ohne Detail-Editor zu oeffnen.
+  const PRIMARY_FIELDS = [
+    { key: 'accent_1', label: 'Primärfarbe' },
+    { key: 'accent_2', label: 'Sekundärfarbe' },
+    { key: 'accent_3', label: 'Akzentfarbe' },
+  ];
+
   return (
     <div>
       <SectionHeader title="Farb-Konzepte" onShuffle={onShuffle}>
@@ -1029,6 +1037,67 @@ function ColorSection({
           onChange={onToggleLightDark}
         />
       </SectionHeader>
+
+      {/* Primaerfarben-Quick-Edit (Hex-Input + Color-Picker) */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10,
+        marginBottom: 18,
+        padding: 12,
+        background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8,
+      }}>
+        {PRIMARY_FIELDS.map((f) => {
+          const isOverridden = f.key in lvlOvr;
+          return (
+            <div key={f.key}>
+              <div style={{
+                fontSize: 9, fontWeight: 800, color: '#475569',
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                marginBottom: 5,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
+              }}>
+                <span>{f.label}</span>
+                {isOverridden && (
+                  <button type="button" onClick={() => onResetPaletteToken(f.key)}
+                    title="Zurueck zum Concept-Default"
+                    style={{
+                      background: 'transparent', border: 'none',
+                      color: '#7c3aed', cursor: 'pointer',
+                      fontSize: 11, padding: 0, lineHeight: 1,
+                    }}>
+                    ↺
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input
+                  type="color"
+                  value={/^#[0-9a-fA-F]{6}$/.test(palette[f.key]) ? palette[f.key] : '#888888'}
+                  onChange={(e) => onSetPaletteToken(f.key, e.target.value)}
+                  style={{
+                    width: 36, height: 36,
+                    border: `1px solid ${isOverridden ? '#7c3aed' : '#cbd5e1'}`, borderRadius: 6,
+                    padding: 0, background: 'transparent', cursor: 'pointer', flexShrink: 0,
+                  }}
+                  aria-label={`${f.label} wählen`}
+                />
+                <input
+                  type="text"
+                  value={palette[f.key] || ''}
+                  onChange={(e) => onSetPaletteToken(f.key, e.target.value)}
+                  placeholder={conceptDefaultPalette[f.key]}
+                  spellCheck={false}
+                  style={{
+                    flex: 1, minWidth: 0, padding: '7px 8px',
+                    border: `1px solid ${isOverridden ? '#7c3aed' : '#cbd5e1'}`, borderRadius: 4,
+                    fontSize: 12, fontFamily: 'ui-monospace, monospace', color: '#334155',
+                    outline: 'none', background: '#fff',
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',

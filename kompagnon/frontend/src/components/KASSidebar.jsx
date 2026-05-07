@@ -26,7 +26,11 @@
  *   #FAE600 KC_YELLOW   - aktiver Schritt-Dot + Fortschrittsleiste
  *   #1D9E75 GREEN       - 'completed' Dot
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
+// Phase D: localStorage-Key fuer den Collapse-State, damit das Setting
+// ueber Reloads erhalten bleibt.
+const COLLAPSE_KEY = 'kas:sidebar:collapsed';
 
 const KC_DARK = '#004F59';
 const KC_MID = '#008EAA';
@@ -123,6 +127,18 @@ export default function KASSidebar({
 
   const [openPhase, setOpenPhase] = useState(initialOpenPhase);
 
+  // Phase D: Collapsed-State persistent. Default = expanded.
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
+  });
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0'); } catch {}
+      return next;
+    });
+  };
+
   const completedCount = SCHRITTE.filter((s) => stepStatus[s.id] === 'completed').length;
   const progressPct = Math.round((completedCount / SCHRITTE.length) * 100);
 
@@ -131,7 +147,7 @@ export default function KASSidebar({
   return (
     <aside
       style={{
-        width: 220,
+        width: collapsed ? 56 : 220,
         flexShrink: 0,
         height: '100vh',
         background: KC_DARK,
@@ -139,47 +155,67 @@ export default function KASSidebar({
         display: 'flex',
         flexDirection: 'column',
         fontFamily: 'var(--font-sans, "Noto Sans", sans-serif)',
+        transition: 'width 0.2s ease-out',
       }}
       aria-label="Prozess-Sidebar"
     >
       {/* Logo-Header */}
-      <div style={{ padding: '18px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{
+        padding: collapsed ? '14px 0' : '18px 16px',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 10,
+      }}>
         <div
           aria-hidden
+          title={collapsed ? 'KOMPAGNON · ProzessFlow v3' : undefined}
           style={{
             width: 28, height: 28, background: KC_MID, borderRadius: 6,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff', fontWeight: 900, fontSize: 13, letterSpacing: '-0.05em',
+            flexShrink: 0,
           }}
         >
           KA
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.01em', textTransform: 'uppercase' }}>
-            ONLINE-FERTIG
-          </div>
-          <div style={{ fontSize: 9, opacity: 0.55, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            ProzessFlow v3
-          </div>
-        </div>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Sidebar schließen"
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer' }}
-          >
-            ✕
-          </button>
+        {!collapsed && (
+          <>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.01em', textTransform: 'uppercase' }}>
+                ONLINE-FERTIG
+              </div>
+              <div style={{ fontSize: 9, opacity: 0.55, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                ProzessFlow v3
+              </div>
+            </div>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Sidebar schließen"
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            )}
+          </>
         )}
       </div>
 
       {/* Ebene 1: View-Switcher */}
-      <div style={{ padding: '14px 12px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8, paddingLeft: 4 }}>
-          Ansicht
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+      <div style={{
+        padding: collapsed ? '8px 6px' : '14px 12px 10px',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+      }}>
+        {!collapsed && (
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8, paddingLeft: 4 }}>
+            Ansicht
+          </div>
+        )}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: collapsed ? '1fr' : '1fr 1fr',
+          gap: 4,
+        }}>
           {VIEW_TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeView === tab.id;
@@ -193,8 +229,8 @@ export default function KASSidebar({
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 4,
-                  padding: '10px 4px',
+                  gap: collapsed ? 0 : 4,
+                  padding: collapsed ? '10px 4px' : '10px 4px',
                   background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
                   color: isActive ? '#fff' : 'rgba(255,255,255,0.55)',
                   border: isActive ? `1px solid ${KC_MID}` : '1px solid transparent',
@@ -210,14 +246,54 @@ export default function KASSidebar({
                 title={tab.label}
               >
                 <Icon active={isActive} />
-                <span>{tab.label}</span>
+                {!collapsed && <span>{tab.label}</span>}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Ebene 2: Phasen-Navigator (scrollbar) */}
+      {/* Phase D: Im Collapsed-Mode Phasen-Navigator komplett ausblenden, nur
+          schmaler Scroll-Spacer + aktive Phase als Icon-Marker */}
+      {collapsed ? (
+        <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 6px' }} aria-label="Phasen kompakt">
+          {phaseGroups.map((group) => {
+            const stepsCompleted = group.steps.filter((s) => stepStatus[s.id] === 'completed').length;
+            const allCompleted = stepsCompleted === group.steps.length;
+            const containsActive = group.steps.some((s) => s.id === activeStep);
+            return (
+              <button
+                key={group.phase} type="button"
+                onClick={() => {
+                  // Klick im Collapsed-Mode: zur ersten un-locked-Step der Phase springen
+                  const firstNonLocked = group.steps.find((s) => stepStatus[s.id] !== 'locked');
+                  if (firstNonLocked) onStepClick?.(firstNonLocked.id);
+                }}
+                title={`${group.label} (${stepsCompleted}/${group.steps.length})`}
+                style={{
+                  width: '100%', padding: '10px 0', marginBottom: 2,
+                  background: containsActive ? 'rgba(255,255,255,0.10)' : 'transparent',
+                  border: containsActive ? `1px solid ${KC_MID}` : '1px solid transparent',
+                  borderRadius: 6, cursor: 'pointer', color: '#fff',
+                  fontFamily: 'inherit',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                }}
+              >
+                <span aria-hidden style={{ fontSize: 16, opacity: allCompleted ? 1 : 0.7 }}>
+                  {group.icon}
+                </span>
+                <span style={{
+                  fontSize: 8, fontVariantNumeric: 'tabular-nums',
+                  color: allCompleted ? GREEN : 'rgba(255,255,255,0.55)',
+                  fontWeight: 700,
+                }}>
+                  {stepsCompleted}/{group.steps.length}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      ) : (
       <nav
         style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}
         aria-label="Phasen und Schritte"
@@ -333,15 +409,22 @@ export default function KASSidebar({
         })}
       </nav>
 
+      )}
+
       {/* Fortschrittsleiste */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ padding: '8px 16px 4px', display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>
-          <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Fortschritt</span>
-          <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: '#fff' }}>
-            {completedCount}/{SCHRITTE.length}
-          </span>
-        </div>
-        <div style={{ height: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+        {!collapsed && (
+          <div style={{ padding: '8px 16px 4px', display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>
+            <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Fortschritt</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: '#fff' }}>
+              {completedCount}/{SCHRITTE.length}
+            </span>
+          </div>
+        )}
+        <div
+          title={collapsed ? `Fortschritt: ${completedCount}/${SCHRITTE.length}` : undefined}
+          style={{ height: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}
+        >
           <div
             style={{
               height: '100%',
@@ -351,6 +434,32 @@ export default function KASSidebar({
             }}
           />
         </div>
+        {/* Phase D: Collapse-Toggle ganz unten */}
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? 'Sidebar einblenden' : 'Sidebar einklappen'}
+          title={collapsed ? 'Sidebar einblenden' : 'Sidebar einklappen'}
+          style={{
+            width: '100%', padding: '8px 0',
+            background: 'transparent', border: 'none',
+            color: 'rgba(255,255,255,0.55)',
+            cursor: 'pointer', fontSize: 14,
+            fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; }}
+        >
+          <span aria-hidden style={{ fontSize: 14, lineHeight: 1 }}>
+            {collapsed ? '»' : '«'}
+          </span>
+          {!collapsed && (
+            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Einklappen
+            </span>
+          )}
+        </button>
       </div>
     </aside>
   );

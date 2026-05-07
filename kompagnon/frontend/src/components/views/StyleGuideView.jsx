@@ -829,11 +829,14 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
         {/* Anker-Nav links */}
         <AnchorNav />
 
-        {/* Sections in der Mitte (scrollbar) */}
+        {/* Sections in der Mitte — Edit-Bereich, KAS-CI getoent.
+            Fixe Breite 520px → der Live-Preview rechts gewinnt allen
+            zusaetzlichen Platz. */}
         <div id="sg-scroll-container" style={{
-          flex: '1 1 600px', minWidth: 400,
-          overflowY: 'auto', padding: '24px 24px 80px',
-          borderRight: '1px solid #e2e8f0',
+          flex: '0 0 520px',
+          overflowY: 'auto', padding: '20px 22px 80px',
+          background: '#F0F4F5', // KAS-Surface (leicht teal-getoenter Weiss-Ton)
+          borderRight: '1px solid #D5E0E2', // KAS-Border
           scrollBehavior: 'smooth',
         }}>
           <SgSection id="sg-brand" title="Brand-Farben">
@@ -923,12 +926,12 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
           </SgSection>
         </div>
 
-        {/* Live-Preview rechts (sticky-permanent) */}
+        {/* Live-Preview rechts — nimmt den ganzen verbleibenden Platz */}
         <div style={{
-          flex: '0 0 480px', minWidth: 360,
+          flex: '1 1 auto', minWidth: 480,
           overflowY: 'auto',
           background: '#f1f5f9',
-          padding: 18,
+          padding: 24,
         }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b',
             textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
@@ -2302,13 +2305,13 @@ function AnchorNav() {
   return (
     <aside style={{
       flex: '0 0 180px',
-      background: '#fafafa',
-      borderRight: '1px solid #e2e8f0',
+      background: KC_DARK,
+      borderRight: '1px solid #D5E0E2',
       padding: '16px 10px',
       overflowY: 'auto',
     }}>
       <div style={{
-        fontSize: 9, fontWeight: 700, color: '#94a3b8',
+        fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.45)',
         textTransform: 'uppercase', letterSpacing: '0.1em',
         marginBottom: 8, paddingLeft: 8,
       }}>
@@ -2324,13 +2327,15 @@ function AnchorNav() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '8px 10px', borderRadius: 6,
-                background: isActive ? KC_DARK : 'transparent',
-                color: isActive ? '#fff' : '#475569',
-                border: 'none', cursor: 'pointer',
+                background: isActive ? KC_MID : 'transparent',
+                color: isActive ? '#fff' : 'rgba(255,255,255,0.7)',
+                borderLeft: isActive ? `3px solid ${KC_YELLOW}` : '3px solid transparent',
+                paddingLeft: isActive ? 7 : 10,
+                cursor: 'pointer',
                 fontSize: 12, fontWeight: isActive ? 700 : 500,
                 fontFamily: 'inherit', textAlign: 'left',
               }}
-              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = '#f1f5f9'; }}
+              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
               onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
             >
               <span aria-hidden style={{ fontSize: 14 }}>{item.icon}</span>
@@ -2352,15 +2357,24 @@ function SgSection({ id, title, children }) {
     <section
       id={id}
       style={{
-        marginBottom: 40,
-        scrollMarginTop: 16,
+        marginBottom: 16,
+        scrollMarginTop: 12,
+        background: '#fff',
+        border: '1px solid #D5E0E2', // KAS-Border
+        borderTop: `3px solid ${KC_MID}`, // KAS-Akzent oben
+        borderRadius: 8,
+        padding: '18px 20px',
+        boxShadow: '0 1px 2px rgba(0, 79, 89, 0.04)',
       }}
     >
       <h2 style={{
-        margin: '0 0 16px',
-        fontSize: 18, fontWeight: 800,
+        margin: '0 0 14px',
+        fontSize: 16, fontWeight: 900,
         color: KC_DARK,
         letterSpacing: '-0.01em',
+        textTransform: 'uppercase',
+        paddingBottom: 10,
+        borderBottom: '1px solid #D5E0E2',
       }}>
         {title}
       </h2>

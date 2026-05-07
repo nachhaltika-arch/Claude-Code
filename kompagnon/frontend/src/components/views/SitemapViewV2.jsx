@@ -518,14 +518,14 @@ export default function SitemapViewV2({
     <div style={{
       display: 'flex', flexDirection: 'column',
       height: '100%', fontFamily: 'var(--font-sans, system-ui)',
-      background: '#f8fafc',
+      background: 'var(--bg-app)',
     }}>
       {/* Topbar */}
       <div style={{
         flexShrink: 0,
         padding: '14px 24px',
         background: '#fff',
-        borderBottom: '1px solid #e2e8f0',
+        borderBottom: '1px solid var(--border-light)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         gap: 16, flexWrap: 'wrap',
       }}>
@@ -536,7 +536,7 @@ export default function SitemapViewV2({
           }}>
             Sitemap
           </h1>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
             {pages.length} Seite{pages.length === 1 ? '' : 'n'} ·
             {' '}{totalBlocks} Block{totalBlocks === 1 ? '' : 's'} im Wireframe
           </div>
@@ -603,7 +603,7 @@ export default function SitemapViewV2({
           flex: 1, overflow: 'auto',
           padding: '40px 24px',
         }}>
-          {loading && <div style={{ color: '#64748b' }}>Sitemap wird geladen…</div>}
+          {loading && <div style={{ color: 'var(--text-secondary)' }}>Sitemap wird geladen…</div>}
           {error && (
             <div style={{ background: '#FEF2F2', color: '#991B1B', padding: 12, borderRadius: 8, fontSize: 13 }}>
               {error}
@@ -776,7 +776,7 @@ function PageColumn({
             top: -ROW_GAP,
             left: '50%', transform: 'translateX(-50%)',
             width: 1, height: ROW_GAP / 2,
-            background: '#cbd5e1',
+            background: 'var(--border-medium)',
           }} />
           {/* Horizontale Linie ueber alle Kinder */}
           {children.length > 1 && (
@@ -785,7 +785,7 @@ function PageColumn({
               top: -ROW_GAP / 2,
               left: 0, right: 0,
               height: 1,
-              background: '#cbd5e1',
+              background: 'var(--border-medium)',
             }} />
           )}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: COL_GAP / 2 }}>
@@ -833,7 +833,7 @@ function ChildPageColumn(props) {
         top: -ROW_GAP / 2,
         left: '50%', transform: 'translateX(-50%)',
         width: 1, height: ROW_GAP / 2,
-        background: '#cbd5e1',
+        background: 'var(--border-medium)',
       }} />
       <PageColumn {...props} />
     </div>
@@ -908,7 +908,7 @@ function PageCard({
           ? `2px solid ${KC_MID}`
           : isGroup
           ? `1px solid ${KC_MID}`
-          : '1px solid #e2e8f0',
+          : '1px solid var(--border-light)',
         borderRadius: 10,
         boxShadow: isActive
           ? `0 4px 16px ${KC_MID}33`
@@ -921,8 +921,8 @@ function PageCard({
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '10px 12px',
-        background: isGroup ? '#ecfeff' : '#f8fafc',
-        borderBottom: '1px solid #e2e8f0',
+        background: isGroup ? '#ecfeff' : 'var(--bg-app)',
+        borderBottom: '1px solid var(--border-light)',
         borderTopLeftRadius: 10, borderTopRightRadius: 10,
       }}>
         <span style={{ fontSize: 14, flexShrink: 0 }}>
@@ -953,7 +953,7 @@ function PageCard({
           aria-label="Menü"
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: '#64748b', fontSize: 16, lineHeight: 1, padding: '0 4px',
+            color: 'var(--text-secondary)', fontSize: 16, lineHeight: 1, padding: '0 4px',
             fontWeight: 700,
           }}
         >
@@ -986,14 +986,14 @@ function PageCard({
         {sections.length === 0 ? (
           <div data-noselect style={{
             padding: '20px 8px', textAlign: 'center',
-            color: '#94a3b8', fontSize: 11, fontStyle: 'italic',
+            color: 'var(--text-tertiary)', fontSize: 11, fontStyle: 'italic',
           }}>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onAddSection(page.id, 0); }}
               style={{
                 width: '100%', padding: '10px 12px',
-                background: '#f8fafc', border: '1px dashed #cbd5e1',
+                background: 'var(--bg-app)', border: '1px dashed var(--border-medium)',
                 borderRadius: 6, fontSize: 12, fontWeight: 700,
                 color: KC_MID, cursor: 'pointer', fontFamily: 'inherit',
                 marginBottom: 6,
@@ -1001,7 +1001,7 @@ function PageCard({
             >
               + Section
             </button>
-            <div style={{ fontSize: 10, color: '#cbd5e1' }}>oder</div>
+            <div style={{ fontSize: 10, color: 'var(--border-medium)' }}>oder</div>
             <button
               type="button"
               onClick={(e) => {
@@ -1056,7 +1056,7 @@ function PageCard({
               onClick={(e) => { e.stopPropagation(); onAddSection(page.id, sections.length); }}
               style={{
                 marginTop: 4, padding: '6px 10px',
-                background: 'transparent', border: '1px dashed #cbd5e1',
+                background: 'transparent', border: '1px dashed var(--border-medium)',
                 borderRadius: 6, fontSize: 11, fontWeight: 600,
                 color: KC_MID, cursor: 'pointer', fontFamily: 'inherit',
               }}
@@ -1072,8 +1072,8 @@ function PageCard({
         <div data-noselect style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '6px 12px',
-          borderTop: '1px solid #e2e8f0',
-          background: linksOpen ? '#eff6ff' : '#f8fafc',
+          borderTop: '1px solid var(--border-light)',
+          background: linksOpen ? '#eff6ff' : 'var(--bg-app)',
           fontSize: 10,
           cursor: 'pointer',
         }} onClick={(e) => { e.stopPropagation(); setLinksOpen((v) => !v); }}>
@@ -1091,14 +1091,14 @@ function PageCard({
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 3,
               padding: '2px 6px', borderRadius: 4,
-              background: '#f1f5f9', color: '#64748b',
+              background: 'var(--surface)', color: 'var(--text-secondary)',
               fontWeight: 700,
             }}>
               ↗ {externalLinks.length} extern
             </span>
           )}
           <span style={{ flex: 1 }} />
-          <span style={{ color: '#94a3b8', fontSize: 9 }}>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: 9 }}>
             {linksOpen ? '▲' : '▼'}
           </span>
         </div>
@@ -1108,9 +1108,9 @@ function PageCard({
       {hasLinks && linksOpen && (
         <div data-noselect onClick={(e) => e.stopPropagation()} style={{
           padding: '8px 10px',
-          background: '#f8fafc',
-          borderTop: '1px solid #e2e8f0',
-          fontSize: 10, color: '#475569',
+          background: 'var(--bg-app)',
+          borderTop: '1px solid var(--border-light)',
+          fontSize: 10, color: 'var(--text-secondary)',
           maxHeight: 200, overflowY: 'auto',
         }}>
           {internalLinks.length > 0 && (
@@ -1142,7 +1142,7 @@ function PageCard({
                     }}>
                       → {target?.page_name || `Page #${l.toPageId}`}
                     </span>
-                    <code style={{ fontSize: 9, color: '#64748b', fontFamily: 'ui-monospace, monospace' }}>
+                    <code style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace' }}>
                       {l.slot}
                     </code>
                   </button>
@@ -1153,7 +1153,7 @@ function PageCard({
           {externalLinks.length > 0 && (
             <>
               <div style={{
-                fontSize: 9, fontWeight: 700, color: '#475569',
+                fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)',
                 textTransform: 'uppercase', letterSpacing: '0.06em',
                 marginTop: internalLinks.length > 0 ? 6 : 0, marginBottom: 4,
               }}>
@@ -1168,9 +1168,9 @@ function PageCard({
                     display: 'flex', alignItems: 'center', gap: 4,
                     padding: '4px 6px', marginBottom: 2,
                     background: '#fff',
-                    border: `1px solid ${l.unresolved ? '#fca5a5' : '#e2e8f0'}`,
+                    border: `1px solid ${l.unresolved ? '#fca5a5' : 'var(--border-light)'}`,
                     borderRadius: 4,
-                    fontSize: 10, color: l.unresolved ? '#991B1B' : '#475569',
+                    fontSize: 10, color: l.unresolved ? '#991B1B' : 'var(--text-secondary)',
                     textDecoration: 'none',
                     overflow: 'hidden',
                   }}
@@ -1181,7 +1181,7 @@ function PageCard({
                     {l.unresolved ? '⚠ ' : '↗ '}
                     {l.url}
                   </span>
-                  <code style={{ fontSize: 9, color: '#94a3b8', fontFamily: 'ui-monospace, monospace' }}>
+                  <code style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: 'ui-monospace, monospace' }}>
                     {l.slot}
                   </code>
                 </a>
@@ -1197,7 +1197,7 @@ function PageCard({
           data-noselect
           style={{
             position: 'absolute', top: 38, right: 8, zIndex: 50,
-            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8,
+            background: '#fff', border: '1px solid var(--border-light)', borderRadius: 8,
             boxShadow: '0 6px 20px rgba(0,0,0,0.10)',
             minWidth: 180, padding: 4,
             display: 'flex', flexDirection: 'column',
@@ -1212,14 +1212,14 @@ function PageCard({
           </MenuItem>
           <MenuItem onClick={() => { setMenuOpen(false); onDuplicate(page.id); }}>📋 Duplizieren</MenuItem>
           <MenuItem onClick={() => { setMenuOpen(false); onSelect(page.id); }}>✏️ Bearbeiten…</MenuItem>
-          <div style={{ height: 1, background: '#e2e8f0', margin: '4px 2px' }} />
+          <div style={{ height: 1, background: 'var(--border-light)', margin: '4px 2px' }} />
           <MenuItem
             onClick={() => { setMenuOpen(false); onToggleGroup(page.id); }}
             disabled={page.ist_pflichtseite}
           >
             {isGroup ? '↩ Zurück zur Page' : '📂 Als Gruppe markieren'}
           </MenuItem>
-          <div style={{ height: 1, background: '#e2e8f0', margin: '4px 2px' }} />
+          <div style={{ height: 1, background: 'var(--border-light)', margin: '4px 2px' }} />
           <MenuItem
             danger
             disabled={page.ist_pflichtseite}
@@ -1241,12 +1241,12 @@ function MenuItem({ children, onClick, danger, disabled }) {
         background: 'transparent', border: 'none',
         padding: '6px 10px', textAlign: 'left',
         fontSize: 12, fontWeight: 600,
-        color: disabled ? '#cbd5e1' : danger ? '#dc2626' : '#475569',
+        color: disabled ? 'var(--border-medium)' : danger ? '#dc2626' : 'var(--text-secondary)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         borderRadius: 4, fontFamily: 'inherit',
       }}
       onMouseEnter={(e) => {
-        if (!disabled) e.currentTarget.style.background = danger ? '#FEF2F2' : '#f1f5f9';
+        if (!disabled) e.currentTarget.style.background = danger ? '#FEF2F2' : 'var(--surface)';
       }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
     >
@@ -1286,8 +1286,8 @@ function SectionRow({
       style={{
         position: 'relative',
         padding: '8px 10px',
-        background: hover ? '#f8fafc' : '#fff',
-        border: '1px solid #e2e8f0', borderRadius: 6,
+        background: hover ? 'var(--bg-app)' : '#fff',
+        border: '1px solid var(--border-light)', borderRadius: 6,
         fontSize: 11,
         cursor: 'grab',
         opacity: isBeingDragged ? 0.4 : 1,
@@ -1297,8 +1297,8 @@ function SectionRow({
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2,
       }}>
-        <span aria-hidden style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1, userSelect: 'none' }}>⠿</span>
-        <span style={{ color: '#cbd5e1', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 10 }}>
+        <span aria-hidden style={{ color: 'var(--border-medium)', fontSize: 12, lineHeight: 1, userSelect: 'none' }}>⠿</span>
+        <span style={{ color: 'var(--border-medium)', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 10 }}>
           {idx + 1}
         </span>
         <span style={{ fontWeight: 700, color: KC_DARK, flex: 1, minWidth: 0,
@@ -1319,7 +1319,7 @@ function SectionRow({
         )}
       </div>
       <div style={{
-        fontSize: 10, color: '#64748b',
+        fontSize: 10, color: 'var(--text-secondary)',
         lineHeight: 1.35,
         display: '-webkit-box',
         WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
@@ -1358,21 +1358,21 @@ function InheritedSectionRow({ sectionKey, idx }) {
   return (
     <div data-noselect style={{
       padding: '8px 10px',
-      background: '#f8fafc',
-      border: '1px dashed #cbd5e1', borderRadius: 6,
+      background: 'var(--bg-app)',
+      border: '1px dashed var(--border-medium)', borderRadius: 6,
       fontSize: 11,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-        <span style={{ color: '#cbd5e1', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 10 }}>
+        <span style={{ color: 'var(--border-medium)', fontVariantNumeric: 'tabular-nums', minWidth: 14, fontSize: 10 }}>
           {idx + 1}
         </span>
-        <span style={{ fontWeight: 700, color: '#475569', flex: 1, minWidth: 0,
+        <span style={{ fontWeight: 700, color: 'var(--text-secondary)', flex: 1, minWidth: 0,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {label}
         </span>
       </div>
       <div style={{
-        fontSize: 10, color: '#64748b',
+        fontSize: 10, color: 'var(--text-secondary)',
         lineHeight: 1.35,
         display: '-webkit-box',
         WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
@@ -1483,7 +1483,7 @@ function BottomToolbar({ zoom, onZoomIn, onZoomOut, onZoomReset, pageCount }) {
       display: 'flex', alignItems: 'center', gap: 6,
       padding: 4,
       background: '#fff',
-      border: '1px solid #e2e8f0',
+      border: '1px solid var(--border-light)',
       borderRadius: 10,
       boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
       zIndex: 50,
@@ -1504,8 +1504,8 @@ function BottomToolbar({ zoom, onZoomIn, onZoomOut, onZoomReset, pageCount }) {
         {Math.round(zoom * 100)}%
       </button>
       <ToolbarButton onClick={onZoomIn} disabled={zoom >= 1.5} title="Vergroessern (Strg++)">+</ToolbarButton>
-      <div style={{ width: 1, height: 20, background: '#e2e8f0', margin: '0 4px' }} />
-      <span style={{ padding: '6px 10px', fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+      <div style={{ width: 1, height: 20, background: 'var(--border-light)', margin: '0 4px' }} />
+      <span style={{ padding: '6px 10px', fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>
         {pageCount} {pageCount === 1 ? 'Seite' : 'Seiten'}
       </span>
     </div>
@@ -1520,12 +1520,12 @@ function ToolbarButton({ children, onClick, disabled, title }) {
         width: 30, height: 30,
         background: 'transparent', border: 'none', borderRadius: 6,
         cursor: disabled ? 'not-allowed' : 'pointer',
-        color: disabled ? '#cbd5e1' : KC_DARK,
+        color: disabled ? 'var(--border-medium)' : KC_DARK,
         fontSize: 16, fontWeight: 700, fontFamily: 'inherit',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 0,
       }}
-      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = '#f1f5f9'; }}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = 'var(--surface)'; }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
     >
       {children}
@@ -1659,7 +1659,7 @@ function AddSidebar({ pages, activePageId, onAddToActivePage, setDragState, endD
     return (
       <aside style={{
         width: 36, flexShrink: 0,
-        background: '#fff', borderRight: '1px solid #e2e8f0',
+        background: '#fff', borderRight: '1px solid var(--border-light)',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         padding: '12px 0',
       }}>
@@ -1681,7 +1681,7 @@ function AddSidebar({ pages, activePageId, onAddToActivePage, setDragState, endD
   return (
     <aside style={{
       width: 280, flexShrink: 0,
-      background: '#fff', borderRight: '1px solid #e2e8f0',
+      background: '#fff', borderRight: '1px solid var(--border-light)',
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',
       fontFamily: 'inherit',
@@ -1689,27 +1689,27 @@ function AddSidebar({ pages, activePageId, onAddToActivePage, setDragState, endD
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 14px', borderBottom: '1px solid #e2e8f0',
+        padding: '12px 14px', borderBottom: '1px solid var(--border-light)',
       }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: KC_DARK, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Add
         </div>
         <button type="button" onClick={() => setCollapsed(true)}
           aria-label="Sidebar einklappen" title="Sidebar einklappen"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 14, padding: 0 }}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 14, padding: 0 }}>
           ×
         </button>
       </div>
 
       {/* Search */}
-      <div style={{ padding: 10, borderBottom: '1px solid #e2e8f0' }}>
+      <div style={{ padding: 10, borderBottom: '1px solid var(--border-light)' }}>
         <input
           type="search" placeholder="Suchen…"
           value={search} onChange={(e) => setSearch(e.target.value)}
           style={{
             width: '100%', boxSizing: 'border-box',
             padding: '7px 10px',
-            border: '1px solid #e2e8f0', borderRadius: 6,
+            border: '1px solid var(--border-light)', borderRadius: 6,
             fontSize: 12, fontFamily: 'inherit', outline: 'none',
           }}
         />
@@ -1732,7 +1732,7 @@ function AddSidebar({ pages, activePageId, onAddToActivePage, setDragState, endD
         <div style={{ marginBottom: 12 }}>
           <div style={{
             padding: '4px 6px',
-            fontSize: 10, fontWeight: 700, color: '#64748b',
+            fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)',
             textTransform: 'uppercase', letterSpacing: '0.08em',
           }}>
             Global Sections
@@ -1765,17 +1765,17 @@ function AddSidebar({ pages, activePageId, onAddToActivePage, setDragState, endD
                   cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                   borderRadius: 6,
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-app)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
-                <span style={{ color: '#94a3b8', fontSize: 10, flexShrink: 0 }}>
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 10, flexShrink: 0 }}>
                   {isOpen ? '▼' : '▶'}
                 </span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: KC_DARK }}>
                   {cat.label}
                 </span>
                 <span style={{ flex: 1 }} />
-                <span style={{ fontSize: 10, color: '#94a3b8' }}>{items.length}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{items.length}</span>
               </button>
               {isOpen && (
                 <div style={{ paddingLeft: 4 }}>
@@ -1832,7 +1832,7 @@ function SidebarSectionItem({ sectionKey, count, global = false, onPick, setDrag
     >
       <span style={{
         width: 6, height: 6, borderRadius: '50%',
-        background: global ? '#10b981' : '#cbd5e1', flexShrink: 0,
+        background: global ? '#10b981' : 'var(--border-medium)', flexShrink: 0,
       }} />
       <span style={{
         flex: 1, minWidth: 0,
@@ -1845,7 +1845,7 @@ function SidebarSectionItem({ sectionKey, count, global = false, onPick, setDrag
         <span style={{
           fontSize: 9, fontWeight: 700,
           padding: '1px 6px', borderRadius: 10,
-          background: '#f1f5f9', color: '#64748b',
+          background: 'var(--surface)', color: 'var(--text-secondary)',
           flexShrink: 0,
         }}>
           {count}
@@ -1864,8 +1864,8 @@ function EmptyState({ onAddPage, onRegenerateSitemap }) {
   return (
     <div style={{
       maxWidth: 480, margin: '60px auto',
-      border: '2px dashed #cbd5e1', borderRadius: 16, padding: 40,
-      textAlign: 'center', color: '#64748b', background: '#fff',
+      border: '2px dashed var(--border-medium)', borderRadius: 16, padding: 40,
+      textAlign: 'center', color: 'var(--text-secondary)', background: '#fff',
     }}>
       <div style={{ fontSize: 36, marginBottom: 8 }}>🗺</div>
       <div style={{ fontSize: 16, fontWeight: 700, color: KC_DARK, marginBottom: 8 }}>
@@ -1875,10 +1875,10 @@ function EmptyState({ onAddPage, onRegenerateSitemap }) {
         Lege manuell Seiten an oder lass die KI eine Struktur vorschlagen.
       </div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <button type="button" onClick={onAddPage} style={btnTeal}>
+        <button type="button" onClick={onAddPage} style={btnSecondary}>
           + Erste Seite
         </button>
-        <button type="button" onClick={() => onRegenerateSitemap?.(0)} style={btnYellow}>
+        <button type="button" onClick={() => onRegenerateSitemap?.(0)} style={btnPrimary}>
           ⚡ KI-Vorschlag
         </button>
       </div>
@@ -1921,20 +1921,20 @@ function PageDetailPanel({ page, onClose, onSave, onDelete }) {
     <aside style={{
       width: 340, flexShrink: 0,
       background: '#fff',
-      borderLeft: '1px solid #e2e8f0',
+      borderLeft: '1px solid var(--border-light)',
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',
     }}>
       <div style={{
-        padding: '10px 14px', borderBottom: '1px solid #e2e8f0',
-        background: '#f8fafc',
+        padding: '10px 14px', borderBottom: '1px solid var(--border-light)',
+        background: 'var(--bg-app)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ fontSize: 13, fontWeight: 800, color: KC_DARK }}>
           Seiten-Details
         </div>
         <button type="button" onClick={onClose}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#64748b', padding: 0 }}>×</button>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-secondary)', padding: 0 }}>×</button>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {isPflicht && (
@@ -1979,16 +1979,16 @@ function PageDetailPanel({ page, onClose, onSave, onDelete }) {
         </div>
       </div>
       <div style={{
-        padding: '10px 14px', borderTop: '1px solid #e2e8f0',
-        background: '#f8fafc',
+        padding: '10px 14px', borderTop: '1px solid var(--border-light)',
+        background: 'var(--bg-app)',
         display: 'flex', justifyContent: 'space-between', gap: 8,
       }}>
         <button type="button" onClick={onDelete}
           disabled={isPflicht}
           style={{
             padding: '8px 12px',
-            background: '#fff', border: `1px solid ${isPflicht ? '#cbd5e1' : '#fca5a5'}`,
-            color: isPflicht ? '#cbd5e1' : '#dc2626',
+            background: '#fff', border: `1px solid ${isPflicht ? 'var(--border-medium)' : '#fca5a5'}`,
+            color: isPflicht ? 'var(--border-medium)' : '#dc2626',
             borderRadius: 6, fontSize: 12,
             cursor: isPflicht ? 'not-allowed' : 'pointer',
           }}>
@@ -1996,11 +1996,11 @@ function PageDetailPanel({ page, onClose, onSave, onDelete }) {
         </button>
         <div style={{ display: 'flex', gap: 6 }}>
           <button type="button" onClick={onClose}
-            style={{ padding: '8px 12px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, color: '#64748b', cursor: 'pointer' }}>
+            style={{ padding: '8px 12px', background: '#fff', border: '1px solid var(--border-light)', borderRadius: 6, fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>
             Abbrechen
           </button>
           <button type="button" onClick={handleSave} disabled={saving}
-            style={{ padding: '8px 14px', background: saving ? '#94a3b8' : KC_DARK, color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
+            style={{ padding: '8px 14px', background: saving ? 'var(--text-tertiary)' : KC_DARK, color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
             {saving ? 'Speichert…' : '✓ Speichern'}
           </button>
         </div>
@@ -2038,7 +2038,7 @@ function AddPageDialog({ parentId, parentName, onClose, onSubmit }) {
         <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: KC_DARK }}>
           Neue Seite anlegen
         </h3>
-        <p style={{ margin: '0 0 14px', fontSize: 11, color: '#64748b' }}>
+        <p style={{ margin: '0 0 14px', fontSize: 11, color: 'var(--text-secondary)' }}>
           {parentId
             ? `Wird als Sub-Seite von „${parentName}" angelegt.`
             : 'Wird als Top-Level-Seite angelegt.'}
@@ -2058,11 +2058,11 @@ function AddPageDialog({ parentId, parentName, onClose, onSubmit }) {
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button type="button" onClick={onClose}
-            style={{ padding: '8px 14px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, cursor: 'pointer', color: '#64748b' }}>
+            style={{ padding: '8px 14px', background: '#fff', border: '1px solid var(--border-light)', borderRadius: 8, fontSize: 12, cursor: 'pointer', color: 'var(--text-secondary)' }}>
             Abbrechen
           </button>
           <button type="submit" disabled={!name.trim() || busy}
-            style={{ padding: '8px 18px', background: !name.trim() || busy ? '#94a3b8' : KC_MID, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: !name.trim() || busy ? 'not-allowed' : 'pointer' }}>
+            style={{ padding: '8px 18px', background: !name.trim() || busy ? 'var(--text-tertiary)' : KC_MID, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: !name.trim() || busy ? 'not-allowed' : 'pointer' }}>
             {busy ? 'Anlegen…' : '+ Anlegen'}
           </button>
         </div>
@@ -2097,23 +2097,23 @@ function AddSectionDialog({ existingSections, onClose, onPick }) {
         boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
       }}>
         <div style={{
-          padding: '14px 18px', borderBottom: '1px solid #e2e8f0',
+          padding: '14px 18px', borderBottom: '1px solid var(--border-light)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: KC_DARK }}>
             Section auswählen
           </h3>
           <button type="button" onClick={onClose}
-            style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748b' }}>×</button>
+            style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
         </div>
-        <div style={{ padding: '12px 18px', borderBottom: '1px solid #e2e8f0' }}>
+        <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)' }}>
           <input type="search" placeholder="Suchen…"
             value={search} onChange={(e) => setSearch(e.target.value)}
             style={inpStyle(false)} autoFocus />
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
           {filtered.length === 0 ? (
-            <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 12, fontStyle: 'italic' }}>
+            <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12, fontStyle: 'italic' }}>
               Kein Treffer für „{search}".
             </div>
           ) : (
@@ -2126,22 +2126,22 @@ function AddSectionDialog({ existingSections, onClose, onPick }) {
                   style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2,
                     width: '100%', padding: '8px 10px', marginBottom: 4,
-                    background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6,
+                    background: '#fff', border: '1px solid var(--border-light)', borderRadius: 6,
                     cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = KC_MID; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = 'var(--border-light)'; }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
                     <code style={{ color: KC_MID, fontWeight: 700, fontSize: 11 }}>{key}</code>
                     <span style={{ flex: 1 }} />
                     {isUsed && (
-                      <span style={{ fontSize: 9, color: '#64748b', background: '#f1f5f9', padding: '1px 6px', borderRadius: 4 }}>
+                      <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--surface)', padding: '1px 6px', borderRadius: 4 }}>
                         bereits verwendet
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 11, color: '#475569', lineHeight: 1.4 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
                     {SECTION_CATALOG[key]}
                   </div>
                 </button>
@@ -2160,35 +2160,32 @@ function AddSectionDialog({ existingSections, onClose, onPick }) {
 
 const lblStyle = {
   display: 'block', fontSize: 10, fontWeight: 700,
-  color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em',
+  color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em',
   marginBottom: 4,
 };
 const inpStyle = (disabled) => ({
   width: '100%', boxSizing: 'border-box', padding: '7px 10px',
-  border: '1px solid #e2e8f0', borderRadius: 6,
-  background: disabled ? '#f8fafc' : '#fff',
-  color: disabled ? '#94a3b8' : '#1A2C32',
+  border: '1px solid var(--border-light)', borderRadius: 6,
+  background: disabled ? 'var(--bg-app)' : '#fff',
+  color: disabled ? 'var(--text-tertiary)' : '#1A2C32',
   fontSize: 12, fontFamily: 'inherit', outline: 'none',
 });
 
+// Doc: max 1 Primary (Gelb) pro Screen für die wichtigste Aktion.
+// btnPrimary = der eine Gelb-CTA. btnTeal = Dark-Teal-Solid für sekundäre
+// aktive Aktionen. btnSecondary = Outline für Hilfsaktionen.
 const btnPrimary = {
   background: KC_YELLOW, color: '#000',
   border: 'none', borderRadius: 8,
-  padding: '9px 16px', fontSize: 12, fontWeight: 800,
+  padding: '8px 16px', fontSize: 12, fontWeight: 800,
   cursor: 'pointer',
   textTransform: 'uppercase', letterSpacing: '0.04em',
   fontFamily: 'inherit',
 };
 const btnTeal = {
-  background: KC_MID, color: '#fff',
+  background: KC_DARK, color: '#fff',
   border: 'none', borderRadius: 8,
-  padding: '9px 16px', fontSize: 12, fontWeight: 700,
-  cursor: 'pointer', fontFamily: 'inherit',
-};
-const btnYellow = {
-  background: KC_YELLOW, color: '#000',
-  border: 'none', borderRadius: 8,
-  padding: '9px 16px', fontSize: 12, fontWeight: 700,
+  padding: '8px 16px', fontSize: 12, fontWeight: 700,
   cursor: 'pointer', fontFamily: 'inherit',
 };
 const btnSecondary = {

@@ -156,11 +156,27 @@ export default function ComponentLibrary() {
     category: 'HERO', style_vibe: 'elegant', user_prompt: '',
     industry: 'shk', industry_custom: '',
     elements: {}, // { headline: 2, buttons: 2, logo: true, ... }
+    layout_preset: '', // Phase A (Weg 1): vordefiniertes Layout-Muster
   });
   const [aiStatus, setAiStatus] = useState('idle'); // idle | running | done | error
   const [aiJobId, setAiJobId] = useState(null);
   const [aiResult, setAiResult] = useState(null);
   const [aiError, setAiError] = useState(null);
+  // Phase A (Weg 1): Layout-Presets vom Backend
+  const [layoutPresets, setLayoutPresets] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/components/layout-presets`, { headers })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setLayoutPresets(Array.isArray(data) ? data : []))
+      .catch(() => setLayoutPresets([]));
+  }, [headers]);
+
+  // Presets zur aktuellen Kategorie
+  const presetsForCategory = useMemo(
+    () => layoutPresets.filter((p) => p.category === aiForm.category),
+    [layoutPresets, aiForm.category],
+  );
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -575,6 +591,7 @@ export default function ComponentLibrary() {
           onGenerate={startAiGenerate}
           onUseResult={useAiResult}
           onClose={closeAiModal}
+          presets={presetsForCategory}
         />
       )}
     </div>
@@ -583,7 +600,7 @@ export default function ComponentLibrary() {
 
 // ── AI-Generator-Modal ───────────────────────────────────────────────────────
 
-function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, onUseResult, onClose }) {
+function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, onUseResult, onClose, presets = [] }) {
   const previewHtml = useMemo(() => {
     if (!result?.html_template) return '';
     const defaults = (result.slots || []).reduce((acc, s) => {
@@ -631,12 +648,41 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
             <Field label="Kategorie">
               <select
                 value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                onChange={(e) => setForm({
+                  ...form,
+                  category: e.target.value,
+                  // Layout-Preset zuruecksetzen wenn Kategorie wechselt — die alten
+                  // Presets passen nicht zur neuen Kategorie
+                  layout_preset: '',
+                })}
                 disabled={status === 'running'}
                 style={inputStyle(false)}
               >
                 {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
+            </Field>
+
+            {/* Phase A (Weg 1): Layout-Preset — vordefinierte Pattern pro Kategorie */}
+            <Field label={`Layout-Preset${presets.length ? ` (${presets.length})` : ''}`}>
+              <select
+                value={form.layout_preset || ''}
+                onChange={(e) => setForm({ ...form, layout_preset: e.target.value })}
+                disabled={status === 'running' || presets.length === 0}
+                style={inputStyle(presets.length === 0)}
+              >
+                <option value="">Beliebig (KI entscheidet)</option>
+                {presets.map((p) => (
+                  <option key={p.id} value={p.id}>{p.label}</option>
+                ))}
+              </select>
+              {form.layout_preset && (() => {
+                const preset = presets.find((p) => p.id === form.layout_preset);
+                return preset ? (
+                  <Hint>
+                    <span style={{ color: '#475569' }}>{preset.guidance}</span>
+                  </Hint>
+                ) : null;
+              })()}
             </Field>
 
             <Field label="Layout-Dichte">

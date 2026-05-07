@@ -897,30 +897,11 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
             />
           </SgSection>
 
-          <SgSection id="sg-ui" title="UI-Stil (Radius / Schatten)">
-            <UIStyleSection
-              uiId={uiId}
-              palette={palette}
-              onSelect={(id) => updateSelection({ uiId: id })}
-              onShuffle={null}
-            />
-          </SgSection>
-
-          <SgSection id="sg-spacing" title="Spacing">
+          <SgSection id="sg-spacing" title="Layout">
             <SpacingSection
               spacingId={spacingId}
               palette={palette}
               onSelect={(id) => updateSelection({ spacingId: id })}
-              onShuffle={null}
-            />
-          </SgSection>
-
-          <SgSection id="sg-badges" title="Badges">
-            <BadgesSection
-              badgeId={badgeId}
-              palette={palette} typo={typoPairing}
-              badges={badges} semantic={semantic}
-              onSelect={(id) => updateSelection({ badgeId: id })}
               onShuffle={null}
             />
           </SgSection>
@@ -1172,60 +1153,84 @@ function ColorSection({
 // TypographySection — Font-Pairing-Karten
 // ─────────────────────────────────────────────────────────────────────────────
 
-function TypographySection({ typoId, onSelect, onShuffle }) {
+// Verfuegbare Web-fonts (Google-Fonts-kompatibel) — uebersichtliche Liste
+const AVAILABLE_FONTS = [
+  'Inter', 'Roboto', 'Open Sans', 'Lato', 'Poppins',
+  'Montserrat', 'Noto Sans', 'DM Sans', 'Space Grotesk',
+  'Playfair Display', 'Merriweather', 'Lora',
+];
+
+function TypographySection({ typoId, onSelect }) {
+  const current = findTypoPairing(typoId);
+  const headingFont = current.heading;
+  const bodyFont    = current.body;
+
+  // Wenn der User eine Font waehlt: finde das passende Pairing oder erstelle
+  // Custom-Override. Pragmatisch: wir mappen jede Font-Auswahl auf ein
+  // bestehendes Pairing, dessen heading/body-Wert mit der Auswahl uebereinstimmt.
+  const setHeading = (font) => {
+    // Suche Pairing mit passendem Heading-Font; fallback: behalte body
+    const match = TYPO_PAIRINGS.find((p) => p.heading === font && p.body === bodyFont)
+      || TYPO_PAIRINGS.find((p) => p.heading === font);
+    if (match) onSelect(match.id);
+  };
+  const setBody = (font) => {
+    const match = TYPO_PAIRINGS.find((p) => p.body === font && p.heading === headingFont)
+      || TYPO_PAIRINGS.find((p) => p.body === font);
+    if (match) onSelect(match.id);
+  };
+
+  // Fonts nicht abgedeckt durch Pairings: zeige sie trotzdem im Dropdown
+  // (Auswahl klappt nicht, aber visuell vollstaendig). TODO Phase 2: direkte
+  // Font-Override-Felder im Datenmodell.
+
   return (
     <div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+        <div>
+          <label style={lblStyle}>Headline-Schrift</label>
+          <select
+            value={headingFont}
+            onChange={(e) => setHeading(e.target.value)}
+            style={selectStyle}
+          >
+            {AVAILABLE_FONTS.map((f) => (
+              <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label style={lblStyle}>Body-Schrift</label>
+          <select
+            value={bodyFont}
+            onChange={(e) => setBody(e.target.value)}
+            style={selectStyle}
+          >
+            {AVAILABLE_FONTS.map((f) => (
+              <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Live-Sample */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-        gap: 12,
+        padding: 16, background: '#fff',
+        border: '1px solid #D5E0E2', borderRadius: 6,
       }}>
-        {TYPO_PAIRINGS.map((t) => {
-          const isSelected = t.id === typoId;
-          return (
-            <button
-              key={t.id} type="button"
-              onClick={() => onSelect(t.id)}
-              style={{
-                textAlign: 'left',
-                background: '#fff',
-                border: isSelected ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
-                borderRadius: 8,
-                padding: 14, cursor: 'pointer',
-                boxShadow: isSelected ? `0 4px 12px ${KC_MID}33` : 'none',
-                fontFamily: 'inherit',
-              }}
-            >
-              <div style={{
-                fontFamily: t.heading, fontSize: 22, fontWeight: t.heading_weight,
-                color: KC_DARK, lineHeight: 1.1, marginBottom: 4,
-              }}>
-                Aa
-              </div>
-              <div style={{
-                fontFamily: t.body, fontSize: 12, color: '#475569',
-                lineHeight: 1.4, marginBottom: 10,
-              }}>
-                Wir installieren Wärmepumpen mit Festpreis-Garantie.
-              </div>
-              <div style={{
-                fontSize: 12, fontWeight: 800, color: KC_DARK,
-                marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                {isSelected && <span style={{ color: KC_MID }}>✓</span>}
-                {t.label}
-              </div>
-              <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>
-                {t.description}
-              </div>
-              <div style={{
-                fontSize: 9, color: '#94a3b8', marginTop: 4,
-                fontFamily: 'ui-monospace, monospace',
-              }}>
-                {t.heading} / {t.body}
-              </div>
-            </button>
-          );
-        })}
+        <div style={{
+          fontFamily: headingFont, fontSize: 28, fontWeight: 700,
+          color: KC_DARK, lineHeight: 1.15, marginBottom: 8,
+        }}>
+          Aa Bb Cc — Headline-Sample
+        </div>
+        <p style={{
+          fontFamily: bodyFont, fontSize: 14, color: '#475569',
+          lineHeight: 1.6, margin: 0,
+        }}>
+          Wir installieren Wärmepumpen mit Festpreis-Garantie.
+          Beratung, Antrag und Anmeldung beim Netzbetreiber aus einer Hand.
+        </p>
       </div>
     </div>
   );
@@ -1311,96 +1316,42 @@ function UIStyleSection({ uiId, palette, onSelect, onShuffle }) {
 // Phase E1: SpacingSection — Spacing-Scale Konzept-Karten
 // ─────────────────────────────────────────────────────────────────────────────
 
-function SpacingSection({ spacingId, palette, onSelect, onShuffle }) {
+function SpacingSection({ spacingId, palette, onSelect }) {
+  const styleOptions = SPACING_SCALES.map((s) => ({
+    id: s.id, label: s.label, description: s.description,
+  }));
+  const current = findSpacingScale(spacingId);
   return (
     <div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-        gap: 12,
-      }}>
-        {SPACING_SCALES.map((s) => {
-          const isSelected = s.id === spacingId;
-          return (
-            <button
-              key={s.id} type="button"
-              onClick={() => onSelect(s.id)}
-              style={{
-                textAlign: 'left',
-                background: '#fff',
-                border: isSelected ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
-                borderRadius: 8,
-                padding: 14, cursor: 'pointer',
-                boxShadow: isSelected ? `0 4px 12px ${KC_MID}33` : 'none',
-                fontFamily: 'inherit',
-              }}
-            >
-              {/* Visualisierung der Scale: 8 unterschiedlich grosse Bloecke */}
-              <div style={{
-                display: 'flex', alignItems: 'flex-end', gap: 3,
-                marginBottom: 10, height: 40,
-              }}>
-                {s.scale.map((value, idx) => (
-                  <div key={idx} style={{
-                    width: 6,
-                    height: `${Math.min(100, (value / 128) * 100)}%`,
-                    background: palette.accent_1,
-                    opacity: 0.4 + (idx / s.scale.length) * 0.6,
-                    borderRadius: 1,
-                  }} />
-                ))}
-              </div>
-              <div style={{
-                fontSize: 12, fontWeight: 800, color: KC_DARK,
-                marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                {isSelected && <span style={{ color: KC_MID }}>✓</span>}
-                {s.label}
-              </div>
-              <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4, marginBottom: 6 }}>
-                {s.description}
-              </div>
-              <div style={{
-                fontSize: 9, color: '#94a3b8',
-                fontFamily: 'ui-monospace, monospace',
-              }}>
-                Base {s.base}px · Container {s.container}px · Section-Y {s.section_y}px
-              </div>
-            </button>
-          );
-        })}
+      <label style={lblStyle}>Whitespace-Dichte</label>
+      <div style={{ marginBottom: 14 }}>
+        <StyleSwitcher options={styleOptions} value={spacingId} onChange={onSelect} />
       </div>
 
-      {/* Token-Tabelle */}
-      <div style={{ marginTop: 22 }}>
+      <label style={lblStyle}>Vorschau</label>
+      <div style={{
+        background: '#fff', padding: 14, borderRadius: 6,
+        border: '1px solid #D5E0E2',
+      }}>
         <div style={{
-          fontSize: 13, fontWeight: 800, color: KC_DARK,
-          textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 8,
+          display: 'flex', alignItems: 'flex-end', gap: 3,
+          marginBottom: 8, height: 36,
         }}>
-          Spacing-Tokens
+          {current.scale.map((value, idx) => (
+            <div key={idx} style={{
+              width: 8,
+              height: `${Math.min(100, (value / 128) * 100)}%`,
+              background: palette.accent_1,
+              opacity: 0.35 + (idx / current.scale.length) * 0.65,
+              borderRadius: 1,
+            }} title={`${value}px`} />
+          ))}
         </div>
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 8,
+          fontSize: 10, color: '#64748b',
+          fontFamily: 'ui-monospace, monospace',
         }}>
-          {findSpacingScale(spacingId).scale.map((value, idx) => (
-            <div key={idx} style={{
-              padding: 10, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6,
-              textAlign: 'center',
-            }}>
-              <div style={{
-                fontSize: 9, fontWeight: 700, color: '#64748b',
-                textTransform: 'uppercase', letterSpacing: '0.06em',
-              }}>
-                token-{idx + 1}
-              </div>
-              <div style={{
-                fontSize: 14, fontWeight: 800, color: KC_DARK,
-                fontFamily: 'ui-monospace, monospace',
-                marginTop: 4,
-              }}>
-                {value}px
-              </div>
-            </div>
-          ))}
+          Container {current.container}px · Section-Y {current.section_y}px
         </div>
       </div>
     </div>
@@ -1411,86 +1362,27 @@ function SpacingSection({ spacingId, palette, onSelect, onShuffle }) {
 // Phase E1: ButtonsSection — Button-Hierarchie + 4 Variants × 3 Sizes Demo
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ButtonsSection({ btnHierId, palette, typo, ui, variants, onSelect, onShuffle }) {
+function ButtonsSection({ btnHierId, palette, typo, ui, variants, onSelect }) {
+  const styleOptions = BUTTON_HIERARCHIES.map((h) => ({
+    id: h.id, label: h.label, description: h.description,
+  }));
   return (
     <div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-        gap: 12, marginBottom: 22,
-      }}>
-        {BUTTON_HIERARCHIES.map((h) => {
-          const isSelected = h.id === btnHierId;
-          // Pro Karte eine kleine Mini-Demo (3 Buttons)
-          const demoVariants = deriveButtonVariants(palette, ui, h, SEMANTIC_COLORS.light);
-          return (
-            <button
-              key={h.id} type="button"
-              onClick={() => onSelect(h.id)}
-              style={{
-                textAlign: 'left',
-                background: '#fff',
-                border: isSelected ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
-                borderRadius: 8,
-                padding: 14, cursor: 'pointer',
-                boxShadow: isSelected ? `0 4px 12px ${KC_MID}33` : 'none',
-                fontFamily: 'inherit',
-              }}
-            >
-              <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-                <MiniButton v={demoVariants.primary} ui={ui} typo={typo}>Primary</MiniButton>
-                <MiniButton v={demoVariants.secondary} ui={ui} typo={typo}>Outline</MiniButton>
-                <MiniButton v={demoVariants.tertiary} ui={ui} typo={typo}>Ghost</MiniButton>
-              </div>
-              <div style={{
-                fontSize: 12, fontWeight: 800, color: KC_DARK,
-                marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                {isSelected && <span style={{ color: KC_MID }}>✓</span>}
-                {h.label}
-              </div>
-              <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>
-                {h.description}
-              </div>
-            </button>
-          );
-        })}
+      <label style={lblStyle}>Stil</label>
+      <div style={{ marginBottom: 14 }}>
+        <StyleSwitcher options={styleOptions} value={btnHierId} onChange={onSelect} />
       </div>
 
-      {/* Volle Variants × Sizes Matrix */}
+      {/* Demo unten — drei Buttons im aktuellen Stil */}
+      <label style={lblStyle}>Vorschau</label>
       <div style={{
-        fontSize: 13, fontWeight: 800, color: KC_DARK,
-        textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 8,
-      }}>
-        4 Variants × 3 Sizes
-      </div>
-      <div style={{
-        background: palette.bg_primary, padding: 16, borderRadius: 8,
+        background: palette.bg_primary, padding: 14, borderRadius: 6,
         border: `1px solid ${palette.border}`,
+        display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
       }}>
-        {[
-          { name: 'Primary',     v: variants.primary },
-          { name: 'Secondary',   v: variants.secondary },
-          { name: 'Tertiary',    v: variants.tertiary },
-          { name: 'Destructive', v: variants.destructive },
-        ].map((row) => (
-          <div key={row.name} style={{
-            display: 'flex', alignItems: 'center', gap: 14,
-            padding: '10px 0',
-            borderBottom: `1px solid ${palette.border}`,
-          }}>
-            <div style={{
-              minWidth: 90,
-              fontSize: 10, fontWeight: 700, color: palette.text_muted,
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-              fontFamily: typo.body,
-            }}>
-              {row.name}
-            </div>
-            <SizedButton v={row.v} ui={ui} typo={typo} size="small">Klein</SizedButton>
-            <SizedButton v={row.v} ui={ui} typo={typo} size="medium">Standard</SizedButton>
-            <SizedButton v={row.v} ui={ui} typo={typo} size="large">Groß</SizedButton>
-          </div>
-        ))}
+        <SizedButton v={variants.primary} ui={ui} typo={typo} size="medium">Primärer CTA</SizedButton>
+        <SizedButton v={variants.secondary} ui={ui} typo={typo} size="medium">Sekundär</SizedButton>
+        <SizedButton v={variants.tertiary} ui={ui} typo={typo} size="medium">Ghost</SizedButton>
       </div>
     </div>
   );
@@ -1541,59 +1433,23 @@ function SizedButton({ v, ui, typo, size, children }) {
 // Phase E2: FormsSection — Form-Style-Karten + Demo-Formular
 // ─────────────────────────────────────────────────────────────────────────────
 
-function FormsSection({ formId, palette, typo, ui, forms, semantic, onSelect, onShuffle }) {
+function FormsSection({ formId, palette, typo, ui, forms, semantic, onSelect }) {
+  const styleOptions = FORM_STYLES.map((f) => ({
+    id: f.id, label: f.label, description: f.description,
+  }));
   return (
     <div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-        gap: 12, marginBottom: 22,
-      }}>
-        {FORM_STYLES.map((f) => {
-          const isSelected = f.id === formId;
-          return (
-            <button
-              key={f.id} type="button"
-              onClick={() => onSelect(f.id)}
-              style={{
-                textAlign: 'left',
-                background: '#fff',
-                border: isSelected ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
-                borderRadius: 8,
-                padding: 14, cursor: 'pointer',
-                boxShadow: isSelected ? `0 4px 12px ${KC_MID}33` : 'none',
-                fontFamily: 'inherit',
-              }}
-            >
-              <div style={{ marginBottom: 12 }}>
-                <FormPreview style={f} palette={palette} ui={ui} typo={typo} compact />
-              </div>
-              <div style={{
-                fontSize: 12, fontWeight: 800, color: KC_DARK,
-                marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                {isSelected && <span style={{ color: KC_MID }}>✓</span>}
-                {f.label}
-              </div>
-              <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>
-                {f.description}
-              </div>
-            </button>
-          );
-        })}
+      <label style={lblStyle}>Stil</label>
+      <div style={{ marginBottom: 14 }}>
+        <StyleSwitcher options={styleOptions} value={formId} onChange={onSelect} />
       </div>
 
-      {/* Volles Demo-Formular */}
+      <label style={lblStyle}>Vorschau</label>
       <div style={{
-        fontSize: 13, fontWeight: 800, color: KC_DARK,
-        textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 8,
-      }}>
-        Demo-Formular
-      </div>
-      <div style={{
-        background: palette.bg_primary, padding: 18, borderRadius: 8,
+        background: palette.bg_primary, padding: 14, borderRadius: 6,
         border: `1px solid ${palette.border}`,
       }}>
-        <FormPreview style={findFormStyle(formId)} palette={palette} ui={ui} typo={typo} semantic={semantic} />
+        <FormPreview style={findFormStyle(formId)} palette={palette} ui={ui} typo={typo} semantic={semantic} compact />
       </div>
     </div>
   );
@@ -1676,69 +1532,27 @@ function FormPreview({ style, palette, ui, typo, semantic, compact = false }) {
 // Phase E2: CardsSection — Card-Variant-Karten + Demo-Cards
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CardsSection({ cardId, palette, typo, ui, card, variants, onSelect, onShuffle }) {
+function CardsSection({ cardId, palette, typo, ui, card, variants, onSelect }) {
+  const styleOptions = CARD_VARIANTS.map((c) => ({
+    id: c.id, label: c.label, description: c.description,
+  }));
   return (
     <div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-        gap: 12, marginBottom: 22,
-      }}>
-        {CARD_VARIANTS.map((c) => {
-          const isSelected = c.id === cardId;
-          return (
-            <button
-              key={c.id} type="button"
-              onClick={() => onSelect(c.id)}
-              style={{
-                textAlign: 'left',
-                background: '#fff',
-                border: isSelected ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
-                borderRadius: 8,
-                padding: 14, cursor: 'pointer',
-                boxShadow: isSelected ? `0 4px 12px ${KC_MID}33` : 'none',
-                fontFamily: 'inherit',
-              }}
-            >
-              <CardPreview variant={c} palette={palette} ui={ui} typo={typo} compact />
-              <div style={{
-                fontSize: 12, fontWeight: 800, color: KC_DARK,
-                marginTop: 10, marginBottom: 2,
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                {isSelected && <span style={{ color: KC_MID }}>✓</span>}
-                {c.label}
-              </div>
-              <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>
-                {c.description}
-              </div>
-            </button>
-          );
-        })}
+      <label style={lblStyle}>Stil</label>
+      <div style={{ marginBottom: 14 }}>
+        <StyleSwitcher options={styleOptions} value={cardId} onChange={onSelect} />
       </div>
 
-      {/* Drei Demo-Cards in voller Groesse */}
+      <label style={lblStyle}>Vorschau</label>
       <div style={{
-        fontSize: 13, fontWeight: 800, color: KC_DARK,
-        textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 8,
+        background: palette.bg_surface, padding: 14, borderRadius: 6,
       }}>
-        Demo-Cards
-      </div>
-      <div style={{
-        background: palette.bg_surface, padding: 18, borderRadius: 8,
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14,
-      }}>
-        {[
-          { title: 'Wärmepumpe', desc: 'Beratung + Antrag + Installation aus einer Hand.' },
-          { title: 'Wallbox',    desc: 'Förderfähige Installation in 14 Tagen.' },
-          { title: 'Notdienst',  desc: '24/7 — Heizung, Wasser, Strom.' },
-        ].map((d, i) => (
-          <CardPreview
-            key={i} variant={findCardVariant(cardId)}
-            palette={palette} ui={ui} typo={typo}
-            title={d.title} desc={d.desc}
-            primary={variants?.primary}
-          />
-        ))}
+        <CardPreview
+          variant={findCardVariant(cardId)}
+          palette={palette} ui={ui} typo={typo}
+          title="Wärmepumpe" desc="Beratung + Antrag + Installation aus einer Hand."
+          primary={variants?.primary}
+        />
       </div>
     </div>
   );
@@ -2267,9 +2081,7 @@ const SG_NAV_ITEMS = [
   { id: 'sg-buttons', icon: '🔘', label: 'Buttons' },
   { id: 'sg-cards',   icon: '🗂',  label: 'Cards' },
   { id: 'sg-forms',   icon: '📝', label: 'Forms' },
-  { id: 'sg-ui',      icon: '🧩', label: 'UI-Stil' },
-  { id: 'sg-spacing', icon: '📐', label: 'Spacing' },
-  { id: 'sg-badges',  icon: '🏷',  label: 'Badges' },
+  { id: 'sg-spacing', icon: '📐', label: 'Layout' },
 ];
 
 function AnchorNav() {
@@ -2408,6 +2220,52 @@ function SectionHeader({ title, onShuffle, children }) {
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+// Wiederverwendbare Form-Styles fuer die vereinfachten Sections
+const lblStyle = {
+  display: 'block',
+  fontSize: 10, fontWeight: 700, color: '#475569',
+  textTransform: 'uppercase', letterSpacing: '0.06em',
+  marginBottom: 5,
+};
+const selectStyle = {
+  width: '100%', boxSizing: 'border-box',
+  padding: '8px 10px',
+  border: '1px solid #D5E0E2', borderRadius: 6,
+  fontSize: 13, fontFamily: 'inherit', color: '#0F172A',
+  background: '#fff', cursor: 'pointer', outline: 'none',
+};
+
+// StyleSwitcher — 3-4 Buttons als visuelle Optionen, selbsterklaerend.
+// Ersetzt die Konzept-Karten-Grids (zu viel Text + zu viele Tile-Klicks).
+function StyleSwitcher({ options, value, onChange }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, gap: 6 }}>
+      {options.map((o) => {
+        const isActive = o.id === value;
+        return (
+          <button
+            key={o.id} type="button"
+            onClick={() => onChange(o.id)}
+            title={o.description || o.label}
+            style={{
+              padding: '10px 8px',
+              background: isActive ? KC_MID : '#fff',
+              color: isActive ? '#fff' : '#475569',
+              border: `1px solid ${isActive ? KC_MID : '#D5E0E2'}`,
+              borderRadius: 6, cursor: 'pointer',
+              fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+            }}
+          >
+            {o.preview && <div>{o.preview}</div>}
+            <span>{o.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

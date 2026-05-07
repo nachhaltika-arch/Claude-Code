@@ -207,6 +207,18 @@ export default function SitemapViewV2({
   // { pageId, position } | null
   const [dropTarget, setDropTarget] = useState(null);
 
+  // Phase C polish: Card-DOM-Refs fuer SVG-Link-Edges. Map<pageId, HTMLElement>.
+  // Mutable Ref + Tick-State, weil Refs allein keine Re-Renders triggern.
+  const cardRefs = useRef(new Map());
+  const canvasInnerRef = useRef(null);
+  const [edgeTick, setEdgeTick] = useState(0);
+  const setCardRef = useCallback((pageId, node) => {
+    if (node) cardRefs.current.set(pageId, node);
+    else cardRefs.current.delete(pageId);
+    // RAF damit Layout sich erst stabilisiert
+    requestAnimationFrame(() => setEdgeTick((t) => t + 1));
+  }, []);
+
   // Pages laden
   const loadPages = useCallback(() => {
     if (!leadId) return;
@@ -220,6 +232,14 @@ export default function SitemapViewV2({
   }, [leadId, headers]);
 
   useEffect(() => { loadPages(); }, [loadPages]);
+
+  // Phase C polish: Edge-Refresh bei Resize / Pages-Aenderung
+  useEffect(() => {
+    if (!canvasInnerRef.current) return;
+    const obs = new ResizeObserver(() => setEdgeTick((t) => t + 1));
+    obs.observe(canvasInnerRef.current);
+    return () => obs.disconnect();
+  }, []);
 
   // ── Mutationen ────────────────────────────────────────────────────────────
 
@@ -575,9 +595,10 @@ export default function SitemapViewV2({
           )}
 
           {!loading && !error && pages.length > 0 && (
-            <div style={{
+            <div ref={canvasInnerRef} style={{
               display: 'flex', alignItems: 'flex-start',
               gap: COL_GAP / 2, minWidth: 'max-content',
+              position: 'relative',
             }}>
               {topLevelPages.map((p, idx) => (
                 <PageColumn
@@ -601,12 +622,20 @@ export default function SitemapViewV2({
                   endDrag={endDrag}
                   linksByPageId={linksByPageId}
                   pages={pages}
+                  setCardRef={setCardRef}
                 />
               ))}
               {/* "+" am rechten Ende: neue Top-Level-Seite */}
               <AddPagePlus
                 onClick={() => setAddPageState({ parent_id: null, position: pages.length })}
                 large
+              />
+              {/* Phase C polish: SVG-Edges fuer interne Links zwischen Pages */}
+              <LinkEdgeOverlay
+                tick={edgeTick}
+                cardRefs={cardRefs.current}
+                canvasInnerRef={canvasInnerRef}
+                linksByPageId={linksByPageId}
               />
             </div>
           )}
@@ -665,6 +694,7 @@ function PageColumn({
   dragState, setDragState, dropTarget, setDropTarget, moveSection, endDrag,
   inheritedSections = null,  // Phase 4: nicht-null wenn Eltern-Page eine Gruppe ist
   linksByPageId = null, pages = null,
+  setCardRef = null,
 }) {
   const children = tree.get(page.id) || [];
   const isActive = selectedPageId === page.id;
@@ -692,6 +722,7 @@ function PageColumn({
           links={linksByPageId?.get(page.id)}
           pages={pages}
           onSelectPage={onSelect}
+          setCardRef={setCardRef}
         />
         {/* "+" zwischen Geschwistern (rechts von dieser Karte) */}
         <AddPagePlus
@@ -744,6 +775,7 @@ function PageColumn({
                 inheritedSections={page.is_group ? (page.group_template_sections || []) : null}
                 linksByPageId={linksByPageId}
                 pages={pages}
+                setCardRef={setCardRef}
               />
             ))}
           </div>
@@ -782,6 +814,7 @@ function PageCard({
   inheritedSections = null,
   dragState, setDragState, dropTarget, setDropTarget, moveSection, endDrag,
   links = null, pages = null, onSelectPage = null,
+  setCardRef = null,
 }) {
   const [linksOpen, setLinksOpen] = useState(false);
   const internalLinks = links?.internal || [];
@@ -802,6 +835,14 @@ function PageCard({
   const sectionsEditable = !isInherited; // Inherited = read-only
   const [menuOpen, setMenuOpen] = useState(false);
   const cardRef = useRef(null);
+
+  // Phase C polish: Card-DOM-Node beim Parent registrieren fuer SVG-Edges
+  useEffect(() => {
+    if (!setCardRef) return;
+    setCardRef(page.id, cardRef.current);
+    return () => setCardRef(page.id, null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page.id]);
 
   // Outside click schliesst Menu
   useEffect(() => {
@@ -1389,6 +1430,94 @@ function AddPagePlus({ onClick, large = false }) {
     >
       +
     </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase C polish: SVG-Overlay zeichnet Edges fuer interne Links zwischen Pages
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Liest die DOM-Position jeder PageCard ueber Refs und zeichnet Bezier-Pfade
+// von der Quelle (bottom-center) zum Ziel (top-center). Recompute bei jedem
+// edgeTick (Resize / Card-Add/Remove / Layout-Change).
+
+function LinkEdgeOverlay({ tick, cardRefs, canvasInnerRef, linksByPageId }) {
+  const [paths, setPaths] = useState([]);
+
+  useEffect(() => {
+    if (!canvasInnerRef.current || !linksByPageId) {
+      setPaths([]);
+      return;
+    }
+    const canvasRect = canvasInnerRef.current.getBoundingClientRect();
+    const newPaths = [];
+    linksByPageId.forEach((linkData, fromPageId) => {
+      (linkData.internal || []).forEach((link, idx) => {
+        if (!link.toPageId || link.toPageId === fromPageId) return;
+        const fromNode = cardRefs.get(fromPageId);
+        const toNode = cardRefs.get(link.toPageId);
+        if (!fromNode || !toNode) return;
+        const fr = fromNode.getBoundingClientRect();
+        const tr = toNode.getBoundingClientRect();
+        // Source: bottom-center of fromCard
+        const sx = fr.left + fr.width / 2 - canvasRect.left;
+        const sy = fr.bottom - canvasRect.top;
+        // Target: top-center of toCard
+        const tx = tr.left + tr.width / 2 - canvasRect.left;
+        const ty = tr.top - canvasRect.top;
+        // Cubic Bezier: kontroll-punkte ziehen die Kurve vertikal nach unten
+        // bzw. nach oben — vermeidet ueberlappende Linien bei seitlich
+        // platzierten Pages.
+        const dy = Math.abs(ty - sy);
+        const dx = Math.abs(tx - sx);
+        const curvature = Math.min(80, Math.max(30, dy * 0.4 + dx * 0.1));
+        const cp1y = sy + curvature;
+        const cp2y = ty - curvature;
+        const d = `M ${sx.toFixed(1)} ${sy.toFixed(1)} C ${sx.toFixed(1)} ${cp1y.toFixed(1)}, ${tx.toFixed(1)} ${cp2y.toFixed(1)}, ${tx.toFixed(1)} ${ty.toFixed(1)}`;
+        newPaths.push({
+          key: `${fromPageId}-${link.toPageId}-${link.slot}-${idx}`,
+          d,
+          slot: link.slot,
+        });
+      });
+    });
+    setPaths(newPaths);
+  }, [tick, linksByPageId, cardRefs, canvasInnerRef]);
+
+  if (paths.length === 0) return null;
+
+  return (
+    <svg
+      style={{
+        position: 'absolute', inset: 0,
+        width: '100%', height: '100%',
+        pointerEvents: 'none', overflow: 'visible',
+        zIndex: 1,
+      }}
+    >
+      <defs>
+        <marker
+          id="sitemap-link-arrow"
+          markerWidth="9" markerHeight="9"
+          refX="7" refY="3"
+          orient="auto" markerUnits="strokeWidth"
+        >
+          <path d="M0,0 L0,6 L8,3 z" fill="#2563eb" />
+        </marker>
+      </defs>
+      {paths.map((p) => (
+        <path
+          key={p.key}
+          d={p.d}
+          stroke="#2563eb" strokeWidth="1.5"
+          fill="none" strokeDasharray="5 4"
+          markerEnd="url(#sitemap-link-arrow)"
+          opacity="0.55"
+        >
+          <title>{p.slot}</title>
+        </path>
+      ))}
+    </svg>
   );
 }
 

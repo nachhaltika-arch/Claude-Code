@@ -44,6 +44,7 @@ LIBRARY_VERSION_LOG = [
     "2026-05-06.1: relume-navbar-2 added (dual-CTA flex layout)",
     "2026-05-06.2: relume-navbar-3 added (centered logo, left burger, drawer)",
     "2026-05-06.3: ALL Relume sections REMOVED (license-compliance, see external/relume/README.md). Auto-cleanup-pipeline loescht orphaned 'relume'-tagged DB rows beim Start.",
+    "2026-05-07.1: Brand-Farben neutralisiert (Phase B). Alle non-gray Tailwind-Color-Klassen + Hex-Arbitrary-Values (#FAE600/#008EAA/#004F59/#0072B1/#25D366) durch gray-Equivalente ersetzt. 41 Files / 267 Replacements via tools/neutralize-library.js. Library ist jetzt Wireframe-only — Brand-CI kommt aus dem Style-Guide pro Kunde.",
 ]
 LIBRARY_VERSION = LIBRARY_VERSION_LOG[-1].split(":")[0]
 

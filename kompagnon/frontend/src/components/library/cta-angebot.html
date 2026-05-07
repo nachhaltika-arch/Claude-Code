@@ -11,13 +11,13 @@
 <section data-block="cta-angebot" class="bg-slate-50 py-16 md:py-20 px-6" style="font-family: 'Noto Sans', sans-serif;">
   <div class="max-w-3xl mx-auto">
     <div class="text-center mb-10">
-      <h2 class="text-3xl md:text-4xl font-black uppercase text-[#004F59] tracking-tight mb-3">{{section_headline}}</h2>
+      <h2 class="text-3xl md:text-4xl font-black uppercase text-gray-900 tracking-tight mb-3">{{section_headline}}</h2>
       <p class="text-base text-slate-600 leading-relaxed">{{section_subline}}</p>
     </div>
     <ol class="grid grid-cols-3 gap-3 md:gap-5 mb-8">
       <li class="flex flex-col items-center text-center">
-        <div class="flex-shrink-0 w-12 h-12 rounded-full bg-[#008EAA] text-white text-lg font-black flex items-center justify-center mb-2 shadow">1</div>
-        <div class="text-xs md:text-sm font-bold text-[#004F59] uppercase tracking-wide">{{step_1_label}}</div>
+        <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gray-700 text-white text-lg font-black flex items-center justify-center mb-2 shadow">1</div>
+        <div class="text-xs md:text-sm font-bold text-gray-900 uppercase tracking-wide">{{step_1_label}}</div>
       </li>
       <li class="flex flex-col items-center text-center">
         <div class="flex-shrink-0 w-12 h-12 rounded-full bg-slate-300 text-white text-lg font-black flex items-center justify-center mb-2">2</div>
@@ -32,20 +32,20 @@
       <fieldset>
         <legend class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Welche Leistung interessiert Sie?</legend>
         <div class="grid grid-cols-2 gap-3">
-          <label class="cursor-pointer border-2 border-slate-200 rounded-xl px-4 py-3 hover:border-[#008EAA] transition flex items-center gap-2 has-[:checked]:border-[#008EAA] has-[:checked]:bg-[#008EAA]/5">
-            <input type="radio" name="service" value="waermepumpe" class="accent-[#008EAA]">
+          <label class="cursor-pointer border-2 border-slate-200 rounded-xl px-4 py-3 hover:border-gray-700 transition flex items-center gap-2 has-[:checked]:border-gray-700 has-[:checked]:bg-gray-700/5">
+            <input type="radio" name="service" value="waermepumpe" class="accent-gray-700">
             <span class="text-sm font-semibold">Wärmepumpe</span>
           </label>
-          <label class="cursor-pointer border-2 border-slate-200 rounded-xl px-4 py-3 hover:border-[#008EAA] transition flex items-center gap-2 has-[:checked]:border-[#008EAA] has-[:checked]:bg-[#008EAA]/5">
-            <input type="radio" name="service" value="bad" class="accent-[#008EAA]">
+          <label class="cursor-pointer border-2 border-slate-200 rounded-xl px-4 py-3 hover:border-gray-700 transition flex items-center gap-2 has-[:checked]:border-gray-700 has-[:checked]:bg-gray-700/5">
+            <input type="radio" name="service" value="bad" class="accent-gray-700">
             <span class="text-sm font-semibold">Bad-Sanierung</span>
           </label>
-          <label class="cursor-pointer border-2 border-slate-200 rounded-xl px-4 py-3 hover:border-[#008EAA] transition flex items-center gap-2 has-[:checked]:border-[#008EAA] has-[:checked]:bg-[#008EAA]/5">
-            <input type="radio" name="service" value="wartung" class="accent-[#008EAA]">
+          <label class="cursor-pointer border-2 border-slate-200 rounded-xl px-4 py-3 hover:border-gray-700 transition flex items-center gap-2 has-[:checked]:border-gray-700 has-[:checked]:bg-gray-700/5">
+            <input type="radio" name="service" value="wartung" class="accent-gray-700">
             <span class="text-sm font-semibold">Wartung / Service</span>
           </label>
-          <label class="cursor-pointer border-2 border-slate-200 rounded-xl px-4 py-3 hover:border-[#008EAA] transition flex items-center gap-2 has-[:checked]:border-[#008EAA] has-[:checked]:bg-[#008EAA]/5">
-            <input type="radio" name="service" value="andere" class="accent-[#008EAA]">
+          <label class="cursor-pointer border-2 border-slate-200 rounded-xl px-4 py-3 hover:border-gray-700 transition flex items-center gap-2 has-[:checked]:border-gray-700 has-[:checked]:bg-gray-700/5">
+            <input type="radio" name="service" value="andere" class="accent-gray-700">
             <span class="text-sm font-semibold">Andere</span>
           </label>
         </div>
@@ -53,18 +53,18 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <label class="block">
           <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Name *</span>
-          <input type="text" name="name" required class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#008EAA] focus:outline-none focus:ring-2 focus:ring-[#008EAA]/30 text-base">
+          <input type="text" name="name" required class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-700/30 text-base">
         </label>
         <label class="block">
           <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Telefon *</span>
-          <input type="tel" name="phone" required class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#008EAA] focus:outline-none focus:ring-2 focus:ring-[#008EAA]/30 text-base">
+          <input type="tel" name="phone" required class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-700/30 text-base">
         </label>
       </div>
       <label class="block">
         <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Wunschtermin / Zeitrahmen</span>
-        <input type="text" name="timeframe" placeholder="z. B. nächste Woche, im Frühjahr…" class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#008EAA] focus:outline-none focus:ring-2 focus:ring-[#008EAA]/30 text-base">
+        <input type="text" name="timeframe" placeholder="z. B. nächste Woche, im Frühjahr…" class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-700/30 text-base">
       </label>
-      <button type="submit" class="w-full bg-[#FAE600] text-black font-black py-3.5 rounded-lg uppercase tracking-wide hover:bg-yellow-300 transition text-base">
+      <button type="submit" class="w-full bg-gray-300 text-black font-black py-3.5 rounded-lg uppercase tracking-wide hover:bg-gray-300 transition text-base">
         {{submit_text}}
       </button>
     </form>

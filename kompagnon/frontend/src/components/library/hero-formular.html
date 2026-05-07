@@ -3,38 +3,38 @@
   Kategorie: HERO
   Slots: headline, subline, form_action, submit_text, trust_line
 -->
-<section data-block="hero-formular" class="bg-gradient-to-br from-[#004F59] to-[#008EAA] text-white py-16 md:py-24 px-6" style="font-family: 'Noto Sans', sans-serif;">
+<section data-block="hero-formular" class="bg-gradient-to-br from-gray-900 to-gray-700 text-white py-16 md:py-24 px-6" style="font-family: 'Noto Sans', sans-serif;">
   <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 items-center">
     <div>
       <h1 class="text-4xl md:text-5xl font-black uppercase leading-tight mb-5 tracking-tight">
         {{headline}}
       </h1>
       <p class="text-lg text-white/85 leading-relaxed mb-6">{{subline}}</p>
-      <p class="text-sm text-[#FAE600] font-semibold tracking-wide">{{trust_line}}</p>
+      <p class="text-sm text-gray-300 font-semibold tracking-wide">{{trust_line}}</p>
     </div>
     <form action="{{form_action}}" method="post"
           class="bg-white text-slate-800 rounded-2xl shadow-2xl p-6 md:p-7 space-y-3">
       <label class="block">
         <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Name</span>
         <input type="text" name="name" required
-               class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#008EAA] focus:outline-none focus:ring-2 focus:ring-[#008EAA]/30 text-base">
+               class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-700/30 text-base">
       </label>
       <label class="block">
         <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Telefon</span>
         <input type="tel" name="phone" required inputmode="tel"
-               class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#008EAA] focus:outline-none focus:ring-2 focus:ring-[#008EAA]/30 text-base">
+               class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-700/30 text-base">
       </label>
       <label class="block">
         <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Ihr Anliegen</span>
         <textarea name="message" rows="3"
-                  class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-[#008EAA] focus:outline-none focus:ring-2 focus:ring-[#008EAA]/30 text-base"></textarea>
+                  class="mt-1 w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-700/30 text-base"></textarea>
       </label>
       <button type="submit"
-              class="w-full bg-[#FAE600] text-black font-black py-3.5 rounded-lg uppercase tracking-wide hover:bg-yellow-300 transition text-base">
+              class="w-full bg-gray-300 text-black font-black py-3.5 rounded-lg uppercase tracking-wide hover:bg-gray-300 transition text-base">
         {{submit_text}}
       </button>
       <p class="text-[11px] text-slate-500 text-center pt-1">
-        Mit Absenden akzeptieren Sie unsere <a href="/datenschutz" class="underline hover:text-[#008EAA]">Datenschutzerklärung</a>.
+        Mit Absenden akzeptieren Sie unsere <a href="/datenschutz" class="underline hover:text-gray-700">Datenschutzerklärung</a>.
       </p>
     </form>
   </div>

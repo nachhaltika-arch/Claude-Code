@@ -326,6 +326,91 @@ const BUTTON_HIERARCHIES = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Phase E2: Form-Stile
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// label_pos: 'above' (klassisch), 'inline' (links neben Input), 'floating'
+// (oben über Input, schiebt sich beim Focus). input_style: 'outlined',
+// 'filled', 'underlined'.
+
+const FORM_STYLES = [
+  {
+    id: 'outlined', label: 'Outlined',
+    description: 'Klassisch — Border um Input, Label oberhalb. Funktioniert universell.',
+    input_style: 'outlined', label_pos: 'above',
+  },
+  {
+    id: 'filled', label: 'Filled',
+    description: 'Hellgrauer Background statt Border. Modern, weicher. Material-inspiriert.',
+    input_style: 'filled', label_pos: 'above',
+  },
+  {
+    id: 'underlined', label: 'Underlined',
+    description: 'Nur unterer Border. Minimal, editorialer Look. Dezent.',
+    input_style: 'underlined', label_pos: 'above',
+  },
+  {
+    id: 'floating', label: 'Floating Label',
+    description: 'Label springt beim Focus nach oben. Kompakt — gut für lange Forms.',
+    input_style: 'outlined', label_pos: 'floating',
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase E2: Card-Varianten
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CARD_VARIANTS = [
+  {
+    id: 'flat', label: 'Flat',
+    description: 'Nur Hintergrund-Tint, kein Border, kein Shadow. Sehr ruhig.',
+    border_width: '0px', shadow: 'none',
+  },
+  {
+    id: 'bordered', label: 'Bordered',
+    description: '1px Border, kein Shadow. Klar abgegrenzt, sachlich.',
+    border_width: '1px', shadow: 'none',
+  },
+  {
+    id: 'elevated', label: 'Elevated',
+    description: 'Schatten ohne starken Border. Schwebend, interaktiv.',
+    border_width: '1px', shadow: '0 4px 14px rgba(0,0,0,0.08)',
+  },
+  {
+    id: 'outlined_heavy', label: 'Outlined Heavy',
+    description: '2px Border, kein Shadow. Brutalist, betont strukturell.',
+    border_width: '2px', shadow: 'none',
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase E2: Badge-Stile (Status-Pills)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const BADGE_STYLES = [
+  {
+    id: 'pill_filled', label: 'Pill Filled',
+    description: 'Vollflächig gefärbt, rund. Auffällig, klassischer Status-Badge.',
+    shape: 'pill', fill: 'filled',
+  },
+  {
+    id: 'pill_outlined', label: 'Pill Outlined',
+    description: 'Rund mit transparentem Background + Border. Dezent, professionell.',
+    shape: 'pill', fill: 'outlined',
+  },
+  {
+    id: 'square_filled', label: 'Square Filled',
+    description: 'Kleiner Radius, gefüllt. Eckig, technisch.',
+    shape: 'square', fill: 'filled',
+  },
+  {
+    id: 'square_outlined', label: 'Square Outlined',
+    description: 'Kleiner Radius, Outline. Editorial, ruhig.',
+    shape: 'square', fill: 'outlined',
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Default Style-Guide & Derivation
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -334,6 +419,9 @@ const DEFAULT_TYPO    = TYPO_PAIRINGS[0];  // Modern Sans
 const DEFAULT_UI      = UI_STYLES[0];      // Soft Cards
 const DEFAULT_SPACING = SPACING_SCALES[1]; // Standard
 const DEFAULT_BUTTON_HIER = BUTTON_HIERARCHIES[0]; // Standard
+const DEFAULT_FORM    = FORM_STYLES[0];    // Outlined
+const DEFAULT_CARD    = CARD_VARIANTS[1];  // Bordered
+const DEFAULT_BADGE   = BADGE_STYLES[0];   // Pill Filled
 
 function findColorConcept(id) {
   return COLOR_CONCEPTS.find((c) => c.id === id) || DEFAULT_CONCEPT;
@@ -349,6 +437,15 @@ function findSpacingScale(id) {
 }
 function findButtonHierarchy(id) {
   return BUTTON_HIERARCHIES.find((b) => b.id === id) || DEFAULT_BUTTON_HIER;
+}
+function findFormStyle(id) {
+  return FORM_STYLES.find((f) => f.id === id) || DEFAULT_FORM;
+}
+function findCardVariant(id) {
+  return CARD_VARIANTS.find((c) => c.id === id) || DEFAULT_CARD;
+}
+function findBadgeStyle(id) {
+  return BADGE_STYLES.find((b) => b.id === id) || DEFAULT_BADGE;
 }
 
 // Phase E1: Buttons — pro Hierarchie ein Set Variants (primary/secondary/
@@ -379,13 +476,74 @@ function deriveButtonVariants(palette, uiStyle, hierarchy, semantic) {
   };
 }
 
+// Phase E2: Form-Tokens aus Form-Style + Palette + UI ableiten.
+function deriveFormTokens(palette, uiStyle, formStyle) {
+  const isDark = palette.bg_primary === palette.bg_primary && palette.text_primary && palette.text_primary[1] === 'F'; // hacky check, ersetzt unten durch explizites isDark
+  return {
+    style:        formStyle.input_style,    // outlined | filled | underlined
+    label_pos:    formStyle.label_pos,      // above | floating
+    radius:       uiStyle.button_radius,    // konsistent zu Buttons
+    border_width: uiStyle.border_width,
+    bg:           formStyle.input_style === 'filled' ? palette.bg_surface : 'transparent',
+    border:       formStyle.input_style === 'outlined'
+                    ? palette.border
+                    : formStyle.input_style === 'underlined'
+                      ? `0 0 1px 0 ${palette.border}`
+                      : 'transparent',
+    text:         palette.text_primary,
+    placeholder:  palette.text_muted,
+    focus_color:  palette.accent_1,
+  };
+}
+
+// Phase E2: Card-Tokens.
+function deriveCardTokens(palette, uiStyle, cardVariant, spacingScale) {
+  return {
+    background:   cardVariant.id === 'flat' ? palette.bg_surface : palette.bg_primary,
+    border_width: cardVariant.border_width,
+    border_color: palette.border,
+    shadow:       cardVariant.shadow,
+    radius:       uiStyle.card_radius,
+    padding:      `${Math.round(spacingScale.base * 2)}px`,
+  };
+}
+
+// Phase E2: Badge-Tokens — eine Map { status: { bg, fg, border } } anhand
+// Badge-Stil + Semantic-Colors.
+function deriveBadgeTokens(badgeStyle, semantic, palette) {
+  const radius = badgeStyle.shape === 'pill' ? '999px' : '4px';
+  const map = {};
+  ['success', 'warn', 'error', 'info'].forEach((key) => {
+    const c = semantic[key];
+    if (badgeStyle.fill === 'filled') {
+      map[key] = { bg: c.fg, fg: '#fff', border: c.fg, radius };
+    } else {
+      map[key] = { bg: 'transparent', fg: c.fg, border: c.fg, radius };
+    }
+  });
+  // Neutral-Badge zusaetzlich
+  if (badgeStyle.fill === 'filled') {
+    map.neutral = { bg: palette.text_muted, fg: '#fff', border: palette.text_muted, radius };
+  } else {
+    map.neutral = { bg: 'transparent', fg: palette.text_muted, border: palette.text_muted, radius };
+  }
+  return { ...map, shape: badgeStyle.shape, fill: badgeStyle.fill };
+}
+
 // Aus Concept-Auswahl die Legacy-Felder ableiten (backwards-compat fuer
 // DesignView, Export-Pipeline, etc., die colors.primary etc. erwarten).
 // Phase E1: zusaetzlich semantic + spacing_scale + button_variants.
-function deriveLegacyTokens(concept, lightDark, typoPairing, uiStyle, spacingScale, buttonHierarchy) {
+// Phase E2: zusaetzlich forms + card_variant + badge_variants.
+function deriveLegacyTokens(
+  concept, lightDark, typoPairing, uiStyle, spacingScale, buttonHierarchy,
+  formStyle, cardVariant, badgeStyle,
+) {
   const palette = lightDark === 'dark' ? concept.dark : concept.light;
   const semantic = SEMANTIC_COLORS[lightDark === 'dark' ? 'dark' : 'light'];
   const buttonVariants = deriveButtonVariants(palette, uiStyle, buttonHierarchy, semantic);
+  const forms          = deriveFormTokens(palette, uiStyle, formStyle);
+  const card           = deriveCardTokens(palette, uiStyle, cardVariant, spacingScale);
+  const badges         = deriveBadgeTokens(badgeStyle, semantic, palette);
   return {
     colors: {
       primary:    palette.accent_1,
@@ -414,6 +572,10 @@ function deriveLegacyTokens(concept, lightDark, typoPairing, uiStyle, spacingSca
     // Phase E1 — neue Felder, additiv
     semantic,
     button_variants: buttonVariants,
+    // Phase E2 — neue Felder, additiv
+    forms,
+    card,
+    badges,
   };
 }
 
@@ -429,15 +591,24 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
   const uiId      = styleGuide?.ui_style_id || DEFAULT_UI.id;
   const spacingId = styleGuide?.spacing_scale_id || DEFAULT_SPACING.id;
   const btnHierId = styleGuide?.button_hierarchy_id || DEFAULT_BUTTON_HIER.id;
+  const formId    = styleGuide?.form_style_id || DEFAULT_FORM.id;
+  const cardId    = styleGuide?.card_variant_id || DEFAULT_CARD.id;
+  const badgeId   = styleGuide?.badge_style_id || DEFAULT_BADGE.id;
 
   const concept       = findColorConcept(conceptId);
   const typoPairing   = findTypoPairing(typoId);
   const uiStyle       = findUIStyle(uiId);
   const spacingScale  = findSpacingScale(spacingId);
   const buttonHier    = findButtonHierarchy(btnHierId);
+  const formStyle     = findFormStyle(formId);
+  const cardVariant   = findCardVariant(cardId);
+  const badgeStyle    = findBadgeStyle(badgeId);
   const palette       = lightDark === 'dark' ? concept.dark : concept.light;
   const semantic      = SEMANTIC_COLORS[lightDark === 'dark' ? 'dark' : 'light'];
   const buttonVariants = deriveButtonVariants(palette, uiStyle, buttonHier, semantic);
+  const forms         = deriveFormTokens(palette, uiStyle, formStyle);
+  const card          = deriveCardTokens(palette, uiStyle, cardVariant, spacingScale);
+  const badges        = deriveBadgeTokens(badgeStyle, semantic, palette);
 
   const updateSelection = (updates) => {
     const merged = {
@@ -448,28 +619,36 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
       ui_style_id:           updates.uiId       ?? uiId,
       spacing_scale_id:      updates.spacingId  ?? spacingId,
       button_hierarchy_id:   updates.btnHierId  ?? btnHierId,
+      form_style_id:         updates.formId     ?? formId,
+      card_variant_id:       updates.cardId     ?? cardId,
+      badge_style_id:        updates.badgeId    ?? badgeId,
     };
     const newConcept  = findColorConcept(merged.color_concept_id);
     const newTypo     = findTypoPairing(merged.typography_pairing_id);
     const newUI       = findUIStyle(merged.ui_style_id);
     const newSpacing  = findSpacingScale(merged.spacing_scale_id);
     const newBtnHier  = findButtonHierarchy(merged.button_hierarchy_id);
-    const derived     = deriveLegacyTokens(newConcept, merged.light_dark, newTypo, newUI, newSpacing, newBtnHier);
+    const newForm     = findFormStyle(merged.form_style_id);
+    const newCard     = findCardVariant(merged.card_variant_id);
+    const newBadge    = findBadgeStyle(merged.badge_style_id);
+    const derived     = deriveLegacyTokens(
+      newConcept, merged.light_dark, newTypo, newUI, newSpacing, newBtnHier,
+      newForm, newCard, newBadge,
+    );
     onChange?.({ ...merged, ...derived });
   };
 
   const shuffle = () => {
-    const randConcept = COLOR_CONCEPTS[Math.floor(Math.random() * COLOR_CONCEPTS.length)];
-    const randTypo    = TYPO_PAIRINGS[Math.floor(Math.random() * TYPO_PAIRINGS.length)];
-    const randUI      = UI_STYLES[Math.floor(Math.random() * UI_STYLES.length)];
-    const randSpacing = SPACING_SCALES[Math.floor(Math.random() * SPACING_SCALES.length)];
-    const randBtnHier = BUTTON_HIERARCHIES[Math.floor(Math.random() * BUTTON_HIERARCHIES.length)];
+    const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
     updateSelection({
-      conceptId: randConcept.id,
-      typoId: randTypo.id,
-      uiId: randUI.id,
-      spacingId: randSpacing.id,
-      btnHierId: randBtnHier.id,
+      conceptId: rand(COLOR_CONCEPTS).id,
+      typoId:    rand(TYPO_PAIRINGS).id,
+      uiId:      rand(UI_STYLES).id,
+      spacingId: rand(SPACING_SCALES).id,
+      btnHierId: rand(BUTTON_HIERARCHIES).id,
+      formId:    rand(FORM_STYLES).id,
+      cardId:    rand(CARD_VARIANTS).id,
+      badgeId:   rand(BADGE_STYLES).id,
     });
   };
 
@@ -550,6 +729,9 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
               { id: 'spacing',    label: '📐 Spacing' },
               { id: 'ui',         label: '🧩 UI' },
               { id: 'buttons',    label: '🔘 Buttons' },
+              { id: 'forms',      label: '📝 Forms' },
+              { id: 'cards',      label: '🗂 Cards' },
+              { id: 'badges',     label: '🏷 Badges' },
             ].map((tab) => {
               const isActive = activeSection === tab.id;
               return (
@@ -629,6 +811,42 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
               }}
             />
           )}
+          {activeSection === 'forms' && (
+            <FormsSection
+              formId={formId}
+              palette={palette} typo={typoPairing} ui={uiStyle}
+              forms={forms} semantic={semantic}
+              onSelect={(id) => updateSelection({ formId: id })}
+              onShuffle={() => {
+                const r = FORM_STYLES[Math.floor(Math.random() * FORM_STYLES.length)];
+                updateSelection({ formId: r.id });
+              }}
+            />
+          )}
+          {activeSection === 'cards' && (
+            <CardsSection
+              cardId={cardId}
+              palette={palette} typo={typoPairing} ui={uiStyle}
+              card={card} variants={buttonVariants}
+              onSelect={(id) => updateSelection({ cardId: id })}
+              onShuffle={() => {
+                const r = CARD_VARIANTS[Math.floor(Math.random() * CARD_VARIANTS.length)];
+                updateSelection({ cardId: r.id });
+              }}
+            />
+          )}
+          {activeSection === 'badges' && (
+            <BadgesSection
+              badgeId={badgeId}
+              palette={palette} typo={typoPairing}
+              badges={badges} semantic={semantic}
+              onSelect={(id) => updateSelection({ badgeId: id })}
+              onShuffle={() => {
+                const r = BADGE_STYLES[Math.floor(Math.random() * BADGE_STYLES.length)];
+                updateSelection({ badgeId: r.id });
+              }}
+            />
+          )}
         </div>
 
         {/* Live-Preview rechts */}
@@ -639,11 +857,12 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
         }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b',
             textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-            Live-Preview · {concept.label} · {lightDark === 'dark' ? 'Dark' : 'Light'} · {typoPairing.label} · {uiStyle.label} · {spacingScale.label} · {buttonHier.label}
+            Live-Preview · {concept.label} · {lightDark === 'dark' ? 'Dark' : 'Light'} · {typoPairing.label} · {uiStyle.label} · {spacingScale.label} · {buttonHier.label} · {formStyle.label} · {cardVariant.label} · {badgeStyle.label}
           </div>
           <LivePreview
             palette={palette} typo={typoPairing} ui={uiStyle}
             spacing={spacingScale} variants={buttonVariants} semantic={semantic}
+            forms={forms} card={card} badges={badges}
           />
         </div>
       </div>
@@ -1144,10 +1363,393 @@ function SizedButton({ v, ui, typo, size, children }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Phase E2: FormsSection — Form-Style-Karten + Demo-Formular
+// ─────────────────────────────────────────────────────────────────────────────
+
+function FormsSection({ formId, palette, typo, ui, forms, semantic, onSelect, onShuffle }) {
+  return (
+    <div>
+      <SectionHeader title="Formular-Stile" onShuffle={onShuffle} />
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+        gap: 12, marginBottom: 22,
+      }}>
+        {FORM_STYLES.map((f) => {
+          const isSelected = f.id === formId;
+          return (
+            <button
+              key={f.id} type="button"
+              onClick={() => onSelect(f.id)}
+              style={{
+                textAlign: 'left',
+                background: '#fff',
+                border: isSelected ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
+                borderRadius: 8,
+                padding: 14, cursor: 'pointer',
+                boxShadow: isSelected ? `0 4px 12px ${KC_MID}33` : 'none',
+                fontFamily: 'inherit',
+              }}
+            >
+              <div style={{ marginBottom: 12 }}>
+                <FormPreview style={f} palette={palette} ui={ui} typo={typo} compact />
+              </div>
+              <div style={{
+                fontSize: 12, fontWeight: 800, color: KC_DARK,
+                marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                {isSelected && <span style={{ color: KC_MID }}>✓</span>}
+                {f.label}
+              </div>
+              <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>
+                {f.description}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Volles Demo-Formular */}
+      <div style={{
+        fontSize: 13, fontWeight: 800, color: KC_DARK,
+        textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 8,
+      }}>
+        Demo-Formular
+      </div>
+      <div style={{
+        background: palette.bg_primary, padding: 18, borderRadius: 8,
+        border: `1px solid ${palette.border}`,
+      }}>
+        <FormPreview style={findFormStyle(formId)} palette={palette} ui={ui} typo={typo} semantic={semantic} />
+      </div>
+    </div>
+  );
+}
+
+function FormPreview({ style, palette, ui, typo, semantic, compact = false }) {
+  const isFloating = style.label_pos === 'floating';
+  const inputBg = style.input_style === 'filled' ? palette.bg_surface : palette.bg_primary;
+  const baseInput = {
+    width: '100%', boxSizing: 'border-box',
+    padding: compact ? '6px 8px' : '10px 12px',
+    fontSize: compact ? 11 : 13,
+    fontFamily: typo.body, color: palette.text_primary,
+    background: inputBg, outline: 'none',
+  };
+  const inputStyle = (() => {
+    if (style.input_style === 'outlined') {
+      return { ...baseInput, border: `1px solid ${palette.border}`, borderRadius: ui.button_radius };
+    }
+    if (style.input_style === 'underlined') {
+      return { ...baseInput, border: 'none', borderBottom: `1px solid ${palette.border}`, borderRadius: 0, padding: compact ? '6px 0' : '10px 0' };
+    }
+    if (style.input_style === 'filled') {
+      return { ...baseInput, border: 'none', borderRadius: ui.button_radius };
+    }
+    return baseInput;
+  })();
+
+  const labelStyle = {
+    display: 'block', fontSize: compact ? 9 : 10,
+    fontWeight: 700, color: palette.text_muted,
+    textTransform: 'uppercase', letterSpacing: '0.06em',
+    marginBottom: compact ? 3 : 5,
+    fontFamily: typo.body,
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 8 : 14 }}>
+      <div>
+        {!isFloating && <label style={labelStyle}>Name</label>}
+        <div style={{ position: 'relative' }}>
+          <input type="text" placeholder={isFloating ? 'Name' : (compact ? 'Max Mustermann' : 'Max Mustermann')} style={inputStyle} />
+        </div>
+      </div>
+      {!compact && (
+        <>
+          <div>
+            {!isFloating && <label style={labelStyle}>E-Mail</label>}
+            <input type="email" placeholder={isFloating ? 'E-Mail' : 'max@example.de'} style={inputStyle} />
+          </div>
+          <div>
+            {!isFloating && <label style={labelStyle}>Anliegen</label>}
+            <textarea
+              placeholder={isFloating ? 'Anliegen' : 'Kurze Beschreibung…'}
+              rows={3}
+              style={{ ...inputStyle, resize: 'vertical', minHeight: 60, fontFamily: typo.body }}
+            />
+          </div>
+          {/* Error-State Beispiel */}
+          <div>
+            <label style={{ ...labelStyle, color: semantic?.error?.fg || '#C0392B' }}>
+              Telefon * (Pflichtfeld)
+            </label>
+            <input type="tel" defaultValue=""
+              style={{ ...inputStyle, borderColor: semantic?.error?.fg || '#C0392B' }} />
+            <div style={{
+              fontSize: 10, color: semantic?.error?.fg || '#C0392B',
+              marginTop: 4, fontFamily: typo.body,
+            }}>
+              ⚠ Bitte Telefonnummer angeben
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase E2: CardsSection — Card-Variant-Karten + Demo-Cards
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CardsSection({ cardId, palette, typo, ui, card, variants, onSelect, onShuffle }) {
+  return (
+    <div>
+      <SectionHeader title="Card-Varianten" onShuffle={onShuffle} />
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+        gap: 12, marginBottom: 22,
+      }}>
+        {CARD_VARIANTS.map((c) => {
+          const isSelected = c.id === cardId;
+          return (
+            <button
+              key={c.id} type="button"
+              onClick={() => onSelect(c.id)}
+              style={{
+                textAlign: 'left',
+                background: '#fff',
+                border: isSelected ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
+                borderRadius: 8,
+                padding: 14, cursor: 'pointer',
+                boxShadow: isSelected ? `0 4px 12px ${KC_MID}33` : 'none',
+                fontFamily: 'inherit',
+              }}
+            >
+              <CardPreview variant={c} palette={palette} ui={ui} typo={typo} compact />
+              <div style={{
+                fontSize: 12, fontWeight: 800, color: KC_DARK,
+                marginTop: 10, marginBottom: 2,
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                {isSelected && <span style={{ color: KC_MID }}>✓</span>}
+                {c.label}
+              </div>
+              <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>
+                {c.description}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Drei Demo-Cards in voller Groesse */}
+      <div style={{
+        fontSize: 13, fontWeight: 800, color: KC_DARK,
+        textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 8,
+      }}>
+        Demo-Cards
+      </div>
+      <div style={{
+        background: palette.bg_surface, padding: 18, borderRadius: 8,
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14,
+      }}>
+        {[
+          { title: 'Wärmepumpe', desc: 'Beratung + Antrag + Installation aus einer Hand.' },
+          { title: 'Wallbox',    desc: 'Förderfähige Installation in 14 Tagen.' },
+          { title: 'Notdienst',  desc: '24/7 — Heizung, Wasser, Strom.' },
+        ].map((d, i) => (
+          <CardPreview
+            key={i} variant={findCardVariant(cardId)}
+            palette={palette} ui={ui} typo={typo}
+            title={d.title} desc={d.desc}
+            primary={variants?.primary}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CardPreview({ variant, palette, ui, typo, compact = false, title, desc, primary }) {
+  const cardStyle = {
+    background: variant.id === 'flat' ? palette.bg_surface : palette.bg_primary,
+    border: variant.border_width === '0px' ? 'none' : `${variant.border_width} solid ${palette.border}`,
+    borderRadius: ui.card_radius,
+    boxShadow: variant.shadow,
+    padding: compact ? 10 : 16,
+    fontFamily: typo.body, color: palette.text_primary,
+  };
+
+  if (compact) {
+    return (
+      <div style={cardStyle}>
+        <div style={{
+          height: 36, background: palette.bg_surface,
+          borderRadius: 4, marginBottom: 6,
+        }} />
+        <div style={{
+          fontFamily: typo.heading, fontWeight: typo.heading_weight,
+          fontSize: 11, color: palette.text_primary,
+        }}>
+          Karten-Titel
+        </div>
+        <div style={{ fontSize: 9, color: palette.text_muted, marginTop: 2 }}>
+          Beispieltext
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={cardStyle}>
+      <div style={{
+        height: 80, background: palette.bg_surface,
+        borderRadius: variant.id === 'flat' ? 0 : 4,
+        marginBottom: 10,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: palette.text_muted, fontSize: 12,
+      }}>
+        Bild-Placeholder
+      </div>
+      <div style={{
+        fontFamily: typo.heading, fontWeight: typo.heading_weight,
+        fontSize: 16, color: palette.text_primary, marginBottom: 6,
+      }}>
+        {title}
+      </div>
+      <div style={{ fontSize: 12, color: palette.text_muted, lineHeight: 1.5, marginBottom: 12 }}>
+        {desc}
+      </div>
+      {primary && (
+        <button type="button" style={{
+          padding: '6px 14px',
+          background: primary.bg, color: primary.fg,
+          border: `1px solid ${primary.border}`,
+          borderRadius: ui.button_radius,
+          fontSize: 11, fontWeight: 700, fontFamily: typo.body,
+          cursor: 'pointer', boxShadow: primary.shadow,
+        }}>
+          Mehr →
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase E2: BadgesSection — Badge-Style-Karten + Status-Matrix
+// ─────────────────────────────────────────────────────────────────────────────
+
+function BadgesSection({ badgeId, palette, typo, badges, semantic, onSelect, onShuffle }) {
+  return (
+    <div>
+      <SectionHeader title="Badge-Stile" onShuffle={onShuffle} />
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+        gap: 12, marginBottom: 22,
+      }}>
+        {BADGE_STYLES.map((b) => {
+          const isSelected = b.id === badgeId;
+          const demoBadges = deriveBadgeTokens(b, semantic, palette);
+          return (
+            <button
+              key={b.id} type="button"
+              onClick={() => onSelect(b.id)}
+              style={{
+                textAlign: 'left',
+                background: '#fff',
+                border: isSelected ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
+                borderRadius: 8,
+                padding: 14, cursor: 'pointer',
+                boxShadow: isSelected ? `0 4px 12px ${KC_MID}33` : 'none',
+                fontFamily: 'inherit',
+              }}
+            >
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                <DemoBadge tokens={demoBadges.success} typo={typo}>Aktiv</DemoBadge>
+                <DemoBadge tokens={demoBadges.warn} typo={typo}>Offen</DemoBadge>
+                <DemoBadge tokens={demoBadges.error} typo={typo}>Fehler</DemoBadge>
+              </div>
+              <div style={{
+                fontSize: 12, fontWeight: 800, color: KC_DARK,
+                marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                {isSelected && <span style={{ color: KC_MID }}>✓</span>}
+                {b.label}
+              </div>
+              <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>
+                {b.description}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Status-Matrix: alle 5 Status × 2 Sizes */}
+      <div style={{
+        fontSize: 13, fontWeight: 800, color: KC_DARK,
+        textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 8,
+      }}>
+        Status × Sizes
+      </div>
+      <div style={{
+        background: palette.bg_primary, padding: 18, borderRadius: 8,
+        border: `1px solid ${palette.border}`,
+      }}>
+        {[
+          { key: 'success', label: 'Aktiv / Bewilligt' },
+          { key: 'warn',    label: 'In Bearbeitung' },
+          { key: 'error',   label: 'Abgelehnt' },
+          { key: 'info',    label: 'Info' },
+          { key: 'neutral', label: 'Neutral' },
+        ].map((row) => (
+          <div key={row.key} style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            padding: '10px 0',
+            borderBottom: `1px solid ${palette.border}`,
+          }}>
+            <div style={{
+              minWidth: 130, fontSize: 10, fontWeight: 700, color: palette.text_muted,
+              textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: typo.body,
+            }}>
+              {row.label}
+            </div>
+            <DemoBadge tokens={badges[row.key]} typo={typo} size="small">Klein</DemoBadge>
+            <DemoBadge tokens={badges[row.key]} typo={typo} size="default">Standard</DemoBadge>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DemoBadge({ tokens, typo, size = 'default', children }) {
+  const sizes = {
+    small:   { padding: '2px 8px',  fontSize: 9 },
+    default: { padding: '3px 10px', fontSize: 10 },
+  };
+  const sz = sizes[size];
+  return (
+    <span style={{
+      display: 'inline-block',
+      padding: sz.padding,
+      background: tokens.bg, color: tokens.fg,
+      border: `1px solid ${tokens.border}`,
+      borderRadius: tokens.radius,
+      fontSize: sz.fontSize, fontWeight: 700, fontFamily: typo.body,
+      textTransform: 'uppercase', letterSpacing: '0.06em',
+    }}>
+      {children}
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // LivePreview — Sample Wireframe-Section mit aktuellen Tokens
 // ─────────────────────────────────────────────────────────────────────────────
 
-function LivePreview({ palette, typo, ui, spacing, variants, semantic }) {
+function LivePreview({ palette, typo, ui, spacing, variants, semantic, forms, card, badges }) {
   // Phase E1: Spacing-Scale fließt in Padding/Gap-Werte ein.
   const spX = spacing?.scale?.[5] ?? 32;       // ~32px Standard
   const spY = spacing?.section_y ?? 64;        // Section vertical
@@ -1259,38 +1861,55 @@ function LivePreview({ palette, typo, ui, spacing, variants, semantic }) {
         <span>✓ Förderantrag inklusive</span>
       </div>
 
-      {/* Feature-Cards-Sample */}
+      {/* Feature-Cards-Sample — Phase E2: Card + Badge Tokens */}
       <div style={{
-        padding: '32px',
+        padding: `${spY * 0.5}px ${spX}px`,
         background: palette.bg_primary,
         borderTop: `1px solid ${palette.border}`,
       }}>
         <h2 style={{
           fontFamily: typo.heading, fontWeight: typo.heading_weight,
-          fontSize: 22, color: palette.text_primary, margin: '0 0 18px',
+          fontSize: 22, color: palette.text_primary, margin: `0 0 ${gap}px`,
         }}>
           Drei Pakete, ein Festpreis
         </h2>
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: 14,
+          gap: gap,
         }}>
           {[
-            { title: 'Standard', desc: '11 kW, einphasig, ideal für Single-Garage' },
-            { title: 'Komfort',  desc: '22 kW dreiphasig, Lastmanagement' },
-            { title: 'Premium',  desc: 'PV-Integration, App-Steuerung, Förderpaket' },
+            { title: 'Standard', desc: '11 kW, einphasig, ideal für Single-Garage', status: 'info',    statusLabel: 'Beliebt' },
+            { title: 'Komfort',  desc: '22 kW dreiphasig, Lastmanagement',           status: 'success', statusLabel: 'Empfohlen' },
+            { title: 'Premium',  desc: 'PV-Integration, App-Steuerung, Förderpaket', status: 'warn',    statusLabel: 'Limitiert' },
           ].map((f, i) => (
             <div key={i} style={{
-              background: palette.bg_surface,
-              border: `${ui.border_width} solid ${palette.border}`,
-              borderRadius: ui.card_radius,
-              padding: 16,
-              boxShadow: ui.shadow,
+              background: card?.background || palette.bg_surface,
+              border: card?.border_width === '0px'
+                ? 'none'
+                : `${card?.border_width || ui.border_width} solid ${card?.border_color || palette.border}`,
+              borderRadius: card?.radius || ui.card_radius,
+              padding: card?.padding || '16px',
+              boxShadow: card?.shadow || ui.shadow,
               fontFamily: typo.body, color: palette.text_primary,
+              position: 'relative',
             }}>
+              {badges?.[f.status] && (
+                <span style={{
+                  position: 'absolute', top: 10, right: 10,
+                  padding: '2px 8px',
+                  background: badges[f.status].bg, color: badges[f.status].fg,
+                  border: `1px solid ${badges[f.status].border}`,
+                  borderRadius: badges[f.status].radius,
+                  fontSize: 9, fontWeight: 700, fontFamily: typo.body,
+                  textTransform: 'uppercase', letterSpacing: '0.06em',
+                }}>
+                  {f.statusLabel}
+                </span>
+              )}
               <div style={{
                 fontFamily: typo.heading, fontWeight: typo.heading_weight,
                 fontSize: 15, color: palette.text_primary, marginBottom: 6,
+                paddingRight: 70,
               }}>
                 {f.title}
               </div>
@@ -1312,6 +1931,67 @@ function LivePreview({ palette, typo, ui, spacing, variants, semantic }) {
           ))}
         </div>
       </div>
+
+      {/* Phase E2: Inline-Form-Demo am Ende der Preview */}
+      {forms && (
+        <div style={{
+          padding: `${spY * 0.5}px ${spX}px`,
+          background: palette.bg_surface,
+          borderTop: `1px solid ${palette.border}`,
+        }}>
+          <h3 style={{
+            fontFamily: typo.heading, fontWeight: typo.heading_weight,
+            fontSize: 18, color: palette.text_primary, margin: `0 0 ${gap}px`,
+          }}>
+            Kostenlose Beratung
+          </h3>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: gap * 0.7,
+          }}>
+            <input
+              type="text" placeholder="Name"
+              style={{
+                padding: '10px 12px', fontSize: 13, fontFamily: typo.body,
+                color: palette.text_primary,
+                background: forms.style === 'filled' ? palette.bg_primary : 'transparent',
+                border: forms.style === 'underlined'
+                  ? `0 0 1px 0 ${palette.border}`
+                  : forms.style === 'outlined'
+                    ? `1px solid ${palette.border}`
+                    : 'none',
+                borderBottom: forms.style === 'underlined' ? `1px solid ${palette.border}` : undefined,
+                borderRadius: forms.style === 'underlined' ? 0 : ui.button_radius,
+                outline: 'none',
+              }}
+            />
+            <input
+              type="email" placeholder="E-Mail"
+              style={{
+                padding: '10px 12px', fontSize: 13, fontFamily: typo.body,
+                color: palette.text_primary,
+                background: forms.style === 'filled' ? palette.bg_primary : 'transparent',
+                border: forms.style === 'underlined'
+                  ? `0 0 1px 0 ${palette.border}`
+                  : forms.style === 'outlined'
+                    ? `1px solid ${palette.border}`
+                    : 'none',
+                borderBottom: forms.style === 'underlined' ? `1px solid ${palette.border}` : undefined,
+                borderRadius: forms.style === 'underlined' ? 0 : ui.button_radius,
+                outline: 'none',
+              }}
+            />
+            <button type="button" style={{
+              background: primary.bg, color: primary.fg,
+              border: `1px solid ${primary.border}`, borderRadius: ui.button_radius,
+              padding: '10px 16px', fontSize: 12, fontWeight: 700,
+              fontFamily: typo.body, cursor: 'pointer', boxShadow: primary.shadow,
+            }}>
+              Termin anfragen
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

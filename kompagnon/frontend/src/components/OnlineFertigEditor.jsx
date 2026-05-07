@@ -695,6 +695,7 @@ export default function OnlineFertigEditor() {
               projectId={projectId}
               wireframeData={wireframeData}
               styleGuide={styleGuide}
+              sitemapPages={sitemapPages}
               approved={approved}
               onOpenGrapesJS={handleOpenGrapesJS}
               onNetlifyDeploy={handleNetlifyDeploy}

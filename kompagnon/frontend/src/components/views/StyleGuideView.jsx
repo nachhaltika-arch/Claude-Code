@@ -1,27 +1,21 @@
 /**
- * StyleGuideView — Phase C Redesign (Relume-Style Concept-Cards).
+ * StyleGuideView — Relume-Style 3-Section-Layout.
  *
- * Statt freier Token-Picker (V1): kuratierte Konzept-Karten fuer Farbe,
- * Typografie und UI-Style. User klickt sich durch und sieht rechts eine
- * Live-Preview einer Wireframe-Section mit den gewaehlten Tokens.
+ * Drei Top-Level-Sections in einer einzigen Edit-Spalte: Colors, Typography,
+ * UI Styling. Rechts daneben Live-Preview mit Device-Toggle. Footer haelt den
+ * "Scheme shuffle"-Button fuer alles auf einmal. Pro Section gibt es einen
+ * Shuffle-Pin mit Keyboard-Shortcut (C/T/U), SPACE wuerfelt das ganze Schema.
  *
- * Schema-Strategie:
- *   - Neue Felder: color_concept_id, light_dark, typography_pairing_id, ui_style_id
- *   - Existierende Felder (colors/typography/buttons/spacing) bleiben — werden
- *     beim Concept-Wechsel automatisch derived. Andere Consumer (DesignView,
- *     Export-Pipeline) lesen weiter colors.primary etc., ohne aenderung.
- *   - User kann advance-mode oeffnen und Tokens manuell ueberschreiben.
+ * Die kuratierten Konzepte (COLOR_CONCEPTS, TYPO_PAIRINGS, UI_STYLES, ...)
+ * bleiben als Datenquelle fuer Shuffle und Defaults. Sichtbar werden sie
+ * jedoch nicht mehr als Karten — der User sieht direkt die Token-Werte.
  *
- * Props:
- *   styleGuide        — { color_concept_id, light_dark, ..., colors, typography, ... }
- *   onChange(next)    — beim Token-Wechsel
- *   onApprove()       — "Freigabe an Kunden senden" (Brevo-Mail im Container)
- *   approved          — true → Lock entfernt
+ * Schema-Strategie: identisch zur bisherigen Implementierung. Backend / Export
+ * / DesignView lesen weiter colors.primary etc.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const KC_DARK = '#004F59';
-const KC_MID = '#008EAA';
 const KC_YELLOW = '#FAE600';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -243,14 +237,6 @@ const UI_STYLES = [
   },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Phase E1: Spacing-Scales — Whitespace-Konzepte
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Jeder Scale liefert eine konsistente 8er-Token-Reihe + Container-Width
-// + Section-Padding. Wirkt sich global auf gerenderte Komponenten und
-// die Live-Preview aus.
-
 const SPACING_SCALES = [
   {
     id: 'tight', label: 'Eng',
@@ -278,14 +264,6 @@ const SPACING_SCALES = [
   },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Phase E1: Semantic Colors (Status) — KOMPAGNON-Brand-Standard pro Light/Dark
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Werte aus dem KOMPAGNON-UI/UX-Guidelines-Doc (success/warn/error/info).
-// Sind nicht pro Kunde editierbar — Industry-Konvention, soll konsistent
-// bleiben. Light/Dark werden vom aktuellen Color-Concept-Modus getriggert.
-
 const SEMANTIC_COLORS = {
   light: {
     success: { fg: '#00875A', bg: '#E3F6EF', border: 'rgba(0,135,90,0.2)' },
@@ -301,173 +279,56 @@ const SEMANTIC_COLORS = {
   },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Phase E1: Button-Hierarchien — wie ausgepraegt der Primary-CTA wirkt
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Beeinflusst den Kontrast / Gewicht der Primary- vs Secondary-Variants.
-// 'standard'    → klare Hierarchie, Primary = solid bunt
-// 'subtle'      → flache Hierarchie, alle Buttons schlicht
-// 'prominent'   → starker Primary-Akzent, sehr auffällig
-
 const BUTTON_HIERARCHIES = [
-  {
-    id: 'standard', label: 'Standard',
-    description: 'Solid Primary, Outline Secondary, Ghost Tertiary.',
-  },
-  {
-    id: 'subtle', label: 'Subtil',
-    description: 'Alle Buttons schlicht — flache Hierarchie für editorielle Sites.',
-  },
-  {
-    id: 'prominent', label: 'Prominent',
-    description: 'Sehr auffälliger Primary mit Schatten — Conversion-Sites.',
-  },
+  { id: 'standard',  label: 'Standard',  description: 'Solid Primary, Outline Secondary, Ghost Tertiary.' },
+  { id: 'subtle',    label: 'Subtil',    description: 'Alle Buttons schlicht — flache Hierarchie für editorielle Sites.' },
+  { id: 'prominent', label: 'Prominent', description: 'Sehr auffälliger Primary mit Schatten — Conversion-Sites.' },
 ];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Phase E2: Form-Stile
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// label_pos: 'above' (klassisch), 'inline' (links neben Input), 'floating'
-// (oben über Input, schiebt sich beim Focus). input_style: 'outlined',
-// 'filled', 'underlined'.
 
 const FORM_STYLES = [
-  {
-    id: 'outlined', label: 'Outlined',
-    description: 'Klassisch — Border um Input, Label oberhalb. Funktioniert universell.',
-    input_style: 'outlined', label_pos: 'above',
-  },
-  {
-    id: 'filled', label: 'Filled',
-    description: 'Hellgrauer Background statt Border. Modern, weicher. Material-inspiriert.',
-    input_style: 'filled', label_pos: 'above',
-  },
-  {
-    id: 'underlined', label: 'Underlined',
-    description: 'Nur unterer Border. Minimal, editorialer Look. Dezent.',
-    input_style: 'underlined', label_pos: 'above',
-  },
-  {
-    id: 'floating', label: 'Floating Label',
-    description: 'Label springt beim Focus nach oben. Kompakt — gut für lange Forms.',
-    input_style: 'outlined', label_pos: 'floating',
-  },
+  { id: 'outlined',   label: 'Outlined',       description: 'Klassisch — Border um Input, Label oberhalb.',   input_style: 'outlined',   label_pos: 'above' },
+  { id: 'filled',     label: 'Filled',         description: 'Hellgrauer Background statt Border. Modern.',     input_style: 'filled',     label_pos: 'above' },
+  { id: 'underlined', label: 'Underlined',     description: 'Nur unterer Border. Minimal, editorial.',         input_style: 'underlined', label_pos: 'above' },
+  { id: 'floating',   label: 'Floating Label', description: 'Label springt beim Focus nach oben. Kompakt.',    input_style: 'outlined',   label_pos: 'floating' },
 ];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Phase E2: Card-Varianten
-// ─────────────────────────────────────────────────────────────────────────────
 
 const CARD_VARIANTS = [
-  {
-    id: 'flat', label: 'Flat',
-    description: 'Nur Hintergrund-Tint, kein Border, kein Shadow. Sehr ruhig.',
-    border_width: '0px', shadow: 'none',
-  },
-  {
-    id: 'bordered', label: 'Bordered',
-    description: '1px Border, kein Shadow. Klar abgegrenzt, sachlich.',
-    border_width: '1px', shadow: 'none',
-  },
-  {
-    id: 'elevated', label: 'Elevated',
-    description: 'Schatten ohne starken Border. Schwebend, interaktiv.',
-    border_width: '1px', shadow: '0 4px 14px rgba(0,0,0,0.08)',
-  },
-  {
-    id: 'outlined_heavy', label: 'Outlined Heavy',
-    description: '2px Border, kein Shadow. Brutalist, betont strukturell.',
-    border_width: '2px', shadow: 'none',
-  },
+  { id: 'flat',           label: 'Flat',           description: 'Nur Hintergrund-Tint, kein Border, kein Shadow.', border_width: '0px', shadow: 'none' },
+  { id: 'bordered',       label: 'Bordered',       description: '1px Border, kein Shadow.',                         border_width: '1px', shadow: 'none' },
+  { id: 'elevated',       label: 'Elevated',       description: 'Schatten ohne starken Border.',                    border_width: '1px', shadow: '0 4px 14px rgba(0,0,0,0.08)' },
+  { id: 'outlined_heavy', label: 'Outlined Heavy', description: '2px Border, kein Shadow.',                         border_width: '2px', shadow: 'none' },
 ];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Phase E2: Badge-Stile (Status-Pills)
-// ─────────────────────────────────────────────────────────────────────────────
 
 const BADGE_STYLES = [
-  {
-    id: 'pill_filled', label: 'Pill Filled',
-    description: 'Vollflächig gefärbt, rund. Auffällig, klassischer Status-Badge.',
-    shape: 'pill', fill: 'filled',
-  },
-  {
-    id: 'pill_outlined', label: 'Pill Outlined',
-    description: 'Rund mit transparentem Background + Border. Dezent, professionell.',
-    shape: 'pill', fill: 'outlined',
-  },
-  {
-    id: 'square_filled', label: 'Square Filled',
-    description: 'Kleiner Radius, gefüllt. Eckig, technisch.',
-    shape: 'square', fill: 'filled',
-  },
-  {
-    id: 'square_outlined', label: 'Square Outlined',
-    description: 'Kleiner Radius, Outline. Editorial, ruhig.',
-    shape: 'square', fill: 'outlined',
-  },
+  { id: 'pill_filled',     label: 'Pill Filled',     description: 'Vollflächig gefärbt, rund.',         shape: 'pill',   fill: 'filled' },
+  { id: 'pill_outlined',   label: 'Pill Outlined',   description: 'Rund mit transparentem Background.', shape: 'pill',   fill: 'outlined' },
+  { id: 'square_filled',   label: 'Square Filled',   description: 'Kleiner Radius, gefüllt.',           shape: 'square', fill: 'filled' },
+  { id: 'square_outlined', label: 'Square Outlined', description: 'Kleiner Radius, Outline.',           shape: 'square', fill: 'outlined' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Default Style-Guide & Derivation
+// Defaults & Lookup
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DEFAULT_CONCEPT = COLOR_CONCEPTS[0]; // Industrial
-const DEFAULT_TYPO    = TYPO_PAIRINGS[0];  // Modern Sans
-const DEFAULT_UI      = UI_STYLES[0];      // Soft Cards
-const DEFAULT_SPACING = SPACING_SCALES[1]; // Standard
-const DEFAULT_BUTTON_HIER = BUTTON_HIERARCHIES[0]; // Standard
-const DEFAULT_FORM    = FORM_STYLES[0];    // Outlined
-const DEFAULT_CARD    = CARD_VARIANTS[1];  // Bordered
-const DEFAULT_BADGE   = BADGE_STYLES[0];   // Pill Filled
+const DEFAULT_CONCEPT     = COLOR_CONCEPTS[0];
+const DEFAULT_TYPO        = TYPO_PAIRINGS[0];
+const DEFAULT_UI          = UI_STYLES[0];
+const DEFAULT_SPACING     = SPACING_SCALES[1];
+const DEFAULT_BUTTON_HIER = BUTTON_HIERARCHIES[0];
+const DEFAULT_FORM        = FORM_STYLES[0];
+const DEFAULT_CARD        = CARD_VARIANTS[1];
+const DEFAULT_BADGE       = BADGE_STYLES[0];
 
-function findColorConcept(id) {
-  return COLOR_CONCEPTS.find((c) => c.id === id) || DEFAULT_CONCEPT;
-}
-function findTypoPairing(id) {
-  return TYPO_PAIRINGS.find((t) => t.id === id) || DEFAULT_TYPO;
-}
-function findUIStyle(id) {
-  return UI_STYLES.find((u) => u.id === id) || DEFAULT_UI;
-}
-function findSpacingScale(id) {
-  return SPACING_SCALES.find((s) => s.id === id) || DEFAULT_SPACING;
-}
-
-// ── Token-Override-Mergers ────────────────────────────────────────────────────
-//
-// User kann pro Token einen Custom-Wert setzen (Color-Picker / Hex-Input).
-// Override wird im styleGuide unter palette_overrides[lightDark] /
-// semantic_overrides[lightDark] persistiert. Beim Lookup mergen wir
-// Concept-Default + Override.
-
-const PALETTE_TOKEN_KEYS = [
-  'bg_primary', 'bg_surface',
-  'text_primary', 'text_muted',
-  'border',
-  'accent_1', 'accent_2', 'accent_3',
-];
-
-const PALETTE_TOKEN_LABELS = {
-  bg_primary:   'Background · Primary',
-  bg_surface:   'Background · Surface',
-  text_primary: 'Text · Primary',
-  text_muted:   'Text · Muted',
-  border:       'Border',
-  accent_1:     'Akzent 1 (Primary)',
-  accent_2:     'Akzent 2',
-  accent_3:     'Akzent 3',
-};
+const findColorConcept = (id) => COLOR_CONCEPTS.find((c) => c.id === id) || DEFAULT_CONCEPT;
+const findTypoPairing = (id) => TYPO_PAIRINGS.find((t) => t.id === id) || DEFAULT_TYPO;
+const findUIStyle = (id) => UI_STYLES.find((u) => u.id === id) || DEFAULT_UI;
+const findSpacingScale = (id) => SPACING_SCALES.find((s) => s.id === id) || DEFAULT_SPACING;
+const findButtonHierarchy = (id) => BUTTON_HIERARCHIES.find((b) => b.id === id) || DEFAULT_BUTTON_HIER;
+const findFormStyle = (id) => FORM_STYLES.find((f) => f.id === id) || DEFAULT_FORM;
+const findCardVariant = (id) => CARD_VARIANTS.find((c) => c.id === id) || DEFAULT_CARD;
+const findBadgeStyle = (id) => BADGE_STYLES.find((b) => b.id === id) || DEFAULT_BADGE;
 
 const SEMANTIC_KEYS = ['success', 'warn', 'error', 'info'];
-const SEMANTIC_LABELS = {
-  success: 'Erfolg / Aktiv',
-  warn:    'Hinweis / Offen',
-  error:   'Fehler / Blockiert',
-  info:    'Info / Neutral',
-};
 
 function effectivePalette(concept, lightDark, overrides) {
   const base = lightDark === 'dark' ? concept.dark : concept.light;
@@ -478,30 +339,11 @@ function effectivePalette(concept, lightDark, overrides) {
 function effectiveSemantic(lightDark, overrides) {
   const base = SEMANTIC_COLORS[lightDark === 'dark' ? 'dark' : 'light'];
   const ovr = overrides?.[lightDark] || {};
-  // Per-Status mergen — pro Status sind {fg, bg, border} drei separate Slots
   const out = {};
-  SEMANTIC_KEYS.forEach((k) => {
-    out[k] = { ...base[k], ...(ovr[k] || {}) };
-  });
+  SEMANTIC_KEYS.forEach((k) => { out[k] = { ...base[k], ...(ovr[k] || {}) }; });
   return out;
 }
 
-
-function findButtonHierarchy(id) {
-  return BUTTON_HIERARCHIES.find((b) => b.id === id) || DEFAULT_BUTTON_HIER;
-}
-function findFormStyle(id) {
-  return FORM_STYLES.find((f) => f.id === id) || DEFAULT_FORM;
-}
-function findCardVariant(id) {
-  return CARD_VARIANTS.find((c) => c.id === id) || DEFAULT_CARD;
-}
-function findBadgeStyle(id) {
-  return BADGE_STYLES.find((b) => b.id === id) || DEFAULT_BADGE;
-}
-
-// Phase E1: Buttons — pro Hierarchie ein Set Variants (primary/secondary/
-// tertiary/destructive). Werte aus palette + ui_style + semantic.
 function deriveButtonVariants(palette, uiStyle, hierarchy, semantic) {
   if (hierarchy.id === 'subtle') {
     return {
@@ -519,7 +361,6 @@ function deriveButtonVariants(palette, uiStyle, hierarchy, semantic) {
       destructive: { bg: semantic.error.fg, fg: '#fff', border: semantic.error.fg, shadow: '0 4px 14px rgba(192,57,43,0.20)' },
     };
   }
-  // 'standard'
   return {
     primary:     { bg: palette.accent_1, fg: palette.bg_primary, border: palette.accent_1, shadow: uiStyle.shadow },
     secondary:   { bg: 'transparent', fg: palette.accent_1, border: palette.accent_1, shadow: 'none' },
@@ -528,13 +369,11 @@ function deriveButtonVariants(palette, uiStyle, hierarchy, semantic) {
   };
 }
 
-// Phase E2: Form-Tokens aus Form-Style + Palette + UI ableiten.
 function deriveFormTokens(palette, uiStyle, formStyle) {
-  const isDark = palette.bg_primary === palette.bg_primary && palette.text_primary && palette.text_primary[1] === 'F'; // hacky check, ersetzt unten durch explizites isDark
   return {
-    style:        formStyle.input_style,    // outlined | filled | underlined
-    label_pos:    formStyle.label_pos,      // above | floating
-    radius:       uiStyle.button_radius,    // konsistent zu Buttons
+    style:        formStyle.input_style,
+    label_pos:    formStyle.label_pos,
+    radius:       uiStyle.button_radius,
     border_width: uiStyle.border_width,
     bg:           formStyle.input_style === 'filled' ? palette.bg_surface : 'transparent',
     border:       formStyle.input_style === 'outlined'
@@ -548,7 +387,6 @@ function deriveFormTokens(palette, uiStyle, formStyle) {
   };
 }
 
-// Phase E2: Card-Tokens.
 function deriveCardTokens(palette, uiStyle, cardVariant, spacingScale) {
   return {
     background:   cardVariant.id === 'flat' ? palette.bg_surface : palette.bg_primary,
@@ -560,38 +398,26 @@ function deriveCardTokens(palette, uiStyle, cardVariant, spacingScale) {
   };
 }
 
-// Phase E2: Badge-Tokens — eine Map { status: { bg, fg, border } } anhand
-// Badge-Stil + Semantic-Colors.
 function deriveBadgeTokens(badgeStyle, semantic, palette) {
   const radius = badgeStyle.shape === 'pill' ? '999px' : '4px';
   const map = {};
-  ['success', 'warn', 'error', 'info'].forEach((key) => {
+  SEMANTIC_KEYS.forEach((key) => {
     const c = semantic[key];
-    if (badgeStyle.fill === 'filled') {
-      map[key] = { bg: c.fg, fg: '#fff', border: c.fg, radius };
-    } else {
-      map[key] = { bg: 'transparent', fg: c.fg, border: c.fg, radius };
-    }
+    map[key] = badgeStyle.fill === 'filled'
+      ? { bg: c.fg, fg: '#fff', border: c.fg, radius }
+      : { bg: 'transparent', fg: c.fg, border: c.fg, radius };
   });
-  // Neutral-Badge zusaetzlich
-  if (badgeStyle.fill === 'filled') {
-    map.neutral = { bg: palette.text_muted, fg: '#fff', border: palette.text_muted, radius };
-  } else {
-    map.neutral = { bg: 'transparent', fg: palette.text_muted, border: palette.text_muted, radius };
-  }
+  map.neutral = badgeStyle.fill === 'filled'
+    ? { bg: palette.text_muted, fg: '#fff', border: palette.text_muted, radius }
+    : { bg: 'transparent', fg: palette.text_muted, border: palette.text_muted, radius };
   return { ...map, shape: badgeStyle.shape, fill: badgeStyle.fill };
 }
 
-// Aus Concept-Auswahl die Legacy-Felder ableiten (backwards-compat fuer
-// DesignView, Export-Pipeline, etc., die colors.primary etc. erwarten).
-// Phase E1: zusaetzlich semantic + spacing_scale + button_variants.
-// Phase E2: zusaetzlich forms + card_variant + badge_variants.
 function deriveLegacyTokens(
   concept, lightDark, typoPairing, uiStyle, spacingScale, buttonHierarchy,
   formStyle, cardVariant, badgeStyle,
   paletteOverrides = null, semanticOverrides = null,
 ) {
-  // Effektive Tokens: Concept-Default + User-Override
   const palette = effectivePalette(concept, lightDark, paletteOverrides);
   const semantic = effectiveSemantic(lightDark, semanticOverrides);
   const buttonVariants = deriveButtonVariants(palette, uiStyle, buttonHierarchy, semantic);
@@ -606,39 +432,81 @@ function deriveLegacyTokens(
       background: palette.bg_primary,
       text:       palette.text_primary,
     },
-    typography: {
-      font_family:   typoPairing.body,
-      headline_size: 32,
-      body_size:     14,
-    },
-    buttons: {
-      radius: uiStyle.button_radius,
-      style:  'solid',
-    },
+    typography: { font_family: typoPairing.body, headline_size: 32, body_size: 14 },
+    buttons:    { radius: uiStyle.button_radius, style: 'solid' },
     spacing: {
-      radius:  uiStyle.card_radius,
-      section: spacingScale.section_y,
-      base:    spacingScale.base,
-      scale:   spacingScale.scale,
-      container: spacingScale.container,
-      gap:     spacingScale.gap,
+      radius: uiStyle.card_radius, section: spacingScale.section_y,
+      base: spacingScale.base, scale: spacingScale.scale,
+      container: spacingScale.container, gap: spacingScale.gap,
     },
-    // Phase E1 — neue Felder, additiv
     semantic,
     button_variants: buttonVariants,
-    // Phase E2 — neue Felder, additiv
-    forms,
-    card,
-    badges,
+    forms, card, badges,
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Color helpers — Hex <-> HSL, Color-Scale Generator
+// ─────────────────────────────────────────────────────────────────────────────
+
+function hexToHsl(hex) {
+  const m = hex.replace('#', '');
+  if (m.length !== 6) return { h: 0, s: 0, l: 50 };
+  const r = parseInt(m.slice(0, 2), 16) / 255;
+  const g = parseInt(m.slice(2, 4), 16) / 255;
+  const b = parseInt(m.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      default: h = (r - g) / d + 4;
+    }
+    h /= 6;
+  }
+  return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+function hslToHex(h, s, l) {
+  const a = (s * Math.min(l, 100 - l)) / 100 / 100;
+  const f = (n) => {
+    const k = (n + h / 30) % 12;
+    const c = l / 100 - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * c).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+function colorScale(hex) {
+  const { h, s, l } = hexToHsl(hex);
+  return [
+    hslToHex(h, s, Math.min(96, l + 32)),
+    hslToHex(h, s, Math.min(85, l + 16)),
+    hex,
+    hslToHex(h, s, Math.max(18, l - 16)),
+    hslToHex(h, s, Math.max(8, l - 32)),
+  ];
+}
+
+// Cycle helper für click-to-cycle Demo-Cards
+function cycleNext(arr, currentId) {
+  const i = arr.findIndex((x) => x.id === currentId);
+  return arr[(i + 1) % arr.length].id;
+}
+
+const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function StyleGuideView({ styleGuide, onChange, onApprove, approved }) {
-  // Aktuelle Auswahl aus dem persistierten Style-Guide ableiten — oder Defaults
   const conceptId = styleGuide?.color_concept_id || DEFAULT_CONCEPT.id;
   const lightDark = styleGuide?.light_dark || 'light';
   const typoId    = styleGuide?.typography_pairing_id || DEFAULT_TYPO.id;
@@ -648,8 +516,8 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
   const formId    = styleGuide?.form_style_id || DEFAULT_FORM.id;
   const cardId    = styleGuide?.card_variant_id || DEFAULT_CARD.id;
   const badgeId   = styleGuide?.badge_style_id || DEFAULT_BADGE.id;
+  const fontScale = styleGuide?.font_scale || 'default';
 
-  // Override-Slots: User-spezifische Token-Werte. Fallback = Concept-Default.
   const paletteOverrides  = styleGuide?.palette_overrides  || {};
   const semanticOverrides = styleGuide?.semantic_overrides || {};
 
@@ -661,13 +529,15 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
   const formStyle     = findFormStyle(formId);
   const cardVariant   = findCardVariant(cardId);
   const badgeStyle    = findBadgeStyle(badgeId);
-  // Effektive Tokens (Concept + Override gemerged)
-  const palette       = effectivePalette(concept, lightDark, paletteOverrides);
-  const semantic      = effectiveSemantic(lightDark, semanticOverrides);
+
+  const palette        = effectivePalette(concept, lightDark, paletteOverrides);
+  const semantic       = effectiveSemantic(lightDark, semanticOverrides);
   const buttonVariants = deriveButtonVariants(palette, uiStyle, buttonHier, semantic);
-  const forms         = deriveFormTokens(palette, uiStyle, formStyle);
-  const card          = deriveCardTokens(palette, uiStyle, cardVariant, spacingScale);
-  const badges        = deriveBadgeTokens(badgeStyle, semantic, palette);
+  const forms          = deriveFormTokens(palette, uiStyle, formStyle);
+  const card           = deriveCardTokens(palette, uiStyle, cardVariant, spacingScale);
+  const badges         = deriveBadgeTokens(badgeStyle, semantic, palette);
+
+  const [previewDevice, setPreviewDevice] = useState('desktop');
 
   const updateSelection = (updates) => {
     const merged = {
@@ -681,18 +551,19 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
       form_style_id:         updates.formId     ?? formId,
       card_variant_id:       updates.cardId     ?? cardId,
       badge_style_id:        updates.badgeId    ?? badgeId,
+      font_scale:            updates.fontScale  ?? fontScale,
       palette_overrides:     updates.paletteOverrides  ?? paletteOverrides,
       semantic_overrides:    updates.semanticOverrides ?? semanticOverrides,
     };
-    const newConcept  = findColorConcept(merged.color_concept_id);
-    const newTypo     = findTypoPairing(merged.typography_pairing_id);
-    const newUI       = findUIStyle(merged.ui_style_id);
-    const newSpacing  = findSpacingScale(merged.spacing_scale_id);
-    const newBtnHier  = findButtonHierarchy(merged.button_hierarchy_id);
-    const newForm     = findFormStyle(merged.form_style_id);
-    const newCard     = findCardVariant(merged.card_variant_id);
-    const newBadge    = findBadgeStyle(merged.badge_style_id);
-    const derived     = deriveLegacyTokens(
+    const newConcept = findColorConcept(merged.color_concept_id);
+    const newTypo    = findTypoPairing(merged.typography_pairing_id);
+    const newUI      = findUIStyle(merged.ui_style_id);
+    const newSpacing = findSpacingScale(merged.spacing_scale_id);
+    const newBtnHier = findButtonHierarchy(merged.button_hierarchy_id);
+    const newForm    = findFormStyle(merged.form_style_id);
+    const newCard    = findCardVariant(merged.card_variant_id);
+    const newBadge   = findBadgeStyle(merged.badge_style_id);
+    const derived = deriveLegacyTokens(
       newConcept, merged.light_dark, newTypo, newUI, newSpacing, newBtnHier,
       newForm, newCard, newBadge,
       merged.palette_overrides, merged.semantic_overrides,
@@ -700,57 +571,35 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
     onChange?.({ ...merged, ...derived });
   };
 
-  // Token-Editor-Helpers — Override pro Token setzen / loeschen
   const setPaletteToken = (key, value) => {
-    const lvl = lightDark;
     const next = {
       ...paletteOverrides,
-      [lvl]: { ...(paletteOverrides[lvl] || {}), [key]: value },
+      [lightDark]: { ...(paletteOverrides[lightDark] || {}), [key]: value },
     };
     updateSelection({ paletteOverrides: next });
   };
-  const resetPaletteToken = (key) => {
-    const lvl = lightDark;
-    const lvlOvr = { ...(paletteOverrides[lvl] || {}) };
-    delete lvlOvr[key];
-    const next = { ...paletteOverrides, [lvl]: lvlOvr };
-    updateSelection({ paletteOverrides: next });
-  };
-  const setSemanticToken = (status, slot, value) => {
-    const lvl = lightDark;
-    const next = {
-      ...semanticOverrides,
-      [lvl]: {
-        ...(semanticOverrides[lvl] || {}),
-        [status]: {
-          ...((semanticOverrides[lvl] || {})[status] || {}),
-          [slot]: value,
-        },
-      },
-    };
-    updateSelection({ semanticOverrides: next });
-  };
-  const resetSemanticToken = (status, slot) => {
-    const lvl = lightDark;
-    const lvlOvr = { ...(semanticOverrides[lvl] || {}) };
-    if (lvlOvr[status]) {
-      const statusOvr = { ...lvlOvr[status] };
-      delete statusOvr[slot];
-      if (Object.keys(statusOvr).length === 0) {
-        delete lvlOvr[status];
-      } else {
-        lvlOvr[status] = statusOvr;
-      }
-    }
-    const next = { ...semanticOverrides, [lvl]: lvlOvr };
-    updateSelection({ semanticOverrides: next });
-  };
+
   const resetAllOverrides = () => {
     updateSelection({ paletteOverrides: {}, semanticOverrides: {} });
   };
 
-  const shuffle = () => {
-    const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  // Section-spezifisches Shuffle
+  const shuffleColors = () => {
+    updateSelection({ conceptId: rand(COLOR_CONCEPTS).id, paletteOverrides: {} });
+  };
+  const shuffleTypo = () => {
+    updateSelection({ typoId: rand(TYPO_PAIRINGS).id });
+  };
+  const shuffleUi = () => {
+    updateSelection({
+      uiId:      rand(UI_STYLES).id,
+      btnHierId: rand(BUTTON_HIERARCHIES).id,
+      formId:    rand(FORM_STYLES).id,
+      cardId:    rand(CARD_VARIANTS).id,
+      badgeId:   rand(BADGE_STYLES).id,
+    });
+  };
+  const shuffleAll = () => {
     updateSelection({
       conceptId: rand(COLOR_CONCEPTS).id,
       typoId:    rand(TYPO_PAIRINGS).id,
@@ -760,11 +609,26 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
       formId:    rand(FORM_STYLES).id,
       cardId:    rand(CARD_VARIANTS).id,
       badgeId:   rand(BADGE_STYLES).id,
+      paletteOverrides: {},
     });
   };
 
-  // Single-Page-Layout — kein Tab-Switching mehr; alle Sections sind
-  // gleichzeitig sichtbar, Anker-Nav links springt zur jeweiligen Section.
+  // Keyboard-Shortcuts: C / T / U / SPACE
+  useEffect(() => {
+    const handler = (e) => {
+      const tag = (e.target?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === 'c') { shuffleColors(); e.preventDefault(); }
+      else if (k === 't') { shuffleTypo(); e.preventDefault(); }
+      else if (k === 'u') { shuffleUi(); e.preventDefault(); }
+      else if (e.code === 'Space') { shuffleAll(); e.preventDefault(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conceptId, typoId, uiId, btnHierId, formId, cardId, badgeId, spacingId, lightDark]);
 
   return (
     <div style={{
@@ -772,10 +636,10 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
       height: '100%', background: '#f8fafc',
       fontFamily: 'var(--font-sans, system-ui)',
     }}>
-      {/* Topbar */}
+      {/* Topbar — minimal, Freigabe rechts */}
       <div style={{
         flexShrink: 0,
-        padding: '14px 24px',
+        padding: '12px 22px',
         background: '#fff',
         borderBottom: '1px solid #e2e8f0',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -783,968 +647,663 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
       }}>
         <div>
           <h1 style={{
-            fontSize: 20, fontWeight: 900, color: KC_DARK, margin: 0,
+            fontSize: 18, fontWeight: 900, color: KC_DARK, margin: 0,
             textTransform: 'uppercase', letterSpacing: '-0.02em',
-          }}>
-            Style Guide
-          </h1>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-            Konzept-basierte Stilauswahl — links wählen, rechts Live-Preview.
+          }}>Style Guide</h1>
+          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+            Farben, Typografie, UI — links wählen, rechts Live-Preview.
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button type="button" onClick={shuffle}
-            style={{
-              background: 'transparent', color: '#7c3aed',
-              border: '1.5px solid #7c3aed', borderRadius: 8,
-              padding: '8px 14px', fontSize: 12, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-            🎲 Alles würfeln
-          </button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {approved && (
             <span style={{
               fontSize: 11, fontWeight: 700, color: '#1D9E75', background: '#D1FAE5',
               padding: '4px 10px', borderRadius: 12, textTransform: 'uppercase',
-            }}>
-              ✓ Vom Kunden freigegeben
-            </span>
+            }}>✓ Vom Kunden freigegeben</span>
           )}
           <button type="button" onClick={onApprove} disabled={approved}
             style={{
               background: approved ? '#cbd5e1' : KC_YELLOW,
               color: '#000', border: 'none', borderRadius: 8,
-              padding: '10px 18px', fontSize: 13, fontWeight: 800,
+              padding: '9px 16px', fontSize: 12, fontWeight: 800,
               cursor: approved ? 'default' : 'pointer',
               textTransform: 'uppercase', letterSpacing: '0.04em',
               fontFamily: 'inherit',
             }}>
-            {approved ? 'Bereits freigegeben' : 'Freigabe an Kunden senden'}
+            {approved ? 'Bereits freigegeben' : 'Freigabe an Kunden'}
           </button>
         </div>
       </div>
 
-      {/* Body — drei Spalten: Anker-Nav links, Sections Mitte, Live-Preview rechts */}
+      {/* Body — 2 Spalten: Editor links, Live-Preview rechts */}
       <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
-        {/* Anker-Nav links */}
-        <AnchorNav />
-
-        {/* Sections in der Mitte — Edit-Bereich, KAS-CI getoent.
-            Fixe Breite 520px → der Live-Preview rechts gewinnt allen
-            zusaetzlichen Platz. */}
-        <div id="sg-scroll-container" style={{
-          flex: '0 0 520px',
-          overflowY: 'auto', padding: '20px 22px 80px',
-          background: '#F0F4F5', // KAS-Surface (leicht teal-getoenter Weiss-Ton)
-          borderRight: '1px solid #D5E0E2', // KAS-Border
-          scrollBehavior: 'smooth',
+        {/* Editor — Single-Column, scrollbar */}
+        <div style={{
+          flex: '0 0 640px',
+          overflowY: 'auto', padding: '20px 22px 100px',
+          background: '#fff',
+          borderRight: '1px solid #e2e8f0',
         }}>
-          <SgSection id="sg-brand" title="Brand-Farben">
-            <ColorSection
-              conceptId={conceptId}
-              lightDark={lightDark}
-              concept={concept}
-              palette={palette}
-              semantic={semantic}
-              paletteOverrides={paletteOverrides}
-              semanticOverrides={semanticOverrides}
-              onSelect={(id) => updateSelection({ conceptId: id })}
-              onToggleLightDark={() => updateSelection({ lightDark: lightDark === 'dark' ? 'light' : 'dark' })}
-              onShuffle={null}
-              onSetPaletteToken={setPaletteToken}
-              onResetPaletteToken={resetPaletteToken}
-              onSetSemanticToken={setSemanticToken}
-              onResetSemanticToken={resetSemanticToken}
-              onResetAll={resetAllOverrides}
-            />
-          </SgSection>
+          <ColorsSection
+            palette={palette}
+            lightDark={lightDark}
+            onTogglelightDark={() => updateSelection({ lightDark: lightDark === 'dark' ? 'light' : 'dark' })}
+            onShuffle={shuffleColors}
+            onSetToken={setPaletteToken}
+            onResetAll={resetAllOverrides}
+          />
 
-          <SgSection id="sg-typo" title="Typografie">
-            <TypographySection
-              typoId={typoId}
-              onSelect={(id) => updateSelection({ typoId: id })}
-              onShuffle={null}
-            />
-          </SgSection>
+          <TypographySection
+            typoPairing={typoPairing}
+            fontScale={fontScale}
+            onScaleChange={(v) => updateSelection({ fontScale: v })}
+            onShuffle={shuffleTypo}
+          />
 
-          <SgSection id="sg-buttons" title="Buttons">
-            <ButtonsSection
-              btnHierId={btnHierId}
-              palette={palette} typo={typoPairing} ui={uiStyle}
-              variants={buttonVariants}
-              onSelect={(id) => updateSelection({ btnHierId: id })}
-              onShuffle={null}
-            />
-          </SgSection>
-
-          <SgSection id="sg-cards" title="Cards">
-            <CardsSection
-              cardId={cardId}
-              palette={palette} typo={typoPairing} ui={uiStyle}
-              card={card} variants={buttonVariants}
-              onSelect={(id) => updateSelection({ cardId: id })}
-              onShuffle={null}
-            />
-          </SgSection>
-
-          <SgSection id="sg-forms" title="Forms">
-            <FormsSection
-              formId={formId}
-              palette={palette} typo={typoPairing} ui={uiStyle}
-              forms={forms} semantic={semantic}
-              onSelect={(id) => updateSelection({ formId: id })}
-              onShuffle={null}
-            />
-          </SgSection>
-
-          <SgSection id="sg-spacing" title="Layout">
-            <SpacingSection
-              spacingId={spacingId}
-              palette={palette}
-              onSelect={(id) => updateSelection({ spacingId: id })}
-              onShuffle={null}
-            />
-          </SgSection>
+          <UIStylingSection
+            palette={palette}
+            uiStyle={uiStyle}
+            cardVariant={cardVariant}
+            buttonVariants={buttonVariants}
+            typo={typoPairing}
+            forms={forms}
+            card={card}
+            onCycleUi={() => updateSelection({ uiId: cycleNext(UI_STYLES, uiId) })}
+            onCycleCard={() => updateSelection({ cardId: cycleNext(CARD_VARIANTS, cardId) })}
+            onShuffle={shuffleUi}
+          />
         </div>
 
-        {/* Live-Preview rechts — nimmt den ganzen verbleibenden Platz */}
+        {/* Live-Preview rechts — Device-aware */}
         <div style={{
           flex: '1 1 auto', minWidth: 480,
           overflowY: 'auto',
           background: '#f1f5f9',
-          padding: 24,
+          padding: 20,
+          display: 'flex', flexDirection: 'column',
+          position: 'relative',
         }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b',
             textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
             Live-Preview
           </div>
-          <LivePreview
-            palette={palette} typo={typoPairing} ui={uiStyle}
-            spacing={spacingScale} variants={buttonVariants} semantic={semantic}
-            forms={forms} card={card} badges={badges}
-          />
+          <div style={{
+            flex: 1,
+            display: 'flex', justifyContent: 'center',
+            paddingBottom: 60,
+          }}>
+            <div style={{
+              width: '100%',
+              maxWidth: previewDevice === 'mobile' ? 390
+                       : previewDevice === 'tablet' ? 820
+                       : '100%',
+              transition: 'max-width 0.25s ease',
+            }}>
+              <LivePreview
+                palette={palette} typo={typoPairing} ui={uiStyle}
+                spacing={spacingScale} variants={buttonVariants} semantic={semantic}
+                forms={forms} card={card} badges={badges} fontScale={fontScale}
+                device={previewDevice}
+              />
+            </div>
+          </div>
+          <DeviceToggle device={previewDevice} onChange={setPreviewDevice} />
         </div>
+      </div>
+
+      {/* Footer — Scheme shuffle */}
+      <div style={{
+        flexShrink: 0,
+        background: '#fff', borderTop: '1px solid #e2e8f0',
+        padding: '10px 22px',
+        display: 'flex', justifyContent: 'center',
+      }}>
+        <button type="button" onClick={shuffleAll}
+          style={{
+            background: 'transparent', color: '#7c3aed',
+            border: '1.5px solid #7c3aed', borderRadius: 8,
+            padding: '8px 18px', fontSize: 12, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+          <span>🎲 Scheme shuffle</span>
+          <span style={{
+            background: '#f3f0ff', color: '#7c3aed',
+            padding: '2px 8px', borderRadius: 4,
+            fontSize: 10, fontWeight: 800, letterSpacing: '0.04em',
+          }}>SPACE</span>
+        </button>
       </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ColorSection — Concept-Karten mit Light/Dark-Toggle
+// SectionShell — gemeinsamer Section-Container
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ColorSection({
-  conceptId, lightDark,
-  concept, palette, semantic,
-  paletteOverrides, semanticOverrides,
-  onSelect, onToggleLightDark, onShuffle,
-  onSetPaletteToken, onResetPaletteToken,
-  onSetSemanticToken, onResetSemanticToken,
-  onResetAll,
-}) { /* eslint-disable no-unused-vars */ /* conceptId/onSelect/onShuffle bleiben fuer Backwards-Compat in den Props */
-  // Concept-Default fuer den aktuellen Light/Dark-Modus — fuer Reset/Diff
-  const conceptDefaultPalette = lightDark === 'dark' ? concept.dark : concept.light;
-  const semanticDefault = SEMANTIC_COLORS[lightDark === 'dark' ? 'dark' : 'light'];
-  const lvlOvr = paletteOverrides?.[lightDark] || {};
-  const semOvr = semanticOverrides?.[lightDark] || {};
-  const hasAnyOverride =
-    Object.keys(paletteOverrides?.light || {}).length +
-    Object.keys(paletteOverrides?.dark  || {}).length +
-    Object.keys(semanticOverrides?.light || {}).length +
-    Object.keys(semanticOverrides?.dark  || {}).length > 0;
-
-  // Primaerfarben-Quick-Edit: Hex-Input + Color-Picker fuer accent_1/2/3.
-  // Schnell-Edit ohne Detail-Editor zu oeffnen.
-  const PRIMARY_FIELDS = [
-    { key: 'accent_1', label: 'Primärfarbe' },
-    { key: 'accent_2', label: 'Sekundärfarbe' },
-    { key: 'accent_3', label: 'Akzentfarbe' },
-  ];
-
+function SectionShell({ title, right, children }) {
   return (
-    <div>
-      {/* Top-Header: Light/Dark + Reset-All */}
+    <section style={{ marginBottom: 22 }}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 14, gap: 12, flexWrap: 'wrap',
+        marginBottom: 12,
       }}>
-        <div style={{
-          fontSize: 14, fontWeight: 800, color: KC_DARK,
-          textTransform: 'uppercase', letterSpacing: '-0.01em',
-        }}>
-          Brand-Farben
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <ToggleSwitch
-            options={[
-              { id: 'light', label: '☀️ Light' },
-              { id: 'dark',  label: '🌙 Dark' },
-            ]}
-            value={lightDark}
-            onChange={onToggleLightDark}
-          />
-          {hasAnyOverride && (
-            <button type="button" onClick={onResetAll}
-              title="Alle ueberschriebenen Farben zuruecksetzen"
-              style={{
-                background: 'transparent', color: '#dc2626',
-                border: '1px solid #fca5a5', borderRadius: 6,
-                padding: '4px 10px', fontSize: 10, fontWeight: 700,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-              ↺ Reset
-            </button>
-          )}
+        <h2 style={{
+          margin: 0, fontSize: 18, fontWeight: 800, color: '#0F172A',
+          letterSpacing: '-0.01em',
+        }}>{title}</h2>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {right}
         </div>
       </div>
-
-      {/* Primaerfarben Quick-Edit */}
-      <div style={{
-        fontSize: 10, fontWeight: 700, color: '#94a3b8',
-        textTransform: 'uppercase', letterSpacing: '0.08em',
-        marginBottom: 8,
-      }}>
-        Primärfarben
-      </div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10,
-        marginBottom: 22,
-        padding: 12,
-        background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8,
-      }}>
-        {PRIMARY_FIELDS.map((f) => {
-          const isOverridden = f.key in lvlOvr;
-          return (
-            <div key={f.key}>
-              <div style={{
-                fontSize: 9, fontWeight: 800, color: '#475569',
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                marginBottom: 5,
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
-              }}>
-                <span>{f.label}</span>
-                {isOverridden && (
-                  <button type="button" onClick={() => onResetPaletteToken(f.key)}
-                    title="Default-Wert zuruecksetzen"
-                    style={{
-                      background: 'transparent', border: 'none',
-                      color: '#7c3aed', cursor: 'pointer',
-                      fontSize: 11, padding: 0, lineHeight: 1,
-                    }}>
-                    ↺
-                  </button>
-                )}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input
-                  type="color"
-                  value={/^#[0-9a-fA-F]{6}$/.test(palette[f.key]) ? palette[f.key] : '#888888'}
-                  onChange={(e) => onSetPaletteToken(f.key, e.target.value)}
-                  style={{
-                    width: 36, height: 36,
-                    border: `1px solid ${isOverridden ? '#7c3aed' : '#cbd5e1'}`, borderRadius: 6,
-                    padding: 0, background: 'transparent', cursor: 'pointer', flexShrink: 0,
-                  }}
-                  aria-label={`${f.label} wählen`}
-                />
-                <input
-                  type="text"
-                  value={palette[f.key] || ''}
-                  onChange={(e) => onSetPaletteToken(f.key, e.target.value)}
-                  placeholder={conceptDefaultPalette[f.key]}
-                  spellCheck={false}
-                  style={{
-                    flex: 1, minWidth: 0, padding: '7px 8px',
-                    border: `1px solid ${isOverridden ? '#7c3aed' : '#cbd5e1'}`, borderRadius: 4,
-                    fontSize: 12, fontFamily: 'ui-monospace, monospace', color: '#334155',
-                    outline: 'none', background: '#fff',
-                  }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Brand-Tokens — Hintergrund / Text / Border */}
-      <div style={{
-        fontSize: 10, fontWeight: 700, color: '#94a3b8',
-        textTransform: 'uppercase', letterSpacing: '0.08em',
-        marginBottom: 8,
-      }}>
-        Hintergrund · Text · Border
-      </div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10,
-        marginBottom: 22,
-      }}>
-        {PALETTE_TOKEN_KEYS.filter((k) => !PRIMARY_FIELDS.find((p) => p.key === k)).map((key) => (
-          <TokenEditor
-            key={key}
-            label={PALETTE_TOKEN_LABELS[key]}
-            value={palette[key]}
-            defaultValue={conceptDefaultPalette[key]}
-            isOverridden={key in lvlOvr}
-            onChange={(v) => onSetPaletteToken(key, v)}
-            onReset={() => onResetPaletteToken(key)}
-          />
-        ))}
-      </div>
-
-      {/* Status-Farben werden weiterhin als Default aus SEMANTIC_COLORS
-          gederivt — Editor in der UI entfernt (User-Wunsch).
-          Falls User sie pro Projekt anpassen will: ueber semantic_overrides
-          im styleGuide-Datenmodell weiterhin moeglich. */}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TypographySection — Font-Pairing-Karten
-// ─────────────────────────────────────────────────────────────────────────────
-
-// Verfuegbare Web-fonts (Google-Fonts-kompatibel) — uebersichtliche Liste
-const AVAILABLE_FONTS = [
-  'Inter', 'Roboto', 'Open Sans', 'Lato', 'Poppins',
-  'Montserrat', 'Noto Sans', 'DM Sans', 'Space Grotesk',
-  'Playfair Display', 'Merriweather', 'Lora',
-];
-
-function TypographySection({ typoId, onSelect }) {
-  const current = findTypoPairing(typoId);
-  const headingFont = current.heading;
-  const bodyFont    = current.body;
-
-  // Wenn der User eine Font waehlt: finde das passende Pairing oder erstelle
-  // Custom-Override. Pragmatisch: wir mappen jede Font-Auswahl auf ein
-  // bestehendes Pairing, dessen heading/body-Wert mit der Auswahl uebereinstimmt.
-  const setHeading = (font) => {
-    // Suche Pairing mit passendem Heading-Font; fallback: behalte body
-    const match = TYPO_PAIRINGS.find((p) => p.heading === font && p.body === bodyFont)
-      || TYPO_PAIRINGS.find((p) => p.heading === font);
-    if (match) onSelect(match.id);
-  };
-  const setBody = (font) => {
-    const match = TYPO_PAIRINGS.find((p) => p.body === font && p.heading === headingFont)
-      || TYPO_PAIRINGS.find((p) => p.body === font);
-    if (match) onSelect(match.id);
-  };
-
-  // Fonts nicht abgedeckt durch Pairings: zeige sie trotzdem im Dropdown
-  // (Auswahl klappt nicht, aber visuell vollstaendig). TODO Phase 2: direkte
-  // Font-Override-Felder im Datenmodell.
-
-  return (
-    <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-        <div>
-          <label style={lblStyle}>Headline-Schrift</label>
-          <select
-            value={headingFont}
-            onChange={(e) => setHeading(e.target.value)}
-            style={selectStyle}
-          >
-            {AVAILABLE_FONTS.map((f) => (
-              <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label style={lblStyle}>Body-Schrift</label>
-          <select
-            value={bodyFont}
-            onChange={(e) => setBody(e.target.value)}
-            style={selectStyle}
-          >
-            {AVAILABLE_FONTS.map((f) => (
-              <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Live-Sample */}
-      <div style={{
-        padding: 16, background: '#fff',
-        border: '1px solid #D5E0E2', borderRadius: 6,
-      }}>
-        <div style={{
-          fontFamily: headingFont, fontSize: 28, fontWeight: 700,
-          color: KC_DARK, lineHeight: 1.15, marginBottom: 8,
-        }}>
-          Aa Bb Cc — Headline-Sample
-        </div>
-        <p style={{
-          fontFamily: bodyFont, fontSize: 14, color: '#475569',
-          lineHeight: 1.6, margin: 0,
-        }}>
-          Wir installieren Wärmepumpen mit Festpreis-Garantie.
-          Beratung, Antrag und Anmeldung beim Netzbetreiber aus einer Hand.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// UIStyleSection — Button + Card Style Karten
-// ─────────────────────────────────────────────────────────────────────────────
-
-function UIStyleSection({ uiId, palette, onSelect, onShuffle }) {
-  return (
-    <div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-        gap: 12,
-      }}>
-        {UI_STYLES.map((u) => {
-          const isSelected = u.id === uiId;
-          return (
-            <button
-              key={u.id} type="button"
-              onClick={() => onSelect(u.id)}
-              style={{
-                textAlign: 'left',
-                background: '#fff',
-                border: isSelected ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
-                borderRadius: 8,
-                padding: 14, cursor: 'pointer',
-                boxShadow: isSelected ? `0 4px 12px ${KC_MID}33` : 'none',
-                fontFamily: 'inherit',
-              }}
-            >
-              {/* Mini-Demo: Button + Card */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <span style={{
-                  display: 'inline-block', padding: '6px 14px',
-                  background: palette.accent_1, color: palette.bg_primary,
-                  borderRadius: u.button_radius,
-                  fontSize: 11, fontWeight: 700,
-                }}>
-                  Button
-                </span>
-                <span style={{
-                  display: 'inline-block', padding: '6px 14px',
-                  background: palette.bg_primary, color: palette.accent_1,
-                  border: `${u.border_width} solid ${palette.accent_1}`,
-                  borderRadius: u.button_radius,
-                  fontSize: 11, fontWeight: 700,
-                }}>
-                  Outline
-                </span>
-              </div>
-              <div style={{
-                background: palette.bg_surface,
-                borderRadius: u.card_radius,
-                padding: 10,
-                border: `${u.border_width} solid ${palette.border}`,
-                boxShadow: u.shadow,
-                fontSize: 10, color: palette.text_primary, lineHeight: 1.4,
-                marginBottom: 12,
-              }}>
-                Karten-Beispiel — Header + Description.
-              </div>
-              <div style={{
-                fontSize: 12, fontWeight: 800, color: KC_DARK,
-                marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                {isSelected && <span style={{ color: KC_MID }}>✓</span>}
-                {u.label}
-              </div>
-              <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>
-                {u.description}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Phase E1: SpacingSection — Spacing-Scale Konzept-Karten
-// ─────────────────────────────────────────────────────────────────────────────
-
-function SpacingSection({ spacingId, onSelect }) {
-  // 'editorial' entfernt — fuer normale Sites zu exotisch.
-  // 3 Optionen passen breitenmaessig besser zur Edit-Spalte.
-  const SHOWN = ['tight', 'default', 'comfortable'];
-  const styleOptions = SPACING_SCALES
-    .filter((s) => SHOWN.includes(s.id))
-    .map((s) => ({ id: s.id, label: s.label, description: s.description }));
-  const current = findSpacingScale(SHOWN.includes(spacingId) ? spacingId : 'default');
-  return (
-    <div>
-      <label style={lblStyle}>Whitespace-Dichte</label>
-      <div style={{ marginBottom: 10 }}>
-        <StyleSwitcher options={styleOptions} value={current.id} onChange={onSelect} />
-      </div>
-      <div style={{
-        fontSize: 10, color: '#64748b',
-        fontFamily: 'ui-monospace, monospace',
-      }}>
-        Container {current.container}px · Section-Padding {current.section_y}px
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Phase E1: ButtonsSection — Button-Hierarchie + 4 Variants × 3 Sizes Demo
-// ─────────────────────────────────────────────────────────────────────────────
-
-function ButtonsSection({ btnHierId, palette, typo, ui, variants, onSelect }) {
-  const styleOptions = BUTTON_HIERARCHIES.map((h) => ({
-    id: h.id, label: h.label, description: h.description,
-  }));
-  return (
-    <div>
-      <label style={lblStyle}>Stil</label>
-      <div style={{ marginBottom: 14 }}>
-        <StyleSwitcher options={styleOptions} value={btnHierId} onChange={onSelect} />
-      </div>
-
-      {/* Demo unten — drei Buttons im aktuellen Stil */}
-      <label style={lblStyle}>Vorschau</label>
-      <div style={{
-        background: palette.bg_primary, padding: 14, borderRadius: 6,
-        border: `1px solid ${palette.border}`,
-        display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
-      }}>
-        <SizedButton v={variants.primary} ui={ui} typo={typo} size="medium">Primärer CTA</SizedButton>
-        <SizedButton v={variants.secondary} ui={ui} typo={typo} size="medium">Sekundär</SizedButton>
-        <SizedButton v={variants.tertiary} ui={ui} typo={typo} size="medium">Ghost</SizedButton>
-      </div>
-    </div>
-  );
-}
-
-function MiniButton({ v, ui, typo, children }) {
-  return (
-    <span style={{
-      display: 'inline-block',
-      padding: '5px 10px',
-      background: v.bg, color: v.fg,
-      border: `1px solid ${v.border}`,
-      borderRadius: ui.button_radius,
-      fontSize: 10, fontWeight: 700, fontFamily: typo.body,
-      boxShadow: v.shadow,
-    }}>
       {children}
-    </span>
+    </section>
   );
 }
 
-function SizedButton({ v, ui, typo, size, children }) {
-  const sizes = {
-    small:  { padding: '6px 14px',  fontSize: 11 },
-    medium: { padding: '9px 18px',  fontSize: 13 },
-    large:  { padding: '12px 24px', fontSize: 14 },
-  };
-  const sz = sizes[size];
+function ShufflePin({ shortcut, onClick }) {
   return (
-    <button type="button"
+    <button type="button" onClick={onClick}
+      title={`Würfeln (${shortcut})`}
       style={{
-        padding: sz.padding,
-        background: v.bg, color: v.fg,
-        border: `1px solid ${v.border}`,
-        borderRadius: ui.button_radius,
-        fontSize: sz.fontSize, fontWeight: 700, fontFamily: typo.body,
-        boxShadow: v.shadow,
-        cursor: 'pointer',
-      }}
-      onClick={(e) => e.preventDefault()}
-    >
-      {children}
+        background: '#fff', color: '#475569',
+        border: '1px solid #e2e8f0', borderRadius: 6,
+        padding: '5px 10px', fontSize: 11, fontWeight: 700,
+        cursor: 'pointer', fontFamily: 'inherit',
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+      }}>
+      <span style={{ fontSize: 13 }}>⇄</span>
+      <span>Shuffle</span>
+      <span style={{
+        background: '#f1f5f9', color: '#475569',
+        padding: '1px 5px', borderRadius: 3,
+        fontSize: 10, fontWeight: 800, letterSpacing: '0.04em',
+      }}>{shortcut}</span>
     </button>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Phase E2: FormsSection — Form-Style-Karten + Demo-Formular
-// ─────────────────────────────────────────────────────────────────────────────
-
-function FormsSection({ formId, palette, typo, ui, forms, semantic, onSelect }) {
-  const styleOptions = FORM_STYLES.map((f) => ({
-    id: f.id, label: f.label, description: f.description,
-  }));
-  return (
-    <div>
-      <label style={lblStyle}>Stil</label>
-      <div style={{ marginBottom: 14 }}>
-        <StyleSwitcher options={styleOptions} value={formId} onChange={onSelect} />
-      </div>
-
-      <label style={lblStyle}>Vorschau</label>
-      <div style={{
-        background: palette.bg_primary, padding: 14, borderRadius: 6,
-        border: `1px solid ${palette.border}`,
-      }}>
-        <FormPreview style={findFormStyle(formId)} palette={palette} ui={ui} typo={typo} semantic={semantic} compact />
-      </div>
-    </div>
-  );
-}
-
-function FormPreview({ style, palette, ui, typo, semantic, compact = false }) {
-  const isFloating = style.label_pos === 'floating';
-  const inputBg = style.input_style === 'filled' ? palette.bg_surface : palette.bg_primary;
-  const baseInput = {
-    width: '100%', boxSizing: 'border-box',
-    padding: compact ? '6px 8px' : '10px 12px',
-    fontSize: compact ? 11 : 13,
-    fontFamily: typo.body, color: palette.text_primary,
-    background: inputBg, outline: 'none',
-  };
-  const inputStyle = (() => {
-    if (style.input_style === 'outlined') {
-      return { ...baseInput, border: `1px solid ${palette.border}`, borderRadius: ui.button_radius };
-    }
-    if (style.input_style === 'underlined') {
-      return { ...baseInput, border: 'none', borderBottom: `1px solid ${palette.border}`, borderRadius: 0, padding: compact ? '6px 0' : '10px 0' };
-    }
-    if (style.input_style === 'filled') {
-      return { ...baseInput, border: 'none', borderRadius: ui.button_radius };
-    }
-    return baseInput;
-  })();
-
-  const labelStyle = {
-    display: 'block', fontSize: compact ? 9 : 10,
-    fontWeight: 700, color: palette.text_muted,
-    textTransform: 'uppercase', letterSpacing: '0.06em',
-    marginBottom: compact ? 3 : 5,
-    fontFamily: typo.body,
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 8 : 14 }}>
-      <div>
-        {!isFloating && <label style={labelStyle}>Name</label>}
-        <div style={{ position: 'relative' }}>
-          <input type="text" placeholder={isFloating ? 'Name' : (compact ? 'Max Mustermann' : 'Max Mustermann')} style={inputStyle} />
-        </div>
-      </div>
-      {!compact && (
-        <>
-          <div>
-            {!isFloating && <label style={labelStyle}>E-Mail</label>}
-            <input type="email" placeholder={isFloating ? 'E-Mail' : 'max@example.de'} style={inputStyle} />
-          </div>
-          <div>
-            {!isFloating && <label style={labelStyle}>Anliegen</label>}
-            <textarea
-              placeholder={isFloating ? 'Anliegen' : 'Kurze Beschreibung…'}
-              rows={3}
-              style={{ ...inputStyle, resize: 'vertical', minHeight: 60, fontFamily: typo.body }}
-            />
-          </div>
-          {/* Error-State Beispiel */}
-          <div>
-            <label style={{ ...labelStyle, color: semantic?.error?.fg || '#C0392B' }}>
-              Telefon * (Pflichtfeld)
-            </label>
-            <input type="tel" defaultValue=""
-              style={{ ...inputStyle, borderColor: semantic?.error?.fg || '#C0392B' }} />
-            <div style={{
-              fontSize: 10, color: semantic?.error?.fg || '#C0392B',
-              marginTop: 4, fontFamily: typo.body,
-            }}>
-              ⚠ Bitte Telefonnummer angeben
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Phase E2: CardsSection — Card-Variant-Karten + Demo-Cards
-// ─────────────────────────────────────────────────────────────────────────────
-
-function CardsSection({ cardId, palette, typo, ui, card, variants, onSelect }) {
-  const styleOptions = CARD_VARIANTS.map((c) => ({
-    id: c.id, label: c.label, description: c.description,
-  }));
-  return (
-    <div>
-      <label style={lblStyle}>Stil</label>
-      <div style={{ marginBottom: 14 }}>
-        <StyleSwitcher options={styleOptions} value={cardId} onChange={onSelect} />
-      </div>
-
-      <label style={lblStyle}>Vorschau</label>
-      <div style={{
-        background: palette.bg_surface, padding: 14, borderRadius: 6,
-      }}>
-        <CardPreview
-          variant={findCardVariant(cardId)}
-          palette={palette} ui={ui} typo={typo}
-          title="Wärmepumpe" desc="Beratung + Antrag + Installation aus einer Hand."
-          primary={variants?.primary}
-        />
-      </div>
-    </div>
-  );
-}
-
-function CardPreview({ variant, palette, ui, typo, compact = false, title, desc, primary }) {
-  const cardStyle = {
-    background: variant.id === 'flat' ? palette.bg_surface : palette.bg_primary,
-    border: variant.border_width === '0px' ? 'none' : `${variant.border_width} solid ${palette.border}`,
-    borderRadius: ui.card_radius,
-    boxShadow: variant.shadow,
-    padding: compact ? 10 : 16,
-    fontFamily: typo.body, color: palette.text_primary,
-  };
-
-  if (compact) {
-    return (
-      <div style={cardStyle}>
-        <div style={{
-          height: 36, background: palette.bg_surface,
-          borderRadius: 4, marginBottom: 6,
-        }} />
-        <div style={{
-          fontFamily: typo.heading, fontWeight: typo.heading_weight,
-          fontSize: 11, color: palette.text_primary,
-        }}>
-          Karten-Titel
-        </div>
-        <div style={{ fontSize: 9, color: palette.text_muted, marginTop: 2 }}>
-          Beispieltext
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={cardStyle}>
-      <div style={{
-        height: 80, background: palette.bg_surface,
-        borderRadius: variant.id === 'flat' ? 0 : 4,
-        marginBottom: 10,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: palette.text_muted, fontSize: 12,
-      }}>
-        Bild-Placeholder
-      </div>
-      <div style={{
-        fontFamily: typo.heading, fontWeight: typo.heading_weight,
-        fontSize: 16, color: palette.text_primary, marginBottom: 6,
-      }}>
-        {title}
-      </div>
-      <div style={{ fontSize: 12, color: palette.text_muted, lineHeight: 1.5, marginBottom: 12 }}>
-        {desc}
-      </div>
-      {primary && (
-        <button type="button" style={{
-          padding: '6px 14px',
-          background: primary.bg, color: primary.fg,
-          border: `1px solid ${primary.border}`,
-          borderRadius: ui.button_radius,
-          fontSize: 11, fontWeight: 700, fontFamily: typo.body,
-          cursor: 'pointer', boxShadow: primary.shadow,
-        }}>
-          Mehr →
-        </button>
-      )}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Phase E2: BadgesSection — Badge-Style-Karten + Status-Matrix
-// ─────────────────────────────────────────────────────────────────────────────
-
-function BadgesSection({ badgeId, palette, typo, badges, semantic, onSelect, onShuffle }) {
-  return (
-    <div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-        gap: 12, marginBottom: 22,
-      }}>
-        {BADGE_STYLES.map((b) => {
-          const isSelected = b.id === badgeId;
-          const demoBadges = deriveBadgeTokens(b, semantic, palette);
-          return (
-            <button
-              key={b.id} type="button"
-              onClick={() => onSelect(b.id)}
-              style={{
-                textAlign: 'left',
-                background: '#fff',
-                border: isSelected ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
-                borderRadius: 8,
-                padding: 14, cursor: 'pointer',
-                boxShadow: isSelected ? `0 4px 12px ${KC_MID}33` : 'none',
-                fontFamily: 'inherit',
-              }}
-            >
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                <DemoBadge tokens={demoBadges.success} typo={typo}>Aktiv</DemoBadge>
-                <DemoBadge tokens={demoBadges.warn} typo={typo}>Offen</DemoBadge>
-                <DemoBadge tokens={demoBadges.error} typo={typo}>Fehler</DemoBadge>
-              </div>
-              <div style={{
-                fontSize: 12, fontWeight: 800, color: KC_DARK,
-                marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                {isSelected && <span style={{ color: KC_MID }}>✓</span>}
-                {b.label}
-              </div>
-              <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>
-                {b.description}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Status-Matrix: alle 5 Status × 2 Sizes */}
-      <div style={{
-        fontSize: 13, fontWeight: 800, color: KC_DARK,
-        textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 8,
-      }}>
-        Status × Sizes
-      </div>
-      <div style={{
-        background: palette.bg_primary, padding: 18, borderRadius: 8,
-        border: `1px solid ${palette.border}`,
-      }}>
-        {[
-          { key: 'success', label: 'Aktiv / Bewilligt' },
-          { key: 'warn',    label: 'In Bearbeitung' },
-          { key: 'error',   label: 'Abgelehnt' },
-          { key: 'info',    label: 'Info' },
-          { key: 'neutral', label: 'Neutral' },
-        ].map((row) => (
-          <div key={row.key} style={{
-            display: 'flex', alignItems: 'center', gap: 14,
-            padding: '10px 0',
-            borderBottom: `1px solid ${palette.border}`,
-          }}>
-            <div style={{
-              minWidth: 130, fontSize: 10, fontWeight: 700, color: palette.text_muted,
-              textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: typo.body,
-            }}>
-              {row.label}
-            </div>
-            <DemoBadge tokens={badges[row.key]} typo={typo} size="small">Klein</DemoBadge>
-            <DemoBadge tokens={badges[row.key]} typo={typo} size="default">Standard</DemoBadge>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function DemoBadge({ tokens, typo, size = 'default', children }) {
-  const sizes = {
-    small:   { padding: '2px 8px',  fontSize: 9 },
-    default: { padding: '3px 10px', fontSize: 10 },
-  };
-  const sz = sizes[size];
-  return (
-    <span style={{
-      display: 'inline-block',
-      padding: sz.padding,
-      background: tokens.bg, color: tokens.fg,
-      border: `1px solid ${tokens.border}`,
-      borderRadius: tokens.radius,
-      fontSize: sz.fontSize, fontWeight: 700, fontFamily: typo.body,
-      textTransform: 'uppercase', letterSpacing: '0.06em',
-    }}>
-      {children}
-    </span>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TokenEditor — Color-Picker + Hex-Input + Reset-Button pro Token
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Akzeptiert beliebige CSS-Color-Strings (#hex, rgb(), rgba()). Color-Picker
-// zeigt nur den Hex-Teil; rgba() bleibt im Text-Input editierbar.
-
-function TokenEditor({ label, value, defaultValue, isOverridden, onChange, onReset, compact = false }) {
-  // Picker-Wert immer 6-stelliger Hex; rgba() wird im Input-Feld editiert
-  const isHex = typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
-  const pickerValue = isHex ? value : '#888888';
-
+function LightDarkToggle({ lightDark, onToggle }) {
   return (
     <div style={{
-      padding: compact ? 6 : 8,
+      display: 'inline-flex',
+      border: '1px solid #e2e8f0', borderRadius: 6, overflow: 'hidden',
       background: '#fff',
-      border: `1px solid ${isOverridden ? '#7c3aed' : '#e2e8f0'}`,
-      borderRadius: 6,
     }}>
+      <button type="button" onClick={() => lightDark !== 'light' && onToggle()}
+        title="Light Mode"
+        style={{
+          padding: '6px 10px',
+          background: lightDark === 'light' ? '#fef9c3' : 'transparent',
+          color: lightDark === 'light' ? '#854d0e' : '#94a3b8',
+          border: 'none', cursor: 'pointer', fontSize: 13,
+        }}>☀</button>
+      <button type="button" onClick={() => lightDark !== 'dark' && onToggle()}
+        title="Dark Mode"
+        style={{
+          padding: '6px 10px',
+          background: lightDark === 'dark' ? '#1e293b' : 'transparent',
+          color: lightDark === 'dark' ? '#fef9c3' : '#94a3b8',
+          border: 'none', cursor: 'pointer', fontSize: 13,
+        }}>☾</button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ColorsSection — Tile-Grid mit Neutrals + Brand-Farben + "+"-Card
+// ─────────────────────────────────────────────────────────────────────────────
+
+const BRAND_TILES = [
+  { key: 'accent_1', label: 'Primary',  isMain: true },
+  { key: 'accent_2', label: 'Secondary', isMain: false },
+  { key: 'accent_3', label: 'Akzent',    isMain: false },
+];
+
+function ColorsSection({ palette, lightDark, onTogglelightDark, onShuffle, onSetToken, onResetAll }) {
+  const neutralsScale = [
+    palette.bg_primary, palette.bg_surface, palette.border, palette.text_muted, palette.text_primary,
+  ];
+
+  return (
+    <SectionShell
+      title="Colors"
+      right={
+        <>
+          <LightDarkToggle lightDark={lightDark} onToggle={onTogglelightDark} />
+          <ShufflePin shortcut="C" onClick={onShuffle} />
+        </>
+      }
+    >
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 6, gap: 6,
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: 12,
       }}>
-        <div style={{
-          fontSize: 9, fontWeight: 700, color: '#64748b',
-          textTransform: 'uppercase', letterSpacing: '0.06em',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          flex: 1, minWidth: 0,
-        }}>
-          {label}
-        </div>
-        {isOverridden && (
-          <button type="button" onClick={onReset}
-            title="Zurueck zum Concept-Default"
-            style={{
-              background: 'transparent', border: 'none',
-              color: '#7c3aed', cursor: 'pointer',
-              fontSize: 11, padding: 0, lineHeight: 1,
-            }}>
-            ↺
-          </button>
+        <ColorTile
+          label="Neutrals"
+          hex={null}
+          scale={neutralsScale}
+          isMain={false}
+          onChangeHex={null}
+          onResetAll={onResetAll}
+        />
+        {BRAND_TILES.map((t) => (
+          <ColorTile
+            key={t.key}
+            label={t.label}
+            hex={palette[t.key]}
+            scale={colorScale(palette[t.key])}
+            isMain={t.isMain}
+            onChangeHex={(v) => onSetToken(t.key, v)}
+          />
+        ))}
+        <AddColorTile />
+      </div>
+    </SectionShell>
+  );
+}
+
+function ColorTile({ label, hex, scale, isMain, onChangeHex, onResetAll }) {
+  const inputRef = useRef(null);
+  const isReadonly = !onChangeHex;
+  const handleClick = () => {
+    if (!isReadonly && inputRef.current) inputRef.current.click();
+  };
+
+  // Card-Background = ggf. die Farbe selbst (für Brand-Tiles), sonst weiß (Neutrals)
+  const bg = hex || '#FFFFFF';
+  const fg = hex ? readableOn(hex) : '#0F172A';
+
+  return (
+    <div
+      onClick={handleClick}
+      style={{
+        background: bg,
+        border: `1px solid ${hex ? 'transparent' : '#e2e8f0'}`,
+        borderRadius: 10,
+        padding: '14px 14px 0',
+        cursor: isReadonly ? 'default' : 'pointer',
+        position: 'relative',
+        minHeight: 130,
+        display: 'flex', flexDirection: 'column',
+        boxShadow: hex ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+        overflow: 'hidden',
+      }}>
+      {/* Header: Label + Main-Badge */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: fg }}>{label}</div>
+        {isMain && (
+          <span style={{
+            fontSize: 9, fontWeight: 800, color: fg,
+            background: 'rgba(255,255,255,0.20)',
+            border: `1px solid ${fg === '#FFFFFF' ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.18)'}`,
+            padding: '2px 8px', borderRadius: 999,
+            textTransform: 'uppercase', letterSpacing: '0.06em',
+          }}>Main</span>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <input
-          type="color"
-          value={pickerValue}
-          onChange={(e) => onChange(e.target.value)}
-          style={{
-            width: compact ? 28 : 32,
-            height: compact ? 28 : 32,
-            border: '1px solid #cbd5e1', borderRadius: 4,
-            padding: 0, background: 'transparent',
-            cursor: 'pointer', flexShrink: 0,
-          }}
-          aria-label={`${label} Farbe wählen`}
-        />
-        <input
-          type="text"
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={defaultValue}
-          spellCheck={false}
-          style={{
-            flex: 1, minWidth: 0,
-            padding: '5px 7px',
-            border: '1px solid #e2e8f0', borderRadius: 4,
-            fontSize: compact ? 10 : 11,
-            fontFamily: 'ui-monospace, monospace',
-            color: '#334155', outline: 'none', background: '#fff',
-          }}
-        />
-      </div>
-      {isOverridden && (
+
+      {/* Hex */}
+      {hex && (
         <div style={{
-          fontSize: 8, color: '#94a3b8', marginTop: 3,
-          fontFamily: 'ui-monospace, monospace',
-        }}>
-          Default: {defaultValue}
-        </div>
+          fontSize: 18, fontWeight: 800, color: fg, marginTop: 24,
+          fontFamily: 'ui-monospace, "SF Mono", monospace', letterSpacing: '-0.01em',
+        }}>{hex.replace('#', '').toUpperCase()}</div>
+      )}
+
+      {/* Color-Scale Streifen unten */}
+      <div style={{ display: 'flex', height: 28, marginTop: 14, marginLeft: -14, marginRight: -14 }}>
+        {scale.map((s, i) => (
+          <div key={i} style={{ flex: 1, background: s }} />
+        ))}
+      </div>
+
+      {/* Hidden Color-Picker */}
+      {!isReadonly && (
+        <input
+          ref={inputRef}
+          type="color"
+          value={hex || '#000000'}
+          onChange={(e) => onChangeHex(e.target.value.toUpperCase())}
+          style={{ display: 'none' }}
+        />
+      )}
+
+      {/* Reset-All bei Neutrals — kein direkter Edit, aber Reset-Button */}
+      {onResetAll && (
+        <button type="button"
+          onClick={(e) => { e.stopPropagation(); onResetAll(); }}
+          title="Alle Color-Overrides zurücksetzen"
+          style={{
+            position: 'absolute', top: 8, right: 8,
+            background: 'rgba(255,255,255,0.85)', color: '#475569',
+            border: '1px solid #e2e8f0', borderRadius: 4,
+            padding: '2px 6px', fontSize: 9, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>↻ Reset</button>
       )}
     </div>
+  );
+}
+
+function AddColorTile() {
+  return (
+    <div
+      title="Custom-Farbe (kommt bald)"
+      style={{
+        background: '#fafafa',
+        border: '2px dashed #e2e8f0',
+        borderRadius: 10,
+        padding: '14px',
+        minHeight: 130,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#cbd5e1', fontSize: 32, fontWeight: 300,
+        cursor: 'not-allowed',
+      }}>+</div>
+  );
+}
+
+// Liefert eine lesbare Vordergrundfarbe für einen Background-Hex
+function readableOn(hex) {
+  const m = hex.replace('#', '');
+  if (m.length !== 6) return '#0F172A';
+  const r = parseInt(m.slice(0, 2), 16);
+  const g = parseInt(m.slice(2, 4), 16);
+  const b = parseInt(m.slice(4, 6), 16);
+  const luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luma > 0.55 ? '#0F172A' : '#FFFFFF';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TypographySection — Heading + Body Cards
+// ─────────────────────────────────────────────────────────────────────────────
+
+const FONT_SCALES = [
+  { id: 'small',   label: 'Small — normal' },
+  { id: 'default', label: 'Standard' },
+  { id: 'large',   label: 'Large — Display' },
+];
+
+function TypographySection({ typoPairing, fontScale, onScaleChange, onShuffle }) {
+  return (
+    <SectionShell
+      title="Typography"
+      right={
+        <>
+          <select
+            value={fontScale}
+            onChange={(e) => onScaleChange(e.target.value)}
+            style={{
+              padding: '5px 10px',
+              border: '1px solid #e2e8f0', borderRadius: 6,
+              fontSize: 11, fontFamily: 'inherit', color: '#475569',
+              background: '#fff', cursor: 'pointer', outline: 'none', fontWeight: 600,
+            }}
+          >
+            {FONT_SCALES.map((s) => (
+              <option key={s.id} value={s.id}>{s.label}</option>
+            ))}
+          </select>
+          <ShufflePin shortcut="T" onClick={onShuffle} />
+        </>
+      }
+    >
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
+      }}>
+        <TypoCard label="Heading" font={typoPairing.heading} weight={typoPairing.heading_weight} />
+        <TypoCard label="Body"    font={typoPairing.body}    weight={typoPairing.body_weight} />
+      </div>
+    </SectionShell>
+  );
+}
+
+function TypoCard({ label, font, weight }) {
+  return (
+    <div style={{
+      background: '#fff',
+      border: '1px solid #e2e8f0', borderRadius: 10,
+      padding: '14px 16px',
+      minHeight: 130,
+      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        {label}
+      </div>
+      <div style={{
+        fontFamily: `'${font}', system-ui, sans-serif`, fontWeight: weight,
+        fontSize: 28, color: '#0F172A', letterSpacing: '-0.01em',
+        margin: '14px 0 12px',
+      }}>{font}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#64748b' }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          fontWeight: 700, color: '#0F172A',
+        }}>
+          <span style={{
+            display: 'inline-block', width: 14, height: 14,
+            background: 'conic-gradient(from -45deg, #EA4335 0deg 90deg, #FBBC05 90deg 180deg, #34A853 180deg 270deg, #4285F4 270deg 360deg)',
+            borderRadius: '50%',
+          }} />
+          Google
+        </span>
+        <span style={{ color: '#cbd5e1' }}>|</span>
+        <span style={{ color: '#16a34a', fontWeight: 700 }}>Free</span>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UIStylingSection — Buttons & Forms + Cards & Images Demo-Cards
+// ─────────────────────────────────────────────────────────────────────────────
+
+function UIStylingSection({
+  palette, uiStyle, cardVariant, buttonVariants, typo, forms, card,
+  onCycleUi, onCycleCard, onShuffle,
+}) {
+  return (
+    <SectionShell
+      title="UI Styling"
+      right={<ShufflePin shortcut="U" onClick={onShuffle} />}
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <ButtonsFormsDemo
+          palette={palette} ui={uiStyle} variants={buttonVariants}
+          typo={typo} forms={forms} onClick={onCycleUi}
+        />
+        <CardsImagesDemo
+          palette={palette} ui={uiStyle} cardVariant={cardVariant}
+          typo={typo} card={card} variants={buttonVariants}
+          onClick={onCycleCard}
+        />
+      </div>
+    </SectionShell>
+  );
+}
+
+function ButtonsFormsDemo({ palette, ui, variants, typo, forms, onClick }) {
+  return (
+    <div onClick={onClick}
+      title="Klicken um den UI-Stil zu wechseln"
+      style={{
+        background: '#fff',
+        border: '1px solid #e2e8f0', borderRadius: 10,
+        padding: '16px 14px', cursor: 'pointer',
+        minHeight: 200,
+        display: 'flex', flexDirection: 'column', gap: 14,
+      }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        Buttons & Forms
+      </div>
+
+      {/* Buttons-Demo */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          background: variants.primary.bg, color: variants.primary.fg,
+          border: `1px solid ${variants.primary.border}`,
+          borderRadius: ui.button_radius,
+          padding: '7px 14px', fontSize: 12, fontWeight: 700,
+          fontFamily: `'${typo.body}', system-ui`,
+          boxShadow: variants.primary.shadow,
+        }}>Button</span>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          background: variants.secondary.bg, color: variants.secondary.fg,
+          border: `${ui.border_width} solid ${variants.secondary.border}`,
+          borderRadius: ui.button_radius,
+          padding: '7px 14px', fontSize: 12, fontWeight: 700,
+          fontFamily: `'${typo.body}', system-ui`,
+        }}>Button</span>
+      </div>
+
+      {/* Form-Demo */}
+      <div>
+        <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+          Label
+        </div>
+        <div style={{
+          padding: '8px 10px', fontSize: 11,
+          color: forms.placeholder,
+          background: forms.style === 'filled' ? '#f8fafc' : 'transparent',
+          border: forms.style === 'underlined' ? 'none' : `1px solid ${forms.style === 'outlined' ? '#cbd5e1' : 'transparent'}`,
+          borderBottom: forms.style === 'underlined' ? '1px solid #cbd5e1' : undefined,
+          borderRadius: forms.style === 'underlined' ? 0 : ui.button_radius,
+        }}>Placeholder</div>
+      </div>
+    </div>
+  );
+}
+
+function CardsImagesDemo({ palette, ui, cardVariant, typo, card, variants, onClick }) {
+  // Mini-Bild als CSS-Gradient (kein Asset noetig)
+  const imgBg = 'linear-gradient(135deg, #94a3b8 0%, #64748b 50%, #475569 100%)';
+
+  return (
+    <div onClick={onClick}
+      title="Klicken um die Card-Variante zu wechseln"
+      style={{
+        background: '#fff',
+        border: '1px solid #e2e8f0', borderRadius: 10,
+        padding: '16px 14px', cursor: 'pointer',
+        minHeight: 200,
+        display: 'flex', flexDirection: 'column', gap: 12,
+      }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        Cards & Images
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+        {/* 2 Mini-Image-Cards */}
+        <div style={{
+          width: 50, height: 60, background: imgBg,
+          borderRadius: ui.card_radius,
+          border: card.border_width === '0px' ? 'none' : `${card.border_width} solid ${card.border_color}`,
+          boxShadow: card.shadow,
+        }} />
+        <div style={{
+          width: 50, height: 60, background: imgBg,
+          borderRadius: ui.card_radius,
+          border: card.border_width === '0px' ? 'none' : `${card.border_width} solid ${card.border_color}`,
+          boxShadow: card.shadow,
+        }} />
+
+        {/* Mini-Card mit Text */}
+        <div style={{
+          flex: 1,
+          background: card.background,
+          border: card.border_width === '0px' ? 'none' : `${card.border_width} solid ${card.border_color}`,
+          borderRadius: card.radius,
+          boxShadow: card.shadow,
+          padding: '8px 10px',
+          fontFamily: `'${typo.body}', system-ui`,
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: palette.text_primary, lineHeight: 1.2, marginBottom: 4 }}>
+            Medium length section heading
+          </div>
+          <div style={{ fontSize: 8, color: palette.text_muted, lineHeight: 1.35 }}>
+            Pick a card style that matches your overall aesthetic.
+          </div>
+          <div style={{
+            marginTop: 6, display: 'inline-block',
+            background: variants.primary.bg, color: variants.primary.fg,
+            border: `1px solid ${variants.primary.border}`,
+            borderRadius: ui.button_radius,
+            padding: '3px 8px', fontSize: 8, fontWeight: 700,
+          }}>Button</div>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 9, color: '#94a3b8' }}>
+        {cardVariant.label} · {ui.label}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DeviceToggle — unten rechts in der Live-Preview
+// ─────────────────────────────────────────────────────────────────────────────
+
+function DeviceToggle({ device, onChange }) {
+  const items = [
+    { id: 'desktop', icon: '🖥', label: 'Desktop' },
+    { id: 'tablet',  icon: '📱', label: 'Tablet'  },
+    { id: 'mobile',  icon: '📱', label: 'Mobile'  },
+  ];
+  return (
+    <div style={{
+      position: 'absolute', bottom: 16, right: 24,
+      display: 'inline-flex',
+      background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8,
+      padding: 3, gap: 1,
+      boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+    }}>
+      {items.map((it) => {
+        const active = device === it.id;
+        return (
+          <button key={it.id} type="button" onClick={() => onChange(it.id)}
+            title={it.label}
+            style={{
+              padding: '5px 9px',
+              background: active ? '#0F172A' : 'transparent',
+              color: active ? '#fff' : '#64748b',
+              border: 'none', borderRadius: 5, cursor: 'pointer',
+              fontSize: 13, fontFamily: 'inherit', fontWeight: 700,
+              minWidth: 30,
+            }}>
+            {/* Geräte-Icons in SVG für saubere Darstellung */}
+            <DeviceIcon kind={it.id} active={active} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function DeviceIcon({ kind, active }) {
+  const stroke = active ? '#fff' : '#64748b';
+  if (kind === 'desktop') {
+    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+      </svg>
+    );
+  }
+  if (kind === 'tablet') {
+    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="2" width="16" height="20" rx="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="7" y="2" width="10" height="20" rx="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
+    </svg>
   );
 }
 
@@ -1752,13 +1311,15 @@ function TokenEditor({ label, value, defaultValue, isOverridden, onChange, onRes
 // LivePreview — Sample Wireframe-Section mit aktuellen Tokens
 // ─────────────────────────────────────────────────────────────────────────────
 
-function LivePreview({ palette, typo, ui, spacing, variants, semantic, forms, card, badges }) {
-  // Phase E1: Spacing-Scale fließt in Padding/Gap-Werte ein.
-  const spX = spacing?.scale?.[5] ?? 32;       // ~32px Standard
-  const spY = spacing?.section_y ?? 64;        // Section vertical
+function LivePreview({ palette, typo, ui, spacing, variants, semantic, forms, card, badges, fontScale, device }) {
+  const spX = spacing?.scale?.[5] ?? 32;
+  const spY = spacing?.section_y ?? 64;
   const gap = spacing?.gap ?? 16;
-  // Variants kommen vom Parent (Button-Hierarchy + Color-Concept). Falls fehlt
-  // (alte aufrufer ohne Phase-E1-Felder), Fallback auf naive Defaults.
+  const isCompact = device === 'mobile';
+
+  const heroSize = fontScale === 'large' ? 40 : fontScale === 'small' ? 26 : 32;
+  const bodySize = fontScale === 'large' ? 17 : fontScale === 'small' ? 14 : 15;
+
   const primary   = variants?.primary   || { bg: palette.accent_1, fg: palette.bg_primary, border: palette.accent_1, shadow: ui.shadow };
   const secondary = variants?.secondary || { bg: 'transparent', fg: palette.accent_1, border: palette.accent_1, shadow: 'none' };
 
@@ -1769,30 +1330,59 @@ function LivePreview({ palette, typo, ui, spacing, variants, semantic, forms, ca
       border: `1px solid ${palette.border}`,
       boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
     }}>
-      {/* Hero-Sample — Padding aus Spacing-Scale */}
+      {/* Mini-Nav */}
+      <div style={{
+        padding: `${isCompact ? 14 : 18}px ${spX * 0.75}px`,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: `1px solid ${palette.border}`,
+        background: palette.bg_primary,
+        fontFamily: `'${typo.body}', system-ui`,
+        gap: 12, flexWrap: 'wrap',
+      }}>
+        <div style={{
+          fontFamily: `'${typo.heading}', system-ui`, fontWeight: typo.heading_weight,
+          fontSize: 18, color: palette.text_primary, fontStyle: 'italic',
+        }}>Logo</div>
+        {!isCompact && (
+          <div style={{ display: 'flex', gap: 18, fontSize: 12, color: palette.text_primary, fontWeight: 600 }}>
+            <span>Leistungen</span><span>Strategie</span><span>Design</span><span>Mehr ▾</span>
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <span style={{
+            background: 'transparent', color: palette.text_primary,
+            border: `${ui.border_width} solid ${palette.border}`, borderRadius: ui.button_radius,
+            padding: '5px 11px', fontSize: 11, fontWeight: 700,
+          }}>Kontakt</span>
+          <span style={{
+            background: primary.bg, color: primary.fg,
+            border: `1px solid ${primary.border}`, borderRadius: ui.button_radius,
+            padding: '5px 11px', fontSize: 11, fontWeight: 700, boxShadow: primary.shadow,
+          }}>{isCompact ? 'Menü' : 'Menü'}</span>
+        </div>
+      </div>
+
+      {/* Hero */}
       <div style={{
         padding: `${spY * 0.6}px ${spX}px`,
         background: palette.bg_primary,
         color: palette.text_primary,
-        fontFamily: typo.body,
+        fontFamily: `'${typo.body}', system-ui`,
       }}>
         <div style={{
           fontSize: 11, color: palette.text_muted,
-          fontFamily: typo.body, fontWeight: 600,
-          textTransform: 'uppercase', letterSpacing: '0.06em',
+          fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em',
           marginBottom: 8,
-        }}>
-          Wallbox-Installation
-        </div>
+        }}>Wallbox-Installation</div>
         <h1 style={{
-          fontFamily: typo.heading, fontWeight: typo.heading_weight,
-          fontSize: 32, lineHeight: 1.15, margin: `0 0 ${gap}px`,
-          color: palette.text_primary,
+          fontFamily: `'${typo.heading}', system-ui`, fontWeight: typo.heading_weight,
+          fontSize: heroSize, lineHeight: 1.15, margin: `0 0 ${gap}px`,
+          color: palette.text_primary, letterSpacing: '-0.01em',
         }}>
           Förderfähige Wallbox in 14 Tagen — fix installiert.
         </h1>
         <p style={{
-          fontSize: 15, lineHeight: 1.5, color: palette.text_muted,
+          fontSize: bodySize, lineHeight: 1.5, color: palette.text_muted,
           margin: `0 0 ${gap * 1.5}px`, maxWidth: 480,
         }}>
           Wir kümmern uns um Beratung, Antrag, Installation und Anmeldung beim
@@ -1803,27 +1393,19 @@ function LivePreview({ palette, typo, ui, spacing, variants, semantic, forms, ca
             background: primary.bg, color: primary.fg,
             border: `1px solid ${primary.border}`, borderRadius: ui.button_radius,
             padding: '10px 20px', fontSize: 13, fontWeight: 700,
-            fontFamily: typo.body, cursor: 'pointer', boxShadow: primary.shadow,
-          }}>
-            Festpreis anfragen
-          </button>
+            fontFamily: 'inherit', cursor: 'pointer', boxShadow: primary.shadow,
+          }}>Festpreis anfragen</button>
           <button type="button" style={{
             background: secondary.bg, color: secondary.fg,
             border: `${ui.border_width} solid ${secondary.border}`,
             borderRadius: ui.button_radius,
             padding: '10px 20px', fontSize: 13, fontWeight: 700,
-            fontFamily: typo.body, cursor: 'pointer',
-          }}>
-            Beratung vereinbaren
-          </button>
+            fontFamily: 'inherit', cursor: 'pointer',
+          }}>Beratung vereinbaren</button>
         </div>
 
-        {/* Phase E1: Status-Streifen mit Semantic Colors */}
         {semantic && (
-          <div style={{
-            display: 'flex', gap: gap * 0.5, flexWrap: 'wrap',
-            marginTop: gap * 1.5,
-          }}>
+          <div style={{ display: 'flex', gap: gap * 0.5, flexWrap: 'wrap', marginTop: gap * 1.5 }}>
             {[
               { key: 'success', label: '✓ Förderung bewilligt' },
               { key: 'warn',    label: '⏱ Termin in Bearbeitung' },
@@ -1832,53 +1414,61 @@ function LivePreview({ palette, typo, ui, spacing, variants, semantic, forms, ca
               const c = semantic[s.key];
               return (
                 <span key={s.key} style={{
-                  padding: '4px 10px',
-                  background: c.bg, color: c.fg,
-                  border: `1px solid ${c.border}`,
-                  borderRadius: ui.button_radius,
-                  fontSize: 10, fontWeight: 700, fontFamily: typo.body,
-                }}>
-                  {s.label}
-                </span>
+                  padding: '4px 10px', background: c.bg, color: c.fg,
+                  border: `1px solid ${c.border}`, borderRadius: ui.button_radius,
+                  fontSize: 10, fontWeight: 700,
+                }}>{s.label}</span>
               );
             })}
           </div>
         )}
       </div>
 
+      {/* Image-Placeholder */}
+      <div style={{
+        margin: `0 ${spX}px ${spY * 0.5}px`,
+        background: palette.bg_surface,
+        borderRadius: ui.card_radius,
+        border: `1px solid ${palette.border}`,
+        height: isCompact ? 180 : 280,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: palette.text_muted,
+      }}>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <circle cx="9" cy="9" r="2" />
+          <path d="M21 15l-5-5L5 21" />
+        </svg>
+      </div>
+
       {/* Trust-Strip */}
       <div style={{
-        padding: '20px 32px',
+        padding: '14px 28px',
         background: palette.bg_surface,
         borderTop: `1px solid ${palette.border}`,
         display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center',
-        fontFamily: typo.body, color: palette.text_muted,
+        fontFamily: `'${typo.body}', system-ui`, color: palette.text_muted,
         fontSize: 11, fontWeight: 600,
       }}>
         <span>✓ Innungsmeisterbetrieb</span>
-        <span>·</span>
-        <span>✓ THG-Quote inklusive</span>
-        <span>·</span>
-        <span>✓ Festpreis-Garantie</span>
-        <span>·</span>
-        <span>✓ Förderantrag inklusive</span>
+        <span>·</span><span>✓ THG-Quote inklusive</span>
+        <span>·</span><span>✓ Festpreis-Garantie</span>
+        {!isCompact && <><span>·</span><span>✓ Förderantrag inklusive</span></>}
       </div>
 
-      {/* Feature-Cards-Sample — Phase E2: Card + Badge Tokens */}
+      {/* Feature-Cards */}
       <div style={{
         padding: `${spY * 0.5}px ${spX}px`,
         background: palette.bg_primary,
         borderTop: `1px solid ${palette.border}`,
       }}>
         <h2 style={{
-          fontFamily: typo.heading, fontWeight: typo.heading_weight,
+          fontFamily: `'${typo.heading}', system-ui`, fontWeight: typo.heading_weight,
           fontSize: 22, color: palette.text_primary, margin: `0 0 ${gap}px`,
-        }}>
-          Drei Pakete, ein Festpreis
-        </h2>
+        }}>Drei Pakete, ein Festpreis</h2>
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: gap,
+          display: 'grid', gridTemplateColumns: isCompact ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap,
         }}>
           {[
             { title: 'Standard', desc: '11 kW, einphasig, ideal für Single-Garage', status: 'info',    statusLabel: 'Beliebt' },
@@ -1893,7 +1483,7 @@ function LivePreview({ palette, typo, ui, spacing, variants, semantic, forms, ca
               borderRadius: card?.radius || ui.card_radius,
               padding: card?.padding || '16px',
               boxShadow: card?.shadow || ui.shadow,
-              fontFamily: typo.body, color: palette.text_primary,
+              fontFamily: `'${typo.body}', system-ui`, color: palette.text_primary,
               position: 'relative',
             }}>
               {badges?.[f.status] && (
@@ -1903,39 +1493,23 @@ function LivePreview({ palette, typo, ui, spacing, variants, semantic, forms, ca
                   background: badges[f.status].bg, color: badges[f.status].fg,
                   border: `1px solid ${badges[f.status].border}`,
                   borderRadius: badges[f.status].radius,
-                  fontSize: 9, fontWeight: 700, fontFamily: typo.body,
+                  fontSize: 9, fontWeight: 700,
                   textTransform: 'uppercase', letterSpacing: '0.06em',
-                }}>
-                  {f.statusLabel}
-                </span>
+                }}>{f.statusLabel}</span>
               )}
               <div style={{
-                fontFamily: typo.heading, fontWeight: typo.heading_weight,
-                fontSize: 15, color: palette.text_primary, marginBottom: 6,
-                paddingRight: 70,
-              }}>
-                {f.title}
-              </div>
+                fontFamily: `'${typo.heading}', system-ui`, fontWeight: typo.heading_weight,
+                fontSize: 15, color: palette.text_primary, marginBottom: 6, paddingRight: 70,
+              }}>{f.title}</div>
               <div style={{ fontSize: 12, color: palette.text_muted, lineHeight: 1.45 }}>
                 {f.desc}
-              </div>
-              <div style={{
-                marginTop: 12,
-                display: 'inline-block',
-                background: palette.accent_2,
-                color: palette.bg_primary,
-                padding: '3px 10px',
-                borderRadius: ui.button_radius,
-                fontSize: 10, fontWeight: 700,
-              }}>
-                Mehr erfahren →
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Phase E2: Inline-Form-Demo am Ende der Preview */}
+      {/* Inline-Form */}
       {forms && (
         <div style={{
           padding: `${spY * 0.5}px ${spX}px`,
@@ -1943,55 +1517,23 @@ function LivePreview({ palette, typo, ui, spacing, variants, semantic, forms, ca
           borderTop: `1px solid ${palette.border}`,
         }}>
           <h3 style={{
-            fontFamily: typo.heading, fontWeight: typo.heading_weight,
+            fontFamily: `'${typo.heading}', system-ui`, fontWeight: typo.heading_weight,
             fontSize: 18, color: palette.text_primary, margin: `0 0 ${gap}px`,
-          }}>
-            Kostenlose Beratung
-          </h3>
+          }}>Kostenlose Beratung</h3>
           <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            display: 'grid',
+            gridTemplateColumns: isCompact ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))',
             gap: gap * 0.7,
           }}>
-            <input
-              type="text" placeholder="Name"
-              style={{
-                padding: '10px 12px', fontSize: 13, fontFamily: typo.body,
-                color: palette.text_primary,
-                background: forms.style === 'filled' ? palette.bg_primary : 'transparent',
-                border: forms.style === 'underlined'
-                  ? `0 0 1px 0 ${palette.border}`
-                  : forms.style === 'outlined'
-                    ? `1px solid ${palette.border}`
-                    : 'none',
-                borderBottom: forms.style === 'underlined' ? `1px solid ${palette.border}` : undefined,
-                borderRadius: forms.style === 'underlined' ? 0 : ui.button_radius,
-                outline: 'none',
-              }}
-            />
-            <input
-              type="email" placeholder="E-Mail"
-              style={{
-                padding: '10px 12px', fontSize: 13, fontFamily: typo.body,
-                color: palette.text_primary,
-                background: forms.style === 'filled' ? palette.bg_primary : 'transparent',
-                border: forms.style === 'underlined'
-                  ? `0 0 1px 0 ${palette.border}`
-                  : forms.style === 'outlined'
-                    ? `1px solid ${palette.border}`
-                    : 'none',
-                borderBottom: forms.style === 'underlined' ? `1px solid ${palette.border}` : undefined,
-                borderRadius: forms.style === 'underlined' ? 0 : ui.button_radius,
-                outline: 'none',
-              }}
-            />
+            <input type="text" placeholder="Name" style={inputStyle(forms, palette, ui)} />
+            <input type="email" placeholder="E-Mail" style={inputStyle(forms, palette, ui)} />
             <button type="button" style={{
               background: primary.bg, color: primary.fg,
               border: `1px solid ${primary.border}`, borderRadius: ui.button_radius,
               padding: '10px 16px', fontSize: 12, fontWeight: 700,
-              fontFamily: typo.body, cursor: 'pointer', boxShadow: primary.shadow,
-            }}>
-              Termin anfragen
-            </button>
+              fontFamily: `'${typo.body}', system-ui`, cursor: 'pointer',
+              boxShadow: primary.shadow,
+            }}>Termin anfragen</button>
           </div>
         </div>
       )}
@@ -1999,233 +1541,18 @@ function LivePreview({ palette, typo, ui, spacing, variants, semantic, forms, ca
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ─────────────────────────────────────────────────────────────────────────────
-// AnchorNav — Sticky-Sidebar links, springt zu jeder Section per ID
-// ─────────────────────────────────────────────────────────────────────────────
-
-const SG_NAV_ITEMS = [
-  { id: 'sg-brand',   icon: '🎨', label: 'Farben' },
-  { id: 'sg-typo',    icon: '🔤', label: 'Typografie' },
-  { id: 'sg-buttons', icon: '🔘', label: 'Buttons' },
-  { id: 'sg-cards',   icon: '🗂',  label: 'Cards' },
-  { id: 'sg-forms',   icon: '📝', label: 'Forms' },
-  { id: 'sg-spacing', icon: '📐', label: 'Layout' },
-];
-
-function AnchorNav() {
-  const [active, setActive] = useState(SG_NAV_ITEMS[0].id);
-
-  // Active-Highlight via IntersectionObserver
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible[0]) setActive(visible[0].target.id);
-      },
-      {
-        root: document.getElementById('sg-scroll-container'),
-        rootMargin: '-20% 0px -60% 0px',
-        threshold: [0, 0.25, 0.5, 0.75, 1],
-      },
-    );
-    SG_NAV_ITEMS.forEach((item) => {
-      const el = document.getElementById(item.id);
-      if (el) obs.observe(el);
-    });
-    return () => obs.disconnect();
-  }, []);
-
-  const scrollTo = (id) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function inputStyle(forms, palette, ui) {
+  return {
+    padding: '10px 12px', fontSize: 13,
+    color: palette.text_primary,
+    background: forms.style === 'filled' ? palette.bg_primary : 'transparent',
+    border: forms.style === 'underlined'
+      ? 'none'
+      : forms.style === 'outlined'
+        ? `1px solid ${palette.border}`
+        : 'none',
+    borderBottom: forms.style === 'underlined' ? `1px solid ${palette.border}` : undefined,
+    borderRadius: forms.style === 'underlined' ? 0 : ui.button_radius,
+    outline: 'none',
   };
-
-  return (
-    <aside style={{
-      flex: '0 0 180px',
-      background: KC_DARK,
-      borderRight: '1px solid #D5E0E2',
-      padding: '16px 10px',
-      overflowY: 'auto',
-    }}>
-      <div style={{
-        fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.45)',
-        textTransform: 'uppercase', letterSpacing: '0.1em',
-        marginBottom: 8, paddingLeft: 8,
-      }}>
-        Bereiche
-      </div>
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {SG_NAV_ITEMS.map((item) => {
-          const isActive = item.id === active;
-          return (
-            <button
-              key={item.id} type="button"
-              onClick={() => scrollTo(item.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 10px', borderRadius: 6,
-                background: isActive ? KC_MID : 'transparent',
-                color: isActive ? '#fff' : 'rgba(255,255,255,0.7)',
-                borderLeft: isActive ? `3px solid ${KC_YELLOW}` : '3px solid transparent',
-                paddingLeft: isActive ? 7 : 10,
-                cursor: 'pointer',
-                fontSize: 12, fontWeight: isActive ? 700 : 500,
-                fontFamily: 'inherit', textAlign: 'left',
-              }}
-              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
-            >
-              <span aria-hidden style={{ fontSize: 14 }}>{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
-    </aside>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SgSection — kapselt jeden Style-Guide-Bereich (Anker-ID, Title, Spacing)
-// ─────────────────────────────────────────────────────────────────────────────
-
-function SgSection({ id, title, children }) {
-  return (
-    <section
-      id={id}
-      style={{
-        marginBottom: 16,
-        scrollMarginTop: 12,
-        background: '#fff',
-        border: '1px solid #D5E0E2', // KAS-Border
-        borderTop: `3px solid ${KC_MID}`, // KAS-Akzent oben
-        borderRadius: 8,
-        padding: '18px 20px',
-        boxShadow: '0 1px 2px rgba(0, 79, 89, 0.04)',
-      }}
-    >
-      <h2 style={{
-        margin: '0 0 14px',
-        fontSize: 16, fontWeight: 900,
-        color: KC_DARK,
-        letterSpacing: '-0.01em',
-        textTransform: 'uppercase',
-        paddingBottom: 10,
-        borderBottom: '1px solid #D5E0E2',
-      }}>
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-function SectionHeader({ title, onShuffle, children }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      marginBottom: 14, gap: 12, flexWrap: 'wrap',
-    }}>
-      <div style={{ fontSize: 14, fontWeight: 800, color: KC_DARK, textTransform: 'uppercase', letterSpacing: '-0.01em' }}>
-        {title}
-      </div>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        {children}
-        {onShuffle && (
-          <button type="button" onClick={onShuffle}
-            title="Konzept zufällig wechseln"
-            style={{
-              background: 'transparent', color: '#7c3aed',
-              border: '1px solid #7c3aed', borderRadius: 6,
-              padding: '4px 10px', fontSize: 11, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            🎲 Würfeln
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Wiederverwendbare Form-Styles fuer die vereinfachten Sections
-const lblStyle = {
-  display: 'block',
-  fontSize: 10, fontWeight: 700, color: '#475569',
-  textTransform: 'uppercase', letterSpacing: '0.06em',
-  marginBottom: 5,
-};
-const selectStyle = {
-  width: '100%', boxSizing: 'border-box',
-  padding: '8px 10px',
-  border: '1px solid #D5E0E2', borderRadius: 6,
-  fontSize: 13, fontFamily: 'inherit', color: '#0F172A',
-  background: '#fff', cursor: 'pointer', outline: 'none',
-};
-
-// StyleSwitcher — 3-4 Buttons als visuelle Optionen, selbsterklaerend.
-// Ersetzt die Konzept-Karten-Grids (zu viel Text + zu viele Tile-Klicks).
-function StyleSwitcher({ options, value, onChange }) {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, gap: 6 }}>
-      {options.map((o) => {
-        const isActive = o.id === value;
-        return (
-          <button
-            key={o.id} type="button"
-            onClick={() => onChange(o.id)}
-            title={o.description || o.label}
-            style={{
-              padding: '10px 8px',
-              background: isActive ? KC_MID : '#fff',
-              color: isActive ? '#fff' : '#475569',
-              border: `1px solid ${isActive ? KC_MID : '#D5E0E2'}`,
-              borderRadius: 6, cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-            }}
-          >
-            {o.preview && <div>{o.preview}</div>}
-            <span>{o.label}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function ToggleSwitch({ options, value, onChange }) {
-  return (
-    <div style={{
-      display: 'inline-flex', gap: 0,
-      border: '1px solid #e2e8f0', borderRadius: 6, overflow: 'hidden',
-      background: '#fff',
-    }}>
-      {options.map((o) => {
-        const isActive = value === o.id;
-        return (
-          <button
-            key={o.id} type="button" onClick={() => onChange(o.id)}
-            style={{
-              padding: '5px 10px',
-              background: isActive ? KC_DARK : 'transparent',
-              color: isActive ? '#fff' : '#475569',
-              border: 'none', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
-            }}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
-  );
 }

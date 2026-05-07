@@ -18,7 +18,7 @@
  *   onApprove()       — "Freigabe an Kunden senden" (Brevo-Mail im Container)
  *   approved          — true → Lock entfernt
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const KC_DARK = '#004F59';
 const KC_MID = '#008EAA';
@@ -763,8 +763,8 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
     });
   };
 
-  // Phase E1: 5 Tabs — color, typography, ui, spacing, buttons
-  const [activeSection, setActiveSection] = useState('color');
+  // Single-Page-Layout — kein Tab-Switching mehr; alle Sections sind
+  // gleichzeitig sichtbar, Anker-Nav links springt zur jeweiligen Section.
 
   return (
     <div style={{
@@ -824,48 +824,19 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
         </div>
       </div>
 
-      {/* Body — zwei Spalten: Auswahl links, Preview rechts */}
+      {/* Body — drei Spalten: Anker-Nav links, Sections Mitte, Live-Preview rechts */}
       <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
-        {/* Auswahl-Panel */}
-        <div style={{
-          flex: '0 0 50%', minWidth: 480,
-          overflowY: 'auto', padding: 24,
-          borderRight: '1px solid #e2e8f0',
-        }}>
-          {/* Section-Tabs */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
-            {[
-              { id: 'color',      label: '🎨 Farbe' },
-              { id: 'typography', label: '🔤 Typografie' },
-              { id: 'spacing',    label: '📐 Spacing' },
-              { id: 'ui',         label: '🧩 UI' },
-              { id: 'buttons',    label: '🔘 Buttons' },
-              { id: 'forms',      label: '📝 Forms' },
-              { id: 'cards',      label: '🗂 Cards' },
-              { id: 'badges',     label: '🏷 Badges' },
-            ].map((tab) => {
-              const isActive = activeSection === tab.id;
-              return (
-                <button
-                  key={tab.id} type="button"
-                  onClick={() => setActiveSection(tab.id)}
-                  style={{
-                    padding: '8px 14px',
-                    background: 'transparent', border: 'none',
-                    borderBottom: isActive ? `2px solid ${KC_MID}` : '2px solid transparent',
-                    color: isActive ? KC_DARK : '#64748b',
-                    fontSize: 13, fontWeight: isActive ? 800 : 600,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                    marginBottom: -1,
-                  }}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
+        {/* Anker-Nav links */}
+        <AnchorNav />
 
-          {activeSection === 'color' && (
+        {/* Sections in der Mitte (scrollbar) */}
+        <div id="sg-scroll-container" style={{
+          flex: '1 1 600px', minWidth: 400,
+          overflowY: 'auto', padding: '24px 24px 80px',
+          borderRight: '1px solid #e2e8f0',
+          scrollBehavior: 'smooth',
+        }}>
+          <SgSection id="sg-brand" title="Brand-Farben">
             <ColorSection
               conceptId={conceptId}
               lightDark={lightDark}
@@ -876,108 +847,92 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
               semanticOverrides={semanticOverrides}
               onSelect={(id) => updateSelection({ conceptId: id })}
               onToggleLightDark={() => updateSelection({ lightDark: lightDark === 'dark' ? 'light' : 'dark' })}
-              onShuffle={() => {
-                const r = COLOR_CONCEPTS[Math.floor(Math.random() * COLOR_CONCEPTS.length)];
-                updateSelection({ conceptId: r.id });
-              }}
+              onShuffle={null}
               onSetPaletteToken={setPaletteToken}
               onResetPaletteToken={resetPaletteToken}
               onSetSemanticToken={setSemanticToken}
               onResetSemanticToken={resetSemanticToken}
               onResetAll={resetAllOverrides}
             />
-          )}
-          {activeSection === 'typography' && (
+          </SgSection>
+
+          <SgSection id="sg-typo" title="Typografie">
             <TypographySection
               typoId={typoId}
               onSelect={(id) => updateSelection({ typoId: id })}
-              onShuffle={() => {
-                const r = TYPO_PAIRINGS[Math.floor(Math.random() * TYPO_PAIRINGS.length)];
-                updateSelection({ typoId: r.id });
-              }}
+              onShuffle={null}
             />
-          )}
-          {activeSection === 'spacing' && (
-            <SpacingSection
-              spacingId={spacingId}
-              palette={palette}
-              onSelect={(id) => updateSelection({ spacingId: id })}
-              onShuffle={() => {
-                const r = SPACING_SCALES[Math.floor(Math.random() * SPACING_SCALES.length)];
-                updateSelection({ spacingId: r.id });
-              }}
-            />
-          )}
-          {activeSection === 'ui' && (
-            <UIStyleSection
-              uiId={uiId}
-              palette={palette}
-              onSelect={(id) => updateSelection({ uiId: id })}
-              onShuffle={() => {
-                const r = UI_STYLES[Math.floor(Math.random() * UI_STYLES.length)];
-                updateSelection({ uiId: r.id });
-              }}
-            />
-          )}
-          {activeSection === 'buttons' && (
+          </SgSection>
+
+          <SgSection id="sg-buttons" title="Buttons">
             <ButtonsSection
               btnHierId={btnHierId}
               palette={palette} typo={typoPairing} ui={uiStyle}
               variants={buttonVariants}
               onSelect={(id) => updateSelection({ btnHierId: id })}
-              onShuffle={() => {
-                const r = BUTTON_HIERARCHIES[Math.floor(Math.random() * BUTTON_HIERARCHIES.length)];
-                updateSelection({ btnHierId: r.id });
-              }}
+              onShuffle={null}
             />
-          )}
-          {activeSection === 'forms' && (
-            <FormsSection
-              formId={formId}
-              palette={palette} typo={typoPairing} ui={uiStyle}
-              forms={forms} semantic={semantic}
-              onSelect={(id) => updateSelection({ formId: id })}
-              onShuffle={() => {
-                const r = FORM_STYLES[Math.floor(Math.random() * FORM_STYLES.length)];
-                updateSelection({ formId: r.id });
-              }}
-            />
-          )}
-          {activeSection === 'cards' && (
+          </SgSection>
+
+          <SgSection id="sg-cards" title="Cards">
             <CardsSection
               cardId={cardId}
               palette={palette} typo={typoPairing} ui={uiStyle}
               card={card} variants={buttonVariants}
               onSelect={(id) => updateSelection({ cardId: id })}
-              onShuffle={() => {
-                const r = CARD_VARIANTS[Math.floor(Math.random() * CARD_VARIANTS.length)];
-                updateSelection({ cardId: r.id });
-              }}
+              onShuffle={null}
             />
-          )}
-          {activeSection === 'badges' && (
+          </SgSection>
+
+          <SgSection id="sg-forms" title="Forms">
+            <FormsSection
+              formId={formId}
+              palette={palette} typo={typoPairing} ui={uiStyle}
+              forms={forms} semantic={semantic}
+              onSelect={(id) => updateSelection({ formId: id })}
+              onShuffle={null}
+            />
+          </SgSection>
+
+          <SgSection id="sg-ui" title="UI-Stil (Radius / Schatten)">
+            <UIStyleSection
+              uiId={uiId}
+              palette={palette}
+              onSelect={(id) => updateSelection({ uiId: id })}
+              onShuffle={null}
+            />
+          </SgSection>
+
+          <SgSection id="sg-spacing" title="Spacing">
+            <SpacingSection
+              spacingId={spacingId}
+              palette={palette}
+              onSelect={(id) => updateSelection({ spacingId: id })}
+              onShuffle={null}
+            />
+          </SgSection>
+
+          <SgSection id="sg-badges" title="Badges">
             <BadgesSection
               badgeId={badgeId}
               palette={palette} typo={typoPairing}
               badges={badges} semantic={semantic}
               onSelect={(id) => updateSelection({ badgeId: id })}
-              onShuffle={() => {
-                const r = BADGE_STYLES[Math.floor(Math.random() * BADGE_STYLES.length)];
-                updateSelection({ badgeId: r.id });
-              }}
+              onShuffle={null}
             />
-          )}
+          </SgSection>
         </div>
 
-        {/* Live-Preview rechts */}
+        {/* Live-Preview rechts (sticky-permanent) */}
         <div style={{
-          flex: 1, overflowY: 'auto',
+          flex: '0 0 480px', minWidth: 360,
+          overflowY: 'auto',
           background: '#f1f5f9',
-          padding: 24,
+          padding: 18,
         }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b',
             textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-            Live-Preview · {concept.label} · {lightDark === 'dark' ? 'Dark' : 'Light'} · {typoPairing.label} · {uiStyle.label} · {spacingScale.label} · {buttonHier.label} · {formStyle.label} · {cardVariant.label} · {badgeStyle.label}
+            Live-Preview
           </div>
           <LivePreview
             palette={palette} typo={typoPairing} ui={uiStyle}
@@ -1217,7 +1172,6 @@ function ColorSection({
 function TypographySection({ typoId, onSelect, onShuffle }) {
   return (
     <div>
-      <SectionHeader title="Typografie-Pairings" onShuffle={onShuffle} />
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
         gap: 12,
@@ -1281,7 +1235,6 @@ function TypographySection({ typoId, onSelect, onShuffle }) {
 function UIStyleSection({ uiId, palette, onSelect, onShuffle }) {
   return (
     <div>
-      <SectionHeader title="UI-Style" onShuffle={onShuffle} />
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
         gap: 12,
@@ -1358,7 +1311,6 @@ function UIStyleSection({ uiId, palette, onSelect, onShuffle }) {
 function SpacingSection({ spacingId, palette, onSelect, onShuffle }) {
   return (
     <div>
-      <SectionHeader title="Spacing-Scale" onShuffle={onShuffle} />
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
         gap: 12,
@@ -1459,7 +1411,6 @@ function SpacingSection({ spacingId, palette, onSelect, onShuffle }) {
 function ButtonsSection({ btnHierId, palette, typo, ui, variants, onSelect, onShuffle }) {
   return (
     <div>
-      <SectionHeader title="Button-Hierarchie" onShuffle={onShuffle} />
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
         gap: 12, marginBottom: 22,
@@ -1590,7 +1541,6 @@ function SizedButton({ v, ui, typo, size, children }) {
 function FormsSection({ formId, palette, typo, ui, forms, semantic, onSelect, onShuffle }) {
   return (
     <div>
-      <SectionHeader title="Formular-Stile" onShuffle={onShuffle} />
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
         gap: 12, marginBottom: 22,
@@ -1726,7 +1676,6 @@ function FormPreview({ style, palette, ui, typo, semantic, compact = false }) {
 function CardsSection({ cardId, palette, typo, ui, card, variants, onSelect, onShuffle }) {
   return (
     <div>
-      <SectionHeader title="Card-Varianten" onShuffle={onShuffle} />
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
         gap: 12, marginBottom: 22,
@@ -1865,7 +1814,6 @@ function CardPreview({ variant, palette, ui, typo, compact = false, title, desc,
 function BadgesSection({ badgeId, palette, typo, badges, semantic, onSelect, onShuffle }) {
   return (
     <div>
-      <SectionHeader title="Badge-Stile" onShuffle={onShuffle} />
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
         gap: 12, marginBottom: 22,
@@ -2305,6 +2253,121 @@ function LivePreview({ palette, typo, ui, spacing, variants, semantic, forms, ca
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AnchorNav — Sticky-Sidebar links, springt zu jeder Section per ID
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SG_NAV_ITEMS = [
+  { id: 'sg-brand',   icon: '🎨', label: 'Farben' },
+  { id: 'sg-typo',    icon: '🔤', label: 'Typografie' },
+  { id: 'sg-buttons', icon: '🔘', label: 'Buttons' },
+  { id: 'sg-cards',   icon: '🗂',  label: 'Cards' },
+  { id: 'sg-forms',   icon: '📝', label: 'Forms' },
+  { id: 'sg-ui',      icon: '🧩', label: 'UI-Stil' },
+  { id: 'sg-spacing', icon: '📐', label: 'Spacing' },
+  { id: 'sg-badges',  icon: '🏷',  label: 'Badges' },
+];
+
+function AnchorNav() {
+  const [active, setActive] = useState(SG_NAV_ITEMS[0].id);
+
+  // Active-Highlight via IntersectionObserver
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]) setActive(visible[0].target.id);
+      },
+      {
+        root: document.getElementById('sg-scroll-container'),
+        rootMargin: '-20% 0px -60% 0px',
+        threshold: [0, 0.25, 0.5, 0.75, 1],
+      },
+    );
+    SG_NAV_ITEMS.forEach((item) => {
+      const el = document.getElementById(item.id);
+      if (el) obs.observe(el);
+    });
+    return () => obs.disconnect();
+  }, []);
+
+  const scrollTo = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  return (
+    <aside style={{
+      flex: '0 0 180px',
+      background: '#fafafa',
+      borderRight: '1px solid #e2e8f0',
+      padding: '16px 10px',
+      overflowY: 'auto',
+    }}>
+      <div style={{
+        fontSize: 9, fontWeight: 700, color: '#94a3b8',
+        textTransform: 'uppercase', letterSpacing: '0.1em',
+        marginBottom: 8, paddingLeft: 8,
+      }}>
+        Bereiche
+      </div>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {SG_NAV_ITEMS.map((item) => {
+          const isActive = item.id === active;
+          return (
+            <button
+              key={item.id} type="button"
+              onClick={() => scrollTo(item.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 10px', borderRadius: 6,
+                background: isActive ? KC_DARK : 'transparent',
+                color: isActive ? '#fff' : '#475569',
+                border: 'none', cursor: 'pointer',
+                fontSize: 12, fontWeight: isActive ? 700 : 500,
+                fontFamily: 'inherit', textAlign: 'left',
+              }}
+              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = '#f1f5f9'; }}
+              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+            >
+              <span aria-hidden style={{ fontSize: 14 }}>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    </aside>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SgSection — kapselt jeden Style-Guide-Bereich (Anker-ID, Title, Spacing)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SgSection({ id, title, children }) {
+  return (
+    <section
+      id={id}
+      style={{
+        marginBottom: 40,
+        scrollMarginTop: 16,
+      }}
+    >
+      <h2 style={{
+        margin: '0 0 16px',
+        fontSize: 18, fontWeight: 800,
+        color: KC_DARK,
+        letterSpacing: '-0.01em',
+      }}>
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
 
 function SectionHeader({ title, onShuffle, children }) {
   return (

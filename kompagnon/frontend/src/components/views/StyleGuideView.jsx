@@ -1002,7 +1002,7 @@ function ColorSection({
   onSetPaletteToken, onResetPaletteToken,
   onSetSemanticToken, onResetSemanticToken,
   onResetAll,
-}) {
+}) { /* eslint-disable no-unused-vars */ /* conceptId/onSelect/onShuffle bleiben fuer Backwards-Compat in den Props */
   // Concept-Default fuer den aktuellen Light/Dark-Modus — fuer Reset/Diff
   const conceptDefaultPalette = lightDark === 'dark' ? concept.dark : concept.light;
   const semanticDefault = SEMANTIC_COLORS[lightDark === 'dark' ? 'dark' : 'light'];
@@ -1013,9 +1013,6 @@ function ColorSection({
     Object.keys(paletteOverrides?.dark  || {}).length +
     Object.keys(semanticOverrides?.light || {}).length +
     Object.keys(semanticOverrides?.dark  || {}).length > 0;
-  // Detail-Editor ein-/ausklappbar — Default zu, sodass die Concept- und
-  // Semantic-Display den primaeren Eindruck dominieren.
-  const [editorOpen, setEditorOpen] = useState(false);
 
   // Primaerfarben-Quick-Edit: Hex-Input + Color-Picker fuer accent_1/2/3.
   // Schnell-Edit ohne Detail-Editor zu oeffnen.
@@ -1027,21 +1024,52 @@ function ColorSection({
 
   return (
     <div>
-      <SectionHeader title="Farb-Konzepte" onShuffle={onShuffle}>
-        <ToggleSwitch
-          options={[
-            { id: 'light', label: '☀️ Light' },
-            { id: 'dark',  label: '🌙 Dark' },
-          ]}
-          value={lightDark}
-          onChange={onToggleLightDark}
-        />
-      </SectionHeader>
+      {/* Top-Header: Light/Dark + Reset-All */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 14, gap: 12, flexWrap: 'wrap',
+      }}>
+        <div style={{
+          fontSize: 14, fontWeight: 800, color: KC_DARK,
+          textTransform: 'uppercase', letterSpacing: '-0.01em',
+        }}>
+          Brand-Farben
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ToggleSwitch
+            options={[
+              { id: 'light', label: '☀️ Light' },
+              { id: 'dark',  label: '🌙 Dark' },
+            ]}
+            value={lightDark}
+            onChange={onToggleLightDark}
+          />
+          {hasAnyOverride && (
+            <button type="button" onClick={onResetAll}
+              title="Alle ueberschriebenen Farben zuruecksetzen"
+              style={{
+                background: 'transparent', color: '#dc2626',
+                border: '1px solid #fca5a5', borderRadius: 6,
+                padding: '4px 10px', fontSize: 10, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+              ↺ Reset
+            </button>
+          )}
+        </div>
+      </div>
 
-      {/* Primaerfarben-Quick-Edit (Hex-Input + Color-Picker) */}
+      {/* Primaerfarben Quick-Edit */}
+      <div style={{
+        fontSize: 10, fontWeight: 700, color: '#94a3b8',
+        textTransform: 'uppercase', letterSpacing: '0.08em',
+        marginBottom: 8,
+      }}>
+        Primärfarben
+      </div>
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10,
-        marginBottom: 18,
+        marginBottom: 22,
         padding: 12,
         background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8,
       }}>
@@ -1058,7 +1086,7 @@ function ColorSection({
                 <span>{f.label}</span>
                 {isOverridden && (
                   <button type="button" onClick={() => onResetPaletteToken(f.key)}
-                    title="Zurueck zum Concept-Default"
+                    title="Default-Wert zuruecksetzen"
                     style={{
                       background: 'transparent', border: 'none',
                       color: '#7c3aed', cursor: 'pointer',
@@ -1099,181 +1127,85 @@ function ColorSection({
         })}
       </div>
 
+      {/* Brand-Tokens — Hintergrund / Text / Border */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-        gap: 12,
+        fontSize: 10, fontWeight: 700, color: '#94a3b8',
+        textTransform: 'uppercase', letterSpacing: '0.08em',
+        marginBottom: 8,
+      }}>
+        Hintergrund · Text · Border
+      </div>
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10,
         marginBottom: 22,
       }}>
-        {COLOR_CONCEPTS.map((c) => {
-          const palette = lightDark === 'dark' ? c.dark : c.light;
-          const isSelected = c.id === conceptId;
+        {PALETTE_TOKEN_KEYS.filter((k) => !PRIMARY_FIELDS.find((p) => p.key === k)).map((key) => (
+          <TokenEditor
+            key={key}
+            label={PALETTE_TOKEN_LABELS[key]}
+            value={palette[key]}
+            defaultValue={conceptDefaultPalette[key]}
+            isOverridden={key in lvlOvr}
+            onChange={(v) => onSetPaletteToken(key, v)}
+            onReset={() => onResetPaletteToken(key)}
+          />
+        ))}
+      </div>
+
+      {/* Status-Farben */}
+      <div style={{
+        fontSize: 10, fontWeight: 700, color: '#94a3b8',
+        textTransform: 'uppercase', letterSpacing: '0.08em',
+        marginBottom: 8,
+      }}>
+        Status-Farben (Erfolg / Hinweis / Fehler / Info)
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {SEMANTIC_KEYS.map((status) => {
+          const c = semantic[status];
+          const def = semanticDefault[status];
+          const ovrStatus = semOvr[status] || {};
           return (
-            <button
-              key={c.id} type="button"
-              onClick={() => onSelect(c.id)}
-              style={{
-                textAlign: 'left',
-                background: '#fff',
-                border: isSelected ? `2px solid ${KC_MID}` : '1px solid #e2e8f0',
-                borderRadius: 8,
-                padding: 12, cursor: 'pointer',
-                boxShadow: isSelected ? `0 4px 12px ${KC_MID}33` : 'none',
-                fontFamily: 'inherit',
-                transition: 'border-color 0.15s, box-shadow 0.15s',
-              }}
-            >
-              {/* Palette-Streifen */}
+            <div key={status} style={{
+              padding: 10,
+              background: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: 6,
+            }}>
               <div style={{
-                display: 'flex', height: 36, borderRadius: 4, overflow: 'hidden',
-                marginBottom: 8, border: '1px solid #e2e8f0',
+                display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
               }}>
-                <div style={{ flex: 2, background: palette.bg_primary }} />
-                <div style={{ flex: 1, background: palette.bg_surface }} />
-                <div style={{ flex: 1, background: palette.accent_1 }} />
-                <div style={{ flex: 1, background: palette.accent_2 }} />
-                <div style={{ flex: 1, background: palette.accent_3 || palette.text_primary }} />
+                <span style={{
+                  width: 14, height: 14, borderRadius: 3,
+                  background: c.fg, border: `1px solid ${c.border}`, flexShrink: 0,
+                }} />
+                <span style={{
+                  fontSize: 11, fontWeight: 800, color: KC_DARK,
+                  textTransform: 'uppercase', letterSpacing: '0.06em',
+                }}>
+                  {SEMANTIC_LABELS[status]}
+                </span>
               </div>
               <div style={{
-                fontSize: 12, fontWeight: 800, color: KC_DARK,
-                marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6,
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8,
               }}>
-                {isSelected && <span style={{ color: KC_MID }}>✓</span>}
-                {c.label}
+                {['fg', 'bg', 'border'].map((slot) => (
+                  <TokenEditor
+                    key={slot}
+                    label={slot === 'fg' ? 'Vordergrund' : slot === 'bg' ? 'Background' : 'Border'}
+                    value={c[slot]}
+                    defaultValue={def[slot]}
+                    isOverridden={slot in ovrStatus}
+                    onChange={(v) => onSetSemanticToken(status, slot, v)}
+                    onReset={() => onResetSemanticToken(status, slot)}
+                    compact
+                  />
+                ))}
               </div>
-              <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>
-                {c.description}
-              </div>
-            </button>
+            </div>
           );
         })}
       </div>
-
-      {/* Compact-Toolbar: Toggle "Tokens anpassen" + Reset-All */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-        gap: 8, marginBottom: editorOpen ? 12 : 0,
-      }}>
-        {hasAnyOverride && (
-          <button type="button" onClick={onResetAll}
-            style={{
-              background: 'transparent', color: '#dc2626',
-              border: '1px solid #fca5a5', borderRadius: 6,
-              padding: '4px 10px', fontSize: 10, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-            ↺ Alle Overrides verwerfen
-          </button>
-        )}
-        <button type="button" onClick={() => setEditorOpen((v) => !v)}
-          style={{
-            background: editorOpen ? '#7c3aed' : 'transparent',
-            color: editorOpen ? '#fff' : '#7c3aed',
-            border: '1px solid #7c3aed', borderRadius: 6,
-            padding: '5px 12px', fontSize: 11, fontWeight: 700,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-          🔧 Tokens anpassen {editorOpen ? '▲' : '▼'}
-        </button>
-      </div>
-
-      {/* Detail-Editor — nur wenn ausgeklappt */}
-      {editorOpen && (
-        <>
-          <div style={{
-            background: '#faf5ff', border: '1px solid #e9d5ff',
-            borderRadius: 8, padding: 14, marginTop: 8,
-          }}>
-            <div style={{
-              fontSize: 12, fontWeight: 800, color: '#6b21a8',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-              marginBottom: 4,
-            }}>
-              Brand-Tokens · {lightDark === 'dark' ? 'Dark' : 'Light'}
-            </div>
-            <div style={{ fontSize: 11, color: '#7e22ce', marginBottom: 12, lineHeight: 1.5 }}>
-              8 Slots aus dem aktuellen Konzept. Override pro Token via Color-Picker
-              oder Hex/RGB. Override gilt nur für {lightDark === 'dark' ? 'Dark' : 'Light'}.
-            </div>
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10,
-            }}>
-              {PALETTE_TOKEN_KEYS.map((key) => (
-                <TokenEditor
-                  key={key}
-                  label={PALETTE_TOKEN_LABELS[key]}
-                  value={palette[key]}
-                  defaultValue={conceptDefaultPalette[key]}
-                  isOverridden={key in lvlOvr}
-                  onChange={(v) => onSetPaletteToken(key, v)}
-                  onReset={() => onResetPaletteToken(key)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div style={{
-            background: '#faf5ff', border: '1px solid #e9d5ff',
-            borderRadius: 8, padding: 14, marginTop: 12,
-          }}>
-            <div style={{
-              fontSize: 12, fontWeight: 800, color: '#6b21a8',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-              marginBottom: 4,
-            }}>
-              Semantic-Slots · {lightDark === 'dark' ? 'Dark' : 'Light'}
-            </div>
-            <div style={{ fontSize: 11, color: '#7e22ce', marginBottom: 12, lineHeight: 1.5 }}>
-              Pro Status drei Slots: Vordergrund / Background / Border.
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {SEMANTIC_KEYS.map((status) => {
-                const c = semantic[status];
-                const def = semanticDefault[status];
-                const ovrStatus = semOvr[status] || {};
-                return (
-                  <div key={status} style={{
-                    padding: 10,
-                    background: '#fff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: 6,
-                  }}>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
-                    }}>
-                      <span style={{
-                        width: 14, height: 14, borderRadius: 3,
-                        background: c.fg, flexShrink: 0,
-                      }} />
-                      <span style={{
-                        fontSize: 11, fontWeight: 800, color: KC_DARK,
-                        textTransform: 'uppercase', letterSpacing: '0.06em',
-                      }}>
-                        {SEMANTIC_LABELS[status]}
-                      </span>
-                    </div>
-                    <div style={{
-                      display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8,
-                    }}>
-                      {['fg', 'bg', 'border'].map((slot) => (
-                        <TokenEditor
-                          key={slot}
-                          label={slot === 'fg' ? 'Vordergrund' : slot === 'bg' ? 'Background' : 'Border'}
-                          value={c[slot]}
-                          defaultValue={def[slot]}
-                          isOverridden={slot in ovrStatus}
-                          onChange={(v) => onSetSemanticToken(status, slot, v)}
-                          onReset={() => onResetSemanticToken(status, slot)}
-                          compact
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }

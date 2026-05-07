@@ -435,6 +435,58 @@ function findUIStyle(id) {
 function findSpacingScale(id) {
   return SPACING_SCALES.find((s) => s.id === id) || DEFAULT_SPACING;
 }
+
+// ── Token-Override-Mergers ────────────────────────────────────────────────────
+//
+// User kann pro Token einen Custom-Wert setzen (Color-Picker / Hex-Input).
+// Override wird im styleGuide unter palette_overrides[lightDark] /
+// semantic_overrides[lightDark] persistiert. Beim Lookup mergen wir
+// Concept-Default + Override.
+
+const PALETTE_TOKEN_KEYS = [
+  'bg_primary', 'bg_surface',
+  'text_primary', 'text_muted',
+  'border',
+  'accent_1', 'accent_2', 'accent_3',
+];
+
+const PALETTE_TOKEN_LABELS = {
+  bg_primary:   'Background · Primary',
+  bg_surface:   'Background · Surface',
+  text_primary: 'Text · Primary',
+  text_muted:   'Text · Muted',
+  border:       'Border',
+  accent_1:     'Akzent 1 (Primary)',
+  accent_2:     'Akzent 2',
+  accent_3:     'Akzent 3',
+};
+
+const SEMANTIC_KEYS = ['success', 'warn', 'error', 'info'];
+const SEMANTIC_LABELS = {
+  success: 'Erfolg / Aktiv',
+  warn:    'Hinweis / Offen',
+  error:   'Fehler / Blockiert',
+  info:    'Info / Neutral',
+};
+
+function effectivePalette(concept, lightDark, overrides) {
+  const base = lightDark === 'dark' ? concept.dark : concept.light;
+  const ovr = overrides?.[lightDark] || {};
+  return { ...base, ...ovr };
+}
+
+function effectiveSemantic(lightDark, overrides) {
+  const base = SEMANTIC_COLORS[lightDark === 'dark' ? 'dark' : 'light'];
+  const ovr = overrides?.[lightDark] || {};
+  // Per-Status mergen — pro Status sind {fg, bg, border} drei separate Slots
+  const out = {};
+  SEMANTIC_KEYS.forEach((k) => {
+    out[k] = { ...base[k], ...(ovr[k] || {}) };
+  });
+  return out;
+}
+
+
 function findButtonHierarchy(id) {
   return BUTTON_HIERARCHIES.find((b) => b.id === id) || DEFAULT_BUTTON_HIER;
 }
@@ -537,9 +589,11 @@ function deriveBadgeTokens(badgeStyle, semantic, palette) {
 function deriveLegacyTokens(
   concept, lightDark, typoPairing, uiStyle, spacingScale, buttonHierarchy,
   formStyle, cardVariant, badgeStyle,
+  paletteOverrides = null, semanticOverrides = null,
 ) {
-  const palette = lightDark === 'dark' ? concept.dark : concept.light;
-  const semantic = SEMANTIC_COLORS[lightDark === 'dark' ? 'dark' : 'light'];
+  // Effektive Tokens: Concept-Default + User-Override
+  const palette = effectivePalette(concept, lightDark, paletteOverrides);
+  const semantic = effectiveSemantic(lightDark, semanticOverrides);
   const buttonVariants = deriveButtonVariants(palette, uiStyle, buttonHierarchy, semantic);
   const forms          = deriveFormTokens(palette, uiStyle, formStyle);
   const card           = deriveCardTokens(palette, uiStyle, cardVariant, spacingScale);
@@ -595,6 +649,10 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
   const cardId    = styleGuide?.card_variant_id || DEFAULT_CARD.id;
   const badgeId   = styleGuide?.badge_style_id || DEFAULT_BADGE.id;
 
+  // Override-Slots: User-spezifische Token-Werte. Fallback = Concept-Default.
+  const paletteOverrides  = styleGuide?.palette_overrides  || {};
+  const semanticOverrides = styleGuide?.semantic_overrides || {};
+
   const concept       = findColorConcept(conceptId);
   const typoPairing   = findTypoPairing(typoId);
   const uiStyle       = findUIStyle(uiId);
@@ -603,8 +661,9 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
   const formStyle     = findFormStyle(formId);
   const cardVariant   = findCardVariant(cardId);
   const badgeStyle    = findBadgeStyle(badgeId);
-  const palette       = lightDark === 'dark' ? concept.dark : concept.light;
-  const semantic      = SEMANTIC_COLORS[lightDark === 'dark' ? 'dark' : 'light'];
+  // Effektive Tokens (Concept + Override gemerged)
+  const palette       = effectivePalette(concept, lightDark, paletteOverrides);
+  const semantic      = effectiveSemantic(lightDark, semanticOverrides);
   const buttonVariants = deriveButtonVariants(palette, uiStyle, buttonHier, semantic);
   const forms         = deriveFormTokens(palette, uiStyle, formStyle);
   const card          = deriveCardTokens(palette, uiStyle, cardVariant, spacingScale);
@@ -622,6 +681,8 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
       form_style_id:         updates.formId     ?? formId,
       card_variant_id:       updates.cardId     ?? cardId,
       badge_style_id:        updates.badgeId    ?? badgeId,
+      palette_overrides:     updates.paletteOverrides  ?? paletteOverrides,
+      semantic_overrides:    updates.semanticOverrides ?? semanticOverrides,
     };
     const newConcept  = findColorConcept(merged.color_concept_id);
     const newTypo     = findTypoPairing(merged.typography_pairing_id);
@@ -634,8 +695,58 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
     const derived     = deriveLegacyTokens(
       newConcept, merged.light_dark, newTypo, newUI, newSpacing, newBtnHier,
       newForm, newCard, newBadge,
+      merged.palette_overrides, merged.semantic_overrides,
     );
     onChange?.({ ...merged, ...derived });
+  };
+
+  // Token-Editor-Helpers — Override pro Token setzen / loeschen
+  const setPaletteToken = (key, value) => {
+    const lvl = lightDark;
+    const next = {
+      ...paletteOverrides,
+      [lvl]: { ...(paletteOverrides[lvl] || {}), [key]: value },
+    };
+    updateSelection({ paletteOverrides: next });
+  };
+  const resetPaletteToken = (key) => {
+    const lvl = lightDark;
+    const lvlOvr = { ...(paletteOverrides[lvl] || {}) };
+    delete lvlOvr[key];
+    const next = { ...paletteOverrides, [lvl]: lvlOvr };
+    updateSelection({ paletteOverrides: next });
+  };
+  const setSemanticToken = (status, slot, value) => {
+    const lvl = lightDark;
+    const next = {
+      ...semanticOverrides,
+      [lvl]: {
+        ...(semanticOverrides[lvl] || {}),
+        [status]: {
+          ...((semanticOverrides[lvl] || {})[status] || {}),
+          [slot]: value,
+        },
+      },
+    };
+    updateSelection({ semanticOverrides: next });
+  };
+  const resetSemanticToken = (status, slot) => {
+    const lvl = lightDark;
+    const lvlOvr = { ...(semanticOverrides[lvl] || {}) };
+    if (lvlOvr[status]) {
+      const statusOvr = { ...lvlOvr[status] };
+      delete statusOvr[slot];
+      if (Object.keys(statusOvr).length === 0) {
+        delete lvlOvr[status];
+      } else {
+        lvlOvr[status] = statusOvr;
+      }
+    }
+    const next = { ...semanticOverrides, [lvl]: lvlOvr };
+    updateSelection({ semanticOverrides: next });
+  };
+  const resetAllOverrides = () => {
+    updateSelection({ paletteOverrides: {}, semanticOverrides: {} });
   };
 
   const shuffle = () => {
@@ -758,13 +869,22 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
             <ColorSection
               conceptId={conceptId}
               lightDark={lightDark}
+              concept={concept}
+              palette={palette}
               semantic={semantic}
+              paletteOverrides={paletteOverrides}
+              semanticOverrides={semanticOverrides}
               onSelect={(id) => updateSelection({ conceptId: id })}
               onToggleLightDark={() => updateSelection({ lightDark: lightDark === 'dark' ? 'light' : 'dark' })}
               onShuffle={() => {
                 const r = COLOR_CONCEPTS[Math.floor(Math.random() * COLOR_CONCEPTS.length)];
                 updateSelection({ conceptId: r.id });
               }}
+              onSetPaletteToken={setPaletteToken}
+              onResetPaletteToken={resetPaletteToken}
+              onSetSemanticToken={setSemanticToken}
+              onResetSemanticToken={resetSemanticToken}
+              onResetAll={resetAllOverrides}
             />
           )}
           {activeSection === 'typography' && (
@@ -874,7 +994,26 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
 // ColorSection — Concept-Karten mit Light/Dark-Toggle
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ColorSection({ conceptId, lightDark, semantic, onSelect, onToggleLightDark, onShuffle }) {
+function ColorSection({
+  conceptId, lightDark,
+  concept, palette, semantic,
+  paletteOverrides, semanticOverrides,
+  onSelect, onToggleLightDark, onShuffle,
+  onSetPaletteToken, onResetPaletteToken,
+  onSetSemanticToken, onResetSemanticToken,
+  onResetAll,
+}) {
+  // Concept-Default fuer den aktuellen Light/Dark-Modus — fuer Reset/Diff
+  const conceptDefaultPalette = lightDark === 'dark' ? concept.dark : concept.light;
+  const semanticDefault = SEMANTIC_COLORS[lightDark === 'dark' ? 'dark' : 'light'];
+  const lvlOvr = paletteOverrides?.[lightDark] || {};
+  const semOvr = semanticOverrides?.[lightDark] || {};
+  const hasAnyOverride =
+    Object.keys(paletteOverrides?.light || {}).length +
+    Object.keys(paletteOverrides?.dark  || {}).length +
+    Object.keys(semanticOverrides?.light || {}).length +
+    Object.keys(semanticOverrides?.dark  || {}).length > 0;
+
   return (
     <div>
       <SectionHeader title="Farb-Konzepte" onShuffle={onShuffle}>
@@ -937,49 +1076,99 @@ function ColorSection({ conceptId, lightDark, semantic, onSelect, onToggleLightD
         })}
       </div>
 
-      {/* Phase E1: Semantic Colors — fixiert (KOMPAGNON-Brand-Standard).
-          Light/Dark wird automatisch aus dem Concept-Modus uebernommen. */}
+      {/* Brand-Token-Editor — pro Token Color-Picker + Hex-Input + Reset */}
       <div style={{
-        fontSize: 13, fontWeight: 800, color: KC_DARK, textTransform: 'uppercase',
-        letterSpacing: '-0.01em', marginBottom: 8,
+        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+        marginBottom: 8, gap: 8,
       }}>
-        Semantische Status-Farben
+        <div style={{
+          fontSize: 13, fontWeight: 800, color: KC_DARK,
+          textTransform: 'uppercase', letterSpacing: '-0.01em',
+        }}>
+          Brand-Tokens · {lightDark === 'dark' ? 'Dark' : 'Light'}
+        </div>
+        {hasAnyOverride && (
+          <button type="button" onClick={onResetAll}
+            style={{
+              background: 'transparent', color: '#dc2626',
+              border: '1px solid #fca5a5', borderRadius: 6,
+              padding: '4px 10px', fontSize: 10, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+            ↺ Alle Overrides verwerfen
+          </button>
+        )}
       </div>
       <div style={{
         fontSize: 11, color: '#64748b', marginBottom: 14, lineHeight: 1.5,
       }}>
-        Industry-Konvention für Status-Kommunikation — fest, nicht editierbar.
-        Light/Dark folgt dem Modus oben.
+        Konzept-Defaults oben — pro Token überschreibbar via Color-Picker oder Hex-Input.
+        Override gilt nur für den aktuellen {lightDark === 'dark' ? 'Dark' : 'Light'}-Modus.
       </div>
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10,
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10,
+        marginBottom: 22,
       }}>
-        {[
-          { key: 'success', label: 'Erfolg / Aktiv',   note: 'Abgeschlossen, bewilligt' },
-          { key: 'warn',    label: 'Hinweis / Offen',  note: 'In Bearbeitung, ausstehend' },
-          { key: 'error',   label: 'Fehler',           note: 'Abgelehnt, blockiert' },
-          { key: 'info',    label: 'Info / Neutral',   note: 'Information, Hinweis' },
-        ].map((s) => {
-          const colors = semantic[s.key];
+        {PALETTE_TOKEN_KEYS.map((key) => (
+          <TokenEditor
+            key={key}
+            label={PALETTE_TOKEN_LABELS[key]}
+            value={palette[key]}
+            defaultValue={conceptDefaultPalette[key]}
+            isOverridden={key in lvlOvr}
+            onChange={(v) => onSetPaletteToken(key, v)}
+            onReset={() => onResetPaletteToken(key)}
+          />
+        ))}
+      </div>
+
+      {/* Semantic-Token-Editor — pro Status × {fg, bg, border} */}
+      <div style={{
+        fontSize: 13, fontWeight: 800, color: KC_DARK,
+        textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 8,
+      }}>
+        Semantische Status-Farben · {lightDark === 'dark' ? 'Dark' : 'Light'}
+      </div>
+      <div style={{
+        fontSize: 11, color: '#64748b', marginBottom: 14, lineHeight: 1.5,
+      }}>
+        Industry-Konvention als Default — pro Status drei Slots editierbar
+        (Vordergrund / Background / Border).
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {SEMANTIC_KEYS.map((status) => {
+          const c = semantic[status];
+          const def = semanticDefault[status];
+          const ovrStatus = semOvr[status] || {};
           return (
-            <div key={s.key} style={{
+            <div key={status} style={{
               padding: 12,
-              background: colors.bg,
-              border: `1px solid ${colors.border}`,
+              background: c.bg,
+              border: `1px solid ${c.border}`,
               borderRadius: 8,
             }}>
               <div style={{
-                fontSize: 9, fontWeight: 800, color: colors.fg,
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                marginBottom: 4,
+                fontSize: 11, fontWeight: 800, color: c.fg,
+                textTransform: 'uppercase', letterSpacing: '0.06em',
+                marginBottom: 10,
               }}>
-                {s.label}
+                {SEMANTIC_LABELS[status]}
               </div>
-              <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11, color: colors.fg, fontWeight: 700 }}>
-                {colors.fg}
-              </div>
-              <div style={{ fontSize: 10, color: colors.fg, opacity: 0.85, marginTop: 4 }}>
-                {s.note}
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8,
+              }}>
+                {['fg', 'bg', 'border'].map((slot) => (
+                  <TokenEditor
+                    key={slot}
+                    label={slot === 'fg' ? 'Vordergrund' : slot === 'bg' ? 'Background' : 'Border'}
+                    value={c[slot]}
+                    defaultValue={def[slot]}
+                    isOverridden={slot in ovrStatus}
+                    onChange={(v) => onSetSemanticToken(status, slot, v)}
+                    onReset={() => onResetSemanticToken(status, slot)}
+                    compact
+                  />
+                ))}
               </div>
             </div>
           );
@@ -1742,6 +1931,91 @@ function DemoBadge({ tokens, typo, size = 'default', children }) {
     }}>
       {children}
     </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TokenEditor — Color-Picker + Hex-Input + Reset-Button pro Token
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Akzeptiert beliebige CSS-Color-Strings (#hex, rgb(), rgba()). Color-Picker
+// zeigt nur den Hex-Teil; rgba() bleibt im Text-Input editierbar.
+
+function TokenEditor({ label, value, defaultValue, isOverridden, onChange, onReset, compact = false }) {
+  // Picker-Wert immer 6-stelliger Hex; rgba() wird im Input-Feld editiert
+  const isHex = typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
+  const pickerValue = isHex ? value : '#888888';
+
+  return (
+    <div style={{
+      padding: compact ? 6 : 8,
+      background: '#fff',
+      border: `1px solid ${isOverridden ? '#7c3aed' : '#e2e8f0'}`,
+      borderRadius: 6,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 6, gap: 6,
+      }}>
+        <div style={{
+          fontSize: 9, fontWeight: 700, color: '#64748b',
+          textTransform: 'uppercase', letterSpacing: '0.06em',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          flex: 1, minWidth: 0,
+        }}>
+          {label}
+        </div>
+        {isOverridden && (
+          <button type="button" onClick={onReset}
+            title="Zurueck zum Concept-Default"
+            style={{
+              background: 'transparent', border: 'none',
+              color: '#7c3aed', cursor: 'pointer',
+              fontSize: 11, padding: 0, lineHeight: 1,
+            }}>
+            ↺
+          </button>
+        )}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <input
+          type="color"
+          value={pickerValue}
+          onChange={(e) => onChange(e.target.value)}
+          style={{
+            width: compact ? 28 : 32,
+            height: compact ? 28 : 32,
+            border: '1px solid #cbd5e1', borderRadius: 4,
+            padding: 0, background: 'transparent',
+            cursor: 'pointer', flexShrink: 0,
+          }}
+          aria-label={`${label} Farbe wählen`}
+        />
+        <input
+          type="text"
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={defaultValue}
+          spellCheck={false}
+          style={{
+            flex: 1, minWidth: 0,
+            padding: '5px 7px',
+            border: '1px solid #e2e8f0', borderRadius: 4,
+            fontSize: compact ? 10 : 11,
+            fontFamily: 'ui-monospace, monospace',
+            color: '#334155', outline: 'none', background: '#fff',
+          }}
+        />
+      </div>
+      {isOverridden && (
+        <div style={{
+          fontSize: 8, color: '#94a3b8', marginTop: 3,
+          fontFamily: 'ui-monospace, monospace',
+        }}>
+          Default: {defaultValue}
+        </div>
+      )}
+    </div>
   );
 }
 

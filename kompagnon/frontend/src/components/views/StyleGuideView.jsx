@@ -1079,93 +1079,32 @@ function ColorSection({
         })}
       </div>
 
-      {/* Section-Header mit Toggle "Tokens anpassen" + Reset-All */}
+      {/* Compact-Toolbar: Toggle "Tokens anpassen" + Reset-All */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 8, gap: 8, flexWrap: 'wrap',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+        gap: 8, marginBottom: editorOpen ? 12 : 0,
       }}>
-        <div style={{
-          fontSize: 13, fontWeight: 800, color: KC_DARK,
-          textTransform: 'uppercase', letterSpacing: '-0.01em',
-        }}>
-          Semantische Status-Farben
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {hasAnyOverride && (
-            <button type="button" onClick={onResetAll}
-              style={{
-                background: 'transparent', color: '#dc2626',
-                border: '1px solid #fca5a5', borderRadius: 6,
-                padding: '4px 10px', fontSize: 10, fontWeight: 700,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-              ↺ Alle Overrides verwerfen
-            </button>
-          )}
-          <button type="button" onClick={() => setEditorOpen((v) => !v)}
+        {hasAnyOverride && (
+          <button type="button" onClick={onResetAll}
             style={{
-              background: editorOpen ? '#7c3aed' : 'transparent',
-              color: editorOpen ? '#fff' : '#7c3aed',
-              border: '1px solid #7c3aed', borderRadius: 6,
-              padding: '5px 12px', fontSize: 11, fontWeight: 700,
+              background: 'transparent', color: '#dc2626',
+              border: '1px solid #fca5a5', borderRadius: 6,
+              padding: '4px 10px', fontSize: 10, fontWeight: 700,
               cursor: 'pointer', fontFamily: 'inherit',
             }}>
-            🔧 Tokens anpassen {editorOpen ? '▲' : '▼'}
+            ↺ Alle Overrides verwerfen
           </button>
-        </div>
-      </div>
-
-      {/* Read-only Semantic-Display (alter Look) */}
-      <div style={{
-        fontSize: 11, color: '#64748b', marginBottom: 14, lineHeight: 1.5,
-      }}>
-        Industry-Konvention für Status-Kommunikation.
-        Light/Dark folgt dem Modus oben.
-      </div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10,
-        marginBottom: editorOpen ? 22 : 0,
-      }}>
-        {[
-          { key: 'success', label: 'Erfolg / Aktiv',   note: 'Abgeschlossen, bewilligt' },
-          { key: 'warn',    label: 'Hinweis / Offen',  note: 'In Bearbeitung, ausstehend' },
-          { key: 'error',   label: 'Fehler',           note: 'Abgelehnt, blockiert' },
-          { key: 'info',    label: 'Info / Neutral',   note: 'Information, Hinweis' },
-        ].map((s) => {
-          const colors = semantic[s.key];
-          const isOverridden = s.key in semOvr;
-          return (
-            <div key={s.key} style={{
-              padding: 12,
-              background: colors.bg,
-              border: `1px solid ${colors.border}`,
-              borderRadius: 8,
-              position: 'relative',
-            }}>
-              {isOverridden && (
-                <span title="Token überschrieben"
-                  style={{
-                    position: 'absolute', top: 6, right: 6,
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: '#7c3aed',
-                  }} />
-              )}
-              <div style={{
-                fontSize: 9, fontWeight: 800, color: colors.fg,
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                marginBottom: 4,
-              }}>
-                {s.label}
-              </div>
-              <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11, color: colors.fg, fontWeight: 700 }}>
-                {colors.fg}
-              </div>
-              <div style={{ fontSize: 10, color: colors.fg, opacity: 0.85, marginTop: 4 }}>
-                {s.note}
-              </div>
-            </div>
-          );
-        })}
+        )}
+        <button type="button" onClick={() => setEditorOpen((v) => !v)}
+          style={{
+            background: editorOpen ? '#7c3aed' : 'transparent',
+            color: editorOpen ? '#fff' : '#7c3aed',
+            border: '1px solid #7c3aed', borderRadius: 6,
+            padding: '5px 12px', fontSize: 11, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+          🔧 Tokens anpassen {editorOpen ? '▲' : '▼'}
+        </button>
       </div>
 
       {/* Detail-Editor — nur wenn ausgeklappt */}

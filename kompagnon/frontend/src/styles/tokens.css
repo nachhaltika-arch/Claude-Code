@@ -22,8 +22,8 @@
   /* ── Primitive Semantic Colors ──────────────────────────────── */
   --success:    #00875A;
   --success-bg: #E3F6EF;
-  --warn:       #B8860B;
-  --warn-bg:    #FFFBE0;
+  --warn:       #A86800;
+  --warn-bg:    #FFF4E0;
   --error:      #C0392B;
   --error-bg:   #FDECEA;
   --info:       #008EAA;
@@ -46,9 +46,13 @@
   --text-brand:       var(--kc-mid);
 
   /* ── Brand Aliases ──────────────────────────────────────────── */
+  /* Legacy: --brand-primary zeigt auf Mid Teal — bleibt für bestehende
+     Komponenten kompatibel. Neue Komponenten sollen --brand-primary-dark
+     (Dark Teal #004F59 = Guideline-dominante Primärfarbe) oder
+     --brand-primary-mid (Mid Teal #008EAA = Sekundär/Links) nutzen. */
   --brand-primary:        var(--kc-mid);
   --brand-primary-light:  var(--info-bg);
-  --brand-primary-mid:    #b3e0ea;
+  --brand-primary-mid:    var(--kc-mid);
   --brand-primary-dark:   var(--kc-dark);
   --brand-primary-deeper: #003840;
 
@@ -105,9 +109,13 @@
   --transition-slow:   350ms cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ── Typography ─────────────────────────────────────────────── */
+  /* Doc-konform: Noto Sans für Body/UI/Headlines, Playfair Display Italic
+     für Display/Hero (Free-Ersatz für Eloquent JF Pro), Oswald 600 für
+     Claims (Free-Ersatz für Rift Demi), DM Mono für Kennzahlen. */
   --font-sans:    'Noto Sans', system-ui, sans-serif;
-  --font-display: 'Barlow Condensed', sans-serif;
-  --font-mono:    'DM Mono', monospace;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-claim:   'Oswald', Impact, Arial, sans-serif;
+  --font-mono:    'DM Mono', ui-monospace, monospace;
   /* Legacy alias kept for compatibility */
   --font-family-base: var(--font-sans);
   --text-xs:   11px;
@@ -120,6 +128,7 @@
   --leading-xs:   1.4;
   --leading-sm:   1.5;
   --leading-base: 1.6;
+  --leading-body: 1.75;   /* Doc: Body lh = 1.75 */
   --leading-lg:   1.5;
   --leading-xl:   1.4;
   --leading-2xl:  1.3;

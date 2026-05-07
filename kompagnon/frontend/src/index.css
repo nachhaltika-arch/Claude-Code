@@ -32,6 +32,8 @@ body {
   background: var(--bg-app);
   color: var(--text-primary);
   font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: var(--leading-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -546,11 +548,11 @@ button[aria-pressed]:focus-visible {
   color: var(--text-primary);
 }
 
-/* ── Body — Standard-Fließtext ───────────────────────────────── */
+/* ── Body — Standard-Fließtext (Doc: lh 1.75) ───────────────── */
 .ty-body {
   font-size: var(--text-base);
   font-weight: 400;
-  line-height: var(--leading-base);
+  line-height: var(--leading-body);
   color: var(--text-primary);
 }
 
@@ -558,7 +560,7 @@ button[aria-pressed]:focus-visible {
 .ty-body-sm {
   font-size: var(--text-sm);
   font-weight: 400;
-  line-height: var(--leading-sm);
+  line-height: var(--leading-body);
   color: var(--text-secondary);
 }
 
@@ -831,6 +833,16 @@ button[aria-pressed]:focus-visible {
   background: var(--info-bg);
   border-color: rgba(0,142,170,0.3);
 }
+
+/* Doc: Border-Top kodiert Wichtigkeit der Karte.
+   Priority = primäre KPI (max 1 pro Gruppe).
+   CTA = wichtige Ausnahme, CTA-nah.
+   Cat = sekundäre Kategorie.
+   Flat = sekundäre Info, kein Akzent. */
+.kc-card-priority { border-top: 3px solid var(--kc-dark); }
+.kc-card-cta      { border-top: 3px solid var(--kc-yellow); }
+.kc-card-cat      { border-top: 3px solid var(--kc-mid); }
+.kc-card-flat     { background: #F6F5F2; border-color: transparent; }
 
 .kc-kpi {
   background: var(--paper);

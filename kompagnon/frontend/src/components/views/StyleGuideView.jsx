@@ -1091,60 +1091,10 @@ function ColorSection({
         ))}
       </div>
 
-      {/* Status-Farben */}
-      <div style={{
-        fontSize: 10, fontWeight: 700, color: '#94a3b8',
-        textTransform: 'uppercase', letterSpacing: '0.08em',
-        marginBottom: 8,
-      }}>
-        Status-Farben (Erfolg / Hinweis / Fehler / Info)
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {SEMANTIC_KEYS.map((status) => {
-          const c = semantic[status];
-          const def = semanticDefault[status];
-          const ovrStatus = semOvr[status] || {};
-          return (
-            <div key={status} style={{
-              padding: 10,
-              background: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: 6,
-            }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
-              }}>
-                <span style={{
-                  width: 14, height: 14, borderRadius: 3,
-                  background: c.fg, border: `1px solid ${c.border}`, flexShrink: 0,
-                }} />
-                <span style={{
-                  fontSize: 11, fontWeight: 800, color: KC_DARK,
-                  textTransform: 'uppercase', letterSpacing: '0.06em',
-                }}>
-                  {SEMANTIC_LABELS[status]}
-                </span>
-              </div>
-              <div style={{
-                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8,
-              }}>
-                {['fg', 'bg', 'border'].map((slot) => (
-                  <TokenEditor
-                    key={slot}
-                    label={slot === 'fg' ? 'Vordergrund' : slot === 'bg' ? 'Background' : 'Border'}
-                    value={c[slot]}
-                    defaultValue={def[slot]}
-                    isOverridden={slot in ovrStatus}
-                    onChange={(v) => onSetSemanticToken(status, slot, v)}
-                    onReset={() => onResetSemanticToken(status, slot)}
-                    compact
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {/* Status-Farben werden weiterhin als Default aus SEMANTIC_COLORS
+          gederivt — Editor in der UI entfernt (User-Wunsch).
+          Falls User sie pro Projekt anpassen will: ueber semantic_overrides
+          im styleGuide-Datenmodell weiterhin moeglich. */}
     </div>
   );
 }

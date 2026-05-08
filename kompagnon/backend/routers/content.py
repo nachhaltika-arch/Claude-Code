@@ -4,15 +4,19 @@ GET    /api/content/{lead_id}                          → alle Seiten mit Slots
 GET    /api/content/page/{sitemap_page_id}             → _ensure_slots, dann Slots laden
 PUT    /api/content/section/{id}                       → inhalt_kunde, inhalt_final, status
 POST   /api/content/section/{id}/generate              → KI-Textentwurf für einzelnen Slot
-POST   /api/content/page/{sitemap_page_id}/generate-all → KI für alle Slots der Seite
+POST   /api/content/page/{sitemap_page_id}/generate-all → KI fuer alle Slots der Seite (returnt job_id)
+GET    /api/content/jobs/{job_id}                      → Polling-Status fuer generate-all
 PUT    /api/content/media/{id}                         → status setzen
 POST   /api/content/media/{id}/upload                  → Datei-Upload (base64)
 GET    /api/content/media/{id}/file                    → Datei abrufen (als Bild)
 DELETE /api/content/media/{id}                        → Datei löschen
 """
+import asyncio
 import base64
 import logging
 import os
+import threading
+import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -22,7 +26,7 @@ from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Foreign
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
-from database import Base, get_db
+from database import Base, SessionLocal, get_db
 from routers.auth_router import require_any_auth
 
 logger = logging.getLogger(__name__)
@@ -455,13 +459,54 @@ async def generate_section(
     return await _generate_one(section_id, db)
 
 
+# ── In-memory job store fuer generate-all (Background-Tasks) ──────────────────
+# { job_id: { "status": running|done|error, "total": int, "completed": int,
+#             "errors": [...], "error": str } }
+_content_jobs: dict = {}
+
+
+async def _gen_all_async(sitemap_page_id: int, job_id: str) -> None:
+    """Async core: generiert alle Slots sequenziell, aktualisiert _content_jobs."""
+    db = SessionLocal()
+    try:
+        sections = db.query(ContentSection).filter_by(sitemap_page_id=sitemap_page_id).all()
+        total = len(sections)
+        _content_jobs[job_id]["total"] = total
+        for i, s in enumerate(sections):
+            try:
+                await _generate_one(s.id, db)
+                _content_jobs[job_id]["completed"] = i + 1
+            except Exception as exc:
+                _content_jobs[job_id].setdefault("errors", []).append(
+                    {"section_id": s.id, "error": str(exc)}
+                )
+                logger.warning(f"generate_all section {s.id}: {exc}")
+        _content_jobs[job_id]["status"] = "done"
+    finally:
+        db.close()
+
+
+def _run_gen_all_thread(sitemap_page_id: int, job_id: str) -> None:
+    """Sync wrapper — laeuft im Background-Thread. Faengt alle Exceptions ab."""
+    try:
+        asyncio.run(_gen_all_async(sitemap_page_id, job_id))
+    except Exception as e:
+        logger.error(f"generate_all job {job_id} crashed: {e}", exc_info=True)
+        _content_jobs[job_id] = {"status": "error", "error": str(e)}
+
+
 @router.post("/page/{sitemap_page_id}/generate-all")
 async def generate_all_sections(
     sitemap_page_id: int,
     db: Session = Depends(get_db),
     user=Depends(require_any_auth),
 ):
-    """KI-Entwurf für alle Text-Slots der Seite generieren (sequenziell)."""
+    """
+    KI-Entwurf fuer alle Text-Slots der Seite generieren.
+    Returnt sofort job_id — Frontend pollt /api/content/jobs/{job_id}.
+    Hintergrund: bei Seiten mit 8-12 Slots dauert das 3-5 Min, das wuerde
+    den Browser-Timeout (60s default) ueberschreiten.
+    """
     from routers.sitemap import SitemapPage
     from database import Briefing
     page = db.query(SitemapPage).filter(SitemapPage.id == sitemap_page_id).first()
@@ -481,15 +526,31 @@ async def generate_all_sections(
                     )
             except (ValueError, TypeError):
                 pass
-    sections = db.query(ContentSection).filter_by(sitemap_page_id=sitemap_page_id).all()
-    generated, errors = 0, []
-    for s in sections:
-        try:
-            await _generate_one(s.id, db)
-            generated += 1
-        except Exception as exc:
-            errors.append({"section_id": s.id, "error": str(exc)})
-    return {"generated": generated, "errors": errors}
+
+    job_id = str(uuid.uuid4())
+    _content_jobs[job_id] = {"status": "running", "total": 0, "completed": 0, "errors": []}
+
+    threading.Thread(
+        target=_run_gen_all_thread,
+        args=(sitemap_page_id, job_id),
+        daemon=True,
+    ).start()
+
+    return {"job_id": job_id, "status": "running"}
+
+
+@router.get("/jobs/{job_id}")
+def get_generate_all_job(job_id: str, user=Depends(require_any_auth)):
+    """Polling-Status fuer generate-all. Job wird nach erstem 'done'/'error'-Read entfernt."""
+    job = _content_jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job nicht gefunden oder bereits abgeholt")
+    if job["status"] in ("done", "error"):
+        # Snapshot zurueckgeben, dann aufraeumen
+        snapshot = dict(job)
+        _content_jobs.pop(job_id, None)
+        return snapshot
+    return job
 
 
 # ── Datei-Upload ──────────────────────────────────────────────────────────────

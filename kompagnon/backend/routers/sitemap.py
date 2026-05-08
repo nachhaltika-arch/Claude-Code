@@ -16,7 +16,7 @@ from datetime import datetime
 from io import BytesIO
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 from reportlab.lib import colors
@@ -79,6 +79,10 @@ router = APIRouter(prefix="/api/sitemap", tags=["sitemap"])
 # in kompagnon/frontend/src/wireframes/sections/. Begründung pro Section
 # steht in docs/conversion-spec-shk.md.
 SECTION_CATALOG = {
+    # Frame (Header + Footer) — global anmutend, aber als reguläre Sections
+    # geführt, damit pro Page anpassbar (z.B. Landingpage ohne Hauptnav).
+    "header_nav":          "Sticky-Header: Logo + Hauptnavigation + ggf. CTA-Button",
+
     # Hero-Varianten
     "hero_value_equation": "Hero mit Hormozi-Outcome+Time+Effort-Versprechen (Startseite)",
     "hero_service":        "Hero für Service-Detail-Page mit klarem Outcome",
@@ -114,16 +118,16 @@ SECTION_CATALOG = {
 # Fallback / Default-Section-Sets falls AI keine Sections liefert.
 # Reihenfolge ist relevant — wird 1:1 als Render-Order genommen.
 DEFAULT_SECTIONS_BY_PAGETYPE: dict[str, list[str]] = {
-    "startseite":  ["hero_value_equation", "problem", "service_grid", "offer_stack",
-                    "trust_strip", "fallstudien_3", "guarantee_block", "faq", "cta_final"],
-    "leistung":    ["hero_service", "problem", "offer_stack", "process_steps",
-                    "fallstudien_3", "trust_strip", "guarantee_block", "faq_service", "cta_final"],
-    "vertrauen":   ["hero_minimal", "team", "fallstudien_3", "trust_strip", "cta_inline"],
-    "conversion":  ["hero_minimal", "offer_stack", "guarantee_block", "urgency_block",
-                    "contact_form", "cta_final"],
-    "info":        ["hero_minimal", "content_richtext", "faq", "cta_inline"],
-    "ground":      ["hero_minimal", "service_grid", "faq", "contact_form"],
-    "rechtlich":   ["hero_minimal", "content_richtext"],
+    "startseite":  ["header_nav", "hero_value_equation", "problem", "service_grid", "offer_stack",
+                    "trust_strip", "fallstudien_3", "guarantee_block", "faq", "cta_final", "footer_legal"],
+    "leistung":    ["header_nav", "hero_service", "problem", "offer_stack", "process_steps",
+                    "fallstudien_3", "trust_strip", "guarantee_block", "faq_service", "cta_final", "footer_legal"],
+    "vertrauen":   ["header_nav", "hero_minimal", "team", "fallstudien_3", "trust_strip", "cta_inline", "footer_legal"],
+    "conversion":  ["header_nav", "hero_minimal", "offer_stack", "guarantee_block", "urgency_block",
+                    "contact_form", "cta_final", "footer_legal"],
+    "info":        ["header_nav", "hero_minimal", "content_richtext", "faq", "cta_inline", "footer_legal"],
+    "ground":      ["header_nav", "hero_minimal", "service_grid", "faq", "contact_form", "footer_legal"],
+    "rechtlich":   ["header_nav", "hero_minimal", "content_richtext", "footer_legal"],
 }
 
 
@@ -177,6 +181,23 @@ class SitemapPage(Base):
     # ["hero_value_equation","problem","offer_stack","trust_strip","fallstudien_3",
     #  "guarantee_block","faq","cta_final"]
     sections_json        = Column(Text,         nullable=True)
+    # Phase-1 Crawl-Import: woher stammt die Page?
+    # 'manual' (CRUD), 'ki_generated' (KI-Vorschlag), 'crawled' (Bestand)
+    source               = Column(String(20),   default='manual')
+    original_url         = Column(Text,         nullable=True)
+    # JSON-Array von sitemap_page-IDs, die diese (KI-vorgeschlagene) Page
+    # aus dem gecrawlten Bestand konsolidiert / ersetzt
+    replaces_page_ids    = Column(Text,         nullable=True)
+    # Relume-Parität R1: Per-Page-KI-Prompt + User-Color-Tag
+    ai_prompt            = Column(Text,         nullable=True)
+    color_tag            = Column(String(7),    nullable=True)
+    # Relume-Parität R2 Feature 4: 'primary' (live) | 'variant' (Alternative)
+    variant              = Column(String(20),   default='primary')
+    # Phase 4 (2026-05-07): Page-Groups. Eine Gruppe kapselt mehrere Kind-Pages
+    # mit identischer Section-Struktur. Kinder *erben* group_template_sections
+    # automatisch wenn ihre eigene sections_json leer/null ist.
+    is_group                 = Column(Boolean, default=False)
+    group_template_sections  = Column(Text,    nullable=True)
 
 
 # ── Pydantic schemas ───────────────────────────────────────────────────────────
@@ -197,17 +218,28 @@ class PageCreate(BaseModel):
 
 
 class PageUpdate(BaseModel):
-    page_name:    Optional[str]  = None
-    parent_id:    Optional[int]  = None
-    position:     Optional[int]  = None
-    page_type:    Optional[str]  = None
-    zweck:        Optional[str]  = None
-    ziel_keyword: Optional[str]  = None
-    cta_text:     Optional[str]  = None
-    cta_ziel:     Optional[str]  = None
-    notizen:      Optional[str]  = None
-    status:       Optional[str]  = None
-    mockup_html:  Optional[str]  = None
+    page_name:    Optional[str]       = None
+    parent_id:    Optional[int]       = None
+    position:     Optional[int]       = None
+    page_type:    Optional[str]       = None
+    zweck:        Optional[str]       = None
+    ziel_keyword: Optional[str]       = None
+    cta_text:     Optional[str]       = None
+    cta_ziel:     Optional[str]       = None
+    notizen:      Optional[str]       = None
+    status:       Optional[str]       = None
+    mockup_html:  Optional[str]       = None
+    # Hormozi-Spec Section-Plan — erlaubt Frontend-Editor (Lücke 1 vs Relume).
+    # Werte werden gegen SECTION_CATALOG gefiltert; unbekannte Keys verworfen.
+    sections:     Optional[List[str]] = None
+    # Relume-Parität R1: per-Page-KI-Prompt + User-Color-Tag.
+    ai_prompt:    Optional[str]       = None
+    color_tag:    Optional[str]       = None
+    # Phase 4: Page-Groups. is_group toggelt die Karte zwischen Page und
+    # Gruppen-Container; group_template_sections sind die geteilten Sections,
+    # die alle Kind-Pages der Gruppe erben.
+    is_group:                 Optional[bool]      = None
+    group_template_sections:  Optional[List[str]] = None
     # ist_pflichtseite is intentionally excluded – cannot be changed via API
 
 
@@ -256,7 +288,51 @@ def _serialize(p: SitemapPage) -> dict:
         "content_generated":   bool(getattr(p, "content_generated", False)),
         # Hormozi-Spec Section-Plan (Wireframe-Mapping)
         "sections":            sections,
+        # Phase-1 Crawl-Import-Metadaten
+        "source":              getattr(p, "source",       None) or "manual",
+        "original_url":        getattr(p, "original_url", None) or "",
+        "replaces_page_ids":   _parse_id_list(getattr(p, "replaces_page_ids", None)),
+        # Relume-Parität R1
+        "ai_prompt":           getattr(p, "ai_prompt", None) or "",
+        "color_tag":           getattr(p, "color_tag", None) or "",
+        # Relume-Parität R2 Feature 4
+        "variant":             getattr(p, "variant", None) or "primary",
+        # Phase 4 — Page-Groups
+        "is_group":                bool(getattr(p, "is_group", False)),
+        "group_template_sections": _parse_str_list(getattr(p, "group_template_sections", None)),
     }
+
+
+def _parse_str_list(raw: Optional[str]) -> List[str]:
+    """Parse a JSON-encoded string-array; tolerate junk by returning []."""
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [str(s) for s in parsed if isinstance(s, str)]
+
+
+def _parse_id_list(raw: Optional[str]) -> List[int]:
+    """Parse a JSON-encoded INT-array; tolerate junk by returning []."""
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    out: List[int] = []
+    for item in parsed:
+        try:
+            out.append(int(item))
+        except (TypeError, ValueError):
+            continue
+    return out
 
 
 # ── Pflichtseiten ──────────────────────────────────────────────────────────────
@@ -270,6 +346,9 @@ PFLICHTSEITEN_IMMER = [
         "zweck": "Gesetzlich vorgeschriebene Pflichtangaben gemäß §5 TMG",
         "ziel_keyword": "Impressum",
         "bedingung": None,
+        # Substring (lowercase) zur Existenz-Prüfung — fängt 'Impressum',
+        # 'Impressum & Kontakt', 'impressum-koblenz', etc.
+        "match_kw": "impressum",
     },
     {
         "page_name": "Datenschutzerklärung",
@@ -278,6 +357,7 @@ PFLICHTSEITEN_IMMER = [
         "zweck": "Informationen zur Datenverarbeitung gemäß DSGVO",
         "ziel_keyword": "Datenschutz",
         "bedingung": None,
+        "match_kw": "datenschutz",  # fängt 'Datenschutz' UND 'Datenschutzerklärung'
     },
 ]
 
@@ -328,35 +408,47 @@ OPTIONALE_SEITEN = [
 
 
 def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
-    """Insert missing Immer-Pflichtseiten for a lead (idempotent). Bedingte Pflichtseiten are added via /suggest."""
-    pflicht_count = (
-        db.query(SitemapPage)
-        .filter(SitemapPage.lead_id == lead_id, SitemapPage.ist_pflichtseite.is_(True))
-        .count()
-    )
-    if pflicht_count >= len(PFLICHTSEITEN_IMMER):
-        return
+    """Insert missing Immer-Pflichtseiten for a lead (idempotent).
 
-    existing_names = {
-        p.page_name
-        for p in db.query(SitemapPage).filter(SitemapPage.lead_id == lead_id).all()
-    }
+    Existing pages are matched by the `match_kw` substring (lowercase) — that
+    way a crawled „Datenschutz" doesn't get a duplicate manual „Datenschutz-
+    erklärung" inserted next to it. If a matching page exists but isn't yet
+    flagged as Pflichtseite, we promote it in place.
+    """
+    all_pages = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id)
+        .all()
+    )
     for seite in PFLICHTSEITEN_IMMER:
-        if seite["page_name"] not in existing_names:
-            default_sections = DEFAULT_SECTIONS_BY_PAGETYPE.get(
-                seite["page_type"], DEFAULT_SECTIONS_BY_PAGETYPE["info"]
-            )
-            db.add(SitemapPage(
-                lead_id=lead_id,
-                page_name=seite["page_name"],
-                page_type=seite["page_type"],
-                position=seite["position"],
-                zweck=seite.get("zweck", ""),
-                ziel_keyword=seite.get("ziel_keyword", ""),
-                status="geplant",
-                ist_pflichtseite=True,
-                sections_json=json.dumps(default_sections, ensure_ascii=False),
-            ))
+        kw = seite.get("match_kw") or seite["page_name"].lower()
+        match = next(
+            (p for p in all_pages if kw in (p.page_name or "").lower()),
+            None,
+        )
+        if match is not None:
+            # Existiert bereits — als Pflichtseite markieren falls nicht schon.
+            if not match.ist_pflichtseite:
+                match.ist_pflichtseite = True
+                if not match.page_type or match.page_type == "sonstige":
+                    match.page_type = seite["page_type"]
+            continue
+        # Keine passende Seite vorhanden — neu anlegen.
+        default_sections = DEFAULT_SECTIONS_BY_PAGETYPE.get(
+            seite["page_type"], DEFAULT_SECTIONS_BY_PAGETYPE["info"]
+        )
+        db.add(SitemapPage(
+            lead_id=lead_id,
+            page_name=seite["page_name"],
+            page_type=seite["page_type"],
+            position=seite["position"],
+            zweck=seite.get("zweck", ""),
+            ziel_keyword=seite.get("ziel_keyword", ""),
+            status="geplant",
+            ist_pflichtseite=True,
+            sections_json=json.dumps(default_sections, ensure_ascii=False),
+            variant="primary",
+        ))
     db.commit()
 
 
@@ -365,14 +457,24 @@ def _ensure_pflichtseiten(lead_id: int, db: Session) -> None:
 @router.get("/{lead_id}")
 def get_sitemap(
     lead_id: int,
+    variant: str = "primary",
     db: Session = Depends(get_db),
     _=Depends(require_any_auth),
 ):
-    """Return all sitemap pages for a lead as a flat list (parent_id indicates hierarchy)."""
-    _ensure_pflichtseiten(lead_id, db)
+    """Return sitemap pages for a lead in the given variant slot.
+
+    `variant` query param:
+      - 'primary' (default): live sitemap incl. Pflichtseiten + Bestand + KI
+      - 'variant': nur die KI-Alternativ-Vorschläge (kein Pflicht/Bestand)
+    """
+    if variant not in ("primary", "variant"):
+        variant = "primary"
+    # Pflichtseiten nur im primary-Slot sicherstellen
+    if variant == "primary":
+        _ensure_pflichtseiten(lead_id, db)
     pages = (
         db.query(SitemapPage)
-        .filter(SitemapPage.lead_id == lead_id)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.variant == variant)
         .order_by(SitemapPage.position)
         .all()
     )
@@ -408,8 +510,25 @@ def update_page(
     updates = body.model_dump(exclude_unset=True)
     if page.ist_pflichtseite:
         # Only content fields may be changed; structural fields are locked
-        allowed = {"zweck", "notizen", "status"}
+        allowed = {"zweck", "notizen", "status", "sections", "ai_prompt", "color_tag"}
         updates = {k: v for k, v in updates.items() if k in allowed}
+    # color_tag muss Hex-Format sein oder leerer String — sonst verwerfen
+    if "color_tag" in updates:
+        ct = updates["color_tag"]
+        if ct and not (isinstance(ct, str) and len(ct) == 7 and ct.startswith("#")):
+            updates["color_tag"] = None
+    # `sections` ist Frontend-friendly (List[str]) — Backend-Spalte ist
+    # `sections_json` (JSON-String). Validierung gegen SECTION_CATALOG, damit
+    # kein Garbage in der DB landet.
+    if "sections" in updates:
+        raw_sections = updates.pop("sections") or []
+        cleaned = [str(s) for s in raw_sections if isinstance(s, str) and s in SECTION_CATALOG]
+        page.sections_json = json.dumps(cleaned, ensure_ascii=False)
+    # Phase 4: group_template_sections — gleiche Validierung wie sections.
+    if "group_template_sections" in updates:
+        raw_tpl = updates.pop("group_template_sections") or []
+        cleaned_tpl = [str(s) for s in raw_tpl if isinstance(s, str) and s in SECTION_CATALOG]
+        page.group_template_sections = json.dumps(cleaned_tpl, ensure_ascii=False)
     for field, value in updates.items():
         setattr(page, field, value)
     db.commit()
@@ -513,13 +632,39 @@ _FALLBACK_PAGES = [
 ]
 
 
-def _insert_pages(lead_id: int, raw_pages: list, db: Session) -> list:
-    """Persist a list of page dicts, return serialized results."""
+def _insert_pages(
+    lead_id: int,
+    raw_pages: list,
+    db: Session,
+    source: str = "ki_generated",
+    variant: str = "primary",
+) -> list:
+    """Persist a list of page dicts, return serialized results.
+
+    `source` is written into sitemap_pages.source. Defaults to 'ki_generated'
+    because all current callers are the AI generator (or its fallback). Each
+    raw_page may include a `replaces_page_ids` list — if present and non-empty,
+    it is JSON-encoded into sitemap_pages.replaces_page_ids (Phase-3 mapping
+    of "this AI suggestion replaces these crawled bestand pages").
+    `variant` ('primary' | 'variant') determines which slot the pages live in
+    — see the R2-Variants doc on the column.
+    """
     created = []
     id_map: dict[int, int] = {}  # old position-based index → new DB id (for parent linking)
 
     for i, p in enumerate(raw_pages):
         sections = _resolve_sections(p)
+        replaces_raw = p.get("replaces_page_ids")
+        replaces_json: Optional[str] = None
+        if isinstance(replaces_raw, list) and replaces_raw:
+            cleaned_ids: list[int] = []
+            for item in replaces_raw:
+                try:
+                    cleaned_ids.append(int(item))
+                except (TypeError, ValueError):
+                    continue
+            if cleaned_ids:
+                replaces_json = json.dumps(cleaned_ids)
         page = SitemapPage(
             lead_id=lead_id,
             page_name=str(p.get("page_name", "Seite"))[:100],
@@ -533,6 +678,9 @@ def _insert_pages(lead_id: int, raw_pages: list, db: Session) -> list:
             notizen=p.get("notizen") or "",
             status="geplant",
             sections_json=json.dumps(sections, ensure_ascii=False),
+            source=source,
+            replaces_page_ids=replaces_json,
+            variant=variant,
         )
         db.add(page)
         db.flush()  # get page.id
@@ -555,10 +703,18 @@ def _insert_pages(lead_id: int, raw_pages: list, db: Session) -> list:
 @router.post("/{lead_id}/generate")
 async def generate_sitemap(
     lead_id: int,
+    body: dict = Body(default={}),
     db: Session = Depends(get_db),
     _=Depends(require_any_auth),
 ):
-    """Generate sitemap pages via Claude AI (or fallback template)."""
+    """Generate sitemap pages via Claude AI (or fallback template).
+
+    Optional body:
+      - "page_count": N — geclamped auf 3..15. Default: KI entscheidet (5-8).
+      - "as_variant": bool — true = parallele Alternative, false = neue Live.
+    """
+    as_variant = bool((body or {}).get("as_variant"))
+    target_variant = "variant" if as_variant else "primary"
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
@@ -580,8 +736,11 @@ async def generate_sitemap(
             },
         )
 
-    # Step 1: Pflichtseiten immer zuerst sicherstellen
-    _ensure_pflichtseiten(lead_id, db)
+    # Step 1: Pflichtseiten nur bei primary-Generation sicherstellen.
+    # Pflichtseiten leben ausschließlich im Primary-Slot — der Variant-Tab
+    # zeigt nur die KI-Alternativvorschläge.
+    if not as_variant:
+        _ensure_pflichtseiten(lead_id, db)
 
     briefing      = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
     gewerk        = (getattr(briefing, "gewerk",        None) if briefing else None) or getattr(lead, "trade", None) or "Handwerk"
@@ -614,18 +773,41 @@ async def generate_sitemap(
     except Exception:
         old_pages_summary = ""
 
-    # Step 2: Nur Nicht-Pflichtseiten löschen
+    # Step 2: Frühere KI-Vorschläge im Ziel-Slot (primary oder variant) löschen.
+    # Bestand und manuelle Pages bleiben erhalten. Bei variant-Generation wird
+    # primary nicht angefasst.
     db.query(SitemapPage).filter(
         SitemapPage.lead_id == lead_id,
         SitemapPage.ist_pflichtseite.is_(False),
-    ).delete()
+        SitemapPage.source == "ki_generated",
+        SitemapPage.variant == target_variant,
+    ).delete(synchronize_session=False)
     db.commit()
+
+    # Phase 3: Bestand (source='crawled') als Prompt-Input für die KI lesen.
+    # Pro Bestandsseite gibt der Prompt id/name/type/url, damit die KI im
+    # Output `replaces_page_ids: [<bestands-id>, ...]` setzen kann.
+    # Bestand lebt immer in primary, deshalb keine variant-Filter hier.
+    crawled_pages = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.source == "crawled")
+        .order_by(SitemapPage.position, SitemapPage.id)
+        .all()
+    )
+    bestand_section = ""
+    if crawled_pages:
+        lines = ["BESTANDS-SEITEN (Phase-1 Crawl der aktuellen Website):"]
+        for cp in crawled_pages[:30]:
+            url = cp.original_url or ""
+            ptype = cp.page_type or "sonstige"
+            lines.append(f"  ID {cp.id} | {cp.page_name} | {ptype} | {url}")
+        bestand_section = "\n".join(lines)
 
     # Step 3: KI oder Fallback
     api_key = os.getenv("ANTHROPIC_API_KEY")
     source = "fallback"
     if not api_key:
-        _insert_pages(lead_id, _FALLBACK_PAGES, db)
+        _insert_pages(lead_id, _FALLBACK_PAGES, db, variant=target_variant)
     else:
         wunschseiten_hint = (
             f"\nDer Kunde hat folgende Seiten gewünscht: {wunschseiten}"
@@ -635,13 +817,31 @@ async def generate_sitemap(
             f"\n{old_pages_summary}"
             if old_pages_summary else ""
         )
+        bestand_hint = f"\n\n{bestand_section}" if bestand_section else ""
+        bestand_mapping_rule = (
+            "\n- Wenn BESTANDS-SEITEN vorhanden sind: pro neuer Inhaltsseite "
+            "OPTIONAL `replaces_page_ids: [<id>, ...]` setzen mit den IDs der "
+            "Bestandsseiten, die diese neue Seite konsolidiert oder ersetzt. "
+            "Leer lassen / weglassen wenn die neue Seite keinen Bestandsbezug hat. "
+            "Eine Bestandsseite darf von mehreren neuen Pages referenziert werden."
+            if bestand_section else ""
+        )
         # Section-Katalog kompakt für den Prompt (key: kurzbeschreibung)
         section_catalog_text = "\n".join(
             f"  - {key}: {desc}" for key, desc in SECTION_CATALOG.items()
         )
+        # User-gewählte Seitenanzahl (R1) — geclamped auf vernünftige Range.
+        try:
+            page_count = int((body or {}).get("page_count") or 0)
+        except (TypeError, ValueError):
+            page_count = 0
+        if page_count < 3 or page_count > 15:
+            page_count_text = "5-8"
+        else:
+            page_count_text = str(page_count)
         prompt = (
             "Du bist ein Website-Stratege für deutsche Handwerksbetriebe.\n"
-            "Erstelle eine optimale Sitemap mit 5-8 INHALTLICHEN Seiten für diesen Betrieb.\n"
+            f"Erstelle eine optimale Sitemap mit {page_count_text} INHALTLICHEN Seiten für diesen Betrieb.\n"
             "Pro Seite gibst du auch an, WELCHE Conversion-Sections (siehe Section-Katalog unten) "
             "in welcher Reihenfolge auf der Seite stehen sollen — basierend auf Hormozi-Conversion-Spec.\n\n"
             "WICHTIG — NICHT einschließen (werden automatisch ergänzt):\n"
@@ -654,7 +854,8 @@ async def generate_sitemap(
             f"- USP (Alleinstellungsmerkmal): {usp or '–'}\n"
             f"- Zielgruppe: {zielgruppe}\n"
             f"{wunschseiten_hint}"
-            f"{old_pages_hint}\n\n"
+            f"{old_pages_hint}"
+            f"{bestand_hint}\n\n"
             "SECTION-KATALOG (du wählst pro Page eine geordnete Liste aus diesen Keys):\n"
             f"{section_catalog_text}\n\n"
             "REGELN FÜR DIE SITEMAP:\n"
@@ -663,7 +864,8 @@ async def generate_sitemap(
             "- Vertrauensseite einplanen (Referenzen, Team, Über uns)\n"
             "- Kontaktseite immer als letzte Inhaltsseite\n"
             "- ziel_keyword auf die wichtigsten SEO-Begriffe abstimmen\n"
-            "- Branchenspezifisch denken: Was sucht die Zielgruppe wirklich?\n\n"
+            "- Branchenspezifisch denken: Was sucht die Zielgruppe wirklich?"
+            f"{bestand_mapping_rule}\n\n"
             "REGELN FÜR DIE SECTION-AUSWAHL pro Page:\n"
             "- Startseite: hero_value_equation am Anfang, mind. offer_stack ODER service_grid, "
             "  trust_strip, fallstudien_3, guarantee_block, faq, cta_final am Ende. Reihenfolge wichtig.\n"
@@ -686,7 +888,8 @@ async def generate_sitemap(
             '[{ "page_name": "", "page_type": "startseite|leistung|info|vertrauen|conversion|ground", '
             '"zweck": "", "ziel_keyword": "", "cta_text": "", "cta_ziel": "kontakt|formular|tel", '
             '"position": 0, "parent_id": null, '
-            '"sections": ["hero_xxx","..."] }]'
+            '"sections": ["hero_xxx","..."], '
+            '"replaces_page_ids": [] }]'
         )
         try:
             from anthropic import Anthropic
@@ -720,17 +923,23 @@ async def generate_sitemap(
                 raw_pages = json.loads(repaired)
             if not isinstance(raw_pages, list) or not raw_pages:
                 raise ValueError("Ungültige Antwortstruktur")
-            _insert_pages(lead_id, raw_pages, db)
+            _insert_pages(lead_id, raw_pages, db, variant=target_variant)
             source = "ai"
         except Exception as exc:
             logger.warning("Sitemap KI-Generierung fehlgeschlagen, Fallback: %s", exc)
-            _insert_pages(lead_id, _FALLBACK_PAGES, db)
+            _insert_pages(lead_id, _FALLBACK_PAGES, db, variant=target_variant)
 
-    # Ensure at least one ground page exists regardless of AI/fallback source
-    has_ground = db.query(SitemapPage).filter(
-        SitemapPage.lead_id == lead_id,
-        SitemapPage.page_type == "ground",
-    ).first()
+    # Ensure at least one ground page exists regardless of AI/fallback source.
+    # Bei variant-Generation übernehmen wir die ground-Page aus primary —
+    # wir brauchen sie im Variant-Tab nicht zu duplizieren.
+    if not as_variant:
+        has_ground = db.query(SitemapPage).filter(
+            SitemapPage.lead_id == lead_id,
+            SitemapPage.page_type == "ground",
+            SitemapPage.variant == "primary",
+        ).first()
+    else:
+        has_ground = True  # skip — primary kümmert sich
     if not has_ground:
         _insert_pages(lead_id, [{
             "page_name": "Über uns & Informationen",
@@ -743,14 +952,165 @@ async def generate_sitemap(
             "notizen": "Ground Page — GEO/KI-Optimierung",
         }], db)
 
-    # Gesamte Sitemap (Inhalt + Pflichtseiten) zurückgeben
+    # Sitemap des Ziel-Slots zurückgeben (primary inkl. Pflicht/Bestand,
+    # variant nur die KI-Vorschläge der Alternative).
     all_pages = (
         db.query(SitemapPage)
-        .filter(SitemapPage.lead_id == lead_id)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.variant == target_variant)
         .order_by(SitemapPage.position)
         .all()
     )
-    return {"pages": [_serialize(p) for p in all_pages], "source": source}
+    return {"pages": [_serialize(p) for p in all_pages], "source": source, "variant": target_variant}
+
+
+# ── ENDPOINT: Continue-generating (R2 Relume-Parität) ─────────────────────────
+
+@router.post("/{lead_id}/generate-more")
+async def generate_more_pages(
+    lead_id: int,
+    body: dict = Body(default={}),
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Append N additional content pages via Claude AI.
+
+    Im Gegensatz zu /generate werden hier KEINE bestehenden Pages gelöscht.
+    Body: {"additional_pages": N}, geclamped auf 1..10. Default 3.
+    """
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+
+    try:
+        n = int((body or {}).get("additional_pages") or 3)
+    except (TypeError, ValueError):
+        n = 3
+    n = max(1, min(10, n))
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="KI-API nicht konfiguriert")
+
+    # generate-more arbeitet nur am primary-Slot — wer Alternativen will, nimmt
+    # /generate mit as_variant=true.
+    existing = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.variant == "primary")
+        .order_by(SitemapPage.position)
+        .all()
+    )
+    existing_summary = "\n".join(f"- {p.page_name} ({p.page_type})" for p in existing) or "(leer)"
+
+    briefing = db.query(Briefing).filter(Briefing.lead_id == lead_id).first()
+    company   = getattr(lead, "company_name", "") or ""
+    gewerk    = (getattr(briefing, "gewerk", None) if briefing else None) or getattr(lead, "trade", None) or "Handwerk"
+    leistungen = (getattr(briefing, "leistungen", None) if briefing else None) or ""
+
+    prompt = (
+        "Du bist ein Website-Stratege für deutsche Handwerksbetriebe.\n"
+        f"Schlage GENAU {n} WEITERE Inhaltsseiten für die bestehende Sitemap vor.\n"
+        "WICHTIG: KEINE Duplikate zu existierenden Seiten anlegen, KEINE Pflichtseiten "
+        "(Impressum, Datenschutz, AGB, Barrierefreiheit) — die werden separat verwaltet.\n\n"
+        f"UNTERNEHMEN:\n- Firma: {company}\n- Gewerk: {gewerk}\n- Leistungen: {leistungen}\n\n"
+        f"BEREITS BESTEHENDE SEITEN:\n{existing_summary}\n\n"
+        "Antworte NUR als JSON-Array (kein Markdown):\n"
+        '[{ "page_name":"", "page_type":"leistung|info|vertrauen|conversion|sonstige", '
+        '"zweck":"", "ziel_keyword":"", "cta_text":"", "cta_ziel":"kontakt", '
+        '"sections":["hero_minimal","content_richtext","cta_inline"] }]'
+    )
+
+    try:
+        from anthropic import Anthropic
+        client = Anthropic(api_key=api_key, max_retries=0, timeout=60.0)
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = response.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = "\n".join(line for line in raw.splitlines() if not line.strip().startswith("```")).strip()
+        new_pages = json.loads(raw)
+        if not isinstance(new_pages, list) or not new_pages:
+            raise ValueError("Erwarte nicht-leeres JSON-Array")
+    except Exception as exc:
+        logger.exception("generate-more failed: %s", exc)
+        raise HTTPException(status_code=502, detail=f"KI-Generation fehlgeschlagen: {exc}")
+
+    max_pos = max((p.position or 0 for p in existing), default=0)
+    for i, p_data in enumerate(new_pages):
+        # parent bleibt None (top-level) — KI hat keine IDs zum Verlinken
+        p_data["position"] = max_pos + 1 + i
+        p_data["parent_id"] = None
+
+    _insert_pages(lead_id, new_pages, db, source="ki_generated", variant="primary")
+
+    all_pages = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.variant == "primary")
+        .order_by(SitemapPage.position)
+        .all()
+    )
+    return {"added": len(new_pages), "pages": [_serialize(p) for p in all_pages]}
+
+
+# ── ENDPOINTS: Variant-Slot-Verwaltung (R2 Feature 4) ─────────────────────────
+
+@router.post("/{lead_id}/promote-variant")
+def promote_variant(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Macht aus dem 'variant'-Slot den neuen 'primary'-Slot.
+
+    Schritte:
+    1. Alle primary-Pages mit source='ki_generated' und !ist_pflichtseite löschen.
+       Bestand (source='crawled') und manuelle Pages bleiben primary, weil
+       sie variant-agnostisch sind.
+    2. Alle 'variant'-Pages → variant='primary' setzen.
+    """
+    has_variant = db.query(SitemapPage).filter(
+        SitemapPage.lead_id == lead_id,
+        SitemapPage.variant == "variant",
+    ).first()
+    if not has_variant:
+        raise HTTPException(status_code=400, detail="Keine Variante zum Übernehmen vorhanden")
+
+    db.query(SitemapPage).filter(
+        SitemapPage.lead_id == lead_id,
+        SitemapPage.variant == "primary",
+        SitemapPage.source == "ki_generated",
+        SitemapPage.ist_pflichtseite.is_(False),
+    ).delete(synchronize_session=False)
+
+    db.query(SitemapPage).filter(
+        SitemapPage.lead_id == lead_id,
+        SitemapPage.variant == "variant",
+    ).update({SitemapPage.variant: "primary"}, synchronize_session=False)
+
+    db.commit()
+    pages = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id, SitemapPage.variant == "primary")
+        .order_by(SitemapPage.position)
+        .all()
+    )
+    return {"promoted": True, "pages": [_serialize(p) for p in pages]}
+
+
+@router.delete("/{lead_id}/discard-variant", status_code=204)
+def discard_variant(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Verwirft alle 'variant'-Pages eines Leads. Primary bleibt unangetastet."""
+    db.query(SitemapPage).filter(
+        SitemapPage.lead_id == lead_id,
+        SitemapPage.variant == "variant",
+    ).delete(synchronize_session=False)
+    db.commit()
 
 
 # ── ENDPOINT: PDF-Export ──────────────────────────────────────────────────────
@@ -948,6 +1308,217 @@ def _generate_sitemap_pdf(pages: list, company_name: str) -> bytes:
 
     doc.build(story, onFirstPage=_on_page, onLaterPages=_on_page)
     return buf.getvalue()
+
+
+# ── Phase-1 Crawl-Import: Bestands-Website → sitemap_pages ────────────────────
+
+# URL-Path-Keywords, die eine Pflichtseite kennzeichnen.
+# Wert = (page_type, ist_pflichtseite).
+_PFLICHT_KEYWORDS: dict[str, tuple[str, bool]] = {
+    "impressum":             ("rechtlich", True),
+    "datenschutz":           ("rechtlich", True),
+    "datenschutzerklaerung": ("rechtlich", True),
+    "agb":                   ("rechtlich", True),
+    "barrierefreiheit":      ("rechtlich", True),
+    "widerruf":              ("rechtlich", True),
+}
+
+# Datei-Endungen, die KEINE eigenen Inhaltsseiten sind — Assets vom Crawler
+# rausfiltern (CSS-Bundles, Bilder, Webfonts, PDFs, Archive, Mediafiles).
+_ASSET_EXTENSIONS: frozenset[str] = frozenset({
+    ".css", ".js", ".mjs", ".map",
+    ".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp", ".avif", ".ico", ".bmp",
+    ".woff", ".woff2", ".ttf", ".eot", ".otf",
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".zip", ".rar", ".7z", ".tar", ".gz",
+    ".mp4", ".webm", ".mp3", ".wav", ".ogg",
+    ".xml", ".json", ".txt",
+})
+
+# Page-Type-Heuristik: tuple_of_keywords → page_type
+_TYPE_HEURISTICS: list[tuple[tuple[str, ...], str]] = [
+    (("leistung", "service", "angebot", "produkt"),                  "leistung"),
+    (("kontakt", "contact", "anfrage"),                              "conversion"),
+    (("ueber", "about", "team", "unternehmen"),                      "vertrauen"),
+    (("referenz", "projekt", "fallstudie", "case"),                  "vertrauen"),
+    (("blog", "news", "aktuell", "magazin", "beitrag", "artikel", "info"), "info"),
+]
+
+
+def _humanize_slug(slug: str) -> str:
+    """`wallbox-installation` → `Wallbox Installation`."""
+    return slug.replace("-", " ").replace("_", " ").strip().title()
+
+
+def _classify_path(segments: list[str]) -> tuple[str, bool]:
+    """Map URL-path segments to (page_type, ist_pflichtseite)."""
+    joined = "/".join(segments).lower()
+    for kw, val in _PFLICHT_KEYWORDS.items():
+        if kw in joined:
+            return val
+    for keywords, ptype in _TYPE_HEURISTICS:
+        if any(kw in joined for kw in keywords):
+            return ptype, False
+    return "sonstige", False
+
+
+def _import_urls_as_pages(
+    lead_id: int,
+    start_url: str,
+    urls: list[str],
+    db: Session,
+) -> int:
+    """Convert a flat URL list into a SitemapPage hierarchy.
+
+    Hierarchy comes from URL-path depth: `/leistungen/wallbox` becomes a child
+    of `/leistungen` (or root if `/leistungen` is missing). Pages are written
+    in path-depth order so parent IDs are available before children reference
+    them.
+    """
+    from urllib.parse import urlparse
+
+    base_netloc = urlparse(start_url).netloc.lower().replace("www.", "")
+
+    # Normalize + dedupe by path. Filter Assets (Bilder, CSS, JS, Fonts, PDF, …)
+    # — die haben im Sitemap-Tree nichts verloren.
+    seen: set[str] = set()
+    items: list[tuple[str, str, list[str], int]] = []
+    for raw in urls:
+        parsed = urlparse(raw)
+        netloc = parsed.netloc.lower().replace("www.", "")
+        if netloc != base_netloc:
+            continue
+        path = parsed.path.rstrip("/").lower()
+        # Asset-Filter: letzter Pfad-Bestandteil hat eine Datei-Endung aus der Liste
+        last_seg = path.rsplit("/", 1)[-1]
+        ext_idx = last_seg.rfind(".")
+        if ext_idx > 0:
+            ext = last_seg[ext_idx:].lower()
+            if ext in _ASSET_EXTENSIONS:
+                continue
+        if path in seen:
+            continue
+        seen.add(path)
+        segments = [s for s in path.split("/") if s]
+        items.append((raw, path, segments, len(segments)))
+
+    # Root first, then by path alphabetically
+    items.sort(key=lambda x: (x[3], x[1]))
+
+    path_to_id: dict[str, int] = {}
+    pos = 0
+    for url, path, segments, _depth in items:
+        if not segments:
+            page_name, page_type, ist_pflicht, parent_id = "Startseite", "startseite", False, None
+        else:
+            page_name = _humanize_slug(segments[-1])
+            page_type, ist_pflicht = _classify_path(segments)
+            parent_path = "/" + "/".join(segments[:-1]) if len(segments) > 1 else ""
+            parent_id = path_to_id.get(parent_path)
+
+        page = SitemapPage(
+            lead_id=lead_id,
+            parent_id=parent_id,
+            position=pos,
+            page_name=page_name[:100] or "Seite",
+            page_type=page_type,
+            ist_pflichtseite=ist_pflicht,
+            status="live",
+            source="crawled",
+            original_url=url,
+            variant="primary",
+        )
+        db.add(page)
+        db.flush()
+        path_to_id[path] = page.id
+        pos += 1
+
+    return len(items)
+
+
+@router.post("/{lead_id}/import-existing")
+def import_existing_sitemap(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_any_auth),
+):
+    """Crawl the lead's website and import the live page structure.
+
+    Source preference:
+      1. Reuse existing CrawlResult rows for this lead (fast).
+      2. Otherwise live-crawl via `crawler_service.crawl_website` (~10-30s, max 30 pages).
+
+    Idempotent: existing `source='crawled'` rows for this lead are deleted
+    first. Manual / KI-generated pages are kept.
+    """
+    from database import CrawlResult
+
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead nicht gefunden")
+
+    start_url = (lead.website_url or "").strip()
+    if not start_url:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "NO_WEBSITE_URL",
+                    "message": "Lead hat keine Website-URL hinterlegt — Bestand kann nicht gecrawlt werden."},
+        )
+    if not start_url.startswith("http"):
+        start_url = "https://" + start_url
+
+    cached_urls = [
+        r.url for r in db.query(CrawlResult).filter(
+            CrawlResult.customer_id == lead_id,
+            CrawlResult.status_code == 200,
+        ).all()
+    ]
+
+    used_cache = bool(cached_urls)
+    if used_cache:
+        urls = cached_urls
+    else:
+        from services.crawler_service import crawl_website
+        try:
+            results = crawl_website(start_url, max_pages=30)
+        except Exception as e:
+            logger.exception("Crawl für Lead %s fehlgeschlagen", lead_id)
+            raise HTTPException(
+                status_code=502,
+                detail={"code": "CRAWL_FAILED",
+                        "message": f"Crawl der Website fehlgeschlagen: {e}"},
+            )
+        urls = [r["url"] for r in results if r.get("status_code") == 200]
+
+    if not urls:
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "NO_PAGES_FOUND",
+                    "message": "Keine erreichbaren Seiten auf der Website gefunden."},
+        )
+
+    # Idempotenz: bestehende crawled-Pages für diesen Lead löschen
+    db.query(SitemapPage).filter(
+        SitemapPage.lead_id == lead_id,
+        SitemapPage.source == "crawled",
+    ).delete(synchronize_session=False)
+    db.commit()
+
+    imported = _import_urls_as_pages(lead_id, start_url, urls, db)
+    db.commit()
+
+    pages = (
+        db.query(SitemapPage)
+        .filter(SitemapPage.lead_id == lead_id)
+        .order_by(SitemapPage.position, SitemapPage.id)
+        .all()
+    )
+    return {
+        "imported":   imported,
+        "url_source": "cache" if used_cache else "live_crawl",
+        "start_url":  start_url,
+        "pages":      [_serialize(p) for p in pages],
+    }
 
 
 @router.get("/{lead_id}/suggest")

@@ -14,7 +14,7 @@ import logging
 import threading
 import os
 import json as _json_mod
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
 
 logger = logging.getLogger(__name__)
 
@@ -1223,9 +1223,23 @@ async def _golive_automation(project_id: int):
 
 
 @router.post("/from-lead/{lead_id}", status_code=201)
-def create_project_from_lead(lead_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def create_project_from_lead(
+    lead_id: int,
+    background_tasks: BackgroundTasks,
+    body: dict = Body(default={}),
+    db: Session = Depends(get_db),
+):
     """
     Create a project from any lead (Nutzerkartei).
+
+    Optional body fields (all skipped if omitted / invalid, falling back
+    to DB defaults):
+      - package_type:  'starter' | 'kompagnon' | 'premium'
+      - project_type:  'standard' | 'impuls'
+      - isb_antrag_datum:       ISO date "YYYY-MM-DD"
+      - isb_bewilligung_datum:  ISO date "YYYY-MM-DD"
+      - foerder_volumen:        number (€)
+      - isb_tagewerke:          integer
 
     - 404 if lead not found
     - 409 if a project for this lead already exists
@@ -1236,10 +1250,19 @@ def create_project_from_lead(lead_id: int, background_tasks: BackgroundTasks, db
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
-    # 2. Guard against duplicates
+    # 2. Guard against duplicates — return the existing project_id so the
+    # caller can navigate to it instead of guessing or 404'ing.
     existing = db.query(Project).filter(Project.lead_id == lead_id).first()
     if existing:
-        raise HTTPException(status_code=409, detail="Für diesen Lead existiert bereits ein Projekt")
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "PROJECT_EXISTS",
+                "message": "Für diesen Lead existiert bereits ein Projekt",
+                "project_id": existing.id,
+                "lead_id": lead_id,
+            },
+        )
 
     # 3. Guard: Website-URL ist Pflicht für Projekterstellung
     if not lead.website_url or not lead.website_url.strip():
@@ -1263,13 +1286,64 @@ def create_project_from_lead(lead_id: int, background_tasks: BackgroundTasks, db
         created_at=now,
         updated_at=now,
     )
+    # Optional fields from body — whitelist + parse, fall back to DB defaults.
+    body = body or {}
+    package_type = body.get("package_type")
+    if package_type not in ("starter", "kompagnon", "premium"):
+        package_type = None
+    project_type = body.get("project_type")
+    if project_type not in ("standard", "impuls"):
+        project_type = None
+
+    def _parse_date(val):
+        if not val:
+            return None
+        try:
+            return datetime.strptime(str(val)[:10], "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return None
+
+    def _parse_num(val):
+        if val in (None, "", "null"):
+            return None
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return None
+
+    def _parse_int(val):
+        if val in (None, "", "null"):
+            return None
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return None
+
+    isb_antrag = _parse_date(body.get("isb_antrag_datum"))
+    isb_bewilligung = _parse_date(body.get("isb_bewilligung_datum"))
+    foerder_volumen = _parse_num(body.get("foerder_volumen"))
+    isb_tagewerke = _parse_int(body.get("isb_tagewerke"))
+
     # Set extra columns via setattr so missing ORM fields don't crash
-    for col, val in [
+    extras = [
         ("company_name", company_name),
         ("website_url",  lead.website_url),
         ("contact_name", lead.contact_name),
         ("contact_email", lead.email),
-    ]:
+    ]
+    if package_type:
+        extras.append(("package_type", package_type))
+    if project_type:
+        extras.append(("project_type", project_type))
+    if isb_antrag is not None:
+        extras.append(("isb_antrag_datum", isb_antrag))
+    if isb_bewilligung is not None:
+        extras.append(("isb_bewilligung_datum", isb_bewilligung))
+    if foerder_volumen is not None:
+        extras.append(("foerder_volumen", foerder_volumen))
+    if isb_tagewerke is not None:
+        extras.append(("isb_tagewerke", isb_tagewerke))
+    for col, val in extras:
         try:
             setattr(project, col, val)
         except Exception:

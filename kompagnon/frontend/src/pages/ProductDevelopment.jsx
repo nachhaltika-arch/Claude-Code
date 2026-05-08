@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import toast from 'react-hot-toast';
 import { useScreenSize } from '../utils/responsive';
 
 
@@ -39,8 +41,12 @@ export default function ProductDevelopment() {
     setShowForm(true);
   };
 
-  const saveItem = () => {
-    if (!form.title) return;
+  const saveItem = (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (!form.title.trim()) {
+      toast.error('Titel ist Pflichtfeld');
+      return;
+    }
     const proc = { ...form, tags: form.tags ? form.tags.split(',').map((t) => t.trim()).filter(Boolean) : [] };
     if (editItem) setItems((p) => p.map((i) => (i.id === editItem.id ? { ...proc, id: editItem.id } : i)));
     else setItems((p) => [...p, { ...proc, id: Date.now().toString(), created_at: new Date().toISOString().slice(0, 10) }]);
@@ -121,15 +127,15 @@ export default function ProductDevelopment() {
       )}
 
       {/* Form Modal */}
-      {showForm && (
+      {showForm && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false); }}>
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+          <form onSubmit={saveItem} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
             <div style={{ background: 'var(--brand-primary)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '16px 16px 0 0' }}>
               <span style={{ color: '#fff', fontWeight: 800, fontSize: 15 }}>{editItem ? 'Bearbeiten' : 'Neues Feature'}</span>
-              <button onClick={() => setShowForm(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: '#fff', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <button type="button" onClick={() => setShowForm(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: '#fff', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
             <div style={{ padding: 20 }}>
-              <Lbl>Titel *</Lbl><input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Feature-Titel..." style={{ ...inp, marginBottom: 14 }} />
+              <Lbl>Titel *</Lbl><input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Feature-Titel..." style={{ ...inp, marginBottom: 14 }} autoFocus />
               <Lbl>Beschreibung</Lbl><textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Details..." rows={3} style={{ ...inp, resize: 'vertical', marginBottom: 14 }} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
                 <div><Lbl>Kategorie</Lbl><select value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} style={inp}>{CATS.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}</select></div>
@@ -142,12 +148,13 @@ export default function ProductDevelopment() {
               <Lbl>Ticket-Referenz</Lbl><input value={form.ticket_ref} onChange={(e) => setForm((p) => ({ ...p, ticket_ref: e.target.value }))} placeholder="TKT-2603-1234" style={{ ...inp, marginBottom: 14 }} />
               <Lbl>Tags (kommagetrennt)</Lbl><input value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} placeholder="frontend, api..." style={{ ...inp, marginBottom: 20 }} />
               <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: 11, background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>Abbrechen</button>
-                <button onClick={saveItem} disabled={!form.title} style={{ flex: 2, padding: 11, background: !form.title ? '#64748b' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700, cursor: !form.title ? 'not-allowed' : 'pointer', minHeight: 44 }}>{editItem ? 'Speichern' : '+ Anlegen'}</button>
+                <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: 11, background: 'var(--bg-app)', color: 'var(--text-primary)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>Abbrechen</button>
+                <button type="submit" disabled={!form.title.trim()} style={{ flex: 2, padding: 11, background: !form.title.trim() ? '#64748b' : 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 700, cursor: !form.title.trim() ? 'not-allowed' : 'pointer', minHeight: 44 }}>{editItem ? 'Speichern' : '+ Anlegen'}</button>
               </div>
             </div>
-          </div>
-        </div>
+          </form>
+        </div>,
+        document.body,
       )}
     </div>
   );

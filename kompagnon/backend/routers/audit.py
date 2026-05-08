@@ -972,6 +972,11 @@ def _format_audit(audit: AuditResult) -> dict:
         "contact_name": audit.contact_name,
         "city": audit.city,
         "trade": audit.trade,
+        # Auto-scraped vom Impressum-Scraper in start_audit() — fürs
+        # Lead-Anlegen-Modal als Prefill, sonst nirgends genutzt.
+        "phone":       getattr(audit, "scraped_phone", "") or "",
+        "email":       getattr(audit, "scraped_email", "") or "",
+        "description": getattr(audit, "scraped_description", "") or "",
         "total_score": audit.total_score,
         "level": audit.level,
         "categories": {

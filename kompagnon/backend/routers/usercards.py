@@ -351,7 +351,7 @@ async def run_usercard_pagespeed(card_id: int, db: Session = Depends(get_db)):
     # DB-Verbindung vor externem PageSpeed-Call freigeben
     db.close()
 
-    api_key = os.getenv("PAGESPEED_API_KEY") or os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+    api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
     base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
     params_base = {"url": website_url}
     if api_key:

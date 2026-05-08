@@ -1,0 +1,877 @@
+{
+  "_source": "HyperUI",
+  "_repo": "https://github.com/markmead/hyperui",
+  "_license": "MIT",
+  "_attribution": "Mark Mead — HyperUI",
+  "_imported_at": "2026-05-05",
+  "_max_per_category": 10,
+  "components": [
+    {
+      "slug": "hu-headers-1",
+      "name": "HyperUI · Headers #1",
+      "category": "NAV",
+      "section_hint": "header_nav",
+      "tags": [
+        "headers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Navbar/Header-Variante mit Logo, Nav-Links und CTA",
+      "preview_note": "HyperUI-headers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-headers-2",
+      "name": "HyperUI · Headers #2",
+      "category": "NAV",
+      "section_hint": "header_nav",
+      "tags": [
+        "headers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Navbar/Header-Variante mit Logo, Nav-Links und CTA",
+      "preview_note": "HyperUI-headers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-headers-3",
+      "name": "HyperUI · Headers #3",
+      "category": "NAV",
+      "section_hint": "header_nav",
+      "tags": [
+        "headers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Navbar/Header-Variante mit Logo, Nav-Links und CTA",
+      "preview_note": "HyperUI-headers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-headers-4",
+      "name": "HyperUI · Headers #4",
+      "category": "NAV",
+      "section_hint": "header_nav",
+      "tags": [
+        "headers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Navbar/Header-Variante mit Logo, Nav-Links und CTA",
+      "preview_note": "HyperUI-headers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-ctas-1",
+      "name": "HyperUI · Ctas #1",
+      "category": "CTA",
+      "section_hint": "cta_final",
+      "tags": [
+        "ctas",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Call-to-Action-Section, finale Conversion",
+      "preview_note": "HyperUI-ctas (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-ctas-2",
+      "name": "HyperUI · Ctas #2",
+      "category": "CTA",
+      "section_hint": "cta_final",
+      "tags": [
+        "ctas",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Call-to-Action-Section, finale Conversion",
+      "preview_note": "HyperUI-ctas (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-ctas-3",
+      "name": "HyperUI · Ctas #3",
+      "category": "CTA",
+      "section_hint": "cta_final",
+      "tags": [
+        "ctas",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Call-to-Action-Section, finale Conversion",
+      "preview_note": "HyperUI-ctas (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-ctas-4",
+      "name": "HyperUI · Ctas #4",
+      "category": "CTA",
+      "section_hint": "cta_final",
+      "tags": [
+        "ctas",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Call-to-Action-Section, finale Conversion",
+      "preview_note": "HyperUI-ctas (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-feature-grids-1",
+      "name": "HyperUI · Feature Grids #1",
+      "category": "LEIST",
+      "section_hint": "service_grid",
+      "tags": [
+        "feature-grids",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Feature/Service-Grid mit Icons + Beschreibung",
+      "preview_note": "HyperUI-feature-grids (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-feature-grids-2",
+      "name": "HyperUI · Feature Grids #2",
+      "category": "LEIST",
+      "section_hint": "service_grid",
+      "tags": [
+        "feature-grids",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Feature/Service-Grid mit Icons + Beschreibung",
+      "preview_note": "HyperUI-feature-grids (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-feature-grids-3",
+      "name": "HyperUI · Feature Grids #3",
+      "category": "LEIST",
+      "section_hint": "service_grid",
+      "tags": [
+        "feature-grids",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Feature/Service-Grid mit Icons + Beschreibung",
+      "preview_note": "HyperUI-feature-grids (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-feature-grids-4",
+      "name": "HyperUI · Feature Grids #4",
+      "category": "LEIST",
+      "section_hint": "service_grid",
+      "tags": [
+        "feature-grids",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Feature/Service-Grid mit Icons + Beschreibung",
+      "preview_note": "HyperUI-feature-grids (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-pricing-1",
+      "name": "HyperUI · Pricing #1",
+      "category": "LEIST",
+      "section_hint": "offer_stack",
+      "tags": [
+        "pricing",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Pricing-Tabelle / Hormozi-Wertbox",
+      "preview_note": "HyperUI-pricing (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-pricing-2",
+      "name": "HyperUI · Pricing #2",
+      "category": "LEIST",
+      "section_hint": "offer_stack",
+      "tags": [
+        "pricing",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Pricing-Tabelle / Hormozi-Wertbox",
+      "preview_note": "HyperUI-pricing (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-team-sections-1",
+      "name": "HyperUI · Team Sections #1",
+      "category": "TRUST",
+      "section_hint": "team",
+      "tags": [
+        "team-sections",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Team-/Mitarbeiter-Vorstellung mit Fotos",
+      "preview_note": "HyperUI-team-sections (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-team-sections-2",
+      "name": "HyperUI · Team Sections #2",
+      "category": "TRUST",
+      "section_hint": "team",
+      "tags": [
+        "team-sections",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Team-/Mitarbeiter-Vorstellung mit Fotos",
+      "preview_note": "HyperUI-team-sections (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-team-sections-3",
+      "name": "HyperUI · Team Sections #3",
+      "category": "TRUST",
+      "section_hint": "team",
+      "tags": [
+        "team-sections",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Team-/Mitarbeiter-Vorstellung mit Fotos",
+      "preview_note": "HyperUI-team-sections (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-footers-1",
+      "name": "HyperUI · Footers #1",
+      "category": "FOOT",
+      "section_hint": "footer_legal",
+      "tags": [
+        "footers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Footer mit Pflicht-Links + Kontakt",
+      "preview_note": "HyperUI-footers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-footers-2",
+      "name": "HyperUI · Footers #2",
+      "category": "FOOT",
+      "section_hint": "footer_legal",
+      "tags": [
+        "footers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Footer mit Pflicht-Links + Kontakt",
+      "preview_note": "HyperUI-footers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-footers-3",
+      "name": "HyperUI · Footers #3",
+      "category": "FOOT",
+      "section_hint": "footer_legal",
+      "tags": [
+        "footers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Footer mit Pflicht-Links + Kontakt",
+      "preview_note": "HyperUI-footers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-footers-4",
+      "name": "HyperUI · Footers #4",
+      "category": "FOOT",
+      "section_hint": "footer_legal",
+      "tags": [
+        "footers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Footer mit Pflicht-Links + Kontakt",
+      "preview_note": "HyperUI-footers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-footers-5",
+      "name": "HyperUI · Footers #5",
+      "category": "FOOT",
+      "section_hint": "footer_legal",
+      "tags": [
+        "footers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Footer mit Pflicht-Links + Kontakt",
+      "preview_note": "HyperUI-footers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-footers-6",
+      "name": "HyperUI · Footers #6",
+      "category": "FOOT",
+      "section_hint": "footer_legal",
+      "tags": [
+        "footers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Footer mit Pflicht-Links + Kontakt",
+      "preview_note": "HyperUI-footers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-footers-7",
+      "name": "HyperUI · Footers #7",
+      "category": "FOOT",
+      "section_hint": "footer_legal",
+      "tags": [
+        "footers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Footer mit Pflicht-Links + Kontakt",
+      "preview_note": "HyperUI-footers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-footers-8",
+      "name": "HyperUI · Footers #8",
+      "category": "FOOT",
+      "section_hint": "footer_legal",
+      "tags": [
+        "footers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Footer mit Pflicht-Links + Kontakt",
+      "preview_note": "HyperUI-footers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-footers-9",
+      "name": "HyperUI · Footers #9",
+      "category": "FOOT",
+      "section_hint": "footer_legal",
+      "tags": [
+        "footers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Footer mit Pflicht-Links + Kontakt",
+      "preview_note": "HyperUI-footers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-footers-10",
+      "name": "HyperUI · Footers #10",
+      "category": "FOOT",
+      "section_hint": "footer_legal",
+      "tags": [
+        "footers",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Footer mit Pflicht-Links + Kontakt",
+      "preview_note": "HyperUI-footers (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-contact-forms-1",
+      "name": "HyperUI · Contact Forms #1",
+      "category": "CTA",
+      "section_hint": "contact_form",
+      "tags": [
+        "contact-forms",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Kontakt-Formular-Section mit Tel/Mail",
+      "preview_note": "HyperUI-contact-forms (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-contact-forms-2",
+      "name": "HyperUI · Contact Forms #2",
+      "category": "CTA",
+      "section_hint": "contact_form",
+      "tags": [
+        "contact-forms",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Kontakt-Formular-Section mit Tel/Mail",
+      "preview_note": "HyperUI-contact-forms (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-contact-forms-3",
+      "name": "HyperUI · Contact Forms #3",
+      "category": "CTA",
+      "section_hint": "contact_form",
+      "tags": [
+        "contact-forms",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Kontakt-Formular-Section mit Tel/Mail",
+      "preview_note": "HyperUI-contact-forms (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-contact-forms-4",
+      "name": "HyperUI · Contact Forms #4",
+      "category": "CTA",
+      "section_hint": "contact_form",
+      "tags": [
+        "contact-forms",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Kontakt-Formular-Section mit Tel/Mail",
+      "preview_note": "HyperUI-contact-forms (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-contact-forms-5",
+      "name": "HyperUI · Contact Forms #5",
+      "category": "CTA",
+      "section_hint": "contact_form",
+      "tags": [
+        "contact-forms",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Kontakt-Formular-Section mit Tel/Mail",
+      "preview_note": "HyperUI-contact-forms (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-logo-clouds-1",
+      "name": "HyperUI · Logo Clouds #1",
+      "category": "TRUST",
+      "section_hint": "trust_strip",
+      "tags": [
+        "logo-clouds",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Logo-Cloud — Innung / Hersteller / Bewertungen",
+      "preview_note": "HyperUI-logo-clouds (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-logo-clouds-2",
+      "name": "HyperUI · Logo Clouds #2",
+      "category": "TRUST",
+      "section_hint": "trust_strip",
+      "tags": [
+        "logo-clouds",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Logo-Cloud — Innung / Hersteller / Bewertungen",
+      "preview_note": "HyperUI-logo-clouds (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-logo-clouds-3",
+      "name": "HyperUI · Logo Clouds #3",
+      "category": "TRUST",
+      "section_hint": "trust_strip",
+      "tags": [
+        "logo-clouds",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Logo-Cloud — Innung / Hersteller / Bewertungen",
+      "preview_note": "HyperUI-logo-clouds (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-logo-clouds-4",
+      "name": "HyperUI · Logo Clouds #4",
+      "category": "TRUST",
+      "section_hint": "trust_strip",
+      "tags": [
+        "logo-clouds",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Logo-Cloud — Innung / Hersteller / Bewertungen",
+      "preview_note": "HyperUI-logo-clouds (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-faqs-1",
+      "name": "HyperUI · Faqs #1",
+      "category": "INFO",
+      "section_hint": "faq",
+      "tags": [
+        "faqs",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "FAQ-Section, Accordion oder 2-Spalten-Layout",
+      "preview_note": "HyperUI-faqs (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-faqs-2",
+      "name": "HyperUI · Faqs #2",
+      "category": "INFO",
+      "section_hint": "faq",
+      "tags": [
+        "faqs",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "FAQ-Section, Accordion oder 2-Spalten-Layout",
+      "preview_note": "HyperUI-faqs (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-faqs-3",
+      "name": "HyperUI · Faqs #3",
+      "category": "INFO",
+      "section_hint": "faq",
+      "tags": [
+        "faqs",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "FAQ-Section, Accordion oder 2-Spalten-Layout",
+      "preview_note": "HyperUI-faqs (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-banners-1",
+      "name": "HyperUI · Banners #1",
+      "category": "CTA",
+      "section_hint": "urgency_block",
+      "tags": [
+        "banners",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Promo/Urgency-Banner",
+      "preview_note": "HyperUI-banners (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-banners-2",
+      "name": "HyperUI · Banners #2",
+      "category": "CTA",
+      "section_hint": "urgency_block",
+      "tags": [
+        "banners",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Promo/Urgency-Banner",
+      "preview_note": "HyperUI-banners (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-banners-3",
+      "name": "HyperUI · Banners #3",
+      "category": "CTA",
+      "section_hint": "urgency_block",
+      "tags": [
+        "banners",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Promo/Urgency-Banner",
+      "preview_note": "HyperUI-banners (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-newsletter-signup-1",
+      "name": "HyperUI · Newsletter Signup #1",
+      "category": "CTA",
+      "section_hint": "cta_inline",
+      "tags": [
+        "newsletter-signup",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Newsletter-Signup-Section",
+      "preview_note": "HyperUI-newsletter-signup (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-newsletter-signup-2",
+      "name": "HyperUI · Newsletter Signup #2",
+      "category": "CTA",
+      "section_hint": "cta_inline",
+      "tags": [
+        "newsletter-signup",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Newsletter-Signup-Section",
+      "preview_note": "HyperUI-newsletter-signup (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-sections-1",
+      "name": "HyperUI · Sections #1",
+      "category": "HERO",
+      "section_hint": "hero_minimal",
+      "tags": [
+        "sections",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Allgemeine Marketing-Section",
+      "preview_note": "HyperUI-sections (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-sections-2",
+      "name": "HyperUI · Sections #2",
+      "category": "HERO",
+      "section_hint": "hero_minimal",
+      "tags": [
+        "sections",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Allgemeine Marketing-Section",
+      "preview_note": "HyperUI-sections (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-sections-3",
+      "name": "HyperUI · Sections #3",
+      "category": "HERO",
+      "section_hint": "hero_minimal",
+      "tags": [
+        "sections",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Allgemeine Marketing-Section",
+      "preview_note": "HyperUI-sections (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-sections-4",
+      "name": "HyperUI · Sections #4",
+      "category": "HERO",
+      "section_hint": "hero_minimal",
+      "tags": [
+        "sections",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Allgemeine Marketing-Section",
+      "preview_note": "HyperUI-sections (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-stats-1",
+      "name": "HyperUI · Stats #1",
+      "category": "TRUST",
+      "section_hint": "fallstudien_3",
+      "tags": [
+        "stats",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Stats-Block mit Zahlen / KPI",
+      "preview_note": "HyperUI-stats (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-stats-2",
+      "name": "HyperUI · Stats #2",
+      "category": "TRUST",
+      "section_hint": "fallstudien_3",
+      "tags": [
+        "stats",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Stats-Block mit Zahlen / KPI",
+      "preview_note": "HyperUI-stats (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    },
+    {
+      "slug": "hu-stats-3",
+      "name": "HyperUI · Stats #3",
+      "category": "TRUST",
+      "section_hint": "fallstudien_3",
+      "tags": [
+        "stats",
+        "hyperui",
+        "open-source",
+        "mit",
+        "tailwind"
+      ],
+      "slots": [],
+      "ki_prompt_hint": "Stats-Block mit Zahlen / KPI",
+      "preview_note": "HyperUI-stats (MIT). Tailwind-only — keine eigenen Slots.",
+      "source": "hyperui"
+    }
+  ]
+}

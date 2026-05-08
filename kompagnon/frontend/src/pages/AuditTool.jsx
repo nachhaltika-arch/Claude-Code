@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -316,14 +317,16 @@ export default function AuditTool() {
         )}
       </div>
 
-      {/* Lead Modal */}
-      {showLeadModal && (
+      {/* Lead Modal — als Portal an document.body, damit es unabhängig vom
+          AppLayout-Stacking-Context viewport-zentriert dargestellt wird */}
+      {showLeadModal && createPortal(
         <SaveLeadModal
           audit={r}
           auditId={auditId}
           onClose={() => setShowLeadModal(false)}
           onSaved={(id) => { setSavedLeadId(id); setShowLeadModal(false); }}
-        />
+        />,
+        document.body,
       )}
     </div>
   );
@@ -347,8 +350,9 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
   const [leadForm, setLeadForm] = useState({
     company_name: audit.company_name || '',
     contact_name: '',
-    phone: '',
-    email: '',
+    // Vom Backend-Auto-Scraper aus dem Impressum (audit.scraped_*)
+    phone: audit.phone || '',
+    email: audit.email || '',
     website_url: audit.website_url || '',
     city: audit.city || '',
     trade: audit.trade || '',

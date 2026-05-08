@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "";
 
@@ -81,15 +82,23 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
     finally { setSaving(false); }
   };
 
-  return (
-    <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
-      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
-    }}>
-      <div style={{
-        background: "#fff", borderRadius: 12, padding: 32, width: "100%", maxWidth: 520,
-        boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
-      }}>
+  return createPortal(
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
+        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
+        padding: 16,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#fff", borderRadius: 12, padding: 32, width: "100%", maxWidth: 520,
+          boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
+          maxHeight: "calc(100vh - 32px)", overflowY: "auto",
+        }}
+      >
         <h2 style={{ margin: "0 0 4px", fontSize: 20, color: "#004F59" }}>Neues Projekt starten</h2>
         <p style={{ margin: "0 0 24px", color: "#666", fontSize: 14 }}>
           Bitte wähle ein bestehendes Unternehmen oder lege ein neues an.
@@ -209,6 +218,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

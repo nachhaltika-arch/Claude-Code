@@ -13,6 +13,7 @@ const SETTINGS_NAV = [
   { label: 'Benachrichtigungen', path: '/app/settings/notifications', icon: '📧', roles: ['admin', 'superadmin', 'auditor'] },
   { label: 'Abonnement', path: '/app/settings/subscription', icon: '💳', roles: ['nutzer', 'kunde'] },
   { label: 'Templates', path: '/app/settings/templates', icon: '🗂️', roles: ['admin', 'superadmin'] },
+  { label: 'Komponenten-Bibliothek', path: '/app/settings/component-library', icon: '🧩', roles: ['admin', 'superadmin'] },
 ];
 
 function SettingRow({ icon, bg, label, val, path }) {
@@ -143,6 +144,7 @@ export default function SettingsLayout() {
               <SettingRow icon="🔑" bg="#F0F4F5" label="System & API-Keys" val="Konfigurieren" path="/app/settings/system"       />
               <SettingRow icon="🌐" bg="#E0F4F8" label="KAS Website"       val="Seiten"        path="/app/settings/kas-website"  />
               <SettingRow icon="🗂️" bg="#FFF9CC" label="Templates"          val="Vorlagen"      path="/app/settings/templates"    />
+              <SettingRow icon="🧩" bg="#E0F4F8" label="Komponenten-Bibliothek" val="Editor"   path="/app/settings/component-library" />
               <SettingRow icon="💳" bg="#F0F4F5" label="Abonnement"         val="Professional"  path="/app/settings/subscription" />
             </SettingsGroup>
           )}

@@ -32,6 +32,8 @@ body {
   background: var(--bg-app);
   color: var(--text-primary);
   font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: var(--leading-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -206,16 +208,13 @@ textarea::placeholder {
   .page-subtitle { @apply text-sm text-slate-600 mt-0.5; }
 }
 
-/* Legacy kc-* classes */
+/* Legacy kc-* classes — .kc-btn-primary and .kc-card moved to the
+   canonical KOMPAGNON BUTTON SYSTEM / CARD SYSTEM blocks below. */
 .kc-eyebrow { display: block; font-size: var(--kc-text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: var(--kc-tracking-wider); color: var(--kc-rot); margin-bottom: var(--kc-space-3); }
-.kc-btn-primary { display: inline-flex; align-items: center; gap: var(--kc-space-2); background: var(--kc-rot); color: var(--kc-weiss); padding: var(--kc-space-3) var(--kc-space-8); font-weight: 600; font-size: var(--kc-text-sm); letter-spacing: 0.02em; border-radius: var(--kc-radius-md); border: 2px solid transparent; cursor: pointer; transition: background var(--kc-transition-fast); }
-.kc-btn-primary:hover { background: var(--kc-rot-hover); }
 .kc-btn-secondary { display: inline-flex; align-items: center; gap: var(--kc-space-2); background: transparent; color: var(--kc-anthrazit); padding: var(--kc-space-3) var(--kc-space-8); font-weight: 600; font-size: var(--kc-text-sm); border: 2px solid var(--kc-anthrazit); border-radius: var(--kc-radius-md); cursor: pointer; }
 .kc-btn-secondary:hover { background: var(--kc-anthrazit); color: var(--kc-weiss); }
 .kc-btn-ghost { display: inline-flex; align-items: center; gap: var(--kc-space-2); background: transparent; color: var(--kc-text-sekundaer); padding: var(--kc-space-2) var(--kc-space-4); font-weight: 500; font-size: var(--kc-text-sm); border: none; border-radius: var(--kc-radius-md); cursor: pointer; }
 .kc-btn-ghost:hover { background: var(--kc-hell); color: var(--kc-anthrazit); }
-.kc-card { background: var(--kc-weiss); border: 1px solid var(--kc-rand); border-radius: var(--kc-radius-lg); padding: var(--kc-space-6); }
-.kc-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
 .kc-kpi { background: var(--kc-weiss); border: 1px solid var(--kc-rand); border-radius: var(--kc-radius-lg); padding: var(--kc-space-6); display: flex; flex-direction: column; gap: var(--kc-space-2); }
 .kc-kpi__label { display: flex; align-items: center; gap: var(--kc-space-2); font-size: var(--kc-text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--kc-tracking-wide); color: var(--kc-text-subtil); }
 .kc-kpi__value { font-family: var(--kc-font-display); font-size: var(--kc-text-3xl); font-weight: 700; letter-spacing: var(--kc-tracking-tight); color: var(--kc-text-primaer); line-height: 1; }
@@ -264,17 +263,6 @@ textarea::placeholder {
 /* ══════════════════════════════════════════════════════════════
    iOS-LEVEL DESIGN SYSTEM — Cards, Buttons, Inputs, Badges
    ══════════════════════════════════════════════════════════════ */
-
-/* ── Cards ──────────────────────────────────────────────────── */
-.kc-card {
-  background: var(--bg-surface);
-  border-radius: var(--radius-xl);
-  border: 0.5px solid var(--border-light);
-  padding: var(--space-5);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition-fast);
-}
-.kc-card:hover { box-shadow: var(--shadow-md); }
 
 /* ── Buttons ─────────────────────────────────────────────────── */
 .btn-primary {
@@ -448,25 +436,6 @@ button[aria-pressed]:focus-visible {
   outline-offset: 2px;
 }
 
-/* ── Primary Button ───────────────────────────────────────────── */
-.kc-btn-primary {
-  transition: background var(--transition-fast), opacity var(--transition-fast);
-}
-.kc-btn-primary:hover:not(:disabled) {
-  background: var(--brand-primary-dark) !important;
-}
-.kc-btn-primary:active:not(:disabled) {
-  opacity: 0.88;
-}
-.kc-btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.kc-btn-primary:focus-visible {
-  outline: 2px solid var(--brand-primary);
-  outline-offset: 2px;
-}
-
 /* ── Ghost Button (transparenter Hintergrund) ─────────────────── */
 .kc-btn-ghost {
   transition: background var(--transition-fast), color var(--transition-fast);
@@ -546,11 +515,11 @@ button[aria-pressed]:focus-visible {
   color: var(--text-primary);
 }
 
-/* ── Body — Standard-Fließtext ───────────────────────────────── */
+/* ── Body — Standard-Fließtext (Doc: lh 1.75) ───────────────── */
 .ty-body {
   font-size: var(--text-base);
   font-weight: 400;
-  line-height: var(--leading-base);
+  line-height: var(--leading-body);
   color: var(--text-primary);
 }
 
@@ -558,7 +527,7 @@ button[aria-pressed]:focus-visible {
 .ty-body-sm {
   font-size: var(--text-sm);
   font-weight: 400;
-  line-height: var(--leading-sm);
+  line-height: var(--leading-body);
   color: var(--text-secondary);
 }
 
@@ -682,13 +651,39 @@ button[aria-pressed]:focus-visible {
   text-decoration: none;
 }
 
-/* PRIMARY — Dunkelgrün, für wichtige Aktionen */
+/* PRIMARY — Dunkelgrün, für wichtige Aktionen.
+   Kanonische Definition: Base-Layout + Brand + States in einem Block.
+   Vorher waren diese auf 3 Stellen verteilt (Legacy + State-Augment +
+   KOMPAGNON-System). Cascade-Ergebnis identisch zu vorher. */
 .kc-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--kc-space-2);
   background: var(--kc-dark);
   color: #fff;
-  border-color: var(--kc-dark);
+  padding: var(--kc-space-3) var(--kc-space-8);
+  font-weight: 600;
+  font-size: var(--kc-text-sm);
+  letter-spacing: 0.02em;
+  border: 2px solid var(--kc-dark);
+  border-radius: var(--kc-radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast), opacity var(--transition-fast);
 }
-.kc-btn-primary:hover { background: #003940; }
+.kc-btn-primary:hover:not(:disabled) {
+  background: var(--brand-primary-dark) !important;
+}
+.kc-btn-primary:active:not(:disabled) {
+  opacity: 0.88;
+}
+.kc-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.kc-btn-primary:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
 
 /* YELLOW — Gelb, für DEN EINEN CTA pro Screen */
 .kc-btn-yellow {
@@ -805,13 +800,19 @@ button[aria-pressed]:focus-visible {
 
 /* ══ CARD SYSTEM ═══════════════════════════════════════════ */
 
+/* Kanonische .kc-card-Definition. box-shadow + transition + :hover
+   stammen aus dem ehemaligen iOS-Level-Block; alles andere aus dem
+   ursprünglichen KOMPAGNON-Card-System. */
 .kc-card {
   background: var(--paper);
   border: 0.5px solid var(--border);
   border-radius: var(--r-lg);
   padding: 18px 20px;
   margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
 }
+.kc-card:hover { box-shadow: var(--shadow-md); }
 
 .kc-card-clickable {
   cursor: pointer;
@@ -831,6 +832,16 @@ button[aria-pressed]:focus-visible {
   background: var(--info-bg);
   border-color: rgba(0,142,170,0.3);
 }
+
+/* Doc: Border-Top kodiert Wichtigkeit der Karte.
+   Priority = primäre KPI (max 1 pro Gruppe).
+   CTA = wichtige Ausnahme, CTA-nah.
+   Cat = sekundäre Kategorie.
+   Flat = sekundäre Info, kein Akzent. */
+.kc-card-priority { border-top: 3px solid var(--kc-dark); }
+.kc-card-cta      { border-top: 3px solid var(--kc-yellow); }
+.kc-card-cat      { border-top: 3px solid var(--kc-mid); }
+.kc-card-flat     { background: #F6F5F2; border-color: transparent; }
 
 .kc-kpi {
   background: var(--paper);

@@ -3,7 +3,7 @@ SQLAlchemy database setup and models for KOMPAGNON system.
 """
 import os
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, JSON, create_engine
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, DateTime, Numeric, Text, ForeignKey, JSON, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.exc import OperationalError
@@ -185,6 +185,13 @@ class Project(Base):
     go_live_date = Column(String(20))  # stored as ISO date string
     package_type = Column(String(50), default="kompagnon")
     payment_status = Column(String(50), default="offen")
+    # Project-Type ('standard' oder 'impuls') — orthogonal zu package_type.
+    # ISB-158-Förder-Felder werden nur bei project_type='impuls' gefüllt.
+    project_type = Column(String(20), default="standard")
+    isb_antrag_datum = Column(Date, nullable=True)
+    isb_bewilligung_datum = Column(Date, nullable=True)
+    foerder_volumen = Column(Numeric(10, 2), nullable=True)
+    isb_tagewerke = Column(Integer, nullable=True)
     desired_pages = Column(Text)
     has_logo = Column(Boolean, default=False)
     has_briefing = Column(Boolean, default=False)
@@ -203,6 +210,12 @@ class Project(Base):
     qa_score = Column(Integer)       # 0-100
     qa_golive_ok = Column(Boolean)   # Go-Live recommendation
     qa_run_at = Column(DateTime)     # Last scan timestamp
+
+    # Briefing-Submit-Timestamp — wird von routers/briefings.py beim ersten
+    # meaningful-content-Save gesetzt. Ohne diese Spalte crashte POST /api/briefings/{id}
+    # mit AttributeError (das manuelle SQL-Migration 2026-05-04-backfill-phase2.sql
+    # befuellte die Spalte, aber das ALTER TABLE wurde nie automatisch ausgefuehrt).
+    briefing_submitted_at = Column(DateTime, nullable=True)
 
     # Domain check
     domain_reachable = Column(Boolean)
@@ -237,6 +250,10 @@ class Project(Base):
     # Freigabe-Gates
     briefing_approved_at    = Column(DateTime)
     content_approval_token  = Column(String(255))
+
+    # Wireframe (Block-Zuweisungen pro Sitemap-Seite, vom KI-Agent gefuellt)
+    # Struktur: {"pages": [{"page_id": int, "blocks": [{"slug": str, "order": int, "slots": {...}}]}]}
+    wireframe_data          = Column(JSONB, default=list)
 
     # Relationships
     lead = relationship("Lead", back_populates="projects", foreign_keys=[lead_id])
@@ -890,6 +907,32 @@ class GeoAnalysis(Base):
     subscription_started_at = Column(DateTime, nullable=True)
     subscription_canceled_at = Column(DateTime, nullable=True)
     subscription_current_period_end = Column(DateTime, nullable=True)
+
+
+class ComponentLibrary(Base):
+    """
+    Wireframe-Block-Bibliothek (41 HTML+Tailwind-Templates).
+
+    Wird vom KI-Agent (siehe routers/component_library.py — Schritt D)
+    zur Wireframe-Generation genutzt. HTML-Quelle liegt im Repo unter
+    kompagnon/frontend/src/components/library/{slug}.html, Seed via
+    kompagnon/backend/seeds/seed_component_library.py.
+
+    Kategorien: NAV, HERO, LEIST, TRUST, SEO, CTA, HW, FOOT.
+    """
+    __tablename__ = "component_library"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    slug            = Column(String(50), unique=True, nullable=False, index=True)
+    name            = Column(String(100), nullable=False)
+    category        = Column(String(50), nullable=False, index=True)
+    tags            = Column(JSONB, default=list)
+    html_template   = Column(Text, nullable=False)
+    # slots: [{"key": "headline", "label": "Hauptueberschrift", "type": "text", "default": "..."}, ...]
+    slots           = Column(JSONB, default=list)
+    ki_prompt_hint  = Column(Text, nullable=True)
+    preview_note    = Column(Text, nullable=True)
+    created_at      = Column(DateTime, default=datetime.utcnow)
 
 
 def init_db():

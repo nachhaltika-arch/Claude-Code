@@ -145,7 +145,7 @@ export default function Login() {
                 <div style={{ marginBottom: 14 }}>
                   <label style={labelStyle}>E-Mail</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ihre@email.de" required style={inputStyle}
-                    onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                    onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                     onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                 </div>
 
@@ -154,7 +154,7 @@ export default function Login() {
                   <div style={{ position: 'relative' }}>
                     <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••" required style={{ ...inputStyle, paddingRight: 40 }}
-                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                     <button type="button" onClick={() => setShowPw(!showPw)} style={{
                       position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
@@ -167,7 +167,7 @@ export default function Login() {
 
                 <div style={{ textAlign: 'right', marginBottom: 18 }}>
                   <button type="button" onClick={() => setStep('forgot')} style={{
-                    background: 'none', border: 'none', color: 'var(--brand-primary)',
+                    background: 'none', border: 'none', color: 'var(--brand-primary-mid)',
                     fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)',
                   }}>
                     Passwort vergessen?
@@ -181,7 +181,7 @@ export default function Login() {
 
               <div style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: 'var(--text-tertiary)' }}>
                 Kein Konto?{' '}
-                <Link to="/register" style={{ color: 'var(--brand-primary)', fontWeight: 500 }}>Registrieren</Link>
+                <Link to="/register" style={{ color: 'var(--brand-primary-mid)', fontWeight: 500 }}>Registrieren</Link>
               </div>
             </>
           )}
@@ -215,7 +215,7 @@ export default function Login() {
                     onKeyDown={e => { if (e.key === 'Backspace' && !d && i > 0) document.getElementById(`t${i-1}`)?.focus(); }}
                     style={{
                       width: 42, height: 48, textAlign: 'center', fontSize: 20, fontWeight: 600,
-                      border: `1.5px solid ${d ? 'var(--brand-primary)' : 'var(--border-medium)'}`,
+                      border: `1.5px solid ${d ? 'var(--brand-primary-mid)' : 'var(--border-medium)'}`,
                       borderRadius: 'var(--radius-md)', outline: 'none',
                       fontFamily: 'var(--font-mono)', color: 'var(--text-primary)',
                       background: 'var(--bg-surface)', marginRight: i === 2 ? 10 : 0,
@@ -253,7 +253,7 @@ export default function Login() {
                     <label style={labelStyle}>E-Mail</label>
                     <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)}
                       placeholder="ihre@email.de" required style={inputStyle}
-                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                   <Button type="submit" fullWidth disabled={loading}>

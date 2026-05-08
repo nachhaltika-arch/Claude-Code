@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Dashboard from './pages/Dashboard';
 import LeadPipeline from './pages/LeadPipeline';
 import ProjectDetail from './pages/ProjectDetail';
+import OnlineFertigEditor from './components/OnlineFertigEditor';
 import Checklists from './pages/Checklists';
 import Customers from './pages/Customers';
 import ContactImport from './pages/ContactImport';
@@ -48,6 +49,7 @@ import KundenPortal from './pages/KundenPortal';
 import QRGenerator from './pages/QRGenerator';
 import TemplateLibrary from './pages/TemplateLibrary';
 import TemplateEditor from './pages/TemplateEditor';
+import ComponentLibrary from './pages/ComponentLibrary';
 import NewsletterDesigner from './components/NewsletterDesigner';
 import Newsletter from './pages/Newsletter';
 import PortalLogin from './pages/PortalLogin';
@@ -149,6 +151,29 @@ function App() {
           <Route path="/approve-content/:token"    element={<ContentApprovalPage />} />
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
 
+          {/* ── Online-Fertig-Editor — jetzt Default für /app/projects/:id ──
+            * Vollbild, eigene KASSidebar, ausserhalb des AppLayout.
+            * /app/projects/:id              → Default (neu)
+            * /app/projects/:id/online-fertig → Alias (alte URL, bleibt aktiv)
+            * Der Legacy-ProzessFlowV3 ist auf /app/projects/:id/legacy
+            * umgezogen (siehe AppLayout-Block weiter unten). */}
+          <Route
+            path="/app/projects/:id"
+            element={
+              <PrivateRoute roles={['admin', 'auditor']}>
+                <OnlineFertigEditor />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/app/projects/:id/online-fertig"
+            element={
+              <PrivateRoute roles={['admin', 'auditor']}>
+                <OnlineFertigEditor />
+              </PrivateRoute>
+            }
+          />
+
           {/* App — authenticated, with Navbar/Sidebar */}
           <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
             <Route index element={<Navigate to="/app/dashboard" replace />} />
@@ -165,7 +190,10 @@ function App() {
             <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
             <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
             <Route path="projects" element={<PrivateRoute roles={['admin', 'auditor']}><CustomerProjects /></PrivateRoute>} />
-            <Route path="projects/:id" element={<PrivateRoute roles={['admin', 'auditor']}><ProjectDetail /></PrivateRoute>} />
+            {/* Legacy ProzessFlowV3 (das alte Vollbild mit 12 Schritten) —
+              * der frühere Default ist auf /legacy umgezogen, weil
+              * /app/projects/:id jetzt den Online-Fertig-Editor zeigt. */}
+            <Route path="projects/:id/legacy" element={<PrivateRoute roles={['admin', 'auditor']}><ProjectDetail /></PrivateRoute>} />
             <Route path="checklists" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             <Route path="customers" element={<PrivateRoute><Customers /></PrivateRoute>} />
@@ -232,6 +260,7 @@ function App() {
               <Route path="notifications" element={<Settings tab="notifications" />} />
               <Route path="subscription" element={<PrivateRoute roles={['admin']}><Settings tab="subscription" /></PrivateRoute>} />
               <Route path="templates" element={<PrivateRoute roles={['admin']}><TemplateLibrary /></PrivateRoute>} />
+              <Route path="component-library" element={<PrivateRoute roles={['admin']}><ComponentLibrary /></PrivateRoute>} />
             </Route>
             {/* Template Editor — fullscreen, outside settings layout */}
             <Route path="settings/templates/:id" element={<PrivateRoute roles={['admin']}><TemplateEditor /></PrivateRoute>} />

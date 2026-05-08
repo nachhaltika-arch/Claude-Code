@@ -1,0 +1,39 @@
+<!--
+  Block: trust-bewertungen — Google-Bewertungen (3er-Reihe)
+  Kategorie: TRUST
+  Slots: section_headline, section_subline, review_1_*, review_2_*, review_3_*
+-->
+<section data-block="trust-bewertungen" class="bg-slate-50 py-16 md:py-20 px-6" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-12 max-w-2xl mx-auto">
+      <h2 class="text-3xl md:text-4xl font-black uppercase text-gray-900 tracking-tight mb-3">{{section_headline}}</h2>
+      <p class="text-base text-slate-600 leading-relaxed">{{section_subline}}</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <article class="bg-white rounded-2xl p-7 shadow-sm border border-slate-100 flex flex-col">
+        <div class="flex items-center gap-1 text-gray-300 text-xl mb-4" aria-label="5 von 5 Sternen">★★★★★</div>
+        <p class="text-sm text-slate-700 leading-relaxed flex-1 mb-5">"{{review_1_text}}"</p>
+        <div class="border-t border-slate-100 pt-4">
+          <div class="font-bold text-gray-900 text-sm">{{review_1_author}}</div>
+          <div class="text-xs text-slate-500">{{review_1_role}} · {{review_1_date}}</div>
+        </div>
+      </article>
+      <article class="bg-white rounded-2xl p-7 shadow-sm border border-slate-100 flex flex-col">
+        <div class="flex items-center gap-1 text-gray-300 text-xl mb-4" aria-label="5 von 5 Sternen">★★★★★</div>
+        <p class="text-sm text-slate-700 leading-relaxed flex-1 mb-5">"{{review_2_text}}"</p>
+        <div class="border-t border-slate-100 pt-4">
+          <div class="font-bold text-gray-900 text-sm">{{review_2_author}}</div>
+          <div class="text-xs text-slate-500">{{review_2_role}} · {{review_2_date}}</div>
+        </div>
+      </article>
+      <article class="bg-white rounded-2xl p-7 shadow-sm border border-slate-100 flex flex-col">
+        <div class="flex items-center gap-1 text-gray-300 text-xl mb-4" aria-label="5 von 5 Sternen">★★★★★</div>
+        <p class="text-sm text-slate-700 leading-relaxed flex-1 mb-5">"{{review_3_text}}"</p>
+        <div class="border-t border-slate-100 pt-4">
+          <div class="font-bold text-gray-900 text-sm">{{review_3_author}}</div>
+          <div class="text-xs text-slate-500">{{review_3_role}} · {{review_3_date}}</div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>

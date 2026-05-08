@@ -509,7 +509,11 @@ function Step6({ data, saving, error, onSaveAndPdf, onSaveOnly }) {
 // ── Wizard ───────────────────────────────────────────────────────────────────
 
 export default function BriefingWizard({ leadId, leadData, onClose, onComplete, embedded = false }) {
-  const { isMobile } = useScreenSize();
+  const { isMobile, isTablet } = useScreenSize();
+  // Bei Tablet UND Mobile (Width < 1024) den Stepper-Bereich kompakt halten,
+  // sonst frisst die 6-stufige Stepper-Liste den knappen Body-Platz auf
+  // kurzen / schmalen Browsern.
+  const isCompact = isMobile || isTablet;
   const { token } = useAuth();
   const suggestHeaders = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
   const existingDraft = loadDraft(leadId);
@@ -786,7 +790,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
     : {
         position: 'fixed', top: '50%', left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: '100%', maxWidth: 680, maxHeight: '90vh',
+        width: '100%', maxWidth: 680, maxHeight: '95vh',
         borderRadius: 20,
         animation: 'bwSlideUp 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)',
       };
@@ -879,7 +883,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
 
         {/* ── Header ── */}
         <div style={{
-          padding: '20px 28px 16px',
+          padding: isCompact ? '14px 20px 10px' : '20px 28px 16px',
           borderBottom: '1px solid var(--border-light)',
           flexShrink: 0,
           display: 'flex',
@@ -930,14 +934,17 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
           </button>
         </div>
 
-        {/* ── Stepper / Progress ── */}
+        {/* ── Stepper / Progress ──
+            Auf Tablet+Mobile (isCompact) nur Progress-Bar + Step-Label-Zeile,
+            damit der Body-Bereich nicht durch 6 nummerierte Step-Bubbles
+            erdrückt wird. Auf Desktop bleibt die volle Stepper-Liste. */}
         <div style={{
-          padding: '12px 28px 14px',
+          padding: isCompact ? '10px 20px 12px' : '12px 28px 14px',
           flexShrink: 0,
           borderBottom: '1px solid var(--border-light)',
           background: 'var(--bg-surface)',
         }}>
-          <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+          <div style={{ display: 'flex', gap: 5, marginBottom: isCompact ? 6 : 10 }}>
             {STEPS.map((label, i) => (
               <div
                 key={i}
@@ -953,6 +960,20 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
               />
             ))}
           </div>
+          {isCompact ? (
+            <div style={{
+              fontSize: 11,
+              color: 'var(--text-tertiary)',
+              display: 'flex',
+              gap: 6,
+              alignItems: 'baseline',
+            }}>
+              <span style={{ fontWeight: 700, color: TEAL }}>Schritt {step + 1} / {STEPS.length}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                · {STEPS[step]}
+              </span>
+            </div>
+          ) : (
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             {STEPS.map((label, i) => (
               <div key={i} style={{
@@ -989,6 +1010,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
               </div>
             ))}
           </div>
+          )}
         </div>
 
         {/* Draft-Banner */}
@@ -1012,7 +1034,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
         <div style={{
           flex: 1,
           overflowY: 'auto',
-          padding: '24px 28px',
+          padding: isCompact ? '16px 20px' : '24px 28px',
           background: 'var(--bg-app)',
           scrollbarWidth: 'thin',
           scrollbarColor: 'var(--border-light) transparent',

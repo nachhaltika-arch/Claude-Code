@@ -1,0 +1,39 @@
+<!--
+  Block: trust-galerie — Referenz-Galerie (Vorher/Nachher Masonry)
+  Kategorie: TRUST
+  Slots: section_headline, section_subline, img_1..6_url, img_1..6_caption
+-->
+<section data-block="trust-galerie" class="bg-white py-16 md:py-20 px-6" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-10 max-w-2xl mx-auto">
+      <h2 class="text-3xl md:text-4xl font-black uppercase text-gray-900 tracking-tight mb-3">{{section_headline}}</h2>
+      <p class="text-base text-slate-600 leading-relaxed">{{section_subline}}</p>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+      <figure class="group relative overflow-hidden rounded-2xl row-span-2">
+        <img src="{{img_1_url}}" alt="{{img_1_caption}}" class="w-full h-full object-cover aspect-[3/4] group-hover:scale-105 transition duration-500" loading="lazy">
+        <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-gray-900/95 to-transparent text-white p-4 text-sm font-semibold opacity-0 group-hover:opacity-100 transition">{{img_1_caption}}</figcaption>
+      </figure>
+      <figure class="group relative overflow-hidden rounded-2xl">
+        <img src="{{img_2_url}}" alt="{{img_2_caption}}" class="w-full h-full object-cover aspect-square group-hover:scale-105 transition duration-500" loading="lazy">
+        <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-gray-900/95 to-transparent text-white p-4 text-sm font-semibold opacity-0 group-hover:opacity-100 transition">{{img_2_caption}}</figcaption>
+      </figure>
+      <figure class="group relative overflow-hidden rounded-2xl">
+        <img src="{{img_3_url}}" alt="{{img_3_caption}}" class="w-full h-full object-cover aspect-square group-hover:scale-105 transition duration-500" loading="lazy">
+        <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-gray-900/95 to-transparent text-white p-4 text-sm font-semibold opacity-0 group-hover:opacity-100 transition">{{img_3_caption}}</figcaption>
+      </figure>
+      <figure class="group relative overflow-hidden rounded-2xl">
+        <img src="{{img_4_url}}" alt="{{img_4_caption}}" class="w-full h-full object-cover aspect-square group-hover:scale-105 transition duration-500" loading="lazy">
+        <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-gray-900/95 to-transparent text-white p-4 text-sm font-semibold opacity-0 group-hover:opacity-100 transition">{{img_4_caption}}</figcaption>
+      </figure>
+      <figure class="group relative overflow-hidden rounded-2xl">
+        <img src="{{img_5_url}}" alt="{{img_5_caption}}" class="w-full h-full object-cover aspect-square group-hover:scale-105 transition duration-500" loading="lazy">
+        <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-gray-900/95 to-transparent text-white p-4 text-sm font-semibold opacity-0 group-hover:opacity-100 transition">{{img_5_caption}}</figcaption>
+      </figure>
+      <figure class="group relative overflow-hidden rounded-2xl col-span-2 md:col-span-1">
+        <img src="{{img_6_url}}" alt="{{img_6_caption}}" class="w-full h-full object-cover aspect-[16/9] md:aspect-square group-hover:scale-105 transition duration-500" loading="lazy">
+        <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-gray-900/95 to-transparent text-white p-4 text-sm font-semibold opacity-0 group-hover:opacity-100 transition">{{img_6_caption}}</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>

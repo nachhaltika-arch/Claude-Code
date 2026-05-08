@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
@@ -149,7 +150,6 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
           phone:        form.phone.trim(),
           lead_source:  'manual',
           status:       'won',
-          package_type: form.paket,
         }),
       });
       if (!leadRes.ok) {
@@ -160,13 +160,26 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
 
       const projRes = await fetch(`${API_BASE_URL}/api/projects/from-lead/${lead.id}`, {
         method: 'POST', headers: h,
+        body: JSON.stringify({ package_type: form.paket }),
       });
-      if (!projRes.ok && projRes.status !== 409) {
-        throw new Error('Projekt konnte nicht angelegt werden');
+      const projBody = await projRes.json().catch(() => ({}));
+      if (projRes.status === 409) {
+        // Backend liefert detail.project_id für das existierende Projekt zurück.
+        const existingId = projBody?.detail?.project_id;
+        if (existingId) {
+          toast(`Projekt existiert bereits — wird geöffnet`);
+          onCreated(existingId);
+          return;
+        }
+        throw new Error('Projekt existiert bereits, konnte aber nicht aufgelöst werden');
       }
-      const proj = await projRes.json();
+      if (!projRes.ok) {
+        const detail = projBody?.detail;
+        const msg = typeof detail === 'string' ? detail : detail?.message || 'Projekt konnte nicht angelegt werden';
+        throw new Error(msg);
+      }
       toast.success(`Projekt für ${form.company_name} angelegt`);
-      onCreated(proj.project_id);
+      onCreated(projBody.id);
     } catch (err) {
       toast.error(err.message || 'Fehler beim Anlegen');
     } finally {
@@ -182,9 +195,9 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
   };
   const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 };
 
-  return (
+  return createPortal(
     <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' }}>
         {/* Header */}
         <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
@@ -248,7 +261,8 @@ function OnlineFertigModal({ token, onClose, onCreated }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -272,13 +286,6 @@ function ImpulsModal({ token, onClose, onCreated }) {
       ? form.website_url.trim()
       : `https://${form.website_url.trim()}`;
 
-    const isbNotes = [
-      form.isb_antrag_datum      ? `ISB-Antrag: ${form.isb_antrag_datum}` : '',
-      form.isb_bewilligung_datum ? `ISB-Bewilligung: ${form.isb_bewilligung_datum}` : '',
-      form.foerder_volumen       ? `Fördervolumen: ${form.foerder_volumen} €` : '',
-      form.tagewerke             ? `Tagewerke: ${form.tagewerke}` : '',
-    ].filter(Boolean).join(' | ');
-
     setSaving(true);
     try {
       const leadRes = await fetch(`${API_BASE_URL}/api/leads/`, {
@@ -291,7 +298,6 @@ function ImpulsModal({ token, onClose, onCreated }) {
           phone:        form.phone.trim(),
           lead_source:  'isb_impuls',
           status:       'won',
-          notes:        isbNotes || undefined,
         }),
       });
       if (!leadRes.ok) {
@@ -302,11 +308,31 @@ function ImpulsModal({ token, onClose, onCreated }) {
 
       const projRes = await fetch(`${API_BASE_URL}/api/projects/from-lead/${lead.id}`, {
         method: 'POST', headers: h,
+        body: JSON.stringify({
+          project_type:          'impuls',
+          isb_antrag_datum:      form.isb_antrag_datum || undefined,
+          isb_bewilligung_datum: form.isb_bewilligung_datum || undefined,
+          foerder_volumen:       form.foerder_volumen || undefined,
+          isb_tagewerke:         form.tagewerke || undefined,
+        }),
       });
-      if (!projRes.ok && projRes.status !== 409) throw new Error('Projekt konnte nicht angelegt werden');
-      const proj = await projRes.json();
+      const projBody = await projRes.json().catch(() => ({}));
+      if (projRes.status === 409) {
+        const existingId = projBody?.detail?.project_id;
+        if (existingId) {
+          toast(`IMPULS-Projekt existiert bereits — wird geöffnet`);
+          onCreated(existingId);
+          return;
+        }
+        throw new Error('Projekt existiert bereits, konnte aber nicht aufgelöst werden');
+      }
+      if (!projRes.ok) {
+        const detail = projBody?.detail;
+        const msg = typeof detail === 'string' ? detail : detail?.message || 'Projekt konnte nicht angelegt werden';
+        throw new Error(msg);
+      }
       toast.success(`IMPULS-Projekt für ${form.company_name} angelegt`);
-      onCreated(proj.project_id);
+      onCreated(projBody.id);
     } catch (err) {
       toast.error(err.message || 'Fehler beim Anlegen');
     } finally {
@@ -318,9 +344,9 @@ function ImpulsModal({ token, onClose, onCreated }) {
   const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 };
   const numInp = { ...inp, width: '100%' };
 
-  return (
-    <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
-      <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 500, display: 'flex', flexDirection: 'column', margin: 'auto' }}>
+  return createPortal(
+    <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 500, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' }}>
         {/* Header */}
         <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
@@ -395,7 +421,8 @@ function ImpulsModal({ token, onClose, onCreated }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -20,6 +20,7 @@ services:
     runtime: python
     region: frankfurt
     plan: starter
+    branch: main
     rootDir: kompagnon/backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 30
@@ -98,6 +99,7 @@ services:
     runtime: node
     region: frankfurt
     plan: starter
+    branch: main
     rootDir: kompagnon/frontend
     buildCommand: npm ci --legacy-peer-deps && npm run build
     startCommand: npx serve -s build -l $PORT
@@ -109,3 +111,7 @@ services:
         value: https://claude-code-znq2.onrender.com
       - key: CI
         value: "false"   # Build nicht durch React-Warnings abbrechen
+      # GrapesJS Studio SDK License Key — uebersteuert den hardcoded Fallback
+      # in src/utils/studioEditorConfig.js:22. Im Render Dashboard setzen.
+      - key: REACT_APP_GJS_LICENSE_KEY
+        sync: false

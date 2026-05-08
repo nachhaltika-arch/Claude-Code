@@ -131,3 +131,6 @@ services:
         sync: false
       - key: CI
         value: "false"
+      # GrapesJS Studio SDK License Key — uebersteuert den hardcoded Fallback.
+      - key: REACT_APP_GJS_LICENSE_KEY
+        sync: false

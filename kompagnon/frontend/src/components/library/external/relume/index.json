@@ -1,0 +1,7 @@
+{
+  "_status": "REMOVED",
+  "_reason": "Relume Licensing Agreement (https://www.relume.io/legal/licensing-agreement) verbietet 're-distribution regardless of any modifications' und Component-Integration in 'similar / competing products'. KAS als Site-Generator mit eingebauter Library faellt in diese Kategorie. Folder bleibt als Marker bestehen, damit die Auto-Cleanup-Pipeline alte Eintraege beim naechsten Backend-Start aus der DB entfernt.",
+  "_decision_date": "2026-05-06",
+  "_replacement_strategy": "Migration auf MIT-lizenzierte Bibliotheken: HyperUI (schon drin), Flowbite, Preline UI, DaisyUI, Tailblocks. Plus eigens kuratierte SHK-spezifische Templates.",
+  "components": []
+}

@@ -1,0 +1,44 @@
+<!--
+  Block: trust-team — Team-Vorstellung (4 Personen)
+  Kategorie: TRUST
+  Slots: section_headline, section_subline,
+         member_1..4_image, member_1..4_name, member_1..4_role
+-->
+<section data-block="trust-team" class="bg-slate-50 py-16 md:py-20 px-6" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-12 max-w-2xl mx-auto">
+      <h2 class="text-3xl md:text-4xl font-black uppercase text-gray-900 tracking-tight mb-3">{{section_headline}}</h2>
+      <p class="text-base text-slate-600 leading-relaxed">{{section_subline}}</p>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+      <article class="text-center">
+        <div class="w-32 h-32 md:w-40 md:h-40 mx-auto mb-4 rounded-full overflow-hidden ring-4 ring-white shadow-lg">
+          <img src="{{member_1_image}}" alt="{{member_1_name}}" class="w-full h-full object-cover" loading="lazy">
+        </div>
+        <h3 class="text-base md:text-lg font-black uppercase text-gray-900 tracking-tight mb-1">{{member_1_name}}</h3>
+        <p class="text-xs md:text-sm text-slate-500 leading-snug">{{member_1_role}}</p>
+      </article>
+      <article class="text-center">
+        <div class="w-32 h-32 md:w-40 md:h-40 mx-auto mb-4 rounded-full overflow-hidden ring-4 ring-white shadow-lg">
+          <img src="{{member_2_image}}" alt="{{member_2_name}}" class="w-full h-full object-cover" loading="lazy">
+        </div>
+        <h3 class="text-base md:text-lg font-black uppercase text-gray-900 tracking-tight mb-1">{{member_2_name}}</h3>
+        <p class="text-xs md:text-sm text-slate-500 leading-snug">{{member_2_role}}</p>
+      </article>
+      <article class="text-center">
+        <div class="w-32 h-32 md:w-40 md:h-40 mx-auto mb-4 rounded-full overflow-hidden ring-4 ring-white shadow-lg">
+          <img src="{{member_3_image}}" alt="{{member_3_name}}" class="w-full h-full object-cover" loading="lazy">
+        </div>
+        <h3 class="text-base md:text-lg font-black uppercase text-gray-900 tracking-tight mb-1">{{member_3_name}}</h3>
+        <p class="text-xs md:text-sm text-slate-500 leading-snug">{{member_3_role}}</p>
+      </article>
+      <article class="text-center">
+        <div class="w-32 h-32 md:w-40 md:h-40 mx-auto mb-4 rounded-full overflow-hidden ring-4 ring-white shadow-lg">
+          <img src="{{member_4_image}}" alt="{{member_4_name}}" class="w-full h-full object-cover" loading="lazy">
+        </div>
+        <h3 class="text-base md:text-lg font-black uppercase text-gray-900 tracking-tight mb-1">{{member_4_name}}</h3>
+        <p class="text-xs md:text-sm text-slate-500 leading-snug">{{member_4_role}}</p>
+      </article>
+    </div>
+  </div>
+</section>

@@ -494,6 +494,14 @@ def _run_migrations():
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS go_live_date DATE",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS package_type VARCHAR DEFAULT 'kompagnon'",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS payment_status VARCHAR DEFAULT 'offen'",
+        # ── Project-Type + ISB-Förder-Felder (IMPULS-Projekt, ISB-158) ──────
+        # Vorher landeten Antrag/Bewilligung/Volumen/Tagewerke als Pipe-Text
+        # in leads.notes — nicht queryable. Jetzt strukturiert auf projects.
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_type VARCHAR(20) DEFAULT 'standard'",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS isb_antrag_datum DATE",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS isb_bewilligung_datum DATE",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS foerder_volumen NUMERIC(10,2)",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS isb_tagewerke INTEGER",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS desired_pages TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS has_logo BOOLEAN DEFAULT false",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS has_briefing BOOLEAN DEFAULT false",
@@ -768,6 +776,14 @@ def _run_migrations():
         "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS full_text TEXT",
         "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS images TEXT DEFAULT '[]'",
         "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS files TEXT DEFAULT '[]'",
+        # Hotfix 2026-05-04: h3s + links_internal + links_external waren nur
+        # in routers/crawler.py:190-195 als Lazy-Migration registriert (laeuft
+        # erst beim ersten Crawler-Save). Auf frischer Staging-DB fehlten sie
+        # daher dem GET /api/crawler/content/{lead_id} Endpoint, der mit 500
+        # crashte (UndefinedColumn h3s).
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS h3s TEXT DEFAULT '[]'",
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS links_internal TEXT DEFAULT '[]'",
+        "ALTER TABLE website_content_cache ADD COLUMN IF NOT EXISTS links_external TEXT DEFAULT '[]'",
         """CREATE INDEX IF NOT EXISTS idx_website_content_cache_customer
            ON website_content_cache(customer_id)""",
         # Netlify-Integration (NETLIFY_API_TOKEN env-Variable erforderlich)
@@ -1056,6 +1072,62 @@ def _run_migrations():
         #       "fallstudien_3","guarantee_block","faq","cta_final"]
         # Siehe docs/conversion-spec-shk.md + docs/kas-pipeline-architecture.md
         "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS sections_json TEXT",
+        # ── Phase 1 Crawl-Import (2026-05-05): Bestand-Sitemap aus Kunden-Site ─
+        # source unterscheidet 'manual' (CRUD), 'ki_generated' (KI-Vorschlag),
+        # 'crawled' (aus Bestands-Website importiert). original_url speichert die
+        # ursprüngliche URL bei gecrawlten Seiten. replaces_page_ids ist ein
+        # JSON-Array von sitemap_page-IDs, die ein KI-Vorschlag konsolidiert.
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'manual'",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS original_url TEXT",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS replaces_page_ids TEXT",
+        # ── Relume-Parität R1 (2026-05-05): per-Page-KI-Prompt + User-Color-Tag.
+        # ai_prompt: optionaler Per-Page-„Goal"-Text, der dem KI-Content-Writer
+        # zusätzlichen Kontext gibt. color_tag: User-frei wählbarer Hex-Code für
+        # visuelle Organisation (vs page_type-Farbe, die fix vom Type kommt).
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS ai_prompt TEXT",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS color_tag VARCHAR(7)",
+        # ── Relume-Parität R2 Feature 4 (2026-05-05): Alternative-Sitemap-Variants.
+        # 'primary' = aktuelle Live-Sitemap. 'variant' = parallele KI-Alternative
+        # zum Vergleich. Pflichtseiten + Bestand sind immer 'primary'; nur
+        # KI-Vorschläge können 'variant' sein. Promote ersetzt primary durch variant.
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS variant VARCHAR(20) DEFAULT 'primary'",
+        # ── Phase 4 (2026-05-07): Page-Groups. Eine Page kann als 'Gruppe'
+        # markiert sein — die Gruppe traegt einen Default-Section-Plan, alle
+        # Kind-Seiten erben den Plan automatisch (Showcase/Portfolio-Pattern).
+        # is_group=true verwandelt die Karte visuell in einen Gruppen-Container,
+        # group_template_sections speichert die geteilten Sections als JSON-Array.
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS is_group BOOLEAN DEFAULT false",
+        "ALTER TABLE sitemap_pages ADD COLUMN IF NOT EXISTS group_template_sections TEXT",
+        # ── Hotfix 2026-05-04: steps_confirmed war nur in migrations.py
+        # (Standalone-Script, lief nie beim Backend-Start). Auf der frischen
+        # Staging-DB fehlte die Spalte komplett — routers/projects.py warf
+        # 500 Internal Server Error bei jedem GET /api/projects/{id}.
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS steps_confirmed TEXT DEFAULT '{}'",
+        # ── Hotfix 2026-05-07: briefing_submitted_at ist im manuellen SQL-Script
+        # (migrations/manual/2026-05-04-backfill-phase2.sql) befuellt, das ALTER
+        # TABLE wurde aber nie auto-ausgefuehrt. Resultat: AttributeError beim
+        # POST /api/briefings/{id}, weil routers/briefings.py die Spalte setzt.
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS briefing_submitted_at TIMESTAMP",
+        # ── Component Library (Wireframe-Blocks) — Schritt A ────────────────
+        # Speichert die 41 HTML+Tailwind-Templates fuer den KI-Wireframe-
+        # Generator. Seed via seeds/seed_component_library.py (Schritt C).
+        # Siehe database.py:ComponentLibrary fuer das ORM-Mapping.
+        """CREATE TABLE IF NOT EXISTS component_library (
+            id              SERIAL PRIMARY KEY,
+            slug            VARCHAR(50) UNIQUE NOT NULL,
+            name            VARCHAR(100) NOT NULL,
+            category        VARCHAR(50) NOT NULL,
+            tags            JSONB DEFAULT '[]'::jsonb,
+            html_template   TEXT NOT NULL,
+            slots           JSONB DEFAULT '[]'::jsonb,
+            ki_prompt_hint  TEXT,
+            preview_note    TEXT,
+            created_at      TIMESTAMP DEFAULT NOW()
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_component_library_category ON component_library(category)",
+        # Wireframe-Daten pro Projekt: Block-Zuweisungen + Slot-Werte pro
+        # Sitemap-Seite. Wird vom KI-Generator (Schritt D) befuellt.
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS wireframe_data JSONB DEFAULT '[]'::jsonb",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -1457,6 +1529,16 @@ async def lifespan(app: FastAPI):
             finally:
                 _db.close()
 
+        def _component_library_seed():
+            """Step C: HTML-Block-Templates aus Frontend-Repo in DB syncen."""
+            from seeds.seed_component_library import seed_component_library
+            from database import SessionLocal
+            _db = SessionLocal()
+            try:
+                seed_component_library(_db)
+            finally:
+                _db.close()
+
         def _ping_db():
             """Simple DB ping to ensure connection is ready."""
             from sqlalchemy import text
@@ -1511,6 +1593,7 @@ async def lifespan(app: FastAPI):
                 ("Disable demo accounts", _disable_demo_accounts_in_production, 10.0),
                 ("Academy seed",  _academy_seed,         10.0),
                 ("Deals migration", _deals_migration,    15.0),
+                ("Component library seed", _component_library_seed, 15.0),
                 ("Scheduler",     start_scheduler,       15.0),
             ]
             for name, fn, timeout in phases:
@@ -1675,6 +1758,16 @@ app.include_router(webhooks.router)
 
 from routers import retainer
 app.include_router(retainer.router)
+
+# Component-Library + KI-Wireframe-Generator (Step D des Online-Fertig-Redesigns).
+# Zwei Router in einer Datei: /api/components fuer die Bibliothek, /api/projects/...
+# fuer Wireframe-CRUD + Generator-Job.
+from routers.component_library import (
+    component_router as component_library_router,
+    wireframe_router as wireframe_router,
+)
+app.include_router(component_library_router)
+app.include_router(wireframe_router)
 
 
 from routers.products import router as products_router

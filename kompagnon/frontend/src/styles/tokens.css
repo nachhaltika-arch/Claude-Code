@@ -46,11 +46,14 @@
   --text-brand:       var(--kc-mid);
 
   /* ── Brand Aliases ──────────────────────────────────────────── */
-  /* Legacy: --brand-primary zeigt auf Mid Teal — bleibt für bestehende
-     Komponenten kompatibel. Neue Komponenten sollen --brand-primary-dark
-     (Dark Teal #004F59 = Guideline-dominante Primärfarbe) oder
-     --brand-primary-mid (Mid Teal #008EAA = Sekundär/Links) nutzen. */
-  --brand-primary:        var(--kc-mid);
+  /* --brand-primary jetzt auf Dark Teal (Guideline-dominante
+     Primärfarbe). Vorher zeigte der Token auf Mid Teal als
+     Backwards-Compat — Switch landete 2026-05-08, akzeptiert
+     visuelles Chaos in der Übergangszeit (Links/Outlines dunkler
+     als doc-empfohlen, sind iterativ auf --brand-primary-mid zu
+     ziehen). Dark-Mode-Override unten lässt --brand-primary auf
+     --kc-mid für Lesbarkeit gegen dunklen Background. */
+  --brand-primary:        var(--kc-dark);
   --brand-primary-light:  var(--info-bg);
   --brand-primary-mid:    var(--kc-mid);
   --brand-primary-dark:   var(--kc-dark);

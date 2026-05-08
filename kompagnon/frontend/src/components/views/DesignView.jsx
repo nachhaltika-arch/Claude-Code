@@ -169,7 +169,7 @@ ${blocksHtml}
         <h1 style={{ fontSize: 20, fontWeight: 900, color: KC_DARK, textTransform: 'uppercase', marginBottom: 8 }}>
           Design gesperrt
         </h1>
-        <p style={{ fontSize: 14, color: '#64748b', maxWidth: 480, margin: '0 auto', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 480, margin: '0 auto', lineHeight: 1.6 }}>
           Bitte zunächst den Style Guide an den Kunden zur Freigabe senden.
           Sobald die Freigabe vorliegt, wird diese Ansicht automatisch entsperrt.
         </p>
@@ -179,7 +179,7 @@ ${blocksHtml}
 
   if (wfPages.length === 0) {
     return (
-      <div style={{ padding: 24, textAlign: 'center', color: '#64748b', fontFamily: 'var(--font-sans, "Noto Sans", sans-serif)' }}>
+      <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans, "Noto Sans", sans-serif)' }}>
         <div style={{ fontSize: 32, marginBottom: 8 }}>🖼</div>
         <div style={{ fontSize: 14, color: KC_DARK, fontWeight: 600 }}>
           Noch kein Wireframe — bitte zuerst die Sitemap- und Wireframe-Schritte abschließen.
@@ -194,14 +194,14 @@ ${blocksHtml}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
         padding: '10px 18px',
-        background: '#f8fafc', borderBottom: '1px solid #e2e8f0',
+        background: 'var(--bg-app)', borderBottom: '1px solid var(--border-light)',
         fontSize: 11,
       }}>
         <SourceBadge label="Sitemap" value={`${sitemapPages.length} Page${sitemapPages.length === 1 ? '' : 's'}`} icon="🗺" />
         <SourceBadge label="Wireframe" value={`${totalBlocks} Block${totalBlocks === 1 ? '' : 's'}`} icon="🧱" />
         <SourceBadge label="Style-Guide" value={styleHasOverrides ? 'Custom' : 'Default'} icon="🎨" />
         <div style={{ flex: 1 }} />
-        <span style={{ color: '#94a3b8', fontSize: 10 }}>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: 10 }}>
           {libraryLoading ? '⟳ Templates werden geladen…' : 'Live-Vorschau aktualisiert sich automatisch'}
         </span>
       </div>
@@ -210,10 +210,10 @@ ${blocksHtml}
         {/* Linke Spalte: Sitemap-Tree + Aktionen */}
         <aside style={{
           width: 240, flexShrink: 0,
-          background: '#f8fafc', borderRight: '1px solid #e2e8f0',
-          padding: 14, overflowY: 'auto',
+          background: 'var(--bg-app)', borderRight: '1px solid var(--border-light)',
+          padding: 16, overflowY: 'auto',
         }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
             Sitemap
           </div>
           {sitemapPages.length === 0 ? (
@@ -243,9 +243,9 @@ ${blocksHtml}
           )}
 
           <div style={{
-            fontSize: 10, fontWeight: 700, color: '#64748b',
+            fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)',
             textTransform: 'uppercase', letterSpacing: '0.1em',
-            marginBottom: 8, paddingTop: 14, borderTop: '1px solid #e2e8f0',
+            marginBottom: 8, paddingTop: 16, borderTop: '1px solid var(--border-light)',
           }}>
             Aktionen
           </div>
@@ -264,13 +264,13 @@ ${blocksHtml}
         </aside>
 
         {/* Rechte Spalte: Live-Vorschau */}
-        <main style={{ flex: 1, overflow: 'auto', background: '#e2e8f0' }}>
+        <main style={{ flex: 1, overflow: 'auto', background: 'var(--surface)' }}>
           {/* Page-Header in der Vorschau (Breadcrumb aus Sitemap) */}
           {activeSitemapPage && (
             <div style={{
               padding: '10px 18px',
-              background: '#fff', borderBottom: '1px solid #e2e8f0',
-              fontSize: 11, color: '#64748b',
+              background: '#fff', borderBottom: '1px solid var(--border-light)',
+              fontSize: 11, color: 'var(--text-secondary)',
               display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
             }}>
               <Breadcrumb page={activeSitemapPage} sitemapPages={sitemapPages} />
@@ -278,7 +278,7 @@ ${blocksHtml}
                 <span title="Pflichtseite" style={{ marginLeft: 4 }}>🔒</span>
               )}
               <span style={{ flex: 1 }} />
-              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10, color: '#94a3b8' }}>
+              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10, color: 'var(--text-tertiary)' }}>
                 /{slugify(activeSitemapPage.page_name)}
               </span>
             </div>
@@ -298,7 +298,7 @@ ${blocksHtml}
               // eslint-disable-next-line react/no-danger
               <div dangerouslySetInnerHTML={{ __html: renderedHTML }} />
             ) : (
-              <div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>
+              <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-secondary)' }}>
                 {libraryLoading ? 'Vorschau wird gerendert…' : 'Diese Seite hat keine Blöcke.'}
               </div>
             )}
@@ -318,10 +318,10 @@ function SourceBadge({ label, value, icon }) {
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
       padding: '4px 10px',
-      background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6,
+      background: '#fff', border: '1px solid var(--border-light)', borderRadius: 6,
     }}>
       <span aria-hidden style={{ fontSize: 12 }}>{icon}</span>
-      <span style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </span>
       <span style={{ fontSize: 11, fontWeight: 700, color: KC_DARK }}>{value}</span>
@@ -376,7 +376,7 @@ function PageButton({ label, isActive, onClick, isPflicht, hasWireframe = true, 
         padding: '6px 10px', paddingLeft: 10 + indent * 14,
         borderRadius: 6, border: 'none',
         background: isActive ? KC_DARK : 'transparent',
-        color: isActive ? '#fff' : '#334155',
+        color: isActive ? '#fff' : 'var(--text-secondary)',
         fontSize: 12, fontWeight: isActive ? 700 : 500,
         cursor: 'pointer', fontFamily: 'inherit',
         display: 'flex', alignItems: 'center', gap: 6,
@@ -411,8 +411,8 @@ function Breadcrumb({ page, sitemapPages }) {
     <span>
       {path.map((p, i) => (
         <span key={p.id}>
-          {i > 0 && <span style={{ color: '#cbd5e1', margin: '0 6px' }}>›</span>}
-          <span style={{ color: i === path.length - 1 ? KC_DARK : '#64748b', fontWeight: i === path.length - 1 ? 700 : 500 }}>
+          {i > 0 && <span style={{ color: 'var(--border-medium)', margin: '0 6px' }}>›</span>}
+          <span style={{ color: i === path.length - 1 ? KC_DARK : 'var(--text-secondary)', fontWeight: i === path.length - 1 ? 700 : 500 }}>
             {p.page_name}
           </span>
         </span>
@@ -445,7 +445,7 @@ function buildOverrideCSS(styleGuide) {
   const bg     = palette.bg_primary  || colors.background || '#fff';
   const surf   = palette.bg_surface  || '#f8fafc';
   const text   = palette.text_primary|| colors.text       || '#0a0a0a';
-  const muted  = palette.text_muted  || '#64748b';
+  const muted  = palette.text_muted  || 'var(--text-secondary)';
   const border = palette.border      || '#e2e8f0';
   const acc1   = palette.accent_1    || colors.primary    || '#0a0a0a';
   const acc2   = palette.accent_2    || colors.accent     || '#FAE600';
@@ -546,13 +546,13 @@ const btnBase = {
   width: '100%',
   border: 'none',
   borderRadius: 8,
-  padding: '9px 12px',
+  padding: '8px 12px',
   fontSize: 12,
   fontWeight: 700,
   cursor: 'pointer',
   textAlign: 'center',
   fontFamily: 'inherit',
 };
-const btnPrimary = { ...btnBase, background: KC_MID, color: '#fff' };
+const btnPrimary = { ...btnBase, background: KC_DARK, color: '#fff' };
 const btnSecondary = { ...btnBase, background: 'transparent', color: KC_DARK, border: `1.5px solid ${KC_DARK}` };
 const btnAccent = { ...btnBase, background: KC_YELLOW, color: '#000', textTransform: 'uppercase', letterSpacing: '0.04em' };

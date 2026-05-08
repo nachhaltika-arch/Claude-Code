@@ -147,6 +147,48 @@
       "ki_prompt_hint": "Wähle diesen Block bei Premium-Handwerkern oder wenn ein hoher Beratungsanspruch transportiert werden soll (z. B. Energieberater, Architekt-Anbindung, Wärmepumpen-Spezialist). Dunkle linke Hälfte signalisiert Seriosität, helle Bildhälfte zeigt das Produkt.",
       "preview_note": "Linke Hälfte: dunkles Teal #004F59 mit weißer Headline + CTA. Rechte Hälfte: helles Foto. 50/50-Split, klare Kontrast-Komposition."
     },
+    {
+      "slug": "hero-image-video",
+      "name": "Hero mit Bild + Video-Overlay",
+      "category": "HERO",
+      "tags": ["hero", "split", "video", "image", "play"],
+      "slots": [
+        { "key": "headline_pre",       "label": "Headline (vor Highlight)",  "type": "text", "default": "Wir sind" },
+        { "key": "headline_highlight", "label": "Highlight-Wort",            "type": "text", "default": "Ihr starker Partner" },
+        { "key": "headline_post",      "label": "Headline (nach Highlight)", "type": "text", "default": "für Ihr Projekt" },
+        { "key": "subline",            "label": "Untertitel",                "type": "text", "default": "Mit über 20 Jahren Erfahrung im Handwerk realisieren wir Ihr Vorhaben — termintreu, sauber, persönlich." },
+        { "key": "cta_primary_text",   "label": "Primary-Button-Text",       "type": "text", "default": "Termin vereinbaren" },
+        { "key": "cta_primary_url",    "label": "Primary-Button-Ziel",       "type": "text", "default": "#kontakt" },
+        { "key": "cta_secondary_text", "label": "Sekundär-Link-Text",        "type": "text", "default": "Mehr erfahren" },
+        { "key": "cta_secondary_url",  "label": "Sekundär-Link-Ziel",        "type": "text", "default": "#leistungen" },
+        { "key": "image_url",          "label": "Hero-Bild-URL",             "type": "text", "default": "/placeholder-hero.jpg" },
+        { "key": "image_alt",          "label": "Bild-Alt-Text",             "type": "text", "default": "Hero-Bild" },
+        { "key": "video_label",        "label": "Video-Card-Label",          "type": "text", "default": "Imagefilm ansehen" },
+        { "key": "video_url",          "label": "Video-Ziel (Modal/Embed)",  "type": "text", "default": "#video" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block, wenn neben dem Hero-Bild ein zusätzlicher Imagefilm/Trust-Video transportiert werden soll. Die Video-Play-Card als Overlay über dem Hero-Image lenkt Aufmerksamkeit gezielt — gut für Handwerker mit ambitionierten Image-Filmen oder Kunden mit hoher Brand-Anmutung. Im Unterschied zu hero-video (Background-Video) bleibt der Hero ruhig und das Video ist eine bewusste User-Aktion.",
+      "preview_note": "2-Spalten Layout. Links: Headline mit hervorgehobenem Highlight-Wort, Lead-Paragraph, Primary-Button (rounded-full Dark) + Sekundär-Link. Rechts: Hero-Bild im 4:3-Ratio mit abgerundeten Ecken, dazu Video-Play-Card als Overlay unten links (dunkler Hintergrund mit weißem Play-Button)."
+    },
+    {
+      "slug": "hero-stats",
+      "name": "Hero mit Stats-Block",
+      "category": "HERO",
+      "tags": ["hero", "split", "stats", "kpi", "trust"],
+      "slots": [
+        { "key": "headline",     "label": "Hauptüberschrift", "type": "text", "default": "20 Jahre Handwerk in der Region" },
+        { "key": "subline",      "label": "Untertitel",       "type": "text", "default": "Wir kennen unser Handwerk — und unsere Kundschaft. Über zwei Jahrzehnte vertrauen Privatkunden und Hausverwaltungen unserer Erfahrung." },
+        { "key": "cta_text",     "label": "Button-Text",      "type": "text", "default": "Kostenlos beraten lassen" },
+        { "key": "cta_url",      "label": "Button-Ziel",      "type": "text", "default": "#kontakt" },
+        { "key": "stat_1_value", "label": "Stat 1 — Wert",    "type": "text", "default": "20+" },
+        { "key": "stat_1_label", "label": "Stat 1 — Label",   "type": "text", "default": "Jahre Erfahrung" },
+        { "key": "stat_2_value", "label": "Stat 2 — Wert",    "type": "text", "default": "5.000" },
+        { "key": "stat_2_label", "label": "Stat 2 — Label",   "type": "text", "default": "zufriedene Kunden" },
+        { "key": "stat_3_value", "label": "Stat 3 — Wert",    "type": "text", "default": "98%" },
+        { "key": "stat_3_label", "label": "Stat 3 — Label",   "type": "text", "default": "Weiterempfehlungs­rate" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block, wenn der Kunde Trust-Aufbau über Zahlen (Jahre Erfahrung, Kundenanzahl, Empfehlungsrate, Förderquote) priorisiert UND keine starken Foto-Assets verfügbar sind. Im Unterschied zu hero-standard (mit Bild) signalisiert die Stat-Card-Reihe rechts unmittelbar Größe und Reife. Drei Cards: außen hell, mittlere dunkel-inverted als visueller Anker.",
+      "preview_note": "2-Spalten Layout. Links: große Headline + Lead + Primary-Button. Rechts: 3 Stat-Cards nebeneinander (mobile gestapelt). Mittlere Card ist dunkel-invertiert (Dark Teal #004F59 bg, weiße Schrift) und leicht nach oben versetzt als Anker. Stat-Werte in dicker, condensed Schrift (Noto Sans Black 900)."
+    },
 
     {
       "slug": "leist-grid-3",

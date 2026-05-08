@@ -45,6 +45,7 @@ LIBRARY_VERSION_LOG = [
     "2026-05-06.2: relume-navbar-3 added (centered logo, left burger, drawer)",
     "2026-05-06.3: ALL Relume sections REMOVED (license-compliance, see external/relume/README.md). Auto-cleanup-pipeline loescht orphaned 'relume'-tagged DB rows beim Start.",
     "2026-05-07.1: Brand-Farben neutralisiert (Phase B). Alle non-gray Tailwind-Color-Klassen + Hex-Arbitrary-Values (#FAE600/#008EAA/#004F59/#0072B1/#25D366) durch gray-Equivalente ersetzt. 41 Files / 267 Replacements via tools/neutralize-library.js. Library ist jetzt Wireframe-only — Brand-CI kommt aus dem Style-Guide pro Kunde.",
+    "2026-05-08.1: hero-image-video + hero-stats added (POC für Envato-Inspirations-Pipeline). hero-image-video = Image rechts mit Video-Play-Card-Overlay (anders als hero-video Background-Variante). hero-stats = 3 Stat-Cards rechts statt Image, gut für Trust-Aufbau ohne Foto-Assets. Pattern-Inspiration aus agon-multipurpose-agency Template (Envato), Code komplett eigenständig + neutralisiert.",
 ]
 LIBRARY_VERSION = LIBRARY_VERSION_LOG[-1].split(":")[0]
 

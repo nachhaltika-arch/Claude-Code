@@ -16,6 +16,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 const KC_DARK = '#004F59';
+const KC_MID = '#008EAA';
 const KC_YELLOW = '#FAE600';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -633,15 +634,15 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
   return (
     <div style={{
       display: 'flex', flexDirection: 'column',
-      height: '100%', background: '#f8fafc',
+      height: '100%', background: 'var(--bg-app)',
       fontFamily: 'var(--font-sans, system-ui)',
     }}>
       {/* Topbar — minimal, Freigabe rechts */}
       <div style={{
         flexShrink: 0,
-        padding: '12px 22px',
+        padding: '12px 24px',
         background: '#fff',
-        borderBottom: '1px solid #e2e8f0',
+        borderBottom: '1px solid var(--border-light)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         gap: 16, flexWrap: 'wrap',
       }}>
@@ -650,7 +651,7 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
             fontSize: 18, fontWeight: 900, color: KC_DARK, margin: 0,
             textTransform: 'uppercase', letterSpacing: '-0.02em',
           }}>Style Guide</h1>
-          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
             Farben, Typografie, UI — links wählen, rechts Live-Preview.
           </div>
         </div>
@@ -663,9 +664,9 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
           )}
           <button type="button" onClick={onApprove} disabled={approved}
             style={{
-              background: approved ? '#cbd5e1' : KC_YELLOW,
+              background: approved ? 'var(--border-medium)' : KC_YELLOW,
               color: '#000', border: 'none', borderRadius: 8,
-              padding: '9px 16px', fontSize: 12, fontWeight: 800,
+              padding: '8px 16px', fontSize: 12, fontWeight: 800,
               cursor: approved ? 'default' : 'pointer',
               textTransform: 'uppercase', letterSpacing: '0.04em',
               fontFamily: 'inherit',
@@ -680,9 +681,9 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
         {/* Editor — Single-Column, scrollbar */}
         <div style={{
           flex: '0 0 640px',
-          overflowY: 'auto', padding: '20px 22px 100px',
+          overflowY: 'auto', padding: '20px 24px 96px',
           background: '#fff',
-          borderRight: '1px solid #e2e8f0',
+          borderRight: '1px solid var(--border-light)',
         }}>
           <ColorsSection
             palette={palette}
@@ -718,12 +719,12 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
         <div style={{
           flex: '1 1 auto', minWidth: 480,
           overflowY: 'auto',
-          background: '#f1f5f9',
+          background: 'var(--surface)',
           padding: 20,
           display: 'flex', flexDirection: 'column',
           position: 'relative',
         }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b',
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)',
             textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
             Live-Preview
           </div>
@@ -754,21 +755,21 @@ export default function StyleGuideView({ styleGuide, onChange, onApprove, approv
       {/* Footer — Scheme shuffle */}
       <div style={{
         flexShrink: 0,
-        background: '#fff', borderTop: '1px solid #e2e8f0',
-        padding: '10px 22px',
+        background: '#fff', borderTop: '1px solid var(--border-light)',
+        padding: '8px 24px',
         display: 'flex', justifyContent: 'center',
       }}>
         <button type="button" onClick={shuffleAll}
           style={{
-            background: 'transparent', color: '#7c3aed',
-            border: '1.5px solid #7c3aed', borderRadius: 8,
-            padding: '8px 18px', fontSize: 12, fontWeight: 700,
+            background: 'transparent', color: KC_MID,
+            border: `1.5px solid ${KC_MID}`, borderRadius: 8,
+            padding: '8px 16px', fontSize: 12, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', gap: 10,
           }}>
           <span>🎲 Scheme shuffle</span>
           <span style={{
-            background: '#f3f0ff', color: '#7c3aed',
+            background: 'var(--info-bg)', color: KC_MID,
             padding: '2px 8px', borderRadius: 4,
             fontSize: 10, fontWeight: 800, letterSpacing: '0.04em',
           }}>SPACE</span>
@@ -790,7 +791,7 @@ function SectionShell({ title, right, children }) {
         marginBottom: 12,
       }}>
         <h2 style={{
-          margin: 0, fontSize: 18, fontWeight: 800, color: '#0F172A',
+          margin: 0, fontSize: 18, fontWeight: 800, color: KC_DARK,
           letterSpacing: '-0.01em',
         }}>{title}</h2>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -807,16 +808,16 @@ function ShufflePin({ shortcut, onClick }) {
     <button type="button" onClick={onClick}
       title={`Würfeln (${shortcut})`}
       style={{
-        background: '#fff', color: '#475569',
-        border: '1px solid #e2e8f0', borderRadius: 6,
-        padding: '5px 10px', fontSize: 11, fontWeight: 700,
+        background: '#fff', color: 'var(--text-secondary)',
+        border: '1px solid var(--border-light)', borderRadius: 6,
+        padding: '4px 8px', fontSize: 11, fontWeight: 700,
         cursor: 'pointer', fontFamily: 'inherit',
         display: 'inline-flex', alignItems: 'center', gap: 6,
       }}>
       <span style={{ fontSize: 13 }}>⇄</span>
       <span>Shuffle</span>
       <span style={{
-        background: '#f1f5f9', color: '#475569',
+        background: 'var(--surface)', color: 'var(--text-secondary)',
         padding: '1px 5px', borderRadius: 3,
         fontSize: 10, fontWeight: 800, letterSpacing: '0.04em',
       }}>{shortcut}</span>
@@ -828,7 +829,7 @@ function LightDarkToggle({ lightDark, onToggle }) {
   return (
     <div style={{
       display: 'inline-flex',
-      border: '1px solid #e2e8f0', borderRadius: 6, overflow: 'hidden',
+      border: '1px solid var(--border-light)', borderRadius: 6, overflow: 'hidden',
       background: '#fff',
     }}>
       <button type="button" onClick={() => lightDark !== 'light' && onToggle()}
@@ -836,7 +837,7 @@ function LightDarkToggle({ lightDark, onToggle }) {
         style={{
           padding: '6px 10px',
           background: lightDark === 'light' ? '#fef9c3' : 'transparent',
-          color: lightDark === 'light' ? '#854d0e' : '#94a3b8',
+          color: lightDark === 'light' ? '#854d0e' : 'var(--text-tertiary)',
           border: 'none', cursor: 'pointer', fontSize: 13,
         }}>☀</button>
       <button type="button" onClick={() => lightDark !== 'dark' && onToggle()}
@@ -844,7 +845,7 @@ function LightDarkToggle({ lightDark, onToggle }) {
         style={{
           padding: '6px 10px',
           background: lightDark === 'dark' ? '#1e293b' : 'transparent',
-          color: lightDark === 'dark' ? '#fef9c3' : '#94a3b8',
+          color: lightDark === 'dark' ? '#fef9c3' : 'var(--text-tertiary)',
           border: 'none', cursor: 'pointer', fontSize: 13,
         }}>☾</button>
     </div>
@@ -921,7 +922,7 @@ function ColorTile({ label, hex, scale, isMain, onChangeHex, onResetAll }) {
       onClick={handleClick}
       style={{
         background: bg,
-        border: `1px solid ${hex ? 'transparent' : '#e2e8f0'}`,
+        border: `1px solid ${hex ? 'transparent' : 'var(--border-light)'}`,
         borderRadius: 10,
         padding: '14px 14px 0',
         cursor: isReadonly ? 'default' : 'pointer',
@@ -978,8 +979,8 @@ function ColorTile({ label, hex, scale, isMain, onChangeHex, onResetAll }) {
           title="Alle Color-Overrides zurücksetzen"
           style={{
             position: 'absolute', top: 8, right: 8,
-            background: 'rgba(255,255,255,0.85)', color: '#475569',
-            border: '1px solid #e2e8f0', borderRadius: 4,
+            background: 'rgba(255,255,255,0.85)', color: 'var(--text-secondary)',
+            border: '1px solid var(--border-light)', borderRadius: 4,
             padding: '2px 6px', fontSize: 9, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'inherit',
           }}>↻ Reset</button>
@@ -994,12 +995,12 @@ function AddColorTile() {
       title="Custom-Farbe (kommt bald)"
       style={{
         background: '#fafafa',
-        border: '2px dashed #e2e8f0',
+        border: '2px dashed var(--border-light)',
         borderRadius: 10,
         padding: '14px',
         minHeight: 130,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#cbd5e1', fontSize: 32, fontWeight: 300,
+        color: 'var(--border-medium)', fontSize: 32, fontWeight: 300,
         cursor: 'not-allowed',
       }}>+</div>
   );
@@ -1037,8 +1038,8 @@ function TypographySection({ typoPairing, fontScale, onScaleChange, onShuffle })
             onChange={(e) => onScaleChange(e.target.value)}
             style={{
               padding: '5px 10px',
-              border: '1px solid #e2e8f0', borderRadius: 6,
-              fontSize: 11, fontFamily: 'inherit', color: '#475569',
+              border: '1px solid var(--border-light)', borderRadius: 6,
+              fontSize: 11, fontFamily: 'inherit', color: 'var(--text-secondary)',
               background: '#fff', cursor: 'pointer', outline: 'none', fontWeight: 600,
             }}
           >
@@ -1064,23 +1065,23 @@ function TypoCard({ label, font, weight }) {
   return (
     <div style={{
       background: '#fff',
-      border: '1px solid #e2e8f0', borderRadius: 10,
+      border: '1px solid var(--border-light)', borderRadius: 10,
       padding: '14px 16px',
       minHeight: 130,
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
     }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {label}
       </div>
       <div style={{
         fontFamily: `'${font}', system-ui, sans-serif`, fontWeight: weight,
-        fontSize: 28, color: '#0F172A', letterSpacing: '-0.01em',
-        margin: '14px 0 12px',
+        fontSize: 28, color: KC_DARK, letterSpacing: '-0.01em',
+        margin: '16px 0 12px',
       }}>{font}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#64748b' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-secondary)' }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 4,
-          fontWeight: 700, color: '#0F172A',
+          fontWeight: 700, color: KC_DARK,
         }}>
           <span style={{
             display: 'inline-block', width: 14, height: 14,
@@ -1089,7 +1090,7 @@ function TypoCard({ label, font, weight }) {
           }} />
           Google
         </span>
-        <span style={{ color: '#cbd5e1' }}>|</span>
+        <span style={{ color: 'var(--border-medium)' }}>|</span>
         <span style={{ color: '#16a34a', fontWeight: 700 }}>Free</span>
       </div>
     </div>
@@ -1130,12 +1131,12 @@ function ButtonsFormsDemo({ palette, ui, variants, typo, forms, onClick }) {
       title="Klicken um den UI-Stil zu wechseln"
       style={{
         background: '#fff',
-        border: '1px solid #e2e8f0', borderRadius: 10,
+        border: '1px solid var(--border-light)', borderRadius: 10,
         padding: '16px 14px', cursor: 'pointer',
         minHeight: 200,
         display: 'flex', flexDirection: 'column', gap: 14,
       }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         Buttons & Forms
       </div>
 
@@ -1162,15 +1163,15 @@ function ButtonsFormsDemo({ palette, ui, variants, typo, forms, onClick }) {
 
       {/* Form-Demo */}
       <div>
-        <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
           Label
         </div>
         <div style={{
           padding: '8px 10px', fontSize: 11,
           color: forms.placeholder,
-          background: forms.style === 'filled' ? '#f8fafc' : 'transparent',
-          border: forms.style === 'underlined' ? 'none' : `1px solid ${forms.style === 'outlined' ? '#cbd5e1' : 'transparent'}`,
-          borderBottom: forms.style === 'underlined' ? '1px solid #cbd5e1' : undefined,
+          background: forms.style === 'filled' ? 'var(--bg-app)' : 'transparent',
+          border: forms.style === 'underlined' ? 'none' : `1px solid ${forms.style === 'outlined' ? 'var(--border-medium)' : 'transparent'}`,
+          borderBottom: forms.style === 'underlined' ? '1px solid var(--border-medium)' : undefined,
           borderRadius: forms.style === 'underlined' ? 0 : ui.button_radius,
         }}>Placeholder</div>
       </div>
@@ -1180,19 +1181,19 @@ function ButtonsFormsDemo({ palette, ui, variants, typo, forms, onClick }) {
 
 function CardsImagesDemo({ palette, ui, cardVariant, typo, card, variants, onClick }) {
   // Mini-Bild als CSS-Gradient (kein Asset noetig)
-  const imgBg = 'linear-gradient(135deg, #94a3b8 0%, #64748b 50%, #475569 100%)';
+  const imgBg = 'linear-gradient(135deg, var(--text-tertiary) 0%, var(--text-secondary) 50%, var(--text-secondary) 100%)';
 
   return (
     <div onClick={onClick}
       title="Klicken um die Card-Variante zu wechseln"
       style={{
         background: '#fff',
-        border: '1px solid #e2e8f0', borderRadius: 10,
+        border: '1px solid var(--border-light)', borderRadius: 10,
         padding: '16px 14px', cursor: 'pointer',
         minHeight: 200,
         display: 'flex', flexDirection: 'column', gap: 12,
       }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         Cards & Images
       </div>
 
@@ -1237,7 +1238,7 @@ function CardsImagesDemo({ palette, ui, cardVariant, typo, card, variants, onCli
         </div>
       </div>
 
-      <div style={{ fontSize: 9, color: '#94a3b8' }}>
+      <div style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>
         {cardVariant.label} · {ui.label}
       </div>
     </div>
@@ -1258,7 +1259,7 @@ function DeviceToggle({ device, onChange }) {
     <div style={{
       position: 'absolute', bottom: 16, right: 24,
       display: 'inline-flex',
-      background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8,
+      background: '#fff', border: '1px solid var(--border-light)', borderRadius: 8,
       padding: 3, gap: 1,
       boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
     }}>
@@ -1268,9 +1269,9 @@ function DeviceToggle({ device, onChange }) {
           <button key={it.id} type="button" onClick={() => onChange(it.id)}
             title={it.label}
             style={{
-              padding: '5px 9px',
-              background: active ? '#0F172A' : 'transparent',
-              color: active ? '#fff' : '#64748b',
+              padding: '4px 8px',
+              background: active ? KC_DARK : 'transparent',
+              color: active ? '#fff' : 'var(--text-secondary)',
               border: 'none', borderRadius: 5, cursor: 'pointer',
               fontSize: 13, fontFamily: 'inherit', fontWeight: 700,
               minWidth: 30,
@@ -1285,7 +1286,7 @@ function DeviceToggle({ device, onChange }) {
 }
 
 function DeviceIcon({ kind, active }) {
-  const stroke = active ? '#fff' : '#64748b';
+  const stroke = active ? '#fff' : 'var(--text-secondary)';
   if (kind === 'desktop') {
     return (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -16,7 +16,6 @@ import { useAuth } from '../../context/AuthContext';
 
 const KC_DARK = '#004F59';
 const KC_MID = '#008EAA';
-const KC_YELLOW = '#FAE600';
 
 const CATEGORIES = ['Alle', 'NAV', 'HERO', 'LEIST', 'TRUST', 'SEO', 'CTA', 'HW', 'FOOT'];
 
@@ -292,7 +291,7 @@ export default function WireframeView({
 
   if (pages.length === 0) {
     return (
-      <div style={{ padding: 24, textAlign: 'center', color: '#64748b', fontFamily: 'var(--font-sans, "Noto Sans", sans-serif)' }}>
+      <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontFamily: 'var(--font-sans, "Noto Sans", sans-serif)' }}>
         <div style={{ fontSize: 32, marginBottom: 8 }}>📐</div>
         <div style={{ fontSize: 15, fontWeight: 600, color: KC_DARK, marginBottom: 6 }}>
           Noch kein Wireframe vorhanden
@@ -309,16 +308,16 @@ export default function WireframeView({
       {/* Storyboard oben — alle Pages horizontal scrollbar (Relume-Style) */}
       <aside style={{
         flexShrink: 0,
-        background: '#f8fafc',
-        borderBottom: '1px solid #e2e8f0',
-        padding: '12px 16px 14px',
+        background: 'var(--bg-app)',
+        borderBottom: '1px solid var(--border-light)',
+        padding: '12px 16px',
         overflowX: 'auto', overflowY: 'hidden',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             Pages · {pages.length}
           </div>
-          <div style={{ fontSize: 10, color: '#94a3b8' }}>
+          <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
             Klick auf eine Page um sie unten zu bearbeiten
           </div>
         </div>
@@ -353,7 +352,7 @@ export default function WireframeView({
             <h1 style={{ fontSize: 20, fontWeight: 900, color: KC_DARK, margin: 0, textTransform: 'uppercase' }}>
               {activePage?.page_name || 'Seite'}
             </h1>
-            <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
               {activeBlocks.length} Block{activeBlocks.length === 1 ? '' : 's'}
               {saving && ' · speichert…'}
             </p>
@@ -362,7 +361,7 @@ export default function WireframeView({
             {/* W1 Relume-Parität: Responsive-Preview-Toggle */}
             <div style={{
               display: 'inline-flex', gap: 0,
-              border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden',
+              border: '1px solid var(--border-light)', borderRadius: 8, overflow: 'hidden',
             }}>
               {[
                 { id: 'mobile',  label: '📱', title: 'Mobile (375px)' },
@@ -376,9 +375,9 @@ export default function WireframeView({
                     onClick={() => setPreviewSize(s.id)}
                     style={{
                       background: active ? KC_DARK : 'transparent',
-                      color: active ? '#fff' : '#475569',
+                      color: active ? '#fff' : 'var(--text-secondary)',
                       border: 'none', cursor: 'pointer',
-                      padding: '6px 10px', fontSize: 14, lineHeight: 1,
+                      padding: '8px 12px', fontSize: 14, lineHeight: 1,
                       fontFamily: 'inherit',
                     }}
                   >
@@ -398,7 +397,7 @@ export default function WireframeView({
                 color: KC_DARK,
                 border: `1.5px solid ${KC_DARK}`,
                 borderRadius: 8,
-                padding: '8px 14px',
+                padding: '8px 16px',
                 fontSize: 12,
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -411,15 +410,15 @@ export default function WireframeView({
               onClick={onNavigateToStyleGuide}
               disabled={activeBlocks.length === 0}
               style={{
-                background: KC_MID,
+                background: KC_DARK,
                 color: '#fff',
                 border: 'none',
                 borderRadius: 8,
-                padding: '9px 16px',
+                padding: '8px 16px',
                 fontSize: 12,
                 fontWeight: 700,
                 cursor: activeBlocks.length === 0 ? 'not-allowed' : 'pointer',
-                opacity: activeBlocks.length === 0 ? 0.5 : 1,
+                opacity: activeBlocks.length === 0 ? 0.4 : 1,
               }}
             >
               Zu Style Guide →
@@ -465,9 +464,9 @@ export default function WireframeView({
                 style={{
                   textAlign: 'center',
                   padding: 32,
-                  border: '2px dashed #cbd5e1',
+                  border: '2px dashed var(--border-medium)',
                   borderRadius: 12,
-                  color: '#94a3b8',
+                  color: 'var(--text-tertiary)',
                   fontSize: 13,
                 }}
               >
@@ -510,13 +509,13 @@ export default function WireframeView({
             width: 340,
             flexShrink: 0,
             background: '#fff',
-            borderLeft: '1px solid #e2e8f0',
+            borderLeft: '1px solid var(--border-light)',
             display: 'flex',
             flexDirection: 'column',
             boxShadow: '-4px 0 12px rgba(0,0,0,0.04)',
           }}
         >
-          <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #e2e8f0' }}>
+          <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--border-light)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: KC_DARK, textTransform: 'uppercase' }}>
                 {swapPanel.mode === 'swap' ? 'Block tauschen' : 'Block hinzufügen'}
@@ -525,7 +524,7 @@ export default function WireframeView({
                 type="button"
                 onClick={() => setSwapPanel({ open: false, targetIdx: null, mode: 'swap' })}
                 aria-label="Schließen"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#64748b' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)' }}
               >
                 ✕
               </button>
@@ -538,7 +537,7 @@ export default function WireframeView({
               style={{
                 width: '100%',
                 padding: '7px 10px',
-                border: '1px solid #cbd5e1',
+                border: '1px solid var(--border-medium)',
                 borderRadius: 6,
                 fontSize: 12,
                 outline: 'none',
@@ -546,7 +545,7 @@ export default function WireframeView({
             />
           </div>
 
-          <div style={{ display: 'flex', gap: 4, padding: '8px 12px', borderBottom: '1px solid #e2e8f0', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', gap: 4, padding: '8px 12px', borderBottom: '1px solid var(--border-light)', overflowX: 'auto' }}>
             {CATEGORIES.map((cat) => (
               <button
                 key={cat}
@@ -557,7 +556,7 @@ export default function WireframeView({
                   border: 'none',
                   borderRadius: 4,
                   background: activeCategory === cat ? KC_DARK : 'transparent',
-                  color: activeCategory === cat ? '#fff' : '#475569',
+                  color: activeCategory === cat ? '#fff' : 'var(--text-secondary)',
                   fontSize: 10,
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -572,9 +571,9 @@ export default function WireframeView({
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
-            {libraryLoading && <div style={{ padding: 16, color: '#64748b', fontSize: 12 }}>Lädt…</div>}
+            {libraryLoading && <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>Lädt…</div>}
             {!libraryLoading && filteredLibrary.length === 0 && (
-              <div style={{ padding: 16, color: '#94a3b8', fontSize: 12 }}>
+              <div style={{ padding: 16, color: 'var(--text-tertiary)', fontSize: 12 }}>
                 Keine Treffer.
               </div>
             )}
@@ -641,7 +640,7 @@ function PageThumb({ page, library, isActive, onClick }) {
       style={{
         width: PAGE_W, flexShrink: 0,
         background: '#fff',
-        border: isActive ? '2px solid #008EAA' : '1px solid #e2e8f0',
+        border: isActive ? '2px solid #008EAA' : '1px solid var(--border-light)',
         borderRadius: 6, overflow: 'hidden',
         cursor: 'pointer', padding: 0,
         boxShadow: isActive ? '0 4px 12px rgba(0,142,170,0.20)' : 'none',
@@ -653,7 +652,7 @@ function PageThumb({ page, library, isActive, onClick }) {
       <div style={{
         height: 22, padding: '0 6px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: isActive ? '#004F59' : '#f8fafc',
+        background: isActive ? '#004F59' : 'var(--bg-app)',
         color: isActive ? '#fff' : '#334155',
         fontSize: 10, fontWeight: 700,
         whiteSpace: 'nowrap', overflow: 'hidden',
@@ -675,7 +674,7 @@ function PageThumb({ page, library, isActive, onClick }) {
           <div style={{
             position: 'absolute', inset: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#cbd5e1', fontSize: 9, fontStyle: 'italic',
+            color: 'var(--border-medium)', fontSize: 9, fontStyle: 'italic',
           }}>leer</div>
         ) : (
           <div style={{
@@ -690,9 +689,9 @@ function PageThumb({ page, library, isActive, onClick }) {
                 <div key={i} dangerouslySetInnerHTML={{ __html: html }} />
               ) : (
                 <div key={i} style={{
-                  height: 80, background: '#f1f5f9',
+                  height: 80, background: 'var(--surface)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#94a3b8', fontSize: 16,
+                  color: 'var(--text-tertiary)', fontSize: 16,
                 }}>{b.slug}</div>
               );
             })}
@@ -730,7 +729,7 @@ function BlockCard({
       style={{
         position: 'relative',
         background: '#fff',
-        border: isDragOver ? `2px dashed ${KC_MID}` : '1px solid #e2e8f0',
+        border: isDragOver ? `2px dashed ${KC_MID}` : '1px solid var(--border-light)',
         borderRadius: 8,
         overflow: 'hidden',
         opacity: isDragging ? 0.4 : 1,
@@ -743,16 +742,16 @@ function BlockCard({
         style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '6px 10px',
-          background: '#f8fafc', borderBottom: '1px solid #e2e8f0',
+          background: 'var(--bg-app)', borderBottom: '1px solid var(--border-light)',
           fontSize: 11,
         }}
       >
         <span
           aria-hidden title="Ziehen zum Sortieren"
-          style={{ cursor: 'grab', color: '#94a3b8', fontSize: 14, lineHeight: 1, userSelect: 'none' }}
+          style={{ cursor: 'grab', color: 'var(--text-tertiary)', fontSize: 14, lineHeight: 1, userSelect: 'none' }}
         >⠿</span>
         <span style={{
-          background: '#e2e8f0', color: '#475569',
+          background: 'var(--border-light)', color: 'var(--text-secondary)',
           fontSize: 9, fontWeight: 700,
           padding: '2px 6px', borderRadius: 3,
           textTransform: 'uppercase', letterSpacing: '0.05em',
@@ -762,7 +761,7 @@ function BlockCard({
           fontSize: 11, fontWeight: 700, color: KC_DARK,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{name}</span>
-        <span style={{ color: '#94a3b8', fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>
+        <span style={{ color: 'var(--text-tertiary)', fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>
           #{idx + 1}
         </span>
         <button
@@ -779,7 +778,7 @@ function BlockCard({
           type="button" onClick={(e) => { stop(e); onVariation(); }}
           title="Variante aus gleicher Kategorie vorschlagen"
           style={{
-            background: '#7c3aed', color: '#fff',
+            background: KC_MID, color: '#fff',
             border: 'none', borderRadius: 4,
             padding: '3px 8px', fontSize: 10, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'inherit',
@@ -818,7 +817,7 @@ function BlockCard({
         {html ? (
           <div dangerouslySetInnerHTML={{ __html: html }} />
         ) : (
-          <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: 12, fontStyle: 'italic' }}>
+          <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12, fontStyle: 'italic' }}>
             Keine Vorschau verfügbar (Library-Eintrag fehlt)
           </div>
         )}
@@ -840,7 +839,7 @@ function LibraryCard({ item, onPick, compact = false }) {
         width: '100%',
         textAlign: 'left',
         padding: 0,
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--border-light)',
         borderRadius: 8,
         background: '#fff',
         marginBottom: compact ? 6 : 8,
@@ -854,15 +853,15 @@ function LibraryCard({ item, onPick, compact = false }) {
         e.currentTarget.style.transform = 'translateY(-1px)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = '#e2e8f0';
+        e.currentTarget.style.borderColor = 'var(--border-light)';
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
       {item.html_template ? (
         <div style={{
           height: thumbHeight, overflow: 'hidden',
-          background: '#f8fafc',
-          borderBottom: '1px solid #e2e8f0',
+          background: 'var(--bg-app)',
+          borderBottom: '1px solid var(--border-light)',
           position: 'relative',
         }}>
           <div style={{
@@ -874,16 +873,16 @@ function LibraryCard({ item, onPick, compact = false }) {
         </div>
       ) : (
         <div style={{
-          height: 60, background: '#f1f5f9',
+          height: 60, background: 'var(--surface)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#94a3b8', fontSize: 10, fontStyle: 'italic',
+          color: 'var(--text-tertiary)', fontSize: 10, fontStyle: 'italic',
         }}>
           Keine Vorschau
         </div>
       )}
       <div style={{ padding: compact ? '6px 8px' : 8 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: KC_DARK, marginBottom: 2 }}>{item.name}</div>
-        <div style={{ fontSize: 9, color: '#64748b', fontFamily: 'ui-monospace, monospace' }}>{item.slug}</div>
+        <div style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace' }}>{item.slug}</div>
       </div>
     </button>
   );
@@ -1005,13 +1004,13 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
 
   const lblStyle = {
     display: 'block', fontSize: 10, fontWeight: 700,
-    color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em',
+    color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em',
     marginBottom: 4,
   };
   const inpStyle = {
     width: '100%', boxSizing: 'border-box',
     padding: '7px 10px',
-    border: '1px solid #cbd5e1', borderRadius: 6,
+    border: '1px solid var(--border-medium)', borderRadius: 6,
     fontSize: 12, fontFamily: 'inherit', outline: 'none',
     background: '#fff',
   };
@@ -1019,15 +1018,15 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
   return (
     <aside style={{
       width: 380, flexShrink: 0,
-      background: '#fff', borderLeft: '1px solid #e2e8f0',
+      background: '#fff', borderLeft: '1px solid var(--border-light)',
       display: 'flex', flexDirection: 'column',
       boxShadow: '-4px 0 12px rgba(0,0,0,0.04)',
       fontFamily: 'var(--font-sans, system-ui)',
     }}>
       {/* Header */}
       <div style={{
-        padding: '12px 14px', borderBottom: '1px solid #e2e8f0',
-        background: '#f8fafc',
+        padding: '12px 14px', borderBottom: '1px solid var(--border-light)',
+        background: 'var(--bg-app)',
         display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10,
       }}>
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -1037,17 +1036,17 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
           }}>
             {libraryEntry?.name || block.slug}
           </div>
-          <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'ui-monospace, monospace', marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace', marginTop: 2 }}>
             {block.slug}
           </div>
           {libraryEntry?.preview_note && (
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, lineHeight: 1.4 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
               {libraryEntry.preview_note}
             </div>
           )}
         </div>
         <button type="button" onClick={onClose} aria-label="Schließen"
-          style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748b', lineHeight: 1, padding: 0, flexShrink: 0 }}>
+          style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--text-secondary)', lineHeight: 1, padding: 0, flexShrink: 0 }}>
           ×
         </button>
       </div>
@@ -1100,10 +1099,11 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
               disabled={generating || !aiPrompt.trim()}
               style={{
                 width: '100%', padding: '8px 12px',
-                background: generating || !aiPrompt.trim() ? '#94a3b8' : '#0284c7',
+                background: KC_MID,
                 color: '#fff', border: 'none', borderRadius: 6,
                 fontSize: 12, fontWeight: 700,
                 cursor: generating || !aiPrompt.trim() ? 'not-allowed' : 'pointer',
+                opacity: generating || !aiPrompt.trim() ? 0.4 : 1,
                 fontFamily: 'inherit',
               }}
             >
@@ -1124,7 +1124,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
         {/* Slots */}
         {hasSlots ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Slots ({slots.length})
             </div>
             {slots.map((s) => (
@@ -1137,7 +1137,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
                   placeholder={s.default || ''}
                   style={inpStyle}
                 />
-                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2, fontFamily: 'ui-monospace, monospace' }}>
+                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: 'ui-monospace, monospace' }}>
                   {`{{${s.key}}}`}
                 </div>
               </div>
@@ -1153,7 +1153,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
         )}
 
         {/* Erweiterter Bereich — eingeklappt */}
-        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10 }}>
+        <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 10 }}>
           <button
             type="button"
             onClick={() => setShowAdvanced((v) => !v)}
@@ -1171,8 +1171,8 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
               <button
                 type="button" onClick={() => setShowRawHtml((v) => !v)}
                 style={{
-                  background: '#fff', border: '1px solid #cbd5e1',
-                  color: '#475569', fontSize: 11, fontWeight: 600,
+                  background: '#fff', border: '1px solid var(--border-medium)',
+                  color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600,
                   padding: '6px 10px', borderRadius: 6,
                   cursor: 'pointer', fontFamily: 'inherit',
                   textAlign: 'left',
@@ -1188,7 +1188,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
                     rows={12}
                     style={{ ...inpStyle, fontFamily: 'ui-monospace, monospace', fontSize: 11, resize: 'vertical' }}
                   />
-                  <div style={{ fontSize: 10, color: '#94a3b8' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
                     Wird nur sichtbar wenn du als Custom-Section speicherst.
                   </div>
                 </>
@@ -1227,7 +1227,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
                     disabled={saving || !customSlug.trim() || !customName.trim()}
                     style={{
                       padding: '6px 10px', marginTop: 2,
-                      background: saving ? '#94a3b8' : KC_MID, color: '#fff',
+                      background: saving ? 'var(--text-tertiary)' : KC_MID, color: '#fff',
                       border: 'none', borderRadius: 4,
                       fontSize: 11, fontWeight: 700,
                       cursor: saving ? 'wait' : 'pointer',
@@ -1245,16 +1245,16 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
 
       {/* Footer */}
       <div style={{
-        padding: '10px 14px', borderTop: '1px solid #e2e8f0',
-        display: 'flex', gap: 8, background: '#f8fafc',
+        padding: '10px 14px', borderTop: '1px solid var(--border-light)',
+        display: 'flex', gap: 8, background: 'var(--bg-app)',
       }}>
         <button
           type="button" onClick={onClose}
           style={{
             flex: 1, padding: '8px 12px',
-            background: '#fff', border: '1px solid #e2e8f0',
+            background: '#fff', border: '1px solid var(--border-light)',
             borderRadius: 8, fontSize: 12, cursor: 'pointer',
-            color: '#64748b', fontFamily: 'inherit',
+            color: 'var(--text-secondary)', fontFamily: 'inherit',
           }}
         >
           Schließen
@@ -1264,7 +1264,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
           disabled={saving || !hasSlots}
           style={{
             flex: 1, padding: '8px 12px',
-            background: saving || !hasSlots ? '#94a3b8' : KC_DARK,
+            background: saving || !hasSlots ? 'var(--text-tertiary)' : KC_DARK,
             color: '#fff', border: 'none',
             borderRadius: 8, fontSize: 12, fontWeight: 700,
             cursor: saving || !hasSlots ? 'not-allowed' : 'pointer',

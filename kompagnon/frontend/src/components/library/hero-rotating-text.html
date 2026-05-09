@@ -1,0 +1,59 @@
+<!--
+  Block: hero-rotating-text — Hero Centered mit animiert-rotierender Headline
+  Kategorie: HERO
+  Slots: headline_prefix, rotating_word_1..4, headline_suffix, subline, cta_text, cta_url
+  Pattern: Eine zentrierte Headline mit einem rotierenden Wort, das per CSS-
+  Animation alle 3 Sekunden durchcyclt (4 Begriffe). Visuell stark fuer
+  Multi-Service-Betriebe (z.B. SHK + Wallbox + Solar) — vermittelt Breite
+  ohne lange Subline.
+  Pattern-Inspiration: gaengig in Modern Tier-1 Templates (siehe
+  docs/envato-template-inventory.md, Tier-1 Tailwind-Stack). Code komplett
+  eigenstaendig + neutralisiert (gray/slate only, kein Brand-Color).
+-->
+<section data-block="hero-rotating-text" class="bg-white py-16 md:py-28 px-6 overflow-hidden" style="font-family: 'Noto Sans', sans-serif;">
+  <style>
+    [data-block="hero-rotating-text"] .word-rotate {
+      display: inline-block;
+      vertical-align: bottom;
+      height: 1.1em;
+      overflow: hidden;
+      position: relative;
+    }
+    [data-block="hero-rotating-text"] .word-rotate__list {
+      display: flex;
+      flex-direction: column;
+      animation: hero-word-rotate 12s infinite;
+    }
+    @keyframes hero-word-rotate {
+      0%, 22%   { transform: translateY(0); }
+      25%, 47%  { transform: translateY(-1.1em); }
+      50%, 72%  { transform: translateY(-2.2em); }
+      75%, 97%  { transform: translateY(-3.3em); }
+      100%      { transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      [data-block="hero-rotating-text"] .word-rotate__list { animation: none; }
+    }
+  </style>
+  <div class="max-w-4xl mx-auto text-center">
+    <h1 class="text-4xl md:text-6xl font-black leading-tight text-gray-900 mb-6 tracking-tight">
+      <span>{{headline_prefix}}</span>
+      <span class="word-rotate text-slate-600">
+        <span class="word-rotate__list">
+          <span>{{rotating_word_1}}</span>
+          <span>{{rotating_word_2}}</span>
+          <span>{{rotating_word_3}}</span>
+          <span>{{rotating_word_4}}</span>
+        </span>
+      </span>
+      <br />
+      <span>{{headline_suffix}}</span>
+    </h1>
+    <p class="text-lg md:text-xl text-slate-600 leading-relaxed max-w-2xl mx-auto mb-8">{{subline}}</p>
+    <a href="{{cta_url}}"
+       class="inline-flex items-center gap-2 bg-gray-900 text-white font-bold px-8 py-4 rounded-lg text-base hover:bg-gray-700 transition shadow-md">
+      {{cta_text}}
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </div>
+</section>

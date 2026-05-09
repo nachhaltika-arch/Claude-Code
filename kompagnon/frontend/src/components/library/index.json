@@ -191,6 +191,26 @@
     },
 
     {
+      "slug": "hero-rotating-text",
+      "name": "Hero mit rotierender Headline",
+      "category": "HERO",
+      "tags": ["hero", "centered", "animated", "multi-service"],
+      "slots": [
+        { "key": "headline_prefix", "label": "Headline-Vortext",      "type": "text", "default": "Wir machen Ihre" },
+        { "key": "rotating_word_1", "label": "Rotierendes Wort 1",    "type": "text", "default": "Heizung" },
+        { "key": "rotating_word_2", "label": "Rotierendes Wort 2",    "type": "text", "default": "Sanitäranlage" },
+        { "key": "rotating_word_3", "label": "Rotierendes Wort 3",    "type": "text", "default": "Wallbox" },
+        { "key": "rotating_word_4", "label": "Rotierendes Wort 4",    "type": "text", "default": "Wärmepumpe" },
+        { "key": "headline_suffix", "label": "Headline-Nachsatz",     "type": "text", "default": "perfekt." },
+        { "key": "subline",         "label": "Untertitel",            "type": "text", "default": "Vom Notdienst bis zum Komplettsystem — alles aus einer Meisterhand in Koblenz." },
+        { "key": "cta_text",        "label": "Button-Text",           "type": "text", "default": "Kostenfreies Angebot" },
+        { "key": "cta_url",         "label": "Button-Ziel",           "type": "text", "default": "#kontakt" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block bei Multi-Service-Betrieben mit 3-4 Kerngeschäftsfeldern (z.B. Heizung+Sanitär+Wallbox+Solar). Rotierende Headline visualisiert die Service-Breite im ersten Eindruck — kommunikativ stärker als statische Subline. Eignet sich besonders für Allrounder, weniger für Spezialisten mit nur 1 Kerngebiet.",
+      "preview_note": "Zentrierter Hero auf weißem Bg. Headline in 2 Zeilen: Vortext + rotierendes Wort (alle 3 Sek wechselnd, 4 Begriffe), zweite Zeile statischer Nachsatz. Subline + Primary-Button drunter. CSS-Animation respektiert prefers-reduced-motion."
+    },
+
+    {
       "slug": "leist-grid-3",
       "name": "Leistungen 3er-Grid",
       "category": "LEIST",
@@ -704,6 +724,24 @@
       ],
       "ki_prompt_hint": "Mehrstufiges Formular für höhere Auftragswerte (Wärmepumpe, Bad-Komplettsanierung). Reduziert Eingabe-Hürde durch Aufteilen in 3 Schritte. Conversion-Rate erhöht ~30 % gegenüber One-Page-Form bei langen Forms.",
       "preview_note": "Card mit Step-Indicator oben (1/2/3), aktuell aktive Stufe sichtbar, Buttons 'Zurück' + 'Weiter'."
+    },
+
+    {
+      "slug": "cta-prefooter-large",
+      "name": "Pre-Footer Large CTA (Last-Chance-Section)",
+      "category": "CTA",
+      "tags": ["cta", "prefooter", "dark", "dual-cta"],
+      "slots": [
+        { "key": "section_eyebrow",    "label": "Eyebrow (Mini-Label)",    "type": "text", "default": "Bereit für den nächsten Schritt?" },
+        { "key": "section_headline",   "label": "Section-Headline",        "type": "text", "default": "Lassen Sie uns Ihre Heizung modernisieren." },
+        { "key": "section_subline",    "label": "Section-Untertitel",      "type": "text", "default": "Kostenfreies Erstgespräch · Festpreis-Garantie · 25+ Jahre Erfahrung. Antwort innerhalb von 24 Stunden." },
+        { "key": "primary_cta_text",   "label": "Primärer Button-Text",    "type": "text", "default": "Termin vereinbaren" },
+        { "key": "primary_cta_url",    "label": "Primärer Button-Link",    "type": "text", "default": "#kontakt" },
+        { "key": "secondary_cta_text", "label": "Sekundärer Button-Text",  "type": "text", "default": "Leistungen ansehen" },
+        { "key": "secondary_cta_url",  "label": "Sekundärer Button-Link",  "type": "text", "default": "#leistungen" }
+      ],
+      "ki_prompt_hint": "Wähle diesen Block am Ende langer Pages (Leistungs-Detail, Über-Uns) als finale Conversion-Anker. Visueller Last-Chance-Stop bevor User scrollend in den Footer landet. Im Unterschied zu cta-banner (kompakt, mid-page): vollwertige Hero-Style-Section mit eigenem Design-Anspruch. Dual-CTA für unentschlossene Besucher (Primary = Termin, Secondary = Mehr-Info).",
+      "preview_note": "Vollbreite dunkelgraue Section direkt vor Footer. Subtle Radial-Gradients als Tiefe. Eyebrow + große Headline + Subline + 2 Buttons (Primary weiß-auf-dunkel, Secondary outlined). Mobile: Buttons gestapelt."
     },
 
     {

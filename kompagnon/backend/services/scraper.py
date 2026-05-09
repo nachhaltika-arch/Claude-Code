@@ -2,9 +2,12 @@
 Website Scraper — Extracts company info from a URL automatically.
 Used by the audit endpoint to pre-fill audit data from just a domain.
 """
+import logging
 import re
 import httpx
 from bs4 import BeautifulSoup
+
+logger = logging.getLogger(__name__)
 
 
 async def scrape_website(url: str) -> dict:
@@ -160,6 +163,6 @@ async def scrape_website(url: str) -> dict:
         )
 
     except Exception as e:
-        print(f"Scraping Fehler für {url}: {e}")
+        logger.error(f"Scraping Fehler für {url}: {e}")
 
     return result

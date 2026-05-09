@@ -68,7 +68,6 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
-logger = logging.getLogger(__name__)
 
 
 def _run_migrations():
@@ -1147,9 +1146,9 @@ def _run_migrations():
             for tbl in academy_tables:
                 try:
                     conn.execute(text(f"SELECT 1 FROM {tbl} LIMIT 1"))
-                    print(f"✓ {tbl} OK")
+                    logger.info(f"✓ {tbl} OK")
                 except Exception as e:
-                    print(f"✗ {tbl} FEHLER: {e}")
+                    logger.error(f"✗ {tbl} FEHLER: {e}")
         logger.info("✓ Migrationen abgeschlossen")
     except Exception as e:
         logger.warning(f"Migration Warnung: {e}")

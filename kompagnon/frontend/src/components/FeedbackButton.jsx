@@ -88,7 +88,7 @@ export default function FeedbackButton() {
                 <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
                 <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8 }}>Danke!</h3>
                 <p style={{ fontSize: 14, color: 'var(--text-tertiary)', marginBottom: 16 }}>Ihr Ticket wurde erstellt.</p>
-                <div style={{ background: 'var(--bg-hover)', border: '1px solid #008EAA40', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
+                <div style={{ background: 'var(--bg-hover)', border: '1px solid var(--kc-mid-a-25)', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>Ticket-Nummer</div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--brand-primary)', letterSpacing: '0.05em' }}>{ticketNr}</div>
                 </div>

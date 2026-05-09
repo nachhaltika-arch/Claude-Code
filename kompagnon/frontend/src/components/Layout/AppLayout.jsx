@@ -745,7 +745,7 @@ function BottomNav() {
                     onClick={() => { navigate(item.path); setMoreOpen(false); }}
                     style={{
                       background: active ? '#E0F4F8' : '#F0F4F5',
-                      border: active ? '1.5px solid #008EAA' : '0.5px solid #D5E0E2',
+                      border: active ? '1.5px solid var(--kc-mid)' : '0.5px solid #D5E0E2',
                       borderRadius: 10,
                       padding: '14px 8px',
                       cursor: 'pointer',
@@ -824,7 +824,7 @@ function BottomNav() {
                     position: 'absolute', top: -2, right: -4,
                     width: 7, height: 7, borderRadius: '50%',
                     background: 'var(--kc-yellow)',
-                    border: '1.5px solid #004F59',
+                    border: '1.5px solid var(--brand-primary)',
                   }} />
                 )}
               </span>

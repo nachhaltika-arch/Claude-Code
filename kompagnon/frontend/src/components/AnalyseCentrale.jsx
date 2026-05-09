@@ -386,9 +386,9 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
             disabled={saveStatus === 'saving'}
             style={{
               padding: '9px 18px', borderRadius: 8, flexShrink: 0,
-              border: saveStatus === 'saved' ? '1px solid var(--status-success-text)' : '1px solid var(--brand-primary, #008EAA)',
+              border: saveStatus === 'saved' ? '1px solid var(--status-success-text)' : '1px solid var(--brand-primary, var(--kc-mid))',
               background: saveStatus === 'saved' ? 'var(--status-success-bg)' : 'transparent',
-              color: saveStatus === 'saved' ? 'var(--status-success-text)' : 'var(--brand-primary, #008EAA)',
+              color: saveStatus === 'saved' ? 'var(--status-success-text)' : 'var(--brand-primary, var(--kc-mid))',
               fontSize: 12, fontWeight: 700,
               cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
               fontFamily: 'var(--font-sans)',
@@ -405,7 +405,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
 
       {/* ── Vollanalyse-Button ── */}
       <div style={{
-        background: running ? 'var(--bg-surface)' : 'linear-gradient(135deg, #008EAA, #006680)',
+        background: running ? 'var(--bg-surface)' : 'linear-gradient(135deg, var(--kc-mid), #006680)',
         border: running ? '1px solid var(--border-light)' : 'none',
         borderRadius: 12,
         padding: '16px 20px',
@@ -459,7 +459,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
             <div style={{
               height: '100%',
               width: `${totalPct}%`,
-              background: 'linear-gradient(90deg, #008EAA, #00B4D8)',
+              background: 'linear-gradient(90deg, var(--kc-mid), #00B4D8)',
               borderRadius: 4,
               transition: 'width 0.4s ease',
             }} />
@@ -481,7 +481,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
           return (
             <div key={step.id} style={{
               borderRadius: 10, padding: '14px 16px',
-              border: `1px solid ${isActive ? 'var(--brand-primary-mid, #008EAA)' : isDone ? 'var(--status-success-text)' : hasError ? 'var(--status-danger-text)' : 'var(--border-light)'}`,
+              border: `1px solid ${isActive ? 'var(--brand-primary-mid, var(--kc-mid))' : isDone ? 'var(--status-success-text)' : hasError ? 'var(--status-danger-text)' : 'var(--border-light)'}`,
               background: isActive ? 'var(--brand-primary-light, #E6F6FA)' : isDone ? 'var(--status-success-bg)' : hasError ? 'var(--status-danger-bg)' : 'var(--bg-surface)',
               transition: 'all 0.3s',
             }}>
@@ -490,14 +490,14 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                 <span style={{ fontSize: 12, fontWeight: 700, color: isActive ? 'var(--brand-primary-dark, #006680)' : isDone ? 'var(--status-success-text)' : hasError ? 'var(--status-danger-text)' : 'var(--text-primary)' }}>
                   {step.label}
                 </span>
-                {isActive && <span style={{ marginLeft: 'auto', width: 12, height: 12, border: '2px solid var(--brand-primary, #008EAA)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
+                {isActive && <span style={{ marginLeft: 'auto', width: 12, height: 12, border: '2px solid var(--brand-primary, var(--kc-mid))', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
                 {isDone && !isActive && <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--status-success-text)' }}>&#10003;</span>}
                 {hasError && !isActive && <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--status-danger-text)' }}>&#10007;</span>}
               </div>
 
               {isSingleActive && (
                 <div style={{ height: 4, background: 'var(--brand-primary-light, #E6F6FA)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 }}>
-                  <div style={{ height: '100%', width: `${stepProgress}%`, background: 'var(--brand-primary, #008EAA)', borderRadius: 2, transition: 'width 0.4s' }} />
+                  <div style={{ height: '100%', width: `${stepProgress}%`, background: 'var(--brand-primary, var(--kc-mid))', borderRadius: 2, transition: 'width 0.4s' }} />
                 </div>
               )}
 
@@ -524,8 +524,8 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                   disabled={!websiteUrl}
                   style={{
                     marginTop: 10, width: '100%', padding: '6px 0', borderRadius: 6,
-                    border: isDone ? '1px solid var(--status-success-text)' : '1px solid var(--brand-primary, #008EAA)',
-                    background: isDone ? 'transparent' : 'var(--brand-primary, #008EAA)',
+                    border: isDone ? '1px solid var(--status-success-text)' : '1px solid var(--brand-primary, var(--kc-mid))',
+                    background: isDone ? 'transparent' : 'var(--brand-primary, var(--kc-mid))',
                     color: isDone ? 'var(--status-success-text)' : '#fff',
                     fontSize: 11, fontWeight: 700, cursor: websiteUrl ? 'pointer' : 'not-allowed',
                     fontFamily: 'var(--font-sans)',
@@ -835,7 +835,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
 
       {pagesLoading && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-          <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary, #008EAA)', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary, var(--kc-mid))', animation: 'spin 0.8s linear infinite' }} />
         </div>
       )}
 

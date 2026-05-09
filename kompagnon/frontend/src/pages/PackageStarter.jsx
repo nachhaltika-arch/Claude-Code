@@ -51,7 +51,7 @@ export default function PackageStarter() {
         .fade4 { animation: fadeUp 0.5s 0.3s ease both; }
         .cta-btn:hover { background: #006880 !important; transform: translateY(-1px); box-shadow: 0 8px 24px var(--kc-mid-a-50) !important; }
         .cta-btn { transition: all 0.2s ease !important; }
-        input:focus { border-color: #008eaa !important; box-shadow: 0 0 0 3px var(--kc-mid-a-12) !important; outline: none !important; }
+        input:focus { border-color: var(--kc-mid) !important; box-shadow: 0 0 0 3px var(--kc-mid-a-12) !important; outline: none !important; }
       `}</style>
 
       <nav style={{ background: 'var(--bg-surface)', borderBottom: '1px solid #e8eef2', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50 }}>
@@ -99,7 +99,7 @@ export default function PackageStarter() {
 
       <div style={{ maxWidth: 880, margin: '0 auto', padding: '0 20px 80px', marginTop: -40 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, alignItems: 'flex-start' }}>
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 20, padding: 32, boxShadow: '0 8px 40px var(--kc-mid-a-12)', border: '2px solid #008eaa' }}>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 20, padding: 32, boxShadow: '0 8px 40px var(--kc-mid-a-12)', border: '2px solid var(--kc-mid)' }}>
             <div style={{ display: 'inline-block', background: 'var(--kc-mid)', color: 'white', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Starter</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Starter — 1.500 € netto</div>
             <div style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 24 }}>Einmalige Zahlung · keine laufenden Kosten</div>

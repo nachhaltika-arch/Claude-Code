@@ -277,7 +277,7 @@ export default function QAChecklist({ projectId, token, qaChecklistJson, pagespe
                         fontSize: 11, color: 'var(--kc-mid)',
                         textDecoration: 'none', flexShrink: 0,
                         padding: '2px 8px', borderRadius: 6,
-                        border: '0.5px solid #008eaa',
+                        border: '0.5px solid var(--kc-mid)',
                       }}
                     >
                       {item.info.text} ↗

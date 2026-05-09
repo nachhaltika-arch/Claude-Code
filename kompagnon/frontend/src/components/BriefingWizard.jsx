@@ -1141,7 +1141,7 @@ function SuggestButton({ field, suggestions, onSuggest, onApply, set, currentVal
           Uebernehmen
         </button>
         <button type="button" onClick={() => { set(field, (currentValue ? currentValue + '\n' : '') + s.value); onApply(field); }}
-          style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #008EAA', background: 'transparent', color: 'var(--kc-mid)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
+          style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--kc-mid)', background: 'transparent', color: 'var(--kc-mid)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}>
           + Ergaenzen
         </button>
         <button type="button" onClick={() => onApply(field)}

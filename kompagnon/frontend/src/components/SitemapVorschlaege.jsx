@@ -51,7 +51,7 @@ function KiEmpfehlung({ leadId, token, onAdded }) {
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, #004F59 0%, #008EAA 100%)',
+      background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--kc-mid) 100%)',
       borderRadius: 12,
       padding: '16px 18px',
       marginBottom: 18,
@@ -231,7 +231,7 @@ export default function SitemapVorschlaege({ leadId, token, onAdded }) {
         onClick={() => addPage(page)}
         disabled={adding[page.page_name]}
         style={{
-          background: isPflicht ? '#B8860B' : 'var(--brand-primary, #004F59)',
+          background: isPflicht ? '#B8860B' : 'var(--brand-primary, var(--brand-primary))',
           color: '#fff', border: 'none',
           borderRadius: 6, padding: '6px 14px',
           fontSize: 11, fontWeight: 700,

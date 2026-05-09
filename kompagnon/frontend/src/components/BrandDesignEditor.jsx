@@ -12,7 +12,7 @@ function adjustColor(hex, amount) {
 }
 
 const QUICK_ACCENTS = [
-  '#F39C12', '#E67E22', '#FAE600', '#2ECC71',
+  '#F39C12', '#E67E22', 'var(--kc-yellow)', '#2ECC71',
   '#3498DB', '#9B59B6', '#1ABC9C', '#E74C3C',
 ];
 
@@ -25,7 +25,7 @@ const GOOGLE_FONTS = [
 ];
 
 export default function BrandDesignEditor({ leadId, token, brandData, onSaved }) {
-  const [primary,     setPrimary]     = useState(brandData?.primary_color   || '#004F59');
+  const [primary,     setPrimary]     = useState(brandData?.primary_color   || 'var(--brand-primary)');
   const [secondary,   setSecondary]   = useState(brandData?.secondary_color || '#2C3E50');
   const [accent,      setAccent]      = useState('#F39C12');
   const [radius,      setRadius]      = useState(6);
@@ -41,7 +41,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
   // Textfarben
   const [colorH1,     setColorH1]     = useState('#FFFFFF');
   const [colorBody,   setColorBody]   = useState('#CCCCCC');
-  const [colorAkzent, setColorAkzent] = useState('#FAE600');
+  const [colorAkzent, setColorAkzent] = useState('var(--kc-yellow)');
 
   // Hintergrund + Felder
   const [colorBg,     setColorBg]     = useState('#1A1A1A');
@@ -389,7 +389,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                           style={{ width: 28, height: 28, cursor: 'pointer', border: 'none' }} />
                       </div>
                       <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                        {['#FFFFFF', '#000000', '#FAE600', primary, secondary, accent].map((c, i) => (
+                        {['#FFFFFF', '#000000', 'var(--kc-yellow)', primary, secondary, accent].map((c, i) => (
                           <div key={i} onClick={() => setColor(c)}
                             style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: 'pointer',
                                      border: c === color ? '2px solid var(--brand-primary)' : '0.5px solid rgba(0,0,0,.1)' }} />
@@ -407,7 +407,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
               <div style={{ fontFamily: value, color: 'var(--text-primary)', lineHeight: 1.3, padding: '2px 0', ...sampleStyle }}>{sample}</div>
               {suggested && (
                 <div style={{ marginTop: 8, padding: '7px 10px', background: '#E0F4F8',
-                              border: '0.5px solid #008EAA33', borderRadius: 6,
+                              border: '0.5px solid var(--kc-mid-a-20)', borderRadius: 6,
                               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--kc-mid)', marginBottom: 2 }}>🤖 {suggested.name}</div>
@@ -471,7 +471,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
 
       <button onClick={save} disabled={saving} style={{
         width: '100%', padding: '11px',
-        background: saving ? 'var(--border-light)' : 'var(--brand-accent, #FAE600)',
+        background: saving ? 'var(--border-light)' : 'var(--brand-accent, var(--kc-yellow))',
         color: '#000', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 900,
         cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
         textTransform: 'uppercase', letterSpacing: '.05em',

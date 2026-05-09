@@ -72,7 +72,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
       {/* ── KI-Generator-Bar ── */}
       {!guideline ? (
         <div style={{
-          background: 'linear-gradient(135deg, #004F59, #008EAA)',
+          background: 'linear-gradient(135deg, var(--brand-primary), var(--kc-mid))',
           borderRadius: 12, padding: '18px 20px', margin: '4px 0 16px',
           display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', gap: 16,
@@ -172,10 +172,10 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
             {TABS.map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{
                 padding: '8px 14px', fontSize: 11, fontWeight: 700,
-                color: activeTab === tab ? 'var(--brand-primary, #004F59)' : 'var(--text-tertiary)',
+                color: activeTab === tab ? 'var(--brand-primary, var(--brand-primary))' : 'var(--text-tertiary)',
                 background: 'none', border: 'none',
                 borderBottom: activeTab === tab
-                  ? '2px solid var(--brand-accent, #FAE600)'
+                  ? '2px solid var(--brand-accent, var(--kc-yellow))'
                   : '2px solid transparent',
                 cursor: 'pointer', fontFamily: 'var(--font-sans)',
                 textTransform: 'uppercase', letterSpacing: '.06em',
@@ -331,7 +331,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                     <div key={tk} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
                       <div style={{
                         width: Math.min(px, 96), height: Math.min(px, 96),
-                        background: 'var(--brand-primary, #004F59)',
+                        background: 'var(--brand-primary, var(--brand-primary))',
                         opacity: 0.15 + Math.min(px / 120, 0.75),
                         borderRadius: 4,
                       }} />
@@ -352,7 +352,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                   <div key={tk} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                     <div style={{
                       width: 44, height: 44, background: 'var(--bg-app)',
-                      border: '2px solid var(--brand-primary, #004F59)',
+                      border: '2px solid var(--brand-primary, var(--brand-primary))',
                       borderRadius: value === '9999px' ? '50%' : value,
                     }} />
                     <div style={{ fontSize: 8, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{tk}</div>
@@ -455,7 +455,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
             <div style={{ border: '0.5px solid var(--border-light)', borderRadius: 10, overflow: 'hidden' }}>
               {/* Nav */}
               <div style={{
-                background: tk.primary || '#004F59', padding: '0 24px',
+                background: tk.primary || 'var(--brand-primary)', padding: '0 24px',
                 height: g.components?.nav?.height || '64px',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
@@ -463,7 +463,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                   {g.meta?.company || 'Unternehmen'}
                 </span>
                 <button style={{
-                  background: tk.accent || '#FAE600', color: g.components?.button_accent?.color || '#000',
+                  background: tk.accent || 'var(--kc-yellow)', color: g.components?.button_accent?.color || '#000',
                   border: 'none', borderRadius: g.border_radius?.md || '6px',
                   padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'default',
                 }}>
@@ -471,7 +471,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                 </button>
               </div>
               {/* Hero */}
-              <div style={{ background: tk.primary || '#004F59', padding: '40px 24px' }}>
+              <div style={{ background: tk.primary || 'var(--brand-primary)', padding: '40px 24px' }}>
                 <div style={{
                   fontFamily: fontH,
                   fontSize: 28, fontWeight: 700, color: colorH, marginBottom: 10, lineHeight: 1.2,
@@ -483,7 +483,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button style={{
-                    background: tk.accent || '#FAE600', color: g.components?.button_accent?.color || '#000',
+                    background: tk.accent || 'var(--kc-yellow)', color: g.components?.button_accent?.color || '#000',
                     border: 'none', borderRadius: g.border_radius?.md || '6px',
                     padding: '11px 22px', fontSize: 13, fontWeight: 700, cursor: 'default',
                   }}>

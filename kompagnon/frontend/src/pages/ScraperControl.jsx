@@ -173,7 +173,7 @@ export default function ScraperControl() {
   };
   const btnPrimary = {
     padding: '10px 22px', borderRadius: 8, border: 'none',
-    background: 'linear-gradient(135deg, #008EAA, #006680)',
+    background: 'linear-gradient(135deg, var(--kc-mid), #006680)',
     color: 'white', fontSize: 13, fontWeight: 700,
     cursor: 'pointer', fontFamily: 'var(--font-sans)',
     display: 'inline-flex', alignItems: 'center', gap: 8,

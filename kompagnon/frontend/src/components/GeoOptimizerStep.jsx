@@ -215,7 +215,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
     <div style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
 
       <div style={{
-        background: 'linear-gradient(135deg, #004F59 0%, #008EAA 100%)',
+        background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--kc-mid) 100%)',
         borderRadius: 12, padding: '24px 28px', color: '#fff', marginBottom: 20,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexWrap: 'wrap', gap: 16,
@@ -291,7 +291,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
             }}
             style={{
               background: 'none', border: 'none',
-              borderBottom: activeTab === tab.id ? '2px solid #008EAA' : '2px solid transparent',
+              borderBottom: activeTab === tab.id ? '2px solid var(--kc-mid)' : '2px solid transparent',
               padding: '8px 14px', cursor: 'pointer', fontSize: 13,
               fontWeight: activeTab === tab.id ? 700 : 400,
               color: activeTab === tab.id ? 'var(--kc-mid)' : '#6B7280',

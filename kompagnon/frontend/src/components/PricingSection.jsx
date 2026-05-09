@@ -337,7 +337,7 @@ export default function PricingSection() {
         <a href="mailto:hallo@kompagnon.eu" style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           padding: '10px 24px', background: 'transparent',
-          color: 'var(--kc-mid)', border: '1.5px solid #008eaa',
+          color: 'var(--kc-mid)', border: '1.5px solid var(--kc-mid)',
           borderRadius: 10, fontSize: 13, fontWeight: 600,
           textDecoration: 'none', fontFamily: 'inherit',
         }}>

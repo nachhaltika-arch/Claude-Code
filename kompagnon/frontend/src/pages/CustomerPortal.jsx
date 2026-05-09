@@ -640,7 +640,7 @@ export default function CustomerPortal() {
                   { field: 'has_photos', icon: '📷', title: 'Fotos vorhanden', text: 'Wir haben Fotos vom Betrieb / Team' },
                 ].map(({ field, icon, title, text }) => (
                   <div key={field} onClick={() => toggleField(field)} style={{
-                    border: onboardingData[field] ? '2px solid #008eaa' : '2px solid var(--border-light)',
+                    border: onboardingData[field] ? '2px solid var(--kc-mid)' : '2px solid var(--border-light)',
                     background: onboardingData[field] ? '#E1F5EE' : '#f8f9fa',
                     borderRadius: 12, padding: '16px 12px', cursor: 'pointer',
                     textAlign: 'center', transition: 'all 0.2s',
@@ -813,7 +813,7 @@ export default function CustomerPortal() {
                 <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
                   <div style={{
                     height: '100%', borderRadius: 3,
-                    background: 'linear-gradient(90deg, #1D9E75, #008eaa)',
+                    background: 'linear-gradient(90deg, #1D9E75, var(--kc-mid))',
                     width: `${data.current_phase ? Math.min(100, ((data.current_phase - 1) / 6) * 100) : 0}%`,
                     transition: 'width 0.6s ease',
                   }} />

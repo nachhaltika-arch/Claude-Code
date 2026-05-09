@@ -344,14 +344,14 @@ export default function ProzessFlowV3({
 
       {/* ── TIMELINE (64px links) ─────────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(180deg,#004F59 0%,#003840 100%)',
+        background: 'linear-gradient(180deg,var(--brand-primary) 0%,#003840 100%)',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         padding: '14px 0', overflowY: 'auto', overflowX: 'hidden',
       }}>
         {/* Logo */}
         <svg width="32" height="32" viewBox="0 0 107.7 107.7" fill="none" style={{ marginBottom: 16, flexShrink: 0 }}>
-          <path d="M53.85 0C24.1 0 0 24.1 0 53.85s24.1 53.85 53.85 53.85 53.85-24.1 53.85-53.85S83.6 0 53.85 0zm0 96.9c-23.75 0-43.05-19.3-43.05-43.05S30.1 10.8 53.85 10.8s43.05 19.3 43.05 43.05S77.6 96.9 53.85 96.9z" fill="#008EAA"/>
-          <path d="M53.85 21.6c-17.8 0-32.25 14.45-32.25 32.25S36.05 86.1 53.85 86.1 86.1 71.65 86.1 53.85 71.65 21.6 53.85 21.6zm0 53.7c-11.85 0-21.45-9.6-21.45-21.45S42 32.4 53.85 32.4s21.45 9.6 21.45 21.45S65.7 75.3 53.85 75.3z" fill="#008EAA"/>
+          <path d="M53.85 0C24.1 0 0 24.1 0 53.85s24.1 53.85 53.85 53.85 53.85-24.1 53.85-53.85S83.6 0 53.85 0zm0 96.9c-23.75 0-43.05-19.3-43.05-43.05S30.1 10.8 53.85 10.8s43.05 19.3 43.05 43.05S77.6 96.9 53.85 96.9z" fill="var(--kc-mid)"/>
+          <path d="M53.85 21.6c-17.8 0-32.25 14.45-32.25 32.25S36.05 86.1 53.85 86.1 86.1 71.65 86.1 53.85 71.65 21.6 53.85 21.6zm0 53.7c-11.85 0-21.45-9.6-21.45-21.45S42 32.4 53.85 32.4s21.45 9.6 21.45 21.45S65.7 75.3 53.85 75.3z" fill="var(--kc-mid)"/>
         </svg>
 
         {/* Punkte */}
@@ -364,7 +364,7 @@ export default function ProzessFlowV3({
             const bg     = fertig
               ? '#00875A'
               : aktiv
-                ? '#FAE600'
+                ? 'var(--kc-yellow)'
                 : SCHRITTE[aktivIdx + 1]?.id === s.id
                   ? 'rgba(255,255,255,.25)'
                   : 'rgba(255,255,255,.09)';

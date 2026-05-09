@@ -132,15 +132,42 @@ claude plugin install last30days@last30days-skill || true
 color_ok "Plugins installiert."
 
 # ----------------------------------------------------------------------------
-# 8) Authentifizierung (manuell)
+# 8) Memory-Sync via Symlink (Repo ist Single Source of Truth)
 # ----------------------------------------------------------------------------
-color_warn "Letzter Schritt: 'claude auth' manuell ausführen für Anthropic-Login (OAuth-Browser-Flow)."
-color_warn "Render-MCP, GitHub-MCP und Plugins sind eingerichtet."
+color_info "Verlinke Memory-Verzeichnis (~/.claude/projects/.../memory/ → repo)..."
+
+REPO_REAL_PATH="$(cd "$REPO_ROOT" && pwd)"
+# Encoding: Mac-Pfad / → -, Spaces → -, Sonderzeichen → -
+ENCODED_PATH="$(echo "$REPO_REAL_PATH" | sed 's|/|-|g; s| |-|g; s|[^A-Za-z0-9_-]|-|g')"
+PROJECT_MEMORY_DIR="$CLAUDE_HOME/projects/$ENCODED_PATH"
+mkdir -p "$PROJECT_MEMORY_DIR"
+
+if [ -L "$PROJECT_MEMORY_DIR/memory" ]; then
+  color_ok "memory/ ist bereits Symlink — überspringe."
+elif [ -d "$PROJECT_MEMORY_DIR/memory" ]; then
+  color_warn "memory/ existiert als regulärer Ordner. Backup nach memory.bak.$(date +%s) und ersetze durch Symlink."
+  mv "$PROJECT_MEMORY_DIR/memory" "$PROJECT_MEMORY_DIR/memory.bak.$(date +%s)"
+  ln -s "$REPO_REAL_PATH/.claude-config/memory" "$PROJECT_MEMORY_DIR/memory"
+  color_ok "Symlink erstellt."
+else
+  ln -s "$REPO_REAL_PATH/.claude-config/memory" "$PROJECT_MEMORY_DIR/memory"
+  color_ok "Memory-Symlink: $PROJECT_MEMORY_DIR/memory → $REPO_REAL_PATH/.claude-config/memory"
+fi
+
+color_info "Memory-Files sichtbar:"
+ls "$PROJECT_MEMORY_DIR/memory/" 2>/dev/null | head -5
 
 # ----------------------------------------------------------------------------
-# 9) Verify
+# 9) Authentifizierung (manuell)
+# ----------------------------------------------------------------------------
+color_warn "Letzter Schritt: 'claude auth' manuell ausführen für Anthropic-Login (OAuth-Browser-Flow)."
+color_warn "Render-MCP, GitHub-MCP, Plugins und Memory-Sync sind eingerichtet."
+
+# ----------------------------------------------------------------------------
+# 10) Verify
 # ----------------------------------------------------------------------------
 color_info "Verifiziere..."
 claude mcp list || true
 
 color_ok "Setup abgeschlossen. Starte 'claude' im Repo-Root."
+color_ok "Memory wird automatisch über Git synchronisiert — committe + pushe Änderungen in .claude-config/memory/ damit sie auf andere Rechner kommen."

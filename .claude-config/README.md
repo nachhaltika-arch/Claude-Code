@@ -9,6 +9,7 @@ Dieses Verzeichnis enthält die Claude-Code-Konfiguration des Solo-Operators (Da
 | `agents/*.md` | 3 Custom-Agents: build-error-resolver, code-reviewer, security-reviewer |
 | `rules/common/*.md` | 10 globale Coding-Rules (verbindlich für alle Projekte) |
 | `rules/typescript/*.md` | 5 TypeScript-spezifische Rules |
+| `memory/*.md` | 16 Memory-Files (User-Profile, Resume-Points, Decisions, Plans) — wird auf Mac per Symlink gesynct |
 | `settings.json.template` | User-level Settings (Plugins, Marketplaces, Hooks) |
 | `settings.local.json.template` | Permission-Allowlist (Auto-Approval für häufige Commands) |
 | `mcp-servers.json.template` | MCP-Server-Configs mit `${ENV_VAR}`-Placeholders (Tokens NICHT im Repo!) |

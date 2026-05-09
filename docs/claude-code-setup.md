@@ -57,6 +57,35 @@ claude        # läuft, mit identischem Setup wie Windows
 - **Sessions/History/Cache** — ephemer, rechnerspezifisch
 - **Plugin-Cache** — wird beim Plugin-Install neu aufgebaut
 
+## Memory-Sync (NEU)
+
+Ab Commit `b1fb0ad` ist Claude-Memory über das Repo synchronisiert:
+
+- `<repo>/.claude-config/memory/*.md` — 16 Memory-Files (Resume-Points, Rules, User-Profile, Plans, Decisions)
+- Setup-Script symlinkt auf Mac: `~/.claude/projects/{encoded-path}/memory/` → `<repo>/.claude-config/memory/`
+- Mac Claude-Sessions schreiben Memory-Updates direkt in den Repo-Pfad
+- `git add .claude-config/memory && git commit && git push` synchronisiert nach Windows
+
+### Windows auch symlinken (optional)
+
+Windows nutzt aktuell den realen Ordner unter `~/.claude/projects/.../memory/` (Status quo, keine Symlink). Wenn du Memory-Updates **auf Windows** auch automatisch im Repo haben willst, einmalig (in PowerShell als Admin oder mit Developer Mode aktiv):
+
+```powershell
+# Backup + Symlink
+$projectDir = "$env:USERPROFILE\.claude\projects\C--Users-DavidV-th-Desktop-KAS-Kompagnon-Automatisierungs-System"
+Move-Item "$projectDir\memory" "$projectDir\memory.bak.$(Get-Date -Format yyyyMMdd-HHmmss)"
+New-Item -ItemType SymbolicLink -Path "$projectDir\memory" -Target "C:\Users\DavidVäth\Desktop\KAS Kompagnon Automatisierungs System\.claude-config\memory"
+```
+
+Ohne diesen Schritt: Windows-Memory ist getrennt vom Repo. Du müsstest Memory-Änderungen auf Windows manuell in `.claude-config/memory/` kopieren um sie an Mac zu syncen.
+
+### Sync-Workflow im Alltag
+
+1. Auf Rechner A schreibt Claude Memory-Updates (z.B. neue Resume-Points, Decisions)
+2. `git status` zeigt geänderte Files in `.claude-config/memory/`
+3. Commit + Push → staging-Branch
+4. Auf Rechner B `git pull` → Memory ist synchron
+
 ## Nach dem Setup
 
 Test:

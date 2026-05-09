@@ -233,7 +233,7 @@ export default function AcademyAdmin() {
                       <span style={{
                         fontSize: 10, fontWeight: 600, padding: '2px 8px',
                         borderRadius: 'var(--radius-full)',
-                        background: 'var(--brand-primary-light)', color: 'var(--brand-primary)',
+                        background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)',
                         letterSpacing: '0.02em',
                       }}>
                         {AUDIENCE_LABEL[aud] || aud}

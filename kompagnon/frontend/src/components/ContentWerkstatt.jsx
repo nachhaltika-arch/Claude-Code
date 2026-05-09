@@ -414,7 +414,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                   {hasContent ? 'Freigabe ausstehend' : 'Content fehlt'}
                 </span>
                 {hasContent && (
-                  <button style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--brand-primary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  <button style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--brand-primary-mid)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                     Freigabe anfordern
                   </button>
                 )}

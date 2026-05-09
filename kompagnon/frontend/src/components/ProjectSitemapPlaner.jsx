@@ -171,7 +171,7 @@ export default function ProjectSitemapPlaner({ projectId, briefingData, onClose 
         )}
 
         {/* Add page */}
-        <button onClick={addPage} style={{ width: '100%', padding: '10px', border: '2px dashed var(--border-light)', borderRadius: 'var(--radius-md)', background: 'none', color: 'var(--brand-primary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+        <button onClick={addPage} style={{ width: '100%', padding: '10px', border: '2px dashed var(--border-light)', borderRadius: 'var(--radius-md)', background: 'none', color: 'var(--brand-primary-mid)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
           + Seite hinzufuegen
         </button>
 

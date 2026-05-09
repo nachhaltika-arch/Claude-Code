@@ -183,10 +183,10 @@ function Field({ label, required, hint, error, charInfo, children }) {
         </div>
       ) : hint ? (
         <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>
-          {hint}{charInfo && <span style={{ color: 'var(--brand-primary)', marginLeft: 6 }}> · {charInfo}</span>}
+          {hint}{charInfo && <span style={{ color: 'var(--brand-primary-mid)', marginLeft: 6 }}> · {charInfo}</span>}
         </div>
       ) : charInfo ? (
-        <div style={{ fontSize: 11, color: 'var(--brand-primary)', marginTop: 4 }}>{charInfo}</div>
+        <div style={{ fontSize: 11, color: 'var(--brand-primary-mid)', marginTop: 4 }}>{charInfo}</div>
       ) : null}
     </div>
   );

@@ -486,7 +486,7 @@ export default function CustomerPortal() {
         <div style={{ background: 'var(--bg-surface)', borderRadius: 16, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
           <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6, marginTop: 0 }}>Identität bestätigen</h2>
           <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 20, lineHeight: 1.6 }}>
-            Bitte geben Sie eine E-Mail-Adresse mit der Domain <strong style={{ color: 'var(--brand-primary)' }}>@{data?.email_domain}</strong> ein.
+            Bitte geben Sie eine E-Mail-Adresse mit der Domain <strong style={{ color: 'var(--brand-primary-mid)' }}>@{data?.email_domain}</strong> ein.
           </p>
           {verifyError && (
             <div style={{ background: 'var(--status-danger-bg)', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{verifyError}</div>
@@ -753,7 +753,7 @@ export default function CustomerPortal() {
                   Ihr Projektstatus
                 </div>
                 {data.go_live_date && (
-                  <div style={{ fontSize: 11, color: 'var(--brand-primary)', fontWeight: 500, background: '#E1F5EE', padding: '3px 8px', borderRadius: 20 }}>
+                  <div style={{ fontSize: 11, color: 'var(--brand-primary-mid)', fontWeight: 500, background: '#E1F5EE', padding: '3px 8px', borderRadius: 20 }}>
                     Go-Live: {new Date(data.go_live_date).toLocaleDateString('de-DE')}
                   </div>
                 )}

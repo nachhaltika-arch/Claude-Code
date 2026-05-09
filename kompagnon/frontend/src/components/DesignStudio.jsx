@@ -296,7 +296,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                 </div>
                 {kiInjected && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 6, background: 'rgba(0,142,170,0.10)', border: '1px solid rgba(0,142,170,0.25)' }}>
-                    <span style={{ fontSize: 11, color: 'var(--brand-primary)', fontWeight: 700 }}>KI-Texte eingesetzt</span>
+                    <span style={{ fontSize: 11, color: 'var(--brand-primary-mid)', fontWeight: 700 }}>KI-Texte eingesetzt</span>
                   </div>
                 )}
               </div>
@@ -331,7 +331,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                   {linkSummary && (
                     <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
                       <span style={{ color: 'var(--status-success-text)', fontWeight: 600 }}>{linkSummary.ok} OK</span>
-                      {linkSummary.auto_fixed > 0 && <span style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>{linkSummary.auto_fixed} korrigiert</span>}
+                      {linkSummary.auto_fixed > 0 && <span style={{ color: 'var(--brand-primary-mid)', fontWeight: 600 }}>{linkSummary.auto_fixed} korrigiert</span>}
                       {linkSummary.unresolved > 0 && <span style={{ color: 'var(--status-warning-text)', fontWeight: 600 }}>{linkSummary.unresolved} offen</span>}
                     </div>
                   )}

@@ -297,7 +297,7 @@ function NewCampaignModal({ onClose, onCreated, token }) {
       }}>
         <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
               Neue Kampagne
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>

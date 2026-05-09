@@ -231,7 +231,7 @@ export default function AcademyEdit() {
                 </div>
               ))}
               <button onClick={() => setChecklistItems(prev => [...prev, ''])} style={{
-                padding: '7px 14px', background: 'var(--bg-app)', color: 'var(--brand-primary)',
+                padding: '7px 14px', background: 'var(--bg-app)', color: 'var(--brand-primary-mid)',
                 border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
                 fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)', alignSelf: 'flex-start',
               }}>+ Punkt hinzufügen</button>

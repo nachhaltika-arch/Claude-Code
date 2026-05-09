@@ -181,8 +181,8 @@ export default function ScraperControl() {
   };
   const btnSecondary = {
     padding: '10px 20px', borderRadius: 8,
-    border: '1px solid var(--brand-primary)', background: 'transparent',
-    color: 'var(--brand-primary)', fontSize: 13, fontWeight: 700,
+    border: '1px solid var(--brand-primary-mid)', background: 'transparent',
+    color: 'var(--brand-primary-mid)', fontSize: 13, fontWeight: 700,
     cursor: 'pointer', fontFamily: 'var(--font-sans)',
   };
 

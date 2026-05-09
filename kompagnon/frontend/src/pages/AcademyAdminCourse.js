@@ -335,7 +335,7 @@ function ModuleBlock({
             disabled={addingLesson}
             style={{
               alignSelf: 'flex-start', padding: '5px 12px',
-              background: 'transparent', color: 'var(--brand-primary)',
+              background: 'transparent', color: 'var(--brand-primary-mid)',
               border: '1px dashed var(--border-medium)', borderRadius: 'var(--radius-md)',
               fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)',
               opacity: addingLesson ? 0.6 : 1,

@@ -196,7 +196,7 @@ export default function AuditHistory({ leadId }) {
                 )}
                 {audit.top_issues && audit.top_issues.length > 0 && (
                   <div>
-                    <strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: 'var(--kc-tracking-wide)', color: 'var(--brand-primary)' }}>
+                    <strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: 'var(--kc-tracking-wide)', color: 'var(--brand-primary-mid)' }}>
                       Probleme
                     </strong>
                     <ul style={{ margin: '4px 0 0', paddingLeft: '16px' }}>

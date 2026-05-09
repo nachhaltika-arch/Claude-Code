@@ -285,7 +285,7 @@ function ManualEntryTab() {
     >
       <div>
         <label style={labelStyle}>
-          Firmenname <span style={{ color: 'var(--brand-primary)' }}>*</span>
+          Firmenname <span style={{ color: 'var(--brand-primary-mid)' }}>*</span>
         </label>
         <input
           type="text"

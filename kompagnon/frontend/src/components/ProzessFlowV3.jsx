@@ -508,7 +508,7 @@ export default function ProzessFlowV3({
             {nextSchritte.map(s => (
               <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', background: 'var(--bg-elevated)', borderRadius: 6, fontSize: 10, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
                 {s.icon} {s.label}
-                {s.auto && <span style={{ padding: '1px 4px', background: '#EFF6FF', color: 'var(--brand-primary)', borderRadius: 3, fontSize: 8 }}>🤖</span>}
+                {s.auto && <span style={{ padding: '1px 4px', background: '#EFF6FF', color: 'var(--brand-primary-mid)', borderRadius: 3, fontSize: 8 }}>🤖</span>}
               </div>
             ))}
           </div>

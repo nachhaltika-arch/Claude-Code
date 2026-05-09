@@ -257,7 +257,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
         const t = tokens.find(x => x.id === activeToken);
         return (
           <div style={{ border: '1.5px solid var(--brand-primary)', borderRadius: 10, padding: 14, marginBottom: 12, background: 'var(--bg-surface)' }}>
-            <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
               {t.label} bearbeiten
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>

@@ -308,7 +308,7 @@ function ProjectKanbanCard({ card, phase, onDragStart, onOpen }) {
           {companyName}
         </div>
         {domain && (
-          <div style={{ fontSize: 10, color: 'var(--brand-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+          <div style={{ fontSize: 10, color: 'var(--brand-primary-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
             {domain}
           </div>
         )}
@@ -337,7 +337,7 @@ function ProjectKanbanCard({ card, phase, onDragStart, onOpen }) {
           </span>
         )}
         {type === 'lead' && !certSt && (
-          <span style={{ fontSize: 10, color: 'var(--brand-primary)', fontWeight: 500 }}>→ Projekt anlegen</span>
+          <span style={{ fontSize: 10, color: 'var(--brand-primary-mid)', fontWeight: 500 }}>→ Projekt anlegen</span>
         )}
       </div>
     </div>

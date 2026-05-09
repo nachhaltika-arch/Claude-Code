@@ -111,7 +111,7 @@ export default function SecurityChecklist({ auditData }) {
                         </div>
                         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 6 }}>{item.desc}</div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'var(--bg-hover)', padding: '2px 7px', borderRadius: 4, fontWeight: 600 }}>{item.tool}</span>
+                          <span style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'var(--bg-hover)', padding: '2px 7px', borderRadius: 4, fontWeight: 600 }}>{item.tool}</span>
                           <span style={{ fontSize: 11, color: '#059669', background: 'var(--status-success-bg)', padding: '2px 7px', borderRadius: 4 }}>{item.cost}</span>
                         </div>
                       </div>

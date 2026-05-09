@@ -83,7 +83,7 @@ function ProjectListCard({ project, lead, onClick }) {
           {lead?.company_name || project.company_name || `Projekt #${project.id}`}
         </div>
         {domain && (
-          <div style={{ fontSize: 11, color: 'var(--brand-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+          <div style={{ fontSize: 11, color: 'var(--brand-primary-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
             {domain}
           </div>
         )}

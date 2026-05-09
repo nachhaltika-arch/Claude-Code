@@ -189,7 +189,7 @@ function AuditHistorySection({ customerId, customer, headers }) {
           <span style={{ fontSize: 16 }}>🔍</span>
           <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Audit-Historie</span>
           {!loading && audits.length > 0 && (
-            <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>
+            <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>
               {audits.length}
             </span>
           )}
@@ -471,7 +471,7 @@ function ProjectFilesSection({ customerId, token }) {
           <span style={{ fontSize: 16 }}>📁</span>
           <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Projektdateien</span>
           {!loading && files.length > 0 && (
-            <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>
+            <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>
               {files.length}
             </span>
           )}
@@ -693,7 +693,7 @@ function ProjectFilesSection({ customerId, token }) {
                         <button
                           onClick={() => handleDownload(f.id, f.original_filename)}
                           title="Herunterladen"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand-primary)', padding: 4, borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', transition: 'opacity var(--transition-fast)', opacity: 0.7 }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand-primary-mid)', padding: 4, borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', transition: 'opacity var(--transition-fast)', opacity: 0.7 }}
                           onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                           onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
                         >
@@ -2269,7 +2269,7 @@ export default function CustomerDetail() {
             <span style={{ fontSize: 16 }}>🎓</span>
             <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Akademy</span>
             {!loadingAcademy && assigned.length > 0 && (
-              <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>
+              <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>
                 {assigned.length}
               </span>
             )}
@@ -2464,7 +2464,7 @@ export default function CustomerDetail() {
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{course.title}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{course.description}</div>
                   </div>
-                  <span style={{ fontSize: 12, color: 'var(--brand-primary)', fontWeight: 600, flexShrink: 0 }}>
+                  <span style={{ fontSize: 12, color: 'var(--brand-primary-mid)', fontWeight: 600, flexShrink: 0 }}>
                     {assigning === course.id ? '…' : '+ Zuweisen'}
                   </span>
                 </button>

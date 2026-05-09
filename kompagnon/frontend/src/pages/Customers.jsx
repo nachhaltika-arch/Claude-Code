@@ -143,7 +143,7 @@ export default function Customers() {
               fontSize: 13, fontFamily: 'var(--font-sans)', background: 'var(--bg-surface)',
               color: 'var(--text-primary)', outline: 'none', transition: 'border-color 0.15s',
             }}
-            onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+            onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
             onBlur={e => e.target.style.borderColor = 'var(--border-light)'}
           />
         </div>

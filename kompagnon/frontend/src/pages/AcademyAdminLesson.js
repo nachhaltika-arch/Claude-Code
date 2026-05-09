@@ -30,7 +30,7 @@ const S = {
   cardBody: { padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 },
 };
 
-function focusOn(e)  { e.target.style.borderColor = 'var(--brand-primary)'; }
+function focusOn(e)  { e.target.style.borderColor = 'var(--brand-primary-mid)'; }
 function focusOff(e) { e.target.style.borderColor = 'var(--border-medium)'; }
 
 function Field({ label, children }) {

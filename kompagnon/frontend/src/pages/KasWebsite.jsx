@@ -212,7 +212,7 @@ export default function KasWebsite() {
             </span>
             {site.site_url && (
               <a href={site.site_url} target="_blank" rel="noopener noreferrer"
-                 style={{ fontSize: 13, color: 'var(--brand-primary)', textDecoration: 'none' }}>
+                 style={{ fontSize: 13, color: 'var(--brand-primary-mid)', textDecoration: 'none' }}>
                 {site.site_url} →
               </a>
             )}

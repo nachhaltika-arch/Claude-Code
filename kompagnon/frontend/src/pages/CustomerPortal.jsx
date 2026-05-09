@@ -230,7 +230,7 @@ function FileUploadSection({ token }) {
                 onChange={e => setNote(e.target.value)}
                 placeholder="z.B. Hauptlogo in Farbe"
                 style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', color: 'var(--text-primary)' }}
-                onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                 onBlur={e => e.target.style.borderColor = 'var(--border-medium)'}
               />
             </div>
@@ -496,7 +496,7 @@ export default function CustomerPortal() {
               <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={`name@${data?.email_domain}`} required
                 style={{ width: '100%', padding: '14px 16px', border: '1px solid var(--border-medium)', borderRadius: 8, fontSize: 16, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)' }}
-                onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'} onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
+                onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'} onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
             </div>
             <button type="submit" disabled={verifying} style={{
               width: '100%', padding: 12, background: verifying ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: 'white',

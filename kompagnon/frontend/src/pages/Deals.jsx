@@ -155,7 +155,7 @@ export default function Deals() {
                       transition: 'all 0.15s',
                       position: 'relative',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--brand-primary)'}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--brand-primary-mid)'}
                     onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-light)'}
                   >
                     {deal.company_name && (
@@ -467,7 +467,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
         {/* Header */}
         <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
               {isEdit ? 'Deal bearbeiten' : 'Neuer Deal'}
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -509,7 +509,7 @@ function DealModal({ deal, onClose, onSaved, onRequestDelete }) {
           <div style={{ marginTop: 20, marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <label style={labelStyle}>Positionen</label>
-              <button onClick={addItem} style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Position hinzufügen</button>
+              <button onClick={addItem} style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Position hinzufügen</button>
             </div>
 
             <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: 12, border: '1px solid var(--border-light)' }}>

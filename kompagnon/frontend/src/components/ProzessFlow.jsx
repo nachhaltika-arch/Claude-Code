@@ -1177,7 +1177,7 @@ function BriefingUnternehmenEmbed({ lead, localBriefing, reloadBriefing }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Briefing-Daten</div>
         <button onClick={() => setEditing(true)}
-          style={{ padding: '6px 16px', borderRadius: 6, border: '1px solid var(--brand-primary)', background: 'transparent', color: 'var(--brand-primary)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+          style={{ padding: '6px 16px', borderRadius: 6, border: '1px solid var(--brand-primary-mid)', background: 'transparent', color: 'var(--brand-primary-mid)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
           Bearbeiten
         </button>
       </div>
@@ -1332,7 +1332,7 @@ function AuditEmbed({ project, lead, headers, latestAudit, onAuditComplete }) {
       {websiteUrl && (
         <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
           <span style={{ color: 'var(--text-tertiary)' }}>URL: </span>
-          <a href={websiteUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}>{websiteUrl}</a>
+          <a href={websiteUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--brand-primary-mid)', textDecoration: 'none' }}>{websiteUrl}</a>
         </div>
       )}
 
@@ -1421,7 +1421,7 @@ function ZugangsdatenEmbed({ project, headers }) {
                   </span>
                 </div>
                 {c.username && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.username}</div>}
-                {c.url && <a href={c.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--brand-primary)', textDecoration: 'none', display: 'block' }}>{c.url}</a>}
+                {c.url && <a href={c.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--brand-primary-mid)', textDecoration: 'none', display: 'block' }}>{c.url}</a>}
                 {c.notes && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>{c.notes}</div>}
               </div>
               <button onClick={() => del(c.id)} style={{ fontSize: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 4 }}>X</button>
@@ -1463,7 +1463,7 @@ function ZugangsdatenEmbed({ project, headers }) {
         </div>
       ) : (
         <button onClick={() => setShowForm(true)}
-          style={{ padding: '10px 20px', borderRadius: 8, border: '1.5px dashed var(--border-medium)', background: 'transparent', color: 'var(--brand-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          style={{ padding: '10px 20px', borderRadius: 8, border: '1.5px dashed var(--border-medium)', background: 'transparent', color: 'var(--brand-primary-mid)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8 }}>
           + Zugang hinzufuegen
         </button>
       )}
@@ -1567,7 +1567,7 @@ function DesignStudioEmbed({ project, leadId, token, headers, brandData, sitemap
               style={{ padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
                 border: `2px solid ${selectedTpl === `db-${t.id}` ? 'var(--brand-primary)' : 'var(--border-light)'}`,
                 background: selectedTpl === `db-${t.id}` ? 'var(--bg-active)' : 'var(--bg-surface)' }}>
-              <div style={{ fontSize: 11, color: 'var(--brand-primary)', fontWeight: 700, marginBottom: 4 }}>Gespeichert</div>
+              <div style={{ fontSize: 11, color: 'var(--brand-primary-mid)', fontWeight: 700, marginBottom: 4 }}>Gespeichert</div>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{t.name}</div>
             </div>
           ))}
@@ -1657,7 +1657,7 @@ function NetlifyEmbed({ project, headers }) {
             {siteId ? '✅ Netlify-Site angelegt' : '1. Site anlegen'}
           </div>
           {siteId
-            ? <a href={siteUrl} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--brand-primary)' }}>{siteUrl}</a>
+            ? <a href={siteUrl} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--brand-primary-mid)' }}>{siteUrl}</a>
             : <button onClick={async () => {
                 setCreating(true); setError('');
                 try {
@@ -1923,7 +1923,7 @@ function AbnahmeEmbed({ project, lead, headers, netlify }) {
         <div style={{ textAlign:'center', padding:'32px 20px' }}>
           <div style={{ fontSize:56, marginBottom:12 }}>🎉</div>
           <div style={{ fontSize:22, fontWeight:800, color:'var(--text-primary)', marginBottom:8 }}>Website ist live!</div>
-          {liveUrl && <a href={liveUrl} target="_blank" rel="noreferrer" style={{ fontSize:14, color:'var(--brand-primary)', fontWeight:600 }}>{liveUrl}</a>}
+          {liveUrl && <a href={liveUrl} target="_blank" rel="noreferrer" style={{ fontSize:14, color:'var(--brand-primary-mid)', fontWeight:600 }}>{liveUrl}</a>}
           <div style={{ marginTop:24, display:'flex', flexDirection:'column', gap:10, alignItems:'center' }}>
             <div style={{ fontSize:13, color:'var(--text-secondary)', fontWeight:600 }}>Naechste Schritte:</div>
             {['Trustpilot-Bewertung anfragen', 'Google Business Profil aktualisieren', 'Google Analytics einrichten', 'Vorher/Nachher-Screenshot fuer Portfolio'].map(s => (
@@ -1949,7 +1949,7 @@ function AbnahmeEmbed({ project, lead, headers, netlify }) {
         {liveUrl && (
           <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-light)', borderRadius:10, padding:14 }}>
             <div style={{ fontSize:12, color:'var(--text-tertiary)', marginBottom:4 }}>Live-URL</div>
-            <a href={liveUrl} target="_blank" rel="noreferrer" style={{ fontSize:14, color:'var(--brand-primary)', fontWeight:600 }}>{liveUrl}</a>
+            <a href={liveUrl} target="_blank" rel="noreferrer" style={{ fontSize:14, color:'var(--brand-primary-mid)', fontWeight:600 }}>{liveUrl}</a>
           </div>
         )}
         <button onClick={goLive} disabled={saving}
@@ -2048,7 +2048,7 @@ function GbpQrEmbed({ project, headers }) {
       {gbpData?.review_url && (
         <div style={{ padding: 14, background: 'var(--bg-app)', border: '1px solid var(--border-light)', borderRadius: 10 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 6 }}>Google Bewertungs-Link</div>
-          <a href={gbpData.review_url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--brand-primary)', wordBreak: 'break-all' }}>{gbpData.review_url}</a>
+          <a href={gbpData.review_url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--brand-primary-mid)', wordBreak: 'break-all' }}>{gbpData.review_url}</a>
         </div>
       )}
       {project.gbp_rating && (

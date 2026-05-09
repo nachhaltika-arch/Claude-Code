@@ -144,7 +144,7 @@ function CrawledImagesGallery({ leadId, headers }) {
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 16, marginTop: 8 }}>
       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span>{images.length} Bilder von der Website gecrawlt</span>
-        {images.length > 12 && <button onClick={() => setShowAll(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--brand-primary)', fontFamily: 'var(--font-sans)' }}>{showAll ? 'Weniger' : `Alle ${images.length}`}</button>}
+        {images.length > 12 && <button onClick={() => setShowAll(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-sans)' }}>{showAll ? 'Weniger' : `Alle ${images.length}`}</button>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 6 }}>
         {visible.map((img, i) => (
@@ -765,7 +765,7 @@ export default function LeadProfile() {
   const fieldRow = (icon, value, label) =>
     value ? (
       <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
-        <span style={{ fontSize: 14, color: 'var(--brand-primary)', flexShrink: 0, marginTop: 1, width: 18, textAlign: 'center' }}>
+        <span style={{ fontSize: 14, color: 'var(--brand-primary-mid)', flexShrink: 0, marginTop: 1, width: 18, textAlign: 'center' }}>
           {icon}
         </span>
         <div>
@@ -1310,7 +1310,7 @@ export default function LeadProfile() {
             <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Kontaktdaten</span>
-                <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Bearbeiten →</button>
+                <button onClick={() => { setActiveTab('contact'); setEditMode(true); }} style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Bearbeiten →</button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile || isTablet ? '1fr' : '1fr 1fr', gap: '0 16px' }}>
                 {fieldRow('👤', lead.contact_name, 'Ansprechpartner')}
@@ -1320,7 +1320,7 @@ export default function LeadProfile() {
                 {fieldRow('👔', [lead.ceo_first_name, lead.ceo_last_name].filter(Boolean).join(' '), 'Geschäftsführer')}
                 {fieldRow('🏢', [lead.company_name, lead.legal_form].filter(Boolean).join(' '), 'Firma')}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 14, color: 'var(--brand-primary)', flexShrink: 0, marginTop: 1, width: 18, textAlign: 'center' }}>👤</span>
+                  <span style={{ fontSize: 14, color: 'var(--brand-primary-mid)', flexShrink: 0, marginTop: 1, width: 18, textAlign: 'center' }}>👤</span>
                   <div>
                     <div style={{ fontSize: 13, color: lead.geschaeftsfuehrer ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{lead.geschaeftsfuehrer || '–'}</div>
                     <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Geschäftsführer (auto)</div>
@@ -1457,7 +1457,7 @@ export default function LeadProfile() {
               <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Letzter Audit</span>
-                  <button onClick={() => setActiveTab('audits')} style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Alle anzeigen →</button>
+                  <button onClick={() => setActiveTab('audits')} style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Alle anzeigen →</button>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                   <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-md)', background: `${levelColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1473,7 +1473,7 @@ export default function LeadProfile() {
                     {latestAudit.ai_summary.substring(0, 200)}{latestAudit.ai_summary.length > 200 ? '...' : ''}
                   </div>
                 )}
-                <button onClick={() => setOpenAudit(latestAudit)} style={{ marginTop: 10, width: '100%', padding: '7px', background: 'var(--bg-active)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                <button onClick={() => setOpenAudit(latestAudit)} style={{ marginTop: 10, width: '100%', padding: '7px', background: 'var(--bg-active)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', color: 'var(--brand-primary-mid)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                   Vollständigen Bericht anzeigen
                 </button>
               </Card>
@@ -1484,7 +1484,7 @@ export default function LeadProfile() {
               <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Projekt</span>
-                  <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  <button onClick={() => navigate(`/app/projects/${projectId}`)} style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                     Öffnen →
                   </button>
                 </div>
@@ -1496,7 +1496,7 @@ export default function LeadProfile() {
                 </div>
                 <button
                   onClick={() => navigate(`/app/projects/${projectId}`)}
-                  style={{ marginTop: 10, width: '100%', padding: '7px', background: 'var(--bg-active)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+                  style={{ marginTop: 10, width: '100%', padding: '7px', background: 'var(--bg-active)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', color: 'var(--brand-primary-mid)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
                 >
                   📁 Zum Projekt
                 </button>
@@ -1516,7 +1516,7 @@ export default function LeadProfile() {
             <Card padding="md" style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Kunden-Zugang</span>
-                <button onClick={() => setActiveTab('qrcode')} style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Details →</button>
+                <button onClick={() => setActiveTab('qrcode')} style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Details →</button>
               </div>
               {qrLoading ? (
                 <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1558,7 +1558,7 @@ export default function LeadProfile() {
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                  <button onClick={loadQrCode} style={{ padding: '8px 16px', background: 'var(--bg-active)', color: 'var(--brand-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  <button onClick={loadQrCode} style={{ padding: '8px 16px', background: 'var(--bg-active)', color: 'var(--brand-primary-mid)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                     QR-Code generieren
                   </button>
                 </div>
@@ -1631,7 +1631,7 @@ export default function LeadProfile() {
                   <div key={field}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
                     <input value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
-                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                 ))}
@@ -1657,13 +1657,13 @@ export default function LeadProfile() {
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Straße</div>
                     <input value={editData.street || ''} onChange={e => setEditData(p => ({...p, street: e.target.value}))} placeholder="Musterstraße" style={inputStyle}
-                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Nr.</div>
                     <input value={editData.house_number || ''} onChange={e => setEditData(p => ({...p, house_number: e.target.value}))} placeholder="12a" style={inputStyle}
-                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                 </div>
@@ -1672,13 +1672,13 @@ export default function LeadProfile() {
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>PLZ</div>
                     <input value={editData.postal_code || ''} onChange={e => setEditData(p => ({...p, postal_code: e.target.value}))} placeholder="56070" style={inputStyle}
-                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Ort</div>
                     <input value={editData.city || ''} onChange={e => setEditData(p => ({...p, city: e.target.value}))} placeholder="Koblenz" style={inputStyle}
-                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                 </div>
@@ -1697,7 +1697,7 @@ export default function LeadProfile() {
                   <div key={field}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
                     <input value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
-                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                 ))}
@@ -1714,7 +1714,7 @@ export default function LeadProfile() {
                   <div key={field}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{label}</div>
                     <input value={editData[field] || ''} onChange={e => setEditData(p => ({...p, [field]: e.target.value}))} placeholder={ph} style={inputStyle}
-                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                      onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                       onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                   </div>
                 ))}
@@ -1723,7 +1723,7 @@ export default function LeadProfile() {
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, marginTop: 8 }}>Notizen</div>
                   <textarea value={editData.notes || ''} onChange={e => setEditData(p => ({...p, notes: e.target.value}))} placeholder="Interne Notizen..." rows={3}
                     style={{ ...inputStyle, resize: 'vertical', minHeight: 70 }}
-                    onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                    onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                     onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
                 </div>
               </div>
@@ -1870,7 +1870,7 @@ export default function LeadProfile() {
                 Noch keine Deals für dieses Unternehmen.
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
-                Lege einen neuen Deal in der <a href="/app/deals" style={{ color: 'var(--brand-primary)' }}>Deal-Pipeline</a> an.
+                Lege einen neuen Deal in der <a href="/app/deals" style={{ color: 'var(--brand-primary-mid)' }}>Deal-Pipeline</a> an.
               </div>
             </div>
           )}
@@ -2064,7 +2064,7 @@ export default function LeadProfile() {
                   </div>
                   <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', padding: '8px 10px', marginBottom: 12 }}>
                     <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Portal-Link</div>
-                    <div style={{ fontSize: 10, color: 'var(--brand-primary)', fontFamily: 'var(--font-mono)', wordBreak: 'break-all', lineHeight: 1.4 }}>{qrData.portal_url}</div>
+                    <div style={{ fontSize: 10, color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-mono)', wordBreak: 'break-all', lineHeight: 1.4 }}>{qrData.portal_url}</div>
                   </div>
                   {lead.email && (
                     <div style={{ background: 'var(--status-info-bg)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', padding: '8px 10px', marginBottom: 12, fontSize: 11, color: 'var(--status-info-text)', lineHeight: 1.5 }}>
@@ -2100,7 +2100,7 @@ export default function LeadProfile() {
                   { icon: '🔒', title: 'Sicher & eindeutig', desc: 'Jeder Code ist einmalig — bei Bedarf neuen erstellen.' },
                 ].map(item => (
                   <div key={item.icon} style={{ display: 'flex', gap: 12, marginBottom: 14, alignItems: 'flex-start' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-active)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{item.icon}</div>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-active)', color: 'var(--brand-primary-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{item.icon}</div>
                     <div>
                       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{item.title}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{item.desc}</div>
@@ -2350,7 +2350,7 @@ export default function LeadProfile() {
                             </td>
                             <td style={{ padding: '7px 12px', maxWidth: 400 }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                                <a href={r.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontSize: 11, wordBreak: 'break-all' }}>{r.url}</a>
+                                <a href={r.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ color: 'var(--brand-primary-mid)', textDecoration: 'none', fontSize: 11, wordBreak: 'break-all' }}>{r.url}</a>
                                 <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-tertiary)', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
                               </div>
                             </td>

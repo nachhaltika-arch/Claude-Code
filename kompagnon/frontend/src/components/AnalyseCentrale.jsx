@@ -682,7 +682,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                     <div>
                       <DetailLabel>URL</DetailLabel>
                       <a href={sel.url} target="_blank" rel="noreferrer"
-                        style={{ fontSize: 12, color: 'var(--brand-primary)', textDecoration: 'none', wordBreak: 'break-all', lineHeight: 1.5 }}>
+                        style={{ fontSize: 12, color: 'var(--brand-primary-mid)', textDecoration: 'none', wordBreak: 'break-all', lineHeight: 1.5 }}>
                         {sel.url}
                       </a>
                     </div>
@@ -731,7 +731,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                           <DetailLabel style={{ marginBottom: 0 }}>Volltext - {sel.word_count || 0} Woerter</DetailLabel>
                           <button
                             onClick={() => setShowFullText(v => !v)}
-                            style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', padding: 0 }}
+                            style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', padding: 0 }}
                           >
                             {showFullText ? '\u25B2 Weniger' : '\u25BC Volltext anzeigen'}
                           </button>
@@ -788,7 +788,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                                 try { label = new URL(link).pathname || '/'; } catch { /* keep */ }
                                 return (
                                   <a key={j} href={link} target="_blank" rel="noreferrer"
-                                    style={{ fontSize: 11, color: 'var(--brand-primary)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', padding: '1px 0' }}>
+                                    style={{ fontSize: 11, color: 'var(--brand-primary-mid)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', padding: '1px 0' }}>
                                     {label}
                                   </a>
                                 );
@@ -1001,7 +1001,7 @@ function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespeed, sav
         <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>
           Brand Design
           {designData?.style_keyword && (
-            <span style={{ marginLeft: 8, fontWeight: 600, color: 'var(--brand-primary)', textTransform: 'none', letterSpacing: 0 }}>
+            <span style={{ marginLeft: 8, fontWeight: 600, color: 'var(--brand-primary-mid)', textTransform: 'none', letterSpacing: 0 }}>
               {designData.style_keyword}
             </span>
           )}
@@ -1062,14 +1062,14 @@ function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespeed, sav
             {/* KI Design Brief */}
             {designData.design_brief?.fuer_ki_prompt && (
               <details style={{ fontSize: 10 }}>
-                <summary style={{ cursor: 'pointer', color: 'var(--brand-primary)', fontWeight: 600, fontSize: 10 }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--brand-primary-mid)', fontWeight: 600, fontSize: 10 }}>
                   KI-Design-Brief
                 </summary>
                 <div style={{ marginTop: 6, padding: '8px 10px', background: 'var(--bg-app)', borderRadius: 6, fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.6, border: '1px solid var(--border-light)' }}>
                   {designData.design_brief.fuer_ki_prompt}
                 </div>
                 <button onClick={() => navigator.clipboard?.writeText(designData.design_brief.fuer_ki_prompt)}
-                  style={{ marginTop: 4, fontSize: 10, padding: '3px 8px', background: 'none', border: '1px solid var(--border-light)', borderRadius: 4, cursor: 'pointer', color: 'var(--brand-primary)', fontFamily: 'var(--font-sans)' }}>
+                  style={{ marginTop: 4, fontSize: 10, padding: '3px 8px', background: 'none', border: '1px solid var(--border-light)', borderRadius: 4, cursor: 'pointer', color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-sans)' }}>
                   Kopieren
                 </button>
               </details>

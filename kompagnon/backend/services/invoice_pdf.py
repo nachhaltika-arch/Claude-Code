@@ -74,10 +74,12 @@ def generate_invoice_pdf(invoice: dict) -> bytes:
     # Bankdaten
     c.setFont("Helvetica", 9)
     c.setFillColorRGB(0.5, 0.5, 0.5)
-    iban = os.getenv("BANK_IBAN", "DE00 0000 0000 0000 0000 00")
-    bic = os.getenv("BANK_BIC", "XXXXXXXX")
-    bank = os.getenv("BANK_NAME", "Musterbank")
-    c.drawString(2 * cm, 2 * cm, f"Bankverbindung: {bank} \u00b7 IBAN: {iban} \u00b7 BIC: {bic}")
+    iban = os.getenv("BANK_IBAN", "")
+    bic = os.getenv("BANK_BIC", "")
+    bank = os.getenv("BANK_NAME", "")
+    if iban and bank:
+        bic_part = f" \u00b7 BIC: {bic}" if bic else ""
+        c.drawString(2 * cm, 2 * cm, f"Bankverbindung: {bank} \u00b7 IBAN: {iban}{bic_part}")
 
     c.save()
     return buf.getvalue()

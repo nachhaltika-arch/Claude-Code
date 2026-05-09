@@ -484,7 +484,6 @@ export default function LeadProfile() {
         ziel_keyword: '',
         cta_text: '',
       };
-      console.log('Design payload:', JSON.stringify(payload, null, 2));
 
       // Start background job — returns immediately with job_id
       const startRes = await fetch(`${API_BASE_URL}/api/agents/${projectId}/content`, {

@@ -163,9 +163,6 @@ export default function AuditReport({ auditData, onClose }) {
   const r = auditData;
   const ls = LEVEL_STYLES[r.level] || LEVEL_STYLES['Nicht konform'];
 
-  // Debug: log the raw API response to verify field names
-  console.log('[AuditReport] auditData:', r);
-
   // r.result is a fallback for response shapes that nest data one level deeper
   const res = r.result || r;
 

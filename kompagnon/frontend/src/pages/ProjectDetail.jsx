@@ -970,7 +970,6 @@ export default function ProjectDetail() {
         axios.get(`${API_BASE_URL}/api/projects/${id}`, { headers }),
         axios.get(`${API_BASE_URL}/api/projects/${id}/margin`, { headers }),
       ]);
-      console.log('Projekt API:', projectRes.data);
       setProject(projectRes.data);
       setMargin(marginRes.data);
       setNewWebsiteUrl(projectRes.data.new_website_url || '');
@@ -1500,7 +1499,6 @@ export default function ProjectDetail() {
         cta_text: String(selectedPage?.cta_text || ''),
         ...ctx,
       };
-      console.log('Design payload:', JSON.stringify(payload, null, 2));
 
       // Start background job — returns immediately with job_id
       const startRes = await fetch(`${API_BASE_URL}/api/agents/${project.id}/content`, {

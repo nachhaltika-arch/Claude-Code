@@ -11,7 +11,7 @@ export const SOURCES = [
   { key: 'google_ads', label: 'Google Ads', icon: '🔍', color: '#EA4335' },
   { key: 'briefkarte', label: 'Briefkarte', icon: '📬', color: '#854F0B' },
   { key: 'instagram',  label: 'Instagram',  icon: '📸', color: '#E1306C' },
-  { key: 'email',      label: 'E-Mail',     icon: '✉️', color: '#008EAA' },
+  { key: 'email',      label: 'E-Mail',     icon: '✉️', color: 'var(--kc-mid)' },
   { key: 'sonstige',   label: 'Sonstige',   icon: '📌', color: '#64748B' },
 ];
 

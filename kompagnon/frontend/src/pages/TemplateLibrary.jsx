@@ -311,7 +311,7 @@ export default function TemplateLibrary() {
                     <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
                       <button
                         onClick={() => setEditingTemplate(tpl)}
-                        style={{ flex: 1, padding: '9px 14px', background: '#008eaa', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
+                        style={{ flex: 1, padding: '9px 14px', background: 'var(--kc-mid)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
                       >
                         ✏️ Im Website-Builder bearbeiten
                       </button>

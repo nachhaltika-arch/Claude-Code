@@ -163,7 +163,7 @@ export default function NewsletterDesigner({ leadId, projectId, onSend, onSave, 
               <button onClick={handleSend}
                 disabled={sending || !sendTo || !subject}
                 style={{ padding:'8px 20px',border:'none',borderRadius:6,
-                         background:'#008eaa',color:'white',
+                         background:'var(--kc-mid)',color:'white',
                          cursor:'pointer',fontWeight:600,opacity:sending?0.7:1 }}>
                 {sending ? 'Wird gesendet...' : 'Jetzt senden'}
               </button>

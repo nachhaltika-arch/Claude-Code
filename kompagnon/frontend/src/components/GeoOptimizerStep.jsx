@@ -165,7 +165,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
             onClick={startAnalysis}
             disabled={loading}
             style={{
-              background: '#008EAA', color: '#fff', border: 'none',
+              background: 'var(--kc-mid)', color: '#fff', border: 'none',
               padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 600,
               cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
             }}
@@ -186,7 +186,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
           Wir pruefen llms.txt, robots.txt, strukturierte Daten und Inhalte (~30 Sekunden)
         </p>
         <div style={{ marginTop: 16, background: '#E5E7EB', borderRadius: 4, height: 8, overflow: 'hidden' }}>
-          <div style={{ height: '100%', background: '#008EAA', width: '60%', animation: 'pulse 1.5s infinite' }} />
+          <div style={{ height: '100%', background: 'var(--kc-mid)', width: '60%', animation: 'pulse 1.5s infinite' }} />
         </div>
       </div>
     );
@@ -200,7 +200,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
           <p style={{ margin: '8px 0 16px', color: '#991B1B', fontSize: 13 }}>
             {result.error_message || 'Unbekannter Fehler'}
           </p>
-          <button onClick={startAnalysis} style={{ background: '#008EAA', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer' }}>
+          <button onClick={startAnalysis} style={{ background: 'var(--kc-mid)', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer' }}>
             Erneut versuchen
           </button>
         </div>
@@ -364,7 +364,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
                 onClick={generateFiles}
                 disabled={generating}
                 style={{
-                  background: '#008EAA', color: '#fff', border: 'none',
+                  background: 'var(--kc-mid)', color: '#fff', border: 'none',
                   padding: '10px 20px', borderRadius: 6, fontWeight: 700,
                   cursor: generating ? 'not-allowed' : 'pointer', opacity: generating ? 0.7 : 1, fontSize: 14,
                 }}
@@ -386,7 +386,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
               <button
                 onClick={generateFiles}
                 disabled={generating || result.status !== 'done'}
-                style={{ background: '#008EAA', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+                style={{ background: 'var(--kc-mid)', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
               >
                 {generating ? 'Generiert...' : '✨ Jetzt generieren'}
               </button>

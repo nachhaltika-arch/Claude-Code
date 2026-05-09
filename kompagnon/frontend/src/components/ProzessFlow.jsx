@@ -20,7 +20,7 @@ import API_BASE_URL from '../config';
 
 const PHASEN = [
   {
-    id: 'analyse', label: 'Analyse', icon: '🔍', color: '#008EAA',
+    id: 'analyse', label: 'Analyse', icon: '🔍', color: 'var(--kc-mid)',
     schritte: [
       { id: 'briefing-unternehmen', nr: 1, label: 'Briefing Unternehmen', desc: 'Stammdaten, Leistungen, USP erfassen', icon: '🏢', component: 'BriefingUnternehmen',
         istFertig: (d) => !!(d.briefing?.gewerk && d.briefing?.leistungen?.trim()),
@@ -828,7 +828,7 @@ function SitemapEditorEmbed({ pages, leadId, headers, onReload }) {
     { value: 'geplant',      label: 'Geplant',       color: 'var(--text-tertiary)',       bg: 'var(--bg-elevated)' },
     { value: 'in_arbeit',    label: 'In Arbeit',     color: '#854D0E',                    bg: '#FEF9C3' },
     { value: 'entwurf',      label: 'Entwurf',       color: '#7c3aed',                    bg: '#f3e8ff' },
-    { value: 'review',       label: 'Zur Pruefung',  color: '#008EAA',                    bg: '#E6F6FA' },
+    { value: 'review',       label: 'Zur Pruefung',  color: 'var(--kc-mid)',                    bg: '#E6F6FA' },
     { value: 'freigegeben',  label: 'Freigegeben',   color: '#059669',                    bg: '#dcfce7' },
   ];
 
@@ -1491,7 +1491,7 @@ function DesignStudioEmbed({ project, leadId, token, headers, brandData, sitemap
   }, []); // eslint-disable-line
 
   const PRESETS = [
-    { id: 'modern', label: 'Modern Clean', color: '#008EAA', desc: 'Minimalistisch, viel Weissraum' },
+    { id: 'modern', label: 'Modern Clean', color: 'var(--kc-mid)', desc: 'Minimalistisch, viel Weissraum' },
     { id: 'bold', label: 'Handwerk Bold', color: '#C0392B', desc: 'Kraftvoll, markant' },
     { id: 'trust', label: 'Service & Trust', color: '#2C3E50', desc: 'Serioes, vertrauenswuerdig' },
     { id: 'friendly', label: 'Local Friendly', color: '#27AE60', desc: 'Warm, freundlich, lokal' },
@@ -2065,7 +2065,7 @@ function GbpQrEmbed({ project, headers }) {
       )}
       <div style={{ display: 'flex', gap: 10 }}>
         <button onClick={loadQr} disabled={qrLoading}
-          style={{ flex: 1, padding: '10px 0', background: '#008EAA', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: qrLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+          style={{ flex: 1, padding: '10px 0', background: 'var(--kc-mid)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: qrLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
           {qrLoading ? 'Laden...' : '📲 QR-Code laden'}
         </button>
         {qrData && (

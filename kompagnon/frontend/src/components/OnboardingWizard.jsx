@@ -105,7 +105,7 @@ export default function OnboardingWizard({ user, onComplete }) {
 
         {/* ── Farbiger Header ── */}
         <div style={{
-          background: '#008eaa',
+          background: 'var(--kc-mid)',
           borderRadius: '20px 20px 0 0',
           padding: '22px 28px 18px',
         }}>
@@ -272,7 +272,7 @@ export default function OnboardingWizard({ user, onComplete }) {
                       </div>
                       {st !== 'done' && (
                         <div style={{
-                          fontSize: 11, color: '#008eaa',
+                          fontSize: 11, color: 'var(--kc-mid)',
                           fontWeight: 600, flexShrink: 0,
                         }}>
                           Auswählen
@@ -374,7 +374,7 @@ export default function OnboardingWizard({ user, onComplete }) {
                   href="mailto:info@kompagnon.eu?subject=Strategy Workshop Termin"
                   style={{
                     display: 'inline-block',
-                    background: '#008eaa', color: 'white',
+                    background: 'var(--kc-mid)', color: 'white',
                     padding: '10px 22px', borderRadius: 8,
                     textDecoration: 'none', fontSize: 13,
                     fontWeight: 600,
@@ -430,7 +430,7 @@ export default function OnboardingWizard({ user, onComplete }) {
                 onClick={() => setStep(s => s + 1)}
                 style={{
                   padding: '11px 24px', borderRadius: 8,
-                  border: 'none', background: '#008eaa',
+                  border: 'none', background: 'var(--kc-mid)',
                   color: 'white', fontSize: 14,
                   fontWeight: 600, cursor: 'pointer',
                 }}>

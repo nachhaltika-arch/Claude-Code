@@ -171,7 +171,7 @@ function GaStatusCard({ leadId, headers: h, API_BASE_URL: baseUrl }) {
         {status === 'nicht_vorhanden' && (
           <button disabled style={{
             padding: '7px 16px', borderRadius: 7, border: 'none',
-            background: '#008eaa', color: 'white', fontSize: 12,
+            background: 'var(--kc-mid)', color: 'white', fontSize: 12,
             fontWeight: 700, cursor: 'not-allowed', opacity: 0.5,
             fontFamily: 'inherit',
           }}>
@@ -551,7 +551,7 @@ function ApprovalModal({ projectId, token, onClose }) {
           <button
             onClick={handleSend}
             disabled={sending || !topic.trim()}
-            style={{ padding: '8px 18px', background: '#008EAA', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: (sending || !topic.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !topic.trim()) ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}
+            style={{ padding: '8px 18px', background: 'var(--kc-mid)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: (sending || !topic.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !topic.trim()) ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}
           >
             {sending ? 'Senden…' : 'Freigabe-E-Mail senden'}
           </button>

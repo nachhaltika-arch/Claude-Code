@@ -176,7 +176,7 @@ export default function PageTemplateEditor() {
             <span style={{ fontWeight: 600, color: '#fff' }}>{tplInfo.name}</span>
             <span style={{
               padding: '2px 7px', borderRadius: 3, fontSize: 10, fontWeight: 700,
-              background: '#e0f4f8', color: '#008eaa',
+              background: '#e0f4f8', color: 'var(--kc-mid)',
             }}>
               {tplInfo.category || 'allgemein'}
             </span>

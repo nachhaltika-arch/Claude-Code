@@ -25,7 +25,7 @@ export default function MobileSettings() {
       }}>
         <div style={{
           width: 52, height: 52, borderRadius: '50%',
-          background: '#008EAA',
+          background: 'var(--kc-mid)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 16, fontWeight: 900, color: '#fff',
           fontFamily: 'var(--font-sans)',

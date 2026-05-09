@@ -410,11 +410,11 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
                               border: '0.5px solid #008EAA33', borderRadius: 6,
                               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 900, color: '#008EAA', marginBottom: 2 }}>🤖 {suggested.name}</div>
+                    <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--kc-mid)', marginBottom: 2 }}>🤖 {suggested.name}</div>
                     <div style={{ fontSize: 10, color: '#4A5A5C' }}>{suggested.reason}</div>
                   </div>
                   <button onClick={() => setter(suggested.name)}
-                    style={{ fontSize: 10, fontWeight: 700, background: '#008EAA', color: '#fff',
+                    style={{ fontSize: 10, fontWeight: 700, background: 'var(--kc-mid)', color: '#fff',
                              border: 'none', borderRadius: 5, padding: '5px 10px',
                              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
                     Übernehmen

@@ -115,7 +115,7 @@ export default function CheckoutSuccess() {
               </div>
 
               <button onClick={() => window.location.href = 'https://www.kompagnon.eu'} style={{
-                padding: '12px 28px', background: '#008eaa', color: 'white', border: 'none',
+                padding: '12px 28px', background: 'var(--kc-mid)', color: 'white', border: 'none',
                 borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
               }}>
                 Zurück zu KOMPAGNON →

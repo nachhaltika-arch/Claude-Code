@@ -103,7 +103,7 @@ export default function SettingsLayout() {
           {/* User-Card */}
           <div style={{ background: '#004F59', padding: '20px 16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{
-              width: 52, height: 52, borderRadius: '50%', background: '#008EAA',
+              width: 52, height: 52, borderRadius: '50%', background: 'var(--kc-mid)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 16, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-sans)',
             }}>

@@ -2139,7 +2139,7 @@ export default function CustomerDetail() {
                               <div style={{ height: 3, borderRadius: 2, background: 'var(--border-light)', overflow: 'hidden' }}>
                                 <div style={{
                                   height: '100%', width: '60%', borderRadius: 2,
-                                  background: '#008EAA',
+                                  background: 'var(--kc-mid)',
                                   animation: 'scanPulse 1.2s ease-in-out infinite alternate',
                                 }} />
                               </div>

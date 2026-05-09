@@ -49,7 +49,7 @@ export default function Courses() {
   const [modalCourse, setModalCourse] = useState(null); // course being edited
   const [saving, setSaving]           = useState(false);
   const [form, setForm]               = useState({
-    title: '', description: '', category: 'intern', thumbnail_color: '#008eaa',
+    title: '', description: '', category: 'intern', thumbnail_color: 'var(--kc-mid)',
   });
 
   // Delete state
@@ -82,7 +82,7 @@ export default function Courses() {
   // ── Modal helpers ───────────────────────────────────────────────────────────
 
   const openCreate = () => {
-    setForm({ title: '', description: '', category: 'intern', thumbnail_color: '#008eaa' });
+    setForm({ title: '', description: '', category: 'intern', thumbnail_color: 'var(--kc-mid)' });
     setModalCourse(null);
     setModalMode('create');
   };

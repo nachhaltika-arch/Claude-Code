@@ -76,7 +76,7 @@ export default function Abnahme() {
       <div style={card}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontSize: 24, fontWeight: 700, color: '#008eaa', marginBottom: 4 }}>KOMPAGNON</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--kc-mid)', marginBottom: 4 }}>KOMPAGNON</div>
           <div style={{ fontSize: 18, fontWeight: 600, color: '#1a1a1a' }}>Digitale Abnahme</div>
           {project.company_name && (
             <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 4 }}>{project.company_name}</div>

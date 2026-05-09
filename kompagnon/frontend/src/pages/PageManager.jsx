@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
 
 const TYPE_LABELS = {
-  landing:       { label: 'Landing',     color: '#008eaa', bg: '#e0f4f8' },
+  landing:       { label: 'Landing',     color: 'var(--kc-mid)', bg: '#e0f4f8' },
   paket:         { label: 'Paket',       color: '#7c3aed', bg: '#ede9fe' },
   auth:          { label: 'Auth',        color: '#1d9e75', bg: '#d1fae5' },
   transaktional: { label: 'Transaktion', color: '#d97706', bg: '#fef3c7' },

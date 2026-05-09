@@ -274,7 +274,7 @@ export default function QAChecklist({ projectId, token, qaChecklistJson, pagespe
                       rel="noreferrer"
                       onClick={e => e.stopPropagation()}
                       style={{
-                        fontSize: 11, color: '#008eaa',
+                        fontSize: 11, color: 'var(--kc-mid)',
                         textDecoration: 'none', flexShrink: 0,
                         padding: '2px 8px', borderRadius: 6,
                         border: '0.5px solid #008eaa',

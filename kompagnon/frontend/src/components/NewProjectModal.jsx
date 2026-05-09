@@ -162,7 +162,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
             {suche.length >= 2 && !sucheLoading && sucheErgebnisse.length === 0 && (
               <p style={{ color: "#888", fontSize: 13, margin: "8px 0 0" }}>
                 Kein Unternehmen gefunden.{" "}
-                <button onClick={() => setStufe("create")} style={{ color: "#008EAA", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Neu anlegen →</button>
+                <button onClick={() => setStufe("create")} style={{ color: "var(--kc-mid)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Neu anlegen →</button>
               </p>
             )}
           </div>

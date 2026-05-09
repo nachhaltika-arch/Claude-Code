@@ -5,7 +5,7 @@ import { useScreenSize } from '../utils/responsive';
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const TYPE_META = {
-  startseite:  { label: 'Startseite',      color: '#008EAA', icon: '🏠' },
+  startseite:  { label: 'Startseite',      color: 'var(--kc-mid)', icon: '🏠' },
   leistung:    { label: 'Leistungsseite',  color: '#2563EB', icon: '🔧' },
   info:        { label: 'Info-Seite',      color: '#059669', icon: 'ℹ️' },
   vertrauen:   { label: 'Vertrauensseite', color: '#D97706', icon: '⭐' },
@@ -618,7 +618,7 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
 
   const btnPrimary = {
     padding: '8px 16px', borderRadius: 8, border: 'none',
-    background: '#008EAA', color: '#fff',
+    background: 'var(--kc-mid)', color: '#fff',
     fontSize: 13, fontWeight: 600, cursor: 'pointer',
     fontFamily: 'var(--font-sans, system-ui)',
     display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -693,7 +693,7 @@ export default function SitemapPlaner({ leadId, leadData, onClose }) {
 
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid #DDE4E8', borderTopColor: '#008EAA', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid #DDE4E8', borderTopColor: 'var(--kc-mid)', animation: 'spin 0.8s linear infinite' }} />
             </div>
           ) : contentPages.length === 0 && !generating ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', textAlign: 'center' }}>

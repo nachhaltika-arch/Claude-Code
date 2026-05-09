@@ -1066,7 +1066,7 @@ export default function LeadProfile() {
             <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowNewsletter(true)}
                 style={{ padding: '6px 14px', border: 'none', borderRadius: 6,
-                         background: '#008eaa', color: 'white', cursor: 'pointer',
+                         background: 'var(--kc-mid)', color: 'white', cursor: 'pointer',
                          fontSize: 13, fontWeight: 600 }}>
                 Newsletter erstellen
               </button>
@@ -2465,7 +2465,7 @@ export default function LeadProfile() {
                   onClick={() => seqAction('start')}
                   style={{
                     padding: '8px 14px', borderRadius: 8, border: 'none',
-                    background: '#008eaa', color: 'white',
+                    background: 'var(--kc-mid)', color: 'white',
                     fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   }}>
                   Fortsetzen

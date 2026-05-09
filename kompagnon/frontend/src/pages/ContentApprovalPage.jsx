@@ -71,7 +71,7 @@ export default function ContentApprovalPage() {
     return (
       <div style={wrap}>
         <div style={card}>
-          <div style={{ background: '#008EAA', padding: '24px 32px' }}>
+          <div style={{ background: 'var(--kc-mid)', padding: '24px 32px' }}>
             <div style={{ color: 'white', fontSize: 20, fontWeight: 700 }}>KOMPAGNON</div>
           </div>
           <div style={{ padding: 32, textAlign: 'center' }}>
@@ -92,7 +92,7 @@ export default function ContentApprovalPage() {
     <div style={wrap}>
       <div style={card}>
         {/* Header */}
-        <div style={{ background: '#008EAA', padding: '24px 32px' }}>
+        <div style={{ background: 'var(--kc-mid)', padding: '24px 32px' }}>
           <div style={{ color: 'white', fontSize: 20, fontWeight: 700 }}>KOMPAGNON</div>
           <div style={{ color: 'rgba(255,255,255,.8)', fontSize: 14, marginTop: 4 }}>
             Briefing-Freigabe

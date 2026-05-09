@@ -9,7 +9,7 @@ import NewProjectModal from '../components/NewProjectModal';
 import toast from 'react-hot-toast';
 
 const PHASES = [
-  { id: 'phase_1', label: 'Onboarding',  color: '#008EAA' },
+  { id: 'phase_1', label: 'Onboarding',  color: 'var(--kc-mid)' },
   { id: 'phase_2', label: 'Briefing',    color: '#7c3aed' },
   { id: 'phase_3', label: 'Content',     color: '#d97706' },
   { id: 'phase_4', label: 'Technik',     color: '#0891b2' },

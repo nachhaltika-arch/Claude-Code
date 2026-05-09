@@ -1016,7 +1016,7 @@ export default function AppLayout() {
                 onClick={() => setMobileMenuOpen(o => !o)}
                 style={{
                   width: 30, height: 30, borderRadius: '50%',
-                  background: '#008EAA',
+                  background: 'var(--kc-mid)',
                   border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 900,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'var(--font-sans)', color: '#fff',

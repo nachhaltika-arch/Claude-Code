@@ -100,7 +100,7 @@ export default function PackageStarter() {
       <div style={{ maxWidth: 880, margin: '0 auto', padding: '0 20px 80px', marginTop: -40 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, alignItems: 'flex-start' }}>
           <div style={{ background: 'var(--bg-surface)', borderRadius: 20, padding: 32, boxShadow: '0 8px 40px rgba(0,142,170,0.12)', border: '2px solid #008eaa' }}>
-            <div style={{ display: 'inline-block', background: '#008eaa', color: 'white', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Starter</div>
+            <div style={{ display: 'inline-block', background: 'var(--kc-mid)', color: 'white', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Starter</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Starter — 1.500 € netto</div>
             <div style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 24 }}>Einmalige Zahlung · keine laufenden Kosten</div>
             {error && <div style={{ background: 'var(--status-danger-bg)', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{error}</div>}

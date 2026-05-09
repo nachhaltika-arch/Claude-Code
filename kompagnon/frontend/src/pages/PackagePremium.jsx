@@ -255,7 +255,7 @@ export default function PackagePremium() {
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{pkg.name}</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: pkg.active ? '#7c3aed' : 'var(--text-primary)' }}>{pkg.price}</div>
                 <div style={{ fontSize: 11, color: '#8fa8b0', marginTop: 2 }}>{pkg.delivery}</div>
-                {!pkg.active && <div style={{ marginTop: 8, fontSize: 11, color: '#008eaa', fontWeight: 500 }}>Details →</div>}
+                {!pkg.active && <div style={{ marginTop: 8, fontSize: 11, color: 'var(--kc-mid)', fontWeight: 500 }}>Details →</div>}
               </div>
             ))}
           </div>

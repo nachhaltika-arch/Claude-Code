@@ -3,6 +3,9 @@ SQLAlchemy database setup and models for KOMPAGNON system.
 """
 import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 from sqlalchemy import Column, Integer, String, Float, Boolean, Date, DateTime, Numeric, Text, ForeignKey, JSON, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship

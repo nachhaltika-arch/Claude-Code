@@ -14,7 +14,7 @@ export default function MarginBadge({ marginPercent, status = 'green' }) {
     },
     red: {
       background: 'var(--kc-rot-subtle)',
-      color: 'var(--brand-primary)',
+      color: 'var(--status-danger-text)',
       icon: '✗',
     },
   };

@@ -10,7 +10,7 @@ const LEVEL_STYLES = {
   'Homepage Standard Gold':   { color: '#f57f17', icon: '\uD83E\uDD47' },
   'Homepage Standard Silber': { color: '#616161', icon: '\uD83E\uDD48' },
   'Homepage Standard Bronze': { color: '#4e342e', icon: '\uD83E\uDD49' },
-  'Nicht konform':            { color: 'var(--brand-primary)', icon: '⛔' },
+  'Nicht konform':            { color: 'var(--status-danger-text)', icon: '⛔' },
 };
 
 export default function AuditHistory({ leadId }) {

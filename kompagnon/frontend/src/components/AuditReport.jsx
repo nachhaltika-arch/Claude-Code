@@ -481,8 +481,8 @@ export default function AuditReport({ auditData, onClose }) {
 
       {/* AI Summary */}
       {r.ai_summary && (
-        <div className="kc-card" style={{ borderLeft: '4px solid var(--kc-info, #2196f3)' }}>
-          <span  style={{ color: 'var(--kc-info, #2196f3)' }}>KI-Analyse</span>
+        <div className="kc-card" style={{ borderLeft: '4px solid var(--status-info-text, #2196f3)' }}>
+          <span  style={{ color: 'var(--status-info-text, #2196f3)' }}>KI-Analyse</span>
           <h3 style={{ marginBottom: '12px', fontSize: '14px' }}>
             Was bedeutet das für Ihren Betrieb?
           </h3>

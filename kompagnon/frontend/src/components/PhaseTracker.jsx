@@ -57,7 +57,7 @@ export default function PhaseTracker({ currentPhase = 'phase_1' }) {
                     ? {
                         background: 'var(--brand-primary)',
                         color: 'var(--bg-surface)',
-                        boxShadow: '0 0 0 3px var(--kc-rot-subtle)',
+                        boxShadow: '0 0 0 3px var(--brand-primary-light)',
                       }
                     : {
                         background: 'var(--bg-app)',

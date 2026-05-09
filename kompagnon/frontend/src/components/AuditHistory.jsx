@@ -154,7 +154,7 @@ export default function AuditHistory({ leadId }) {
                 </button>
                 <button
                   className="kc-btn-ghost"
-                  style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--kc-info, #2196f3)' }}
+                  style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--status-info-text, #2196f3)' }}
                   onClick={() => openFullReport(audit.id)}
                   disabled={loadingAuditId === audit.id}
                 >

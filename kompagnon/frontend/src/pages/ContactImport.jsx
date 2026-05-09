@@ -132,7 +132,7 @@ function CsvUploadTab() {
           padding: 'var(--kc-space-12)',
           textAlign: 'center',
           cursor: 'pointer',
-          background: dragOver ? 'var(--kc-rot-subtle)' : 'var(--bg-surface)',
+          background: dragOver ? 'var(--brand-primary-light)' : 'var(--bg-surface)',
           transition: 'all var(--kc-transition-fast)',
         }}
       >

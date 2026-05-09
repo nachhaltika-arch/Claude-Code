@@ -63,7 +63,7 @@ function KiEmpfehlung({ leadId, token, onAdded }) {
         <div>
           <div style={{
             fontFamily: 'var(--font-display, "Barlow Condensed")',
-            fontSize: 15, fontWeight: 700, color: '#FAE600',
+            fontSize: 15, fontWeight: 700, color: 'var(--kc-yellow)',
             textTransform: 'uppercase', letterSpacing: '.04em',
           }}>
             KI-Empfehlung für {empfehlungen?.company || 'diesen Kunden'}
@@ -77,7 +77,7 @@ function KiEmpfehlung({ leadId, token, onAdded }) {
             onClick={laden}
             disabled={loading}
             style={{
-              background: '#FAE600', color: '#000',
+              background: 'var(--kc-yellow)', color: '#000',
               border: 'none', borderRadius: 7,
               padding: '9px 18px',
               fontSize: 12, fontWeight: 900,

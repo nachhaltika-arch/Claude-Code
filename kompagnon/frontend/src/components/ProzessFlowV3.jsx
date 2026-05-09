@@ -321,7 +321,7 @@ export default function ProzessFlowV3({
               onClick={() => navigate(`/app/projects/${project.id}`)}
               title="Online-Fertig-Editor (Sitemap / Wireframe / Style Guide / Design + alle Schritte)"
               style={{
-                background: '#FAE600', color: '#000', border: 'none',
+                background: 'var(--kc-yellow)', color: '#000', border: 'none',
                 borderRadius: 6, padding: '5px 11px', fontSize: 10,
                 fontWeight: 800, cursor: 'pointer', textTransform: 'uppercase',
                 letterSpacing: '.06em', fontFamily: 'var(--font-sans)',
@@ -491,7 +491,7 @@ export default function ProzessFlowV3({
                 </button>
               )
             ) : !aktivObj.auto && aktivObj.cta && (
-              <button style={{ flex: 1, background: '#FAE600', color: '#000', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'default', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
+              <button style={{ flex: 1, background: 'var(--kc-yellow)', color: '#000', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'default', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
                 {aktivObj.cta}
               </button>
             )}

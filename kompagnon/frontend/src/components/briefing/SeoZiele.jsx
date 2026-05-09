@@ -123,7 +123,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
             <div key={kw} style={{
               display: 'flex', alignItems: 'center', gap: 4,
               padding: '5px 10px', borderRadius: 20,
-              background: '#004F59', color: '#fff',
+              background: 'var(--brand-primary)', color: '#fff',
               fontSize: 12, fontWeight: 700,
             }}>
               {kw}
@@ -220,7 +220,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
               style={{
                 padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                background: social.includes(s) ? '#004F59' : 'var(--bg-surface)',
+                background: social.includes(s) ? 'var(--brand-primary)' : 'var(--bg-surface)',
                 color:      social.includes(s) ? '#fff'    : 'var(--text-secondary)',
                 border:     social.includes(s) ? 'none'    : '0.5px solid var(--border-light)',
               }}
@@ -234,7 +234,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
       {/* GA Analytics — read-only info */}
       {ki?.ga_analytics?.status && ki.ga_analytics.status !== 'unbekannt' && (
         <div style={{ padding: '8px 12px', borderRadius: 7, background: '#E0F4F8',
-                      fontSize: 11, color: '#004F59', marginBottom: 14 }}>
+                      fontSize: 11, color: 'var(--brand-primary)', marginBottom: 14 }}>
           📊 Google Analytics: {ki.ga_analytics.type} · {ki.ga_analytics.status}
           <span style={{ opacity: 0.6, marginLeft: 6 }}>(aus Analyse-Zentrale)</span>
         </div>
@@ -260,7 +260,7 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
           disabled={saving || confirming}
           style={{
             flex: 1, padding: '12px',
-            background: '#FAE600', color: '#000',
+            background: 'var(--kc-yellow)', color: '#000',
             border: 'none', borderRadius: 8,
             fontSize: 13, fontWeight: 900,
             cursor: (saving || confirming) ? 'not-allowed' : 'pointer',

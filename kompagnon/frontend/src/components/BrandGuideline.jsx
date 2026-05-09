@@ -78,7 +78,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
           justifyContent: 'space-between', gap: 16,
         }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 900, color: '#FAE600', marginBottom: 4 }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--kc-yellow)', marginBottom: 4 }}>
               Brand Guideline noch nicht generiert
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', lineHeight: 1.5 }}>
@@ -90,7 +90,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
             onClick={generate}
             disabled={generating}
             style={{
-              background: '#FAE600', color: '#004F59',
+              background: 'var(--kc-yellow)', color: 'var(--brand-primary)',
               border: 'none', borderRadius: 8,
               padding: '11px 22px', fontSize: 12, fontWeight: 900,
               cursor: generating ? 'not-allowed' : 'pointer',
@@ -146,7 +146,7 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
                   })}
                   disabled={confirming}
                   style={{
-                    background: '#FAE600', color: '#004F59',
+                    background: 'var(--kc-yellow)', color: 'var(--brand-primary)',
                     border: 'none', borderRadius: 6,
                     padding: '5px 14px', fontSize: 11, fontWeight: 900,
                     cursor: confirming ? 'not-allowed' : 'pointer',

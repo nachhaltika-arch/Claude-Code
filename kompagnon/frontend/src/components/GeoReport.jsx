@@ -44,7 +44,7 @@ export default function GeoReport({ projectId, customerToken }) {
 
   return (
     <div style={{ padding: 20, maxWidth: 600, margin: '0 auto' }}>
-      <h3 style={{ color: '#004F59', marginBottom: 16 }}>🤖 KI-Sichtbarkeit Ihrer Website</h3>
+      <h3 style={{ color: 'var(--brand-primary)', marginBottom: 16 }}>🤖 KI-Sichtbarkeit Ihrer Website</h3>
 
       <div style={{ background: info.bg, border: `1px solid ${info.color}40`, borderRadius: 12, padding: 20, marginBottom: 16, textAlign: 'center' }}>
         <div style={{ fontSize: 40 }}>{info.emoji}</div>

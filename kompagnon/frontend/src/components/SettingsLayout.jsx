@@ -101,7 +101,7 @@ export default function SettingsLayout() {
         <div style={{ background: '#F0F4F5', minHeight: '100%' }}>
 
           {/* User-Card */}
-          <div style={{ background: '#004F59', padding: '20px 16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ background: 'var(--brand-primary)', padding: '20px 16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{
               width: 52, height: 52, borderRadius: '50%', background: 'var(--kc-mid)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -113,7 +113,7 @@ export default function SettingsLayout() {
               <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
                 {user?.first_name} {user?.last_name}
               </div>
-              <div style={{ fontSize: 10, fontWeight: 900, color: '#FAE600', textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 2 }}>
+              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--kc-yellow)', textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 2 }}>
                 {user?.role || 'Nutzer'}
               </div>
             </div>

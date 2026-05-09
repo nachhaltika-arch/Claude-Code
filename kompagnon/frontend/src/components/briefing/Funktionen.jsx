@@ -178,7 +178,7 @@ export default function Funktionen({ leadId, token, onSaved }) {
         disabled={saving}
         style={{
           width: '100%', padding: '12px',
-          background: '#FAE600', color: '#000',
+          background: 'var(--kc-yellow)', color: '#000',
           border: 'none', borderRadius: 8,
           fontSize: 13, fontWeight: 900,
           cursor: saving ? 'not-allowed' : 'pointer',

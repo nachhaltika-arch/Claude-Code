@@ -155,7 +155,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
       <div style={{ padding: 24, maxWidth: 680, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🤖</div>
-          <h2 style={{ color: '#004F59', marginBottom: 8 }}>GEO/KI-Sichtbarkeit analysieren</h2>
+          <h2 style={{ color: 'var(--brand-primary)', marginBottom: 8 }}>GEO/KI-Sichtbarkeit analysieren</h2>
           <p style={{ color: '#6B7280', maxWidth: 480, margin: '0 auto 24px' }}>
             Pruefe ob die Website von KI-Systemen wie ChatGPT, Perplexity oder Google AI
             korrekt gefunden und zitiert wird. Score, Empfehlungen und automatische
@@ -181,7 +181,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
     return (
       <div style={{ padding: 24, textAlign: 'center' }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>⏳</div>
-        <h3 style={{ color: '#004F59' }}>GEO-Analyse laeuft...</h3>
+        <h3 style={{ color: 'var(--brand-primary)' }}>GEO-Analyse laeuft...</h3>
         <p style={{ color: '#6B7280' }}>
           Wir pruefen llms.txt, robots.txt, strukturierte Daten und Inhalte (~30 Sekunden)
         </p>
@@ -258,7 +258,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
                   if (price) toggleUpsell(true, parseFloat(price));
                 }}
                 disabled={upsellLoading}
-                style={{ background: '#FAE600', color: '#000', border: 'none', padding: '6px 14px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}
+                style={{ background: 'var(--kc-yellow)', color: '#000', border: 'none', padding: '6px 14px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}
               >
                 Als Upsell aktivieren
               </button>

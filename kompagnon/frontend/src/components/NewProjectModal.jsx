@@ -99,7 +99,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
           maxHeight: "calc(100vh - 32px)", overflowY: "auto",
         }}
       >
-        <h2 style={{ margin: "0 0 4px", fontSize: 20, color: "#004F59" }}>Neues Projekt starten</h2>
+        <h2 style={{ margin: "0 0 4px", fontSize: 20, color: "var(--brand-primary)" }}>Neues Projekt starten</h2>
         <p style={{ margin: "0 0 24px", color: "#666", fontSize: 14 }}>
           Bitte wähle ein bestehendes Unternehmen oder lege ein neues an.
         </p>
@@ -212,7 +212,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
               disabled={saving}
               style={{
                 padding: "9px 20px", borderRadius: 8, border: "none", cursor: "pointer",
-                background: "#FAE600", color: "#000", fontWeight: 700, fontSize: 14,
+                background: "var(--kc-yellow)", color: "#000", fontWeight: 700, fontSize: 14,
               }}
             >{saving ? "Wird angelegt..." : "Unternehmen anlegen & Projekt starten"}</button>
           )}

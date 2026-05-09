@@ -132,7 +132,7 @@ export default function ZieleZielgruppe({ leadId, token, briefing, onSaved }) {
 
       {loading && (
         <div style={{ padding: '12px 16px', background: '#E0F4F8', borderRadius: 8,
-                      marginBottom: 16, fontSize: 12, color: '#004F59' }}>
+                      marginBottom: 16, fontSize: 12, color: 'var(--brand-primary)' }}>
           🤖 KI analysiert Website-Daten und füllt Felder vor…
         </div>
       )}
@@ -209,7 +209,7 @@ export default function ZieleZielgruppe({ leadId, token, briefing, onSaved }) {
           disabled={saving}
           style={{
             flex: 1, padding: '12px',
-            background: '#FAE600', color: '#000',
+            background: 'var(--kc-yellow)', color: '#000',
             border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 900,
             cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',
             textTransform: 'uppercase', letterSpacing: '.05em',

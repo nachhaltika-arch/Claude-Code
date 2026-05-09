@@ -222,7 +222,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{page.page_type}</div>
                     {page.page_type === 'ground' && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 6px', background: '#E0F4F8', borderRadius: 4, marginTop: 4, fontSize: 9, fontWeight: 700, color: '#004F59', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 6px', background: '#E0F4F8', borderRadius: 4, marginTop: 4, fontSize: 9, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
                         🤖 GEO / KI-Optimierung
                       </div>
                     )}
@@ -279,7 +279,7 @@ export default function ContentWerkstatt({ project, sitemapPages, sitemapLoading
                       finally { setGenerating(false); }
                     }}
                     disabled={generating}
-                    style={{ background: '#FAE600', color: '#000', border: 'none', borderRadius: 6, padding: '9px 16px', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: '.06em', width: '100%' }}
+                    style={{ background: 'var(--kc-yellow)', color: '#000', border: 'none', borderRadius: 6, padding: '9px 16px', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: '.06em', width: '100%' }}
                   >
                     🤖 Ground Page generieren (GEO)
                   </button>

@@ -1,0 +1,27 @@
+{
+  "_comment": "MCP Server-Konfiguration. Tokens werden NICHT im Repo gespeichert — werden vom setup-script aus ENV vars gelesen oder beim Setup interaktiv erfragt.",
+  "_required_env_vars": [
+    "GITHUB_PERSONAL_ACCESS_TOKEN",
+    "RENDER_API_TOKEN"
+  ],
+  "mcpServers": {
+    "render": {
+      "type": "http",
+      "url": "https://mcp.render.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${RENDER_API_TOKEN}"
+      }
+    },
+    "github": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    }
+  }
+}

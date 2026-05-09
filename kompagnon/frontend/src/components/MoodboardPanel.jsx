@@ -149,7 +149,7 @@ export default function MoodboardPanel({ projectId, leadId, token }) {
             disabled={saving}
             style={{
               padding: '9px 18px', borderRadius: 8, border: 'none',
-              background: saved ? '#16a34a' : '#008eaa',
+              background: saved ? '#16a34a' : 'var(--kc-mid)',
               color: 'white', fontSize: 12, fontWeight: 700,
               cursor: saving ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',

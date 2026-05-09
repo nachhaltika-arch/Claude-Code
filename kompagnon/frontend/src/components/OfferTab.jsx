@@ -3,7 +3,7 @@ import { useState } from 'react';
 const PACKAGES = [
   {
     id: 'starter', name: 'Starter', price: 1500, priceLabel: '1.500', delivery: '7–10 Werktage',
-    accentColor: '#008eaa', badgeBg: 'var(--kc-mid-a-12)', badgeColor: '#006880',
+    accentColor: 'var(--kc-mid)', badgeBg: 'var(--kc-mid-a-12)', badgeColor: '#006880',
     features: ['Kompakte WordPress-Webseite', 'Individuelle Texte (4 Seiten)', 'Mobiloptimierung', 'SEO-Basis', 'Impressum & Datenschutz', 'Go-live & Einweisung'],
   },
   {

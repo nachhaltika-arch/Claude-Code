@@ -294,7 +294,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
               borderBottom: activeTab === tab.id ? '2px solid #008EAA' : '2px solid transparent',
               padding: '8px 14px', cursor: 'pointer', fontSize: 13,
               fontWeight: activeTab === tab.id ? 700 : 400,
-              color: activeTab === tab.id ? '#008EAA' : '#6B7280',
+              color: activeTab === tab.id ? 'var(--kc-mid)' : '#6B7280',
               marginBottom: -2,
             }}
           >

@@ -134,7 +134,7 @@ export default function ContentApprovalPage() {
                 style={{
                   width: '100%',
                   padding: '14px 0',
-                  background: submitting ? '#94a3b8' : '#008EAA',
+                  background: submitting ? '#94a3b8' : 'var(--kc-mid)',
                   color: 'white',
                   border: 'none',
                   borderRadius: 8,

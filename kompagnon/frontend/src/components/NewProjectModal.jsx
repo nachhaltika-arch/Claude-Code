@@ -110,7 +110,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
             onClick={() => setStufe("search")}
             style={{
               flex: 1, padding: "8px 0", borderRadius: 8, border: "none", cursor: "pointer",
-              background: stufe === "search" ? "#008EAA" : "#f0f0f0",
+              background: stufe === "search" ? "var(--kc-mid)" : "#f0f0f0",
               color: stufe === "search" ? "#fff" : "#333", fontWeight: 600, fontSize: 14,
             }}
           >Bestehendes Unternehmen</button>
@@ -118,7 +118,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
             onClick={() => setStufe("create")}
             style={{
               flex: 1, padding: "8px 0", borderRadius: 8, border: "none", cursor: "pointer",
-              background: stufe === "create" ? "#008EAA" : "#f0f0f0",
+              background: stufe === "create" ? "var(--kc-mid)" : "#f0f0f0",
               color: stufe === "create" ? "#fff" : "#333", fontWeight: 600, fontSize: 14,
             }}
           >Neues Unternehmen</button>
@@ -150,7 +150,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
                   >
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{lead.company_name}</div>
-                      <div style={{ fontSize: 12, color: lead.website_url ? "#008EAA" : "#f59e0b" }}>
+                      <div style={{ fontSize: 12, color: lead.website_url ? "var(--kc-mid)" : "#f59e0b" }}>
                         {lead.website_url || "⚠ Keine Domain hinterlegt"}
                       </div>
                     </div>

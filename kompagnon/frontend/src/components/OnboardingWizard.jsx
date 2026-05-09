@@ -443,7 +443,7 @@ export default function OnboardingWizard({ user, onComplete }) {
                 style={{
                   padding: '11px 24px', borderRadius: 8,
                   border: 'none',
-                  background: saving ? '#94a3b8' : '#008eaa',
+                  background: saving ? '#94a3b8' : 'var(--kc-mid)',
                   color: 'white', fontSize: 14, fontWeight: 600,
                   cursor: saving ? 'not-allowed' : 'pointer',
                 }}>

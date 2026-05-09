@@ -430,7 +430,7 @@ function EditModal({ project, lead, latestAudit, token, onClose, onSaved }) {
                   type="checkbox"
                   checked={form.email_notifications_enabled}
                   onChange={e => set('email_notifications_enabled', e.target.checked)}
-                  style={{ width: 15, height: 15, accentColor: '#008EAA', cursor: 'pointer' }}
+                  style={{ width: 15, height: 15, accentColor: 'var(--kc-mid)', cursor: 'pointer' }}
                 />
                 E-Mail-Benachrichtigungen aktiv
               </label>

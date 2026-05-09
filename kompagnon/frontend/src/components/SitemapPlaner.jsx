@@ -268,7 +268,7 @@ function AddPageForm({ contentPages, leadId, onAdded, onCancel }) {
           type="submit" disabled={saving}
           style={{
             padding: '8px 20px', borderRadius: 8, border: 'none',
-            background: saving ? '#DDE4E8' : '#008EAA',
+            background: saving ? '#DDE4E8' : 'var(--kc-mid)',
             color: saving ? '#8A9BA8' : '#fff',
             fontSize: 13, fontWeight: 600,
             cursor: saving ? 'not-allowed' : 'pointer',
@@ -506,7 +506,7 @@ function EditModal({ page, contentPages, onSaved, onClose }) {
           <button
             onClick={handleSave}
             disabled={saving}
-            style={{ padding: '9px 22px', borderRadius: 8, border: 'none', background: saving ? '#DDE4E8' : '#008EAA', color: saving ? '#8A9BA8' : '#fff', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}
+            style={{ padding: '9px 22px', borderRadius: 8, border: 'none', background: saving ? '#DDE4E8' : 'var(--kc-mid)', color: saving ? '#8A9BA8' : '#fff', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans, system-ui)' }}
           >
             {saving ? 'Speichern…' : 'Speichern'}
           </button>

@@ -10,7 +10,7 @@ const PACKAGES = [
     tagline: 'Schnell. Sauber. Professionell.',
     price: '1.500',
     delivery: '7–10 Werktage',
-    accentColor: '#008eaa',
+    accentColor: 'var(--kc-mid)',
     ctaBg: '#008eaa',
     ctaLabel: 'Starter wählen',
     features: [

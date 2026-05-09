@@ -64,7 +64,7 @@ export default function PackageStarter() {
           ].map(p => (
             <button key={p.label} onClick={() => navigate(p.path)} style={{
               padding: '5px 14px', borderRadius: 20, border: 'none',
-              background: p.active ? '#008eaa' : 'transparent',
+              background: p.active ? 'var(--kc-mid)' : 'transparent',
               color: p.active ? 'white' : '#8fa8b0',
               fontSize: 12, fontWeight: p.active ? 600 : 400, cursor: 'pointer', fontFamily: 'inherit',
             }}>{p.label}</button>
@@ -109,7 +109,7 @@ export default function PackageStarter() {
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="kontakt@ihrbetrieb.de" required style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--border-light)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: 'var(--text-primary)', background: 'var(--bg-app)', boxSizing: 'border-box', transition: 'all 0.15s' }} />
               </div>
-              <button type="submit" disabled={loading} className="cta-btn" style={{ width: '100%', padding: '14px', background: loading ? '#8fa8b0' : '#008eaa', color: 'white', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+              <button type="submit" disabled={loading} className="cta-btn" style={{ width: '100%', padding: '14px', background: loading ? '#8fa8b0' : 'var(--kc-mid)', color: 'white', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                 {loading ? 'Wird weitergeleitet...' : 'Jetzt sicher bezahlen →'}
               </button>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, fontSize: 11, color: '#b0c4cc' }}>🔒 Sichere Zahlung via Stripe · SSL-verschlüsselt</div>

@@ -132,7 +132,7 @@ export default function Abnahme() {
                 type="checkbox"
                 checked={confirmed}
                 onChange={e => setConfirmed(e.target.checked)}
-                style={{ marginTop: 3, width: 18, height: 18, accentColor: '#008eaa', cursor: 'pointer' }}
+                style={{ marginTop: 3, width: 18, height: 18, accentColor: 'var(--kc-mid)', cursor: 'pointer' }}
               />
               <span style={{ fontSize: 13, color: '#555', lineHeight: 1.5 }}>
                 Ich bestaetige die Abnahme der fertiggestellten Website.
@@ -148,7 +148,7 @@ export default function Abnahme() {
               disabled={!name.trim() || !confirmed || submitting}
               style={{
                 width: '100%', padding: '12px', border: 'none', borderRadius: 8,
-                background: (!name.trim() || !confirmed || submitting) ? '#e5e7eb' : '#008eaa',
+                background: (!name.trim() || !confirmed || submitting) ? '#e5e7eb' : 'var(--kc-mid)',
                 color: (!name.trim() || !confirmed || submitting) ? '#94a3b8' : '#fff',
                 fontSize: 14, fontWeight: 600, cursor: (!name.trim() || !confirmed || submitting) ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit',

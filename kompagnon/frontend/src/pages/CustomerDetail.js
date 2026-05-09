@@ -2126,7 +2126,7 @@ export default function CustomerDetail() {
                           <div key={step.key} style={{
                             flex: '1 1 0', minWidth: isMobile ? '45%' : 120,
                             padding: '10px 12px', borderRadius: 'var(--radius-md)',
-                            border: `2px solid ${isActive ? '#008EAA' : isDone ? (isFailed ? '#e74c3c' : '#3B6D11') : 'var(--border-light)'}`,
+                            border: `2px solid ${isActive ? 'var(--kc-mid)' : isDone ? (isFailed ? '#e74c3c' : '#3B6D11') : 'var(--border-light)'}`,
                             background: isActive ? '#E6F6FA' : isDone ? (isFailed ? '#FEF2F2' : '#EAF4E0') : 'var(--bg-surface)',
                             transition: 'all 0.3s ease',
                             opacity: isPending && scanRunning ? 0.5 : 1,

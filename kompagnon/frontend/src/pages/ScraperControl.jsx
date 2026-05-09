@@ -177,7 +177,7 @@ export default function ScraperControl() {
     color: 'white', fontSize: 13, fontWeight: 700,
     cursor: 'pointer', fontFamily: 'var(--font-sans)',
     display: 'inline-flex', alignItems: 'center', gap: 8,
-    boxShadow: '0 2px 10px rgba(0,142,170,0.35)',
+    boxShadow: '0 2px 10px var(--kc-mid-a-30)',
   };
   const btnSecondary = {
     padding: '10px 20px', borderRadius: 8,

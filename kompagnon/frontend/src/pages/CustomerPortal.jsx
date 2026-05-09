@@ -779,7 +779,7 @@ export default function CustomerPortal() {
                         fontSize: 14, fontWeight: 600,
                         background: istAbgeschlossen ? '#1D9E75' : istAktiv ? 'var(--brand-primary)' : 'var(--border-light)',
                         color: (istAbgeschlossen || istAktiv) ? 'white' : '#94a3b8',
-                        boxShadow: istAktiv ? '0 0 0 4px rgba(0,142,170,0.15)' : 'none',
+                        boxShadow: istAktiv ? '0 0 0 4px var(--kc-mid-a-12)' : 'none',
                       }}>
                         {istAbgeschlossen ? '✓' : phase.nr}
                       </div>

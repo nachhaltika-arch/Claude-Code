@@ -22,7 +22,7 @@ function PhaseCard({ phase, isLast }) {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 40, flexShrink: 0 }}>
         <div style={{
           width: 36, height: 36, borderRadius: '50%', fontSize: 16,
-          background: isDone ? 'var(--status-success-bg)' : isActive ? 'rgba(0,142,170,0.12)' : 'var(--bg-app)',
+          background: isDone ? 'var(--status-success-bg)' : isActive ? 'var(--kc-mid-a-12)' : 'var(--bg-app)',
           border: isDone ? '2px solid var(--status-success-text)' : isActive ? '2px solid var(--brand-primary)' : '2px solid var(--border-light)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1,
         }}>{icon}</div>
@@ -38,7 +38,7 @@ function PhaseCard({ phase, isLast }) {
         background: isActive ? 'var(--bg-surface)' : 'var(--bg-app)',
         border: isActive ? '2px solid var(--brand-primary)' : '1px solid var(--border-light)',
         borderRadius: 'var(--radius-lg)',
-        boxShadow: isActive ? '0 0 0 3px rgba(0,142,170,0.08)' : 'none',
+        boxShadow: isActive ? '0 0 0 3px var(--kc-mid-a-08)' : 'none',
         opacity: isLocked ? 0.55 : 1,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>

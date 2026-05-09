@@ -308,7 +308,7 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--brand-primary);
-  box-shadow: 0 0 0 3px rgba(0, 142, 170, 0.12);
+  box-shadow: 0 0 0 3px var(--kc-mid-a-12);
 }
 input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
 
@@ -799,7 +799,7 @@ button[aria-pressed]:focus-visible {
 
 .kc-card-info {
   background: var(--info-bg);
-  border-color: rgba(0,142,170,0.3);
+  border-color: var(--kc-mid-a-30);
 }
 
 /* Doc: Border-Top kodiert Wichtigkeit der Karte.
@@ -927,4 +927,4 @@ button[aria-pressed]:focus-visible {
 .kc-toast-success { background: var(--success-bg); color: var(--success); border-color: rgba(0,135,90,0.3); }
 .kc-toast-warn    { background: var(--warn-bg);    color: var(--warn);    border-color: rgba(184,134,11,0.3); }
 .kc-toast-error   { background: var(--error-bg);   color: var(--error);   border-color: rgba(192,57,43,0.3); }
-.kc-toast-info    { background: var(--info-bg);    color: var(--kc-dark); border-color: rgba(0,142,170,0.3); }
+.kc-toast-info    { background: var(--info-bg);    color: var(--kc-dark); border-color: var(--kc-mid-a-30); }

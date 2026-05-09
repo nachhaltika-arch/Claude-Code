@@ -413,7 +413,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 12,
-        boxShadow: running ? 'none' : '0 4px 14px rgba(0,142,170,0.3)',
+        boxShadow: running ? 'none' : '0 4px 14px var(--kc-mid-a-30)',
       }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: running ? 'var(--text-primary)' : '#fff', marginBottom: 3 }}>

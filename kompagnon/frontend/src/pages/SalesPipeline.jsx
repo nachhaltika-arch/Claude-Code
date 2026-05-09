@@ -476,7 +476,7 @@ function SalesCard({ lead, col, columns, project, onDragStart, onOpen, onAudit, 
       {lead.status === 'won' && project && (
         <div
           onClick={e => { e.stopPropagation(); onProjectClick?.(project.id); }}
-          style={{ background: 'rgba(0,142,170,0.08)', borderRadius: 'var(--radius-md)', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}
+          style={{ background: 'var(--kc-mid-a-08)', borderRadius: 'var(--radius-md)', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}
         >
           <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--brand-primary-mid)' }}>
             Projekt aktiv · Phase {(project.status || '').replace('phase_', '')} von 7

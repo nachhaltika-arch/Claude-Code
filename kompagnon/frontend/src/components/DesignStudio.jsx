@@ -275,7 +275,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                 color: '#fff', fontSize: 13, fontWeight: 700,
                 cursor: !selectedPage || generating ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', gap: 8,
-                boxShadow: !selectedPage || generating ? 'none' : '0 2px 10px rgba(0,142,170,0.35)',
+                boxShadow: !selectedPage || generating ? 'none' : '0 2px 10px var(--kc-mid-a-30)',
                 fontFamily: 'var(--font-sans)',
               }}
             >
@@ -295,7 +295,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                   Design-Entwurf: {selectedPage?.page_name}
                 </div>
                 {kiInjected && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 6, background: 'rgba(0,142,170,0.10)', border: '1px solid rgba(0,142,170,0.25)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 6, background: 'var(--kc-mid-a-12)', border: '1px solid var(--kc-mid-a-25)' }}>
                     <span style={{ fontSize: 11, color: 'var(--brand-primary-mid)', fontWeight: 700 }}>KI-Texte eingesetzt</span>
                   </div>
                 )}
@@ -348,7 +348,7 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
                       <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.href || '\u2014'}</div>
                       <div>
                         <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                          background: link.status === 'ok' ? 'var(--status-success-bg)' : link.status === 'auto_fixed' ? 'rgba(0,142,170,0.12)' : 'var(--status-warning-bg)',
+                          background: link.status === 'ok' ? 'var(--status-success-bg)' : link.status === 'auto_fixed' ? 'var(--kc-mid-a-12)' : 'var(--status-warning-bg)',
                           color: link.status === 'ok' ? 'var(--status-success-text)' : link.status === 'auto_fixed' ? 'var(--brand-primary)' : 'var(--status-warning-text)',
                         }}>
                           {link.status === 'ok' ? 'OK' : link.status === 'auto_fixed' ? 'Korrigiert' : 'Offen'}

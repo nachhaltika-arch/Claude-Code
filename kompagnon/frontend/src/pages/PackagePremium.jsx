@@ -113,7 +113,7 @@ export default function PackagePremium() {
       }}>
         <div style={{
           position: 'absolute', inset: 0,
-          backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(124,58,237,0.2) 0%, transparent 60%), radial-gradient(circle at 70% 30%, rgba(0,142,170,0.1) 0%, transparent 50%)',
+          backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(124,58,237,0.2) 0%, transparent 60%), radial-gradient(circle at 70% 30%, var(--kc-mid-a-12) 0%, transparent 50%)',
         }} />
         <div style={{ position: 'relative', maxWidth: 640, margin: '0 auto' }}>
           <div className="fade1" style={{

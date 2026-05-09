@@ -249,7 +249,7 @@ export default function Academy() {
                   transition: 'box-shadow 0.2s, transform 0.18s',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,142,170,0.12)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px var(--kc-mid-a-12)';
                   e.currentTarget.style.transform = 'translateY(-2px)';
                 }}
                 onMouseLeave={e => {

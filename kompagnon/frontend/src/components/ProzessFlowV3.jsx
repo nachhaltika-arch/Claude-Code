@@ -447,8 +447,8 @@ export default function ProzessFlowV3({
 
           {/* Auto oder Manuell */}
           {aktivObj.auto && !aktivObj.istFertig(prozessDaten) ? (
-            <div style={{ background: 'var(--info-bg, #EFF6FF)', border: '1px solid rgba(0,142,170,.25)', borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid rgba(0,142,170,.2)', borderTopColor: 'var(--brand-primary)', animation: 'spin .8s linear infinite', flexShrink: 0 }} />
+            <div style={{ background: 'var(--info-bg, #EFF6FF)', border: '1px solid var(--kc-mid-a-25)', borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--kc-mid-a-20)', borderTopColor: 'var(--brand-primary)', animation: 'spin .8s linear infinite', flexShrink: 0 }} />
               <div>
                 <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>Läuft automatisch</div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{aktivObj.autoText}</div>

@@ -1255,12 +1255,12 @@ function SitemapKiVorschlag({ project, leadId, headers, onGenerated, hasExisting
         ? 'var(--status-success-bg)'
         : hasExistingPages
           ? 'rgba(124,58,237,.05)'
-          : 'rgba(0,142,170,.06)',
+          : 'var(--kc-mid-a-08)',
       border: done
         ? '1px solid var(--status-success-text)'
         : hasExistingPages
           ? '1px solid rgba(124,58,237,.25)'
-          : '1px solid rgba(0,142,170,.25)',
+          : '1px solid var(--kc-mid-a-25)',
       borderRadius: 10,
       display: 'flex',
       alignItems: 'center',

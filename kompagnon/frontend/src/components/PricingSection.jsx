@@ -4,14 +4,14 @@ const PACKAGES = [
   {
     id: 'starter',
     badge: 'Einstieg',
-    badgeColor: '#008eaa',
+    badgeColor: 'var(--kc-mid)',
     badgeBg: 'var(--kc-mid-a-12)',
     name: 'Starter',
     tagline: 'Schnell. Sauber. Professionell.',
     price: '1.500',
     delivery: '7–10 Werktage',
     accentColor: 'var(--kc-mid)',
-    ctaBg: '#008eaa',
+    ctaBg: 'var(--kc-mid)',
     ctaLabel: 'Starter wählen',
     features: [
       'Kompakte WordPress-Webseite',

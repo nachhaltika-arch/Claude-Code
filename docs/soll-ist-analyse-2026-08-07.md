@@ -12,6 +12,29 @@
 
 ---
 
+## Nachtrag vom selben Abend
+
+**Die Fließtext-Abschnitte 1 und 2 beschreiben den Stand vom Vormittag.** Am selben
+Tag wurde noch einiges davon behoben — die Lückenliste in Abschnitt 3 ist aktuell,
+die Beschreibungen darüber sind es nicht. Was sich geändert hat:
+
+- **L-01, L-02, L-03, L-06 sind erledigt.** PR #34 wurde gemergt und produktiv
+  deployt; Website-Check und Embed-Widget funktionieren wieder, `.env*` ist
+  ignoriert.
+- **L-07 war eine Fehldiagnose.** `main` ist geschützt, über Rulesets statt über die
+  klassische Branch-Protection. Korrigiert; blockierende Regel entfernt, die zwei
+  neuen Prüfjobs als Pflicht ergänzt.
+- **L-09 hat ein Fundament.** 24 Backend- und 11 Browser-Tests laufen als
+  Pflicht-Checks. „Praktisch keine Tests" in Abschnitt 2K stimmt nicht mehr.
+- **Neu aufgenommen:** L-36 — Fehler werden im Frontend systematisch weggefangen.
+  Das war die gemeinsame Ursache von drei der vier heute gefundenen Fehler.
+
+Beim nächsten Durchgang sollten die Abschnitte 1 und 2 neu geschrieben werden statt
+weiter geflickt. Tagesstand und Reihenfolge der offenen Punkte stehen im
+Wiederaufnahme-Eintrag vom 2026-08-07.
+
+---
+
 ## 1. Gesamtbild
 
 | Bereich | Soll-Erfüllung | Einschätzung |
@@ -207,9 +230,9 @@ Aufwand: S ≤ 1 Tag · M ≤ 1 Woche · L ≤ 4 Wochen · XL darüber.
 
 | ID | Lücke | Aufwand | Beleg |
 |---|---|---|---|
-| L-01 | `.env.save` mit Produktiv-Secrets liegt unignoriert im Repo; Gitleaks greift nur bei PRs nach `main` | S | `kompagnon/backend/.env.save`, `git check-ignore` ohne Treffer |
-| L-02 | Website-Check der WebSprint-Landingpage produktiv defekt (CORS-Preflight 400), Fix uncommitted | S | Preflight-Test, `main.py:1654` |
-| L-03 | Embed-Widget nie deployt — dokumentierte Live-URL liefert 404 | S | `frontend/public/embed/` untracked |
+| ~~L-01~~ | ~~`.env.save` unignoriert im Repo~~ — **erledigt 2026-08-07**: `kompagnon/backend/.gitignore` deckt `.env*` ab | — | — |
+| ~~L-02~~ | ~~Website-Check produktiv defekt~~ — **erledigt 2026-08-07**: Preflight liefert produktiv 200 mit allow-origin | — | — |
+| ~~L-03~~ | ~~Embed-Widget nie deployt~~ — **erledigt 2026-08-07**: produktiv 200, echtes Widget. Rest: Staging liefert wegen `npx serve` die React-App, mit `--no-clean-urls` angleichen | S | Produktiv-Test |
 | L-04 | Kein Rate-Limiting; `POST /api/leads/public` unauthentifiziert mit anschließendem Audit-Lauf | M | `leads.py:711`, keine Limiter-Abhängigkeit |
 | L-05 | `RolePermission` und Berechtigungs-UI ohne jede Wirkung — Rechte lassen sich scheinbar ändern | M | keine Lesestelle außerhalb `admin_settings.py` |
 
@@ -217,16 +240,17 @@ Aufwand: S ≤ 1 Tag · M ≤ 1 Woche · L ≤ 4 Wochen · XL darüber.
 
 | ID | Lücke | Aufwand | Beleg |
 |---|---|---|---|
-| L-06 | 22 Commits / 141 Dateien seit 09.05. nicht in `main` — Produktiv auf altem Stand | S | `git rev-list origin/main...origin/staging` |
+| ~~L-06~~ | ~~Produktiv-Rückstand~~ — **erledigt 2026-08-07**: PR #34 gemergt (36 Commits), produktiv deployt und verifiziert | — | — |
 | L-07 | ~~`main` ohne Branch-Protection~~ **korrigiert 2026-08-07:** `main` ist über Rulesets geschützt (`protect-main`), die die klassische Protection-API nicht meldet. Offen bleibt: die Regel „Restrict updates" blockiert jeden Merge, und die zwei neuen Prüfjobs sind nicht als Pflicht-Checks eingetragen | S | `gh api repos/…/rules/branches/main` |
 | L-08 | Dependabot-Alerts deaktiviert; 2 kritische / 23 hohe npm-Befunde; 7 Update-PRs geschlossen | M | `npm audit`, PR-Historie |
-| L-09 | Keine Testabdeckung (1 Skript, 0 Frontend-Tests, kein CI-Test-Job) gegen 80-%-Vorgabe | L | `.github/workflows/ci.yml` |
+| L-09 | Testabdeckung — **Fundament gelegt 2026-08-07**: 24 Backend- + 11 Browser-Tests, beide als Pflicht-Checks. Weiterhin offen: Wireframe, Style-Guide-Freigabe, Design-View, Zahlungen | M | `backend/tests/`, `e2e/` |
 | L-10 | Kein Monitoring / Fehler-Tracking im Produktivbetrieb | M | kein Sentry in Requirements/Package |
 | L-11 | Keine dokumentierte Backup- und Wiederherstellungsstrategie für die Produktiv-DB | S | `render.yaml` ohne Backup-Konfiguration |
 | L-12 | `require_auditor` an keiner Route eingehängt — Auditor faktisch nicht abgegrenzt | S | Suche nach `Depends(require_auditor)` ohne Treffer |
 | L-13 | `.claude/settings.json` getrackt trotz `.gitignore`-Ausschluss, mit fremdem Pfad im Hook | S | `git status`, Diff |
 | L-34 | **Produktiv-Backend läuft in Oregon (US West)**, Datenbank in Frankfurt — jede Abfrage überquert den Atlantik; widerspricht der eigenen Vorgabe in `render.yaml` („Region: frankfurt — DSGVO-relevant") | L | Render-Dashboard, Service-Settings; Health-Check 2,4 s produktiv vs. 0,2 s Staging |
 | L-35 | Blueprints beschreiben nicht die Realität: Produktiv-Frontend ist Static Site statt Web-Service, DB heißt `Kompangnon-dB` auf Postgres 18 statt `kompagnon-db` auf 16, Produktiv-Services sind nicht blueprint-verwaltet | S | Render-Dashboard vs. `render.yaml` |
+| L-36 | Fehler werden im Frontend systematisch weggefangen (`.catch(() => {})`, `r.ok ? … : []`) — drei der vier heute gefundenen Fehler blieben dadurch monatelang unsichtbar | M | `OnlineFertigEditor.jsx`, `ComponentLibrary.jsx` |
 
 ### P2 — Produktentwicklung
 

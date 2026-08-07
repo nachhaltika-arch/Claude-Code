@@ -5,6 +5,14 @@
   --kc-yellow: #FAE600;   /* Pantone 3945 — Akzent/CTA */
   --kc-black:  #000000;
 
+  /* ── Mid Teal alpha helpers (consolidated 2026-05-09) ───────── */
+  --kc-mid-a-08: var(--kc-mid-a-08);
+  --kc-mid-a-12: var(--kc-mid-a-12);
+  --kc-mid-a-20: var(--kc-mid-a-20);
+  --kc-mid-a-25: var(--kc-mid-a-25);
+  --kc-mid-a-30: var(--kc-mid-a-30);
+  --kc-mid-a-50: var(--kc-mid-a-50);
+
   /* ── iOS Safe Area ──────────────────────────────────────────── */
   --safe-area-top:    env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);

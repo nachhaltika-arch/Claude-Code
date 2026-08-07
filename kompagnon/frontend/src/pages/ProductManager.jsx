@@ -112,7 +112,7 @@ export default function ProductManager() {
             </div>
 
             {p.stripe_payment_link && (
-              <div style={{ fontSize: 11, color: 'var(--brand-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 11, color: 'var(--brand-primary-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 Stripe: {p.stripe_payment_link}
               </div>
             )}
@@ -120,7 +120,7 @@ export default function ProductManager() {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 'auto', paddingTop: 8, borderTop: '1px solid var(--border-light)' }}>
               <button style={btnSecondary} onClick={() => openEdit(p)}>Bearbeiten</button>
               <button style={btnSecondary} onClick={() => toggleLive(p.id)}>{p.ist_live ? 'Deaktivieren' : 'Aktivieren'}</button>
-              {!p.stripe_product_id && <button style={{ ...btnSecondary, color: 'var(--brand-primary)', borderColor: 'var(--brand-primary)' }} onClick={() => stripeConnect(p.id)}>Stripe verbinden</button>}
+              {!p.stripe_product_id && <button style={{ ...btnSecondary, color: 'var(--brand-primary-mid)', borderColor: 'var(--brand-primary-mid)' }} onClick={() => stripeConnect(p.id)}>Stripe verbinden</button>}
               {!p.ist_live && <button style={{ ...btnSecondary, color: 'var(--status-danger-text)', borderColor: 'var(--status-danger-text)' }} onClick={() => del(p.id)}>Loeschen</button>}
             </div>
           </div>

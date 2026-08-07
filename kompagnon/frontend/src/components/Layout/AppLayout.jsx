@@ -259,7 +259,7 @@ function SidebarNav({ badges }) {
     border: 'none',
     borderLeft: active ? '3px solid var(--kc-yellow)' : '3px solid transparent',
     cursor: 'pointer', fontSize: 13, textAlign: 'left', fontFamily: 'var(--font-sans)',
-    background: active ? 'rgba(0,142,170,0.3)' : 'transparent',
+    background: active ? 'var(--kc-mid-a-30)' : 'transparent',
     color: active ? '#ffffff' : 'rgba(255,255,255,0.55)',
     fontWeight: active ? 600 : 400,
     borderRadius: 0,
@@ -273,7 +273,7 @@ function SidebarNav({ badges }) {
     border: 'none',
     borderLeft: active ? '3px solid var(--kc-yellow)' : '3px solid transparent',
     cursor: 'pointer', fontSize: 12, textAlign: 'left', fontFamily: 'var(--font-sans)',
-    background: active ? 'rgba(0,142,170,0.2)' : 'transparent',
+    background: active ? 'var(--kc-mid-a-20)' : 'transparent',
     color: active ? 'var(--kc-yellow)' : 'rgba(255,255,255,0.55)',
     fontWeight: active ? 600 : 400,
     borderRadius: 0,
@@ -487,7 +487,7 @@ function SidebarNav({ badges }) {
             width: 16,
             height: 16,
             borderRadius: '50%',
-            background: theme === 'dark' ? '#004F59' : '#fff',
+            background: theme === 'dark' ? 'var(--brand-primary)' : '#fff',
             transition: 'left 0.2s',
             display: 'flex',
             alignItems: 'center',
@@ -745,7 +745,7 @@ function BottomNav() {
                     onClick={() => { navigate(item.path); setMoreOpen(false); }}
                     style={{
                       background: active ? '#E0F4F8' : '#F0F4F5',
-                      border: active ? '1.5px solid #008EAA' : '0.5px solid #D5E0E2',
+                      border: active ? '1.5px solid var(--kc-mid)' : '0.5px solid #D5E0E2',
                       borderRadius: 10,
                       padding: '14px 8px',
                       cursor: 'pointer',
@@ -757,7 +757,7 @@ function BottomNav() {
                     <span style={{ fontSize: 22 }}>{item.icon}</span>
                     <span style={{
                       fontSize: 10, fontWeight: 700,
-                      color: active ? '#004F59' : '#4A5A5C',
+                      color: active ? 'var(--brand-primary)' : '#4A5A5C',
                       textTransform: 'uppercase',
                       letterSpacing: '.04em',
                       textAlign: 'center', lineHeight: 1.3,
@@ -778,7 +778,7 @@ function BottomNav() {
         position: 'fixed',
         bottom: 0, left: 0, right: 0,
         zIndex: 100,
-        background: '#004F59',
+        background: 'var(--brand-primary)',
         borderTop: '0.5px solid rgba(255,255,255,.1)',
         display: 'flex',
         justifyContent: 'space-around',
@@ -809,13 +809,13 @@ function BottomNav() {
                 position: 'absolute', top: -8,
                 left: '50%', transform: 'translateX(-50%)',
                 width: 24, height: 3,
-                background: active ? '#FAE600' : 'transparent',
+                background: active ? 'var(--kc-yellow)' : 'transparent',
                 borderRadius: 2, transition: 'background .12s',
               }} />
 
               {/* Icon */}
               <span style={{ display: 'flex', position: 'relative',
-                color: active ? '#FAE600' : 'rgba(255,255,255,.45)',
+                color: active ? 'var(--kc-yellow)' : 'rgba(255,255,255,.45)',
                 transition: 'color .12s',
               }}>
                 {icons[tab.icon]}
@@ -823,8 +823,8 @@ function BottomNav() {
                   <span style={{
                     position: 'absolute', top: -2, right: -4,
                     width: 7, height: 7, borderRadius: '50%',
-                    background: '#FAE600',
-                    border: '1.5px solid #004F59',
+                    background: 'var(--kc-yellow)',
+                    border: '1.5px solid var(--brand-primary)',
                   }} />
                 )}
               </span>
@@ -832,7 +832,7 @@ function BottomNav() {
               {/* Label */}
               <span style={{
                 fontSize: 10, fontWeight: active ? 700 : 400,
-                color: active ? '#FAE600' : 'rgba(255,255,255,.4)',
+                color: active ? 'var(--kc-yellow)' : 'rgba(255,255,255,.4)',
                 textTransform: 'uppercase', letterSpacing: '.04em',
                 fontFamily: 'var(--font-sans)',
                 transition: 'color .12s',
@@ -997,7 +997,7 @@ export default function AppLayout() {
         {/* Mobile header */}
         {isMobile && (
           <header style={{
-            height: 52, background: '#004F59',
+            height: 52, background: 'var(--brand-primary)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             position: 'fixed', top: 0, left: 0, right: 0, zIndex: 110, flexShrink: 0,
             padding: '0 18px',
@@ -1016,7 +1016,7 @@ export default function AppLayout() {
                 onClick={() => setMobileMenuOpen(o => !o)}
                 style={{
                   width: 30, height: 30, borderRadius: '50%',
-                  background: '#008EAA',
+                  background: 'var(--kc-mid)',
                   border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 900,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'var(--font-sans)', color: '#fff',

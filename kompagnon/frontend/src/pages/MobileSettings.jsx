@@ -19,13 +19,13 @@ export default function MobileSettings() {
 
       {/* User-Card */}
       <div style={{
-        background: '#004F59',
+        background: 'var(--brand-primary)',
         padding: '20px 16px 18px',
         display: 'flex', alignItems: 'center', gap: 14,
       }}>
         <div style={{
           width: 52, height: 52, borderRadius: '50%',
-          background: '#008EAA',
+          background: 'var(--kc-mid)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 16, fontWeight: 900, color: '#fff',
           fontFamily: 'var(--font-sans)',
@@ -40,7 +40,7 @@ export default function MobileSettings() {
             {user?.first_name} {user?.last_name}
           </div>
           <div style={{
-            fontSize: 10, fontWeight: 900, color: '#FAE600',
+            fontSize: 10, fontWeight: 900, color: 'var(--kc-yellow)',
             textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 2,
           }}>
             {user?.role || 'Nutzer'}

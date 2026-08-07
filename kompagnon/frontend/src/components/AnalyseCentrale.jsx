@@ -386,9 +386,9 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
             disabled={saveStatus === 'saving'}
             style={{
               padding: '9px 18px', borderRadius: 8, flexShrink: 0,
-              border: saveStatus === 'saved' ? '1px solid var(--status-success-text)' : '1px solid var(--brand-primary, #008EAA)',
+              border: saveStatus === 'saved' ? '1px solid var(--status-success-text)' : '1px solid var(--brand-primary, var(--kc-mid))',
               background: saveStatus === 'saved' ? 'var(--status-success-bg)' : 'transparent',
-              color: saveStatus === 'saved' ? 'var(--status-success-text)' : 'var(--brand-primary, #008EAA)',
+              color: saveStatus === 'saved' ? 'var(--status-success-text)' : 'var(--brand-primary, var(--kc-mid))',
               fontSize: 12, fontWeight: 700,
               cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
               fontFamily: 'var(--font-sans)',
@@ -405,7 +405,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
 
       {/* ── Vollanalyse-Button ── */}
       <div style={{
-        background: running ? 'var(--bg-surface)' : 'linear-gradient(135deg, #008EAA, #006680)',
+        background: running ? 'var(--bg-surface)' : 'linear-gradient(135deg, var(--kc-mid), #006680)',
         border: running ? '1px solid var(--border-light)' : 'none',
         borderRadius: 12,
         padding: '16px 20px',
@@ -413,7 +413,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 12,
-        boxShadow: running ? 'none' : '0 4px 14px rgba(0,142,170,0.3)',
+        boxShadow: running ? 'none' : '0 4px 14px var(--kc-mid-a-30)',
       }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: running ? 'var(--text-primary)' : '#fff', marginBottom: 3 }}>
@@ -459,7 +459,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
             <div style={{
               height: '100%',
               width: `${totalPct}%`,
-              background: 'linear-gradient(90deg, #008EAA, #00B4D8)',
+              background: 'linear-gradient(90deg, var(--kc-mid), #00B4D8)',
               borderRadius: 4,
               transition: 'width 0.4s ease',
             }} />
@@ -481,7 +481,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
           return (
             <div key={step.id} style={{
               borderRadius: 10, padding: '14px 16px',
-              border: `1px solid ${isActive ? 'var(--brand-primary-mid, #008EAA)' : isDone ? 'var(--status-success-text)' : hasError ? 'var(--status-danger-text)' : 'var(--border-light)'}`,
+              border: `1px solid ${isActive ? 'var(--brand-primary-mid, var(--kc-mid))' : isDone ? 'var(--status-success-text)' : hasError ? 'var(--status-danger-text)' : 'var(--border-light)'}`,
               background: isActive ? 'var(--brand-primary-light, #E6F6FA)' : isDone ? 'var(--status-success-bg)' : hasError ? 'var(--status-danger-bg)' : 'var(--bg-surface)',
               transition: 'all 0.3s',
             }}>
@@ -490,14 +490,14 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                 <span style={{ fontSize: 12, fontWeight: 700, color: isActive ? 'var(--brand-primary-dark, #006680)' : isDone ? 'var(--status-success-text)' : hasError ? 'var(--status-danger-text)' : 'var(--text-primary)' }}>
                   {step.label}
                 </span>
-                {isActive && <span style={{ marginLeft: 'auto', width: 12, height: 12, border: '2px solid var(--brand-primary, #008EAA)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
+                {isActive && <span style={{ marginLeft: 'auto', width: 12, height: 12, border: '2px solid var(--brand-primary, var(--kc-mid))', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin .7s linear infinite', display: 'inline-block', flexShrink: 0 }} />}
                 {isDone && !isActive && <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--status-success-text)' }}>&#10003;</span>}
                 {hasError && !isActive && <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--status-danger-text)' }}>&#10007;</span>}
               </div>
 
               {isSingleActive && (
                 <div style={{ height: 4, background: 'var(--brand-primary-light, #E6F6FA)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 }}>
-                  <div style={{ height: '100%', width: `${stepProgress}%`, background: 'var(--brand-primary, #008EAA)', borderRadius: 2, transition: 'width 0.4s' }} />
+                  <div style={{ height: '100%', width: `${stepProgress}%`, background: 'var(--brand-primary, var(--kc-mid))', borderRadius: 2, transition: 'width 0.4s' }} />
                 </div>
               )}
 
@@ -524,8 +524,8 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                   disabled={!websiteUrl}
                   style={{
                     marginTop: 10, width: '100%', padding: '6px 0', borderRadius: 6,
-                    border: isDone ? '1px solid var(--status-success-text)' : '1px solid var(--brand-primary, #008EAA)',
-                    background: isDone ? 'transparent' : 'var(--brand-primary, #008EAA)',
+                    border: isDone ? '1px solid var(--status-success-text)' : '1px solid var(--brand-primary, var(--kc-mid))',
+                    background: isDone ? 'transparent' : 'var(--brand-primary, var(--kc-mid))',
                     color: isDone ? 'var(--status-success-text)' : '#fff',
                     fontSize: 11, fontWeight: 700, cursor: websiteUrl ? 'pointer' : 'not-allowed',
                     fontFamily: 'var(--font-sans)',
@@ -682,7 +682,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                     <div>
                       <DetailLabel>URL</DetailLabel>
                       <a href={sel.url} target="_blank" rel="noreferrer"
-                        style={{ fontSize: 12, color: 'var(--brand-primary)', textDecoration: 'none', wordBreak: 'break-all', lineHeight: 1.5 }}>
+                        style={{ fontSize: 12, color: 'var(--brand-primary-mid)', textDecoration: 'none', wordBreak: 'break-all', lineHeight: 1.5 }}>
                         {sel.url}
                       </a>
                     </div>
@@ -731,7 +731,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                           <DetailLabel style={{ marginBottom: 0 }}>Volltext - {sel.word_count || 0} Woerter</DetailLabel>
                           <button
                             onClick={() => setShowFullText(v => !v)}
-                            style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', padding: 0 }}
+                            style={{ fontSize: 11, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', padding: 0 }}
                           >
                             {showFullText ? '\u25B2 Weniger' : '\u25BC Volltext anzeigen'}
                           </button>
@@ -788,7 +788,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
                                 try { label = new URL(link).pathname || '/'; } catch { /* keep */ }
                                 return (
                                   <a key={j} href={link} target="_blank" rel="noreferrer"
-                                    style={{ fontSize: 11, color: 'var(--brand-primary)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', padding: '1px 0' }}>
+                                    style={{ fontSize: 11, color: 'var(--brand-primary-mid)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', padding: '1px 0' }}>
                                     {label}
                                   </a>
                                 );
@@ -835,7 +835,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
 
       {pagesLoading && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-          <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary, #008EAA)', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--border-light)', borderTopColor: 'var(--brand-primary, var(--kc-mid))', animation: 'spin 0.8s linear infinite' }} />
         </div>
       )}
 
@@ -884,7 +884,7 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
               disabled={confirmingStep}
               style={{
                 width: '100%', padding: '12px',
-                background: '#FAE600', color: '#000',
+                background: 'var(--kc-yellow)', color: '#000',
                 border: 'none', borderRadius: 8,
                 fontSize: 13, fontWeight: 900,
                 cursor: confirmingStep ? 'not-allowed' : 'pointer',
@@ -1001,7 +1001,7 @@ function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespeed, sav
         <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>
           Brand Design
           {designData?.style_keyword && (
-            <span style={{ marginLeft: 8, fontWeight: 600, color: 'var(--brand-primary)', textTransform: 'none', letterSpacing: 0 }}>
+            <span style={{ marginLeft: 8, fontWeight: 600, color: 'var(--brand-primary-mid)', textTransform: 'none', letterSpacing: 0 }}>
               {designData.style_keyword}
             </span>
           )}
@@ -1062,14 +1062,14 @@ function ProjectSummaryPanel({ leadId, headers, stepResults, savedPagespeed, sav
             {/* KI Design Brief */}
             {designData.design_brief?.fuer_ki_prompt && (
               <details style={{ fontSize: 10 }}>
-                <summary style={{ cursor: 'pointer', color: 'var(--brand-primary)', fontWeight: 600, fontSize: 10 }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--brand-primary-mid)', fontWeight: 600, fontSize: 10 }}>
                   KI-Design-Brief
                 </summary>
                 <div style={{ marginTop: 6, padding: '8px 10px', background: 'var(--bg-app)', borderRadius: 6, fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.6, border: '1px solid var(--border-light)' }}>
                   {designData.design_brief.fuer_ki_prompt}
                 </div>
                 <button onClick={() => navigator.clipboard?.writeText(designData.design_brief.fuer_ki_prompt)}
-                  style={{ marginTop: 4, fontSize: 10, padding: '3px 8px', background: 'none', border: '1px solid var(--border-light)', borderRadius: 4, cursor: 'pointer', color: 'var(--brand-primary)', fontFamily: 'var(--font-sans)' }}>
+                  style={{ marginTop: 4, fontSize: 10, padding: '3px 8px', background: 'none', border: '1px solid var(--border-light)', borderRadius: 4, cursor: 'pointer', color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-sans)' }}>
                   Kopieren
                 </button>
               </details>

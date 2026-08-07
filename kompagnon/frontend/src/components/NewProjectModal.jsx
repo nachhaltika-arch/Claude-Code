@@ -99,7 +99,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
           maxHeight: "calc(100vh - 32px)", overflowY: "auto",
         }}
       >
-        <h2 style={{ margin: "0 0 4px", fontSize: 20, color: "#004F59" }}>Neues Projekt starten</h2>
+        <h2 style={{ margin: "0 0 4px", fontSize: 20, color: "var(--brand-primary)" }}>Neues Projekt starten</h2>
         <p style={{ margin: "0 0 24px", color: "#666", fontSize: 14 }}>
           Bitte wähle ein bestehendes Unternehmen oder lege ein neues an.
         </p>
@@ -110,7 +110,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
             onClick={() => setStufe("search")}
             style={{
               flex: 1, padding: "8px 0", borderRadius: 8, border: "none", cursor: "pointer",
-              background: stufe === "search" ? "#008EAA" : "#f0f0f0",
+              background: stufe === "search" ? "var(--kc-mid)" : "#f0f0f0",
               color: stufe === "search" ? "#fff" : "#333", fontWeight: 600, fontSize: 14,
             }}
           >Bestehendes Unternehmen</button>
@@ -118,7 +118,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
             onClick={() => setStufe("create")}
             style={{
               flex: 1, padding: "8px 0", borderRadius: 8, border: "none", cursor: "pointer",
-              background: stufe === "create" ? "#008EAA" : "#f0f0f0",
+              background: stufe === "create" ? "var(--kc-mid)" : "#f0f0f0",
               color: stufe === "create" ? "#fff" : "#333", fontWeight: 600, fontSize: 14,
             }}
           >Neues Unternehmen</button>
@@ -150,7 +150,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
                   >
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{lead.company_name}</div>
-                      <div style={{ fontSize: 12, color: lead.website_url ? "#008EAA" : "#f59e0b" }}>
+                      <div style={{ fontSize: 12, color: lead.website_url ? "var(--kc-mid)" : "#f59e0b" }}>
                         {lead.website_url || "⚠ Keine Domain hinterlegt"}
                       </div>
                     </div>
@@ -162,7 +162,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
             {suche.length >= 2 && !sucheLoading && sucheErgebnisse.length === 0 && (
               <p style={{ color: "#888", fontSize: 13, margin: "8px 0 0" }}>
                 Kein Unternehmen gefunden.{" "}
-                <button onClick={() => setStufe("create")} style={{ color: "#008EAA", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Neu anlegen →</button>
+                <button onClick={() => setStufe("create")} style={{ color: "var(--kc-mid)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Neu anlegen →</button>
               </p>
             )}
           </div>
@@ -212,7 +212,7 @@ export default function NewProjectModal({ onClose, onProjectCreated }) {
               disabled={saving}
               style={{
                 padding: "9px 20px", borderRadius: 8, border: "none", cursor: "pointer",
-                background: "#FAE600", color: "#000", fontWeight: 700, fontSize: 14,
+                background: "var(--kc-yellow)", color: "#000", fontWeight: 700, fontSize: 14,
               }}
             >{saving ? "Wird angelegt..." : "Unternehmen anlegen & Projekt starten"}</button>
           )}

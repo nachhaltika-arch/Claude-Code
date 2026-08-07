@@ -1,0 +1,47 @@
+<!--
+  Block: hero-image-video — Hero Split mit Image + Video-Play-Overlay
+  Kategorie: HERO
+  Slots: headline_pre, headline_highlight, headline_post, subline,
+         cta_primary_text, cta_primary_url,
+         cta_secondary_text, cta_secondary_url,
+         image_url, image_alt,
+         video_label, video_url
+  Pattern: Inspiration agon-multipurpose-agency. Im Unterschied zu
+  hero-video (Background-Video) zeigt diese Variante ein Hero-Image
+  mit einer Video-Play-Card als Overlay — Klick öffnet Video-Modal /
+  externes Embed.
+-->
+<section data-block="hero-image-video" class="bg-white py-16 md:py-24 px-6" style="font-family: 'Noto Sans', sans-serif;">
+  <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+    <div>
+      <h1 class="text-4xl md:text-5xl font-black uppercase leading-tight text-gray-900 mb-6 tracking-tight">
+        {{headline_pre}}
+        <span class="bg-gray-200 px-2">{{headline_highlight}}</span>
+        {{headline_post}}
+      </h1>
+      <p class="text-lg text-slate-600 leading-relaxed mb-8 max-w-xl">{{subline}}</p>
+      <div class="flex flex-wrap items-center gap-5">
+        <a href="{{cta_primary_url}}"
+           class="inline-flex items-center gap-2 bg-gray-900 text-white font-bold px-7 py-3.5 rounded-full text-base hover:bg-gray-700 transition shadow-md">
+          {{cta_primary_text}}
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a href="{{cta_secondary_url}}"
+           class="inline-flex items-center gap-2 text-gray-900 font-bold text-base hover:underline">
+          {{cta_secondary_text}}
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </div>
+    </div>
+    <div class="relative rounded-2xl overflow-hidden shadow-xl aspect-[4/3]">
+      <img src="{{image_url}}" alt="{{image_alt}}" class="w-full h-full object-cover" loading="lazy">
+      <a href="{{video_url}}"
+         class="absolute bottom-6 left-6 flex items-center gap-3 bg-gray-900/90 text-white px-5 py-3 rounded-xl backdrop-blur-sm hover:bg-gray-900 transition">
+        <span class="grid place-items-center w-10 h-10 rounded-full bg-white text-gray-900">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20"/></svg>
+        </span>
+        <span class="text-sm font-bold uppercase tracking-wide">{{video_label}}</span>
+      </a>
+    </div>
+  </div>
+</section>

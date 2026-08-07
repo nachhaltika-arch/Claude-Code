@@ -303,7 +303,7 @@ export default function Companies() {
                             target="_blank"
                             rel="noreferrer"
                             onClick={e => e.stopPropagation()}
-                            style={{ fontSize: 12, color: 'var(--brand-primary)', textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                            style={{ fontSize: 12, color: 'var(--brand-primary-mid)', textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                           >
                             {row.website_url.replace(/^https?:\/\//, '')}
                           </a>

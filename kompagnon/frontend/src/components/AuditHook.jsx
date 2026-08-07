@@ -355,8 +355,8 @@ export default function AuditHook() {
                 <span style={{
                   fontSize: 11, fontWeight: 700, letterSpacing:'.06em',
                   textTransform:'uppercase', padding:'3px 10px', borderRadius: 20,
-                  background:'rgba(0,142,170,.25)', color:'#67d4e8',
-                  border:`1px solid rgba(0,142,170,.5)`,
+                  background:'var(--kc-mid-a-25)', color:'#67d4e8',
+                  border:`1px solid var(--kc-mid-a-50)`,
                 }}>Jetzt kostenlos</span>
               </div>
 
@@ -399,7 +399,7 @@ export default function AuditHook() {
                 }}>
                   <div style={{
                     width: 56, height: 56, borderRadius:'50%',
-                    border:`3px solid rgba(0,142,170,.15)`,
+                    border:`3px solid var(--kc-mid-a-12)`,
                     borderTopColor: TEAL,
                     animation:'spin .9s linear infinite',
                     margin:'0 auto 20px',

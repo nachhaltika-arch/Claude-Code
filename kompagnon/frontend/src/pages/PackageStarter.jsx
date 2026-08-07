@@ -49,9 +49,9 @@ export default function PackageStarter() {
         .fade2 { animation: fadeUp 0.5s 0.1s ease both; }
         .fade3 { animation: fadeUp 0.5s 0.2s ease both; }
         .fade4 { animation: fadeUp 0.5s 0.3s ease both; }
-        .cta-btn:hover { background: #006880 !important; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,142,170,0.4) !important; }
+        .cta-btn:hover { background: #006880 !important; transform: translateY(-1px); box-shadow: 0 8px 24px var(--kc-mid-a-50) !important; }
         .cta-btn { transition: all 0.2s ease !important; }
-        input:focus { border-color: #008eaa !important; box-shadow: 0 0 0 3px rgba(0,142,170,0.12) !important; outline: none !important; }
+        input:focus { border-color: var(--kc-mid) !important; box-shadow: 0 0 0 3px var(--kc-mid-a-12) !important; outline: none !important; }
       `}</style>
 
       <nav style={{ background: 'var(--bg-surface)', borderBottom: '1px solid #e8eef2', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50 }}>
@@ -64,7 +64,7 @@ export default function PackageStarter() {
           ].map(p => (
             <button key={p.label} onClick={() => navigate(p.path)} style={{
               padding: '5px 14px', borderRadius: 20, border: 'none',
-              background: p.active ? '#008eaa' : 'transparent',
+              background: p.active ? 'var(--kc-mid)' : 'transparent',
               color: p.active ? 'white' : '#8fa8b0',
               fontSize: 12, fontWeight: p.active ? 600 : 400, cursor: 'pointer', fontFamily: 'inherit',
             }}>{p.label}</button>
@@ -80,7 +80,7 @@ export default function PackageStarter() {
 
       <div style={{ background: 'linear-gradient(135deg, #004d5e 0%, #006880 100%)', padding: '60px 24px 80px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'relative', maxWidth: 640, margin: '0 auto' }}>
-          <div className="fade1" style={{ display: 'inline-block', background: 'rgba(0,142,170,0.25)', border: '1px solid rgba(0,142,170,0.5)', color: '#b3e0ea', borderRadius: 20, padding: '4px 14px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>
+          <div className="fade1" style={{ display: 'inline-block', background: 'var(--kc-mid-a-25)', border: '1px solid var(--kc-mid-a-50)', color: '#b3e0ea', borderRadius: 20, padding: '4px 14px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>
             🚀 Starter-Paket
           </div>
           <h1 className="fade2" style={{ fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 700, color: 'white', margin: '0 0 16px', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
@@ -99,8 +99,8 @@ export default function PackageStarter() {
 
       <div style={{ maxWidth: 880, margin: '0 auto', padding: '0 20px 80px', marginTop: -40 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, alignItems: 'flex-start' }}>
-          <div style={{ background: 'var(--bg-surface)', borderRadius: 20, padding: 32, boxShadow: '0 8px 40px rgba(0,142,170,0.12)', border: '2px solid #008eaa' }}>
-            <div style={{ display: 'inline-block', background: '#008eaa', color: 'white', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Starter</div>
+          <div style={{ background: 'var(--bg-surface)', borderRadius: 20, padding: 32, boxShadow: '0 8px 40px var(--kc-mid-a-12)', border: '2px solid var(--kc-mid)' }}>
+            <div style={{ display: 'inline-block', background: 'var(--kc-mid)', color: 'white', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Starter</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Starter — 1.500 € netto</div>
             <div style={{ fontSize: 12, color: '#8fa8b0', marginBottom: 24 }}>Einmalige Zahlung · keine laufenden Kosten</div>
             {error && <div style={{ background: 'var(--status-danger-bg)', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{error}</div>}
@@ -109,7 +109,7 @@ export default function PackageStarter() {
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#8fa8b0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="kontakt@ihrbetrieb.de" required style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--border-light)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', color: 'var(--text-primary)', background: 'var(--bg-app)', boxSizing: 'border-box', transition: 'all 0.15s' }} />
               </div>
-              <button type="submit" disabled={loading} className="cta-btn" style={{ width: '100%', padding: '14px', background: loading ? '#8fa8b0' : '#008eaa', color: 'white', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+              <button type="submit" disabled={loading} className="cta-btn" style={{ width: '100%', padding: '14px', background: loading ? '#8fa8b0' : 'var(--kc-mid)', color: 'white', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                 {loading ? 'Wird weitergeleitet...' : 'Jetzt sicher bezahlen →'}
               </button>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, fontSize: 11, color: '#b0c4cc' }}>🔒 Sichere Zahlung via Stripe · SSL-verschlüsselt</div>

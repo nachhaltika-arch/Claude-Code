@@ -551,7 +551,7 @@ function Label({ children, required }) {
       display: 'block', fontSize: 13, fontWeight: 500,
       color: 'var(--text-secondary)', marginBottom: 4,
     }}>
-      {children}{required && <span style={{ color: 'var(--brand-primary)' }}> *</span>}
+      {children}{required && <span style={{ color: 'var(--brand-primary-mid)' }}> *</span>}
     </label>
   );
 }

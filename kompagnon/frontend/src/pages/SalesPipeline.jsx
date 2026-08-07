@@ -9,7 +9,7 @@ import API_BASE_URL from '../config';
 import { useScreenSize } from '../utils/responsive';
 
 const COLUMNS = [
-  { id: 'new', label: 'Neue Leads', icon: '🆕', color: '#008EAA', desc: 'Frisch importiert oder auditiert' },
+  { id: 'new', label: 'Neue Leads', icon: '🆕', color: 'var(--kc-mid)', desc: 'Frisch importiert oder auditiert' },
   { id: 'contacted', label: 'Kontaktiert', icon: '📞', color: '#7c3aed', desc: 'Erste Kontaktaufnahme erfolgt' },
   { id: 'qualified', label: 'Qualifiziert', icon: '✅', color: '#059669', desc: 'Bedarf bestätigt' },
   { id: 'proposal_sent', label: 'Angebot gesendet', icon: '📄', color: '#d97706', desc: 'Angebot liegt beim Kunden' },
@@ -318,7 +318,7 @@ export default function SalesPipeline() {
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => handleWonConfirm(false)} style={{ flex: 1, padding: '10px 16px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Nur Status speichern</button>
-              <button onClick={() => handleWonConfirm(true)} style={{ flex: 1, padding: '10px 16px', border: 'none', borderRadius: 'var(--radius-md)', background: '#008eaa', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, Projekt anlegen</button>
+              <button onClick={() => handleWonConfirm(true)} style={{ flex: 1, padding: '10px 16px', border: 'none', borderRadius: 'var(--radius-md)', background: 'var(--kc-mid)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Ja, Projekt anlegen</button>
             </div>
           </div>
         </div>,
@@ -406,7 +406,7 @@ function SalesCard({ lead, col, columns, project, onDragStart, onOpen, onAudit, 
             {lead.company_name || 'Unbekannt'}
           </div>
           {domain && (
-            <div style={{ fontSize: 10, color: 'var(--brand-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+            <div style={{ fontSize: 10, color: 'var(--brand-primary-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
               {domain}
             </div>
           )}
@@ -476,12 +476,12 @@ function SalesCard({ lead, col, columns, project, onDragStart, onOpen, onAudit, 
       {lead.status === 'won' && project && (
         <div
           onClick={e => { e.stopPropagation(); onProjectClick?.(project.id); }}
-          style={{ background: 'rgba(0,142,170,0.08)', borderRadius: 'var(--radius-md)', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}
+          style={{ background: 'var(--kc-mid-a-08)', borderRadius: 'var(--radius-md)', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}
         >
-          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--brand-primary)' }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--brand-primary-mid)' }}>
             Projekt aktiv · Phase {(project.status || '').replace('phase_', '')} von 7
           </span>
-          <span style={{ fontSize: 10, color: 'var(--brand-primary)' }}>→</span>
+          <span style={{ fontSize: 10, color: 'var(--brand-primary-mid)' }}>→</span>
         </div>
       )}
     </div>

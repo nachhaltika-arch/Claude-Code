@@ -20,7 +20,7 @@ export default function Checklists() {
         }}
       >
         <ClipboardDocumentListIcon
-          style={{ width: '48px', height: '48px', color: 'var(--kc-anthrazit-20)' }}
+          style={{ width: '48px', height: '48px', color: 'var(--text-tertiary)' }}
         />
         <div>
           <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '16px' }}>

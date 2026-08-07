@@ -146,7 +146,7 @@ export default function ProjectFilesSection({ leadId }) {
           <span style={{ fontSize: 16 }}>📁</span>
           <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Projektdateien</span>
           {!loading && files.length > 0 && (
-            <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>{files.length}</span>
+            <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>{files.length}</span>
           )}
         </div>
         <button
@@ -235,7 +235,7 @@ export default function ProjectFilesSection({ leadId }) {
                       </>
                     ) : (
                       <>
-                        <button onClick={() => handleDownload(f.id)} title="Herunterladen" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand-primary)', padding: 4, borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', opacity: 0.7 }} onMouseEnter={e => e.currentTarget.style.opacity = '1'} onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}>
+                        <button onClick={() => handleDownload(f.id)} title="Herunterladen" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand-primary-mid)', padding: 4, borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', opacity: 0.7 }} onMouseEnter={e => e.currentTarget.style.opacity = '1'} onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}>
                           <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2v9M4.5 7.5L8 11l3.5-3.5"/><path d="M2.5 13.5h11"/></svg>
                         </button>
                         {isImageFile(f.original_filename) && (

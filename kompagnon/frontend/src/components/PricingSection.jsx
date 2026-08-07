@@ -4,14 +4,14 @@ const PACKAGES = [
   {
     id: 'starter',
     badge: 'Einstieg',
-    badgeColor: '#008eaa',
-    badgeBg: 'rgba(0,142,170,0.12)',
+    badgeColor: 'var(--kc-mid)',
+    badgeBg: 'var(--kc-mid-a-12)',
     name: 'Starter',
     tagline: 'Schnell. Sauber. Professionell.',
     price: '1.500',
     delivery: '7–10 Werktage',
-    accentColor: '#008eaa',
-    ctaBg: '#008eaa',
+    accentColor: 'var(--kc-mid)',
+    ctaBg: 'var(--kc-mid)',
     ctaLabel: 'Starter wählen',
     features: [
       'Kompakte WordPress-Webseite',
@@ -119,8 +119,8 @@ export default function PricingSection() {
       <div style={{ textAlign: 'center', maxWidth: 600, margin: '0 auto 56px' }}>
         <div style={{
           display: 'inline-block',
-          background: 'rgba(0,142,170,0.1)',
-          border: '1px solid rgba(0,142,170,0.25)',
+          background: 'var(--kc-mid-a-12)',
+          border: '1px solid var(--kc-mid-a-25)',
           color: '#006880', borderRadius: 20,
           padding: '4px 16px', fontSize: 11,
           fontWeight: 700, letterSpacing: '0.1em',
@@ -337,7 +337,7 @@ export default function PricingSection() {
         <a href="mailto:hallo@kompagnon.eu" style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           padding: '10px 24px', background: 'transparent',
-          color: '#008eaa', border: '1.5px solid #008eaa',
+          color: 'var(--kc-mid)', border: '1.5px solid var(--kc-mid)',
           borderRadius: 10, fontSize: 13, fontWeight: 600,
           textDecoration: 'none', fontFamily: 'inherit',
         }}>

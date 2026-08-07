@@ -195,7 +195,7 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 9, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.1em' }}>Schriften</div>
               <button onClick={suggestFonts} disabled={suggesting} style={{
-                background: 'transparent', color: 'var(--brand-primary)',
+                background: 'transparent', color: 'var(--brand-primary-mid)',
                 border: '1px solid var(--border-light)', borderRadius: 5,
                 padding: '4px 10px', fontSize: 10, fontWeight: 700,
                 cursor: suggesting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',

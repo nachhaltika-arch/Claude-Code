@@ -1,0 +1,16 @@
+- [Nutzer-Profil David](user_role.md) — Solo-Operator KOMPAGNON, Deutsch, pragmatisch, schnelle Entscheidungen
+- [Branch-Workflow staging → main](workflow_dual_branch.md) — dual-branch ab 2026-05-01, single-trunk verworfen
+- [Weekly Release Cadence](weekly_release_cadence.md) — Mo-Do auf staging entwickeln, Fr Sammel-PR staging→main mergen
+- [PR nur freitags](feedback_pr_only_fridays.md) — niemals PR staging→main außerhalb Freitag vorschlagen, auch nicht wenn Commit-Set sauber wirkt
+- [MVP-Definition](mvp_meaning.md) — minimal funktionierend für Kundenbearbeitung, nicht Feature-Breite
+- [Qualitätslatte KAS](quality_bar_kas.md) — keine simplen Sites, sondern technisch+SEO+SEA+Conversion-perfekt (Premium-Differentiator)
+- [Niche Phase 1](niche_phase1.md) — Heizung/Sanitär/Elektrik (Wärmepumpe + Wallbox), KEINE Erweiterung vor 5 produktiven Kunden
+- Conversion-Spec SHK: `docs/conversion-spec-shk.md` im Repo — Hormozi-basiert, verbindlich für content_writer + Templates + QA-Agent
+- [Fachliteratur-Index](fachliteratur_index.md) — 64 PDFs in Drive, gezielt zur Coding-Zeit konsultieren (Tier-1-Bücher: Hormozi, Kotler)
+- [KOMPAGNON UI/UX Guidelines v1.0](kompagnon_ui_guidelines.md) — verbindliche Tool-CI ab 2026-05-07: Dark Teal dominiert, Gelb max 1×, Noto Sans Black, 8px-Raster
+- [Lizenz-Entscheidung Relume RAUS](license_decision_no_relume.md) — 2026-05-06: ToS verbietet Re-Distribution + Competing Products → komplett entfernt, Migration auf MIT-Quellen (HyperUI/Flowbite/Preline)
+- [Plan Component-Manager](plan_component_manager.md) — 2-Phasen-Plan: Phase 1 fertig 2026-05-06, Phase 2 (React-Eingabe) deferred
+- [Envato Wireframe-Pipeline Plan](envato_wireframe_plan.md) — Multi-Session-Plan zum Ableiten von ~30-50 Wireframes aus 68 Envato-Templates via Pattern-Inspiration; Phase 0 Inventur done 2026-05-09
+- [kc-numeric Tokens bleiben](decision_kc_numeric_tokens_kept.md) — Phase B closed 2026-05-09: kc-text/leading/space/radius/tracking/container = legitimes Scale-System, NICHT als Legacy behandeln
+- [Wiederaufnahme 2026-05-09](resume_point_2026_05_09.md) — Token-System final aufgeräumt (15 Commits: --brand-primary Audit + kc-Aliases retired + alle Hex migriert + alpha-Tokens) + Envato Phase 0 + Backend-Hygiene
+- [Wiederaufnahme 2026-05-08](resume_point_2026_05_08.md) — Style-Guide-Redesign + Tool-CI P0-P5 fertig; --brand-primary Token-Switch Mid→Dark; Audit-Methode etabliert

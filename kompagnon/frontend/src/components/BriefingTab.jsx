@@ -408,7 +408,7 @@ export default function BriefingTab({ lead, isMobile }) {
                     KI-Analyse basierend auf Branche "{lead.trade || '—'}" und Standort "{lead.city || '—'}"
                   </div>
                   <button onClick={runZielgruppenanalyse} disabled={loadingZielgruppe} style={{
-                    padding: '9px 18px', background: loadingZielgruppe ? 'var(--bg-surface)' : '#008eaa',
+                    padding: '9px 18px', background: loadingZielgruppe ? 'var(--bg-surface)' : 'var(--kc-mid)',
                     color: loadingZielgruppe ? 'var(--text-tertiary)' : 'white', border: '1px solid var(--border-medium)',
                     borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600,
                     cursor: loadingZielgruppe ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)',

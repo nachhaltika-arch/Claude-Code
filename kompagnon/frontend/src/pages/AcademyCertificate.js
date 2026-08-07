@@ -82,7 +82,7 @@ export default function AcademyCertificate() {
           maxWidth: 680, width: '100%',
           border: `2px solid ${T.borderMed}`,
           borderRadius: '16px',
-          boxShadow: '0 8px 40px rgba(0,142,170,0.10)',
+          boxShadow: '0 8px 40px var(--kc-mid-a-12)',
           overflow: 'hidden',
         }}
       >
@@ -197,7 +197,7 @@ export default function AcademyCertificate() {
           border: 'none', borderRadius: '8px',
           fontSize: 13, fontWeight: 600,
           cursor: 'pointer', fontFamily: T.font,
-          boxShadow: '0 2px 8px rgba(0,142,170,0.25)',
+          boxShadow: '0 2px 8px var(--kc-mid-a-25)',
           transition: 'opacity 0.15s',
         }}
         onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}

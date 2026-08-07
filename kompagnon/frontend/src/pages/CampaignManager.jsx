@@ -11,7 +11,7 @@ export const SOURCES = [
   { key: 'google_ads', label: 'Google Ads', icon: '🔍', color: '#EA4335' },
   { key: 'briefkarte', label: 'Briefkarte', icon: '📬', color: '#854F0B' },
   { key: 'instagram',  label: 'Instagram',  icon: '📸', color: '#E1306C' },
-  { key: 'email',      label: 'E-Mail',     icon: '✉️', color: '#008EAA' },
+  { key: 'email',      label: 'E-Mail',     icon: '✉️', color: 'var(--kc-mid)' },
   { key: 'sonstige',   label: 'Sonstige',   icon: '📌', color: '#64748B' },
 ];
 
@@ -297,7 +297,7 @@ function NewCampaignModal({ onClose, onCreated, token }) {
       }}>
         <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
               Neue Kampagne
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>

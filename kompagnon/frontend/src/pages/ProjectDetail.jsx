@@ -171,7 +171,7 @@ function GaStatusCard({ leadId, headers: h, API_BASE_URL: baseUrl }) {
         {status === 'nicht_vorhanden' && (
           <button disabled style={{
             padding: '7px 16px', borderRadius: 7, border: 'none',
-            background: '#008eaa', color: 'white', fontSize: 12,
+            background: 'var(--kc-mid)', color: 'white', fontSize: 12,
             fontWeight: 700, cursor: 'not-allowed', opacity: 0.5,
             fontFamily: 'inherit',
           }}>
@@ -430,7 +430,7 @@ function EditModal({ project, lead, latestAudit, token, onClose, onSaved }) {
                   type="checkbox"
                   checked={form.email_notifications_enabled}
                   onChange={e => set('email_notifications_enabled', e.target.checked)}
-                  style={{ width: 15, height: 15, accentColor: '#008EAA', cursor: 'pointer' }}
+                  style={{ width: 15, height: 15, accentColor: 'var(--kc-mid)', cursor: 'pointer' }}
                 />
                 E-Mail-Benachrichtigungen aktiv
               </label>
@@ -551,7 +551,7 @@ function ApprovalModal({ projectId, token, onClose }) {
           <button
             onClick={handleSend}
             disabled={sending || !topic.trim()}
-            style={{ padding: '8px 18px', background: '#008EAA', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: (sending || !topic.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !topic.trim()) ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}
+            style={{ padding: '8px 18px', background: 'var(--kc-mid)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600, cursor: (sending || !topic.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !topic.trim()) ? 0.6 : 1, fontFamily: 'var(--font-sans)' }}
           >
             {sending ? 'Senden…' : 'Freigabe-E-Mail senden'}
           </button>
@@ -970,7 +970,6 @@ export default function ProjectDetail() {
         axios.get(`${API_BASE_URL}/api/projects/${id}`, { headers }),
         axios.get(`${API_BASE_URL}/api/projects/${id}/margin`, { headers }),
       ]);
-      console.log('Projekt API:', projectRes.data);
       setProject(projectRes.data);
       setMargin(marginRes.data);
       setNewWebsiteUrl(projectRes.data.new_website_url || '');
@@ -1500,7 +1499,6 @@ export default function ProjectDetail() {
         cta_text: String(selectedPage?.cta_text || ''),
         ...ctx,
       };
-      console.log('Design payload:', JSON.stringify(payload, null, 2));
 
       // Start background job — returns immediately with job_id
       const startRes = await fetch(`${API_BASE_URL}/api/agents/${project.id}/content`, {

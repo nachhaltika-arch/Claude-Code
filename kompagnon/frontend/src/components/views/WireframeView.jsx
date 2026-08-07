@@ -643,7 +643,7 @@ function PageThumb({ page, library, isActive, onClick }) {
         border: isActive ? '2px solid #008EAA' : '1px solid var(--border-light)',
         borderRadius: 6, overflow: 'hidden',
         cursor: 'pointer', padding: 0,
-        boxShadow: isActive ? '0 4px 12px rgba(0,142,170,0.20)' : 'none',
+        boxShadow: isActive ? '0 4px 12px var(--kc-mid-a-20)' : 'none',
         transition: 'border-color 120ms, box-shadow 120ms',
         fontFamily: 'inherit',
       }}

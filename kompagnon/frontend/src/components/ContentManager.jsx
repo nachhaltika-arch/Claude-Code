@@ -98,7 +98,7 @@ function SectionCard({ section, token, onUpdated }) {
         <button
           onClick={generateKI}
           disabled={kiLoading}
-          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--brand-primary)', background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', cursor: kiLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 4 }}
+          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--brand-primary-mid)', background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', cursor: kiLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 4 }}
         >
           {kiLoading ? <><span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--brand-primary)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />Generiere...</> : '🤖 KI-Entwurf'}
         </button>
@@ -368,7 +368,7 @@ function PageContent({ page, token, onPageUpdated }) {
         <div>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>{data.page_name}</h2>
           {page.ziel_keyword && (
-            <span style={{ display: 'inline-block', marginTop: 4, fontSize: 11, background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: 10, padding: '2px 8px', fontWeight: 600 }}>{page.ziel_keyword}</span>
+            <span style={{ display: 'inline-block', marginTop: 4, fontSize: 11, background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 10, padding: '2px 8px', fontWeight: 600 }}>{page.ziel_keyword}</span>
           )}
           {page.zweck && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic', marginTop: 4 }}>{page.zweck}</div>}
         </div>

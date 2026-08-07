@@ -1,5 +1,8 @@
+import logging
 import os
 import psycopg2
+
+logger = logging.getLogger(__name__)
 
 
 def run_migrations():
@@ -165,7 +168,7 @@ def run_migrations():
 
     cur.close()
     conn.close()
-    print("Migrationen erfolgreich ausgefuehrt.")
+    logger.info("Migrationen erfolgreich ausgefuehrt.")
 
 
 if __name__ == "__main__":

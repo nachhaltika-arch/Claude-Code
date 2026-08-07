@@ -1,0 +1,18 @@
+# Environment — NIEMALS committen (enthält Produktiv-Secrets)
+.env
+.env.*
+!.env.example
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Lokale Datenbank-Artefakte
+*.db
+*.sqlite3
+
+# Uploads (lokal erzeugt)
+uploads/

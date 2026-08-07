@@ -172,7 +172,7 @@ function ItemCard({ item, onEdit, onDelete, onDragStart }) {
       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, lineHeight: 1.3 }}>{item.title}</div>
       {item.description && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4, marginBottom: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.description}</div>}
       {item.tags?.length > 0 && <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>{item.tags.map((t) => <span key={t} style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-app)', padding: '1px 6px', borderRadius: 4 }}>#{t}</span>)}</div>}
-      {item.ticket_ref && <div style={{ fontSize: 10, color: 'var(--brand-primary)', marginBottom: 6 }}>🎫 {item.ticket_ref}</div>}
+      {item.ticket_ref && <div style={{ fontSize: 10, color: 'var(--brand-primary-mid)', marginBottom: 6 }}>🎫 {item.ticket_ref}</div>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: '1px solid var(--border-light)' }}>
         <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{item.due_date || item.created_at || ''}</span>
         <div style={{ display: 'flex', gap: 4 }}>

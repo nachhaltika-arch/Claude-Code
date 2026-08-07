@@ -139,7 +139,7 @@ export default function RetainerDashboard() {
           {invoices.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>Noch keine Rechnungen vorhanden.</div>}
           {invoices.map((inv, idx) => (
             <div key={inv.id} style={{ display: 'grid', gridTemplateColumns: '140px 1.5fr 100px 100px 80px 60px', gap: 12, padding: '12px 20px', alignItems: 'center', borderBottom: idx < invoices.length - 1 ? '1px solid var(--border-light)' : 'none', transition: 'background 0.1s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-primary)', fontFamily: 'var(--font-mono)' }}>{inv.invoice_number}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-mono)' }}>{inv.invoice_number}</div>
               <div>
                 <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{inv.customer_name || '-'}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{inv.customer_email}</div>

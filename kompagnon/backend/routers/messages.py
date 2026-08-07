@@ -63,6 +63,50 @@ def _msg_dict(m: Message) -> dict:
 
 # ── Endpunkt 1: Admin liest Nachrichten ──────────────────────────────────────
 
+# ACHTUNG Reihenfolge: /send-email MUSS vor den '/{lead_id}'-Routen stehen.
+# FastAPI matcht in Registrierungsreihenfolge — steht '/{lead_id}' davor,
+# laeuft ein Aufruf von /api/messages/send-email in die Platzhalter-Route und
+# scheitert an der int-Validierung von lead_id (422).
+class SendEmailBody(BaseModel):
+    to: str
+    subject: str
+    html: str
+    lead_id: Optional[int] = None
+    project_id: Optional[int] = None
+
+
+@router.post("/send-email")
+def send_email_endpoint(
+    body: SendEmailBody,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if not body.to or not body.subject:
+        raise HTTPException(status_code=400, detail="to und subject sind Pflichtfelder")
+    try:
+        from services.email import send_email
+        ok = send_email(to_email=body.to, subject=body.subject, html_body=body.html)
+        if not ok:
+            logger.warning(f"E-Mail an {body.to} konnte nicht gesendet werden")
+
+        if body.lead_id:
+            msg = Message(
+                lead_id=body.lead_id,
+                sender_role="admin",
+                channel="email",
+                subject=body.subject,
+                content="[Newsletter]",
+                created_at=datetime.utcnow(),
+            )
+            db.add(msg)
+            db.commit()
+
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"send-email Fehler: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @router.get("/{lead_id}")
 def get_messages(
     lead_id: int,
@@ -204,42 +248,3 @@ def get_messages_kunde(
 
 
 # ── Newsletter / Send-Email Endpunkt ─────────────────────────────────────────
-
-class SendEmailBody(BaseModel):
-    to: str
-    subject: str
-    html: str
-    lead_id: Optional[int] = None
-    project_id: Optional[int] = None
-
-
-@router.post("/send-email")
-def send_email_endpoint(
-    body: SendEmailBody,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    if not body.to or not body.subject:
-        raise HTTPException(status_code=400, detail="to und subject sind Pflichtfelder")
-    try:
-        from services.email import send_email
-        ok = send_email(to_email=body.to, subject=body.subject, html_body=body.html)
-        if not ok:
-            logger.warning(f"E-Mail an {body.to} konnte nicht gesendet werden")
-
-        if body.lead_id:
-            msg = Message(
-                lead_id=body.lead_id,
-                sender_role="admin",
-                channel="email",
-                subject=body.subject,
-                content="[Newsletter]",
-                created_at=datetime.utcnow(),
-            )
-            db.add(msg)
-            db.commit()
-
-        return {"success": True}
-    except Exception as e:
-        logger.error(f"send-email Fehler: {e}")
-        return {"success": False, "error": str(e)}

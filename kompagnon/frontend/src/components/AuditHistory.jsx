@@ -10,7 +10,7 @@ const LEVEL_STYLES = {
   'Homepage Standard Gold':   { color: '#f57f17', icon: '\uD83E\uDD47' },
   'Homepage Standard Silber': { color: '#616161', icon: '\uD83E\uDD48' },
   'Homepage Standard Bronze': { color: '#4e342e', icon: '\uD83E\uDD49' },
-  'Nicht konform':            { color: 'var(--brand-primary)', icon: '⛔' },
+  'Nicht konform':            { color: 'var(--status-danger-text)', icon: '⛔' },
 };
 
 export default function AuditHistory({ leadId }) {
@@ -154,7 +154,7 @@ export default function AuditHistory({ leadId }) {
                 </button>
                 <button
                   className="kc-btn-ghost"
-                  style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--kc-info, #2196f3)' }}
+                  style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--status-info-text, #2196f3)' }}
                   onClick={() => openFullReport(audit.id)}
                   disabled={loadingAuditId === audit.id}
                 >
@@ -196,7 +196,7 @@ export default function AuditHistory({ leadId }) {
                 )}
                 {audit.top_issues && audit.top_issues.length > 0 && (
                   <div>
-                    <strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: 'var(--kc-tracking-wide)', color: 'var(--brand-primary)' }}>
+                    <strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: 'var(--kc-tracking-wide)', color: 'var(--brand-primary-mid)' }}>
                       Probleme
                     </strong>
                     <ul style={{ margin: '4px 0 0', paddingLeft: '16px' }}>

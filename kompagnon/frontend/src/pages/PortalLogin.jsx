@@ -68,7 +68,7 @@ export default function PortalLogin() {
   };
   const btn = {
     width: '100%', padding: '14px', border: 'none',
-    borderRadius: 10, background: '#008eaa',
+    borderRadius: 10, background: 'var(--kc-mid)',
     color: 'white', fontSize: 15, fontWeight: 700,
     cursor: 'pointer', fontFamily: 'inherit',
   };
@@ -88,7 +88,7 @@ export default function PortalLogin() {
       }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#008eaa', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--kc-mid)', letterSpacing: '-0.02em' }}>
             KOMPAGNON
           </div>
           <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 4 }}>
@@ -141,7 +141,7 @@ export default function PortalLogin() {
               <button
                 onClick={() => { setMode('forgot'); setError(''); }}
                 style={{
-                  background: 'none', border: 'none', color: '#008eaa',
+                  background: 'none', border: 'none', color: 'var(--kc-mid)',
                   fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
                   textDecoration: 'underline',
                 }}

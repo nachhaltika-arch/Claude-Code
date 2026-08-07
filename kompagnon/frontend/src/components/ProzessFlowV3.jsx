@@ -321,7 +321,7 @@ export default function ProzessFlowV3({
               onClick={() => navigate(`/app/projects/${project.id}`)}
               title="Online-Fertig-Editor (Sitemap / Wireframe / Style Guide / Design + alle Schritte)"
               style={{
-                background: '#FAE600', color: '#000', border: 'none',
+                background: 'var(--kc-yellow)', color: '#000', border: 'none',
                 borderRadius: 6, padding: '5px 11px', fontSize: 10,
                 fontWeight: 800, cursor: 'pointer', textTransform: 'uppercase',
                 letterSpacing: '.06em', fontFamily: 'var(--font-sans)',
@@ -344,14 +344,14 @@ export default function ProzessFlowV3({
 
       {/* ── TIMELINE (64px links) ─────────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(180deg,#004F59 0%,#003840 100%)',
+        background: 'linear-gradient(180deg,var(--brand-primary) 0%,#003840 100%)',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         padding: '14px 0', overflowY: 'auto', overflowX: 'hidden',
       }}>
         {/* Logo */}
         <svg width="32" height="32" viewBox="0 0 107.7 107.7" fill="none" style={{ marginBottom: 16, flexShrink: 0 }}>
-          <path d="M53.85 0C24.1 0 0 24.1 0 53.85s24.1 53.85 53.85 53.85 53.85-24.1 53.85-53.85S83.6 0 53.85 0zm0 96.9c-23.75 0-43.05-19.3-43.05-43.05S30.1 10.8 53.85 10.8s43.05 19.3 43.05 43.05S77.6 96.9 53.85 96.9z" fill="#008EAA"/>
-          <path d="M53.85 21.6c-17.8 0-32.25 14.45-32.25 32.25S36.05 86.1 53.85 86.1 86.1 71.65 86.1 53.85 71.65 21.6 53.85 21.6zm0 53.7c-11.85 0-21.45-9.6-21.45-21.45S42 32.4 53.85 32.4s21.45 9.6 21.45 21.45S65.7 75.3 53.85 75.3z" fill="#008EAA"/>
+          <path d="M53.85 0C24.1 0 0 24.1 0 53.85s24.1 53.85 53.85 53.85 53.85-24.1 53.85-53.85S83.6 0 53.85 0zm0 96.9c-23.75 0-43.05-19.3-43.05-43.05S30.1 10.8 53.85 10.8s43.05 19.3 43.05 43.05S77.6 96.9 53.85 96.9z" fill="var(--kc-mid)"/>
+          <path d="M53.85 21.6c-17.8 0-32.25 14.45-32.25 32.25S36.05 86.1 53.85 86.1 86.1 71.65 86.1 53.85 71.65 21.6 53.85 21.6zm0 53.7c-11.85 0-21.45-9.6-21.45-21.45S42 32.4 53.85 32.4s21.45 9.6 21.45 21.45S65.7 75.3 53.85 75.3z" fill="var(--kc-mid)"/>
         </svg>
 
         {/* Punkte */}
@@ -364,7 +364,7 @@ export default function ProzessFlowV3({
             const bg     = fertig
               ? '#00875A'
               : aktiv
-                ? '#FAE600'
+                ? 'var(--kc-yellow)'
                 : SCHRITTE[aktivIdx + 1]?.id === s.id
                   ? 'rgba(255,255,255,.25)'
                   : 'rgba(255,255,255,.09)';
@@ -447,8 +447,8 @@ export default function ProzessFlowV3({
 
           {/* Auto oder Manuell */}
           {aktivObj.auto && !aktivObj.istFertig(prozessDaten) ? (
-            <div style={{ background: 'var(--info-bg, #EFF6FF)', border: '1px solid rgba(0,142,170,.25)', borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid rgba(0,142,170,.2)', borderTopColor: 'var(--brand-primary)', animation: 'spin .8s linear infinite', flexShrink: 0 }} />
+            <div style={{ background: 'var(--info-bg, #EFF6FF)', border: '1px solid var(--kc-mid-a-25)', borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--kc-mid-a-20)', borderTopColor: 'var(--brand-primary)', animation: 'spin .8s linear infinite', flexShrink: 0 }} />
               <div>
                 <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>Läuft automatisch</div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{aktivObj.autoText}</div>
@@ -491,7 +491,7 @@ export default function ProzessFlowV3({
                 </button>
               )
             ) : !aktivObj.auto && aktivObj.cta && (
-              <button style={{ flex: 1, background: '#FAE600', color: '#000', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'default', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
+              <button style={{ flex: 1, background: 'var(--kc-yellow)', color: '#000', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 12, fontWeight: 900, cursor: 'default', textTransform: 'uppercase', letterSpacing: '.06em', fontFamily: 'var(--font-sans)' }}>
                 {aktivObj.cta}
               </button>
             )}
@@ -508,7 +508,7 @@ export default function ProzessFlowV3({
             {nextSchritte.map(s => (
               <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', background: 'var(--bg-elevated)', borderRadius: 6, fontSize: 10, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
                 {s.icon} {s.label}
-                {s.auto && <span style={{ padding: '1px 4px', background: '#EFF6FF', color: 'var(--brand-primary)', borderRadius: 3, fontSize: 8 }}>🤖</span>}
+                {s.auto && <span style={{ padding: '1px 4px', background: '#EFF6FF', color: 'var(--brand-primary-mid)', borderRadius: 3, fontSize: 8 }}>🤖</span>}
               </div>
             ))}
           </div>

@@ -65,7 +65,7 @@ export default function AcademyCustomerSection({ leadId }) {
             <span style={{ fontSize: 16 }}>🎓</span>
             <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Akademy</span>
             {!loading && assigned.length > 0 && (
-              <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>{assigned.length}</span>
+              <span style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, padding: '2px 8px' }}>{assigned.length}</span>
             )}
           </div>
           <button onClick={() => setShowModal(true)} style={{ padding: '8px 14px', background: 'var(--brand-primary)', color: 'var(--text-inverse)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, ...(isMobile ? { width: '100%' } : {}) }}>

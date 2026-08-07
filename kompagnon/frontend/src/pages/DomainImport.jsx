@@ -199,7 +199,7 @@ export default function DomainImport() {
                   color: 'var(--text-primary)', background: 'var(--bg-app)', resize: 'vertical',
                   outline: 'none', boxSizing: 'border-box', lineHeight: 1.6,
                 }}
-                onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                 onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
             </div>
           )}
@@ -394,7 +394,7 @@ export default function DomainImport() {
                     <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {r.company_name || r.url.replace('https://', '')}
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--brand-primary)', fontFamily: 'var(--font-mono)', marginTop: 1 }}>{r.url.replace('https://', '')}</div>
+                    <div style={{ fontSize: 10, color: 'var(--brand-primary-mid)', fontFamily: 'var(--font-mono)', marginTop: 1 }}>{r.url.replace('https://', '')}</div>
                   </div>
                   {r.score !== undefined && (
                     <div style={{ fontSize: 12, fontWeight: 700, color: r.score >= 70 ? 'var(--status-success-text)' : r.score >= 50 ? 'var(--status-warning-text)' : 'var(--status-danger-text)', flexShrink: 0 }}>{r.score}/100</div>
@@ -412,7 +412,7 @@ export default function DomainImport() {
           {jobStatus.status === 'done' && (
             <div style={{ textAlign: 'center' }}>
               <button onClick={() => { setJobId(null); setJobStatus(null); setPreview([]); setFile(null); setTextInput(''); setCheckResult(null); }} style={{
-                background: 'none', border: 'none', color: 'var(--brand-primary)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'underline',
+                background: 'none', border: 'none', color: 'var(--brand-primary-mid)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'underline',
               }}>Weiteren Import starten</button>
             </div>
           )}

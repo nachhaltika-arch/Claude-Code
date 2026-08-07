@@ -103,7 +103,7 @@ export default function Freigaben() {
               )}
               {item.preview_url && (
                 <a href={item.preview_url} target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'inline-block', fontSize: 12, color: 'var(--brand-primary)', marginBottom: 10 }}>
+                  style={{ display: 'inline-block', fontSize: 12, color: 'var(--brand-primary-mid)', marginBottom: 10 }}>
                   Vorschau öffnen →
                 </a>
               )}

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>KOMPAGNON — Gratis Website-Analyse</title>
+<style>
+  /* ── KOMPAGNON Audit-Widget · self-contained · keine externen Abhängigkeiten ── */
+  :root {
+    --kpg-dark:   #04293a;   /* Heading dunkel-teal */
+    --kpg-teal:   #207a92;   /* Eyebrow / Akzent */
+    --kpg-yellow: #FAE600;   /* CTA */
+    --kpg-bg:     #f1efe9;   /* Karte beige */
+    --kpg-border: #d8d5cd;
+    --kpg-label:  #8a8a86;
+    --kpg-muted:  #9a9a96;
+    --kpg-text:   #3a3a38;
+    --kpg-ok:     #1d9e75;
+    --kpg-warn:   #e67e22;
+    --kpg-bad:    #c0392b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: transparent; }
+  .kpg-card {
+    font-family: 'Noto Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    max-width: 640px;
+    margin: 0 auto;
+    background: var(--kpg-bg);
+    border: 1px solid var(--kpg-border);
+    border-radius: 12px;
+    padding: clamp(24px, 5vw, 48px);
+    color: var(--kpg-text);
+  }
+  .kpg-eyebrow {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--kpg-teal);
+    margin: 0 0 18px;
+  }
+  .kpg-h {
+    font-size: clamp(28px, 6vw, 44px);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -.01em;
+    text-transform: uppercase;
+    color: var(--kpg-dark);
+    margin: 0 0 28px;
+  }
+  .kpg-field { margin-bottom: 20px; }
+  .kpg-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--kpg-label);
+    margin: 0 0 8px;
+  }
+  .kpg-input {
+    width: 100%;
+    padding: 16px 18px;
+    font-size: 17px;
+    font-family: inherit;
+    color: var(--kpg-dark);
+    background: #fff;
+    border: 1px solid var(--kpg-border);
+    border-radius: 6px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .kpg-input::placeholder { color: #b5b5b0; }
+  .kpg-input:focus {
+    border-color: var(--kpg-teal);
+    box-shadow: 0 0 0 3px rgba(32,122,146,.12);
+  }
+  .kpg-hint {
+    font-size: 13px;
+    color: var(--kpg-muted);
+    margin: 8px 0 0;
+  }
+  .kpg-btn {
+    width: 100%;
+    margin-top: 8px;
+    padding: 18px 20px;
+    border: none;
+    border-radius: 4px;
+    background: var(--kpg-yellow);
+    color: #1a1a1a;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: filter .15s, transform .05s;
+  }
+  .kpg-btn:hover  { filter: brightness(.95); }
+  .kpg-btn:active { transform: translateY(1px); }
+  .kpg-btn:disabled { opacity: .6; cursor: not-allowed; }
+  .kpg-foot {
+    font-size: 13px;
+    color: var(--kpg-muted);
+    text-align: center;
+    margin: 22px 0 0;
+  }
+
+  /* ── Loading ── */
+  .kpg-center { text-align: center; padding: 12px 0; }
+  .kpg-spinner {
+    width: 52px; height: 52px;
+    margin: 8px auto 22px;
+    border: 4px solid rgba(32,122,146,.18);
+    border-top-color: var(--kpg-teal);
+    border-radius: 50%;
+    animation: kpg-spin .9s linear infinite;
+  }
+  @keyframes kpg-spin { to { transform: rotate(360deg); } }
+  @keyframes kpg-pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .kpg-progress { font-size: 16px; color: var(--kpg-muted); animation: kpg-pulse 2s infinite; }
+  .kpg-target {
+    display: inline-block; margin-top: 18px; padding: 8px 16px;
+    background: #fff; border: 1px solid var(--kpg-border); border-radius: 6px;
+    font-size: 14px; font-weight: 600; color: var(--kpg-teal);
+  }
+
+  /* ── Result ── */
+  .kpg-score { font-size: 54px; font-weight: 800; line-height: 1; }
+  .kpg-verdict {
+    display: inline-flex; align-items: center; padding: 5px 14px;
+    border-radius: 20px; font-size: 13px; font-weight: 700; margin-top: 6px;
+  }
+  .kpg-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 22px 0;
+  }
+  @media (min-width: 480px) { .kpg-grid { grid-template-columns: repeat(4, 1fr); } }
+  .kpg-tile {
+    background: #fff; border: 1px solid var(--kpg-border); border-radius: 8px;
+    padding: 14px 8px; text-align: center;
+  }
+  .kpg-tile-num { font-size: 24px; font-weight: 800; margin-bottom: 3px; }
+  .kpg-tile-lbl { font-size: 12px; color: var(--kpg-label); line-height: 1.3; }
+  .kpg-summary {
+    background: #fff; border: 1px solid var(--kpg-border); border-radius: 8px;
+    padding: 14px 16px; font-size: 14px; color: var(--kpg-text); line-height: 1.6; margin-bottom: 22px;
+  }
+  .kpg-btn-secondary {
+    background: transparent; color: var(--kpg-teal);
+    border: 1.5px solid var(--kpg-teal); letter-spacing: .04em;
+  }
+  .kpg-link {
+    display: inline-block; margin-top: 16px; color: var(--kpg-teal);
+    font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="kpg-card" id="kpg-card">
+    <!-- ── Schritt 1: Eingabe ── -->
+    <form id="kpg-form" novalidate>
+      <p class="kpg-eyebrow">Gratis · Sofortergebnis · Kein Login</p>
+      <h2 class="kpg-h">Ihre Website<br>jetzt analysieren</h2>
+
+      <div class="kpg-field">
+        <label class="kpg-label" for="kpg-email">Geschäftliche E-Mail</label>
+        <input class="kpg-input" id="kpg-email" type="email" required
+               autocomplete="email" placeholder="name@firma.de" />
+        <p class="kpg-hint">Wir erkennen Ihre Website automatisch</p>
+      </div>
+
+      <div class="kpg-field">
+        <label class="kpg-label" for="kpg-url">Website-URL</label>
+        <input class="kpg-input" id="kpg-url" type="text" required
+               autocomplete="url" placeholder="www.ihr-betrieb.de" />
+      </div>
+
+      <button class="kpg-btn" id="kpg-submit" type="submit">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" stroke="#1a1a1a" stroke-width="2"/>
+          <path d="M12 7v5l3 2" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Analyse starten
+      </button>
+      <p class="kpg-foot">DSGVO-konform · Keine Weitergabe · Ergebnis erscheint sofort</p>
+    </form>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Konfiguration: per <body data-api="…"> oder ?api= überschreibbar ── */
+  var API_BASE =
+    document.body.getAttribute('data-api') ||
+    new URLSearchParams(location.search).get('api') ||
+    'https://claude-code-znq2.onrender.com';
+
+  var CHECKOUT_URL =
+    document.body.getAttribute('data-checkout') ||
+    'https://kompagnon-frontend.onrender.com/checkout/kompagnon';
+
+  var POLL_INTERVAL_MS = 4000;
+  var MAX_POLL_ATTEMPTS = 45;
+
+  var FREE_MAIL = ['gmail.com','gmx.de','gmx.net','web.de','yahoo.de','yahoo.com',
+                   'hotmail.com','outlook.com','icloud.com','t-online.de','freenet.de'];
+
+  var MSGS = [
+    '🔍 Website wird analysiert…',
+    '⚡ Performance wird gemessen…',
+    '⚖️ Rechtliches wird geprüft…',
+    '🔒 Sicherheit wird untersucht…',
+    '📈 SEO wird bewertet…',
+    '🤖 KI-Analyse läuft…'
+  ];
+
+  var card    = document.getElementById('kpg-card');
+  var form    = document.getElementById('kpg-form');
+  var emailEl = document.getElementById('kpg-email');
+  var urlEl   = document.getElementById('kpg-url');
+
+  /* ── Helpers ── */
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+  function normalizeUrl(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return '';
+    if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
+    return raw;
+  }
+  function scoreColor(s) {
+    return s >= 70 ? 'var(--kpg-ok)' : s >= 50 ? 'var(--kpg-warn)' : 'var(--kpg-bad)';
+  }
+  function level(s) {
+    if (s >= 85) return 'Homepage Standard Platin 💎';
+    if (s >= 70) return 'Homepage Standard Gold 🥇';
+    if (s >= 50) return 'Homepage Standard Silber 🥈';
+    if (s >= 30) return 'Homepage Standard Bronze 🥉';
+    return 'Nicht konform ⚠️';
+  }
+  /* Höhe an Eltern-Seite melden (für iframe-Auto-Resize) */
+  function postHeight() {
+    try {
+      var h = document.documentElement.scrollHeight;
+      parent.postMessage({ type: 'kpg-audit-height', height: h }, '*');
+    } catch (e) { /* no-op */ }
+  }
+
+  /* ── Website aus E-Mail-Domain ableiten ── */
+  emailEl.addEventListener('input', function () {
+    var val = emailEl.value;
+    var at = val.indexOf('@');
+    if (at === -1) return;
+    var host = val.slice(at + 1).toLowerCase().trim();
+    if (host && FREE_MAIL.indexOf(host) === -1 && !urlEl.value) {
+      urlEl.value = host;
+    }
+  });
+
+  /* ── Submit ── */
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = emailEl.value.trim();
+    var url   = normalizeUrl(urlEl.value);
+    if (!email || !url) return;
+    startAudit(email, url);
+  });
+
+  function startAudit(email, cleanUrl) {
+    renderLoading(cleanUrl);
+
+    var idx = 0;
+    var progressEl = document.getElementById('kpg-progress');
+    var msgTimer = setInterval(function () {
+      idx = (idx + 1) % MSGS.length;
+      if (progressEl) progressEl.textContent = MSGS[idx];
+    }, POLL_INTERVAL_MS);
+
+    fetch(API_BASE + '/api/leads/public', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ website_url: cleanUrl, email: email, lead_source: 'embed_audit', status: 'new' })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (lead) {
+      return fetch(API_BASE + '/api/audit/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ website_url: cleanUrl, lead_id: lead && lead.id })
+      });
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (start) {
+      var auditId = start.audit_id || start.id;
+      if (!auditId) throw new Error('Audit konnte nicht gestartet werden.');
+      pollAudit(auditId, cleanUrl, msgTimer);
+    })
+    .catch(function (err) {
+      clearInterval(msgTimer);
+      renderError((err && err.message) || 'Verbindungsfehler — bitte erneut versuchen.');
+    });
+  }
+
+  function pollAudit(auditId, cleanUrl, msgTimer) {
+    var attempts = 0;
+    var poll = setInterval(function () {
+      attempts++;
+      if (attempts > MAX_POLL_ATTEMPTS) {
+        clearInterval(poll); clearInterval(msgTimer);
+        renderError('Zeitüberschreitung — bitte erneut versuchen.');
+        return;
+      }
+      fetch(API_BASE + '/api/audit/' + encodeURIComponent(auditId))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.status === 'completed') {
+            clearInterval(poll); clearInterval(msgTimer);
+            renderResult(d, cleanUrl);
+          } else if (d.status === 'failed') {
+            clearInterval(poll); clearInterval(msgTimer);
+            renderError('Audit fehlgeschlagen — bitte URL prüfen.');
+          }
+        })
+        .catch(function () { /* einzelnen Poll-Fehler ignorieren */ });
+    }, POLL_INTERVAL_MS);
+  }
+
+  /* ── Render: Loading ── */
+  function renderLoading(cleanUrl) {
+    var host = cleanUrl.replace(/^https?:\/\//, '').replace(/^www\./, '');
+    card.innerHTML =
+      '<div class="kpg-center">' +
+        '<div class="kpg-spinner"></div>' +
+        '<div style="font-size:18px;font-weight:700;color:var(--kpg-dark);margin-bottom:8px;">Audit läuft…</div>' +
+        '<div class="kpg-progress" id="kpg-progress">' + esc(MSGS[0]) + '</div>' +
+        '<div class="kpg-target">' + esc(host) + '</div>' +
+      '</div>';
+    postHeight();
+  }
+
+  /* ── Render: Error ── */
+  function renderError(msg) {
+    card.innerHTML =
+      '<div class="kpg-center">' +
+        '<div style="font-size:42px;margin-bottom:12px;">😔</div>' +
+        '<div style="font-size:18px;font-weight:700;color:var(--kpg-dark);margin-bottom:8px;">Etwas ist schiefgelaufen</div>' +
+        '<div style="font-size:15px;color:var(--kpg-muted);margin-bottom:22px;">' + esc(msg) + '</div>' +
+        '<button class="kpg-btn kpg-btn-secondary" style="max-width:240px;margin:0 auto;" id="kpg-retry">← Erneut versuchen</button>' +
+      '</div>';
+    document.getElementById('kpg-retry').addEventListener('click', resetWidget);
+    postHeight();
+  }
+
+  /* ── Render: Result ── */
+  function renderResult(data, cleanUrl) {
+    var score = data.score || 0;
+    var col = scoreColor(score);
+
+    var tiles = '';
+    var cats = data.categories;
+    var entries = cats ? Object.keys(cats).slice(0, 4).map(function (k) {
+      var v = cats[k];
+      return { label: k.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }),
+               score: (v && typeof v === 'object') ? v.score : v };
+    }) : [];
+
+    if (!entries.length) {
+      entries = [
+        { label: 'Ladezeit', score: null }, { label: 'Rechtliches', score: null },
+        { label: 'SEO', score: null }, { label: 'Sicherheit', score: null }
+      ];
+    }
+    entries.forEach(function (c) {
+      var n = (c.score == null) ? '—' : c.score;
+      var nc = (c.score == null) ? 'var(--kpg-muted)' : scoreColor(c.score);
+      tiles +=
+        '<div class="kpg-tile">' +
+          '<div class="kpg-tile-num" style="color:' + nc + ';">' + esc(n) + '</div>' +
+          '<div class="kpg-tile-lbl">' + esc(c.label) + '</div>' +
+        '</div>';
+    });
+
+    var summary = data.ai_summary
+      ? '<div class="kpg-summary">' + esc(data.ai_summary) + '</div>'
+      : '';
+
+    card.innerHTML =
+      '<div>' +
+        '<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:6px;">' +
+          '<div class="kpg-score" style="color:' + col + ';">' + esc(score) + '</div>' +
+          '<div>' +
+            '<div style="font-size:13px;color:var(--kpg-label);margin-bottom:4px;">Gesamtpunkte von 100</div>' +
+            '<div class="kpg-verdict" style="color:' + col + ';background:' + col + '18;border:1px solid ' + col + '40;">' + esc(level(score)) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="kpg-grid">' + tiles + '</div>' +
+        summary +
+        '<a class="kpg-btn" href="' + esc(CHECKOUT_URL) + '" target="_blank" rel="noopener" style="text-decoration:none;">Jetzt Webseite anfragen →</a>' +
+        '<a class="kpg-link" id="kpg-restart">Neue Analyse starten</a>' +
+      '</div>';
+    document.getElementById('kpg-restart').addEventListener('click', resetWidget);
+    postHeight();
+  }
+
+  function resetWidget() { location.reload(); }
+
+  /* iframe-Höhe initial + bei Resize melden */
+  window.addEventListener('load', postHeight);
+  window.addEventListener('resize', postHeight);
+})();
+</script>
+</body>
+</html>

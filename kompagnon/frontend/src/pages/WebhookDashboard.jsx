@@ -7,7 +7,7 @@ const SOURCES = [
   { key: 'facebook',  label: 'Facebook',    color: '#1877F2', icon: 'f' },
   { key: 'linkedin',  label: 'LinkedIn',    color: '#0A66C2', icon: 'in' },
   { key: 'google',    label: 'Google Ads',  color: '#EA4335', icon: 'G' },
-  { key: 'postkarte', label: 'Postkarte',   color: '#008eaa', icon: 'QR' },
+  { key: 'postkarte', label: 'Postkarte',   color: 'var(--kc-mid)', icon: 'QR' },
   { key: 'telefon',   label: 'KI-Telefon',  color: '#1D9E75', icon: 'T' },
 ];
 

@@ -113,7 +113,7 @@ export default function PackagePremium() {
       }}>
         <div style={{
           position: 'absolute', inset: 0,
-          backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(124,58,237,0.2) 0%, transparent 60%), radial-gradient(circle at 70% 30%, rgba(0,142,170,0.1) 0%, transparent 50%)',
+          backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(124,58,237,0.2) 0%, transparent 60%), radial-gradient(circle at 70% 30%, var(--kc-mid-a-12) 0%, transparent 50%)',
         }} />
         <div style={{ position: 'relative', maxWidth: 640, margin: '0 auto' }}>
           <div className="fade1" style={{
@@ -255,7 +255,7 @@ export default function PackagePremium() {
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{pkg.name}</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: pkg.active ? '#7c3aed' : 'var(--text-primary)' }}>{pkg.price}</div>
                 <div style={{ fontSize: 11, color: '#8fa8b0', marginTop: 2 }}>{pkg.delivery}</div>
-                {!pkg.active && <div style={{ marginTop: 8, fontSize: 11, color: '#008eaa', fontWeight: 500 }}>Details →</div>}
+                {!pkg.active && <div style={{ marginTop: 8, fontSize: 11, color: 'var(--kc-mid)', fontWeight: 500 }}>Details →</div>}
               </div>
             ))}
           </div>

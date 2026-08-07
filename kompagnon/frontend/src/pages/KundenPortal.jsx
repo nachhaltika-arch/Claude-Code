@@ -22,7 +22,7 @@ function PhaseCard({ phase, isLast }) {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 40, flexShrink: 0 }}>
         <div style={{
           width: 36, height: 36, borderRadius: '50%', fontSize: 16,
-          background: isDone ? 'var(--status-success-bg)' : isActive ? 'rgba(0,142,170,0.12)' : 'var(--bg-app)',
+          background: isDone ? 'var(--status-success-bg)' : isActive ? 'var(--kc-mid-a-12)' : 'var(--bg-app)',
           border: isDone ? '2px solid var(--status-success-text)' : isActive ? '2px solid var(--brand-primary)' : '2px solid var(--border-light)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1,
         }}>{icon}</div>
@@ -38,7 +38,7 @@ function PhaseCard({ phase, isLast }) {
         background: isActive ? 'var(--bg-surface)' : 'var(--bg-app)',
         border: isActive ? '2px solid var(--brand-primary)' : '1px solid var(--border-light)',
         borderRadius: 'var(--radius-lg)',
-        boxShadow: isActive ? '0 0 0 3px rgba(0,142,170,0.08)' : 'none',
+        boxShadow: isActive ? '0 0 0 3px var(--kc-mid-a-08)' : 'none',
         opacity: isLocked ? 0.55 : 1,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
@@ -184,7 +184,7 @@ export default function KundenPortal() {
   if (error) return (
     <div style={{ padding: 32, textAlign: 'center' }}>
       <div style={{ fontSize: 13, color: 'var(--status-danger-text)', marginBottom: 12 }}>❌ {error}</div>
-      <button onClick={() => { setError(null); setLoading(true); }} style={{ fontSize: 13, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>Erneut versuchen</button>
+      <button onClick={() => { setError(null); setLoading(true); }} style={{ fontSize: 13, color: 'var(--brand-primary-mid)', background: 'none', border: 'none', cursor: 'pointer' }}>Erneut versuchen</button>
     </div>
   );
 
@@ -329,7 +329,7 @@ export default function KundenPortal() {
                 href={`https://${project.netlify.domain}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ fontSize: 13, color: 'var(--brand-primary)', fontWeight: 600, textDecoration: 'none' }}
+                style={{ fontSize: 13, color: 'var(--brand-primary-mid)', fontWeight: 600, textDecoration: 'none' }}
               >
                 {project.netlify.domain} öffnen →
               </a>
@@ -350,7 +350,7 @@ export default function KundenPortal() {
                 </div>
                 {(project.netlify.guide?.records || []).map((r, i) => (
                   <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr', padding: '10px 12px', borderTop: '1px solid var(--border-light)', fontSize: 12, alignItems: 'center' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--brand-primary)' }}>{r.type}</span>
+                    <span style={{ fontWeight: 700, color: 'var(--brand-primary-mid)' }}>{r.type}</span>
                     <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>{r.name}</span>
                     <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)', wordBreak: 'break-all' }}>{r.value}</span>
                   </div>
@@ -526,7 +526,7 @@ function WebsiteVersionsSection({ project, token, onReload }) {
                 />
               </div>
               <div style={{ padding: '14px 16px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary-mid)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
                   Version {v.version_label}
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>

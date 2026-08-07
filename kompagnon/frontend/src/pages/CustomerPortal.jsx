@@ -230,7 +230,7 @@ function FileUploadSection({ token }) {
                 onChange={e => setNote(e.target.value)}
                 placeholder="z.B. Hauptlogo in Farbe"
                 style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border-medium)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', color: 'var(--text-primary)' }}
-                onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                 onBlur={e => e.target.style.borderColor = 'var(--border-medium)'}
               />
             </div>
@@ -486,7 +486,7 @@ export default function CustomerPortal() {
         <div style={{ background: 'var(--bg-surface)', borderRadius: 16, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
           <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6, marginTop: 0 }}>Identität bestätigen</h2>
           <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 20, lineHeight: 1.6 }}>
-            Bitte geben Sie eine E-Mail-Adresse mit der Domain <strong style={{ color: 'var(--brand-primary)' }}>@{data?.email_domain}</strong> ein.
+            Bitte geben Sie eine E-Mail-Adresse mit der Domain <strong style={{ color: 'var(--brand-primary-mid)' }}>@{data?.email_domain}</strong> ein.
           </p>
           {verifyError && (
             <div style={{ background: 'var(--status-danger-bg)', color: '#b02020', borderRadius: 8, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>{verifyError}</div>
@@ -496,7 +496,7 @@ export default function CustomerPortal() {
               <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ihre geschäftliche E-Mail</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={`name@${data?.email_domain}`} required
                 style={{ width: '100%', padding: '14px 16px', border: '1px solid var(--border-medium)', borderRadius: 8, fontSize: 16, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)' }}
-                onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'} onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
+                onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'} onBlur={e => e.target.style.borderColor = 'var(--border-medium)'} />
             </div>
             <button type="submit" disabled={verifying} style={{
               width: '100%', padding: 12, background: verifying ? 'var(--text-tertiary)' : 'var(--brand-primary)', color: 'white',
@@ -640,7 +640,7 @@ export default function CustomerPortal() {
                   { field: 'has_photos', icon: '📷', title: 'Fotos vorhanden', text: 'Wir haben Fotos vom Betrieb / Team' },
                 ].map(({ field, icon, title, text }) => (
                   <div key={field} onClick={() => toggleField(field)} style={{
-                    border: onboardingData[field] ? '2px solid #008eaa' : '2px solid var(--border-light)',
+                    border: onboardingData[field] ? '2px solid var(--kc-mid)' : '2px solid var(--border-light)',
                     background: onboardingData[field] ? '#E1F5EE' : '#f8f9fa',
                     borderRadius: 12, padding: '16px 12px', cursor: 'pointer',
                     textAlign: 'center', transition: 'all 0.2s',
@@ -753,7 +753,7 @@ export default function CustomerPortal() {
                   Ihr Projektstatus
                 </div>
                 {data.go_live_date && (
-                  <div style={{ fontSize: 11, color: 'var(--brand-primary)', fontWeight: 500, background: '#E1F5EE', padding: '3px 8px', borderRadius: 20 }}>
+                  <div style={{ fontSize: 11, color: 'var(--brand-primary-mid)', fontWeight: 500, background: '#E1F5EE', padding: '3px 8px', borderRadius: 20 }}>
                     Go-Live: {new Date(data.go_live_date).toLocaleDateString('de-DE')}
                   </div>
                 )}
@@ -779,7 +779,7 @@ export default function CustomerPortal() {
                         fontSize: 14, fontWeight: 600,
                         background: istAbgeschlossen ? '#1D9E75' : istAktiv ? 'var(--brand-primary)' : 'var(--border-light)',
                         color: (istAbgeschlossen || istAktiv) ? 'white' : '#94a3b8',
-                        boxShadow: istAktiv ? '0 0 0 4px rgba(0,142,170,0.15)' : 'none',
+                        boxShadow: istAktiv ? '0 0 0 4px var(--kc-mid-a-12)' : 'none',
                       }}>
                         {istAbgeschlossen ? '✓' : phase.nr}
                       </div>
@@ -813,7 +813,7 @@ export default function CustomerPortal() {
                 <div style={{ height: 6, background: 'var(--border-light)', borderRadius: 3, overflow: 'hidden' }}>
                   <div style={{
                     height: '100%', borderRadius: 3,
-                    background: 'linear-gradient(90deg, #1D9E75, #008eaa)',
+                    background: 'linear-gradient(90deg, #1D9E75, var(--kc-mid))',
                     width: `${data.current_phase ? Math.min(100, ((data.current_phase - 1) / 6) * 100) : 0}%`,
                     transition: 'width 0.6s ease',
                   }} />

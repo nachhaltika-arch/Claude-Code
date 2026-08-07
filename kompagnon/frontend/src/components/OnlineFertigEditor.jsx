@@ -109,9 +109,12 @@ export default function OnlineFertigEditor() {
       .then((r) => (r.ok ? r.json() : null))
       .then(setBriefing)
       .catch(() => {});
-    fetch(`${API_BASE_URL}/api/audit/lead/${leadId}/latest`, { headers })
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setLatestAudit)
+    // GET /api/audit/lead/{lead_id} liefert ALLE Audits, neueste zuerst — eine
+    // /latest-Route gibt es nicht. Der frueher hier verwendete Pfad lief
+    // deshalb dauerhaft in einen 404, und der Editor kannte nie ein Audit.
+    fetch(`${API_BASE_URL}/api/audit/lead/${leadId}`, { headers })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((audits) => setLatestAudit(Array.isArray(audits) ? audits[0] || null : audits))
       .catch(() => {});
     // GET /api/sitemap/{lead_id} returnt direkt ein Array — der Pfad mit
     // /pages am Ende ist nur fuer POST (create_page) registriert.

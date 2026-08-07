@@ -97,7 +97,7 @@ function LessonForm({ lesson, onSave, onDelete, onMove, isFirst, isLast }) {
                 </div>
               ))}
               <button onClick={addChecklistItem} style={{
-                padding: '6px 12px', background: 'var(--bg-app)', color: 'var(--brand-primary)',
+                padding: '6px 12px', background: 'var(--bg-app)', color: 'var(--brand-primary-mid)',
                 border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)',
                 fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)', alignSelf: 'flex-start',
               }}>+ Punkt hinzufügen</button>
@@ -221,10 +221,10 @@ export default function AcademyModuleEdit() {
     <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Breadcrumb */}
       <nav style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-        <Link to="/app/akademie" style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}>Akademie</Link>
+        <Link to="/app/akademie" style={{ color: 'var(--brand-primary-mid)', textDecoration: 'none' }}>Akademie</Link>
         {' › '}
-        <Link to="/app/akademie/admin" style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}>Kurse verwalten</Link>
-        {course && <>{' › '}<Link to={`/app/akademie/admin/${course.id}`} style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}>{course.title}</Link></>}
+        <Link to="/app/akademie/admin" style={{ color: 'var(--brand-primary-mid)', textDecoration: 'none' }}>Kurse verwalten</Link>
+        {course && <>{' › '}<Link to={`/app/akademie/admin/${course.id}`} style={{ color: 'var(--brand-primary-mid)', textDecoration: 'none' }}>{course.title}</Link></>}
         {' › '}
         <span style={{ color: 'var(--text-secondary)' }}>{module?.title}</span>
       </nav>

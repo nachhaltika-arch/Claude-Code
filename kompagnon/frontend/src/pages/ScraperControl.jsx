@@ -173,16 +173,16 @@ export default function ScraperControl() {
   };
   const btnPrimary = {
     padding: '10px 22px', borderRadius: 8, border: 'none',
-    background: 'linear-gradient(135deg, #008EAA, #006680)',
+    background: 'linear-gradient(135deg, var(--kc-mid), #006680)',
     color: 'white', fontSize: 13, fontWeight: 700,
     cursor: 'pointer', fontFamily: 'var(--font-sans)',
     display: 'inline-flex', alignItems: 'center', gap: 8,
-    boxShadow: '0 2px 10px rgba(0,142,170,0.35)',
+    boxShadow: '0 2px 10px var(--kc-mid-a-30)',
   };
   const btnSecondary = {
     padding: '10px 20px', borderRadius: 8,
-    border: '1px solid var(--brand-primary)', background: 'transparent',
-    color: 'var(--brand-primary)', fontSize: 13, fontWeight: 700,
+    border: '1px solid var(--brand-primary-mid)', background: 'transparent',
+    color: 'var(--brand-primary-mid)', fontSize: 13, fontWeight: 700,
     cursor: 'pointer', fontFamily: 'var(--font-sans)',
   };
 

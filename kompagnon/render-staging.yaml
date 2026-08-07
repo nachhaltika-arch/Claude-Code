@@ -27,7 +27,9 @@
 
 databases:
   - name: kompagnon-staging-db
-    plan: basic_256mb
+    # Render schreibt Postgres-Plaene mit Bindestrich (basic-256mb, basic-1gb, …).
+    # Mit Unterstrich schlaegt der Blueprint-Sync fehl: "not a valid plan".
+    plan: basic-256mb
     region: frankfurt
     postgresMajorVersion: "18"
     ipAllowList: []   # nur interner Zugriff aus Render-Services
@@ -44,7 +46,10 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 30
     healthCheckPath: /health
-    autoDeploy: true
+    # Deploy wird von GitHub Actions ausgeloest (.github/workflows/ci.yml),
+    # erst nach gruener CI. Im Render-Dashboard muss Auto-Deploy ebenfalls
+    # auf 'Off' stehen — sonst deployt Render parallel am Gate vorbei.
+    autoDeploy: false
     envVars:
       # Runtime
       - key: PYTHON_VERSION
@@ -122,7 +127,10 @@ services:
     rootDir: kompagnon/frontend
     buildCommand: npm ci --legacy-peer-deps && npm run build
     startCommand: npx serve -s build -l $PORT
-    autoDeploy: true
+    # Deploy wird von GitHub Actions ausgeloest (.github/workflows/ci.yml),
+    # erst nach gruener CI. Im Render-Dashboard muss Auto-Deploy ebenfalls
+    # auf 'Off' stehen — sonst deployt Render parallel am Gate vorbei.
+    autoDeploy: false
     envVars:
       - key: NODE_VERSION
         value: "18.20.0"

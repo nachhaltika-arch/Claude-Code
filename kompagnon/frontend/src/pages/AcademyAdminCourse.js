@@ -335,7 +335,7 @@ function ModuleBlock({
             disabled={addingLesson}
             style={{
               alignSelf: 'flex-start', padding: '5px 12px',
-              background: 'transparent', color: 'var(--brand-primary)',
+              background: 'transparent', color: 'var(--brand-primary-mid)',
               border: '1px dashed var(--border-medium)', borderRadius: 'var(--radius-md)',
               fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)',
               opacity: addingLesson ? 0.6 : 1,
@@ -627,7 +627,7 @@ export default function AcademyAdminCourse() {
                   onChange={e => setF('title')(e.target.value)}
                   placeholder="z.B. SEO-Grundlagen für Einsteiger"
                   style={S.input}
-                  onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                  onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                   onBlur={e => e.target.style.borderColor = 'var(--border-medium)'}
                 />
               </Field>
@@ -639,7 +639,7 @@ export default function AcademyAdminCourse() {
                   rows={3}
                   placeholder="Worum geht es in diesem Kurs?"
                   style={{ ...S.input, resize: 'vertical' }}
-                  onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                  onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                   onBlur={e => e.target.style.borderColor = 'var(--border-medium)'}
                 />
               </Field>
@@ -735,7 +735,7 @@ export default function AcademyAdminCourse() {
                     onKeyDown={e => e.key === 'Enter' && addModule()}
                     placeholder="Modulname…"
                     style={{ ...S.input, flex: 1 }}
-                    onFocus={e => e.target.style.borderColor = 'var(--brand-primary)'}
+                    onFocus={e => e.target.style.borderColor = 'var(--brand-primary-mid)'}
                     onBlur={e => e.target.style.borderColor = 'var(--border-medium)'}
                   />
                   <button

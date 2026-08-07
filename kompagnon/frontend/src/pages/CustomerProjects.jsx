@@ -9,7 +9,7 @@ import NewProjectModal from '../components/NewProjectModal';
 import toast from 'react-hot-toast';
 
 const PHASES = [
-  { id: 'phase_1', label: 'Onboarding',  color: '#008EAA' },
+  { id: 'phase_1', label: 'Onboarding',  color: 'var(--kc-mid)' },
   { id: 'phase_2', label: 'Briefing',    color: '#7c3aed' },
   { id: 'phase_3', label: 'Content',     color: '#d97706' },
   { id: 'phase_4', label: 'Technik',     color: '#0891b2' },
@@ -83,7 +83,7 @@ function ProjectListCard({ project, lead, onClick }) {
           {lead?.company_name || project.company_name || `Projekt #${project.id}`}
         </div>
         {domain && (
-          <div style={{ fontSize: 11, color: 'var(--brand-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+          <div style={{ fontSize: 11, color: 'var(--brand-primary-mid)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
             {domain}
           </div>
         )}

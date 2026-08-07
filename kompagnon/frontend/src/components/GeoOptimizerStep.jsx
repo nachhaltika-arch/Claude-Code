@@ -155,7 +155,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
       <div style={{ padding: 24, maxWidth: 680, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🤖</div>
-          <h2 style={{ color: '#004F59', marginBottom: 8 }}>GEO/KI-Sichtbarkeit analysieren</h2>
+          <h2 style={{ color: 'var(--brand-primary)', marginBottom: 8 }}>GEO/KI-Sichtbarkeit analysieren</h2>
           <p style={{ color: '#6B7280', maxWidth: 480, margin: '0 auto 24px' }}>
             Pruefe ob die Website von KI-Systemen wie ChatGPT, Perplexity oder Google AI
             korrekt gefunden und zitiert wird. Score, Empfehlungen und automatische
@@ -165,7 +165,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
             onClick={startAnalysis}
             disabled={loading}
             style={{
-              background: '#008EAA', color: '#fff', border: 'none',
+              background: 'var(--kc-mid)', color: '#fff', border: 'none',
               padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 600,
               cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
             }}
@@ -181,12 +181,12 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
     return (
       <div style={{ padding: 24, textAlign: 'center' }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>⏳</div>
-        <h3 style={{ color: '#004F59' }}>GEO-Analyse laeuft...</h3>
+        <h3 style={{ color: 'var(--brand-primary)' }}>GEO-Analyse laeuft...</h3>
         <p style={{ color: '#6B7280' }}>
           Wir pruefen llms.txt, robots.txt, strukturierte Daten und Inhalte (~30 Sekunden)
         </p>
         <div style={{ marginTop: 16, background: '#E5E7EB', borderRadius: 4, height: 8, overflow: 'hidden' }}>
-          <div style={{ height: '100%', background: '#008EAA', width: '60%', animation: 'pulse 1.5s infinite' }} />
+          <div style={{ height: '100%', background: 'var(--kc-mid)', width: '60%', animation: 'pulse 1.5s infinite' }} />
         </div>
       </div>
     );
@@ -200,7 +200,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
           <p style={{ margin: '8px 0 16px', color: '#991B1B', fontSize: 13 }}>
             {result.error_message || 'Unbekannter Fehler'}
           </p>
-          <button onClick={startAnalysis} style={{ background: '#008EAA', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer' }}>
+          <button onClick={startAnalysis} style={{ background: 'var(--kc-mid)', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer' }}>
             Erneut versuchen
           </button>
         </div>
@@ -215,7 +215,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
     <div style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
 
       <div style={{
-        background: 'linear-gradient(135deg, #004F59 0%, #008EAA 100%)',
+        background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--kc-mid) 100%)',
         borderRadius: 12, padding: '24px 28px', color: '#fff', marginBottom: 20,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexWrap: 'wrap', gap: 16,
@@ -258,7 +258,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
                   if (price) toggleUpsell(true, parseFloat(price));
                 }}
                 disabled={upsellLoading}
-                style={{ background: '#FAE600', color: '#000', border: 'none', padding: '6px 14px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}
+                style={{ background: 'var(--kc-yellow)', color: '#000', border: 'none', padding: '6px 14px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}
               >
                 Als Upsell aktivieren
               </button>
@@ -291,10 +291,10 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
             }}
             style={{
               background: 'none', border: 'none',
-              borderBottom: activeTab === tab.id ? '2px solid #008EAA' : '2px solid transparent',
+              borderBottom: activeTab === tab.id ? '2px solid var(--kc-mid)' : '2px solid transparent',
               padding: '8px 14px', cursor: 'pointer', fontSize: 13,
               fontWeight: activeTab === tab.id ? 700 : 400,
-              color: activeTab === tab.id ? '#008EAA' : '#6B7280',
+              color: activeTab === tab.id ? 'var(--kc-mid)' : '#6B7280',
               marginBottom: -2,
             }}
           >
@@ -364,7 +364,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
                 onClick={generateFiles}
                 disabled={generating}
                 style={{
-                  background: '#008EAA', color: '#fff', border: 'none',
+                  background: 'var(--kc-mid)', color: '#fff', border: 'none',
                   padding: '10px 20px', borderRadius: 6, fontWeight: 700,
                   cursor: generating ? 'not-allowed' : 'pointer', opacity: generating ? 0.7 : 1, fontSize: 14,
                 }}
@@ -386,7 +386,7 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
               <button
                 onClick={generateFiles}
                 disabled={generating || result.status !== 'done'}
-                style={{ background: '#008EAA', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+                style={{ background: 'var(--kc-mid)', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
               >
                 {generating ? 'Generiert...' : '✨ Jetzt generieren'}
               </button>

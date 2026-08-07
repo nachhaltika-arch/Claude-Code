@@ -339,7 +339,7 @@ export default function Dashboard() {
               >
                 <div style={{
                   width: 32, height: 32, borderRadius: '50%',
-                  background: 'var(--brand-primary-light)', color: 'var(--brand-primary)',
+                  background: 'var(--brand-primary-light)', color: 'var(--brand-primary-mid)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 11, fontWeight: 600, flexShrink: 0,
                 }}>

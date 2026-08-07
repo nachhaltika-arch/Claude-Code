@@ -86,3 +86,113 @@ jobs:
           gitleaks version
       - name: Scan repository
         run: gitleaks detect --source . --no-banner --redact --verbose
+
+  # ── Deploy — läuft NUR wenn alle vier Prüfjobs grün sind ────────────────────
+  #
+  # Voraussetzung: Auto-Deploy ist in Render für alle vier Services abgeschaltet.
+  # Sonst deployt Render parallel und der Torwächter hier ist wirkungslos.
+  # Benötigte Konfiguration im Repo (Settings → Secrets and variables → Actions):
+  #   Secret   RENDER_API_KEY
+  #   Variable RENDER_SERVICE_BACKEND_STAGING   (srv-…)
+  #   Variable RENDER_SERVICE_FRONTEND_STAGING  (srv-…)
+  #   Variable RENDER_SERVICE_BACKEND_PROD      (srv-…)
+  #   Variable RENDER_SERVICE_FRONTEND_PROD     (srv-…)
+  deploy:
+    name: Deploy — Render
+    needs: [backend-lint, backend-import, frontend-build, secrets-scan]
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Zielumgebung bestimmen
+        id: target
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            {
+              echo "label=Produktiv"
+              echo "backend=${{ vars.RENDER_SERVICE_BACKEND_PROD }}"
+              echo "frontend=${{ vars.RENDER_SERVICE_FRONTEND_PROD }}"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "label=Staging"
+              echo "backend=${{ vars.RENDER_SERVICE_BACKEND_STAGING }}"
+              echo "frontend=${{ vars.RENDER_SERVICE_FRONTEND_STAGING }}"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy auslösen und auf Abschluss warten
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          TARGET_LABEL: ${{ steps.target.outputs.label }}
+          BACKEND_SERVICE: ${{ steps.target.outputs.backend }}
+          FRONTEND_SERVICE: ${{ steps.target.outputs.frontend }}
+        run: |
+          set -euo pipefail
+
+          POLL_INTERVAL_SECONDS=15
+          MAX_WAIT_SECONDS=1800
+          API="https://api.render.com/v1"
+
+          if [ -z "${RENDER_API_KEY:-}" ]; then
+            echo "::error::RENDER_API_KEY ist nicht gesetzt."
+            exit 1
+          fi
+          if [ -z "$BACKEND_SERVICE" ] || [ -z "$FRONTEND_SERVICE" ]; then
+            echo "::error::Service-IDs für $TARGET_LABEL fehlen (Repository-Variablen prüfen)."
+            exit 1
+          fi
+
+          trigger_deploy() {
+            local service_id="$1"
+            curl -sS -X POST "$API/services/$service_id/deploys" \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d '{"clearCache":"do_not_clear"}' \
+              | jq -r '.id'
+          }
+
+          wait_for_deploy() {
+            local service_id="$1" deploy_id="$2" name="$3"
+            local waited=0 status=""
+
+            while [ "$waited" -lt "$MAX_WAIT_SECONDS" ]; do
+              status="$(curl -sS "$API/services/$service_id/deploys/$deploy_id" \
+                -H "Authorization: Bearer $RENDER_API_KEY" | jq -r '.status')"
+
+              case "$status" in
+                live)
+                  echo "✓ $name: live"
+                  return 0
+                  ;;
+                build_failed|update_failed|canceled|deactivated)
+                  echo "::error::$name: Deploy fehlgeschlagen (Status $status)"
+                  return 1
+                  ;;
+                *)
+                  echo "  $name: $status … (${waited}s)"
+                  ;;
+              esac
+
+              sleep "$POLL_INTERVAL_SECONDS"
+              waited=$((waited + POLL_INTERVAL_SECONDS))
+            done
+
+            echo "::error::$name: Zeitüberschreitung nach ${MAX_WAIT_SECONDS}s (zuletzt $status)"
+            return 1
+          }
+
+          echo "▸ Ziel: $TARGET_LABEL"
+
+          backend_deploy="$(trigger_deploy "$BACKEND_SERVICE")"
+          frontend_deploy="$(trigger_deploy "$FRONTEND_SERVICE")"
+          echo "▸ Backend-Deploy $backend_deploy, Frontend-Deploy $frontend_deploy"
+
+          wait_for_deploy "$BACKEND_SERVICE"  "$backend_deploy"  "Backend"
+          wait_for_deploy "$FRONTEND_SERVICE" "$frontend_deploy" "Frontend"
+
+          echo "✓ $TARGET_LABEL vollständig deployt"

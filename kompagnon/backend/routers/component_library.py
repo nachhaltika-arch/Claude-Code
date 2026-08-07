@@ -98,6 +98,23 @@ def list_components(
     return [_serialize_component(r, include_html=include_html) for r in rows]
 
 
+# ACHTUNG Reihenfolge: Diese Route MUSS vor "/{slug}" stehen. FastAPI matcht in
+# Registrierungsreihenfolge — steht "/{slug}" davor, faengt es "/layout-presets"
+# ab und liefert 404 "Block nicht gefunden". Gleiches gilt fuer jede weitere
+# GET-Route mit einem festen Segment unterhalb von /api/components.
+@component_router.get("/layout-presets")
+def list_layout_presets(user=Depends(require_any_auth)):
+    """Listet alle verfuegbaren Layout-Presets — Frontend rendert daraus
+    den 'Layout'-Selector im KI-Component-Designer.
+
+    Returnt Array von { id, category, label, guidance }.
+    """
+    return [
+        {"id": pid, **meta}
+        for pid, meta in _LAYOUT_PRESETS.items()
+    ]
+
+
 @component_router.get("/{slug}")
 def get_component(
     slug: str,
@@ -507,19 +524,6 @@ class GenerateComponentRequest(BaseModel):
     layout_preset:   Optional[str] = None
     # Backwards-compat: shk_context wird ignoriert wenn industry gesetzt ist
     shk_context:     Optional[bool] = None
-
-
-@component_router.get("/layout-presets")
-def list_layout_presets(user=Depends(require_any_auth)):
-    """Listet alle verfuegbaren Layout-Presets — Frontend rendert daraus
-    den 'Layout'-Selector im KI-Component-Designer.
-
-    Returnt Array von { id, category, label, guidance }.
-    """
-    return [
-        {"id": pid, **meta}
-        for pid, meta in _LAYOUT_PRESETS.items()
-    ]
 
 
 @component_router.post("/generate")

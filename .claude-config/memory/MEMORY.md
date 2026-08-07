@@ -14,3 +14,5 @@
 - [kc-numeric Tokens bleiben](decision_kc_numeric_tokens_kept.md) — Phase B closed 2026-05-09: kc-text/leading/space/radius/tracking/container = legitimes Scale-System, NICHT als Legacy behandeln
 - [Wiederaufnahme 2026-05-09](resume_point_2026_05_09.md) — Token-System final aufgeräumt (15 Commits: --brand-primary Audit + kc-Aliases retired + alle Hex migriert + alpha-Tokens) + Envato Phase 0 + Backend-Hygiene
 - [Wiederaufnahme 2026-05-08](resume_point_2026_05_08.md) — Style-Guide-Redesign + Tool-CI P0-P5 fertig; --brand-primary Token-Switch Mid→Dark; Audit-Methode etabliert
+- [Immer Empfehlung statt offener Frage](feedback_always_recommend.md) — nie mit "soll ich X oder Y?" enden; Empfehlung + Begründung, dann handeln
+- [Wiederaufnahme 2026-08-07](resume_point_2026_08_07.md) — Testfundament (35 Tests) + Deploy-Gate + Versionssperre; 4 stille Fehler gefunden; morgen zuerst Produktiv verifizieren

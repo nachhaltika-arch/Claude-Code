@@ -11,6 +11,22 @@ Dieser Test findet solche Faelle generisch, nicht nur den einen bekannten.
 import pytest
 
 
+def _iter_routes(node):
+    """
+    Alle Routen in Registrierungsreihenfolge — auch verschachtelte.
+
+    Je nach Starlette-Version liegen Routen flach in `app.routes` oder in
+    untergeordneten Routern. Ohne rekursives Durchlaufen sieht der Test in der
+    einen Umgebung 470 Routen und in der anderen 63 — und uebersieht dort
+    genau die Faelle, die er finden soll.
+    """
+    for route in getattr(node, "routes", []):
+        if hasattr(route, "path") and getattr(route, "methods", None):
+            yield route
+        if hasattr(route, "routes"):
+            yield from _iter_routes(route)
+
+
 def _segments(path: str) -> list:
     return [s for s in path.split("/") if s]
 
@@ -40,8 +56,7 @@ def _shadows(earlier: str, later: str) -> bool:
 def test_keine_route_wird_von_einem_platzhalter_verdeckt(app):
     routes = [
         (route.path, method, index)
-        for index, route in enumerate(app.routes)
-        if getattr(route, "methods", None)
+        for index, route in enumerate(_iter_routes(app))
         for method in route.methods
     ]
 
@@ -70,6 +85,28 @@ def test_layout_presets_ist_erreichbar(client, auth_headers):
     assert {"id", "category"} <= set(presets[0])
 
 
-def test_app_registriert_erwartete_routenzahl(app):
-    """Grober Wachhund gegen versehentlich entfernte Router."""
-    assert len(app.routes) > 200
+@pytest.mark.parametrize("methode,pfad", [
+    ("GET",  "/health"),
+    ("POST", "/api/auth/login"),
+    ("GET",  "/api/components"),
+    ("GET",  "/api/components/layout-presets"),
+    ("POST", "/api/leads/public"),
+    ("POST", "/api/messages/send-email"),
+    ("GET",  "/api/projects/"),
+    ("GET",  "/api/briefings/{lead_id}"),
+])
+def test_wesentliche_endpunkte_sind_registriert(app, methode, pfad):
+    """
+    Wachhund gegen versehentlich entfernte oder umbenannte Router.
+
+    Bewusst eine Liste konkreter Endpunkte statt einer Mindestanzahl: Die
+    Routenzahl haengt von der Starlette-Version ab und war deshalb als
+    Kriterium unbrauchbar.
+    """
+    vorhanden = {
+        (m, route.path)
+        for route in _iter_routes(app)
+        for m in route.methods
+    }
+
+    assert (methode, pfad) in vorhanden, f"{methode} {pfad} ist nicht registriert"

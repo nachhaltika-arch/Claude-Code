@@ -1651,6 +1651,7 @@ _default_origins = [
     "http://localhost:3001",
     "http://localhost:5173",
     "https://kompagnon-frontend.onrender.com",
+    "https://websprint.kompagnon.eu",  # WebSprint-Landingpage (eingebetteter Website-Check)
 ]
 for _o in _default_origins:
     if _o not in _cors_origins:

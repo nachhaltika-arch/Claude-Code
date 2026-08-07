@@ -1,5 +1,14 @@
 # Local Development mit Render-Postgres
 
+> **Hinweis (2026-08-07):** Für die normale lokale Entwicklung gilt jetzt
+> [local-dev-and-deploy.md](./local-dev-and-deploy.md) — ein Befehl, lokale Postgres,
+> keine Verbindung zu Render. Dieses Dokument bleibt für Sonderfälle relevant:
+> Daten der Staging-DB ansehen (Szenario C), Dump ziehen (D) oder einen Live-Fehler
+> gegen echte Daten nachstellen.
+>
+> `scripts/dev.sh` verweigert den Start gegen eine entfernte Datenbank, solange nicht
+> `--remote-db` gesetzt ist.
+
 Ziel: Lokal im Browser arbeiten, dabei echte Daten aus der Render-Postgres anzeigen.
 
 ⚠️ **Wichtig vorab:** Render hat zwei DBs:

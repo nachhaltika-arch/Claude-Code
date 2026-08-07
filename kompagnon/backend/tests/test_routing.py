@@ -11,20 +11,24 @@ Dieser Test findet solche Faelle generisch, nicht nur den einen bekannten.
 import pytest
 
 
-def _iter_routes(node):
+def _routen(app) -> list:
     """
-    Alle Routen in Registrierungsreihenfolge — auch verschachtelte.
+    (Methode, Pfad) aller Endpunkte in Registrierungsreihenfolge.
 
-    Je nach Starlette-Version liegen Routen flach in `app.routes` oder in
-    untergeordneten Routern. Ohne rekursives Durchlaufen sieht der Test in der
-    einen Umgebung 470 Routen und in der anderen 63 — und uebersieht dort
-    genau die Faelle, die er finden soll.
+    Quelle ist bewusst das OpenAPI-Schema und nicht `app.routes`: Wie Starlette
+    Routen intern ablegt, aendert sich zwischen Versionen. Mit Starlette 1.0
+    lieferte `app.routes` 470 Eintraege, mit 1.4 nur noch 63 — die per
+    include_router eingebundenen Routen fehlten dort komplett, und der Test
+    haette in der CI genau die Faelle uebersehen, die er finden soll.
+    Das Schema liefert in beiden Faellen alle 369 Pfade, in stabiler Reihenfolge.
     """
-    for route in getattr(node, "routes", []):
-        if hasattr(route, "path") and getattr(route, "methods", None):
-            yield route
-        if hasattr(route, "routes"):
-            yield from _iter_routes(route)
+    schema = app.openapi()
+    return [
+        (methode.upper(), pfad)
+        for pfad, operationen in schema["paths"].items()
+        for methode in operationen
+        if methode.lower() in {"get", "post", "put", "patch", "delete"}
+    ]
 
 
 def _segments(path: str) -> list:
@@ -54,16 +58,12 @@ def _shadows(earlier: str, later: str) -> bool:
 
 
 def test_keine_route_wird_von_einem_platzhalter_verdeckt(app):
-    routes = [
-        (route.path, method, index)
-        for index, route in enumerate(_iter_routes(app))
-        for method in route.methods
-    ]
+    routen = _routen(app)
 
     verdeckt = []
-    for path_a, method_a, index_a in routes:
-        for path_b, method_b, index_b in routes:
-            if index_b <= index_a or method_a != method_b:
+    for index_a, (method_a, path_a) in enumerate(routen):
+        for method_b, path_b in routen[index_a + 1:]:
+            if method_a != method_b:
                 continue
             if _shadows(path_a, path_b):
                 verdeckt.append(f"{method_a} {path_b} wird von {path_a} verdeckt")
@@ -103,10 +103,4 @@ def test_wesentliche_endpunkte_sind_registriert(app, methode, pfad):
     Routenzahl haengt von der Starlette-Version ab und war deshalb als
     Kriterium unbrauchbar.
     """
-    vorhanden = {
-        (m, route.path)
-        for route in _iter_routes(app)
-        for m in route.methods
-    }
-
-    assert (methode, pfad) in vorhanden, f"{methode} {pfad} ist nicht registriert"
+    assert (methode, pfad) in set(_routen(app)), f"{methode} {pfad} ist nicht registriert"

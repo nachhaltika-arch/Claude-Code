@@ -7,14 +7,18 @@ on:
     branches: [main]
   workflow_dispatch:
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+# Abbruchregeln stehen bewusst PRO JOB, nicht auf Workflow-Ebene: Eine
+# workflow-weite Regel mit cancel-in-progress würde beim nächsten Push auch
+# einen laufenden Deploy abwürgen. Die Prüfjobs dürfen abgebrochen werden,
+# der Deploy-Job nicht.
 
 jobs:
   backend-lint:
     name: Backend — Lint (ruff)
     runs-on: ubuntu-latest
+    concurrency:
+      group: lint-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,6 +33,9 @@ jobs:
   backend-import:
     name: Backend — Smoke import
     runs-on: ubuntu-latest
+    concurrency:
+      group: import-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -52,6 +59,9 @@ jobs:
   frontend-build:
     name: Frontend — Build
     runs-on: ubuntu-latest
+    concurrency:
+      group: build-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -75,6 +85,9 @@ jobs:
   secrets-scan:
     name: Secrets — Gitleaks
     runs-on: ubuntu-latest
+    concurrency:
+      group: gitleaks-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
         with:
@@ -135,7 +148,7 @@ jobs:
           set -euo pipefail
 
           POLL_INTERVAL_SECONDS=15
-          MAX_WAIT_SECONDS=1800
+          MAX_WAIT_SECONDS=900
           API="https://api.render.com/v1"
 
           if [ -z "${RENDER_API_KEY:-}" ]; then
@@ -147,13 +160,41 @@ jobs:
             exit 1
           fi
 
+          # Antwort IMMER auswerten: Bei 401/404 liefert die API kein .id, und ein
+          # stilles null führt sonst dazu, dass anschliessend minutenlang ein
+          # nicht existierender Deploy abgefragt wird.
           trigger_deploy() {
-            local service_id="$1"
-            curl -sS -X POST "$API/services/$service_id/deploys" \
+            local service_id="$1" name="$2"
+            local response http_code body deploy_id
+
+            response="$(curl -sS -w $'\n%{http_code}' -X POST "$API/services/$service_id/deploys" \
               -H "Authorization: Bearer $RENDER_API_KEY" \
               -H "Content-Type: application/json" \
-              -d '{"clearCache":"do_not_clear"}' \
-              | jq -r '.id'
+              -d '{"clearCache":"do_not_clear"}')"
+
+            http_code="$(printf '%s' "$response" | tail -1)"
+            body="$(printf '%s' "$response" | sed '$d')"
+
+            if [ "$http_code" != "200" ] && [ "$http_code" != "201" ]; then
+              echo "::error::$name: Render antwortete mit HTTP $http_code auf $service_id"
+              case "$http_code" in
+                401) echo "::error::Der RENDER_API_KEY wird abgelehnt — Secret neu setzen." ;;
+                403) echo "::error::Der Schluessel hat keinen Zugriff auf diesen Service." ;;
+                404) echo "::error::Service-ID $service_id existiert nicht fuer diesen Schluessel." ;;
+              esac
+              echo "Antwort: $(printf '%s' "$body" | head -c 300)"
+              return 1
+            fi
+
+            # Je nach Endpunkt liegt die ID direkt oder unter .deploy
+            deploy_id="$(printf '%s' "$body" | jq -r '.id // .deploy.id // empty')"
+            if [ -z "$deploy_id" ]; then
+              echo "::error::$name: Antwort enthaelt keine Deploy-ID."
+              echo "Antwort: $(printf '%s' "$body" | head -c 300)"
+              return 1
+            fi
+
+            printf '%s' "$deploy_id"
           }
 
           wait_for_deploy() {
@@ -162,7 +203,8 @@ jobs:
 
             while [ "$waited" -lt "$MAX_WAIT_SECONDS" ]; do
               status="$(curl -sS "$API/services/$service_id/deploys/$deploy_id" \
-                -H "Authorization: Bearer $RENDER_API_KEY" | jq -r '.status')"
+                -H "Authorization: Bearer $RENDER_API_KEY" \
+                | jq -r '.status // .deploy.status // "unbekannt"')"
 
               case "$status" in
                 live)
@@ -188,8 +230,8 @@ jobs:
 
           echo "▸ Ziel: $TARGET_LABEL"
 
-          backend_deploy="$(trigger_deploy "$BACKEND_SERVICE")"
-          frontend_deploy="$(trigger_deploy "$FRONTEND_SERVICE")"
+          backend_deploy="$(trigger_deploy "$BACKEND_SERVICE"  "Backend")"
+          frontend_deploy="$(trigger_deploy "$FRONTEND_SERVICE" "Frontend")"
           echo "▸ Backend-Deploy $backend_deploy, Frontend-Deploy $frontend_deploy"
 
           wait_for_deploy "$BACKEND_SERVICE"  "$backend_deploy"  "Backend"

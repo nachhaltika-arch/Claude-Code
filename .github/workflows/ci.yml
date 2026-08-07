@@ -163,6 +163,10 @@ jobs:
           # Antwort IMMER auswerten: Bei 401/404 liefert die API kein .id, und ein
           # stilles null führt sonst dazu, dass anschliessend minutenlang ein
           # nicht existierender Deploy abgefragt wird.
+          #
+          # ACHTUNG: Diese Funktion wird in einer Befehlssubstitution aufgerufen.
+          # Ihr stdout ist die Deploy-ID — sonst nichts. Jede Meldung muss nach
+          # stderr (>&2), sonst landet sie in der Variablen statt im Log.
           trigger_deploy() {
             local service_id="$1" name="$2"
             local response http_code body deploy_id
@@ -176,21 +180,21 @@ jobs:
             body="$(printf '%s' "$response" | sed '$d')"
 
             if [ "$http_code" != "200" ] && [ "$http_code" != "201" ]; then
-              echo "::error::$name: Render antwortete mit HTTP $http_code auf $service_id"
+              echo "::error::$name: Render antwortete mit HTTP $http_code auf $service_id" >&2
               case "$http_code" in
-                401) echo "::error::Der RENDER_API_KEY wird abgelehnt — Secret neu setzen." ;;
-                403) echo "::error::Der Schluessel hat keinen Zugriff auf diesen Service." ;;
-                404) echo "::error::Service-ID $service_id existiert nicht fuer diesen Schluessel." ;;
+                401) echo "::error::Der RENDER_API_KEY wird abgelehnt — Secret neu setzen." >&2 ;;
+                403) echo "::error::Der Schluessel hat keinen Zugriff auf diesen Service." >&2 ;;
+                404) echo "::error::Service-ID $service_id existiert nicht fuer diesen Schluessel." >&2 ;;
               esac
-              echo "Antwort: $(printf '%s' "$body" | head -c 300)"
+              echo "Antwort: $(printf '%s' "$body" | head -c 300)" >&2
               return 1
             fi
 
             # Je nach Endpunkt liegt die ID direkt oder unter .deploy
             deploy_id="$(printf '%s' "$body" | jq -r '.id // .deploy.id // empty')"
             if [ -z "$deploy_id" ]; then
-              echo "::error::$name: Antwort enthaelt keine Deploy-ID."
-              echo "Antwort: $(printf '%s' "$body" | head -c 300)"
+              echo "::error::$name: Antwort enthaelt keine Deploy-ID." >&2
+              echo "Antwort: $(printf '%s' "$body" | head -c 300)" >&2
               return 1
             fi
 

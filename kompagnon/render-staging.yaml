@@ -27,7 +27,9 @@
 
 databases:
   - name: kompagnon-staging-db
-    plan: basic_256mb
+    # Render schreibt Postgres-Plaene mit Bindestrich (basic-256mb, basic-1gb, …).
+    # Mit Unterstrich schlaegt der Blueprint-Sync fehl: "not a valid plan".
+    plan: basic-256mb
     region: frankfurt
     postgresMajorVersion: "18"
     ipAllowList: []   # nur interner Zugriff aus Render-Services

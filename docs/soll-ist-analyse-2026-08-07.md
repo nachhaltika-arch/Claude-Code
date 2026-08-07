@@ -218,7 +218,7 @@ Aufwand: S ≤ 1 Tag · M ≤ 1 Woche · L ≤ 4 Wochen · XL darüber.
 | ID | Lücke | Aufwand | Beleg |
 |---|---|---|---|
 | L-06 | 22 Commits / 141 Dateien seit 09.05. nicht in `main` — Produktiv auf altem Stand | S | `git rev-list origin/main...origin/staging` |
-| L-07 | `main` ohne Branch-Protection, entgegen `CLAUDE.md` | S | GitHub-API: "Branch not protected" |
+| L-07 | ~~`main` ohne Branch-Protection~~ **korrigiert 2026-08-07:** `main` ist über Rulesets geschützt (`protect-main`), die die klassische Protection-API nicht meldet. Offen bleibt: die Regel „Restrict updates" blockiert jeden Merge, und die zwei neuen Prüfjobs sind nicht als Pflicht-Checks eingetragen | S | `gh api repos/…/rules/branches/main` |
 | L-08 | Dependabot-Alerts deaktiviert; 2 kritische / 23 hohe npm-Befunde; 7 Update-PRs geschlossen | M | `npm audit`, PR-Historie |
 | L-09 | Keine Testabdeckung (1 Skript, 0 Frontend-Tests, kein CI-Test-Job) gegen 80-%-Vorgabe | L | `.github/workflows/ci.yml` |
 | L-10 | Kein Monitoring / Fehler-Tracking im Produktivbetrieb | M | kein Sentry in Requirements/Package |

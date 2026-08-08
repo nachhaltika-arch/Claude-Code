@@ -247,10 +247,12 @@ Aufwand: S ≤ 1 Tag · M ≤ 1 Woche · L ≤ 4 Wochen · XL darüber.
 | L-10 | Kein Monitoring / Fehler-Tracking im Produktivbetrieb | M | kein Sentry in Requirements/Package |
 | L-11 | Keine dokumentierte Backup- und Wiederherstellungsstrategie für die Produktiv-DB | S | `render.yaml` ohne Backup-Konfiguration |
 | L-12 | `require_auditor` an keiner Route eingehängt — Auditor faktisch nicht abgegrenzt | S | Suche nach `Depends(require_auditor)` ohne Treffer |
-| L-13 | `.claude/settings.json` getrackt trotz `.gitignore`-Ausschluss, mit fremdem Pfad im Hook | S | `git status`, Diff |
+| L-13 | `.claude/settings.json` getrackt trotz `.gitignore`-Ausschluss — **Hook-Pfad korrigiert 2026-08-08** (zeigte auf `/home/user/Claude-Code`, jeder Auto-Push scheiterte still); offen bleibt die widersprüchliche Verfolgung der Datei | S | `git status`, Diff |
 | L-34 | **Produktiv-Backend läuft in Oregon (US West)**, Datenbank in Frankfurt — jede Abfrage überquert den Atlantik; widerspricht der eigenen Vorgabe in `render.yaml` („Region: frankfurt — DSGVO-relevant") | L | Render-Dashboard, Service-Settings; Health-Check 2,4 s produktiv vs. 0,2 s Staging |
 | L-35 | Blueprints beschreiben nicht die Realität: Produktiv-Frontend ist Static Site statt Web-Service, DB heißt `Kompangnon-dB` auf Postgres 18 statt `kompagnon-db` auf 16, Produktiv-Services sind nicht blueprint-verwaltet | S | Render-Dashboard vs. `render.yaml` |
 | L-36 | Fehler werden im Frontend systematisch weggefangen (`.catch(() => {})`, `r.ok ? … : []`) — drei der vier heute gefundenen Fehler blieben dadurch monatelang unsichtbar | M | `OnlineFertigEditor.jsx`, `ComponentLibrary.jsx` |
+| ~~L-37~~ | ~~Newsletter komplett tot: `import brevo_python` scheitert immer, weil `brevo-python` das Modul `brevo` liefert~~ — **erledigt 2026-08-08**: Anbindung auf die REST-API v3 über httpx umgestellt, SDK aus den Requirements entfernt, 15 Tests ergänzt. Gleich mitgefunden: Statistik las `open_rate`/`click_rate`, die es bei Brevo nicht gibt (heißt `opensRate`, Klickrate gar nicht) → Analytics zeigte immer leere Werte; Massenimport zählte abgelehnte Kontakte als importiert | — | — |
+| L-38 | Der Mai-Audit führt „Brevo-Stats ✅" und „Brevo-Contact-Sync ✅" als geprüft — beides konnte nie funktioniert haben. Abhaken ohne Ausführung ist der gleiche blinde Fleck wie L-36, nur eine Ebene höher | S | `docs/audit-2026-05-04.md:148,165` |
 
 ### P2 — Produktentwicklung
 

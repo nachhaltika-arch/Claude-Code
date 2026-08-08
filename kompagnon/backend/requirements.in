@@ -22,5 +22,4 @@ stripe
 matplotlib
 dnspython
 python-whois
-brevo-python
 gunicorn

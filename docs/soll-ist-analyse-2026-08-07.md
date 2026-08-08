@@ -12,6 +12,12 @@
 
 ---
 
+> **Neuer Stand seit 2026-08-08:** Was danach passiert ist, steht in
+> [`stand-2026-08-08.md`](stand-2026-08-08.md). Die Lückenliste in Abschnitt 3
+> ist dort mitgeführt und bleibt die maßgebliche Übersicht.
+
+---
+
 ## Nachtrag vom selben Abend
 
 **Die Fließtext-Abschnitte 1 und 2 beschreiben den Stand vom Vormittag.** Am selben

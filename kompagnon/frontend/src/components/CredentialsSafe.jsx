@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 
 export default function CredentialsSafe({ projectId, token }) {
   const [creds, setCreds] = useState([]);
@@ -13,10 +14,8 @@ export default function CredentialsSafe({ projectId, token }) {
   const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
   const load = () =>
-    fetch(`${API_BASE_URL}/api/projects/${projectId}/credentials`, { headers: h })
-      .then(r => r.ok ? r.json() : [])
+    loadJson(`${API_BASE_URL}/api/projects/${projectId}/credentials`, { headers: h }, { context: 'Zugangsdaten', fallback: [] })
       .then(d => setCreds(Array.isArray(d) ? d : []))
-      .catch(() => {})
       .finally(() => setLoading(false));
 
   useEffect(() => { load(); }, [projectId]); // eslint-disable-line

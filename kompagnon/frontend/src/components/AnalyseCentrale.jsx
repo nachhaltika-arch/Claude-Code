@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import API_BASE_URL from '../config';
+import { loadJson, reportApiError } from '../utils/apiRequest';
 import toast from 'react-hot-toast';
 
 // ── Pipeline-Schritte ────────────────────────────────────────────────────────
@@ -160,10 +161,10 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
     const saved = {};
     try {
       const [contentRes, hostingRes, psRes, brandRes] = await Promise.allSettled([
-        fetch(`${API_BASE_URL}/api/crawler/content/${leadId}`, { headers }).then(r => r.ok ? r.json() : []),
-        fetch(`${API_BASE_URL}/api/projects/${projectId}/hosting-info`, { headers }).then(r => r.ok ? r.json() : null),
-        fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers }).then(r => r.ok ? r.json() : null),
-        fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers }).then(r => r.ok ? r.json() : null), // for summary panel only
+        loadJson(`${API_BASE_URL}/api/crawler/content/${leadId}`, { headers }, { context: 'Website-Inhalte', fallback: [] }),
+        loadJson(`${API_BASE_URL}/api/projects/${projectId}/hosting-info`, { headers }, { context: 'Hosting-Daten' }),
+        loadJson(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers }, { context: 'PageSpeed' }),
+        loadJson(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers }, { context: 'Markendesign' }), // for summary panel only
       ]);
 
       // Crawler + Content
@@ -212,8 +213,11 @@ export default function AnalyseCentrale({ projectId, leadId, websiteUrl, token, 
           crawlPages: content.length,
         });
       }
-    } catch { /* silent */ }
-    finally { setPagesLoading(false); }
+    } catch (error) {
+      // Die vier Abfragen melden sich selbst; hier bleibt nur ein Fehler beim
+      // Auswerten uebrig — der wuerde die ganze Uebersicht leer lassen.
+      reportApiError(error, 'Analyse-Übersicht');
+    } finally { setPagesLoading(false); }
   };
 
   // ── Einzelnen Schritt ausfuehren ────────────────────────────────────────

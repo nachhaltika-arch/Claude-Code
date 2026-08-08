@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 import EmptyState from '../components/ui/EmptyState';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -39,10 +40,8 @@ export default function Customers() {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
     const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-    fetch(`${API_BASE_URL}/api/leads/`, { headers: h })
-      .then(r => r.json())
+    loadJson(`${API_BASE_URL}/api/leads/`, { headers: h }, { context: 'Kundenliste', fallback: [] })
       .then(d => setLeads(Array.isArray(d) ? d : []))
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

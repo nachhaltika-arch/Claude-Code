@@ -79,6 +79,15 @@ describe('loadJson', () => {
     expect(toast.error).toHaveBeenCalledTimes(1);
   });
 
+  test('quiet schweigt — für Nebensächliches wie den Keepalive-Ping', async () => {
+    global.fetch.mockResolvedValue(jsonResponse(500, { detail: 'Internal Server Error' }));
+
+    const result = await loadJson('/api/health', {}, { quiet: true, fallback: 'egal' });
+
+    expect(result).toBe('egal');
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
   test('gleiche Meldungen überlagern sich statt sich zu stapeln', async () => {
     global.fetch.mockResolvedValue(jsonResponse(500, { detail: 'Internal Server Error' }));
 

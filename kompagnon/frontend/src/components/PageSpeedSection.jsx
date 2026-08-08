@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 
 function scoreColor(score) {
   if (score === null || score === undefined) return { bg: 'var(--status-neutral-bg)', text: 'var(--status-neutral-text)' };
@@ -44,10 +45,8 @@ export default function PageSpeedSection({ leadId }) {
   const [error, setError]         = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers })
-      .then(r => r.ok ? r.json() : null)
+    loadJson(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers }, { context: 'PageSpeed' })
       .then(data => { if (data && (data.checked_at || data.mobile_score != null)) setPs(data); })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, [leadId]); // eslint-disable-line
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import { saveJson } from '../utils/apiRequest';
 import { parseApiError } from '../utils/apiError';
 
 const FRONTEND_URL = 'https://kompagnon-frontend.onrender.com';
@@ -480,15 +481,17 @@ export default function ProductEditor() {
 
   const deleteProduct = async () => {
     if (!confirmDelete) { setConfirmDelete(true); return; }
-    try {
-      const r = await fetch(`${API_BASE_URL}/api/products/${selected}`, {
-        method: 'DELETE', headers: h,
-      });
-      if (r.ok) {
-        setProduct(null); setSelected(null); setConfirmDelete(false);
-        await loadProducts();
-      }
-    } catch {}
+    // Ohne Pruefung blieb der Bestaetigen-Knopf haengen und das Produkt stand
+    // weiter in der Liste — ohne jeden Hinweis, dass nichts geloescht wurde.
+    const deleted = await saveJson(
+      `${API_BASE_URL}/api/products/${selected}`,
+      { method: 'DELETE', headers: h },
+      { context: 'Produkt löschen' }
+    );
+    if (deleted) {
+      setProduct(null); setSelected(null); setConfirmDelete(false);
+      await loadProducts();
+    }
   };
 
   const moveSortOrder = async (slug, direction) => {

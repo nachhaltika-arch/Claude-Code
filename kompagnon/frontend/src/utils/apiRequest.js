@@ -71,11 +71,21 @@ export function reportApiError(error, context) {
  * Laden mit Ersatzwert. `emptyOn` nennt die Status, die einen legitimen
  * Leerzustand bedeuten — ein noch nicht angelegter Datensatz ist kein Fehler
  * und darf den Nutzer nicht behelligen.
+ *
+ * `quiet` schweigt bewusst. Nur fuer Nebensaechliches, dessen Ausfall an
+ * anderer Stelle ohnehin auffaellt: ein Keepalive-Ping, ein Titel in der
+ * Brotkrumenleiste. Der Schalter existiert, damit solche Faelle im Code
+ * benannt und auffindbar sind, statt als leeres catch zu verschwinden.
  */
-export async function loadJson(url, options = {}, { context, fallback = null, emptyOn = [404] } = {}) {
+export async function loadJson(
+  url,
+  options = {},
+  { context, fallback = null, emptyOn = [404], quiet = false } = {},
+) {
   try {
     return await apiRequest(url, options);
   } catch (error) {
+    if (quiet) return fallback;
     if (error instanceof ApiError && emptyOn.includes(error.status)) return fallback;
     reportApiError(error, context);
     return fallback;

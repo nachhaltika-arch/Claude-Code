@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { loadJson, saveJson } from '../utils/apiRequest';
 import { useAuth } from '../context/AuthContext';
 import KASSidebar, { SCHRITTE } from './KASSidebar';
 import SitemapView from './views/SitemapViewV2';
@@ -67,11 +68,11 @@ export default function OnlineFertigEditor() {
     let cancelled = false;
     setLoadingProject(true);
     Promise.all([
-      fetch(`${API_BASE_URL}/api/projects/${projectId}`, { headers }).then((r) =>
-        r.ok ? r.json() : null,
-      ),
-      fetch(`${API_BASE_URL}/api/projects/${projectId}/wireframe`, { headers }).then((r) =>
-        r.ok ? r.json() : { pages: [] },
+      loadJson(`${API_BASE_URL}/api/projects/${projectId}`, { headers }, { context: 'Projekt', emptyOn: [] }),
+      loadJson(
+        `${API_BASE_URL}/api/projects/${projectId}/wireframe`,
+        { headers },
+        { context: 'Wireframe', fallback: { pages: [] } },
       ),
     ])
       .then(([proj, wf]) => {
@@ -81,12 +82,12 @@ export default function OnlineFertigEditor() {
         // Daten fuer die Legacy-SchrittInhalt-Embeds direkt ziehen
         if (proj?.lead_id) loadLegacyData(proj.lead_id);
         // confirmed-steps separat (Endpoint ist optional)
-        fetch(`${API_BASE_URL}/api/projects/${projectId}/confirmed-steps`, { headers })
-          .then((r) => (r.ok ? r.json() : {}))
-          .then((d) => !cancelled && setConfirmedSteps(d || {}))
-          .catch(() => {});
+        loadJson(
+          `${API_BASE_URL}/api/projects/${projectId}/confirmed-steps`,
+          { headers },
+          { context: 'Bestätigte Schritte', fallback: {} },
+        ).then((d) => !cancelled && setConfirmedSteps(d || {}));
       })
-      .catch(() => {})
       .finally(() => !cancelled && setLoadingProject(false));
     return () => {
       cancelled = true;
@@ -98,53 +99,36 @@ export default function OnlineFertigEditor() {
   // ── Legacy-Daten fuer SchrittInhalt (Briefing/Audit/Sitemap/Brand) ────────
   const loadLegacyData = useCallback((leadId) => {
     if (!leadId) return;
-    // Diese Endpoints haben jeweils ihre eigenen Faulehoelzer — wenn einer
-    // 404 liefert, bleibt der State auf null und der Embed zeigt einen
-    // Spinner / leere Form. Kein blocking.
-    fetch(`${API_BASE_URL}/api/leads/${leadId}`, { headers })
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setLead)
-      .catch(() => {});
-    fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers })
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setBriefing)
-      .catch(() => {});
+    // Ein noch nicht angelegter Datensatz (404) bleibt still — jeder andere
+    // Fehler wird gemeldet. Vorher war beides gleich unsichtbar, und genau so
+    // blieb der kaputte Audit-Pfad unten monatelang unentdeckt.
+    loadJson(`${API_BASE_URL}/api/leads/${leadId}`, { headers }, { context: 'Kunde' })
+      .then(setLead);
+    loadJson(`${API_BASE_URL}/api/briefings/${leadId}`, { headers }, { context: 'Briefing' })
+      .then(setBriefing);
     // GET /api/audit/lead/{lead_id} liefert ALLE Audits, neueste zuerst — eine
     // /latest-Route gibt es nicht. Der frueher hier verwendete Pfad lief
     // deshalb dauerhaft in einen 404, und der Editor kannte nie ein Audit.
-    fetch(`${API_BASE_URL}/api/audit/lead/${leadId}`, { headers })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((audits) => setLatestAudit(Array.isArray(audits) ? audits[0] || null : audits))
-      .catch(() => {});
+    loadJson(`${API_BASE_URL}/api/audit/lead/${leadId}`, { headers }, { context: 'Audit', fallback: [] })
+      .then((audits) => setLatestAudit(Array.isArray(audits) ? audits[0] || null : audits));
     // GET /api/sitemap/{lead_id} returnt direkt ein Array — der Pfad mit
     // /pages am Ende ist nur fuer POST (create_page) registriert.
-    fetch(`${API_BASE_URL}/api/sitemap/${leadId}`, { headers })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setSitemapPages(Array.isArray(data) ? data : data?.pages || []))
-      .catch(() => {});
-    fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers })
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setBrandData)
-      .catch(() => {});
+    loadJson(`${API_BASE_URL}/api/sitemap/${leadId}`, { headers }, { context: 'Sitemap', fallback: [] })
+      .then((data) => setSitemapPages(Array.isArray(data) ? data : data?.pages || []));
+    loadJson(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers }, { context: 'Markendesign' })
+      .then(setBrandData);
   }, [headers]);
 
   const reloadBriefing = useCallback(async () => {
     if (!project?.lead_id) return;
-    try {
-      const r = await fetch(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers });
-      if (r.ok) setBriefing(await r.json());
-    } catch { /* silent */ }
+    const data = await loadJson(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers }, { context: 'Briefing' });
+    if (data) setBriefing(data);
   }, [project?.lead_id, headers]);
 
   const reloadSitemap = useCallback(async () => {
     if (!project?.lead_id) return;
-    try {
-      const r = await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id}`, { headers });
-      if (r.ok) {
-        const data = await r.json();
-        setSitemapPages(Array.isArray(data) ? data : data?.pages || []);
-      }
-    } catch { /* silent */ }
+    const data = await loadJson(`${API_BASE_URL}/api/sitemap/${project.lead_id}`, { headers }, { context: 'Sitemap' });
+    if (data) setSitemapPages(Array.isArray(data) ? data : data?.pages || []);
   }, [project?.lead_id, headers]);
 
   const handleStepConfirmed = useCallback(async (stepId) => {
@@ -154,15 +138,14 @@ export default function OnlineFertigEditor() {
       ...prev,
       [stepId]: { confirmed: true, confirmed_at: new Date().toISOString() },
     }));
-    // Persistenz über das bestehende Backend-Endpoint
-    try {
-      await fetch(`${API_BASE_URL}/api/projects/${projectId}/confirm-step`, {
-        method: 'POST', headers,
-        body: JSON.stringify({ step_id: stepId }),
-      });
-    } catch (e) {
-      toast.error('Speichern des Status fehlgeschlagen — wird beim nächsten Reload geprüft.');
-    }
+    // Persistenz über das bestehende Backend-Endpoint. Der Status wurde vorher
+    // nicht geprüft: nur ein Netzabbruch meldete sich, eine Ablehnung des
+    // Servers nicht — der Schritt sah bestätigt aus und war es nie.
+    await saveJson(
+      `${API_BASE_URL}/api/projects/${projectId}/confirm-step`,
+      { method: 'POST', headers, body: JSON.stringify({ step_id: stepId }) },
+      { context: 'Schritt bestätigen' },
+    );
     // Auto-Advance: zum nächsten Schritt springen, falls vorhanden
     const idx = SCHRITTE.findIndex((s) => s.id === stepId);
     const next = SCHRITTE[idx + 1];
@@ -651,10 +634,8 @@ export default function OnlineFertigEditor() {
                   netlify={null}
                   qaResult={project?.qa_result}
                   onProjectRefresh={() => {
-                    fetch(`${API_BASE_URL}/api/projects/${projectId}`, { headers })
-                      .then((r) => (r.ok ? r.json() : null))
-                      .then((p) => p && setProject(p))
-                      .catch(() => {});
+                    loadJson(`${API_BASE_URL}/api/projects/${projectId}`, { headers }, { context: 'Projekt' })
+                      .then((p) => p && setProject(p));
                   }}
                   goWeiter={() => {}}
                   goZurueck={() => {}}

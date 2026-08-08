@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
+import { loadJson } from '../utils/apiRequest';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import Badge from '../components/ui/Badge';
@@ -31,10 +32,8 @@ export default function Dashboard() {
     const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
     // Chain A — KPIs: rendert die obere Kennzahlen-Reihe zuerst
-    fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h })
-      .then(r => r.json())
-      .then(data => setKpis(data))
-      .catch(() => {})
+    loadJson(`${API_BASE_URL}/api/dashboard/kpis`, { headers: h }, { context: 'Kennzahlen', emptyOn: [] })
+      .then(data => { if (data) setKpis(data); })
       .finally(() => setLoadingKpis(false));
 
     // Chain B — Leads: nur 8 werden angezeigt, Fallback auf usercards wenn leer
@@ -74,22 +73,12 @@ export default function Dashboard() {
 
     // Onboarding-Status vom Server prüfen
     const checkOnboarding = async () => {
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/api/auth/me`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('kompagnon_token')}`,
-            },
-          }
-        );
-        if (res.ok) {
-          const me = await res.json();
-          if (me.onboarding_completed === false) {
-            setShowOnboarding(true);
-          }
-        }
-      } catch {}
+      const me = await loadJson(
+        `${API_BASE_URL}/api/auth/me`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('kompagnon_token')}` } },
+        { context: 'Kontodaten' }
+      );
+      if (me?.onboarding_completed === false) setShowOnboarding(true);
     };
     checkOnboarding();
   }, [user, onboardingChecked]); // eslint-disable-line react-hooks/exhaustive-deps

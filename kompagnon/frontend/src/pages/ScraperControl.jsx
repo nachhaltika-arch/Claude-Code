@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 
 const STATUS_COLORS = {
   running:   { bg: '#FEF9C3', text: '#854D0E', label: 'Laeuft' },
@@ -43,10 +44,8 @@ export default function ScraperControl() {
       })
       .catch(() => toast.error('Kammern konnten nicht geladen werden'));
 
-    fetch(`${API_BASE_URL}/api/scraper/health`, { headers })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setScheduleEnabled(!!d.hwk_scraper_enabled); })
-      .catch(() => {});
+    loadJson(`${API_BASE_URL}/api/scraper/health`, { headers }, { context: 'Scraper-Zustand' })
+      .then(d => { if (d) setScheduleEnabled(!!d.hwk_scraper_enabled); });
 
     loadStatus();
     // eslint-disable-next-line
@@ -54,12 +53,8 @@ export default function ScraperControl() {
 
   // ── Status polling ────────────────────────────────────────────────────────
   const loadStatus = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/scraper/status`, { headers });
-      if (!res.ok) return;
-      const data = await res.json();
-      setStatus(data);
-    } catch { /* silent */ }
+    const data = await loadJson(`${API_BASE_URL}/api/scraper/status`, { headers }, { context: 'Scraper-Status' });
+    if (data) setStatus(data);
     // eslint-disable-next-line
   }, []);
 

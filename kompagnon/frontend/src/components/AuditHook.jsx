@@ -98,7 +98,11 @@ export default function AuditHook() {
             clearInterval(poll); clearInterval(iv);
             setStep('error'); setError('Audit fehlgeschlagen — bitte URL prüfen.');
           }
-        } catch {}
+        } catch {
+          // Bewusst still: die Abfrage laeuft alle 4 s erneut. Bleibt sie
+          // dauerhaft erfolglos, greift oben der Abbruch nach 45 Versuchen mit
+          // sichtbarer Meldung.
+        }
       }, 4000);
     } catch (err) {
       clearInterval(iv);

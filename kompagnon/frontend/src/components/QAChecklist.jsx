@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { saveJson } from '../utils/apiRequest';
 
 const KATEGORIEN = [
   {
@@ -75,7 +77,11 @@ export default function QAChecklist({ projectId, token, qaChecklistJson, pagespe
     try {
       const parsed = JSON.parse(qaChecklistJson);
       setChecked(parsed || {});
-    } catch {}
+    } catch {
+      toast.error('Die gespeicherte QA-Checkliste ist beschädigt und wurde zurückgesetzt.', {
+        id: 'qa-checkliste-beschaedigt',
+      });
+    }
   }, [qaChecklistJson]);
 
   // PageSpeed-Punkte automatisch setzen
@@ -96,17 +102,14 @@ export default function QAChecklist({ projectId, token, qaChecklistJson, pagespe
   const save = useCallback(async (newChecked) => {
     if (!projectId) return;
     setSaving(true);
-    try {
-      await fetch(
-        `${API_BASE_URL}/api/projects/${projectId}/qa-checklist`,
-        {
-          method:  'PATCH',
-          headers: h,
-          body:    JSON.stringify({ checked: newChecked }),
-        }
-      );
-    } catch {}
-    finally { setSaving(false); }
+    // Ein fehlgeschlagenes Speichern liess die Haken stehen — beim naechsten
+    // Oeffnen waren sie weg, ohne dass je etwas gemeldet wurde.
+    await saveJson(
+      `${API_BASE_URL}/api/projects/${projectId}/qa-checklist`,
+      { method: 'PATCH', headers: h, body: JSON.stringify({ checked: newChecked }) },
+      { context: 'QA-Checkliste speichern' }
+    );
+    setSaving(false);
   }, [projectId]); // eslint-disable-line
 
   useEffect(() => {

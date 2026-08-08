@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../../config';
+import { loadJson } from '../../utils/apiRequest';
 import { useConfirmStep } from '../../hooks/useConfirmStep';
 
 const ALL_SOCIAL = [
@@ -22,8 +23,11 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
 
   useEffect(() => {
     if (!leadId) return;
-    fetch(`${API_BASE_URL}/api/briefings/${leadId}/ki-prefill-seo`, { method: 'POST', headers })
-      .then(r => r.ok ? r.json() : null)
+    loadJson(
+      `${API_BASE_URL}/api/briefings/${leadId}/ki-prefill-seo`,
+      { method: 'POST', headers },
+      { context: 'SEO-Vorschlag' },
+    )
       .then(d => {
         if (!d) return;
         setKi(d);
@@ -31,7 +35,6 @@ export default function SeoZiele({ leadId, token, onSaved, projectId, onStepConf
         setSocial(d.social_media?.gefunden || []);
         setGbStatus(d.google_business?.status || '');
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, [leadId]); // eslint-disable-line
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 
 function adjustColor(hex, amount) {
   if (!hex || !hex.startsWith('#') || hex.length < 7) return hex;
@@ -81,10 +82,11 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
 
   useEffect(() => {
     if (!leadId || !token) return;
-    fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : null)
+    loadJson(
+      `${API_BASE_URL}/api/branddesign/${leadId}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+      { context: 'Markendesign' },
+    )
       .then(d => {
         if (!d) return;
         if (applyTokens(d.design_tokens)) return; // saved tokens have priority
@@ -98,8 +100,7 @@ export default function BrandDesignEditor({ leadId, token, brandData, onSaved })
         if (dd?.shadow_label)     setShadow(dd.shadow_label);
         const ac = dd?.design_brief?.akzentfarbe || dd?.colors?.accent;
         if (ac) setAccent(ac);
-      })
-      .catch(() => {});
+      });
   }, [leadId, token]); // eslint-disable-line
 
   // Sync wenn brandData-Prop sich ändert (z.B. nach Scrape)

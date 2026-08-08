@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 
 function KiEmpfehlung({ leadId, token, onAdded }) {
   const [empfehlungen, setEmpfehlungen] = useState(null);
@@ -14,14 +15,13 @@ function KiEmpfehlung({ leadId, token, onAdded }) {
 
   const laden = async () => {
     setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/ki-empfehlung`, { headers });
-      if (res.ok) {
-        const d = await res.json();
-        setEmpfehlungen(d);
-      }
-    } catch { /* silent */ }
-    finally { setLoading(false); }
+    const d = await loadJson(
+      `${API_BASE_URL}/api/sitemap/${leadId}/ki-empfehlung`,
+      { headers },
+      { context: 'KI-Empfehlung' }
+    );
+    if (d) setEmpfehlungen(d);
+    setLoading(false);
   };
 
   const addPage = async (page) => {
@@ -151,10 +151,8 @@ export default function SitemapVorschlaege({ leadId, token, onAdded }) {
   };
 
   const loadSuggestions = () =>
-    fetch(`${API_BASE_URL}/api/sitemap/${leadId}/suggest`, { headers })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setData(d); })
-      .catch(() => {});
+    loadJson(`${API_BASE_URL}/api/sitemap/${leadId}/suggest`, { headers }, { context: 'Seitenvorschläge' })
+      .then(d => { if (d) setData(d); });
 
   useEffect(() => {
     if (!leadId) return;

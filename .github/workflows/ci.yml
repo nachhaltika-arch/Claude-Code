@@ -110,6 +110,13 @@ jobs:
       - name: Install dependencies
         working-directory: kompagnon/frontend
         run: bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npm ci --legacy-peer-deps
+      # Laeuft im Build-Job mit, weil die Abhaengigkeiten hier ohnehin schon
+      # installiert sind — ein eigener Job waere ein zweites `npm ci`.
+      - name: Unit-Tests (jest)
+        working-directory: kompagnon/frontend
+        env:
+          CI: true
+        run: npm test -- --watchAll=false
       - name: Build
         working-directory: kompagnon/frontend
         env:

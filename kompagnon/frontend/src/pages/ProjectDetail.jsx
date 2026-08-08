@@ -16,6 +16,7 @@ import MoodboardPanel from '../components/MoodboardPanel';
 import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useSwipeNavigation } from '../hooks/useTouch';
 import { parseApiError } from '../utils/apiError';
+import { loadJson, reportApiError, saveJson } from '../utils/apiRequest';
 import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
@@ -120,11 +121,13 @@ function GaStatusCard({ leadId, headers: h, API_BASE_URL: baseUrl }) {
 
   const checkGa = async () => {
     setGaChecking(true);
-    try {
-      const res = await fetch(`${baseUrl}/api/branddesign/${leadId}/check-ga`, { method: 'POST', headers: h });
-      if (res.ok) setGaData(await res.json());
-    } catch { /* silent */ }
-    finally { setGaChecking(false); }
+    const data = await loadJson(
+      `${baseUrl}/api/branddesign/${leadId}/check-ga`,
+      { method: 'POST', headers: h },
+      { context: 'Analytics-Prüfung' }
+    );
+    if (data) setGaData(data);
+    setGaChecking(false);
   };
 
   const statusConfig = {
@@ -751,22 +754,25 @@ export default function ProjectDetail() {
 
   const checkDomain = async () => {
     setDomainChecking(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/projects/${id}/domain-check`, { method: 'POST', headers });
-      const d = await res.json();
+    const d = await loadJson(
+      `${API_BASE_URL}/api/projects/${id}/domain-check`,
+      { method: 'POST', headers },
+      { context: 'Domain-Prüfung', emptyOn: [] }
+    );
+    if (d) {
       setProject(prev => ({ ...prev, domain_reachable: d.reachable, domain_status_code: d.status_code, domain_checked_at: d.checked_at }));
-    } catch { /* silent */ } finally { setDomainChecking(false); }
+    }
+    setDomainChecking(false);
   };
 
   const loadCreds = async () => {
     setCredsLoading(true);
-    try {
-      const r = await fetch(
-        `${API_BASE_URL}/api/projects/${id}/credentials`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (r.ok) setCreds(await r.json());
-    } catch {}
+    const data = await loadJson(
+      `${API_BASE_URL}/api/projects/${id}/credentials`,
+      { headers: { Authorization: `Bearer ${token}` } },
+      { context: 'Zugangsdaten' }
+    );
+    if (data) setCreds(data);
     setCredsLoading(false);
   };
 
@@ -780,12 +786,12 @@ export default function ProjectDetail() {
     if ((activeSubTab === 'hosting-scan' || activeSubTab === 'hosting') && !hostingChecked && project?.id) {
       setHostingChecked(true);
       setHostingScanning(true);
-      fetch(`${API_BASE_URL}/api/projects/${project.id}/hosting-info`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then(r => r.ok ? r.json() : null)
+      loadJson(
+        `${API_BASE_URL}/api/projects/${project.id}/hosting-info`,
+        { headers: { Authorization: `Bearer ${token}` } },
+        { context: 'Hosting-Daten' }
+      )
         .then(d => { if (d?.hosting_provider || d?.nameservers || d?.server_software) setHostingData(d); })
-        .catch(() => {})
         .finally(() => setHostingScanning(false));
     }
   }, [activeTab, activeSubTab]); // eslint-disable-line
@@ -888,12 +894,23 @@ export default function ProjectDetail() {
 
   // ── Post-Launch / GBP ───────────────────────────────────────────────────────
   const loadGbpData = async () => {
-    try {
-      const r = await fetch(`${API_BASE_URL}/api/projects/${id}/bewertungs-url`, { headers: hdr });
-      if (r.ok) setGbpData(await r.json());
-    } catch {}
+    const data = await loadJson(
+      `${API_BASE_URL}/api/projects/${id}/bewertungs-url`,
+      { headers: hdr },
+      { context: 'Bewertungs-Link' }
+    );
+    if (data) setGbpData(data);
+
     if (project?.gbp_checklist_json) {
-      try { setGbpChecked(JSON.parse(project.gbp_checklist_json) || {}); } catch {}
+      try {
+        setGbpChecked(JSON.parse(project.gbp_checklist_json) || {});
+      } catch {
+        // Beschaedigtes JSON still zu ignorieren hiesse: die Haken sind weg und
+        // niemand weiss warum. Der naechste Klick ueberschreibt den Datensatz.
+        toast.error('Die gespeicherte Checkliste ist beschädigt und wurde zurückgesetzt.', {
+          id: 'gbp-checkliste-beschaedigt',
+        });
+      }
     }
   };
 
@@ -923,12 +940,16 @@ export default function ProjectDetail() {
   };
 
   const toggleGbpItem = (itemId) => {
+    const previous = gbpChecked;
     const next = { ...gbpChecked, [itemId]: !gbpChecked[itemId] };
     setGbpChecked(next);
-    fetch(`${API_BASE_URL}/api/projects/${id}/gbp-checklist`, {
-      method: 'PATCH', headers: hdr,
-      body: JSON.stringify({ checked: next }),
-    }).catch(() => {});
+    // Scheitert das Speichern, muss der Haken zurückspringen — sonst zeigt die
+    // Oberfläche einen Stand, den der Server nie bekommen hat.
+    saveJson(
+      `${API_BASE_URL}/api/projects/${id}/gbp-checklist`,
+      { method: 'PATCH', headers: hdr, body: JSON.stringify({ checked: next }) },
+      { context: 'Checkliste speichern', onError: () => setGbpChecked(previous) }
+    );
   };
 
   // ── Go-Live Handler ─────────────────────────────────────────────────────────
@@ -976,19 +997,23 @@ export default function ProjectDetail() {
       // content_freigaben parsen
       const cf = projectRes.data?.content_freigaben;
       if (cf) {
-        try { setContentFreigaben(JSON.parse(cf)); } catch {}
+        try {
+          setContentFreigaben(JSON.parse(cf));
+        } catch {
+          toast.error('Die gespeicherten Content-Freigaben sind beschädigt und werden ignoriert.', {
+            id: 'content-freigaben-beschaedigt',
+          });
+        }
       }
       // Load lead data for modal pre-fill
       if (projectRes.data.lead_id) {
         axios.get(`${API_BASE_URL}/api/leads/${projectRes.data.lead_id}`, { headers })
           .then(r => setLead(r.data))
-          .catch(() => {});
+          .catch(error => reportApiError(error, 'Kundendaten'));
       }
       // Screenshots lazy-load
-      fetch(`${API_BASE_URL}/api/projects/${id}/screenshots`, { headers })
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d) { setScreenshots(d); setScreenshotsLoaded(true); } })
-        .catch(() => {});
+      loadJson(`${API_BASE_URL}/api/projects/${id}/screenshots`, { headers }, { context: 'Screenshots' })
+        .then(d => { if (d) { setScreenshots(d); setScreenshotsLoaded(true); } });
     } catch {
       toast.error('Projekt konnte nicht geladen werden.');
     } finally {
@@ -999,22 +1024,20 @@ export default function ProjectDetail() {
   useEffect(() => { loadProject(); }, [id]); // eslint-disable-line
 
   const loadQa = async () => {
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/projects/${id}/qa/result`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        if (data.status === 'no_result' || data.status === 'parse_error') {
-          setQaResult(null);
-          if (data.status === 'parse_error') setQaError(data.message || 'QA-Ergebnis fehlerhaft');
-        } else {
-          setQaResult(data);
-          setQaError('');
-        }
-      }
-    } catch {}
+    const data = await loadJson(
+      `${API_BASE_URL}/api/projects/${id}/qa/result`,
+      { headers: { Authorization: `Bearer ${token}` } },
+      { context: 'QA-Ergebnis' }
+    );
+    if (!data) return;
+
+    if (data.status === 'no_result' || data.status === 'parse_error') {
+      setQaResult(null);
+      if (data.status === 'parse_error') setQaError(data.message || 'QA-Ergebnis fehlerhaft');
+    } else {
+      setQaResult(data);
+      setQaError('');
+    }
   };
 
   useEffect(() => { if (activeTab === 'qa-scan' || activeTab === 'qa') loadQa(); }, [id, activeTab]); // eslint-disable-line
@@ -1035,13 +1058,12 @@ export default function ProjectDetail() {
 
   const loadAudits = useCallback(async () => {
     if (!project?.lead_id) return;
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/audit/lead/${project.lead_id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.ok) setAudits(await res.json());
-    } catch (e) { console.error(e); }
+    const data = await loadJson(
+      `${API_BASE_URL}/api/audit/lead/${project.lead_id}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+      { context: 'Audits' }
+    );
+    if (data) setAudits(data);
   }, [project?.lead_id]); // eslint-disable-line
 
   useEffect(() => { if (project?.lead_id && activeSubTab === 'audit') loadAudits(); }, [project?.lead_id, activeSubTab]); // eslint-disable-line
@@ -1049,14 +1071,13 @@ export default function ProjectDetail() {
   // Load cached scrape-full data on project mount (no network scrape)
   useEffect(() => {
     if (!project?.id) return;
-    fetch(`${API_BASE_URL}/api/projects/${project.id}/scrape-full`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data && data.seo) setScrapeStatus(data);
-      })
-      .catch(() => {});
+    loadJson(
+      `${API_BASE_URL}/api/projects/${project.id}/scrape-full`,
+      { headers: { Authorization: `Bearer ${token}` } },
+      { context: 'Website-Analyse' }
+    ).then(data => {
+      if (data && data.seo) setScrapeStatus(data);
+    });
   }, [project?.id]); // eslint-disable-line
 
   // Load Netlify status ONCE when tab opens — race-condition-safe
@@ -1085,12 +1106,11 @@ export default function ProjectDetail() {
   // Load website versions on project mount
   useEffect(() => {
     if (!project?.id) return;
-    fetch(`${API_BASE_URL}/api/projects/${project.id}/versions`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setVersions(Array.isArray(d) ? d : []))
-      .catch(() => {});
+    loadJson(
+      `${API_BASE_URL}/api/projects/${project.id}/versions`,
+      { headers: { Authorization: `Bearer ${token}` } },
+      { context: 'Versionen', fallback: [] }
+    ).then(d => setVersions(Array.isArray(d) ? d : []));
   }, [project?.id]); // eslint-disable-line
 
   // Load cached crawler results + website content on project mount
@@ -1100,74 +1120,69 @@ export default function ProjectDetail() {
     const h = { Authorization: `Bearer ${token}` };
 
     // 1. Crawler status + results from crawl_jobs / crawl_results
-    fetch(`${API_BASE_URL}/api/crawler/status/${project.lead_id}`, { headers: h })
-      .then(r => r.ok ? r.json() : null)
+    loadJson(`${API_BASE_URL}/api/crawler/status/${project.lead_id}`, { headers: h }, { context: 'Crawler-Status' })
       .then(status => {
         if (cancelled || !status) return;
         if (status.status && status.status !== 'none') setCrawlJob(status);
         // Load URL list if a completed job exists
         if (status.status === 'completed' || status.total_urls > 0) {
-          return fetch(`${API_BASE_URL}/api/crawler/results/${project.lead_id}`, { headers: h })
-            .then(r => r.ok ? r.json() : null)
-            .then(d => {
-              if (cancelled || !d) return;
-              setCrawlResults(Array.isArray(d.results) ? d.results : []);
-            });
+          return loadJson(
+            `${API_BASE_URL}/api/crawler/results/${project.lead_id}`,
+            { headers: h },
+            { context: 'Crawler-Ergebnisse' }
+          ).then(d => {
+            if (cancelled || !d) return;
+            setCrawlResults(Array.isArray(d.results) ? d.results : []);
+          });
         }
-      })
-      .catch(() => {});
+      });
 
     // 2. Website content from website_content_cache
-    fetch(`${API_BASE_URL}/api/crawler/content/${project.lead_id}`, { headers: h })
-      .then(r => r.ok ? r.json() : null)
+    loadJson(`${API_BASE_URL}/api/crawler/content/${project.lead_id}`, { headers: h }, { context: 'Website-Inhalte' })
       .then(data => {
         if (cancelled || !data) return;
         const items = Array.isArray(data) ? data : (data.results || []);
         if (items.length > 0) setWebsiteContent(items);
-      })
-      .catch(() => {});
+      });
 
     return () => { cancelled = true; };
   }, [project?.lead_id]); // eslint-disable-line
 
   const loadWebsiteContent = useCallback(async () => {
     if (!project?.lead_id) return;
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/crawler/content/${project.lead_id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setWebsiteContent(Array.isArray(data) ? data : data.results || []);
-      }
-    } catch (e) { console.error(e); }
+    const data = await loadJson(
+      `${API_BASE_URL}/api/crawler/content/${project.lead_id}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+      { context: 'Website-Inhalte' }
+    );
+    if (data) setWebsiteContent(Array.isArray(data) ? data : data.results || []);
   }, [project?.lead_id]); // eslint-disable-line
 
   const scrapeContent = async () => {
     if (!project?.lead_id) return;
     setContentLoading(true);
-    try {
-      // Scrape all crawler-recognised pages (text, images, files)
-      await fetch(
-        `${API_BASE_URL}/api/crawler/scrape-content/${project.lead_id}`,
-        { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
-      );
+    // apiRequest statt fetch: der Status wurde vorher gar nicht geprüft, ein
+    // gescheiterter Import meldete trotzdem Erfolg.
+    const scraped = await saveJson(
+      `${API_BASE_URL}/api/crawler/scrape-content/${project.lead_id}`,
+      { method: 'POST', headers: { Authorization: `Bearer ${token}` } },
+      { context: 'Website-Import' }
+    );
+    if (scraped) {
       await loadWebsiteContent();
       toast.success('Website-Inhalte von allen Seiten importiert');
-    } catch (e) { toast.error('Scraping fehlgeschlagen — bitte Website-URL prüfen'); }
-    finally { setContentLoading(false); }
+    }
+    setContentLoading(false);
   };
 
   const loadBriefingLead = useCallback(async () => {
     if (!project?.lead_id || briefingLead) return;
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/leads/${project.lead_id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.ok) setBriefingLead(await res.json());
-    } catch (e) { console.error(e); }
+    const data = await loadJson(
+      `${API_BASE_URL}/api/leads/${project.lead_id}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+      { context: 'Briefing-Kundendaten' }
+    );
+    if (data) setBriefingLead(data);
   }, [project?.lead_id, briefingLead]); // eslint-disable-line
 
   // Auto-load briefing lead when briefing tab is opened
@@ -1187,19 +1202,15 @@ export default function ProjectDetail() {
   // Auto-load briefing data on project load
   useEffect(() => {
     if (!project?.lead_id) return;
-    fetch(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setBriefingData(d); })
-      .catch(() => {});
+    loadJson(`${API_BASE_URL}/api/briefings/${project.lead_id}`, { headers }, { context: 'Briefing' })
+      .then(d => { if (d) setBriefingData(d); });
   }, [project?.lead_id]); // eslint-disable-line
 
   // Auto-load latestAudit on project load
   useEffect(() => {
     if (!project?.lead_id) return;
-    fetch(`${API_BASE_URL}/api/leads/${project.lead_id}/profile`, { headers })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setLatestAudit((d.audits || [])[0] || false); })
-      .catch(() => {});
+    loadJson(`${API_BASE_URL}/api/leads/${project.lead_id}/profile`, { headers }, { context: 'Kundenprofil' })
+      .then(d => { if (d) setLatestAudit((d.audits || [])[0] || false); });
   }, [project?.lead_id]); // eslint-disable-line
 
   // Auto-load sitemap on project load (needed for ProzessFlow step completion)
@@ -1213,24 +1224,17 @@ export default function ProjectDetail() {
     if (!project?.lead_id) return;
     setBrandData(null);
     const currentLeadId = project.lead_id;
-    fetch(`${API_BASE_URL}/api/branddesign/${currentLeadId}`, { headers })
-      .then(r => r.ok ? r.json() : null)
+    loadJson(`${API_BASE_URL}/api/branddesign/${currentLeadId}`, { headers }, { context: 'Markendesign' })
       .then(async d => {
         if (!d || (d.lead_id !== undefined && d.lead_id !== currentLeadId)) return;
         // Also load guideline status and attach it to brandData
-        try {
-          const glRes = await fetch(
-            `${API_BASE_URL}/api/branddesign/${currentLeadId}/guideline`,
-            { headers }
-          );
-          if (glRes.ok) {
-            const gl = await glRes.json();
-            d = { ...d, guideline_generated: gl.generated || false };
-          }
-        } catch { /* silent */ }
-        setBrandData(d);
-      })
-      .catch(() => {});
+        const gl = await loadJson(
+          `${API_BASE_URL}/api/branddesign/${currentLeadId}/guideline`,
+          { headers },
+          { context: 'Marken-Guideline' }
+        );
+        setBrandData(gl ? { ...d, guideline_generated: gl.generated || false } : d);
+      });
   }, [project?.lead_id]); // eslint-disable-line
 
   // Set initial tab on project load
@@ -1282,20 +1286,17 @@ export default function ProjectDetail() {
   const loadSitemapPages = async () => {
     if (!project?.lead_id) return;
     setSitemapLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id}`, { headers: h });
-      if (res.ok) {
-        const pages = await res.json();
-        setSitemapPages(pages);
-        setSitemapLoaded(true);
-        if (!selectedPageId && pages.length > 0) {
-          const contentPages = pages.filter(p => !p.ist_pflichtseite);
-          const start = contentPages.find(p => p.page_type === 'startseite') || contentPages[0];
-          if (start) setSelectedPageId(start.id);
-        }
+    const pages = await loadJson(`${API_BASE_URL}/api/sitemap/${project.lead_id}`, { headers: h }, { context: 'Sitemap' });
+    if (pages) {
+      setSitemapPages(pages);
+      setSitemapLoaded(true);
+      if (!selectedPageId && pages.length > 0) {
+        const contentPages = pages.filter(p => !p.ist_pflichtseite);
+        const start = contentPages.find(p => p.page_type === 'startseite') || contentPages[0];
+        if (start) setSelectedPageId(start.id);
       }
-    } catch { /* silent */ }
-    finally { setSitemapLoading(false); }
+    }
+    setSitemapLoading(false);
   };
 
   const downloadSitemapPdf = async () => {
@@ -1394,56 +1395,59 @@ export default function ProjectDetail() {
 
   const generateKI = async () => {
     setKiConfirm(false); setKiGenerating(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id}/generate`, { method: 'POST', headers: h });
-      if (res.ok) { const d = await res.json(); setSitemapPages(d.pages || []); setSelectedPageId(null); }
-    } catch { /* silent */ }
-    finally { setKiGenerating(false); }
+    const d = await loadJson(
+      `${API_BASE_URL}/api/sitemap/${project.lead_id}/generate`,
+      { method: 'POST', headers: h },
+      { context: 'Sitemap-Vorschlag', emptyOn: [] }
+    );
+    if (d) { setSitemapPages(d.pages || []); setSelectedPageId(null); }
+    setKiGenerating(false);
   };
 
   const createSitemapPage = async () => {
     if (!addPageForm.page_name.trim()) return;
     setAddPageSaving(true);
-    try {
-      const body = { page_name: addPageForm.page_name, page_type: addPageForm.page_type, parent_id: addPageForm.parent_id ? Number(addPageForm.parent_id) : null, position: sitemapPages.filter(p => !p.ist_pflichtseite).length };
-      const res = await fetch(`${API_BASE_URL}/api/sitemap/${project.lead_id}/pages`, { method: 'POST', headers: h, body: JSON.stringify(body) });
-      if (res.ok) { const page = await res.json(); setSitemapPages(prev => [...prev, page]); setAddPageForm({ page_name: '', page_type: 'info', parent_id: '' }); setAddPageOpen(false); }
-    } catch { /* silent */ }
-    finally { setAddPageSaving(false); }
+    const body = { page_name: addPageForm.page_name, page_type: addPageForm.page_type, parent_id: addPageForm.parent_id ? Number(addPageForm.parent_id) : null, position: sitemapPages.filter(p => !p.ist_pflichtseite).length };
+    const page = await loadJson(
+      `${API_BASE_URL}/api/sitemap/${project.lead_id}/pages`,
+      { method: 'POST', headers: h, body: JSON.stringify(body) },
+      { context: 'Seite anlegen', emptyOn: [] }
+    );
+    if (page) {
+      setSitemapPages(prev => [...prev, page]);
+      setAddPageForm({ page_name: '', page_type: 'info', parent_id: '' });
+      setAddPageOpen(false);
+    }
+    setAddPageSaving(false);
   };
 
   const saveEditPage = async () => {
     if (!editPageModal) return;
     setEditPageSaving(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/sitemap/pages/${editPageModal.id}`, { method: 'PUT', headers: h, body: JSON.stringify(editPageForm) });
-      if (res.ok) { const updated = await res.json(); setSitemapPages(prev => prev.map(p => p.id === updated.id ? updated : p)); setEditPageModal(null); }
-    } catch { /* silent */ }
-    finally { setEditPageSaving(false); }
+    const updated = await loadJson(
+      `${API_BASE_URL}/api/sitemap/pages/${editPageModal.id}`,
+      { method: 'PUT', headers: h, body: JSON.stringify(editPageForm) },
+      { context: 'Seite speichern', emptyOn: [] }
+    );
+    if (updated) {
+      setSitemapPages(prev => prev.map(p => p.id === updated.id ? updated : p));
+      setEditPageModal(null);
+    }
+    setEditPageSaving(false);
   };
 
   const loadLatestAudit = async () => {
     if (!project?.lead_id || latestAudit !== null) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/leads/${project.lead_id}/profile`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setLatestAudit((data.audits || [])[0] || false);
-      }
-    } catch { /* silent */ }
+    const data = await loadJson(`${API_BASE_URL}/api/leads/${project.lead_id}/profile`, { headers }, { context: 'Kundenprofil' });
+    if (data) setLatestAudit((data.audits || [])[0] || false);
   };
 
   const loadBrandData = async () => {
     if (!project?.lead_id) return;
     setBrandData(null);
     const currentLeadId = project.lead_id;
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/branddesign/${currentLeadId}`, { headers });
-      if (res.ok) {
-        const d = await res.json();
-        if (d.lead_id === undefined || d.lead_id === currentLeadId) setBrandData(d);
-      }
-    } catch { /* silent */ }
+    const d = await loadJson(`${API_BASE_URL}/api/branddesign/${currentLeadId}`, { headers }, { context: 'Markendesign' });
+    if (d && (d.lead_id === undefined || d.lead_id === currentLeadId)) setBrandData(d);
   };
 
   const loadPageContext = async () => {
@@ -1529,11 +1533,14 @@ export default function ProjectDetail() {
       setDesignResult(result);
 
       if (selectedPage && result) {
+        // Der Entwurf steht auf dem Bildschirm — scheitert das Sichern, ist er
+        // beim naechsten Laden weg. Das muss gesagt werden.
         const designHtml = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
-        fetch(`${API_BASE_URL}/api/sitemap/pages/${selectedPage.id}`, {
-          method: 'PUT', headers: h,
-          body: JSON.stringify({ ...selectedPage, mockup_html: designHtml }),
-        }).catch(() => {});
+        saveJson(
+          `${API_BASE_URL}/api/sitemap/pages/${selectedPage.id}`,
+          { method: 'PUT', headers: h, body: JSON.stringify({ ...selectedPage, mockup_html: designHtml }) },
+          { context: 'Entwurf sichern' }
+        );
       }
     } catch (e) {
       setDesignError(e?.message || e?.detail || String(e) || 'Generierung fehlgeschlagen.');

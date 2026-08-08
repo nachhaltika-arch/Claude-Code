@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAudit } from '../hooks/useAudit';
 import { parseApiError } from '../utils/apiError';
+import { loadJson, saveJson } from '../utils/apiRequest';
 import EmptyState from '../components/ui/EmptyState';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -133,10 +134,11 @@ function CrawledImagesGallery({ leadId, headers }) {
   const [showAll, setShowAll] = useState(false);
   useEffect(() => {
     if (!leadId) return;
-    fetch(`${API_BASE_URL}/api/files/${leadId}/grapesjs-assets?include_crawled=true`, { headers })
-      .then(r => r.ok ? r.json() : [])
-      .then(assets => setImages((Array.isArray(assets) ? assets : []).filter(a => a.category?.startsWith('Website:'))))
-      .catch(() => {});
+    loadJson(
+      `${API_BASE_URL}/api/files/${leadId}/grapesjs-assets?include_crawled=true`,
+      { headers },
+      { context: 'Bilder der Website', fallback: [] }
+    ).then(assets => setImages((Array.isArray(assets) ? assets : []).filter(a => a.category?.startsWith('Website:'))));
   }, [leadId]); // eslint-disable-line
   if (images.length === 0) return null;
   const visible = showAll ? images : images.slice(0, 12);
@@ -265,22 +267,26 @@ export default function LeadProfile() {
 
   const loadMessages = async () => {
     setMsgLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/messages/${leadId}`, { headers: h });
-      if (res.ok) setMessages(await res.json());
-    } catch { /* silent */ } finally { setMsgLoading(false); }
+    const data = await loadJson(`${API_BASE_URL}/api/messages/${leadId}`, { headers: h }, { context: 'Nachrichten' });
+    if (data) setMessages(data);
+    setMsgLoading(false);
   };
 
   const sendMessage = async () => {
     if (!msgText.trim()) return;
     setMsgSending(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/messages/${leadId}`, {
+    // Vorher blieb der Text im Feld stehen und nichts passierte — der Nutzer
+    // konnte nicht unterscheiden, ob gesendet wurde oder nicht.
+    const sent = await saveJson(
+      `${API_BASE_URL}/api/messages/${leadId}`,
+      {
         method: 'POST', headers: h,
         body: JSON.stringify({ content: msgText.trim(), subject: msgSubject.trim() || undefined, channel: msgChannel }),
-      });
-      if (res.ok) { setMsgText(''); setMsgSubject(''); await loadMessages(); }
-    } catch { /* silent */ } finally { setMsgSending(false); }
+      },
+      { context: 'Nachricht senden' }
+    );
+    if (sent) { setMsgText(''); setMsgSubject(''); await loadMessages(); }
+    setMsgSending(false);
   };
 
   useEffect(() => {
@@ -308,41 +314,44 @@ export default function LeadProfile() {
 
   const loadEmailData = async () => {
     setEmailLoading(true);
-    try {
-      const r = await fetch(
-        `${API_BASE_URL}/api/leads/${leadId}/email-logs`,
-        { headers: h }
-      );
-      if (r.ok) setEmailLogs(await r.json());
+    const logs = await loadJson(`${API_BASE_URL}/api/leads/${leadId}/email-logs`, { headers: h }, { context: 'E-Mail-Verlauf' });
+    if (logs) setEmailLogs(logs);
 
-      if (profile?.lead) {
-        setSeqStatus({
-          active:    profile.lead.sequence_active,
-          paused:    profile.lead.sequence_paused,
-          step:      profile.lead.sequence_step || 0,
-          last_sent: profile.lead.sequence_last_sent,
-        });
-      }
-    } catch {}
+    if (profile?.lead) {
+      setSeqStatus({
+        active:    profile.lead.sequence_active,
+        paused:    profile.lead.sequence_paused,
+        step:      profile.lead.sequence_step || 0,
+        last_sent: profile.lead.sequence_last_sent,
+      });
+    }
     setEmailLoading(false);
   };
 
   const seqAction = async (action) => {
-    await fetch(
+    // Der Status wurde nie geprüft: eine abgelehnte Aktion sah nach einem
+    // erfolgreichen Klick aus, weil danach einfach neu geladen wurde.
+    const done = await saveJson(
       `${API_BASE_URL}/api/leads/${leadId}/sequence/${action}`,
-      { method: 'POST', headers: h }
+      { method: 'POST', headers: h },
+      { context: 'E-Mail-Sequenz' }
     );
+    if (!done) return;
     await loadProfile();
     await loadEmailData();
   };
 
   const checkDomain = async () => {
     setDomainLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/domain-check`, { method: 'POST', headers: h });
-      const d = await res.json();
+    const d = await loadJson(
+      `${API_BASE_URL}/api/leads/${leadId}/domain-check`,
+      { method: 'POST', headers: h },
+      { context: 'Domain-Prüfung', emptyOn: [] }
+    );
+    if (d) {
       setProfile(prev => ({ ...prev, lead: { ...prev.lead, domain_reachable: d.reachable, domain_status_code: d.status_code, domain_checked_at: d.checked_at } }));
-    } catch { /* silent */ } finally { setDomainLoading(false); }
+    }
+    setDomainLoading(false);
   };
 
   const loadProfile = async () => {
@@ -357,10 +366,8 @@ export default function LeadProfile() {
       setDisplayName(lead.display_name || lead.company_name || '');
       setProjectId(data.project_id || null);
       if (data.project_id) {
-        fetch(`${API_BASE_URL}/api/projects/${data.project_id}`, { headers: h })
-          .then(r => r.ok ? r.json() : null)
-          .then(p => { if (p) setProjectData(p); })
-          .catch(() => {});
+        loadJson(`${API_BASE_URL}/api/projects/${data.project_id}`, { headers: h }, { context: 'Projekt' })
+          .then(p => { if (p) setProjectData(p); });
       }
       setEditData({
         company_name: lead.company_name || '',
@@ -394,24 +401,16 @@ export default function LeadProfile() {
   };
 
   const loadDomains = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/leads/${leadId}/domains`, { headers: h });
-      if (res.ok) setDomains(await res.json());
-    } catch { /* silent */ }
+    const data = await loadJson(`${API_BASE_URL}/api/leads/${leadId}/domains`, { headers: h }, { context: 'Domains' });
+    if (data) setDomains(data);
   };
 
   const loadBriefing = async () => {
     setBriefingLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers: h });
-      if (res.ok) {
-        const data = await res.json();
-        setBriefingData(data);
-        return data;
-      }
-    } catch { /* silent */ }
-    finally { setBriefingLoading(false); }
-    return null;
+    const data = await loadJson(`${API_BASE_URL}/api/briefings/${leadId}`, { headers: h }, { context: 'Briefing' });
+    setBriefingLoading(false);
+    if (data) setBriefingData(data);
+    return data;
   };
 
   const openBriefingWizard = async () => {
@@ -543,19 +542,13 @@ export default function LeadProfile() {
   };
 
   const fetchLatestScreenshot = async () => {
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/leads/${leadId}/latest-screenshot`,
-        { headers: h }
-      );
-      const data = await res.json();
-      if (data.screenshot_url) {
-        setProfile(prev => ({
-          ...prev,
-          lead: { ...prev.lead, website_screenshot: data.screenshot_url },
-        }));
-      }
-    } catch {}
+    const data = await loadJson(`${API_BASE_URL}/api/leads/${leadId}/latest-screenshot`, { headers: h }, { context: 'Screenshot' });
+    if (data?.screenshot_url) {
+      setProfile(prev => ({
+        ...prev,
+        lead: { ...prev.lead, website_screenshot: data.screenshot_url },
+      }));
+    }
   };
 
   const saveEdit = async () => {
@@ -571,14 +564,14 @@ export default function LeadProfile() {
   };
 
   const saveDisplayName = async () => {
-    try {
-      await fetch(
-        `${API_BASE_URL}/api/leads/${leadId}`,
-        { method: 'PATCH', headers: h, body: JSON.stringify({ display_name: displayName }) }
-      );
-      setEditingName(false);
-      await loadProfile();
-    } catch {}
+    const saved = await saveJson(
+      `${API_BASE_URL}/api/leads/${leadId}`,
+      { method: 'PATCH', headers: h, body: JSON.stringify({ display_name: displayName }) },
+      { context: 'Anzeigename speichern' }
+    );
+    if (!saved) return;
+    setEditingName(false);
+    await loadProfile();
   };
 
   const createProject = async () => {
@@ -613,16 +606,19 @@ export default function LeadProfile() {
   };
 
   const updateStatus = async (status) => {
-    try {
-      await fetch(
-        `${API_BASE_URL}/api/leads/${leadId}`,
-        { method: 'PATCH', headers: h, body: JSON.stringify({ status }) }
-      );
-      await loadProfile();
-      if (status === 'won' && !projectId) {
-        setWonModal(true);
-      }
-    } catch {}
+    // Ein gescheitertes PATCH lief vorher ins Leere und die Ansicht wurde
+    // trotzdem neu geladen — der alte Status sah aus wie ein Anzeigefehler.
+    const saved = await saveJson(
+      `${API_BASE_URL}/api/leads/${leadId}`,
+      { method: 'PATCH', headers: h, body: JSON.stringify({ status }) },
+      { context: 'Status ändern' }
+    );
+    if (!saved) return;
+
+    await loadProfile();
+    if (status === 'won' && !projectId) {
+      setWonModal(true);
+    }
   };
 
   const startAudit = () => auditStart();
@@ -665,30 +661,31 @@ export default function LeadProfile() {
   const createScreenshot = async () => {
     if (!profile?.lead?.website_url) return;
     setScreenshotLoading(true);
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/leads/${leadId}/screenshot`,
-        { method: 'POST', headers: h }
-      );
-      const data = await res.json();
-      if (data.success && data.screenshot_url) {
-        setProfile(prev => ({
-          ...prev,
-          lead: { ...prev.lead, website_screenshot: data.screenshot_url },
-        }));
-      }
-    } catch {} finally { setScreenshotLoading(false); }
+    const data = await loadJson(
+      `${API_BASE_URL}/api/leads/${leadId}/screenshot`,
+      { method: 'POST', headers: h },
+      { context: 'Screenshot aufnehmen', emptyOn: [] }
+    );
+    if (data?.success && data.screenshot_url) {
+      setProfile(prev => ({
+        ...prev,
+        lead: { ...prev.lead, website_screenshot: data.screenshot_url },
+      }));
+    }
+    setScreenshotLoading(false);
   };
 
   const deleteAudit = async (auditId) => {
-    try {
-      await fetch(
-        `${API_BASE_URL}/api/audit/${auditId}`,
-        { method: 'DELETE', headers: h }
-      );
-      setDeleteAuditId(null);
-      await loadProfile();
-    } catch {}
+    // Ein fehlgeschlagenes Löschen schloss trotzdem den Dialog; der Eintrag war
+    // nach dem Neuladen wieder da und wirkte wie ein Gespenst.
+    const deleted = await saveJson(
+      `${API_BASE_URL}/api/audit/${auditId}`,
+      { method: 'DELETE', headers: h },
+      { context: 'Audit löschen' }
+    );
+    if (!deleted) return;
+    setDeleteAuditId(null);
+    await loadProfile();
   };
 
   const extractFromImpressum = async () => {
@@ -936,13 +933,12 @@ export default function LeadProfile() {
 
           <button
             onClick={async () => {
-              try {
-                await fetch(
-                  `${API_BASE_URL}/api/leads/${leadId}/enrich`,
-                  { method: 'POST', headers: h }
-                );
-                await loadProfile();
-              } catch {}
+              const enriched = await saveJson(
+                `${API_BASE_URL}/api/leads/${leadId}/enrich`,
+                { method: 'POST', headers: h },
+                { context: 'Daten neu prüfen' }
+              );
+              if (enriched) await loadProfile();
             }}
             title="Google Business + alle Daten neu prüfen"
             style={{

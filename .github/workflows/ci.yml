@@ -25,7 +25,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install ruff
-        run: pip install ruff==0.6.9
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" pip install ruff==0.6.9
       - name: Run ruff (critical rules only)
         working-directory: kompagnon/backend
         run: ruff check --select E9,F63,F7,F82 --output-format=github .
@@ -45,7 +45,7 @@ jobs:
           cache-dependency-path: kompagnon/backend/requirements.txt
       - name: Install dependencies
         working-directory: kompagnon/backend
-        run: pip install -r requirements.txt
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" pip install -r requirements.txt
       - name: Smoke-import main
         working-directory: kompagnon/backend
         env:
@@ -87,7 +87,7 @@ jobs:
           cache-dependency-path: kompagnon/backend/requirements*.txt
       - name: Install dependencies
         working-directory: kompagnon/backend
-        run: pip install -r requirements.txt -r requirements-dev.txt
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" pip install -r requirements.txt -r requirements-dev.txt
       - name: Run pytest
         working-directory: kompagnon/backend
         env:
@@ -109,7 +109,7 @@ jobs:
           cache-dependency-path: kompagnon/frontend/package-lock.json
       - name: Install dependencies
         working-directory: kompagnon/frontend
-        run: npm ci --legacy-peer-deps
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npm ci --legacy-peer-deps
       - name: Build
         working-directory: kompagnon/frontend
         env:
@@ -166,7 +166,7 @@ jobs:
 
       - name: Install backend
         working-directory: kompagnon/backend
-        run: pip install -r requirements.txt
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" pip install -r requirements.txt
 
       # Der Editor gibt nur den naechsten Schritt nach der letzten lueckenlosen
       # Kette frei. Ohne dieses Seed sind Sitemap, Wireframe und Style Guide
@@ -193,9 +193,12 @@ jobs:
           CI: false
           REACT_APP_API_URL: http://localhost:8000
         run: |
-          npm ci --legacy-peer-deps
+          bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npm ci --legacy-peer-deps
           npm run build
-          nohup npx serve -s build -l 3000 > /tmp/frontend.log 2>&1 &
+          # serve fest installieren statt per npx zur Startzeit zu ziehen:
+          # ein Registry-Aussetzer soll den Test nicht mitten im Start treffen.
+          bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npm install --global serve@14.2.6
+          nohup serve -s build -l 3000 > /tmp/frontend.log 2>&1 &
           for i in $(seq 1 60); do
             if curl -sf http://localhost:3000 > /dev/null; then
               echo "Frontend bereit nach ${i}s"; exit 0
@@ -207,8 +210,8 @@ jobs:
       - name: Install Playwright
         working-directory: kompagnon/e2e
         run: |
-          npm install
-          npx playwright install --with-deps chromium
+          bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npm ci
+          bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" npx playwright install --with-deps chromium
 
       - name: Run browser tests
         working-directory: kompagnon/e2e
@@ -241,7 +244,10 @@ jobs:
           fetch-depth: 0
       - name: Install gitleaks
         run: |
-          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar -xz
+          # -f laesst curl bei HTTP-Fehlern scheitern, pipefail reicht den Fehler
+          # durch die Pipe weiter — sonst meldet nur tar, und zwar Erfolg.
+          bash "$GITHUB_WORKSPACE/scripts/ci-retry.sh" bash -c \
+            'set -o pipefail; curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar -xz'
           sudo mv gitleaks /usr/local/bin/
           gitleaks version
       - name: Scan repository

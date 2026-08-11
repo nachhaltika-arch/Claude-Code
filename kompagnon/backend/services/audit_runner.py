@@ -17,6 +17,7 @@ from bs4 import BeautifulSoup
 
 from services import audit_collectors as collectors
 from services.audit_pagespeed import fetch_pagespeed
+from services.url_guard import UnsafeUrlError, fetch_guarded
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +40,10 @@ async def fetch_homepage(url: str) -> dict:
     unsichtbar und wurden trotzdem mit der vollen SSL-Punktzahl belohnt.
     """
     try:
-        async with httpx.AsyncClient(
-            timeout=HOMEPAGE_TIMEOUT, follow_redirects=True, verify=True
-        ) as client:
-            r = await client.get(url, headers={"User-Agent": USER_AGENT})
+        async with httpx.AsyncClient(timeout=HOMEPAGE_TIMEOUT, verify=True) as client:
+            # Jede Weiterleitung einzeln geprüft — sonst wäre nur der erste
+            # Hop kontrolliert und ein Redirect ins interne Netz käme durch.
+            r = await fetch_guarded(client, url, headers={"User-Agent": USER_AGENT})
         return {
             "collected": True,
             "reachable": r.status_code < 400,
@@ -51,6 +52,9 @@ async def fetch_homepage(url: str) -> dict:
             "headers": dict(r.headers),
             "final_url": str(r.url),
         }
+    except UnsafeUrlError as e:
+        return {"collected": True, "reachable": False, "status_code": 0,
+                "html": "", "headers": {}, "error": f"Adresse nicht erlaubt: {e}"[:200]}
     except httpx.ConnectError as e:
         return {"collected": True, "reachable": False, "status_code": 0,
                 "html": "", "headers": {}, "error": f"Verbindung fehlgeschlagen: {e}"[:200]}

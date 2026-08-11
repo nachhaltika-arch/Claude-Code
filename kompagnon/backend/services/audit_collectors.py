@@ -20,6 +20,8 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from bs4 import BeautifulSoup
 
+from services.url_guard import assert_safe_url, is_same_host
+
 logger = logging.getLogger(__name__)
 
 USER_AGENT = (
@@ -142,6 +144,7 @@ async def check_https_redirect(url: str) -> dict:
     parsed = urlparse(url)
     http_url = f"http://{parsed.netloc}{parsed.path or '/'}"
     try:
+        assert_safe_url(http_url)
         async with httpx.AsyncClient(timeout=SUBPAGE_TIMEOUT, follow_redirects=False) as c:
             r = await c.get(http_url, headers={"User-Agent": USER_AGENT})
         location = r.headers.get("location", "")
@@ -160,10 +163,17 @@ async def check_https_redirect(url: str) -> dict:
 # ═══════════════════════════════════════════════════════════════════
 
 def _find_link(soup: BeautifulSoup, base_url: str, patterns) -> Optional[str]:
+    """Findet einen Link — nur auf derselben Domain.
+
+    Ohne die Host-Prüfung könnte ein Link im fremden HTML den serverseitigen
+    Abruf auf ein internes Ziel lenken.
+    """
     for a in soup.find_all("a", href=True):
         haystack = f"{a['href']} {a.get_text()}".lower()
         if any(p in haystack for p in patterns):
-            return urljoin(base_url, a["href"])
+            candidate = urljoin(base_url, a["href"])
+            if is_same_host(candidate, base_url):
+                return candidate
     return None
 
 
@@ -322,7 +332,9 @@ async def analyse_images(soup: BeautifulSoup, base_url: str) -> dict:
         if img.get("width") and img.get("height"):
             with_dimensions += 1
         if src and not src.startswith("data:"):
-            sources.append(urljoin(base_url, img.get("src") or img.get("data-src")))
+            absolute = urljoin(base_url, img.get("src") or img.get("data-src"))
+            if is_same_host(absolute, base_url):
+                sources.append(absolute)
 
     oversized = await _sample_image_sizes(sources[:MAX_IMAGES_SAMPLED])
     total = len(images)

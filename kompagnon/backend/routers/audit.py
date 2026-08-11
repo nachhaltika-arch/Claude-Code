@@ -24,6 +24,7 @@ from database import AuditResult, Lead, User, get_db, SessionLocal
 from email_service import send_audit_done_email
 from routers.auth_router import optional_auth
 from services.audit_criteria import CATALOGUE, BLOCKER_LABELS, SOURCE_LABELS, Source
+from services.url_guard import check_url
 
 logger = logging.getLogger(__name__)
 
@@ -307,6 +308,13 @@ async def start_audit(
 ):
     """Create audit record, auto-scrape website, and run checks in background."""
     url = _normalise_url(req.website_url)
+
+    # Der Endpunkt ist öffentlich (Einbett-Widget). Ohne diese Prüfung könnte
+    # jeder den Server interne Adressen abrufen lassen — vor dem Scrapen prüfen,
+    # denn auch der Scraper holt die Seite ab.
+    ok, reason = check_url(url)
+    if not ok:
+        raise HTTPException(status_code=400, detail=f"Adresse nicht erlaubt: {reason}")
 
     # DB-Verbindung vor dem externen Scrape-Call freigeben
     db.close()

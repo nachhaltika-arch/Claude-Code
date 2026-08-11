@@ -25,6 +25,14 @@ async function anfrage(url, options = {}) {
   return data;
 }
 
+/* Frischemarker für die Vorschau. Browser halten eine einmal geladene
+   Widget-Fassung fest; wer die Adresse aufrief, als sie noch von der
+   React-App verschluckt wurde, sah im Rahmen dauerhaft das Dashboard.
+   Einmal pro Seitenaufruf berechnet — als Wert im Rendern erzeugt, würde
+   das iframe bei jedem Rendern neu laden. Der Einbaucode für Kunden bleibt
+   bewusst ohne Marker: dort sorgt der no-cache-Header des Servers dafür. */
+const VORSCHAU_MARKER = Date.now();
+
 function Abschnitt({ titel, hinweis, children }) {
   return (
     <section className="kc-card" style={{ marginBottom: 20 }}>
@@ -304,7 +312,7 @@ export default function AkquiseWidget() {
         <div>
           <Abschnitt titel="Vorschau" hinweis="So sehen Interessenten das Widget.">
             <iframe
-              src={widget.embed_url}
+              src={`${widget.embed_url}?v=${VORSCHAU_MARKER}`}
               title="Widget-Vorschau"
               style={{ width: '100%', height: 760, border: '1px solid var(--border-light)',
                        borderRadius: 8, background: '#fff' }}

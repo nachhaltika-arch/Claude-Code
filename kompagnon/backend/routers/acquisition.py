@@ -123,7 +123,7 @@ def send_test_email(
     db: Session = Depends(get_db),
 ):
     """Verschickt eine echte Test-E-Mail über den hinterlegten Zugang."""
-    from services.email import send_email
+    from services.email import send_email_detailed
 
     kanal = app_settings.mail_channel(db)
     if not kanal["ready"]:
@@ -131,7 +131,7 @@ def send_test_email(
                                  + kanal["detail"])
     config = app_settings.smtp_config(db)
 
-    ok = send_email(
+    ok, grund = send_email_detailed(
         to_email=payload.to.strip(),
         subject="KOMPAGNON — SMTP-Test",
         html_body=(
@@ -143,7 +143,6 @@ def send_test_email(
         db=db,
     )
     if not ok:
-        raise HTTPException(502, f"Versand über {kanal['label']} fehlgeschlagen — "
-                                 "Details stehen im Server-Log.")
+        raise HTTPException(502, f"Versand fehlgeschlagen — {grund}")
     return {"message": f"Test-E-Mail an {payload.to} versendet",
-            "channel": kanal["label"]}
+            "channel": kanal["label"], "detail": grund}

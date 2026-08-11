@@ -90,6 +90,18 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str = "",
     für die Newsletter gepflegt wird. SMTP bleibt als zweiter Weg bestehen,
     falls jemand lieber einen eigenen Mailserver nutzt.
     """
+    erfolg, _ = send_email_detailed(to_email, subject, html_body, text_body,
+                                    db, attachments)
+    return erfolg
+
+
+def send_email_detailed(to_email: str, subject: str, html_body: str,
+                        text_body: str = "", db=None, attachments=None) -> tuple:
+    """Wie send_email, gibt aber (erfolg, begruendung) zurück.
+
+    Ohne die Begründung landet der Grund nur im Server-Log — und wer keinen
+    Log-Zugang hat, sieht bloß "Versand fehlgeschlagen" und kann nichts tun.
+    """
     config = _smtp_settings(db)
 
     from services import brevo_mail
@@ -105,12 +117,12 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str = "",
             attachments=attachments,
         )
         if erfolg:
-            return True
+            return True, "über Brevo gesendet"
         # Kein stiller Rückfall: ist SMTP nicht eingerichtet, bleibt es beim
         # Fehler — sonst sieht es aus, als sei nur SMTP nicht konfiguriert.
         logger.warning(f"Brevo-Versand fehlgeschlagen ({meldung})")
         if not config["configured"]:
-            return False
+            return False, f"Brevo: {meldung}"
         logger.info("Versuche stattdessen SMTP")
 
     smtp_host = config["host"]
@@ -122,7 +134,7 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str = "",
 
     if not config["configured"]:
         logger.warning("SMTP nicht konfiguriert — E-Mail nicht gesendet")
-        return False
+        return False, "Kein Versandweg eingerichtet (weder Brevo noch SMTP)"
 
     try:
         msg = _build_message(
@@ -145,10 +157,10 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str = "",
         server.sendmail(sender_email, to_email, msg.as_string())
         server.quit()
         logger.info(f"E-Mail gesendet an {to_email}")
-        return True
+        return True, "über SMTP gesendet"
     except Exception as e:
         logger.error(f"E-Mail Fehler an {to_email}: {e}")
-        return False
+        return False, f"SMTP: {type(e).__name__}: {e}"[:200]
 
 
 def send_password_reset_email(to_email: str, reset_token: str, user_name: str = "") -> bool:

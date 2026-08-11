@@ -184,7 +184,10 @@
 <body>
   <div class="kpg-card" id="kpg-card">
     <!-- ── Schritt 1: Eingabe ── -->
-    <form id="kpg-form" novalidate>
+    <!-- Ohne novalidate: bei leeren Feldern meldet sich der Browser selbst.
+         Vorher endete ein Klick auf „Analyse starten“ mit leeren Feldern
+         wortlos — der Knopf wirkte kaputt. -->
+    <form id="kpg-form">
       <p class="kpg-eyebrow">Gratis · Sofortergebnis · Kein Login</p>
       <h2 class="kpg-h">Ihre Website<br>jetzt analysieren</h2>
 
@@ -214,9 +217,11 @@
         </svg>
         Analyse starten
       </button>
-      <p class="kpg-foot">Der Bericht geht an die angegebene Adresse ·
-        <a id="kpg-privacy" href="#" target="_blank" rel="noopener"
-           style="display:none">Datenschutz</a></p>
+      <!-- Trennzeichen steht im Link, sonst bleibt ein „·“ ohne Ziel stehen,
+           solange kein Datenschutz-Link konfiguriert ist. -->
+      <p class="kpg-foot">Der Bericht geht an die angegebene Adresse<a
+           id="kpg-privacy" href="#" target="_blank" rel="noopener"
+           style="display:none"> · Datenschutz</a></p>
     </form>
   </div>
 
@@ -315,15 +320,21 @@
     } catch (e) { /* no-op */ }
   }
 
-  /* ── Website aus E-Mail-Domain ableiten ── */
+  /* ── Website aus E-Mail-Domain ableiten ──
+     Die Ableitung folgt der Eingabe, solange der Nutzer das URL-Feld nicht
+     selbst angefasst hat. Früher wurde beim ersten Zeichen nach dem „@“
+     geschrieben und danach nie wieder korrigiert — aus „info@firma.de“
+     wurde die URL „f“. Ab der ersten eigenen Eingabe im URL-Feld bleibt
+     die Ableitung stumm. */
+  var urlBearbeitet = false;
+  urlEl.addEventListener('input', function () { urlBearbeitet = true; });
+
   emailEl.addEventListener('input', function () {
+    if (urlBearbeitet) return;
     var val = emailEl.value;
     var at = val.indexOf('@');
-    if (at === -1) return;
-    var host = val.slice(at + 1).toLowerCase().trim();
-    if (host && FREE_MAIL.indexOf(host) === -1 && !urlEl.value) {
-      urlEl.value = host;
-    }
+    var host = at === -1 ? '' : val.slice(at + 1).toLowerCase().trim();
+    urlEl.value = (host && FREE_MAIL.indexOf(host) === -1) ? host : '';
   });
 
   /* ── Submit ── */

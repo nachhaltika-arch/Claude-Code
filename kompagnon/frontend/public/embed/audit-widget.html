@@ -225,10 +225,19 @@
   'use strict';
 
   /* ── Konfiguration: per <body data-api="…"> oder ?api= überschreibbar ── */
+  /* Das Backend richtet sich nach der Herkunft des Widgets: die
+     Staging-Fassung spricht das Staging-Backend an, die produktive das
+     produktive. Ohne diese Ableitung rief die Staging-Fassung das
+     Produktiv-Backend an — dort gibt es den Widget-Endpunkt (noch) nicht,
+     und das Formular endete in einem Fehler. */
+  var IST_STAGING = location.hostname.indexOf('staging') !== -1;
+
   var API_BASE =
     document.body.getAttribute('data-api') ||
     new URLSearchParams(location.search).get('api') ||
-    'https://claude-code-znq2.onrender.com';
+    (IST_STAGING
+      ? 'https://kompagnon-backend-staging.onrender.com'
+      : 'https://claude-code-znq2.onrender.com');
 
   var CHECKOUT_URL =
     document.body.getAttribute('data-checkout') ||

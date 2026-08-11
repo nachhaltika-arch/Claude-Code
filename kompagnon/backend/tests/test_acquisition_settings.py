@@ -1,9 +1,9 @@
 """
-Einstellungen unter Akquise: Widget und E-Mail-Zugang.
+Einstellungen unter Akquise: Widget und E-Mail-Versand.
 
-Der wichtigste Punkt hier ist, dass das SMTP-Passwort verschlüsselt abgelegt
-und über die API nie zurückgegeben wird — sonst könnte es jeder Admin-Token
-im Klartext auslesen.
+Der wichtigste Punkt hier ist, dass hinterlegte Geheimnisse verschlüsselt
+abgelegt und über die API nie zurückgegeben werden — sonst könnte sie jeder
+Admin-Token im Klartext auslesen.
 """
 import os
 
@@ -47,16 +47,15 @@ def test_passwort_wird_korrekt_zurueckgelesen(schluessel, db):
     assert app_settings.get(db, "smtp_password") == "streng-geheim"
 
 
-def test_status_enthaelt_niemals_das_passwort(schluessel, db):
+def test_versandweg_meldet_smtp_ohne_das_passwort_zu_zeigen(schluessel, db):
     app_settings.set_many(db, {
         "smtp_host": "smtp.example.de", "smtp_user": "post@example.de",
         "smtp_password": "streng-geheim",
     })
 
-    status = app_settings.smtp_status(db)
-    assert "streng-geheim" not in str(status)
-    assert status["password_set"] is True
-    assert status["password_source"] == "datenbank"
+    kanal = app_settings.mail_channel(db)
+    assert "streng-geheim" not in str(kanal)
+    assert kanal["ready"] is True
 
 
 def test_leeres_passwort_loescht_das_bestehende_nicht(schluessel, db):
@@ -88,27 +87,41 @@ def test_gespeicherter_wert_sticht_die_umgebungsvariable(monkeypatch, db):
 
 def test_widget_konfiguration_hat_sinnvolle_vorgaben(db):
     config = app_settings.widget_config(db)
-    assert set(config) == {"privacy_url", "checkout_url", "headline"}
+    assert set(config) == {"privacy_url", "checkout_url", "headline", "criteria_count"}
     assert config["headline"]
+
+
+def test_kriterienzahl_stammt_aus_dem_katalog(db):
+    """Das Widget nennt diese Zahl dem Interessenten — sie darf nicht raten."""
+    from services.audit_criteria import all_criteria
+
+    assert app_settings.widget_config(db)["criteria_count"] == len(all_criteria())
 
 
 # ── Zugriffsschutz ────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("pfad", [
     "/api/acquisition/widget",
-    "/api/acquisition/smtp",
+    "/api/acquisition/widget/requests",
+    "/api/acquisition/mail",
 ])
 def test_einstellungen_erfordern_anmeldung(client, pfad):
     assert client.get(pfad).status_code in (401, 403)
 
 
 def test_test_versand_erfordert_anmeldung(client):
-    r = client.post("/api/acquisition/smtp/test", json={"to": "wer@example.de"})
+    r = client.post("/api/acquisition/mail/test", json={"to": "wer@example.de"})
     assert r.status_code in (401, 403)
+
+
+def test_versandweg_laesst_sich_nicht_mehr_einstellen(client):
+    """Der Zugang kommt aus der Umgebung — ein Schreibweg wäre irreführend."""
+    assert client.put("/api/acquisition/smtp", json={"host": "smtp.example.de"}
+                      ).status_code in (404, 405)
 
 
 def test_widget_konfiguration_ist_oeffentlich_aber_ohne_geheimnisse(client):
     """Das Widget läuft auf fremden Seiten und braucht diese Werte ohne Login."""
     r = client.get("/api/widget/config")
     assert r.status_code == 200
-    assert set(r.json()) == {"privacy_url", "checkout_url", "headline"}
+    assert set(r.json()) == {"privacy_url", "checkout_url", "headline", "criteria_count"}

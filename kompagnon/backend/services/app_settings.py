@@ -75,14 +75,6 @@ def decrypt_secret(stored: str) -> str:
         return ""
 
 
-def is_encryption_available() -> bool:
-    try:
-        _fernet()
-        return True
-    except Exception:  # noqa: BLE001
-        return False
-
-
 # ═══════════════════════════════════════════════════════════════════
 # Lesen und Schreiben
 # ═══════════════════════════════════════════════════════════════════
@@ -160,23 +152,6 @@ def smtp_config(db) -> dict:
     }
 
 
-def smtp_status(db) -> dict:
-    """Wie smtp_config, aber ohne Passwort — für die Anzeige im Tool."""
-    config = smtp_config(db)
-    stored = _stored(db, "smtp_password")
-    return {
-        "host": config["host"],
-        "port": config["port"],
-        "user": config["user"],
-        "sender_name": config["sender_name"],
-        "sender_email": config["sender_email"],
-        "configured": config["configured"],
-        "password_set": bool(config["password"]),
-        "password_source": "datenbank" if stored else ("umgebung" if config["password"] else "keins"),
-        "encryption_available": is_encryption_available(),
-    }
-
-
 def mail_channel(db) -> dict:
     """Welcher Weg die Einzelmails tatsächlich verschickt."""
     from services import brevo_mail
@@ -193,8 +168,17 @@ def mail_channel(db) -> dict:
 
 
 def widget_config(db) -> dict:
+    """Anzeigewerte für das Widget auf einer fremden Landingpage.
+
+    ``criteria_count`` kommt aus dem Katalog, damit das Widget keine Zahl
+    behauptet, die es nicht kennt — es stand dort eine fest eingetippte 42,
+    während der Katalog 38 bewertete Kriterien führt.
+    """
+    from services.audit_criteria import all_criteria
+
     return {
         "privacy_url": get(db, "widget_privacy_url"),
         "checkout_url": get(db, "widget_checkout_url"),
         "headline": get(db, "widget_headline"),
+        "criteria_count": len(all_criteria()),
     }

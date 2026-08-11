@@ -1,12 +1,19 @@
 """
 Einstellungen für die Akquise: Einbett-Widget und E-Mail-Versand.
 
-Liegt im Tool unter Akquise, damit Datenschutz-Link und SMTP-Zugang dort
-gepflegt werden können, wo das Widget auch verwendet wird — ohne Umweg über
-das Render-Dashboard.
+Liegt im Tool unter Akquise, damit Anzeige und Links des Widgets dort gepflegt
+werden können, wo das Widget auch verwendet wird — ohne Umweg über das
+Render-Dashboard.
+
+Der Versandweg wird hier nur noch **angezeigt**, nicht eingestellt: seit die
+Einzelmails über die Brevo-Transaktions-API laufen, kommt der Zugang aus
+``BREVO_API_KEY``. Ein SMTP-Formular im Tool hätte nur vorgetäuscht, dass dort
+etwas einzurichten wäre — und sperrte tatsächlich den Test-Versand, solange
+niemand einen ungenutzten SMTP-Server eintrug.
 """
 import logging
 import os
+from datetime import timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -28,17 +35,12 @@ class WidgetSettings(BaseModel):
     headline: str = ""
 
 
-class SmtpSettings(BaseModel):
-    host: str = ""
-    port: int = 587
-    user: str = ""
-    password: str = ""          # leer lassen = bestehendes Passwort behalten
-    sender_name: str = ""
-    sender_email: str = ""
-
-
 class TestEmailRequest(BaseModel):
     to: str
+
+
+# Wie viele der letzten Anfragen die Übersicht im Tool zeigt.
+REQUEST_HISTORY_LIMIT = 25
 
 
 def widget_embed_url() -> str:
@@ -82,47 +84,72 @@ def write_widget_settings(
 
 
 # ═══════════════════════════════════════════════════════════════════
-# E-Mail-Versand
+# Anfragen aus dem Widget
 # ═══════════════════════════════════════════════════════════════════
 
-@router.get("/smtp")
-def read_smtp_settings(_: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """Zugangsdaten ohne Passwort — das wird nie zurückgegeben."""
-    return {**app_settings.smtp_status(db), "mail_channel": app_settings.mail_channel(db)}
+def _als_utc(zeitpunkt) -> Optional[str]:
+    """Zeitstempel mit Zonenangabe.
+
+    In der Datenbank stehen naive UTC-Werte. Ohne das angehängte 'Z' liest der
+    Browser sie als Ortszeit und zeigt jede Anfrage zwei Stunden zu früh an.
+    """
+    if not zeitpunkt:
+        return None
+    return zeitpunkt.replace(tzinfo=timezone.utc).isoformat()
 
 
-@router.put("/smtp")
-def write_smtp_settings(
-    payload: SmtpSettings,
-    admin: User = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
-    if payload.password and not app_settings.is_encryption_available():
-        raise HTTPException(
-            500, "CREDENTIALS_KEY fehlt — ohne diesen Schlüssel wird kein "
-                 "Passwort gespeichert, damit es nicht im Klartext liegt.")
-    if payload.port not in range(1, 65536):
-        raise HTTPException(400, "Port muss zwischen 1 und 65535 liegen.")
+@router.get("/widget/requests")
+def read_widget_requests(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Die letzten Anfragen mit ihrem Zustellstand.
 
-    app_settings.set_many(db, {
-        "smtp_host": payload.host,
-        "smtp_port": str(payload.port),
-        "smtp_user": payload.user,
-        "smtp_password": payload.password,
-        "smtp_sender_name": payload.sender_name,
-        "smtp_sender_email": payload.sender_email,
-    }, admin.id)
-    logger.info(f"SMTP-Einstellungen geändert von Nutzer {admin.id}")
-    return app_settings.smtp_status(db)
+    Ohne diese Liste zeigt das Tool nur eine Gesamtzahl — ob die Berichte
+    tatsächlich rausgingen, war daran nicht zu erkennen.
+    """
+    rows = (
+        db.query(WidgetRequest)
+        .order_by(WidgetRequest.created_at.desc())
+        .limit(REQUEST_HISTORY_LIMIT)
+        .all()
+    )
+    return {
+        "requests": [
+            {
+                "id": row.id,
+                "email": row.email,
+                "website_url": row.website_url,
+                "created_at": _als_utc(row.created_at),
+                "report_sent": row.report_sent_at is not None,
+                "consent_marketing": bool(row.consent_marketing),
+                "consent_confirmed": row.confirmed_at is not None,
+            }
+            for row in rows
+        ],
+        "limit": REQUEST_HISTORY_LIMIT,
+    }
 
 
-@router.post("/smtp/test")
+# ═══════════════════════════════════════════════════════════════════
+# E-Mail-Versand — reine Anzeige plus Probeversand
+# ═══════════════════════════════════════════════════════════════════
+
+@router.get("/mail")
+def read_mail_status(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Über welchen Weg die Berichts-Mails rausgehen. Enthält nie ein Passwort."""
+    config = app_settings.smtp_config(db)
+    return {
+        **app_settings.mail_channel(db),
+        "sender_name": config["sender_name"],
+        "sender_email": config["sender_email"],
+    }
+
+
+@router.post("/mail/test")
 def send_test_email(
     payload: TestEmailRequest,
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Verschickt eine echte Test-E-Mail über den hinterlegten Zugang."""
+    """Verschickt eine echte Test-E-Mail über den aktiven Versandweg."""
     from services.email import send_email_detailed
 
     kanal = app_settings.mail_channel(db)
@@ -133,7 +160,7 @@ def send_test_email(
 
     ok, grund = send_email_detailed(
         to_email=payload.to.strip(),
-        subject="KOMPAGNON — SMTP-Test",
+        subject="KOMPAGNON — Test des E-Mail-Versands",
         html_body=(
             "<p>Diese Nachricht bestätigt, dass der E-Mail-Versand aus dem "
             "KOMPAGNON-Tool funktioniert.</p>"

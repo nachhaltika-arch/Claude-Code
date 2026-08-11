@@ -18,21 +18,27 @@ from routers.auth_router import require_admin
 
 router = APIRouter(prefix="/api/diagnostics", tags=["diagnostics"])
 
-# (Anzeigename, Umgebungsvariable, wofür sie gebraucht wird)
+# (Anzeigename, Umgebungsvariable, Zweck, alternative Schreibweisen)
 WATCHED_SETTINGS = (
     ("PageSpeed Insights", "GOOGLE_PAGESPEED_API_KEY",
-     "Performance und Barrierefreiheit im Website-Audit"),
+     "Performance und Barrierefreiheit im Website-Audit", ("PAGESPEED_API_KEY",)),
     ("Anthropic", "ANTHROPIC_API_KEY",
-     "KI-Bewertung von Design, Conversion und Textqualität"),
-    ("Datenbank", "DATABASE_URL", "Persistenz"),
-    ("Brevo", "BREVO_API_KEY", "E-Mail-Versand"),
-    ("Stripe", "STRIPE_SECRET_KEY", "Zahlungen"),
-    ("Netlify", "NETLIFY_API_TOKEN", "Kunden-Hosting"),
+     "KI-Bewertung von Design, Conversion und Textqualität", ()),
+    ("Datenbank", "DATABASE_URL", "Persistenz", ()),
+    ("Brevo", "BREVO_API_KEY", "E-Mail-Versand", ()),
+    ("Stripe", "STRIPE_SECRET_KEY", "Zahlungen", ()),
+    ("Netlify", "NETLIFY_API_TOKEN", "Kunden-Hosting", ()),
 )
 
 
-def _describe(env_var: str) -> dict:
+def _describe(env_var: str, aliases: tuple = ()) -> dict:
     raw = os.getenv(env_var)
+    if raw is None or not raw.strip():
+        for alias in aliases:
+            alt = os.getenv(alias)
+            if alt and alt.strip():
+                return {"status": "gesetzt (als " + alias + ")", "configured": True,
+                        "length": len(alt.strip())}
     if raw is None:
         return {"status": "fehlt", "configured": False, "length": 0}
     if not raw.strip():
@@ -44,8 +50,9 @@ def _describe(env_var: str) -> dict:
 def config_status(_: User = Depends(require_admin)):
     """Zeigt je Integration, ob der laufende Prozess sie sieht — ohne Werte."""
     settings = [
-        {"name": name, "env_var": env_var, "purpose": purpose, **_describe(env_var)}
-        for name, env_var, purpose in WATCHED_SETTINGS
+        {"name": name, "env_var": env_var, "purpose": purpose,
+         **_describe(env_var, aliases)}
+        for name, env_var, purpose, aliases in WATCHED_SETTINGS
     ]
     return {
         "settings": settings,

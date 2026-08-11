@@ -35,8 +35,19 @@ A11Y_AUDIT_GROUPS = {
 }
 
 
+# Auf Render heißt die Variable PAGESPEED_API_KEY, im Code und in beiden
+# Blueprints stand GOOGLE_PAGESPEED_API_KEY. Der Name allein hat gereicht,
+# damit PageSpeed in staging UND produktiv nie Daten geliefert hat.
+# Beide Schreibweisen werden akzeptiert, damit das nicht erneut passiert.
+API_KEY_ENV_VARS = ("GOOGLE_PAGESPEED_API_KEY", "PAGESPEED_API_KEY")
+
+
 def api_key() -> str:
-    return os.getenv("GOOGLE_PAGESPEED_API_KEY", "").strip()
+    for name in API_KEY_ENV_VARS:
+        value = os.getenv(name, "").strip()
+        if value:
+            return value
+    return ""
 
 
 async def fetch_pagespeed(url: str, strategy: str = "mobile") -> dict:

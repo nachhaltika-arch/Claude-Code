@@ -40,26 +40,37 @@ def api_key() -> str:
 
 
 async def fetch_pagespeed(url: str, strategy: str = "mobile") -> dict:
-    """Ruft PageSpeed Insights ab und extrahiert Kennzahlen plus A11y-Audits."""
-    key = api_key()
-    if not key:
-        return {
-            "collected": False,
-            "strategy": strategy,
-            "reason": "kein_api_key",
-            "detail": "GOOGLE_PAGESPEED_API_KEY ist nicht gesetzt",
-        }
+    """Ruft PageSpeed Insights ab und extrahiert Kennzahlen plus A11y-Audits.
 
+    Ohne API-Key läuft der Aufruf trotzdem — PageSpeed v5 erlaubt anonyme
+    Anfragen, nur mit deutlich kleinerem Kontingent. Erst wenn auch das
+    scheitert, gilt die Kategorie als nicht erhoben.
+    """
+    key = api_key()
     params = {
         "url": url,
-        "key": key,
         "strategy": strategy,
         "category": ["performance", "accessibility"],
     }
+    if key:
+        params["key"] = key
 
     try:
         async with httpx.AsyncClient(timeout=PSI_TIMEOUT) as client:
             r = await client.get(PSI_ENDPOINT, params=params)
+
+        if r.status_code == 429:
+            return {
+                "collected": False,
+                "strategy": strategy,
+                "reason": "kontingent_erschoepft" if key else "kontingent_ohne_api_key",
+                "detail": (
+                    "PageSpeed-Kontingent erschöpft"
+                    if key else
+                    "Anonymes PageSpeed-Kontingent erschöpft — "
+                    "GOOGLE_PAGESPEED_API_KEY setzen"
+                ),
+            }
 
         if r.status_code != 200:
             return {
@@ -69,7 +80,9 @@ async def fetch_pagespeed(url: str, strategy: str = "mobile") -> dict:
                 "detail": f"HTTP {r.status_code}: {r.text[:200]}",
             }
 
-        return _parse(r.json(), strategy)
+        result = _parse(r.json(), strategy)
+        result["used_api_key"] = bool(key)
+        return result
 
     except Exception as e:  # noqa: BLE001 — Erhebung darf das Audit nie abbrechen
         logger.warning(f"PageSpeed fehlgeschlagen für {url} ({strategy}): {e}")

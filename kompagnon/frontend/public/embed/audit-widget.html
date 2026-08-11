@@ -464,8 +464,10 @@
       blockerHtml =
         '<div class="kpg-blocker">' +
           esc(data.blocker_count) +
-          (data.blocker_count === 1 ? ' rechtlicher Ausschlussgrund' : ' rechtliche Ausschlussgründe') +
-          ' begrenzen die Bewertung — Details im Bericht.' +
+          (data.blocker_count === 1
+            ? ' rechtlicher Ausschlussgrund begrenzt'
+            : ' rechtliche Ausschlussgründe begrenzen') +
+          ' die Bewertung — Details im Bericht.' +
         '</div>';
     }
 

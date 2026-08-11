@@ -281,7 +281,19 @@ def _notify_widget_requester(db, audit_id: int) -> None:
             issues=json.loads(audit.top_issues) if audit.top_issues else [],
             confirm_token=row.confirm_token if row.consent_marketing else None,
         )
-        if send_email(to_email=row.email, subject=subject, html_body=body):
+        # PDF anhängen; scheitert es, geht die Mail trotzdem mit dem Link raus.
+        attachments = []
+        try:
+            from services.pdf_generator import generate_audit_report
+
+            pdf = generate_audit_report(audit.__dict__)
+            safe_name = (audit.company_name or "Analyse").replace(" ", "-").replace("/", "-")
+            attachments.append((f"Website-Analyse-{safe_name}.pdf", pdf, "pdf"))
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"PDF für Audit {audit_id} nicht erzeugt: {e}")
+
+        if send_email(to_email=row.email, subject=subject, html_body=body,
+                      attachments=attachments):
             row.report_sent_at = datetime.now(timezone.utc).replace(tzinfo=None)
             db.commit()
             logger.info(f"Widget-Bericht versendet an {row.email} (Audit {audit_id})")
@@ -463,8 +475,12 @@ def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
         if audit.status != "completed":
             raise HTTPException(status_code=400, detail=f"Audit noch nicht abgeschlossen: {audit.status}")
 
-        from services.pdf_generator import generate_audit_report
-        pdf_bytes = generate_audit_report(audit.__dict__)
+        from services.pdf_generator import KatalogFehlt, generate_audit_report
+
+        try:
+            pdf_bytes = generate_audit_report(audit.__dict__)
+        except KatalogFehlt as e:
+            raise HTTPException(status_code=409, detail=str(e))
 
         safe_name = (audit.company_name or "Audit").replace(" ", "-").replace("/", "-")
         return Response(

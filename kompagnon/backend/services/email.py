@@ -45,8 +45,47 @@ def _smtp_settings(db=None) -> dict:
         }
 
 
+def _build_message(subject: str, sender: str, to_email: str, html_body: str,
+                   text_body: str, attachments):
+    """Baut die Nachricht — mit Anhang als 'mixed', sonst als 'alternative'.
+
+    Ein Anhang darf nicht in den alternative-Teil: Mail-Programme zeigen dort
+    nur eine der Varianten an, der Anhang ginge verloren.
+    """
+    from email.mime.application import MIMEApplication
+
+    inhalt = MIMEMultipart("alternative")
+    if text_body:
+        inhalt.attach(MIMEText(text_body, "plain", "utf-8"))
+    inhalt.attach(MIMEText(html_body, "html", "utf-8"))
+
+    if not attachments:
+        inhalt["Subject"] = subject
+        inhalt["From"] = sender
+        inhalt["To"] = to_email
+        return inhalt
+
+    msg = MIMEMultipart("mixed")
+    msg["Subject"] = subject
+    msg["From"] = sender
+    msg["To"] = to_email
+    msg.attach(inhalt)
+
+    for dateiname, daten, subtyp in attachments:
+        teil = MIMEApplication(daten, _subtype=subtyp)
+        teil.add_header("Content-Disposition", "attachment", filename=dateiname)
+        msg.attach(teil)
+
+    return msg
+
+
 def send_email(to_email: str, subject: str, html_body: str, text_body: str = "",
-               db=None) -> bool:
+               db=None, attachments=None) -> bool:
+    """Versendet eine E-Mail.
+
+    attachments: Liste aus (Dateiname, Bytes, Untertyp), z. B.
+    [("Bericht.pdf", pdf_bytes, "pdf")].
+    """
     config = _smtp_settings(db)
     smtp_host = config["host"]
     smtp_port = config["port"]
@@ -60,13 +99,14 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str = "",
         return False
 
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"{sender_name} <{sender_email}>"
-        msg["To"] = to_email
-        if text_body:
-            msg.attach(MIMEText(text_body, "plain", "utf-8"))
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
+        msg = _build_message(
+            subject=subject,
+            sender=f"{sender_name} <{sender_email}>",
+            to_email=to_email,
+            html_body=html_body,
+            text_body=text_body,
+            attachments=attachments,
+        )
 
         if smtp_port == 465:
             server = smtplib.SMTP_SSL(smtp_host, smtp_port)

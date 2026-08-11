@@ -23,6 +23,21 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 
+from services.audit_criteria import BLOCKER_LABELS, CATALOGUE, SOURCE_LABELS, Source
+
+# Kurzform der Quellenangabe für die enge PDF-Spalte
+SOURCE_SHORT = {
+    Source.MEASURED.value: "gemessen",
+    Source.DERIVED.value: "abgeleitet",
+    Source.AI.value: "KI",
+    Source.NOT_COLLECTED.value: "n. erhoben",
+}
+
+
+class KatalogFehlt(ValueError):
+    """Das Audit stammt aus dem früheren Katalog und hat keine Einzelwerte."""
+
+
 # ═══════════════════════════════════════════════════════════
 # Font Registration (DejaVu for full Unicode/Umlaut support)
 # ═══════════════════════════════════════════════════════════
@@ -202,28 +217,21 @@ def _footer(canvas_obj, doc):
 # Chart generators (matplotlib)
 # ═══════════════════════════════════════════════════════════
 
-def generate_radar_chart(scores: dict) -> bytes:
-    """Draw a spider/radar chart for 6 audit categories. Returns PNG bytes."""
+def generate_radar_chart(axes: list) -> bytes:
+    """Netzdiagramm über die Kategorien des Katalogs.
+
+    Erwartet [(Beschriftung, Wert 0-10), …] — die Achsenzahl folgt dem Katalog,
+    statt wie früher auf sechs feste Kategorien verdrahtet zu sein.
+    """
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    labels = [
-        "SEO & Keywords",
-        "Performance",
-        "Sicherheit",
-        "Inhalt & UX",
-        "Rechtliches",
-        "GEO / KI-Sichtbarkeit",
-    ]
-    values = [
-        scores.get("seo", 0),
-        scores.get("performance", 0),
-        scores.get("sicherheit", 0),
-        scores.get("ux", 0),
-        scores.get("rechtliches", 0),
-        scores.get("geo", 0),
-    ]
+    if not axes:
+        axes = [("Keine Daten", 0)]
+
+    labels = [a[0] for a in axes]
+    values = [float(a[1] or 0) for a in axes]
 
     N = len(labels)
     angles = [2 * math.pi * i / N for i in range(N)]
@@ -234,7 +242,6 @@ def generate_radar_chart(scores: dict) -> bytes:
     fig.patch.set_facecolor("white")
     ax.set_facecolor("white")
 
-    # Grid
     ax.set_ylim(0, 10)
     ax.set_yticks([2, 4, 6, 8, 10])
     ax.set_yticklabels(["2", "4", "6", "8", "10"], fontsize=6, color="#94a3b8")
@@ -242,11 +249,9 @@ def generate_radar_chart(scores: dict) -> bytes:
     ax.xaxis.grid(True, color="#e2e8f0", linewidth=0.7)
     ax.spines["polar"].set_color("#e2e8f0")
 
-    # Axes
     ax.set_xticks(angles)
-    ax.set_xticklabels(labels, fontsize=7, color="#2c3e50")
+    ax.set_xticklabels(labels, fontsize=6.5, color="#2c3e50")
 
-    # Plot
     ax.plot(angles_closed, values_closed, color="#0d6efd", linewidth=1.8)
     ax.fill(angles_closed, values_closed, color="#0d6efd", alpha=0.25)
 
@@ -311,6 +316,54 @@ def generate_donut_chart(positions: dict) -> bytes:
 # Main generator
 # ═══════════════════════════════════════════════════════════
 
+def build_scorecard(items: dict, sources: dict, styles: dict) -> tuple:
+    """Bewertungsmatrix: Kopfzeile je Kategorie plus eine Zeile je Kriterium.
+
+    Die Zeilenwerte stammen aus der Einzelbewertung. Früher wurde der
+    Kategorie-Score proportional auf die Kriterien verteilt — die Zahlen pro
+    Zeile waren also gerechnet, nicht gemessen.
+
+    Nicht erhobene Kriterien erscheinen mit Gedankenstrich und zählen weder
+    in den erreichten noch in den möglichen Punkten der Kategorie.
+    """
+    header = ["ID", "Pr\u00fcfbereich", "Quelle", "Max.", "Ist", "Status"]
+    rows = []
+
+    for kategorie in CATALOGUE:
+        erhoben = [c for c in kategorie.criteria
+                   if sources.get(c.key, Source.NOT_COLLECTED.value)
+                   != Source.NOT_COLLECTED.value]
+        erreicht = sum(int(items.get(c.key, 0) or 0) for c in erhoben)
+        moeglich = sum(c.max_points for c in erhoben)
+
+        kopf = f"{kategorie.label} (max. {kategorie.max_points} Pkt.)"
+        if moeglich < kategorie.max_points:
+            kopf += f" \u2013 {moeglich} Pkt. pr\u00fcfbar"
+
+        rows.append([
+            Paragraph(f'<b>{_clean_text(kopf)}</b>', styles["KCBold"]),
+            "", "", "",
+            Paragraph(f'<b>{erreicht} / {moeglich}</b>', styles["KCBold"]),
+            "",
+        ])
+
+        praefix = kategorie.criteria[0].key.split("_")[0].upper()
+        for i, crit in enumerate(kategorie.criteria, start=1):
+            quelle = sources.get(crit.key, Source.NOT_COLLECTED.value)
+            offen = quelle == Source.NOT_COLLECTED.value
+            wert = int(items.get(crit.key, 0) or 0)
+            rows.append([
+                f"{praefix}-{i:02d}",
+                _clean_text(crit.label),
+                SOURCE_SHORT.get(quelle, quelle),
+                str(crit.max_points),
+                "\u2013" if offen else str(wert),
+                "nicht erhoben" if offen else _score_status(wert, crit.max_points),
+            ])
+
+    return header, rows
+
+
 def generate_audit_report(audit_data: dict) -> bytes:
     """Generate a professional PDF audit report. Returns PDF bytes."""
     buffer = BytesIO()
@@ -339,12 +392,21 @@ def generate_audit_report(audit_data: dict) -> bytes:
     date_str = created.strftime("%d.%m.%Y")
     level_color = LEVEL_COLORS.get(level, KC_DANGER)
 
-    rc = audit_data.get("rc_score", 0) or 0
-    tp = audit_data.get("tp_score", 0) or 0
-    bf = audit_data.get("bf_score", 0) or 0
-    si = audit_data.get("si_score", 0) or 0
-    se = audit_data.get("se_score", 0) or 0
-    ux = audit_data.get("ux_score", 0) or 0
+    items = _parse_json_field(audit_data.get("item_scores")) or {}
+    sources = _parse_json_field(audit_data.get("item_sources")) or {}
+    categories = _parse_json_field(audit_data.get("category_scores")) or []
+    blocker_keys = _parse_json_field(audit_data.get("blockers")) or []
+    coverage = audit_data.get("coverage")
+
+    if not isinstance(items, dict) or not items:
+        # Ältere Audits haben nur die sechs Altspalten, deren Werte überwiegend
+        # geschätzt waren. Ein PDF daraus wäre irreführend.
+        raise KatalogFehlt(
+            "Dieses Audit stammt aus dem früheren Katalog und enthält keine "
+            "Einzelbewertungen. Bitte die Analyse neu ausführen."
+        )
+    if not isinstance(sources, dict):
+        sources = {}
 
     top_issues = [_clean_text(i) for i in _parse_json_field(audit_data.get("top_issues"))]
     recommendations = [_clean_text(r) for r in _parse_json_field(audit_data.get("recommendations"))]
@@ -434,64 +496,34 @@ def generate_audit_report(audit_data: dict) -> bytes:
     # ── PAGE 3: SCORECARD ───────────────────────────────────
     story.append(Paragraph("Bewertungsmatrix", styles["KCHeading"]))
 
-    def _cat_section(title, max_pts, score, items):
-        """Build a category section: header row + item rows."""
-        rows = []
-        # Category header
-        rows.append([
-            Paragraph(f'<b>{title} (max. {max_pts} Pkt.)</b>', styles["KCBold"]),
-            "", "", "",
-            Paragraph(f'<b>{score} / {max_pts}</b>', styles["KCBold"]),
-            "",
-        ])
-        for item_id, label, pflicht, max_p in items:
-            # Distribute score proportionally for display
-            item_score = round(score * max_p / max_pts) if max_pts > 0 else 0
-            item_score = min(item_score, max_p)
-            st = _score_status(item_score, max_p)
-            rows.append([item_id, label, pflicht, str(max_p), str(item_score), st])
-        return rows
+    if blocker_keys:
+        blocker_text = "<br/>".join(
+            f"\u2022 {_clean_text(BLOCKER_LABELS.get(b, b))}" for b in blocker_keys)
+        blocker_box = Table([[Paragraph(
+            f'<b>Rechtliche Ausschlusskriterien</b><br/>{blocker_text}<br/>'
+            f'<font size="8">Diese Punkte begrenzen die Bewertung unabh\u00e4ngig '
+            f'von der erreichten Punktzahl.</font>',
+            styles["KCBody"])]], colWidths=[160*mm])
+        blocker_box.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FDECEA")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("LINEBEFORE", (0, 0), (0, -1), 3, KC_DANGER),
+        ]))
+        story.append(blocker_box)
+        story.append(Spacer(1, 5*mm))
 
-    sc_header = ["ID", "Pr\u00fcfbereich", "Pflicht", "Max.", "Ist", "Status"]
+    if coverage is not None and coverage < 100:
+        story.append(Paragraph(
+            f'<font size="8" color="#64748b">{coverage}\u202f% der Kriterien konnten '
+            f'gepr\u00fcft werden. Nicht erhobene Kriterien sind als \u201enicht erhoben\u201c '
+            f'ausgewiesen und flie\u00dfen nicht in die Bewertung ein.</font>',
+            styles["KCBody"]))
+        story.append(Spacer(1, 3*mm))
 
-    sc_rows = []
-    sc_rows += _cat_section("Rechtliche Compliance", 30, rc, [
-        ("RC-01", "Impressum", "Pflicht", 7),
-        ("RC-02", "Datenschutzerkl\u00e4rung (DSGVO)", "Pflicht", 7),
-        ("RC-03", "Cookie-Consent-Management", "Pflicht", 6),
-        ("RC-04", "Barrierefreiheitserkl\u00e4rung (BFSG)", "Pflicht", 4),
-        ("RC-05", "Urheberrecht & Lizenzen", "Pflicht", 3),
-        ("RC-06", "E-Commerce Pflichten", "Pflicht", 3),
-    ])
-    sc_rows += _cat_section("Technische Performance", 20, tp, [
-        ("TP-01", "LCP (Largest Contentful Paint)", "Pflicht", 5),
-        ("TP-02", "CLS (Cumulative Layout Shift)", "Pflicht", 4),
-        ("TP-03", "INP (Interaction to Next Paint)", "Empfohlen", 3),
-        ("TP-04", "Mobile-First & Responsivit\u00e4t", "Pflicht", 4),
-        ("TP-05", "Bildoptimierung", "Empfohlen", 4),
-    ])
-    sc_rows += _cat_section("Barrierefreiheit", 20, bf, [
-        ("BF-01", "Farbkontraste (WCAG 1.4.3)", "Pflicht", 5),
-        ("BF-02", "Tastaturzug\u00e4nglichkeit", "Pflicht", 5),
-        ("BF-03", "Screenreader-Kompatibilit\u00e4t", "Pflicht", 5),
-        ("BF-04", "Lesbarkeit & Verst\u00e4ndlichkeit", "Empfohlen", 5),
-    ])
-    sc_rows += _cat_section("Sicherheit & Datenschutz", 15, si, [
-        ("SI-01", "HTTPS / SSL-Zertifikat", "Pflicht", 4),
-        ("SI-02", "Security-Header", "Empfohlen", 4),
-        ("SI-03", "DSGVO-konforme Drittanbieter", "Pflicht", 4),
-        ("SI-04", "Formularsicherheit & Spam-Schutz", "Empfohlen", 3),
-    ])
-    sc_rows += _cat_section("SEO & Sichtbarkeit", 10, se, [
-        ("SE-01", "Technische SEO-Grundlagen", "Empfohlen", 4),
-        ("SE-02", "Strukturierte Daten (Schema.org)", "Optional", 3),
-        ("SE-03", "Lokale Auffindbarkeit", "Empfohlen", 3),
-    ])
-    sc_rows += _cat_section("Inhalt & Nutzererfahrung", 5, ux, [
-        ("UX-01", "Erstindruck & Wertversprechen", "Empfohlen", 2),
-        ("UX-02", "Call-to-Action & Conversion", "Empfohlen", 2),
-        ("UX-03", "Ladegeschwindigkeit UX", "Empfohlen", 1),
-    ])
+    sc_header, sc_rows = build_scorecard(items, sources, styles)
 
     # Total row
     sc_rows.append([
@@ -578,16 +610,15 @@ def generate_audit_report(audit_data: dict) -> bytes:
 
     # Score summary
     story.append(Paragraph("Pr\u00fcfergebnis je Kategorie", styles["KCHeading"]))
-    sum_data = [
-        ["Kategorie", "Ergebnis"],
-        ["Rechtliche Compliance (max. 30)", f"{rc} / 30"],
-        ["Technische Performance (max. 20)", f"{tp} / 20"],
-        ["Barrierefreiheit (max. 20)", f"{bf} / 20"],
-        ["Sicherheit & Datenschutz (max. 15)", f"{si} / 15"],
-        ["SEO & Sichtbarkeit (max. 10)", f"{se} / 10"],
-        ["Inhalt & Nutzererfahrung (max. 5)", f"{ux} / 5"],
-        ["GESAMTERGEBNIS", f"{total} / 100"],
-    ]
+    sum_data = [["Kategorie", "Ergebnis"]]
+    for kategorie in categories:
+        beschriftung = f"{kategorie.get('label', '')} (max. {kategorie.get('nominal_max', 0)})"
+        if kategorie.get("max", 0) < kategorie.get("nominal_max", 0):
+            beschriftung += " – teilweise prüfbar"
+        sum_data.append([_clean_text(beschriftung),
+                         f"{kategorie.get('score', 0)} / {kategorie.get('max', 0)}"])
+    sum_data.append(["GESAMTERGEBNIS (normiert)", f"{total} / 100"])
+
     sum_table = Table(sum_data, colWidths=[110*mm, 50*mm])
     sum_style = list(BASE_TABLE_STYLE)
     sum_style.append(("ALIGN", (1, 0), (1, -1), "RIGHT"))
@@ -602,15 +633,11 @@ def generate_audit_report(audit_data: dict) -> bytes:
 
     # ── CHARTS: Radar + Donut ───────────────────────────────
     try:
-        # Normalize raw scores to 0–10 scale
-        radar_scores = {
-            "seo":          round((se / 10) * 10, 1),
-            "performance":  round((tp / 20) * 10, 1),
-            "sicherheit":   round((si / 15) * 10, 1),
-            "ux":           round((ux / 5)  * 10, 1),
-            "rechtliches":  round((rc / 30) * 10, 1),
-            "geo":          round((audit_data.get("geo_score", 0) or 0) / 10 * 10, 1),
-        }
+        radar_axes = [
+            (_clean_text(k.get("label", "")).split(" &")[0],
+             round((k.get("score", 0) / k["max"]) * 10, 1) if k.get("max") else 0)
+            for k in categories
+        ]
         keyword_positions = audit_data.get("keyword_positions") or {}
         if isinstance(keyword_positions, str):
             try:
@@ -618,7 +645,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
             except Exception:
                 keyword_positions = {}
 
-        radar_png  = generate_radar_chart(radar_scores)
+        radar_png  = generate_radar_chart(radar_axes)
         donut_png  = generate_donut_chart(keyword_positions)
 
         radar_buf = BytesIO(radar_png)

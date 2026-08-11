@@ -221,7 +221,8 @@ Performance, Barrierefreiheit, SEO, Design, Conversion und Inhalt.</p>
           text-decoration:none;font-weight:700;padding:12px 22px;border-radius:6px">
    Vollständigen Bericht ansehen</a></p>
 <p style="font-size:13px;color:#555">Im Bericht sehen Sie zu jedem Kriterium, ob es
-gemessen, abgeleitet oder eingeschätzt wurde — und was konkret zu tun ist.</p>
+gemessen, abgeleitet oder eingeschätzt wurde — und was konkret zu tun ist.
+Dieselben Inhalte finden Sie als PDF im Anhang dieser E-Mail.</p>
 {consent_html}"""
     return f"Ihre Website-Analyse für {company}: {score}/100", _shell(inner)
 

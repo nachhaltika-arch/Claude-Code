@@ -123,6 +123,14 @@ def _run_migrations():
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_content INTEGER DEFAULT 0",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_kontakt INTEGER DEFAULT 0",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS screenshot_base64 TEXT DEFAULT ''",
+        # Kriterienkatalog ab 2026-08-11 (services/audit_criteria.py):
+        # Punkte und Quellen liegen als JSON, damit neue Kriterien keine
+        # Migration brauchen. Die Einzelspalten oben sind Altbestand.
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS item_scores TEXT DEFAULT '{}'",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS item_sources TEXT DEFAULT '{}'",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS category_scores TEXT DEFAULT '[]'",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS blockers TEXT DEFAULT '[]'",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS coverage INTEGER DEFAULT 0",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS analysis_score INTEGER DEFAULT 0",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_score INTEGER DEFAULT 0",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS website_screenshot TEXT DEFAULT ''",

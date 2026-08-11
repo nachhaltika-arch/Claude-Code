@@ -965,3 +965,38 @@ def get_db():
         raise
     finally:
         db.close()
+
+
+class WidgetRequest(Base):
+    """Anfrage aus dem Einbett-Widget auf einer fremden Landingpage.
+
+    Hält dreierlei zusammen: die Ratenbegrenzung (wie viele Anfragen kamen
+    zuletzt von dieser Adresse), den Nachweis der Einwilligung (Zeitpunkt, IP,
+    Bestätigung) und die Zustellung des Berichts.
+    """
+    __tablename__ = "widget_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), nullable=False, index=True)
+    website_url = Column(String(500), nullable=False)
+
+    # Nachweis der Einwilligung nach § 7 UWG — ohne Zeitpunkt und Herkunft
+    # ist eine Einwilligung im Streitfall wertlos.
+    consent_marketing = Column(Boolean, default=False)
+    consent_at = Column(DateTime, nullable=True)
+    ip_address = Column(String(64), default="")
+    user_agent = Column(String(400), default="")
+    referrer = Column(String(500), default="")
+
+    # Double-Opt-in: erst nach Klick im Bestätigungslink darf beworben werden
+    confirm_token = Column(String(64), index=True)
+    confirmed_at = Column(DateTime, nullable=True)
+
+    # Zugang zur Berichtsseite ohne Login
+    report_token = Column(String(64), index=True)
+
+    audit_id = Column(Integer, nullable=True, index=True)
+    lead_id = Column(Integer, nullable=True)
+    report_sent_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)

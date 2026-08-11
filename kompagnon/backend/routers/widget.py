@@ -1,0 +1,214 @@
+"""
+Öffentliche Endpunkte für das Einbett-Widget auf fremden Landingpages.
+
+Alles hier ist ohne Login erreichbar. Deshalb gilt durchgehend:
+Zieladressen werden gegen SSRF geprüft, Anfragen werden begrenzt, und die
+Einwilligung wird mit Zeitpunkt und Herkunft nachweisbar festgehalten.
+"""
+import logging
+import re
+import secrets
+from datetime import datetime, timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from database import AuditResult, Lead, WidgetRequest, get_db
+from services import widget_report
+from services.url_guard import check_url
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/api/widget", tags=["widget"])
+
+EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s.]+\.[^@\s]{2,}$")
+
+# Ratenbegrenzung: das Widget steht auf fremden Seiten und jede Anfrage kostet
+# einen KI-Aufruf, PageSpeed-Kontingent und potenziell eine E-Mail an Dritte.
+LIMIT_PER_IP_PER_HOUR = 5
+LIMIT_PER_EMAIL_PER_DAY = 3
+LIMIT_TOTAL_PER_HOUR = 60
+
+TOP_ISSUES_IN_TEASER = 3
+
+
+class WidgetAuditRequest(BaseModel):
+    email: str
+    website_url: str
+    consent_marketing: bool = False
+    referrer: str = ""
+
+
+def _normalise_url(url: str) -> str:
+    url = url.strip()
+    if not url.startswith(("http://", "https://")):
+        url = f"https://{url}"
+    return url
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()[:64]
+    return (request.client.host if request.client else "")[:64]
+
+
+def _enforce_limits(db: Session, ip: str, email: str) -> None:
+    now = datetime.utcnow()
+    hour_ago = now - timedelta(hours=1)
+    day_ago = now - timedelta(days=1)
+
+    if ip:
+        from_ip = db.query(WidgetRequest).filter(
+            WidgetRequest.ip_address == ip,
+            WidgetRequest.created_at >= hour_ago,
+        ).count()
+        if from_ip >= LIMIT_PER_IP_PER_HOUR:
+            raise HTTPException(429, "Zu viele Anfragen. Bitte später erneut versuchen.")
+
+    from_email = db.query(WidgetRequest).filter(
+        WidgetRequest.email == email,
+        WidgetRequest.created_at >= day_ago,
+    ).count()
+    if from_email >= LIMIT_PER_EMAIL_PER_DAY:
+        raise HTTPException(
+            429, "Für diese E-Mail-Adresse wurden heute bereits mehrere Analysen "
+                 "angefordert. Bitte sehen Sie in Ihrem Postfach nach.")
+
+    total = db.query(WidgetRequest).filter(WidgetRequest.created_at >= hour_ago).count()
+    if total >= LIMIT_TOTAL_PER_HOUR:
+        raise HTTPException(429, "Das Analyse-Kontingent ist ausgelastet. "
+                                 "Bitte versuchen Sie es in einer Stunde erneut.")
+
+
+@router.post("/audit")
+async def start_widget_audit(
+    payload: WidgetAuditRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """Nimmt eine Anfrage aus dem Widget an und startet das Audit."""
+    email = payload.email.strip().lower()
+    if not EMAIL_PATTERN.match(email):
+        raise HTTPException(400, "Bitte eine gültige E-Mail-Adresse angeben.")
+
+    url = _normalise_url(payload.website_url)
+    ok, reason = check_url(url)
+    if not ok:
+        raise HTTPException(400, f"Diese Adresse lässt sich nicht prüfen: {reason}")
+
+    ip = _client_ip(request)
+    _enforce_limits(db, ip, email)
+
+    domain = url.split("//", 1)[-1].replace("www.", "").split("/")[0]
+    lead = db.query(Lead).filter(Lead.website_url.ilike(f"%{domain}%")).first()
+    if lead is None:
+        lead = Lead(website_url=url, email=email, company_name=domain,
+                    status="new", lead_source="embed_audit")
+        db.add(lead)
+        db.commit()
+        db.refresh(lead)
+    elif not lead.email:
+        lead.email = email
+        db.commit()
+
+    now = datetime.utcnow()
+    widget_request = WidgetRequest(
+        email=email,
+        website_url=url,
+        consent_marketing=bool(payload.consent_marketing),
+        consent_at=now if payload.consent_marketing else None,
+        ip_address=ip,
+        user_agent=request.headers.get("user-agent", "")[:400],
+        referrer=(payload.referrer or request.headers.get("referer", ""))[:500],
+        confirm_token=secrets.token_urlsafe(32) if payload.consent_marketing else None,
+        report_token=secrets.token_urlsafe(32),
+        lead_id=lead.id,
+    )
+    db.add(widget_request)
+    db.commit()
+    db.refresh(widget_request)
+
+    from routers.audit import start_audit, AuditRequest
+
+    started = await start_audit(
+        AuditRequest(website_url=url, company_name=domain, lead_id=lead.id),
+        background_tasks,
+        db,
+    )
+
+    # start_audit schließt die übergebene Session vor dem Scrape-Aufruf,
+    # deshalb hier eine eigene für den Nachtrag der Audit-ID.
+    from database import SessionLocal
+
+    db2 = SessionLocal()
+    try:
+        row = db2.query(WidgetRequest).filter(WidgetRequest.id == widget_request.id).first()
+        if row:
+            row.audit_id = started["id"]
+            db2.commit()
+    finally:
+        db2.close()
+
+    return {"request_id": widget_request.id, "audit_id": started["id"], "status": "pending"}
+
+
+@router.get("/teaser/{audit_id}")
+def audit_teaser(audit_id: int, db: Session = Depends(get_db)):
+    """Kurzfassung fürs Widget — der vollständige Bericht geht per E-Mail."""
+    audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+    if not audit:
+        raise HTTPException(404, "Analyse nicht gefunden")
+
+    if audit.status != "completed":
+        return {"status": audit.status,
+                "error": audit.error_message if audit.status == "failed" else None}
+
+    issues = widget_report._json_field(audit.top_issues, [])
+    blockers = widget_report._json_field(audit.blockers, [])
+    return {
+        "status": "completed",
+        "website_url": audit.website_url,
+        "company_name": audit.company_name,
+        "total_score": audit.total_score,
+        "level": audit.level,
+        "coverage": getattr(audit, "coverage", None),
+        "top_issues": issues[:TOP_ISSUES_IN_TEASER],
+        "blocker_count": len(blockers),
+        "email_sent": bool(getattr(audit, "id", None)),
+    }
+
+
+@router.get("/report/{token}", response_class=HTMLResponse)
+def public_report(token: str, db: Session = Depends(get_db)):
+    """Berichtsseite ohne Login — erreichbar nur über den Link aus der E-Mail."""
+    row = db.query(WidgetRequest).filter(WidgetRequest.report_token == token).first()
+    if not row or not row.audit_id:
+        raise HTTPException(404, "Bericht nicht gefunden")
+
+    audit = db.query(AuditResult).filter(AuditResult.id == row.audit_id).first()
+    if not audit or audit.status != "completed":
+        raise HTTPException(404, "Bericht noch nicht verfügbar")
+
+    return HTMLResponse(widget_report.render_report_page(audit, audit.company_name))
+
+
+@router.get("/confirm/{token}", response_class=HTMLResponse)
+def confirm_marketing(token: str, db: Session = Depends(get_db)):
+    """Double-Opt-in: bestätigt die Einwilligung zur Kontaktaufnahme."""
+    row = db.query(WidgetRequest).filter(WidgetRequest.confirm_token == token).first()
+    if not row:
+        return HTMLResponse(widget_report.confirmation_page(False), status_code=404)
+
+    if not row.confirmed_at:
+        row.confirmed_at = datetime.utcnow()
+        lead = db.query(Lead).filter(Lead.id == row.lead_id).first()
+        if lead:
+            lead.status = "opt_in"
+        db.commit()
+        logger.info(f"Widget-Einwilligung bestätigt: {row.email}")
+
+    return HTMLResponse(widget_report.confirmation_page(True))

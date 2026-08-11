@@ -72,6 +72,27 @@
     transition: border-color .15s, box-shadow .15s;
   }
   .kpg-input::placeholder { color: #b5b5b0; }
+  .kpg-consent {
+    display: flex; gap: 9px; align-items: flex-start;
+    font-size: 12px; line-height: 1.45; color: #55554f;
+    margin: 14px 0 16px; cursor: pointer;
+  }
+  .kpg-consent input { margin-top: 2px; flex-shrink: 0; width: 15px; height: 15px; }
+  .kpg-issues { margin: 18px 0 4px; }
+  .kpg-issues-title {
+    font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--kpg-label); margin-bottom: 7px;
+  }
+  .kpg-issues ul { margin: 0; padding-left: 18px; }
+  .kpg-issues li { font-size: 14px; line-height: 1.5; margin-bottom: 5px; }
+  .kpg-blocker {
+    background: #fdecea; border-left: 3px solid #b02418; border-radius: 5px;
+    padding: 10px 13px; margin: 14px 0 0; font-size: 13px; line-height: 1.5;
+  }
+  .kpg-mailnote {
+    background: #f3f5f4; border-radius: 7px; padding: 13px 15px;
+    margin: 18px 0; font-size: 13px; line-height: 1.55;
+  }
   .kpg-input:focus {
     border-color: var(--kpg-teal);
     box-shadow: 0 0 0 3px rgba(32,122,146,.12);
@@ -180,6 +201,12 @@
                autocomplete="url" placeholder="www.ihr-betrieb.de" />
       </div>
 
+      <label class="kpg-consent" for="kpg-consent">
+        <input type="checkbox" id="kpg-consent" />
+        <span>Ich bin einverstanden, dass KOMPAGNON mich zu meiner Website-Analyse
+        per E-Mail kontaktiert. Die Einwilligung kann ich jederzeit widerrufen.</span>
+      </label>
+
       <button class="kpg-btn" id="kpg-submit" type="submit">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="12" cy="12" r="9" stroke="#1a1a1a" stroke-width="2"/>
@@ -187,7 +214,9 @@
         </svg>
         Analyse starten
       </button>
-      <p class="kpg-foot">DSGVO-konform · Keine Weitergabe · Ergebnis erscheint sofort</p>
+      <p class="kpg-foot">Der Bericht geht an die angegebene Adresse ·
+        <a href="https://kompagnon-frontend.onrender.com/datenschutz"
+           target="_blank" rel="noopener">Datenschutz</a></p>
     </form>
   </div>
 
@@ -285,24 +314,25 @@
       if (progressEl) progressEl.textContent = MSGS[idx];
     }, POLL_INTERVAL_MS);
 
-    fetch(API_BASE + '/api/leads/public', {
+    fetch(API_BASE + '/api/widget/audit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ website_url: cleanUrl, email: email, lead_source: 'embed_audit', status: 'new' })
+      body: JSON.stringify({
+        email: email,
+        website_url: cleanUrl,
+        consent_marketing: !!(document.getElementById('kpg-consent') || {}).checked,
+        referrer: document.referrer || ''
+      })
     })
-    .then(function (r) { return r.json(); })
-    .then(function (lead) {
-      return fetch(API_BASE + '/api/audit/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ website_url: cleanUrl, lead_id: lead && lead.id })
+    .then(function (r) {
+      return r.json().then(function (body) {
+        if (!r.ok) throw new Error(body.detail || 'Analyse konnte nicht gestartet werden.');
+        return body;
       });
     })
-    .then(function (r) { return r.json(); })
     .then(function (start) {
-      var auditId = start.audit_id || start.id;
-      if (!auditId) throw new Error('Audit konnte nicht gestartet werden.');
-      pollAudit(auditId, cleanUrl, msgTimer);
+      if (!start.audit_id) throw new Error('Analyse konnte nicht gestartet werden.');
+      pollAudit(start.audit_id, cleanUrl, msgTimer, email);
     })
     .catch(function (err) {
       clearInterval(msgTimer);
@@ -310,7 +340,7 @@
     });
   }
 
-  function pollAudit(auditId, cleanUrl, msgTimer) {
+  function pollAudit(auditId, cleanUrl, msgTimer, email) {
     var attempts = 0;
     var poll = setInterval(function () {
       attempts++;
@@ -319,12 +349,12 @@
         renderError('Zeitüberschreitung — bitte erneut versuchen.');
         return;
       }
-      fetch(API_BASE + '/api/audit/' + encodeURIComponent(auditId))
+      fetch(API_BASE + '/api/widget/teaser/' + encodeURIComponent(auditId))
         .then(function (r) { return r.json(); })
         .then(function (d) {
           if (d.status === 'completed') {
             clearInterval(poll); clearInterval(msgTimer);
-            renderResult(d, cleanUrl);
+            renderResult(d, cleanUrl, email);
           } else if (d.status === 'failed') {
             clearInterval(poll); clearInterval(msgTimer);
             renderError('Audit fehlgeschlagen — bitte URL prüfen.');
@@ -360,50 +390,50 @@
     postHeight();
   }
 
-  /* ── Render: Result ── */
-  function renderResult(data, cleanUrl) {
-    var score = data.score || 0;
+  /* ── Render: Teaser ──
+     Bewusst nur Score, Level und die drei größten Punkte. Der vollständige
+     Bericht kommt per E-Mail — das ist der Anlass, ins Postfach zu schauen. */
+  function renderResult(data, cleanUrl, email) {
+    var score = data.total_score || 0;
     var col = scoreColor(score);
+    var host = cleanUrl.replace(/^https?:\/\//, '').replace(/^www\./, '');
 
-    var tiles = '';
-    var cats = data.categories;
-    var entries = cats ? Object.keys(cats).slice(0, 4).map(function (k) {
-      var v = cats[k];
-      return { label: k.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }),
-               score: (v && typeof v === 'object') ? v.score : v };
-    }) : [];
-
-    if (!entries.length) {
-      entries = [
-        { label: 'Ladezeit', score: null }, { label: 'Rechtliches', score: null },
-        { label: 'SEO', score: null }, { label: 'Sicherheit', score: null }
-      ];
-    }
-    entries.forEach(function (c) {
-      var n = (c.score == null) ? '—' : c.score;
-      var nc = (c.score == null) ? 'var(--kpg-muted)' : scoreColor(c.score);
-      tiles +=
-        '<div class="kpg-tile">' +
-          '<div class="kpg-tile-num" style="color:' + nc + ';">' + esc(n) + '</div>' +
-          '<div class="kpg-tile-lbl">' + esc(c.label) + '</div>' +
+    var issues = (data.top_issues || []).slice(0, 3);
+    var issueHtml = '';
+    if (issues.length) {
+      issueHtml =
+        '<div class="kpg-issues">' +
+          '<div class="kpg-issues-title">Die größten Punkte</div>' +
+          '<ul>' + issues.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul>' +
         '</div>';
-    });
+    }
 
-    var summary = data.ai_summary
-      ? '<div class="kpg-summary">' + esc(data.ai_summary) + '</div>'
-      : '';
+    var blockerHtml = '';
+    if (data.blocker_count) {
+      blockerHtml =
+        '<div class="kpg-blocker">' +
+          esc(data.blocker_count) +
+          (data.blocker_count === 1 ? ' rechtlicher Ausschlussgrund' : ' rechtliche Ausschlussgründe') +
+          ' begrenzen die Bewertung — Details im Bericht.' +
+        '</div>';
+    }
 
     card.innerHTML =
       '<div>' +
+        '<div style="font-size:13px;color:var(--kpg-label);margin-bottom:10px;">Analyse für ' + esc(host) + '</div>' +
         '<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:6px;">' +
           '<div class="kpg-score" style="color:' + col + ';">' + esc(score) + '</div>' +
           '<div>' +
             '<div style="font-size:13px;color:var(--kpg-label);margin-bottom:4px;">Gesamtpunkte von 100</div>' +
-            '<div class="kpg-verdict" style="color:' + col + ';background:' + col + '18;border:1px solid ' + col + '40;">' + esc(level(score)) + '</div>' +
+            '<div class="kpg-verdict" style="color:' + col + ';background:' + col + '18;border:1px solid ' + col + '40;">' + esc(data.level || level(score)) + '</div>' +
           '</div>' +
         '</div>' +
-        '<div class="kpg-grid">' + tiles + '</div>' +
-        summary +
+        blockerHtml +
+        issueHtml +
+        '<div class="kpg-mailnote">' +
+          '<strong>Der vollständige Bericht ist unterwegs</strong><br>' +
+          'Alle 42 Kriterien mit Bewertung und Empfehlungen — an ' + esc(email || 'Ihre Adresse') + '.' +
+        '</div>' +
         '<a class="kpg-btn" href="' + esc(CHECKOUT_URL) + '" target="_blank" rel="noopener" style="text-decoration:none;">Jetzt Webseite anfragen →</a>' +
         '<a class="kpg-link" id="kpg-restart">Neue Analyse starten</a>' +
       '</div>';

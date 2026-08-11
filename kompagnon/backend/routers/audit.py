@@ -224,6 +224,7 @@ def _run_audit_background(audit_id: int):
         )
 
         _notify_customer(db2, lead_id, audit_id)
+        _notify_widget_requester(db2, audit_id)
     except Exception as e:  # noqa: BLE001
         logger.error(f"✗ Audit {audit_id} Persistenz fehlgeschlagen: {type(e).__name__}: {e}")
         _mark_failed(audit_id, f"{type(e).__name__}: {e}"[:200])
@@ -245,6 +246,49 @@ def _mark_failed(audit_id: int, message: str) -> None:
         logger.error(f"Audit {audit_id}: Fehlerstatus konnte nicht gesetzt werden: {e}")
     finally:
         db.close()
+
+
+def _notify_widget_requester(db, audit_id: int) -> None:
+    """Schickt den Bericht an die im Widget eingegebene Adresse.
+
+    Der Bericht selbst ist die angeforderte Leistung und geht sofort raus.
+    Die Einwilligung zur späteren Kontaktaufnahme wird davon getrennt über
+    den Bestätigungslink eingeholt.
+    """
+    try:
+        from database import WidgetRequest
+        from services import widget_report
+        from services.email import send_email
+
+        row = (
+            db.query(WidgetRequest)
+            .filter(WidgetRequest.audit_id == audit_id,
+                    WidgetRequest.report_sent_at.is_(None))
+            .first()
+        )
+        if not row:
+            return
+
+        audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+        if not audit or audit.status != "completed":
+            return
+
+        subject, body = widget_report.report_email(
+            company=audit.company_name or row.website_url,
+            score=audit.total_score,
+            level=audit.level,
+            token=row.report_token,
+            issues=json.loads(audit.top_issues) if audit.top_issues else [],
+            confirm_token=row.confirm_token if row.consent_marketing else None,
+        )
+        if send_email(to_email=row.email, subject=subject, html_body=body):
+            row.report_sent_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            db.commit()
+            logger.info(f"Widget-Bericht versendet an {row.email} (Audit {audit_id})")
+        else:
+            logger.warning(f"Widget-Bericht konnte nicht versendet werden (Audit {audit_id})")
+    except Exception as e:  # noqa: BLE001 — Versandfehler darf das Audit nicht kippen
+        logger.warning(f"Widget-Benachrichtigung fehlgeschlagen für Audit {audit_id}: {e}")
 
 
 def _notify_customer(db, lead_id: Optional[int], audit_id: int) -> None:

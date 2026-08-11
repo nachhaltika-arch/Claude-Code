@@ -10,6 +10,7 @@ from .customers import router as customers_router
 from .automations import router as automations_router
 from .audit import router as audit_router
 from .diagnostics import router as diagnostics_router
+from .widget import router as widget_router
 from .auth_router import router as auth_router
 from .auth_router import admin_router
 from .admin_settings import router as settings_router
@@ -35,6 +36,7 @@ __all__ = [
     "automations_router",
     "audit_router",
     "diagnostics_router",
+    "widget_router",
     "auth_router",
     "admin_router",
     "scraper_router",

@@ -254,6 +254,11 @@
     document.body.getAttribute('data-checkout') ||
     'https://kompagnon-frontend.onrender.com/checkout/kompagnon';
 
+  /* Zahl der Prüfkriterien. Kommt aus dem Katalog im Backend — hier stand
+     früher eine fest eingetippte 42, die nicht mehr stimmte. Bis die
+     Konfiguration geladen ist, wird die Zahl gar nicht erst genannt. */
+  var CRITERIA_COUNT = 0;
+
   /* Datenschutz-Link und CTA-Ziel kommen aus den Einstellungen im Tool
      (Akquise → Widget), damit sie ohne neuen Einbaucode änderbar sind. */
   function loadConfig() {
@@ -262,6 +267,7 @@
       .then(function (cfg) {
         if (!cfg) return;
         if (cfg.checkout_url) CHECKOUT_URL = cfg.checkout_url;
+        if (cfg.criteria_count > 0) CRITERIA_COUNT = cfg.criteria_count;
         var link = document.getElementById('kpg-privacy');
         if (link && cfg.privacy_url) {
           link.href = cfg.privacy_url;
@@ -318,12 +324,32 @@
     if (s >= 30) return 'Homepage Standard Bronze 🥉';
     return 'Nicht konform ⚠️';
   }
-  /* Höhe an Eltern-Seite melden (für iframe-Auto-Resize) */
+  /* ── Höhe an die einbettende Seite melden ──
+     Das Widget steht in einem iframe auf einer fremden Landingpage. Die kennt
+     die Inhaltshöhe nicht: Formular, Ladeanzeige und Ergebnis sind verschieden
+     hoch. Ohne diese Meldung bleibt der Rahmen auf seiner Starthöhe — mal mit
+     totem Weiß darunter, mal mit abgeschnittenem Ergebnis.
+
+     Gemeldet wird nur eine Zahl, also nichts Schützenswertes; '*' als Ziel ist
+     hier deshalb unbedenklich. Die Gegenseite prüft ihrerseits Herkunft und
+     Absenderrahmen. */
+  var letzteHoehe = 0;
+
   function postHeight() {
     try {
-      var h = document.documentElement.scrollHeight;
+      var h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+      if (!h || h === letzteHoehe) return;
+      letzteHoehe = h;
       parent.postMessage({ type: 'kpg-audit-height', height: h }, '*');
     } catch (e) { /* no-op */ }
+  }
+
+  /* Nachträgliche Höhenänderungen — später geladene Schriften, umbrechender
+     Text auf schmalen Geräten, eingeblendeter Datenschutz-Link. Ein einmaliges
+     Melden nach dem Rendern verpasst diese Fälle. */
+  function watchHeight() {
+    if (typeof ResizeObserver !== 'function') return;
+    new ResizeObserver(postHeight).observe(document.documentElement);
   }
 
   /* ── Website aus E-Mail-Domain ableiten ──
@@ -349,10 +375,14 @@
     var email = emailEl.value.trim();
     var url   = normalizeUrl(urlEl.value);
     if (!email || !url) return;
-    startAudit(email, url);
+    /* Die Einwilligung MUSS hier gelesen werden, solange das Formular noch
+       im Dokument steht. renderLoading() ersetzt gleich den Karteninhalt —
+       danach ist die Checkbox weg und war jede Zustimmung verloren. */
+    var consentEl = document.getElementById('kpg-consent');
+    startAudit(email, url, !!(consentEl && consentEl.checked));
   });
 
-  function startAudit(email, cleanUrl) {
+  function startAudit(email, cleanUrl, consentMarketing) {
     renderLoading(cleanUrl);
 
     var idx = 0;
@@ -368,7 +398,7 @@
       body: JSON.stringify({
         email: email,
         website_url: cleanUrl,
-        consent_marketing: !!(document.getElementById('kpg-consent') || {}).checked,
+        consent_marketing: consentMarketing,
         referrer: document.referrer || ''
       })
     })
@@ -485,7 +515,8 @@
         issueHtml +
         '<div class="kpg-mailnote">' +
           '<strong>Der vollständige Bericht ist unterwegs</strong><br>' +
-          'Alle 42 Kriterien mit Bewertung und Empfehlungen — an ' + esc(email || 'Ihre Adresse') + '.' +
+          (CRITERIA_COUNT ? 'Alle ' + esc(CRITERIA_COUNT) + ' Kriterien' : 'Jedes Kriterium') +
+          ' mit Bewertung und Empfehlungen — an ' + esc(email || 'Ihre Adresse') + '.' +
         '</div>' +
         '<a class="kpg-btn" href="' + esc(CHECKOUT_URL) + '" target="_blank" rel="noopener" style="text-decoration:none;">Jetzt Webseite anfragen →</a>' +
         '<a class="kpg-link" id="kpg-restart">Neue Analyse starten</a>' +
@@ -496,10 +527,12 @@
 
   function resetWidget() { location.reload(); }
 
-  /* iframe-Höhe initial + bei Resize melden */
+  /* iframe-Höhe initial, bei Resize und bei jeder späteren Änderung melden */
+  postHeight();
   window.addEventListener('load', postHeight);
-  loadConfig();
   window.addEventListener('resize', postHeight);
+  watchHeight();
+  loadConfig();
 })();
 </script>
 </body>

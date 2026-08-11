@@ -184,6 +184,17 @@ def _shell(inner: str) -> str:
 </div></div></body></html>"""
 
 
+def _katalog_umfang() -> str:
+    """Umfang der Prüfung in Worten — aus dem Katalog, nicht eingetippt.
+
+    Hier stand „42 Kriterien"; der Katalog führt 38 bewertete. Eine Zahl, die
+    der Empfänger im Bericht nachzählen kann, muss stimmen.
+    """
+    kriterien = sum(len(cat.criteria) for cat in CATALOGUE)
+    kurz = [cat.label.split(" (")[0].split(" & ")[0] for cat in CATALOGUE]
+    return f"{kriterien} Kriterien aus {', '.join(kurz[:-1])} und {kurz[-1]}"
+
+
 def report_email(company: str, score: int, level: str, token: str,
                  issues: Optional[list] = None,
                  confirm_token: Optional[str] = None) -> tuple:
@@ -208,8 +219,7 @@ def report_email(company: str, score: int, level: str, token: str,
     inner = f"""
 <h2 style="margin:0 0 10px;font-size:19px">Ihre Website-Analyse ist fertig</h2>
 <p style="font-size:14px;line-height:1.6">Wir haben <strong>{_esc(company)}</strong>
-nach dem KOMPAGNON Homepage Standard geprüft — 42 Kriterien aus Recht, Sicherheit,
-Performance, Barrierefreiheit, SEO, Design, Conversion und Inhalt.</p>
+nach dem KOMPAGNON Homepage Standard geprüft — {_katalog_umfang()}.</p>
 <div style="background:#f5f5f3;border-radius:8px;padding:16px;margin:18px 0;text-align:center">
   <div style="font-size:34px;font-weight:800;color:{BRAND_DARK}">{score}<span
      style="font-size:16px;opacity:.6">/100</span></div>

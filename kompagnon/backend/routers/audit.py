@@ -124,7 +124,7 @@ def _run_audit_background(audit_id: int):
     import asyncio
     import time
 
-    from services.audit_runner import summarise_facts
+    from services.audit_runner import collection_notes, summarise_facts
     from services.audit_scoring import score_audit
     from services import audit_ai
 
@@ -191,6 +191,7 @@ def _run_audit_background(audit_id: int):
         audit2.category_scores = json.dumps(result["categories"], ensure_ascii=False)
         audit2.blockers        = json.dumps(result["blockers"], ensure_ascii=False)
         audit2.coverage        = result["coverage"]
+        audit2.collection_notes = json.dumps(collection_notes(facts), ensure_ascii=False)
 
         audit2.ssl_ok            = summary["ssl_ok"]
         audit2.impressum_ok      = summary["impressum_ok"]
@@ -584,6 +585,7 @@ def _format_audit(audit: AuditResult) -> dict:
         "total_score": audit.total_score,
         "level": audit.level,
         "coverage": getattr(audit, "coverage", None),
+        "collection_notes": _json_field(getattr(audit, "collection_notes", None), {}),
         "categories": categories,
         "catalogue": _catalogue_payload(items, sources),
         "items": items,

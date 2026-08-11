@@ -125,6 +125,17 @@ const CATEGORY_META = {
   inhalt:            { color: '#65A30D', shortLabel: 'Inhalt' },
 };
 
+// Klartext für ausgefallene Prüfungen — "nicht erhoben" allein sagt nicht,
+// ob die Website ein Problem hat oder das Audit eines.
+const COLLECTION_REASONS = {
+  kontingent_ohne_api_key: 'kein API-Key hinterlegt',
+  kontingent_erschoepft:  'Tageskontingent erschöpft',
+  api_fehler:             'API-Fehler',
+  ausnahme:               'technischer Fehler',
+  timeout:                'Zeitüberschreitung',
+  handshake_fehlgeschlagen: 'Verbindung fehlgeschlagen',
+};
+
 // Quellen-Kennzeichnung: macht im Report sichtbar, worauf eine Bewertung fußt.
 const SOURCE_BADGES = {
   gemessen:       { icon: '●', color: '#16A34A', title: 'Technisch gemessen' },
@@ -301,6 +312,9 @@ export default function AuditReport({ auditData, onClose }) {
 
   const blockers = Array.isArray(r.blockers) ? r.blockers : [];
   const coverage = typeof r.coverage === 'number' ? r.coverage : null;
+  const collectionNotes = r.collection_notes && typeof r.collection_notes === 'object'
+    ? r.collection_notes
+    : {};
 
   const radarData = viewCategories.map((cat) => ({
     subject: cat.shortLabel || cat.label,
@@ -488,6 +502,15 @@ export default function AuditReport({ auditData, onClose }) {
             marginBottom: '12px', fontSize: '11px', color: 'var(--text-tertiary)',
           }}>
             <span>{coverage}% der Kriterien konnten geprüft werden.</span>
+            {Object.entries(collectionNotes).map(([area, note]) => (
+              <span
+                key={area}
+                title={note.detail || ''}
+                style={{ color: 'var(--brand-primary)', fontWeight: 600 }}
+              >
+                {area}: {COLLECTION_REASONS[note.reason] || note.reason}
+              </span>
+            ))}
             {Object.entries(SOURCE_BADGES).map(([key, badge]) => (
               <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ color: badge.color }}>{badge.icon}</span>

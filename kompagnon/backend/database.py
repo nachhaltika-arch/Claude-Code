@@ -439,6 +439,7 @@ class AuditResult(Base):
     category_scores = Column(Text, default="[]")  # [{key, label, score, max, ...}]
     blockers = Column(Text, default="[]")         # K.-o.-Kriterien
     coverage = Column(Integer, default=0)         # Anteil erhobener Punkte in %
+    collection_notes = Column(Text, default="{}") # warum eine Prüfung ausfiel
 
     # Raw check results
     ssl_ok = Column(Boolean, default=False)

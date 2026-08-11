@@ -177,6 +177,7 @@ def run_migrations():
         ("category_scores", "TEXT DEFAULT '[]'"),
         ("blockers",        "TEXT DEFAULT '[]'"),
         ("coverage",        "INTEGER DEFAULT 0"),
+        ("collection_notes", "TEXT DEFAULT '{}'"),
     ):
         cur.execute(
             f"ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS {column} {definition};"

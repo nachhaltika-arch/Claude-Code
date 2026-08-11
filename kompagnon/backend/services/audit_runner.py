@@ -208,3 +208,26 @@ def summarise_facts(facts: dict) -> dict:
         "detected_technologies": hosting.get("detected_technologies", []),
         "a11y_failures": [f["title"] for f in (psi.get("a11y_failures") or [])][:8],
     }
+
+
+def collection_notes(facts: dict) -> dict:
+    """Warum eine Prüfung ausfiel — damit 'nicht erhoben' begründet erscheint.
+
+    Ohne diese Notiz sieht der Betrachter nur fehlende Punkte und kann nicht
+    unterscheiden, ob die Website ein Problem hat oder das Audit eines.
+    """
+    notes = {}
+    for key, label in (
+        ("psi_mobile", "pagespeed"),
+        ("legal", "rechtsseiten"),
+        ("tls", "tls"),
+        ("links", "linkpruefung"),
+        ("hosting", "hosting"),
+    ):
+        fact = facts.get(key) or {}
+        if fact.get("collected") is False:
+            notes[label] = {
+                "reason": fact.get("reason", "unbekannt"),
+                "detail": str(fact.get("detail", ""))[:200],
+            }
+    return notes

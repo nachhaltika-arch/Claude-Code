@@ -1,4 +1,14 @@
 {
   "cleanUrls": false,
-  "rewrites": [{ "source": "**", "destination": "/index.html" }]
+  "rewrites": [{ "source": "**", "destination": "/index.html" }],
+  "headers": [
+    {
+      "source": "embed/**",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    },
+    {
+      "source": "index.html",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    }
+  ]
 }

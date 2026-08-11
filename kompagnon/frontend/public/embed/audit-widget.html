@@ -399,7 +399,10 @@
             renderResult(d, cleanUrl, email);
           } else if (d.status === 'failed') {
             clearInterval(poll); clearInterval(msgTimer);
-            renderError('Audit fehlgeschlagen — bitte URL prüfen.');
+            /* Nicht der URL die Schuld geben: meistens war die Seite nur
+               kurz nicht erreichbar. */
+            renderError('Die Seite war nicht erreichbar. Bitte die Adresse prüfen ' +
+                        'oder in ein paar Minuten erneut versuchen.');
           }
         })
         .catch(function () { /* einzelnen Poll-Fehler ignorieren */ });

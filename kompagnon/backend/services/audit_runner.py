@@ -24,6 +24,12 @@ logger = logging.getLogger(__name__)
 HOMEPAGE_TIMEOUT = 15.0
 COLLECTION_TIMEOUT = 200.0  # Faktenerhebung; die KI-Bewertung läuft danach
 
+# Verbindungsversuche für die Startseite. Ein einzelner Fehlversuch beendet
+# sonst das ganze Audit — der Besucher liest „Audit fehlgeschlagen“, obwohl
+# seine Seite in Ordnung ist.
+HOMEPAGE_ATTEMPTS = 3
+HOMEPAGE_RETRY_DELAY = 1.5
+
 USER_AGENT = collectors.USER_AGENT
 
 SHOP_LEGAL_MARKERS = {
@@ -37,30 +43,52 @@ async def fetch_homepage(url: str) -> dict:
     """Lädt die Startseite mit aktiver Zertifikatsprüfung.
 
     Der Altcode nutzte ``verify=False`` — damit blieben ungültige Zertifikate
-    unsichtbar und wurden trotzdem mit der vollen SSL-Punktzahl belohnt.
+    unsichtbar und wurden trotzdem mit der vollen SSL-Punktzahl belohnt. Die
+    Prüfung bleibt deshalb an.
+
+    Ein Verbindungsfehler wird jedoch wiederholt: beobachtet wurde, dass
+    dieselbe Adresse mal einwandfrei antwortet und mal ein selbstsigniertes
+    Zertifikat liefert — Server, deren Vhost nur für einen Teil ihrer
+    IP-Adressen (v4/v6) ein passendes Zertifikat führt, verhalten sich je
+    nach gewählter Adresse unterschiedlich. Ein einzelner Fehlversuch darf
+    das Audit nicht beenden.
     """
-    try:
-        async with httpx.AsyncClient(timeout=HOMEPAGE_TIMEOUT, verify=True) as client:
-            # Jede Weiterleitung einzeln geprüft — sonst wäre nur der erste
-            # Hop kontrolliert und ein Redirect ins interne Netz käme durch.
-            r = await fetch_guarded(client, url, headers={"User-Agent": USER_AGENT})
-        return {
-            "collected": True,
-            "reachable": r.status_code < 400,
-            "status_code": r.status_code,
-            "html": r.text,
-            "headers": dict(r.headers),
-            "final_url": str(r.url),
-        }
-    except UnsafeUrlError as e:
-        return {"collected": True, "reachable": False, "status_code": 0,
-                "html": "", "headers": {}, "error": f"Adresse nicht erlaubt: {e}"[:200]}
-    except httpx.ConnectError as e:
-        return {"collected": True, "reachable": False, "status_code": 0,
-                "html": "", "headers": {}, "error": f"Verbindung fehlgeschlagen: {e}"[:200]}
-    except Exception as e:  # noqa: BLE001
-        return {"collected": True, "reachable": False, "status_code": 0,
-                "html": "", "headers": {}, "error": f"{type(e).__name__}: {e}"[:200]}
+    letzter_fehler = None
+
+    for versuch in range(HOMEPAGE_ATTEMPTS):
+        try:
+            async with httpx.AsyncClient(timeout=HOMEPAGE_TIMEOUT, verify=True) as client:
+                # Jede Weiterleitung einzeln geprüft — sonst wäre nur der erste
+                # Hop kontrolliert und ein Redirect ins interne Netz käme durch.
+                r = await fetch_guarded(client, url, headers={"User-Agent": USER_AGENT})
+            return {
+                "collected": True,
+                "reachable": r.status_code < 400,
+                "status_code": r.status_code,
+                "html": r.text,
+                "headers": dict(r.headers),
+                "final_url": str(r.url),
+            }
+        except UnsafeUrlError as e:
+            # Kein Netzproblem, sondern eine bewusst abgelehnte Adresse —
+            # ein weiterer Versuch änderte daran nichts.
+            return {"collected": True, "reachable": False, "status_code": 0,
+                    "html": "", "headers": {}, "error": f"Adresse nicht erlaubt: {e}"[:200]}
+        except httpx.ConnectError as e:
+            letzter_fehler = f"Verbindung fehlgeschlagen: {e}"
+        except Exception as e:  # noqa: BLE001
+            letzter_fehler = f"{type(e).__name__}: {e}"
+
+        if versuch + 1 < HOMEPAGE_ATTEMPTS:
+            logger.warning(
+                f"Startseite {url}: Versuch {versuch + 1} von {HOMEPAGE_ATTEMPTS} "
+                f"fehlgeschlagen ({letzter_fehler}) — neuer Versuch")
+            await asyncio.sleep(HOMEPAGE_RETRY_DELAY)
+
+    logger.warning(f"Startseite {url} nach {HOMEPAGE_ATTEMPTS} Versuchen nicht erreichbar: "
+                   f"{letzter_fehler}")
+    return {"collected": True, "reachable": False, "status_code": 0,
+            "html": "", "headers": {}, "error": (letzter_fehler or "unbekannt")[:200]}
 
 
 def _security_headers(headers: dict) -> dict:

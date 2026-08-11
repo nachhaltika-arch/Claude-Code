@@ -131,6 +131,12 @@
     text-align: center;
     margin: 22px 0 0;
   }
+  /* Ohne eigene Regel malt der Browser den Datenschutz-Link blau-violett
+     und unterstrichen — quer zur Fusszeile. */
+  .kpg-foot a { color: inherit; text-decoration: none; }
+  /* Nur das Wort wird unterstrichen, nicht das Trennzeichen davor. */
+  .kpg-foot a span { text-decoration: underline; text-underline-offset: 2px; }
+  .kpg-foot a:hover { color: var(--kpg-dark); }
 
   /* ── Loading ── */
   .kpg-center { text-align: center; padding: 12px 0; }
@@ -221,7 +227,7 @@
            solange kein Datenschutz-Link konfiguriert ist. -->
       <p class="kpg-foot">Der Bericht geht an die angegebene Adresse<a
            id="kpg-privacy" href="#" target="_blank" rel="noopener"
-           style="display:none"> · Datenschutz</a></p>
+           style="display:none"> · <span>Datenschutz</span></a></p>
     </form>
   </div>
 

@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from database import SessionLocal, WidgetRequest
+from routers import widget
 
 
 @pytest.fixture
@@ -94,6 +95,93 @@ def test_alte_anfragen_zaehlen_nicht_mehr_mit(client, aufraeumen):
     r = client.post("/api/widget/audit",
                     json={"email": email, "website_url": "http://127.0.0.1/"})
     assert r.status_code == 400
+
+
+def test_ein_ganzer_betrieb_wird_nicht_zugemuellt(client, aufraeumen):
+    """Viele erfundene Adressen derselben Firma, jede unter ihrer Einzelgrenze."""
+    # Arrange
+    domain = "zielfirma-test.de"
+    db = SessionLocal()
+    try:
+        for nummer in range(10):
+            adresse = f"person{nummer}@{domain}"
+            aufraeumen.append(adresse)
+            db.add(WidgetRequest(email=adresse, website_url="https://example.com",
+                                 created_at=datetime.utcnow()))
+        db.commit()
+    finally:
+        db.close()
+
+    # Act — eine weitere, bisher unbenutzte Adresse derselben Firma
+    neue = f"chef@{domain}"
+    aufraeumen.append(neue)
+    r = client.post("/api/widget/audit",
+                    json={"email": neue, "website_url": "https://example.com"})
+
+    # Assert
+    assert r.status_code == 429
+
+
+def test_freemail_adressen_sperren_sich_nicht_gegenseitig(client, aufraeumen):
+    """Bei gmx & Co. sagt die Domain nichts über den Empfänger aus."""
+    # Arrange
+    db = SessionLocal()
+    try:
+        for nummer in range(10):
+            adresse = f"kunde{nummer}@gmx.de"
+            aufraeumen.append(adresse)
+            db.add(WidgetRequest(email=adresse, website_url="https://example.com",
+                                 created_at=datetime.utcnow()))
+        db.commit()
+    finally:
+        db.close()
+
+    # Act — eine interne Adresse stoppt den echten Audit-Lauf; die Ratenprüfung
+    # läuft davor, ein 400 statt 429 belegt also, dass nicht gebremst wurde.
+    neue = "neuer-kunde@gmx.de"
+    aufraeumen.append(neue)
+    r = client.post("/api/widget/audit",
+                    json={"email": neue, "website_url": "http://127.0.0.1/"})
+
+    # Assert
+    assert r.status_code == 400
+
+
+# ── Herkunft des Aufrufers ────────────────────────────────────────────
+
+class _AnfrageAttrappe:
+    """Nur so viel Request, wie die Adressermittlung anfasst."""
+
+    def __init__(self, headers, client_host="10.0.0.9"):
+        self.headers = headers
+        self.client = type("Client", (), {"host": client_host})()
+
+
+def test_selbst_mitgeschickter_forwarded_kopf_bestimmt_die_zaehlung_nicht():
+    """Sonst sucht sich ein Angreifer pro Anfrage eine neue Identität aus."""
+    # Arrange — vorne die Behauptung des Aufrufers, hinten der echte Proxy-Eintrag
+    anfrage = _AnfrageAttrappe({"x-forwarded-for": "1.2.3.4, 203.0.113.7"})
+
+    # Act
+    ip = widget._client_ip(anfrage)
+
+    # Assert
+    assert ip == "203.0.113.7"
+
+
+def test_cloudflare_kopf_hat_vorrang():
+    # Arrange
+    anfrage = _AnfrageAttrappe({
+        "cf-connecting-ip": "203.0.113.9",
+        "x-forwarded-for": "1.2.3.4, 5.6.7.8",
+    })
+
+    # Act / Assert
+    assert widget._client_ip(anfrage) == "203.0.113.9"
+
+
+def test_ohne_proxy_kopf_zaehlt_die_verbindung_selbst():
+    assert widget._client_ip(_AnfrageAttrappe({})) == "10.0.0.9"
 
 
 # ── Bericht und Bestätigung ───────────────────────────────────────────

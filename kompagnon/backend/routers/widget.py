@@ -26,10 +26,28 @@ router = APIRouter(prefix="/api/widget", tags=["widget"])
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s.]+\.[^@\s]{2,}$")
 
 # Ratenbegrenzung: das Widget steht auf fremden Seiten und jede Anfrage kostet
-# einen KI-Aufruf, PageSpeed-Kontingent und potenziell eine E-Mail an Dritte.
+# einen KI-Aufruf, PageSpeed-Kontingent und eine E-Mail an eine fremde Adresse.
+# Die Adresse wird nicht vorab bestätigt — wer sie einträgt, muss sie also
+# nicht besitzen. Deshalb greifen mehrere Grenzen ineinander: pro Absender,
+# pro Empfänger, pro Empfänger-Betrieb und insgesamt.
 LIMIT_PER_IP_PER_HOUR = 5
+LIMIT_PER_IP_PER_DAY = 15
 LIMIT_PER_EMAIL_PER_DAY = 3
+# Schützt einen ganzen Betrieb: sonst liessen sich beliebig viele erfundene
+# Adressen derselben Firma anschreiben, jede knapp unter ihrer Einzelgrenze.
+LIMIT_PER_DOMAIN_PER_DAY = 10
+
+# Bei Freemail-Anbietern sagt die Domain nichts über den Empfänger aus —
+# dort wuerde die Grenze fremde Interessenten gegenseitig aussperren.
+FREEMAIL_DOMAINS = frozenset({
+    "gmail.com", "googlemail.com", "gmx.de", "gmx.net", "gmx.at", "web.de",
+    "yahoo.de", "yahoo.com", "hotmail.com", "hotmail.de", "outlook.com",
+    "outlook.de", "live.de", "icloud.com", "me.com", "t-online.de",
+    "freenet.de", "aol.com", "posteo.de", "mailbox.org", "protonmail.com",
+    "proton.me",
+})
 LIMIT_TOTAL_PER_HOUR = 60
+LIMIT_TOTAL_PER_DAY = 300
 
 TOP_ISSUES_IN_TEASER = 3
 
@@ -49,10 +67,39 @@ def _normalise_url(url: str) -> str:
 
 
 def _client_ip(request: Request) -> str:
+    """Die Adresse des echten Aufrufers — nicht die, die er selbst behauptet.
+
+    ``X-Forwarded-For`` ist eine Kette, an die jeder Proxy hinten anhängt.
+    Der vorderste Eintrag stammt damit vom Aufrufer selbst: wer den Kopf
+    einfach mitschickt, bestimmte bisher, unter welcher Adresse er gezählt
+    wird — und hebelte damit jede Grenze pro IP aus. Cloudflare steht vor
+    dieser Anwendung und setzt ``CF-Connecting-IP`` selbst; dieser Wert ist
+    nicht fälschbar und gilt deshalb zuerst. Sonst der letzte Eintrag der
+    Kette, den der nächstgelegene Proxy angehängt hat.
+
+    Fehlt beides, zählt die Verbindung selbst. In unklarer Lage wird damit
+    eher zu streng gezählt als zu lax — bei einem Endpunkt, der E-Mails an
+    fremde Adressen auslöst, ist das die richtige Richtung.
+    """
+    for header in ("cf-connecting-ip", "true-client-ip", "x-real-ip"):
+        wert = request.headers.get(header, "").strip()
+        if wert:
+            return wert[:64]
+
     forwarded = request.headers.get("x-forwarded-for", "")
     if forwarded:
-        return forwarded.split(",")[0].strip()[:64]
+        return forwarded.split(",")[-1].strip()[:64]
+
     return (request.client.host if request.client else "")[:64]
+
+
+def _email_domain(email: str) -> str:
+    return email.rsplit("@", 1)[-1] if "@" in email else ""
+
+
+def _zaehle(db: Session, seit: datetime, *bedingungen) -> int:
+    return db.query(WidgetRequest).filter(
+        WidgetRequest.created_at >= seit, *bedingungen).count()
 
 
 def _enforce_limits(db: Session, ip: str, email: str) -> None:
@@ -60,27 +107,31 @@ def _enforce_limits(db: Session, ip: str, email: str) -> None:
     hour_ago = now - timedelta(hours=1)
     day_ago = now - timedelta(days=1)
 
+    zu_viele = "Zu viele Anfragen. Bitte später erneut versuchen."
+    postfach = ("Für diese E-Mail-Adresse wurden heute bereits mehrere Analysen "
+                "angefordert. Bitte sehen Sie in Ihrem Postfach nach.")
+    ausgelastet = ("Das Analyse-Kontingent ist ausgelastet. "
+                   "Bitte versuchen Sie es später erneut.")
+
     if ip:
-        from_ip = db.query(WidgetRequest).filter(
-            WidgetRequest.ip_address == ip,
-            WidgetRequest.created_at >= hour_ago,
-        ).count()
-        if from_ip >= LIMIT_PER_IP_PER_HOUR:
-            raise HTTPException(429, "Zu viele Anfragen. Bitte später erneut versuchen.")
+        if _zaehle(db, hour_ago, WidgetRequest.ip_address == ip) >= LIMIT_PER_IP_PER_HOUR:
+            raise HTTPException(429, zu_viele)
+        if _zaehle(db, day_ago, WidgetRequest.ip_address == ip) >= LIMIT_PER_IP_PER_DAY:
+            raise HTTPException(429, zu_viele)
 
-    from_email = db.query(WidgetRequest).filter(
-        WidgetRequest.email == email,
-        WidgetRequest.created_at >= day_ago,
-    ).count()
-    if from_email >= LIMIT_PER_EMAIL_PER_DAY:
-        raise HTTPException(
-            429, "Für diese E-Mail-Adresse wurden heute bereits mehrere Analysen "
-                 "angefordert. Bitte sehen Sie in Ihrem Postfach nach.")
+    if _zaehle(db, day_ago, WidgetRequest.email == email) >= LIMIT_PER_EMAIL_PER_DAY:
+        raise HTTPException(429, postfach)
 
-    total = db.query(WidgetRequest).filter(WidgetRequest.created_at >= hour_ago).count()
-    if total >= LIMIT_TOTAL_PER_HOUR:
-        raise HTTPException(429, "Das Analyse-Kontingent ist ausgelastet. "
-                                 "Bitte versuchen Sie es in einer Stunde erneut.")
+    domain = _email_domain(email)
+    if domain and domain not in FREEMAIL_DOMAINS:
+        von_domain = _zaehle(db, day_ago, WidgetRequest.email.ilike(f"%@{domain}"))
+        if von_domain >= LIMIT_PER_DOMAIN_PER_DAY:
+            raise HTTPException(429, postfach)
+
+    if _zaehle(db, hour_ago) >= LIMIT_TOTAL_PER_HOUR:
+        raise HTTPException(429, ausgelastet)
+    if _zaehle(db, day_ago) >= LIMIT_TOTAL_PER_DAY:
+        raise HTTPException(429, ausgelastet)
 
 
 @router.post("/audit")

@@ -126,7 +126,10 @@ services:
     branch: staging
     rootDir: kompagnon/frontend
     buildCommand: npm ci --legacy-peer-deps && npm run build
-    startCommand: npx serve -s build -l $PORT
+    # Ohne -s: die Rewrites stehen in public/serve.json, zusammen mit
+    # cleanUrls:false. Sonst leitet serve /embed/audit-widget.html auf
+    # /embed/audit-widget um und die React-App verschluckt das Widget.
+    startCommand: npx serve build -l $PORT
     # Deploy wird von GitHub Actions ausgeloest (.github/workflows/ci.yml),
     # erst nach gruener CI. Im Render-Dashboard muss Auto-Deploy ebenfalls
     # auf 'Off' stehen — sonst deployt Render parallel am Gate vorbei.

@@ -11,15 +11,51 @@ from email.mime.multipart import MIMEMultipart
 logger = logging.getLogger(__name__)
 
 
-def send_email(to_email: str, subject: str, html_body: str, text_body: str = "") -> bool:
-    smtp_host = os.getenv("SMTP_HOST", "")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER", "")
-    smtp_pass = os.getenv("SMTP_PASSWORD", "")
-    sender_name = os.getenv("SMTP_SENDER_NAME", "KOMPAGNON")
-    sender_email = os.getenv("SMTP_SENDER_EMAIL", smtp_user)
+def _smtp_settings(db=None) -> dict:
+    """Zugang aus den Einstellungen im Tool, sonst aus den Umgebungsvariablen.
 
-    if not smtp_host or not smtp_user:
+    Ohne eigene Session wird eine geöffnet und wieder geschlossen — der Versand
+    läuft auch aus Hintergrundaufgaben ohne Request-Kontext.
+    """
+    try:
+        from services.app_settings import smtp_config
+
+        if db is not None:
+            return smtp_config(db)
+
+        from database import SessionLocal
+
+        own = SessionLocal()
+        try:
+            return smtp_config(own)
+        finally:
+            own.close()
+    except Exception as e:  # noqa: BLE001 — Rückfall auf reine Umgebungsvariablen
+        logger.warning(f"SMTP-Einstellungen nicht lesbar ({e}) — nutze Umgebungsvariablen")
+        user = os.getenv("SMTP_USER", "")
+        host = os.getenv("SMTP_HOST", "")
+        return {
+            "host": host,
+            "port": int(os.getenv("SMTP_PORT", "587") or 587),
+            "user": user,
+            "password": os.getenv("SMTP_PASSWORD", ""),
+            "sender_name": os.getenv("SMTP_SENDER_NAME", "KOMPAGNON"),
+            "sender_email": os.getenv("SMTP_SENDER_EMAIL", user),
+            "configured": bool(host and user),
+        }
+
+
+def send_email(to_email: str, subject: str, html_body: str, text_body: str = "",
+               db=None) -> bool:
+    config = _smtp_settings(db)
+    smtp_host = config["host"]
+    smtp_port = config["port"]
+    smtp_user = config["user"]
+    smtp_pass = config["password"]
+    sender_name = config["sender_name"]
+    sender_email = config["sender_email"] or smtp_user
+
+    if not config["configured"]:
         logger.warning("SMTP nicht konfiguriert — E-Mail nicht gesendet")
         return False
 

@@ -156,6 +156,18 @@ async def start_widget_audit(
     return {"request_id": widget_request.id, "audit_id": started["id"], "status": "pending"}
 
 
+@router.get("/config")
+def widget_config(db: Session = Depends(get_db)):
+    """Öffentliche Widget-Konfiguration — vom Widget beim Laden abgerufen.
+
+    Enthält bewusst nur Anzeigewerte (Datenschutz-Link, Ziel des CTA), damit
+    der Einbettende nichts anpassen muss, wenn sich etwas ändert.
+    """
+    from services import app_settings
+
+    return app_settings.widget_config(db)
+
+
 @router.get("/teaser/{audit_id}")
 def audit_teaser(audit_id: int, db: Session = Depends(get_db)):
     """Kurzfassung fürs Widget — der vollständige Bericht geht per E-Mail."""

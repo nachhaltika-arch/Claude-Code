@@ -215,8 +215,8 @@
         Analyse starten
       </button>
       <p class="kpg-foot">Der Bericht geht an die angegebene Adresse ·
-        <a href="https://kompagnon-frontend.onrender.com/datenschutz"
-           target="_blank" rel="noopener">Datenschutz</a></p>
+        <a id="kpg-privacy" href="#" target="_blank" rel="noopener"
+           style="display:none">Datenschutz</a></p>
     </form>
   </div>
 
@@ -233,6 +233,28 @@
   var CHECKOUT_URL =
     document.body.getAttribute('data-checkout') ||
     'https://kompagnon-frontend.onrender.com/checkout/kompagnon';
+
+  /* Datenschutz-Link und CTA-Ziel kommen aus den Einstellungen im Tool
+     (Akquise → Widget), damit sie ohne neuen Einbaucode änderbar sind. */
+  function loadConfig() {
+    fetch(API_BASE + '/api/widget/config')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (cfg) {
+        if (!cfg) return;
+        if (cfg.checkout_url) CHECKOUT_URL = cfg.checkout_url;
+        var link = document.getElementById('kpg-privacy');
+        if (link && cfg.privacy_url) {
+          link.href = cfg.privacy_url;
+          link.style.display = '';
+        }
+        if (cfg.headline) {
+          var h = document.querySelector('.kpg-h');
+          if (h) h.textContent = cfg.headline;
+        }
+        postHeight();
+      })
+      .catch(function () { /* Widget bleibt ohne Konfiguration nutzbar */ });
+  }
 
   var POLL_INTERVAL_MS = 4000;
   var MAX_POLL_ATTEMPTS = 45;
@@ -445,6 +467,7 @@
 
   /* iframe-Höhe initial + bei Resize melden */
   window.addEventListener('load', postHeight);
+  loadConfig();
   window.addEventListener('resize', postHeight);
 })();
 </script>

@@ -51,6 +51,7 @@ from routers import (
     audit_router,
     diagnostics_router,
     widget_router,
+    acquisition_router,
     auth_router,
     admin_router,
     scraper_router,
@@ -1693,6 +1694,7 @@ app.include_router(portal_router)
 app.include_router(audit_router)
 app.include_router(diagnostics_router)
 app.include_router(widget_router)
+app.include_router(acquisition_router)
 app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(scraper_router)

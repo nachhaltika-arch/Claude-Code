@@ -177,6 +177,21 @@ def smtp_status(db) -> dict:
     }
 
 
+def mail_channel(db) -> dict:
+    """Welcher Weg die Einzelmails tatsächlich verschickt."""
+    from services import brevo_mail
+
+    smtp = smtp_config(db)
+    if brevo_mail.is_available():
+        return {"channel": "brevo", "label": "Brevo-Transaktions-API",
+                "ready": True, "detail": "BREVO_API_KEY ist gesetzt"}
+    if smtp["configured"]:
+        return {"channel": "smtp", "label": "Eigener SMTP-Server",
+                "ready": True, "detail": f"{smtp['host']}:{smtp['port']}"}
+    return {"channel": "keiner", "label": "Nicht eingerichtet", "ready": False,
+            "detail": "Weder BREVO_API_KEY noch SMTP-Zugang hinterlegt"}
+
+
 def widget_config(db) -> dict:
     return {
         "privacy_url": get(db, "widget_privacy_url"),

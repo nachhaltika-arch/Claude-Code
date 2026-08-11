@@ -88,7 +88,7 @@ def write_widget_settings(
 @router.get("/smtp")
 def read_smtp_settings(_: User = Depends(require_admin), db: Session = Depends(get_db)):
     """Zugangsdaten ohne Passwort — das wird nie zurückgegeben."""
-    return app_settings.smtp_status(db)
+    return {**app_settings.smtp_status(db), "mail_channel": app_settings.mail_channel(db)}
 
 
 @router.put("/smtp")
@@ -125,10 +125,11 @@ def send_test_email(
     """Verschickt eine echte Test-E-Mail über den hinterlegten Zugang."""
     from services.email import send_email
 
+    kanal = app_settings.mail_channel(db)
+    if not kanal["ready"]:
+        raise HTTPException(400, "Es ist kein Versandweg eingerichtet: "
+                                 + kanal["detail"])
     config = app_settings.smtp_config(db)
-    if not config["configured"]:
-        raise HTTPException(400, "SMTP ist nicht vollständig eingerichtet "
-                                 "(Server und Benutzer werden benötigt).")
 
     ok = send_email(
         to_email=payload.to.strip(),
@@ -136,12 +137,13 @@ def send_test_email(
         html_body=(
             "<p>Diese Nachricht bestätigt, dass der E-Mail-Versand aus dem "
             "KOMPAGNON-Tool funktioniert.</p>"
-            f"<p style='color:#666;font-size:13px'>Server: {config['host']}:{config['port']} · "
-            f"Absender: {config['sender_email']}</p>"
+            f"<p style='color:#666;font-size:13px'>Versandweg: {kanal['label']} · "
+            f"Absender: {config['sender_email'] or 'Vorgabe'}</p>"
         ),
         db=db,
     )
     if not ok:
-        raise HTTPException(502, "Versand fehlgeschlagen — bitte Server, Port, "
-                                 "Benutzer und Passwort prüfen.")
-    return {"message": f"Test-E-Mail an {payload.to} versendet"}
+        raise HTTPException(502, f"Versand über {kanal['label']} fehlgeschlagen — "
+                                 "Details stehen im Server-Log.")
+    return {"message": f"Test-E-Mail an {payload.to} versendet",
+            "channel": kanal["label"]}

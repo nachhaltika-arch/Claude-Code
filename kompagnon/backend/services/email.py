@@ -85,8 +85,34 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str = "",
 
     attachments: Liste aus (Dateiname, Bytes, Untertyp), z. B.
     [("Bericht.pdf", pdf_bytes, "pdf")].
+
+    Bevorzugt wird die Brevo-Transaktions-API, weil deren Schlüssel ohnehin
+    für die Newsletter gepflegt wird. SMTP bleibt als zweiter Weg bestehen,
+    falls jemand lieber einen eigenen Mailserver nutzt.
     """
     config = _smtp_settings(db)
+
+    from services import brevo_mail
+
+    if brevo_mail.is_available():
+        erfolg, meldung = brevo_mail.send(
+            to_email=to_email,
+            subject=subject,
+            html_body=html_body,
+            text_body=text_body,
+            sender_name=config.get("sender_name") or "",
+            sender_email=config.get("sender_email") or "",
+            attachments=attachments,
+        )
+        if erfolg:
+            return True
+        # Kein stiller Rückfall: ist SMTP nicht eingerichtet, bleibt es beim
+        # Fehler — sonst sieht es aus, als sei nur SMTP nicht konfiguriert.
+        logger.warning(f"Brevo-Versand fehlgeschlagen ({meldung})")
+        if not config["configured"]:
+            return False
+        logger.info("Versuche stattdessen SMTP")
+
     smtp_host = config["host"]
     smtp_port = config["port"]
     smtp_user = config["user"]

@@ -108,7 +108,15 @@ def _fehlermeldung(response) -> str:
         code, text = "", response.text[:200]
 
     if response.status_code == 401:
-        return "Brevo-Schlüssel ungültig oder abgelaufen"
+        # Brevo unterscheidet hier zwei völlig verschiedene Ursachen:
+        # 'Key not found' (falscher Schlüssel) und 'unrecognised IP address'
+        # (Aufruf von einer nicht freigegebenen Adresse). Beide auf eine
+        # gemeinsame Meldung zu reduzieren kostet nur Suchzeit.
+        hinweis = text.lower()
+        if "ip" in hinweis:
+            return (f"Brevo blockiert die aufrufende IP-Adresse — unter "
+                    f"Sicherheit → Autorisierte IPs freigeben. Brevo meldet: {text}")
+        return f"Brevo lehnt den Schlüssel ab. Brevo meldet: {text}"
     if code == "invalid_parameter" and "sender" in text.lower():
         return ("Absenderadresse ist in Brevo nicht verifiziert — "
                 "unter Senders bestätigen oder die Domain einrichten")

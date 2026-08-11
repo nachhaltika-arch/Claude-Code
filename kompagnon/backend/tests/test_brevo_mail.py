@@ -102,7 +102,17 @@ def test_ungueltiger_schluessel_wird_benannt(key, monkeypatch):
     _abfangen(monkeypatch, _Antwort(401, {"message": "Key not found"}))
     ok, meldung = brevo_mail.send("wer@example.de", "Betreff", "<p>x</p>")
     assert ok is False
-    assert "ungültig" in meldung
+    assert "lehnt den Schlüssel ab" in meldung
+    assert "Key not found" in meldung, "Brevos eigener Wortlaut muss durchkommen"
+
+
+def test_gesperrte_ip_wird_von_falschem_schluessel_unterschieden(key, monkeypatch):
+    """Beide Ursachen liefern 401 — sie zu vermengen kostet nur Suchzeit."""
+    _abfangen(monkeypatch, _Antwort(401, {"message": "unrecognised IP address"}))
+    ok, meldung = brevo_mail.send("wer@example.de", "Betreff", "<p>x</p>")
+    assert ok is False
+    assert "IP-Adresse" in meldung
+    assert "Autorisierte IPs" in meldung
 
 
 def test_nicht_verifizierter_absender_wird_erklaert(key, monkeypatch):

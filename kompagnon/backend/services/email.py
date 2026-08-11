@@ -103,6 +103,7 @@ def send_email_detailed(to_email: str, subject: str, html_body: str,
     Log-Zugang hat, sieht bloß "Versand fehlgeschlagen" und kann nichts tun.
     """
     config = _smtp_settings(db)
+    brevo_fehler = ""
 
     from services import brevo_mail
 
@@ -121,8 +122,9 @@ def send_email_detailed(to_email: str, subject: str, html_body: str,
         # Kein stiller Rückfall: ist SMTP nicht eingerichtet, bleibt es beim
         # Fehler — sonst sieht es aus, als sei nur SMTP nicht konfiguriert.
         logger.warning(f"Brevo-Versand fehlgeschlagen ({meldung})")
+        brevo_fehler = f"Brevo: {meldung}"
         if not config["configured"]:
-            return False, f"Brevo: {meldung}"
+            return False, brevo_fehler
         logger.info("Versuche stattdessen SMTP")
 
     smtp_host = config["host"]
@@ -160,7 +162,10 @@ def send_email_detailed(to_email: str, subject: str, html_body: str,
         return True, "über SMTP gesendet"
     except Exception as e:
         logger.error(f"E-Mail Fehler an {to_email}: {e}")
-        return False, f"SMTP: {type(e).__name__}: {e}"[:200]
+        smtp_fehler = f"SMTP: {type(e).__name__}: {e}"[:200]
+        # Beide Wege benennen — sonst sieht man nur den zuletzt versuchten
+        # und sucht am falschen Ende.
+        return False, f"{brevo_fehler} | {smtp_fehler}" if brevo_fehler else smtp_fehler
 
 
 def send_password_reset_email(to_email: str, reset_token: str, user_name: str = "") -> bool:

@@ -348,6 +348,7 @@ function SidebarNav({ badges }) {
                   { label: 'Kaltakquise',          path: '/app/scraper',    adminOnly: true },
                   { label: 'Domain-Import',        path: '/app/import'     },
                   { label: 'Audit-Tool',           path: '/app/audit'      },
+                  { label: 'Analyse-Widget',       path: '/app/widget',     adminOnly: true },
                   { label: 'Newsletter',           path: '/app/newsletter' },
                   { label: 'Kampagnen',            path: '/app/campaigns',  adminOnly: true },
                   { label: 'Export',               path: '/app/export'     },

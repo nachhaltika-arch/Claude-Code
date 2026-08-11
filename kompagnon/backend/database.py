@@ -431,6 +431,15 @@ class AuditResult(Base):
     ux_content = Column(Integer, default=0)
     ux_kontakt = Column(Integer, default=0)
 
+    # Kriterienkatalog ab 2026-08-11 (siehe services/audit_criteria.py).
+    # JSON statt Einzelspalten, damit neue Kriterien keine Migration brauchen.
+    # Die Einzelspalten oberhalb sind Altbestand und werden nicht mehr gefüllt.
+    item_scores = Column(Text, default="{}")      # {kriterium: punkte}
+    item_sources = Column(Text, default="{}")     # {kriterium: gemessen|abgeleitet|...}
+    category_scores = Column(Text, default="[]")  # [{key, label, score, max, ...}]
+    blockers = Column(Text, default="[]")         # K.-o.-Kriterien
+    coverage = Column(Integer, default=0)         # Anteil erhobener Punkte in %
+
     # Raw check results
     ssl_ok = Column(Boolean, default=False)
     impressum_ok = Column(Boolean, default=False)

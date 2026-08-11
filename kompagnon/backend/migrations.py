@@ -166,6 +166,22 @@ def run_migrations():
         ALTER TABLE projects ADD COLUMN IF NOT EXISTS steps_confirmed TEXT DEFAULT '{}';
     """)
 
+    # ── Audit-Überarbeitung 2026-08-11 ─────────────────────────────────────
+    # Kriterien, Punkte und Quellen liegen als JSON, nicht als je eine Spalte:
+    # der Katalog soll sich weiterentwickeln können, ohne dass jede neue
+    # Prüfung eine Migration braucht. Die alten Einzelspalten bleiben als
+    # Altbestand stehen und werden nicht mehr beschrieben.
+    for column, definition in (
+        ("item_scores",     "TEXT DEFAULT '{}'"),
+        ("item_sources",    "TEXT DEFAULT '{}'"),
+        ("category_scores", "TEXT DEFAULT '[]'"),
+        ("blockers",        "TEXT DEFAULT '[]'"),
+        ("coverage",        "INTEGER DEFAULT 0"),
+    ):
+        cur.execute(
+            f"ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS {column} {definition};"
+        )
+
     cur.close()
     conn.close()
     logger.info("Migrationen erfolgreich ausgefuehrt.")

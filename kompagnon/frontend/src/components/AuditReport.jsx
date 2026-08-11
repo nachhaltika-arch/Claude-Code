@@ -108,10 +108,58 @@ const CATEGORIES = [
 const HOSTING_ITEMS = [
   { key: 'ho_anbieter', label: 'Anbieter identifizierbar' },
   { key: 'ho_uptime',   label: 'Erreichbarkeit' },
-  { key: 'ho_http',     label: 'HTTP→HTTPS Weiterleitung' },
-  { key: 'ho_backup',   label: 'Backup-Hinweise' },
   { key: 'ho_cdn',      label: 'CDN aktiv' },
+  { key: 'ho_cms',      label: 'CMS erkannt' },
 ];
+
+// Farben und Kurzlabels für die Kategorien des überarbeiteten Katalogs.
+// Die Kriterien selbst kommen aus der API — hier steht nur die Darstellung.
+const CATEGORY_META = {
+  recht_compliance:  { color: '#B02418', shortLabel: 'Recht' },
+  sicherheit:        { color: '#7C3AED', shortLabel: 'Sicherheit' },
+  performance:       { color: '#2563EB', shortLabel: 'Performance' },
+  barrierefreiheit:  { color: '#0891B2', shortLabel: 'Barrierefrei' },
+  seo:               { color: '#16A34A', shortLabel: 'SEO' },
+  design:            { color: '#DB2777', shortLabel: 'Design' },
+  conversion:        { color: '#EA580C', shortLabel: 'Conversion' },
+  inhalt:            { color: '#65A30D', shortLabel: 'Inhalt' },
+};
+
+// Quellen-Kennzeichnung: macht im Report sichtbar, worauf eine Bewertung fußt.
+const SOURCE_BADGES = {
+  gemessen:       { icon: '●', color: '#16A34A', title: 'Technisch gemessen' },
+  abgeleitet:     { icon: '◐', color: '#2563EB', title: 'Aus Messwerten abgeleitet' },
+  einschaetzung:  { icon: '◇', color: '#7C3AED', title: 'KI-Einschätzung' },
+  nicht_erhoben:  { icon: '○', color: '#9CA3AF', title: 'Nicht erhoben — zählt nicht in den Score' },
+};
+
+/**
+ * Baut die Kategorie-Ansicht aus der API-Antwort.
+ * Nicht erhobene Kriterien fallen aus Punkten UND Maximum heraus, damit eine
+ * fehlende Messung nicht als "null Punkte" erscheint.
+ * @returns {Array|null} null, wenn das Audit noch nach dem alten Katalog lief
+ */
+function buildViewCategories(audit) {
+  const hasSources = audit.sources && Object.keys(audit.sources).length > 0;
+  if (!Array.isArray(audit.catalogue) || !audit.catalogue.length || !hasSources) {
+    return null;
+  }
+
+  return audit.catalogue.map((cat) => {
+    const collected = cat.criteria.filter((c) => c.collected);
+    const meta = CATEGORY_META[cat.key] || {};
+    return {
+      key: cat.key,
+      label: cat.label,
+      shortLabel: meta.shortLabel || cat.label,
+      color: meta.color || 'var(--brand-primary)',
+      score: collected.reduce((sum, c) => sum + (c.score || 0), 0),
+      max: collected.reduce((sum, c) => sum + c.max, 0),
+      nominalMax: cat.nominal_max,
+      criteria: cat.criteria,
+    };
+  });
+}
 
 function scoreColor(score, max) {
   if (max === 0) return 'var(--text-tertiary)';
@@ -238,14 +286,27 @@ export default function AuditReport({ auditData, onClose }) {
     return Math.min(catDef.items.reduce((sum, item) => sum + (items[item.key] || 0), 0), catMax);
   };
 
-  const radarData = CATEGORIES.map((cat) => {
-    const catScore = getCatScore(cat.key, cat.max);
-    return {
-      subject: cat.shortLabel,
-      score: cat.max > 0 ? Math.round((Math.min(catScore, cat.max) / cat.max) * 100) : 0,
-      fullMark: 100,
-    };
-  });
+  // Ab 2026-08-11 liefert die API den Kriterienkatalog mit (Labels, Punkte,
+  // Quellen). Ältere Audits haben das nicht — für die bleibt die frühere
+  // Darstellung aus der fest verdrahteten Liste erhalten.
+  const viewCategories = buildViewCategories(r) || CATEGORIES.map((cat) => ({
+    ...cat,
+    score: getCatScore(cat.key, cat.max),
+    criteria: cat.items.map((item) => ({
+      ...item,
+      score: items[item.key] ?? 0,
+      collected: true,
+    })),
+  }));
+
+  const blockers = Array.isArray(r.blockers) ? r.blockers : [];
+  const coverage = typeof r.coverage === 'number' ? r.coverage : null;
+
+  const radarData = viewCategories.map((cat) => ({
+    subject: cat.shortLabel || cat.label,
+    score: cat.max > 0 ? Math.round((Math.min(cat.score, cat.max) / cat.max) * 100) : 0,
+    fullMark: 100,
+  }));
 
   const hasHostingData = HOSTING_ITEMS.some((hi) => items[hi.key] !== undefined && items[hi.key] !== 0);
 
@@ -355,15 +416,24 @@ export default function AuditReport({ auditData, onClose }) {
           <span >Bewertung</span>
           <h3 style={{ marginBottom: '16px', fontSize: '14px' }}>Kategorie-Scores</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {CATEGORIES.map((cat) => {
-              const catScore = getCatScore(cat.key, cat.max);
+            {viewCategories.map((cat) => {
+              const catScore = cat.score;
               const pct = cat.max > 0 ? (catScore / cat.max) * 100 : 0;
               const color = scoreColor(catScore, cat.max);
+              const partial = cat.nominalMax != null && cat.max < cat.nominalMax;
               return (
                 <div key={cat.key}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                       {cat.label}
+                      {partial && (
+                        <span
+                          title={`Nur ${cat.max} von ${cat.nominalMax} Punkten konnten geprüft werden`}
+                          style={{ marginLeft: 6, color: 'var(--text-tertiary)', fontWeight: 500 }}
+                        >
+                          (teilweise geprüft)
+                        </span>
+                      )}
                     </span>
                     <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color }}>
                       {catScore}/{cat.max}
@@ -382,20 +452,53 @@ export default function AuditReport({ auditData, onClose }) {
         </div>
       </div>
 
+      {/* K.-o.-Kriterien: rechtliche Totalausfälle deckeln das Level */}
+      {blockers.length > 0 && (
+        <div
+          className="kc-card"
+          style={{ borderLeft: '4px solid var(--brand-primary)', background: '#FDECEA' }}
+        >
+          <span>Kritisch</span>
+          <h3 style={{ marginBottom: '8px', fontSize: '14px' }}>
+            Rechtliche Ausschlusskriterien
+          </h3>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+            Diese Punkte begrenzen die Bewertung unabhängig vom erreichten Score.
+          </p>
+          <ul style={{ margin: 0, paddingLeft: '18px' }}>
+            {blockers.map((b) => (
+              <li key={b.key} style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: 4 }}>
+                {b.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Detailed Category Breakdown */}
       <div>
         <div  style={{ marginBottom: '16px' }}>
           <span >Details</span>
           <h2>Einzelkriterien</h2>
         </div>
+
+        {coverage != null && (
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center',
+            marginBottom: '12px', fontSize: '11px', color: 'var(--text-tertiary)',
+          }}>
+            <span>{coverage}% der Kriterien konnten geprüft werden.</span>
+            {Object.entries(SOURCE_BADGES).map(([key, badge]) => (
+              <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ color: badge.color }}>{badge.icon}</span>
+                {badge.title}
+              </span>
+            ))}
+          </div>
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {CATEGORIES.map((cat) => (
-              <CategorySection
-                key={cat.key}
-                category={cat}
-                catScore={getCatScore(cat.key, cat.max)}
-                items={items}
-              />
+          {viewCategories.map((cat) => (
+            <CategorySection key={cat.key} category={cat} />
           ))}
         </div>
       </div>
@@ -581,11 +684,12 @@ export default function AuditReport({ auditData, onClose }) {
 
       {/* ── BLOCK 4: Roadmap ── */}
       {(() => {
-        const score = r.total_score || 0;
+        // Kriterienwerte liegen unter r.items, Messwerte unter r.checks —
+        // die frühere flache Form (r.se_schema) gibt es nicht mehr.
         const llmsTxt  = !!(r.llms_txt ?? false);
-        const schemaOk = !!(r.structured_data ?? (r.se_schema > 0));
+        const schemaOk = !!(r.structured_data ?? ((r.items?.se_schema ?? 0) > 0));
         const robotsOk = !!(r.robots_ai_friendly ?? false);
-        const mobilePs = r.mobile_score || 0;
+        const mobilePs = r.checks?.mobile_score ?? r.mobile_score ?? 0;
 
         const phase1 = [];
         if (!llmsTxt)   phase1.push('llms.txt anlegen (ca. 1 Tag)');
@@ -660,8 +764,9 @@ export default function AuditReport({ auditData, onClose }) {
 // Category Section (collapsible)
 // ═══════════════════════════════════════════════════════════
 
-function CategorySection({ category, catScore, items }) {
+function CategorySection({ category }) {
   const [expanded, setExpanded] = React.useState(true);
+  const catScore = category.score;
   const color = scoreColor(catScore, category.max);
 
   return (
@@ -698,36 +803,49 @@ function CategorySection({ category, catScore, items }) {
           display: 'flex', flexDirection: 'column', gap: '8px',
           background: 'var(--bg-app)',
         }}>
-          {category.items.map((item) => {
-            const score = items[item.key] ?? 0;
+          {category.criteria.map((item) => {
+            const score = item.score ?? 0;
+            const notCollected = item.collected === false;
             const pct = item.max > 0 ? (score / item.max) * 100 : 0;
-            const icolor = scoreColor(score, item.max);
-            const iicon = scoreIcon(score, item.max);
+            const icolor = notCollected ? 'var(--text-tertiary)' : scoreColor(score, item.max);
+            const badge = SOURCE_BADGES[item.source] || null;
 
             return (
               <div
                 key={item.key}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 100px 48px 20px',
+                  gridTemplateColumns: '16px 1fr 100px 48px 20px',
                   gap: '12px',
                   alignItems: 'center',
+                  opacity: notCollected ? 0.55 : 1,
                 }}
               >
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                <span
+                  title={badge ? badge.title : ''}
+                  style={{ fontSize: '11px', color: badge ? badge.color : 'transparent' }}
+                >
+                  {badge ? badge.icon : ''}
+                </span>
+                <span
+                  title={item.hint || ''}
+                  style={{ fontSize: '11px', color: 'var(--text-secondary)' }}
+                >
                   {item.label}
                 </span>
                 <div style={{ height: '5px', background: 'var(--border-light)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%', width: `${pct}%`, background: icolor,
-                    borderRadius: 'var(--radius-full)', transition: 'width 0.5s ease',
-                  }} />
+                  {!notCollected && (
+                    <div style={{
+                      height: '100%', width: `${pct}%`, background: icolor,
+                      borderRadius: 'var(--radius-full)', transition: 'width 0.5s ease',
+                    }} />
+                  )}
                 </div>
                 <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: icolor, textAlign: 'right', fontWeight: 600 }}>
-                  {score}/{item.max}
+                  {notCollected ? '–' : `${score}/${item.max}`}
                 </span>
                 <span style={{ fontSize: '11px', color: icolor, fontWeight: 700, textAlign: 'center' }}>
-                  {iicon}
+                  {notCollected ? '○' : scoreIcon(score, item.max)}
                 </span>
               </div>
             );

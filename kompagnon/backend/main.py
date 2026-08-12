@@ -1146,6 +1146,13 @@ def _run_migrations():
         "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS poll_token VARCHAR(64)",
         "CREATE INDEX IF NOT EXISTS idx_widget_requests_poll_token ON widget_requests(poll_token)",
         "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS report_confirmed_at TIMESTAMP",
+        # ── Adressbestaetigung vor dem Bericht 2026-08-12 ───────────────────
+        # Erst nach dem Klick in der Bestaetigungsmail geht die Mail mit dem
+        # Berichtslink raus.
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verify_token VARCHAR(64)",
+        "CREATE INDEX IF NOT EXISTS idx_widget_requests_verify_token ON widget_requests(verify_token)",
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verify_sent_at TIMESTAMP",
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

@@ -77,6 +77,10 @@ def confirm_url(token: str) -> str:
     return f"{api_base_url()}/api/widget/confirm/{token}"
 
 
+def verify_url(token: str) -> str:
+    return f"{api_base_url()}/api/widget/verify/{token}"
+
+
 def checkout_url() -> str:
     return f"{public_base_url()}/checkout/kompagnon"
 
@@ -433,6 +437,37 @@ def _katalog_umfang() -> str:
     return f"{kriterien} Kriterien aus {', '.join(kurz[:-1])} und {kurz[-1]}"
 
 
+def verify_email(company: str, verify_token: str) -> tuple:
+    """Die erste Mail: nur die Frage, ob die Adresse stimmt.
+
+    Sie geht an eine Adresse, die niemand geprüft hat — die Eingabe im Widget
+    muss dem Eintragenden nicht gehören. Deshalb steht hier nichts über die
+    Website drin: keine Punktzahl, keine Mängel, kein Link zum Bericht. Nur
+    dass etwas angefordert wurde, und die Möglichkeit, das zu bestätigen.
+
+    Wer nicht klickt, bekommt nie einen Bericht und hat von uns genau diese
+    eine Nachricht gesehen.
+    """
+    inner = f"""
+<h1 style="margin:0 0 12px;font-size:21px;font-weight:900;line-height:1.25;
+           color:{brand.DARK}">Bitte bestätigen Sie kurz Ihre Adresse</h1>
+<p style="margin:0;font-size:15px;line-height:1.7;color:{brand.TEXT}">
+Für diese E-Mail-Adresse wurde eine Website-Analyse von
+<strong>{_esc(company)}</strong> nach dem KOMPAGNON Homepage Standard
+angefordert. Bevor wir etwas verschicken, möchten wir wissen, dass die
+Adresse wirklich Ihnen gehört.</p>
+{_mail_knopf(verify_url(verify_token), 'Analyse bestätigen')}
+<p style="margin:0 0 14px;font-size:14px;line-height:1.7;color:{brand.TEXT_60}">
+Nach dem Klick schicken wir Ihnen den Link zum vollständigen Bericht — mit
+{_katalog_umfang()}, jeweils mit Bewertung und Empfehlung.</p>
+<p style="margin:0;padding:14px 16px;background:{brand.SURFACE};
+          border-radius:8px;font-size:13px;line-height:1.6;color:{brand.TEXT_60}">
+Haben Sie das nicht angefordert? Dann ignorieren Sie diese E-Mail einfach.
+Ohne Ihre Bestätigung schicken wir nichts weiter und melden uns nicht von
+selbst.</p>"""
+    return (f"Bitte bestätigen: Website-Analyse für {company}", _shell(inner))
+
+
 def report_ready_email(company: str, token: str,
                        confirm_token: Optional[str] = None) -> tuple:
     """Betreff und HTML für die erste Mail — die Einladung zum Bericht.
@@ -463,37 +498,54 @@ def report_ready_email(company: str, token: str,
 
     inner = f"""
 <h1 style="margin:0 0 12px;font-size:21px;font-weight:900;line-height:1.25;
-           color:{brand.DARK}">Ihre Website-Analyse liegt bereit</h1>
+           color:{brand.DARK}">Ihre Website-Analyse ist fertig</h1>
 <p style="margin:0;font-size:15px;line-height:1.7;color:{brand.TEXT}">
-Für diese E-Mail-Adresse wurde eine Analyse von
-<strong>{_esc(company)}</strong> nach dem KOMPAGNON Homepage Standard
-angefordert — {_katalog_umfang()}.</p>
+Danke für die Bestätigung. Hier ist der vollständige Bericht zu
+<strong>{_esc(company)}</strong> — {_katalog_umfang()}.</p>
 {_mail_knopf(report_url(token), 'Bericht ansehen')}
-<p style="margin:0 0 14px;font-size:14px;line-height:1.7;color:{brand.TEXT_60}">
+<p style="margin:0;font-size:14px;line-height:1.7;color:{brand.TEXT_60}">
 Im Bericht sehen Sie zu jedem Kriterium, ob es gemessen, abgeleitet oder
 eingeschätzt wurde — und was konkret zu tun ist. Dort lässt er sich auch als
 PDF herunterladen.</p>
-<p style="margin:0;padding:14px 16px;background:{brand.SURFACE};
-          border-radius:8px;font-size:13px;line-height:1.6;color:{brand.TEXT_60}">
-Haben Sie das nicht angefordert? Dann ignorieren Sie diese E-Mail einfach.
-Wir haben Ihnen nichts weiter geschickt und melden uns nicht von selbst.</p>
 {consent_html}"""
-    return f"Ihre Website-Analyse für {company} liegt bereit", _shell(inner)
+    return f"Ihre Website-Analyse für {company} ist fertig", _shell(inner)
 
 
 def confirmation_page(confirmed: bool) -> str:
-    """Bestätigungsseite nach Klick auf den Double-Opt-in-Link."""
+    """Bestätigungsseite nach Klick auf den Marketing-Double-Opt-in."""
     if confirmed:
-        zeichen, farbe = "✓", brand.SUCCESS
-        title = "Danke — Bestätigung erhalten"
-        text = ("Wir dürfen Sie jetzt zu Ihrer Website-Analyse kontaktieren. "
-                "Sie können dem jederzeit formlos widersprechen.")
-    else:
-        zeichen, farbe = "!", brand.WARN
-        title = "Link nicht mehr gültig"
-        text = ("Dieser Bestätigungslink ist unbekannt oder wurde bereits "
-                "verwendet.")
+        return _hinweisseite(
+            "✓", brand.SUCCESS, "Danke — Bestätigung erhalten",
+            "Wir dürfen Sie jetzt zu Ihrer Website-Analyse kontaktieren. "
+            "Sie können dem jederzeit formlos widersprechen.")
+    return _hinweisseite(
+        "!", brand.WARN, "Link nicht mehr gültig",
+        "Dieser Bestätigungslink ist unbekannt oder wurde bereits verwendet.")
 
+
+def verification_page(verified: bool, bereits: bool = False) -> str:
+    """Seite nach dem Klick auf die Adressbestätigung.
+
+    Sie muss ansagen, was als Nächstes passiert — der Bericht steht hier
+    bewusst noch nicht, er kommt per Mail.
+    """
+    if not verified:
+        return _hinweisseite(
+            "!", brand.WARN, "Link nicht mehr gültig",
+            "Dieser Bestätigungslink ist unbekannt. Bitte fordern Sie die "
+            "Analyse im Widget erneut an.")
+    if bereits:
+        return _hinweisseite(
+            "✓", brand.SUCCESS, "Schon bestätigt",
+            "Diese Adresse ist bereits bestätigt. Die E-Mail mit dem Link zum "
+            "Bericht ist unterwegs — sehen Sie bitte in Ihrem Postfach nach.")
+    return _hinweisseite(
+        "✓", brand.SUCCESS, "Danke — der Bericht ist unterwegs",
+        "Wir haben Ihnen gerade eine zweite E-Mail geschickt. Darin ist der "
+        "Link zum vollständigen Bericht mit allen geprüften Kriterien.")
+
+
+def _hinweisseite(zeichen: str, farbe: str, title: str, text: str) -> str:
     return f"""<!doctype html><html lang="de"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><title>{title}</title></head>

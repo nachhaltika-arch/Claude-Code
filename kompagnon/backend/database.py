@@ -988,6 +988,14 @@ class WidgetRequest(Base):
     user_agent = Column(String(400), default="")
     referrer = Column(String(500), default="")
 
+    # Bestätigung der Adresse. Sie steht vor allem anderen: erst nach diesem
+    # Klick verlässt überhaupt ein Berichtslink das Haus. Getrennt vom
+    # Marketing-Opt-in darunter — zwei Einwilligungen an einen Klick zu
+    # koppeln wäre Bündelung.
+    verify_token = Column(String(64), index=True)
+    verify_sent_at = Column(DateTime, nullable=True)
+    verified_at = Column(DateTime, nullable=True)
+
     # Double-Opt-in: erst nach Klick im Bestätigungslink darf beworben werden
     confirm_token = Column(String(64), index=True)
     confirmed_at = Column(DateTime, nullable=True)

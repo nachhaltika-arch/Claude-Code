@@ -240,8 +240,8 @@
            solange kein Datenschutz-Link konfiguriert ist. -->
       <!-- Sagt, was gleich im Postfach liegt, und bittet um die eigene
            Adresse: der Bericht ging früher ungefragt an jede eingetippte. -->
-      <p class="kpg-foot">Wir schicken den Link zum Bericht an Ihre Adresse —
-           bitte nur die eigene eintragen<a
+      <p class="kpg-foot">Sie bekommen erst eine Bestätigungs-Mail, dann den
+           Bericht — bitte nur die eigene Adresse eintragen<a
            id="kpg-privacy" href="#" target="_blank" rel="noopener"
            style="display:none"> · <span>Datenschutz</span></a></p>
     </form>
@@ -542,14 +542,16 @@
         '</div>' +
         blockerHtml +
         issueHtml +
-        /* Der Bericht liegt nicht mehr in der Mail, sondern hinter einem Klick
-           daraus — sonst bekäme eine fremd eingetragene Adresse die fertige
-           Bewertung ungefragt zugestellt. Der Text muss das ansagen, sonst
-           wartet der Besucher auf etwas, das so nicht kommt. */
+        /* Zwei Mails: erst die Bestätigung der Adresse, danach der Bericht.
+           Ohne diesen Hinweis wartet der Besucher auf einen Bericht, der ohne
+           seinen Klick nie kommt — und der Klick ist genau der Punkt: eine
+           fremd eingetragene Adresse bekommt so nie eine fertige Bewertung
+           zugestellt. */
         '<div class="kpg-mailnote">' +
-          '<strong>Der vollständige Bericht wartet in Ihrem Postfach</strong><br>' +
-          'Wir haben den Link an ' + esc(email || 'Ihre Adresse') + ' geschickt. ' +
-          'Ein Klick, und Sie sehen ' +
+          '<strong>Noch ein Schritt: bitte Postfach prüfen</strong><br>' +
+          'Wir haben eine kurze Bestätigungs-Mail an ' +
+          esc(email || 'Ihre Adresse') + ' geschickt. ' +
+          'Ein Klick darin, und der vollständige Bericht kommt — ' +
           (CRITERIA_COUNT ? 'alle ' + esc(CRITERIA_COUNT) + ' Kriterien' : 'jedes Kriterium') +
           ' mit Bewertung, Empfehlungen und PDF.' +
         '</div>' +

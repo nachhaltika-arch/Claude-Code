@@ -251,13 +251,16 @@ function Anfragen({ eintraege, limit }) {
                 <td style={{ ...zelle, maxWidth: 220, overflowWrap: 'anywhere' }}>
                   {eintrag.website_url}
                 </td>
-                {/* „Versendet" sagt nur, dass die Mail rausging. Erst der
-                    Abruf belegt, dass die Adresse dem Empfänger gehört. */}
+                {/* Vier Stufen, von hinten gelesen: abgerufen schlägt
+                    versendet, versendet setzt die bestätigte Adresse voraus.
+                    Ohne Bestätigung geht kein Berichtslink raus. */}
                 <td style={zelle}>
                   <Zustand ok={eintrag.report_opened || eintrag.report_sent}>
-                    {eintrag.report_opened
-                      ? 'abgerufen'
-                      : eintrag.report_sent ? 'versendet' : 'offen'}
+                    {eintrag.report_opened ? 'abgerufen'
+                      : eintrag.report_sent ? 'versendet'
+                      : eintrag.verified ? 'bestätigt'
+                      : eintrag.verify_sent ? 'wartet auf Bestätigung'
+                      : 'offen'}
                   </Zustand>
                 </td>
                 <td style={{ ...zelle, color: 'var(--text-secondary)' }}>

@@ -248,12 +248,18 @@ def _mark_failed(audit_id: int, message: str) -> None:
         db.close()
 
 
-def _notify_widget_requester(db, audit_id: int) -> None:
-    """Schickt den Bericht an die im Widget eingegebene Adresse.
+def _jetzt() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
-    Der Bericht selbst ist die angeforderte Leistung und geht sofort raus.
-    Die Einwilligung zur späteren Kontaktaufnahme wird davon getrennt über
-    den Bestätigungslink eingeholt.
+
+def _notify_widget_requester(db, audit_id: int) -> None:
+    """Bittet um Bestätigung der Adresse — mehr nicht.
+
+    Diese Mail geht an eine Adresse, die niemand geprüft hat: die Eingabe im
+    Widget muss dem Eintragenden nicht gehören. Sie enthält deshalb weder
+    Punktzahl noch Mängel noch einen Link zum Bericht, nur die Frage, ob die
+    Adresse stimmt. Der Bericht folgt in einer zweiten Mail, sobald der
+    Empfänger bestätigt hat — siehe ``send_widget_report``.
     """
     try:
         from database import WidgetRequest
@@ -263,7 +269,7 @@ def _notify_widget_requester(db, audit_id: int) -> None:
         row = (
             db.query(WidgetRequest)
             .filter(WidgetRequest.audit_id == audit_id,
-                    WidgetRequest.report_sent_at.is_(None))
+                    WidgetRequest.verify_sent_at.is_(None))
             .first()
         )
         if not row:
@@ -273,10 +279,43 @@ def _notify_widget_requester(db, audit_id: int) -> None:
         if not audit or audit.status != "completed":
             return
 
-        # Weder Punktzahl noch Mängel noch PDF gehen an eine Adresse, von der
-        # niemand weiß, ob sie dem Anfordernden gehört. Sie erfährt nur, dass
-        # etwas angefordert wurde. Alles Weitere steht hinter dem Klick im
-        # Bericht — und der Klick ist zugleich der Nachweis der Adresse.
+        subject, body = widget_report.verify_email(
+            company=audit.company_name or row.website_url,
+            verify_token=row.verify_token,
+        )
+
+        if send_email(to_email=row.email, subject=subject, html_body=body):
+            row.verify_sent_at = _jetzt()
+            db.commit()
+            logger.info(f"Widget-Bestätigung angefragt bei {row.email} (Audit {audit_id})")
+        else:
+            logger.warning(f"Widget-Bestätigung nicht versendet (Audit {audit_id})")
+    except Exception as e:  # noqa: BLE001 — Versandfehler darf das Audit nicht kippen
+        logger.warning(f"Widget-Benachrichtigung fehlgeschlagen für Audit {audit_id}: {e}")
+
+
+def send_widget_report(request_id: int) -> None:
+    """Die zweite Mail: der Link zum Bericht, nach bestätigter Adresse.
+
+    Wird aus dem Bestätigungs-Endpunkt heraus angestoßen und öffnet dafür
+    eine eigene Sitzung — der Aufrufer hat seine schon geschlossen, wenn der
+    Hintergrundauftrag läuft.
+    """
+    from database import SessionLocal, WidgetRequest
+    from services import widget_report
+    from services.email import send_email
+
+    db = SessionLocal()
+    try:
+        row = db.query(WidgetRequest).filter(WidgetRequest.id == request_id).first()
+        if not row or not row.verified_at or row.report_sent_at:
+            return
+
+        audit = db.query(AuditResult).filter(AuditResult.id == row.audit_id).first()
+        if not audit or audit.status != "completed":
+            logger.warning(f"Bericht für Anfrage {request_id} noch nicht fertig")
+            return
+
         subject, body = widget_report.report_ready_email(
             company=audit.company_name or row.website_url,
             token=row.report_token,
@@ -284,13 +323,15 @@ def _notify_widget_requester(db, audit_id: int) -> None:
         )
 
         if send_email(to_email=row.email, subject=subject, html_body=body):
-            row.report_sent_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            row.report_sent_at = _jetzt()
             db.commit()
-            logger.info(f"Widget-Bericht versendet an {row.email} (Audit {audit_id})")
+            logger.info(f"Widget-Bericht versendet an {row.email} (Anfrage {request_id})")
         else:
-            logger.warning(f"Widget-Bericht konnte nicht versendet werden (Audit {audit_id})")
-    except Exception as e:  # noqa: BLE001 — Versandfehler darf das Audit nicht kippen
-        logger.warning(f"Widget-Benachrichtigung fehlgeschlagen für Audit {audit_id}: {e}")
+            logger.warning(f"Widget-Bericht nicht versendet (Anfrage {request_id})")
+    except Exception as e:  # noqa: BLE001 — der Klick soll trotzdem quittiert werden
+        logger.warning(f"Berichts-Mail fehlgeschlagen für Anfrage {request_id}: {e}")
+    finally:
+        db.close()
 
 
 def _notify_customer(db, lead_id: Optional[int], audit_id: int) -> None:

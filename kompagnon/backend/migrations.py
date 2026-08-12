@@ -211,6 +211,17 @@ def run_migrations():
         ADD COLUMN IF NOT EXISTS report_confirmed_at TIMESTAMP;
     """)
 
+    # Adressbestaetigung vor dem Bericht.
+    for spalte, typ in (("verify_token", "VARCHAR(64)"),
+                        ("verify_sent_at", "TIMESTAMP"),
+                        ("verified_at", "TIMESTAMP")):
+        cur.execute(
+            f"ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS {spalte} {typ};")
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_widget_requests_verify_token
+        ON widget_requests(verify_token);
+    """)
+
     cur.close()
     conn.close()
     logger.info("Migrationen erfolgreich ausgefuehrt.")

@@ -118,6 +118,10 @@ def read_widget_requests(_: User = Depends(require_admin), db: Session = Depends
                 "email": row.email,
                 "website_url": row.website_url,
                 "created_at": _als_utc(row.created_at),
+                # Der Weg hat jetzt drei Stufen: Bestätigung angefragt,
+                # Adresse bestätigt, Bericht versendet.
+                "verify_sent": row.verify_sent_at is not None,
+                "verified": row.verified_at is not None,
                 "report_sent": row.report_sent_at is not None,
                 # Der Klick auf den Berichtslink. Er belegt, dass die Adresse
                 # dem Empfänger gehört — ohne ihn ist offen, ob der Bericht

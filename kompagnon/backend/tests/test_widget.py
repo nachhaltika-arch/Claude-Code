@@ -408,24 +408,37 @@ def test_das_widget_traegt_die_echte_ci():
 
 # ── Kein Werbebrief an eine unbestätigte Adresse ──────────────────────
 
-def test_die_erste_mail_wirbt_nicht():
-    """Die eingetragene Adresse muss dem Eintragenden nicht gehören.
+def test_die_erste_mail_nennt_die_website_mit_keinem_wort():
+    """Sie geht an eine Adresse, die noch niemand bestätigt hat.
 
-    Wer eine fremde Adresse einträgt, löste bisher dort einen Werbebrief mit
-    Verkaufsknopf aus — unbestellte Werbung nach § 7 UWG, ausgelöst von einem
-    Dritten. Die erste Mail sagt deshalb nur noch, dass etwas angefordert
-    wurde, und bietet den Bericht an. Geworben wird erst auf der Seite, die
-    der Empfänger selbst öffnet.
+    Wer eine fremde Adresse einträgt, löste dort früher einen Werbebrief mit
+    Punktzahl, Mängelliste und Verkaufsknopf aus — unbestellte Werbung nach
+    § 7 UWG, ausgelöst von einem Dritten. Diese Mail fragt nur, ob die
+    Adresse stimmt. Auch der Berichtslink gehört noch nicht hinein: wer nicht
+    bestätigt, bekommt nie einen.
     """
+    from services import widget_report
+
+    betreff, html = widget_report.verify_email(
+        company="Muster GmbH", verify_token="v-123")
+
+    assert widget_report.verify_url("v-123") in html
+    assert "/api/widget/report/" not in html
+    assert "checkout" not in html.lower()
+    assert "Jetzt Webseite anfragen" not in html
+    assert "bestätigen" in betreff.lower()
+
+
+def test_die_zweite_mail_bringt_den_bericht_aber_keine_werbung():
+    """Sie geht erst nach bestätigter Adresse raus."""
     from services import widget_report
 
     betreff, html = widget_report.report_ready_email(
         company="Muster GmbH", token="tok-123")
 
+    assert widget_report.report_url("tok-123") in html
     assert "checkout" not in html.lower()
     assert "Jetzt Webseite anfragen" not in html
-    assert "angefordert" in html
-    assert widget_report.report_url("tok-123") in html
     assert "Muster GmbH" in betreff
 
 
@@ -493,3 +506,103 @@ def test_berichtsseite_haelt_den_klick_als_nachweis_fest(client, fremde_analyse,
         assert row.report_confirmed_at is not None
     finally:
         db.close()
+
+
+# ── Zwei Mails: erst bestätigen, dann der Bericht ─────────────────────
+
+@pytest.fixture
+def gesendete_mails(monkeypatch):
+    """Fängt den Versand ab, statt echte Post zu verschicken."""
+    briefe = []
+
+    def _abfangen(to_email, subject, html_body, **kwargs):
+        briefe.append({"an": to_email, "betreff": subject, "html": html_body})
+        return True
+
+    import services.email
+    monkeypatch.setattr(services.email, "send_email", _abfangen)
+    return briefe
+
+
+def _anfrage_anlegen(email, audit_id, aufraeumen, **felder):
+    aufraeumen.append(email)
+    db = SessionLocal()
+    try:
+        row = WidgetRequest(
+            email=email, website_url="https://interner-interessent.example",
+            audit_id=audit_id, verify_token=felder.pop("verify_token", "v-tok"),
+            report_token=felder.pop("report_token", "r-tok"),
+            poll_token=felder.pop("poll_token", "p-tok"), **felder)
+        db.add(row)
+        db.commit()
+        return row.id
+    finally:
+        db.close()
+
+
+def test_ohne_bestaetigung_geht_kein_berichtslink_raus(client, fremde_analyse,
+                                                       aufraeumen, gesendete_mails):
+    """Der Kern der Umstellung.
+
+    Vorher ging der Berichtslink sofort an jede eingetippte Adresse. Wer eine
+    fremde eintrug, stellte dort die fertige Bewertung einer Website zu, die
+    dem Empfänger gehört — ungefragt.
+    """
+    from routers.audit import send_widget_report
+
+    anfrage_id = _anfrage_anlegen("unbestaetigt@firma-xy.de", fremde_analyse,
+                                  aufraeumen, verify_token="v-unbestaetigt")
+
+    send_widget_report(anfrage_id)
+
+    assert gesendete_mails == []
+
+
+def test_der_klick_bestaetigt_und_loest_die_zweite_mail_aus(client, fremde_analyse,
+                                                            aufraeumen,
+                                                            gesendete_mails):
+    # Arrange
+    anfrage_id = _anfrage_anlegen("bestaetigt@firma-xy.de", fremde_analyse,
+                                  aufraeumen, verify_token="v-klick",
+                                  report_token="r-klick", poll_token="p-klick")
+
+    # Act
+    r = client.get("/api/widget/verify/v-klick")
+
+    # Assert
+    assert r.status_code == 200
+    assert "unterwegs" in r.text
+
+    db = SessionLocal()
+    try:
+        row = db.query(WidgetRequest).filter(WidgetRequest.id == anfrage_id).first()
+        assert row.verified_at is not None
+        assert row.report_sent_at is not None
+    finally:
+        db.close()
+
+    assert len(gesendete_mails) == 1
+    from services import widget_report
+    assert widget_report.report_url("r-klick") in gesendete_mails[0]["html"]
+
+
+def test_zweiter_klick_schickt_die_mail_nicht_noch_einmal(client, fremde_analyse,
+                                                          aufraeumen,
+                                                          gesendete_mails):
+    """Postfach-Scanner öffnen Links automatisch — das darf nichts auslösen."""
+    _anfrage_anlegen("doppelklick@firma-xy.de", fremde_analyse, aufraeumen,
+                     verify_token="v-doppelt", report_token="r-doppelt",
+                     poll_token="p-doppelt")
+
+    client.get("/api/widget/verify/v-doppelt")
+    r = client.get("/api/widget/verify/v-doppelt")
+
+    assert r.status_code == 200
+    assert "bereits bestätigt" in r.text.lower()
+    assert len(gesendete_mails) == 1
+
+
+def test_unbekannter_bestaetigungslink_gibt_404(client):
+    r = client.get("/api/widget/verify/gibtesnicht")
+    assert r.status_code == 404
+    assert "nicht mehr gültig" in r.text

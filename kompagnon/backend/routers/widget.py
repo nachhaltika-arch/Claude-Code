@@ -195,6 +195,9 @@ async def start_widget_audit(
         user_agent=request.headers.get("user-agent", "")[:400],
         referrer=(payload.referrer or request.headers.get("referer", ""))[:500],
         confirm_token=secrets.token_urlsafe(32) if payload.consent_marketing else None,
+        # Immer erzeugt: die Adressbestätigung steht vor allem anderen und
+        # hängt nicht am Marketing-Haken.
+        verify_token=secrets.token_urlsafe(32),
         report_token=secrets.token_urlsafe(32),
         poll_token=secrets.token_urlsafe(32),
         lead_id=lead.id,
@@ -331,6 +334,40 @@ def public_report_pdf(token: str, db: Session = Depends(get_db)):
         headers={**SEITEN_KOPFZEILEN,
                  "Content-Disposition": f'attachment; filename="Website-Analyse-{name}.pdf"'},
     )
+
+
+@router.get("/verify/{token}", response_class=HTMLResponse)
+def verify_address(token: str, background_tasks: BackgroundTasks,
+                   db: Session = Depends(get_db)):
+    """Bestätigt die Adresse und stößt erst dann die Berichts-Mail an.
+
+    Vorher ging der Berichtslink sofort raus, und der Klick darauf war
+    zugleich der Nachweis. Jetzt steht der Nachweis davor: Wer nicht
+    bestätigt, bekommt nie einen Link — und hat von uns genau eine Nachricht
+    gesehen. Das ist der Unterschied, wenn jemand eine fremde Adresse
+    einträgt.
+    """
+    row = db.query(WidgetRequest).filter(WidgetRequest.verify_token == token).first()
+    if not row:
+        return HTMLResponse(widget_report.verification_page(False), status_code=404,
+                            headers=SEITEN_KOPFZEILEN)
+
+    if row.verified_at:
+        # Ein zweiter Klick — etwa aus dem Verlauf oder von einem Scanner im
+        # Postfach — darf die Mail nicht erneut auslösen.
+        return HTMLResponse(widget_report.verification_page(True, bereits=True),
+                            headers=SEITEN_KOPFZEILEN)
+
+    row.verified_at = datetime.utcnow()
+    db.commit()
+    logger.info(f"Widget-Adresse bestätigt: {row.email}")
+
+    from routers.audit import send_widget_report
+
+    background_tasks.add_task(send_widget_report, row.id)
+
+    return HTMLResponse(widget_report.verification_page(True),
+                        headers=SEITEN_KOPFZEILEN)
 
 
 @router.get("/confirm/{token}", response_class=HTMLResponse)

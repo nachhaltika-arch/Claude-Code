@@ -332,3 +332,27 @@ Die letzte Seite stellt eine **„Zertifizierungsaussage" mit Unterschriftszeile
 für den Auftraggeber** aus. Beim Tool-Audit gibt es einen Auftraggeber; bei
 einer Widget-Anfrage hat niemand etwas beauftragt. Ob dieselbe Seite in beiden
 Fällen richtig ist, ist eine inhaltliche Frage — kein Fehler im Code.
+
+### Nachtrag: Noto Sans eingebaut
+
+`NotoSans-Regular.ttf` und `NotoSans-Bold.ttf` liegen jetzt in
+`kompagnon/backend/assets/fonts/`, die OFL-Lizenz daneben — sie verlangt das
+Mitliefern. 1,2 MB im Repo für die CI-Schrift im einzigen Dokument, das ein
+Interessent behält. Die Diagramme nutzen dieselbe Schrift; matplotlib zeichnete
+die Radarbeschriftung vorher in seiner Standardschrift.
+
+**Der Wechsel hat sofort etwas kaputt gemacht — und das ist der nützlichere
+Teil.** „HTTP→HTTPS erzwungen" steht so im Kriterienkatalog, und Noto Sans
+(Latin-Greek-Cyrillic) hat keinen Pfeil. Gerendert wurde „HTTPHTTPS": kein
+Kästchen, keine Warnung, nur eine Lücke mitten im Wort. Helvetica hatte das
+Zeichen zufällig — darauf lässt sich nicht bauen.
+
+`_clean_text` liest deshalb jetzt die Zeichentabelle der registrierten Schrift
+(cmap bei TrueType, cp1252-Bereich bei Type 1) und ersetzt, was sie nicht
+zeichnen kann: `→` wird `->`, `≥` wird `>=`, Haken werden `+`. Nicht
+zugeordnete Zeichen werden zerlegt, und was davon übrig bleibt, fällt weg
+statt als Loch stehenzubleiben.
+
+Das gilt über feste Beschriftungen hinaus: Zusammenfassung, Mängelliste und
+Empfehlungen schreibt die KI, und die kann jedes Zeichen ausgeben. Ein Emoji
+im Bericht wäre auf genau dieselbe stille Weise verschwunden.

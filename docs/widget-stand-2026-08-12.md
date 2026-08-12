@@ -132,9 +132,10 @@ ein Test vergleicht die Werte.
   Einwilligung — genau das Problem, das Abschnitt 2 gerade beseitigt hat.
   Noto Sans wird angefragt, sonst springt die Systemschrift ein. In E-Mails
   greifen Webschriften ohnehin nicht.
-* **Ein gelber Knopf je Fläche.** Auf der Berichtsseite bekommt ihn das
-  Angebot, das PDF steht als heller Knopf daneben. Soll die Gewichtung
-  andersherum sein, werden in `_angebot_block` die beiden Stile getauscht.
+* **Ein gelber Knopf je Fläche.** Auf der Berichtsseite bekommt ihn das PDF —
+  dafür ist der Empfänger hergekommen. Das Angebot steht als heller Knopf
+  darunter: es soll dastehen, aber nicht die Hand führen. Die beiden Stile
+  liegen in `_angebot_block` nebeneinander, falls das je wieder zu drehen ist.
 
 Nebenbei korrigiert: Die Bereichsbalken rechnen nur über tatsächlich geprüfte
 Kriterien. Sonst sähe ein Bereich, der mangels API-Schlüssel nicht geprüft

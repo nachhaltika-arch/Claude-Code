@@ -223,8 +223,8 @@ def _angebot_block(token: str) -> str:
     """PDF-Abruf und Angebot — beide erst hier, hinter dem Klick aus der Mail.
 
     Genau ein gelber Knopf auf der Seite, so will es die CI. Gelb bekommt das
-    Angebot; das PDF steht als heller Knopf daneben. Wer die Gewichtung
-    umdreht, tauscht die beiden Stile — nicht beide gelb machen.
+    PDF: dafür ist der Empfänger hergekommen. Das Angebot steht als heller
+    Knopf darunter — es soll dastehen, aber nicht die Hand führen.
     """
     if not token:
         return ""
@@ -237,9 +237,9 @@ def _angebot_block(token: str) -> str:
         f'color:{brand.WHITE};opacity:.85">Alle Kriterien mit Bewertung und '
         f'Empfehlungen als PDF — zum Ablegen oder Weitergeben.</p>'
         f'<a href="{report_url(token)}/pdf" style="display:inline-block;'
-        f'background:transparent;color:{brand.WHITE};text-decoration:none;'
-        f'font-weight:700;padding:11px 22px;border-radius:6px;font-size:14px;'
-        f'border:2px solid {brand.WHITE}">PDF herunterladen</a>'
+        f'background:{brand.YELLOW};color:{brand.DARK};text-decoration:none;'
+        f'font-weight:900;padding:13px 24px;border-radius:6px;font-size:14px">'
+        f'PDF herunterladen</a>'
         f'<div style="margin-top:24px;padding-top:20px;'
         f'border-top:1px solid rgba(255,255,255,.2)">'
         f'<p style="margin:0 0 14px;font-size:14px;line-height:1.6;'
@@ -247,9 +247,10 @@ def _angebot_block(token: str) -> str:
         f'Wir bauen die Seite nach dem Homepage Standard — mit genau diesen '
         f'Kriterien als Abnahmeliste.</p>'
         f'<a href="{checkout_url()}" style="display:inline-block;'
-        f'background:{brand.YELLOW};color:{brand.DARK};text-decoration:none;'
-        f'font-weight:900;padding:13px 24px;border-radius:6px;font-size:14px">'
-        f'Webseite anfragen →</a></div></section>'
+        f'background:transparent;color:{brand.WHITE};text-decoration:none;'
+        f'font-weight:700;padding:11px 22px;border-radius:6px;font-size:14px;'
+        f'border:2px solid {brand.WHITE}">Webseite anfragen →</a>'
+        f'</div></section>'
     )
 
 

@@ -141,16 +141,60 @@ Nebenbei korrigiert: Die Bereichsbalken rechnen nur über tatsächlich geprüfte
 Kriterien. Sonst sähe ein Bereich, der mangels API-Schlüssel nicht geprüft
 wurde, aus wie einer, der durchgefallen ist.
 
+## 2b. Der erste echte Durchlauf — und was er gefunden hat
+
+Am 2026-08-12 über die Staging-Widget-Seite: `nachhaltika@gmail.com` /
+`kompagnon.eu`, mit Einwilligungshaken. Ergebnis **65/100, Bronze**, ein
+rechtlicher Ausschlussgrund. Die KI-Kriterien greifen (der Text nennt Koblenz,
+ISB/BAFA und Kundennamen konkret), PageSpeed ebenso.
+
+**Der Berichtslink war tot.** `{"detail":"Not Found"}`.
+
+`api_base_url()` fiel auf die fest eingetragene **Produktiv**-Adresse zurück,
+wenn `API_BASE_URL` fehlt — und die Variable ist im Staging-Blueprint nie
+deklariert worden. Der Audit lief also auf Staging, das Token lag in der
+Staging-Datenbank, und die E-Mail schickte den Empfänger zum Produktiv-Server,
+der das Token nie gesehen hat. **Jeder Berichtslink, den Staging je verschickt
+hat, war tot.** Der Rückfall war kein Sicherheitsnetz, sondern eine falsche
+Antwort, die wie eine funktionierende aussah.
+
+Der Code nimmt jetzt `RENDER_EXTERNAL_URL`, das Render für jeden Dienst selbst
+setzt. Ein vergessener Eintrag zeigt damit auf den richtigen Host statt still
+in eine andere Umgebung. Nötig wird `API_BASE_URL` erst mit eigener Domain
+davor — steht so im Blueprint.
+
+**Was am selben Durchlauf funktioniert hat:** Formular, Einwilligungshaken,
+`poll_token`-Abfrage, Teaser, Mail-Zustellung über Brevo, Berichtsseite mit
+allen Kriterien, PDF (82 KB, `application/pdf`, richtiger Dateiname).
+
+### Offen: Brevo schreibt die Links um
+
+Brevo ersetzt jeden Link durch einen Umleiter auf `sendibt3.com`
+(Klick-Tracking). Drei Gründe, das für diese Mail abzuschalten:
+
+* Der Empfänger sieht beim Überfahren eine wildfremde Domain — bei einer Mail,
+  die auch bei jemandem landen kann, der sie nicht angefordert hat, ist das
+  genau das Signal, das vom Klicken abhält.
+* Brevo erfährt, wer welchen Bericht öffnet. Für die Zustellung ist das nicht
+  nötig.
+* Das Berichts-Token läuft durch einen fremden Umleiter.
+
+Abschaltbar ist es im Brevo-Konto (Senders & IP → Tracking). Ob die
+Transaktions-API zusätzlich einen Schalter pro Mail hat, ist ungeprüft.
+
 ## 3. Was noch offen ist
 
 Alles Folgende braucht dich — eine echte Adresse, eine echte Website, die
 Ziel-Landingpage.
 
-- [ ] **Test-E-Mail aus dem Tool senden** (`Akquise → Analyse-Widget`).
-      Erster Nachweis, dass der Weg über Brevo wirklich funktioniert.
-- [ ] **Eine echte Anfrage durchlaufen lassen** mit eigener Adresse und echter
-      Website: Widget → Audit → Teaser → Mail → Klick → Berichtsseite → PDF.
-      Dabei prüfen, ob die Anfragenliste auf **abgerufen** springt.
+- [x] **Test-E-Mail aus dem Tool senden** — durchgelaufen (David, 2026-08-12).
+- [x] **Eine echte Anfrage durchlaufen lassen** — durchgelaufen, siehe 2b.
+      Ein toter Berichtslink dabei gefunden und behoben.
+- [ ] **In der Anfragenliste nachsehen**, ob der Eintrag auf **abgerufen**
+      steht (`Akquise → Analyse-Widget`). Der Bericht wurde abgerufen, also
+      muss `report_confirmed_at` gesetzt sein — nur konnte ich das ohne
+      Admin-Zugang nicht selbst prüfen.
+- [ ] **Brevo-Klick-Tracking abschalten** (Senders & IP → Tracking), siehe 2b.
 - [ ] **Einbau in die Ziel-Landingpage** mit dem Einbaucode testen, auch auf
       dem Telefon.
 - [ ] Danach: Bericht (PDF) und E-Mail grafisch fertigstellen, dann der

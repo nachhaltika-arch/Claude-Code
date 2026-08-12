@@ -567,7 +567,7 @@ def test_der_klick_bestaetigt_und_loest_die_zweite_mail_aus(client, fremde_analy
                                   report_token="r-klick", poll_token="p-klick")
 
     # Act
-    r = client.get("/api/widget/verify/v-klick")
+    r = client.post("/api/widget/verify/v-klick")
 
     # Assert
     assert r.status_code == 200
@@ -594,8 +594,8 @@ def test_zweiter_klick_schickt_die_mail_nicht_noch_einmal(client, fremde_analyse
                      verify_token="v-doppelt", report_token="r-doppelt",
                      poll_token="p-doppelt")
 
-    client.get("/api/widget/verify/v-doppelt")
-    r = client.get("/api/widget/verify/v-doppelt")
+    client.post("/api/widget/verify/v-doppelt")
+    r = client.post("/api/widget/verify/v-doppelt")
 
     assert r.status_code == 200
     assert "bereits bestätigt" in r.text.lower()
@@ -603,6 +603,66 @@ def test_zweiter_klick_schickt_die_mail_nicht_noch_einmal(client, fremde_analyse
 
 
 def test_unbekannter_bestaetigungslink_gibt_404(client):
-    r = client.get("/api/widget/verify/gibtesnicht")
+    r = client.post("/api/widget/verify/gibtesnicht")
     assert r.status_code == 404
     assert "nicht mehr gültig" in r.text
+
+
+def test_das_oeffnen_des_links_bestaetigt_noch_nichts(client, fremde_analyse,
+                                                       aufraeumen, gesendete_mails):
+    """Gmail ruft Links in E-Mails von sich aus ab.
+
+    Als der Aufruf die Bestätigung noch selbst vollzog, kam die Berichts-Mail
+    fünfzehn Sekunden nach der Bestätigungs-Mail — ohne dass ein Mensch
+    geklickt hatte. Damit war das Double-Opt-in wirkungslos. Ein GET darf
+    nichts verändern; erst der Knopf schickt ein POST.
+    """
+    # Arrange
+    anfrage_id = _anfrage_anlegen("scanner@firma-xy.de", fremde_analyse,
+                                  aufraeumen, verify_token="v-scanner",
+                                  report_token="r-scanner", poll_token="p-scanner")
+
+    # Act — genau das, was ein Postfach-Scanner tut
+    r = client.get("/api/widget/verify/v-scanner")
+
+    # Assert
+    assert r.status_code == 200
+    assert "<form" in r.text and 'method="post"' in r.text
+    assert gesendete_mails == []
+
+    db = SessionLocal()
+    try:
+        row = db.query(WidgetRequest).filter(WidgetRequest.id == anfrage_id).first()
+        assert row.verified_at is None, "Der blosse Abruf hat bestätigt"
+    finally:
+        db.close()
+
+
+def test_auch_der_marketing_opt_in_braucht_einen_knopf(client, fremde_analyse,
+                                                       aufraeumen):
+    """Eine vom Scanner erteilte Einwilligung wäre als Nachweis wertlos."""
+    anfrage_id = _anfrage_anlegen("optin@firma-xy.de", fremde_analyse, aufraeumen,
+                                  verify_token="v-optin", report_token="r-optin",
+                                  poll_token="p-optin", confirm_token="c-optin",
+                                  consent_marketing=True)
+
+    r = client.get("/api/widget/confirm/c-optin")
+
+    assert r.status_code == 200
+    assert 'method="post"' in r.text
+
+    db = SessionLocal()
+    try:
+        row = db.query(WidgetRequest).filter(WidgetRequest.id == anfrage_id).first()
+        assert row.confirmed_at is None
+    finally:
+        db.close()
+
+    # Erst der Knopf zaehlt.
+    assert client.post("/api/widget/confirm/c-optin").status_code == 200
+    db = SessionLocal()
+    try:
+        row = db.query(WidgetRequest).filter(WidgetRequest.id == anfrage_id).first()
+        assert row.confirmed_at is not None
+    finally:
+        db.close()

@@ -337,15 +337,41 @@ def public_report_pdf(token: str, db: Session = Depends(get_db)):
 
 
 @router.get("/verify/{token}", response_class=HTMLResponse)
+def verify_address_page(token: str, db: Session = Depends(get_db)):
+    """Zeigt nur den Knopf — verändert nichts.
+
+    Der Link aus der E-Mail landet hier. Er darf nichts auslösen: Gmail und
+    Sicherheits-Gateways rufen Links in Mails automatisch ab, und als dieser
+    Aufruf die Bestätigung noch selbst vollzog, kam die Berichts-Mail fünfzehn
+    Sekunden nach der Bestätigungs-Mail — ohne dass ein Mensch geklickt hatte.
+    Damit war das Double-Opt-in wirkungslos.
+    """
+    row = db.query(WidgetRequest).filter(WidgetRequest.verify_token == token).first()
+    if not row:
+        return HTMLResponse(widget_report.verification_page(False), status_code=404,
+                            headers=SEITEN_KOPFZEILEN)
+    if row.verified_at:
+        return HTMLResponse(widget_report.verification_page(True, bereits=True),
+                            headers=SEITEN_KOPFZEILEN)
+
+    return HTMLResponse(
+        widget_report.aktionsseite(
+            "Analyse bestätigen",
+            "Bitte bestätigen Sie, dass diese E-Mail-Adresse Ihnen gehört. "
+            "Danach schicken wir Ihnen den Link zum vollständigen Bericht.",
+            "Ja, Analyse bestätigen",
+            widget_report.verify_url(token),
+        ),
+        headers=SEITEN_KOPFZEILEN)
+
+
+@router.post("/verify/{token}", response_class=HTMLResponse)
 def verify_address(token: str, background_tasks: BackgroundTasks,
                    db: Session = Depends(get_db)):
     """Bestätigt die Adresse und stößt erst dann die Berichts-Mail an.
 
-    Vorher ging der Berichtslink sofort raus, und der Klick darauf war
-    zugleich der Nachweis. Jetzt steht der Nachweis davor: Wer nicht
-    bestätigt, bekommt nie einen Link — und hat von uns genau eine Nachricht
-    gesehen. Das ist der Unterschied, wenn jemand eine fremde Adresse
-    einträgt.
+    Nur über POST erreichbar, also nur durch einen gedrückten Knopf. Ein
+    Scanner, der Links abklappert, kommt hier nicht an.
     """
     row = db.query(WidgetRequest).filter(WidgetRequest.verify_token == token).first()
     if not row:
@@ -353,8 +379,7 @@ def verify_address(token: str, background_tasks: BackgroundTasks,
                             headers=SEITEN_KOPFZEILEN)
 
     if row.verified_at:
-        # Ein zweiter Klick — etwa aus dem Verlauf oder von einem Scanner im
-        # Postfach — darf die Mail nicht erneut auslösen.
+        # Ein zweiter Klick, etwa aus dem Verlauf, darf nichts erneut auslösen.
         return HTMLResponse(widget_report.verification_page(True, bereits=True),
                             headers=SEITEN_KOPFZEILEN)
 
@@ -371,6 +396,34 @@ def verify_address(token: str, background_tasks: BackgroundTasks,
 
 
 @router.get("/confirm/{token}", response_class=HTMLResponse)
+def confirm_marketing_page(token: str, db: Session = Depends(get_db)):
+    """Zeigt den Knopf für den Marketing-Opt-in — verändert nichts.
+
+    Hier wiegt die Trennung schwerer als bei der Adressbestätigung: Eine
+    Einwilligung, die ein Postfach-Scanner beim Abklappern der Links erteilt
+    hat, ist keine Einwilligung. Als Nachweis im Streitfall wäre sie wertlos.
+    """
+    row = db.query(WidgetRequest).filter(WidgetRequest.confirm_token == token).first()
+    if not row:
+        return HTMLResponse(widget_report.confirmation_page(False), status_code=404,
+                            headers=SEITEN_KOPFZEILEN)
+    if row.confirmed_at:
+        return HTMLResponse(widget_report.confirmation_page(True),
+                            headers=SEITEN_KOPFZEILEN)
+
+    return HTMLResponse(
+        widget_report.aktionsseite(
+            "Kontaktaufnahme bestätigen",
+            "Bitte bestätigen Sie, dass wir Sie zu Ihrer Website-Analyse "
+            "kontaktieren dürfen. Sie können dem jederzeit formlos "
+            "widersprechen.",
+            "Ja, Kontaktaufnahme bestätigen",
+            widget_report.confirm_url(token),
+        ),
+        headers=SEITEN_KOPFZEILEN)
+
+
+@router.post("/confirm/{token}", response_class=HTMLResponse)
 def confirm_marketing(token: str, db: Session = Depends(get_db)):
     """Double-Opt-in: bestätigt die Einwilligung zur Kontaktaufnahme."""
     row = db.query(WidgetRequest).filter(WidgetRequest.confirm_token == token).first()

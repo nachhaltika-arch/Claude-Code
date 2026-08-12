@@ -545,6 +545,41 @@ def verification_page(verified: bool, bereits: bool = False) -> str:
         "Link zum vollständigen Bericht mit allen geprüften Kriterien.")
 
 
+def aktionsseite(titel: str, text: str, knopf: str, ziel: str) -> str:
+    """Seite mit einem Knopf, der die Bestätigung erst auslöst.
+
+    Der Link in der E-Mail führt nur hierher und verändert nichts. Das ist
+    keine Förmlichkeit: Gmail und Sicherheits-Gateways rufen Links in Mails
+    automatisch ab. Als der Endpunkt die Bestätigung noch direkt beim Aufruf
+    vollzog, hatte ein solcher Scanner die Adresse bestätigt und die
+    Berichts-Mail ausgelöst — fünfzehn Sekunden nach der ersten, ohne dass ein
+    Mensch etwas angeklickt hatte. Ein Formular-Knopf verlangt ein POST, und
+    das schickt kein Scanner.
+    """
+    return f"""<!doctype html><html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>{titel}</title></head>
+<body style="margin:0;background:{brand.SURFACE};font-family:{brand.FONT_SANS};
+             display:flex;align-items:center;justify-content:center;
+             min-height:100vh;padding:20px">
+<div style="background:{brand.WHITE};border-radius:12px;max-width:460px;
+            width:100%;overflow:hidden">
+  <div style="background:{brand.DARK};padding:20px 28px">{_wortmarke()}</div>
+  <div style="padding:32px 28px;text-align:center">
+    <h1 style="font-size:20px;font-weight:900;margin:0 0 10px;
+               color:{brand.DARK}">{titel}</h1>
+    <p style="font-size:14px;color:{brand.TEXT_60};line-height:1.7;
+              margin:0 0 24px">{text}</p>
+    <form method="post" action="{ziel}" style="margin:0">
+      <button type="submit" style="display:inline-block;border:0;cursor:pointer;
+              background:{brand.YELLOW};color:{brand.DARK};font-weight:900;
+              font-size:15px;font-family:inherit;padding:14px 28px;
+              border-radius:6px">{knopf}</button>
+    </form>
+  </div>
+</div></body></html>"""
+
+
 def _hinweisseite(zeichen: str, farbe: str, title: str, text: str) -> str:
     return f"""<!doctype html><html lang="de"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">

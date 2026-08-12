@@ -81,6 +81,21 @@ def verify_url(token: str) -> str:
     return f"{api_base_url()}/api/widget/verify/{token}"
 
 
+def gestenbeleg(token: str) -> str:
+    """Der Wert, den die Seite erst bei einer echten Geste mitschickt.
+
+    Aus dem Token abgeleitet, damit der Server ihn ohne gespeicherten Zustand
+    nachrechnen kann — und nicht rateabar, weil ``SECRET_KEY`` einfliesst.
+    Fehlt der Schlüssel, wird nicht etwa alles durchgewunken: Dann ergibt sich
+    ein anderer, ebenso stabiler Wert, und die Prüfung greift weiter.
+    """
+    import hashlib
+    import hmac
+
+    schluessel = os.getenv("SECRET_KEY", "kompagnon-widget").encode()
+    return hmac.new(schluessel, token.encode(), hashlib.sha256).hexdigest()[:32]
+
+
 # Terminkalender — das Ziel des Knopfes im Bericht.
 #
 # Ohne „/u/0/": das Stück steht für das Google-Konto dessen, der die Adresse
@@ -579,17 +594,33 @@ def verification_page(verified: bool, bereits: bool = False) -> str:
         "Link zum vollständigen Bericht mit allen geprüften Kriterien.")
 
 
-def aktionsseite(titel: str, text: str, knopf: str, ziel: str) -> str:
+def aktionsseite(titel: str, text: str, knopf: str, ziel: str,
+                 nachweis: str = "", hinweis: str = "") -> str:
     """Seite mit einem Knopf, der die Bestätigung erst auslöst.
 
-    Der Link in der E-Mail führt nur hierher und verändert nichts. Das ist
-    keine Förmlichkeit: Gmail und Sicherheits-Gateways rufen Links in Mails
-    automatisch ab. Als der Endpunkt die Bestätigung noch direkt beim Aufruf
-    vollzog, hatte ein solcher Scanner die Adresse bestätigt und die
-    Berichts-Mail ausgelöst — fünfzehn Sekunden nach der ersten, ohne dass ein
-    Mensch etwas angeklickt hatte. Ein Formular-Knopf verlangt ein POST, und
-    das schickt kein Scanner.
+    Der Link in der E-Mail führt nur hierher und verändert nichts. Gmail und
+    Sicherheits-Gateways rufen Links in Mails automatisch ab; als der
+    Endpunkt beim Aufruf noch selbst bestätigte, kam die Berichts-Mail
+    fünfzehn Sekunden nach der ersten, ohne Zutun eines Menschen.
+
+    Nur POST zu verlangen reichte nicht — in vier Testläufen bestätigte sich
+    jede Anfrage weiterhin von allein, es wurde also tatsächlich abgeschickt.
+    Deshalb die zweite Hürde: Das Feld ``nachweis`` ist im ausgelieferten
+    HTML **leer**. Sein Wert steht in einem ``data``-Attribut am Knopf und
+    wandert erst dann ins Feld, wenn jemand den Knopf wirklich anfasst —
+    ``pointerdown`` oder Tastendruck. Wer das Formular blind abschickt, wer
+    kein JavaScript ausführt und wer die Seite nur rendert, ohne sie zu
+    bedienen, schickt ein leeres Feld und erreicht nichts.
+
+    Preis: Ohne JavaScript lässt sich nicht bestätigen. Der Weg hierher führt
+    über ein JavaScript-Widget, insofern ist das keine neue Anforderung.
     """
+    warnung = ""
+    if hinweis:
+        warnung = (f'<p style="margin:0 0 20px;padding:12px 14px;'
+                   f'background:{brand.WARN_BG};border-radius:8px;font-size:13px;'
+                   f'line-height:1.6;color:{brand.WARN}">{hinweis}</p>')
+
     return f"""<!doctype html><html lang="de"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><title>{titel}</title></head>
@@ -604,14 +635,33 @@ def aktionsseite(titel: str, text: str, knopf: str, ziel: str) -> str:
                color:{brand.DARK}">{titel}</h1>
     <p style="font-size:14px;color:{brand.TEXT_60};line-height:1.7;
               margin:0 0 24px">{text}</p>
-    <form method="post" action="{ziel}" style="margin:0">
-      <button type="submit" style="display:inline-block;border:0;cursor:pointer;
+    {warnung}
+    <form method="post" action="{ziel}" style="margin:0" id="kpg-form">
+      <input type="hidden" name="nachweis" id="kpg-nachweis" value="">
+      <button type="submit" id="kpg-knopf" data-nachweis="{nachweis}"
+              style="display:inline-block;border:0;cursor:pointer;
               background:{brand.YELLOW};color:{brand.DARK};font-weight:900;
               font-size:15px;font-family:inherit;padding:14px 28px;
               border-radius:6px">{knopf}</button>
     </form>
+    <noscript><p style="margin:18px 0 0;font-size:13px;color:{brand.ERROR}">
+      Für die Bestätigung wird JavaScript benötigt.</p></noscript>
   </div>
-</div></body></html>"""
+</div>
+<script>
+  /* Der Nachweis wandert erst bei einer echten Geste ins Formular. Ein
+     Dienst, der die Seite nur abruft oder das Formular blind abschickt,
+     sendet ein leeres Feld — und bestätigt damit nichts. */
+  (function () {{
+    var knopf = document.getElementById('kpg-knopf');
+    var feld = document.getElementById('kpg-nachweis');
+    function belegen() {{ feld.value = knopf.getAttribute('data-nachweis'); }}
+    ['pointerdown', 'mousedown', 'touchstart', 'keydown'].forEach(function (art) {{
+      knopf.addEventListener(art, belegen);
+    }});
+  }})();
+</script>
+</body></html>"""
 
 
 def _hinweisseite(zeichen: str, farbe: str, title: str, text: str) -> str:

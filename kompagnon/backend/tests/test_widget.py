@@ -520,6 +520,13 @@ def test_berichtsseite_haelt_den_klick_als_nachweis_fest(client, fremde_analyse,
 
 # ── Zwei Mails: erst bestätigen, dann der Bericht ─────────────────────
 
+def _beleg(token: str) -> str:
+    """Der Wert, den die Seite erst bei einer echten Geste mitschickt."""
+    from services import widget_report
+
+    return widget_report.gestenbeleg(token)
+
+
 @pytest.fixture
 def gesendete_mails(monkeypatch):
     """Fängt den Versand ab, statt echte Post zu verschicken."""
@@ -577,7 +584,8 @@ def test_der_klick_bestaetigt_und_loest_die_zweite_mail_aus(client, fremde_analy
                                   report_token="r-klick", poll_token="p-klick")
 
     # Act
-    r = client.post("/api/widget/verify/v-klick")
+    r = client.post("/api/widget/verify/v-klick",
+                    data={"nachweis": _beleg("v-klick")})
 
     # Assert
     assert r.status_code == 200
@@ -604,8 +612,9 @@ def test_zweiter_klick_schickt_die_mail_nicht_noch_einmal(client, fremde_analyse
                      verify_token="v-doppelt", report_token="r-doppelt",
                      poll_token="p-doppelt")
 
-    client.post("/api/widget/verify/v-doppelt")
-    r = client.post("/api/widget/verify/v-doppelt")
+    beleg = {"nachweis": _beleg("v-doppelt")}
+    client.post("/api/widget/verify/v-doppelt", data=beleg)
+    r = client.post("/api/widget/verify/v-doppelt", data=beleg)
 
     assert r.status_code == 200
     assert "bereits bestätigt" in r.text.lower()
@@ -613,7 +622,8 @@ def test_zweiter_klick_schickt_die_mail_nicht_noch_einmal(client, fremde_analyse
 
 
 def test_unbekannter_bestaetigungslink_gibt_404(client):
-    r = client.post("/api/widget/verify/gibtesnicht")
+    r = client.post("/api/widget/verify/gibtesnicht",
+                    data={"nachweis": _beleg("gibtesnicht")})
     assert r.status_code == 404
     assert "nicht mehr gültig" in r.text
 
@@ -669,7 +679,8 @@ def test_auch_der_marketing_opt_in_braucht_einen_knopf(client, fremde_analyse,
         db.close()
 
     # Erst der Knopf zaehlt.
-    assert client.post("/api/widget/confirm/c-optin").status_code == 200
+    assert client.post("/api/widget/confirm/c-optin",
+                       data={"nachweis": _beleg("c-optin")}).status_code == 200
     db = SessionLocal()
     try:
         row = db.query(WidgetRequest).filter(WidgetRequest.id == anfrage_id).first()
@@ -775,7 +786,8 @@ def test_die_berichts_mail_geht_im_selben_aufruf_raus(client, fremde_analyse,
     # raise_server_exceptions=False wäre nötig, wenn der Versand im
     # Hintergrund liefe — hier zählt, dass die Mail schon vor der Antwort da ist.
     with client:
-        r = client.post("/api/widget/verify/v-sofort")
+        r = client.post("/api/widget/verify/v-sofort",
+                        data={"nachweis": _beleg("v-sofort")})
 
     assert r.status_code == 200
     assert len(gesendete_mails) == 1, "Die Mail kam nicht im selben Aufruf"
@@ -793,3 +805,76 @@ def test_der_bericht_folgt_nicht_der_widget_einstellung(monkeypatch):
     assert app_settings.ENV_FALLBACK["widget_booking_url"] == "WIDGET_BOOKING_URL"
     assert app_settings.ENV_FALLBACK["widget_checkout_url"] != \
         app_settings.ENV_FALLBACK["widget_booking_url"]
+
+
+def test_abschicken_ohne_bedienung_bestaetigt_nichts(client, fremde_analyse,
+                                                     aufraeumen, gesendete_mails):
+    """Der Kern des Blockers.
+
+    POST allein reichte nicht: In vier Live-Durchläufen bestätigte sich jede
+    Anfrage von selbst, Minuten nach dem Versand und ohne Zutun eines
+    Menschen — irgendetwas schickte das Formular tatsächlich ab. Das Feld
+    ``nachweis`` ist im ausgelieferten HTML leer und wird erst bei einer
+    echten Geste gefüllt. Wer blind abschickt, erreicht nichts.
+    """
+    anfrage_id = _anfrage_anlegen("blind@firma-xy.de", fremde_analyse, aufraeumen,
+                                  verify_token="v-blind", report_token="r-blind",
+                                  poll_token="p-blind")
+
+    # Act — genau das, was der unbekannte Dienst tut: abschicken, Feld leer
+    r = client.post("/api/widget/verify/v-blind", data={"nachweis": ""})
+
+    # Assert
+    assert r.status_code == 200
+    assert gesendete_mails == [], "Es ging trotzdem eine Mail raus"
+
+    db = SessionLocal()
+    try:
+        row = db.query(WidgetRequest).filter(WidgetRequest.id == anfrage_id).first()
+        assert row.verified_at is None, "Ohne Bedienung wurde bestätigt"
+    finally:
+        db.close()
+
+
+def test_ein_geratener_beleg_hilft_nicht(client, fremde_analyse, aufraeumen,
+                                          gesendete_mails):
+    _anfrage_anlegen("raten@firma-xy.de", fremde_analyse, aufraeumen,
+                     verify_token="v-raten", report_token="r-raten",
+                     poll_token="p-raten")
+
+    client.post("/api/widget/verify/v-raten", data={"nachweis": "a" * 32})
+
+    assert gesendete_mails == []
+
+
+def test_wer_bestaetigt_hat_wird_festgehalten(client, fremde_analyse, aufraeumen,
+                                               gesendete_mails):
+    """Ohne diese Angaben liess sich nicht sagen, welcher Dienst da drückt."""
+    anfrage_id = _anfrage_anlegen("nachweis-ua@firma-xy.de", fremde_analyse,
+                                  aufraeumen, verify_token="v-ua",
+                                  report_token="r-ua", poll_token="p-ua")
+
+    client.post("/api/widget/verify/v-ua", data={"nachweis": _beleg("v-ua")},
+                headers={"User-Agent": "Mozilla/5.0 (Testfall)"})
+
+    db = SessionLocal()
+    try:
+        row = db.query(WidgetRequest).filter(WidgetRequest.id == anfrage_id).first()
+        assert row.verified_at is not None
+        assert "Testfall" in (row.verified_user_agent or "")
+    finally:
+        db.close()
+
+
+def test_die_seite_liefert_den_beleg_nicht_im_feld_aus(client, fremde_analyse,
+                                                        aufraeumen):
+    """Stünde er im Feld, schickte ihn jeder blinde Absender gleich mit."""
+    _anfrage_anlegen("feld@firma-xy.de", fremde_analyse, aufraeumen,
+                     verify_token="v-feld", report_token="r-feld",
+                     poll_token="p-feld")
+
+    r = client.get("/api/widget/verify/v-feld")
+
+    assert 'name="nachweis"' in r.text
+    assert 'value=""' in r.text, "Das Feld wird vorbefüllt ausgeliefert"
+    assert _beleg("v-feld") in r.text, "Der Beleg fehlt im data-Attribut"

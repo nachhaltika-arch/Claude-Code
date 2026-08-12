@@ -1153,6 +1153,10 @@ def _run_migrations():
         "CREATE INDEX IF NOT EXISTS idx_widget_requests_verify_token ON widget_requests(verify_token)",
         "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verify_sent_at TIMESTAMP",
         "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP",
+        # Wer bestaetigt hat — ohne das war nicht feststellbar, welcher Dienst
+        # die Bestaetigungslinks von selbst ausloest.
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verified_user_agent VARCHAR(400)",
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verified_ip VARCHAR(64)",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

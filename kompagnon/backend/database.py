@@ -996,6 +996,12 @@ class WidgetRequest(Base):
     verify_sent_at = Column(DateTime, nullable=True)
     verified_at = Column(DateTime, nullable=True)
 
+    # Wer bestätigt hat. Vier Testläufe bestätigten sich von selbst, Minuten
+    # nach dem Versand und ohne Zutun eines Menschen — ohne diese Angaben
+    # liess sich nicht sagen, welcher Dienst da drückt.
+    verified_user_agent = Column(String(400), default="")
+    verified_ip = Column(String(64), default="")
+
     # Double-Opt-in: erst nach Klick im Bestätigungslink darf beworben werden
     confirm_token = Column(String(64), index=True)
     confirmed_at = Column(DateTime, nullable=True)

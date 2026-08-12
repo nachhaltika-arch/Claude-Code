@@ -11,7 +11,9 @@ import re
 import secrets
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, Response
+from fastapi import (
+    APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request, Response,
+)
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -345,6 +347,24 @@ def public_report_pdf(token: str, db: Session = Depends(get_db)):
     )
 
 
+def _geste_fehlt(token: str, nachweis: str, request: Request, wofuer: str) -> bool:
+    """Ob die Bestätigung ohne echte Bedienung hereinkam.
+
+    Das Feld ist im ausgelieferten HTML leer und wird erst bei ``pointerdown``
+    oder Tastendruck gefüllt. Kommt es leer oder falsch zurück, hat niemand
+    den Knopf angefasst — dann wird protokolliert, wer es war, und sonst
+    nichts getan.
+    """
+    if nachweis and secrets.compare_digest(nachweis, widget_report.gestenbeleg(token)):
+        return False
+
+    logger.warning(
+        "%s ohne Bedienung abgewiesen — UA=%r IP=%s Feld=%r", wofuer,
+        request.headers.get("user-agent", "")[:200], _client_ip(request),
+        (nachweis or "")[:16])
+    return True
+
+
 @router.get("/verify/{token}", response_class=HTMLResponse)
 def verify_address_page(token: str, db: Session = Depends(get_db)):
     """Zeigt nur den Knopf — verändert nichts.
@@ -370,17 +390,20 @@ def verify_address_page(token: str, db: Session = Depends(get_db)):
             "Danach schicken wir Ihnen den Link zum vollständigen Bericht.",
             "Ja, Analyse bestätigen",
             widget_report.verify_url(token),
+            nachweis=widget_report.gestenbeleg(token),
         ),
         headers=SEITEN_KOPFZEILEN)
 
 
 @router.post("/verify/{token}", response_class=HTMLResponse)
-def verify_address(token: str, background_tasks: BackgroundTasks,
+def verify_address(token: str, request: Request, background_tasks: BackgroundTasks,
+                   nachweis: str = Form(default=""),
                    db: Session = Depends(get_db)):
     """Bestätigt die Adresse und stößt erst dann die Berichts-Mail an.
 
-    Nur über POST erreichbar, also nur durch einen gedrückten Knopf. Ein
-    Scanner, der Links abklappert, kommt hier nicht an.
+    Verlangt POST **und** den Beleg einer echten Bedienung. POST allein
+    genügte nicht: In vier Testläufen bestätigte sich jede Anfrage weiterhin
+    von selbst, das Formular wurde also tatsächlich abgeschickt.
     """
     row = db.query(WidgetRequest).filter(WidgetRequest.verify_token == token).first()
     if not row:
@@ -392,7 +415,23 @@ def verify_address(token: str, background_tasks: BackgroundTasks,
         return HTMLResponse(widget_report.verification_page(True, bereits=True),
                             headers=SEITEN_KOPFZEILEN)
 
+    if _geste_fehlt(token, nachweis, request, "Adressbestätigung"):
+        return HTMLResponse(
+            widget_report.aktionsseite(
+                "Analyse bestätigen",
+                "Bitte bestätigen Sie, dass diese E-Mail-Adresse Ihnen gehört. "
+                "Danach schicken wir Ihnen den Link zum vollständigen Bericht.",
+                "Ja, Analyse bestätigen",
+                widget_report.verify_url(token),
+                nachweis=widget_report.gestenbeleg(token),
+                hinweis="Bitte drücken Sie den Knopf — die Bestätigung wurde "
+                        "nicht übernommen.",
+            ),
+            headers=SEITEN_KOPFZEILEN)
+
     row.verified_at = datetime.utcnow()
+    row.verified_user_agent = request.headers.get("user-agent", "")[:400]
+    row.verified_ip = _client_ip(request)
     db.commit()
     logger.info(f"Widget-Adresse bestätigt: {row.email}")
 
@@ -442,18 +481,37 @@ def confirm_marketing_page(token: str, db: Session = Depends(get_db)):
             "widersprechen.",
             "Ja, Kontaktaufnahme bestätigen",
             widget_report.confirm_url(token),
+            nachweis=widget_report.gestenbeleg(token),
         ),
         headers=SEITEN_KOPFZEILEN)
 
 
 @router.post("/confirm/{token}", response_class=HTMLResponse)
-def confirm_marketing(token: str, background_tasks: BackgroundTasks,
+def confirm_marketing(token: str, request: Request,
+                      background_tasks: BackgroundTasks,
+                      nachweis: str = Form(default=""),
                       db: Session = Depends(get_db)):
     """Double-Opt-in: bestätigt die Einwilligung zur Kontaktaufnahme."""
     row = db.query(WidgetRequest).filter(WidgetRequest.confirm_token == token).first()
     if not row:
         return HTMLResponse(widget_report.confirmation_page(False), status_code=404,
                             headers=SEITEN_KOPFZEILEN)
+
+    if not row.confirmed_at and _geste_fehlt(token, nachweis, request,
+                                             "Marketing-Einwilligung"):
+        return HTMLResponse(
+            widget_report.aktionsseite(
+                "Kontaktaufnahme bestätigen",
+                "Bitte bestätigen Sie, dass wir Sie zu Ihrer Website-Analyse "
+                "kontaktieren dürfen. Sie können dem jederzeit formlos "
+                "widersprechen.",
+                "Ja, Kontaktaufnahme bestätigen",
+                widget_report.confirm_url(token),
+                nachweis=widget_report.gestenbeleg(token),
+                hinweis="Bitte drücken Sie den Knopf — die Einwilligung wurde "
+                        "nicht übernommen.",
+            ),
+            headers=SEITEN_KOPFZEILEN)
 
     if not row.confirmed_at:
         row.confirmed_at = datetime.utcnow()

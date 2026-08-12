@@ -233,3 +233,51 @@ def test_die_fusszeile_datiert_sich_nach_dem_audit():
 
     assert any("Audit 2027" in t for t in gezeichnet), gezeichnet
     assert any("Seite 3" in t for t in gezeichnet), gezeichnet
+
+
+# ── Schrift und Zeichenabdeckung ──────────────────────────────────────
+
+def test_die_ci_schrift_wird_benutzt():
+    """Noto Sans liegt im Repo und muss auch ankommen.
+
+    Vorher suchte die Registrierung DejaVu, das reportlab 4 nicht mehr
+    mitliefert — sie lief jedes Mal in den Fehlerzweig, und jedes PDF war
+    still in Helvetica gesetzt.
+    """
+    from services import pdf_generator
+
+    assert pdf_generator.FONT_NORMAL == "NotoSans"
+    assert pdf_generator.FONT_BOLD == "NotoSans-Bold"
+
+
+def test_zeichen_ohne_glyphe_werden_ersetzt_statt_zu_verschwinden():
+    """Ein fehlendes Zeichen hinterlaesst im PDF eine Luecke, keine Warnung.
+
+    „HTTP→HTTPS erzwungen" steht so im Kriterienkatalog. Weder Noto Sans noch
+    Helvetica kennen den Pfeil — ohne Ersatz stand dort „HTTPHTTPS".
+    """
+    from services.pdf_generator import _clean_text
+
+    assert _clean_text("HTTP→HTTPS erzwungen") == "HTTP->HTTPS erzwungen"
+    assert _clean_text("Score ≥ 80") == "Score >= 80"
+    assert "✓" not in _clean_text("erledigt ✓")
+
+
+def test_kitext_mit_emoji_zerstoert_das_pdf_nicht():
+    """Zusammenfassung und Empfehlungen kommen aus der KI.
+
+    Dort kann jedes Zeichen auftauchen; keines davon darf als Luecke oder
+    Fehler im Bericht landen.
+    """
+    from services.pdf_generator import _clean_text
+
+    sauber = _clean_text("Ihre Seite 🚀 ist schnell")
+    assert "🚀" not in sauber
+    assert "Ihre Seite" in sauber and "ist schnell" in sauber
+
+
+def test_normaler_deutscher_text_bleibt_unveraendert():
+    from services.pdf_generator import _clean_text
+
+    for probe in ("Größe – Maß · 98 %", "„Anführung“", "Straße, Grün, Öl"):
+        assert _clean_text(probe) == probe

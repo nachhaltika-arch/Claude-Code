@@ -45,49 +45,118 @@ class KatalogFehlt(ValueError):
 # Schriftregistrierung
 # ═══════════════════════════════════════════════════════════
 
+# Noto Sans liegt im Repo unter assets/fonts. Das ist die Schrift der CI, und
+# als einzige deckt sie ab, was in diesem Bericht vorkommt.
+#
+# Vorher stand hier die Suche nach DejaVu mit dem Kommentar „for full
+# Unicode/Umlaut support". Reportlab 4 liefert DejaVu aber nicht mehr mit, der
+# Aufruf lief jedes Mal in den Fehlerzweig, und jedes bisher erzeugte PDF ist
+# in Helvetica gesetzt. Das mitgelieferte Vera waere greifbar gewesen, kennt
+# aber den Pfeil in „HTTP→HTTPS erzwungen" nicht.
+SCHRIFT_ORDNER = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "fonts")
+
+
 def _register_fonts():
-    """Sucht eine mitgelieferte TrueType-Schrift, sonst Helvetica.
+    """Registriert Noto Sans; faellt zurueck, wenn die Dateien fehlen.
 
-    Hier stand „DejaVu for full Unicode/Umlaut support" — das stimmt seit
-    reportlab 4 nicht mehr, das Paket liefert nur noch Bitstream Vera. Der
-    Aufruf lief also jedes Mal in den ``except``-Zweig, und alle bisher
-    erzeugten PDFs sind in Helvetica gesetzt. Das faellt bei deutschem Text
-    nicht auf (Helvetica deckt Latin-1 ab), begrenzt aber die Zeichen: Haken,
-    Kreuz und gefuellte Kreise gibt es dort nicht.
-
-    Das mitgelieferte Vera waere greifbar, ist aber schlechter als Helvetica:
-    ihm fehlen der Pfeil (→, steht in „HTTP→HTTPS erzwungen") und das schmale
-    Leerzeichen — beide kaemen als leeres Kaestchen mitten im Text. Nachgemessen
-    am 2026-08-12. Es steht deshalb bewusst nicht in der Liste.
-
-    Wer die CI-Schrift im PDF will, legt Noto Sans als TTF ins Repo und traegt
-    sie hier ein — die Lizenz (OFL) erlaubt das Mitliefern.
+    Die Rueckfallkette ist bewusst kurz und endet bei Helvetica. Sie greift
+    nur, wenn jemand die TTFs aus dem Repo entfernt — dann sieht das PDF
+    anders aus, bleibt aber lesbar, statt beim Erzeugen zu scheitern.
     """
     import reportlab
 
-    font_path = os.path.join(os.path.dirname(reportlab.__file__), "fonts")
+    reportlab_fonts = os.path.join(os.path.dirname(reportlab.__file__), "fonts")
     kandidaten = [
-        ("DejaVu", "DejaVuSans.ttf", "DejaVuSans-Bold.ttf"),
+        (SCHRIFT_ORDNER, "NotoSans", "NotoSans-Regular.ttf", "NotoSans-Bold.ttf"),
+        (reportlab_fonts, "DejaVu", "DejaVuSans.ttf", "DejaVuSans-Bold.ttf"),
     ]
-    for name, normal, fett in kandidaten:
+    for ordner, name, normal, fett in kandidaten:
         try:
-            pdfmetrics.registerFont(TTFont(name, os.path.join(font_path, normal)))
-            pdfmetrics.registerFont(TTFont(f"{name}-Bold", os.path.join(font_path, fett)))
+            pdfmetrics.registerFont(TTFont(name, os.path.join(ordner, normal)))
+            pdfmetrics.registerFont(TTFont(f"{name}-Bold", os.path.join(ordner, fett)))
+            pdfmetrics.registerFontFamily(name, normal=name, bold=f"{name}-Bold")
             return name, f"{name}-Bold"
-        except Exception:  # noqa: BLE001 — naechster Kandidat
+        except Exception as e:  # noqa: BLE001 — naechster Kandidat
+            logger.warning(f"Schrift {name} nicht nutzbar: {e}")
             continue
+
+    logger.warning("Keine TrueType-Schrift gefunden — PDF faellt auf Helvetica "
+                   "zurueck; Sonderzeichen wie → fehlen dort.")
     return "Helvetica", "Helvetica-Bold"
 
 FONT_NORMAL, FONT_BOLD = _register_fonts()
 
 
+# Zeichen, die keine der in Frage kommenden Schriften hat, mit dem naechsten
+# lesbaren Ersatz. Der Pfeil steht im Kriterium „HTTP→HTTPS erzwungen" und
+# verschwand in Noto Sans spurlos — mitten im Wort, ohne Fehlermeldung.
+ZEICHEN_ERSATZ = {
+    "→": "->", "←": "<-", "↔": "<->", "⇒": "=>", "⇐": "<=",
+    "↑": "^", "↓": "v",
+    "✓": "+", "✔": "+", "✗": "x", "✘": "x",
+    "●": "*", "◐": "*", "○": "-", "▪": "-", "▸": ">",
+    "≥": ">=", "≤": "<=", "≠": "!=", "≈": "~",
+    "…": "...", "™": "(TM)", "№": "Nr.",
+}
+
+
+def _unterstuetzte_zeichen() -> set:
+    """Welche Zeichen die gewaehlte Schrift tatsaechlich zeichnen kann."""
+    try:
+        for name in (FONT_NORMAL, FONT_BOLD):
+            schrift = pdfmetrics.getFont(name)
+            tabelle = getattr(getattr(schrift, "face", None), "charToGlyph", None)
+            if tabelle:
+                return set(tabelle)
+    except Exception:  # noqa: BLE001
+        pass
+    # Helvetica & Co. sind Type-1-Schriften ohne cmap. Sie koennen genau das,
+    # was WinAnsi (cp1252) abdeckt.
+    zeichen = set()
+    for code in range(0x20, 0x2200):
+        try:
+            chr(code).encode("cp1252")
+        except UnicodeEncodeError:
+            continue
+        zeichen.add(code)
+    return zeichen
+
+
+ZEICHENVORRAT = _unterstuetzte_zeichen()
+
+
 def _clean_text(text):
-    """Normalize Unicode text for PDF rendering."""
+    """Normalisiert Text und ersetzt, was die Schrift nicht zeichnen kann.
+
+    Ohne diesen Schritt fehlt ein nicht vorhandenes Zeichen im PDF einfach —
+    kein Kaestchen, keine Warnung, nur eine Luecke mitten im Wort. Das trifft
+    nicht nur feste Beschriftungen: Zusammenfassung, Mangelliste und
+    Empfehlungen kommen aus der KI und koennen jedes Zeichen enthalten.
+    """
     if not text:
         return ""
     if not isinstance(text, str):
         text = str(text)
-    return unicodedata.normalize("NFC", text)
+    text = unicodedata.normalize("NFC", text)
+
+    if all(ord(z) in ZEICHENVORRAT for z in text):
+        return text
+
+    heraus = []
+    for zeichen in text:
+        if ord(zeichen) in ZEICHENVORRAT:
+            heraus.append(zeichen)
+            continue
+        ersatz = ZEICHEN_ERSATZ.get(zeichen)
+        if ersatz is None:
+            # Zerlegen hilft bei zusammengesetzten Zeichen; bleibt danach
+            # etwas Unzeichenbares uebrig, faellt es weg.
+            ersatz = "".join(
+                z for z in unicodedata.normalize("NFKD", zeichen)
+                if ord(z) in ZEICHENVORRAT)
+        heraus.append(ersatz)
+    return "".join(heraus)
 
 # ═══════════════════════════════════════════════════════════
 # Colors
@@ -378,6 +447,25 @@ def _footer(canvas_obj, doc):
 # Chart generators (matplotlib)
 # ═══════════════════════════════════════════════════════════
 
+def _matplotlib_schrift(plt) -> None:
+    """Gibt den Diagrammen dieselbe Schrift wie dem Text.
+
+    Ohne das setzt matplotlib seine eigene Standardschrift, und die
+    Achsenbeschriftung des Radars faellt sichtbar aus dem Rest heraus.
+    """
+    datei = os.path.join(SCHRIFT_ORDNER, "NotoSans-Regular.ttf")
+    if not os.path.exists(datei):
+        return
+    try:
+        from matplotlib import font_manager
+
+        font_manager.fontManager.addfont(datei)
+        plt.rcParams["font.family"] = font_manager.FontProperties(
+            fname=datei).get_name()
+    except Exception as e:  # noqa: BLE001 — Standardschrift ist kein Beinbruch
+        logger.warning(f"Diagrammschrift nicht gesetzt: {e}")
+
+
 def generate_radar_chart(axes: list) -> bytes:
     """Netzdiagramm über die Kategorien des Katalogs.
 
@@ -387,6 +475,8 @@ def generate_radar_chart(axes: list) -> bytes:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+
+    _matplotlib_schrift(plt)
 
     if not axes:
         axes = [("Keine Daten", 0)]
@@ -441,6 +531,8 @@ def generate_donut_chart(positions: dict):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+
+    _matplotlib_schrift(plt)
 
     labels = ["Top 10", "11–20", "21–50", "51–100"]
     values = [

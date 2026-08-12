@@ -1,7 +1,13 @@
 """
 Database migration script for KOMPAGNON.
 Adds new columns to existing PostgreSQL/SQLite tables.
-Run automatically on startup or manually: python migrate.py
+
+ACHTUNG — dieses Skript laeuft NICHT beim Start, auch wenn hier jahrelang
+das Gegenteil stand. Der Start fuehrt allein die Liste in
+``main.py::_run_migrations`` aus. Eine neue Spalte, die nur hier steht,
+existiert auf Render nicht: ``create_all`` legt fehlende Tabellen an, ruestet
+aber keine Spalten nach. Neue Spalten gehoeren nach ``main.py`` — dieses
+Skript bleibt nur fuer manuelle Laeufe: ``python migrate.py``.
 """
 import os
 from sqlalchemy import create_engine, text

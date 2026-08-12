@@ -1139,6 +1139,13 @@ def _run_migrations():
         # Wireframe-Daten pro Projekt: Block-Zuweisungen + Slot-Werte pro
         # Sitemap-Seite. Wird vom KI-Generator (Schritt D) befuellt.
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS wireframe_data JSONB DEFAULT '[]'::jsonb",
+        # ── Widget-Anfragen 2026-08-12 ──────────────────────────────────────
+        # Neue Spalten an einer Tabelle, die es schon gibt. create_all() legt
+        # nur fehlende Tabellen an und ruestet keine Spalten nach — ohne diese
+        # beiden Zeilen laeuft der Teaser auf Staging in einen ProgrammingError.
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS poll_token VARCHAR(64)",
+        "CREATE INDEX IF NOT EXISTS idx_widget_requests_poll_token ON widget_requests(poll_token)",
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS report_confirmed_at TIMESTAMP",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

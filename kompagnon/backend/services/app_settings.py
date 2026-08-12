@@ -180,9 +180,16 @@ def widget_config(db) -> dict:
     """
     from services.audit_criteria import all_criteria
 
+    from services.widget_report import termin_url
+
     return {
         "privacy_url": get(db, "widget_privacy_url"),
-        "checkout_url": get(db, "widget_checkout_url"),
+        # Der Knopf im Ergebnis führt in den Terminkalender, nicht auf die
+        # Startseite: Wer gerade seine Punktzahl gesehen hat, soll ein
+        # Gespräch buchen können statt sich neu orientieren zu müssen.
+        # Dieselbe Quelle wie der Knopf im Bericht — `widget_booking_url`,
+        # leer gelassen greift der Kalender aus `widget_report`.
+        "checkout_url": termin_url(get(db, "widget_booking_url")),
         "headline": get(db, "widget_headline"),
         "criteria_count": len(all_criteria()),
     }

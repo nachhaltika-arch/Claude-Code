@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
-<title>KOMPAGNON — Gratis Website-Analyse</title>
+<title>KOMPAGNON — Gratis Webseiten-Analyse</title>
 <style>
   /* ── KOMPAGNON Audit-Widget · self-contained · keine externen Abhängigkeiten ── */
   /* Farben aus der KOMPAGNON-CI — dieselben Werte wie
@@ -29,17 +29,50 @@
     --kpg-bad:     #C0392B;
   }
   * { box-sizing: border-box; }
+  /* Etwas Luft ringsum: Ohne diesen Rand klebte die Karte auf schmalen
+     Fenstern direkt an der Kante — im iframe genauso wie beim direkten
+     Aufruf. Die gemeldete Höhe wächst entsprechend mit. */
   html, body { margin: 0; padding: 0; background: transparent; }
-  .kpg-card {
+  body { padding: clamp(12px, 3vw, 24px); }
+  .kpg-rahmen {
     font-family: 'Noto Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     max-width: 640px;
     margin: 0 auto;
     background: var(--kpg-bg);
     border: 1px solid var(--kpg-border);
     border-radius: 12px;
-    padding: clamp(24px, 5vw, 48px);
+    overflow: hidden;
     color: var(--kpg-text);
   }
+  /* Kopfbereich mit der Wortmarke — das Widget trug bisher kein einziges
+     Markenzeichen. Auf einer fremden Landingpage ist das die einzige
+     Stelle, an der erkennbar ist, wer da prüft. */
+  .kpg-kopf {
+    background: var(--kpg-dark);
+    padding: 14px clamp(20px, 4vw, 40px);
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  }
+  .kpg-marke {
+    font-size: 13px; font-weight: 900; letter-spacing: .18em; color: #fff;
+  }
+  .kpg-marke span { color: var(--kpg-yellow); }
+  .kpg-kopf-zusatz {
+    font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+    color: #fff; opacity: .7;
+  }
+  .kpg-card {
+    padding: clamp(24px, 5vw, 48px);
+  }
+  /* Fussbereich: Datenschutz und Absender gehoeren sichtbar unter das
+     Formular, nicht als loser Satz ans Ende der Karte. */
+  .kpg-fuss {
+    border-top: 1px solid var(--kpg-border);
+    padding: 12px clamp(20px, 4vw, 40px);
+    font-size: 12px;
+    color: var(--kpg-text-60);
+    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  .kpg-fuss a { color: inherit; text-underline-offset: 2px; }
   .kpg-eyebrow {
     font-size: 13px;
     font-weight: 700;
@@ -171,7 +204,30 @@
   }
 
   /* ── Result ── */
-  .kpg-score { font-size: 54px; font-weight: 800; line-height: 1; }
+  /* Eigene Fläche für den Punktestand, damit er nicht zwischen den Mängeln
+     untergeht — plus deutlicher Abstand zum folgenden Inhalt. */
+  .kpg-punkte {
+    background: #fff;
+    border: 1px solid var(--kpg-border);
+    border-radius: 10px;
+    padding: 22px 24px;
+    margin: 0 0 28px;
+  }
+  .kpg-punkte-kopf {
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .kpg-score { font-size: 64px; font-weight: 900; line-height: 1; letter-spacing: -.03em; }
+  .kpg-score-max { font-size: 22px; font-weight: 700; opacity: .55; }
+  .kpg-balken {
+    height: 10px; border-radius: 10px; background: var(--kpg-border);
+    overflow: hidden;
+  }
+  .kpg-balken-fuellung { height: 10px; border-radius: 10px; }
+  .kpg-punkte-fuss {
+    margin-top: 10px; font-size: 12px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--kpg-label);
+  }
   .kpg-verdict {
     display: inline-flex; align-items: center; padding: 5px 14px;
     border-radius: 20px; font-size: 13px; font-weight: 700; margin-top: 6px;
@@ -201,6 +257,11 @@
 </style>
 </head>
 <body>
+ <div class="kpg-rahmen">
+  <header class="kpg-kopf">
+    <span class="kpg-marke">KOMPAGNON<span>.</span></span>
+    <span class="kpg-kopf-zusatz">Homepage Standard</span>
+  </header>
   <div class="kpg-card" id="kpg-card">
     <!-- ── Schritt 1: Eingabe ── -->
     <!-- Ohne novalidate: bei leeren Feldern meldet sich der Browser selbst.
@@ -208,24 +269,24 @@
          wortlos — der Knopf wirkte kaputt. -->
     <form id="kpg-form">
       <p class="kpg-eyebrow">Gratis · Sofortergebnis · Kein Login</p>
-      <h2 class="kpg-h">Ihre Website<br>jetzt analysieren</h2>
+      <h2 class="kpg-h">Ihre Webseite<br>jetzt analysieren</h2>
 
       <div class="kpg-field">
         <label class="kpg-label" for="kpg-email">Geschäftliche E-Mail</label>
         <input class="kpg-input" id="kpg-email" type="email" required
                autocomplete="email" placeholder="name@firma.de" />
-        <p class="kpg-hint">Wir erkennen Ihre Website automatisch</p>
+        <p class="kpg-hint">Wir erkennen Ihre Webseite automatisch</p>
       </div>
 
       <div class="kpg-field">
-        <label class="kpg-label" for="kpg-url">Website-URL</label>
+        <label class="kpg-label" for="kpg-url">Webseiten-Adresse</label>
         <input class="kpg-input" id="kpg-url" type="text" required
                autocomplete="url" placeholder="www.ihr-betrieb.de" />
       </div>
 
       <label class="kpg-consent" for="kpg-consent">
         <input type="checkbox" id="kpg-consent" />
-        <span>Ich bin einverstanden, dass KOMPAGNON mich zu meiner Website-Analyse
+        <span>Ich bin einverstanden, dass KOMPAGNON mich zu meiner Webseiten-Analyse
         per E-Mail kontaktiert. Die Einwilligung kann ich jederzeit widerrufen.</span>
       </label>
 
@@ -236,16 +297,20 @@
         </svg>
         Analyse starten
       </button>
-      <!-- Trennzeichen steht im Link, sonst bleibt ein „·“ ohne Ziel stehen,
-           solange kein Datenschutz-Link konfiguriert ist. -->
       <!-- Sagt, was gleich im Postfach liegt, und bittet um die eigene
            Adresse: der Bericht ging früher ungefragt an jede eingetippte. -->
       <p class="kpg-foot">Sie bekommen erst eine Bestätigungs-Mail, dann den
-           Bericht — bitte nur die eigene Adresse eintragen<a
-           id="kpg-privacy" href="#" target="_blank" rel="noopener"
-           style="display:none"> · <span>Datenschutz</span></a></p>
+           Bericht — bitte nur die eigene Adresse eintragen</p>
     </form>
   </div>
+  <!-- Trennzeichen steht im Link, sonst bleibt ein „·“ ohne Ziel stehen,
+       solange kein Datenschutz-Link konfiguriert ist. -->
+  <footer class="kpg-fuss">
+    <span>KOMPAGNON Communications</span>
+    <a id="kpg-privacy" href="#" target="_blank" rel="noopener"
+       style="display:none">Datenschutz</a>
+  </footer>
+ </div>
 
 <script>
 (function () {
@@ -306,7 +371,7 @@
                    'hotmail.com','outlook.com','icloud.com','t-online.de','freenet.de'];
 
   var MSGS = [
-    '🔍 Website wird analysiert…',
+    '🔍 Webseite wird analysiert…',
     '⚡ Performance wird gemessen…',
     '⚖️ Rechtliches wird geprüft…',
     '🔒 Sicherheit wird untersucht…',
@@ -378,7 +443,7 @@
     new ResizeObserver(postHeight).observe(document.documentElement);
   }
 
-  /* ── Website aus E-Mail-Domain ableiten ──
+  /* ── Webseite aus E-Mail-Domain ableiten ──
      Die Ableitung folgt der Eingabe, solange der Nutzer das URL-Feld nicht
      selbst angefasst hat. Früher wurde beim ersten Zeichen nach dem „@“
      geschrieben und danach nie wieder korrigiert — aus „info@firma.de“
@@ -532,13 +597,19 @@
 
     card.innerHTML =
       '<div>' +
-        '<div style="font-size:13px;color:var(--kpg-label);margin-bottom:10px;">Analyse für ' + esc(host) + '</div>' +
-        '<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:6px;">' +
-          '<div class="kpg-score" style="color:' + col + ';">' + esc(score) + '</div>' +
-          '<div>' +
-            '<div style="font-size:13px;color:var(--kpg-label);margin-bottom:4px;">Gesamtpunkte von 100</div>' +
-            '<div class="kpg-verdict" style="color:' + col + ';background:' + col + '18;border:1px solid ' + col + '40;">' + esc(data.level || level(score)) + '</div>' +
+        '<div style="font-size:13px;color:var(--kpg-label);margin-bottom:14px;">Analyse für ' + esc(host) + '</div>' +
+        /* Der Punktestand ist das Ergebnis — er bekommt eine eigene Fläche
+           mit Balken und deutlichem Abstand nach unten. Vorher stand er als
+           Zahl neben dem Level und ging zwischen den Mängeln unter. */
+        '<div class="kpg-punkte">' +
+          '<div class="kpg-punkte-kopf">' +
+            '<span class="kpg-score" style="color:' + col + ';">' + esc(score) +
+              '<span class="kpg-score-max">/100</span></span>' +
+            '<span class="kpg-verdict" style="color:' + col + ';background:' + col + '18;border:1px solid ' + col + '40;">' + esc(data.level || level(score)) + '</span>' +
           '</div>' +
+          '<div class="kpg-balken"><div class="kpg-balken-fuellung" style="width:' +
+            Math.max(0, Math.min(100, score)) + '%;background:' + col + ';"></div></div>' +
+          '<div class="kpg-punkte-fuss">Gesamtpunkte von 100</div>' +
         '</div>' +
         blockerHtml +
         issueHtml +
@@ -555,7 +626,10 @@
           (CRITERIA_COUNT ? 'alle ' + esc(CRITERIA_COUNT) + ' Kriterien' : 'jedes Kriterium') +
           ' mit Bewertung, Empfehlungen und PDF.' +
         '</div>' +
-        '<a class="kpg-btn" href="' + esc(CHECKOUT_URL) + '" target="_blank" rel="noopener" style="text-decoration:none;">Jetzt Webseite anfragen →</a>' +
+        /* Führt in den Terminkalender, nicht auf die Startseite. Wer gerade
+           seine Punktzahl gesehen hat, soll ein Gespräch buchen können —
+           auf der Startseite müsste er sich erst wieder orientieren. */
+        '<a class="kpg-btn" href="' + esc(CHECKOUT_URL) + '" target="_blank" rel="noopener" style="text-decoration:none;">Jetzt Termin vereinbaren →</a>' +
         '<a class="kpg-link" id="kpg-restart">Neue Analyse starten</a>' +
       '</div>';
     document.getElementById('kpg-restart').addEventListener('click', resetWidget);

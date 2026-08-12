@@ -469,7 +469,16 @@ def test_berichtsseite_traegt_pdf_und_angebot(client, fremde_analyse, aufraeumen
     # Assert
     assert r.status_code == 200
     assert "/api/widget/report/angebot-berichts-token/pdf" in r.text
-    assert "checkout/kompagnon" in r.text
+    # Das Angebotsziel kommt aus der Einstellung; ohne gesetzten Wert ist es
+    # der Terminkalender.
+    from services import app_settings, widget_report
+
+    db = SessionLocal()
+    try:
+        eingestellt = app_settings.get(db, "widget_checkout_url")
+    finally:
+        db.close()
+    assert widget_report.checkout_url(eingestellt) in r.text
 
 
 def test_pdf_haengt_am_selben_token_wie_der_bericht(client):
@@ -714,3 +723,36 @@ def test_unsinnige_listen_id_wird_nicht_benutzt(monkeypatch):
 
     monkeypatch.setenv("BREVO_LIST_OPTIN_ID", "keine-zahl")
     assert widget_crm.liste_optin() is None
+
+
+# ── Ziel des Angebots-Knopfes ─────────────────────────────────────────
+
+def test_angebots_knopf_folgt_der_einstellung():
+    """Berichtsseite und Widget müssen auf dasselbe Ziel zeigen.
+
+    Die Berichtsseite hatte den Checkout fest verdrahtet und ignorierte die
+    Einstellung, an der das Widget längst hing.
+    """
+    from services import widget_report
+
+    assert widget_report.checkout_url("https://calendar.google.com/x") == \
+        "https://calendar.google.com/x"
+
+
+def test_leere_oder_unsinnige_einstellung_faellt_auf_den_standard(caplog):
+    """Der Wert kommt aus einer Eingabemaske und landet in einem href."""
+    from services import widget_report
+
+    for unsinn in ("", "   ", "javascript:alert(1)", "kompagnon.eu"):
+        assert widget_report.checkout_url(unsinn) == widget_report.STANDARD_CTA_URL
+
+
+def test_standardziel_ist_der_terminkalender_ohne_kontoindex():
+    """„/u/0/" steht für das Google-Konto des Kopierenden.
+
+    Bei Besuchern mit mehreren Konten kann der Link damit ins Leere laufen.
+    """
+    from services import widget_report
+
+    assert "calendar.google.com" in widget_report.STANDARD_CTA_URL
+    assert "/u/0/" not in widget_report.STANDARD_CTA_URL

@@ -300,8 +300,15 @@ def public_report(token: str, db: Session = Depends(get_db)):
         row.report_confirmed_at = datetime.utcnow()
         db.commit()
 
+    # Das Ziel des Angebots-Knopfes kommt aus derselben Einstellung wie im
+    # Widget (Akquise → Analyse-Widget). Vorher zeigte die Berichtsseite fest
+    # auf den Checkout und konnte damit woanders hin als das Widget.
+    from services import app_settings
+
     return HTMLResponse(
-        widget_report.render_report_page(audit, audit.company_name, token=token),
+        widget_report.render_report_page(
+            audit, audit.company_name, token=token,
+            cta_url=app_settings.get(db, "widget_checkout_url")),
         headers=SEITEN_KOPFZEILEN)
 
 

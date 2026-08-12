@@ -81,8 +81,31 @@ def verify_url(token: str) -> str:
     return f"{api_base_url()}/api/widget/verify/{token}"
 
 
-def checkout_url() -> str:
-    return f"{public_base_url()}/checkout/kompagnon"
+# Ziel des Angebots-Knopfes, wenn im Tool nichts eingetragen ist. Der
+# Terminkalender führt schneller zum Gespräch als ein Formular — und die
+# Adresse ohne „/u/0/": das Stück steht für das Google-Konto des Kopierenden
+# und kann bei Besuchern mit mehreren Konten ins Leere laufen.
+STANDARD_CTA_URL = (
+    "https://calendar.google.com/calendar/appointments/schedules/"
+    "AcZssZ0cu63n4TldbKN5xijyccSTDAmXIVezWUqsBQVWmCTLo7l1mSYRWwauMcIqS7HcZwXSedN5LUAt"
+)
+
+
+def checkout_url(eingestellt: str = "") -> str:
+    """Wohin der Angebots-Knopf führt.
+
+    Bisher zeigte er fest auf ``/checkout/kompagnon`` und ignorierte damit
+    die Einstellung, an der das Widget längst hing — Berichtsseite und Widget
+    konnten auf zwei verschiedene Ziele zeigen. Beide lesen jetzt denselben
+    Wert aus ``Akquise → Analyse-Widget``.
+
+    Geprüft wird das Schema: Der Wert kommt aus einer Eingabemaske und landet
+    in einem ``href``.
+    """
+    wert = (eingestellt or "").strip()
+    if wert.lower().startswith(("http://", "https://")):
+        return wert
+    return STANDARD_CTA_URL
 
 
 def _json_field(raw, fallback):
@@ -251,7 +274,7 @@ def _liste(titel: str, werte: list) -> str:
             f'color:{brand.TEXT}">{entries}</ul></section>')
 
 
-def _angebot_block(token: str) -> str:
+def _angebot_block(token: str, cta_url: str = "") -> str:
     """PDF-Abruf und Angebot — beide erst hier, hinter dem Klick aus der Mail.
 
     Genau ein gelber Knopf auf der Seite, so will es die CI. Gelb bekommt das
@@ -278,7 +301,7 @@ def _angebot_block(token: str) -> str:
         f'color:{brand.WHITE}">Sie möchten die Punkte nicht selbst abarbeiten? '
         f'Wir bauen die Seite nach dem Homepage Standard — mit genau diesen '
         f'Kriterien als Abnahmeliste.</p>'
-        f'<a href="{checkout_url()}" style="display:inline-block;'
+        f'<a href="{checkout_url(cta_url)}" style="display:inline-block;'
         f'background:transparent;color:{brand.WHITE};text-decoration:none;'
         f'font-weight:700;padding:11px 22px;border-radius:6px;font-size:14px;'
         f'border:2px solid {brand.WHITE}">Webseite anfragen →</a>'
@@ -286,7 +309,8 @@ def _angebot_block(token: str) -> str:
     )
 
 
-def render_report_page(audit, company: str = "", token: str = "") -> str:
+def render_report_page(audit, company: str = "", token: str = "",
+                       cta_url: str = "") -> str:
     """Vollständiger Bericht als eigenständige HTML-Seite.
 
     Hier steht auch das Angebot. Es stand vorher in der ersten E-Mail — die
@@ -356,7 +380,7 @@ def render_report_page(audit, company: str = "", token: str = "") -> str:
   {_kategorie_uebersicht(kategorien)}
   {_liste("Die größten Probleme", issues)}
   {_liste("Empfohlene nächste Schritte", recommendations)}
-  {_angebot_block(token)}
+  {_angebot_block(token, cta_url)}
 
   <h2 style="font-size:17px;font-weight:900;color:{brand.DARK};
              margin:36px 0 6px">Alle Kriterien im Einzelnen</h2>

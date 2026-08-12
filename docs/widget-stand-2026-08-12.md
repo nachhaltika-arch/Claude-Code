@@ -278,3 +278,57 @@ Geprüft nach dem Deploy, ohne eine Analyse zu starten oder Post zu verschicken:
 
 `POST /api/widget/audit` liefert `poll_token` statt `audit_id`.
 `GET /api/acquisition/widget/requests` liefert zusätzlich `report_opened`.
+
+---
+
+## 7. Das PDF — vier Fehler und die CI (2026-08-12, Nachtrag)
+
+Beim Auffrischen des Berichts-PDFs kamen Dinge heraus, die nicht die Farbe
+betrafen. Alle vier waren in jedem bisher versendeten Bericht.
+
+**Die Punktzahl war auf dem Deckblatt halb verdeckt.** Sie stand als
+`<font size="48">` in einem Absatz mit `leading=14`; die Glyphen liefen aus
+ihrer Zeilenbox, und der Stufenbalken zeichnete quer hindurch.
+
+**Der Keyword-Ring erfand seine Zahlen.** Ohne Daten zeichnete er vier gleich
+große Viertel mit je „25 %". Dieses Audit erhebt Keyword-Positionen überhaupt
+nicht — der Empfänger las eine Verteilung seiner Website, die es nie gab. Der
+Ring entfällt jetzt, und die Seite schreibt hin, dass nichts erhoben wurde.
+
+**Die Summenzeile der Bewertungsmatrix lief aus der Tabelle.** In die 14 mm
+breite Statusspalte wurde `level[:15]` geschrieben — „Homepage Standa",
+sichtbar über den Rand hinaus. Dazu hielt die Schleife diese Zeile für einen
+Kategoriekopf und legte ein `SPAN` über die Maximalpunkte.
+
+**Die erste Zeile des Auditprotokolls war unlesbar.** Die Tabelle hat keine
+Kopfzeile, erbte aber deren Formatierung (dunkel + weiße Schrift); die
+Zebra-Schleife legte danach eine helle Fläche darüber.
+
+### Nebenbei
+
+* **Die Schrift war nie die, die im Code stand.** `_register_fonts` sucht
+  DejaVu, reportlab 4 liefert das nicht mehr mit — der Aufruf lief jedes Mal in
+  den Fehlerzweig, und jedes PDF ist in **Helvetica** gesetzt. Das mitgelieferte
+  Vera wäre greifbar, kennt aber den Pfeil in „HTTP→HTTPS erzwungen" nicht
+  (nachgemessen). Helvetica bleibt. Für die CI-Schrift müsste Noto Sans als TTF
+  ins Repo — die OFL erlaubt das Mitliefern, es sind rund 1 MB Binärdateien.
+  **Offene Entscheidung.**
+* Jahr stand fest auf 2025 (Deckblatt und jede Fußzeile) → kommt aus dem
+  Auditdatum.
+* Rechtstabelle nannte TMG § 5 → DDG § 5 (seit 14.05.2024); der
+  Kriterienkatalog auf derselben Seite sagte längst DDG.
+* Schmales geschütztes Leerzeichen erschien in Helvetica als schwarzes
+  Kästchen.
+* Statusspalte sagte `O` / `+` / `-` → jetzt „erfüllt" / „teils" / „offen".
+* Radarringe waren mit 2/4/6/8/10 ohne Einheit beschriftet → Prozent.
+* Stufenabzeichen nahm den Medaillenton als Fläche mit weißer Schrift — auf
+  Silber (`#C0C0C0`) kaum lesbar. Jetzt Dark Teal, Medaillenton als Balken.
+* Palette war die **vierte** im Projekt (`#2c3e50`, `#f39c12`, `#e74c3c`) →
+  `services/brand.py`.
+
+### Nicht angefasst, aber aufgefallen
+
+Die letzte Seite stellt eine **„Zertifizierungsaussage" mit Unterschriftszeile
+für den Auftraggeber** aus. Beim Tool-Audit gibt es einen Auftraggeber; bei
+einer Widget-Anfrage hat niemand etwas beauftragt. Ob dieselbe Seite in beiden
+Fällen richtig ist, ist eine inhaltliche Frage — kein Fehler im Code.

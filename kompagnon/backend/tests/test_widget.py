@@ -318,3 +318,92 @@ def test_berichtsseite_wird_nicht_indexiert():
     from services.widget_report import confirmation_page
 
     assert 'name="robots" content="noindex,nofollow"' in confirmation_page(True)
+
+
+# ── Kein Werbebrief an eine unbestätigte Adresse ──────────────────────
+
+def test_die_erste_mail_wirbt_nicht():
+    """Die eingetragene Adresse muss dem Eintragenden nicht gehören.
+
+    Wer eine fremde Adresse einträgt, löste bisher dort einen Werbebrief mit
+    Verkaufsknopf aus — unbestellte Werbung nach § 7 UWG, ausgelöst von einem
+    Dritten. Die erste Mail sagt deshalb nur noch, dass etwas angefordert
+    wurde, und bietet den Bericht an. Geworben wird erst auf der Seite, die
+    der Empfänger selbst öffnet.
+    """
+    from services import widget_report
+
+    betreff, html = widget_report.report_ready_email(
+        company="Muster GmbH", token="tok-123")
+
+    assert "checkout" not in html.lower()
+    assert "Jetzt Webseite anfragen" not in html
+    assert "angefordert" in html
+    assert widget_report.report_url("tok-123") in html
+    assert "Muster GmbH" in betreff
+
+
+def test_berichtsseite_traegt_pdf_und_angebot(client, fremde_analyse, aufraeumen):
+    """Was aus der Mail verschwunden ist, muss hier ankommen.
+
+    PDF und Angebot standen in der ersten Mail. Fielen sie ersatzlos weg,
+    wäre der Umbau ein Rückschritt statt einer Verlagerung.
+    """
+    # Arrange
+    aufraeumen.append("angebot@firma-xy.de")
+    db = SessionLocal()
+    try:
+        db.add(WidgetRequest(
+            email="angebot@firma-xy.de",
+            website_url="https://interner-interessent.example",
+            report_token="angebot-berichts-token",
+            poll_token="angebot-poll-token",
+            audit_id=fremde_analyse,
+        ))
+        db.commit()
+    finally:
+        db.close()
+
+    # Act
+    r = client.get("/api/widget/report/angebot-berichts-token")
+
+    # Assert
+    assert r.status_code == 200
+    assert "/api/widget/report/angebot-berichts-token/pdf" in r.text
+    assert "checkout/kompagnon" in r.text
+
+
+def test_pdf_haengt_am_selben_token_wie_der_bericht(client):
+    assert client.get("/api/widget/report/gibtesnicht/pdf").status_code == 404
+
+
+def test_berichtsseite_haelt_den_klick_als_nachweis_fest(client, fremde_analyse,
+                                                          aufraeumen):
+    """Der Klick aus dem Postfach ist der Nachweis, dass die Adresse stimmt."""
+    # Arrange
+    aufraeumen.append("nachweis@firma-xy.de")
+    db = SessionLocal()
+    try:
+        db.add(WidgetRequest(
+            email="nachweis@firma-xy.de",
+            website_url="https://interner-interessent.example",
+            report_token="nachweis-berichts-token",
+            poll_token="nachweis-poll-token",
+            audit_id=fremde_analyse,
+        ))
+        db.commit()
+    finally:
+        db.close()
+
+    # Act
+    r = client.get("/api/widget/report/nachweis-berichts-token")
+
+    # Assert
+    assert r.status_code == 200
+    db = SessionLocal()
+    try:
+        row = db.query(WidgetRequest).filter(
+            WidgetRequest.report_token == "nachweis-berichts-token").first()
+        assert row.report_confirmed_at is not None
+    finally:
+        db.close()

@@ -119,6 +119,10 @@ def read_widget_requests(_: User = Depends(require_admin), db: Session = Depends
                 "website_url": row.website_url,
                 "created_at": _als_utc(row.created_at),
                 "report_sent": row.report_sent_at is not None,
+                # Der Klick auf den Berichtslink. Er belegt, dass die Adresse
+                # dem Empfänger gehört — ohne ihn ist offen, ob der Bericht
+                # bei der richtigen Person gelandet ist.
+                "report_opened": row.report_confirmed_at is not None,
                 "consent_marketing": bool(row.consent_marketing),
                 "consent_confirmed": row.confirmed_at is not None,
             }

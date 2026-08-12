@@ -96,8 +96,39 @@ def _criteria_rows(items: dict, sources: dict) -> str:
     return "".join(blocks)
 
 
-def render_report_page(audit, company: str = "") -> str:
-    """Vollständiger Bericht als eigenständige HTML-Seite."""
+def checkout_url() -> str:
+    return f"{public_base_url()}/checkout/kompagnon"
+
+
+def _angebot_block(token: str) -> str:
+    """PDF-Abruf und Angebot — beide erst hier, hinter dem Klick aus der Mail."""
+    if not token:
+        return ""
+    return (
+        f'<div style="background:{BRAND_DARK};color:#fff;border-radius:10px;'
+        f'padding:22px 24px;margin:28px 0">'
+        f'<h3 style="margin:0 0 6px;font-size:16px">Diesen Bericht mitnehmen</h3>'
+        f'<p style="margin:0 0 16px;font-size:13px;opacity:.85">Alle Kriterien '
+        f'mit Bewertung und Empfehlungen als PDF — zum Ablegen oder Weitergeben.</p>'
+        f'<a href="{report_url(token)}/pdf" style="display:inline-block;'
+        f'background:{BRAND_ACCENT};color:{BRAND_DARK};text-decoration:none;'
+        f'font-weight:700;padding:11px 20px;border-radius:6px;font-size:14px">'
+        f'Als PDF herunterladen</a>'
+        f'<p style="margin:18px 0 0;font-size:13px;opacity:.85">Sie möchten die '
+        f'Punkte nicht selbst abarbeiten? '
+        f'<a href="{checkout_url()}" style="color:{BRAND_ACCENT}">'
+        f'Webseite nach dem Homepage Standard anfragen →</a></p>'
+        f'</div>'
+    )
+
+
+def render_report_page(audit, company: str = "", token: str = "") -> str:
+    """Vollständiger Bericht als eigenständige HTML-Seite.
+
+    Hier steht auch das Angebot. Es stand vorher in der ersten E-Mail — die
+    aber an eine Adresse ging, von der niemand wusste, ob sie dem Anfordernden
+    gehört. Auf dieser Seite ist der Empfänger nachweislich selbst.
+    """
     items = _json_field(getattr(audit, "item_scores", None), {})
     sources = _json_field(getattr(audit, "item_sources", None), {})
     blockers = _json_field(getattr(audit, "blockers", None), [])
@@ -151,6 +182,8 @@ def render_report_page(audit, company: str = "") -> str:
   {_list("Die größten Probleme", issues)}
   {_list("Empfohlene nächste Schritte", recommendations)}
 
+  {_angebot_block(token)}
+
   <h2 style="font-size:17px;margin:30px 0 4px">Alle Kriterien im Einzelnen</h2>
   <p style="font-size:12px;color:#6b7280;margin:0 0 8px">
     ● gemessen &nbsp; ◐ abgeleitet &nbsp; ◇ KI-Einschätzung &nbsp; ○ nicht erhoben
@@ -195,46 +228,50 @@ def _katalog_umfang() -> str:
     return f"{kriterien} Kriterien aus {', '.join(kurz[:-1])} und {kurz[-1]}"
 
 
-def report_email(company: str, score: int, level: str, token: str,
-                 issues: Optional[list] = None,
-                 confirm_token: Optional[str] = None) -> tuple:
-    """Betreff und HTML für die Berichts-Mail."""
-    issue_html = ""
-    if issues:
-        entries = "".join(f"<li style='margin-bottom:5px'>{_esc(i)}</li>" for i in issues[:3])
-        issue_html = (f'<p style="margin:16px 0 6px"><strong>Die drei größten '
-                      f'Punkte:</strong></p><ul style="margin:0 0 0 18px;font-size:14px">'
-                      f'{entries}</ul>')
+def report_ready_email(company: str, token: str,
+                       confirm_token: Optional[str] = None) -> tuple:
+    """Betreff und HTML für die erste Mail — die Einladung zum Bericht.
 
+    Hier stand einmal der fertige Bericht: Punktzahl, die größten Mängel, ein
+    Verkaufsknopf und das PDF im Anhang. Das Problem daran ist, wer ihn bekam.
+    Die Adresse im Widget muss dem Eintragenden nicht gehören — wer die eines
+    Wettbewerbers einträgt, ließ dort einen Werbebrief zustellen, den niemand
+    bestellt hatte (§ 7 UWG), samt fremder Bewertung der eigenen Seite.
+
+    Diese Mail nennt deshalb weder Punktzahl noch Mängel und wirbt nicht. Sie
+    sagt, dass etwas angefordert wurde, und bietet den Bericht an. Wer sie
+    nicht bestellt hat, ignoriert sie und hat nichts erfahren. Der Klick ist
+    zugleich der Nachweis, dass die Adresse dem Empfänger gehört.
+    """
     consent_html = ""
     if confirm_token:
         consent_html = (
             f'<p style="margin-top:22px;padding-top:16px;border-top:1px solid #eee;'
-            f'font-size:13px;color:#555">Sie haben zugestimmt, dass wir Sie zu Ihrer '
-            f'Analyse kontaktieren dürfen. Bitte bestätigen Sie das einmalig: '
+            f'font-size:13px;color:#555">Beim Anfordern wurde zugestimmt, dass wir '
+            f'zu der Analyse Kontakt aufnehmen dürfen. Falls Sie das waren, '
+            f'bestätigen Sie es bitte einmalig: '
             f'<a href="{confirm_url(confirm_token)}" style="color:{BRAND_DARK}">'
-            f'Kontaktaufnahme bestätigen</a>.</p>'
+            f'Kontaktaufnahme bestätigen</a>. Ohne diese Bestätigung melden '
+            f'wir uns nicht.</p>'
         )
 
     inner = f"""
-<h2 style="margin:0 0 10px;font-size:19px">Ihre Website-Analyse ist fertig</h2>
-<p style="font-size:14px;line-height:1.6">Wir haben <strong>{_esc(company)}</strong>
-nach dem KOMPAGNON Homepage Standard geprüft — {_katalog_umfang()}.</p>
-<div style="background:#f5f5f3;border-radius:8px;padding:16px;margin:18px 0;text-align:center">
-  <div style="font-size:34px;font-weight:800;color:{BRAND_DARK}">{score}<span
-     style="font-size:16px;opacity:.6">/100</span></div>
-  <div style="font-size:14px;color:#555">{_esc(level)}</div>
-</div>
-{issue_html}
+<h2 style="margin:0 0 10px;font-size:19px">Ihre Website-Analyse liegt bereit</h2>
+<p style="font-size:14px;line-height:1.6">Für diese E-Mail-Adresse wurde eine
+Analyse von <strong>{_esc(company)}</strong> nach dem KOMPAGNON Homepage
+Standard angefordert — {_katalog_umfang()}.</p>
 <p style="margin:22px 0"><a href="{report_url(token)}"
    style="display:inline-block;background:{BRAND_ACCENT};color:{BRAND_DARK};
           text-decoration:none;font-weight:700;padding:12px 22px;border-radius:6px">
-   Vollständigen Bericht ansehen</a></p>
+   Bericht ansehen</a></p>
 <p style="font-size:13px;color:#555">Im Bericht sehen Sie zu jedem Kriterium, ob es
-gemessen, abgeleitet oder eingeschätzt wurde — und was konkret zu tun ist.
-Dieselben Inhalte finden Sie als PDF im Anhang dieser E-Mail.</p>
+gemessen, abgeleitet oder eingeschätzt wurde — und was konkret zu tun ist. Dort
+lässt er sich auch als PDF herunterladen.</p>
+<p style="font-size:13px;color:#555">Haben Sie das nicht angefordert? Dann
+ignorieren Sie diese E-Mail einfach. Wir haben Ihnen nichts weiter geschickt
+und melden uns nicht von selbst.</p>
 {consent_html}"""
-    return f"Ihre Website-Analyse für {company}: {score}/100", _shell(inner)
+    return f"Ihre Website-Analyse für {company} liegt bereit", _shell(inner)
 
 
 def confirmation_page(confirmed: bool) -> str:

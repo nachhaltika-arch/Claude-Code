@@ -194,6 +194,12 @@ def run_migrations():
         ON widget_requests(poll_token);
     """)
 
+    # Nachweis, dass der Empfaenger den Bericht selbst abgerufen hat.
+    cur.execute("""
+        ALTER TABLE widget_requests
+        ADD COLUMN IF NOT EXISTS report_confirmed_at TIMESTAMP;
+    """)
+
     cur.close()
     conn.close()
     logger.info("Migrationen erfolgreich ausgefuehrt.")

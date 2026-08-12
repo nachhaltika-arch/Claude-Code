@@ -251,9 +251,13 @@ function Anfragen({ eintraege, limit }) {
                 <td style={{ ...zelle, maxWidth: 220, overflowWrap: 'anywhere' }}>
                   {eintrag.website_url}
                 </td>
+                {/* „Versendet" sagt nur, dass die Mail rausging. Erst der
+                    Abruf belegt, dass die Adresse dem Empfänger gehört. */}
                 <td style={zelle}>
-                  <Zustand ok={eintrag.report_sent}>
-                    {eintrag.report_sent ? 'versendet' : 'offen'}
+                  <Zustand ok={eintrag.report_opened || eintrag.report_sent}>
+                    {eintrag.report_opened
+                      ? 'abgerufen'
+                      : eintrag.report_sent ? 'versendet' : 'offen'}
                   </Zustand>
                 </td>
                 <td style={{ ...zelle, color: 'var(--text-secondary)' }}>

@@ -1004,4 +1004,9 @@ class WidgetRequest(Base):
     lead_id = Column(Integer, nullable=True)
     report_sent_at = Column(DateTime, nullable=True)
 
+    # Der Klick auf den Berichtslink aus der E-Mail. Er ist der Nachweis, dass
+    # die Adresse dem Empfänger gehört — die eingetragene Adresse muss dem
+    # Eintragenden nicht gehören.
+    report_confirmed_at = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow, index=True)

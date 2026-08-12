@@ -273,27 +273,17 @@ def _notify_widget_requester(db, audit_id: int) -> None:
         if not audit or audit.status != "completed":
             return
 
-        subject, body = widget_report.report_email(
+        # Weder Punktzahl noch Mängel noch PDF gehen an eine Adresse, von der
+        # niemand weiß, ob sie dem Anfordernden gehört. Sie erfährt nur, dass
+        # etwas angefordert wurde. Alles Weitere steht hinter dem Klick im
+        # Bericht — und der Klick ist zugleich der Nachweis der Adresse.
+        subject, body = widget_report.report_ready_email(
             company=audit.company_name or row.website_url,
-            score=audit.total_score,
-            level=audit.level,
             token=row.report_token,
-            issues=json.loads(audit.top_issues) if audit.top_issues else [],
             confirm_token=row.confirm_token if row.consent_marketing else None,
         )
-        # PDF anhängen; scheitert es, geht die Mail trotzdem mit dem Link raus.
-        attachments = []
-        try:
-            from services.pdf_generator import generate_audit_report
 
-            pdf = generate_audit_report(audit.__dict__)
-            safe_name = (audit.company_name or "Analyse").replace(" ", "-").replace("/", "-")
-            attachments.append((f"Website-Analyse-{safe_name}.pdf", pdf, "pdf"))
-        except Exception as e:  # noqa: BLE001
-            logger.warning(f"PDF für Audit {audit_id} nicht erzeugt: {e}")
-
-        if send_email(to_email=row.email, subject=subject, html_body=body,
-                      attachments=attachments):
+        if send_email(to_email=row.email, subject=subject, html_body=body):
             row.report_sent_at = datetime.now(timezone.utc).replace(tzinfo=None)
             db.commit()
             logger.info(f"Widget-Bericht versendet an {row.email} (Audit {audit_id})")

@@ -11,7 +11,7 @@ import re
 import secrets
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, Response
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -290,8 +290,47 @@ def public_report(token: str, db: Session = Depends(get_db)):
     if not audit or audit.status != "completed":
         raise HTTPException(404, "Bericht noch nicht verfügbar")
 
-    return HTMLResponse(widget_report.render_report_page(audit, audit.company_name),
-                        headers=SEITEN_KOPFZEILEN)
+    # Der Link steht nur in der E-Mail. Wer ihn öffnet, hat Zugriff auf das
+    # Postfach — das ist der Nachweis, dass die eingetragene Adresse dem
+    # Empfänger gehört. Nur der erste Abruf wird festgehalten.
+    if not row.report_confirmed_at:
+        row.report_confirmed_at = datetime.utcnow()
+        db.commit()
+
+    return HTMLResponse(
+        widget_report.render_report_page(audit, audit.company_name, token=token),
+        headers=SEITEN_KOPFZEILEN)
+
+
+@router.get("/report/{token}/pdf")
+def public_report_pdf(token: str, db: Session = Depends(get_db)):
+    """Derselbe Bericht als PDF — früher hing er als Anhang an der ersten Mail.
+
+    Der Anhang ging an eine Adresse, die noch niemand bestätigt hatte. Hier
+    liegt er hinter demselben Klick wie der Bericht.
+    """
+    row = db.query(WidgetRequest).filter(WidgetRequest.report_token == token).first()
+    if not row or not row.audit_id:
+        raise HTTPException(404, "Bericht nicht gefunden")
+
+    audit = db.query(AuditResult).filter(AuditResult.id == row.audit_id).first()
+    if not audit or audit.status != "completed":
+        raise HTTPException(404, "Bericht noch nicht verfügbar")
+
+    try:
+        from services.pdf_generator import generate_audit_report
+
+        pdf = generate_audit_report(audit.__dict__)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"PDF für Audit {audit.id} nicht erzeugt: {e}")
+        raise HTTPException(503, "Das PDF lässt sich gerade nicht erzeugen.")
+
+    name = (audit.company_name or "Analyse").replace(" ", "-").replace("/", "-")
+    return Response(
+        pdf, media_type="application/pdf",
+        headers={**SEITEN_KOPFZEILEN,
+                 "Content-Disposition": f'attachment; filename="Website-Analyse-{name}.pdf"'},
+    )
 
 
 @router.get("/confirm/{token}", response_class=HTMLResponse)

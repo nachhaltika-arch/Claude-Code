@@ -81,23 +81,29 @@ def verify_url(token: str) -> str:
     return f"{api_base_url()}/api/widget/verify/{token}"
 
 
-# Ziel des Angebots-Knopfes, wenn im Tool nichts eingetragen ist. Der
-# Terminkalender führt schneller zum Gespräch als ein Formular — und die
-# Adresse ohne „/u/0/": das Stück steht für das Google-Konto des Kopierenden
-# und kann bei Besuchern mit mehreren Konten ins Leere laufen.
-STANDARD_CTA_URL = (
+# Terminkalender — das Ziel des Knopfes im Bericht.
+#
+# Ohne „/u/0/": das Stück steht für das Google-Konto dessen, der die Adresse
+# kopiert hat. Bei einem Besucher, der in mehreren Konten angemeldet ist,
+# kann der Link damit ins Leere laufen.
+STANDARD_TERMIN_URL = (
     "https://calendar.google.com/calendar/appointments/schedules/"
     "AcZssZ0cu63n4TldbKN5xijyccSTDAmXIVezWUqsBQVWmCTLo7l1mSYRWwauMcIqS7HcZwXSedN5LUAt"
 )
 
 
-def checkout_url(eingestellt: str = "") -> str:
-    """Wohin der Angebots-Knopf führt.
+def termin_url(eingestellt: str = "") -> str:
+    """Wohin der Knopf im Bericht führt.
 
-    Bisher zeigte er fest auf ``/checkout/kompagnon`` und ignorierte damit
-    die Einstellung, an der das Widget längst hing — Berichtsseite und Widget
-    konnten auf zwei verschiedene Ziele zeigen. Beide lesen jetzt denselben
-    Wert aus ``Akquise → Analyse-Widget``.
+    Bewusst **nicht** dieselbe Einstellung wie der CTA im Widget: Das Widget
+    schickt einen Besucher, der gerade seine Punktzahl gesehen hat, auf die
+    Angebotsseite. Der Bericht erreicht jemanden, der seine Adresse bestätigt,
+    den Bericht geöffnet und die Mängel gelesen hat — mit dem ist ein Termin
+    der nächste Schritt, kein weiteres Formular.
+
+    Eine gemeinsame Einstellung hatte den Effekt, dass der Wert im Tool
+    (`widget_checkout_url`) den Kalender überschrieb und der Bericht wieder
+    auf die Startseite zeigte.
 
     Geprüft wird das Schema: Der Wert kommt aus einer Eingabemaske und landet
     in einem ``href``.
@@ -105,7 +111,7 @@ def checkout_url(eingestellt: str = "") -> str:
     wert = (eingestellt or "").strip()
     if wert.lower().startswith(("http://", "https://")):
         return wert
-    return STANDARD_CTA_URL
+    return STANDARD_TERMIN_URL
 
 
 def _json_field(raw, fallback):
@@ -297,14 +303,18 @@ def _angebot_block(token: str, cta_url: str = "") -> str:
         f'PDF herunterladen</a>'
         f'<div style="margin-top:24px;padding-top:20px;'
         f'border-top:1px solid rgba(255,255,255,.2)">'
+        # Der Knopf führt in den Terminkalender, nicht auf ein Formular. Der
+        # Text muss das ansagen — ein „Webseite anfragen", das einen Kalender
+        # öffnet, überrascht an der falschen Stelle.
         f'<p style="margin:0 0 14px;font-size:14px;line-height:1.6;'
         f'color:{brand.WHITE}">Sie möchten die Punkte nicht selbst abarbeiten? '
-        f'Wir bauen die Seite nach dem Homepage Standard — mit genau diesen '
-        f'Kriterien als Abnahmeliste.</p>'
-        f'<a href="{checkout_url(cta_url)}" style="display:inline-block;'
+        f'Wir gehen sie in einem kostenlosen Erstgespräch durch und sagen '
+        f'Ihnen, was davon sich lohnt.</p>'
+        f'<a href="{termin_url(cta_url)}" target="_blank" rel="noopener" '
+        f'style="display:inline-block;'
         f'background:transparent;color:{brand.WHITE};text-decoration:none;'
         f'font-weight:700;padding:11px 22px;border-radius:6px;font-size:14px;'
-        f'border:2px solid {brand.WHITE}">Webseite anfragen →</a>'
+        f'border:2px solid {brand.WHITE}">Jetzt Termin vereinbaren →</a>'
         f'</div></section>'
     )
 

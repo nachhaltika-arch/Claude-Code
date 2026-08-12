@@ -475,10 +475,11 @@ def test_berichtsseite_traegt_pdf_und_angebot(client, fremde_analyse, aufraeumen
 
     db = SessionLocal()
     try:
-        eingestellt = app_settings.get(db, "widget_checkout_url")
+        eingestellt = app_settings.get(db, "widget_booking_url")
     finally:
         db.close()
-    assert widget_report.checkout_url(eingestellt) in r.text
+    assert widget_report.termin_url(eingestellt) in r.text
+    assert "Jetzt Termin vereinbaren" in r.text
 
 
 def test_pdf_haengt_am_selben_token_wie_der_bericht(client):
@@ -735,7 +736,7 @@ def test_angebots_knopf_folgt_der_einstellung():
     """
     from services import widget_report
 
-    assert widget_report.checkout_url("https://calendar.google.com/x") == \
+    assert widget_report.termin_url("https://calendar.google.com/x") == \
         "https://calendar.google.com/x"
 
 
@@ -744,7 +745,7 @@ def test_leere_oder_unsinnige_einstellung_faellt_auf_den_standard(caplog):
     from services import widget_report
 
     for unsinn in ("", "   ", "javascript:alert(1)", "kompagnon.eu"):
-        assert widget_report.checkout_url(unsinn) == widget_report.STANDARD_CTA_URL
+        assert widget_report.termin_url(unsinn) == widget_report.STANDARD_TERMIN_URL
 
 
 def test_standardziel_ist_der_terminkalender_ohne_kontoindex():
@@ -754,8 +755,8 @@ def test_standardziel_ist_der_terminkalender_ohne_kontoindex():
     """
     from services import widget_report
 
-    assert "calendar.google.com" in widget_report.STANDARD_CTA_URL
-    assert "/u/0/" not in widget_report.STANDARD_CTA_URL
+    assert "calendar.google.com" in widget_report.STANDARD_TERMIN_URL
+    assert "/u/0/" not in widget_report.STANDARD_TERMIN_URL
 
 
 def test_die_berichts_mail_geht_im_selben_aufruf_raus(client, fremde_analyse,
@@ -778,3 +779,17 @@ def test_die_berichts_mail_geht_im_selben_aufruf_raus(client, fremde_analyse,
 
     assert r.status_code == 200
     assert len(gesendete_mails) == 1, "Die Mail kam nicht im selben Aufruf"
+
+
+def test_der_bericht_folgt_nicht_der_widget_einstellung(monkeypatch):
+    """Zwei Knöpfe, zwei Ziele.
+
+    Als beide an `widget_checkout_url` hingen, überschrieb der dort
+    eingetragene Wert — die Startseite — den Terminkalender, und der Bericht
+    zeigte wieder auf ein Formular statt auf einen Termin.
+    """
+    from services import app_settings
+
+    assert app_settings.ENV_FALLBACK["widget_booking_url"] == "WIDGET_BOOKING_URL"
+    assert app_settings.ENV_FALLBACK["widget_checkout_url"] != \
+        app_settings.ENV_FALLBACK["widget_booking_url"]

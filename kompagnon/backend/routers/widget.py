@@ -300,15 +300,17 @@ def public_report(token: str, db: Session = Depends(get_db)):
         row.report_confirmed_at = datetime.utcnow()
         db.commit()
 
-    # Das Ziel des Angebots-Knopfes kommt aus derselben Einstellung wie im
-    # Widget (Akquise → Analyse-Widget). Vorher zeigte die Berichtsseite fest
-    # auf den Checkout und konnte damit woanders hin als das Widget.
+    # Der Knopf im Bericht führt in den Terminkalender — eine eigene
+    # Einstellung, nicht die des Widget-CTA. Als beide an
+    # `widget_checkout_url` hingen, überschrieb der dort eingetragene Wert
+    # (die Startseite) den Kalender, und der Bericht zeigte wieder aufs
+    # Formular. Ohne Eintrag greift der Standard aus widget_report.
     from services import app_settings
 
     return HTMLResponse(
         widget_report.render_report_page(
             audit, audit.company_name, token=token,
-            cta_url=app_settings.get(db, "widget_checkout_url")),
+            cta_url=app_settings.get(db, "widget_booking_url")),
         headers=SEITEN_KOPFZEILEN)
 
 

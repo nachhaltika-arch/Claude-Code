@@ -29,6 +29,10 @@ ENV_FALLBACK = {
     "smtp_sender_email": "SMTP_SENDER_EMAIL",
     "widget_privacy_url": "WIDGET_PRIVACY_URL",
     "widget_checkout_url": "WIDGET_CHECKOUT_URL",
+    # Terminkalender im Bericht. Getrennt vom CTA des Widgets: dort steht ein
+    # Besucher direkt nach der Punktzahl, hier jemand, der den Bericht gelesen
+    # hat. Leer lassen — dann greift der Standard in widget_report.
+    "widget_booking_url": "WIDGET_BOOKING_URL",
 }
 
 SECRET_KEYS = frozenset({"smtp_password"})

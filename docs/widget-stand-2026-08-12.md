@@ -128,10 +128,47 @@ Statement-Fehler bewusst, der Endpunkt brach erst ab, als er die fehlende
 Spalte anfasste, und die Tests sahen es nie — die Test-Datenbank wird mit
 `create_all` aus den Modellen gebaut und hat die Spalte deshalb immer.
 
+Nebenbei fiel auf: Die Anwendung fiel dabei **komplett** aus, nicht nur der
+Teaser. SQLAlchemy selektiert immer alle Modellspalten, also scheiterte jede
+Abfrage auf `widget_requests` — auch die Bestätigungsseite und die
+Anfragenliste im Tool.
+
 **Regel:** Neue Spalten gehören nach `main.py`. Die beiden anderen Dateien
 sagen das jetzt in ihrem Kopf.
 
+### Ein zweiter Fund, der dabei herausfiel
+
+Die ~200 Statements liefen in **einer** Transaktion mit einem `commit()` am
+Ende, jeder Fehler mit `pass` verschluckt. Auf PostgreSQL bricht das erste
+fehlschlagende Statement die Transaktion ab; alles danach scheitert mit
+„current transaction is aborted", und der `commit()` schreibt nichts. Ein
+harmloser Fehler weit vorne konnte damit lautlos alles darunter entwerten.
+Jedes Statement bekommt jetzt seine eigene Transaktion, und die Zahl der
+ausgeführten sowie jede übersprungene stehen im Log.
+
+**Ehrlich dazu:** Ob genau das die Ursache war, ist nicht bewiesen. Zwischen
+dem Nachtragen der Spalten (`7dcb99e`) und dem ersten grünen Aufruf lagen
+zwei weitere Deploys. Es kann auch schlicht sein, dass `7dcb99e` beim Prüfen
+noch nicht ausgerollt war. Die Umstellung auf einzelne Transaktionen ist
+davon unabhängig richtig — sie ist das übliche Muster und macht künftige
+Fehlschläge im Log sichtbar statt unsichtbar.
+
 ---
+
+## 4a. Auf Staging verifiziert (2026-08-12)
+
+Geprüft nach dem Deploy, ohne eine Analyse zu starten oder Post zu verschicken:
+
+| Prüfung | Ergebnis |
+|---|---|
+| `GET /api/widget/teaser/<text>` | 404 (vorher 500 wegen fehlender Spalte) |
+| `GET /api/widget/confirm/<text>` | 404 mit `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` |
+| `GET /api/widget/report/<text>/pdf` | 404 |
+| `POST /api/widget/audit`, ungültige Mail | 400 |
+| `POST /api/widget/audit`, `localhost` | 400 |
+| `POST /api/widget/audit`, `169.254.169.254` | 400 |
+| Einbett-Seite | trägt `safeHref`, `poll_token`, neuen Fußzeilentext; alter Text weg |
+| `GET /api/widget/config` | liefert `criteria_count: 38` |
 
 ## 5. Zahlen
 

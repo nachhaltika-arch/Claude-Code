@@ -71,6 +71,15 @@ services:
       - key: FRONTEND_URL
         sync: false
 
+      # API_BASE_URL steht bewusst nicht hier. Sie landet im Berichtslink der
+      # Widget-Mail, und als sie fehlte, fiel der Code auf die Produktiv-
+      # Adresse zurueck: Audit auf Staging, Token in der Staging-Datenbank,
+      # Link zum Produktiv-Server — „Not Found" bei jeder Anfrage. Der Code
+      # nimmt jetzt RENDER_EXTERNAL_URL, das Render je Dienst selbst setzt.
+      # Erst wenn eine eigene Domain davorsteht (api.kompagnon.eu), muss
+      # API_BASE_URL hier gesetzt werden — RENDER_EXTERNAL_URL zeigt dann
+      # weiterhin auf die onrender.com-Adresse.
+
       # AI (Anthropic / Claude) — kann gleicher Key wie Produktiv sein, oder Test-Workspace-Key
       - key: ANTHROPIC_API_KEY
         sync: false

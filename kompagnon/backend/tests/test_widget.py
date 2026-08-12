@@ -320,6 +320,41 @@ def test_berichtsseite_wird_nicht_indexiert():
     assert 'name="robots" content="noindex,nofollow"' in confirmation_page(True)
 
 
+# ── Wohin der Link aus der E-Mail zeigt ───────────────────────────────
+
+def test_berichtslink_zeigt_auf_den_eigenen_server(monkeypatch):
+    """Der Link ist der einzige Weg zum Bericht — er muss hierher zeigen.
+
+    Ohne ``API_BASE_URL`` fiel der Code auf die fest eingetragene
+    Produktiv-Adresse zurück. Auf Staging hiess das: der Audit lief hier,
+    das Token liegt hier, und die E-Mail schickte den Empfänger zum
+    Produktiv-Server, der das Token nicht kennt — „Not Found". Render setzt
+    ``RENDER_EXTERNAL_URL`` für jeden Dienst selbst; damit stimmt die
+    Adresse ohne eine Variable, die jemand setzen muss.
+    """
+    from services import widget_report
+
+    # Arrange — wie auf Staging: eigene Variable fehlt, Render kennt sich
+    monkeypatch.delenv("API_BASE_URL", raising=False)
+    monkeypatch.setenv("RENDER_EXTERNAL_URL",
+                       "https://kompagnon-backend-staging.onrender.com")
+
+    # Act / Assert
+    assert widget_report.api_base_url() == \
+        "https://kompagnon-backend-staging.onrender.com"
+    assert widget_report.report_url("tok").startswith(
+        "https://kompagnon-backend-staging.onrender.com/api/widget/report/")
+
+
+def test_eigene_einstellung_schlaegt_die_von_render(monkeypatch):
+    from services import widget_report
+
+    monkeypatch.setenv("API_BASE_URL", "https://api.kompagnon.eu/")
+    monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://irgendwas.onrender.com")
+
+    assert widget_report.api_base_url() == "https://api.kompagnon.eu"
+
+
 # ── Marke ─────────────────────────────────────────────────────────────
 
 # Zwei Werte, die hier jahrelang standen und in keiner CI belegt sind: ein

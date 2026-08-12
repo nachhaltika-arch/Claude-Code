@@ -1153,22 +1153,41 @@ def _run_migrations():
         'academy_certificates', 'academy_quiz_questions',
         'academy_customer_access', 'academy_checklist_items',
     ]
+    # Jedes Statement bekommt seine eigene Transaktion.
+    #
+    # Vorher lief die ganze Liste in einer einzigen, mit einem commit() am
+    # Ende. Auf PostgreSQL bricht aber das erste fehlschlagende Statement die
+    # Transaktion ab; jedes weitere scheitert dann mit „current transaction is
+    # aborted", das ``pass`` verschluckt es, und der commit() schreibt nichts.
+    # Ein einziger Fehler weit vorne machte damit alles dahinter wirkungslos —
+    # lautlos. Genau so sind poll_token und report_confirmed_at nie entstanden,
+    # obwohl sie am Ende der Liste standen.
+    fehler = []
     try:
         with engine.connect() as conn:
             for sql in migrations:
                 try:
                     conn.execute(text(sql))
-                except Exception:
-                    pass  # Spalte/Tabelle existiert bereits
-            conn.commit()
+                    conn.commit()
+                except Exception as e:  # noqa: BLE001
+                    conn.rollback()  # sonst bleibt die Verbindung vergiftet
+                    fehler.append((sql.strip().split("\n")[0][:80], str(e).split("\n")[0][:120]))
             # Verify academy tables exist and log
             for tbl in academy_tables:
                 try:
                     conn.execute(text(f"SELECT 1 FROM {tbl} LIMIT 1"))
                     logger.info(f"✓ {tbl} OK")
                 except Exception as e:
+                    conn.rollback()
                     logger.error(f"✗ {tbl} FEHLER: {e}")
-        logger.info("✓ Migrationen abgeschlossen")
+        # Die meisten „Fehler" sind harmlos (Spalte existiert schon). Sie
+        # gehören trotzdem ins Log: sonst ist eine Migration, die wirklich
+        # nicht durchkam, von einer, die nichts zu tun hatte, nicht zu
+        # unterscheiden — und das hat schon einen halben Tag gekostet.
+        logger.info(f"✓ Migrationen abgeschlossen — {len(migrations) - len(fehler)} "
+                    f"von {len(migrations)} ausgeführt")
+        for sql, grund in fehler:
+            logger.info(f"  · übersprungen: {sql} — {grund}")
     except Exception as e:
         logger.warning(f"Migration Warnung: {e}")
 

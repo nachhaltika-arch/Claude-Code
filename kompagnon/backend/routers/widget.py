@@ -388,8 +388,14 @@ def verify_address(token: str, background_tasks: BackgroundTasks,
     logger.info(f"Widget-Adresse bestätigt: {row.email}")
 
     from routers.audit import send_widget_report
+    from services import widget_crm
 
     background_tasks.add_task(send_widget_report, row.id)
+    # Liste „Adresse bestätigt": der Überblick über die Interessenten. Hier
+    # darf keine Automatisierung hängen — bestätigt ist die Adresse, nicht
+    # die Einwilligung in Werbung.
+    background_tasks.add_task(widget_crm.uebertrage_anfrage, row.id,
+                              widget_crm.liste_bestaetigt(), "adresse_bestaetigt")
 
     return HTMLResponse(widget_report.verification_page(True),
                         headers=SEITEN_KOPFZEILEN)
@@ -424,7 +430,8 @@ def confirm_marketing_page(token: str, db: Session = Depends(get_db)):
 
 
 @router.post("/confirm/{token}", response_class=HTMLResponse)
-def confirm_marketing(token: str, db: Session = Depends(get_db)):
+def confirm_marketing(token: str, background_tasks: BackgroundTasks,
+                      db: Session = Depends(get_db)):
     """Double-Opt-in: bestätigt die Einwilligung zur Kontaktaufnahme."""
     row = db.query(WidgetRequest).filter(WidgetRequest.confirm_token == token).first()
     if not row:
@@ -438,6 +445,13 @@ def confirm_marketing(token: str, db: Session = Depends(get_db)):
             lead.status = "opt_in"
         db.commit()
         logger.info(f"Widget-Einwilligung bestätigt: {row.email}")
+
+        from services import widget_crm
+
+        # Erst hier ist Werbung gedeckt — nur diese Liste trägt eine
+        # Automatisierung.
+        background_tasks.add_task(widget_crm.uebertrage_anfrage, row.id,
+                                  widget_crm.liste_optin(), "marketing_optin")
 
     return HTMLResponse(widget_report.confirmation_page(True),
                         headers=SEITEN_KOPFZEILEN)

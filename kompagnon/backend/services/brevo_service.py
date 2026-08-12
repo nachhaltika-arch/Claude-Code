@@ -119,10 +119,20 @@ class BrevoService:
 
     # ── Kontakte ─────────────────────────────────────────────────────────────
 
-    def create_contact(self, email: str, first_name: str, last_name: str, list_ids: list) -> int:
+    def create_contact(self, email: str, first_name: str, last_name: str,
+                       list_ids: list, attributes: Optional[dict] = None) -> int:
+        """Legt einen Kontakt an oder aktualisiert ihn.
+
+        ``attributes`` ergaenzt die Namensfelder um eigene Merkmale — das
+        Widget haengt daran Website, Punktzahl und Stufe, damit eine
+        Automatisierung danach segmentieren kann.
+        """
+        merkmale = {"FIRSTNAME": first_name, "LASTNAME": last_name}
+        merkmale.update(attributes or {})
+
         response = self._request("POST", "/contacts", {
             "email": email,
-            "attributes": {"FIRSTNAME": first_name, "LASTNAME": last_name},
+            "attributes": merkmale,
             "listIds": list_ids,
             "updateEnabled": True,
         })
@@ -138,6 +148,20 @@ class BrevoService:
     def create_list(self, name: str, folder_id: int = DEFAULT_FOLDER_ID) -> int:
         response = self._request("POST", "/contacts/lists", {"name": name, "folderId": folder_id})
         return self._id_aus(response, "die Liste")
+
+    def ensure_attribute(self, name: str, typ: str = "text") -> None:
+        """Legt ein Kontaktmerkmal an, falls es noch fehlt.
+
+        Brevo lehnt einen Kontakt mit unbekanntem Merkmal komplett ab. Wer
+        also Website oder Punktzahl mitschicken will, muss das Merkmal vorher
+        kennen — sonst scheitert der ganze Eintrag an einer Kleinigkeit.
+        Existiert es schon, antwortet Brevo mit einem Fehler, der hier
+        bewusst verschluckt wird.
+        """
+        try:
+            self._request("POST", f"/contacts/attributes/normal/{name}", {"type": typ})
+        except BrevoError as e:
+            logger.debug("Merkmal %s nicht angelegt (existiert vermutlich): %s", name, e)
 
     # ── Kampagnen ────────────────────────────────────────────────────────────
 

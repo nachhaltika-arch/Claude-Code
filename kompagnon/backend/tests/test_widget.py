@@ -666,3 +666,51 @@ def test_auch_der_marketing_opt_in_braucht_einen_knopf(client, fremde_analyse,
         assert row.confirmed_at is not None
     finally:
         db.close()
+
+
+# ── Übertragung nach Brevo ────────────────────────────────────────────
+
+def test_ohne_eingerichtete_liste_passiert_nichts(monkeypatch):
+    """Fehlt die Konfiguration, darf der Klick trotzdem durchlaufen."""
+    from services import widget_crm
+
+    monkeypatch.delenv("BREVO_LIST_VERIFIED_ID", raising=False)
+    assert widget_crm.liste_bestaetigt() is None
+    assert widget_crm.uebertrage("a@b.de", None) is False
+
+
+def test_brevo_ausfall_kippt_den_klick_nicht(monkeypatch):
+    """Der Besucher steckt mitten in der Bestätigung — er darf nichts merken."""
+    from services import widget_crm
+
+    class _Kaputt:
+        def __enter__(self): raise RuntimeError("Brevo down")
+        def __exit__(self, *a): return False
+
+    import services.brevo_service
+    monkeypatch.setattr(services.brevo_service, "BrevoService", lambda *a, **k: _Kaputt())
+
+    assert widget_crm.uebertrage("a@b.de", 42) is False
+
+
+def test_die_beiden_listen_haengen_an_getrennten_variablen(monkeypatch):
+    """Adresse bestätigt und Marketing-Opt-in dürfen nie dieselbe Liste sein.
+
+    Sonst landet in der Liste, auf der die Automatisierung hängt, auch wer
+    nur seine Adresse bestätigt hat — und wird angeschrieben, ohne
+    eingewilligt zu haben.
+    """
+    from services import widget_crm
+
+    monkeypatch.setenv("BREVO_LIST_VERIFIED_ID", "11")
+    monkeypatch.setenv("BREVO_LIST_OPTIN_ID", "22")
+
+    assert widget_crm.liste_bestaetigt() == 11
+    assert widget_crm.liste_optin() == 22
+
+
+def test_unsinnige_listen_id_wird_nicht_benutzt(monkeypatch):
+    from services import widget_crm
+
+    monkeypatch.setenv("BREVO_LIST_OPTIN_ID", "keine-zahl")
+    assert widget_crm.liste_optin() is None

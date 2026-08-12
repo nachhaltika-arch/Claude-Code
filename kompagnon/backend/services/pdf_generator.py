@@ -3,6 +3,7 @@ PDF Audit Report Generator — Homepage Standard 2025
 Generates a professional multi-page PDF using ReportLab.
 """
 import json
+import logging
 import os
 import unicodedata
 import math
@@ -25,6 +26,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 
 from services.audit_criteria import BLOCKER_LABELS, CATALOGUE, SOURCE_LABELS, Source
 
+logger = logging.getLogger(__name__)
+
 # Kurzform der Quellenangabe für die enge PDF-Spalte
 SOURCE_SHORT = {
     Source.MEASURED.value: "gemessen",
@@ -39,18 +42,41 @@ class KatalogFehlt(ValueError):
 
 
 # ═══════════════════════════════════════════════════════════
-# Font Registration (DejaVu for full Unicode/Umlaut support)
+# Schriftregistrierung
 # ═══════════════════════════════════════════════════════════
 
 def _register_fonts():
-    try:
-        import reportlab
-        font_path = os.path.join(os.path.dirname(reportlab.__file__), "fonts")
-        pdfmetrics.registerFont(TTFont("DejaVu", os.path.join(font_path, "DejaVuSans.ttf")))
-        pdfmetrics.registerFont(TTFont("DejaVu-Bold", os.path.join(font_path, "DejaVuSans-Bold.ttf")))
-        return "DejaVu", "DejaVu-Bold"
-    except Exception:
-        return "Helvetica", "Helvetica-Bold"
+    """Sucht eine mitgelieferte TrueType-Schrift, sonst Helvetica.
+
+    Hier stand „DejaVu for full Unicode/Umlaut support" — das stimmt seit
+    reportlab 4 nicht mehr, das Paket liefert nur noch Bitstream Vera. Der
+    Aufruf lief also jedes Mal in den ``except``-Zweig, und alle bisher
+    erzeugten PDFs sind in Helvetica gesetzt. Das faellt bei deutschem Text
+    nicht auf (Helvetica deckt Latin-1 ab), begrenzt aber die Zeichen: Haken,
+    Kreuz und gefuellte Kreise gibt es dort nicht.
+
+    Das mitgelieferte Vera waere greifbar, ist aber schlechter als Helvetica:
+    ihm fehlen der Pfeil (→, steht in „HTTP→HTTPS erzwungen") und das schmale
+    Leerzeichen — beide kaemen als leeres Kaestchen mitten im Text. Nachgemessen
+    am 2026-08-12. Es steht deshalb bewusst nicht in der Liste.
+
+    Wer die CI-Schrift im PDF will, legt Noto Sans als TTF ins Repo und traegt
+    sie hier ein — die Lizenz (OFL) erlaubt das Mitliefern.
+    """
+    import reportlab
+
+    font_path = os.path.join(os.path.dirname(reportlab.__file__), "fonts")
+    kandidaten = [
+        ("DejaVu", "DejaVuSans.ttf", "DejaVuSans-Bold.ttf"),
+    ]
+    for name, normal, fett in kandidaten:
+        try:
+            pdfmetrics.registerFont(TTFont(name, os.path.join(font_path, normal)))
+            pdfmetrics.registerFont(TTFont(f"{name}-Bold", os.path.join(font_path, fett)))
+            return name, f"{name}-Bold"
+        except Exception:  # noqa: BLE001 — naechster Kandidat
+            continue
+    return "Helvetica", "Helvetica-Bold"
 
 FONT_NORMAL, FONT_BOLD = _register_fonts()
 
@@ -67,20 +93,34 @@ def _clean_text(text):
 # Colors
 # ═══════════════════════════════════════════════════════════
 
-KC_ROT = colors.HexColor("#c0392b")
-KC_DARK = colors.HexColor("#2c3e50")
-KC_LIGHT = colors.HexColor("#f8f9fa")
-KC_WHITE = colors.white
-KC_BORDER = colors.HexColor("#dee2e6")
-KC_SUCCESS = colors.HexColor("#27ae60")
-KC_WARNING = colors.HexColor("#f39c12")
-KC_DANGER = colors.HexColor("#e74c3c")
+# Die Werte kommen aus services/brand.py, dem Gegenstueck zu tokens.css.
+# Hier stand eine vierte, voellig eigene Palette (#2c3e50, #f39c12, #e74c3c —
+# Flat-UI-Toene). Widget, Mail, Berichtsseite und PDF sahen damit nach vier
+# verschiedenen Absendern aus.
+from services import brand  # noqa: E402
 
-LEVEL_COLORS = {
-    "Homepage Standard Platin": colors.HexColor("#1a3a5c"),
-    "Homepage Standard Gold": colors.HexColor("#FFD700"),
-    "Homepage Standard Silber": colors.HexColor("#C0C0C0"),
-    "Homepage Standard Bronze": colors.HexColor("#CD7F32"),
+KC_DARK = colors.HexColor(brand.DARK)
+KC_MID = colors.HexColor(brand.MID)
+KC_YELLOW = colors.HexColor(brand.YELLOW)
+KC_LIGHT = colors.HexColor(brand.SURFACE)
+KC_WHITE = colors.white
+KC_BORDER = colors.HexColor(brand.BORDER)
+KC_TEXT = colors.HexColor(brand.TEXT)
+KC_TEXT_60 = colors.HexColor(brand.TEXT_60)
+KC_SUCCESS = colors.HexColor(brand.SUCCESS)
+KC_WARNING = colors.HexColor(brand.WARN)
+KC_DANGER = colors.HexColor(brand.ERROR)
+KC_ROT = KC_DANGER
+KC_ERROR_BG = colors.HexColor(brand.ERROR_BG)
+
+# Die Stufe als Medaillenton — aber nur als schmaler Balken neben dem
+# Abzeichen, nicht als dessen Flaeche. Als Flaeche trug sie weisse Schrift:
+# auf Silber (#C0C0C0) und Gold (#FFD700) war die Stufe praktisch unlesbar.
+LEVEL_ACCENTS = {
+    "Homepage Standard Platin": colors.HexColor("#8E9BA6"),
+    "Homepage Standard Gold": colors.HexColor("#C9A227"),
+    "Homepage Standard Silber": colors.HexColor("#9AA5AC"),
+    "Homepage Standard Bronze": colors.HexColor("#B0763A"),
     "Nicht konform": KC_DANGER,
 }
 
@@ -98,7 +138,7 @@ def _get_styles():
     styles.add(ParagraphStyle(
         "KCSubtitle", parent=styles["Normal"],
         fontName=FONT_NORMAL, fontSize=14, leading=18,
-        textColor=colors.HexColor("#7f8c8d"), alignment=TA_CENTER, spaceAfter=10*mm,
+        textColor=KC_TEXT_60, alignment=TA_CENTER, spaceAfter=10*mm,
     ))
     styles.add(ParagraphStyle(
         "KCHeading", parent=styles["Heading2"],
@@ -113,7 +153,7 @@ def _get_styles():
     styles.add(ParagraphStyle(
         "KCSmall", parent=styles["Normal"],
         fontName=FONT_NORMAL, fontSize=8, leading=10,
-        textColor=colors.HexColor("#95a5a6"),
+        textColor=KC_TEXT_60,
     ))
     styles.add(ParagraphStyle(
         "KCCenter", parent=styles["Normal"],
@@ -125,7 +165,69 @@ def _get_styles():
         fontName=FONT_BOLD, fontSize=10, leading=14,
         textColor=KC_DARK,
     ))
+    # Eigener Stil fuer die grosse Zahl. Sie stand vorher als <font size="48">
+    # in einem Absatz mit leading=14 — die Glyphen liefen aus der Zeilenbox
+    # und wurden vom naechsten Element ueberzeichnet.
+    styles.add(ParagraphStyle(
+        "KCScore", parent=styles["Normal"],
+        fontName=FONT_BOLD, fontSize=52, leading=60,
+        textColor=KC_DARK, alignment=TA_CENTER,
+    ))
+    styles.add(ParagraphStyle(
+        "KCWortmarke", parent=styles["Normal"],
+        fontName=FONT_BOLD, fontSize=11, leading=14,
+        textColor=KC_WHITE, alignment=TA_CENTER,
+    ))
     return styles
+
+
+def _marken_band(styles) -> Table:
+    """Schmales Band in Pantone 3165 mit der Wortmarke.
+
+    Das Deckblatt trug bisher ueberhaupt kein Markenzeichen — nur eine
+    graue Ueberschrift.
+    """
+    zelle = Paragraph(
+        f'KOMPAGNON<font color="{KC_YELLOW.hexval()}">.</font>'
+        f'<font size="8" color="{KC_WHITE.hexval()}">'
+        f'&nbsp;&nbsp;HOMEPAGE STANDARD</font>',
+        styles["KCWortmarke"])
+    band = Table([[zelle]], colWidths=[170*mm])
+    band.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), KC_DARK),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+    ]))
+    return band
+
+
+def _stufen_abzeichen(level: str) -> Table:
+    """Die erreichte Stufe.
+
+    Die Flaeche war frueher der Medaillenton mit weisser Schrift — auf Silber
+    (#C0C0C0) und Gold (#FFD700) war die Stufe damit kaum zu lesen. Jetzt
+    traegt sie Pantone 3165 mit weisser Schrift, und der Medaillenton steht
+    als schmaler Balken davor.
+    """
+    akzent = LEVEL_ACCENTS.get(level, KC_DANGER)
+    text = Paragraph(
+        f'<font color="{KC_WHITE.hexval()}"><b>{_clean_text(level)}</b></font>',
+        ParagraphStyle("abzeichen", fontName=FONT_BOLD, fontSize=14,
+                       leading=18, alignment=TA_CENTER, textColor=KC_WHITE))
+    tabelle = Table([["", text]], colWidths=[5*mm, 115*mm])
+    tabelle.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, 0), akzent),
+        ("BACKGROUND", (1, 0), (1, 0), KC_DARK),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+        ("LEFTPADDING", (0, 0), (0, 0), 0),
+        ("RIGHTPADDING", (0, 0), (0, 0), 0),
+    ]))
+    tabelle.hAlign = "CENTER"
+    return tabelle
 
 
 # ═══════════════════════════════════════════════════════════
@@ -138,23 +240,44 @@ def _safe(val, default="-"):
     return _clean_text(str(val))
 
 
+# „O", „+" und „-" standen fuer konform, teilweise und nicht konform. Selbst
+# mit Legende liest niemand ein „O" als Bestnote — es sieht aus wie eine Null.
+#
+# Haken und Kreuz waeren die naheliegende Loesung, sind hier aber nicht zu
+# haben: `_register_fonts` sucht DejaVu, und reportlab 4.5 liefert das nicht
+# mehr mit (nur noch Vera). Die Registrierung faellt also still auf Helvetica
+# zurueck, und Helvetica kennt weder ✓ noch ✗ — sie kaemen als leere Kaestchen.
+# Ein Wort braucht keine Schriftwette und erfuellt die Guideline ohnehin
+# besser: Status immer durch Farbe *und* Text.
+STATUS_ZEICHEN = {
+    "konform":   "erfüllt",
+    "teilweise": "teils",
+    "offen":     "offen",
+}
+STATUS_FARBEN = {
+    "konform": KC_SUCCESS,
+    "teilweise": KC_WARNING,
+    "offen": KC_DANGER,
+}
+
+
 def _score_status(score, max_pts):
+    """Das Zeichen fuer die Statusspalte."""
     if max_pts == 0:
-        return "O"
+        return STATUS_ZEICHEN["konform"]
     pct = score / max_pts
     if pct >= 0.8:
-        return "O"   # Konform
+        return STATUS_ZEICHEN["konform"]
     if pct >= 0.4:
-        return "+"   # Teilweise
-    return "-"        # Nicht konform
+        return STATUS_ZEICHEN["teilweise"]
+    return STATUS_ZEICHEN["offen"]
 
 
 def _status_color(status):
-    if status == "O":
-        return KC_SUCCESS
-    if status == "+":
-        return KC_WARNING
-    return KC_DANGER
+    for schluessel, zeichen in STATUS_ZEICHEN.items():
+        if status == zeichen:
+            return STATUS_FARBEN[schluessel]
+    return KC_TEXT_60
 
 
 def _parse_json_field(val):
@@ -189,6 +312,33 @@ BASE_TABLE_STYLE = [
 ]
 
 
+def _stil_ohne_kopfzeile(zeilen: int) -> list:
+    """Stil fuer Tabellen, deren erste Zeile schon Inhalt ist.
+
+    ``BASE_TABLE_STYLE`` faerbt Zeile 0 als Kopf: dunkle Flaeche, weisse
+    Schrift. Wo die erste Zeile aber ein echter Wert ist, legte die
+    Zebra-Schleife danach noch eine helle Flaeche darueber — weisse Schrift
+    auf Hellgrau. Im Auditprotokoll war die erste Zeile („Website-URL") damit
+    schlicht nicht zu lesen.
+    """
+    stil = [
+        ("FONTNAME", (0, 0), (0, -1), FONT_BOLD),
+        ("FONTNAME", (1, 0), (-1, -1), FONT_NORMAL),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("TEXTCOLOR", (0, 0), (-1, -1), KC_TEXT),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("GRID", (0, 0), (-1, -1), 0.5, KC_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+    ]
+    for i in range(zeilen):
+        if i % 2 == 0:
+            stil.append(("BACKGROUND", (0, i), (-1, i), KC_LIGHT))
+    return stil
+
+
 def _category_table_style(n_rows):
     style = list(BASE_TABLE_STYLE)
     for i in range(1, n_rows + 1):
@@ -202,12 +352,23 @@ def _category_table_style(n_rows):
 # ═══════════════════════════════════════════════════════════
 
 def _footer(canvas_obj, doc):
+    """Fusszeile auf jeder Seite.
+
+    Hier stand fest „Audit 2025". Ein Bericht, den jemand 2026 in der Hand
+    hält, datiert sich damit selbst ins Vorjahr — und das auf jeder Seite.
+    Das Jahr kommt jetzt vom Dokument, gesetzt aus dem Auditdatum.
+    """
     canvas_obj.saveState()
     canvas_obj.setFont(FONT_NORMAL, 7)
-    canvas_obj.setFillColor(colors.HexColor("#95a5a6"))
-    w, h = A4
+    canvas_obj.setFillColor(KC_TEXT_60)
+    w, _h = A4
+    jahr = getattr(doc, "kc_jahr", datetime.utcnow().year)
+    # Dünner Markenstrich über der Fusszeile
+    canvas_obj.setStrokeColor(KC_BORDER)
+    canvas_obj.setLineWidth(0.5)
+    canvas_obj.line(20*mm, 15*mm, w - 20*mm, 15*mm)
     canvas_obj.drawString(20*mm, 10*mm,
-        _clean_text(f"Homepage Standard - Audit 2025 | KOMPAGNON | Seite {doc.page}"))
+        _clean_text(f"KOMPAGNON Homepage Standard · Audit {jahr} · Seite {doc.page}"))
     canvas_obj.drawRightString(w - 20*mm, 10*mm,
         _clean_text("Dieses Audit ersetzt keine Rechtsberatung."))
     canvas_obj.restoreState()
@@ -242,18 +403,22 @@ def generate_radar_chart(axes: list) -> bytes:
     fig.patch.set_facecolor("white")
     ax.set_facecolor("white")
 
+    # Die Werte kommen als Zehntel der Zielerreichung herein (score/max*10).
+    # Die Ringe trugen deshalb „2, 4, 6, 8, 10" ohne Einheit — eine Zahl, die
+    # weder Punkte noch Prozent war. Beschriftet wird jetzt, was gemeint ist.
     ax.set_ylim(0, 10)
     ax.set_yticks([2, 4, 6, 8, 10])
-    ax.set_yticklabels(["2", "4", "6", "8", "10"], fontsize=6, color="#94a3b8")
-    ax.yaxis.grid(True, color="#e2e8f0", linewidth=0.7)
-    ax.xaxis.grid(True, color="#e2e8f0", linewidth=0.7)
-    ax.spines["polar"].set_color("#e2e8f0")
+    ax.set_yticklabels(["20%", "40%", "60%", "80%", "100%"],
+                       fontsize=6, color=brand.TEXT_30)
+    ax.yaxis.grid(True, color=brand.BORDER, linewidth=0.7)
+    ax.xaxis.grid(True, color=brand.BORDER, linewidth=0.7)
+    ax.spines["polar"].set_color(brand.BORDER)
 
     ax.set_xticks(angles)
-    ax.set_xticklabels(labels, fontsize=6.5, color="#2c3e50")
+    ax.set_xticklabels(labels, fontsize=6.5, color=brand.DARK)
 
-    ax.plot(angles_closed, values_closed, color="#0d6efd", linewidth=1.8)
-    ax.fill(angles_closed, values_closed, color="#0d6efd", alpha=0.25)
+    ax.plot(angles_closed, values_closed, color=brand.DARK, linewidth=1.8)
+    ax.fill(angles_closed, values_closed, color=brand.MID, alpha=0.30)
 
     plt.tight_layout(pad=1.2)
     buf = BytesIO()
@@ -263,8 +428,16 @@ def generate_radar_chart(axes: list) -> bytes:
     return buf.read()
 
 
-def generate_donut_chart(positions: dict) -> bytes:
-    """Draw a donut chart for keyword position distribution. Returns PNG bytes."""
+def generate_donut_chart(positions: dict):
+    """Keyword-Positionen als Ring. Gibt PNG-Bytes zurück — oder ``None``.
+
+    Ohne Daten zeichnete diese Funktion vier gleich grosse Viertel und
+    beschriftete jedes mit „25 %". Im Bericht stand damit eine erfundene
+    Verteilung, die der Empfaenger als Messergebnis liest — bei einem Audit,
+    das Keyword-Positionen ueberhaupt nicht erhebt. Es gibt jetzt kein
+    Platzhalter-Diagramm mehr: liegen keine Daten vor, faellt der Ring weg und
+    der Aufrufer schreibt hin, dass nichts erhoben wurde.
+    """
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -276,12 +449,10 @@ def generate_donut_chart(positions: dict) -> bytes:
         positions.get("21_50", 0),
         positions.get("51_100", 0),
     ]
-    palette = ["#10b981", "#f97316", "#fbbf24", "#ef4444"]
-
-    # If all zeros show a placeholder
     if sum(values) == 0:
-        values = [1, 1, 1, 1]
-        palette = ["#e2e8f0", "#e2e8f0", "#e2e8f0", "#e2e8f0"]
+        return None
+
+    palette = [brand.SUCCESS, brand.MID, brand.WARN, brand.ERROR]
 
     fig, ax = plt.subplots(figsize=(4, 4))
     fig.patch.set_facecolor("white")
@@ -298,7 +469,7 @@ def generate_donut_chart(positions: dict) -> bytes:
     )
     for t in texts:
         t.set_fontsize(8)
-        t.set_color("#2c3e50")
+        t.set_color(brand.DARK)
     for at in autotexts:
         at.set_fontsize(7)
         at.set_color("white")
@@ -390,7 +561,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
     elif not created:
         created = datetime.utcnow()
     date_str = created.strftime("%d.%m.%Y")
-    level_color = LEVEL_COLORS.get(level, KC_DANGER)
+    doc.kc_jahr = created.year  # die Fusszeile datiert sich danach
 
     items = _parse_json_field(audit_data.get("item_scores")) or {}
     sources = _parse_json_field(audit_data.get("item_sources")) or {}
@@ -413,38 +584,33 @@ def generate_audit_report(audit_data: dict) -> bytes:
     ai_summary = _clean_text(audit_data.get("ai_summary", "") or "")
 
     # ── PAGE 1: COVER ──────────────────────────────────────
-    story.append(Spacer(1, 30*mm))
+    #
+    # Die Punktzahl stand hier als <font size="48"> in einem Absatz mit
+    # leading=14. Die Glyphen liefen damit aus ihrer Zeilenbox heraus, und das
+    # Stufen-Abzeichen darunter zeichnete quer durch die Zahl — auf jedem
+    # bisher versendeten PDF war die Bewertung halb verdeckt. Die Zahl bekommt
+    # jetzt einen eigenen Stil mit passendem Zeilenabstand.
+    story.append(_marken_band(styles))
+    story.append(Spacer(1, 26*mm))
     story.append(Paragraph("HOMEPAGE STANDARD", styles["KCTitle"]))
-    story.append(Paragraph("Audit- und Zertifizierungsrahmen 2025", styles["KCSubtitle"]))
-    story.append(Spacer(1, 15*mm))
+    story.append(Paragraph(
+        f"Audit- und Zertifizierungsrahmen {created.year}", styles["KCSubtitle"]))
+    story.append(Spacer(1, 18*mm))
 
-    # Score display
-    score_text = f'<font size="48" color="{level_color.hexval()}">{total}</font>' \
-                 f'<font size="20" color="#95a5a6"> / 100 Punkte</font>'
-    story.append(Paragraph(score_text, styles["KCCenter"]))
-    story.append(Spacer(1, 6*mm))
+    story.append(Paragraph(
+        f'{total}<font size="20" color="{KC_TEXT_60.hexval()}"> / 100</font>',
+        styles["KCScore"]))
+    story.append(Spacer(1, 8*mm))
+    story.append(_stufen_abzeichen(level))
+    story.append(Spacer(1, 14*mm))
 
-    # Level badge
-    badge_data = [[Paragraph(f'<font color="white"><b>{level}</b></font>',
-                   ParagraphStyle("badge", fontName=FONT_BOLD, fontSize=14,
-                                  alignment=TA_CENTER, textColor=KC_WHITE))]]
-    badge = Table(badge_data, colWidths=[120*mm])
-    badge.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), level_color),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ("ROUNDEDCORNERS", [4, 4, 4, 4]),
-    ]))
-    story.append(badge)
-    story.append(Spacer(1, 10*mm))
-
-    # Company info
     story.append(Paragraph(f"<b>{company}</b>", styles["KCCenter"]))
-    story.append(Paragraph(url, styles["KCCenter"]))
-    story.append(Spacer(1, 4*mm))
-    story.append(Paragraph(f"Auditdatum: {date_str}", styles["KCCenter"]))
-    story.append(Paragraph("Auditor: KOMPAGNON Communications", styles["KCCenter"]))
+    story.append(Paragraph(f'<font color="{KC_TEXT_60.hexval()}">{url}</font>',
+                           styles["KCCenter"]))
+    story.append(Spacer(1, 6*mm))
+    story.append(Paragraph(
+        f'<font color="{KC_TEXT_60.hexval()}">Auditdatum: {date_str}<br/>'
+        f'Auditor: KOMPAGNON Communications</font>', styles["KCCenter"]))
 
     story.append(PageBreak())
 
@@ -457,7 +623,11 @@ def generate_audit_report(audit_data: dict) -> bytes:
 
     legal_header = ["Rechtsgrundlage", "Pflicht seit", "Betrifft", "Risiko"]
     legal_rows = [
-        ["TMG \u00a75 \u2013 Impressumspflicht", "2007", "Alle komm. Websites", "Abmahnung bis 50.000 \u20ac"],
+        # Das TMG ist seit dem 14.05.2024 durch das Digitale-Dienste-Gesetz
+        # abgeloest. Der Kriterienkatalog nennt laengst \u201e\u00a7 5 DDG"; das PDF
+        # widersprach ihm auf derselben Seite.
+        ["DDG \u00a7 5 \u2013 Impressumspflicht", "seit 14.05.2024 (zuvor TMG \u00a7 5)",
+         "Alle komm. Websites", "Abmahnung bis 50.000 \u20ac"],
         ["DSGVO \u2013 Datenschutz", "25.05.2018", "Websites mit EU-Besuchern", "Bu\u00dfgeld bis 20 Mio \u20ac"],
         ["TDDDG \u00a725 \u2013 Cookie", "2021/2023", "Websites mit Tracking", "Bu\u00dfgeld, Abmahnungen"],
         ["BFSG \u2013 Barrierefreiheit", "28.06.2025", "Private Anbieter", "Marktaufsicht, Bu\u00dfgeld"],
@@ -474,7 +644,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
 
     # BFSG notice box
     bfsg_text = (
-        '<font color="#2c3e50"><b>Hinweis zum BFSG:</b></font> '
+        f'<font color="{KC_DARK.hexval()}"><b>Hinweis zum BFSG:</b></font> '
         "Ab dem 28. Juni 2025 gilt das Barrierefreiheitsst\u00e4rkungsgesetz (BFSG) "
         "auch f\u00fcr private Anbieter digitaler Produkte und Dienstleistungen. "
         "Websites m\u00fcssen die WCAG 2.1 Level AA Kriterien erf\u00fcllen."
@@ -517,7 +687,10 @@ def generate_audit_report(audit_data: dict) -> bytes:
 
     if coverage is not None and coverage < 100:
         story.append(Paragraph(
-            f'<font size="8" color="#64748b">{coverage}\u202f% der Kriterien konnten '
+            # \u202f (schmales gesch. Leerzeichen) fehlt in Helvetica und kam
+            # als schwarzes Kaestchen zwischen Zahl und Prozentzeichen heraus.
+            # \u00a0 steht in WinAnsi und haelt genauso zusammen.
+            f'<font size="8" color="{KC_TEXT_60.hexval()}">{coverage}\u00a0% der Kriterien konnten '
             f'gepr\u00fcft werden. Nicht erhobene Kriterien sind als \u201enicht erhoben\u201c '
             f'ausgewiesen und flie\u00dfen nicht in die Bewertung ein.</font>',
             styles["KCBody"]))
@@ -525,41 +698,60 @@ def generate_audit_report(audit_data: dict) -> bytes:
 
     sc_header, sc_rows = build_scorecard(items, sources, styles)
 
-    # Total row
-    sc_rows.append([
-        Paragraph('<b>GESAMTERGEBNIS</b>', styles["KCBold"]),
+    # Summenzeile.
+    #
+    # Hier stand `level[:15]` in der Statusspalte — aus „Homepage Standard
+    # Bronze" wurde „Homepage Standa", abgeschnitten in einer 14 mm breiten
+    # Spalte, sodass der Text sichtbar aus der Tabelle lief. Dazu erwischte die
+    # Schleife unten diese Zeile als Kategoriekopf und legte ein SPAN ueber die
+    # Spalten 0 bis 3, was die Maximalpunkte verschluckte. Die Stufe steht auf
+    # dem Deckblatt und auf der letzten Seite; hier gehoert sie nicht hin.
+    gesamt_zeile = [
+        Paragraph(f'<font color="{KC_WHITE.hexval()}"><b>GESAMTERGEBNIS</b></font>',
+                  styles["KCBold"]),
         "", "", "100",
-        Paragraph(f'<b>{total}</b>', styles["KCBold"]),
-        level[:15],
-    ])
+        Paragraph(f'<font color="{KC_WHITE.hexval()}"><b>{total}</b></font>',
+                  styles["KCBold"]),
+        "",
+    ]
+    sc_rows.append(gesamt_zeile)
 
     sc_table = Table(
         [sc_header] + sc_rows,
-        colWidths=[14*mm, 60*mm, 20*mm, 12*mm, 12*mm, 14*mm],
+        # Zusammen 170 mm — die volle Breite zwischen den Raendern. Vorher
+        # standen hier 132 mm, also lagen gut 30 mm brach, waehrend „nicht
+        # erhoben" rechts aus der Statusspalte lief.
+        colWidths=[14*mm, 71*mm, 22*mm, 13*mm, 20*mm, 30*mm],
+        repeatRows=1,
     )
     n = len(sc_rows)
     sc_style = list(BASE_TABLE_STYLE)
     for i in range(1, n + 1):
         row_data = sc_rows[i - 1]
-        # Category header rows (have Paragraph in first col)
-        if isinstance(row_data[0], Paragraph):
-            sc_style.append(("BACKGROUND", (0, i), (-1, i), colors.HexColor("#eaf2f8")))
+        letzte = i == n
+        # Kategoriekopf — erkennbar am Paragraph in der ersten Spalte. Die
+        # Summenzeile sieht genauso aus und muss ausgenommen werden.
+        if isinstance(row_data[0], Paragraph) and not letzte:
+            sc_style.append(("BACKGROUND", (0, i), (-1, i), colors.HexColor(brand.INFO_BG)))
             sc_style.append(("SPAN", (0, i), (3, i)))
-        elif i % 2 == 0:
+        elif not letzte and i % 2 == 0:
             sc_style.append(("BACKGROUND", (0, i), (-1, i), KC_LIGHT))
-        # Color the status column
-        if isinstance(row_data[-1], str) and row_data[-1] in ("O", "+", "-"):
+        if isinstance(row_data[-1], str) and row_data[-1] in STATUS_ZEICHEN.values():
             sc_style.append(("TEXTCOLOR", (-1, i), (-1, i), _status_color(row_data[-1])))
             sc_style.append(("FONTNAME", (-1, i), (-1, i), FONT_BOLD))
             sc_style.append(("ALIGN", (-1, i), (-1, i), "CENTER"))
-    # Last row (total)
+
     sc_style.append(("BACKGROUND", (0, n), (-1, n), KC_DARK))
     sc_style.append(("TEXTCOLOR", (0, n), (-1, n), KC_WHITE))
+    sc_style.append(("SPAN", (0, n), (2, n)))
     sc_table.setStyle(TableStyle(sc_style))
     story.append(sc_table)
     story.append(Spacer(1, 4*mm))
     story.append(Paragraph(
-        "Legende: <b>O</b> = Konform | <b>+</b> = Teilweise konform | <b>-</b> = Nicht konform",
+        f'Legende: <font color="{KC_SUCCESS.hexval()}"><b>{STATUS_ZEICHEN["konform"]}</b></font> konform '
+        f'&nbsp;·&nbsp; <font color="{KC_WARNING.hexval()}"><b>{STATUS_ZEICHEN["teilweise"]}</b></font> teilweise konform '
+        f'&nbsp;·&nbsp; <font color="{KC_DANGER.hexval()}"><b>{STATUS_ZEICHEN["offen"]}</b></font> nicht konform '
+        f'&nbsp;·&nbsp; „nicht erhoben" fließt nicht in die Bewertung ein',
         styles["KCSmall"],
     ))
 
@@ -578,13 +770,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
         ["Audittyp", "Erst-Audit"],
     ]
     proto_table = Table(proto_data, colWidths=[50*mm, 110*mm])
-    proto_style = list(BASE_TABLE_STYLE)
-    proto_style[2] = ("FONTSIZE", (0, 0), (-1, -1), 10)  # override header font
-    proto_style[0] = ("FONTNAME", (0, 0), (0, -1), FONT_BOLD)
-    for i in range(len(proto_data)):
-        if i % 2 == 0:
-            proto_style.append(("BACKGROUND", (0, i), (-1, i), KC_LIGHT))
-    proto_table.setStyle(TableStyle(proto_style))
+    proto_table.setStyle(TableStyle(_stil_ohne_kopfzeile(len(proto_data))))
     story.append(proto_table)
     story.append(Spacer(1, 8*mm))
 
@@ -645,30 +831,40 @@ def generate_audit_report(audit_data: dict) -> bytes:
             except Exception:
                 keyword_positions = {}
 
-        radar_png  = generate_radar_chart(radar_axes)
-        donut_png  = generate_donut_chart(keyword_positions)
-
-        radar_buf = BytesIO(radar_png)
-        donut_buf = BytesIO(donut_png)
-
-        chart_w = 72 * mm   # ~260px equivalent
-        radar_img = RLImage(radar_buf, width=chart_w, height=chart_w)
-        donut_img = RLImage(donut_buf, width=chart_w, height=chart_w)
-
         caption_style = ParagraphStyle(
             "ChartCaption", fontName=FONT_NORMAL, fontSize=8,
-            textColor=colors.HexColor("#64748b"), alignment=TA_CENTER,
+            textColor=KC_TEXT_60, alignment=TA_CENTER,
         )
-        chart_table = Table(
-            [
-                [radar_img, donut_img],
-                [
-                    Paragraph("Kategorien-Radar", caption_style),
-                    Paragraph("Keyword-Positionen", caption_style),
-                ],
-            ],
-            colWidths=[chart_w + 4*mm, chart_w + 4*mm],
-        )
+
+        # Der Ring kommt nur, wenn es Keyword-Daten gibt. Fehlten sie, zeichnete
+        # er vier gleiche Viertel mit „25 %" — eine erfundene Verteilung, die
+        # der Empfaenger als Messergebnis liest.
+        donut_png = generate_donut_chart(keyword_positions)
+
+        if donut_png:
+            chart_w = 72 * mm
+            chart_table = Table(
+                [[RLImage(BytesIO(generate_radar_chart(radar_axes)),
+                          width=chart_w, height=chart_w),
+                  RLImage(BytesIO(donut_png), width=chart_w, height=chart_w)],
+                 [Paragraph("Zielerreichung je Bereich", caption_style),
+                  Paragraph("Keyword-Positionen", caption_style)]],
+                colWidths=[chart_w + 4*mm, chart_w + 4*mm],
+            )
+        else:
+            # Ohne zweites Diagramm stand das Radar klein und links angeschlagen
+            # neben einer halbleeren Seite. Allein darf es groesser und mittig.
+            chart_w = 105 * mm
+            chart_table = Table(
+                [[RLImage(BytesIO(generate_radar_chart(radar_axes)),
+                          width=chart_w, height=chart_w)],
+                 [Paragraph("Zielerreichung je Bereich", caption_style)],
+                 [Paragraph(
+                     "Keyword-Positionen werden in dieser Analyse nicht erhoben.",
+                     caption_style)]],
+                colWidths=[chart_w + 8*mm],
+            )
+        chart_table.hAlign = "CENTER"
         chart_table.setStyle(TableStyle([
             ("ALIGN",   (0, 0), (-1, -1), "CENTER"),
             ("VALIGN",  (0, 0), (-1, -1), "MIDDLE"),
@@ -678,8 +874,10 @@ def generate_audit_report(audit_data: dict) -> bytes:
             ("RIGHTPADDING",  (0, 0), (-1, -1), 4),
         ]))
         story.append(chart_table)
-    except Exception as _chart_err:
-        pass  # Charts are optional — don't break PDF generation
+    except Exception as chart_fehler:  # noqa: BLE001
+        # Diagramme sind Beiwerk und duerfen das PDF nicht kippen — aber
+        # lautlos verschwinden sollen sie auch nicht.
+        logger.warning(f"Diagramme nicht erzeugt: {chart_fehler}")
 
     story.append(PageBreak())
 
@@ -687,7 +885,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
     story.append(Paragraph("Ma\u00dfnahmen & Empfehlungen", styles["KCHeading"]))
 
     if top_issues:
-        story.append(Paragraph('<font color="#c0392b"><b>Kritische M\u00e4ngel</b></font>', styles["KCBody"]))
+        story.append(Paragraph(f'<font color="{KC_DANGER.hexval()}"><b>Kritische M\u00e4ngel</b></font>', styles["KCBody"]))
         issue_rows = [["Nr.", "Mangel"]]
         for i, issue in enumerate(top_issues, 1):
             issue_rows.append([str(i), Paragraph(str(issue), styles["KCBody"])])
@@ -700,7 +898,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
         story.append(Spacer(1, 6*mm))
 
     if recommendations:
-        story.append(Paragraph('<font color="#27ae60"><b>Empfehlungen</b></font>', styles["KCBody"]))
+        story.append(Paragraph(f'<font color="{KC_SUCCESS.hexval()}"><b>Empfehlungen</b></font>', styles["KCBody"]))
         rec_rows = [["Prio.", "Ma\u00dfnahme"]]
         prio_labels = ["hoch", "hoch", "mittel", "mittel", "niedrig"]
         for i, rec in enumerate(recommendations):
@@ -806,8 +1004,8 @@ def generate_audit_report(audit_data: dict) -> bytes:
     )
     geo_box = Table([[Paragraph(geo_info, styles["KCBody"])]], colWidths=[160*mm])
     geo_box.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#EEF6FF")),
-        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#BFDBFE")),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(brand.INFO_BG)),
+        ("BOX", (0, 0), (-1, -1), 0.5, KC_MID),
         ("TOPPADDING", (0, 0), (-1, -1), 8),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
         ("LEFTPADDING", (0, 0), (-1, -1), 10),
@@ -884,17 +1082,17 @@ def generate_audit_report(audit_data: dict) -> bytes:
 
     story.append(_roadmap_box(
         "Quick Wins (Woche 1\u20132)", quick_wins,
-        bg_color="#F0FDF4", border_color="#16a34a", phase_label="Phase 1",
+        bg_color=brand.SUCCESS_BG, border_color=brand.SUCCESS, phase_label="Phase 1",
     ))
     story.append(Spacer(1, 5*mm))
     story.append(_roadmap_box(
         "Mittelfristig (Monat 1\u20133)", midterm,
-        bg_color="#EFF6FF", border_color="#2563eb", phase_label="Phase 2",
+        bg_color=brand.INFO_BG, border_color=brand.MID, phase_label="Phase 2",
     ))
     story.append(Spacer(1, 5*mm))
     story.append(_roadmap_box(
         "Langfristig (Monat 3\u20136)", longterm,
-        bg_color="#FAF5FF", border_color="#7c3aed", phase_label="Phase 3",
+        bg_color=brand.SURFACE, border_color=brand.DARK, phase_label="Phase 3",
     ))
 
     story.append(PageBreak())
@@ -904,20 +1102,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
     story.append(Paragraph("Zertifizierungsaussage", styles["KCTitle"]))
     story.append(Spacer(1, 10*mm))
 
-    # Badge again
-    badge2_data = [[Paragraph(
-        f'<font color="white"><b>{level}</b></font>',
-        ParagraphStyle("badge2", fontName=FONT_BOLD, fontSize=16,
-                       alignment=TA_CENTER, textColor=KC_WHITE),
-    )]]
-    badge2 = Table(badge2_data, colWidths=[120*mm])
-    badge2.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), level_color),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("TOPPADDING", (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-    ]))
-    story.append(badge2)
+    story.append(_stufen_abzeichen(level))
     story.append(Spacer(1, 10*mm))
 
     cert_text = (

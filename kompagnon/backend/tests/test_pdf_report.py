@@ -136,3 +136,100 @@ def test_altbestand_wird_abgelehnt_statt_nullen_zu_drucken():
     with pytest.raises(KatalogFehlt):
         generate_audit_report({"total_score": 46, "level": "Nicht konform",
                                "company_name": "Alt GmbH"})
+
+
+# ── Was der erste echte Bericht zutage gefoerdert hat ─────────────────
+
+def test_ohne_keyword_daten_gibt_es_kein_diagramm():
+    """Sonst stehen erfundene Zahlen im Bericht.
+
+    Der Ring zeichnete ohne Daten vier gleich grosse Viertel und schrieb an
+    jedes „25 %". Der Empfänger liest daraus eine Verteilung seiner Keywords —
+    bei einem Audit, das Keyword-Positionen überhaupt nicht erhebt.
+    """
+    from services.pdf_generator import generate_donut_chart
+
+    assert generate_donut_chart({}) is None
+    assert generate_donut_chart({"top10": 0, "11_20": 0}) is None
+
+
+def test_mit_keyword_daten_entsteht_ein_diagramm():
+    from services.pdf_generator import generate_donut_chart
+
+    png = generate_donut_chart({"top10": 3, "11_20": 1, "21_50": 4, "51_100": 2})
+    assert png and png.startswith(b"\x89PNG")
+
+
+def test_statusspalte_nennt_den_status_im_klartext():
+    """„O", „+" und „-" waren selbst mit Legende nicht zu deuten.
+
+    Haken und Kreuz scheiden aus: die Schriftregistrierung sucht DejaVu,
+    reportlab liefert das nicht mehr mit, und Helvetica kennt die Zeichen
+    nicht — sie kaemen als leere Kaestchen.
+    """
+    from services.pdf_generator import STATUS_ZEICHEN, _score_status
+
+    assert _score_status(10, 10) == STATUS_ZEICHEN["konform"]
+    assert _score_status(5, 10) == STATUS_ZEICHEN["teilweise"]
+    assert _score_status(1, 10) == STATUS_ZEICHEN["offen"]
+    for zeichen in STATUS_ZEICHEN.values():
+        assert len(zeichen) > 1, f"{zeichen!r} ist wieder ein Einzelzeichen"
+
+
+def test_pdf_traegt_die_ci_und_nicht_die_alte_palette():
+    """Geprüft wird der Code, nicht die Kommentare.
+
+    Die alten Werte stehen bewusst noch in Kommentaren und Docstrings, damit
+    nachvollziehbar bleibt, was ersetzt wurde. Ein simpler Textvergleich würde
+    genau daran hängenbleiben, deshalb werden Kommentare und Zeichenketten
+    vorher herausgeschnitten.
+    """
+    import io
+    import tokenize
+
+    from services import brand
+    from services import pdf_generator
+
+    assert pdf_generator.KC_DARK.hexval()[2:].upper() == brand.DARK[1:]
+
+    quelle = open(pdf_generator.__file__, encoding="utf-8").read()
+    code = []
+    for tok in tokenize.generate_tokens(io.StringIO(quelle).readline):
+        if tok.type in (tokenize.COMMENT, tokenize.STRING):
+            continue
+        code.append(tok.string)
+    code = " ".join(code)
+
+    for erfunden in ("#2c3e50", "#f39c12", "#e74c3c", "#27ae60", "#7f8c8d",
+                     "#95a5a6", "#64748b"):
+        assert erfunden not in code, f"{erfunden} steht wieder im Code"
+
+
+def test_die_fusszeile_datiert_sich_nach_dem_audit():
+    """Hier stand fest die Jahreszahl — auf jeder Seite jedes Berichts.
+
+    Geprüft wird, was die Fußzeile tatsächlich zeichnet, nicht der Quelltext.
+    """
+    from services.pdf_generator import _footer
+
+    gezeichnet = []
+
+    class _CanvasAttrappe:
+        def saveState(self): pass
+        def restoreState(self): pass
+        def setFont(self, *a): pass
+        def setFillColor(self, *a): pass
+        def setStrokeColor(self, *a): pass
+        def setLineWidth(self, *a): pass
+        def line(self, *a): pass
+        def drawString(self, x, y, text): gezeichnet.append(text)
+        def drawRightString(self, x, y, text): gezeichnet.append(text)
+
+    class _DocAttrappe:
+        page = 3
+        kc_jahr = 2027
+
+    _footer(_CanvasAttrappe(), _DocAttrappe())
+
+    assert any("Audit 2027" in t for t in gezeichnet), gezeichnet
+    assert any("Seite 3" in t for t in gezeichnet), gezeichnet

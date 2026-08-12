@@ -756,3 +756,25 @@ def test_standardziel_ist_der_terminkalender_ohne_kontoindex():
 
     assert "calendar.google.com" in widget_report.STANDARD_CTA_URL
     assert "/u/0/" not in widget_report.STANDARD_CTA_URL
+
+
+def test_die_berichts_mail_geht_im_selben_aufruf_raus(client, fremde_analyse,
+                                                      aufraeumen, gesendete_mails):
+    """Nicht als Hintergrundauftrag — der überlebt keinen Neustart.
+
+    Ein Hintergrundauftrag läuft erst nach der Antwort. Startet der Container
+    in dem Moment neu (auf Render bei jedem Deploy), ist er ersatzlos weg:
+    Der Besucher hat bestätigt und bekommt nie einen Bericht. Genau das war
+    bei einer Testanfrage zu sehen — bestätigt, aber keine zweite Mail.
+    """
+    _anfrage_anlegen("sofort@firma-xy.de", fremde_analyse, aufraeumen,
+                     verify_token="v-sofort", report_token="r-sofort",
+                     poll_token="p-sofort")
+
+    # raise_server_exceptions=False wäre nötig, wenn der Versand im
+    # Hintergrund liefe — hier zählt, dass die Mail schon vor der Antwort da ist.
+    with client:
+        r = client.post("/api/widget/verify/v-sofort")
+
+    assert r.status_code == 200
+    assert len(gesendete_mails) == 1, "Die Mail kam nicht im selben Aufruf"

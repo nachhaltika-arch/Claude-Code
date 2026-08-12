@@ -397,10 +397,18 @@ def verify_address(token: str, background_tasks: BackgroundTasks,
     from routers.audit import send_widget_report
     from services import widget_crm
 
-    background_tasks.add_task(send_widget_report, row.id)
+    # Die Berichts-Mail geht direkt raus, nicht als Hintergrundauftrag.
+    # Ein solcher Auftrag läuft erst nach der Antwort, und wird der Container
+    # in genau dem Moment neu gestartet — auf Render bei jedem Deploy — ist er
+    # ersatzlos weg. Der Besucher hat dann bestätigt und bekommt nie etwas.
+    # Genau das war am 2026-08-12 bei einer Testanfrage zu sehen: bestätigt,
+    # aber keine zweite Mail. Der Klick wartet dafür rund eine Sekunde.
+    send_widget_report(row.id)
+
     # Liste „Adresse bestätigt": der Überblick über die Interessenten. Hier
     # darf keine Automatisierung hängen — bestätigt ist die Adresse, nicht
-    # die Einwilligung in Werbung.
+    # die Einwilligung in Werbung. Bleibt im Hintergrund: Brevo darf den
+    # Besucher nicht warten lassen.
     background_tasks.add_task(widget_crm.uebertrage_anfrage, row.id,
                               widget_crm.liste_bestaetigt(), "adresse_bestaetigt")
 

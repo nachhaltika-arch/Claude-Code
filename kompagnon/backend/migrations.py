@@ -183,6 +183,17 @@ def run_migrations():
             f"ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS {column} {definition};"
         )
 
+    # ── Widget-Teaser an ein Token binden 2026-08-12 ───────────────────────
+    # Der Teaser lief auf der laufenden Nummer der Analyse und war damit von
+    # aussen durchzaehlbar. Jede Anfrage bekommt jetzt ihren eigenen Token.
+    cur.execute("""
+        ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS poll_token VARCHAR(64);
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_widget_requests_poll_token
+        ON widget_requests(poll_token);
+    """)
+
     cur.close()
     conn.close()
     logger.info("Migrationen erfolgreich ausgefuehrt.")

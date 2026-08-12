@@ -995,6 +995,11 @@ class WidgetRequest(Base):
     # Zugang zur Berichtsseite ohne Login
     report_token = Column(String(64), index=True)
 
+    # Abfrage des Zwischenstands durch das Widget selbst. Bewusst getrennt
+    # von report_token: dieser Wert steht im JavaScript der Seite, der
+    # Berichts-Token gehört allein in die E-Mail.
+    poll_token = Column(String(64), index=True)
+
     audit_id = Column(Integer, nullable=True, index=True)
     lead_id = Column(Integer, nullable=True)
     report_sent_at = Column(DateTime, nullable=True)

@@ -250,9 +250,9 @@
       ? 'https://kompagnon-backend-staging.onrender.com'
       : 'https://claude-code-znq2.onrender.com');
 
+  var CHECKOUT_STANDARD = 'https://kompagnon-frontend.onrender.com/checkout/kompagnon';
   var CHECKOUT_URL =
-    document.body.getAttribute('data-checkout') ||
-    'https://kompagnon-frontend.onrender.com/checkout/kompagnon';
+    safeHref(document.body.getAttribute('data-checkout')) || CHECKOUT_STANDARD;
 
   /* Zahl der Prüfkriterien. Kommt aus dem Katalog im Backend — hier stand
      früher eine fest eingetippte 42, die nicht mehr stimmte. Bis die
@@ -266,11 +266,12 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (cfg) {
         if (!cfg) return;
-        if (cfg.checkout_url) CHECKOUT_URL = cfg.checkout_url;
+        if (safeHref(cfg.checkout_url)) CHECKOUT_URL = safeHref(cfg.checkout_url);
         if (cfg.criteria_count > 0) CRITERIA_COUNT = cfg.criteria_count;
         var link = document.getElementById('kpg-privacy');
-        if (link && cfg.privacy_url) {
-          link.href = cfg.privacy_url;
+        var datenschutz = safeHref(cfg.privacy_url);
+        if (link && datenschutz) {
+          link.href = datenschutz;
           link.style.display = '';
         }
         if (cfg.headline) {
@@ -307,6 +308,15 @@
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
     });
+  }
+  /* Ziel eines Links, oder '' wenn es keins sein darf.
+     esc() entschärft nur Anführungszeichen — 'javascript:…' überlebt das und
+     liefe im Widget auf der fremden Landingpage. Die Werte kommen zwar aus
+     dem eigenen Tool, aber ein Link ohne Schema-Prüfung ist genau der Weg,
+     über den ein übernommener Zugang zum Besucher durchschlägt. */
+  function safeHref(raw) {
+    var s = String(raw == null ? '' : raw).trim();
+    return /^https?:\/\//i.test(s) ? s : '';
   }
   function normalizeUrl(raw) {
     raw = (raw || '').trim();
@@ -409,8 +419,8 @@
       });
     })
     .then(function (start) {
-      if (!start.audit_id) throw new Error('Analyse konnte nicht gestartet werden.');
-      pollAudit(start.audit_id, cleanUrl, msgTimer, email);
+      if (!start.poll_token) throw new Error('Analyse konnte nicht gestartet werden.');
+      pollAudit(start.poll_token, cleanUrl, msgTimer, email);
     })
     .catch(function (err) {
       clearInterval(msgTimer);
@@ -418,7 +428,10 @@
     });
   }
 
-  function pollAudit(auditId, cleanUrl, msgTimer, email) {
+  /* Abgefragt wird mit dem Token der eigenen Anfrage, nicht mit der Nummer
+     der Analyse. Auf einer laufenden Nummer liess sich der Endpunkt von aussen
+     durchzählen und gab fremde Analysen aus. */
+  function pollAudit(pollToken, cleanUrl, msgTimer, email) {
     var attempts = 0;
     var poll = setInterval(function () {
       attempts++;
@@ -427,7 +440,7 @@
         renderError('Zeitüberschreitung — bitte erneut versuchen.');
         return;
       }
-      fetch(API_BASE + '/api/widget/teaser/' + encodeURIComponent(auditId))
+      fetch(API_BASE + '/api/widget/teaser/' + encodeURIComponent(pollToken))
         .then(function (r) { return r.json(); })
         .then(function (d) {
           if (d.status === 'completed') {

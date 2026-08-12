@@ -6,6 +6,7 @@ Zieladressen werden gegen SSRF geprüft, Anfragen werden begrenzt, und die
 Einwilligung wird mit Zeitpunkt und Herkunft nachweisbar festgehalten.
 """
 import logging
+import os
 import re
 import secrets
 from datetime import datetime, timedelta
@@ -51,6 +52,18 @@ LIMIT_TOTAL_PER_DAY = 300
 
 TOP_ISSUES_IN_TEASER = 3
 
+# Bericht und Bestätigung hängen an einem Token in der Adresszeile und zeigen
+# Daten eines Betriebs. Ohne Referrer-Policy trägt jeder Klick auf einen Link
+# das Token in den Referer der Zielseite; ohne X-Frame-Options lässt sich die
+# Bestätigung in einem fremden Rahmen erschleichen; ohne no-store bleibt der
+# Bericht in Zwischenspeichern liegen.
+SEITEN_KOPFZEILEN = {
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    "X-Content-Type-Options": "nosniff",
+}
+
 
 class WidgetAuditRequest(BaseModel):
     email: str
@@ -70,19 +83,25 @@ def _client_ip(request: Request) -> str:
     """Die Adresse des echten Aufrufers — nicht die, die er selbst behauptet.
 
     ``X-Forwarded-For`` ist eine Kette, an die jeder Proxy hinten anhängt.
-    Der vorderste Eintrag stammt damit vom Aufrufer selbst: wer den Kopf
-    einfach mitschickt, bestimmte bisher, unter welcher Adresse er gezählt
-    wird — und hebelte damit jede Grenze pro IP aus. Cloudflare steht vor
-    dieser Anwendung und setzt ``CF-Connecting-IP`` selbst; dieser Wert ist
-    nicht fälschbar und gilt deshalb zuerst. Sonst der letzte Eintrag der
-    Kette, den der nächstgelegene Proxy angehängt hat.
+    Der vorderste Eintrag stammt damit vom Aufrufer selbst; gezählt wird
+    deshalb der letzte, den der nächstgelegene Proxy angehängt hat. Auf
+    Render ist das der echte Aufrufer.
 
-    Fehlt beides, zählt die Verbindung selbst. In unklarer Lage wird damit
+    Kopfzeilen wie ``CF-Connecting-IP`` sind nur so viel wert wie der Proxy,
+    der sie setzt. Hier stand diese Zeile fest verdrahtet an erster Stelle —
+    aber vor dieser Anwendung steht kein Cloudflare, sie läuft direkt auf
+    Render. Damit war der Wert reine Behauptung des Aufrufers: einmal pro
+    Anfrage neu gewürfelt, und jede Grenze pro IP war ausgehebelt. Wer so
+    einen Proxy tatsächlich davorstellt, benennt seine Kopfzeile in
+    ``TRUSTED_PROXY_HEADER`` — erst dann zählt sie.
+
+    Fehlt alles, zählt die Verbindung selbst. In unklarer Lage wird damit
     eher zu streng gezählt als zu lax — bei einem Endpunkt, der E-Mails an
     fremde Adressen auslöst, ist das die richtige Richtung.
     """
-    for header in ("cf-connecting-ip", "true-client-ip", "x-real-ip"):
-        wert = request.headers.get(header, "").strip()
+    vertrauter_kopf = os.getenv("TRUSTED_PROXY_HEADER", "").strip().lower()
+    if vertrauter_kopf:
+        wert = request.headers.get(vertrauter_kopf, "").strip()
         if wert:
             return wert[:64]
 
@@ -177,6 +196,7 @@ async def start_widget_audit(
         referrer=(payload.referrer or request.headers.get("referer", ""))[:500],
         confirm_token=secrets.token_urlsafe(32) if payload.consent_marketing else None,
         report_token=secrets.token_urlsafe(32),
+        poll_token=secrets.token_urlsafe(32),
         lead_id=lead.id,
     )
     db.add(widget_request)
@@ -204,7 +224,11 @@ async def start_widget_audit(
     finally:
         db2.close()
 
-    return {"request_id": widget_request.id, "audit_id": started["id"], "status": "pending"}
+    # Die Analyse-Nummer bleibt bewusst draussen: das Widget braucht sie nicht,
+    # und herausgegeben wäre sie der Schlüssel zu fremden Analysen.
+    return {"request_id": widget_request.id,
+            "poll_token": widget_request.poll_token,
+            "status": "pending"}
 
 
 @router.get("/config")
@@ -219,10 +243,20 @@ def widget_config(db: Session = Depends(get_db)):
     return app_settings.widget_config(db)
 
 
-@router.get("/teaser/{audit_id}")
-def audit_teaser(audit_id: int, db: Session = Depends(get_db)):
-    """Kurzfassung fürs Widget — der vollständige Bericht geht per E-Mail."""
-    audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+@router.get("/teaser/{token}")
+def audit_teaser(token: str, db: Session = Depends(get_db)):
+    """Kurzfassung fürs Widget — der vollständige Bericht geht per E-Mail.
+
+    Der Zugang hängt am Token der eigenen Anfrage, nicht an der laufenden
+    Nummer der Analyse. Vorher liess sich die Tabelle von 1 aufwärts
+    durchzählen — jede im Tool angelegte Analyse mit Firma, Adresse,
+    Punktzahl und Schwachstellen war ohne Login zu holen.
+    """
+    row = db.query(WidgetRequest).filter(WidgetRequest.poll_token == token).first()
+    if not row or not row.audit_id:
+        raise HTTPException(404, "Analyse nicht gefunden")
+
+    audit = db.query(AuditResult).filter(AuditResult.id == row.audit_id).first()
     if not audit:
         raise HTTPException(404, "Analyse nicht gefunden")
 
@@ -241,7 +275,7 @@ def audit_teaser(audit_id: int, db: Session = Depends(get_db)):
         "coverage": getattr(audit, "coverage", None),
         "top_issues": issues[:TOP_ISSUES_IN_TEASER],
         "blocker_count": len(blockers),
-        "email_sent": bool(getattr(audit, "id", None)),
+        "email_sent": row.report_sent_at is not None,
     }
 
 
@@ -256,7 +290,8 @@ def public_report(token: str, db: Session = Depends(get_db)):
     if not audit or audit.status != "completed":
         raise HTTPException(404, "Bericht noch nicht verfügbar")
 
-    return HTMLResponse(widget_report.render_report_page(audit, audit.company_name))
+    return HTMLResponse(widget_report.render_report_page(audit, audit.company_name),
+                        headers=SEITEN_KOPFZEILEN)
 
 
 @router.get("/confirm/{token}", response_class=HTMLResponse)
@@ -264,7 +299,8 @@ def confirm_marketing(token: str, db: Session = Depends(get_db)):
     """Double-Opt-in: bestätigt die Einwilligung zur Kontaktaufnahme."""
     row = db.query(WidgetRequest).filter(WidgetRequest.confirm_token == token).first()
     if not row:
-        return HTMLResponse(widget_report.confirmation_page(False), status_code=404)
+        return HTMLResponse(widget_report.confirmation_page(False), status_code=404,
+                            headers=SEITEN_KOPFZEILEN)
 
     if not row.confirmed_at:
         row.confirmed_at = datetime.utcnow()
@@ -274,4 +310,5 @@ def confirm_marketing(token: str, db: Session = Depends(get_db)):
         db.commit()
         logger.info(f"Widget-Einwilligung bestätigt: {row.email}")
 
-    return HTMLResponse(widget_report.confirmation_page(True))
+    return HTMLResponse(widget_report.confirmation_page(True),
+                        headers=SEITEN_KOPFZEILEN)

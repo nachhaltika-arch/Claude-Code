@@ -396,3 +396,52 @@ Neue Spalten (in `main.py::_run_migrations`, der Liste die läuft — siehe
 Abschnitt 4): `verify_token`, `verify_sent_at`, `verified_at`.
 Die Anfragenliste im Tool zeigt jetzt: *wartet auf Bestätigung → bestätigt →
 versendet → abgerufen*.
+
+---
+
+## 9. Der Blocker: das Double-Opt-in bestätigte sich selbst — gelöst
+
+**Befund.** In vier Live-Durchläufen kam die Berichts-Mail 15 Sekunden bis
+4 Minuten nach der Bestätigungsmail, **ohne dass jemand geklickt hatte**:
+
+| | Mail 1 | Mail 2 | Abstand |
+|---|---|---|---|
+| doi | 11:28:50 | 11:29:05 | 15 s |
+| doi2 | 11:47:33 | 11:48:30 | 57 s |
+| doi3 | 11:53:38 | 11:57:51 | 4 min |
+| doi4 | 12:30:42 | 12:31:26 | 44 s |
+
+Damit war die Bestätigung wertlos als Nachweis — und genau sie ist die
+Begründung dafür, überhaupt an eine ungeprüfte Fremdadresse zu schreiben.
+
+**Zwei Anläufe.** Der erste (GET → POST) griff nicht: Der deployte
+GET-Endpunkt war nachweislich passiv (der unbenutzte Opt-in-Link lieferte nur
+das Formular), trotzdem bestätigte sich weiter alles von selbst. Es wurde also
+tatsächlich abgeschickt — mehr, als einem Postfach-Scanner zuzutrauen war.
+
+**Was jetzt greift.** Das Formular verlangt den Beleg einer echten Bedienung.
+Das versteckte Feld wird **leer** ausgeliefert; sein Wert steht in einem
+`data`-Attribut am Knopf und wandert erst bei `pointerdown`, `touchstart` oder
+Tastendruck ins Feld. Der Server rechnet ihn als HMAC über den Token nach.
+Blind abschicken, Seite nur rendern, kein JavaScript — alles ergibt ein leeres
+Feld und verändert nichts; die Seite kommt mit einem Hinweis zurück.
+
+**Und wir sehen jetzt, wer es war.** Bei Abweisung landen Methode,
+User-Agent und IP im Log; bei Erfolg stehen sie in `verified_user_agent` und
+`verified_ip`. Das fehlte, solange ich geraten habe.
+
+**Live bewiesen (doi5, 2026-08-12):**
+
+| Zeit | Ereignis |
+|---|---|
+| 14:07:35 | Mail 1 |
+| 14:07–14:14 | nichts — sieben Minuten ohne Selbstbestätigung |
+| ~14:14 | echter Mausklick auf den Knopf |
+| 14:14:40 | Mail 2 mit dem Berichtslink |
+
+Derselbe Schutz sitzt auf dem Marketing-Opt-in. Eine von einem Scanner
+erteilte Einwilligung wäre als Nachweis wertlos, und das ist der einzige
+Grund, warum es den Datensatz gibt.
+
+**Preis:** Bestätigen braucht JavaScript. Der Weg hierher führt über ein
+JavaScript-Widget, insofern keine neue Anforderung; `<noscript>` sagt es.

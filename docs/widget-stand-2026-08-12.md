@@ -92,6 +92,54 @@ ob wir überhaupt Kontakt aufnehmen dürfen, nicht was im Bericht steht.
 
 ---
 
+## 2a. CI-Umstellung und grafische Auffrischung
+
+Widget, Berichts-Mail und Berichtsseite liefen auf **drei verschiedenen
+Paletten, keine davon die CI**:
+
+| Rolle | Bericht + Mail | Widget | CI |
+|---|---|---|---|
+| Dunkel | `#0F2E2B` | `#04293a` | `#004F59` Pantone 3165 |
+| Mittel | — | `#207a92` | `#008EAA` Pantone 3135 |
+| Akzent | `#F5C518` | `#FAE600` ✓ | `#FAE600` Pantone 3945 |
+
+Ein Interessent traf im Widget auf eine Marke, in der Mail auf eine zweite und
+im Bericht auf eine dritte.
+
+`kompagnon/backend/services/brand.py` hält jetzt die Werte, mit denen das
+Backend rendert — das Gegenstück zu `tokens.css` für alles, was ohne die
+React-Anwendung ausgeliefert wird. Das Widget behält seinen eigenen
+`:root`-Block, weil es bewusst eine einzelne Datei ohne Abhängigkeiten ist;
+ein Test vergleicht die Werte.
+
+**Was grafisch passiert ist:**
+
+* **Bericht:** Kopf in Dark Teal mit Wortmarke, Punktzahl, Level und Balken.
+  Danach die sechs Bereiche als Balken, bevor die 38 Einzelkriterien kommen —
+  die Seite beantwortet erst „wo stehe ich", dann „warum". Kriterientabellen
+  mit dunklem Kopf, Zahlen in Monospace, und sie rollen in ihrem eigenen
+  Kasten, damit vier Spalten kein Telefon zur Seite schieben.
+* **E-Mail:** Tabellen statt divs. Outlook auf Windows rendert mit der
+  Word-Engine und ignoriert `max-width` auf einem div — dort lief die Mail
+  über die volle Fensterbreite.
+* **Bestätigungsseite:** derselbe Rahmen wie die Mail, mit Status-Scheibe.
+
+**Zwei Entscheidungen, die drinstecken:**
+
+* **Keine Webschriften, nirgends.** Die CI verlangt Noto Sans, aber die
+  Berichtsseite öffnet ein Dritter und das Widget läuft auf fremden
+  Landingpages. Ein Google-Fonts-Aufruf überträgt deren IP an Google ohne
+  Einwilligung — genau das Problem, das Abschnitt 2 gerade beseitigt hat.
+  Noto Sans wird angefragt, sonst springt die Systemschrift ein. In E-Mails
+  greifen Webschriften ohnehin nicht.
+* **Ein gelber Knopf je Fläche.** Auf der Berichtsseite bekommt ihn das
+  Angebot, das PDF steht als heller Knopf daneben. Soll die Gewichtung
+  andersherum sein, werden in `_angebot_block` die beiden Stile getauscht.
+
+Nebenbei korrigiert: Die Bereichsbalken rechnen nur über tatsächlich geprüfte
+Kriterien. Sonst sähe ein Bereich, der mangels API-Schlüssel nicht geprüft
+wurde, aus wie einer, der durchgefallen ist.
+
 ## 3. Was noch offen ist
 
 Alles Folgende braucht dich — eine echte Adresse, eine echte Website, die

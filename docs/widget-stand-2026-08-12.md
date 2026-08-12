@@ -356,3 +356,43 @@ statt als Loch stehenzubleiben.
 Das gilt über feste Beschriftungen hinaus: Zusammenfassung, Mängelliste und
 Empfehlungen schreibt die KI, und die kann jedes Zeichen ausgeben. Ein Emoji
 im Bericht wäre auf genau dieselbe stille Weise verschwunden.
+
+---
+
+## 8. Zwei Mails statt einer (2026-08-12, von David entschieden)
+
+Bis eben ging **eine** Mail raus, sobald das Audit fertig war, und sie trug
+den Berichtslink. Der Klick darauf war der Nachweis, dass die Adresse dem
+Empfänger gehört — der Nachweis kam also **nach** dem, was er schützen sollte.
+
+Jetzt verlässt nichts über die Website das Haus, bevor die Adresse bestätigt
+ist:
+
+| Schritt | vorher | jetzt |
+|---|---|---|
+| Audit fertig | Mail mit Berichtslink | Mail **ohne** Berichtslink: „Bitte bestätigen Sie kurz Ihre Adresse" |
+| Klick | öffnet den Bericht | bestätigt die Adresse, stößt Mail 2 an |
+| Mail 2 | — | „Ihre Website-Analyse ist fertig" + Berichtslink |
+| Nachweis | `report_confirmed_at` (Bericht geöffnet) | `verified_at` (Adresse bestätigt), zusätzlich weiterhin `report_confirmed_at` |
+
+Wer eine fremde Adresse einträgt, löst dort genau **eine** neutrale Nachricht
+aus. Ohne Klick folgt nichts.
+
+**Technisch:** `verify_token` wird für jede Anfrage erzeugt — anders als
+`confirm_token`, den es nur mit gesetztem Marketing-Haken gibt.
+`GET /api/widget/verify/{token}` setzt `verified_at` und stellt die
+Berichts-Mail in einen Hintergrundauftrag. Ein zweiter Klick (Postfach-Scanner
+folgen Links automatisch) antwortet „bereits bestätigt" und schickt nichts
+noch einmal.
+
+**Der Marketing-Opt-in bleibt getrennt** und steht weiter in Mail 2 mit
+eigenem Link. Die Adresse zu bestätigen und in Kontaktaufnahme einzuwilligen
+sind zwei Entscheidungen; ein Klick darf nicht für beide stehen.
+
+**Preis:** ein Klick mehr bis zum Bericht. Das ist der Tausch — die Adresse
+ist damit bestätigt statt angenommen.
+
+Neue Spalten (in `main.py::_run_migrations`, der Liste die läuft — siehe
+Abschnitt 4): `verify_token`, `verify_sent_at`, `verified_at`.
+Die Anfragenliste im Tool zeigt jetzt: *wartet auf Bestätigung → bestätigt →
+versendet → abgerufen*.

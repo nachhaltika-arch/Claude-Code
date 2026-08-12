@@ -320,6 +320,57 @@ def test_berichtsseite_wird_nicht_indexiert():
     assert 'name="robots" content="noindex,nofollow"' in confirmation_page(True)
 
 
+# ── Marke ─────────────────────────────────────────────────────────────
+
+# Zwei Werte, die hier jahrelang standen und in keiner CI belegt sind: ein
+# Grün statt Pantone 3165 und ein Goldton statt Pantone 3945. Bericht und
+# E-Mail sahen damit nach einer anderen Marke aus als das Tool.
+ERFUNDENE_FARBEN = ("#0F2E2B", "#F5C518", "#04293a", "#207a92")
+
+
+def _gerenderte_seiten() -> dict:
+    """Alles, was das Backend als HTML ausliefert."""
+    from services import widget_report
+
+    return {
+        "Berichts-Mail": widget_report.report_ready_email(
+            company="Muster GmbH", token="t")[1],
+        "Bestätigungsseite": widget_report.confirmation_page(True),
+    }
+
+
+def test_mails_und_seiten_tragen_die_echte_ci():
+    from services import brand
+
+    for name, text in _gerenderte_seiten().items():
+        assert brand.DARK in text, f"{name}: Pantone 3165 fehlt"
+        for erfunden in ERFUNDENE_FARBEN:
+            assert erfunden.lower() not in text.lower(), \
+                f"{name}: {erfunden} ist wieder da"
+
+
+def test_das_widget_traegt_die_echte_ci():
+    """Die Einbett-Seite liegt im Frontend und wird von keinem Test gebaut.
+
+    Sie ist aber das erste, was ein Interessent von der Marke sieht — und
+    hatte als einzige Datei eine komplett eigene Palette.
+    """
+    from pathlib import Path
+
+    from services import brand
+
+    widget = (Path(__file__).resolve().parents[2]
+              / "frontend" / "public" / "embed" / "audit-widget.html")
+    if not widget.exists():  # Backend wird ohne Frontend ausgeliefert
+        pytest.skip("Frontend nicht vorhanden")
+
+    text = widget.read_text(encoding="utf-8")
+    for farbe in (brand.DARK, brand.MID, brand.YELLOW):
+        assert farbe in text, f"{farbe} fehlt im Widget"
+    for erfunden in ERFUNDENE_FARBEN:
+        assert erfunden.lower() not in text.lower(), f"{erfunden} ist wieder da"
+
+
 # ── Kein Werbebrief an eine unbestätigte Adresse ──────────────────────
 
 def test_die_erste_mail_wirbt_nicht():

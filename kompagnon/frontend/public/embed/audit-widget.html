@@ -7,18 +7,26 @@
 <title>KOMPAGNON — Gratis Website-Analyse</title>
 <style>
   /* ── KOMPAGNON Audit-Widget · self-contained · keine externen Abhängigkeiten ── */
+  /* Farben aus der KOMPAGNON-CI — dieselben Werte wie
+     `frontend/src/styles/tokens.css` und `backend/services/brand.py`.
+     Hier standen freie Töne: ein Grün-Teal statt Pantone 3165, ein
+     Beige als Kartenfläche und drei erfundene Statusfarben. Das Widget
+     sah damit nach einer anderen Marke aus als Tool und Bericht. */
   :root {
-    --kpg-dark:   #04293a;   /* Heading dunkel-teal */
-    --kpg-teal:   #207a92;   /* Eyebrow / Akzent */
-    --kpg-yellow: #FAE600;   /* CTA */
-    --kpg-bg:     #f1efe9;   /* Karte beige */
-    --kpg-border: #d8d5cd;
-    --kpg-label:  #8a8a86;
-    --kpg-muted:  #9a9a96;
-    --kpg-text:   #3a3a38;
-    --kpg-ok:     #1d9e75;
-    --kpg-warn:   #e67e22;
-    --kpg-bad:    #c0392b;
+    --kpg-dark:    #004F59;  /* Pantone 3165 — Überschriften, Flächen */
+    --kpg-teal:    #008EAA;  /* Pantone 3135 — Eyebrow, Links, Ränder */
+    --kpg-yellow:  #FAE600;  /* Pantone 3945 — genau ein Knopf je Ansicht */
+    --kpg-bg:      #F0F4F5;  /* Kartenfläche */
+    --kpg-border:  #D5E0E2;
+    --kpg-text:    #000000;
+    /* Die CI kennt einen Sekundärton, keine zwei. Beide Namen bleiben,
+       weil sie an verschiedenen Stellen verschiedene Rollen benennen. */
+    --kpg-text-60: #4A5A5C;
+    --kpg-label:   var(--kpg-text-60);
+    --kpg-muted:   var(--kpg-text-60);
+    --kpg-ok:      #00875A;
+    --kpg-warn:    #A86800;
+    --kpg-bad:     #C0392B;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: transparent; }
@@ -40,11 +48,12 @@
     color: var(--kpg-teal);
     margin: 0 0 18px;
   }
+  /* CI: Überschriften Noto Sans Black 900, versal, ls -0.025em */
   .kpg-h {
     font-size: clamp(28px, 6vw, 44px);
-    font-weight: 800;
+    font-weight: 900;
     line-height: 1.08;
-    letter-spacing: -.01em;
+    letter-spacing: -.025em;
     text-transform: uppercase;
     color: var(--kpg-dark);
     margin: 0 0 28px;
@@ -71,12 +80,13 @@
     outline: none;
     transition: border-color .15s, box-shadow .15s;
   }
-  .kpg-input::placeholder { color: #b5b5b0; }
+  .kpg-input::placeholder { color: #9AACAE; }
   .kpg-consent {
     display: flex; gap: 9px; align-items: flex-start;
-    font-size: 12px; line-height: 1.45; color: #55554f;
+    font-size: 12px; line-height: 1.45; color: var(--kpg-text-60);
     margin: 14px 0 16px; cursor: pointer;
   }
+  .kpg-consent input { accent-color: var(--kpg-dark); }
   .kpg-consent input { margin-top: 2px; flex-shrink: 0; width: 15px; height: 15px; }
   .kpg-issues { margin: 18px 0 4px; }
   .kpg-issues-title {
@@ -86,16 +96,18 @@
   .kpg-issues ul { margin: 0; padding-left: 18px; }
   .kpg-issues li { font-size: 14px; line-height: 1.5; margin-bottom: 5px; }
   .kpg-blocker {
-    background: #fdecea; border-left: 3px solid #b02418; border-radius: 5px;
+    background: #FDECEA; border-left: 3px solid var(--kpg-bad); border-radius: 5px;
     padding: 10px 13px; margin: 14px 0 0; font-size: 13px; line-height: 1.5;
   }
+  /* Info-Tint statt Grau: die Karte selbst ist jetzt grau, ein grauer
+     Kasten darauf verschwände. */
   .kpg-mailnote {
-    background: #f3f5f4; border-radius: 7px; padding: 13px 15px;
+    background: #E0F4F8; border-radius: 7px; padding: 13px 15px;
     margin: 18px 0; font-size: 13px; line-height: 1.55;
   }
   .kpg-input:focus {
     border-color: var(--kpg-teal);
-    box-shadow: 0 0 0 3px rgba(32,122,146,.12);
+    box-shadow: 0 0 0 3px rgba(0,142,170,.15);
   }
   .kpg-hint {
     font-size: 13px;
@@ -109,10 +121,11 @@
     border: none;
     border-radius: 4px;
     background: var(--kpg-yellow);
-    color: #1a1a1a;
+    /* CI: Text auf Gelb ist Dark Teal, nicht Schwarzgrau. */
+    color: var(--kpg-dark);
     font-family: inherit;
     font-size: 16px;
-    font-weight: 800;
+    font-weight: 900;
     letter-spacing: .12em;
     text-transform: uppercase;
     cursor: pointer;
@@ -218,8 +231,8 @@
 
       <button class="kpg-btn" id="kpg-submit" type="submit">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" stroke="#1a1a1a" stroke-width="2"/>
-          <path d="M12 7v5l3 2" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="9" stroke="#004F59" stroke-width="2"/>
+          <path d="M12 7v5l3 2" stroke="#004F59" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         Analyse starten
       </button>

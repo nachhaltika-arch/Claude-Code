@@ -17,10 +17,10 @@ eine Kundenseite — und wer einen Entwurf vor sich hat, liest jetzt auch, woran
 es liegt. Der scharfe Lauf gegen die echte API ist gemacht: **8 von 9
 angekommenen Blöcken bestehen den Vertrag im ersten Wurf**, gescheitert ist
 einer am JSON statt am Vertrag (behoben). Auch die Marken-Regel R5 steht jetzt
-im Prüfer — beim Messen dafür kam allerdings ein größerer Fund heraus: Der
-Marken-Override kennt nur `gray-*`, während die Bibliothek zur Hälfte in
-`slate-*` malt (§ 4.2). Das ist die verbliebene Lücke vor Stufe B. Stufe B und
-C sind entworfen, nicht gebaut.
+im Prüfer, und der Marken-Override deckt die ganze Graustufen-Skala ab (§ 4.2).
+Beim Bauen kam allerdings heraus, dass dieser Zweig gar nicht auf der
+Kundenseite endet (§ 4.3) — das ist die offene Entscheidung vor Stufe B.
+Stufe B und C sind entworfen, nicht gebaut.
 
 ---
 
@@ -134,19 +134,41 @@ einziger bunter Ton**; in der Datenbank-Bibliothek (96 Blöcke) ebenso wenig.
 Die Regel beschreibt also, was die Bibliothek ohnehin tut, und weist genau das
 ab, was Stufe B gefährdet.
 
-**Der eigentliche Fund liegt daneben — und ist größer.** Der Marken-Override
-kennt nur `gray-*` und `bg-white`. Die Bibliothek malt aber zu großen Teilen in
+**Der eigentliche Fund liegt daneben.** Der Marken-Override kannte nur
+`gray-*` und `bg-white`. Die Bibliothek malt aber zu großen Teilen in
 `slate-*` (222 Vorkommen), dazu `text-white/80`, `from-gray-900/95`,
-`bg-gray-600`, `border-gray-700`, `ring-gray-700/30` — alles Klassen, die der
-Override **nicht** anfasst. **Alle 45 Blöcke** enthalten mindestens eine davon.
-Auf einer Kundenseite bleibt dieser Teil also grau/slate, während der Rest die
-Markenfarbe annimmt. Das ist kein Vertragsproblem, sondern ein Loch in der
-Anwendung der Marke — und es gehört vor Stufe B geschlossen, weil B genau
-darauf aufsetzt.
+`bg-gray-600`, `border-gray-700`, `ring-gray-700/30` — alles Klassen, die er
+**nicht** angefasst hat. **Alle 45 Blöcke** enthalten mindestens eine davon.
 
-→ **Nächster Schritt an dieser Stelle:** `buildOverrideCSS` um die
-`slate`-Skala, die fehlenden `gray`-Stufen und die Deckkraft-Varianten
-erweitern. Erst danach greift „die Marke bindet" wirklich.
+**Behoben** (`utils/brandOverride.js` mit `brandOverride.test.js`): Der Override
+deckt jetzt alle fünf Graustufen-Familien über die volle Skala ab, dazu
+Deckkraft-Varianten und Verläufe. Der dunkle Kontext läuft über drei Custom
+Properties, die dunkle Flächen setzen und alles darin erbt — die naive Fassung,
+die jede Regel je dunkler Fläche wiederholte, ergab 449 KB CSS; so sind es 114.
+Der Test liest die 45 echten Blöcke und verlangt für jede ihrer Farbklassen
+einen Selektor. Kommt ein neuer Block mit einer neuen Klasse, fällt es dort auf.
+
+### 4.3 Die Korrektur: Wohin dieses CSS **nicht** geht
+
+Beim Bauen kam heraus, dass eine frühere Fassung dieses Dokuments (und mein
+eigener Befund oben) zu weit ging: **Der Override erreicht die Kundenseite gar
+nicht.** `buildOverrideCSS` wird an genau zwei Stellen benutzt — in der
+Vorschau der DesignView und im Einzelseiten-Export per Knopf. Die
+ausgelieferte Seite entsteht auf einem anderen Weg:
+`sitemap_pages.mockup_html` (aus einem Agenten-Lauf) → GrapesJS →
+`gjs_html`/`gjs_css` → Netlify. Die Bibliotheksblöcke werden im ganzen Frontend
+nur an drei Stellen gerendert (Wireframe-Editor, Design-Vorschau,
+Komponenten-Manager), und keine davon schreibt in `mockup_html`.
+
+Das heißt zweierlei:
+
+* Der reparierte Override wirkt dort, wo entschieden wird — in der Vorschau,
+  auf deren Grundlage der Style-Guide freigegeben wird. Eine Vorschau, die halb
+  Marke und halb Wireframe zeigt, führt genau an dieser Stelle in die Irre.
+* **Die eigentliche Lücke vor Stufe B ist eine andere:** Wireframe + Style-Guide
+  münden heute in keine ausgelieferte Seite. Stufe B würde in `wireframe_data`
+  schreiben — also in denselben Zweig, der nicht angeschlossen ist. Das ist die
+  Entscheidung, die vor B ansteht (§ 9.5).
 
 **Kontrolllauf mit scharfem R5** (vier Blöcke gegen die echte API): R5 hat kein
 einziges Mal ausgelöst — das Modell bleibt von sich aus grau. Aufgefallen ist
@@ -284,8 +306,7 @@ B braucht; ein neuer Speicherort entsteht nicht.
 **Voraussetzungen, in dieser Reihenfolge:**
 
 1. Stufe A trägt im Alltag ✅ (Oberfläche steht, scharfer Lauf gemacht).
-2. **R5** ✅ im Prüfer — aber der Marken-Override deckt nur `gray-*` ab
-   (§ 4.2). Solange das offen ist, driftet die Marke trotz Regel.
+2. **R5** ✅ im Prüfer, **Marken-Override** ✅ vollständig (§ 4.2).
 3. Prüfung je Kunde statt je Block: der Vertrag läuft, aber niemand sieht
    jede Variante an. Offene Frage: Reicht „Vertrag bestanden" als Freigabe,
    oder braucht jede Variante einen Blick?
@@ -391,6 +412,20 @@ Stufe B/C in `wireframe_data` bzw. `kas_gjs_data`.
    Muster-Referenz (Ableitung, nicht Kopie) oder rein aus dem Briefing?
 4. **Bleibt der GrapesJS-Editor beim Kunden** oder nur intern bei dir? Das
    entscheidet, wie streng die Sperren im Vertrag sein müssen.
+5. **Wie kommt der Wireframe-Zweig auf die Seite?** (§ 4.3, neu und die
+   wichtigste dieser Fragen.) Heute laufen zwei Wege nebeneinander: Der eine
+   geht Sitemap → Wireframe → Style-Guide → Design-Vorschau und endet dort. Der
+   andere geht über einen Agenten-Lauf in `mockup_html` → GrapesJS → Netlify
+   und ist der, der beim Kunden ankommt. Stufe A und B bauen auf dem ersten.
+   Drei Möglichkeiten:
+   * **Anschließen:** Die Design-Vorschau schreibt ihr gerendertes HTML samt
+     Override-CSS nach `mockup_html`. Kleinster Eingriff, macht den
+     Wireframe-Zweig produktiv.
+   * **Zusammenlegen:** Der Agenten-Lauf bekommt die Blöcke als Vorlage, statt
+     frei zu erzeugen. Größer, dafür ein Weg statt zwei.
+   * **Trennen und benennen:** Der Wireframe-Zweig bleibt Entwurfswerkzeug für
+     dich, die Kundenseite entsteht weiter über den Agenten. Dann sind Stufe B
+     und C für die Kundenseite ohne Wirkung — und das gehört ins Konzept.
 
 ## 10. Nächste Schritte
 
@@ -400,6 +435,7 @@ Stufe B/C in `wireframe_data` bzw. `kas_gjs_data`.
 | ~~2~~ | ~~Scharfer Generierungslauf~~ | — | **gelaufen am 2026-08-13**: 8 von 9 im ersten Wurf konform; der JSON-Ausrutscher ist behoben |
 | 3 | `hw-karte` / `seo-lokal` entschärfen | ~2 h | Eigene Blöcke fallen bei der eigenen Prüfung durch — in der Liste jetzt am ⚠️ zu sehen. Der scharfe Lauf zeigt: neu erzeugte Blöcke machen den Fehler nicht mehr |
 | ~~4~~ | ~~R5 Marken-Bindung~~ | — | **gebaut am 2026-08-13**, an 45 Blöcken gemessen |
-| 4b | Marken-Override vervollständigen (`slate`, fehlende `gray`-Stufen, Deckkraft) | ~2 h | Ohne ihn bleibt der halbe Block grau, obwohl R5 greift — echte Voraussetzung für Stufe B |
+| ~~4b~~ | ~~Marken-Override vervollständigen~~ | — | **gebaut am 2026-08-13**: `utils/brandOverride.js`, gegen die 45 Blöcke geprüft |
+| 4c | **Entscheiden, wie der Wireframe-Zweig auf die Seite kommt** (§ 9.5) | Entscheidung | Ohne sie bleiben Stufe B und C ohne Wirkung auf die Kundenseite |
 | ~~5~~ | ~~R3 ohne zweite Runde~~ | — | **gebaut am 2026-08-13**: `services/block_slots.py` |
-| 6 | Stufe B | offen | Erst wenn 3 und 4 stehen |
+| 6 | Stufe B | offen | Erst wenn 3 steht und 4c entschieden ist |

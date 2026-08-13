@@ -23,6 +23,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import API_BASE_URL from '../../config';
 import { useAuth } from '../../context/AuthContext';
+import { buildOverrideCSS } from '../../utils/brandOverride';
 
 const KC_DARK = '#004F59';
 const KC_MID = '#008EAA';
@@ -421,96 +422,6 @@ function Breadcrumb({ page, sitemapPages }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Style-CSS-Override-Generator
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Mapped die neutralen Tailwind-Gray-Klassen aus der Phase-B-Library auf
-// Style-Guide-Tokens (palette + button_variants + card + spacing + typo +
-// semantic). Wird zur Render-Zeit als <style>-Block ins Preview-HTML
-// eingebettet — die Library bleibt Wireframe-only.
-
-function buildOverrideCSS(styleGuide) {
-  if (!styleGuide) return '';
-  const palette  = styleGuide.palette  || {};
-  const colors   = styleGuide.colors   || {};
-  const typo     = styleGuide.typography || {};
-  const buttons  = styleGuide.buttons  || {};
-  const spacing  = styleGuide.spacing  || {};
-  const card     = styleGuide.card     || {};
-  const semantic = styleGuide.semantic || {};
-  const variants = styleGuide.button_variants || {};
-
-  // Effektive Werte mit Fallback auf legacy colors-Object
-  const bg     = palette.bg_primary  || colors.background || '#fff';
-  const surf   = palette.bg_surface  || '#f8fafc';
-  const text   = palette.text_primary|| colors.text       || '#0a0a0a';
-  const muted  = palette.text_muted  || 'var(--text-secondary)';
-  const border = palette.border      || '#e2e8f0';
-  const acc1   = palette.accent_1    || colors.primary    || '#0a0a0a';
-  const acc2   = palette.accent_2    || colors.accent     || '#FAE600';
-
-  const fontBody = typo.font_family  || 'Noto Sans';
-  const radiusBtn = buttons.radius   || '8px';
-  const radiusCard = (card.radius || spacing.radius || '8px');
-
-  // Primary-Button: bevorzugt button_variants.primary, sonst accent_1
-  const btnPrimaryBg = variants.primary?.bg     || acc1;
-  const btnPrimaryFg = variants.primary?.fg     || bg;
-  const btnPrimaryBorder = variants.primary?.border || acc1;
-
-  return `
-/* ─── DesignView Style-Override ─── */
-body { font-family: '${fontBody}', sans-serif; color: ${text}; background: ${bg}; }
-h1, h2, h3, h4 { color: ${text}; }
-p { color: ${text}; }
-
-/* Backgrounds */
-.bg-white      { background-color: ${bg} !important; }
-.bg-gray-50    { background-color: ${surf} !important; }
-.bg-gray-100   { background-color: ${surf} !important; }
-.bg-gray-200   { background-color: ${border} !important; }
-.bg-gray-700,
-.bg-gray-800,
-.bg-gray-900   { background-color: ${btnPrimaryBg} !important; }
-
-/* Text-Colors */
-.text-gray-900 { color: ${text} !important; }
-.text-gray-700 { color: ${text} !important; }
-.text-gray-600 { color: ${muted} !important; }
-.text-gray-500 { color: ${muted} !important; }
-.text-gray-400 { color: ${muted} !important; }
-
-/* Borders */
-.border-gray-200, .border-gray-300 { border-color: ${border} !important; }
-.divide-gray-200 > :not(:last-child),
-.divide-gray-300 > :not(:last-child) { border-color: ${border} !important; }
-
-/* Primary-Buttons (gray-900 bg + white text) */
-.bg-gray-900.text-white,
-button.bg-gray-900,
-.bg-gray-800.text-white {
-  background-color: ${btnPrimaryBg} !important;
-  color: ${btnPrimaryFg} !important;
-  border-color: ${btnPrimaryBorder} !important;
-}
-
-/* Akzent-2 (z.B. fuer kleinere CTA-Pills, "Mehr erfahren →") */
-.bg-gray-300 { background-color: ${acc2} !important; }
-
-/* Border-Radius */
-.rounded, .rounded-md, .rounded-lg { border-radius: ${radiusBtn} !important; }
-.rounded-xl, .rounded-2xl { border-radius: ${radiusCard} !important; }
-button { border-radius: ${radiusBtn}; }
-
-/* Status-Bedeutungen — ueberlappend mit gray-Klassen sind selten in der
-   Library. Wir setzen Custom-Klassen direkt verwendbar. */
-.status-success { background: ${semantic.success?.bg}; color: ${semantic.success?.fg}; border: 1px solid ${semantic.success?.border}; }
-.status-warn    { background: ${semantic.warn?.bg};    color: ${semantic.warn?.fg};    border: 1px solid ${semantic.warn?.border}; }
-.status-error   { background: ${semantic.error?.bg};   color: ${semantic.error?.fg};   border: 1px solid ${semantic.error?.border}; }
-.status-info    { background: ${semantic.info?.bg};    color: ${semantic.info?.fg};    border: 1px solid ${semantic.info?.border}; }
-`.trim();
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

@@ -1253,9 +1253,17 @@ HARTE REGELN:
    ein K.-o.-Kriterium in unserem eigenen Website-Audit. Ein `<a href="https://…">`
    zum Anklicken ist dagegen erlaubt.
 10. KEIN `id`-Attribut. Der Block kann zweimal auf einer Seite stehen; die id
-    waere dann doppelt.
+    waere dann doppelt. Das gilt auch fuer Barrierefreiheit: Statt
+    `aria-labelledby="…"` mit `id` am Titel nimm `aria-label="<Text>"` direkt
+    am Bereich — es braucht keinen Anker und bleibt bei zwei Vorkommen richtig.
 11. Kein `position: fixed` / `sticky` — sprengt die Vorschau im Editor.
 12. Verschachtelung hoechstens 12 Ebenen tief.
+13. NUR neutrale Farbtoene: `gray`, `slate`, `zinc`, `neutral`, `stone` sowie
+    `white`, `black`, `transparent`. Kein bunter Ton (`bg-blue-500`,
+    `text-emerald-600` …), kein eigener Farbwert (`bg-[#004F59]`) und keine
+    Farbe im `style`-Attribut. Die Farbe einer Kundenseite kommt aus ihrem
+    Style-Guide und ersetzt die Graustufen — was bunt im Block steht,
+    ueberlebt den Markenwechsel und steht beim Kunden falsch.
 
 OUTPUT-FORMAT — antworte AUSSCHLIESSLICH als valides JSON, KEIN Markdown-Wrapper, KEINE Erklaerung:
 

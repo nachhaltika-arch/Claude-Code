@@ -16,8 +16,11 @@ ein prüfbarer Vertrag steht davor, ohne Freigabe erreicht kein erzeugter Block
 eine Kundenseite — und wer einen Entwurf vor sich hat, liest jetzt auch, woran
 es liegt. Der scharfe Lauf gegen die echte API ist gemacht: **8 von 9
 angekommenen Blöcken bestehen den Vertrag im ersten Wurf**, gescheitert ist
-einer am JSON statt am Vertrag (behoben). Offen bleibt eine Vertragsregel, die
-Stufe B sonst auf Sand baut (§ 4.2). Stufe B und C sind entworfen, nicht gebaut.
+einer am JSON statt am Vertrag (behoben). Auch die Marken-Regel R5 steht jetzt
+im Prüfer — beim Messen dafür kam allerdings ein größerer Fund heraus: Der
+Marken-Override kennt nur `gray-*`, während die Bibliothek zur Hälfte in
+`slate-*` malt (§ 4.2). Das ist die verbliebene Lücke vor Stufe B. Stufe B und
+C sind entworfen, nicht gebaut.
 
 ---
 
@@ -88,6 +91,7 @@ können, nicht als undurchdringlichen Klumpen.
 | **R2** | Genau eine Wurzel, und sie trägt `data-block="<slug>"` | Sonst findet der Editor den Block nicht wieder |
 | **R3** | Slots als `{{kleinbuchstaben_mit_unterstrich}}`, und jeder Slot im Markup steht in den Slot-Angaben | Sonst füllt `generate-copy` ihn nie |
 | **R4** | Höchstens 12 Ebenen tief, kein `id`, kein `position: fixed/sticky` | Bedienbarkeit im Editor; ein Block kann zweimal auf einer Seite stehen |
+| **R5** | Nur neutrale Farbtöne (`gray`, `slate`, `zinc`, `neutral`, `stone`, `white`, `black`, `transparent`); kein eigener Farbwert (`bg-[#004F59]`), keine Farbe im `style`-Attribut | Die Marke kommt aus dem Style-Guide und ersetzt die Graustufen. Was bunt im Block steht, überlebt den Markenwechsel |
 
 **Wichtig: Die Regeln sind an der bestehenden Bibliothek gemessen, nicht
 erfunden.** Die erste Fassung dieses Dokuments verlangte `{{HEADLINE}}` in
@@ -99,29 +103,58 @@ heraus: Navigation, Footer und Banner haben zu Recht keine Überschrift, ein
 Hero *ist* die `h1` seiner Seite, und ein anklickbarer `wa.me`-Link ist keine
 automatisch geladene Ressource.
 
-**Zwei eigene Blöcke bestehen den Vertrag nicht** und stehen als bekannte
+**Drei eigene Blöcke bestehen den Vertrag nicht** und stehen als bekannte
 Schuld im Test: `hw-karte` und `seo-lokal` binden Google Maps per `<iframe>`
 ein. Das überträgt die Besucher-IP an Google, bevor jemand klickt — genau der
 K.-o.-Grund, den unser eigener Kriterienkatalog `tracking_ohne_consent` nennt.
 Jede Kundenseite mit einem dieser Blöcke fällt bei unserer eigenen Prüfung
 durch. Auflösung: statische Kartengrafik oder Karte erst nach Einwilligung.
+Der dritte kam mit R5 dazu: `hero-centered` legt ein Overlay in
+`rgba(0,79,89,0.78)` über sein Hintergrundbild — KOMPAGNON-Teal, fest im
+`style`-Attribut. Auf einer Kundenseite bleibt es teal, egal welche Marke der
+Style-Guide vorgibt.
 
-### 4.2 Was der Vertrag **nicht** prüft — die Lücke vor Stufe B
+### 4.2 R5 — die Marken-Bindung, und was beim Messen herauskam
 
-**Die Marken-Bindung fehlt im Code.** Leitplanke 1 sagt „nur Token aus dem
-Style-Guide, freie Farben werden abgewiesen". Diese Regel steht heute nur als
-Satz im Prompt (`_WIREFRAME_CONSTRAINTS`), nicht im Prüfer. Ein erzeugter
-Block darf `bg-blue-500` schreiben und besteht den Vertrag.
+**Die Regel steht** (`services/block_contract.py`, Tabelle oben). Der Weg dahin
+ist lehrreicher als die Regel selbst.
 
-Für Stufe A ist das verkraftbar: Wireframes sind grau, ein Mensch sieht den
-Ausrutscher vor der Freigabe. **Für Stufe B ist es das nicht** — B ist genau
-der Schritt, in dem Markenfarben pro Kunde angewendet werden. Ohne harte
-Token-Bindung wandert die Gestaltung ab, und es merkt niemand, bis es beim
-Kunden steht.
+Der ursprüngliche Plan war, „jede Farb-, Schrift- und Abstandsklasse gegen den
+Token-Satz aus `wireframe_data.style_guide`" zu prüfen. Das geht nicht, weil
+der Style-Guide keine Tailwind-Token führt, sondern Hex-Werte — und weil die
+Marke ganz anders angewendet wird als gedacht: `DesignView.buildOverrideCSS`
+überschreibt einen **festen, kleinen Satz Tailwind-Graustufen** mit den
+Marken-Werten (`bg-white`, `bg-gray-50/100/200/300`, `bg-gray-700/800/900`,
+`text-gray-400…900`, `border-gray-200/300`).
 
-→ **Vor Stufe B zu bauen:** Regel R5, die jede Farb-, Schrift- und
-Abstandsklasse gegen den Token-Satz aus `wireframe_data.style_guide` prüft.
-Geschätzt ein halber Tag.
+Daraus folgt die Regel, die tatsächlich trägt: **ein Block darf nur neutrale
+Töne benutzen.** Gemessen an den 45 Bibliotheksblöcken vor dem Scharfschalten —
+298× `gray`, 222× `slate`, dazu `white`, `black`, `transparent`, **kein
+einziger bunter Ton**; in der Datenbank-Bibliothek (96 Blöcke) ebenso wenig.
+Die Regel beschreibt also, was die Bibliothek ohnehin tut, und weist genau das
+ab, was Stufe B gefährdet.
+
+**Der eigentliche Fund liegt daneben — und ist größer.** Der Marken-Override
+kennt nur `gray-*` und `bg-white`. Die Bibliothek malt aber zu großen Teilen in
+`slate-*` (222 Vorkommen), dazu `text-white/80`, `from-gray-900/95`,
+`bg-gray-600`, `border-gray-700`, `ring-gray-700/30` — alles Klassen, die der
+Override **nicht** anfasst. **Alle 45 Blöcke** enthalten mindestens eine davon.
+Auf einer Kundenseite bleibt dieser Teil also grau/slate, während der Rest die
+Markenfarbe annimmt. Das ist kein Vertragsproblem, sondern ein Loch in der
+Anwendung der Marke — und es gehört vor Stufe B geschlossen, weil B genau
+darauf aufsetzt.
+
+→ **Nächster Schritt an dieser Stelle:** `buildOverrideCSS` um die
+`slate`-Skala, die fehlenden `gray`-Stufen und die Deckkraft-Varianten
+erweitern. Erst danach greift „die Marke bindet" wirklich.
+
+**Kontrolllauf mit scharfem R5** (vier Blöcke gegen die echte API): R5 hat kein
+einziges Mal ausgelöst — das Modell bleibt von sich aus grau. Aufgefallen ist
+dabei etwas anderes: Zwei Blöcke setzten `id` am Titel, um per
+`aria-labelledby` darauf zu zeigen, und rissen damit R4. Der Prompt verlangte
+Barrierefreiheit und verbot `id`, ohne den Ausweg zu nennen. Jetzt nennt er ihn
+(`aria-label` direkt am Bereich) — und derselbe Fall kommt seither in einer
+Runde durch: `trust` von 130 s auf 70 s.
 
 ## 5. Drei Stufen, in dieser Reihenfolge
 
@@ -250,8 +283,9 @@ B braucht; ein neuer Speicherort entsteht nicht.
 
 **Voraussetzungen, in dieser Reihenfolge:**
 
-1. Stufe A trägt im Alltag (Oberfläche + scharfer Lauf).
-2. **R5 Token-Bindung** (§ 4.2) — ohne sie driftet die Marke.
+1. Stufe A trägt im Alltag ✅ (Oberfläche steht, scharfer Lauf gemacht).
+2. **R5** ✅ im Prüfer — aber der Marken-Override deckt nur `gray-*` ab
+   (§ 4.2). Solange das offen ist, driftet die Marke trotz Regel.
 3. Prüfung je Kunde statt je Block: der Vertrag läuft, aber niemand sieht
    jede Variante an. Offene Frage: Reicht „Vertrag bestanden" als Freigabe,
    oder braucht jede Variante einen Blick?
@@ -293,7 +327,7 @@ nicht hervorgehen. Kein Umbau des Prüfers nötig.
 
 | Leitplanke | Umsetzung | Stand |
 |---|---|---|
-| **Marke** | Nur Token aus dem Style-Guide; freie Farben werden abgewiesen | ⚠️ nur im Prompt, nicht im Prüfer (§ 4.2) |
+| **Marke** | Block bleibt neutral, die Farbe kommt aus dem Style-Guide | ✅ Regel R5 im Prüfer — ⚠️ aber der Override deckt nur `gray-*` ab (§ 4.2) |
 | **Conversion** | Pflicht-Sections aus `conversion-spec-shk.md` als Schema | offen, ab Stufe C |
 | **Qualität** | Der eigene 38-Kriterien-Audit läuft gegen die erzeugte Seite | offen; Weg geklärt: über Netlify-Vorschau |
 | **Datenschutz** | Keine externen Ressourcen, wie im Widget | ✅ Regel R1 |
@@ -315,7 +349,7 @@ Briefing + Analyse
   wireframe_data ──── Stufe B: Claude variiert je Kunde  (html_override)
       │
       ▼
-  Style-Guide-Token ── R5 bindet die Marke  ⚠️ fehlt
+  Style-Guide-Token ── R5 hält den Block neutral ✅ · Override lückenhaft ⚠️
       │
       ▼
   GrapesJS (kas_gjs_data) ◄── Mensch justiert     ◄── Stufe C: ganze Seite
@@ -365,6 +399,7 @@ Stufe B/C in `wireframe_data` bzw. `kas_gjs_data`.
 | ~~1~~ | ~~Oberfläche für Entwurf und Freigabe~~ | — | **gebaut am 2026-08-13** (§ Stufe A) |
 | ~~2~~ | ~~Scharfer Generierungslauf~~ | — | **gelaufen am 2026-08-13**: 8 von 9 im ersten Wurf konform; der JSON-Ausrutscher ist behoben |
 | 3 | `hw-karte` / `seo-lokal` entschärfen | ~2 h | Eigene Blöcke fallen bei der eigenen Prüfung durch — in der Liste jetzt am ⚠️ zu sehen. Der scharfe Lauf zeigt: neu erzeugte Blöcke machen den Fehler nicht mehr |
-| 4 | R5 Token-Bindung | ~4 h | Voraussetzung für Stufe B |
+| ~~4~~ | ~~R5 Marken-Bindung~~ | — | **gebaut am 2026-08-13**, an 45 Blöcken gemessen |
+| 4b | Marken-Override vervollständigen (`slate`, fehlende `gray`-Stufen, Deckkraft) | ~2 h | Ohne ihn bleibt der halbe Block grau, obwohl R5 greift — echte Voraussetzung für Stufe B |
 | ~~5~~ | ~~R3 ohne zweite Runde~~ | — | **gebaut am 2026-08-13**: `services/block_slots.py` |
 | 6 | Stufe B | offen | Erst wenn 3 und 4 stehen |

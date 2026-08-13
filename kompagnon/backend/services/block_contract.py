@@ -43,6 +43,40 @@ FESTE_POSITION = re.compile(r'position\s*:\s*(fixed|sticky)', re.IGNORECASE)
 
 MAX_TIEFE = 12
 
+# ── R5: Marken-Bindung ──────────────────────────────────────────────────
+#
+# Die Farbe einer Kundenseite kommt aus dem Style-Guide, nicht aus dem Block.
+# Angewendet wird sie, indem `DesignView.buildOverrideCSS` die Graustufen des
+# Wireframes gegen die Marken-Token tauscht. Ein bunter Ton im Block wird davon
+# nicht erfasst — er ueberlebt den Markenwechsel und steht beim Kunden.
+#
+# Gemessen, bevor die Regel scharf geschaltet wurde: Die 45 Bloecke der
+# Bibliothek nutzen 298× `gray`, 222× `slate`, dazu `white`, `black` und
+# `transparent` — keinen einzigen bunten Ton. Die Regel beschreibt also, was
+# die Bibliothek ohnehin tut.
+NEUTRALE_TOENE = {"gray", "slate", "zinc", "neutral", "stone"}
+NEUTRALE_WOERTER = {"white", "black", "transparent", "current", "inherit", "none"}
+
+# Klassen-Praefixe, die ueberhaupt Farbe setzen koennen. `rounded`, `p`, `m`,
+# `w` und Konsorten stehen bewusst nicht dabei.
+FARB_PRAEFIXE = ("bg", "text", "border", "divide", "ring", "from", "via", "to",
+                 "fill", "stroke", "placeholder", "accent", "decoration",
+                 "outline", "caret", "shadow")
+
+KLASSEN_ATTRIBUT = re.compile(r'class\s*=\s*"([^"]*)"', re.IGNORECASE)
+STYLE_ATTRIBUT = re.compile(r'style\s*=\s*"([^"]*)"', re.IGNORECASE)
+
+# Ein eigener Wert in der Klasse: bg-[#004F59], text-[rgb(0,79,89)] — aber
+# auch text-[11px], und das ist eine Groesse.
+FARBWERT = re.compile(r"#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|lab)\s*\(",
+                      re.IGNORECASE)
+HEX_FARBE = re.compile(r"#([0-9a-f]{3,8})\b", re.IGNORECASE)
+RGB_FARBE = re.compile(r"\brgba?\s*\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)",
+                       re.IGNORECASE)
+# Farbtoene, die nicht ueber rgb/hex laufen: hsl mit Buntheit, benannte Farben.
+HSL_FARBE = re.compile(r"\bhsla?\s*\(\s*[\d.]+\s*[, ]\s*([\d.]+)%", re.IGNORECASE)
+STUFE = re.compile(r"^\d{2,3}$")
+
 
 @dataclass(frozen=True)
 class Verstoss:
@@ -88,6 +122,58 @@ class _Baum(HTMLParser):
 
 def _ohne_kommentare(html: str) -> str:
     return re.sub(r"<!--.*?-->", "", html, flags=re.DOTALL)
+
+
+def _bunter_ton(klasse: str) -> bool:
+    """Traegt diese Klasse einen Farbton, den kein Markenwechsel erwischt?
+
+    Varianten (``md:``, ``hover:``) und das ``!`` fuer wichtig stehen davor und
+    sagen nichts ueber die Farbe. Danach zaehlt nur das Ende: ``…-<ton>-<stufe>``
+    oder ein Grundwort wie ``white``.
+    """
+    rein = klasse.split(":")[-1].lstrip("!")
+    if "-" not in rein:
+        return False
+    praefix, rest = rein.split("-", 1)
+    if praefix not in FARB_PRAEFIXE:
+        return False
+
+    if rest.startswith("["):                     # eigener Wert: bg-[#004F59]
+        return bool(FARBWERT.search(rest))
+
+    teile = rest.split("/")[0].split("-")        # Deckkraft abtrennen
+    if len(teile) >= 2 and STUFE.match(teile[-1]):
+        return teile[-2] not in NEUTRALE_TOENE   # slate-600 ja, blue-600 nein
+    if len(teile) == 1:
+        # bg-white, text-black — und alles andere ohne Stufe ist Groesse
+        # oder Ausrichtung (text-3xl, shadow-md, border-t).
+        return False
+    return False
+
+
+def _bunte_farbwerte(stil: str) -> List[str]:
+    """Farbwerte in einem style-Attribut, die nicht Graustufe sind.
+
+    Ein style-Attribut kann kein Override umbiegen: Was hier steht, steht beim
+    Kunden. Graustufen sind unbedenklich — sie passen zu jeder Marke.
+    """
+    gefunden = []
+    for wert in HEX_FARBE.findall(stil):
+        if len(wert) in (3, 4):                  # #abc → #aabbcc
+            kanaele = [int(z * 2, 16) for z in wert[:3]]
+        elif len(wert) in (6, 8):
+            kanaele = [int(wert[i:i + 2], 16) for i in (0, 2, 4)]
+        else:
+            continue
+        if len(set(kanaele)) > 1:
+            gefunden.append(f"#{wert}")
+    for r, g, b in RGB_FARBE.findall(stil):
+        if len({r, g, b}) > 1:
+            gefunden.append(f"rgb({r},{g},{b})")
+    for saettigung in HSL_FARBE.findall(stil):
+        if float(saettigung) > 0:
+            gefunden.append(f"hsl(…{saettigung}%…)")
+    return gefunden
 
 
 def slots_im_markup(html: str) -> List[str]:
@@ -169,6 +255,29 @@ def pruefe(html: str, slug: str = "",
     if FESTE_POSITION.search(rumpf):
         verstoesse.append(Verstoss(
             "R4", "position:fixed/sticky sprengt die Vorschau im Editor."))
+
+    # ── R5: die Farbe kommt vom Kunden, nicht aus dem Block ──
+    bunte_klassen, gesehen = [], set()
+    for attribut in KLASSEN_ATTRIBUT.findall(rumpf):
+        for klasse in attribut.split():
+            if klasse not in gesehen and _bunter_ton(klasse):
+                gesehen.add(klasse)
+                bunte_klassen.append(klasse)
+    if bunte_klassen:
+        verstoesse.append(Verstoss(
+            "R5", f"Feste Farbe im Markup: {', '.join(bunte_klassen[:5])}"
+                  f"{' …' if len(bunte_klassen) > 5 else ''}. Der Wireframe "
+                  f"bleibt grau — die Marke kommt aus dem Style-Guide und "
+                  f"ersetzt die Graustufen."))
+
+    stil_farben = []
+    for attribut in STYLE_ATTRIBUT.findall(rumpf):
+        stil_farben.extend(_bunte_farbwerte(attribut))
+    if stil_farben:
+        verstoesse.append(Verstoss(
+            "R5", f"Farbe im style-Attribut: {', '.join(stil_farben[:3])}. "
+                  f"Die laesst sich spaeter durch nichts ersetzen — sie steht "
+                  f"beim Kunden genau so."))
 
     # Eine Überschrift je Block wird bewusst NICHT verlangt: Navigation,
     # Footer, Banner und Logo-Leisten haben zu Recht keine. Ob die

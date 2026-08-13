@@ -47,6 +47,13 @@ def test_die_bibliothek_ist_nicht_leer():
 BEKANNTE_SCHULD = {
     "hw-karte": "Google-Maps-iframe — überträgt Besucher-IP ohne Einwilligung",
     "seo-lokal": "Google-Maps-iframe — überträgt Besucher-IP ohne Einwilligung",
+    # Gefunden beim Messen für R5: Der Hero legt ein Overlay in
+    # rgba(0,79,89,0.78) über sein Hintergrundbild — das ist KOMPAGNON-Teal,
+    # fest im Markup. Auf einer Kundenseite bleibt es teal, egal welche Marke
+    # der Style-Guide vorgibt; kein Override kann ein style-Attribut umbiegen.
+    # Auflösung: Overlay in Graustufe oder als Klasse, die der Marken-Override
+    # kennt.
+    "hero-centered": "Marken-Farbe rgba(0,79,89) fest im style-Attribut",
 }
 
 
@@ -90,6 +97,85 @@ def test_verstoesse_werden_erkannt(markup, regel):
     verstoesse = pruefe(markup, slug="p")
     assert any(v.regel == regel for v in verstoesse), \
         f"{regel} nicht erkannt — gefunden: {[v.regel for v in verstoesse]}"
+
+
+# ── R5: die Marken-Bindung ────────────────────────────────────────────
+#
+# Gemessen, bevor die Regel scharf geschaltet wurde: Die 45 Blöcke der
+# Bibliothek benutzen ausschließlich Graustufen — 298× `gray`, 222× `slate`,
+# dazu `white`, `black`, `transparent`. Kein einziger bunter Ton, und in der
+# Datenbank-Bibliothek (96 Blöcke) ebenso wenig. Genau das ist die Regel:
+# Farbe kommt aus dem Style-Guide des Kunden, nicht aus dem Block.
+
+@pytest.mark.parametrize("klasse", [
+    "bg-blue-500", "text-emerald-600", "border-red-300", "from-indigo-900",
+    "ring-amber-400", "divide-teal-200", "hover:bg-rose-500",
+    "md:text-violet-700", "!bg-lime-400", "ring-offset-sky-500",
+])
+def test_ein_bunter_ton_verletzt_die_markenbindung(klasse):
+    markup = f'<section data-block="p" class="{klasse}"><h2>x</h2></section>'
+    verstoesse = pruefe(markup, slug="p")
+    assert any(v.regel == "R5" for v in verstoesse), \
+        f"{klasse} durchgelassen — gefunden: {[str(v) for v in verstoesse]}"
+
+
+@pytest.mark.parametrize("klasse", [
+    "bg-white", "bg-gray-50", "text-slate-600", "border-zinc-200",
+    "bg-neutral-100", "text-stone-700", "bg-white/10", "from-gray-900/95",
+    "to-transparent", "text-black", "outline-none", "bg-gradient-to-t",
+    "text-3xl", "border-t-4", "shadow-md", "text-[11px]", "w-[32px]",
+    "rounded-2xl", "hover:bg-slate-100", "md:text-gray-500",
+])
+def test_graustufen_und_groessen_bleiben_erlaubt(klasse):
+    """Der Wireframe ist grau — und Größen sind keine Farben."""
+    markup = f'<section data-block="p" class="{klasse}"><h2>x</h2></section>'
+    verstoesse = [v for v in pruefe(markup, slug="p") if v.regel == "R5"]
+    assert not verstoesse, f"{klasse} fälschlich beanstandet: {verstoesse}"
+
+
+@pytest.mark.parametrize("klasse", ["bg-[#004F59]", "text-[rgb(0,79,89)]",
+                                    "border-[hsl(190,100%,20%)]"])
+def test_ein_eigener_farbwert_in_der_klasse_verletzt_die_markenbindung(klasse):
+    markup = f'<section data-block="p" class="{klasse}"><h2>x</h2></section>'
+    assert any(v.regel == "R5" for v in pruefe(markup, slug="p"))
+
+
+def test_eine_farbe_im_style_attribut_verletzt_die_markenbindung():
+    """Das ist der schlimmere Fall: Ein style-Attribut kann kein Override
+    umbiegen — die Farbe steht beim Kunden so, wie sie im Block steht."""
+    markup = ('<section data-block="p" style="background: '
+              'linear-gradient(rgba(0,79,89,0.78), rgba(0,79,89,0.78));">'
+              '<h2>x</h2></section>')
+    assert any(v.regel == "R5" for v in pruefe(markup, slug="p"))
+
+
+@pytest.mark.parametrize("stil", [
+    "font-family: 'Noto Sans', sans-serif;",          # 44× in der Bibliothek
+    "background: rgba(255,255,255,0.15);",            # weißes Overlay
+    "color: #333;",
+    "border-color: #8a8a8aee;",                       # Graustufe mit Deckkraft
+])
+def test_graustufen_und_schrift_im_style_attribut_bleiben_erlaubt(stil):
+    markup = f'<section data-block="p" style="{stil}"><h2>x</h2></section>'
+    verstoesse = [v for v in pruefe(markup, slug="p") if v.regel == "R5"]
+    assert not verstoesse, f"{stil} fälschlich beanstandet: {verstoesse}"
+
+
+def test_auch_ein_getoenter_neutralton_im_style_attribut_wird_beanstandet():
+    """Bewusst streng: `#e2e8f0` ist slate-200, also ein Blaustich — als Klasse
+    in Ordnung, im style-Attribut nicht. Der Unterschied ist nicht die Farbe,
+    sondern dass die Klasse ersetzbar ist und das Attribut nicht."""
+    markup = ('<section data-block="p" style="border-color: #e2e8f0;">'
+              '<h2>x</h2></section>')
+    assert any(v.regel == "R5" for v in pruefe(markup, slug="p"))
+
+
+def test_eine_farbe_im_kommentar_zaehlt_nicht():
+    """Zwei Navigationen nennen die Markenfarben in einem Kommentar."""
+    markup = ('<section data-block="p">'
+              '<!-- Brand-Farben: #004F59 (dark), #FAE600 (accent) -->'
+              '<h2>x</h2></section>')
+    assert not [v for v in pruefe(markup, slug="p") if v.regel == "R5"]
 
 
 def test_hero_darf_die_hauptueberschrift_tragen():

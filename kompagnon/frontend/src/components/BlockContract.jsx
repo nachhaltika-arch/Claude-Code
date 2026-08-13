@@ -17,6 +17,7 @@ const REGEL_TITEL = {
   R2: 'Wurzel und Markierung',
   R3: 'Slots',
   R4: 'Bedienbarkeit im Editor',
+  R5: 'Marken-Bindung',
 };
 
 export function istEntwurf(item) {

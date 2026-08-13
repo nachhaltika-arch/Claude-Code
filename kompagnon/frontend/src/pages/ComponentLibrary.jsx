@@ -11,7 +11,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
-import { ContractPanel, StatusBadge, anzahlVerstoesse } from '../components/library/BlockContract';
+import { ContractPanel, StatusBadge, anzahlVerstoesse } from '../components/BlockContract';
 import { mitBlockMarkierung } from '../utils/blockMarkup';
 
 const KC_DARK = '#004F59';

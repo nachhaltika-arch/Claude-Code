@@ -38,6 +38,7 @@ from database import (
     get_db,
 )
 from routers.auth_router import require_any_auth
+from services.block_contract import als_text, pruefe
 
 try:
     from anthropic import Anthropic
@@ -45,6 +46,12 @@ except ImportError:
     Anthropic = None
 
 logger = logging.getLogger(__name__)
+
+# Der Block-Designer schreibt Markup, das in die Bibliothek wandert und danach
+# auf Kundenseiten steht — hier zaehlt Qualitaet mehr als der Token-Preis.
+# Die uebrigen KI-Aufrufe in dieser Datei (Slot-Copy, Wireframe-Zuordnung)
+# bleiben bewusst auf dem guenstigeren Modell.
+_DESIGNER_MODELL = "claude-opus-5"
 
 # In-Memory Job-Store fuer den KI-Generator.
 # { job_id: { "status": "running"|"done"|"error", "result": dict|None, "error": str|None } }
@@ -67,6 +74,7 @@ def _serialize_component(row: ComponentLibrary, include_html: bool = False) -> d
         "slug":           row.slug,
         "name":           row.name,
         "category":       row.category,
+        "status":         row.status or "approved",
         "tags":           row.tags or [],
         "slots":          row.slots or [],
         "ki_prompt_hint": row.ki_prompt_hint or "",
@@ -77,10 +85,20 @@ def _serialize_component(row: ComponentLibrary, include_html: bool = False) -> d
     return out
 
 
+def _befund(html: str, slug: str, slots) -> dict:
+    """Der Vertragsbefund eines Blocks, so wie ihn die API zurueckgibt."""
+    verstoesse = pruefe(html, slug=slug, slots=slots)
+    return {
+        "konform":    not verstoesse,
+        "verstoesse": [{"regel": v.regel, "text": v.text} for v in verstoesse],
+    }
+
+
 @component_router.get("")
 def list_components(
     category: Optional[str] = None,
     include_html: bool = True,
+    include_drafts: bool = False,
     db: Session = Depends(get_db),
     user=Depends(require_any_auth),
 ):
@@ -92,6 +110,9 @@ def list_components(
     (~80% kleinere Response).
     """
     q = db.query(ComponentLibrary)
+    # Entwuerfe nur auf ausdruecklichen Wunsch — sonst taucht ungepruefter
+    # Block im Wireframe-Editor auf, als waere er Bestand.
+    q = q.filter(ComponentLibrary.status != "draft") if not include_drafts else q
     if category:
         q = q.filter(ComponentLibrary.category == category.upper())
     rows = q.order_by(ComponentLibrary.category, ComponentLibrary.slug).all()
@@ -366,10 +387,14 @@ def save_custom_component(
     if body.source_slug:
         tags.append(f"source:{body.source_slug}")
 
+    # Gleiche Regel wie beim Neuanlegen: unsauber heisst Entwurf, nicht verworfen.
+    befund = _befund(html, slug, body.slots or [])
+
     row = ComponentLibrary(
         slug=slug,
         name=name,
         category=category,
+        status="approved" if befund["konform"] else "draft",
         tags=tags,
         html_template=html,
         slots=body.slots or [],
@@ -379,7 +404,7 @@ def save_custom_component(
     db.add(row)
     db.commit()
     db.refresh(row)
-    return _serialize_component(row, include_html=True)
+    return {**_serialize_component(row, include_html=True), "contract": befund}
 
 
 @component_router.post("")
@@ -413,10 +438,16 @@ def create_component(
     if db.query(ComponentLibrary).filter(ComponentLibrary.slug == slug).first():
         raise HTTPException(409, f"Slug '{slug}' existiert bereits")
 
+    # Ein Block mit offenen Verstoessen wird gespeichert, aber nicht freigegeben.
+    # Verwerfen waere schlimmer: die Arbeit ginge verloren und der Nutzer saehe
+    # nie, woran es lag. Als Entwurf taucht er nicht im Wireframe-Editor auf.
+    befund = _befund(html, slug, body.slots or [])
+
     row = ComponentLibrary(
         slug=slug,
         name=name,
         category=category,
+        status="approved" if befund["konform"] else "draft",
         tags=body.tags or [],
         html_template=html,
         slots=body.slots or [],
@@ -426,7 +457,7 @@ def create_component(
     db.add(row)
     db.commit()
     db.refresh(row)
-    return _serialize_component(row, include_html=True)
+    return {**_serialize_component(row, include_html=True), "contract": befund}
 
 
 @component_router.put("/{slug}")
@@ -465,9 +496,47 @@ def update_component(
     if body.preview_note is not None:
         row.preview_note = body.preview_note
 
+    # Nach jeder Aenderung neu pruefen. Sonst bliebe ein einmal freigegebener
+    # Block freigegeben, auch wenn ihn eine spaetere Bearbeitung kaputt macht.
+    befund = _befund(row.html_template, row.slug, row.slots or [])
+    if not befund["konform"] and row.status != "draft":
+        logger.info("Block %s faellt durch Bearbeitung auf Entwurf zurueck: %s",
+                    row.slug, "; ".join(v["text"] for v in befund["verstoesse"]))
+        row.status = "draft"
+
     db.commit()
     db.refresh(row)
-    return _serialize_component(row, include_html=True)
+    return {**_serialize_component(row, include_html=True), "contract": befund}
+
+
+@component_router.post("/{slug}/approve")
+def approve_component(
+    slug: str,
+    db: Session = Depends(get_db),
+    user=Depends(require_any_auth),
+):
+    """Gibt einen Entwurf fuer den Wireframe-Editor frei.
+
+    Die Freigabe ist der Punkt, an dem ein Block auf Kundenseiten landen kann.
+    Solange der Vertrag verletzt ist, wird sie verweigert — mit den konkreten
+    Verstoessen im Fehler, damit klar ist, was zu tun ist.
+    """
+    row = db.query(ComponentLibrary).filter(ComponentLibrary.slug == slug).first()
+    if not row:
+        raise HTTPException(404, f"Slug '{slug}' nicht gefunden")
+
+    befund = _befund(row.html_template, row.slug, row.slots or [])
+    if not befund["konform"]:
+        raise HTTPException(422, {
+            "message": f"Block '{slug}' verletzt den Vertrag und kann nicht "
+                       f"freigegeben werden.",
+            "contract": befund,
+        })
+
+    row.status = "approved"
+    db.commit()
+    db.refresh(row)
+    return {**_serialize_component(row, include_html=True), "contract": befund}
 
 
 @component_router.delete("/{slug}")
@@ -758,7 +827,9 @@ _ELEMENT_LABELS = {
     "dropdown":    "Dropdown / Select-Menue",
     "search":      "Such-Feld",
     "rating":      "Star-Rating-Anzeige",
-    "video":       "Video / iframe-Embed",
+    # Kein iframe: eine YouTube-Einbettung laedt beim Seitenaufruf und schickt
+    # die Besucher-IP an Google, bevor jemand auf Play geklickt hat.
+    "video":       "Video-Platzhalter mit Play-Icon (KEIN iframe, keine Einbettung)",
     "list":        "Liste (bullet oder numbered)",
 }
 
@@ -1132,7 +1203,10 @@ LAYOUT-DICHTE: {style}
 
 HARTE REGELN:
 1. Output ist VALIDES HTML+Tailwind. Kein React, kein JSX, keine onClick-Handler.
-2. Eine einzige aeussere `<section>` (oder `<header>`/`<footer>`) als Wurzel — kein `<html>`/`<body>`.
+2. Genau EIN Wurzelelement — `<section>`, `<header>`, `<footer>`, `<nav>` oder `<a>`,
+   je nach Kategorie. Kein `<html>`/`<body>`. Das Wurzelelement traegt
+   `data-block="<slug>"` mit exakt dem slug aus dem JSON-Output; daran findet
+   der Editor den Block wieder.
 3. Mobile-first responsive: nutze sm:/md:/lg:-Praefixe wo sinnvoll.
 4. Nur Standard-Tailwind-Klassen. Keine erfundenen Klassen, keine Custom-Properties
    (kein `bg-background-primary`, kein `text-text-alternative`).
@@ -1146,10 +1220,20 @@ HARTE REGELN:
    max. 5-15 Slots pro Section.
 8. Bilder: nutze `<img>` mit `src=""` oder einen schlichten Placeholder-`<div>`
    mit Tailwind-Background. KEINE externen Bild-URLs.
+9. KEINE Ressource von einem fremden Server: kein `<script>`, `<iframe>`, `<link>`,
+   `<object>`, `<embed>`, kein `src="https://…"`, kein `@import`. Sonst geht die
+   IP jedes Besuchers an einen Dritten, bevor er etwas angeklickt hat — das ist
+   ein K.-o.-Kriterium in unserem eigenen Website-Audit. Ein `<a href="https://…">`
+   zum Anklicken ist dagegen erlaubt.
+10. KEIN `id`-Attribut. Der Block kann zweimal auf einer Seite stehen; die id
+    waere dann doppelt.
+11. Kein `position: fixed` / `sticky` — sprengt die Vorschau im Editor.
+12. Verschachtelung hoechstens 12 Ebenen tief.
 
 OUTPUT-FORMAT — antworte AUSSCHLIESSLICH als valides JSON, KEIN Markdown-Wrapper, KEINE Erklaerung:
 
 {{
+  "slug":           "<kleinbuchstaben-mit-bindestrich, sprechend, z.B. hero-split-foerderung>",
   "name":           "<menschenlesbarer Name auf Deutsch, max 60 Zeichen>",
   "html_template":  "<das vollstaendige HTML als String, mit \\\" escaped wenn noetig>",
   "slots": [
@@ -1162,61 +1246,112 @@ OUTPUT-FORMAT — antworte AUSSCHLIESSLICH als valides JSON, KEIN Markdown-Wrapp
 """
 
 
-def _run_component_gen_job(job_id: str, req: GenerateComponentRequest, api_key: str) -> None:
-    """Background-Thread: ruft Sonnet, parst JSON, speichert Resultat in Job-Store."""
+class _Abbruch(Exception):
+    """Ein Grund, den Job mit einer verstaendlichen Meldung zu beenden."""
+
+
+def _ki_runde(client, messages: list) -> tuple:
+    """Eine Runde beim Modell. Returnt (response, geparstes_json).
+
+    Streaming, weil mit eingeschaltetem Denken die Antwort laenger dauert als
+    der Non-Streaming-Timeout der SDK erlaubt — dasselbe Muster wie im
+    Wireframe-Job weiter unten.
+    """
+    with client.messages.stream(
+        model=_DESIGNER_MODELL,
+        max_tokens=16000,   # Denken und Antwort teilen sich dieses Budget
+        thinking={"type": "adaptive"},
+        output_config={"effort": "medium"},
+        messages=messages,
+    ) as stream:
+        for _ in stream.text_stream:
+            pass
+        response = stream.get_final_message()
+
+    if getattr(response, "stop_reason", None) == "max_tokens":
+        raise _Abbruch("Die Generierung wurde abgeschnitten (max_tokens). "
+                       "Bitte einen einfacheren Layout-Wunsch waehlen.")
+
+    raw = _extract_text_from_response(response)
     try:
-        prompt = _build_designer_prompt(req)
+        ergebnis = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        logger.warning("component_gen: JSON-Parsing fehlgeschlagen: %s; raw[:300]=%r",
+                       exc, raw[:300])
+        raise _Abbruch(f"KI-Output kein valides JSON: {exc}")
+
+    if not isinstance(ergebnis, dict):
+        raise _Abbruch("KI-Output ist kein Object")
+    return response, ergebnis
+
+
+def _pruefe_pflichtfelder(result: dict) -> None:
+    """Struktur vor Inhalt: ohne diese Felder ist der Rest nicht pruefbar."""
+    import re as _re
+
+    for feld in ("slug", "name", "html_template", "slots"):
+        if feld not in result:
+            raise _Abbruch(f"KI-Output fehlt Pflichtfeld '{feld}'")
+
+    slug = str(result["slug"]).strip().lower()
+    if not _re.match(r"^[a-z0-9][a-z0-9-]*$", slug):
+        raise _Abbruch(f"slug '{result['slug']}' passt nicht zur Konvention "
+                       f"(kleinbuchstaben-mit-bindestrich)")
+    result["slug"] = slug
+
+    if not isinstance(result["html_template"], str) or len(result["html_template"]) < 50:
+        raise _Abbruch("html_template fehlt oder zu kurz")
+    if not isinstance(result["slots"], list):
+        raise _Abbruch("slots muss Array sein")
+
+
+def _reparatur_auftrag(verstoesse) -> str:
+    zeilen = "\n".join(f"- {v}" for v in verstoesse)
+    return f"""Der Block verletzt den Vertrag der Bibliothek:
+
+{zeilen}
+
+Behebe genau diese Punkte. Layout, Texte und Slots bleiben sonst unveraendert.
+Antworte erneut AUSSCHLIESSLICH mit dem vollstaendigen JSON im selben Format —
+kein Markdown-Wrapper, keine Erklaerung."""
+
+
+def _run_component_gen_job(job_id: str, req: GenerateComponentRequest, api_key: str) -> None:
+    """Background-Thread: generiert einen Block und prueft ihn gegen den Vertrag.
+
+    Der Vertrag (`services/block_contract.py`) ist an der bestehenden Bibliothek
+    gemessen. Ein erzeugter Block, der ihn verletzt, wuerde im Wireframe-Editor
+    das Raster sprengen oder fremde Ressourcen einschleppen — deshalb bekommt
+    das Modell die Verstoesse zurueck und eine Runde, sie zu beheben. Was danach
+    noch offen ist, steht im Ergebnis und blockiert die Freigabe.
+    """
+    try:
         client = Anthropic(api_key=api_key)
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=8000,  # ein Section-HTML ist ~2-5k tokens, mit Slots-JSON ~6-7k
-            messages=[{"role": "user", "content": prompt}],
-        )
-        stop_reason = getattr(response, "stop_reason", None)
-        raw = _extract_text_from_response(response)
+        messages = [{"role": "user", "content": _build_designer_prompt(req)}]
 
-        if stop_reason == "max_tokens":
-            _component_gen_jobs[job_id] = {
-                "status": "error",
-                "error": "Generierung wurde abgeschnitten (max_tokens). Bitte einfacheren Style/Prompt waehlen.",
-            }
-            return
+        response, result = _ki_runde(client, messages)
+        _pruefe_pflichtfelder(result)
+        verstoesse = pruefe(result["html_template"], slug=result["slug"],
+                            slots=result["slots"])
 
-        try:
-            result = json.loads(raw)
-        except json.JSONDecodeError as exc:
-            logger.warning(
-                f"component_gen job {job_id}: JSON-Parsing fehlgeschlagen: {exc}; "
-                f"raw[:300]={raw[:300]!r}"
-            )
-            _component_gen_jobs[job_id] = {
-                "status": "error",
-                "error": f"KI-Output kein valides JSON: {exc}",
-            }
-            return
+        if verstoesse:
+            logger.info("component_gen job %s: %d Verstoss/Verstoesse, eine "
+                        "Reparaturrunde — %s", job_id, len(verstoesse),
+                        als_text(verstoesse))
+            messages.append({"role": "assistant", "content": response.content})
+            messages.append({"role": "user", "content": _reparatur_auftrag(verstoesse)})
 
-        # Validation
-        for field in ("name", "html_template", "slots"):
-            if field not in result:
-                _component_gen_jobs[job_id] = {
-                    "status": "error",
-                    "error": f"KI-Output fehlt Pflichtfeld '{field}'",
-                }
-                return
-        if not isinstance(result["html_template"], str) or len(result["html_template"]) < 50:
-            _component_gen_jobs[job_id] = {
-                "status": "error",
-                "error": "html_template fehlt oder zu kurz",
-            }
-            return
-        if not isinstance(result["slots"], list):
-            _component_gen_jobs[job_id] = {
-                "status": "error",
-                "error": "slots muss Array sein",
-            }
-            return
+            _, repariert = _ki_runde(client, messages)
+            _pruefe_pflichtfelder(repariert)
+            nachher = pruefe(repariert["html_template"], slug=repariert["slug"],
+                             slots=repariert["slots"])
+            # Nur uebernehmen, wenn die Reparatur es wirklich besser macht.
+            if len(nachher) < len(verstoesse):
+                result, verstoesse = repariert, nachher
+            if verstoesse:
+                logger.warning("component_gen job %s: nach Reparatur weiterhin "
+                               "unsauber — %s", job_id, als_text(verstoesse))
 
-        # Defaults setzen + Kategorie/section_hint anreichern
         result.setdefault("ki_prompt_hint", "")
         result.setdefault("preview_note", "")
         result.setdefault("tags", [])
@@ -1226,7 +1361,16 @@ def _run_component_gen_job(job_id: str, req: GenerateComponentRequest, api_key: 
         if req.section_hint:
             result["section_hint"] = req.section_hint
 
+        # Der Befund faehrt mit: das Frontend zeigt ihn an, und ohne ihn
+        # koennte der Block still als "fertig" durchgehen.
+        result["contract"] = {
+            "konform":    not verstoesse,
+            "verstoesse": [{"regel": v.regel, "text": v.text} for v in verstoesse],
+        }
+
         _component_gen_jobs[job_id] = {"status": "done", "result": result}
+    except _Abbruch as exc:
+        _component_gen_jobs[job_id] = {"status": "error", "error": str(exc)}
     except Exception as exc:
         logger.error(f"component_gen job {job_id} crashed: {exc}", exc_info=True)
         _component_gen_jobs[job_id] = {"status": "error", "error": str(exc)}
@@ -1465,7 +1609,9 @@ def _run_wireframe_job(job_id: str, project_id: int, api_key: str) -> None:
             }
             return
 
-        components_rows = db.query(ComponentLibrary).all()
+        # Nur Freigegebenes. Ein Entwurf darf nie auf einer Kundenseite landen.
+        components_rows = (db.query(ComponentLibrary)
+                           .filter(ComponentLibrary.status != "draft").all())
         if not components_rows:
             _wireframe_jobs[job_id] = {
                 "status": "error",

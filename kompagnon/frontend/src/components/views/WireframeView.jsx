@@ -1362,6 +1362,125 @@ function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
 
       {/* Body — scrollbar */}
       <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Stufe B: für diesen Kunden umschreiben */}
+        <div style={{
+          padding: 10, borderRadius: 8, background: '#faf5ff',
+          border: '1px solid #d8b4fe', display: 'flex',
+          flexDirection: 'column', gap: 6,
+        }}>
+          <div style={{ ...lblStyle, color: '#6b21a8', marginBottom: 0 }}>
+            Für diesen Kunden umschreiben
+          </div>
+          <p style={{ fontSize: 11, color: '#6b21a8', margin: 0, lineHeight: 1.4 }}>
+            Claude baut die Section anders auf — passend zu Gewerk, Leistungen
+            und Einzugsgebiet aus dem Briefing. Slots und Block bleiben
+            dieselben, nur das Layout ändert sich.
+          </p>
+          {eigeneFassung && (
+            <div style={{ fontSize: 11, color: '#6b21a8', fontWeight: 700 }}>
+              Dieser Block hat bereits eine eigene Fassung.
+            </div>
+          )}
+          <textarea
+            value={variantenWunsch}
+            onChange={(e) => setVariantenWunsch(e.target.value)}
+            rows={2}
+            placeholder="Optional: was soll anders sein? z.B. „Notdienst nach oben, Bild links"
+            style={{ ...inpStyle, padding: '6px 8px', fontSize: 11, resize: 'vertical' }}
+            disabled={variante.status === 'laeuft'}
+          />
+          <button
+            type="button" onClick={umschreiben}
+            disabled={variante.status === 'laeuft'}
+            style={{
+              padding: '7px 10px',
+              background: variante.status === 'laeuft' ? 'var(--text-tertiary)' : '#7c3aed',
+              color: '#fff', border: 'none', borderRadius: 6,
+              fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+              cursor: variante.status === 'laeuft' ? 'wait' : 'pointer',
+            }}
+          >
+            {variante.status === 'laeuft'
+              ? 'Claude schreibt um… (30–90 s)'
+              : (eigeneFassung ? '✨ Neu umschreiben' : '✨ Umschreiben lassen')}
+          </button>
+
+          {variante.status === 'fehler' && (
+            <div style={{
+              padding: 8, background: '#fef2f2', border: '1px solid #fca5a5',
+              borderRadius: 4, color: '#991b1b', fontSize: 11,
+            }}>{variante.fehler}</div>
+          )}
+
+          {variante.status === 'fertig' && variante.ergebnis && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {variante.ergebnis.begruendung && (
+                <div style={{ fontSize: 11, color: '#4c1d95', fontStyle: 'italic' }}>
+                  „{variante.ergebnis.begruendung}"
+                </div>
+              )}
+              {!variante.ergebnis.contract?.konform && (
+                <div style={{
+                  padding: 8, background: '#fef2f2', border: '1px solid #fca5a5',
+                  borderRadius: 4, color: '#991b1b', fontSize: 11,
+                }}>
+                  <strong>Der Vertrag ist verletzt — Übernehmen wird abgelehnt:</strong>
+                  <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>
+                    {(variante.ergebnis.contract?.verstoesse || []).map((v, i) => (
+                      <li key={`${v.regel}-${i}`}>{v.regel}: {v.text}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div style={{
+                border: '1px solid var(--border-light)', borderRadius: 6,
+                overflow: 'hidden', background: '#fff', pointerEvents: 'none',
+                maxHeight: 240, overflowY: 'auto',
+              }}>
+                {/* eslint-disable-next-line react/no-danger */}
+                <div dangerouslySetInnerHTML={{
+                  __html: renderSlots(variante.ergebnis.html_override, values),
+                }} />
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button" onClick={uebernehmen}
+                  disabled={!variante.ergebnis.contract?.konform}
+                  style={{
+                    flex: 1, padding: '6px 10px',
+                    background: variante.ergebnis.contract?.konform ? '#10b981' : 'var(--text-tertiary)',
+                    color: '#fff', border: 'none', borderRadius: 4,
+                    fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                    cursor: variante.ergebnis.contract?.konform ? 'pointer' : 'not-allowed',
+                  }}
+                >✓ Übernehmen</button>
+                <button
+                  type="button"
+                  onClick={() => setVariante({ status: 'idle', ergebnis: null, fehler: '' })}
+                  style={{
+                    padding: '6px 10px', background: '#fff',
+                    border: '1px solid var(--border-medium)', borderRadius: 4,
+                    fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                    cursor: 'pointer',
+                  }}
+                >Verwerfen</button>
+              </div>
+            </div>
+          )}
+
+          {eigeneFassung && variante.status !== 'fertig' && (
+            <button
+              type="button" onClick={() => onVarianteUebernehmen?.(null)}
+              style={{
+                padding: '6px 10px', background: '#fff', color: '#6b21a8',
+                border: '1px solid #d8b4fe', borderRadius: 4,
+                fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                cursor: 'pointer',
+              }}
+            >↩︎ Zurück zur Bibliotheksvorlage</button>
+          )}
+        </div>
+
         {/* AI-Generate-Block (Phase B Hauptfeature) */}
         {hasSlots && (
           <div style={{
@@ -1502,125 +1621,6 @@ function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
                   </div>
                 </>
               )}
-
-              {/* Stufe B: für diesen Kunden umschreiben */}
-              <div style={{
-                padding: 10, borderRadius: 8, background: '#faf5ff',
-                border: '1px solid #d8b4fe', display: 'flex',
-                flexDirection: 'column', gap: 6,
-              }}>
-                <div style={{ ...lblStyle, color: '#6b21a8', marginBottom: 0 }}>
-                  Für diesen Kunden umschreiben
-                </div>
-                <p style={{ fontSize: 11, color: '#6b21a8', margin: 0, lineHeight: 1.4 }}>
-                  Claude baut die Section anders auf — passend zu Gewerk, Leistungen
-                  und Einzugsgebiet aus dem Briefing. Slots und Block bleiben
-                  dieselben, nur das Layout ändert sich.
-                </p>
-                {eigeneFassung && (
-                  <div style={{ fontSize: 11, color: '#6b21a8', fontWeight: 700 }}>
-                    Dieser Block hat bereits eine eigene Fassung.
-                  </div>
-                )}
-                <textarea
-                  value={variantenWunsch}
-                  onChange={(e) => setVariantenWunsch(e.target.value)}
-                  rows={2}
-                  placeholder="Optional: was soll anders sein? z.B. „Notdienst nach oben, Bild links"
-                  style={{ ...inpStyle, padding: '6px 8px', fontSize: 11, resize: 'vertical' }}
-                  disabled={variante.status === 'laeuft'}
-                />
-                <button
-                  type="button" onClick={umschreiben}
-                  disabled={variante.status === 'laeuft'}
-                  style={{
-                    padding: '7px 10px',
-                    background: variante.status === 'laeuft' ? 'var(--text-tertiary)' : '#7c3aed',
-                    color: '#fff', border: 'none', borderRadius: 6,
-                    fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
-                    cursor: variante.status === 'laeuft' ? 'wait' : 'pointer',
-                  }}
-                >
-                  {variante.status === 'laeuft'
-                    ? 'Claude schreibt um… (30–90 s)'
-                    : (eigeneFassung ? '✨ Neu umschreiben' : '✨ Umschreiben lassen')}
-                </button>
-
-                {variante.status === 'fehler' && (
-                  <div style={{
-                    padding: 8, background: '#fef2f2', border: '1px solid #fca5a5',
-                    borderRadius: 4, color: '#991b1b', fontSize: 11,
-                  }}>{variante.fehler}</div>
-                )}
-
-                {variante.status === 'fertig' && variante.ergebnis && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {variante.ergebnis.begruendung && (
-                      <div style={{ fontSize: 11, color: '#4c1d95', fontStyle: 'italic' }}>
-                        „{variante.ergebnis.begruendung}"
-                      </div>
-                    )}
-                    {!variante.ergebnis.contract?.konform && (
-                      <div style={{
-                        padding: 8, background: '#fef2f2', border: '1px solid #fca5a5',
-                        borderRadius: 4, color: '#991b1b', fontSize: 11,
-                      }}>
-                        <strong>Der Vertrag ist verletzt — Übernehmen wird abgelehnt:</strong>
-                        <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>
-                          {(variante.ergebnis.contract?.verstoesse || []).map((v, i) => (
-                            <li key={`${v.regel}-${i}`}>{v.regel}: {v.text}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    <div style={{
-                      border: '1px solid var(--border-light)', borderRadius: 6,
-                      overflow: 'hidden', background: '#fff', pointerEvents: 'none',
-                      maxHeight: 240, overflowY: 'auto',
-                    }}>
-                      {/* eslint-disable-next-line react/no-danger */}
-                      <div dangerouslySetInnerHTML={{
-                        __html: renderSlots(variante.ergebnis.html_override, values),
-                      }} />
-                    </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button
-                        type="button" onClick={uebernehmen}
-                        disabled={!variante.ergebnis.contract?.konform}
-                        style={{
-                          flex: 1, padding: '6px 10px',
-                          background: variante.ergebnis.contract?.konform ? '#10b981' : 'var(--text-tertiary)',
-                          color: '#fff', border: 'none', borderRadius: 4,
-                          fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
-                          cursor: variante.ergebnis.contract?.konform ? 'pointer' : 'not-allowed',
-                        }}
-                      >✓ Übernehmen</button>
-                      <button
-                        type="button"
-                        onClick={() => setVariante({ status: 'idle', ergebnis: null, fehler: '' })}
-                        style={{
-                          padding: '6px 10px', background: '#fff',
-                          border: '1px solid var(--border-medium)', borderRadius: 4,
-                          fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
-                          cursor: 'pointer',
-                        }}
-                      >Verwerfen</button>
-                    </div>
-                  </div>
-                )}
-
-                {eigeneFassung && variante.status !== 'fertig' && (
-                  <button
-                    type="button" onClick={() => onVarianteUebernehmen?.(null)}
-                    style={{
-                      padding: '6px 10px', background: '#fff', color: '#6b21a8',
-                      border: '1px solid #d8b4fe', borderRadius: 4,
-                      fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
-                      cursor: 'pointer',
-                    }}
-                  >↩︎ Zurück zur Bibliotheksvorlage</button>
-                )}
-              </div>
 
               <button
                 type="button" onClick={() => setShowCustomForm((v) => !v)}

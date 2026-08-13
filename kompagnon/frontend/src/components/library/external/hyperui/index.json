@@ -69,7 +69,14 @@
         "mit",
         "tailwind"
       ],
-      "slots": [],
+      "slots": [
+        {
+          "key": "image_url",
+          "type": "text",
+          "label": "Bild-URL",
+          "default": "/placeholder-hero.jpg"
+        }
+      ],
       "ki_prompt_hint": "Navbar/Header-Variante mit Logo, Nav-Links und CTA",
       "preview_note": "HyperUI-headers (MIT). Tailwind-only — keine eigenen Slots.",
       "source": "hyperui"
@@ -86,7 +93,14 @@
         "mit",
         "tailwind"
       ],
-      "slots": [],
+      "slots": [
+        {
+          "key": "image_url",
+          "type": "text",
+          "label": "Bild-URL",
+          "default": "/placeholder-hero.jpg"
+        }
+      ],
       "ki_prompt_hint": "Call-to-Action-Section, finale Conversion",
       "preview_note": "HyperUI-ctas (MIT). Tailwind-only — keine eigenen Slots.",
       "source": "hyperui"
@@ -120,7 +134,14 @@
         "mit",
         "tailwind"
       ],
-      "slots": [],
+      "slots": [
+        {
+          "key": "image_url",
+          "type": "text",
+          "label": "Bild-URL",
+          "default": "/placeholder-hero.jpg"
+        }
+      ],
       "ki_prompt_hint": "Call-to-Action-Section, finale Conversion",
       "preview_note": "HyperUI-ctas (MIT). Tailwind-only — keine eigenen Slots.",
       "source": "hyperui"
@@ -137,7 +158,20 @@
         "mit",
         "tailwind"
       ],
-      "slots": [],
+      "slots": [
+        {
+          "key": "image_url_1",
+          "type": "text",
+          "label": "Bild-URL 1",
+          "default": "/placeholder-hero.jpg"
+        },
+        {
+          "key": "image_url_2",
+          "type": "text",
+          "label": "Bild-URL 2",
+          "default": "/placeholder-hero.jpg"
+        }
+      ],
       "ki_prompt_hint": "Call-to-Action-Section, finale Conversion",
       "preview_note": "HyperUI-ctas (MIT). Tailwind-only — keine eigenen Slots.",
       "source": "hyperui"
@@ -256,7 +290,26 @@
         "mit",
         "tailwind"
       ],
-      "slots": [],
+      "slots": [
+        {
+          "key": "image_url_1",
+          "type": "text",
+          "label": "Bild-URL 1",
+          "default": "/placeholder-hero.jpg"
+        },
+        {
+          "key": "image_url_2",
+          "type": "text",
+          "label": "Bild-URL 2",
+          "default": "/placeholder-hero.jpg"
+        },
+        {
+          "key": "image_url_3",
+          "type": "text",
+          "label": "Bild-URL 3",
+          "default": "/placeholder-hero.jpg"
+        }
+      ],
       "ki_prompt_hint": "Team-/Mitarbeiter-Vorstellung mit Fotos",
       "preview_note": "HyperUI-team-sections (MIT). Tailwind-only — keine eigenen Slots.",
       "source": "hyperui"
@@ -273,7 +326,26 @@
         "mit",
         "tailwind"
       ],
-      "slots": [],
+      "slots": [
+        {
+          "key": "image_url_1",
+          "type": "text",
+          "label": "Bild-URL 1",
+          "default": "/placeholder-hero.jpg"
+        },
+        {
+          "key": "image_url_2",
+          "type": "text",
+          "label": "Bild-URL 2",
+          "default": "/placeholder-hero.jpg"
+        },
+        {
+          "key": "image_url_3",
+          "type": "text",
+          "label": "Bild-URL 3",
+          "default": "/placeholder-hero.jpg"
+        }
+      ],
       "ki_prompt_hint": "Team-/Mitarbeiter-Vorstellung mit Fotos",
       "preview_note": "HyperUI-team-sections (MIT). Tailwind-only — keine eigenen Slots.",
       "source": "hyperui"
@@ -290,7 +362,44 @@
         "mit",
         "tailwind"
       ],
-      "slots": [],
+      "slots": [
+        {
+          "key": "image_url_1",
+          "type": "text",
+          "label": "Bild-URL 1",
+          "default": "/placeholder-hero.jpg"
+        },
+        {
+          "key": "image_url_2",
+          "type": "text",
+          "label": "Bild-URL 2",
+          "default": "/placeholder-hero.jpg"
+        },
+        {
+          "key": "image_url_3",
+          "type": "text",
+          "label": "Bild-URL 3",
+          "default": "/placeholder-hero.jpg"
+        },
+        {
+          "key": "image_url_4",
+          "type": "text",
+          "label": "Bild-URL 4",
+          "default": "/placeholder-hero.jpg"
+        },
+        {
+          "key": "image_url_5",
+          "type": "text",
+          "label": "Bild-URL 5",
+          "default": "/placeholder-hero.jpg"
+        },
+        {
+          "key": "image_url_6",
+          "type": "text",
+          "label": "Bild-URL 6",
+          "default": "/placeholder-hero.jpg"
+        }
+      ],
       "ki_prompt_hint": "Team-/Mitarbeiter-Vorstellung mit Fotos",
       "preview_note": "HyperUI-team-sections (MIT). Tailwind-only — keine eigenen Slots.",
       "source": "hyperui"
@@ -375,7 +484,14 @@
         "mit",
         "tailwind"
       ],
-      "slots": [],
+      "slots": [
+        {
+          "key": "image_url",
+          "type": "text",
+          "label": "Bild-URL",
+          "default": "/placeholder-hero.jpg"
+        }
+      ],
       "ki_prompt_hint": "Footer mit Pflicht-Links + Kontakt",
       "preview_note": "HyperUI-footers (MIT). Tailwind-only — keine eigenen Slots.",
       "source": "hyperui"
@@ -766,7 +882,14 @@
         "mit",
         "tailwind"
       ],
-      "slots": [],
+      "slots": [
+        {
+          "key": "image_url",
+          "type": "text",
+          "label": "Bild-URL",
+          "default": "/placeholder-hero.jpg"
+        }
+      ],
       "ki_prompt_hint": "Allgemeine Marketing-Section",
       "preview_note": "HyperUI-sections (MIT). Tailwind-only — keine eigenen Slots.",
       "source": "hyperui"
@@ -783,7 +906,14 @@
         "mit",
         "tailwind"
       ],
-      "slots": [],
+      "slots": [
+        {
+          "key": "image_url",
+          "type": "text",
+          "label": "Bild-URL",
+          "default": "/placeholder-hero.jpg"
+        }
+      ],
       "ki_prompt_hint": "Allgemeine Marketing-Section",
       "preview_note": "HyperUI-sections (MIT). Tailwind-only — keine eigenen Slots.",
       "source": "hyperui"
@@ -800,7 +930,14 @@
         "mit",
         "tailwind"
       ],
-      "slots": [],
+      "slots": [
+        {
+          "key": "image_url",
+          "type": "text",
+          "label": "Bild-URL",
+          "default": "/placeholder-hero.jpg"
+        }
+      ],
       "ki_prompt_hint": "Allgemeine Marketing-Section",
       "preview_note": "HyperUI-sections (MIT). Tailwind-only — keine eigenen Slots.",
       "source": "hyperui"
@@ -817,7 +954,14 @@
         "mit",
         "tailwind"
       ],
-      "slots": [],
+      "slots": [
+        {
+          "key": "image_url",
+          "type": "text",
+          "label": "Bild-URL",
+          "default": "/placeholder-hero.jpg"
+        }
+      ],
       "ki_prompt_hint": "Allgemeine Marketing-Section",
       "preview_note": "HyperUI-sections (MIT). Tailwind-only — keine eigenen Slots.",
       "source": "hyperui"

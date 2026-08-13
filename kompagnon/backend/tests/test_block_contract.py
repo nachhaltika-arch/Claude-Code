@@ -48,6 +48,51 @@ def test_die_bibliothek_ist_nicht_leer():
 BEKANNTE_SCHULD: dict[str, str] = {}
 
 
+# Die externen Quellen (HyperUI, MIT) liegen in einem eigenen Ordner und
+# wurden bis zum 2026-08-13 von keinem Test angefasst — deshalb fiel drei
+# Monate lang nicht auf, dass alle 51 Bloecke ohne `data-block` importiert
+# worden waren: im Wireframe-Editor nicht wiederauffindbar, und die erste
+# Bearbeitung haette sie auf Entwurf geworfen. Sie stehen in derselben
+# Bibliothek und liefern auf dieselben Kundenseiten — also gilt derselbe
+# Vertrag.
+EXTERN = BIBLIOTHEK / "external"
+
+
+def _externe_bloecke():
+    if not EXTERN.is_dir():
+        return []
+    return sorted(p for p in EXTERN.glob("*/*.html"))
+
+
+def _externe_slots(datei):
+    index = datei.parent / "index.json"
+    if not index.is_file():
+        return None
+    daten = json.loads(index.read_text(encoding="utf-8"))
+    eintraege = daten.get("components", daten) if isinstance(daten, dict) else daten
+    for c in eintraege:
+        if c.get("slug") == datei.stem:
+            return c.get("slots", [])
+    return None
+
+
+@pytest.mark.parametrize("datei", _externe_bloecke(),
+                         ids=lambda p: f"{p.parent.name}/{p.stem}")
+def test_jeder_externe_block_erfuellt_den_vertrag(datei):
+    """Fremde Herkunft ist kein Freibrief — die Blöcke landen beim Kunden."""
+    verstoesse = pruefe(datei.read_text(encoding="utf-8"), slug=datei.stem,
+                        slots=_externe_slots(datei))
+
+    assert not verstoesse, "\n".join(str(v) for v in verstoesse)
+
+
+def test_es_gibt_ueberhaupt_externe_bloecke():
+    """Sonst prüft der Test oben nichts und wirkt trotzdem grün."""
+    if not EXTERN.is_dir():
+        pytest.skip("Keine externen Quellen vorhanden")
+    assert len(_externe_bloecke()) >= 20
+
+
 def _slot_angaben():
     """Die Slot-Angaben aus der index.json, nach slug."""
     index = BIBLIOTHEK / "index.json"

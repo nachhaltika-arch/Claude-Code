@@ -1,6 +1,6 @@
 # Claude im Designbereich — Konzept und Stand
 
-**Angelegt:** 2026-08-13 · **Zuletzt:** 2026-08-13 (Stufe A gebaut)
+**Angelegt:** 2026-08-13 · **Zuletzt:** 2026-08-13 (Stufe A gebaut + Oberfläche)
 **Frage:** Wie integrieren wir Claude in den Designbereich, um neue Homepages
 zu entwickeln — statt GrapesJS oder zusätzlich?
 **Verbunden:** `kas-pipeline-architecture.md` (04.05., Grundlage),
@@ -10,12 +10,13 @@ zu entwickeln — statt GrapesJS oder zusätzlich?
 
 ## 0. Stand in einem Absatz
 
-Stufe A ist gebaut und liegt auf `staging` (Commits `73c4822`, `4276676`).
-Claude schreibt Bibliotheksblöcke, ein prüfbarer Vertrag steht davor, und ohne
-Freigabe erreicht kein erzeugter Block eine Kundenseite. Was fehlt, ist die
-Oberfläche dazu, ein scharfer Lauf gegen die echte API — und eine Vertragsregel,
-die Stufe B sonst auf Sand baut (§ 4.2). Stufe B und C sind entworfen, nicht
-gebaut.
+Stufe A ist gebaut und liegt auf `staging` (Commits `73c4822`, `4276676`),
+samt Oberfläche für Entwurf und Freigabe. Claude schreibt Bibliotheksblöcke,
+ein prüfbarer Vertrag steht davor, ohne Freigabe erreicht kein erzeugter Block
+eine Kundenseite — und wer einen Entwurf vor sich hat, liest jetzt auch, woran
+es liegt. Was fehlt, ist ein scharfer Lauf gegen die echte API — und eine
+Vertragsregel, die Stufe B sonst auf Sand baut (§ 4.2). Stufe B und C sind
+entworfen, nicht gebaut.
 
 ---
 
@@ -153,16 +154,33 @@ Grund unsichtbar.
 landet auf Kundenseiten, da zählt Qualität mehr als der Token-Preis. Slot-Copy
 (`generate-copy`) und Wireframe-Zuordnung bleiben auf `claude-sonnet-4-6`.
 
+**Die Oberfläche dazu — gebaut:**
+
+| Wo | Was man sieht |
+|---|---|
+| Komponenten-Manager, Liste | Filter „Alle / Freigegeben / Entwürfe" mit Zähler, Entwurfs-Kennzeichnung am Eintrag, ⚠️ an freigegebenen Blöcken, die den Vertrag trotzdem verletzen (die Altlast `hw-karte`, `seo-lokal`) |
+| Komponenten-Manager, Editor | Status im Kopf, Verstöße im Klartext (Regel + Begründung), Freigabe-Knopf — gesperrt, solange etwas offen ist oder ungespeicherte Änderungen anstehen |
+| Speichern / Anlegen | Fällt ein Block auf Entwurf, sagt die Meldung es und nennt die Zahl der offenen Punkte |
+| KI-Generator | Der Befund steht schon am Ergebnis, nicht erst nach dem Speichern |
+| Wireframe-Editor | Ein Block, der nicht mehr in der freigegebenen Bibliothek steht, sagt das jetzt — vorher blieb die Karte einfach leer |
+| „Als Custom speichern" | Landet der Block als Entwurf, wird er **nicht** in die Seite getauscht; der Grund steht im Panel statt in der Konsole |
+
+Zwei Dinge kamen beim Bauen dazu, weil sie auf demselben stillen Weg lagen:
+Die Oberfläche vergab beim Übernehmen eines KI-Blocks einen eigenen Slug, ließ
+`data-block` aber stehen — Regel R2 verletzt, Block als Entwurf, und im
+Formular war nichts zu sehen, was das erklärt hätte. Und ein Nachladen nach dem
+Speichern konnte eine Eingabe verschlucken, die währenddessen passierte.
+
+`e2e/tests/block-freigabe.spec.js` prüft den Weg im Browser: unsauber anlegen →
+Entwurf mit Grund → Freigabe gesperrt → reparieren → Freigabe klappt.
+
 **Was noch fehlt:**
 
-1. **Oberfläche.** Das Frontend kennt `status` und `contract` nicht. Heute
-   verschwindet ein abgelehnter Block wortlos aus dem Wireframe-Editor. Nötig:
-   Entwurfs-Kennzeichnung, Verstöße im Klartext am Block, Freigabe-Knopf.
-2. **Scharfer Lauf.** Die Job-Logik ist mit einem Platzhalter getestet
+1. **Scharfer Lauf.** Die Job-Logik ist mit einem Platzhalter getestet
    (`tests/test_component_library_gate.py`), der echte API-Aufruf noch nicht.
    Die offene Frage dahinter entscheidet über B: **Wie oft muss repariert
    werden?**
-3. **Envato als Inspirationsquelle** — noch nicht angebunden (§ 9.3).
+2. **Envato als Inspirationsquelle** — noch nicht angebunden (§ 9.3).
 
 ### Stufe B — Claude als Sektionsgestalter *(mittel, nicht gebaut)*
 
@@ -295,8 +313,8 @@ Stufe B/C in `wireframe_data` bzw. `kas_gjs_data`.
 
 | # | Was | Aufwand | Warum jetzt |
 |---|---|---|---|
-| 1 | Oberfläche für Entwurf und Freigabe | ~2 h | Ohne sie ist Stufe A unbenutzbar und der Rückfall auf Entwurf wirkt wie ein Fehler |
+| ~~1~~ | ~~Oberfläche für Entwurf und Freigabe~~ | — | **gebaut am 2026-08-13** (§ Stufe A) |
 | 2 | Scharfer Generierungslauf | ~1 h | Beantwortet die Frage, die über B entscheidet: Wie oft muss repariert werden? |
-| 3 | `hw-karte` / `seo-lokal` entschärfen | ~2 h | Eigene Blöcke fallen bei der eigenen Prüfung durch |
+| 3 | `hw-karte` / `seo-lokal` entschärfen | ~2 h | Eigene Blöcke fallen bei der eigenen Prüfung durch — in der Liste jetzt am ⚠️ zu sehen |
 | 4 | R5 Token-Bindung | ~4 h | Voraussetzung für Stufe B |
-| 5 | Stufe B | offen | Erst wenn 1–4 stehen |
+| 5 | Stufe B | offen | Erst wenn 2–4 stehen |

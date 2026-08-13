@@ -69,7 +69,8 @@ _component_gen_jobs: dict = {}
 component_router = APIRouter(prefix="/api/components", tags=["components"])
 
 
-def _serialize_component(row: ComponentLibrary, include_html: bool = False) -> dict:
+def _serialize_component(row: ComponentLibrary, include_html: bool = False,
+                         include_contract: bool = False) -> dict:
     out = {
         "slug":           row.slug,
         "name":           row.name,
@@ -82,6 +83,8 @@ def _serialize_component(row: ComponentLibrary, include_html: bool = False) -> d
     }
     if include_html:
         out["html_template"] = row.html_template
+    if include_contract:
+        out["contract"] = _befund(row.html_template or "", row.slug, row.slots or [])
     return out
 
 
@@ -120,6 +123,11 @@ def list_components(
     weil das Wireframe-Frontend Live-Previews pro Block rendert. Caller
     der nur Metadaten brauchen koennen mit `?include_html=false` opt-out
     (~80% kleinere Response).
+
+    Mit `include_drafts=true` faehrt zu jedem Block auch sein `contract`-Befund
+    mit. Ohne ihn zeigt die Bibliotheks-Oberflaeche zwar den Entwurfs-Status,
+    aber nicht den Grund — und ein Entwurf ohne Grund sieht aus wie ein Fehler.
+    Der Wireframe-Editor (Default, ohne Entwuerfe) zahlt die Pruefung nicht mit.
     """
     q = db.query(ComponentLibrary)
     # Entwuerfe nur auf ausdruecklichen Wunsch — sonst taucht ungepruefter
@@ -128,7 +136,11 @@ def list_components(
     if category:
         q = q.filter(ComponentLibrary.category == category.upper())
     rows = q.order_by(ComponentLibrary.category, ComponentLibrary.slug).all()
-    return [_serialize_component(r, include_html=include_html) for r in rows]
+    return [
+        _serialize_component(r, include_html=include_html,
+                             include_contract=include_drafts)
+        for r in rows
+    ]
 
 
 # ACHTUNG Reihenfolge: Diese Route MUSS vor "/{slug}" stehen. FastAPI matcht in

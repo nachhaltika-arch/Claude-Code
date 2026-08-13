@@ -115,6 +115,32 @@ def test_entwurf_erscheint_nicht_in_der_bibliothek(client, auth_headers, aufraeu
     assert slug in [b["slug"] for b in mit.json()]
 
 
+def test_liste_mit_entwuerfen_nennt_auch_den_grund(client, auth_headers, aufraeumen):
+    """Ein Entwurf ohne sichtbaren Grund sieht in der Oberflaeche aus wie ein Fehler."""
+    slug = "pytest-gate-grund"
+    aufraeumen.append(slug)
+    _anlegen(client, auth_headers, slug, _mit_fremder_karte(slug))
+
+    liste = client.get("/api/components?include_html=false&include_drafts=true",
+                       headers=auth_headers).json()
+    block = next(b for b in liste if b["slug"] == slug)
+
+    assert block["contract"]["konform"] is False
+    assert any(v["regel"] == "R1" for v in block["contract"]["verstoesse"])
+
+
+def test_liste_ohne_entwuerfe_prueft_nicht_mit(client, auth_headers, aufraeumen):
+    """Der Wireframe-Editor braucht den Befund nicht und soll ihn nicht zahlen."""
+    slug = "pytest-gate-ohne-befund"
+    aufraeumen.append(slug)
+    _anlegen(client, auth_headers, slug, _sauber(slug))
+
+    liste = client.get("/api/components?include_html=false", headers=auth_headers).json()
+    block = next(b for b in liste if b["slug"] == slug)
+
+    assert "contract" not in block
+
+
 # ── Freigabe ─────────────────────────────────────────────────────────────
 
 def test_freigabe_eines_unsauberen_blocks_wird_verweigert(client, auth_headers, aufraeumen):

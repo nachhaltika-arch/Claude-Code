@@ -11,6 +11,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
+import { ContractPanel, StatusBadge, anzahlVerstoesse } from '../components/library/BlockContract';
+import { mitBlockMarkierung } from '../utils/blockMarkup';
 
 const KC_DARK = '#004F59';
 const KC_MID = '#008EAA';
@@ -24,6 +26,14 @@ const SOURCES = [
   { id: 'kas',    label: 'KAS' },
   { id: 'hyperui', label: 'HyperUI' },
   { id: 'custom', label: 'Custom' },
+];
+
+// Entwuerfe sind der Normalfall bei KI-erzeugten Bloecken — sie brauchen einen
+// eigenen Filter, sonst sucht man sie zwischen 41 freigegebenen.
+const STATES = [
+  { id: 'all',      label: 'Alle' },
+  { id: 'approved', label: 'Freigegeben' },
+  { id: 'draft',    label: 'Entwuerfe' },
 ];
 
 // Element-Picker im KI-Generator. Counts: User legt Anzahl fest (0 = KI entscheidet).
@@ -127,6 +137,8 @@ function emptyForm() {
     slots: [],
     ki_prompt_hint: '',
     preview_note: '',
+    status: 'approved',
+    contract: null,
   };
 }
 
@@ -142,6 +154,7 @@ export default function ComponentLibrary() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [stateFilter, setStateFilter] = useState('all');
 
   const [selectedSlug, setSelectedSlug] = useState(null);
   const [form, setForm] = useState(emptyForm());
@@ -149,6 +162,7 @@ export default function ComponentLibrary() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [approving, setApproving] = useState(false);
 
   // AI-Generator (Component-Designer)
   const [aiOpen, setAiOpen] = useState(false);
@@ -181,7 +195,12 @@ export default function ComponentLibrary() {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/components?include_html=true`, { headers });
+      // Der Manager ist der Ort, an dem Entwuerfe bearbeitet und freigegeben
+      // werden — hier muessen sie sichtbar sein, samt Vertragsbefund.
+      const res = await fetch(
+        `${API_BASE_URL}/api/components?include_html=true&include_drafts=true`,
+        { headers },
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setItems(Array.isArray(data) ? data : []);
@@ -202,6 +221,9 @@ export default function ComponentLibrary() {
     if (categoryFilter !== 'all') {
       list = list.filter((c) => c.category === categoryFilter);
     }
+    if (stateFilter !== 'all') {
+      list = list.filter((c) => (c.status || 'approved') === stateFilter);
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       list = list.filter(
@@ -212,11 +234,17 @@ export default function ComponentLibrary() {
       );
     }
     return list;
-  }, [items, sourceFilter, categoryFilter, searchQuery]);
+  }, [items, sourceFilter, categoryFilter, stateFilter, searchQuery]);
 
   const counts = useMemo(() => {
     const c = { all: items.length, kas: 0, hyperui: 0, custom: 0 };
     items.forEach((it) => { c[detectSource(it.tags)] += 1; });
+    return c;
+  }, [items]);
+
+  const stateCounts = useMemo(() => {
+    const c = { all: items.length, approved: 0, draft: 0 };
+    items.forEach((it) => { c[(it.status || 'approved') === 'draft' ? 'draft' : 'approved'] += 1; });
     return c;
   }, [items]);
 
@@ -233,6 +261,8 @@ export default function ComponentLibrary() {
       slots:          item.slots || [],
       ki_prompt_hint: item.ki_prompt_hint || '',
       preview_note:   item.preview_note || '',
+      status:         item.status || 'approved',
+      contract:       item.contract || null,
     });
     setDirty(false);
   };
@@ -257,6 +287,20 @@ export default function ComponentLibrary() {
     }, {});
     return renderSlots(form.html_template, defaults);
   }, [form.html_template, form.slots]);
+
+  // Ein Block, der auf Entwurf faellt, darf das nicht stillschweigend tun —
+  // sonst sieht der Nutzer nur, dass sein Block aus dem Wireframe-Editor
+  // verschwindet, und haelt es fuer einen Fehler.
+  const meldeVertrag = (body, erfolgstext) => {
+    const offen = anzahlVerstoesse(body?.contract);
+    if (body?.status === 'draft') {
+      toast(`${erfolgstext} — als Entwurf: ${offen} ${offen === 1 ? 'Punkt' : 'Punkte'} `
+            + 'aus dem Vertrag offen. Details stehen im Editor.',
+      { icon: '⚠️', duration: 6000 });
+      return;
+    }
+    toast.success(erfolgstext);
+  };
 
   const save = async () => {
     // Bei NEU + leerem Slug: Auto-Generation aus Name. Sonst: Slug muss valide sein.
@@ -296,11 +340,15 @@ export default function ComponentLibrary() {
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body?.detail || `HTTP ${res.status}`);
-        toast.success(`Angelegt: ${body.slug}`);
-        await reload();
+        meldeVertrag(body, `Angelegt: ${body.slug}`);
+        setForm((f) => ({ ...f, status: body.status, contract: body.contract || null }));
         setSelectedSlug(body.slug);
         setIsNew(false);
+        // Erst den Zustand setzen, dann nachladen. Andersherum wuerde eine
+        // Eingabe, die waehrend des Nachladens passiert, wieder als
+        // „gespeichert" gelten — und der Speichern-Knopf bliebe grau.
         setDirty(false);
+        await reload();
       } else {
         const res = await fetch(`${API_BASE_URL}/api/components/${form.slug}`, {
           method: 'PUT', headers,
@@ -316,14 +364,44 @@ export default function ComponentLibrary() {
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body?.detail || `HTTP ${res.status}`);
-        toast.success('Gespeichert');
-        await reload();
+        meldeVertrag(body, 'Gespeichert');
+        setForm((f) => ({ ...f, status: body.status, contract: body.contract || null }));
         setDirty(false);
+        await reload();
       }
     } catch (e) {
       toast.error(`Speichern fehlgeschlagen: ${e.message}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Freigabe: der Punkt, an dem ein Block auf Kundenseiten landen kann. Das
+  // Backend verweigert sie bei Vertragsbruch mit 422 — die Verstoesse stecken
+  // dann in detail.contract und gehoeren angezeigt, nicht verschluckt.
+  const approve = async () => {
+    if (!form.slug || isNew) return;
+    setApproving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/components/${form.slug}/approve`, {
+        method: 'POST', headers,
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = body?.detail;
+        if (detail?.contract) {
+          setForm((f) => ({ ...f, contract: detail.contract }));
+        }
+        throw new Error(typeof detail === 'string' ? detail
+          : detail?.message || `HTTP ${res.status}`);
+      }
+      setForm((f) => ({ ...f, status: body.status, contract: body.contract || null }));
+      toast.success('Freigegeben — der Block steht jetzt im Wireframe-Editor.');
+      await reload();
+    } catch (e) {
+      toast.error(`Freigabe abgelehnt: ${e.message}`);
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -394,11 +472,14 @@ export default function ComponentLibrary() {
   };
 
   // Uebernimmt das KI-Resultat in den Editor (als neue Komponente).
-  // Slug wird automatisch aus Name slugifiziert + eindeutig gemacht.
+  // Slug: der von der KI vergebene, notfalls eindeutig gemacht — und dann
+  // wandert er auch ins Markup. Regel R2 verlangt, dass `data-block` zum Slug
+  // passt; benennt die Oberflaeche nur den Eintrag um, faellt der eben noch
+  // saubere Block beim Speichern auf Entwurf zurueck.
   const useAiResult = () => {
     if (!aiResult) return;
     if (dirty && !window.confirm('Ungespeicherte Aenderungen verwerfen?')) return;
-    const baseSlug = slugify(aiResult.name || `${aiForm.category.toLowerCase()}-ai`);
+    const baseSlug = slugify(aiResult.slug || aiResult.name || `${aiForm.category.toLowerCase()}-ai`);
     const uniqueSlug = generateUniqueSlug(baseSlug, items.map((i) => i.slug));
     setSelectedSlug(null);
     setIsNew(true);
@@ -407,10 +488,13 @@ export default function ComponentLibrary() {
       name: aiResult.name || '',
       category: aiResult.category || aiForm.category,
       tags: aiResult.tags || [],
-      html_template: aiResult.html_template || '',
+      html_template: mitBlockMarkierung(aiResult.html_template || '', uniqueSlug),
       slots: aiResult.slots || [],
       ki_prompt_hint: aiResult.ki_prompt_hint || '',
       preview_note: aiResult.preview_note || '',
+      // Der Befund aus dem Job bleibt sichtbar, bis das Speichern ihn ersetzt.
+      status: aiResult.contract?.konform === false ? 'draft' : 'approved',
+      contract: aiResult.contract || null,
     });
     setDirty(true);
     closeAiModal();
@@ -500,6 +584,24 @@ export default function ComponentLibrary() {
             );
           })}
         </div>
+        <div style={{ display: 'inline-flex', gap: 0, border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
+          {STATES.map((s) => {
+            const active = stateFilter === s.id;
+            return (
+              <button
+                key={s.id} type="button" onClick={() => setStateFilter(s.id)}
+                style={{
+                  background: active ? '#92400e' : 'transparent',
+                  color: active ? '#fff' : '#475569',
+                  border: 'none', cursor: 'pointer',
+                  padding: '6px 10px', fontSize: 11, fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.04em',
+                  fontFamily: 'inherit',
+                }}
+              >{s.label} <span style={{ opacity: 0.6 }}>({stateCounts[s.id] ?? 0})</span></button>
+            );
+          })}
+        </div>
         <select
           value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
           style={{ padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12, background: '#fff' }}
@@ -526,6 +628,10 @@ export default function ComponentLibrary() {
           {!loading && filtered.map((it) => {
             const active = selectedSlug === it.slug && !isNew;
             const src = detectSource(it.tags);
+            const entwurf = (it.status || 'approved') === 'draft';
+            // Freigegeben und trotzdem verletzt: die Altlast (hw-karte,
+            // seo-lokal). Nicht verstecken — sonst faellt sie erst beim Kunden auf.
+            const altlast = !entwurf && anzahlVerstoesse(it.contract) > 0;
             return (
               <button
                 key={it.slug} type="button" onClick={() => openItem(it)}
@@ -552,8 +658,17 @@ export default function ComponentLibrary() {
                     textTransform: 'uppercase', letterSpacing: '0.04em',
                   }}>{src}</span>
                 </div>
-                <div style={{ fontSize: 10, color: '#94a3b8', fontFamily: 'ui-monospace, monospace', marginTop: 2 }}>
-                  {it.slug}
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 2 }}>
+                  <span style={{ fontSize: 10, color: '#94a3b8', fontFamily: 'ui-monospace, monospace', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {it.slug}
+                  </span>
+                  {entwurf && <StatusBadge status="draft" />}
+                  {altlast && (
+                    <span
+                      title={`Freigegeben, verletzt aber den Vertrag (${anzahlVerstoesse(it.contract)} Punkte)`}
+                      style={{ fontSize: 10, color: '#b45309' }}
+                    >⚠️</span>
+                  )}
                 </div>
               </button>
             );
@@ -575,9 +690,9 @@ export default function ComponentLibrary() {
             <Editor
               form={form} updateForm={updateForm}
               isNew={isNew} dirty={dirty}
-              saving={saving} deleting={deleting}
+              saving={saving} deleting={deleting} approving={approving}
               previewHtml={previewHtml}
-              onSave={save} onDelete={remove}
+              onSave={save} onDelete={remove} onApprove={approve}
             />
           )}
         </main>
@@ -634,7 +749,7 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
               ✨ Komponenten-Designer (KI)
             </div>
             <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2 }}>
-              Sonnet 4.6 · Wireframe-Stil (neutral grau) · CI-Design folgt im Projekt-Prozess
+              Opus 5 · Wireframe-Stil (neutral grau) · CI-Design folgt im Projekt-Prozess
             </div>
           </div>
           <button type="button" onClick={onClose} disabled={status === 'running'}
@@ -830,7 +945,7 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
             {status === 'running' && (
               <div style={{ padding: 32, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
                 <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-                Sonnet 4.6 schreibt deine Komponente…<br/>
+                Opus 5 schreibt deine Komponente…<br/>
                 <div style={{ fontSize: 11, marginTop: 8, color: '#94a3b8' }}>Polling alle 2s · Background-Job</div>
               </div>
             )}
@@ -849,6 +964,16 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
                     {(result.slots || []).length} Slots · {(result.tags || []).join(' · ')}
                   </div>
                 </div>
+
+                {/* Der Vertragsbefund faehrt aus dem Job mit. Er gehoert hierher,
+                    nicht erst hinter das Speichern — sonst uebernimmt man einen
+                    Block und wundert sich, warum er als Entwurf landet. */}
+                <ContractPanel
+                  contract={result.contract}
+                  status={result.contract?.konform ? 'approved' : 'draft'}
+                  hinweis={'Uebernehmen und speichern geht trotzdem — der Block landet '
+                    + 'dann als Entwurf und wartet dort auf die Reparatur.'}
+                />
                 <div style={{
                   border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden',
                   background: '#fff', pointerEvents: 'none', marginBottom: 12,
@@ -890,8 +1015,8 @@ function AiGeneratorModal({ form, setForm, status, result, error, onGenerate, on
 
 function Editor({
   form, updateForm, isNew, dirty,
-  saving, deleting, previewHtml,
-  onSave, onDelete,
+  saving, deleting, approving, previewHtml,
+  onSave, onDelete, onApprove,
 }) {
   const [tagInput, setTagInput] = useState('');
 
@@ -919,9 +1044,10 @@ function Editor({
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         background: '#f8fafc',
       }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: KC_DARK }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: KC_DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
           {isNew ? 'Neue Komponente' : form.name || form.slug}
-          {dirty && <span style={{ marginLeft: 8, fontSize: 10, color: '#92400e', background: '#FEF3C7', padding: '2px 6px', borderRadius: 4 }}>UNGESPEICHERT</span>}
+          {!isNew && <StatusBadge status={form.status} />}
+          {dirty && <span style={{ fontSize: 10, color: '#92400e', background: '#FEF3C7', padding: '2px 6px', borderRadius: 4 }}>UNGESPEICHERT</span>}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {!isNew && (
@@ -951,9 +1077,17 @@ function Editor({
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {/* Form column */}
         <div style={{ flex: '0 0 380px', padding: 14, overflowY: 'auto', borderRight: '1px solid #e2e8f0' }}>
+          <ContractPanel
+            contract={form.contract}
+            status={form.status}
+            stale={dirty}
+            onApprove={isNew ? undefined : onApprove}
+            approving={approving}
+          />
+
           <Field label="Slug">
             <input
-              type="text" value={form.slug} disabled={!isNew}
+              type="text" value={form.slug} disabled={!isNew} aria-label="Slug"
               onChange={(e) => updateForm({ slug: e.target.value.toLowerCase() })}
               placeholder={isNew ? 'leer lassen → wird aus Name erzeugt' : ''}
               style={inputStyle(!isNew)}
@@ -963,7 +1097,7 @@ function Editor({
 
           <Field label="Name">
             <input
-              type="text" value={form.name}
+              type="text" value={form.name} aria-label="Name"
               onChange={(e) => updateForm({ name: e.target.value })}
               style={inputStyle(false)}
             />
@@ -1040,7 +1174,7 @@ function Editor({
 
           <Field label="HTML-Template">
             <textarea
-              value={form.html_template}
+              value={form.html_template} aria-label="HTML-Template"
               onChange={(e) => updateForm({ html_template: e.target.value })}
               rows={14}
               style={{

@@ -252,26 +252,30 @@ export default function WireframeView({
   // den neuen ComponentLibrary-Eintrag — wir cachen ihn lokal und tauschen den
   // Block der aktuellen Page auf den neuen Slug aus.
   const saveAsCustom = async (targetIdx, payload) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/components/save-custom`, {
-        method: 'POST', headers,
-        body: JSON.stringify(payload),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const detail = body?.detail;
-        const msg = typeof detail === 'string' ? detail : `Fehler ${res.status}`;
-        throw new Error(msg);
-      }
-      // Library-Cache erweitern + Block auf neuen Slug umstellen
-      setLibrary((prev) => [...prev, body]);
-      swapBlock(targetIdx, body.slug);
-      return body;
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('save-custom failed:', e);
-      return null;
+    const res = await fetch(`${API_BASE_URL}/api/components/save-custom`, {
+      method: 'POST', headers,
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const detail = body?.detail;
+      throw new Error(typeof detail === 'string' ? detail : `Fehler ${res.status}`);
     }
+    // Gespeichert, aber nicht freigegeben: der Block verletzt den Vertrag. Ihn
+    // trotzdem in die Seite zu tauschen waere die stille Variante — die Seite
+    // haette dann einen Block, den sie nicht ausgeben kann. Also stehen lassen
+    // und sagen, woran es liegt.
+    if (body.status === 'draft') {
+      const gruende = (body.contract?.verstoesse || [])
+        .map((v) => `${v.regel}: ${v.text}`).join(' · ');
+      throw new Error(
+        `Als Entwurf gespeichert — der Block bleibt aus der Seite draussen. ${gruende}`,
+      );
+    }
+    // Library-Cache erweitern + Block auf neuen Slug umstellen
+    setLibrary((prev) => [...prev, body]);
+    swapBlock(targetIdx, body.slug);
+    return body;
   };
 
   // W1: Drag-Reorder — verschiebt Block von fromIdx an toIdx, persistiert.
@@ -441,6 +445,10 @@ export default function WireframeView({
                 idx={idx}
                 block={b}
                 libraryEntry={library.find((c) => c.slug === b.slug)}
+                // Solange die Bibliothek laedt, fehlt jeder Eintrag — die
+                // Warnung darf erst danach erscheinen, sonst blinkt sie bei
+                // jedem Seitenaufruf an allen Bloecken auf.
+                libraryGeladen={!libraryLoading && library.length > 0}
                 isDragOver={dragOverIdx === idx && draggedIdx !== idx}
                 isDragging={draggedIdx === idx}
                 onDragStart={() => setDraggedIdx(idx)}
@@ -495,8 +503,10 @@ export default function WireframeView({
               setEditPanel(null);
             }}
             onSaveAsCustom={async (payload) => {
-              const created = await saveAsCustom(editPanel.idx, payload);
-              if (created) setEditPanel(null);
+              // Wirft, wenn der Block den Vertrag verletzt — die Meldung
+              // gehoert ins Panel, nicht in die Konsole.
+              await saveAsCustom(editPanel.idx, payload);
+              setEditPanel(null);
             }}
           />
         );
@@ -703,7 +713,7 @@ function PageThumb({ page, library, isActive, onClick }) {
 }
 
 function BlockCard({
-  idx, block, libraryEntry,
+  idx, block, libraryEntry, libraryGeladen = false,
   isDragOver, isDragging,
   onDragStart, onDragOver, onDrop, onDragEnd,
   onSwap, onVariation, onEdit, onRemove,
@@ -712,6 +722,10 @@ function BlockCard({
   const html = renderSlots(libraryEntry?.html_template || '', block?.slots);
   const name = libraryEntry?.name || block.slug;
   const category = libraryEntry?.category || '—';
+  // Der Editor laedt nur freigegebene Bloecke. Fehlt der Eintrag, ist der Block
+  // entweder auf Entwurf zurueckgefallen oder geloescht — beides muss dastehen,
+  // sonst wirkt die leere Karte wie ein Anzeigefehler.
+  const fehltInBibliothek = libraryGeladen && !libraryEntry;
 
   // Phase B: Klick auf die ganze Card oeffnet das Detail-Panel (Relume-UX).
   // Buttons im Header bekommen stopPropagation, damit sie nicht zusaetzlich
@@ -761,6 +775,16 @@ function BlockCard({
           fontSize: 11, fontWeight: 700, color: KC_DARK,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{name}</span>
+        {fehltInBibliothek && (
+          <span
+            title="Nicht in der freigegebenen Bibliothek — wird auf der Kundenseite nicht ausgegeben"
+            style={{
+              background: '#fee2e2', color: '#991b1b',
+              fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 3,
+              textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap',
+            }}
+          >Fehlt</span>
+        )}
         <span style={{ color: 'var(--text-tertiary)', fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>
           #{idx + 1}
         </span>
@@ -814,11 +838,21 @@ function BlockCard({
           pointerEvents: 'none',
         }}
       >
-        {html ? (
-          <div dangerouslySetInnerHTML={{ __html: html }} />
-        ) : (
+        {html && <div dangerouslySetInnerHTML={{ __html: html }} />}
+        {!html && fehltInBibliothek && (
+          <div style={{ padding: 20, background: '#fef2f2', color: '#991b1b', fontSize: 12 }}>
+            <strong style={{ display: 'block', marginBottom: 4 }}>
+              Dieser Block steht nicht in der freigegebenen Bibliothek.
+            </strong>
+            Er ist entweder auf Entwurf zurückgefallen (Vertrag verletzt) oder gelöscht
+            worden. So wie er hier steht, wird er auf der Kundenseite nicht ausgegeben —
+            im Komponenten-Manager unter <code>{block.slug}</code> nachsehen, dort steht
+            der Grund. Bis dahin: Block tauschen oder entfernen.
+          </div>
+        )}
+        {!html && !fehltInBibliothek && (
           <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12, fontStyle: 'italic' }}>
-            Keine Vorschau verfügbar (Library-Eintrag fehlt)
+            {libraryGeladen ? 'Kein HTML-Template hinterlegt' : 'Vorschau lädt…'}
           </div>
         )}
       </div>
@@ -919,6 +953,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
   // Erweiterte Bereiche (eingeklappt)
   const [showAdvanced, setShowAdvanced]   = useState(false);
   const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customError, setCustomError] = useState('');
   const [showRawHtml, setShowRawHtml]     = useState(false);
   const [rawHtml, setRawHtml]             = useState(html);
   const [customSlug, setCustomSlug]       = useState(`${block.slug}-custom`);
@@ -943,6 +978,7 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
     setCustomName(libraryEntry?.name ? `${libraryEntry.name} (Custom)` : 'Custom Section');
     setShowAdvanced(false);
     setShowCustomForm(false);
+    setCustomError('');
     setShowRawHtml(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [block?.slug]);
@@ -989,17 +1025,23 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
   const handleCustomSave = async () => {
     if (saving) return;
     setSaving(true);
-    await onSaveAsCustom({
-      new_slug:       customSlug.trim().toLowerCase(),
-      new_name:       customName.trim(),
-      html_template:  showRawHtml ? rawHtml : renderSlots(html, values),
-      category:       libraryEntry?.category || 'CUSTOM',
-      source_slug:    block.slug,
-      slots:          showRawHtml ? [] : (libraryEntry?.slots || []),
-      ki_prompt_hint: libraryEntry?.ki_prompt_hint || '',
-      preview_note:   `Custom-Variante von ${libraryEntry?.name || block.slug}`,
-    });
-    setSaving(false);
+    setCustomError('');
+    try {
+      await onSaveAsCustom({
+        new_slug:       customSlug.trim().toLowerCase(),
+        new_name:       customName.trim(),
+        html_template:  showRawHtml ? rawHtml : renderSlots(html, values),
+        category:       libraryEntry?.category || 'CUSTOM',
+        source_slug:    block.slug,
+        slots:          showRawHtml ? [] : (libraryEntry?.slots || []),
+        ki_prompt_hint: libraryEntry?.ki_prompt_hint || '',
+        preview_note:   `Custom-Variante von ${libraryEntry?.name || block.slug}`,
+      });
+    } catch (e) {
+      setCustomError(e.message || 'Speichern fehlgeschlagen');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const lblStyle = {
@@ -1236,6 +1278,12 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
                   >
                     {saving ? 'Speichert…' : '✓ Custom speichern + anwenden'}
                   </button>
+                  {customError && (
+                    <div style={{
+                      padding: 8, background: '#fef2f2', border: '1px solid #fca5a5',
+                      borderRadius: 4, color: '#991b1b', fontSize: 11,
+                    }}>{customError}</div>
+                  )}
                 </div>
               )}
             </div>

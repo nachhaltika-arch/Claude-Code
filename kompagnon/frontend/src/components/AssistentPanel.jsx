@@ -20,6 +20,10 @@ const LILA = '#7c3aed';
 const LILA_HELL = '#faf5ff';
 const LILA_RAND = '#d8b4fe';
 
+// Unten rechts sitzt bereits der Support-Chat (52 px, 24 px Abstand). Der
+// Assistent stapelt sich darüber, statt sich mit ihm zu überlagern.
+const ABSTAND_UNTEN = 88;
+
 export default function AssistentPanel({
   leadId,
   projektId = null,
@@ -114,10 +118,14 @@ export default function AssistentPanel({
 
   const anTeam = async () => {
     if (!gespraech || eskaliert) return;
+    // Steht nichts im Eingabefeld, ist das Anliegen die zuletzt gestellte
+    // Frage — sonst landet beim Team eine Nachricht ohne Betreff.
+    const letzteFrage = [...verlauf].reverse().find((n) => n.rolle === 'nutzer');
+    const anliegen = frage.trim() || letzteFrage?.inhalt || '';
     try {
       const res = await fetch(
         `${API_BASE_URL}/api/assistant/conversations/${gespraech}/escalate`,
-        { method: 'POST', headers, body: JSON.stringify({ anliegen: frage || '' }) },
+        { method: 'POST', headers, body: JSON.stringify({ anliegen }) },
       );
       if (!res.ok) throw new Error(`Fehler ${res.status}`);
       setEskaliert(true);
@@ -135,7 +143,7 @@ export default function AssistentPanel({
       <button
         type="button" onClick={() => setOffen(true)}
         style={{
-          position: 'fixed', right: 16, bottom: 16, zIndex: 900,
+          position: 'fixed', right: 16, bottom: ABSTAND_UNTEN, zIndex: 900,
           background: LILA, color: '#fff', border: 'none', borderRadius: 999,
           padding: '12px 18px', fontSize: 13, fontWeight: 700,
           fontFamily: 'inherit', cursor: 'pointer',
@@ -153,7 +161,7 @@ export default function AssistentPanel({
         background: LILA_HELL, border: `1px solid ${LILA_RAND}`, borderRadius: 10,
         fontFamily: 'inherit',
         ...(kompakt ? {
-          position: 'fixed', right: 12, bottom: 12, zIndex: 900,
+          position: 'fixed', right: 12, bottom: ABSTAND_UNTEN, zIndex: 900,
           width: 'min(380px, calc(100vw - 24px))', maxHeight: 'min(70vh, 560px)',
           boxShadow: '0 12px 40px rgba(0,0,0,0.18)',
         } : { height: '100%', minHeight: 320 }),
@@ -222,6 +230,18 @@ export default function AssistentPanel({
 
         {laeuft && (
           <div style={{ fontSize: 12, color: '#6b21a8' }}>Der Assistent überlegt…</div>
+        )}
+
+        {/* Ohne Übernahmeziel — etwa im Kundenportal — wird der Vorschlag
+            trotzdem gezeigt. Sonst verschwände der halbe Rat des Assistenten,
+            weil ihn niemand in ein Feld schreiben kann. */}
+        {vorschlag && !onUebernehmen && (
+          <div style={{
+            alignSelf: 'flex-start', maxWidth: '92%', background: '#fff',
+            border: `1px solid ${LILA_RAND}`, borderLeft: `3px solid ${LILA}`,
+            borderRadius: 10, padding: '8px 10px', fontSize: 12.5,
+            lineHeight: 1.5, color: '#3b0764', whiteSpace: 'pre-wrap',
+          }}>{vorschlag.text}</div>
         )}
 
         {vorschlag && onUebernehmen && (

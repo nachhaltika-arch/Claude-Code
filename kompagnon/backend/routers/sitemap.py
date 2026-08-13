@@ -509,8 +509,13 @@ def update_page(
         raise HTTPException(status_code=404, detail="Seite nicht gefunden")
     updates = body.model_dump(exclude_unset=True)
     if page.ist_pflichtseite:
-        # Only content fields may be changed; structural fields are locked
-        allowed = {"zweck", "notizen", "status", "sections", "ai_prompt", "color_tag"}
+        # Gesperrt ist die Struktur (Name, Position, Elternteil), nicht der
+        # Inhalt. `mockup_html` gehoert dazu: Ein Impressum braucht genauso ein
+        # Aussehen wie jede andere Seite, und die Design-Vorschau schreibt ihren
+        # Entwurf genau dorthin. Ohne diesen Eintrag verwarf die API das Feld
+        # und antwortete trotzdem mit 200 — die Oberflaeche meldete Erfolg.
+        allowed = {"zweck", "notizen", "status", "sections", "ai_prompt",
+                   "color_tag", "mockup_html"}
         updates = {k: v for k, v in updates.items() if k in allowed}
     # color_tag muss Hex-Format sein oder leerer String — sonst verwerfen
     if "color_tag" in updates:

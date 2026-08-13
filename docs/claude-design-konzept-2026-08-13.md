@@ -18,9 +18,9 @@ es liegt. Der scharfe Lauf gegen die echte API ist gemacht: **8 von 9
 angekommenen Blöcken bestehen den Vertrag im ersten Wurf**, gescheitert ist
 einer am JSON statt am Vertrag (behoben). Auch die Marken-Regel R5 steht jetzt
 im Prüfer, und der Marken-Override deckt die ganze Graustufen-Skala ab (§ 4.2).
-Beim Bauen kam allerdings heraus, dass dieser Zweig gar nicht auf der
-Kundenseite endet (§ 4.3) — das ist die offene Entscheidung vor Stufe B.
-Stufe B und C sind entworfen, nicht gebaut.
+Beim Bauen kam heraus, dass dieser Zweig gar nicht auf der Kundenseite endete —
+das ist seit „Auf die Seite übernehmen" geschlossen (§ 4.3). Stufe B und C sind
+entworfen, nicht gebaut.
 
 ---
 
@@ -148,7 +148,7 @@ die jede Regel je dunkler Fläche wiederholte, ergab 449 KB CSS; so sind es 114.
 Der Test liest die 45 echten Blöcke und verlangt für jede ihrer Farbklassen
 einen Selektor. Kommt ein neuer Block mit einer neuen Klasse, fällt es dort auf.
 
-### 4.3 Die Korrektur: Wohin dieses CSS **nicht** geht
+### 4.3 Der Anschluss an die Seite — vorher eine Sackgasse
 
 Beim Bauen kam heraus, dass eine frühere Fassung dieses Dokuments (und mein
 eigener Befund oben) zu weit ging: **Der Override erreicht die Kundenseite gar
@@ -160,15 +160,31 @@ ausgelieferte Seite entsteht auf einem anderen Weg:
 nur an drei Stellen gerendert (Wireframe-Editor, Design-Vorschau,
 Komponenten-Manager), und keine davon schreibt in `mockup_html`.
 
-Das heißt zweierlei:
+**Geschlossen am 2026-08-13:** „Auf die Seite übernehmen" in der DesignView
+schreibt die Vorschau — Marken-CSS und Blöcke in einem Stück — nach
+`sitemap_pages.mockup_html`. Von dort geht sie in GrapesJS und in den Deploy.
+Bewusst ein Knopf und kein Automatismus: Er überschreibt, was auf der Seite
+schon steht, und fragt vorher nach, wenn dort ein Entwurf oder eine bearbeitete
+Editor-Fassung liegt. Vorschau und Übernahme teilen sich denselben Baustein
+(`utils/pageHtml.js`) — was übernommen wird, ist genau das, was zu sehen war.
 
-* Der reparierte Override wirkt dort, wo entschieden wird — in der Vorschau,
-  auf deren Grundlage der Style-Guide freigegeben wird. Eine Vorschau, die halb
-  Marke und halb Wireframe zeigt, führt genau an dieser Stelle in die Irre.
-* **Die eigentliche Lücke vor Stufe B ist eine andere:** Wireframe + Style-Guide
-  münden heute in keine ausgelieferte Seite. Stufe B würde in `wireframe_data`
-  schreiben — also in denselben Zweig, der nicht angeschlossen ist. Das ist die
-  Entscheidung, die vor B ansteht (§ 9.5).
+Zwei Dinge kamen dabei heraus, beide vom stillen Typ:
+
+* **Auf einer Pflichtseite wurde der Entwurf verworfen.** `PUT
+  /api/sitemap/pages/{id}` lässt bei `ist_pflichtseite` nur Inhaltsfelder durch
+  — `mockup_html` stand nicht auf der Liste. Die API antwortete mit 200, die
+  Oberfläche meldete Erfolg, gespeichert wurde nichts. Impressum und
+  Datenschutz hätten also nie ein Aussehen bekommen. Jetzt steht das Feld auf
+  der Liste (gesperrt bleibt die Struktur), und die Oberfläche prüft die
+  Antwort, statt dem Status zu glauben.
+* **Jede bestätigte Schritt-Bestätigung ging verloren.** `steps_confirmed` legt
+  `main.py::_run_migrations` per rohem SQL an; das ORM-Modell kannte die Spalte
+  nicht. `POST /confirm-step` antwortete `{"saved": true}` und schrieb nichts.
+  Da der Editor nur den nächsten Schritt nach der letzten lückenlosen Kette
+  freigibt, blieben Wireframe, Style-Guide und Design **dauerhaft gesperrt** —
+  ohne Fehlermeldung. Gefunden beim Versuch, die Design-Ansicht im Browser-Test
+  überhaupt zu erreichen. Dieselbe Falle wie im Mai bei `status`: Was `main.py`
+  per SQL anlegt, muss auch im Modell stehen.
 
 **Kontrolllauf mit scharfem R5** (vier Blöcke gegen die echte API): R5 hat kein
 einziges Mal ausgelöst — das Modell bleibt von sich aus grau. Aufgefallen ist
@@ -412,20 +428,12 @@ Stufe B/C in `wireframe_data` bzw. `kas_gjs_data`.
    Muster-Referenz (Ableitung, nicht Kopie) oder rein aus dem Briefing?
 4. **Bleibt der GrapesJS-Editor beim Kunden** oder nur intern bei dir? Das
    entscheidet, wie streng die Sperren im Vertrag sein müssen.
-5. **Wie kommt der Wireframe-Zweig auf die Seite?** (§ 4.3, neu und die
-   wichtigste dieser Fragen.) Heute laufen zwei Wege nebeneinander: Der eine
-   geht Sitemap → Wireframe → Style-Guide → Design-Vorschau und endet dort. Der
-   andere geht über einen Agenten-Lauf in `mockup_html` → GrapesJS → Netlify
-   und ist der, der beim Kunden ankommt. Stufe A und B bauen auf dem ersten.
-   Drei Möglichkeiten:
-   * **Anschließen:** Die Design-Vorschau schreibt ihr gerendertes HTML samt
-     Override-CSS nach `mockup_html`. Kleinster Eingriff, macht den
-     Wireframe-Zweig produktiv.
-   * **Zusammenlegen:** Der Agenten-Lauf bekommt die Blöcke als Vorlage, statt
-     frei zu erzeugen. Größer, dafür ein Weg statt zwei.
-   * **Trennen und benennen:** Der Wireframe-Zweig bleibt Entwurfswerkzeug für
-     dich, die Kundenseite entsteht weiter über den Agenten. Dann sind Stufe B
-     und C für die Kundenseite ohne Wirkung — und das gehört ins Konzept.
+5. **Zwei Wege auf dieselbe Seite** (§ 4.3). Der Wireframe-Zweig ist seit dem
+   2026-08-13 angeschlossen: Die Design-Vorschau schreibt nach `mockup_html`.
+   Daneben steht weiter der Agenten-Lauf, der dasselbe Feld füllt. Offen bleibt
+   deshalb: Bleiben beide Wege nebeneinander (dann braucht es eine Regel, wer
+   wann gewinnt), oder bekommt der Agent die Blöcke als Vorlage und es bleibt
+   einer? Nicht dringend — der Knopf fragt nach, bevor er überschreibt.
 
 ## 10. Nächste Schritte
 
@@ -436,6 +444,6 @@ Stufe B/C in `wireframe_data` bzw. `kas_gjs_data`.
 | 3 | `hw-karte` / `seo-lokal` entschärfen | ~2 h | Eigene Blöcke fallen bei der eigenen Prüfung durch — in der Liste jetzt am ⚠️ zu sehen. Der scharfe Lauf zeigt: neu erzeugte Blöcke machen den Fehler nicht mehr |
 | ~~4~~ | ~~R5 Marken-Bindung~~ | — | **gebaut am 2026-08-13**, an 45 Blöcken gemessen |
 | ~~4b~~ | ~~Marken-Override vervollständigen~~ | — | **gebaut am 2026-08-13**: `utils/brandOverride.js`, gegen die 45 Blöcke geprüft |
-| 4c | **Entscheiden, wie der Wireframe-Zweig auf die Seite kommt** (§ 9.5) | Entscheidung | Ohne sie bleiben Stufe B und C ohne Wirkung auf die Kundenseite |
+| ~~4c~~ | ~~Wireframe-Zweig an die Seite anschließen~~ | — | **gebaut am 2026-08-13**: „Auf die Seite übernehmen" in der DesignView |
 | ~~5~~ | ~~R3 ohne zweite Runde~~ | — | **gebaut am 2026-08-13**: `services/block_slots.py` |
-| 6 | Stufe B | offen | Erst wenn 3 steht und 4c entschieden ist |
+| 6 | Stufe B | offen | Erst wenn 3 steht |

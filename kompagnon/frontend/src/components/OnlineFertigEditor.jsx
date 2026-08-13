@@ -681,6 +681,12 @@ export default function OnlineFertigEditor() {
               approved={approved}
               onOpenGrapesJS={handleOpenGrapesJS}
               onNetlifyDeploy={handleNetlifyDeploy}
+              // Nach der Übernahme trägt die Seite einen Entwurf. Ohne diese
+              // Rückmeldung bliebe der alte Stand im Speicher, und die zweite
+              // Übernahme fragte nicht nach, obwohl sie etwas überschreibt.
+              onPageUpdated={(seite) => setSitemapPages((vorher) => vorher.map(
+                (p) => (p.id === seite.id ? { ...p, ...seite } : p),
+              ))}
             />
           ) : null}
         </div>

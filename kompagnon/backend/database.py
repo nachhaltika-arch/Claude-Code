@@ -261,6 +261,18 @@ class Project(Base):
     # Struktur: {"pages": [{"page_id": int, "blocks": [{"slug": str, "order": int, "slots": {...}}]}]}
     wireframe_data          = Column(JSONB, default=list)
 
+    # Vom Nutzer bestaetigte Editor-Schritte, als JSON-Text:
+    # {"<step_id>": {"confirmed": true, "confirmed_at": "<iso>"}}
+    #
+    # Die Spalte legt `main.py::_run_migrations` per rohem SQL an. Hier fehlte
+    # sie — und ohne den Eintrag im Modell schreibt SQLAlchemy sie nicht:
+    # `project.steps_confirmed = …` setzte nur ein Attribut am Python-Objekt,
+    # `commit()` tat nichts, und die Antwort las denselben Speicher zurueck.
+    # Nach aussen sah jede Bestaetigung erfolgreich aus und war nach dem
+    # naechsten Laden weg — mit ihr blieben Wireframe, Style-Guide und Design
+    # gesperrt.
+    steps_confirmed         = Column(Text, default="{}")
+
     # Relationships
     lead = relationship("Lead", back_populates="projects", foreign_keys=[lead_id])
     checklists = relationship("ProjectChecklist", back_populates="project", cascade="all, delete-orphan")

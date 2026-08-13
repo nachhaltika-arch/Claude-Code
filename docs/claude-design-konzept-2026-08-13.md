@@ -14,9 +14,10 @@ Stufe A ist gebaut und liegt auf `staging` (Commits `73c4822`, `4276676`),
 samt Oberfläche für Entwurf und Freigabe. Claude schreibt Bibliotheksblöcke,
 ein prüfbarer Vertrag steht davor, ohne Freigabe erreicht kein erzeugter Block
 eine Kundenseite — und wer einen Entwurf vor sich hat, liest jetzt auch, woran
-es liegt. Was fehlt, ist ein scharfer Lauf gegen die echte API — und eine
-Vertragsregel, die Stufe B sonst auf Sand baut (§ 4.2). Stufe B und C sind
-entworfen, nicht gebaut.
+es liegt. Der scharfe Lauf gegen die echte API ist gemacht: **8 von 9
+angekommenen Blöcken bestehen den Vertrag im ersten Wurf**, gescheitert ist
+einer am JSON statt am Vertrag (behoben). Offen bleibt eine Vertragsregel, die
+Stufe B sonst auf Sand baut (§ 4.2). Stufe B und C sind entworfen, nicht gebaut.
 
 ---
 
@@ -174,12 +175,52 @@ Speichern konnte eine Eingabe verschlucken, die währenddessen passierte.
 `e2e/tests/block-freigabe.spec.js` prüft den Weg im Browser: unsauber anlegen →
 Entwurf mit Grund → Freigabe gesperrt → reparieren → Freigabe klappt.
 
+### Der scharfe Lauf — die Frage vor Stufe B ist beantwortet
+
+Zehn Blöcke gegen die echte API, quer durch die Kategorien (HERO frei, HERO mit
+Preset, HERO mit Formular, LEIST, TRUST, CTA, NAV, FOOT, SEO, HW). Gemessen
+wurde der Auftrag selbst, nicht ein Nachbau.
+
+| | |
+|---|---|
+| Angekommen | 9 von 10 |
+| **Im ersten Wurf vertragskonform** | **8 von 9** |
+| Reparaturrunde nötig | 1 (danach sauber) |
+| Abbruch | 1 — und zwar **nicht** am Vertrag |
+| Dauer je Block | 26–76 s, mit Reparatur 141 s |
+| Kosten | ~38k ein / ~53k aus auf Opus 5 für zehn Blöcke |
+
+**Der Vertrag ist keine Hürde.** Kein einziger Block enthielt einen `<iframe>`,
+ein `<script>`, ein `id`-Attribut oder eine externe Quelle — auch nicht bei
+`seo-lokal` und `hw-karte`, also genau dort, wo die beiden Altblöcke der
+Bibliothek daran scheitern. Die Regeln liegen dort, wo das Modell ohnehin
+schreibt.
+
+**Der eine Verstoß war ein Buchhaltungsfehler.** Zwölfmal dieselbe Regel R3:
+Slots im Markup (`product_1_spec_1` …), die in den Slot-Angaben fehlten. Das
+kostete eine zweite Runde mit 11k Eingabe-Token — obwohl die fehlenden Einträge
+aus dem Markup ableitbar wären. Ein lohnender nächster Schliff, kein Hindernis.
+
+**Gescheitert ist der Auftrag am JSON, nicht am Vertrag.** Beim FOOT-Block war
+die Antwort ab Zeichen 9396 kein gültiges JSON mehr. Zwei Nachläufe desselben
+Falls kamen sauber zurück, `stop_reason` jedes Mal `end_turn` — ein Ausrutscher,
+kein Muster, aber bei ~11 % die häufigere Ausfallursache als der Vertrag.
+Behoben: Der Parser lässt rohe Steuerzeichen in Zeichenketten jetzt durch
+(`strict=False`), und bei kaputtem JSON bekommt das Modell den Parserfehler
+zurück und **eine** zweite Chance. Bei `max_tokens` wird bewusst nicht
+nachgefragt — die Antwort ist dann garantiert unvollständig. `generate-copy`
+und der Wireframe-Job parsen ebenfalls nachsichtig; die zweite Chance haben sie
+nicht, dafür fehlt der Beleg und ihr Auftrag ist teurer zu wiederholen. Derselbe
+FOOT-Fall lief nach dem Umbau gegen die echte API sauber durch — erste Runde,
+kein offener Punkt.
+
+→ **Für Stufe B heißt das:** Der Vertrag trägt. Ein Aufruf je variierter
+Section reicht in acht von neun Fällen, und die Reparaturrunde fängt den Rest.
+
 **Was noch fehlt:**
 
-1. **Scharfer Lauf.** Die Job-Logik ist mit einem Platzhalter getestet
-   (`tests/test_component_library_gate.py`), der echte API-Aufruf noch nicht.
-   Die offene Frage dahinter entscheidet über B: **Wie oft muss repariert
-   werden?**
+1. **R3 ohne zweite Runde:** fehlende Slot-Angaben aus dem Markup ergänzen,
+   statt das Modell erneut zu fragen (~1 h, spart je Fall ~19k Token).
 2. **Envato als Inspirationsquelle** — noch nicht angebunden (§ 9.3).
 
 ### Stufe B — Claude als Sektionsgestalter *(mittel, nicht gebaut)*
@@ -314,7 +355,8 @@ Stufe B/C in `wireframe_data` bzw. `kas_gjs_data`.
 | # | Was | Aufwand | Warum jetzt |
 |---|---|---|---|
 | ~~1~~ | ~~Oberfläche für Entwurf und Freigabe~~ | — | **gebaut am 2026-08-13** (§ Stufe A) |
-| 2 | Scharfer Generierungslauf | ~1 h | Beantwortet die Frage, die über B entscheidet: Wie oft muss repariert werden? |
-| 3 | `hw-karte` / `seo-lokal` entschärfen | ~2 h | Eigene Blöcke fallen bei der eigenen Prüfung durch — in der Liste jetzt am ⚠️ zu sehen |
+| ~~2~~ | ~~Scharfer Generierungslauf~~ | — | **gelaufen am 2026-08-13**: 8 von 9 im ersten Wurf konform; der JSON-Ausrutscher ist behoben |
+| 3 | `hw-karte` / `seo-lokal` entschärfen | ~2 h | Eigene Blöcke fallen bei der eigenen Prüfung durch — in der Liste jetzt am ⚠️ zu sehen. Der scharfe Lauf zeigt: neu erzeugte Blöcke machen den Fehler nicht mehr |
 | 4 | R5 Token-Bindung | ~4 h | Voraussetzung für Stufe B |
-| 5 | Stufe B | offen | Erst wenn 2–4 stehen |
+| 5 | R3 ohne zweite Runde | ~1 h | Der einzige gemessene Verstoß ist lokal reparierbar |
+| 6 | Stufe B | offen | Erst wenn 3–5 stehen |

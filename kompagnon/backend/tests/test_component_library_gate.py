@@ -7,6 +7,8 @@ nicht verworfen (die Arbeit waere weg und der Grund unsichtbar), sondern
 landet als Entwurf. Entwuerfe erreichen weder den Wireframe-Editor noch eine
 Kundenseite; die Freigabe ist der Punkt, an dem der Vertrag zaehlt.
 """
+import json
+
 import pytest
 
 SAUBER = """<section data-block="{slug}" class="py-16 bg-white">
@@ -289,6 +291,132 @@ def test_generator_meldet_fehlendes_pflichtfeld(monkeypatch):
 
     assert job["status"] == "error"
     assert "html_template" in job["error"]
+
+
+# ── Die Antwort, die kein JSON ist ───────────────────────────────────────
+#
+# Im scharfen Lauf gegen die echte API (2026-08-13, zehn Bloecke) hat der
+# Vertrag genau eine Reparaturrunde gebraucht — gescheitert ist trotzdem einer:
+# Die Antwort war bei Zeichen 9396 kein gueltiges JSON mehr. Zwei Nachlaeufe
+# desselben Falls kamen sauber zurueck, `stop_reason` war jedes Mal `end_turn`.
+# Also kein Abschneiden, sondern ein Ausrutscher — und der darf einen Auftrag
+# nicht kosten, der bis dahin eine Minute Rechenzeit verbraucht hat.
+
+
+class _TextBlock:
+    type = "text"
+
+    def __init__(self, text):
+        self.text = text
+
+
+class _RohAntwort:
+    """Response-Attrappe: nur `content` und `stop_reason` werden gelesen."""
+
+    def __init__(self, text, stop_reason="end_turn"):
+        self.content = [_TextBlock(text)]
+        self.stop_reason = stop_reason
+
+
+def _antworten(monkeypatch, texte):
+    """Ersetzt den Modellaufruf durch vorgegebene Rohtexte."""
+    from routers import component_library as cl
+
+    folge = iter(texte)
+    aufrufe = []
+
+    def aufruf(client, messages):
+        aufrufe.append(list(messages))
+        return _RohAntwort(next(folge))
+
+    monkeypatch.setattr(cl, "_modell_aufruf", aufruf)
+    return aufrufe
+
+
+def _json_block(slug):
+    return json.dumps(_ki_block(slug, _sauber(slug)))
+
+
+def test_kaputtes_json_bekommt_eine_zweite_chance(monkeypatch):
+    from routers import component_library as cl
+
+    slug = "json-zweite-chance"
+    aufrufe = _antworten(monkeypatch, ['{"slug": "x", "name": "kaputt}',
+                                       _json_block(slug)])
+
+    _, ergebnis = cl._ki_runde(object(), [{"role": "user", "content": "los"}])
+
+    assert ergebnis["slug"] == slug
+    assert len(aufrufe) == 2, "Der zweite Versuch hat nicht stattgefunden"
+    # Der Parserfehler geht mit zurueck — sonst raet das Modell, was falsch war.
+    letzter_auftrag = aufrufe[1][-1]["content"]
+    assert "JSON" in letzter_auftrag
+
+
+def test_zweimal_kaputtes_json_bricht_ab(monkeypatch):
+    from routers import component_library as cl
+
+    _antworten(monkeypatch, ['{"kaputt": ', '{"immer noch kaputt": '])
+
+    with pytest.raises(cl._Abbruch) as fehler:
+        cl._ki_runde(object(), [{"role": "user", "content": "los"}])
+
+    assert "JSON" in str(fehler.value)
+
+
+def test_zeilenumbruch_im_text_kostet_keinen_zweiten_aufruf(monkeypatch):
+    """Ein roher Zeilenumbruch in einer Zeichenkette ist der haeufigste
+    Ausrutscher — den repariert der Parser selbst, ohne ein zweites Mal zu fragen."""
+    from routers import component_library as cl
+
+    slug = "roher-umbruch"
+    mit_umbruch = json.dumps(_ki_block(slug, _sauber(slug))).replace(
+        "py-16", "py-16\n")  # echter Umbruch mitten in der Zeichenkette
+    aufrufe = _antworten(monkeypatch, [mit_umbruch])
+
+    _, ergebnis = cl._ki_runde(object(), [{"role": "user", "content": "los"}])
+
+    assert ergebnis["slug"] == slug
+    assert len(aufrufe) == 1
+
+
+def test_abgeschnittene_antwort_wird_nicht_nachgefragt(monkeypatch):
+    """Bei max_tokens ist die Antwort garantiert unvollstaendig — noch einmal
+    zu fragen wuerde nur dasselbe Limit erneut reissen."""
+    from routers import component_library as cl
+
+    aufrufe = []
+
+    def aufruf(client, messages):
+        aufrufe.append(messages)
+        return _RohAntwort('{"slug": "abgeschnitten"', stop_reason="max_tokens")
+
+    monkeypatch.setattr(cl, "_modell_aufruf", aufruf)
+
+    with pytest.raises(cl._Abbruch) as fehler:
+        cl._ki_runde(object(), [{"role": "user", "content": "los"}])
+
+    assert "abgeschnitten" in str(fehler.value).lower()
+    assert len(aufrufe) == 1
+
+
+def test_job_ueberlebt_einen_json_ausrutscher(monkeypatch):
+    """Derselbe Weg, aber durch den ganzen Auftrag — das ist der Fall aus dem
+    scharfen Lauf."""
+    from routers import component_library as cl
+
+    slug = "job-trotz-ausrutscher"
+    _antworten(monkeypatch, ["kein JSON, sondern Prosa.", _json_block(slug)])
+    monkeypatch.setattr(cl, "Anthropic", lambda api_key: object())
+
+    job_id = "pytest-json-job"
+    cl._component_gen_jobs.pop(job_id, None)
+    cl._run_component_gen_job(job_id, cl.GenerateComponentRequest(category="HERO"),
+                              "schluessel")
+    job = cl._component_gen_jobs.pop(job_id)
+
+    assert job["status"] == "done", job
+    assert job["result"]["contract"]["konform"] is True
 
 
 # ── Der Regress, den die E2E-Tests gefunden haben ────────────────────────

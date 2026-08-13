@@ -353,7 +353,9 @@ Output:
         )
         raw = _extract_text_from_response(response)
         try:
-            generated = json.loads(raw)
+            # strict=False wie im Generator: ein roher Zeilenumbruch in einer
+            # Zeichenkette ist ein Ausrutscher, kein Grund fuer einen 502.
+            generated = json.loads(raw, strict=False)
         except json.JSONDecodeError as exc:
             logger.warning(f"generate-copy: JSON-Parse fehlgeschlagen: {exc}; raw[:300]={raw[:300]!r}")
             raise HTTPException(502, f"KI-Output kein valides JSON: {exc}")
@@ -1274,8 +1276,8 @@ class _Abbruch(Exception):
     """Ein Grund, den Job mit einer verstaendlichen Meldung zu beenden."""
 
 
-def _ki_runde(client, messages: list) -> tuple:
-    """Eine Runde beim Modell. Returnt (response, geparstes_json).
+def _modell_aufruf(client, messages: list):
+    """Ein Aufruf beim Modell. Returnt das Response-Objekt.
 
     Streaming, weil mit eingeschaltetem Denken die Antwort laenger dauert als
     der Non-Streaming-Timeout der SDK erlaubt — dasselbe Muster wie im
@@ -1290,23 +1292,69 @@ def _ki_runde(client, messages: list) -> tuple:
     ) as stream:
         for _ in stream.text_stream:
             pass
-        response = stream.get_final_message()
+        return stream.get_final_message()
+
+
+def _als_json(roh: str) -> dict:
+    """Parst die Antwort. `strict=False` laesst rohe Steuerzeichen in
+    Zeichenketten durch — ein Zeilenumbruch mitten im Markup ist der haeufigste
+    Ausrutscher und kein Grund, eine Minute Rechenzeit wegzuwerfen."""
+    ergebnis = json.loads(roh, strict=False)
+    if not isinstance(ergebnis, dict):
+        raise _Abbruch("KI-Output ist kein Object")
+    return ergebnis
+
+
+def _json_nachbesserung(exc: json.JSONDecodeError) -> str:
+    return f"""Deine Antwort war kein gueltiges JSON: {exc.msg} (Zeichen {exc.pos}).
+
+Sende denselben Block noch einmal, diesmal als striktes JSON. Achte besonders
+darauf, dass Anfuehrungszeichen im HTML mit \\" escaped sind und dass kein
+Zeilenumbruch unescaped in einer Zeichenkette steht.
+Antworte AUSSCHLIESSLICH mit dem JSON — kein Markdown-Wrapper, keine Erklaerung."""
+
+
+def _ki_runde(client, messages: list) -> tuple:
+    """Eine Runde beim Modell. Returnt (response, geparstes_json).
+
+    Der scharfe Lauf vom 2026-08-13 hat gezeigt, woran ein Auftrag wirklich
+    scheitert: nicht am Vertrag (eine Reparaturrunde auf zehn Bloecke), sondern
+    an einer sporadisch kaputten JSON-Antwort. Zwei Nachlaeufe desselben Falls
+    kamen sauber zurueck, `stop_reason` war jedes Mal `end_turn` — es war ein
+    Ausrutscher, kein Muster. Deshalb bekommt das Modell den Parserfehler
+    zurueck und **eine** zweite Chance; hilft die nicht, ist Schluss.
+
+    Bei `max_tokens` wird nicht nachgefragt: Die Antwort ist dann garantiert
+    unvollstaendig, und derselbe Auftrag wuerde dasselbe Limit erneut reissen.
+    """
+    response = _modell_aufruf(client, messages)
 
     if getattr(response, "stop_reason", None) == "max_tokens":
         raise _Abbruch("Die Generierung wurde abgeschnitten (max_tokens). "
                        "Bitte einen einfacheren Layout-Wunsch waehlen.")
 
-    raw = _extract_text_from_response(response)
+    roh = _extract_text_from_response(response)
     try:
-        ergebnis = json.loads(raw)
+        return response, _als_json(roh)
     except json.JSONDecodeError as exc:
-        logger.warning("component_gen: JSON-Parsing fehlgeschlagen: %s; raw[:300]=%r",
-                       exc, raw[:300])
-        raise _Abbruch(f"KI-Output kein valides JSON: {exc}")
+        # Der Fehler wird gebraucht, nachdem der except-Block verlassen ist —
+        # Python raeumt `exc` dort selbst weg.
+        parserfehler = exc
+        logger.warning("component_gen: JSON-Parsing fehlgeschlagen: %s; "
+                       "zweiter Versuch; raw[:300]=%r", exc, roh[:300])
 
-    if not isinstance(ergebnis, dict):
-        raise _Abbruch("KI-Output ist kein Object")
-    return response, ergebnis
+    zweiter_anlauf = messages + [
+        {"role": "assistant", "content": response.content},
+        {"role": "user", "content": _json_nachbesserung(parserfehler)},
+    ]
+    response = _modell_aufruf(client, zweiter_anlauf)
+    roh = _extract_text_from_response(response)
+    try:
+        return response, _als_json(roh)
+    except json.JSONDecodeError as exc:
+        logger.warning("component_gen: auch der zweite Versuch war kein JSON: "
+                       "%s; raw[:300]=%r", exc, roh[:300])
+        raise _Abbruch(f"KI-Output kein valides JSON: {exc}")
 
 
 def _pruefe_pflichtfelder(result: dict) -> None:
@@ -1690,7 +1738,11 @@ def _run_wireframe_job(job_id: str, project_id: int, api_key: str) -> None:
             return
 
         try:
-            wireframe = json.loads(raw_text)
+            # strict=False wie im Block-Generator: rohe Steuerzeichen in
+            # Zeichenketten sollen einen Auftrag nicht kosten. Eine zweite
+            # Chance wie dort gibt es hier bewusst noch nicht — dafuer fehlt
+            # der Beleg, und dieser Auftrag ist deutlich teurer zu wiederholen.
+            wireframe = json.loads(raw_text, strict=False)
         except json.JSONDecodeError as exc:
             logger.warning(
                 f"wireframe job {job_id}: JSON-Parsing fehlgeschlagen: {exc}; "

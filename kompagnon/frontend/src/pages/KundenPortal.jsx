@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import GeoAddonCard from '../components/GeoAddonCard';
+import AssistentPanel from '../components/AssistentPanel';
 
 // ── Phase card ────────────────────────────────────────────────
 
@@ -444,6 +445,18 @@ export default function KundenPortal() {
       <div style={{ marginTop: 24, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
         Bei Fragen wende dich an dein KOMPAGNON-Team.
       </div>
+
+      {/* Der Assistent liegt als aufklappbares Widget über der Seite. Er
+          antwortet hier im Kundenmodus — interne Zahlen bleiben unsichtbar,
+          dafür sorgt die Rollenprüfung im Backend, nicht diese Zeile. */}
+      {project?.lead_id && (
+        <AssistentPanel
+          leadId={project.lead_id}
+          projektId={project.project_id || null}
+          kompakt
+          titel="Fragen zu Ihrem Projekt"
+        />
+      )}
     </div>
   );
 }

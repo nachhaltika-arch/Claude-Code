@@ -263,3 +263,67 @@ def test_ein_fremder_lead_wird_abgewiesen(client, auth_headers):
                           json={"lead_id": 999999, "frage": FRAGE})
 
     assert antwort.status_code == 404
+
+
+# ── Der übernehmbare Vorschlag (Entscheidung 1.3) ────────────────────────
+
+def test_der_vorschlag_wird_vom_text_getrennt(client, auth_headers, lead_und_projekt,
+                                              monkeypatch):
+    from routers import assistant as a
+
+    monkeypatch.setattr(a, "_frag_das_modell", lambda **kw: {
+        "text": "Nennen Sie die Leistungen einzeln.\n"
+                "VORSCHLAG: Waermepumpe, Bad-Sanierung, Heizungswartung, Notdienst",
+        "eingabe_tokens": 100, "ausgabe_tokens": 50})
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "pytest")
+
+    daten = client.post("/api/assistant/chat", headers=auth_headers, json={
+        "lead_id": lead_und_projekt["lead"], "frage": FRAGE,
+        "feld": "leistungen"}).json()
+
+    assert daten["vorschlag"] == "Waermepumpe, Bad-Sanierung, Heizungswartung, Notdienst"
+    assert "VORSCHLAG" not in daten["antwort"]
+    assert daten["antwort"] == "Nennen Sie die Leistungen einzeln."
+    assert daten["feld"] == "leistungen"
+
+
+def test_ohne_vorschlag_gibt_es_keinen_knopf(client, auth_headers, lead_und_projekt,
+                                             kein_token):
+    daten = client.post("/api/assistant/chat", headers=auth_headers, json={
+        "lead_id": lead_und_projekt["lead"], "frage": FRAGE}).json()
+
+    assert daten["vorschlag"] == ""
+
+
+def test_der_gespeicherte_verlauf_zeigt_die_erklaerung_ohne_marke(
+        client, auth_headers, lead_und_projekt, monkeypatch):
+    from routers import assistant as a
+
+    monkeypatch.setattr(a, "_frag_das_modell", lambda **kw: {
+        "text": "Erklaerung.\nVORSCHLAG: Der fertige Satz",
+        "eingabe_tokens": 10, "ausgabe_tokens": 5})
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "pytest")
+
+    daten = client.post("/api/assistant/chat", headers=auth_headers, json={
+        "lead_id": lead_und_projekt["lead"], "frage": FRAGE}).json()
+    verlauf = client.get(f"/api/assistant/conversations/{daten['conversation_id']}",
+                         headers=auth_headers).json()
+
+    assert "VORSCHLAG" not in verlauf["messages"][-1]["inhalt"]
+
+
+@pytest.mark.parametrize("roh,erwartet_text,erwartet_vorschlag", [
+    ("Nur Text ohne alles", "Nur Text ohne alles", ""),
+    ("Text\nVORSCHLAG: Etwas", "Text", "Etwas"),
+    ('Text\nVORSCHLAG: „In Anfuehrung"', "Text", "In Anfuehrung"),
+    ("VORSCHLAG: Ganz allein", "", "Ganz allein"),
+    ("", "", ""),
+])
+def test_die_trennung_haelt_verschiedene_formen_aus(roh, erwartet_text,
+                                                    erwartet_vorschlag):
+    from routers.assistant import trenne_vorschlag
+
+    text, vorschlag = trenne_vorschlag(roh)
+
+    assert text == erwartet_text
+    assert vorschlag == erwartet_vorschlag

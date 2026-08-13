@@ -114,8 +114,37 @@ NOCH OFFENE FELDER: {offen}
 MASZSTAB FUER GUTE ANTWORTEN:
 {maszstab or "(kein besonderer Maszstab fuer dieses Feld)"}
 
-Antworte in hoechstens fuenf Saetzen. Wenn ein Vorschlag sinnvoll ist, schreibe
-ihn als fertigen Satz, den der Nutzer uebernehmen kann."""
+Antworte in hoechstens fuenf Saetzen.
+
+Wenn du einen konkreten Vorschlag fuer das aktuelle Feld hast, setze ihn als
+LETZTE Zeile in genau diese Form:
+
+VORSCHLAG: <der fertige Text, den der Nutzer uebernehmen kann>
+
+Nur diese eine Zeile, ohne Anfuehrungszeichen und ohne Erklaerung dahinter. Hast
+du keinen Vorschlag, lass die Zeile weg."""
+
+
+VORSCHLAG_MARKE = "VORSCHLAG:"
+
+
+def trenne_vorschlag(text: str) -> tuple:
+    """Trennt den uebernehmbaren Vorschlag von der Erklaerung.
+
+    Entscheidung 1.3: Der Assistent schlaegt vor, der Mensch uebernimmt per
+    Klick. Damit die Oberflaeche einen Knopf anbieten kann, muss der Vorschlag
+    maschinenlesbar sein — deshalb die letzte Zeile in fester Form. Steht sie
+    nicht da, gibt es eben keinen Knopf; geraten wird nicht.
+    """
+    if not text:
+        return "", ""
+    zeilen = text.strip().split("\n")
+    for i in range(len(zeilen) - 1, -1, -1):
+        if zeilen[i].strip().startswith(VORSCHLAG_MARKE):
+            vorschlag = zeilen[i].split(VORSCHLAG_MARKE, 1)[1].strip().strip('"„“')
+            rest = "\n".join(zeilen[:i] + zeilen[i + 1:]).strip()
+            return rest, vorschlag
+    return text.strip(), ""
 
 
 def _frag_das_modell(*, systemprompt: str, verlauf: list, frage: str) -> dict:
@@ -218,8 +247,9 @@ def chat(body: ChatRequest, db: Session = Depends(get_db),
         systemprompt=_systemprompt(kontext, body.feld or ""),
         verlauf=verlauf, frage=frage)
 
+    text, vorschlag = trenne_vorschlag(ergebnis["text"])
     kosten = kosten_fuer(ergebnis["eingabe_tokens"], ergebnis["ausgabe_tokens"])
-    _speichern(db, gespraech, "assistent", ergebnis["text"], body,
+    _speichern(db, gespraech, "assistent", text, body,
                eingabe=ergebnis["eingabe_tokens"], ausgabe=ergebnis["ausgabe_tokens"],
                kosten=kosten)
     db.commit()
@@ -227,7 +257,11 @@ def chat(body: ChatRequest, db: Session = Depends(get_db),
     return {
         "conversation_id":   gespraech.id,
         "modus":             modus,
-        "antwort":           ergebnis["text"],
+        "antwort":           text,
+        # Leer, wenn das Modell nichts Konkretes vorzuschlagen hatte — die
+        # Oberflaeche zeigt den Uebernehmen-Knopf dann gar nicht erst.
+        "vorschlag":         vorschlag,
+        "feld":              body.feld or "",
         "budget_erschoepft": False,
         "hinweis":           entscheidung.hinweis,
     }

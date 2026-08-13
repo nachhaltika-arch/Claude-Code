@@ -293,6 +293,40 @@ def test_generator_meldet_fehlendes_pflichtfeld(monkeypatch):
     assert "html_template" in job["error"]
 
 
+# ── Der Verstoss, der keine zweite Runde wert ist ────────────────────────
+#
+# Im scharfen Lauf war der einzige Vertragsverstoss zwoelfmal derselbe: Slots
+# im Markup, die in den Slot-Angaben fehlten. Die Angabe steht im Markup — sie
+# wird abgelesen, nicht erfragt.
+
+def test_fehlende_slot_angaben_kosten_keine_zweite_runde(monkeypatch):
+    slug = "erzeugt-ohne-slot-angabe"
+    html = (f'<section data-block="{slug}" class="py-16">'
+            f'<h2>{{{{headline}}}}</h2><p>{{{{spec_1}}}}</p>'
+            f'<p>{{{{spec_2}}}}</p></section>')
+
+    job = _job(monkeypatch, [_ki_block(slug, html, slots=SLOTS[:1])])
+
+    assert job["status"] == "done", job
+    assert job["result"]["contract"]["konform"] is True
+    schluessel = [s["key"] for s in job["result"]["slots"]]
+    assert schluessel == ["headline", "spec_1", "spec_2"]
+    # Die vorhandene Angabe bleibt, wie das Modell sie gemeint hat.
+    assert job["result"]["slots"][0] == SLOTS[0]
+
+
+def test_eine_zweite_runde_gibt_es_weiterhin_fuer_echte_verstoesse(monkeypatch):
+    """Ergaenzen loest R3 — an R1 aendert es nichts."""
+    slug = "erzeugt-mit-karte-und-slot"
+    job = _job(monkeypatch, [
+        _ki_block(slug, _mit_fremder_karte(slug), slots=[]),
+        _ki_block(slug, _sauber(slug)),
+    ])
+
+    assert job["status"] == "done", job
+    assert job["result"]["contract"]["konform"] is True
+
+
 # ── Die Antwort, die kein JSON ist ───────────────────────────────────────
 #
 # Im scharfen Lauf gegen die echte API (2026-08-13, zehn Bloecke) hat der

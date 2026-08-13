@@ -196,10 +196,20 @@ ein `<script>`, ein `id`-Attribut oder eine externe Quelle — auch nicht bei
 Bibliothek daran scheitern. Die Regeln liegen dort, wo das Modell ohnehin
 schreibt.
 
-**Der eine Verstoß war ein Buchhaltungsfehler.** Zwölfmal dieselbe Regel R3:
-Slots im Markup (`product_1_spec_1` …), die in den Slot-Angaben fehlten. Das
-kostete eine zweite Runde mit 11k Eingabe-Token — obwohl die fehlenden Einträge
-aus dem Markup ableitbar wären. Ein lohnender nächster Schliff, kein Hindernis.
+**Der eine Verstoß war ein Buchhaltungsfehler — und ist erledigt.** Zwölfmal
+dieselbe Regel R3: Slots im Markup (`product_1_spec_1` …), die in den
+Slot-Angaben fehlten. Das kostete eine zweite Runde mit 11k Eingabe- und 8k
+Ausgabe-Token für eine Angabe, die im Markup bereits stand. Seither liest
+`services/block_slots.py` sie dort ab, statt sie zu erfragen: Der Generator
+trägt fehlende Slots nach, bevor der Vertrag prüft — mit Beschriftung aus dem
+Schlüssel (`product_1_spec_1` → „Product 1 Spec 1"), in der Reihenfolge des
+Markups. Was das Modell selbst beschriftet hat, bleibt unangetastet; eine
+abgeleitete Beschriftung ist immer schlechter als eine gemeinte.
+
+Bewusst **nur im Generator**, nicht an den beiden Türen in die Bibliothek: Wer
+von Hand einen Block schreibt, soll seine Slot-Angaben nicht stillschweigend
+umgeschrieben bekommen — er sieht den Verstoß jetzt im Klartext und entscheidet
+selbst.
 
 **Gescheitert ist der Auftrag am JSON, nicht am Vertrag.** Beim FOOT-Block war
 die Antwort ab Zeichen 9396 kein gültiges JSON mehr. Zwei Nachläufe desselben
@@ -219,9 +229,7 @@ Section reicht in acht von neun Fällen, und die Reparaturrunde fängt den Rest.
 
 **Was noch fehlt:**
 
-1. **R3 ohne zweite Runde:** fehlende Slot-Angaben aus dem Markup ergänzen,
-   statt das Modell erneut zu fragen (~1 h, spart je Fall ~19k Token).
-2. **Envato als Inspirationsquelle** — noch nicht angebunden (§ 9.3).
+1. **Envato als Inspirationsquelle** — noch nicht angebunden (§ 9.3).
 
 ### Stufe B — Claude als Sektionsgestalter *(mittel, nicht gebaut)*
 
@@ -358,5 +366,5 @@ Stufe B/C in `wireframe_data` bzw. `kas_gjs_data`.
 | ~~2~~ | ~~Scharfer Generierungslauf~~ | — | **gelaufen am 2026-08-13**: 8 von 9 im ersten Wurf konform; der JSON-Ausrutscher ist behoben |
 | 3 | `hw-karte` / `seo-lokal` entschärfen | ~2 h | Eigene Blöcke fallen bei der eigenen Prüfung durch — in der Liste jetzt am ⚠️ zu sehen. Der scharfe Lauf zeigt: neu erzeugte Blöcke machen den Fehler nicht mehr |
 | 4 | R5 Token-Bindung | ~4 h | Voraussetzung für Stufe B |
-| 5 | R3 ohne zweite Runde | ~1 h | Der einzige gemessene Verstoß ist lokal reparierbar |
-| 6 | Stufe B | offen | Erst wenn 3–5 stehen |
+| ~~5~~ | ~~R3 ohne zweite Runde~~ | — | **gebaut am 2026-08-13**: `services/block_slots.py` |
+| 6 | Stufe B | offen | Erst wenn 3 und 4 stehen |

@@ -39,6 +39,7 @@ from database import (
 )
 from routers.auth_router import require_any_auth
 from services.block_contract import als_text, pruefe
+from services.block_slots import ergaenze_fehlende_slots
 
 try:
     from anthropic import Anthropic
@@ -1388,6 +1389,22 @@ Antworte erneut AUSSCHLIESSLICH mit dem vollstaendigen JSON im selben Format —
 kein Markdown-Wrapper, keine Erklaerung."""
 
 
+def _slots_vervollstaendigen(result: dict) -> None:
+    """Traegt Slots nach, die nur im Markup stehen.
+
+    Der einzige Vertragsverstoss im scharfen Lauf war genau dieser, zwoelfmal
+    hintereinander. Die Angabe steht im Markup — sie wird abgelesen, nicht in
+    einer zweiten Runde erfragt (das kostete dort 11k Eingabe-Token).
+    """
+    ergaenzt = ergaenze_fehlende_slots(result.get("html_template", ""),
+                                       result.get("slots") or [])
+    nachgetragen = len(ergaenzt) - len(result.get("slots") or [])
+    if nachgetragen:
+        logger.info("component_gen: %d Slot-Angabe(n) aus dem Markup ergaenzt",
+                    nachgetragen)
+    result["slots"] = ergaenzt
+
+
 def _run_component_gen_job(job_id: str, req: GenerateComponentRequest, api_key: str) -> None:
     """Background-Thread: generiert einen Block und prueft ihn gegen den Vertrag.
 
@@ -1403,6 +1420,7 @@ def _run_component_gen_job(job_id: str, req: GenerateComponentRequest, api_key: 
 
         response, result = _ki_runde(client, messages)
         _pruefe_pflichtfelder(result)
+        _slots_vervollstaendigen(result)
         verstoesse = pruefe(result["html_template"], slug=result["slug"],
                             slots=result["slots"])
 
@@ -1415,6 +1433,7 @@ def _run_component_gen_job(job_id: str, req: GenerateComponentRequest, api_key: 
 
             _, repariert = _ki_runde(client, messages)
             _pruefe_pflichtfelder(repariert)
+            _slots_vervollstaendigen(repariert)
             nachher = pruefe(repariert["html_template"], slug=repariert["slug"],
                              slots=repariert["slots"])
             # Nur uebernehmen, wenn die Reparatur es wirklich besser macht.

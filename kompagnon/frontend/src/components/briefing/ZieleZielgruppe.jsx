@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../../config';
+import { loadJson } from '../../utils/apiRequest';
 
 const CTA_OPTIONS = [
   'Anrufen', 'Kontaktformular ausfüllen', 'WhatsApp schreiben',
@@ -39,23 +40,22 @@ export default function ZieleZielgruppe({ leadId, token, briefing, onSaved }) {
 
   const loadKi = async () => {
     setLoading(true);
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/briefings/${leadId}/ki-prefill-ziele`,
-        { method: 'POST', headers }
-      );
-      if (!res.ok) return;
-      const d = await res.json();
-      setKi(d);
-      setData({
-        hauptziel:          d.hauptziel          || '',
-        cta_aktion:         d.cta_aktion         || '',
-        zielgruppe_typ:     d.zielgruppe_typ      || '',
-        typischer_kunde:    d.typischer_kunde     || '',
-        haeufigste_anfrage: d.haeufigste_anfrage  || '',
-      });
-    } catch { /* silent */ }
-    finally { setLoading(false); }
+    const d = await loadJson(
+      `${API_BASE_URL}/api/briefings/${leadId}/ki-prefill-ziele`,
+      { method: 'POST', headers },
+      { context: 'KI-Vorschlag', emptyOn: [] }
+    );
+    setLoading(false);
+    if (!d) return;
+
+    setKi(d);
+    setData({
+      hauptziel:          d.hauptziel          || '',
+      cta_aktion:         d.cta_aktion         || '',
+      zielgruppe_typ:     d.zielgruppe_typ      || '',
+      typischer_kunde:    d.typischer_kunde     || '',
+      haeufigste_anfrage: d.haeufigste_anfrage  || '',
+    });
   };
 
   const save = async () => {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 
 export default function Abnahme() {
   const { projectId } = useParams();
@@ -13,10 +14,8 @@ export default function Abnahme() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/projects/${projectId}`)
-      .then(r => r.ok ? r.json() : null)
+    loadJson(`${API_BASE_URL}/api/projects/${projectId}`, {}, { context: 'Projekt', emptyOn: [] })
       .then(d => { if (d) setProject(d); })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, [projectId]);
 

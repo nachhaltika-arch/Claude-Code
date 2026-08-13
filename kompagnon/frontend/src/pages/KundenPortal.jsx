@@ -506,7 +506,9 @@ function WebsiteVersionsSection({ project, token, onReload }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {versions.map(v => {
           let reasoning = {};
-          try { reasoning = JSON.parse(v.ki_reasoning || '{}'); } catch {}
+          // Beschaedigte Begruendung: die Version bleibt sichtbar, nur der
+          // Erklaertext fehlt. Ein Hinweis pro Kachel waere hier unbrauchbar.
+          try { reasoning = JSON.parse(v.ki_reasoning || '{}'); } catch { reasoning = {}; }
           return (
             <div key={v.id} style={{
               border: '1px solid var(--border-light)',

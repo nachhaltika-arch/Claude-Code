@@ -86,10 +86,19 @@ export default function Newsletter() {
 
   // ── Sync CRM ────────────────────────────────────────────────────
 
+  // Ein Teilerfolg ist kein Erfolg: lehnt Brevo einzelne Adressen ab, muss das
+  // sichtbar werden. Vorher meldete die Oberflaeche die volle Zahl, waehrend
+  // die abgelehnten Kontakte nur lokal ohne Brevo-ID lagen.
+  const reportBulkResult = (count, result, verb) => {
+    if (!result.failed_count) { toast.success(`${count} Kontakte ${verb}`); return; }
+    const firstReason = result.errors?.[0]?.reason;
+    toast.error(`${count} ${verb}, ${result.failed_count} abgelehnt${firstReason ? `: ${firstReason}` : ''}`);
+  };
+
   const syncCrm = async (listId) => {
     try {
       const r = await fetch(`${API_BASE_URL}/api/newsletter/lists/${listId}/sync-crm`, { method: 'POST', headers: mkH() });
-      if (r.ok) { const d = await r.json(); toast.success(`${d.synced_count} Kontakte synchronisiert`); fetchLists(); }
+      if (r.ok) { const d = await r.json(); reportBulkResult(d.synced_count, d, 'synchronisiert'); fetchLists(); }
       else toast.error((await r.json()).detail || 'Fehler');
     } catch { toast.error('Sync fehlgeschlagen'); }
   };
@@ -109,7 +118,7 @@ export default function Newsletter() {
       const r = await fetch(`${API_BASE_URL}/api/newsletter/lists/${importListId}/import`, {
         method: 'POST', headers: mkH(), body: JSON.stringify({ contacts }),
       });
-      if (r.ok) { const d = await r.json(); toast.success(`${d.imported_count} Kontakte importiert`); setShowImport(false); setCsvText(''); fetchLists(); }
+      if (r.ok) { const d = await r.json(); reportBulkResult(d.imported_count, d, 'importiert'); setShowImport(false); setCsvText(''); fetchLists(); }
       else toast.error((await r.json()).detail || 'Fehler');
     } catch { toast.error('Import fehlgeschlagen'); }
     setSubmitting(false);

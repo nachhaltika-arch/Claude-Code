@@ -17,6 +17,7 @@ import ZieleZielgruppe from './briefing/ZieleZielgruppe';
 import { useAudit } from '../hooks/useAudit';
 import SitemapVorschlaege from './SitemapVorschlaege';
 import API_BASE_URL from '../config';
+import { loadJson, saveJson } from '../utils/apiRequest';
 
 const PHASEN = [
   {
@@ -227,9 +228,11 @@ export default function ProzessFlow({
 
   useEffect(() => {
     if (!project?.id || !token) return;
-    fetch(`${API_BASE_URL}/api/projects/${project.id}/confirmed-steps`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(r => r.ok ? r.json() : {}).then(data => setConfirmedSteps(data || {})).catch(() => {});
+    loadJson(
+      `${API_BASE_URL}/api/projects/${project.id}/confirmed-steps`,
+      { headers: { Authorization: `Bearer ${token}` } },
+      { context: 'Bestätigte Schritte', fallback: {} }
+    ).then(data => setConfirmedSteps(data || {}));
   }, [project?.id]); // eslint-disable-line
 
   const handleAnalyseUpdate = useCallback((data) => {
@@ -247,10 +250,12 @@ export default function ProzessFlow({
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
   const reloadBriefing = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/briefings/${lead?.id || project?.lead_id}`, { headers });
-      if (res.ok) setLocalBriefing(await res.json());
-    } catch { /* silent */ }
+    const data = await loadJson(
+      `${API_BASE_URL}/api/briefings/${lead?.id || project?.lead_id}`,
+      { headers },
+      { context: 'Briefing' }
+    );
+    if (data) setLocalBriefing(data);
   };
 
   const leadId = project?.lead_id || lead?.id;
@@ -1380,20 +1385,25 @@ function ZugangsdatenEmbed({ project, headers }) {
   ];
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/projects/${project.id}/credentials`, { headers })
-      .then(r => r.ok ? r.json() : [])
+    loadJson(`${API_BASE_URL}/api/projects/${project.id}/credentials`, { headers }, { context: 'Zugangsdaten', fallback: [] })
       .then(d => setCreds(Array.isArray(d) ? d : []))
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, []); // eslint-disable-line
 
   const save = async () => {
     if (!form.label.trim()) return;
     setSaving(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/projects/${project.id}/credentials`, { method: 'POST', headers, body: JSON.stringify(form) });
-      if (res.ok) { const neu = await res.json(); setCreds(prev => [...prev, neu]); setForm({ label: '', typ: 'hosting', username: '', password: '', url: '', notes: '' }); setShowForm(false); }
-    } catch {} finally { setSaving(false); }
+    const neu = await loadJson(
+      `${API_BASE_URL}/api/projects/${project.id}/credentials`,
+      { method: 'POST', headers, body: JSON.stringify(form) },
+      { context: 'Zugangsdaten speichern', emptyOn: [] }
+    );
+    if (neu) {
+      setCreds(prev => [...prev, neu]);
+      setForm({ label: '', typ: 'hosting', username: '', password: '', url: '', notes: '' });
+      setShowForm(false);
+    }
+    setSaving(false);
   };
 
   const del = async (id) => {
@@ -1484,10 +1494,8 @@ function DesignStudioEmbed({ project, leadId, token, headers, brandData, sitemap
   const [selectedTpl, setSelectedTpl]   = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/templates/`, { headers })
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setDbTemplates(Array.isArray(d) ? d : []))
-      .catch(() => {});
+    loadJson(`${API_BASE_URL}/api/templates/`, { headers }, { context: 'Vorlagen', fallback: [] })
+      .then(d => setDbTemplates(Array.isArray(d) ? d : []));
   }, []); // eslint-disable-line
 
   const PRESETS = [
@@ -1621,10 +1629,8 @@ function NetlifyEmbed({ project, headers }) {
   const cardStyle = { background:'var(--bg-surface)', border:'1px solid var(--border-light)', borderRadius:10, padding:16, display:'flex', flexDirection:'column', gap:10 };
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers })
-      .then(r => r.ok ? r.json() : null)
+    loadJson(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers }, { context: 'Netlify-Status' })
       .then(d => { if (d) setStatus(d); })
-      .catch(() => {})
       .finally(() => setStatusLoading(false));
   }, []); // eslint-disable-line
 
@@ -1777,10 +1783,8 @@ function DNSEmbed({ project, lead, headers }) {
   const [sending, setSending]     = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.url) setNetlifyUrl(d.url.replace('https://', '')); })
-      .catch(() => {});
+    loadJson(`${API_BASE_URL}/api/projects/${project.id}/netlify/status`, { headers }, { context: 'Netlify-Status' })
+      .then(d => { if (d?.url) setNetlifyUrl(d.url.replace('https://', '')); });
   }, []); // eslint-disable-line
 
   return (
@@ -1813,8 +1817,15 @@ function DNSEmbed({ project, lead, headers }) {
           </div>
           <button onClick={async () => {
             setSending(true);
-            try { await fetch(`${API_BASE_URL}/api/projects/${project.id}/request-approval`, { method:'POST', headers, body: JSON.stringify({ topic:'DNS-Einrichtung', notes:`CNAME: www -> ${netlifyUrl}` }) }); setSent(true); } catch {}
-            finally { setSending(false); }
+            // Der Knopf meldete "Anleitung gesendet", auch wenn die Anfrage
+            // scheiterte — der Kunde wartete dann auf eine E-Mail, die nie kam.
+            const sentOk = await saveJson(
+              `${API_BASE_URL}/api/projects/${project.id}/request-approval`,
+              { method: 'POST', headers, body: JSON.stringify({ topic: 'DNS-Einrichtung', notes: `CNAME: www -> ${netlifyUrl}` }) },
+              { context: 'Anleitung senden' }
+            );
+            if (sentOk) setSent(true);
+            setSending(false);
           }} disabled={sending || sent || !domain.trim()}
             style={{ marginTop:12, padding:'9px 18px', borderRadius:8, border:'none', background: sent ? 'var(--status-success-bg)' : '#185FA5', color: sent ? 'var(--status-success-text)' : '#fff', fontSize:12, fontWeight:700, cursor: sent ? 'default' : 'pointer', fontFamily:'var(--font-sans)' }}>
             {sent ? 'Anleitung gesendet' : sending ? 'Sendet...' : 'Anleitung per E-Mail senden'}
@@ -1907,14 +1918,18 @@ function AbnahmeEmbed({ project, lead, headers, netlify }) {
 
   const goLive = async () => {
     setSaving(true);
-    try {
-      await fetch(`${API_BASE_URL}/api/projects/${project.id}`, {
-        method:'PUT', headers,
-        body: JSON.stringify({ status:'fertig', go_live_date: new Date().toISOString().slice(0,10) }),
-      });
-      setConfirmed(true);
-    } catch {}
-    finally { setSaving(false); }
+    // Vorher zeigte der Bildschirm "Website ist live! 🎉" auch dann, wenn der
+    // Server die Statusaenderung nie bekommen hat.
+    const saved = await saveJson(
+      `${API_BASE_URL}/api/projects/${project.id}`,
+      {
+        method: 'PUT', headers,
+        body: JSON.stringify({ status: 'fertig', go_live_date: new Date().toISOString().slice(0, 10) }),
+      },
+      { context: 'Go-Live' }
+    );
+    if (saved) setConfirmed(true);
+    setSaving(false);
   };
 
   return (
@@ -1983,12 +1998,14 @@ function QmChecklisteEmbed({ project, headers }) {
   });
 
   const toggle = (id) => {
+    const previous = checked;
     const next = { ...checked, [id]: !checked[id] };
     setChecked(next);
-    fetch(`${API_BASE_URL}/api/projects/${project.id}/gbp-checklist`, {
-      method: 'PATCH', headers,
-      body: JSON.stringify({ checked: next }),
-    }).catch(() => {});
+    saveJson(
+      `${API_BASE_URL}/api/projects/${project.id}/gbp-checklist`,
+      { method: 'PATCH', headers, body: JSON.stringify({ checked: next }) },
+      { context: 'Checkliste speichern', onError: () => setChecked(previous) }
+    );
   };
 
   const done = ITEMS.filter(i => checked[i.id]).length;
@@ -2020,8 +2037,8 @@ function GbpQrEmbed({ project, headers }) {
   const [qrError, setQrError]     = useState('');
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/projects/${project.id}/bewertungs-url`, { headers })
-      .then(r => r.ok ? r.json() : null).then(d => d && setGbpData(d)).catch(() => {});
+    loadJson(`${API_BASE_URL}/api/projects/${project.id}/bewertungs-url`, { headers }, { context: 'Bewertungs-Link' })
+      .then(d => d && setGbpData(d));
   }, [project.id]); // eslint-disable-line
 
   const loadQr = async () => {
@@ -2105,25 +2122,25 @@ function WebsiteVergleichEmbed({ project, headers }) {
   const [takingAfter, setTakingAfter]   = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/projects/${project.id}/screenshots`, { headers })
-      .then(r => r.ok ? r.json() : null).then(d => d && setScreenshots(d)).catch(() => {});
+    loadJson(`${API_BASE_URL}/api/projects/${project.id}/screenshots`, { headers }, { context: 'Screenshots' })
+      .then(d => d && setScreenshots(d));
   }, [project.id]); // eslint-disable-line
 
-  const takeBefore = async () => {
-    setTakingBefore(true);
-    try {
-      const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/screenshot/before`, { method: 'POST', headers });
-      if (r.ok) { const d = await r.json(); setScreenshots(s => ({ ...s, before: { data: d.screenshot_url, date: new Date().toISOString() } })); }
-    } catch {} finally { setTakingBefore(false); }
+  const takeScreenshot = async (zeitpunkt, setBusy) => {
+    setBusy(true);
+    const d = await loadJson(
+      `${API_BASE_URL}/api/projects/${project.id}/screenshot/${zeitpunkt}`,
+      { method: 'POST', headers },
+      { context: 'Screenshot aufnehmen', emptyOn: [] }
+    );
+    if (d) {
+      setScreenshots(s => ({ ...s, [zeitpunkt]: { data: d.screenshot_url, date: new Date().toISOString() } }));
+    }
+    setBusy(false);
   };
 
-  const takeAfter = async () => {
-    setTakingAfter(true);
-    try {
-      const r = await fetch(`${API_BASE_URL}/api/projects/${project.id}/screenshot/after`, { method: 'POST', headers });
-      if (r.ok) { const d = await r.json(); setScreenshots(s => ({ ...s, after: { data: d.screenshot_url, date: new Date().toISOString() } })); }
-    } catch {} finally { setTakingAfter(false); }
-  };
+  const takeBefore = () => takeScreenshot('before', setTakingBefore);
+  const takeAfter  = () => takeScreenshot('after', setTakingAfter);
 
   const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null;
   const Placeholder = ({ text }) => (

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import toast from 'react-hot-toast';
+import { loadJson, saveJson } from '../utils/apiRequest';
 import WebsiteDesigner from '../components/WebsiteDesigner';
 import GrapesEditor from '../components/GrapesEditor';
 
@@ -737,10 +738,8 @@ function PageSpeedSection({ leadId, headers }) {
   const [error, setError]     = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers })
-      .then(r => r.ok ? r.json() : null)
+    loadJson(`${API_BASE_URL}/api/leads/${leadId}/pagespeed`, { headers }, { context: 'PageSpeed' })
       .then(data => { if (data && data.checked_at) setPs(data); })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, [leadId]); // eslint-disable-line
 
@@ -1176,20 +1175,18 @@ export default function CustomerDetail() {
   const [scanResults, setScanResults] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/leads/${customerId}`, { headers: h })
-      .then(r => r.json()).then(setCustomer).catch(console.error)
+    loadJson(`${API_BASE_URL}/api/leads/${customerId}`, { headers: h }, { context: 'Kunde', emptyOn: [] })
+      .then(data => { if (data) setCustomer(data); })
       .finally(() => setLoadingCustomer(false));
     // Try to resolve the real lead_id via the linked project
-    fetch(`${API_BASE_URL}/api/projects/?limit=200`, { headers: h })
-      .then(r => r.ok ? r.json() : [])
+    loadJson(`${API_BASE_URL}/api/projects/?limit=200`, { headers: h }, { context: 'Projektzuordnung', fallback: [] })
       .then(projects => {
         const linked = Array.isArray(projects)
           ? projects.find(p => String(p.lead_id) === String(customerId))
           : null;
         if (linked?.lead_id) setLeadId(linked.lead_id);
         if (linked?.id) setProjectId(linked.id);
-      })
-      .catch(() => {}); // fallback stays as customerId
+      });
   }, [customerId]); // eslint-disable-line
 
   useEffect(() => {
@@ -1209,20 +1206,17 @@ export default function CustomerDetail() {
   const loadSitemapPages = async (lid = leadId) => {
     if (!lid) return;
     setSitemapLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/sitemap/${lid}`, { headers: h });
-      if (res.ok) {
-        const pages = await res.json();
-        setSitemapPages(pages);
-        setSitemapLoaded(true);
-        if (!selectedPageId && pages.length > 0) {
-          const content = pages.filter(p => !p.ist_pflichtseite);
-          const start = content.find(p => p.page_type === 'startseite') || content[0];
-          if (start) setSelectedPageId(start.id);
-        }
+    const pages = await loadJson(`${API_BASE_URL}/api/sitemap/${lid}`, { headers: h }, { context: 'Sitemap' });
+    if (pages) {
+      setSitemapPages(pages);
+      setSitemapLoaded(true);
+      if (!selectedPageId && pages.length > 0) {
+        const content = pages.filter(p => !p.ist_pflichtseite);
+        const start = content.find(p => p.page_type === 'startseite') || content[0];
+        if (start) setSelectedPageId(start.id);
       }
-    } catch { /* silent */ }
-    finally { setSitemapLoading(false); }
+    }
+    setSitemapLoading(false);
   };
 
   const downloadSitemapPdf = async () => {
@@ -1248,72 +1242,73 @@ export default function CustomerDetail() {
   const generateKI = async () => {
     setKiConfirm(false);
     setKiGenerating(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/generate`, { method: 'POST', headers: h });
-      if (res.ok) {
-        const data = await res.json();
-        setSitemapPages(data.pages || []);
-        setSelectedPageId(null);
-      }
-    } catch { /* silent */ }
-    finally { setKiGenerating(false); }
+    const data = await loadJson(
+      `${API_BASE_URL}/api/sitemap/${leadId}/generate`,
+      { method: 'POST', headers: h },
+      { context: 'Sitemap-Vorschlag', emptyOn: [] }
+    );
+    if (data) {
+      setSitemapPages(data.pages || []);
+      setSelectedPageId(null);
+    }
+    setKiGenerating(false);
   };
 
   const saveEditPage = async () => {
     if (!editPageModal) return;
     setEditPageSaving(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/sitemap/pages/${editPageModal.id}`, {
-        method: 'PUT', headers: h, body: JSON.stringify(editPageForm),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setSitemapPages(prev => prev.map(p => p.id === updated.id ? updated : p));
-        setEditPageModal(null);
-      }
-    } catch { /* silent */ }
-    finally { setEditPageSaving(false); }
+    const updated = await loadJson(
+      `${API_BASE_URL}/api/sitemap/pages/${editPageModal.id}`,
+      { method: 'PUT', headers: h, body: JSON.stringify(editPageForm) },
+      { context: 'Seite speichern', emptyOn: [] }
+    );
+    if (updated) {
+      setSitemapPages(prev => prev.map(p => p.id === updated.id ? updated : p));
+      setEditPageModal(null);
+    }
+    setEditPageSaving(false);
   };
 
   const createPage = async () => {
     if (!addPageForm.page_name.trim()) return;
     setAddPageSaving(true);
-    try {
-      const body = {
-        page_name: addPageForm.page_name,
-        page_type: addPageForm.page_type,
-        parent_id: addPageForm.parent_id ? Number(addPageForm.parent_id) : null,
-        position: sitemapPages.filter(p => !p.ist_pflichtseite).length,
-      };
-      const res = await fetch(`${API_BASE_URL}/api/sitemap/${leadId}/pages`, {
-        method: 'POST', headers: h, body: JSON.stringify(body),
-      });
-      if (res.ok) {
-        const page = await res.json();
-        setSitemapPages(prev => [...prev, page]);
-        setAddPageForm({ page_name: '', page_type: 'info', parent_id: '' });
-        setAddPageOpen(false);
-      }
-    } catch { /* silent */ }
-    finally { setAddPageSaving(false); }
+    const body = {
+      page_name: addPageForm.page_name,
+      page_type: addPageForm.page_type,
+      parent_id: addPageForm.parent_id ? Number(addPageForm.parent_id) : null,
+      position: sitemapPages.filter(p => !p.ist_pflichtseite).length,
+    };
+    const page = await loadJson(
+      `${API_BASE_URL}/api/sitemap/${leadId}/pages`,
+      { method: 'POST', headers: h, body: JSON.stringify(body) },
+      { context: 'Seite anlegen', emptyOn: [] }
+    );
+    if (page) {
+      setSitemapPages(prev => [...prev, page]);
+      setAddPageForm({ page_name: '', page_type: 'info', parent_id: '' });
+      setAddPageOpen(false);
+    }
+    setAddPageSaving(false);
   };
 
   const loadVersionsForPage = async (pageId) => {
     if (!pageId) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/designs/${leadId}?page_id=${pageId}`, { headers: h });
-      if (res.ok) {
-        const data = await res.json();
-        setPageVersions(prev => ({ ...prev, [pageId]: Array.isArray(data) ? data : [] }));
-      }
-    } catch { /* silent */ }
+    const data = await loadJson(
+      `${API_BASE_URL}/api/designs/${leadId}?page_id=${pageId}`,
+      { headers: h },
+      { context: 'Entwurfsversionen' }
+    );
+    if (data) setPageVersions(prev => ({ ...prev, [pageId]: Array.isArray(data) ? data : [] }));
   };
 
   const saveVersion = async (html) => {
     if (!activeDesignPage || !leadId) return;
     const versionName = `v${(pageVersions[activeDesignPage.id]?.length || 0) + 1} — ${new Date().toLocaleDateString('de-DE')}`;
-    try {
-      await fetch(`${API_BASE_URL}/api/designs/${leadId}`, {
+    // Ohne Prüfung war eine verlorene Version nicht von einer gespeicherten zu
+    // unterscheiden — die Liste blieb einfach unverändert.
+    const saved = await saveJson(
+      `${API_BASE_URL}/api/designs/${leadId}`,
+      {
         method: 'POST', headers: h,
         body: JSON.stringify({
           sitemap_page_id: activeDesignPage.id,
@@ -1321,9 +1316,10 @@ export default function CustomerDetail() {
           version_name: versionName,
           html_content: html,
         }),
-      });
-      loadVersionsForPage(activeDesignPage.id);
-    } catch { /* silent */ }
+      },
+      { context: 'Version speichern' }
+    );
+    if (saved) loadVersionsForPage(activeDesignPage.id);
   };
 
   const loadPageContext = async (lid, pageId) => {
@@ -1440,10 +1436,11 @@ export default function CustomerDetail() {
       // Auto-save version + update sitemap page
       const html = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
       saveVersion(html);
-      fetch(`${API_BASE_URL}/api/sitemap/pages/${activeDesignPage.id}`, {
-        method: 'PUT', headers: h,
-        body: JSON.stringify({ ...activeDesignPage, mockup_html: html }),
-      }).catch(() => {});
+      saveJson(
+        `${API_BASE_URL}/api/sitemap/pages/${activeDesignPage.id}`,
+        { method: 'PUT', headers: h, body: JSON.stringify({ ...activeDesignPage, mockup_html: html }) },
+        { context: 'Entwurf sichern' }
+      );
       setSitemapPages(prev => prev.map(p => p.id === activeDesignPage.id ? { ...p, mockup_html: html } : p));
     } catch (e) {
       setDesignError(e?.message || String(e) || 'Generierung fehlgeschlagen.');
@@ -1966,20 +1963,15 @@ export default function CustomerDetail() {
       {/* ── BRAND DESIGN TAB ── */}
       {activeTab === 'branddesign' && (() => {
         const lid = leadId || customerId;
+        const loadBrandData = () => {
+          loadJson(`${API_BASE_URL}/api/branddesign/${lid}`, { headers: h }, { context: 'Markendesign' })
+            .then(d => { if (d) setBrandData(d); });
+        };
+
         if (!brandLoaded && lid) {
           setBrandLoaded(true);
-          fetch(`${API_BASE_URL}/api/branddesign/${lid}`, { headers: h })
-            .then(r => r.ok ? r.json() : null)
-            .then(d => { if (d) setBrandData(d); })
-            .catch(() => {});
+          loadBrandData();
         }
-
-        const loadBrandData = () => {
-          fetch(`${API_BASE_URL}/api/branddesign/${lid}`, { headers: h })
-            .then(r => r.ok ? r.json() : null)
-            .then(d => { if (d) setBrandData(d); })
-            .catch(() => {});
-        };
 
         const scrapeWebsite = async () => {
           setScraping(true);

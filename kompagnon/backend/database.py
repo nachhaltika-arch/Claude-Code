@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 from sqlalchemy import Column, Integer, String, Float, Boolean, Date, DateTime, Numeric, Text, ForeignKey, JSON, create_engine
+from sqlalchemy import text as sa_text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.exc import OperationalError
@@ -260,6 +261,18 @@ class Project(Base):
     # Struktur: {"pages": [{"page_id": int, "blocks": [{"slug": str, "order": int, "slots": {...}}]}]}
     wireframe_data          = Column(JSONB, default=list)
 
+    # Vom Nutzer bestaetigte Editor-Schritte, als JSON-Text:
+    # {"<step_id>": {"confirmed": true, "confirmed_at": "<iso>"}}
+    #
+    # Die Spalte legt `main.py::_run_migrations` per rohem SQL an. Hier fehlte
+    # sie — und ohne den Eintrag im Modell schreibt SQLAlchemy sie nicht:
+    # `project.steps_confirmed = …` setzte nur ein Attribut am Python-Objekt,
+    # `commit()` tat nichts, und die Antwort las denselben Speicher zurueck.
+    # Nach aussen sah jede Bestaetigung erfolgreich aus und war nach dem
+    # naechsten Laden weg — mit ihr blieben Wireframe, Style-Guide und Design
+    # gesperrt.
+    steps_confirmed         = Column(Text, default="{}")
+
     # Relationships
     lead = relationship("Lead", back_populates="projects", foreign_keys=[lead_id])
     checklists = relationship("ProjectChecklist", back_populates="project", cascade="all, delete-orphan")
@@ -430,6 +443,16 @@ class AuditResult(Base):
     ux_vertrauen = Column(Integer, default=0)
     ux_content = Column(Integer, default=0)
     ux_kontakt = Column(Integer, default=0)
+
+    # Kriterienkatalog ab 2026-08-11 (siehe services/audit_criteria.py).
+    # JSON statt Einzelspalten, damit neue Kriterien keine Migration brauchen.
+    # Die Einzelspalten oberhalb sind Altbestand und werden nicht mehr gefüllt.
+    item_scores = Column(Text, default="{}")      # {kriterium: punkte}
+    item_sources = Column(Text, default="{}")     # {kriterium: gemessen|abgeleitet|...}
+    category_scores = Column(Text, default="[]")  # [{key, label, score, max, ...}]
+    blockers = Column(Text, default="[]")         # K.-o.-Kriterien
+    coverage = Column(Integer, default=0)         # Anteil erhobener Punkte in %
+    collection_notes = Column(Text, default="{}") # warum eine Prüfung ausfiel
 
     # Raw check results
     ssl_ok = Column(Boolean, default=False)
@@ -935,6 +958,16 @@ class ComponentLibrary(Base):
     html_template   = Column(Text, nullable=False)
     # slots: [{"key": "headline", "label": "Hauptueberschrift", "type": "text", "default": "..."}, ...]
     slots           = Column(JSONB, default=list)
+    # "approved" | "draft". Von Claude erzeugte Bloecke starten als Entwurf und
+    # sind fuer den Wireframe-Generator unsichtbar, bis jemand sie freigibt —
+    # sonst landet ungeprueftes Markup auf einer Kundenseite.
+    #
+    # server_default ist Pflicht, nicht Kosmetik: `default=` wirkt nur beim
+    # ORM-Insert. Der Bibliotheks-Seed schreibt per rohem SQL ohne diese
+    # Spalte — ohne DB-seitigen Default kaemen dort NULL-Werte an, und die
+    # sind unsichtbar (siehe _nur_freigegebene in routers/component_library.py).
+    status          = Column(String(20), default="approved",
+                             server_default=sa_text("'approved'"), index=True)
     ki_prompt_hint  = Column(Text, nullable=True)
     preview_note    = Column(Text, nullable=True)
     created_at      = Column(DateTime, default=datetime.utcnow)
@@ -955,3 +988,62 @@ def get_db():
         raise
     finally:
         db.close()
+
+
+class WidgetRequest(Base):
+    """Anfrage aus dem Einbett-Widget auf einer fremden Landingpage.
+
+    Hält dreierlei zusammen: die Ratenbegrenzung (wie viele Anfragen kamen
+    zuletzt von dieser Adresse), den Nachweis der Einwilligung (Zeitpunkt, IP,
+    Bestätigung) und die Zustellung des Berichts.
+    """
+    __tablename__ = "widget_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), nullable=False, index=True)
+    website_url = Column(String(500), nullable=False)
+
+    # Nachweis der Einwilligung nach § 7 UWG — ohne Zeitpunkt und Herkunft
+    # ist eine Einwilligung im Streitfall wertlos.
+    consent_marketing = Column(Boolean, default=False)
+    consent_at = Column(DateTime, nullable=True)
+    ip_address = Column(String(64), default="")
+    user_agent = Column(String(400), default="")
+    referrer = Column(String(500), default="")
+
+    # Bestätigung der Adresse. Sie steht vor allem anderen: erst nach diesem
+    # Klick verlässt überhaupt ein Berichtslink das Haus. Getrennt vom
+    # Marketing-Opt-in darunter — zwei Einwilligungen an einen Klick zu
+    # koppeln wäre Bündelung.
+    verify_token = Column(String(64), index=True)
+    verify_sent_at = Column(DateTime, nullable=True)
+    verified_at = Column(DateTime, nullable=True)
+
+    # Wer bestätigt hat. Vier Testläufe bestätigten sich von selbst, Minuten
+    # nach dem Versand und ohne Zutun eines Menschen — ohne diese Angaben
+    # liess sich nicht sagen, welcher Dienst da drückt.
+    verified_user_agent = Column(String(400), default="")
+    verified_ip = Column(String(64), default="")
+
+    # Double-Opt-in: erst nach Klick im Bestätigungslink darf beworben werden
+    confirm_token = Column(String(64), index=True)
+    confirmed_at = Column(DateTime, nullable=True)
+
+    # Zugang zur Berichtsseite ohne Login
+    report_token = Column(String(64), index=True)
+
+    # Abfrage des Zwischenstands durch das Widget selbst. Bewusst getrennt
+    # von report_token: dieser Wert steht im JavaScript der Seite, der
+    # Berichts-Token gehört allein in die E-Mail.
+    poll_token = Column(String(64), index=True)
+
+    audit_id = Column(Integer, nullable=True, index=True)
+    lead_id = Column(Integer, nullable=True)
+    report_sent_at = Column(DateTime, nullable=True)
+
+    # Der Klick auf den Berichtslink aus der E-Mail. Er ist der Nachweis, dass
+    # die Adresse dem Empfänger gehört — die eingetragene Adresse muss dem
+    # Eintragenden nicht gehören.
+    report_confirmed_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)

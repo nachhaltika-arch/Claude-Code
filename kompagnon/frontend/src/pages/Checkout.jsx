@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 
 
 const A = '#D4A017';
@@ -21,10 +22,10 @@ export default function Checkout() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/products/public`)
-      .then(r => r.json())
+    // Ohne Pakete ist die Seite unbenutzbar — ein Fehler muss hier sichtbar sein.
+    loadJson(`${API_BASE_URL}/api/products/public`, {}, { context: 'Pakete', fallback: [], emptyOn: [] })
       .then(data => {
-        const list = data.map(p => ({
+        const list = (data || []).map(p => ({
           id:        p.slug,
           name:      p.name,
           price:     parseFloat(p.price_brutto).toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
@@ -38,8 +39,7 @@ export default function Checkout() {
           const highlighted = list.find(p => p.highlight);
           setSelected((highlighted || list[0]).id);
         }
-      })
-      .catch(() => {});
+      });
   }, []); // eslint-disable-line
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));

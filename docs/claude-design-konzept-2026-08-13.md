@@ -1,0 +1,538 @@
+# Claude im Designbereich — Konzept und Stand
+
+**Angelegt:** 2026-08-13 · **Zuletzt:** 2026-08-13 (Stufe A, B und C-Phase-1 gebaut)
+**Frage:** Wie integrieren wir Claude in den Designbereich, um neue Homepages
+zu entwickeln — statt GrapesJS oder zusätzlich?
+**Verbunden:** `kas-pipeline-architecture.md` (04.05., Grundlage),
+`conversion-spec-shk.md` (Pflichtinhalte), `niche_phase1.md` (Zielgruppe)
+
+---
+
+## 0. Stand in einem Absatz
+
+Stufe A ist gebaut und liegt auf `staging` (Commits `73c4822`, `4276676`),
+samt Oberfläche für Entwurf und Freigabe. Claude schreibt Bibliotheksblöcke,
+ein prüfbarer Vertrag steht davor, ohne Freigabe erreicht kein erzeugter Block
+eine Kundenseite — und wer einen Entwurf vor sich hat, liest jetzt auch, woran
+es liegt. Der scharfe Lauf gegen die echte API ist gemacht: **8 von 9
+angekommenen Blöcken bestehen den Vertrag im ersten Wurf**, gescheitert ist
+einer am JSON statt am Vertrag (behoben). Auch die Marken-Regel R5 steht jetzt
+im Prüfer, und der Marken-Override deckt die ganze Graustufen-Skala ab (§ 4.2).
+Beim Bauen kam heraus, dass dieser Zweig gar nicht auf der Kundenseite endete —
+das ist seit „Auf die Seite übernehmen" geschlossen (§ 4.3). **Stufe B ist seit
+demselben Tag gebaut:** Ein Block lässt sich für einen Kunden umschreiben, mit
+demselben Vertrag und einem zusätzlichen Feld (`html_override`). **Von Stufe C
+steht die erste Hälfte:** Claude komponiert die Abfolge einer Seite — welche
+Sections in welcher Reihenfolge, mit den Pflicht-Sections der Conversion-Spec.
+Das Markup je Section schreibt danach Stufe B. Offen bleibt die
+Qualitätsschleife über die Netlify-Vorschau.
+
+---
+
+## 1. Ausgangslage — was heute wirklich steht
+
+Die Pipeline von Mai ist weiter gebaut, als das Dokument vermuten lässt:
+
+| Stufe | Stand | Wo |
+|---|---|---|
+| 1 Analyse | ✅ | `routers/audit.py`, 38 Kriterien |
+| 2 Sitemap | ✅ **mit KI** | `routers/sitemap.py`, 1.680 Zeilen |
+| 3 Wireframe | ✅ **mit KI** | `routers/component_library.py`, Block-Auswahl → `projects.wireframe_data` |
+| 3b Variante | ✅ **mit KI** | Stufe B: `services/block_variant.py`, Block je Kunde umgeschrieben → `html_override` |
+| 3c Komposition | ✅ **mit KI** | Stufe C: `services/page_composer.py`, Abfolge einer Seite |
+| 4 Style-Guide | ✅ | `routers/branddesign.py` |
+| 5 Inhalt | ✅ teilweise | `generate-copy` je Section, `agents/content_writer.py` |
+| 6 Deploy | ✅ | `services/netlify_service.py` |
+| Bearbeitung | ✅ | GrapesJS je Seite, `kas_gjs_data` |
+
+Es fehlt also **kein Werkzeug**. Was fehlt, ist etwas anderes.
+
+## 2. Der Befund: Die KI wählt aus, sie gestaltet nicht
+
+Der Wireframe-Generator bekommt das Briefing, die Sitemap-Seiten und **alle
+Bibliotheksblöcke mit ihren `ki_prompt_hint`** — und sucht daraus die
+passenden aus. Das Ergebnis ist eine Liste von Block-Referenzen.
+
+Daraus folgt eine harte Decke:
+
+> **Jede Kundenseite ist eine Permutation derselben ~41 Blöcke.**
+> Individuell werden nur Texte und Farben.
+
+Für „schnell eine solide Seite" ist das genau richtig. Für den
+Premium-Differentiator — technisch, SEO, SEA und Conversion perfekt, und
+eben *nicht* die zwanzigste Seite mit demselben Hero — reicht es nicht. Zwei
+SHK-Betriebe in Koblenz bekämen sichtbar dieselbe Seite in anderen Farben.
+
+**Claude im Designbereich heißt deshalb: Claude schreibt Gestaltung, statt
+sie auszuwählen.**
+
+## 3. Grundentscheidung: GrapesJS bleibt
+
+**Nicht ersetzen. Ergänzen.** Begründung:
+
+* GrapesJS ist die **Korrekturschicht**. „Diesen Abstand 8 px kleiner",
+  „Bild tauschen", „Zeile umbrechen" — das ist mit der Maus in zwei Sekunden
+  erledigt und über einen Prompt eine Zumutung.
+* Claude ist die **Erzeugungsschicht**. Aus Briefing, Marke und Branche etwas
+  entstehen lassen, das vorher nicht da war — das kann kein Baukasten.
+* Beides ersetzt einander nicht, es greift ineinander: **Claude entwirft,
+  GrapesJS justiert.**
+
+Ein Ersatz von GrapesJS würde jede Kleinigkeit in einen KI-Aufruf verwandeln:
+langsamer, teurer, ungenauer — und ohne visuelles Feedback beim Ziehen.
+
+## 4. Der Vertrag — der eigentliche Kern
+
+Damit das zusammenpasst, darf Claude nicht „irgendein HTML" liefern. Was
+Claude erzeugt, muss der Editor **als bearbeitbaren Komponentenbaum** einlesen
+können, nicht als undurchdringlichen Klumpen.
+
+### 4.1 Was der Vertrag heute prüft
+
+`services/block_contract.py`, geprüft von `tests/test_block_contract.py`.
+
+| Regel | Prüft | Warum |
+|---|---|---|
+| **R0** | Nicht leer | — |
+| **R1** | Keine fremde Ressource: kein `<script>`, `<iframe>`, `<object>`, `<embed>`, `<link>`, `<base>`; kein `src="https://…"`; kein `@import`; kein `on…`-Attribut | IP-Übertragung ohne Einwilligung — derselbe K.-o.-Grund wie im Widget |
+| **R2** | Genau eine Wurzel, und sie trägt `data-block="<slug>"` | Sonst findet der Editor den Block nicht wieder |
+| **R3** | Slots als `{{kleinbuchstaben_mit_unterstrich}}`, und jeder Slot im Markup steht in den Slot-Angaben | Sonst füllt `generate-copy` ihn nie |
+| **R4** | Höchstens 12 Ebenen tief, kein `id`, kein `position: fixed/sticky` | Bedienbarkeit im Editor; ein Block kann zweimal auf einer Seite stehen |
+| **R5** | Nur neutrale Farbtöne (`gray`, `slate`, `zinc`, `neutral`, `stone`, `white`, `black`, `transparent`); kein eigener Farbwert (`bg-[#004F59]`), keine Farbe im `style`- und keine im SVG-Attribut (`stroke="#008EAA"`) | Die Marke kommt aus dem Style-Guide und ersetzt die Graustufen. Was bunt im Block steht, überlebt den Markenwechsel |
+
+**Wichtig: Die Regeln sind an der bestehenden Bibliothek gemessen, nicht
+erfunden.** Die erste Fassung dieses Dokuments verlangte `{{HEADLINE}}` in
+Großbuchstaben, verbot jedes `style`-Attribut und wollte `data-gjs-*` sehen —
+die 41 echten Blöcke nutzen `{{lower_snake}}`, ein `style` für die
+Schriftfamilie und `data-block`. Nach dem alten Text wären 22 von 41 eigenen
+Blöcken durchgefallen. Drei weitere Regeln kamen aus demselben Grund wieder
+heraus: Navigation, Footer und Banner haben zu Recht keine Überschrift, ein
+Hero *ist* die `h1` seiner Seite, und ein anklickbarer `wa.me`-Link ist keine
+automatisch geladene Ressource.
+
+**Seit dem 2026-08-13 besteht die ganze Bibliothek den Vertrag** — die Liste
+der bekannten Schuld ist leer. Fünf Blöcke waren zu reparieren:
+
+* `hw-karte` und `seo-lokal` betteten Google Maps per `<iframe>` ein. Das
+  überträgt die Besucher-IP an Google, bevor jemand klickt — genau der
+  K.-o.-Grund, den unser eigener Kriterienkatalog `tracking_ohne_consent`
+  nennt. Jede Kundenseite mit einem dieser Blöcke wäre bei unserer eigenen
+  Prüfung durchgefallen. Jetzt zeigen sie Ortsliste bzw. Adresse und einen
+  Link, der die Karte in einem neuen Fenster öffnet: Wer sie will, klickt —
+  dann ist es seine Entscheidung.
+* `hero-centered` legte ein Overlay in `rgba(0,79,89,0.78)` über sein
+  Hintergrundbild — KOMPAGNON-Teal, fest im `style`-Attribut. Jetzt neutral.
+* `cta-kontakt-split`, `seo-lokal` und `trust-testimonial` malten ihre Icons
+  siebenmal in `stroke="#008EAA"`. Das ist weder Klasse noch `style`, also für
+  jeden Override unerreichbar — und fiel deshalb erst auf, als R5 um die
+  SVG-Attribute erweitert wurde. Jetzt `currentColor`: Das Icon folgt der
+  Textfarbe, und die kommt aus dem Style-Guide.
+
+Dazu ein neuer Test, der die Blöcke **mit ihren Slot-Angaben aus der
+`index.json`** prüft. Der bestehende prüfte nur das Markup und hätte nicht
+gemerkt, dass die Kartenblöcke nach dem Umbau `map_link_url` schreiben,
+während die Angaben weiter `map_embed_url` führten — `generate-copy` hätte den
+neuen Slot nie gefüllt.
+
+### 4.2 R5 — die Marken-Bindung, und was beim Messen herauskam
+
+**Die Regel steht** (`services/block_contract.py`, Tabelle oben). Der Weg dahin
+ist lehrreicher als die Regel selbst.
+
+Der ursprüngliche Plan war, „jede Farb-, Schrift- und Abstandsklasse gegen den
+Token-Satz aus `wireframe_data.style_guide`" zu prüfen. Das geht nicht, weil
+der Style-Guide keine Tailwind-Token führt, sondern Hex-Werte — und weil die
+Marke ganz anders angewendet wird als gedacht: `DesignView.buildOverrideCSS`
+überschreibt einen **festen, kleinen Satz Tailwind-Graustufen** mit den
+Marken-Werten (`bg-white`, `bg-gray-50/100/200/300`, `bg-gray-700/800/900`,
+`text-gray-400…900`, `border-gray-200/300`).
+
+Daraus folgt die Regel, die tatsächlich trägt: **ein Block darf nur neutrale
+Töne benutzen.** Gemessen an den 45 Bibliotheksblöcken vor dem Scharfschalten —
+298× `gray`, 222× `slate`, dazu `white`, `black`, `transparent`, **kein
+einziger bunter Ton**; in der Datenbank-Bibliothek (96 Blöcke) ebenso wenig.
+Die Regel beschreibt also, was die Bibliothek ohnehin tut, und weist genau das
+ab, was Stufe B gefährdet.
+
+**Der eigentliche Fund liegt daneben.** Der Marken-Override kannte nur
+`gray-*` und `bg-white`. Die Bibliothek malt aber zu großen Teilen in
+`slate-*` (222 Vorkommen), dazu `text-white/80`, `from-gray-900/95`,
+`bg-gray-600`, `border-gray-700`, `ring-gray-700/30` — alles Klassen, die er
+**nicht** angefasst hat. **Alle 45 Blöcke** enthalten mindestens eine davon.
+
+**Behoben** (`utils/brandOverride.js` mit `brandOverride.test.js`): Der Override
+deckt jetzt alle fünf Graustufen-Familien über die volle Skala ab, dazu
+Deckkraft-Varianten und Verläufe. Der dunkle Kontext läuft über drei Custom
+Properties, die dunkle Flächen setzen und alles darin erbt — die naive Fassung,
+die jede Regel je dunkler Fläche wiederholte, ergab 449 KB CSS; so sind es 114.
+Der Test liest die 45 echten Blöcke und verlangt für jede ihrer Farbklassen
+einen Selektor. Kommt ein neuer Block mit einer neuen Klasse, fällt es dort auf.
+
+### 4.3 Der Anschluss an die Seite — vorher eine Sackgasse
+
+Beim Bauen kam heraus, dass eine frühere Fassung dieses Dokuments (und mein
+eigener Befund oben) zu weit ging: **Der Override erreicht die Kundenseite gar
+nicht.** `buildOverrideCSS` wird an genau zwei Stellen benutzt — in der
+Vorschau der DesignView und im Einzelseiten-Export per Knopf. Die
+ausgelieferte Seite entsteht auf einem anderen Weg:
+`sitemap_pages.mockup_html` (aus einem Agenten-Lauf) → GrapesJS →
+`gjs_html`/`gjs_css` → Netlify. Die Bibliotheksblöcke werden im ganzen Frontend
+nur an drei Stellen gerendert (Wireframe-Editor, Design-Vorschau,
+Komponenten-Manager), und keine davon schreibt in `mockup_html`.
+
+**Geschlossen am 2026-08-13:** „Auf die Seite übernehmen" in der DesignView
+schreibt die Vorschau — Marken-CSS und Blöcke in einem Stück — nach
+`sitemap_pages.mockup_html`. Von dort geht sie in GrapesJS und in den Deploy.
+Bewusst ein Knopf und kein Automatismus: Er überschreibt, was auf der Seite
+schon steht, und fragt vorher nach, wenn dort ein Entwurf oder eine bearbeitete
+Editor-Fassung liegt. Vorschau und Übernahme teilen sich denselben Baustein
+(`utils/pageHtml.js`) — was übernommen wird, ist genau das, was zu sehen war.
+
+Zwei Dinge kamen dabei heraus, beide vom stillen Typ:
+
+* **Auf einer Pflichtseite wurde der Entwurf verworfen.** `PUT
+  /api/sitemap/pages/{id}` lässt bei `ist_pflichtseite` nur Inhaltsfelder durch
+  — `mockup_html` stand nicht auf der Liste. Die API antwortete mit 200, die
+  Oberfläche meldete Erfolg, gespeichert wurde nichts. Impressum und
+  Datenschutz hätten also nie ein Aussehen bekommen. Jetzt steht das Feld auf
+  der Liste (gesperrt bleibt die Struktur), und die Oberfläche prüft die
+  Antwort, statt dem Status zu glauben.
+* **Jede bestätigte Schritt-Bestätigung ging verloren.** `steps_confirmed` legt
+  `main.py::_run_migrations` per rohem SQL an; das ORM-Modell kannte die Spalte
+  nicht. `POST /confirm-step` antwortete `{"saved": true}` und schrieb nichts.
+  Da der Editor nur den nächsten Schritt nach der letzten lückenlosen Kette
+  freigibt, blieben Wireframe, Style-Guide und Design **dauerhaft gesperrt** —
+  ohne Fehlermeldung. Gefunden beim Versuch, die Design-Ansicht im Browser-Test
+  überhaupt zu erreichen. Dieselbe Falle wie im Mai bei `status`: Was `main.py`
+  per SQL anlegt, muss auch im Modell stehen.
+
+**Kontrolllauf mit scharfem R5** (vier Blöcke gegen die echte API): R5 hat kein
+einziges Mal ausgelöst — das Modell bleibt von sich aus grau. Aufgefallen ist
+dabei etwas anderes: Zwei Blöcke setzten `id` am Titel, um per
+`aria-labelledby` darauf zu zeigen, und rissen damit R4. Der Prompt verlangte
+Barrierefreiheit und verbot `id`, ohne den Ausweg zu nennen. Jetzt nennt er ihn
+(`aria-label` direkt am Bereich) — und derselbe Fall kommt seither in einer
+Runde durch: `trust` von 130 s auf 70 s.
+
+## 5. Drei Stufen, in dieser Reihenfolge
+
+Bewusst gestaffelt: Jede Stufe ist für sich nützlich, und keine setzt voraus,
+dass die nächste kommt.
+
+### Stufe A — Claude als Blockautor · **gebaut**
+
+Claude erzeugt **neue Bibliotheksblöcke** statt fertiger Seiten. Eingabe:
+Kategorie, Layout-Preset, Branche, Pflicht-Elemente, Freitext-Wunsch. Ausgabe:
+ein Block nach Vertrag, der **einmal** geprüft und dann beliebig oft verwendet
+wird.
+
+**Was steht:**
+
+| Weg | Endpunkt | Verhalten |
+|---|---|---|
+| Erzeugen | `POST /api/components/generate` → `GET /api/components/generate/{job_id}` | Hintergrundauftrag; Prompt lehrt den Vertrag, das Ergebnis wird geprüft, Verstöße gehen **einmal** ans Modell zurück; die Reparatur wird nur übernommen, wenn sie die Verstöße wirklich verringert. Der Befund fährt als `contract` im Ergebnis mit. |
+| Anlegen | `POST /api/components` | Unsauber ⇒ `status="draft"`, nicht verworfen |
+| Custom speichern | `POST /api/components/save-custom` | Gleiche Prüfung — sonst käme unsauberes Markup durch die zweite Tür |
+| Bearbeiten | `PUT /api/components/{slug}` | Prüft neu; bricht eine Änderung den Block, entzieht sie die Freigabe |
+| Freigeben | `POST /api/components/{slug}/approve` | **422 mit den konkreten Verstößen**, solange etwas offen ist |
+| Lesen | `GET /api/components` | Entwürfe unsichtbar; `?include_drafts=true` zeigt sie |
+
+Ein Entwurf erreicht weder den Wireframe-Editor noch den Wireframe-Generator
+(`_run_wireframe_job` lädt nur Freigegebenes). Ein unsauberer Block wird
+bewusst **gespeichert statt verworfen**: sonst wäre die Arbeit weg und der
+Grund unsichtbar.
+
+**Modellwahl:** Die Block-Erzeugung läuft auf `claude-opus-5` — dieses Markup
+landet auf Kundenseiten, da zählt Qualität mehr als der Token-Preis. Slot-Copy
+(`generate-copy`) und Wireframe-Zuordnung bleiben auf `claude-sonnet-4-6`.
+
+**Die Oberfläche dazu — gebaut:**
+
+| Wo | Was man sieht |
+|---|---|
+| Komponenten-Manager, Liste | Filter „Alle / Freigegeben / Entwürfe" mit Zähler, Entwurfs-Kennzeichnung am Eintrag, ⚠️ an freigegebenen Blöcken, die den Vertrag trotzdem verletzen (die Altlast `hw-karte`, `seo-lokal`) |
+| Komponenten-Manager, Editor | Status im Kopf, Verstöße im Klartext (Regel + Begründung), Freigabe-Knopf — gesperrt, solange etwas offen ist oder ungespeicherte Änderungen anstehen |
+| Speichern / Anlegen | Fällt ein Block auf Entwurf, sagt die Meldung es und nennt die Zahl der offenen Punkte |
+| KI-Generator | Der Befund steht schon am Ergebnis, nicht erst nach dem Speichern |
+| Wireframe-Editor | Ein Block, der nicht mehr in der freigegebenen Bibliothek steht, sagt das jetzt — vorher blieb die Karte einfach leer |
+| „Als Custom speichern" | Landet der Block als Entwurf, wird er **nicht** in die Seite getauscht; der Grund steht im Panel statt in der Konsole |
+
+Zwei Dinge kamen beim Bauen dazu, weil sie auf demselben stillen Weg lagen:
+Die Oberfläche vergab beim Übernehmen eines KI-Blocks einen eigenen Slug, ließ
+`data-block` aber stehen — Regel R2 verletzt, Block als Entwurf, und im
+Formular war nichts zu sehen, was das erklärt hätte. Und ein Nachladen nach dem
+Speichern konnte eine Eingabe verschlucken, die währenddessen passierte.
+
+`e2e/tests/block-freigabe.spec.js` prüft den Weg im Browser: unsauber anlegen →
+Entwurf mit Grund → Freigabe gesperrt → reparieren → Freigabe klappt.
+
+### Der scharfe Lauf — die Frage vor Stufe B ist beantwortet
+
+Zehn Blöcke gegen die echte API, quer durch die Kategorien (HERO frei, HERO mit
+Preset, HERO mit Formular, LEIST, TRUST, CTA, NAV, FOOT, SEO, HW). Gemessen
+wurde der Auftrag selbst, nicht ein Nachbau.
+
+| | |
+|---|---|
+| Angekommen | 9 von 10 |
+| **Im ersten Wurf vertragskonform** | **8 von 9** |
+| Reparaturrunde nötig | 1 (danach sauber) |
+| Abbruch | 1 — und zwar **nicht** am Vertrag |
+| Dauer je Block | 26–76 s, mit Reparatur 141 s |
+| Kosten | ~38k ein / ~53k aus auf Opus 5 für zehn Blöcke |
+
+**Der Vertrag ist keine Hürde.** Kein einziger Block enthielt einen `<iframe>`,
+ein `<script>`, ein `id`-Attribut oder eine externe Quelle — auch nicht bei
+`seo-lokal` und `hw-karte`, also genau dort, wo die beiden Altblöcke der
+Bibliothek daran scheitern. Die Regeln liegen dort, wo das Modell ohnehin
+schreibt.
+
+**Der eine Verstoß war ein Buchhaltungsfehler — und ist erledigt.** Zwölfmal
+dieselbe Regel R3: Slots im Markup (`product_1_spec_1` …), die in den
+Slot-Angaben fehlten. Das kostete eine zweite Runde mit 11k Eingabe- und 8k
+Ausgabe-Token für eine Angabe, die im Markup bereits stand. Seither liest
+`services/block_slots.py` sie dort ab, statt sie zu erfragen: Der Generator
+trägt fehlende Slots nach, bevor der Vertrag prüft — mit Beschriftung aus dem
+Schlüssel (`product_1_spec_1` → „Product 1 Spec 1"), in der Reihenfolge des
+Markups. Was das Modell selbst beschriftet hat, bleibt unangetastet; eine
+abgeleitete Beschriftung ist immer schlechter als eine gemeinte.
+
+Bewusst **nur im Generator**, nicht an den beiden Türen in die Bibliothek: Wer
+von Hand einen Block schreibt, soll seine Slot-Angaben nicht stillschweigend
+umgeschrieben bekommen — er sieht den Verstoß jetzt im Klartext und entscheidet
+selbst.
+
+**Gescheitert ist der Auftrag am JSON, nicht am Vertrag.** Beim FOOT-Block war
+die Antwort ab Zeichen 9396 kein gültiges JSON mehr. Zwei Nachläufe desselben
+Falls kamen sauber zurück, `stop_reason` jedes Mal `end_turn` — ein Ausrutscher,
+kein Muster, aber bei ~11 % die häufigere Ausfallursache als der Vertrag.
+Behoben: Der Parser lässt rohe Steuerzeichen in Zeichenketten jetzt durch
+(`strict=False`), und bei kaputtem JSON bekommt das Modell den Parserfehler
+zurück und **eine** zweite Chance. Bei `max_tokens` wird bewusst nicht
+nachgefragt — die Antwort ist dann garantiert unvollständig. `generate-copy`
+und der Wireframe-Job parsen ebenfalls nachsichtig; die zweite Chance haben sie
+nicht, dafür fehlt der Beleg und ihr Auftrag ist teurer zu wiederholen. Derselbe
+FOOT-Fall lief nach dem Umbau gegen die echte API sauber durch — erste Runde,
+kein offener Punkt.
+
+→ **Für Stufe B heißt das:** Der Vertrag trägt. Ein Aufruf je variierter
+Section reicht in acht von neun Fällen, und die Reparaturrunde fängt den Rest.
+
+**Was noch fehlt:**
+
+1. **Envato als Inspirationsquelle** — noch nicht angebunden (§ 9.3).
+
+### Stufe B — Claude als Sektionsgestalter · **gebaut**
+
+Ein ausgewählter Block wird **für diesen Kunden umgeschrieben** — nicht nur
+mit Text gefüllt, sondern im Aufbau variiert: andere Anordnung, andere
+Betonung, passend zu Leistung und Region. Hier entsteht die Individualität,
+die vorher fehlte.
+
+**Wie es läuft:** Im Wireframe-Editor öffnet ein Klick auf den Block das
+Detail-Panel. Dort steht „Für diesen Kunden umschreiben", optional mit einem
+Satz, was anders sein soll. Der Auftrag läuft im Hintergrund
+(`POST /api/projects/{id}/wireframe/variant`, Polling wie beim Blockautor),
+das Ergebnis kommt mit Vorschau, einer Begründung in einem Satz und dem
+Vertragsbefund zurück. Übernehmen schreibt `html_override` in den Block; ein
+Knopf führt jederzeit zur Bibliotheksvorlage zurück.
+
+**Was die Variante darf und was nicht** (`services/block_variant.py`, im Prompt
+wie im Prüfer):
+
+| | |
+|---|---|
+| Derselbe Block | Das Wurzelelement trägt weiter `data-block="<slug>"` — sonst findet der Editor ihn nicht wieder (R2) |
+| Dieselben Slots | Weglassen erlaubt, umbenennen nicht (**B2**). `generate-copy` und der Slot-Editor lesen die Angaben des **Bibliotheksblocks**; ein erfundener Schlüssel würde nie gefüllt |
+| Derselbe Vertrag | R1–R5 unverändert. Sonst wäre er in einer Zeile zu umgehen: Man schriebe den Block nicht in die Bibliothek, sondern direkt beim Kunden |
+| Eine Reparaturrunde | Verstöße gehen einmal zurück ans Modell; die Reparatur wird nur übernommen, wenn sie die Verstöße verringert — wie in Stufe A |
+
+**Das Tor sitzt im Speichern, nicht nur im Erzeuger.** `POST
+/api/projects/{id}/wireframe` prüft **jede** Variante, egal woher sie kommt,
+und antwortet mit 422 samt Verstößen. Der Wireframe-Editor zeigt das jetzt an —
+vorher landete jeder abgelehnte Save in der Konsole, und der Nutzer hielt sein
+Wireframe für gespeichert.
+
+**Datenmodell:** nur ein Feld, wie geplant — `WireframeBlock.html_override`.
+Kein neuer Speicherort; `wireframe_data` ist JSONB, also auch keine Migration.
+Der Renderer (`utils/pageHtml.js`) zieht die Variante dem Bibliotheks-Template
+vor, der Wireframe-Editor zeigt sie in der Blockvorschau und markiert den Block
+mit „Eigene Fassung".
+
+**Kosten:** ein Aufruf je variierter Section je Kunde. Anders als A
+amortisiert sich das **nicht** über alle Kunden — deshalb sparsam einsetzen,
+etwa nur für Hero und die tragende Leistungs-Section.
+
+**Scharfer Lauf, drei Blöcke gegen die echte API** (SHK-Betrieb: Wärmepumpe,
+Bad-Sanierung, Notdienst, 50 km um Koblenz, „bodenständig, kein Hochglanz",
+Hinweis „viele ältere Kunden — Telefonnummer muss immer sichtbar sein"):
+
+| Block | Dauer | Verstöße | Größe |
+|---|---|---|---|
+| `hero-standard` | 29 s | 0 | 1.302 → 4.580 Zeichen |
+| `leist-grid-3` | 25 s | 0 | 1.993 → 4.322 Zeichen |
+| `trust-testimonial` | 23 s | 0 | 1.496 → 3.080 Zeichen |
+
+Alle drei im ersten Wurf vertragskonform, keine erfundenen Slots, alle
+vorhandenen genutzt. Und sie sind wirklich umgebaut, nicht abgeschrieben: Im
+Hero wandert das Bild in die schmalere Spalte und die Telefonnummer steht
+doppelt; bei den Leistungen bekommt die Wärmepumpe eine breite Vollzeilen-Karte
+über den kleineren Kacheln; das Testimonial verliert die Hochglanz-Karte und
+bekommt eine große Telefon-Schaltfläche. Der Hinweis auf ältere Kunden ist in
+allen drei Varianten sichtbar angekommen — genau das, was mit „Permutation
+derselben Blöcke" nicht ging.
+
+**Offen bleibt die Frage aus § 9.2:** Reicht „Vertrag bestanden" als Freigabe
+je Kunde, oder braucht jede Variante einen Blick? Heute ist es dein Blick — das
+Panel zeigt die Vorschau, und ohne Übernehmen passiert nichts. Das ist die
+sichere Voreinstellung; ob es skaliert, zeigt der Alltag.
+
+### Stufe C — Claude als Seitenkomponist · **erste Hälfte gebaut**
+
+Claude entwirft die **ganze Seite**: Reihenfolge, Rhythmus, Übergänge,
+Wiederholungsvermeidung — und die Pflicht-Sections aus `conversion-spec-shk.md`
+vollständig.
+
+**Zwei Phasen, und das ist der Kern der Umsetzung.** Eine ganze Seite in einem
+Aufruf hieße acht bis achtzehn Sections Markup in einer Antwort: lang, teuer,
+und beim kleinsten Formfehler ganz verloren. Deshalb:
+
+| Phase | Was | Modell | Stand |
+|---|---|---|---|
+| **1 Abfolge** | Welche Sections, in welcher Reihenfolge, mit je einem Satz Auftrag | `claude-sonnet-4-6` | ✅ `services/page_composer.py` |
+| **2 Markup** | Jede Section einzeln umschreiben | `claude-opus-5` | ✅ das ist Stufe B, ein Block nach dem anderen |
+
+Die Bibliothek bleibt der Anker: Jede Section nennt einen vorhandenen Block.
+Das schränkt die Gestaltung nicht ein — Stufe B baut ihn ohnehin um — sondern
+hält Slots, Editor und Textgenerator zusammen.
+
+**Was die Abfolge erfüllen muss** (`pruefe_komposition`):
+
+| Regel | Prüft |
+|---|---|
+| **C0** | Nicht leer |
+| **C1** | Jeder Slug steht in der freigegebenen Bibliothek — Entwürfe werden gar nicht erst vorgeschlagen |
+| **C2** | Nie zweimal derselbe Block hintereinander. Genau das ist der Unterschied zwischen Komponieren und Aneinanderreihen; derselbe Block mit Abstand ist erlaubt und von der Conversion-Spec sogar verlangt |
+
+Verstöße gehen einmal zurück ans Modell, die Nachbesserung wird nur übernommen,
+wenn sie es besser macht — dasselbe Muster wie in A und B.
+
+**Bedienung:** „✨ Seite komponieren" in der Kopfzeile des Wireframe-Editors.
+Der Vorschlag erscheint als nummerierte Liste mit Rolle, Block und Auftrag je
+Section, dazu ein Satz über den Bogen der Seite. Übernehmen ersetzt die Blöcke
+der Seite; danach schreibt man Section für Section über Stufe B um.
+
+**Scharfer Lauf, zwei Seiten gegen die echte API** (derselbe SHK-Betrieb wie
+bei B, 45 Blöcke in der Bibliothek):
+
+| Seite | Dauer | Sections | Wiederholungen |
+|---|---|---|---|
+| Startseite | 26 s | 18, alle verschieden | keine |
+| Wärmepumpe (Leistungsseite) | 24 s | 15, alle verschieden | keine |
+
+Beide Abfolgen decken die Pflicht-Sections ab und lesen sich als Seite, nicht
+als Liste: Die Startseite beginnt mit der Telefonnummer und dem
+90-Minuten-Notdienst, führt über Schmerz, Paket, Ablauf und Nachweise zu
+Referenzen und Garantie und endet doppelt telefonierbar. Der Briefing-Hinweis
+„viele ältere Kunden — Telefonnummer muss immer sichtbar sein" hat sichtbar die
+**Struktur** verändert, nicht nur den Text. Die Leistungsseite ist eine andere
+Seite, kein Abklatsch: Keyword-Hero, Kennzahlen direkt darunter, Hersteller
+statt Zertifikate, eine einzelne Kundenstimme zur Verdichtung.
+
+**Was von C noch fehlt — die Qualitätsschleife.** Der Plan bleibt: erst auf eine
+Netlify-Vorschau deployen, dann den eigenen 38-Kriterien-Audit gegen diese URL
+laufen lassen. Der Deploy existiert, der Audit ist URL-getrieben, und seit
+„Auf die Seite übernehmen" (§ 4.3) führt der Weg von der Komposition bis zur
+ausgelieferten Seite durch. Damit ist die Schleife das nächste sinnvolle Stück
+— und der Punkt, an dem sich der Kreis schließt: Was wir Kunden vorwerfen,
+dürfen wir selbst nicht liefern.
+
+## 6. Leitplanken
+
+| Leitplanke | Umsetzung | Stand |
+|---|---|---|
+| **Marke** | Block bleibt neutral, die Farbe kommt aus dem Style-Guide | ✅ Regel R5 im Prüfer — ⚠️ aber der Override deckt nur `gray-*` ab (§ 4.2) |
+| **Conversion** | Pflicht-Sections aus `conversion-spec-shk.md` | ✅ im Kompositions-Auftrag (Stufe C), Startseite verbindlich, Unterseiten als Empfehlung |
+| **Qualität** | Der eigene 38-Kriterien-Audit läuft gegen die erzeugte Seite | offen; Weg geklärt: über Netlify-Vorschau |
+| **Datenschutz** | Keine externen Ressourcen, wie im Widget | ✅ Regel R1 |
+| **Kosten** | Erzeugung ist ein Hintergrundauftrag | ✅ Muster in `component_library.py` |
+
+## 7. Wo es andockt
+
+```
+Briefing + Analyse
+      │
+      ▼
+  Sitemap (KI)  ──────────────► sitemap_pages
+      │
+      ▼
+  Wireframe (KI)                        ┌─ Stufe A: Claude schreibt Blöcke ✅
+      │  wählt Blöcke aus  ◄────────────┤   (nur freigegebene)
+      │                                 └─ component_library.html_template
+      ▼
+  wireframe_data ──── Stufe B: Claude variiert je Kunde  (html_override)
+      │
+      ▼
+  Style-Guide-Token ── R5 hält den Block neutral ✅ · Override lückenhaft ⚠️
+      │
+      ▼
+  GrapesJS (kas_gjs_data) ◄── Mensch justiert     ◄── Stufe C: ganze Seite
+      │
+      ▼
+  Netlify-Vorschau ──► QA: eigener 38-Kriterien-Audit
+      │
+      ▼
+  Netlify-Deploy
+```
+
+Neu ist **kein** Speicherort. Stufe A schreibt in `component_library`,
+Stufe B/C in `wireframe_data` bzw. `kas_gjs_data`.
+
+## 8. Was schiefgehen kann
+
+* **Generisches KI-Aussehen.** Ohne konkrete Welt (Branche, Ort, Betrieb,
+  Materialien) fällt jedes Modell in denselben Durchschnitt. Der Prompt muss
+  den *Betrieb* beschreiben, nicht „moderne Website".
+* **Markendrift.** Ohne harte Token-Bindung wandert die Gestaltung ab —
+  heute real offen, siehe § 4.2.
+* **Unwartbares Markup.** Verschachtelung ohne Ende. Gegenmittel steht:
+  Tiefenbegrenzung 12 Ebenen in R4.
+* **Kosten je Kunde.** Stufe C ist ein langer Aufruf je Seite, B einer je
+  Section. Stufe A amortisiert sich dagegen über alle Kunden.
+* **Ein Vertrag, den die eigene Bibliothek verletzt.** Genau das ist beim
+  Bauen passiert und wurde korrigiert, indem die Regeln an den echten Blöcken
+  gemessen wurden. Bei R5 droht dasselbe: erst am Style-Guide messen, dann
+  einschalten.
+
+## 9. Offene Entscheidungen
+
+1. **Wer gibt einen erzeugten Block frei** — du allein oder ein automatischer
+   Vorfilter? Technisch verweigert die Freigabe heute nur bei Vertragsbruch;
+   *gestalterisch* schaut noch niemand hin.
+2. **Reicht bei Stufe B „Vertrag bestanden" als Freigabe je Kunde**, oder
+   braucht jede Variante einen Blick? Entscheidet, ob B skaliert.
+3. **Inspirationsquelle für Stufe A:** die 68 Envato-Vorlagen als
+   Muster-Referenz (Ableitung, nicht Kopie) oder rein aus dem Briefing?
+4. **Bleibt der GrapesJS-Editor beim Kunden** oder nur intern bei dir? Das
+   entscheidet, wie streng die Sperren im Vertrag sein müssen.
+5. **Zwei Wege auf dieselbe Seite** (§ 4.3). Der Wireframe-Zweig ist seit dem
+   2026-08-13 angeschlossen: Die Design-Vorschau schreibt nach `mockup_html`.
+   Daneben steht weiter der Agenten-Lauf, der dasselbe Feld füllt. Offen bleibt
+   deshalb: Bleiben beide Wege nebeneinander (dann braucht es eine Regel, wer
+   wann gewinnt), oder bekommt der Agent die Blöcke als Vorlage und es bleibt
+   einer? Nicht dringend — der Knopf fragt nach, bevor er überschreibt.
+
+## 10. Nächste Schritte
+
+| # | Was | Aufwand | Warum jetzt |
+|---|---|---|---|
+| ~~1~~ | ~~Oberfläche für Entwurf und Freigabe~~ | — | **gebaut am 2026-08-13** (§ Stufe A) |
+| ~~2~~ | ~~Scharfer Generierungslauf~~ | — | **gelaufen am 2026-08-13**: 8 von 9 im ersten Wurf konform; der JSON-Ausrutscher ist behoben |
+| ~~3~~ | ~~`hw-karte` / `seo-lokal` entschärfen~~ | — | **gebaut am 2026-08-13**, zusammen mit `hero-centered` und drei Blöcken mit Marken-Farbe im SVG |
+| ~~4~~ | ~~R5 Marken-Bindung~~ | — | **gebaut am 2026-08-13**, an 45 Blöcken gemessen |
+| ~~4b~~ | ~~Marken-Override vervollständigen~~ | — | **gebaut am 2026-08-13**: `utils/brandOverride.js`, gegen die 45 Blöcke geprüft |
+| ~~4c~~ | ~~Wireframe-Zweig an die Seite anschließen~~ | — | **gebaut am 2026-08-13**: „Auf die Seite übernehmen" in der DesignView |
+| ~~5~~ | ~~R3 ohne zweite Runde~~ | — | **gebaut am 2026-08-13**: `services/block_slots.py` |
+| ~~6~~ | ~~Stufe B~~ | — | **gebaut am 2026-08-13** (§ Stufe B) |
+| ~~7~~ | ~~Stufe C, Phase 1 (Abfolge)~~ | — | **gebaut am 2026-08-13** |
+| 8 | Qualitätsschleife: Netlify-Vorschau → eigener 38-Kriterien-Audit | ~4 h | Schließt den Kreis; alle Teile existieren |

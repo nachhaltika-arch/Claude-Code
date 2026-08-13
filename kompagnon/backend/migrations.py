@@ -1,3 +1,14 @@
+"""
+Migrationen fuer Newsletter- und Zusatztabellen.
+
+ACHTUNG — diese Datei laeuft NICHT beim Start des Servers. Aufgerufen wird
+sie nur von Hand (``python migrations.py``). Beim Start arbeitet allein die
+Liste in ``main.py::_run_migrations``. Eine Spalte, die nur hier eingetragen
+wird, fehlt auf Render und laesst den betroffenen Endpunkt mit
+``ProgrammingError`` abstuerzen — genau so ist der Widget-Teaser am
+2026-08-12 auf Staging gestrandet. Neue Spalten also immer nach ``main.py``,
+hier hoechstens zusaetzlich zur Dokumentation.
+"""
 import logging
 import os
 import psycopg2
@@ -164,6 +175,51 @@ def run_migrations():
     # Schritt-Bestätigung (steps_confirmed JSON)
     cur.execute("""
         ALTER TABLE projects ADD COLUMN IF NOT EXISTS steps_confirmed TEXT DEFAULT '{}';
+    """)
+
+    # ── Audit-Überarbeitung 2026-08-11 ─────────────────────────────────────
+    # Kriterien, Punkte und Quellen liegen als JSON, nicht als je eine Spalte:
+    # der Katalog soll sich weiterentwickeln können, ohne dass jede neue
+    # Prüfung eine Migration braucht. Die alten Einzelspalten bleiben als
+    # Altbestand stehen und werden nicht mehr beschrieben.
+    for column, definition in (
+        ("item_scores",     "TEXT DEFAULT '{}'"),
+        ("item_sources",    "TEXT DEFAULT '{}'"),
+        ("category_scores", "TEXT DEFAULT '[]'"),
+        ("blockers",        "TEXT DEFAULT '[]'"),
+        ("coverage",        "INTEGER DEFAULT 0"),
+        ("collection_notes", "TEXT DEFAULT '{}'"),
+    ):
+        cur.execute(
+            f"ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS {column} {definition};"
+        )
+
+    # ── Widget-Teaser an ein Token binden 2026-08-12 ───────────────────────
+    # Der Teaser lief auf der laufenden Nummer der Analyse und war damit von
+    # aussen durchzaehlbar. Jede Anfrage bekommt jetzt ihren eigenen Token.
+    cur.execute("""
+        ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS poll_token VARCHAR(64);
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_widget_requests_poll_token
+        ON widget_requests(poll_token);
+    """)
+
+    # Nachweis, dass der Empfaenger den Bericht selbst abgerufen hat.
+    cur.execute("""
+        ALTER TABLE widget_requests
+        ADD COLUMN IF NOT EXISTS report_confirmed_at TIMESTAMP;
+    """)
+
+    # Adressbestaetigung vor dem Bericht.
+    for spalte, typ in (("verify_token", "VARCHAR(64)"),
+                        ("verify_sent_at", "TIMESTAMP"),
+                        ("verified_at", "TIMESTAMP")):
+        cur.execute(
+            f"ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS {spalte} {typ};")
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_widget_requests_verify_token
+        ON widget_requests(verify_token);
     """)
 
     cur.close()

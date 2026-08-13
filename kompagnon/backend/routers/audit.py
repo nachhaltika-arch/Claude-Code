@@ -3,15 +3,16 @@ Website Audit API routes.
 POST /api/audit/start - Run full website audit
 GET  /api/audit/{audit_id} - Get audit result
 GET  /api/audit/lead/{lead_id} - All audits for a lead
+
+Die Prüflogik liegt in services/audit_*: audit_criteria (Katalog),
+audit_collectors + audit_pagespeed (Erhebung), audit_runner (Orchestrierung),
+audit_scoring (Bewertung), audit_ai (subjektive Kriterien).
+Dieser Router hält nur noch HTTP und Persistenz.
 """
 import json
-import os
-import re
-import requests
 import logging
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
@@ -22,28 +23,16 @@ from pydantic import BaseModel
 from database import AuditResult, Lead, User, get_db, SessionLocal
 from email_service import send_audit_done_email
 from routers.auth_router import optional_auth
-
-try:
-    from anthropic import Anthropic
-except ImportError:
-    Anthropic = None
+from services.audit_criteria import CATALOGUE, BLOCKER_LABELS, SOURCE_LABELS, Source
+from services.url_guard import check_url
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/audit", tags=["audit"])
 
-PAGESPEED_API_KEY = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-
-AUDIT_TOTAL_TIMEOUT_SEC = 90  # Gesamt-Timeout für den gesamten Audit-Worker
-
-LEVELS = [
-    (95, "Homepage Standard Platin"),
-    (85, "Homepage Standard Gold"),
-    (70, "Homepage Standard Silber"),
-    (50, "Homepage Standard Bronze"),
-    (0, "Nicht konform"),
-]
+# Vollständiges Audit: Mehrseiten-Crawl, PageSpeed und KI-Bewertung.
+# Freigegeben am 2026-08-11 (vorher 90s — reichte nur für die Startseite).
+AUDIT_TOTAL_TIMEOUT_SEC = 240
 
 
 # ═══════════════════════════════════════════════════════════
@@ -64,7 +53,7 @@ class LinkLeadRequest(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════
-# Technical Checks
+# Hilfsfunktionen
 # ═══════════════════════════════════════════════════════════
 
 def _normalise_url(url: str) -> str:
@@ -72,371 +61,6 @@ def _normalise_url(url: str) -> str:
     if not url.startswith(("http://", "https://")):
         url = f"https://{url}"
     return url
-
-
-def _check_ssl(url: str) -> bool:
-    return url.startswith("https://")
-
-
-def _check_reachable(url: str) -> dict:
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/120.0.0.0 Safari/537.36"
-        ),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "de-DE,de;q=0.9,en;q=0.7",
-    }
-    try:
-        r = requests.get(url, timeout=10, allow_redirects=True, headers=headers, verify=False)
-        return {"reachable": r.status_code < 400, "status_code": r.status_code, "html": r.text}
-    except Exception as e:
-        return {"reachable": False, "status_code": 0, "html": "", "error": str(e)}
-
-
-def _check_legal_pages(html: str, url: str) -> dict:
-    html_lower = html.lower()
-    links = re.findall(r'href=["\']([^"\']*)["\']', html_lower)
-    all_text = html_lower + " ".join(links)
-
-    impressum = any(
-        kw in all_text
-        for kw in ["impressum", "/impressum", "imprint"]
-    )
-    datenschutz = any(
-        kw in all_text
-        for kw in ["datenschutz", "privacy", "/datenschutz", "datenschutzerkl"]
-    )
-    cookie_banner = any(
-        kw in all_text
-        for kw in [
-            "cookie", "consent", "cookiebot", "cookieconsent",
-            "onetrust", "usercentrics", "borlabs", "gdpr",
-        ]
-    )
-    return {
-        "impressum_ok": impressum,
-        "datenschutz_ok": datenschutz,
-        "cookie_banner": cookie_banner,
-    }
-
-
-def _check_pagespeed(url: str) -> dict:
-    """Call Google PageSpeed Insights API."""
-    defaults = {
-        "performance_score": 0,
-        "mobile_score": 0,
-        "lcp_value": 99.0,
-        "cls_value": 1.0,
-        "inp_value": 999.0,
-    }
-    if not PAGESPEED_API_KEY:
-        # Simulate reasonable values when no API key
-        return {
-            "performance_score": 55,
-            "mobile_score": 50,
-            "lcp_value": 3.8,
-            "cls_value": 0.18,
-            "inp_value": 320.0,
-        }
-
-    try:
-        api_url = (
-            "https://www.googleapis.com/pagespeedonline/v5/runPagespeedTest"
-            f"?url={url}&key={PAGESPEED_API_KEY}&strategy=mobile"
-            "&category=performance&category=accessibility"
-        )
-        r = requests.get(api_url, timeout=10)
-        if r.status_code != 200:
-            return defaults
-        data = r.json()
-
-        lhr = data.get("lighthouseResult", {})
-        categories = lhr.get("categories", {})
-        audits = lhr.get("audits", {})
-
-        perf = categories.get("performance", {}).get("score", 0)
-        perf = int((perf or 0) * 100)
-
-        lcp = audits.get("largest-contentful-paint", {}).get("numericValue", 99000) / 1000
-        cls = audits.get("cumulative-layout-shift", {}).get("numericValue", 1.0)
-        inp_audit = audits.get("interaction-to-next-paint", {})
-        inp_val = inp_audit.get("numericValue", 999.0) if inp_audit else 999.0
-
-        return {
-            "performance_score": perf,
-            "mobile_score": perf,
-            "lcp_value": round(lcp, 2),
-            "cls_value": round(cls, 3),
-            "inp_value": round(inp_val, 0),
-        }
-    except Exception as e:
-        logger.error(f"PageSpeed API error: {e}")
-        return defaults
-
-
-def _check_security_headers(url: str) -> dict:
-    try:
-        r = requests.head(url, timeout=3, allow_redirects=True)
-        headers = {k.lower(): v for k, v in r.headers.items()}
-        return {
-            "has_hsts": "strict-transport-security" in headers,
-            "has_csp": "content-security-policy" in headers,
-            "has_xframe": "x-frame-options" in headers,
-            "has_xcontent": "x-content-type-options" in headers,
-        }
-    except Exception:
-        return {"has_hsts": False, "has_csp": False, "has_xframe": False, "has_xcontent": False}
-
-
-# ═══════════════════════════════════════════════════════════
-# AI Scoring via Claude
-# ═══════════════════════════════════════════════════════════
-
-def _ai_score(check_data: dict, company_name: str, trade: str) -> dict:
-    """Use Claude to analyze checks and assign granular item-level scores."""
-
-    scoring_prompt = """Du bist ein Website-Auditor für den "Homepage Standard" Bewertungsrahmen.
-Analysiere die technischen Prüfergebnisse und vergib Punkte für alle Einzelkriterien.
-
-BEWERTUNGSSCHEMA — Einzelkriterien (Gesamt: 100 Punkte):
-
-RECHTLICHE COMPLIANCE (Summe max 30):
-- rc_impressum: Impressum vorhanden (0-7)
-- rc_datenschutz: Datenschutzerklärung (0-7)
-- rc_cookie: Cookie Consent (TDDDG) (0-6)
-- rc_bfsg: Barrierefreiheitserklärung (BFSG) (0-4)
-- rc_urheberrecht: Urheberrecht & Lizenzen (0-3)
-- rc_ecommerce: E-Commerce Pflichten (0-3)
-
-TECHNISCHE PERFORMANCE (Summe max 20):
-- tp_lcp: LCP < 2.5s = 5P, < 4s = 2P, sonst 0 (0-5)
-- tp_cls: CLS < 0.1 = 4P, < 0.25 = 2P, sonst 0 (0-4)
-- tp_inp: INP < 200ms = 3P, < 500ms = 1P, sonst 0 (0-3)
-- tp_mobile: Mobile-First Bewertung (0-4)
-- tp_bilder: Bildoptimierung (0-4)
-
-HOSTING & INFRASTRUKTUR (nicht im Score, je 0 oder 1):
-- ho_anbieter: Hosting-Anbieter identifizierbar (0-1)
-- ho_uptime: Website erreichbar/zuverlässig (0-1)
-- ho_http: HTTP leitet auf HTTPS weiter (0-1)
-- ho_backup: Backup-Hinweise erkennbar (0-1)
-- ho_cdn: CDN wird genutzt (0-1)
-
-BARRIEREFREIHEIT (Summe max 20):
-- bf_kontrast: Farbkontraste WCAG AA (0-5)
-- bf_tastatur: Tastaturzugänglichkeit (0-5)
-- bf_screenreader: Screenreader-Kompatibilität (0-5)
-- bf_lesbarkeit: Lesbarkeit & Textgröße (0-5)
-
-SICHERHEIT & DATENSCHUTZ (Summe max 15):
-- si_ssl: HTTPS/SSL (0-4)
-- si_header: Security-Header HSTS/CSP/X-Frame (0-4)
-- si_drittanbieter: DSGVO Drittanbieter (0-4)
-- si_formulare: Formularsicherheit (0-3)
-
-SEO & SICHTBARKEIT (Summe max 10):
-- se_seo: Technische SEO Grundlagen (0-4)
-- se_schema: Strukturierte Daten Schema.org (0-3)
-- se_lokal: Lokale Auffindbarkeit (0-3)
-
-INHALT & NUTZERERFAHRUNG (Summe max 5, ux_kontakt zählt extra):
-- ux_erstindruck: Erster Eindruck (0-1)
-- ux_cta: Klare Call-to-Action (0-1)
-- ux_navigation: Navigation & Struktur (0-1)
-- ux_vertrauen: Vertrauenssignale (0-1)
-- ux_content: Content-Qualität (0-1)
-- ux_kontakt: Kontaktmöglichkeiten (0-1)
-
-REGELN:
-- Antworte NUR als valides JSON, KEIN Markdown
-- Sei streng aber fair — vergib nur Punkte wenn es Belege gibt
-- Für nicht direkt prüfbare Kriterien: konservative Schätzung
-- ai_summary: 3-5 Sätze in einfacher Sprache für den Betriebsinhaber
-- top_issues: Die 3 größten konkreten Probleme
-- recommendations: 3-5 konkrete nächste Schritte"""
-
-    user_message = f"""Analysiere diese Website-Prüfungsdaten:
-
-Betrieb: {company_name}
-Gewerk: {trade}
-
-Technische Prüfungsergebnisse:
-{json.dumps(check_data, indent=2, ensure_ascii=False)}
-
-Antworte als JSON mit allen Einzelkriterienpunkten:
-{{
-  "rc_impressum": 0, "rc_datenschutz": 0, "rc_cookie": 0, "rc_bfsg": 0, "rc_urheberrecht": 0, "rc_ecommerce": 0,
-  "tp_lcp": 0, "tp_cls": 0, "tp_inp": 0, "tp_mobile": 0, "tp_bilder": 0,
-  "ho_anbieter": 0, "ho_uptime": 0, "ho_http": 0, "ho_backup": 0, "ho_cdn": 0,
-  "bf_kontrast": 0, "bf_tastatur": 0, "bf_screenreader": 0, "bf_lesbarkeit": 0,
-  "si_ssl": 0, "si_header": 0, "si_drittanbieter": 0, "si_formulare": 0,
-  "se_seo": 0, "se_schema": 0, "se_lokal": 0,
-  "ux_erstindruck": 0, "ux_cta": 0, "ux_navigation": 0, "ux_vertrauen": 0, "ux_content": 0, "ux_kontakt": 0,
-  "ai_summary": "...",
-  "top_issues": ["Problem 1", "Problem 2", "Problem 3"],
-  "recommendations": ["Empfehlung 1", "Empfehlung 2", "Empfehlung 3"]
-}}"""
-
-    if not ANTHROPIC_API_KEY:
-        return _mock_ai_score(check_data)
-
-    def extract_json(text: str):
-        """Robustly extract a JSON object from an LLM response."""
-        import re as _re
-        # 1. Direct parse
-        try:
-            return json.loads(text)
-        except Exception:
-            pass
-        # 2. Find first {...} block
-        match = _re.search(r'\{.*\}', text, _re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group())
-            except Exception:
-                pass
-        # 3. Repair: append missing closing brace
-        try:
-            repaired = text.strip()
-            if not repaired.endswith('}'):
-                repaired += '}'
-            return json.loads(repaired)
-        except Exception:
-            return None
-
-    try:
-        client = Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=0, timeout=25.0)
-        message = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=2000,
-            system=scoring_prompt,
-            messages=[{"role": "user", "content": user_message}],
-        )
-        raw = message.content[0].text.strip()
-        raw = raw.replace('```json', '').replace('```', '').strip()
-        if not raw:
-            logger.warning('AI scoring: Leere Antwort')
-            return _mock_ai_score(check_data)
-        result = extract_json(raw)
-        if result is None:
-            logger.warning(f'AI scoring: JSON nicht parsebar, verwende Fallback. Rohantwort: {raw[:300]}')
-            return _mock_ai_score(check_data)
-        return result
-    except Exception as e:
-        logger.error(f"AI scoring failed: {e}")
-        return _mock_ai_score(check_data)
-
-
-def _mock_ai_score(check_data: dict) -> dict:
-    """Deterministic fallback scoring returning all item-level scores."""
-    lcp = check_data.get("lcp_value", 99)
-    cls_v = check_data.get("cls_value", 1)
-    inp = check_data.get("inp_value", 999)
-    mobile = check_data.get("mobile_score", 0)
-    sec = check_data.get("security_headers", {})
-
-    # RC items
-    rc_impressum = 7 if check_data.get("impressum_ok") else 0
-    rc_datenschutz = 7 if check_data.get("datenschutz_ok") else 0
-    rc_cookie = 6 if check_data.get("cookie_banner") else 0
-    rc_bfsg = 0
-    rc_urheberrecht = 2
-    rc_ecommerce = 2
-
-    # TP items
-    tp_lcp = 5 if lcp < 2.5 else (2 if lcp < 4.0 else 0)
-    tp_cls = 4 if cls_v < 0.1 else (2 if cls_v < 0.25 else 0)
-    tp_inp = 3 if inp < 200 else (1 if inp < 500 else 0)
-    tp_mobile = 4 if mobile >= 80 else (2 if mobile >= 50 else 0)
-    tp_bilder = 1
-
-    # HO items (hosting checks)
-    ho_anbieter = 1
-    ho_uptime = 1 if check_data.get("reachable") else 0
-    ho_http = 1 if check_data.get("ssl_ok") else 0
-    ho_backup = 0
-    ho_cdn = 0
-
-    # BF items — conservative without deep scan
-    bf_kontrast = 3
-    bf_tastatur = 2
-    bf_screenreader = 2
-    bf_lesbarkeit = 3
-
-    # SI items
-    si_ssl = 4 if check_data.get("ssl_ok") else 0
-    si_header = min(sum(1 for v in sec.values() if v), 4)
-    si_drittanbieter = 2
-    si_formulare = 1
-
-    # SE items — conservative without deep crawl
-    se_seo = 2
-    se_schema = 0
-    se_lokal = 1
-
-    # UX items — conservative
-    ux_erstindruck = 1
-    ux_cta = 1
-    ux_navigation = 1
-    ux_vertrauen = 0
-    ux_content = 1
-    ux_kontakt = 1
-
-    total = (rc_impressum + rc_datenschutz + rc_cookie + rc_bfsg + rc_urheberrecht + rc_ecommerce
-             + tp_lcp + tp_cls + tp_inp + tp_mobile + tp_bilder
-             + bf_kontrast + bf_tastatur + bf_screenreader + bf_lesbarkeit
-             + si_ssl + si_header + si_drittanbieter + si_formulare
-             + se_seo + se_schema + se_lokal
-             + min(ux_erstindruck + ux_cta + ux_navigation + ux_vertrauen + ux_content + ux_kontakt, 5))
-
-    issues = []
-    if not check_data.get("impressum_ok"):
-        issues.append("Kein Impressum gefunden — gesetzliche Pflicht nach TMG/DDG")
-    if not check_data.get("datenschutz_ok"):
-        issues.append("Keine Datenschutzerklärung — DSGVO-Verstoß")
-    if lcp >= 2.5:
-        issues.append(f"Ladezeit zu hoch (LCP: {lcp:.1f}s) — Nutzer springen ab")
-    if not check_data.get("ssl_ok"):
-        issues.append("Kein HTTPS — Browser zeigen Warnung, Google straft ab")
-    if not check_data.get("cookie_banner"):
-        issues.append("Kein Cookie-Banner erkennbar — DSGVO-Risiko")
-
-    recs = [
-        "Impressum und Datenschutzerklärung prüfen und aktualisieren",
-        "Website-Performance optimieren (Bilder komprimieren, Caching aktivieren)",
-        "Cookie-Consent-Lösung implementieren (z.B. Borlabs, Usercentrics)",
-        "Security-Header konfigurieren (HSTS, CSP, X-Frame-Options)",
-        "Mobile-Optimierung verbessern für bessere Google-Rankings",
-    ]
-
-    return {
-        "rc_impressum": rc_impressum, "rc_datenschutz": rc_datenschutz,
-        "rc_cookie": rc_cookie, "rc_bfsg": rc_bfsg,
-        "rc_urheberrecht": rc_urheberrecht, "rc_ecommerce": rc_ecommerce,
-        "tp_lcp": tp_lcp, "tp_cls": tp_cls, "tp_inp": tp_inp,
-        "tp_mobile": tp_mobile, "tp_bilder": tp_bilder,
-        "ho_anbieter": ho_anbieter, "ho_uptime": ho_uptime, "ho_http": ho_http,
-        "ho_backup": ho_backup, "ho_cdn": ho_cdn,
-        "bf_kontrast": bf_kontrast, "bf_tastatur": bf_tastatur,
-        "bf_screenreader": bf_screenreader, "bf_lesbarkeit": bf_lesbarkeit,
-        "si_ssl": si_ssl, "si_header": si_header,
-        "si_drittanbieter": si_drittanbieter, "si_formulare": si_formulare,
-        "se_seo": se_seo, "se_schema": se_schema, "se_lokal": se_lokal,
-        "ux_erstindruck": ux_erstindruck, "ux_cta": ux_cta,
-        "ux_navigation": ux_navigation, "ux_vertrauen": ux_vertrauen,
-        "ux_content": ux_content, "ux_kontakt": ux_kontakt,
-        "ai_summary": (
-            f"Die Website von {check_data.get('company_name', 'Ihrem Betrieb')} "
-            f"erreicht {'gute' if total >= 70 else 'ausbaufähige'} Werte im Homepage Standard Audit. "
-            f"{'Die rechtlichen Grundlagen sind vorhanden.' if check_data.get('impressum_ok') and check_data.get('datenschutz_ok') else 'Es fehlen wichtige rechtliche Seiten wie Impressum oder Datenschutzerklärung.'} "
-            f"Die technische Performance liegt {'im grünen Bereich' if mobile >= 70 else 'unter dem Optimum'}. "
-            f"Mit gezielten Optimierungen kann die Sichtbarkeit bei Google deutlich gesteigert werden."
-        ),
-        "top_issues": issues[:3] if issues else ["Keine kritischen Probleme gefunden"],
-        "recommendations": recs[:5],
-    }
 
 
 # ═══════════════════════════════════════════════════════════
@@ -468,16 +92,44 @@ def _run_with_timeout(fn, timeout_sec, *args, **kwargs):
     return result[0]
 
 
-def _run_audit_background(audit_id: int):
-    """
-    Background worker with 90s total timeout.
-    DB session is released before external HTTP calls (PageSpeed / AI)
-    to avoid exhausting the connection pool.
-    """
-    import time
-    _start = time.monotonic()
+async def _gather(url: str, company: str, trade: str, city: str) -> tuple:
+    """Faktenerhebung und Screenshot in einem Event-Loop."""
+    import asyncio
 
-    from database import SessionLocal
+    from services.audit_runner import collect_facts
+
+    async def _shot():
+        try:
+            from services.screenshot import capture_screenshot
+            return await capture_screenshot(url)
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"Screenshot fehlgeschlagen für {url}: {e}")
+            return None
+
+    facts, screenshot = await asyncio.gather(
+        collect_facts(url, company, trade, city, datetime.now(timezone.utc).year),
+        _shot(),
+        return_exceptions=True,
+    )
+    if isinstance(facts, BaseException):
+        raise facts
+    return facts, (screenshot if isinstance(screenshot, str) else None)
+
+
+def _run_audit_background(audit_id: int):
+    """Erhebt Fakten, bewertet sie und schreibt das Ergebnis.
+
+    Die DB-Session wird vor den externen HTTP-Aufrufen geschlossen, damit der
+    Verbindungspool nicht blockiert, während PageSpeed und die KI laufen.
+    """
+    import asyncio
+    import time
+
+    from services.audit_runner import collection_notes, summarise_facts
+    from services.audit_scoring import score_audit
+    from services import audit_ai
+
+    _start = time.monotonic()
     db = SessionLocal()
 
     try:
@@ -488,191 +140,216 @@ def _run_audit_background(audit_id: int):
         audit.status = "running"
         db.commit()
 
-        # Capture needed fields before releasing the session
         url          = audit.website_url
         company_name = audit.company_name or ""
         trade        = audit.trade or ""
+        city         = audit.city or ""
         lead_id      = audit.lead_id
+    finally:
+        db.close()
 
-        # 1. Basic checks (no external call — just a HEAD request)
-        ssl_ok = _check_ssl(url)
-        site   = _check_reachable(url)
-        if not site["reachable"]:
-            audit.status = "failed"
-            audit.error_message = f"Website nicht erreichbar (Status {site.get('status_code', 'N/A')})"
-            db.commit()
+    # ── Erhebung: keine DB-Verbindung offen ────────────────────────────
+    try:
+        facts, screenshot_b64 = asyncio.run(_gather(url, company_name, trade, city))
+    except Exception as e:  # noqa: BLE001
+        _mark_failed(audit_id, f"Erhebung fehlgeschlagen: {type(e).__name__}: {e}"[:200])
+        return
+
+    if not facts.get("reachable"):
+        _mark_failed(
+            audit_id,
+            facts.get("error")
+            or f"Website nicht erreichbar (Status {facts.get('status_code', 'N/A')})",
+        )
+        return
+
+    summary = summarise_facts(facts)
+
+    # KI-Bewertung nur für die subjektiven Kriterien; schlägt sie fehl,
+    # gelten diese als 'nicht erhoben' — es werden keine Werte erfunden.
+    try:
+        ai = _run_with_timeout(audit_ai.evaluate, 100, facts, summary, screenshot_b64) or {}
+    except TimeoutError:
+        logger.warning(f"Audit {audit_id}: KI-Bewertung Timeout")
+        ai = {}
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Audit {audit_id}: KI-Bewertung Fehler: {e}")
+        ai = {}
+
+    result = score_audit(facts, ai)
+
+    # ── Persistenz in neuer Session ────────────────────────────────────
+    db2 = SessionLocal()
+    try:
+        audit2 = db2.query(AuditResult).filter(AuditResult.id == audit_id).first()
+        if not audit2:
             return
 
-        # 2. Legal checks (from already-fetched HTML — no extra HTTP call)
-        legal = _check_legal_pages(site["html"], url)
+        audit2.total_score     = result["total_score"]
+        audit2.level           = result["level"]
+        audit2.item_scores     = json.dumps(result["items"], ensure_ascii=False)
+        audit2.item_sources    = json.dumps(result["sources"], ensure_ascii=False)
+        audit2.category_scores = json.dumps(result["categories"], ensure_ascii=False)
+        audit2.blockers        = json.dumps(result["blockers"], ensure_ascii=False)
+        audit2.coverage        = result["coverage"]
+        audit2.collection_notes = json.dumps(collection_notes(facts), ensure_ascii=False)
 
-        # ── Release DB session before external HTTP calls ─────────────────
-        # Prevents pool exhaustion while PageSpeed / AI are in flight
-        db.close()
-        db = None
+        audit2.ssl_ok            = summary["ssl_ok"]
+        audit2.impressum_ok      = summary["impressum_ok"]
+        audit2.datenschutz_ok    = summary["datenschutz_ok"]
+        audit2.lcp_value         = summary["lcp_value"]
+        audit2.cls_value         = summary["cls_value"]
+        audit2.inp_value         = summary["inp_value"]
+        audit2.mobile_score      = summary["mobile_score"]
+        audit2.performance_score = summary["performance_score"]
 
-        # 3+4. PageSpeed + Security headers IN PARALLEL (max 25s)
-        psi = {"performance_score": 0, "mobile_score": 0, "lcp_value": 99.0,
-               "cls_value": 1.0, "inp_value": 999.0}
-        sec = {"has_hsts": False, "has_csp": False, "has_xframe": False, "has_xcontent": False}
-        try:
-            with ThreadPoolExecutor(max_workers=2) as pool:
-                fut_psi = pool.submit(_check_pagespeed, url)
-                fut_sec = pool.submit(_check_security_headers, url)
-                try:
-                    sec = fut_sec.result(timeout=4)
-                except Exception:
-                    pass
-                try:
-                    psi = fut_psi.result(timeout=20)
-                except Exception:
-                    logger.warning(f"Audit {audit_id}: PageSpeed Timeout/Fehler")
-        except Exception as e:
-            logger.warning(f"Audit {audit_id}: ThreadPoolExecutor Fehler: {e}")
+        audit2.ai_summary      = ai.get("ai_summary", "")
+        audit2.top_issues      = json.dumps(ai.get("top_issues", []), ensure_ascii=False)
+        audit2.recommendations = json.dumps(ai.get("recommendations", []), ensure_ascii=False)
 
-        # 5. Build check data bundle
-        check_data = {
-            "company_name": company_name,
-            "url":          url,
-            "ssl_ok":       ssl_ok,
-            "reachable":    True,
-            **legal,
-            **psi,
-            "security_headers": sec,
-        }
+        if screenshot_b64:
+            audit2.screenshot_base64 = screenshot_b64
+            if lead_id:
+                lead = db2.query(Lead).filter(Lead.id == lead_id).first()
+                if lead:
+                    lead.website_screenshot = screenshot_b64
 
-        # 6. AI scoring wrapped in 30s timeout — falls back to mock on timeout/error
-        try:
-            ai = _run_with_timeout(_ai_score, 30, check_data, company_name, trade) or {}
-            if not ai:
-                ai = _mock_ai_score(check_data)
-        except TimeoutError:
-            logger.warning(f"Audit {audit_id}: KI-Analyse Timeout (30s) — using mock")
-            ai = _mock_ai_score(check_data)
-        except Exception as e:
-            logger.warning(f"Audit {audit_id}: KI-Analyse Fehler: {e} — using mock")
-            ai = _mock_ai_score(check_data)
+        audit2.status = "completed"
+        db2.commit()
 
-        # 7. Calculate category totals from item scores
-        rc = min(sum(ai.get(k, 0) for k in [
-            "rc_impressum", "rc_datenschutz", "rc_cookie", "rc_bfsg", "rc_urheberrecht", "rc_ecommerce"
-        ]), 30)
-        tp = min(sum(ai.get(k, 0) for k in [
-            "tp_lcp", "tp_cls", "tp_inp", "tp_mobile", "tp_bilder"
-        ]), 20)
-        bf = min(sum(ai.get(k, 0) for k in [
-            "bf_kontrast", "bf_tastatur", "bf_screenreader", "bf_lesbarkeit"
-        ]), 20)
-        si = min(sum(ai.get(k, 0) for k in [
-            "si_ssl", "si_header", "si_drittanbieter", "si_formulare"
-        ]), 15)
-        se = min(sum(ai.get(k, 0) for k in [
-            "se_seo", "se_schema", "se_lokal"
-        ]), 10)
-        ux = min(sum(ai.get(k, 0) for k in [
-            "ux_erstindruck", "ux_cta", "ux_navigation", "ux_vertrauen", "ux_content", "ux_kontakt"
-        ]), 5)
-        total = rc + tp + bf + si + se + ux
-        level = next(lbl for threshold, lbl in LEVELS if total >= threshold)
+        logger.info(
+            f"✓ Audit {audit_id}: {result['total_score']}/100 ({result['level']}), "
+            f"Abdeckung {result['coverage']}%, "
+            f"{len(result['blockers'])} Blocker, {time.monotonic() - _start:.1f}s"
+        )
 
-        # 8. New DB session for result persistence
-        db2 = SessionLocal()
-        try:
-            audit2 = db2.query(AuditResult).filter(AuditResult.id == audit_id).first()
-            if not audit2:
-                return
-
-            audit2.total_score       = total
-            audit2.level             = level
-            audit2.rc_score          = rc
-            audit2.tp_score          = tp
-            audit2.bf_score          = bf
-            audit2.si_score          = si
-            audit2.se_score          = se
-            audit2.ux_score          = ux
-            audit2.ssl_ok            = ssl_ok
-            audit2.impressum_ok      = legal["impressum_ok"]
-            audit2.datenschutz_ok    = legal["datenschutz_ok"]
-            audit2.lcp_value         = psi.get("lcp_value")
-            audit2.cls_value         = psi.get("cls_value")
-            audit2.inp_value         = psi.get("inp_value")
-            audit2.mobile_score      = psi.get("mobile_score")
-            audit2.performance_score = psi.get("performance_score")
-            audit2.ai_summary        = ai.get("ai_summary", "")
-            audit2.top_issues        = json.dumps(ai.get("top_issues", []), ensure_ascii=False)
-            audit2.recommendations   = json.dumps(ai.get("recommendations", []), ensure_ascii=False)
-
-            _ITEM_KEYS = [
-                "rc_impressum", "rc_datenschutz", "rc_cookie", "rc_bfsg", "rc_urheberrecht", "rc_ecommerce",
-                "tp_lcp", "tp_cls", "tp_inp", "tp_mobile", "tp_bilder",
-                "ho_anbieter", "ho_uptime", "ho_http", "ho_backup", "ho_cdn",
-                "bf_kontrast", "bf_tastatur", "bf_screenreader", "bf_lesbarkeit",
-                "si_ssl", "si_header", "si_drittanbieter", "si_formulare",
-                "se_seo", "se_schema", "se_lokal",
-                "ux_erstindruck", "ux_cta", "ux_navigation", "ux_vertrauen", "ux_content", "ux_kontakt",
-            ]
-            for key in _ITEM_KEYS:
-                setattr(audit2, key, int(ai.get(key, 0) or 0))
-
-            # 9. Screenshot (optional, non-blocking)
-            try:
-                import asyncio
-                from services.screenshot import capture_screenshot
-                screenshot_b64 = asyncio.run(capture_screenshot(url))
-                if screenshot_b64:
-                    audit2.screenshot_base64 = screenshot_b64
-                    if lead_id:
-                        from database import Lead as LeadModel
-                        lead = db2.query(LeadModel).filter(LeadModel.id == lead_id).first()
-                        if lead:
-                            lead.website_screenshot = screenshot_b64
-            except Exception as e:
-                logger.warning(f"Screenshot skipped for audit {audit_id}: {e}")
-
-            audit2.status = "completed"
-            db2.commit()
-            logger.info(
-                f"✓ Audit {audit_id} completed: {total}/100 ({level}) "
-                f"in {time.monotonic() - _start:.1f}s"
-            )
-
-            # E-Mail bei Audit-Abschluss
-            try:
-                if lead_id:
-                    from database import Project
-                    project = db2.query(Project).filter(Project.lead_id == lead_id).first()
-                    if project:
-                        to_email = getattr(project, "customer_email", None) or ""
-                        notifications_on = getattr(project, "email_notifications_enabled", True)
-                        if notifications_on and to_email:
-                            company = getattr(project, "company_name", "") or f"Lead #{lead_id}"
-                            send_audit_done_email(to=to_email, company=company, report_url=None)
-            except Exception as exc:
-                logger.warning(f"Audit-E-Mail fehlgeschlagen für Audit {audit_id}: {exc}")
-
-        finally:
-            db2.close()
-
-    except Exception as e:
-        logger.error(f"✗ Audit {audit_id} unbehandelter Fehler: {type(e).__name__}: {e}")
-        try:
-            db3 = SessionLocal()
-            try:
-                a = db3.query(AuditResult).filter(AuditResult.id == audit_id).first()
-                if a and a.status == "running":
-                    a.status = "failed"
-                    a.error_message = f"{type(e).__name__}: {str(e)[:200]}"
-                    db3.commit()
-            finally:
-                db3.close()
-        except Exception:
-            pass
+        _notify_customer(db2, lead_id, audit_id)
+        _notify_widget_requester(db2, audit_id)
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"✗ Audit {audit_id} Persistenz fehlgeschlagen: {type(e).__name__}: {e}")
+        _mark_failed(audit_id, f"{type(e).__name__}: {e}"[:200])
     finally:
-        if db is not None:
-            try:
-                db.close()
-            except Exception:
-                pass
+        db2.close()
+
+
+def _mark_failed(audit_id: int, message: str) -> None:
+    """Setzt ein Audit auf 'failed' — in eigener Session, damit es immer greift."""
+    db = SessionLocal()
+    try:
+        audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+        if audit and audit.status in ("pending", "running"):
+            audit.status = "failed"
+            audit.error_message = message
+            db.commit()
+            logger.warning(f"Audit {audit_id} fehlgeschlagen: {message}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Audit {audit_id}: Fehlerstatus konnte nicht gesetzt werden: {e}")
+    finally:
+        db.close()
+
+
+def _jetzt() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def _notify_widget_requester(db, audit_id: int) -> None:
+    """Bittet um Bestätigung der Adresse — mehr nicht.
+
+    Diese Mail geht an eine Adresse, die niemand geprüft hat: die Eingabe im
+    Widget muss dem Eintragenden nicht gehören. Sie enthält deshalb weder
+    Punktzahl noch Mängel noch einen Link zum Bericht, nur die Frage, ob die
+    Adresse stimmt. Der Bericht folgt in einer zweiten Mail, sobald der
+    Empfänger bestätigt hat — siehe ``send_widget_report``.
+    """
+    try:
+        from database import WidgetRequest
+        from services import widget_report
+        from services.email import send_email
+
+        row = (
+            db.query(WidgetRequest)
+            .filter(WidgetRequest.audit_id == audit_id,
+                    WidgetRequest.verify_sent_at.is_(None))
+            .first()
+        )
+        if not row:
+            return
+
+        audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+        if not audit or audit.status != "completed":
+            return
+
+        subject, body = widget_report.verify_email(
+            company=audit.company_name or row.website_url,
+            verify_token=row.verify_token,
+        )
+
+        if send_email(to_email=row.email, subject=subject, html_body=body):
+            row.verify_sent_at = _jetzt()
+            db.commit()
+            logger.info(f"Widget-Bestätigung angefragt bei {row.email} (Audit {audit_id})")
+        else:
+            logger.warning(f"Widget-Bestätigung nicht versendet (Audit {audit_id})")
+    except Exception as e:  # noqa: BLE001 — Versandfehler darf das Audit nicht kippen
+        logger.warning(f"Widget-Benachrichtigung fehlgeschlagen für Audit {audit_id}: {e}")
+
+
+def send_widget_report(request_id: int) -> None:
+    """Die zweite Mail: der Link zum Bericht, nach bestätigter Adresse.
+
+    Wird aus dem Bestätigungs-Endpunkt heraus angestoßen und öffnet dafür
+    eine eigene Sitzung — der Aufrufer hat seine schon geschlossen, wenn der
+    Hintergrundauftrag läuft.
+    """
+    from database import SessionLocal, WidgetRequest
+    from services import widget_report
+    from services.email import send_email
+
+    db = SessionLocal()
+    try:
+        row = db.query(WidgetRequest).filter(WidgetRequest.id == request_id).first()
+        if not row or not row.verified_at or row.report_sent_at:
+            return
+
+        audit = db.query(AuditResult).filter(AuditResult.id == row.audit_id).first()
+        if not audit or audit.status != "completed":
+            logger.warning(f"Bericht für Anfrage {request_id} noch nicht fertig")
+            return
+
+        subject, body = widget_report.report_ready_email(
+            company=audit.company_name or row.website_url,
+            token=row.report_token,
+            confirm_token=row.confirm_token if row.consent_marketing else None,
+        )
+
+        if send_email(to_email=row.email, subject=subject, html_body=body):
+            row.report_sent_at = _jetzt()
+            db.commit()
+            logger.info(f"Widget-Bericht versendet an {row.email} (Anfrage {request_id})")
+        else:
+            logger.warning(f"Widget-Bericht nicht versendet (Anfrage {request_id})")
+    except Exception as e:  # noqa: BLE001 — der Klick soll trotzdem quittiert werden
+        logger.warning(f"Berichts-Mail fehlgeschlagen für Anfrage {request_id}: {e}")
+    finally:
+        db.close()
+
+
+def _notify_customer(db, lead_id: Optional[int], audit_id: int) -> None:
+    """E-Mail bei Audit-Abschluss — Fehler hier dürfen das Audit nicht kippen."""
+    if not lead_id:
+        return
+    try:
+        from database import Project
+
+        project = db.query(Project).filter(Project.lead_id == lead_id).first()
+        if not project:
+            return
+        to_email = getattr(project, "customer_email", None) or ""
+        if getattr(project, "email_notifications_enabled", True) and to_email:
+            company = getattr(project, "company_name", "") or f"Lead #{lead_id}"
+            send_audit_done_email(to=to_email, company=company, report_url=None)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Audit-E-Mail fehlgeschlagen für Audit {audit_id}: {e}")
 
 
 @router.get("/recent")
@@ -718,6 +395,13 @@ async def start_audit(
 ):
     """Create audit record, auto-scrape website, and run checks in background."""
     url = _normalise_url(req.website_url)
+
+    # Der Endpunkt ist öffentlich (Einbett-Widget). Ohne diese Prüfung könnte
+    # jeder den Server interne Adressen abrufen lassen — vor dem Scrapen prüfen,
+    # denn auch der Scraper holt die Seite ab.
+    ok, reason = check_url(url)
+    if not ok:
+        raise HTTPException(status_code=400, detail=f"Adresse nicht erlaubt: {reason}")
 
     # DB-Verbindung vor dem externen Scrape-Call freigeben
     db.close()
@@ -822,8 +506,12 @@ def download_audit_pdf(audit_id: int, db: Session = Depends(get_db)):
         if audit.status != "completed":
             raise HTTPException(status_code=400, detail=f"Audit noch nicht abgeschlossen: {audit.status}")
 
-        from services.pdf_generator import generate_audit_report
-        pdf_bytes = generate_audit_report(audit.__dict__)
+        from services.pdf_generator import KatalogFehlt, generate_audit_report
+
+        try:
+            pdf_bytes = generate_audit_report(audit.__dict__)
+        except KatalogFehlt as e:
+            raise HTTPException(status_code=409, detail=str(e))
 
         safe_name = (audit.company_name or "Audit").replace(" ", "-").replace("/", "-")
         return Response(
@@ -939,29 +627,45 @@ def get_audits_for_lead(lead_id: int, db: Session = Depends(get_db)):
     return [_format_audit(a) for a in audits]
 
 
-_ITEM_KEYS = [
-    "rc_impressum", "rc_datenschutz", "rc_cookie", "rc_bfsg", "rc_urheberrecht", "rc_ecommerce",
-    "tp_lcp", "tp_cls", "tp_inp", "tp_mobile", "tp_bilder",
-    "ho_anbieter", "ho_uptime", "ho_http", "ho_backup", "ho_cdn",
-    "bf_kontrast", "bf_tastatur", "bf_screenreader", "bf_lesbarkeit",
-    "si_ssl", "si_header", "si_drittanbieter", "si_formulare",
-    "se_seo", "se_schema", "se_lokal",
-    "ux_erstindruck", "ux_cta", "ux_navigation", "ux_vertrauen", "ux_content", "ux_kontakt",
-]
+def _json_field(raw, fallback):
+    try:
+        return json.loads(raw) if raw else fallback
+    except (json.JSONDecodeError, TypeError):
+        return fallback
+
+
+def _catalogue_payload(items: dict, sources: dict) -> list:
+    """Kategorien mit Kriterien, Punkten und Quellen-Kennzeichnung."""
+    payload = []
+    for category in CATALOGUE:
+        criteria = []
+        for crit in category.criteria:
+            source = sources.get(crit.key, Source.NOT_COLLECTED.value)
+            criteria.append({
+                "key": crit.key,
+                "label": crit.label,
+                "hint": crit.hint,
+                "max": crit.max_points,
+                "score": int(items.get(crit.key, 0) or 0),
+                "source": source,
+                "source_label": SOURCE_LABELS.get(Source(source), source),
+                "collected": source != Source.NOT_COLLECTED.value,
+            })
+        payload.append({
+            "key": category.key,
+            "label": category.label,
+            "nominal_max": category.max_points,
+            "criteria": criteria,
+        })
+    return payload
 
 
 def _format_audit(audit: AuditResult) -> dict:
     """Format audit for JSON response."""
-    try:
-        top_issues = json.loads(audit.top_issues) if audit.top_issues else []
-    except (json.JSONDecodeError, TypeError):
-        top_issues = []
-    try:
-        recommendations = json.loads(audit.recommendations) if audit.recommendations else []
-    except (json.JSONDecodeError, TypeError):
-        recommendations = []
-
-    items = {k: int(getattr(audit, k, 0) or 0) for k in _ITEM_KEYS}
+    items = _json_field(getattr(audit, "item_scores", None), {})
+    sources = _json_field(getattr(audit, "item_sources", None), {})
+    categories = _json_field(getattr(audit, "category_scores", None), [])
+    blocker_keys = _json_field(getattr(audit, "blockers", None), [])
 
     return {
         "id": audit.id,
@@ -979,15 +683,15 @@ def _format_audit(audit: AuditResult) -> dict:
         "description": getattr(audit, "scraped_description", "") or "",
         "total_score": audit.total_score,
         "level": audit.level,
-        "categories": {
-            "rechtliche_compliance": {"score": audit.rc_score, "max": 30},
-            "technische_performance": {"score": audit.tp_score, "max": 20},
-            "barrierefreiheit": {"score": audit.bf_score, "max": 20},
-            "sicherheit_datenschutz": {"score": audit.si_score, "max": 15},
-            "seo_sichtbarkeit": {"score": audit.se_score, "max": 10},
-            "inhalt_nutzererfahrung": {"score": audit.ux_score, "max": 5},
-        },
+        "coverage": getattr(audit, "coverage", None),
+        "collection_notes": _json_field(getattr(audit, "collection_notes", None), {}),
+        "categories": categories,
+        "catalogue": _catalogue_payload(items, sources),
         "items": items,
+        "sources": sources,
+        "blockers": [
+            {"key": k, "label": BLOCKER_LABELS.get(k, k)} for k in blocker_keys
+        ],
         "checks": {
             "ssl_ok": audit.ssl_ok,
             "impressum_ok": audit.impressum_ok,
@@ -999,8 +703,8 @@ def _format_audit(audit: AuditResult) -> dict:
             "performance_score": audit.performance_score,
         },
         "ai_summary": audit.ai_summary,
-        "top_issues": top_issues,
-        "recommendations": recommendations,
+        "top_issues": _json_field(audit.top_issues, []),
+        "recommendations": _json_field(audit.recommendations, []),
         "created_at": audit.created_at.isoformat() if audit.created_at else None,
         "screenshot_url": f"data:image/jpeg;base64,{audit.screenshot_base64}" if getattr(audit, 'screenshot_base64', None) else None,
     }

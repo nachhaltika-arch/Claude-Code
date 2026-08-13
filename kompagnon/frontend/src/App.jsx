@@ -16,6 +16,7 @@ import CustomerProjects from './pages/CustomerProjects';
 import ProductDevelopment from './pages/ProductDevelopment';
 import FeedbackButton from './components/FeedbackButton';
 import AuditTool from './pages/AuditTool';
+import AkquiseWidget from './pages/AkquiseWidget';
 import LeadProfile from './pages/LeadProfile';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -187,6 +188,7 @@ function App() {
             <Route path="pages/templates/:id/editor" element={<PrivateRoute roles={['admin']}><PageTemplateEditor /></PrivateRoute>} />
             <Route path="pages/:pageId/editor" element={<PrivateRoute roles={['admin']}><PublicPageEditor /></PrivateRoute>} />
             <Route path="companies" element={<PrivateRoute roles={['admin', 'auditor']}><Companies /></PrivateRoute>} />
+            <Route path="widget" element={<PrivateRoute roles={['admin']}><AkquiseWidget /></PrivateRoute>} />
             <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
             <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
             <Route path="projects" element={<PrivateRoute roles={['admin', 'auditor']}><CustomerProjects /></PrivateRoute>} />

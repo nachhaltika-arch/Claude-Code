@@ -134,7 +134,9 @@ export default function KASSidebar({
   const toggleCollapsed = () => {
     setCollapsed((c) => {
       const next = !c;
-      try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0'); } catch {}
+      // Nur die Merkfunktion fuer die eingeklappte Leiste — faellt localStorage
+      // aus (privater Modus), ist die Leiste beim naechsten Mal wieder offen.
+      try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0'); } catch { /* nicht wichtig genug zum Melden */ }
       return next;
     });
   };

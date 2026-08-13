@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 import { useScreenSize } from '../utils/responsive';
 
 const COLUMNS = [
@@ -52,15 +53,16 @@ export default function SalesPipeline() {
         : [];
       setLeads(salesLeads);
       // Load projects for won leads
-      try {
-        const pRes = await fetch(`${API_BASE_URL}/api/projects/?limit=200`, { headers: h });
-        const projects = await pRes.json();
-        if (Array.isArray(projects)) {
-          const map = {};
-          projects.forEach(p => { if (p.lead_id) map[p.lead_id] = p; });
-          setLeadProjects(map);
-        }
-      } catch {}
+      const projects = await loadJson(
+        `${API_BASE_URL}/api/projects/?limit=200`,
+        { headers: h },
+        { context: 'Projektzuordnung', fallback: [] }
+      );
+      if (Array.isArray(projects)) {
+        const map = {};
+        projects.forEach(p => { if (p.lead_id) map[p.lead_id] = p; });
+        setLeadProjects(map);
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };

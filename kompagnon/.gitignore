@@ -6,6 +6,9 @@ __pycache__/
 .Python
 env/
 venv/
+# Lokale Testumgebung: python3.11 -m venv .venv-local && .venv-local/bin/pip
+# install -r backend/requirements.txt -r backend/requirements-dev.txt
+.venv-local/
 ENV/
 build/
 develop-eggs/

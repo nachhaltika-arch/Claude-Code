@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 import SitemapVorschlaege from './SitemapVorschlaege';
 import AnalyseCentrale from './AnalyseCentrale';
 import ContentWerkstatt from './ContentWerkstatt';
@@ -200,9 +201,11 @@ export default function ProzessFlowV3({
 
   useEffect(() => {
     if (!project?.id || !token) return;
-    fetch(`${API_BASE_URL}/api/projects/${project.id}/confirmed-steps`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(r => r.ok ? r.json() : {}).then(data => setConfirmedSteps(data || {})).catch(() => {});
+    loadJson(
+      `${API_BASE_URL}/api/projects/${project.id}/confirmed-steps`,
+      { headers: { Authorization: `Bearer ${token}` } },
+      { context: 'Bestätigte Schritte', fallback: {} }
+    ).then(data => setConfirmedSteps(data || {}));
   }, [project?.id]); // eslint-disable-line
 
   const handleStepConfirmed = useCallback((stepId) => {
@@ -226,10 +229,8 @@ export default function ProzessFlowV3({
   }, [onAuditUpdate]); // eslint-disable-line
 
   const reloadBriefing = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, { headers });
-      if (res.ok) setLocalBriefing(await res.json());
-    } catch { /* silent */ }
+    const data = await loadJson(`${API_BASE_URL}/api/briefings/${leadId}`, { headers }, { context: 'Briefing' });
+    if (data) setLocalBriefing(data);
   };
 
   const prozessDaten = {

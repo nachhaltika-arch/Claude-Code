@@ -49,6 +49,9 @@ from routers import (
     customers_router,
     automations_router,
     audit_router,
+    diagnostics_router,
+    widget_router,
+    acquisition_router,
     auth_router,
     admin_router,
     scraper_router,
@@ -123,6 +126,15 @@ def _run_migrations():
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_content INTEGER DEFAULT 0",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ux_kontakt INTEGER DEFAULT 0",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS screenshot_base64 TEXT DEFAULT ''",
+        # Kriterienkatalog ab 2026-08-11 (services/audit_criteria.py):
+        # Punkte und Quellen liegen als JSON, damit neue Kriterien keine
+        # Migration brauchen. Die Einzelspalten oben sind Altbestand.
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS item_scores TEXT DEFAULT '{}'",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS item_sources TEXT DEFAULT '{}'",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS category_scores TEXT DEFAULT '[]'",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS blockers TEXT DEFAULT '[]'",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS coverage INTEGER DEFAULT 0",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS collection_notes TEXT DEFAULT '{}'",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS analysis_score INTEGER DEFAULT 0",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_score INTEGER DEFAULT 0",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS website_screenshot TEXT DEFAULT ''",
@@ -1127,6 +1139,30 @@ def _run_migrations():
         # Wireframe-Daten pro Projekt: Block-Zuweisungen + Slot-Werte pro
         # Sitemap-Seite. Wird vom KI-Generator (Schritt D) befuellt.
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS wireframe_data JSONB DEFAULT '[]'::jsonb",
+        # ── Widget-Anfragen 2026-08-12 ──────────────────────────────────────
+        # Neue Spalten an einer Tabelle, die es schon gibt. create_all() legt
+        # nur fehlende Tabellen an und ruestet keine Spalten nach — ohne diese
+        # beiden Zeilen laeuft der Teaser auf Staging in einen ProgrammingError.
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS poll_token VARCHAR(64)",
+        "CREATE INDEX IF NOT EXISTS idx_widget_requests_poll_token ON widget_requests(poll_token)",
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS report_confirmed_at TIMESTAMP",
+        # ── Adressbestaetigung vor dem Bericht 2026-08-12 ───────────────────
+        # Erst nach dem Klick in der Bestaetigungsmail geht die Mail mit dem
+        # Berichtslink raus.
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verify_token VARCHAR(64)",
+        "CREATE INDEX IF NOT EXISTS idx_widget_requests_verify_token ON widget_requests(verify_token)",
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verify_sent_at TIMESTAMP",
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP",
+        # Wer bestaetigt hat — ohne das war nicht feststellbar, welcher Dienst
+        # die Bestaetigungslinks von selbst ausloest.
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verified_user_agent VARCHAR(400)",
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verified_ip VARCHAR(64)",
+        # ── Entwurfs-Status fuer erzeugte Bloecke 2026-08-13 ────────────────
+        # Bestehende Bloecke sind freigegeben; nur neu erzeugte starten als
+        # Entwurf. Default deshalb 'approved'.
+        "ALTER TABLE component_library ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'",
+        "UPDATE component_library SET status = 'approved' WHERE status IS NULL",
+        "CREATE INDEX IF NOT EXISTS idx_component_library_status ON component_library(status)",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',
@@ -1134,22 +1170,41 @@ def _run_migrations():
         'academy_certificates', 'academy_quiz_questions',
         'academy_customer_access', 'academy_checklist_items',
     ]
+    # Jedes Statement bekommt seine eigene Transaktion.
+    #
+    # Vorher lief die ganze Liste in einer einzigen, mit einem commit() am
+    # Ende. Auf PostgreSQL bricht aber das erste fehlschlagende Statement die
+    # Transaktion ab; jedes weitere scheitert dann mit „current transaction is
+    # aborted", das ``pass`` verschluckt es, und der commit() schreibt nichts.
+    # Ein einziger Fehler weit vorne machte damit alles dahinter wirkungslos —
+    # lautlos. Genau so sind poll_token und report_confirmed_at nie entstanden,
+    # obwohl sie am Ende der Liste standen.
+    fehler = []
     try:
         with engine.connect() as conn:
             for sql in migrations:
                 try:
                     conn.execute(text(sql))
-                except Exception:
-                    pass  # Spalte/Tabelle existiert bereits
-            conn.commit()
+                    conn.commit()
+                except Exception as e:  # noqa: BLE001
+                    conn.rollback()  # sonst bleibt die Verbindung vergiftet
+                    fehler.append((sql.strip().split("\n")[0][:80], str(e).split("\n")[0][:120]))
             # Verify academy tables exist and log
             for tbl in academy_tables:
                 try:
                     conn.execute(text(f"SELECT 1 FROM {tbl} LIMIT 1"))
                     logger.info(f"✓ {tbl} OK")
                 except Exception as e:
+                    conn.rollback()
                     logger.error(f"✗ {tbl} FEHLER: {e}")
-        logger.info("✓ Migrationen abgeschlossen")
+        # Die meisten „Fehler" sind harmlos (Spalte existiert schon). Sie
+        # gehören trotzdem ins Log: sonst ist eine Migration, die wirklich
+        # nicht durchkam, von einer, die nichts zu tun hatte, nicht zu
+        # unterscheiden — und das hat schon einen halben Tag gekostet.
+        logger.info(f"✓ Migrationen abgeschlossen — {len(migrations) - len(fehler)} "
+                    f"von {len(migrations)} ausgeführt")
+        for sql, grund in fehler:
+            logger.info(f"  · übersprungen: {sql} — {grund}")
     except Exception as e:
         logger.warning(f"Migration Warnung: {e}")
 
@@ -1680,6 +1735,9 @@ app.include_router(automations_router)
 app.include_router(cms_connect_router)
 app.include_router(portal_router)
 app.include_router(audit_router)
+app.include_router(diagnostics_router)
+app.include_router(widget_router)
+app.include_router(acquisition_router)
 app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(scraper_router)

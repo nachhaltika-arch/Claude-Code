@@ -46,6 +46,16 @@ Leerraum entsteht (Eingabe → Laden → Ergebnis sind unterschiedlich hoch).
 </script>
 ```
 
+## Zwischenspeicher
+
+`public/serve.json` schickt für `/embed/**` ein `Cache-Control: no-cache`.
+Der Browser fragt damit bei jedem Aufruf nach, ob sich etwas geändert hat
+(er lädt nur bei Änderung neu — ein 304 kostet fast nichts). Ohne diesen
+Header hielten Browser eine einmal geladene Fassung fest: nach einem Deploy
+sah man weiter die alte, und wer die Seite vorher aufgerufen hatte, als
+`/embed/…` noch von der React-App verschluckt wurde, bekam dauerhaft das
+Tool-Dashboard im Widget-Rahmen zu sehen.
+
 ## Optionale Parameter
 
 Per Query-String an die `src`-URL anhängbar:

@@ -44,7 +44,9 @@ export function usePullToRefresh(onRefresh, { threshold = 72, disabled = false }
       isPulling.current = false;
       if (pullDist.current >= threshold) {
         updateIndicator(1, true);
-        try { await onRefresh(); } catch { /* silent */ }
+        // onRefresh gehoert dem Aufrufer und meldet eigene Fehler; hier wird
+        // nur verhindert, dass die Geste in einem haengenden Zustand endet.
+        try { await onRefresh(); } catch { /* Aufrufer meldet selbst */ }
       }
       updateIndicator(0, false);
       pullDist.current = 0;

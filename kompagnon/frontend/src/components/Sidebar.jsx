@@ -21,6 +21,7 @@ const AREAS = {
       { label: 'Vertriebspipeline',   path: '/app/deals',     icon: '💼' },
       { label: 'Kampagnen',           path: '/app/campaigns', icon: '📊', adminOnly: true },
       { label: 'Website-Audit',       path: '/app/audit',     icon: '🔍' },
+      { label: 'Analyse-Widget',      path: '/app/widget',    icon: '🧩', adminOnly: true },
       { label: 'Unternehmen',         path: '/app/companies', icon: '🏢' },
       { label: 'Akademie',            path: '/app/academy',   icon: '🎓' },
     ],

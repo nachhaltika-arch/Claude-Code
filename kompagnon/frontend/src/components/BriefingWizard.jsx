@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import API_BASE_URL from '../config';
+import { saveJson } from '../utils/apiRequest';
 import WZSearch from './WZSearch';
 import { useScreenSize } from '../utils/responsive';
 import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
@@ -37,8 +38,11 @@ const SEITEN_OPTIONS = [
 
 const DRAFT_KEY = (leadId) => `briefing_draft_${leadId}`;
 
+// localStorage kann fehlschlagen (privater Modus, volles Kontingent). Das ist
+// hier verkraftbar und bewusst still: der Entwurf ist nur eine Bequemlichkeit,
+// die eigentliche Speicherung laeuft ueber autoSave gegen den Server.
 function saveDraft(leadId, data, step) {
-  try { localStorage.setItem(DRAFT_KEY(leadId), JSON.stringify({ data, step, savedAt: new Date().toISOString() })); } catch { }
+  try { localStorage.setItem(DRAFT_KEY(leadId), JSON.stringify({ data, step, savedAt: new Date().toISOString() })); } catch { /* Entwurf ist optional, siehe oben */ }
 }
 
 function loadDraft(leadId) {
@@ -46,7 +50,7 @@ function loadDraft(leadId) {
 }
 
 function clearDraft(leadId) {
-  try { localStorage.removeItem(DRAFT_KEY(leadId)); } catch { }
+  try { localStorage.removeItem(DRAFT_KEY(leadId)); } catch { /* Entwurf ist optional, siehe oben */ }
 }
 
 function formatDraftAge(isoString) {
@@ -727,15 +731,26 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
 
   const autoSave = async () => {
     setAutoSaveStatus('saving');
-    try {
-      const t = localStorage.getItem('kompagnon_token');
-      await fetch(`${API_BASE_URL}/api/briefings/${leadId}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+    // apiRequest statt fetch: der Status wurde nie geprüft, eine abgelehnte
+    // Speicherung zeigte trotzdem "gespeichert".
+    const t = localStorage.getItem('kompagnon_token');
+    const saved = await saveJson(
+      `${API_BASE_URL}/api/briefings/${leadId}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
         body: JSON.stringify(buildPayload()),
-      });
-      setAutoSaveStatus('saved');
-      setTimeout(() => setAutoSaveStatus(''), 2000);
-    } catch { setAutoSaveStatus('error'); setTimeout(() => setAutoSaveStatus(''), 3000); }
+      },
+      { context: 'Briefing sichern' },
+    );
+
+    if (!saved) {
+      setAutoSaveStatus('error');
+      setTimeout(() => setAutoSaveStatus(''), 3000);
+      return;
+    }
+    setAutoSaveStatus('saved');
+    setTimeout(() => setAutoSaveStatus(''), 2000);
   };
 
   const handleNext = async () => {
@@ -847,7 +862,7 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
       <div
         onClick={async () => {
           const hasData = !!(data.gewerk || data.leistungen || data.usp);
-          if (hasData && step > 0) { try { await autoSave(); } catch {} }
+          if (hasData && step > 0) await autoSave(); // meldet eigene Fehler
           onClose?.();
         }}
         style={{

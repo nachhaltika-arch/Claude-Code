@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 
 const STILE = ['Klassisch', 'Modern', 'Minimalistisch', 'Verspielt', 'Industriell', 'Natürlich'];
 const RADIEN = [
@@ -35,15 +36,12 @@ export default function BrandDesignWerkstatt({ project, lead, token, onBrandSave
     if (!leadId) return;
     const load = async () => {
       setLoading(true);
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers });
-        if (res.ok) {
-          const d = await res.json();
-          applyBrandData(d);
-          setBrand(d);
-        }
-      } catch { /* silent */ }
-      finally { setLoading(false); }
+      const d = await loadJson(`${API_BASE_URL}/api/branddesign/${leadId}`, { headers }, { context: 'Markendesign' });
+      if (d) {
+        applyBrandData(d);
+        setBrand(d);
+      }
+      setLoading(false);
     };
     load();
     setCompanyName(lead?.company_name || lead?.display_name || project?.company_name || '');

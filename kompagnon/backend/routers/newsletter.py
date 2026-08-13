@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -8,18 +9,33 @@ from sqlalchemy.orm import Session
 
 from routers.auth_router import get_current_user
 from database import get_db
+from services.brevo_service import BrevoError, BrevoService
 
-try:
-    from services.brevo_service import BrevoService
-    _brevo_ok = True
-except Exception:
-    BrevoService = None
-    _brevo_ok = False
+# Bei Massenimporten werden nicht alle Fehler zurueckgemeldet — eine Handvoll
+# reicht, um die Ursache zu erkennen, ohne die Antwort aufzublaehen.
+MAX_REPORTED_ERRORS = 10
 
 
-def _require_brevo():
-    if not _brevo_ok or BrevoService is None:
-        raise HTTPException(503, "Newsletter-Service nicht verfuegbar (Brevo SDK fehlt)")
+@contextmanager
+def _brevo():
+    """
+    Uebersetzt Brevo-Fehler in HTTP-Antworten und schliesst die Verbindung.
+
+    503, wenn der Dienst gar nicht einsatzbereit ist (fehlender Schluessel) —
+    502, wenn Brevo selbst ablehnt oder nicht erreichbar ist.
+    """
+    try:
+        service = BrevoService()
+    except BrevoError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    try:
+        yield service
+    except BrevoError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    finally:
+        service.close()
+
 
 router = APIRouter(prefix="/api/newsletter", tags=["Newsletter"])
 
@@ -166,37 +182,32 @@ def send_campaign(
 
     brevo_list_id = brevo_list_rows[0]["brevo_list_id"]
 
-    _require_brevo()
-    brevo = BrevoService()
-    result = brevo.create_email_campaign(
-        title=newsletter["title"],
-        subject=newsletter["subject"],
-        html_content=newsletter["html_content"] or "",
-        list_id=brevo_list_id,
-        scheduled_at=body.scheduled_at.isoformat() if body.scheduled_at else None,
-    )
+    with _brevo() as brevo:
+        brevo_campaign_id = brevo.create_email_campaign(
+            title=newsletter["title"],
+            subject=newsletter["subject"],
+            html_content=newsletter["html_content"] or "",
+            list_id=brevo_list_id,
+            scheduled_at=body.scheduled_at.isoformat() if body.scheduled_at else None,
+        )
 
-    if isinstance(result, str):
-        raise HTTPException(status_code=502, detail=result)
+        now = datetime.now(timezone.utc)
 
-    brevo_campaign_id = result
-    now = datetime.now(timezone.utc)
-
-    if body.scheduled_at:
-        db.execute(text(
-            "UPDATE newsletters "
-            "SET brevo_campaign_id = :bcid, status = 'scheduled', scheduled_at = :sched, updated_at = :now "
-            "WHERE id = :id"
-        ), {"bcid": brevo_campaign_id, "sched": body.scheduled_at, "now": now, "id": campaign_id})
-    else:
-        send_result = brevo.send_campaign_now(brevo_campaign_id)
-        if isinstance(send_result, str):
-            raise HTTPException(status_code=502, detail=send_result)
-        db.execute(text(
-            "UPDATE newsletters "
-            "SET brevo_campaign_id = :bcid, status = 'sent', sent_at = :now, updated_at = :now "
-            "WHERE id = :id"
-        ), {"bcid": brevo_campaign_id, "now": now, "id": campaign_id})
+        if body.scheduled_at:
+            db.execute(text(
+                "UPDATE newsletters "
+                "SET brevo_campaign_id = :bcid, status = 'scheduled', scheduled_at = :sched, updated_at = :now "
+                "WHERE id = :id"
+            ), {"bcid": brevo_campaign_id, "sched": body.scheduled_at, "now": now, "id": campaign_id})
+        else:
+            # Erst senden, dann als gesendet vermerken. Wirft der Versand, bleibt
+            # der Status stehen — frueher wurde er trotzdem auf 'sent' gesetzt.
+            brevo.send_campaign_now(brevo_campaign_id)
+            db.execute(text(
+                "UPDATE newsletters "
+                "SET brevo_campaign_id = :bcid, status = 'sent', sent_at = :now, updated_at = :now "
+                "WHERE id = :id"
+            ), {"bcid": brevo_campaign_id, "now": now, "id": campaign_id})
 
     db.commit()
     return {"success": True, "brevo_campaign_id": brevo_campaign_id}
@@ -218,12 +229,8 @@ def campaign_stats(
     if not row["brevo_campaign_id"]:
         raise HTTPException(status_code=400, detail="Kampagne wurde noch nicht an Brevo gesendet")
 
-    _require_brevo()
-    brevo = BrevoService()
-    stats = brevo.get_campaign_stats(row["brevo_campaign_id"])
-    if isinstance(stats, str):
-        raise HTTPException(status_code=502, detail=stats)
-    return stats
+    with _brevo() as brevo:
+        return brevo.get_campaign_stats(row["brevo_campaign_id"])
 
 
 # ---------------------------------------------------------------------------
@@ -249,11 +256,8 @@ def create_list(
     user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _require_brevo()
-    brevo = BrevoService()
-    brevo_list_id = brevo.create_list(body.name)
-    if isinstance(brevo_list_id, str):
-        raise HTTPException(status_code=502, detail=brevo_list_id)
+    with _brevo() as brevo:
+        brevo_list_id = brevo.create_list(body.name)
 
     row = db.execute(text("""
         INSERT INTO newsletter_lists (name, description, source, brevo_list_id)
@@ -286,40 +290,50 @@ def sync_crm(
         text("SELECT id, email, first_name, last_name FROM users WHERE role = 'customer'")
     ).mappings().all()
 
-    _require_brevo()
-    brevo = BrevoService()
     synced = 0
+    failed = []
 
-    for c in customers:
-        exists = db.execute(
-            text("SELECT id FROM newsletter_contacts WHERE email = :email AND list_id = :list_id"),
-            {"email": c["email"], "list_id": list_id},
-        ).mappings().fetchone()
-        if exists:
-            continue
+    with _brevo() as brevo:
+        for c in customers:
+            exists = db.execute(
+                text("SELECT id FROM newsletter_contacts WHERE email = :email AND list_id = :list_id"),
+                {"email": c["email"], "list_id": list_id},
+            ).mappings().fetchone()
+            if exists:
+                continue
 
-        brevo_contact_id = brevo.create_contact(
-            email=c["email"],
-            first_name=c.get("first_name", "") or "",
-            last_name=c.get("last_name", "") or "",
-            list_ids=[nl["brevo_list_id"]],
-        )
+            # Ein abgelehnter Kontakt darf den Rest des Laufs nicht abbrechen —
+            # aber er wird gemeldet und NICHT als synchronisiert eingetragen.
+            try:
+                brevo_contact_id = brevo.create_contact(
+                    email=c["email"],
+                    first_name=c.get("first_name", "") or "",
+                    last_name=c.get("last_name", "") or "",
+                    list_ids=[nl["brevo_list_id"]],
+                )
+            except BrevoError as exc:
+                failed.append({"email": c["email"], "reason": str(exc)})
+                continue
 
-        db.execute(text("""
-            INSERT INTO newsletter_contacts (email, first_name, last_name, list_id, crm_user_id, brevo_contact_id)
-            VALUES (:email, :first_name, :last_name, :list_id, :crm_user_id, :brevo_contact_id)
-        """), {
-            "email": c["email"],
-            "first_name": c.get("first_name"),
-            "last_name": c.get("last_name"),
-            "list_id": list_id,
-            "crm_user_id": c["id"],
-            "brevo_contact_id": brevo_contact_id if not isinstance(brevo_contact_id, str) else None,
-        })
-        synced += 1
+            db.execute(text("""
+                INSERT INTO newsletter_contacts (email, first_name, last_name, list_id, crm_user_id, brevo_contact_id)
+                VALUES (:email, :first_name, :last_name, :list_id, :crm_user_id, :brevo_contact_id)
+            """), {
+                "email": c["email"],
+                "first_name": c.get("first_name"),
+                "last_name": c.get("last_name"),
+                "list_id": list_id,
+                "crm_user_id": c["id"],
+                "brevo_contact_id": brevo_contact_id,
+            })
+            synced += 1
 
     db.commit()
-    return {"synced_count": synced}
+    return {
+        "synced_count": synced,
+        "failed_count": len(failed),
+        "errors": failed[:MAX_REPORTED_ERRORS],
+    }
 
 
 @router.post("/lists/{list_id}/import")
@@ -336,29 +350,39 @@ def import_contacts(
     if not nl:
         raise HTTPException(status_code=404, detail="Liste nicht gefunden")
 
-    _require_brevo()
-    brevo = BrevoService()
     imported = 0
+    failed = []
 
-    for contact in body.contacts:
-        brevo_contact_id = brevo.create_contact(
-            email=contact.email,
-            first_name=contact.first_name or "",
-            last_name=contact.last_name or "",
-            list_ids=[nl["brevo_list_id"]],
-        )
+    with _brevo() as brevo:
+        for contact in body.contacts:
+            # Wie beim CRM-Abgleich: eine unbrauchbare Adresse stoppt den Import
+            # nicht, wird aber gezaehlt statt mit leerer Brevo-ID abgelegt.
+            try:
+                brevo_contact_id = brevo.create_contact(
+                    email=contact.email,
+                    first_name=contact.first_name or "",
+                    last_name=contact.last_name or "",
+                    list_ids=[nl["brevo_list_id"]],
+                )
+            except BrevoError as exc:
+                failed.append({"email": contact.email, "reason": str(exc)})
+                continue
 
-        db.execute(text("""
-            INSERT INTO newsletter_contacts (email, first_name, last_name, list_id, brevo_contact_id)
-            VALUES (:email, :first_name, :last_name, :list_id, :brevo_contact_id)
-        """), {
-            "email": contact.email,
-            "first_name": contact.first_name,
-            "last_name": contact.last_name,
-            "list_id": list_id,
-            "brevo_contact_id": brevo_contact_id if not isinstance(brevo_contact_id, str) else None,
-        })
-        imported += 1
+            db.execute(text("""
+                INSERT INTO newsletter_contacts (email, first_name, last_name, list_id, brevo_contact_id)
+                VALUES (:email, :first_name, :last_name, :list_id, :brevo_contact_id)
+            """), {
+                "email": contact.email,
+                "first_name": contact.first_name,
+                "last_name": contact.last_name,
+                "list_id": list_id,
+                "brevo_contact_id": brevo_contact_id,
+            })
+            imported += 1
 
     db.commit()
-    return {"imported_count": imported}
+    return {
+        "imported_count": imported,
+        "failed_count": len(failed),
+        "errors": failed[:MAX_REPORTED_ERRORS],
+    }

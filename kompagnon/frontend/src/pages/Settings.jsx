@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth, apiCall } from '../context/AuthContext';
+import { reportApiError } from '../utils/apiRequest';
 import { useScreenSize } from '../utils/responsive';
 
 
@@ -135,7 +136,13 @@ function SystemTab() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    apiCall('/api/admin/settings').then((r) => r.json()).then(setSettings).catch(() => {});
+    apiCall('/api/admin/settings')
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(setSettings)
+      .catch((error) => reportApiError(error, 'Systemeinstellungen'));
   }, []);
 
   const save = async () => {

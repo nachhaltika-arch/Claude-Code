@@ -7,6 +7,8 @@ from typing import Dict, List
 from urllib.parse import urljoin, urlparse
 import re
 
+from services.url_guard import check_url
+
 
 class LinkChecker:
     """Check for broken links on a website."""
@@ -115,7 +117,14 @@ class LinkChecker:
 
     @staticmethod
     def _check_url(url: str, timeout: int = 5) -> int:
-        """Check if URL is accessible. Returns HTTP status code or 0 on error."""
+        """Check if URL is accessible. Returns HTTP status code or 0 on error.
+
+        Die Linkliste stammt aus fremdem HTML — ohne Prüfung könnte ein Link
+        den Server auf eine interne Adresse zeigen lassen (SSRF).
+        """
+        ok, _ = check_url(url)
+        if not ok:
+            return 0
         try:
             response = requests.head(url, timeout=timeout, allow_redirects=True)
             return response.status_code

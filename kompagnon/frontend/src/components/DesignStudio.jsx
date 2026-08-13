@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 import toast from 'react-hot-toast';
 import { renderPage } from '../grapesjs/handwerk-blocks';
 
@@ -41,10 +42,8 @@ export default function DesignStudio({ project, leadId, token, brandData, sitema
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/templates/`, { headers })
-      .then(r => r.ok ? r.json() : [])
-      .then(data => setDbTemplates(Array.isArray(data) ? data.slice(0, 6) : []))
-      .catch(() => {});
+    loadJson(`${API_BASE_URL}/api/templates/`, { headers }, { context: 'Vorlagen', fallback: [] })
+      .then(data => setDbTemplates(Array.isArray(data) ? data.slice(0, 6) : []));
   }, []); // eslint-disable-line
 
   const primaryColor   = brandData?.primary_color   || '#008EAA';

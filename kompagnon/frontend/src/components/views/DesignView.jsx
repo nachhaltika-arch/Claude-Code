@@ -19,10 +19,19 @@
  *   approved              — Style-Guide muss freigegeben sein, sonst Lock
  *   onOpenGrapesJS        — Callback (Container öffnet Editor-Modal/Tab)
  *   onNetlifyDeploy       — Callback (Container ruft Deploy-Endpoint)
+ *   onPageUpdated         — Callback mit der gespeicherten Seite nach der Übernahme
+ *
+ * „Auf die Seite übernehmen" schreibt die Vorschau nach
+ * `sitemap_pages.mockup_html`. Das ist die Stelle, an der dieser Zweig
+ * (Sitemap → Wireframe → Style-Guide) den Weg zur ausgelieferten Seite findet:
+ * von `mockup_html` geht es in GrapesJS und von dort in den Netlify-Deploy.
+ * Ohne diesen Schritt endete alles hier in einem Bild auf dem Schirm.
  */
 import { useEffect, useMemo, useState } from 'react';
 import API_BASE_URL from '../../config';
 import { useAuth } from '../../context/AuthContext';
+import { buildOverrideCSS } from '../../utils/brandOverride';
+import { blockMarkup, seitenHtml } from '../../utils/pageHtml';
 
 const KC_DARK = '#004F59';
 const KC_MID = '#008EAA';
@@ -36,6 +45,7 @@ export default function DesignView({
   approved,
   onOpenGrapesJS,
   onNetlifyDeploy,
+  onPageUpdated,
 }) {
   const { token } = useAuth();
   const headers = useMemo(
@@ -110,29 +120,68 @@ export default function DesignView({
   // (Phase B) auf die aktuellen Style-Guide-Tokens.
   const overrideCSS = useMemo(() => buildOverrideCSS(styleGuide), [styleGuide]);
 
-  const renderedHTML = useMemo(() => {
-    if (!activePage) return '';
-    const blocks = (activePage.blocks || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    const html = blocks
-      .map((b) => {
-        const tpl = library[b.slug]?.html_template;
-        if (!tpl) return `<!-- block ${b.slug} not loaded -->`;
-        return fillTemplate(tpl, b.slots || {});
-      })
-      .join('\n');
-    // CSS-Override + Tailwind-CDN ins Vorschau-HTML einbetten
-    return `<style>${overrideCSS}</style>${html}`;
-  }, [activePage, library, overrideCSS]);
+  // Vorschau und Übernahme teilen sich denselben Baustein — was übernommen
+  // wird, muss genau das sein, was hier zu sehen war.
+  const renderedHTML = useMemo(
+    () => seitenHtml({ blocks: activePage?.blocks, library, overrideCSS }),
+    [activePage, library, overrideCSS],
+  );
+
+  // ── Übernahme auf die Seite ──────────────────────────────────────────────
+  //
+  // Bis hierher endete dieser Zweig in einer Vorschau: Sitemap → Wireframe →
+  // Style-Guide → Bild auf dem Schirm. Ausgeliefert wurde etwas anderes, das
+  // über `mockup_html` in GrapesJS kommt. Dieser Knopf schließt die Lücke —
+  // bewusst als Knopf und nicht automatisch, denn er überschreibt, was auf der
+  // Seite schon steht.
+  const [uebernahme, setUebernahme] = useState({ status: 'idle', text: '' });
+
+  useEffect(() => { setUebernahme({ status: 'idle', text: '' }); }, [activePageId]);
+
+  const uebernehmen = async () => {
+    if (!activeSitemapPage || !renderedHTML) return;
+
+    const hatEditorFassung = !!(activeSitemapPage.gjs_html || '').trim();
+    const hatEntwurf = !!(activeSitemapPage.mockup_html || '').trim();
+    if (hatEditorFassung || hatEntwurf) {
+      const was = hatEditorFassung
+        ? 'Diese Seite wurde bereits in GrapesJS bearbeitet. Die Übernahme '
+          + 'ersetzt den Entwurf; die Editor-Fassung bleibt bestehen, bis du '
+          + 'sie dort neu lädst.'
+        : 'Diese Seite hat schon einen Entwurf. Die Übernahme ersetzt ihn.';
+      // eslint-disable-next-line no-alert
+      if (!window.confirm(`${was}\n\nTrotzdem übernehmen?`)) return;
+    }
+
+    setUebernahme({ status: 'laeuft', text: 'Übernimmt…' });
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/sitemap/pages/${activeSitemapPage.id}`, {
+        method: 'PUT', headers,
+        body: JSON.stringify({ mockup_html: renderedHTML }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = body?.detail;
+        throw new Error(typeof detail === 'string' ? detail : `HTTP ${res.status}`);
+      }
+      // Nicht der Antwortstatus zählt, sondern was in der Seite steht: Bei
+      // Pflichtseiten hat die API früher stillschweigend verworfen.
+      if ((body.mockup_html || '') !== renderedHTML) {
+        throw new Error('Die Seite hat den Entwurf nicht übernommen.');
+      }
+      onPageUpdated?.(body);
+      setUebernahme({
+        status: 'fertig',
+        text: 'Übernommen — die Seite geht so in GrapesJS und in den Deploy.',
+      });
+    } catch (e) {
+      setUebernahme({ status: 'fehler', text: e.message || 'Übernahme fehlgeschlagen' });
+    }
+  };
 
   const exportHTML = () => {
     const fontFamily = styleGuide?.typography?.font_family || 'Noto Sans';
-    const blocksHtml = (activePage?.blocks || [])
-      .slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      .map((b) => {
-        const tpl = library[b.slug]?.html_template;
-        return tpl ? fillTemplate(tpl, b.slots || {}) : '';
-      })
-      .join('\n');
+    const blocksHtml = blockMarkup(activePage?.blocks, library);
 
     const fullHTML = `<!DOCTYPE html>
 <html lang="de">
@@ -250,7 +299,30 @@ ${blocksHtml}
             Aktionen
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <button type="button" onClick={() => onOpenGrapesJS?.(activePageId)} style={btnPrimary}>
+            <button
+              type="button" onClick={uebernehmen}
+              disabled={!renderedHTML || !activeSitemapPage || uebernahme.status === 'laeuft'}
+              title={activeSitemapPage
+                ? 'Schreibt diese Vorschau als Entwurf auf die Seite — von dort '
+                  + 'geht sie in GrapesJS und in den Deploy.'
+                : 'Diese Wireframe-Seite hat keine Entsprechung in der Sitemap.'}
+              style={{
+                ...btnPrimary,
+                opacity: renderedHTML && activeSitemapPage ? 1 : 0.5,
+                cursor: renderedHTML && activeSitemapPage ? 'pointer' : 'not-allowed',
+              }}
+            >
+              {uebernahme.status === 'laeuft' ? 'Übernimmt…' : 'Auf die Seite übernehmen'}
+            </button>
+            {uebernahme.text && (
+              <div style={{
+                fontSize: 11, lineHeight: 1.4, padding: '6px 8px', borderRadius: 6,
+                background: uebernahme.status === 'fehler' ? '#fef2f2' : '#f0fdf4',
+                color: uebernahme.status === 'fehler' ? '#991b1b' : '#166534',
+                border: `1px solid ${uebernahme.status === 'fehler' ? '#fca5a5' : '#86efac'}`,
+              }}>{uebernahme.text}</div>
+            )}
+            <button type="button" onClick={() => onOpenGrapesJS?.(activePageId)} style={btnSecondary}>
               In GrapesJS öffnen
             </button>
             <button type="button" onClick={exportHTML} disabled={!renderedHTML}
@@ -421,118 +493,12 @@ function Breadcrumb({ page, sitemapPages }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Style-CSS-Override-Generator
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Mapped die neutralen Tailwind-Gray-Klassen aus der Phase-B-Library auf
-// Style-Guide-Tokens (palette + button_variants + card + spacing + typo +
-// semantic). Wird zur Render-Zeit als <style>-Block ins Preview-HTML
-// eingebettet — die Library bleibt Wireframe-only.
-
-function buildOverrideCSS(styleGuide) {
-  if (!styleGuide) return '';
-  const palette  = styleGuide.palette  || {};
-  const colors   = styleGuide.colors   || {};
-  const typo     = styleGuide.typography || {};
-  const buttons  = styleGuide.buttons  || {};
-  const spacing  = styleGuide.spacing  || {};
-  const card     = styleGuide.card     || {};
-  const semantic = styleGuide.semantic || {};
-  const variants = styleGuide.button_variants || {};
-
-  // Effektive Werte mit Fallback auf legacy colors-Object
-  const bg     = palette.bg_primary  || colors.background || '#fff';
-  const surf   = palette.bg_surface  || '#f8fafc';
-  const text   = palette.text_primary|| colors.text       || '#0a0a0a';
-  const muted  = palette.text_muted  || 'var(--text-secondary)';
-  const border = palette.border      || '#e2e8f0';
-  const acc1   = palette.accent_1    || colors.primary    || '#0a0a0a';
-  const acc2   = palette.accent_2    || colors.accent     || '#FAE600';
-
-  const fontBody = typo.font_family  || 'Noto Sans';
-  const radiusBtn = buttons.radius   || '8px';
-  const radiusCard = (card.radius || spacing.radius || '8px');
-
-  // Primary-Button: bevorzugt button_variants.primary, sonst accent_1
-  const btnPrimaryBg = variants.primary?.bg     || acc1;
-  const btnPrimaryFg = variants.primary?.fg     || bg;
-  const btnPrimaryBorder = variants.primary?.border || acc1;
-
-  return `
-/* ─── DesignView Style-Override ─── */
-body { font-family: '${fontBody}', sans-serif; color: ${text}; background: ${bg}; }
-h1, h2, h3, h4 { color: ${text}; }
-p { color: ${text}; }
-
-/* Backgrounds */
-.bg-white      { background-color: ${bg} !important; }
-.bg-gray-50    { background-color: ${surf} !important; }
-.bg-gray-100   { background-color: ${surf} !important; }
-.bg-gray-200   { background-color: ${border} !important; }
-.bg-gray-700,
-.bg-gray-800,
-.bg-gray-900   { background-color: ${btnPrimaryBg} !important; }
-
-/* Text-Colors */
-.text-gray-900 { color: ${text} !important; }
-.text-gray-700 { color: ${text} !important; }
-.text-gray-600 { color: ${muted} !important; }
-.text-gray-500 { color: ${muted} !important; }
-.text-gray-400 { color: ${muted} !important; }
-
-/* Borders */
-.border-gray-200, .border-gray-300 { border-color: ${border} !important; }
-.divide-gray-200 > :not(:last-child),
-.divide-gray-300 > :not(:last-child) { border-color: ${border} !important; }
-
-/* Primary-Buttons (gray-900 bg + white text) */
-.bg-gray-900.text-white,
-button.bg-gray-900,
-.bg-gray-800.text-white {
-  background-color: ${btnPrimaryBg} !important;
-  color: ${btnPrimaryFg} !important;
-  border-color: ${btnPrimaryBorder} !important;
-}
-
-/* Akzent-2 (z.B. fuer kleinere CTA-Pills, "Mehr erfahren →") */
-.bg-gray-300 { background-color: ${acc2} !important; }
-
-/* Border-Radius */
-.rounded, .rounded-md, .rounded-lg { border-radius: ${radiusBtn} !important; }
-.rounded-xl, .rounded-2xl { border-radius: ${radiusCard} !important; }
-button { border-radius: ${radiusBtn}; }
-
-/* Status-Bedeutungen — ueberlappend mit gray-Klassen sind selten in der
-   Library. Wir setzen Custom-Klassen direkt verwendbar. */
-.status-success { background: ${semantic.success?.bg}; color: ${semantic.success?.fg}; border: 1px solid ${semantic.success?.border}; }
-.status-warn    { background: ${semantic.warn?.bg};    color: ${semantic.warn?.fg};    border: 1px solid ${semantic.warn?.border}; }
-.status-error   { background: ${semantic.error?.bg};   color: ${semantic.error?.fg};   border: 1px solid ${semantic.error?.border}; }
-.status-info    { background: ${semantic.info?.bg};    color: ${semantic.info?.fg};    border: 1px solid ${semantic.info?.border}; }
-`.trim();
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-function fillTemplate(template, slots) {
-  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-    const val = slots[key];
-    if (val === undefined || val === null) return '';
-    if (typeof val === 'string' || typeof val === 'number') return escapeHTML(String(val));
-    return '';
-  });
-}
 
-function escapeHTML(s) {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 function slugify(s) {
   if (!s) return '';

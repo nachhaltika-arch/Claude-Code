@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 import { useConfirmStep } from '../hooks/useConfirmStep';
 
 const TABS = ['Farben', 'Typografie', 'Abstände', 'Komponenten', 'Vorschau', 'Export'];
@@ -23,17 +24,13 @@ export default function BrandGuideline({ project, lead, token, leadId, brandData
   const load = useCallback(async () => {
     if (!resolvedLeadId) return;
     setLoading(true);
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/branddesign/${resolvedLeadId}/guideline`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.ok) {
-        const d = await res.json();
-        if (d.generated && d.guideline) setGuideline(d.guideline);
-      }
-    } catch { /* silent */ }
-    finally { setLoading(false); }
+    const d = await loadJson(
+      `${API_BASE_URL}/api/branddesign/${resolvedLeadId}/guideline`,
+      { headers: { Authorization: `Bearer ${token}` } },
+      { context: 'Marken-Guideline' }
+    );
+    if (d?.generated && d.guideline) setGuideline(d.guideline);
+    setLoading(false);
   }, [resolvedLeadId]); // eslint-disable-line
 
   useEffect(() => { load(); }, [load]);

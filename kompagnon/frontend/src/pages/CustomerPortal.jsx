@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 import Logo from '../components/Logo';
 
 const LEVEL_COLORS = {
@@ -359,14 +360,14 @@ export default function CustomerPortal() {
 
   const loadMessages = async () => {
     if (!data?.lead_id) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/messages/${data.lead_id}/kunde?token=${token}`);
-      if (res.ok) {
-        const msgs = await res.json();
-        setMessages(msgs);
-        setTimeout(() => msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-      }
-    } catch { /* silent */ }
+    const msgs = await loadJson(
+      `${API_BASE_URL}/api/messages/${data.lead_id}/kunde?token=${token}`,
+      {},
+      { context: 'Nachrichten' }
+    );
+    if (!msgs) return;
+    setMessages(msgs);
+    setTimeout(() => msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
   };
 
   const sendMessage = async () => {

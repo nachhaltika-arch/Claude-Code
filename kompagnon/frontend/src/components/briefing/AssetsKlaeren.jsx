@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../../config';
+import { loadJson } from '../../utils/apiRequest';
 
 export default function AssetsKlaeren({ leadId, token, onSaved }) {
   const [status, setStatus] = useState(null);
@@ -15,8 +16,7 @@ export default function AssetsKlaeren({ leadId, token, onSaved }) {
 
   useEffect(() => {
     if (!leadId) return;
-    fetch(`${API_BASE_URL}/api/briefings/${leadId}/assets-status`, { headers })
-      .then(r => r.ok ? r.json() : null)
+    loadJson(`${API_BASE_URL}/api/briefings/${leadId}/assets-status`, { headers }, { context: 'Assets-Status' })
       .then(d => {
         if (!d) return;
         setStatus(d);
@@ -24,7 +24,6 @@ export default function AssetsKlaeren({ leadId, token, onSaved }) {
         setFotos(d.fotos.vorhanden);
         setCi(d.ci_handbuch.vorhanden || false);
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, [leadId]); // eslint-disable-line
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useScreenSize } from '../../utils/responsive';
+import { loadJson } from '../../utils/apiRequest';
 import { useTheme } from '../../context/ThemeContext';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { usePullToRefresh } from '../../hooks/useTouch';
@@ -347,6 +348,7 @@ function SidebarNav({ badges }) {
                   { label: 'Kaltakquise',          path: '/app/scraper',    adminOnly: true },
                   { label: 'Domain-Import',        path: '/app/import'     },
                   { label: 'Audit-Tool',           path: '/app/audit'      },
+                  { label: 'Analyse-Widget',       path: '/app/widget',     adminOnly: true },
                   { label: 'Newsletter',           path: '/app/newsletter' },
                   { label: 'Kampagnen',            path: '/app/campaigns',  adminOnly: true },
                   { label: 'Export',               path: '/app/export'     },
@@ -872,8 +874,12 @@ export default function AppLayout() {
     if (!user) return;
     const ping = async () => {
       slowApiTimer.current = setTimeout(() => setSlowApi(true), 5000);
-      try { await fetch(`${API_BASE_URL}/api/health`); } catch { /* silent */ }
-      finally { clearTimeout(slowApiTimer.current); setSlowApi(false); }
+      // quiet: Der Ping haelt nur den Render-Dienst wach. Ein Ausfall zeigt
+      // sich ohnehin an der naechsten echten Anfrage — hier waere eine Meldung
+      // alle 12 Minuten nur Laerm.
+      await loadJson(`${API_BASE_URL}/api/health`, {}, { quiet: true });
+      clearTimeout(slowApiTimer.current);
+      setSlowApi(false);
     };
     ping();
     const interval = setInterval(ping, 12 * 60 * 1000);
@@ -903,23 +909,23 @@ export default function AppLayout() {
     if (projectMatch) {
       setProjectName(null);
       setProjectLeadId(null);
-      fetch(`${API_BASE_URL}/api/projects/${projectMatch[1]}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-        .then(r => r.ok ? r.json() : null)
-        .then(d => {
-          if (d?.company_name) setProjectName(d.company_name);
-          if (d?.lead_id) setProjectLeadId(d.lead_id);
-        })
-        .catch(() => {});
+      // quiet: nur der Name in der Brotkrumenleiste. Scheitert die Anfrage,
+      // meldet die Seite selbst den Fehler — zweimal waere zu viel.
+      loadJson(
+        `${API_BASE_URL}/api/projects/${projectMatch[1]}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+        { quiet: true },
+      ).then(d => {
+        if (d?.company_name) setProjectName(d.company_name);
+        if (d?.lead_id) setProjectLeadId(d.lead_id);
+      });
     } else if (leadMatch) {
       setLeadName(null);
-      fetch(`${API_BASE_URL}/api/leads/${leadMatch[1]}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d?.company_name || d?.display_name) setLeadName(d.display_name || d.company_name); })
-        .catch(() => {});
+      loadJson(
+        `${API_BASE_URL}/api/leads/${leadMatch[1]}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+        { quiet: true },
+      ).then(d => { if (d?.company_name || d?.display_name) setLeadName(d.display_name || d.company_name); });
     } else {
       setProjectName(null);
       setLeadName(null);

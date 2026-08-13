@@ -45,6 +45,10 @@ const DEFAULT_DATA = {
 };
 
 // ── Draft-Persistenz ─────────────────────────────────────────────────────────
+//
+// localStorage kann fehlschlagen (privater Modus, volles Kontingent). Das ist
+// hier bewusst still: der Entwurf ist eine Bequemlichkeit, die eigentliche
+// Speicherung laeuft gegen den Server.
 
 const DRAFT_KEY = (projectId) => `leistungsseiten_draft_${projectId}`;
 
@@ -54,7 +58,7 @@ function saveDraft(projectId, data, step) {
       DRAFT_KEY(projectId),
       JSON.stringify({ data, step, savedAt: new Date().toISOString() })
     );
-  } catch {}
+  } catch { /* Entwurf ist optional, siehe oben */ }
 }
 
 function loadDraft(projectId) {
@@ -65,7 +69,7 @@ function loadDraft(projectId) {
 }
 
 function clearDraft(projectId) {
-  try { localStorage.removeItem(DRAFT_KEY(projectId)); } catch {}
+  try { localStorage.removeItem(DRAFT_KEY(projectId)); } catch { /* Entwurf ist optional, siehe oben */ }
 }
 
 function formatDraftAge(isoString) {

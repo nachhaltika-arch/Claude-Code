@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import { loadJson } from '../utils/apiRequest';
 
 export default function PortalLogin() {
   const [mode, setMode]               = useState('login');
@@ -43,14 +44,18 @@ export default function PortalLogin() {
 
   const handleForgot = async (e) => {
     e.preventDefault();
-    try {
-      await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+    // Bewusst ohne Rueckmeldung: die Antwort darf nicht verraten, ob es zu
+    // dieser Adresse ein Konto gibt. Deshalb wird immer Erfolg angezeigt.
+    await loadJson(
+      `${API_BASE_URL}/api/auth/forgot-password`,
+      {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail }),
-      });
-    } catch {}
-    setForgotSent(true); // Immer Erfolg zeigen
+      },
+      { quiet: true },
+    );
+    setForgotSent(true);
   };
 
   const inp = {

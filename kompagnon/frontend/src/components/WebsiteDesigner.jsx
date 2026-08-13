@@ -26,7 +26,9 @@ export default function WebsiteDesigner({
       if (!editor) return;
       const { src, name, category } = e.detail || {};
       if (!src) return;
-      try { editor.AssetManager?.add({ type: 'image', src, name: name || src, category }); } catch { /* silent */ }
+      // Der AssetManager existiert erst nach dem Editor-Start; ein Bild, das
+      // vorher eintrifft, wird beim naechsten Oeffnen ohnehin mitgeladen.
+      try { editor.AssetManager?.add({ type: 'image', src, name: name || src, category }); } catch { /* Editor noch nicht bereit */ }
     };
     window.addEventListener('kompagnon:asset-add', onAssetAdd);
 

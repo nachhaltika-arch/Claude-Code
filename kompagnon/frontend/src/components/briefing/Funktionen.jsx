@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../../config';
+import { loadJson } from '../../utils/apiRequest';
 
 const TOOL_OPTIONS = [
   'Trustpilot', 'Google Maps', 'Instagram', 'Facebook',
@@ -25,8 +26,11 @@ export default function Funktionen({ leadId, token, onSaved }) {
 
   useEffect(() => {
     if (!leadId) return;
-    fetch(`${API_BASE_URL}/api/briefings/${leadId}/ki-prefill-funktionen`, { headers })
-      .then(r => r.ok ? r.json() : null)
+    loadJson(
+      `${API_BASE_URL}/api/briefings/${leadId}/ki-prefill-funktionen`,
+      { headers },
+      { context: 'Funktions-Vorschlag' },
+    )
       .then(d => {
         if (!d) return;
         setTermin(d.terminbuchung.vorhanden);
@@ -39,7 +43,6 @@ export default function Funktionen({ leadId, token, onSaved }) {
         setTools(d.externe_tools.liste || []);
         setToolsAuto(d.externe_tools.liste || []);
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, [leadId]); // eslint-disable-line
 

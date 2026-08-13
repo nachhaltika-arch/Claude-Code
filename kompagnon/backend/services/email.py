@@ -11,26 +11,142 @@ from email.mime.multipart import MIMEMultipart
 logger = logging.getLogger(__name__)
 
 
-def send_email(to_email: str, subject: str, html_body: str, text_body: str = "") -> bool:
-    smtp_host = os.getenv("SMTP_HOST", "")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER", "")
-    smtp_pass = os.getenv("SMTP_PASSWORD", "")
-    sender_name = os.getenv("SMTP_SENDER_NAME", "KOMPAGNON")
-    sender_email = os.getenv("SMTP_SENDER_EMAIL", smtp_user)
+def _smtp_settings(db=None) -> dict:
+    """Zugang aus den Einstellungen im Tool, sonst aus den Umgebungsvariablen.
 
-    if not smtp_host or not smtp_user:
+    Ohne eigene Session wird eine geöffnet und wieder geschlossen — der Versand
+    läuft auch aus Hintergrundaufgaben ohne Request-Kontext.
+    """
+    try:
+        from services.app_settings import smtp_config
+
+        if db is not None:
+            return smtp_config(db)
+
+        from database import SessionLocal
+
+        own = SessionLocal()
+        try:
+            return smtp_config(own)
+        finally:
+            own.close()
+    except Exception as e:  # noqa: BLE001 — Rückfall auf reine Umgebungsvariablen
+        logger.warning(f"SMTP-Einstellungen nicht lesbar ({e}) — nutze Umgebungsvariablen")
+        user = os.getenv("SMTP_USER", "")
+        host = os.getenv("SMTP_HOST", "")
+        return {
+            "host": host,
+            "port": int(os.getenv("SMTP_PORT", "587") or 587),
+            "user": user,
+            "password": os.getenv("SMTP_PASSWORD", ""),
+            "sender_name": os.getenv("SMTP_SENDER_NAME", "KOMPAGNON"),
+            "sender_email": os.getenv("SMTP_SENDER_EMAIL", user),
+            "configured": bool(host and user),
+        }
+
+
+def _build_message(subject: str, sender: str, to_email: str, html_body: str,
+                   text_body: str, attachments):
+    """Baut die Nachricht — mit Anhang als 'mixed', sonst als 'alternative'.
+
+    Ein Anhang darf nicht in den alternative-Teil: Mail-Programme zeigen dort
+    nur eine der Varianten an, der Anhang ginge verloren.
+    """
+    from email.mime.application import MIMEApplication
+
+    inhalt = MIMEMultipart("alternative")
+    if text_body:
+        inhalt.attach(MIMEText(text_body, "plain", "utf-8"))
+    inhalt.attach(MIMEText(html_body, "html", "utf-8"))
+
+    if not attachments:
+        inhalt["Subject"] = subject
+        inhalt["From"] = sender
+        inhalt["To"] = to_email
+        return inhalt
+
+    msg = MIMEMultipart("mixed")
+    msg["Subject"] = subject
+    msg["From"] = sender
+    msg["To"] = to_email
+    msg.attach(inhalt)
+
+    for dateiname, daten, subtyp in attachments:
+        teil = MIMEApplication(daten, _subtype=subtyp)
+        teil.add_header("Content-Disposition", "attachment", filename=dateiname)
+        msg.attach(teil)
+
+    return msg
+
+
+def send_email(to_email: str, subject: str, html_body: str, text_body: str = "",
+               db=None, attachments=None) -> bool:
+    """Versendet eine E-Mail.
+
+    attachments: Liste aus (Dateiname, Bytes, Untertyp), z. B.
+    [("Bericht.pdf", pdf_bytes, "pdf")].
+
+    Bevorzugt wird die Brevo-Transaktions-API, weil deren Schlüssel ohnehin
+    für die Newsletter gepflegt wird. SMTP bleibt als zweiter Weg bestehen,
+    falls jemand lieber einen eigenen Mailserver nutzt.
+    """
+    erfolg, _ = send_email_detailed(to_email, subject, html_body, text_body,
+                                    db, attachments)
+    return erfolg
+
+
+def send_email_detailed(to_email: str, subject: str, html_body: str,
+                        text_body: str = "", db=None, attachments=None) -> tuple:
+    """Wie send_email, gibt aber (erfolg, begruendung) zurück.
+
+    Ohne die Begründung landet der Grund nur im Server-Log — und wer keinen
+    Log-Zugang hat, sieht bloß "Versand fehlgeschlagen" und kann nichts tun.
+    """
+    config = _smtp_settings(db)
+    brevo_fehler = ""
+
+    from services import brevo_mail
+
+    if brevo_mail.is_available():
+        erfolg, meldung = brevo_mail.send(
+            to_email=to_email,
+            subject=subject,
+            html_body=html_body,
+            text_body=text_body,
+            sender_name=config.get("sender_name") or "",
+            sender_email=config.get("sender_email") or "",
+            attachments=attachments,
+        )
+        if erfolg:
+            return True, "über Brevo gesendet"
+        # Kein stiller Rückfall: ist SMTP nicht eingerichtet, bleibt es beim
+        # Fehler — sonst sieht es aus, als sei nur SMTP nicht konfiguriert.
+        logger.warning(f"Brevo-Versand fehlgeschlagen ({meldung})")
+        brevo_fehler = f"Brevo: {meldung}"
+        if not config["configured"]:
+            return False, brevo_fehler
+        logger.info("Versuche stattdessen SMTP")
+
+    smtp_host = config["host"]
+    smtp_port = config["port"]
+    smtp_user = config["user"]
+    smtp_pass = config["password"]
+    sender_name = config["sender_name"]
+    sender_email = config["sender_email"] or smtp_user
+
+    if not config["configured"]:
         logger.warning("SMTP nicht konfiguriert — E-Mail nicht gesendet")
-        return False
+        return False, "Kein Versandweg eingerichtet (weder Brevo noch SMTP)"
 
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"{sender_name} <{sender_email}>"
-        msg["To"] = to_email
-        if text_body:
-            msg.attach(MIMEText(text_body, "plain", "utf-8"))
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
+        msg = _build_message(
+            subject=subject,
+            sender=f"{sender_name} <{sender_email}>",
+            to_email=to_email,
+            html_body=html_body,
+            text_body=text_body,
+            attachments=attachments,
+        )
 
         if smtp_port == 465:
             server = smtplib.SMTP_SSL(smtp_host, smtp_port)
@@ -43,10 +159,13 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str = "")
         server.sendmail(sender_email, to_email, msg.as_string())
         server.quit()
         logger.info(f"E-Mail gesendet an {to_email}")
-        return True
+        return True, "über SMTP gesendet"
     except Exception as e:
         logger.error(f"E-Mail Fehler an {to_email}: {e}")
-        return False
+        smtp_fehler = f"SMTP: {type(e).__name__}: {e}"[:200]
+        # Beide Wege benennen — sonst sieht man nur den zuletzt versuchten
+        # und sucht am falschen Ende.
+        return False, f"{brevo_fehler} | {smtp_fehler}" if brevo_fehler else smtp_fehler
 
 
 def send_password_reset_email(to_email: str, reset_token: str, user_name: str = "") -> bool:

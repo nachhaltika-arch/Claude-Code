@@ -72,6 +72,8 @@ export default function WireframeView({
   const [dragOverIdx, setDragOverIdx] = useState(null);
   // W3 Slot-Editor: { idx } oder null
   const [editPanel, setEditPanel] = useState(null);
+  // Stufe C: vorgeschlagene Abfolge für die aktive Seite
+  const [komposition, setKomposition] = useState({ status: 'idle', ergebnis: null, fehler: '' });
 
   // Default-Page auf erste setzen sobald Daten reinkommen
   useEffect(() => {
@@ -79,6 +81,11 @@ export default function WireframeView({
       setActivePageId(pages[0].page_id);
     }
   }, [pages, activePageId]);
+
+  // Eine Abfolge gilt für genau eine Seite.
+  useEffect(() => {
+    setKomposition({ status: 'idle', ergebnis: null, fehler: '' });
+  }, [activePageId]);
 
   // Component-Library beim ersten Mount eagerly laden — die BlockCards
   // brauchen html_template für Live-Preview, sonst zeigen sie leere Karten
@@ -169,6 +176,68 @@ export default function WireframeView({
     },
     [projectId, headers, onWireframeChange],
   );
+
+  // ── Stufe C: die Seite komponieren ──────────────────────────────────────
+  //
+  // Vorgeschlagen wird nur die Abfolge — welche Sections in welcher Reihenfolge.
+  // Das Markup je Section schreibt danach Stufe B, ein Block nach dem anderen.
+  // Ein Aufruf für die ganze Seite wäre lang, teuer und beim kleinsten
+  // Formfehler ganz verloren.
+  const komponiere = async () => {
+    if (!activePageId) return;
+    setKomposition({ status: 'laeuft', ergebnis: null, fehler: '' });
+    try {
+      const start = await fetch(`${API_BASE_URL}/api/projects/${projectId}/wireframe/compose`, {
+        method: 'POST', headers, body: JSON.stringify({ page_id: activePageId }),
+      });
+      const gestartet = await start.json().catch(() => ({}));
+      if (!start.ok) {
+        const detail = gestartet?.detail;
+        throw new Error(typeof detail === 'string' ? detail : `Fehler ${start.status}`);
+      }
+      const frist = Date.now() + 180_000;
+      while (Date.now() < frist) {
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => setTimeout(r, 2000));
+        // eslint-disable-next-line no-await-in-loop
+        const res = await fetch(
+          `${API_BASE_URL}/api/projects/wireframe-compose-jobs/${gestartet.job_id}`,
+          { headers },
+        );
+        if (res.status === 404) throw new Error('Auftrag nicht gefunden');
+        // eslint-disable-next-line no-await-in-loop
+        const job = await res.json();
+        if (job.status === 'done') {
+          setKomposition({ status: 'fertig', ergebnis: job.result, fehler: '' });
+          return;
+        }
+        if (job.status === 'error') throw new Error(job.error || 'Unbekannter Fehler');
+      }
+      throw new Error('Zeitüberschreitung — bitte erneut versuchen');
+    } catch (e) {
+      setKomposition({ status: 'fehler', ergebnis: null, fehler: e.message || 'Fehlgeschlagen' });
+    }
+  };
+
+  const kompositionUebernehmen = async () => {
+    const sections = komposition.ergebnis?.sections || [];
+    if (!activePage || sections.length === 0) return;
+    // Slot-Vorgaben aus der Bibliothek — dieselbe Regel wie beim Hinzufügen.
+    const nextBlocks = sections.map((s, i) => {
+      const lib = library.find((c) => c.slug === s.slug);
+      const slots = (lib?.slots || []).reduce((acc, slot) => {
+        if (slot.key) acc[slot.key] = slot.default ?? '';
+        return acc;
+      }, {});
+      return { slug: s.slug, order: i, slots };
+    });
+    const nextData = {
+      ...wireframeData,
+      pages: pages.map((p) => (p.page_id === activePageId ? { ...p, blocks: nextBlocks } : p)),
+    };
+    const ok = await persist(nextData);
+    if (ok !== false) setKomposition({ status: 'idle', ergebnis: null, fehler: '' });
+  };
 
   const swapBlock = (targetIdx, newSlug) => {
     if (!activePage) return;
@@ -453,6 +522,20 @@ export default function WireframeView({
             </button>
             <button
               type="button"
+              onClick={komponiere}
+              disabled={komposition.status === 'laeuft' || library.length === 0}
+              title="Claude schlägt eine Abfolge für diese Seite vor — Reihenfolge, Rhythmus, Pflicht-Sections"
+              style={{
+                background: komposition.status === 'laeuft' ? 'var(--text-tertiary)' : '#7c3aed',
+                color: '#fff', border: 'none', borderRadius: 8,
+                padding: '8px 16px', fontSize: 12, fontWeight: 700,
+                cursor: komposition.status === 'laeuft' ? 'wait' : 'pointer',
+              }}
+            >
+              {komposition.status === 'laeuft' ? 'Komponiert…' : '✨ Seite komponieren'}
+            </button>
+            <button
+              type="button"
               onClick={onNavigateToStyleGuide}
               disabled={activeBlocks.length === 0}
               style={{
@@ -471,6 +554,78 @@ export default function WireframeView({
             </button>
           </div>
         </div>
+
+        {/* Stufe C: der Vorschlag für diese Seite */}
+        {komposition.status === 'fehler' && (
+          <div style={{
+            margin: '0 auto 12px', maxWidth: 720, padding: '8px 12px',
+            background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8,
+            color: '#991b1b', fontSize: 12,
+          }}>{komposition.fehler}</div>
+        )}
+        {komposition.status === 'fertig' && komposition.ergebnis && (
+          <div style={{
+            margin: '0 auto 16px', maxWidth: 720, padding: 14,
+            background: '#faf5ff', border: '1px solid #d8b4fe', borderRadius: 10,
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#6b21a8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Vorgeschlagene Abfolge
+            </div>
+            {komposition.ergebnis.aufbau && (
+              <p style={{ fontSize: 12, color: '#4c1d95', fontStyle: 'italic', margin: '6px 0 10px' }}>
+                „{komposition.ergebnis.aufbau}"
+              </p>
+            )}
+            <ol style={{ margin: '0 0 10px', paddingLeft: 20, fontSize: 12, color: '#4c1d95' }}>
+              {(komposition.ergebnis.sections || []).map((s, i) => (
+                <li key={`${s.slug}-${i}`} style={{ marginBottom: 4 }}>
+                  <strong>{s.rolle || s.category}</strong> · {s.name || s.slug}
+                  {s.auftrag && <div style={{ color: '#6b21a8' }}>{s.auftrag}</div>}
+                </li>
+              ))}
+            </ol>
+            {!komposition.ergebnis.contract?.konform && (
+              <div style={{
+                padding: 8, marginBottom: 10, background: '#fef2f2',
+                border: '1px solid #fca5a5', borderRadius: 6, color: '#991b1b', fontSize: 11,
+              }}>
+                <strong>Die Abfolge hat offene Punkte — Übernehmen ist gesperrt:</strong>
+                <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>
+                  {(komposition.ergebnis.contract?.verstoesse || []).map((v, i) => (
+                    <li key={`${v.regel}-${i}`}>{v.regel}: {v.text}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button" onClick={kompositionUebernehmen}
+                disabled={!komposition.ergebnis.contract?.konform}
+                style={{
+                  padding: '7px 14px',
+                  background: komposition.ergebnis.contract?.konform ? '#10b981' : 'var(--text-tertiary)',
+                  color: '#fff', border: 'none', borderRadius: 6,
+                  fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                  cursor: komposition.ergebnis.contract?.konform ? 'pointer' : 'not-allowed',
+                }}
+              >✓ Abfolge übernehmen</button>
+              <button
+                type="button"
+                onClick={() => setKomposition({ status: 'idle', ergebnis: null, fehler: '' })}
+                style={{
+                  padding: '7px 14px', background: '#fff', border: '1px solid var(--border-medium)',
+                  borderRadius: 6, fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                  cursor: 'pointer',
+                }}
+              >Verwerfen</button>
+              <span style={{ fontSize: 11, color: '#6b21a8' }}>
+                Ersetzt die {activeBlocks.length} Block{activeBlocks.length === 1 ? '' : 's'} dieser
+                Seite. Slot-Texte gehen dabei verloren; das Markup je Section
+                schreibst du danach je Block über „Für diesen Kunden umschreiben".
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* W1: Block-Liste mit Live-Preview + native Drag-Reorder.
             Container-Width entspricht dem Preview-Size-Toggle (mobile/tablet/desktop). */}

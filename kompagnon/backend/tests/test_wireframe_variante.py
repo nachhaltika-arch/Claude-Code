@@ -31,7 +31,13 @@ SLOTS = [
 @pytest.fixture
 def projekt_mit_block(client, auth_headers):
     """Ein Projekt mit einer Wireframe-Seite und einem Bibliotheksblock."""
-    from database import ComponentLibrary, Lead, Project, SessionLocal
+    from database import ComponentLibrary, Lead, Project, SessionLocal, engine
+    from routers.sitemap import SitemapPage
+
+    # `sitemap_pages` steht in routers/sitemap.py — beim Anlegen des
+    # Testschemas ist die Klasse noch nicht importiert. Stufe C liest daraus
+    # den Seitennamen und den Zweck.
+    SitemapPage.__table__.create(bind=engine, checkfirst=True)
 
     slug = "pytest-variante-block"
     db = SessionLocal()
@@ -208,3 +214,92 @@ def test_ohne_bibliotheksblock_gibt_es_keine_variante(client, auth_headers,
         headers=auth_headers, json={"page_id": 1, "slug": "gibt-es-nicht"})
 
     assert antwort.status_code == 404
+
+
+# ── Stufe C: die Abfolge einer Seite ─────────────────────────────────────
+
+def test_die_komposition_schlaegt_eine_abfolge_vor(client, auth_headers,
+                                                   projekt_mit_block, monkeypatch):
+    from routers import component_library as cl
+
+    p, slug = projekt_mit_block["projekt"], projekt_mit_block["slug"]
+
+    class _Antwort:
+        content = []
+
+    monkeypatch.setattr(cl, "_ki_runde", lambda client_, nachrichten: (_Antwort(), {
+        "aufbau": "Vom Versprechen zum Termin.",
+        "sections": [{"slug": slug, "rolle": "Hero", "auftrag": "Versprechen klar."}],
+    }))
+    monkeypatch.setattr(cl, "Anthropic", lambda api_key: object())
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "pytest-schluessel")
+
+    start = client.post(f"/api/projects/{p}/wireframe/compose", headers=auth_headers,
+                        json={"page_id": 1})
+    assert start.status_code == 200, start.text
+    job_id = start.json()["job_id"]
+
+    for _ in range(50):
+        if cl._compose_jobs.get(job_id, {}).get("status") in ("done", "error"):
+            break
+        time.sleep(0.05)
+
+    daten = client.get(f"/api/projects/wireframe-compose-jobs/{job_id}",
+                       headers=auth_headers).json()
+    assert daten["status"] == "done", daten
+    assert daten["result"]["contract"]["konform"] is True
+    section = daten["result"]["sections"][0]
+    assert section["slug"] == slug
+    # Der Name aus der Bibliothek faehrt mit — sonst zeigt die Oberflaeche Slugs.
+    assert section["name"] == "Probe"
+
+
+def test_ein_entwurf_taucht_in_der_komposition_nicht_auf(client, auth_headers,
+                                                         projekt_mit_block, monkeypatch):
+    """Was nicht freigegeben ist, darf auch nicht vorgeschlagen werden."""
+    from database import ComponentLibrary, SessionLocal
+    from routers import component_library as cl
+
+    p = projekt_mit_block["projekt"]
+    entwurf = "pytest-komposition-entwurf"
+    db = SessionLocal()
+    try:
+        db.add(ComponentLibrary(slug=entwurf, name="Entwurf", category="HERO",
+                                status="draft", html_template="<section></section>",
+                                slots=[], tags=[]))
+        db.commit()
+    finally:
+        db.close()
+
+    gesehen = {}
+
+    class _Antwort:
+        content = []
+
+    def _runde(client_, nachrichten):
+        gesehen["prompt"] = nachrichten[0]["content"]
+        return _Antwort(), {"aufbau": "x", "sections": [
+            {"slug": projekt_mit_block["slug"], "rolle": "Hero", "auftrag": "y"}]}
+
+    monkeypatch.setattr(cl, "_ki_runde", _runde)
+    monkeypatch.setattr(cl, "Anthropic", lambda api_key: object())
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "pytest-schluessel")
+
+    try:
+        start = client.post(f"/api/projects/{p}/wireframe/compose",
+                            headers=auth_headers, json={"page_id": 1})
+        job_id = start.json()["job_id"]
+        for _ in range(50):
+            if cl._compose_jobs.get(job_id, {}).get("status") in ("done", "error"):
+                break
+            time.sleep(0.05)
+        client.get(f"/api/projects/wireframe-compose-jobs/{job_id}", headers=auth_headers)
+
+        assert entwurf not in gesehen.get("prompt", "")
+    finally:
+        db = SessionLocal()
+        try:
+            db.query(ComponentLibrary).filter(ComponentLibrary.slug == entwurf).delete()
+            db.commit()
+        finally:
+            db.close()

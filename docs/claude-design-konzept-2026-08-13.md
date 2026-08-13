@@ -1,6 +1,6 @@
 # Claude im Designbereich — Konzept und Stand
 
-**Angelegt:** 2026-08-13 · **Zuletzt:** 2026-08-13 (Stufe A und B gebaut)
+**Angelegt:** 2026-08-13 · **Zuletzt:** 2026-08-13 (Stufe A, B und C-Phase-1 gebaut)
 **Frage:** Wie integrieren wir Claude in den Designbereich, um neue Homepages
 zu entwickeln — statt GrapesJS oder zusätzlich?
 **Verbunden:** `kas-pipeline-architecture.md` (04.05., Grundlage),
@@ -21,8 +21,11 @@ im Prüfer, und der Marken-Override deckt die ganze Graustufen-Skala ab (§ 4.2)
 Beim Bauen kam heraus, dass dieser Zweig gar nicht auf der Kundenseite endete —
 das ist seit „Auf die Seite übernehmen" geschlossen (§ 4.3). **Stufe B ist seit
 demselben Tag gebaut:** Ein Block lässt sich für einen Kunden umschreiben, mit
-demselben Vertrag und einem zusätzlichen Feld (`html_override`). Stufe C ist
-entworfen, nicht gebaut.
+demselben Vertrag und einem zusätzlichen Feld (`html_override`). **Von Stufe C
+steht die erste Hälfte:** Claude komponiert die Abfolge einer Seite — welche
+Sections in welcher Reihenfolge, mit den Pflicht-Sections der Conversion-Spec.
+Das Markup je Section schreibt danach Stufe B. Offen bleibt die
+Qualitätsschleife über die Netlify-Vorschau.
 
 ---
 
@@ -36,6 +39,7 @@ Die Pipeline von Mai ist weiter gebaut, als das Dokument vermuten lässt:
 | 2 Sitemap | ✅ **mit KI** | `routers/sitemap.py`, 1.680 Zeilen |
 | 3 Wireframe | ✅ **mit KI** | `routers/component_library.py`, Block-Auswahl → `projects.wireframe_data` |
 | 3b Variante | ✅ **mit KI** | Stufe B: `services/block_variant.py`, Block je Kunde umgeschrieben → `html_override` |
+| 3c Komposition | ✅ **mit KI** | Stufe C: `services/page_composer.py`, Abfolge einer Seite |
 | 4 Style-Guide | ✅ | `routers/branddesign.py` |
 | 5 Inhalt | ✅ teilweise | `generate-copy` je Section, `agents/content_writer.py` |
 | 6 Deploy | ✅ | `services/netlify_service.py` |
@@ -383,41 +387,72 @@ je Kunde, oder braucht jede Variante einen Blick? Heute ist es dein Blick — da
 Panel zeigt die Vorschau, und ohne Übernehmen passiert nichts. Das ist die
 sichere Voreinstellung; ob es skaliert, zeigt der Alltag.
 
-### Stufe C — Claude als Seitenkomponist *(groß, nicht gebaut)*
+### Stufe C — Claude als Seitenkomponist · **erste Hälfte gebaut**
 
-Claude entwirft die **ganze Seite** innerhalb des Style-Guides: Reihenfolge,
-Rhythmus, Übergänge, Wiederholungsvermeidung. Blöcke werden zur Referenz,
-nicht zur Grenze.
+Claude entwirft die **ganze Seite**: Reihenfolge, Rhythmus, Übergänge,
+Wiederholungsvermeidung — und die Pflicht-Sections aus `conversion-spec-shk.md`
+vollständig.
 
-**Eingabe:** die Sitemap-Seite mit ihrer Rolle, das Briefing, die
-Style-Guide-Token, die Pflicht-Sections aus `conversion-spec-shk.md`, die
-Bibliothek als Referenz.
-**Ausgabe:** eine Section-Folge mit eigenem Markup je Section.
+**Zwei Phasen, und das ist der Kern der Umsetzung.** Eine ganze Seite in einem
+Aufruf hieße acht bis achtzehn Sections Markup in einer Antwort: lang, teuer,
+und beim kleinsten Formfehler ganz verloren. Deshalb:
 
-**Die Qualitätsschleife ist der eleganteste Teil — und hat eine Hürde.** Der
-Plan: den eigenen 38-Kriterien-Audit gegen die selbst erzeugte Seite laufen
-lassen. Das schließt den Kreis, denn was wir Kunden vorwerfen, dürfen wir
-selbst nicht liefern.
+| Phase | Was | Modell | Stand |
+|---|---|---|---|
+| **1 Abfolge** | Welche Sections, in welcher Reihenfolge, mit je einem Satz Auftrag | `claude-sonnet-4-6` | ✅ `services/page_composer.py` |
+| **2 Markup** | Jede Section einzeln umschreiben | `claude-opus-5` | ✅ das ist Stufe B, ein Block nach dem anderen |
 
-Die Hürde: **Der Audit ist URL-getrieben, nicht Markup-getrieben.**
-`services/audit_runner.py` beginnt mit `fetch_homepage(url)` und prüft danach
-Hosting, Header und Links — alles Dinge, die es ohne ausgelieferte Seite nicht
-gibt. Der Prüfer lässt sich also nicht einfach auf einen HTML-String richten.
+Die Bibliothek bleibt der Anker: Jede Section nennt einen vorhandenen Block.
+Das schränkt die Gestaltung nicht ein — Stufe B baut ihn ohnehin um — sondern
+hält Slots, Editor und Textgenerator zusammen.
 
-Der saubere Weg ist ohnehin der bessere: **erst auf eine Netlify-Vorschau
-deployen, dann diese URL auditieren.** Der Deploy existiert
-(`services/netlify_service.py`), und geprüft wird dann, was der Besucher
-wirklich bekommt — inklusive Hosting und Header, die aus dem Markup allein gar
-nicht hervorgehen. Kein Umbau des Prüfers nötig.
+**Was die Abfolge erfüllen muss** (`pruefe_komposition`):
 
-**Sinnvoll erst, wenn A und B im Alltag tragen.**
+| Regel | Prüft |
+|---|---|
+| **C0** | Nicht leer |
+| **C1** | Jeder Slug steht in der freigegebenen Bibliothek — Entwürfe werden gar nicht erst vorgeschlagen |
+| **C2** | Nie zweimal derselbe Block hintereinander. Genau das ist der Unterschied zwischen Komponieren und Aneinanderreihen; derselbe Block mit Abstand ist erlaubt und von der Conversion-Spec sogar verlangt |
+
+Verstöße gehen einmal zurück ans Modell, die Nachbesserung wird nur übernommen,
+wenn sie es besser macht — dasselbe Muster wie in A und B.
+
+**Bedienung:** „✨ Seite komponieren" in der Kopfzeile des Wireframe-Editors.
+Der Vorschlag erscheint als nummerierte Liste mit Rolle, Block und Auftrag je
+Section, dazu ein Satz über den Bogen der Seite. Übernehmen ersetzt die Blöcke
+der Seite; danach schreibt man Section für Section über Stufe B um.
+
+**Scharfer Lauf, zwei Seiten gegen die echte API** (derselbe SHK-Betrieb wie
+bei B, 45 Blöcke in der Bibliothek):
+
+| Seite | Dauer | Sections | Wiederholungen |
+|---|---|---|---|
+| Startseite | 26 s | 18, alle verschieden | keine |
+| Wärmepumpe (Leistungsseite) | 24 s | 15, alle verschieden | keine |
+
+Beide Abfolgen decken die Pflicht-Sections ab und lesen sich als Seite, nicht
+als Liste: Die Startseite beginnt mit der Telefonnummer und dem
+90-Minuten-Notdienst, führt über Schmerz, Paket, Ablauf und Nachweise zu
+Referenzen und Garantie und endet doppelt telefonierbar. Der Briefing-Hinweis
+„viele ältere Kunden — Telefonnummer muss immer sichtbar sein" hat sichtbar die
+**Struktur** verändert, nicht nur den Text. Die Leistungsseite ist eine andere
+Seite, kein Abklatsch: Keyword-Hero, Kennzahlen direkt darunter, Hersteller
+statt Zertifikate, eine einzelne Kundenstimme zur Verdichtung.
+
+**Was von C noch fehlt — die Qualitätsschleife.** Der Plan bleibt: erst auf eine
+Netlify-Vorschau deployen, dann den eigenen 38-Kriterien-Audit gegen diese URL
+laufen lassen. Der Deploy existiert, der Audit ist URL-getrieben, und seit
+„Auf die Seite übernehmen" (§ 4.3) führt der Weg von der Komposition bis zur
+ausgelieferten Seite durch. Damit ist die Schleife das nächste sinnvolle Stück
+— und der Punkt, an dem sich der Kreis schließt: Was wir Kunden vorwerfen,
+dürfen wir selbst nicht liefern.
 
 ## 6. Leitplanken
 
 | Leitplanke | Umsetzung | Stand |
 |---|---|---|
 | **Marke** | Block bleibt neutral, die Farbe kommt aus dem Style-Guide | ✅ Regel R5 im Prüfer — ⚠️ aber der Override deckt nur `gray-*` ab (§ 4.2) |
-| **Conversion** | Pflicht-Sections aus `conversion-spec-shk.md` als Schema | offen, ab Stufe C |
+| **Conversion** | Pflicht-Sections aus `conversion-spec-shk.md` | ✅ im Kompositions-Auftrag (Stufe C), Startseite verbindlich, Unterseiten als Empfehlung |
 | **Qualität** | Der eigene 38-Kriterien-Audit läuft gegen die erzeugte Seite | offen; Weg geklärt: über Netlify-Vorschau |
 | **Datenschutz** | Keine externen Ressourcen, wie im Widget | ✅ Regel R1 |
 | **Kosten** | Erzeugung ist ein Hintergrundauftrag | ✅ Muster in `component_library.py` |
@@ -499,4 +534,5 @@ Stufe B/C in `wireframe_data` bzw. `kas_gjs_data`.
 | ~~4c~~ | ~~Wireframe-Zweig an die Seite anschließen~~ | — | **gebaut am 2026-08-13**: „Auf die Seite übernehmen" in der DesignView |
 | ~~5~~ | ~~R3 ohne zweite Runde~~ | — | **gebaut am 2026-08-13**: `services/block_slots.py` |
 | ~~6~~ | ~~Stufe B~~ | — | **gebaut am 2026-08-13** (§ Stufe B) |
-| 7 | Stufe C | offen | Erst wenn B im Alltag trägt |
+| ~~7~~ | ~~Stufe C, Phase 1 (Abfolge)~~ | — | **gebaut am 2026-08-13** |
+| 8 | Qualitätsschleife: Netlify-Vorschau → eigener 38-Kriterien-Audit | ~4 h | Schließt den Kreis; alle Teile existieren |

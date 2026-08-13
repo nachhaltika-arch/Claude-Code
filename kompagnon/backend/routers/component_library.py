@@ -41,6 +41,7 @@ from routers.auth_router import require_any_auth
 from services.block_contract import als_text, pruefe, slots_im_markup
 from services.block_slots import ergaenze_fehlende_slots
 from services.block_variant import VariantenAbbruch, erzeuge_variante
+from services.page_composer import KompositionsAbbruch, komponiere
 
 try:
     from anthropic import Anthropic
@@ -65,6 +66,9 @@ _component_gen_jobs: dict = {}
 
 # Stufe B: ein Block, fuer einen Kunden umgeschrieben.
 _variant_jobs: dict = {}
+
+# Stufe C: die Abfolge einer ganzen Seite.
+_compose_jobs: dict = {}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1751,6 +1755,114 @@ def _run_variant_job(*, job_id, api_key, slug, vorlage, slots, briefing,
     except Exception as exc:  # noqa: BLE001
         logger.error("variant job %s crashed: %s", job_id, exc, exc_info=True)
         _variant_jobs[job_id] = {"status": "error", "error": str(exc)}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stufe C: die Seite komponieren
+# ─────────────────────────────────────────────────────────────────────────────
+
+class KompositionRequest(BaseModel):
+    page_id: int
+
+
+@wireframe_router.get("/wireframe-compose-jobs/{job_id}")
+def get_compose_job(job_id: str, user=Depends(require_any_auth)):
+    """Polling fuer den Kompositions-Auftrag."""
+    job = _compose_jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job nicht gefunden oder bereits abgeholt")
+    if job["status"] in ("done", "error"):
+        return _compose_jobs.pop(job_id)
+    return job
+
+
+@wireframe_router.post("/{project_id}/wireframe/compose")
+def compose_page(
+    project_id: int,
+    body: KompositionRequest,
+    db: Session = Depends(get_db),
+    user=Depends(require_any_auth),
+):
+    """Schlaegt eine Abfolge fuer diese Seite vor.
+
+    Gespeichert wird nichts: Das Ergebnis geht ans Frontend, dort wird es
+    angesehen und uebernommen. Das Markup je Section schreibt danach Stufe B.
+    """
+    proj = db.query(Project).filter(Project.id == project_id).first()
+    if not proj:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    if not Anthropic:
+        raise HTTPException(500, "anthropic-Library nicht installiert")
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY nicht konfiguriert")
+
+    # Nur freigegebene Bloecke — ein Entwurf hat auf einer Kundenseite nichts
+    # verloren, und der Wireframe-Generator haelt es genauso.
+    bloecke = [
+        {"slug": r.slug, "category": r.category, "name": r.name,
+         "ki_prompt_hint": r.ki_prompt_hint}
+        for r in _nur_freigegebene(db.query(ComponentLibrary)).all()
+    ]
+
+    seite = db.execute(text("""
+        SELECT page_name, zweck, position FROM sitemap_pages WHERE id = :pid
+    """), {"pid": body.page_id}).fetchone()
+    seiten_name = (seite[0] if seite else "") or _seiten_name(
+        proj.wireframe_data, body.page_id) or "Seite"
+    zweck = (seite[1] if seite else "") or ""
+    ist_startseite = bool(seite and (seite[2] or 0) == 0)
+
+    bestehend = [b.get("slug") for b in _bloecke_der_seite(proj.wireframe_data,
+                                                           body.page_id)]
+
+    briefing = (db.query(Briefing).filter(Briefing.lead_id == proj.lead_id).first()
+                if proj.lead_id else None)
+
+    job_id = str(uuid.uuid4())
+    _compose_jobs[job_id] = {"status": "running"}
+
+    threading.Thread(
+        target=_run_compose_job,
+        kwargs={
+            "job_id": job_id, "api_key": api_key, "seite": seiten_name,
+            "zweck": zweck, "ist_startseite": ist_startseite, "briefing": briefing,
+            "bloecke": bloecke, "bestehend": bestehend,
+        },
+        daemon=True,
+    ).start()
+
+    return {"job_id": job_id, "status": "running"}
+
+
+def _bloecke_der_seite(wireframe_data, page_id: int) -> list:
+    for seite in (wireframe_data or {}).get("pages", []):
+        if seite.get("page_id") == page_id:
+            return sorted(seite.get("blocks", []), key=lambda b: b.get("order", 0))
+    return []
+
+
+def _run_compose_job(*, job_id, api_key, seite, zweck, ist_startseite, briefing,
+                     bloecke, bestehend) -> None:
+    """Hintergrund-Thread: schlaegt die Abfolge vor und prueft sie."""
+    try:
+        client = Anthropic(api_key=api_key)
+        ergebnis = komponiere(
+            ki_runde=_ki_runde, client=client, seite=seite, zweck=zweck,
+            ist_startseite=ist_startseite, briefing=briefing, bloecke=bloecke,
+            bestehend=bestehend, auftrag=job_id)
+        # Namen dazu, damit das Frontend die Abfolge lesbar anzeigen kann.
+        nach_slug = {b["slug"]: b for b in bloecke}
+        for section in ergebnis["sections"]:
+            eintrag = nach_slug.get(section["slug"]) or {}
+            section["name"] = eintrag.get("name") or section["slug"]
+            section["category"] = eintrag.get("category") or ""
+        _compose_jobs[job_id] = {"status": "done", "result": ergebnis}
+    except (KompositionsAbbruch, _Abbruch) as exc:
+        _compose_jobs[job_id] = {"status": "error", "error": str(exc)}
+    except Exception as exc:  # noqa: BLE001
+        logger.error("compose job %s crashed: %s", job_id, exc, exc_info=True)
+        _compose_jobs[job_id] = {"status": "error", "error": str(exc)}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

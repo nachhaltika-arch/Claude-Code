@@ -133,20 +133,36 @@ export default function WireframeView({
 
   // ── Mutationen am Wireframe ─────────────────────────────────────────────────
 
+  const [saveFehler, setSaveFehler] = useState('');
+
   const persist = useCallback(
     async (nextData) => {
       setSaving(true);
+      setSaveFehler('');
       try {
         const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}/wireframe`, {
           method: 'POST',
           headers,
           body: JSON.stringify(nextData),
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          // Seit Stufe B kann der Save inhaltlich abgelehnt werden: Eine
+          // Variante, die den Vertrag verletzt, wird nicht gespeichert. Das in
+          // die Konsole zu schreiben hiesse, den Nutzer mit einem Wireframe
+          // zurueckzulassen, das er fuer gespeichert haelt.
+          const detail = body?.detail;
+          const gruende = (detail?.verstoesse || [])
+            .map((v) => `${v.regel}: ${v.text}`).join(' · ');
+          throw new Error(gruende
+            ? `${detail.message || 'Nicht gespeichert.'} ${gruende}`
+            : (typeof detail === 'string' ? detail : `Speichern fehlgeschlagen (${res.status})`));
+        }
         onWireframeChange?.(nextData);
+        return true;
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn('wireframe save failed:', e);
+        setSaveFehler(e.message || 'Speichern fehlgeschlagen');
+        return false;
       } finally {
         setSaving(false);
       }
@@ -185,6 +201,25 @@ export default function WireframeView({
     };
     persist(nextData);
     setSwapPanel({ open: false, targetIdx: null, mode: 'swap' });
+  };
+
+  // ── Stufe B: eigene Fassung für diesen Kunden ───────────────────────────
+  //
+  // Gespeichert wird über denselben Weg wie jede andere Änderung — und damit
+  // durch dasselbe Tor: Der Server lehnt eine Variante ab, die den Vertrag
+  // verletzt, und `persist` sagt es.
+  const setzeVariante = async (targetIdx, html) => {
+    if (!activePage) return false;
+    const nextBlocks = activeBlocks.map((b, i) => {
+      if (i !== targetIdx) return b;
+      const { html_override: _weg, ...ohne } = b;
+      return html ? { ...ohne, html_override: html } : ohne;
+    });
+    const nextData = {
+      ...wireframeData,
+      pages: pages.map((p) => (p.page_id === activePageId ? { ...p, blocks: nextBlocks } : p)),
+    };
+    return persist(nextData);
   };
 
   const removeBlock = (targetIdx) => {
@@ -360,6 +395,13 @@ export default function WireframeView({
               {activeBlocks.length} Block{activeBlocks.length === 1 ? '' : 's'}
               {saving && ' · speichert…'}
             </p>
+            {saveFehler && (
+              <p style={{
+                fontSize: 11, color: '#991b1b', background: '#fef2f2',
+                border: '1px solid #fca5a5', borderRadius: 6,
+                padding: '6px 8px', marginTop: 6, maxWidth: 620, lineHeight: 1.4,
+              }}>{saveFehler}</p>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {/* W1 Relume-Parität: Responsive-Preview-Toggle */}
@@ -497,6 +539,9 @@ export default function WireframeView({
             block={target}
             libraryEntry={lib}
             headers={headers}
+            projectId={projectId}
+            pageId={activePageId}
+            onVarianteUebernehmen={(html) => setzeVariante(editPanel.idx, html)}
             onClose={() => setEditPanel(null)}
             onSaveSlots={(values) => {
               updateBlockSlots(editPanel.idx, values);
@@ -718,14 +763,17 @@ function BlockCard({
   onDragStart, onDragOver, onDrop, onDragEnd,
   onSwap, onVariation, onEdit, onRemove,
 }) {
-  // W3: Slot-Werte aus dem Block in die Live-Preview einrendern
-  const html = renderSlots(libraryEntry?.html_template || '', block?.slots);
+  // W3: Slot-Werte aus dem Block in die Live-Preview einrendern. Stufe B: Hat
+  // der Block eine eigene Fassung für diesen Kunden, wird die gezeigt — sonst
+  // sähe man hier etwas anderes als auf der Seite.
+  const eigeneFassung = (block?.html_override || '').trim();
+  const html = renderSlots(eigeneFassung || libraryEntry?.html_template || '', block?.slots);
   const name = libraryEntry?.name || block.slug;
   const category = libraryEntry?.category || '—';
   // Der Editor laedt nur freigegebene Bloecke. Fehlt der Eintrag, ist der Block
   // entweder auf Entwurf zurueckgefallen oder geloescht — beides muss dastehen,
   // sonst wirkt die leere Karte wie ein Anzeigefehler.
-  const fehltInBibliothek = libraryGeladen && !libraryEntry;
+  const fehltInBibliothek = libraryGeladen && !libraryEntry && !eigeneFassung;
 
   // Phase B: Klick auf die ganze Card oeffnet das Detail-Panel (Relume-UX).
   // Buttons im Header bekommen stopPropagation, damit sie nicht zusaetzlich
@@ -775,6 +823,16 @@ function BlockCard({
           fontSize: 11, fontWeight: 700, color: KC_DARK,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{name}</span>
+        {eigeneFassung && (
+          <span
+            title="Für diesen Kunden umgeschrieben — die Bibliotheksvorlage wird hier nicht verwendet"
+            style={{
+              background: '#ede9fe', color: '#5b21b6',
+              fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 3,
+              textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap',
+            }}
+          >Eigene Fassung</span>
+        )}
         {fehltInBibliothek && (
           <span
             title="Nicht in der freigegebenen Bibliothek — wird auf der Kundenseite nicht ausgegeben"
@@ -931,7 +989,9 @@ function LibraryCard({ item, onPick, compact = false }) {
 //     vom KI-Modell (Sonnet) befuellen laesst.
 //   - Erweiterter Modus (HTML editieren / Custom speichern) ist eingeklappt.
 
-function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots, onSaveAsCustom }) {
+function SectionDetailPanel({ block, libraryEntry, headers, projectId, pageId,
+                             onClose, onSaveSlots, onSaveAsCustom,
+                             onVarianteUebernehmen }) {
   const slots = libraryEntry?.slots || [];
   const html  = libraryEntry?.html_template || '';
 
@@ -954,6 +1014,9 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
   const [showAdvanced, setShowAdvanced]   = useState(false);
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customError, setCustomError] = useState('');
+  // Stufe B: eigene Fassung für diesen Kunden
+  const [variante, setVariante] = useState({ status: 'idle', ergebnis: null, fehler: '' });
+  const [variantenWunsch, setVariantenWunsch] = useState('');
   const [showRawHtml, setShowRawHtml]     = useState(false);
   const [rawHtml, setRawHtml]             = useState(html);
   const [customSlug, setCustomSlug]       = useState(`${block.slug}-custom`);
@@ -979,6 +1042,8 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
     setShowAdvanced(false);
     setShowCustomForm(false);
     setCustomError('');
+    setVariante({ status: 'idle', ergebnis: null, fehler: '' });
+    setVariantenWunsch('');
     setShowRawHtml(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [block?.slug]);
@@ -1020,6 +1085,53 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
     if (saving) return;
     setSaving(true);
     onSaveSlots(values);
+  };
+
+  const eigeneFassung = (block?.html_override || '').trim();
+
+  const umschreiben = async () => {
+    setVariante({ status: 'laeuft', ergebnis: null, fehler: '' });
+    try {
+      const start = await fetch(`${API_BASE_URL}/api/projects/${projectId}/wireframe/variant`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ page_id: pageId, slug: block.slug, wunsch: variantenWunsch }),
+      });
+      const gestartet = await start.json().catch(() => ({}));
+      if (!start.ok) {
+        const detail = gestartet?.detail;
+        throw new Error(typeof detail === 'string' ? detail : `Fehler ${start.status}`);
+      }
+
+      // Polling wie beim Blockautor — der Auftrag läuft im Hintergrund.
+      const frist = Date.now() + 180_000;
+      while (Date.now() < frist) {
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => setTimeout(r, 2000));
+        // eslint-disable-next-line no-await-in-loop
+        const res = await fetch(
+          `${API_BASE_URL}/api/projects/wireframe-variant-jobs/${gestartet.job_id}`,
+          { headers },
+        );
+        if (res.status === 404) throw new Error('Auftrag nicht gefunden');
+        // eslint-disable-next-line no-await-in-loop
+        const job = await res.json();
+        if (job.status === 'done') {
+          setVariante({ status: 'fertig', ergebnis: job.result, fehler: '' });
+          return;
+        }
+        if (job.status === 'error') throw new Error(job.error || 'Unbekannter Fehler');
+      }
+      throw new Error('Zeitüberschreitung — bitte erneut versuchen');
+    } catch (e) {
+      setVariante({ status: 'fehler', ergebnis: null, fehler: e.message || 'Fehlgeschlagen' });
+    }
+  };
+
+  const uebernehmen = async () => {
+    const html = variante.ergebnis?.html_override;
+    if (!html) return;
+    const ok = await onVarianteUebernehmen?.(html);
+    if (ok !== false) setVariante({ status: 'idle', ergebnis: null, fehler: '' });
   };
 
   const handleCustomSave = async () => {
@@ -1235,6 +1347,125 @@ function SectionDetailPanel({ block, libraryEntry, headers, onClose, onSaveSlots
                   </div>
                 </>
               )}
+
+              {/* Stufe B: für diesen Kunden umschreiben */}
+              <div style={{
+                padding: 10, borderRadius: 8, background: '#faf5ff',
+                border: '1px solid #d8b4fe', display: 'flex',
+                flexDirection: 'column', gap: 6,
+              }}>
+                <div style={{ ...lblStyle, color: '#6b21a8', marginBottom: 0 }}>
+                  Für diesen Kunden umschreiben
+                </div>
+                <p style={{ fontSize: 11, color: '#6b21a8', margin: 0, lineHeight: 1.4 }}>
+                  Claude baut die Section anders auf — passend zu Gewerk, Leistungen
+                  und Einzugsgebiet aus dem Briefing. Slots und Block bleiben
+                  dieselben, nur das Layout ändert sich.
+                </p>
+                {eigeneFassung && (
+                  <div style={{ fontSize: 11, color: '#6b21a8', fontWeight: 700 }}>
+                    Dieser Block hat bereits eine eigene Fassung.
+                  </div>
+                )}
+                <textarea
+                  value={variantenWunsch}
+                  onChange={(e) => setVariantenWunsch(e.target.value)}
+                  rows={2}
+                  placeholder="Optional: was soll anders sein? z.B. „Notdienst nach oben, Bild links"
+                  style={{ ...inpStyle, padding: '6px 8px', fontSize: 11, resize: 'vertical' }}
+                  disabled={variante.status === 'laeuft'}
+                />
+                <button
+                  type="button" onClick={umschreiben}
+                  disabled={variante.status === 'laeuft'}
+                  style={{
+                    padding: '7px 10px',
+                    background: variante.status === 'laeuft' ? 'var(--text-tertiary)' : '#7c3aed',
+                    color: '#fff', border: 'none', borderRadius: 6,
+                    fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                    cursor: variante.status === 'laeuft' ? 'wait' : 'pointer',
+                  }}
+                >
+                  {variante.status === 'laeuft'
+                    ? 'Claude schreibt um… (30–90 s)'
+                    : (eigeneFassung ? '✨ Neu umschreiben' : '✨ Umschreiben lassen')}
+                </button>
+
+                {variante.status === 'fehler' && (
+                  <div style={{
+                    padding: 8, background: '#fef2f2', border: '1px solid #fca5a5',
+                    borderRadius: 4, color: '#991b1b', fontSize: 11,
+                  }}>{variante.fehler}</div>
+                )}
+
+                {variante.status === 'fertig' && variante.ergebnis && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {variante.ergebnis.begruendung && (
+                      <div style={{ fontSize: 11, color: '#4c1d95', fontStyle: 'italic' }}>
+                        „{variante.ergebnis.begruendung}"
+                      </div>
+                    )}
+                    {!variante.ergebnis.contract?.konform && (
+                      <div style={{
+                        padding: 8, background: '#fef2f2', border: '1px solid #fca5a5',
+                        borderRadius: 4, color: '#991b1b', fontSize: 11,
+                      }}>
+                        <strong>Der Vertrag ist verletzt — Übernehmen wird abgelehnt:</strong>
+                        <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>
+                          {(variante.ergebnis.contract?.verstoesse || []).map((v, i) => (
+                            <li key={`${v.regel}-${i}`}>{v.regel}: {v.text}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <div style={{
+                      border: '1px solid var(--border-light)', borderRadius: 6,
+                      overflow: 'hidden', background: '#fff', pointerEvents: 'none',
+                      maxHeight: 240, overflowY: 'auto',
+                    }}>
+                      {/* eslint-disable-next-line react/no-danger */}
+                      <div dangerouslySetInnerHTML={{
+                        __html: renderSlots(variante.ergebnis.html_override, values),
+                      }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        type="button" onClick={uebernehmen}
+                        disabled={!variante.ergebnis.contract?.konform}
+                        style={{
+                          flex: 1, padding: '6px 10px',
+                          background: variante.ergebnis.contract?.konform ? '#10b981' : 'var(--text-tertiary)',
+                          color: '#fff', border: 'none', borderRadius: 4,
+                          fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                          cursor: variante.ergebnis.contract?.konform ? 'pointer' : 'not-allowed',
+                        }}
+                      >✓ Übernehmen</button>
+                      <button
+                        type="button"
+                        onClick={() => setVariante({ status: 'idle', ergebnis: null, fehler: '' })}
+                        style={{
+                          padding: '6px 10px', background: '#fff',
+                          border: '1px solid var(--border-medium)', borderRadius: 4,
+                          fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                          cursor: 'pointer',
+                        }}
+                      >Verwerfen</button>
+                    </div>
+                  </div>
+                )}
+
+                {eigeneFassung && variante.status !== 'fertig' && (
+                  <button
+                    type="button" onClick={() => onVarianteUebernehmen?.(null)}
+                    style={{
+                      padding: '6px 10px', background: '#fff', color: '#6b21a8',
+                      border: '1px solid #d8b4fe', borderRadius: 4,
+                      fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                      cursor: 'pointer',
+                    }}
+                  >↩︎ Zurück zur Bibliotheksvorlage</button>
+                )}
+              </div>
 
               <button
                 type="button" onClick={() => setShowCustomForm((v) => !v)}

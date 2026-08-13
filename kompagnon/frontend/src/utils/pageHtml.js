@@ -44,7 +44,11 @@ export function blockMarkup(blocks, library) {
     .slice()
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map((block) => {
-      const vorlage = library?.[block.slug]?.html_template;
+      // Stufe B: Hat der Block eine eigene Fassung für diesen Kunden, gilt sie.
+      // Der Slug zeigt weiter auf die Vorlage — daher kommen die Slot-Angaben,
+      // und daran findet der Editor den Block wieder.
+      const vorlage = (block.html_override || '').trim()
+        || library?.[block.slug]?.html_template;
       // Ein fehlender Block wird benannt, nicht verschwiegen: Sonst fehlt auf
       // der Seite eine Section und niemand weiß, welche.
       if (!vorlage) return `<!-- Block "${block.slug}" fehlt in der Bibliothek -->`;

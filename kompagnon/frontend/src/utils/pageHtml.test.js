@@ -50,6 +50,39 @@ describe('blockMarkup', () => {
     expect(blockMarkup([], BIBLIOTHEK)).toBe('');
     expect(blockMarkup(null, BIBLIOTHEK)).toBe('');
   });
+
+  // ── Stufe B: die kundeneigene Fassung ─────────────────────────────────
+
+  test('eine Variante schlägt das Bibliotheks-Template', () => {
+    const eigene = '<section data-block="hero"><h1>{{headline}}</h1><p>eigen</p></section>';
+
+    const markup = blockMarkup(
+      [{ slug: 'hero', order: 1, html_override: eigene, slots: { headline: 'Neu' } }],
+      BIBLIOTHEK,
+    );
+
+    expect(markup).toContain('eigen');
+    expect(markup).toContain('Neu');
+  });
+
+  test('eine leere Variante zählt nicht als Variante', () => {
+    // Sonst würde ein leerer String die Section verschwinden lassen.
+    const markup = blockMarkup(
+      [{ slug: 'hero', order: 1, html_override: '   ', slots: { headline: 'Aus der Vorlage' } }],
+      BIBLIOTHEK,
+    );
+
+    expect(markup).toContain('Aus der Vorlage');
+    expect(markup).toContain('data-block="hero"');
+  });
+
+  test('eine Variante rettet einen Block, den die Bibliothek nicht mehr kennt', () => {
+    const eigene = '<section data-block="weg"><p>{{text}}</p></section>';
+
+    const markup = blockMarkup([{ slug: 'weg', html_override: eigene }], BIBLIOTHEK);
+
+    expect(markup).not.toContain('fehlt in der Bibliothek');
+  });
 });
 
 describe('seitenHtml', () => {

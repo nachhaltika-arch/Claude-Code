@@ -38,8 +38,9 @@ from database import (
     get_db,
 )
 from routers.auth_router import require_any_auth
-from services.block_contract import als_text, pruefe
+from services.block_contract import als_text, pruefe, slots_im_markup
 from services.block_slots import ergaenze_fehlende_slots
+from services.block_variant import VariantenAbbruch, erzeuge_variante
 
 try:
     from anthropic import Anthropic
@@ -61,6 +62,9 @@ _wireframe_jobs: dict = {}
 # Separater Job-Store fuer den Component-Designer (KI-Komponenten-Generator).
 # { job_id: { "status": "running"|"done"|"error", "result": dict|None, "error": str|None } }
 _component_gen_jobs: dict = {}
+
+# Stufe B: ein Block, fuer einen Kunden umgeschrieben.
+_variant_jobs: dict = {}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1486,12 +1490,57 @@ class WireframeBlock(BaseModel):
     slug: str
     order: int = 0
     slots: dict = {}
+    # Stufe B: Markup, das nur für diesen Kunden gilt. Ist es gesetzt, zieht der
+    # Renderer es dem Bibliotheks-Template vor. Der Block bleibt trotzdem
+    # derselbe — `slug` zeigt weiter auf die Vorlage, aus der er entstanden ist,
+    # und die Slot-Angaben kommen unverändert von dort.
+    html_override: Optional[str] = None
 
 
 class WireframePage(BaseModel):
     page_id: int
     page_name: Optional[str] = None
     blocks: list[WireframeBlock] = []
+
+
+def _pruefe_variante(db: Session, block) -> dict:
+    """Der Vertragsbefund einer kundeneigenen Variante.
+
+    Zwei Dinge zusaetzlich zum Vertrag:
+
+    * Die Variante wird gegen den **Slug ihres Bibliotheksblocks** geprueft.
+      Traegt sie eine fremde Markierung, findet der Editor den Block nicht
+      wieder (Regel R2).
+    * Sie darf die Slots **nicht umbenennen**. `generate-copy` und der
+      Slot-Editor lesen die Angaben des Bibliotheksblocks; erfindet die Variante
+      eigene Schluessel, fuellt sie niemand mehr. Weglassen ist erlaubt — eine
+      kuerzere Fassung ist eine Gestaltungsentscheidung.
+    """
+    vorlage = (db.query(ComponentLibrary)
+                 .filter(ComponentLibrary.slug == block.slug).first())
+    slots = (vorlage.slots if vorlage else None) or []
+    bekannt = {s.get("key") for s in slots if isinstance(s, dict)}
+
+    verstoesse = [{"regel": v.regel, "text": v.text}
+                  for v in pruefe(block.html_override, slug=block.slug)]
+
+    if vorlage is None:
+        verstoesse.append({
+            "regel": "B1",
+            "text": f"Zu '{block.slug}' gibt es keinen Bibliotheksblock — eine "
+                    f"Variante braucht die Vorlage, aus der sie entstanden ist.",
+        })
+    else:
+        for name in slots_im_markup(block.html_override):
+            if name not in bekannt:
+                verstoesse.append({
+                    "regel": "B2",
+                    "text": f'Slot "{name}" steht nur in der Variante. Die '
+                            f"Slot-Angaben kommen vom Bibliotheksblock — "
+                            f"generate-copy wuerde ihn nie fuellen.",
+                })
+
+    return {"konform": not verstoesse, "verstoesse": verstoesse}
 
 
 class WireframeData(BaseModel):
@@ -1526,10 +1575,31 @@ def save_wireframe(
     db: Session = Depends(get_db),
     user=Depends(require_any_auth),
 ):
-    """Manueller Save (Block-Tausch im UI, ohne KI)."""
+    """Manueller Save (Block-Tausch im UI, ohne KI).
+
+    Kundeneigene Varianten (`html_override`) gehen durch dasselbe Tor wie die
+    Bibliothek: Was den Vertrag verletzt, wird nicht gespeichert. Sonst waere
+    er in einer Zeile zu umgehen — man schriebe den Block einfach nicht in die
+    Bibliothek, sondern direkt beim Kunden.
+    """
     proj = db.query(Project).filter(Project.id == project_id).first()
     if not proj:
         raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
+
+    for seite in data.pages:
+        for block in seite.blocks:
+            if not (block.html_override or "").strip():
+                continue
+            befund = _pruefe_variante(db, block)
+            if befund["verstoesse"]:
+                raise HTTPException(422, {
+                    "message": f"Die Variante von '{block.slug}' verletzt den "
+                               f"Vertrag und wurde nicht gespeichert.",
+                    "slug": block.slug,
+                    "page_id": seite.page_id,
+                    **befund,
+                })
+
     proj.wireframe_data = data.dict()
     db.commit()
     return {"status": "saved", "page_count": len(data.pages)}
@@ -1580,6 +1650,107 @@ def generate_wireframe(
     ).start()
 
     return {"job_id": job_id, "status": "running"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stufe B: einen Block fuer diesen Kunden umschreiben
+# ─────────────────────────────────────────────────────────────────────────────
+
+class VarianteRequest(BaseModel):
+    page_id: int
+    slug:    str
+    wunsch:  Optional[str] = ""
+
+
+@wireframe_router.get("/wireframe-variant-jobs/{job_id}")
+def get_variant_job(job_id: str, user=Depends(require_any_auth)):
+    """Polling fuer den Varianten-Auftrag. Cleanup nach dem ersten Abholen."""
+    job = _variant_jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job nicht gefunden oder bereits abgeholt")
+    if job["status"] in ("done", "error"):
+        return _variant_jobs.pop(job_id)
+    return job
+
+
+@wireframe_router.post("/{project_id}/wireframe/variant")
+def generate_variant(
+    project_id: int,
+    body: VarianteRequest,
+    db: Session = Depends(get_db),
+    user=Depends(require_any_auth),
+):
+    """Startet das Umschreiben eines Blocks fuer diesen Kunden.
+
+    Returnt sofort `{job_id, status: 'running'}` — das Frontend pollt
+    `GET /api/projects/wireframe-variant-jobs/{job_id}`.
+
+    Gespeichert wird hier nichts: Das Ergebnis geht zurueck ans Frontend, und
+    erst der Save des Wireframes traegt es ein — durch dasselbe Tor wie jede
+    andere Variante.
+    """
+    proj = db.query(Project).filter(Project.id == project_id).first()
+    if not proj:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    if not Anthropic:
+        raise HTTPException(500, "anthropic-Library nicht installiert")
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(500, "ANTHROPIC_API_KEY nicht konfiguriert")
+
+    vorlage = (db.query(ComponentLibrary)
+                 .filter(ComponentLibrary.slug == body.slug).first())
+    if not vorlage:
+        raise HTTPException(404, f"Bibliotheksblock '{body.slug}' nicht gefunden")
+
+    briefing = (db.query(Briefing).filter(Briefing.lead_id == proj.lead_id).first()
+                if proj.lead_id else None)
+    seite = _seiten_name(proj.wireframe_data, body.page_id)
+
+    job_id = str(uuid.uuid4())
+    _variant_jobs[job_id] = {"status": "running"}
+
+    threading.Thread(
+        target=_run_variant_job,
+        kwargs={
+            "job_id":   job_id,
+            "api_key":  api_key,
+            "slug":     body.slug,
+            "vorlage":  vorlage.html_template or "",
+            "slots":    vorlage.slots or [],
+            "briefing": briefing,
+            "wunsch":   body.wunsch or "",
+            "seite":    seite,
+        },
+        daemon=True,
+    ).start()
+
+    return {"job_id": job_id, "status": "running"}
+
+
+def _seiten_name(wireframe_data, page_id: int) -> str:
+    for seite in (wireframe_data or {}).get("pages", []):
+        if seite.get("page_id") == page_id:
+            return seite.get("page_name") or ""
+    return ""
+
+
+def _run_variant_job(*, job_id, api_key, slug, vorlage, slots, briefing,
+                     wunsch, seite) -> None:
+    """Hintergrund-Thread: schreibt den Block um und prueft das Ergebnis."""
+    try:
+        client = Anthropic(api_key=api_key)
+        ergebnis = erzeuge_variante(
+            ki_runde=_ki_runde, client=client, slug=slug, vorlage=vorlage,
+            slots=slots, briefing=briefing, wunsch=wunsch, seite=seite,
+            auftrag=job_id,
+        )
+        _variant_jobs[job_id] = {"status": "done", "result": ergebnis}
+    except (VariantenAbbruch, _Abbruch) as exc:
+        _variant_jobs[job_id] = {"status": "error", "error": str(exc)}
+    except Exception as exc:  # noqa: BLE001
+        logger.error("variant job %s crashed: %s", job_id, exc, exc_info=True)
+        _variant_jobs[job_id] = {"status": "error", "error": str(exc)}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

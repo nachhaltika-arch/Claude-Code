@@ -1,6 +1,6 @@
 # Claude im Designbereich — Konzept und Stand
 
-**Angelegt:** 2026-08-13 · **Zuletzt:** 2026-08-13 (Stufe A gebaut + Oberfläche)
+**Angelegt:** 2026-08-13 · **Zuletzt:** 2026-08-13 (Stufe A und B gebaut)
 **Frage:** Wie integrieren wir Claude in den Designbereich, um neue Homepages
 zu entwickeln — statt GrapesJS oder zusätzlich?
 **Verbunden:** `kas-pipeline-architecture.md` (04.05., Grundlage),
@@ -19,7 +19,9 @@ angekommenen Blöcken bestehen den Vertrag im ersten Wurf**, gescheitert ist
 einer am JSON statt am Vertrag (behoben). Auch die Marken-Regel R5 steht jetzt
 im Prüfer, und der Marken-Override deckt die ganze Graustufen-Skala ab (§ 4.2).
 Beim Bauen kam heraus, dass dieser Zweig gar nicht auf der Kundenseite endete —
-das ist seit „Auf die Seite übernehmen" geschlossen (§ 4.3). Stufe B und C sind
+das ist seit „Auf die Seite übernehmen" geschlossen (§ 4.3). **Stufe B ist seit
+demselben Tag gebaut:** Ein Block lässt sich für einen Kunden umschreiben, mit
+demselben Vertrag und einem zusätzlichen Feld (`html_override`). Stufe C ist
 entworfen, nicht gebaut.
 
 ---
@@ -33,6 +35,7 @@ Die Pipeline von Mai ist weiter gebaut, als das Dokument vermuten lässt:
 | 1 Analyse | ✅ | `routers/audit.py`, 38 Kriterien |
 | 2 Sitemap | ✅ **mit KI** | `routers/sitemap.py`, 1.680 Zeilen |
 | 3 Wireframe | ✅ **mit KI** | `routers/component_library.py`, Block-Auswahl → `projects.wireframe_data` |
+| 3b Variante | ✅ **mit KI** | Stufe B: `services/block_variant.py`, Block je Kunde umgeschrieben → `html_override` |
 | 4 Style-Guide | ✅ | `routers/branddesign.py` |
 | 5 Inhalt | ✅ teilweise | `generate-copy` je Section, `agents/content_writer.py` |
 | 6 Deploy | ✅ | `services/netlify_service.py` |
@@ -315,34 +318,70 @@ Section reicht in acht von neun Fällen, und die Reparaturrunde fängt den Rest.
 
 1. **Envato als Inspirationsquelle** — noch nicht angebunden (§ 9.3).
 
-### Stufe B — Claude als Sektionsgestalter *(mittel, nicht gebaut)*
+### Stufe B — Claude als Sektionsgestalter · **gebaut**
 
 Ein ausgewählter Block wird **für diesen Kunden umgeschrieben** — nicht nur
 mit Text gefüllt, sondern im Aufbau variiert: andere Anordnung, andere
 Betonung, passend zu Leistung und Region. Hier entsteht die Individualität,
-die heute fehlt.
+die vorher fehlte.
 
-**Eingabe:** der gewählte Bibliotheksblock als Ausgangspunkt, das Briefing,
-die Style-Guide-Token des Kunden, Leistung und Einzugsgebiet.
-**Ausgabe:** kundeneigenes Markup, das denselben Vertrag besteht.
+**Wie es läuft:** Im Wireframe-Editor öffnet ein Klick auf den Block das
+Detail-Panel. Dort steht „Für diesen Kunden umschreiben", optional mit einem
+Satz, was anders sein soll. Der Auftrag läuft im Hintergrund
+(`POST /api/projects/{id}/wireframe/variant`, Polling wie beim Blockautor),
+das Ergebnis kommt mit Vorschau, einer Begründung in einem Satz und dem
+Vertragsbefund zurück. Übernehmen schreibt `html_override` in den Block; ein
+Knopf führt jederzeit zur Bibliotheksvorlage zurück.
 
-**Der konkrete Haken im Code:** `WireframeBlock` kennt heute nur
-`slug`, `order`, `slots`. Eine Variante braucht eigenes Markup — also ein
-zusätzliches Feld (`html_override`), und der Renderer muss es dem
-Bibliotheks-Template vorziehen. Das ist der einzige Datenmodell-Eingriff, den
-B braucht; ein neuer Speicherort entsteht nicht.
+**Was die Variante darf und was nicht** (`services/block_variant.py`, im Prompt
+wie im Prüfer):
 
-**Voraussetzungen, in dieser Reihenfolge:**
+| | |
+|---|---|
+| Derselbe Block | Das Wurzelelement trägt weiter `data-block="<slug>"` — sonst findet der Editor ihn nicht wieder (R2) |
+| Dieselben Slots | Weglassen erlaubt, umbenennen nicht (**B2**). `generate-copy` und der Slot-Editor lesen die Angaben des **Bibliotheksblocks**; ein erfundener Schlüssel würde nie gefüllt |
+| Derselbe Vertrag | R1–R5 unverändert. Sonst wäre er in einer Zeile zu umgehen: Man schriebe den Block nicht in die Bibliothek, sondern direkt beim Kunden |
+| Eine Reparaturrunde | Verstöße gehen einmal zurück ans Modell; die Reparatur wird nur übernommen, wenn sie die Verstöße verringert — wie in Stufe A |
 
-1. Stufe A trägt im Alltag ✅ (Oberfläche steht, scharfer Lauf gemacht).
-2. **R5** ✅ im Prüfer, **Marken-Override** ✅ vollständig (§ 4.2).
-3. Prüfung je Kunde statt je Block: der Vertrag läuft, aber niemand sieht
-   jede Variante an. Offene Frage: Reicht „Vertrag bestanden" als Freigabe,
-   oder braucht jede Variante einen Blick?
+**Das Tor sitzt im Speichern, nicht nur im Erzeuger.** `POST
+/api/projects/{id}/wireframe` prüft **jede** Variante, egal woher sie kommt,
+und antwortet mit 422 samt Verstößen. Der Wireframe-Editor zeigt das jetzt an —
+vorher landete jeder abgelehnte Save in der Konsole, und der Nutzer hielt sein
+Wireframe für gespeichert.
+
+**Datenmodell:** nur ein Feld, wie geplant — `WireframeBlock.html_override`.
+Kein neuer Speicherort; `wireframe_data` ist JSONB, also auch keine Migration.
+Der Renderer (`utils/pageHtml.js`) zieht die Variante dem Bibliotheks-Template
+vor, der Wireframe-Editor zeigt sie in der Blockvorschau und markiert den Block
+mit „Eigene Fassung".
 
 **Kosten:** ein Aufruf je variierter Section je Kunde. Anders als A
 amortisiert sich das **nicht** über alle Kunden — deshalb sparsam einsetzen,
 etwa nur für Hero und die tragende Leistungs-Section.
+
+**Scharfer Lauf, drei Blöcke gegen die echte API** (SHK-Betrieb: Wärmepumpe,
+Bad-Sanierung, Notdienst, 50 km um Koblenz, „bodenständig, kein Hochglanz",
+Hinweis „viele ältere Kunden — Telefonnummer muss immer sichtbar sein"):
+
+| Block | Dauer | Verstöße | Größe |
+|---|---|---|---|
+| `hero-standard` | 29 s | 0 | 1.302 → 4.580 Zeichen |
+| `leist-grid-3` | 25 s | 0 | 1.993 → 4.322 Zeichen |
+| `trust-testimonial` | 23 s | 0 | 1.496 → 3.080 Zeichen |
+
+Alle drei im ersten Wurf vertragskonform, keine erfundenen Slots, alle
+vorhandenen genutzt. Und sie sind wirklich umgebaut, nicht abgeschrieben: Im
+Hero wandert das Bild in die schmalere Spalte und die Telefonnummer steht
+doppelt; bei den Leistungen bekommt die Wärmepumpe eine breite Vollzeilen-Karte
+über den kleineren Kacheln; das Testimonial verliert die Hochglanz-Karte und
+bekommt eine große Telefon-Schaltfläche. Der Hinweis auf ältere Kunden ist in
+allen drei Varianten sichtbar angekommen — genau das, was mit „Permutation
+derselben Blöcke" nicht ging.
+
+**Offen bleibt die Frage aus § 9.2:** Reicht „Vertrag bestanden" als Freigabe
+je Kunde, oder braucht jede Variante einen Blick? Heute ist es dein Blick — das
+Panel zeigt die Vorschau, und ohne Übernehmen passiert nichts. Das ist die
+sichere Voreinstellung; ob es skaliert, zeigt der Alltag.
 
 ### Stufe C — Claude als Seitenkomponist *(groß, nicht gebaut)*
 
@@ -459,4 +498,5 @@ Stufe B/C in `wireframe_data` bzw. `kas_gjs_data`.
 | ~~4b~~ | ~~Marken-Override vervollständigen~~ | — | **gebaut am 2026-08-13**: `utils/brandOverride.js`, gegen die 45 Blöcke geprüft |
 | ~~4c~~ | ~~Wireframe-Zweig an die Seite anschließen~~ | — | **gebaut am 2026-08-13**: „Auf die Seite übernehmen" in der DesignView |
 | ~~5~~ | ~~R3 ohne zweite Runde~~ | — | **gebaut am 2026-08-13**: `services/block_slots.py` |
-| 6 | Stufe B | offen | Nichts blockiert sie mehr |
+| ~~6~~ | ~~Stufe B~~ | — | **gebaut am 2026-08-13** (§ Stufe B) |
+| 7 | Stufe C | offen | Erst wenn B im Alltag trägt |

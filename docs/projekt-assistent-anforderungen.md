@@ -290,6 +290,65 @@ Nicht mehr fachlich zu entscheiden, sondern im Implementierungsplan vorzuschlage
 4. Ausbau 1 umsetzen, produktiv mit einem echten Kunden erproben
 5. Ausbau 2 (Projektbegleitung) nach Auswertung von Ausbau 1
 
+Schritt 1 und 2 sind erledigt, Schritt 4 zur Hälfte — siehe Abschnitt 9.
+
+---
+
+## 9. Gebaut — Stand 2026-08-13
+
+Ausbau 1 ist vollständig gebaut und liegt auf `staging`. Was hier steht, ist am
+Code nachgeprüft, nicht aus dem Plan abgeschrieben.
+
+### 9.1 Die Teile
+
+| Teil | Ort | Was er entscheidet |
+|---|---|---|
+| Sichtbarkeit | `backend/services/assistant_context.py` | Erlaubnisliste je Modus. Nicht der Prompt entscheidet, was der Assistent sieht, sondern der Kontextbau — was nicht in der Liste steht, erreicht das Modell nie (Entscheidung 3.4). Unbekannte Rolle ⇒ Kundenmodus. |
+| Regelwerk | `backend/services/assistant_rules.py` | Neun Briefing-Felder mit Frage, Begründung, Mindestlänge, gutem und schlechtem Beispiel. `pruefe_antwort()` urteilt ohne Modellaufruf. |
+| Kostenrahmen | `backend/services/assistant_budget.py` | 15 € je Projekt (`ASSISTENT_BUDGET_PROJEKT_EURO`), 60 Anfragen je Nutzer und Tag, Warnung ab 80 % (Entscheidung 4.1). |
+| Ablage | `AssistantConversation`, `AssistantMessage` in `database.py` | Eigener Verlauf mit Tokenzahlen und Kosten je Nachricht — projektbezogen von Anfang an, damit Ausbau 2 keine Migration erzwingt. |
+| Endpunkte | `backend/routers/assistant.py` | `POST /chat`, `GET /conversations/{id}`, `POST /field-check`, `POST /conversations/{id}/escalate`, `GET /limits`. Modell: `claude-sonnet-4-6`. |
+| Oberfläche | `frontend/src/components/AssistentPanel.jsx` | Eine Komponente, zwei Einbauorte (Entscheidung 3.1): Spalte neben den Briefing-Feldern, aufklappbares Widget auf schmalen Schirmen und im Kundenportal. |
+
+Tests: 77 im Backend (Kontext, Regelwerk, Budget, API), 11 im Frontend.
+
+### 9.2 Zwei Entscheidungen, die beim Bauen entstanden sind
+
+**Der Vorschlag ist maschinenlesbar.** Das Modell setzt den übernehmbaren Teil
+seiner Antwort in eine letzte Zeile `VORSCHLAG: …`; `trenne_vorschlag()` trennt
+ihn ab, gespeichert wird nur die Erklärung, ausgeliefert werden beide getrennt.
+Ohne das müsste der Kunde den Rat von Hand abschreiben — Entscheidung 1.3 wäre
+formal erfüllt und praktisch wertlos.
+
+**Übernehmen hängt an, statt zu ersetzen.** Ein Klick darf niemandem die eigenen
+Sätze löschen (`utils/assistentUebernahme.js`).
+
+### 9.3 Was der Browser-Durchlauf gefunden hat
+
+Drei Fehler, die keine Testsuite gezeigt hätte (Commit `226420c`):
+
+- Im Kundenportal **verschwand der Vorschlagsteil der Antwort** — er wurde vom
+  Text abgetrennt und dann nur zusammen mit dem Übernehmen-Knopf gezeigt, den es
+  dort nicht gibt. Jetzt erscheint er als abgesetzter Block.
+- Eskalation ohne Text im Eingabefeld schickte **„Anliegen: (ohne Text)"** ans
+  Team. Jetzt zählt die zuletzt gestellte Frage.
+- Widget und Support-Chat **stritten um dieselbe Bildschirmecke**; die
+  Support-Blase verdeckte den Weg zum Menschen.
+
+### 9.4 Offen
+
+- **Der Assistent hat noch nie mit dem echten Modell gesprochen.** Der
+  Browser-Durchlauf lief gegen eine feste Antwort. Ungeprüft ist damit: ob das
+  Modell die `VORSCHLAG:`-Konvention zuverlässig einhält, ob die Antworten
+  fachlich taugen und was ein Gespräch wirklich kostet. Der Schlüssel dafür liegt
+  lokal in `backend/.env.save`.
+- Ausgangswerte für Erfolgskriterium 4.3 (heutige Abschlussquote) sind nicht
+  gemessen — ohne sie lässt sich später kein Vorher/Nachher zeigen.
+- Ausbau 2 (Projektbegleitung, Phasenreife) ist unberührt.
+- Der eskalierte Verlauf landet im Team-Postfach (`Message`), nicht im
+  Nachrichten-Faden des Portals (`portal_messages`). Das sind zwei getrennte
+  Systeme; ob sie zusammengehören, ist offen.
+
 ---
 
 ## 8. Bestehender Unterbau (Rechercheergebnis)

@@ -945,6 +945,10 @@ class ComponentLibrary(Base):
     html_template   = Column(Text, nullable=False)
     # slots: [{"key": "headline", "label": "Hauptueberschrift", "type": "text", "default": "..."}, ...]
     slots           = Column(JSONB, default=list)
+    # "approved" | "draft". Von Claude erzeugte Bloecke starten als Entwurf und
+    # sind fuer den Wireframe-Generator unsichtbar, bis jemand sie freigibt —
+    # sonst landet ungeprueftes Markup auf einer Kundenseite.
+    status          = Column(String(20), default="approved", index=True)
     ki_prompt_hint  = Column(Text, nullable=True)
     preview_note    = Column(Text, nullable=True)
     created_at      = Column(DateTime, default=datetime.utcnow)

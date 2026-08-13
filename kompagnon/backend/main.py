@@ -1157,6 +1157,12 @@ def _run_migrations():
         # die Bestaetigungslinks von selbst ausloest.
         "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verified_user_agent VARCHAR(400)",
         "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verified_ip VARCHAR(64)",
+        # ── Entwurfs-Status fuer erzeugte Bloecke 2026-08-13 ────────────────
+        # Bestehende Bloecke sind freigegeben; nur neu erzeugte starten als
+        # Entwurf. Default deshalb 'approved'.
+        "ALTER TABLE component_library ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'",
+        "UPDATE component_library SET status = 'approved' WHERE status IS NULL",
+        "CREATE INDEX IF NOT EXISTS idx_component_library_status ON component_library(status)",
     ]
     academy_tables = [
         'academy_courses', 'academy_modules', 'academy_lessons',

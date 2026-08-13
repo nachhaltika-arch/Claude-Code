@@ -263,3 +263,71 @@ def test_generator_meldet_fehlendes_pflichtfeld(monkeypatch):
 
     assert job["status"] == "error"
     assert "html_template" in job["error"]
+
+
+# ── Der Regress, den die E2E-Tests gefunden haben ────────────────────────
+#
+# Der Bibliotheks-Seed schreibt per rohem SQL und listet die status-Spalte
+# nicht auf. `default=` in der Modellklasse wirkt nur beim ORM-Insert, also
+# kam dort NULL an — und `status != 'draft'` ist in SQL fuer NULL nicht wahr,
+# sondern NULL. Ergebnis: alle 41 Seed-Bloecke waren unsichtbar, ohne dass
+# irgendwo ein Fehler erschien. Zwei Ursachen, zwei Tests.
+
+def _roh_einfuegen(slug: str, status_setzen=False):
+    """Fuegt einen Block so ein, wie es der Seed tut: rohes SQL ohne status."""
+    from sqlalchemy import text
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        db.execute(text("""
+            INSERT INTO component_library
+                (slug, name, category, tags, html_template, slots)
+            VALUES (:slug, :name, 'CTA', CAST('[]' AS JSONB), :html,
+                    CAST('[]' AS JSONB))
+        """), {"slug": slug, "name": f"Roh {slug}", "html": _sauber(slug)})
+        if status_setzen:
+            db.execute(text("UPDATE component_library SET status = NULL "
+                            "WHERE slug = :slug"), {"slug": slug})
+        db.commit()
+    finally:
+        db.close()
+
+
+def test_roh_eingefuegter_block_bekommt_den_datenbank_default(app, aufraeumen):
+    """Geprueft wird der Wert in der Spalte, nicht der in der Antwort.
+
+    Die API wuerde NULL als "approved" ausliefern (`row.status or ...`) und
+    der Test waere auch ohne server_default gruen — also fragen wir die
+    Datenbank direkt.
+    """
+    from sqlalchemy import text
+    from database import SessionLocal
+
+    slug = "pytest-roh-default"
+    aufraeumen.append(slug)
+    _roh_einfuegen(slug)
+
+    db = SessionLocal()
+    try:
+        gespeichert = db.execute(
+            text("SELECT status FROM component_library WHERE slug = :slug"),
+            {"slug": slug}).scalar()
+    finally:
+        db.close()
+
+    assert gespeichert == "approved", (
+        "Die Spalte hat keinen DB-seitigen Default — der Seed schreibt per "
+        "rohem SQL, dort greift `default=` aus der Modellklasse nicht.")
+
+
+def test_block_ohne_status_bleibt_sichtbar(client, auth_headers, aufraeumen):
+    """Alte Zeilen aus der Zeit vor der Spalte duerfen nicht verschwinden."""
+    slug = "pytest-roh-null"
+    aufraeumen.append(slug)
+    _roh_einfuegen(slug, status_setzen=True)
+
+    liste = client.get("/api/components?include_html=false", headers=auth_headers)
+
+    assert liste.status_code == 200
+    assert slug in [b["slug"] for b in liste.json()], \
+        "Ein Block ohne Status faellt aus der Bibliothek — NULL != 'draft' ist NULL"

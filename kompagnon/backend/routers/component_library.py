@@ -27,7 +27,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import text
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from database import (
@@ -85,6 +85,18 @@ def _serialize_component(row: ComponentLibrary, include_html: bool = False) -> d
     return out
 
 
+def _nur_freigegebene(query):
+    """Filtert Entwuerfe heraus — und behandelt NULL als freigegeben.
+
+    `status != 'draft'` allein waere falsch: In SQL ist `NULL != 'draft'`
+    nicht wahr, sondern NULL, also faellt jede Zeile ohne Status heraus. Genau
+    das passiert bei Bloecken, die vor der Spalte angelegt wurden oder die der
+    Bibliotheks-Seed per rohem SQL schreibt — die ganze Bibliothek waere
+    unsichtbar, ohne dass irgendwo ein Fehler erschiene.
+    """
+    return query.filter(func.coalesce(ComponentLibrary.status, "approved") != "draft")
+
+
 def _befund(html: str, slug: str, slots) -> dict:
     """Der Vertragsbefund eines Blocks, so wie ihn die API zurueckgibt."""
     verstoesse = pruefe(html, slug=slug, slots=slots)
@@ -112,7 +124,7 @@ def list_components(
     q = db.query(ComponentLibrary)
     # Entwuerfe nur auf ausdruecklichen Wunsch — sonst taucht ungepruefter
     # Block im Wireframe-Editor auf, als waere er Bestand.
-    q = q.filter(ComponentLibrary.status != "draft") if not include_drafts else q
+    q = q if include_drafts else _nur_freigegebene(q)
     if category:
         q = q.filter(ComponentLibrary.category == category.upper())
     rows = q.order_by(ComponentLibrary.category, ComponentLibrary.slug).all()
@@ -1610,8 +1622,7 @@ def _run_wireframe_job(job_id: str, project_id: int, api_key: str) -> None:
             return
 
         # Nur Freigegebenes. Ein Entwurf darf nie auf einer Kundenseite landen.
-        components_rows = (db.query(ComponentLibrary)
-                           .filter(ComponentLibrary.status != "draft").all())
+        components_rows = _nur_freigegebene(db.query(ComponentLibrary)).all()
         if not components_rows:
             _wireframe_jobs[job_id] = {
                 "status": "error",

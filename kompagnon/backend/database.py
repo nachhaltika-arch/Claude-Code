@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 from sqlalchemy import Column, Integer, String, Float, Boolean, Date, DateTime, Numeric, Text, ForeignKey, JSON, create_engine
+from sqlalchemy import text as sa_text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.exc import OperationalError
@@ -948,7 +949,13 @@ class ComponentLibrary(Base):
     # "approved" | "draft". Von Claude erzeugte Bloecke starten als Entwurf und
     # sind fuer den Wireframe-Generator unsichtbar, bis jemand sie freigibt —
     # sonst landet ungeprueftes Markup auf einer Kundenseite.
-    status          = Column(String(20), default="approved", index=True)
+    #
+    # server_default ist Pflicht, nicht Kosmetik: `default=` wirkt nur beim
+    # ORM-Insert. Der Bibliotheks-Seed schreibt per rohem SQL ohne diese
+    # Spalte — ohne DB-seitigen Default kaemen dort NULL-Werte an, und die
+    # sind unsichtbar (siehe _nur_freigegebene in routers/component_library.py).
+    status          = Column(String(20), default="approved",
+                             server_default=sa_text("'approved'"), index=True)
     ki_prompt_hint  = Column(Text, nullable=True)
     preview_note    = Column(Text, nullable=True)
     created_at      = Column(DateTime, default=datetime.utcnow)

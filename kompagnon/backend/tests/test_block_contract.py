@@ -5,6 +5,7 @@ Der wichtigste Test steht ganz oben: Die 41 vorhandenen Blöcke müssen ihn
 bestehen. Ein Vertrag, den die eigene Bibliothek verletzt, ist kein Maßstab
 für erzeugtes Markup, sondern eine Erfindung.
 """
+import json
 from pathlib import Path
 
 import pytest
@@ -33,28 +34,47 @@ def test_die_bibliothek_ist_nicht_leer():
     assert len(_bloecke()) >= 20, f"Nur {len(_bloecke())} Blöcke gefunden"
 
 
-# Bekannte Schuld, bewusst offen gehalten statt den Vertrag aufzuweichen.
+# Bekannte Schuld — im Moment keine.
 #
-# Beide Blöcke betten Google Maps per <iframe> ein. Das überträgt die
-# IP-Adresse jedes Besuchers an Google, bevor er irgendetwas angeklickt hat —
-# und ist damit genau der K.-o.-Grund, den unser eigener Kriterienkatalog
-# `tracking_ohne_consent` nennt („Tracking oder externe Dienste ohne
-# Einwilligung"). Jede Kundenseite mit einem dieser Blöcke fällt bei unserer
-# eigenen Prüfung durch.
+# Bis zum 2026-08-13 standen hier drei Blöcke: `hw-karte` und `seo-lokal`
+# betteten Google Maps per <iframe> ein (die IP jedes Besuchers ging an Google,
+# bevor er etwas angeklickt hatte — der K.-o.-Grund `tracking_ohne_consent` aus
+# unserem eigenen Kriterienkatalog), und `hero-centered` legte ein Overlay in
+# KOMPAGNON-Teal über sein Bild. Alle drei sind behoben: Die Karten zeigen jetzt
+# Ortsliste und einen Link, der Hero ein neutrales Overlay.
 #
-# Auflösung: statische Kartengrafik oder Karte erst nach Einwilligung laden.
-# Wer das behebt, streicht den Eintrag hier — dann greift die Regel wieder.
-BEKANNTE_SCHULD = {
-    "hw-karte": "Google-Maps-iframe — überträgt Besucher-IP ohne Einwilligung",
-    "seo-lokal": "Google-Maps-iframe — überträgt Besucher-IP ohne Einwilligung",
-    # Gefunden beim Messen für R5: Der Hero legt ein Overlay in
-    # rgba(0,79,89,0.78) über sein Hintergrundbild — das ist KOMPAGNON-Teal,
-    # fest im Markup. Auf einer Kundenseite bleibt es teal, egal welche Marke
-    # der Style-Guide vorgibt; kein Override kann ein style-Attribut umbiegen.
-    # Auflösung: Overlay in Graustufe oder als Klasse, die der Marken-Override
-    # kennt.
-    "hero-centered": "Marken-Farbe rgba(0,79,89) fest im style-Attribut",
-}
+# Wer hier wieder etwas einträgt, muss den Grund dazuschreiben — ein Vertrag mit
+# stillen Ausnahmen ist keiner.
+BEKANNTE_SCHULD: dict[str, str] = {}
+
+
+def _slot_angaben():
+    """Die Slot-Angaben aus der index.json, nach slug."""
+    index = BIBLIOTHEK / "index.json"
+    if not index.is_file():
+        return {}
+    daten = json.loads(index.read_text(encoding="utf-8"))
+    eintraege = daten.get("components", daten) if isinstance(daten, dict) else daten
+    return {c["slug"]: c.get("slots", []) for c in eintraege if "slug" in c}
+
+
+@pytest.mark.parametrize("datei", _bloecke(), ids=lambda p: p.stem)
+def test_jeder_block_passt_zu_seinen_slot_angaben(datei):
+    """Regel R3 gegen die echten Angaben, nicht nur gegen das Markup.
+
+    Der Test oben prüft ohne Slot-Angaben und sieht deshalb nicht, ob ein Slot
+    im Markup auch angemeldet ist. Genau das ging beim Entschärfen der
+    Kartenblöcke schief: Das Markup bekam `map_link_url`, die index.json kannte
+    weiter `map_embed_url` — `generate-copy` hätte den neuen Slot nie gefüllt.
+    """
+    angaben = _slot_angaben()
+    if datei.stem not in angaben:
+        pytest.skip(f"{datei.stem} steht nicht in der index.json")
+
+    verstoesse = pruefe(datei.read_text(encoding="utf-8"), slug=datei.stem,
+                        slots=angaben[datei.stem])
+
+    assert not verstoesse, "\n".join(str(v) for v in verstoesse)
 
 
 @pytest.mark.parametrize("datei", _bloecke(), ids=lambda p: p.stem)
@@ -168,6 +188,29 @@ def test_auch_ein_getoenter_neutralton_im_style_attribut_wird_beanstandet():
     markup = ('<section data-block="p" style="border-color: #e2e8f0;">'
               '<h2>x</h2></section>')
     assert any(v.regel == "R5" for v in pruefe(markup, slug="p"))
+
+
+@pytest.mark.parametrize("markup", [
+    '<section data-block="p"><svg stroke="#008EAA"><path d="M0 0"/></svg></section>',
+    '<section data-block="p"><svg fill="#008EAA"><path d="M0 0"/></svg></section>',
+    '<section data-block="p"><svg><stop stop-color="rgb(0,142,170)"/></svg></section>',
+])
+def test_eine_farbe_im_svg_attribut_verletzt_die_markenbindung(markup):
+    """Sieben Mal `stroke="#008EAA"` standen in der eigenen Bibliothek —
+    KOMPAGNON-Cyan auf fremden Kundenseiten, von keiner Klasse und keinem
+    Override erreichbar."""
+    assert any(v.regel == "R5" for v in pruefe(markup, slug="p"))
+
+
+@pytest.mark.parametrize("markup", [
+    '<section data-block="p"><svg stroke="currentColor"><path d="M0 0"/></svg></section>',
+    '<section data-block="p"><svg fill="none" stroke="currentColor"></svg></section>',
+    '<section data-block="p"><svg fill="#333"><path d="M0 0"/></svg></section>',
+])
+def test_currentcolor_und_graustufen_im_svg_bleiben_erlaubt(markup):
+    """`currentColor` ist die richtige Lösung: Das Icon nimmt die Textfarbe an,
+    und die kommt aus dem Style-Guide."""
+    assert not [v for v in pruefe(markup, slug="p") if v.regel == "R5"]
 
 
 def test_eine_farbe_im_kommentar_zaehlt_nicht():

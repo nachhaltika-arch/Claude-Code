@@ -1,7 +1,12 @@
 <!--
-  Block: hw-karte — Einzugsgebiet-Karte (mit Radius)
+  Block: hw-karte — Einzugsgebiet (Ortsliste + Link zur Karte)
   Kategorie: HW
-  Slots: section_headline, section_subline, city_list, map_embed_url
+  Slots: section_headline, section_subline, city_list, map_link_url, map_link_label
+
+  Kein eingebettetes Google Maps: Ein <iframe> überträgt die IP jedes Besuchers
+  an Google, bevor er irgendetwas angeklickt hat — genau der K.-o.-Grund, den
+  unser eigener Kriterienkatalog `tracking_ohne_consent` nennt. Wer die Route
+  will, klickt; dann ist es seine Entscheidung.
 -->
 <section data-block="hw-karte" class="bg-slate-50 py-16 md:py-20 px-6" style="font-family: 'Noto Sans', sans-serif;">
   <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-stretch">
@@ -13,8 +18,14 @@
         <div class="text-base text-slate-800 leading-relaxed">{{city_list}}</div>
       </div>
     </div>
-    <div class="rounded-2xl overflow-hidden shadow-lg min-h-[360px]">
-      <iframe src="{{map_embed_url}}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="w-full h-full border-0" title="Einzugsgebiet auf Google Maps" aria-label="Karte mit unserem Einzugsgebiet"></iframe>
+    <div class="rounded-2xl overflow-hidden shadow-lg min-h-[360px] bg-gray-200 flex flex-col items-center justify-center gap-4 p-8 text-center">
+      <svg class="size-12 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+      </svg>
+      <p class="text-sm text-gray-600 max-w-xs">{{map_hinweis}}</p>
+      <a href="{{map_link_url}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-5 py-3 text-sm font-bold text-white">
+        {{map_link_label}}
+      </a>
     </div>
   </div>
 </section>

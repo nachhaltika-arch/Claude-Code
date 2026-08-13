@@ -91,7 +91,7 @@ können, nicht als undurchdringlichen Klumpen.
 | **R2** | Genau eine Wurzel, und sie trägt `data-block="<slug>"` | Sonst findet der Editor den Block nicht wieder |
 | **R3** | Slots als `{{kleinbuchstaben_mit_unterstrich}}`, und jeder Slot im Markup steht in den Slot-Angaben | Sonst füllt `generate-copy` ihn nie |
 | **R4** | Höchstens 12 Ebenen tief, kein `id`, kein `position: fixed/sticky` | Bedienbarkeit im Editor; ein Block kann zweimal auf einer Seite stehen |
-| **R5** | Nur neutrale Farbtöne (`gray`, `slate`, `zinc`, `neutral`, `stone`, `white`, `black`, `transparent`); kein eigener Farbwert (`bg-[#004F59]`), keine Farbe im `style`-Attribut | Die Marke kommt aus dem Style-Guide und ersetzt die Graustufen. Was bunt im Block steht, überlebt den Markenwechsel |
+| **R5** | Nur neutrale Farbtöne (`gray`, `slate`, `zinc`, `neutral`, `stone`, `white`, `black`, `transparent`); kein eigener Farbwert (`bg-[#004F59]`), keine Farbe im `style`- und keine im SVG-Attribut (`stroke="#008EAA"`) | Die Marke kommt aus dem Style-Guide und ersetzt die Graustufen. Was bunt im Block steht, überlebt den Markenwechsel |
 
 **Wichtig: Die Regeln sind an der bestehenden Bibliothek gemessen, nicht
 erfunden.** Die erste Fassung dieses Dokuments verlangte `{{HEADLINE}}` in
@@ -103,16 +103,29 @@ heraus: Navigation, Footer und Banner haben zu Recht keine Überschrift, ein
 Hero *ist* die `h1` seiner Seite, und ein anklickbarer `wa.me`-Link ist keine
 automatisch geladene Ressource.
 
-**Drei eigene Blöcke bestehen den Vertrag nicht** und stehen als bekannte
-Schuld im Test: `hw-karte` und `seo-lokal` binden Google Maps per `<iframe>`
-ein. Das überträgt die Besucher-IP an Google, bevor jemand klickt — genau der
-K.-o.-Grund, den unser eigener Kriterienkatalog `tracking_ohne_consent` nennt.
-Jede Kundenseite mit einem dieser Blöcke fällt bei unserer eigenen Prüfung
-durch. Auflösung: statische Kartengrafik oder Karte erst nach Einwilligung.
-Der dritte kam mit R5 dazu: `hero-centered` legt ein Overlay in
-`rgba(0,79,89,0.78)` über sein Hintergrundbild — KOMPAGNON-Teal, fest im
-`style`-Attribut. Auf einer Kundenseite bleibt es teal, egal welche Marke der
-Style-Guide vorgibt.
+**Seit dem 2026-08-13 besteht die ganze Bibliothek den Vertrag** — die Liste
+der bekannten Schuld ist leer. Fünf Blöcke waren zu reparieren:
+
+* `hw-karte` und `seo-lokal` betteten Google Maps per `<iframe>` ein. Das
+  überträgt die Besucher-IP an Google, bevor jemand klickt — genau der
+  K.-o.-Grund, den unser eigener Kriterienkatalog `tracking_ohne_consent`
+  nennt. Jede Kundenseite mit einem dieser Blöcke wäre bei unserer eigenen
+  Prüfung durchgefallen. Jetzt zeigen sie Ortsliste bzw. Adresse und einen
+  Link, der die Karte in einem neuen Fenster öffnet: Wer sie will, klickt —
+  dann ist es seine Entscheidung.
+* `hero-centered` legte ein Overlay in `rgba(0,79,89,0.78)` über sein
+  Hintergrundbild — KOMPAGNON-Teal, fest im `style`-Attribut. Jetzt neutral.
+* `cta-kontakt-split`, `seo-lokal` und `trust-testimonial` malten ihre Icons
+  siebenmal in `stroke="#008EAA"`. Das ist weder Klasse noch `style`, also für
+  jeden Override unerreichbar — und fiel deshalb erst auf, als R5 um die
+  SVG-Attribute erweitert wurde. Jetzt `currentColor`: Das Icon folgt der
+  Textfarbe, und die kommt aus dem Style-Guide.
+
+Dazu ein neuer Test, der die Blöcke **mit ihren Slot-Angaben aus der
+`index.json`** prüft. Der bestehende prüfte nur das Markup und hätte nicht
+gemerkt, dass die Kartenblöcke nach dem Umbau `map_link_url` schreiben,
+während die Angaben weiter `map_embed_url` führten — `generate-copy` hätte den
+neuen Slot nie gefüllt.
 
 ### 4.2 R5 — die Marken-Bindung, und was beim Messen herauskam
 
@@ -441,9 +454,9 @@ Stufe B/C in `wireframe_data` bzw. `kas_gjs_data`.
 |---|---|---|---|
 | ~~1~~ | ~~Oberfläche für Entwurf und Freigabe~~ | — | **gebaut am 2026-08-13** (§ Stufe A) |
 | ~~2~~ | ~~Scharfer Generierungslauf~~ | — | **gelaufen am 2026-08-13**: 8 von 9 im ersten Wurf konform; der JSON-Ausrutscher ist behoben |
-| 3 | `hw-karte` / `seo-lokal` entschärfen | ~2 h | Eigene Blöcke fallen bei der eigenen Prüfung durch — in der Liste jetzt am ⚠️ zu sehen. Der scharfe Lauf zeigt: neu erzeugte Blöcke machen den Fehler nicht mehr |
+| ~~3~~ | ~~`hw-karte` / `seo-lokal` entschärfen~~ | — | **gebaut am 2026-08-13**, zusammen mit `hero-centered` und drei Blöcken mit Marken-Farbe im SVG |
 | ~~4~~ | ~~R5 Marken-Bindung~~ | — | **gebaut am 2026-08-13**, an 45 Blöcken gemessen |
 | ~~4b~~ | ~~Marken-Override vervollständigen~~ | — | **gebaut am 2026-08-13**: `utils/brandOverride.js`, gegen die 45 Blöcke geprüft |
 | ~~4c~~ | ~~Wireframe-Zweig an die Seite anschließen~~ | — | **gebaut am 2026-08-13**: „Auf die Seite übernehmen" in der DesignView |
 | ~~5~~ | ~~R3 ohne zweite Runde~~ | — | **gebaut am 2026-08-13**: `services/block_slots.py` |
-| 6 | Stufe B | offen | Erst wenn 3 steht |
+| 6 | Stufe B | offen | Nichts blockiert sie mehr |

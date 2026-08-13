@@ -66,6 +66,14 @@ FARB_PRAEFIXE = ("bg", "text", "border", "divide", "ring", "from", "via", "to",
 KLASSEN_ATTRIBUT = re.compile(r'class\s*=\s*"([^"]*)"', re.IGNORECASE)
 STYLE_ATTRIBUT = re.compile(r'style\s*=\s*"([^"]*)"', re.IGNORECASE)
 
+# SVG faerbt ueber eigene Attribute. Sieben Mal `stroke="#008EAA"` — das
+# KOMPAGNON-Cyan — standen so in der eigenen Bibliothek: keine Klasse, kein
+# style, also fuer jeden Override unerreichbar. `currentColor` ist die richtige
+# Loesung; dann nimmt das Icon die Textfarbe an, und die kommt vom Kunden.
+MAL_ATTRIBUT = re.compile(
+    r'\b(?:fill|stroke|stop-color|flood-color|lighting-color|color)\s*=\s*"([^"]*)"',
+    re.IGNORECASE)
+
 # Ein eigener Wert in der Klasse: bg-[#004F59], text-[rgb(0,79,89)] — aber
 # auch text-[11px], und das ist eine Groesse.
 FARBWERT = re.compile(r"#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|lab)\s*\(",
@@ -278,6 +286,15 @@ def pruefe(html: str, slug: str = "",
             "R5", f"Farbe im style-Attribut: {', '.join(stil_farben[:3])}. "
                   f"Die laesst sich spaeter durch nichts ersetzen — sie steht "
                   f"beim Kunden genau so."))
+
+    svg_farben = []
+    for wert in MAL_ATTRIBUT.findall(rumpf):
+        svg_farben.extend(_bunte_farbwerte(wert))
+    if svg_farben:
+        verstoesse.append(Verstoss(
+            "R5", f"Farbe im SVG-Attribut: {', '.join(svg_farben[:3])}. "
+                  f"Nimm `currentColor` — dann folgt das Icon der Textfarbe, "
+                  f"und die kommt aus dem Style-Guide."))
 
     # Eine Überschrift je Block wird bewusst NICHT verlangt: Navigation,
     # Footer, Banner und Logo-Leisten haben zu Recht keine. Ob die

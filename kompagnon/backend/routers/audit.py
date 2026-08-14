@@ -415,7 +415,10 @@ async def start_audit(
         logger.warning(f"Scraping failed for {url}: {e}")
 
     # Use scraped data as fallback when fields not provided
-    company_name = req.company_name or scraped.get("company_name", "") or url
+    from services.scraper import firmenname_fuer_audit
+
+    company_name = firmenname_fuer_audit(
+        req.company_name, scraped.get("company_name", ""), url)
     city = req.city or scraped.get("city", "")
     trade = req.trade or scraped.get("trade", "Sonstiges")
 

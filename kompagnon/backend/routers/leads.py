@@ -26,7 +26,23 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/leads", tags=["leads"])
+# Vorgabe: geschlossen. Bis zum 14.08.2026 hing die Anmeldung an der einzelnen
+# Route — 31 von 42 hatten keine, produktiv und ohne Anmeldung erreichbar:
+# der komplette Leadbestand als Liste und als CSV, das Ändern und Löschen
+# einzelner Leads samt zugehöriger Daten, und Läufe, die Geld kosten
+# (Anreicherung, PageSpeed, Screenshot, Kaltakquise).
+#
+# Eine Erlaubnisliste je Route ist die falsche Richtung: Wer eine Route
+# hinzufügt und die Abhängigkeit vergisst, öffnet sie. Deshalb hängt die
+# Anmeldung jetzt am Router, und was öffentlich sein muss, steht unten
+# ausdrücklich im `public_router`.
+router = APIRouter(prefix="/api/leads", tags=["leads"],
+                   dependencies=[Depends(require_any_auth)])
+
+# Ausdrücklich ohne Anmeldung — jede dieser Routen trägt ihre eigene Prüfung:
+# das Anlegen aus dem Formular der Landingpage und der Kundenzugang über einen
+# Einmal-Token aus der E-Mail.
+public_router = APIRouter(prefix="/api/leads", tags=["leads-public"])
 
 # In-memory job tracking for domain imports
 import_jobs = {}
@@ -708,7 +724,7 @@ async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depe
 
 # ── Public lead creation (no auth — used by landing page audit) ──
 
-@router.post("/public")
+@public_router.post("/public")
 async def create_public_lead(data: dict, db: Session = Depends(get_db)):
     """Public endpoint for landing page audit — creates lead without login."""
     website_url = data.get('website_url', '').strip()
@@ -737,7 +753,7 @@ async def create_public_lead(data: dict, db: Session = Depends(get_db)):
 
 # ── Portal routes (public, no auth) ──────────────────────
 
-@router.get("/portal/{token}")
+@public_router.get("/portal/{token}")
 def get_portal_data(token: str, db: Session = Depends(get_db)):
     """Public portal page — token is the access key."""
     lead = db.query(Lead).filter(Lead.customer_token == token).first()
@@ -783,7 +799,7 @@ def get_portal_data(token: str, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/portal/{token}/verify")
+@public_router.post("/portal/{token}/verify")
 def verify_portal_access(token: str, data: dict, db: Session = Depends(get_db)):
     """Verify access via email domain match."""
     lead = db.query(Lead).filter(Lead.customer_token == token).first()
@@ -825,7 +841,7 @@ def verify_portal_access(token: str, data: dict, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/portal/{token}/complete-onboarding")
+@public_router.post("/portal/{token}/complete-onboarding")
 def complete_onboarding(token: str, data: dict, db: Session = Depends(get_db)):
     """Mark onboarding as completed and optionally save briefing fields."""
     lead = db.query(Lead).filter(Lead.customer_token == token).first()
@@ -890,7 +906,7 @@ def complete_onboarding(token: str, data: dict, db: Session = Depends(get_db)):
     return {"success": True}
 
 
-@router.post("/portal-auth/complete-onboarding")
+@public_router.post("/portal-auth/complete-onboarding")
 def portal_auth_complete_onboarding(
     data: dict,
     db: Session = Depends(get_db),
@@ -2155,7 +2171,10 @@ Antworte NUR mit einem JSON-Objekt:
 # Registers identical handlers under /api/customers/{lead_id}/... so that
 # frontend calls to either prefix work transparently.
 
-customers_alias_router = APIRouter(prefix="/api/customers", tags=["customers"])
+# Derselbe Bestand unter zweitem Pfad — dieselbe Absicherung, sonst ist die
+# Sperre am Hauptrouter wirkungslos.
+customers_alias_router = APIRouter(prefix="/api/customers", tags=["customers"],
+                                   dependencies=[Depends(require_any_auth)])
 
 customers_alias_router.add_api_route("/",                            list_leads,           methods=["GET"])
 customers_alias_router.add_api_route("/",                            create_lead,          methods=["POST"],   response_model=LeadResponse)

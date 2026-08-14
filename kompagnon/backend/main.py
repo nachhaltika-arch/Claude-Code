@@ -1731,6 +1731,11 @@ app.add_middleware(
 # Include all routers — specific routers BEFORE alias/fallback routers
 app.include_router(usercards_router)
 app.include_router(leads_router)                      # real leads router first
+# Die ausdrücklich öffentlichen Lead-Routen: Formular der Landingpage und der
+# Kundenzugang über Einmal-Token. Alles andere hängt am `leads_router` und
+# verlangt eine Anmeldung.
+from routers.leads import public_router as leads_public_router
+app.include_router(leads_public_router)
 app.include_router(leads_alias_router)                # alias after
 app.include_router(usercards_customers_alias_router)
 app.include_router(customers_router)                  # real customers router first

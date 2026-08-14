@@ -14,8 +14,12 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 from database import Customer, Project, get_db, SessionLocal
+from routers.auth_router import require_any_auth
 
-router = APIRouter(prefix="/api/customers", tags=["customers"])
+# Vorgabe: geschlossen. Bis zum 14.08.2026 trug keine der sieben Routen eine
+# Anmeldung — der Kundenbestand war produktiv ohne Token abrufbar und änderbar.
+router = APIRouter(prefix="/api/customers", tags=["customers"],
+                   dependencies=[Depends(require_any_auth)])
 
 
 class CustomerResponse(BaseModel):

@@ -1,0 +1,85 @@
+"""Kundendaten sind nicht ohne Anmeldung zu haben.
+
+Befund vom 14.08.2026: `GET /api/leads/` lieferte produktiv den vollständigen
+Leadbestand — Firmen, Namen, Telefonnummern, E-Mail-Adressen, Notizen — an
+jeden, der die Adresse kannte. Offen waren 31 der 42 Routen des Lead-Routers
+und alle sieben des Kunden-Routers, darunter Löschen, Ändern, der CSV-Export
+und Läufe, die Geld kosten.
+
+Die Ursache war die Richtung: Die Anmeldung hing an der einzelnen Route, und
+wer eine hinzufügte und sie vergaß, öffnete sie. Diese Tests halten die
+umgekehrte Richtung fest — geschlossen, solange nichts anderes dransteht.
+"""
+import pytest
+
+GESCHLOSSEN = (401, 403)
+
+# Was zu keiner Zeit ohne Anmeldung gehen darf.
+VERTRAULICH_LESEND = (
+    "/api/leads/",
+    "/api/leads/1",
+    "/api/leads/1/profile",
+    "/api/leads/export/csv",
+    "/api/leads/customers",
+    "/api/customers/",
+    "/api/customers/1",
+    "/api/usercards/",
+)
+
+VERAENDERND = (
+    ("delete", "/api/leads/1"),
+    ("patch", "/api/leads/1"),
+    ("post", "/api/leads/1/kaltakquise"),
+    ("post", "/api/leads/enrich/all"),
+    ("post", "/api/leads/1/screenshot"),
+    ("post", "/api/leads/1/pagespeed"),
+    ("delete", "/api/usercards/1"),
+    ("patch", "/api/customers/1"),
+)
+
+
+@pytest.mark.parametrize("pfad", VERTRAULICH_LESEND)
+def test_ohne_anmeldung_gibt_es_keine_kundendaten(client, pfad):
+    antwort = client.get(pfad, follow_redirects=True)
+
+    assert antwort.status_code in GESCHLOSSEN, f"{pfad} → {antwort.status_code}"
+
+
+@pytest.mark.parametrize("methode,pfad", VERAENDERND)
+def test_ohne_anmeldung_laesst_sich_nichts_veraendern(client, methode, pfad):
+    aufruf = getattr(client, methode)
+    # DELETE nimmt beim Testclient keinen Rumpf entgegen.
+    antwort = (aufruf(pfad, follow_redirects=True) if methode == "delete"
+               else aufruf(pfad, json={}, follow_redirects=True))
+
+    assert antwort.status_code in GESCHLOSSEN, f"{methode} {pfad} → {antwort.status_code}"
+
+
+@pytest.mark.parametrize("pfad", VERTRAULICH_LESEND)
+def test_mit_anmeldung_geht_es(client, auth_headers, pfad):
+    """Die Sperre darf die Anwendung nicht mitnehmen."""
+    antwort = client.get(pfad, headers=auth_headers, follow_redirects=True)
+
+    assert antwort.status_code not in GESCHLOSSEN, f"{pfad} → {antwort.status_code}"
+
+
+# ── Was öffentlich bleiben muss ───────────────────────────────────────
+
+def test_der_kundenzugang_ueber_token_bleibt_offen():
+    """Der Link aus der E-Mail trägt keinen Anmeldetoken — er ist der Nachweis.
+
+    Ein 404 ist hier das richtige Ergebnis: Die Route antwortet, der Token
+    existiert nur nicht.
+    """
+    from routers.leads import public_router
+
+    pfade = {r.path for r in public_router.routes}
+    assert "/api/leads/portal/{token}" in pfade
+    assert "/api/leads/public" in pfade
+
+
+def test_der_geschuetzte_router_traegt_die_abhaengigkeit():
+    """Damit eine neue Route nicht offen ist, weil jemand sie vergessen hat."""
+    from routers.leads import router
+
+    assert router.dependencies, "Lead-Router ohne Vorgabe-Anmeldung"

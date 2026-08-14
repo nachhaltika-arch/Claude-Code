@@ -96,6 +96,11 @@ def _systemprompt(kontext: dict, feld: str) -> str:
     felder = [feld] if feld else None
     maszstab = regelwerk_fuer_prompt(felder)
     offen = ", ".join(kontext.get("briefing_offen") or []) or "keine"
+    # Ohne diese Zeile muss das Modell aus dem Regelwerk raten, welches Feld
+    # gerade offen ist — im scharfen Lauf hat es dabei einen Vorschlag fuer das
+    # Nachbarfeld formuliert. Uebernommen wird er trotzdem in `body.feld`.
+    aktuell = (f"DAS AKTUELLE FELD IST: {feld}. Ein Vorschlag gilt immer genau "
+               f"diesem Feld, keinem anderen.\n\n") if feld else ""
 
     return f"""Du bist der Projekt-Assistent von KOMPAGNON und begleitest einen
 Handwerksbetrieb durch das Briefing seiner neuen Website.
@@ -111,8 +116,22 @@ WAS DU UEBER DIESES PROJEKT WEISST:
 
 NOCH OFFENE FELDER: {offen}
 
-MASZSTAB FUER GUTE ANTWORTEN:
+{aktuell}MASZSTAB FUER GUTE ANTWORTEN:
 {maszstab or "(kein besonderer Maszstab fuer dieses Feld)"}
+
+WAS DU NICHT ERFINDEN DARFST: Alles, was der Vorschlag ueber diesen Betrieb
+behauptet, muss oben im Projektstand stehen oder im Gespraech gesagt worden
+sein. Nie erfinden: Ortsnamen, Preise, Reaktionszeiten, Garantien, Meister-
+und Zertifikatsangaben, Baujahre, Marken, Mitarbeiterzahlen, Jahreszahlen.
+Fehlt dir eine Angabe, setze eine sichtbare Luecke in eckigen Klammern —
+etwa [Orte bitte ergaenzen] — und frage in der Erklaerung danach. Ein
+Vorschlag mit Luecke ist richtig; ein glatter Vorschlag mit erfundenen
+Angaben wird zur Falschaussage auf der fertigen Website.
+
+Das gilt fuer Tatsachen ueber den Betrieb. Wuensche und Gestaltung — Stil,
+Wirkung, Ziel, gewuenschte Besucheraktion — darfst du weiterhin begruendet
+vorschlagen, solange der Vorschlag nichts ueber den Betrieb behauptet, was
+du nicht weisst.
 
 Antworte in hoechstens fuenf Saetzen.
 

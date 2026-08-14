@@ -142,6 +142,16 @@ NACH_FELD: Dict[str, Feldregel] = {r.feld: r for r in REGELN}
 
 ZAHL = re.compile(r"\d")
 
+# Der Assistent erfindet nichts mehr über den Betrieb, sondern lässt eine
+# sichtbare Lücke in eckigen Klammern. Wird sie ungeprüft übernommen, steht
+# sie später auf der Website — deshalb prüft der Code sie, nicht das Modell.
+LUECKE = re.compile(r"\[[^\]]{0,80}\]")
+
+
+def _luecken_hinweis(luecken: List[str]) -> str:
+    return (f"Hier steht noch eine offene Lücke: {luecken[0]} — bitte durch "
+            f"die echte Angabe ersetzen, sonst landet die Klammer auf der Seite.")
+
 
 @dataclass(frozen=True)
 class Befund:
@@ -165,14 +175,21 @@ def pruefe_antwort(feld: str, antwort: Optional[str]) -> Befund:
     """
     regel = NACH_FELD.get(feld)
     text = (antwort or "").strip()
+    luecken = LUECKE.findall(text)
 
     if regel is None:
         # Unbekanntes Feld: nichts zu prüfen, aber auch nichts zu behaupten.
+        # Eine offene Lücke fällt trotzdem auf — sie ist feldunabhängig falsch.
+        if luecken:
+            return Befund(feld, False, [_luecken_hinweis(luecken)])
         return Befund(feld, bool(text), [] if text else ["Noch nichts eingetragen."])
 
     hinweise: List[str] = []
     if not text:
         return Befund(feld, False, [f"Noch nichts eingetragen. {regel.frage}"])
+
+    if luecken:
+        hinweise.append(_luecken_hinweis(luecken))
 
     if len(text) < regel.mindestzeichen:
         hinweise.append(

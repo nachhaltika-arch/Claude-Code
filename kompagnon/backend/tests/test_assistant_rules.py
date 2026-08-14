@@ -35,6 +35,36 @@ def test_eine_konkrete_antwort_geht_durch():
     assert befund.hinweise == []
 
 
+def test_eine_offene_luecke_aus_dem_assistenten_geht_nicht_durch():
+    """Der Assistent setzt Lücken statt zu erfinden — sie müssen auffallen.
+
+    Seit der Assistent nichts mehr über den Betrieb erfindet, schlägt er
+    Formulierungen mit sichtbarer Lücke vor („Ziel [Anzahl] Anrufe"). Wird so
+    ein Vorschlag ungeprüft übernommen, steht die Klammer später auf der
+    Website. Länge und Floskelprüfung merken davon nichts.
+    """
+    befund = pruefe_antwort(
+        "hauptziel", "Mehr Anrufe bei Heizungsausfall — Ziel [Anzahl] pro Monat")
+
+    assert befund.brauchbar is False
+    assert "[Anzahl]" in befund.als_text
+
+
+def test_die_luecke_faellt_auch_in_einem_feld_ohne_eigene_regel_auf():
+    befund = pruefe_antwort("unbekanntes_feld", "Text mit [bitte ergänzen] drin")
+
+    assert befund.brauchbar is False
+
+
+def test_runde_klammern_sind_keine_luecke():
+    """Nur eckige Klammern markieren eine Lücke — „(Luft/Wasser)" ist Inhalt."""
+    befund = pruefe_antwort(
+        "leistungen",
+        "Wärmepumpen (Luft/Wasser), Bad-Sanierung barrierefrei, Heizungswartung")
+
+    assert befund.brauchbar is True
+
+
 def test_zu_knapp_wird_benannt_und_mit_beispiel_beantwortet():
     befund = pruefe_antwort("leistungen", "Heizung")
 

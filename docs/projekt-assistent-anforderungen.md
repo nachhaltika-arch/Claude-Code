@@ -335,13 +335,50 @@ Drei Fehler, die keine Testsuite gezeigt hätte (Commit `226420c`):
 - Widget und Support-Chat **stritten um dieselbe Bildschirmecke**; die
   Support-Blase verdeckte den Weg zum Menschen.
 
-### 9.4 Offen
+### 9.4 Der scharfe Lauf — 2026-08-14
 
-- **Der Assistent hat noch nie mit dem echten Modell gesprochen.** Der
-  Browser-Durchlauf lief gegen eine feste Antwort. Ungeprüft ist damit: ob das
-  Modell die `VORSCHLAG:`-Konvention zuverlässig einhält, ob die Antworten
-  fachlich taugen und was ein Gespräch wirklich kostet. Der Schlüssel dafür liegt
-  lokal in `backend/.env.save`.
+Elf Fragen gegen `claude-sonnet-4-6`, durch den echten Endpunkt, damit Prompt,
+`trenne_vorschlag()`, Budgetbuchung und Ablage mitlaufen.
+
+**Die Konvention hält.** Neun Feldfragen, neun `VORSCHLAG:`-Zeilen; zwei Fragen
+ohne Feldbezug, keine Zeile. Die Übernehmen-Funktion steht also nicht auf
+Sand — sie hing an dieser einen ungeprüften Annahme.
+
+**Was ein Gespräch kostet:** rund 0,008 € je Nachricht (11 Nachrichten ≈ 0,09 €).
+Damit reicht das 15-€-Projektbudget für etwa 1 900 Nachrichten — es greift nie.
+Die wirksame Grenze ist die Tagesgrenze von 60 Anfragen je Nutzer (rund 0,47 €
+am Tag). Wer das Projektbudget als Schutz versteht, schützt damit nichts.
+
+**Der Befund, der die Antworten wertlos gemacht hätte:** Der Assistent hat
+Betriebsfakten erfunden und als übernehmbaren Text angeboten — Orte, die es so
+nicht gibt („Hofgeisheim") oder 50 km zu weit weg liegen, ein
+„Festpreisangebot ohne versteckte Kosten" im USP, ein Baujahrbereich beim
+Kundenprofil. Nichts davon hatte der Kunde gesagt. Ein Klick, und es steht im
+Briefing; von dort steht es als Zusage auf der fertigen Website. Zwei
+Änderungen dagegen:
+
+- Der Prompt verbietet Tatsachenbehauptungen über den Betrieb, die weder im
+  Projektstand noch im Gespräch stehen, und verlangt stattdessen eine sichtbare
+  Lücke in eckigen Klammern (`Ziel [Anzahl] Anrufe pro Monat`). Wünsche und
+  Gestaltung darf er weiter begründet vorschlagen.
+- `pruefe_antwort()` erkennt eine offene Lücke und meldet sie — sonst wandert
+  die Klammer durch die Feldprüfung hindurch auf die Seite.
+
+Preis der Härtung: Die Vorschlagsquote fällt von 9/9 auf 5/9. Die vier
+entfallenen Vorschläge sind genau die Fälle, in denen der Kunde nichts gesagt
+hatte, was sich formulieren ließe — dort fragt der Assistent jetzt nach,
+statt zu erfinden. Bei „30 km Umkreis um Kassel" merkt er sogar an, dass der
+Betrieb in Koblenz sitzt, 200 km entfernt.
+
+**Der Prompt nannte das aktuelle Feld nicht.** Das Modell musste es aus dem
+Regelwerk erraten und hat einmal einen Vorschlag für das Nachbarfeld
+formuliert — übernommen worden wäre er trotzdem in `body.feld`. Jetzt steht das
+Feld ausdrücklich im Prompt.
+
+### 9.5 Offen
+
+- Fachlich beurteilt hat die Antworten bisher nur der Entwickler, nicht David
+  und kein Handwerksbetrieb.
 - Ausgangswerte für Erfolgskriterium 4.3 (heutige Abschlussquote) sind nicht
   gemessen — ohne sie lässt sich später kein Vorher/Nachher zeigen.
 - Ausbau 2 (Projektbegleitung, Phasenreife) ist unberührt.

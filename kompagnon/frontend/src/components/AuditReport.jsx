@@ -363,6 +363,26 @@ export default function AuditReport({ auditData, onClose }) {
         </div>
       )}
 
+      {/* EINORDNUNG — steht vor der Punktzahl. Wer eine Zahl über seine
+          eigene Arbeit liest, muss vorher sehen, dass sein Geschäft
+          verstanden wurde; sonst liest er sie als Urteil eines Fremden. */}
+      {(r.erkannte_branche || r.branchenklasse) && (
+        <div style={{
+          fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)',
+          background: 'var(--bg-hover)', border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-md)', padding: '10px 14px',
+        }}>
+          {r.branchenklasse === 'K6' ? (
+            <>Eingeordnet als <strong>{r.erkannte_branche || r.branchenklasse_bezeichnung}</strong>.
+              {' '}Der Homepage Standard ist auf Betriebe zugeschnitten — die
+              angebotsbezogenen Kriterien gelten hier nicht und zählen nicht mit.</>
+          ) : (
+            <>Bewertet als <strong>{r.erkannte_branche || r.branchenklasse_bezeichnung}</strong>
+              {r.branchenklasse_bezeichnung && <> — Maßstab: {r.branchenklasse_bezeichnung}</>}.</>
+          )}
+        </div>
+      )}
+
       {/* Score Hero */}
       <div
         className="kc-card"

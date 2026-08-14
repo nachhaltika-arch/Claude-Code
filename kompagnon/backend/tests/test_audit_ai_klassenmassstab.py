@@ -26,9 +26,10 @@ def modellaufrufe(monkeypatch):
     """Fängt beide Modellaufrufe ab und merkt sich, was sie geschickt haben."""
     aufrufe = []
 
-    def _antwort(*, systemprompt, inhalt, schema, max_tokens, modell):
+    def _antwort(*, systemprompt, inhalt, schema, max_tokens, modell,
+                 effort="medium"):
         aufrufe.append({"systemprompt": systemprompt, "inhalt": _als_text(inhalt),
-                        "modell": modell})
+                        "modell": modell, "effort": effort})
         if "branche" in schema["properties"] and len(schema["properties"]) <= 3:
             return {"branche": "Steuerberatung mit Schwerpunkt Handwerk",
                     "betriebsseite": True}
@@ -108,7 +109,8 @@ def test_scheitert_die_bewertung_bleibt_die_erkennung_erhalten(monkeypatch):
 
 
 def test_bei_einer_seite_ohne_betrieb_bleibt_der_massstab_leer(monkeypatch):
-    def _antwort(*, systemprompt, inhalt, schema, max_tokens, modell):
+    def _antwort(*, systemprompt, inhalt, schema, max_tokens, modell,
+                 effort="medium"):
         if "branche" in schema["properties"] and len(schema["properties"]) <= 3:
             return {"branche": "politischer Kandidat", "betriebsseite": False}
         assert "MASZSTAB DIESER BRANCHENKLASSE" not in inhalt

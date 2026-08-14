@@ -213,8 +213,13 @@ ERKENNUNGS_SCHEMA = {
 
 
 def _ruf_modell(*, systemprompt: str, inhalt, schema: dict, max_tokens: int,
-                modell: str) -> Optional[dict]:
+                modell: str, effort: Optional[str] = "medium") -> Optional[dict]:
     """Ein Aufruf beim Modell. Getrennt, damit der Test ihn ersetzen kann.
+
+    `effort` steuert die Tiefe — aber nicht jedes Modell kennt den Parameter:
+    Haiku lehnt ihn mit 400 ab. Deshalb ist er abschaltbar, und die Einordnung
+    läuft ohne. Aufgefallen ist das erst im Lauf gegen echte Seiten; die Tests
+    ersetzen diesen Aufruf und kommen an der Stelle nie vorbei.
 
     Gibt None zurück, wenn nichts Brauchbares kam — nie einen Ersatzwert.
     """
@@ -225,16 +230,17 @@ def _ruf_modell(*, systemprompt: str, inhalt, schema: dict, max_tokens: int,
         logger.warning("KI übersprungen: ANTHROPIC_API_KEY nicht gesetzt")
         return None
 
+    output_config = {"format": {"type": "json_schema", "schema": schema}}
+    if effort:
+        output_config["effort"] = effort
+
     try:
         client = Anthropic(api_key=api_key(), max_retries=1, timeout=REQUEST_TIMEOUT)
         response = client.messages.create(
             model=modell,
             max_tokens=max_tokens,
             system=systemprompt,
-            output_config={
-                "effort": "medium",
-                "format": {"type": "json_schema", "schema": schema},
-            },
+            output_config=output_config,
             messages=[{"role": "user", "content": inhalt}],
         )
     except Exception as e:  # noqa: BLE001 — darf das Audit nie abbrechen
@@ -295,6 +301,9 @@ def evaluate(
         schema=ERKENNUNGS_SCHEMA,
         max_tokens=ERKENNUNGS_TOKENS,
         modell=erkennungs_modell(),
+        # Ohne Tiefensteuerung: Das kleine Modell kennt den Parameter nicht,
+        # und für „was ist das für eine Seite" braucht es ihn auch nicht.
+        effort=None,
     )
     if not erkennung:
         logger.warning("Einordnung fehlgeschlagen — keine Bewertung ohne Maßstab")

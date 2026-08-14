@@ -1862,6 +1862,11 @@ app.include_router(geo_payments_router)
 from routers.assistant import router as assistant_router
 app.include_router(assistant_router)
 
+# Zustellungsstörungen von Brevo — ohne sie meldet der Versand Erfolg und
+# niemand erfährt, dass die Mail beim Empfänger abgewiesen wurde.
+from routers.mail_events import router as mail_events_router
+app.include_router(mail_events_router)
+
 
 # Global exception handler — catches unhandled errors
 @app.exception_handler(Exception)

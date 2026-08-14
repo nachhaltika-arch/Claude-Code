@@ -40,6 +40,18 @@ const STATUS_MAP = {
   lost: ['danger', 'Verloren'],
 };
 
+// Zustellungsstörungen, wie Brevo sie meldet. Dauerhaft heißt: an diese
+// Adresse kommt nichts mehr an, bis sich etwas ändert — das ist der
+// Unterschied, auf den es beim Nachfassen ankommt.
+const MAIL_STOERUNGEN = {
+  hard_bounce:   { text: 'dauerhaft unzustellbar', dauerhaft: true },
+  blocked:       { text: 'vom Empfänger abgewiesen', dauerhaft: true },
+  invalid_email: { text: 'Adresse unbrauchbar', dauerhaft: true },
+  spam:          { text: 'als Spam gemeldet', dauerhaft: true },
+  soft_bounce:   { text: 'vorübergehend nicht zustellbar', dauerhaft: false },
+  error:         { text: 'Fehler beim Versand', dauerhaft: false },
+};
+
 const LEVEL_COLORS = {
   'Homepage Standard Platin': 'var(--status-info-text)',
   'Homepage Standard Gold':   '#b8860b',
@@ -229,6 +241,9 @@ export default function LeadProfile() {
   const [msgChannel, setMsgChannel] = useState('in_app');
   const [msgSubject, setMsgSubject] = useState('');
   const [msgSending, setMsgSending] = useState(false);
+  // Zustellungsstörungen: der Versand meldet Erfolg, sobald Brevo die Mail
+  // annimmt — was danach beim Empfänger passiert, stand bisher nirgends.
+  const [mailStoerungen, setMailStoerungen] = useState([]);
   // E-Mail-Sequenz
   const [emailLogs, setEmailLogs]       = useState([]);
   const [seqStatus, setSeqStatus]       = useState(null);
@@ -263,7 +278,7 @@ export default function LeadProfile() {
     }
   }, [auditPhase]); // eslint-disable-line
 
-  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); loadAssignedTemplate(); }, [leadId]); // eslint-disable-line
+  useEffect(() => { loadProfile(); loadQrCode(); loadDomains(); loadBriefing(); loadAssignedTemplate(); loadMailStoerungen(); }, [leadId]); // eslint-disable-line
 
   const loadMessages = async () => {
     setMsgLoading(true);
@@ -403,6 +418,11 @@ export default function LeadProfile() {
   const loadDomains = async () => {
     const data = await loadJson(`${API_BASE_URL}/api/leads/${leadId}/domains`, { headers: h }, { context: 'Domains' });
     if (data) setDomains(data);
+  };
+
+  const loadMailStoerungen = async () => {
+    const data = await loadJson(`${API_BASE_URL}/api/mail-events/lead/${leadId}`, { headers: h }, { context: 'Zustellung' });
+    if (data) setMailStoerungen(data.ereignisse || []);
   };
 
   const loadBriefing = async () => {
@@ -816,6 +836,40 @@ export default function LeadProfile() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease', maxWidth: 1200, margin: '0 auto', width: '100%', minWidth: 0, overflowX: 'hidden', padding: isMobile ? '0 4px' : undefined }}>
+
+      {/* ZUSTELLUNG — steht über allem, weil ein Anschreiben sonst ins Leere
+          geht, ohne dass es jemandem auffällt. */}
+      {mailStoerungen.length > 0 && (() => {
+        const neueste = mailStoerungen[0];
+        const art = MAIL_STOERUNGEN[neueste.event] || { text: neueste.event, dauerhaft: false };
+        return (
+          <div style={{
+            background: art.dauerhaft ? 'var(--status-danger-bg)' : 'var(--status-warning-bg)',
+            color: art.dauerhaft ? 'var(--status-danger-text)' : 'var(--status-warning-text)',
+            border: `1px solid ${art.dauerhaft ? 'var(--status-danger-text)' : 'var(--status-warning-text)'}`,
+            borderRadius: 'var(--radius-lg)', padding: '12px 16px', fontSize: 13,
+          }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>
+              E-Mail {art.text}
+              {mailStoerungen.length > 1 && ` — ${mailStoerungen.length} Meldungen`}
+            </div>
+            <div style={{ opacity: 0.9 }}>
+              {neueste.email}
+              {neueste.occurred_at && ` · ${new Date(neueste.occurred_at).toLocaleString('de-DE')}`}
+            </div>
+            {neueste.reason && (
+              <div style={{ marginTop: 6, fontSize: 12, fontFamily: 'var(--font-mono, monospace)', opacity: 0.85, wordBreak: 'break-word' }}>
+                {neueste.reason}
+              </div>
+            )}
+            {neueste.sending_ip && (
+              <div style={{ marginTop: 4, fontSize: 11, opacity: 0.75 }}>
+                Versendet über {neueste.sending_ip}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* HEADER */}
       <div style={{ background: 'var(--brand-primary)', borderRadius: 'var(--radius-xl)', padding: isMobile ? '12px 16px' : '24px', color: 'white', position: 'relative', overflow: 'hidden' }}>

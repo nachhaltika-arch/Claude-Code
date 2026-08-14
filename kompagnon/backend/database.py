@@ -1110,3 +1110,44 @@ class WidgetRequest(Base):
     report_confirmed_at = Column(DateTime, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class MailEvent(Base):
+    """Was nach dem Versand mit einer Mail geschah — gemeldet von Brevo.
+
+    Der Anlass: Eine Zustellung wurde abgelehnt, weil die Versand-IP des
+    Anbieters auf einer Blockliste stand ("554 ... blocked using
+    bl.spamcop.net"). Für die Anwendung sah der Versand erfolgreich aus, denn
+    Brevo hatte die Mail angenommen — die Ablehnung kam erst danach beim
+    Empfänger. Ohne diese Tabelle bleibt so ein Ausfall unsichtbar, und bei
+    einem Akquisekanal heißt das: Anschreiben laufen ins Leere und niemand
+    merkt es.
+
+    Abgelegt werden nur Störungen, nicht der normale Verlauf. Zustellungen,
+    Öffnungen und Klicks würden die Tabelle fluten, ohne etwas zu beantworten.
+    """
+
+    __tablename__ = "mail_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # Der Ereignisname von Brevo, unverändert: hard_bounce, blocked, spam,
+    # invalid_email, soft_bounce, error.
+    event = Column(String(40), nullable=False, index=True)
+    email = Column(String(255), nullable=False, index=True)
+    reason = Column(String(500), default="")
+    subject = Column(String(300), default="")
+    sending_ip = Column(String(64), default="")
+
+    # Zur Zuordnung und gegen Doppelzählung: Brevo wiederholt Zustellversuche
+    # des Webhooks, und dieselbe Meldung darf nicht mehrfach in der Liste
+    # stehen.
+    message_id = Column(String(255), default="", index=True)
+    event_key = Column(String(255), default="", index=True)
+
+    # Aufgelöst über die Adresse. Bleibt leer, wenn zu der Adresse kein Lead
+    # existiert — die Meldung ist trotzdem wertvoll.
+    lead_id = Column(Integer, nullable=True, index=True)
+
+    occurred_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)

@@ -454,6 +454,14 @@ class AuditResult(Base):
     coverage = Column(Integer, default=0)         # Anteil erhobener Punkte in %
     collection_notes = Column(Text, default="{}") # warum eine Prüfung ausfiel
 
+    # Wogegen bewertet wurde (Homepage Standard 2026.2, Branchenmodell). Die
+    # Klasse entscheidet, welche Kriterien überhaupt gelten — ohne sie lässt
+    # sich ein Bericht später weder erklären noch mit einem neueren vergleichen.
+    # Die Spalten legt `main.py::_run_migrations` an, nicht `create_all`.
+    erkannte_branche = Column(String, default="")   # Freitext des Modells
+    branchenklasse = Column(String, default="")     # K1…K6
+    standard_version = Column(String, default="")   # Fassung des Standards
+
     # Raw check results
     ssl_ok = Column(Boolean, default=False)
     impressum_ok = Column(Boolean, default=False)

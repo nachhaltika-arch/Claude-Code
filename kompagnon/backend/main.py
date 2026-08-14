@@ -135,6 +135,12 @@ def _run_migrations():
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS blockers TEXT DEFAULT '[]'",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS coverage INTEGER DEFAULT 0",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS collection_notes TEXT DEFAULT '{}'",
+        # Branchenmodell des Homepage Standards 2026.2: Gegen welchen Maßstab
+        # bewertet wurde, gehört zum Ergebnis — ohne diese Angabe lässt sich
+        # ein Bericht später weder erklären noch mit einem neueren vergleichen.
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS erkannte_branche VARCHAR DEFAULT ''",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS branchenklasse VARCHAR DEFAULT ''",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS standard_version VARCHAR DEFAULT ''",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS analysis_score INTEGER DEFAULT 0",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_score INTEGER DEFAULT 0",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS website_screenshot TEXT DEFAULT ''",

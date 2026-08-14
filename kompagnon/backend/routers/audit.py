@@ -192,7 +192,14 @@ def _run_audit_background(audit_id: int):
         audit2.category_scores = json.dumps(result["categories"], ensure_ascii=False)
         audit2.blockers        = json.dumps(result["blockers"], ensure_ascii=False)
         audit2.coverage        = result["coverage"]
-        audit2.collection_notes = json.dumps(collection_notes(facts), ensure_ascii=False)
+        audit2.collection_notes = json.dumps(collection_notes(facts, ai), ensure_ascii=False)
+
+        # Wogegen bewertet wurde. Gehört zum Ergebnis, nicht in die Notizen:
+        # Der Bericht nennt die Klasse im ersten Absatz, damit der Leser sieht,
+        # dass sein Geschäft verstanden wurde, bevor er die Punktzahl liest.
+        audit2.erkannte_branche  = (result.get("branche") or "")[:200]
+        audit2.branchenklasse    = result.get("branchenklasse") or ""
+        audit2.standard_version  = result.get("standard_version") or ""
 
         audit2.ssl_ok            = summary["ssl_ok"]
         audit2.impressum_ok      = summary["impressum_ok"]
@@ -415,7 +422,10 @@ async def start_audit(
         logger.warning(f"Scraping failed for {url}: {e}")
 
     # Use scraped data as fallback when fields not provided
-    company_name = req.company_name or scraped.get("company_name", "") or url
+    from services.scraper import firmenname_fuer_audit
+
+    company_name = firmenname_fuer_audit(
+        req.company_name, scraped.get("company_name", ""), url)
     city = req.city or scraped.get("city", "")
     trade = req.trade or scraped.get("trade", "Sonstiges")
 
@@ -660,6 +670,14 @@ def _catalogue_payload(items: dict, sources: dict) -> list:
     return payload
 
 
+def _klassenbezeichnung(klasse: str) -> str:
+    """„K2" allein sagt dem Leser nichts — die Bezeichnung gehört dazu."""
+    from services.audit_industry_map import KLASSEN
+
+    eintrag = KLASSEN.get(klasse or "")
+    return eintrag.bezeichnung if eintrag else ""
+
+
 def _format_audit(audit: AuditResult) -> dict:
     """Format audit for JSON response."""
     items = _json_field(getattr(audit, "item_scores", None), {})
@@ -685,6 +703,12 @@ def _format_audit(audit: AuditResult) -> dict:
         "level": audit.level,
         "coverage": getattr(audit, "coverage", None),
         "collection_notes": _json_field(getattr(audit, "collection_notes", None), {}),
+        # Der Maßstab, gegen den bewertet wurde — siehe Bewertungslogik 2026.2.
+        "erkannte_branche": getattr(audit, "erkannte_branche", "") or "",
+        "branchenklasse": getattr(audit, "branchenklasse", "") or "",
+        "branchenklasse_bezeichnung": _klassenbezeichnung(
+            getattr(audit, "branchenklasse", "")),
+        "standard_version": getattr(audit, "standard_version", "") or "",
         "categories": categories,
         "catalogue": _catalogue_payload(items, sources),
         "items": items,

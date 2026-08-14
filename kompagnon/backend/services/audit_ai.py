@@ -18,7 +18,9 @@ import logging
 import os
 from typing import Optional
 
-from services.audit_criteria import ai_criteria
+from services.audit_criteria import ai_criteria, ist_anwendbar
+from services.audit_industry_map import klasse_fuer_branche
+from services.audit_industry_profiles import rubric_fuer_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -28,19 +30,37 @@ except ImportError:  # pragma: no cover — Abhängigkeit fehlt nur in Minimal-S
     Anthropic = None
 
 DEFAULT_MODEL = "claude-opus-5"
+DEFAULT_RECOGNITION_MODEL = "claude-haiku-4-5"
 MAX_TOKENS = 4000
+ERKENNUNGS_TOKENS = 300
 REQUEST_TIMEOUT = 90.0
 PAGE_TEXT_LIMIT = 6000
 
-SYSTEM_PROMPT = """Du bewertest Websites von Handwerksbetrieben (Heizung, Sanitär,
-Elektrik) für den KOMPAGNON Homepage Standard.
+SYSTEM_PROMPT = """Du bewertest Websites für den KOMPAGNON Homepage Standard.
+
+Die Seite ist bereits eingeordnet. Ihre Branchenklasse und der Maßstab, der
+daraus folgt, stehen in der Nachricht — halte dich daran. Steht dort kein
+Maßstab, steckt hinter der Seite kein Betrieb: Dann wirf ihr NICHT vor, was ein
+Betrieb hätte — keine fehlenden Leistungsbeschreibungen, kein fehlendes
+Einsatzgebiet, keinen fehlenden Preisrahmen. Halte 'ai_summary', 'top_issues'
+und 'recommendations' in dem Fall bei dem, was für DIESE Seite gilt —
+Gestaltung, Lesbarkeit, Kontrast, Aktualität — und sage im ersten Satz klar,
+dass der KOMPAGNON Homepage Standard auf Betriebe zugeschnitten ist und für
+diese Seite deshalb nur eingeschränkt aussagt.
+
+Was der Maßstab der Klasse ausdrücklich NICHT erwartet, fehlt nicht. Es kostet
+keinen Punkt und gehört in keine Begründung, keine Empfehlung und keinen
+Befund. Ein Beratungsberuf ohne Preisangabe ist nicht unvollständig, sondern
+berufsrechtlich korrekt.
 
 Du bewertest AUSSCHLIESSLICH die unten aufgeführten Kriterien. Alles andere —
 Recht, Sicherheit, Performance, SEO, Barrierefreiheit — wurde bereits technisch
 gemessen und ist nicht deine Aufgabe.
 
-Maßstab: Zielgruppe sind Hausbesitzer, die eine Wärmepumpe, ein Bad oder eine
-Wallbox suchen. Bewerte aus deren Sicht, nicht aus Sicht eines Designers.
+MASZSTAB: die Sicht der Kundschaft, die diese Seite gewinnen soll — bei einem
+Handwerksbetrieb also Hausbesitzer mit einem konkreten Vorhaben aus dessen
+Gewerk, bei anderen Branchen die dort passende Kundschaft. Bewerte nicht aus
+Sicht eines Designers.
 
 Sei streng, aber begründet. Vergib die volle Punktzahl nur, wenn es dafür
 sichtbare Belege gibt. Wenn du etwas nicht beurteilen kannst, vergib 0 Punkte
@@ -61,16 +81,39 @@ def model_name() -> str:
     return os.getenv("AUDIT_AI_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL
 
 
+def erkennungs_modell() -> str:
+    """Für die Einordnung reicht das kleine Modell.
+
+    Die Frage ist „was ist das für eine Seite", nicht „wie gut ist sie" — dafür
+    das teure Modell zu nehmen, hiesse den Aufpreis für nichts zu zahlen.
+    """
+    return (os.getenv("AUDIT_RECOGNITION_MODEL", DEFAULT_RECOGNITION_MODEL).strip()
+            or DEFAULT_RECOGNITION_MODEL)
+
+
 def api_key() -> str:
     return os.getenv("ANTHROPIC_API_KEY", "").strip()
 
 
-def _rubric() -> str:
-    """Kriterienliste für den Prompt — direkt aus dem Katalog."""
+def _rubric(klasse: str = "") -> str:
+    """Kriterienliste für den Prompt — direkt aus dem Katalog.
+
+    Was für diese Branchenklasse nicht gilt, steht gar nicht erst da. Ein
+    Kriterium im Prompt, das später verworfen wird, kostet nur Token und
+    verleitet das Modell, es in der Zusammenfassung doch zu bemängeln.
+    """
     lines = []
     for crit in ai_criteria():
+        if klasse and not ist_anwendbar(crit.key, klasse):
+            continue
         lines.append(f"- {crit.key} (0-{crit.max_points}): {crit.label} — {crit.hint}")
     return "\n".join(lines)
+
+
+def _klassenteil(klasse: str) -> str:
+    """Der klassenabhängige Maßstab, wenn es einen gibt."""
+    rubric = rubric_fuer_prompt(klasse) if klasse else ""
+    return f"{rubric}\n\n" if rubric else ""
 
 
 def _schema() -> dict:
@@ -94,7 +137,8 @@ def _schema() -> dict:
     }
 
 
-def _user_content(facts: dict, summary: dict, screenshot_b64: Optional[str]) -> list:
+def _user_content(facts: dict, summary: dict, screenshot_b64: Optional[str],
+                  klasse: str = "") -> list:
     """Baut die Nachricht: Screenshot zuerst, dann Fakten und Seitentext."""
     content = []
 
@@ -130,7 +174,8 @@ def _user_content(facts: dict, summary: dict, screenshot_b64: Optional[str]) -> 
         "text": (
             f"Bewerte diese Website.\n\n"
             f"KONTEXT:\n{json.dumps(context, indent=2, ensure_ascii=False)}\n\n"
-            f"ZU BEWERTENDE KRITERIEN:\n{_rubric()}\n\n"
+            f"ZU BEWERTENDE KRITERIEN:\n{_rubric(klasse)}\n\n"
+            f"{_klassenteil(klasse)}"
             f"SEITENTEXT DER STARTSEITE:\n{(facts.get('page_text') or '')[:PAGE_TEXT_LIMIT]}\n\n"
             "Zusätzlich: 'begruendung' (2-3 Sätze zu deiner Design- und "
             "Conversion-Bewertung), 'ai_summary' (3-5 Sätze in einfacher Sprache "
@@ -141,50 +186,75 @@ def _user_content(facts: dict, summary: dict, screenshot_b64: Optional[str]) -> 
     return content
 
 
-def evaluate(
-    facts: dict,
-    summary: Optional[dict] = None,
-    screenshot_b64: Optional[str] = None,
-) -> dict:
-    """Bewertet die KI-Kriterien. Gibt bei jedem Fehler ein leeres dict zurück.
+ERKENNUNGS_PROMPT = """Du ordnest eine Website ein. Du bewertest sie nicht.
 
-    Ein leeres Ergebnis führt dazu, dass die betroffenen Kriterien als
-    'nicht erhoben' gelten — es werden keine Ersatzwerte erfunden.
+Zwei Angaben, mehr nicht:
+
+- 'branche': Was ist das für eine Seite? Nenne das Gewerk oder die Branche so
+  konkret wie erkennbar — „Dachdecker", „Heizung und Sanitär",
+  „Steuerberatung", „Restaurant" — oder, wenn dahinter kein Betrieb steckt,
+  was es sonst ist: „politischer Kandidat", „Verein", „Blog", „private Seite".
+- 'betriebsseite': true, wenn dahinter ein Betrieb oder eine Organisation
+  steht, die über diese Website Kunden für ihre Leistungen gewinnen will.
+  false sonst.
+
+Richte dich nach der Seite selbst. Angaben aus unseren Stammdaten können
+falsch oder leer sein."""
+
+ERKENNUNGS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "branche": {"type": "string"},
+        "betriebsseite": {"type": "boolean"},
+    },
+    "required": ["branche", "betriebsseite"],
+    "additionalProperties": False,
+}
+
+
+def _ruf_modell(*, systemprompt: str, inhalt, schema: dict, max_tokens: int,
+                modell: str, effort: Optional[str] = "medium") -> Optional[dict]:
+    """Ein Aufruf beim Modell. Getrennt, damit der Test ihn ersetzen kann.
+
+    `effort` steuert die Tiefe — aber nicht jedes Modell kennt den Parameter:
+    Haiku lehnt ihn mit 400 ab. Deshalb ist er abschaltbar, und die Einordnung
+    läuft ohne. Aufgefallen ist das erst im Lauf gegen echte Seiten; die Tests
+    ersetzen diesen Aufruf und kommen an der Stelle nie vorbei.
+
+    Gibt None zurück, wenn nichts Brauchbares kam — nie einen Ersatzwert.
     """
     if Anthropic is None:
-        logger.warning("KI-Bewertung übersprungen: anthropic-Paket nicht installiert")
-        return {}
+        logger.warning("KI übersprungen: anthropic-Paket nicht installiert")
+        return None
     if not api_key():
-        logger.warning("KI-Bewertung übersprungen: ANTHROPIC_API_KEY nicht gesetzt")
-        return {}
+        logger.warning("KI übersprungen: ANTHROPIC_API_KEY nicht gesetzt")
+        return None
+
+    output_config = {"format": {"type": "json_schema", "schema": schema}}
+    if effort:
+        output_config["effort"] = effort
 
     try:
         client = Anthropic(api_key=api_key(), max_retries=1, timeout=REQUEST_TIMEOUT)
         response = client.messages.create(
-            model=model_name(),
-            max_tokens=MAX_TOKENS,
-            system=SYSTEM_PROMPT,
-            output_config={
-                "effort": "medium",
-                "format": {"type": "json_schema", "schema": _schema()},
-            },
-            messages=[{
-                "role": "user",
-                "content": _user_content(facts, summary or {}, screenshot_b64),
-            }],
+            model=modell,
+            max_tokens=max_tokens,
+            system=systemprompt,
+            output_config=output_config,
+            messages=[{"role": "user", "content": inhalt}],
         )
-    except Exception as e:  # noqa: BLE001 — Bewertung darf das Audit nie abbrechen
-        logger.warning(f"KI-Bewertung fehlgeschlagen: {type(e).__name__}: {e}")
-        return {}
+    except Exception as e:  # noqa: BLE001 — darf das Audit nie abbrechen
+        logger.warning(f"KI-Aufruf fehlgeschlagen: {type(e).__name__}: {e}")
+        return None
 
     if response.stop_reason == "refusal":
-        logger.warning("KI-Bewertung abgelehnt (refusal) — Kriterien bleiben nicht erhoben")
-        return {}
+        logger.warning("KI-Aufruf abgelehnt (refusal)")
+        return None
 
     text = next((b.text for b in response.content if b.type == "text"), "")
     if not text:
-        logger.warning("KI-Bewertung lieferte keinen Text")
-        return {}
+        logger.warning("KI-Aufruf lieferte keinen Text")
+        return None
 
     try:
         return json.loads(text)
@@ -192,4 +262,72 @@ def evaluate(
         # Bei output_config.format sollte das nicht vorkommen — wenn doch,
         # lieber nichts eintragen als geraten.
         logger.warning(f"KI-Antwort nicht parsebar trotz Schema: {e}")
+        return None
+
+
+def _erkennungs_inhalt(facts: dict) -> str:
+    """Für die Einordnung reicht Text — ein Bild kostet ein Vielfaches."""
+    return (
+        f"Stammdaten (können falsch sein): Betrieb "
+        f"{facts.get('company_name') or '—'}, Gewerk "
+        f"{facts.get('trade') or '—'}, Ort {facts.get('city') or '—'}, "
+        f"{facts.get('url') or '—'}\n\n"
+        f"SEITENTEXT DER STARTSEITE:\n"
+        f"{(facts.get('page_text') or '')[:PAGE_TEXT_LIMIT]}"
+    )
+
+
+def evaluate(
+    facts: dict,
+    summary: Optional[dict] = None,
+    screenshot_b64: Optional[str] = None,
+) -> dict:
+    """Ordnet die Seite ein und bewertet sie gegen den Maßstab ihrer Klasse.
+
+    Zwei Aufrufe, und die Reihenfolge ist der Kern: Der Maßstab hängt an der
+    Branchenklasse, die Klasse an der Erkennung. Beides in einem Aufruf hiesse,
+    dem Modell die Wahl seines eigenen Maßstabs zu überlassen — dann liefe
+    dieselbe Website an zwei Tagen gegen zwei Maßstäbe, und ein Standard, der
+    das tut, ist keiner (Bewertungslogik 2026.2, § 2.3).
+
+    Schlägt die Erkennung fehl, wird gar nicht bewertet: Ohne Klasse bliebe nur
+    der alte feste Maßstab, und der war der Grund für den Umbau. Schlägt nur
+    die Bewertung fehl, bleibt die Einordnung erhalten — sie erklärt dem Leser
+    immerhin den Rahmen.
+    """
+    erkennung = _ruf_modell(
+        systemprompt=ERKENNUNGS_PROMPT,
+        inhalt=_erkennungs_inhalt(facts),
+        schema=ERKENNUNGS_SCHEMA,
+        max_tokens=ERKENNUNGS_TOKENS,
+        modell=erkennungs_modell(),
+        # Ohne Tiefensteuerung: Das kleine Modell kennt den Parameter nicht,
+        # und für „was ist das für eine Seite" braucht es ihn auch nicht.
+        effort=None,
+    )
+    if not erkennung:
+        logger.warning("Einordnung fehlgeschlagen — keine Bewertung ohne Maßstab")
         return {}
+
+    branche = str(erkennung.get("branche") or "")
+    betriebsseite = bool(erkennung.get("betriebsseite"))
+    zuordnung = klasse_fuer_branche(branche, betriebsseite)
+
+    grundlage = {
+        "branche": branche,
+        "betriebsseite": betriebsseite,
+        "branchenklasse": zuordnung.klasse,
+        "branchenklasse_quelle": zuordnung.quelle,
+    }
+
+    bewertung = _ruf_modell(
+        systemprompt=SYSTEM_PROMPT,
+        inhalt=_user_content(facts, summary or {}, screenshot_b64, zuordnung.klasse),
+        schema=_schema(),
+        max_tokens=MAX_TOKENS,
+        modell=model_name(),
+    )
+    if not bewertung:
+        return grundlage
+
+    return {**grundlage, **bewertung}

@@ -9,6 +9,56 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
+# Seitentitel, die keinen Betrieb benennen. Ohne diese Prüfung wurde der Titel
+# blind übernommen — und der Bericht aus dem Widget sprach den Empfänger dann
+# mit „Analyse für Startseite" an. Lieber gar kein Name als ein falscher: der
+# Aufrufer fällt dann auf die Domain zurück.
+PLATZHALTER_TITEL = frozenset({
+    "startseite", "start", "home", "homepage", "willkommen",
+    "herzlich willkommen", "index", "unbenanntes dokument", "unbenannt",
+    "neue seite", "website", "webseite", "hauptseite", "menü", "menu",
+})
+
+# Reihenfolge zählt: der lange Gedankenstrich vor dem kurzen Bindestrich,
+# sonst zerschneidet „Müller-Bau - Startseite" den Firmennamen selbst.
+TITEL_TRENNER = (" – ", " — ", " | ", " · ", " :: ", " / ", " - ")
+
+MIN_NAMENSLAENGE = 2
+MAX_NAMENSLAENGE = 100
+
+
+def firmenname_aus_titel(titel: str) -> str:
+    """Der Firmenname aus einem Seitentitel — oder leer, wenn keiner drinsteht.
+
+    Der Titel wird am ersten Trenner abgeschnitten, weil dahinter fast immer
+    ein Werbesatz steht. Bleibt danach ein Platzhalter übrig, gilt das als
+    „nicht gefunden" — ein falscher Name ist in der Anrede schlimmer als keiner.
+    """
+    name = (titel or "").strip()
+    for trenner in TITEL_TRENNER:
+        if trenner in name:
+            name = name.split(trenner)[0].strip()
+            break
+
+    if len(name) < MIN_NAMENSLAENGE or name.lower() in PLATZHALTER_TITEL:
+        return ""
+    return name[:MAX_NAMENSLAENGE]
+
+
+def firmenname_fuer_audit(angegeben: str, gescrapt: str, url: str) -> str:
+    """Mit diesem Namen wird der Empfänger im Bericht und in der Mail angesprochen.
+
+    Reihenfolge: was der Aufrufer weiß, dann was auf der Seite steht, zuletzt
+    die blanke Domain. Die volle Adresse war hier früher der letzte Rückfall —
+    „Ihre Website-Analyse für https://example.de/" liest sich wie ein Fehler.
+    """
+    name = (angegeben or "").strip() or (gescrapt or "").strip()
+    if name:
+        return name[:MAX_NAMENSLAENGE]
+
+    ohne_schema = (url or "").split("//", 1)[-1]
+    return ohne_schema.split("/")[0].removeprefix("www.")
+
 
 async def scrape_website(url: str) -> dict:
     """
@@ -68,14 +118,10 @@ async def scrape_website(url: str) -> dict:
         h1 = soup.find("h1")
 
         if title:
-            company = title.get_text().strip()
-            for suffix in [" – ", " | ", " - ", " :: ", " / "]:
-                if suffix in company:
-                    company = company.split(suffix)[0]
-            result["company_name"] = company[:100]
+            result["company_name"] = firmenname_aus_titel(title.get_text())
 
         if h1 and not result["company_name"]:
-            result["company_name"] = h1.get_text().strip()[:100]
+            result["company_name"] = firmenname_aus_titel(h1.get_text())
 
         # 2. Meta Description
         meta_desc = soup.find("meta", attrs={"name": "description"})

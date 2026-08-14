@@ -99,3 +99,27 @@ def test_erreichbare_seite_wird_nur_einmal_geladen(monkeypatch):
     # Assert
     assert ergebnis["reachable"] is True
     assert aufrufe["anzahl"] == 1
+
+
+# ── Die Notiz zur Erkennung ───────────────────────────────────────────
+
+def test_ohne_betriebsseite_steht_der_grund_in_den_notizen():
+    """Sonst sieht der Leser nur eine niedrigere Abdeckung ohne Erklärung."""
+    notizen = audit_runner.collection_notes(
+        {}, {"betriebsseite": False, "branche": "politischer Kandidat"})
+
+    assert notizen["angebotskriterien"]["reason"] == "keine_betriebsseite"
+    assert notizen["angebotskriterien"]["detail"] == "politischer Kandidat"
+
+
+def test_bei_einer_betriebsseite_gibt_es_keine_solche_notiz():
+    notizen = audit_runner.collection_notes(
+        {}, {"betriebsseite": True, "branche": "Dachdecker"})
+
+    assert "angebotskriterien" not in notizen
+
+
+def test_ohne_ki_ergebnis_bleibt_die_notiz_aus():
+    """Ein fehlgeschlagener KI-Aufruf ist kein „kein Betrieb erkannt"."""
+    assert "angebotskriterien" not in audit_runner.collection_notes({}, {})
+    assert "angebotskriterien" not in audit_runner.collection_notes({})

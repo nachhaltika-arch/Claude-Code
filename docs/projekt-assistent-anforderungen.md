@@ -290,6 +290,144 @@ Nicht mehr fachlich zu entscheiden, sondern im Implementierungsplan vorzuschlage
 4. Ausbau 1 umsetzen, produktiv mit einem echten Kunden erproben
 5. Ausbau 2 (Projektbegleitung) nach Auswertung von Ausbau 1
 
+Schritt 1 und 2 sind erledigt, Schritt 4 zur Hälfte — siehe Abschnitt 9.
+
+---
+
+## 9. Gebaut — Stand 2026-08-13
+
+Ausbau 1 ist vollständig gebaut und liegt auf `staging`. Was hier steht, ist am
+Code nachgeprüft, nicht aus dem Plan abgeschrieben.
+
+### 9.1 Die Teile
+
+| Teil | Ort | Was er entscheidet |
+|---|---|---|
+| Sichtbarkeit | `backend/services/assistant_context.py` | Erlaubnisliste je Modus. Nicht der Prompt entscheidet, was der Assistent sieht, sondern der Kontextbau — was nicht in der Liste steht, erreicht das Modell nie (Entscheidung 3.4). Unbekannte Rolle ⇒ Kundenmodus. |
+| Regelwerk | `backend/services/assistant_rules.py` | Neun Briefing-Felder mit Frage, Begründung, Mindestlänge, gutem und schlechtem Beispiel. `pruefe_antwort()` urteilt ohne Modellaufruf. |
+| Kostenrahmen | `backend/services/assistant_budget.py` | 15 € je Projekt (`ASSISTENT_BUDGET_PROJEKT_EURO`), 60 Anfragen je Nutzer und Tag, Warnung ab 80 % (Entscheidung 4.1). |
+| Ablage | `AssistantConversation`, `AssistantMessage` in `database.py` | Eigener Verlauf mit Tokenzahlen und Kosten je Nachricht — projektbezogen von Anfang an, damit Ausbau 2 keine Migration erzwingt. |
+| Endpunkte | `backend/routers/assistant.py` | `POST /chat`, `GET /conversations/{id}`, `POST /field-check`, `POST /conversations/{id}/escalate`, `GET /limits`. Modell: `claude-sonnet-5` (`ASSISTENT_MODELL`), Antwortdeckel 2500 Token (`ASSISTENT_MAX_TOKENS`). |
+| Oberfläche | `frontend/src/components/AssistentPanel.jsx` | Eine Komponente, zwei Einbauorte (Entscheidung 3.1): Spalte neben den Briefing-Feldern, aufklappbares Widget auf schmalen Schirmen und im Kundenportal. |
+
+Tests: 77 im Backend (Kontext, Regelwerk, Budget, API), 11 im Frontend.
+
+### 9.2 Zwei Entscheidungen, die beim Bauen entstanden sind
+
+**Der Vorschlag ist maschinenlesbar.** Das Modell setzt den übernehmbaren Teil
+seiner Antwort in eine letzte Zeile `VORSCHLAG: …`; `trenne_vorschlag()` trennt
+ihn ab, gespeichert wird nur die Erklärung, ausgeliefert werden beide getrennt.
+Ohne das müsste der Kunde den Rat von Hand abschreiben — Entscheidung 1.3 wäre
+formal erfüllt und praktisch wertlos.
+
+**Übernehmen hängt an, statt zu ersetzen.** Ein Klick darf niemandem die eigenen
+Sätze löschen (`utils/assistentUebernahme.js`).
+
+### 9.3 Was der Browser-Durchlauf gefunden hat
+
+Drei Fehler, die keine Testsuite gezeigt hätte (Commit `226420c`):
+
+- Im Kundenportal **verschwand der Vorschlagsteil der Antwort** — er wurde vom
+  Text abgetrennt und dann nur zusammen mit dem Übernehmen-Knopf gezeigt, den es
+  dort nicht gibt. Jetzt erscheint er als abgesetzter Block.
+- Eskalation ohne Text im Eingabefeld schickte **„Anliegen: (ohne Text)"** ans
+  Team. Jetzt zählt die zuletzt gestellte Frage.
+- Widget und Support-Chat **stritten um dieselbe Bildschirmecke**; die
+  Support-Blase verdeckte den Weg zum Menschen.
+
+### 9.4 Der scharfe Lauf — 2026-08-14
+
+Elf Fragen gegen `claude-sonnet-4-6`, durch den echten Endpunkt, damit Prompt,
+`trenne_vorschlag()`, Budgetbuchung und Ablage mitlaufen.
+
+**Die Konvention hält.** Neun Feldfragen, neun `VORSCHLAG:`-Zeilen; zwei Fragen
+ohne Feldbezug, keine Zeile. Die Übernehmen-Funktion steht also nicht auf
+Sand — sie hing an dieser einen ungeprüften Annahme.
+
+**Was ein Gespräch kostet:** rund 0,008 € je Nachricht (11 Nachrichten ≈ 0,09 €).
+Damit reicht das 15-€-Projektbudget für etwa 1 900 Nachrichten — es greift nie.
+Die wirksame Grenze ist die Tagesgrenze von 60 Anfragen je Nutzer (rund 0,47 €
+am Tag). Wer das Projektbudget als Schutz versteht, schützt damit nichts.
+
+**Der Befund, der die Antworten wertlos gemacht hätte:** Der Assistent hat
+Betriebsfakten erfunden und als übernehmbaren Text angeboten — Orte, die es so
+nicht gibt („Hofgeisheim") oder 50 km zu weit weg liegen, ein
+„Festpreisangebot ohne versteckte Kosten" im USP, ein Baujahrbereich beim
+Kundenprofil. Nichts davon hatte der Kunde gesagt. Ein Klick, und es steht im
+Briefing; von dort steht es als Zusage auf der fertigen Website. Zwei
+Änderungen dagegen:
+
+- Der Prompt verbietet Tatsachenbehauptungen über den Betrieb, die weder im
+  Projektstand noch im Gespräch stehen, und verlangt stattdessen eine sichtbare
+  Lücke in eckigen Klammern (`Ziel [Anzahl] Anrufe pro Monat`). Wünsche und
+  Gestaltung darf er weiter begründet vorschlagen.
+- `pruefe_antwort()` erkennt eine offene Lücke und meldet sie — sonst wandert
+  die Klammer durch die Feldprüfung hindurch auf die Seite.
+
+Preis der Härtung: Die Vorschlagsquote fällt von 9/9 auf 5/9. Die vier
+entfallenen Vorschläge sind genau die Fälle, in denen der Kunde nichts gesagt
+hatte, was sich formulieren ließe — dort fragt der Assistent jetzt nach,
+statt zu erfinden. Bei „30 km Umkreis um Kassel" merkt er sogar an, dass der
+Betrieb in Koblenz sitzt, 200 km entfernt.
+
+**Der Prompt nannte das aktuelle Feld nicht.** Das Modell musste es aus dem
+Regelwerk erraten und hat einmal einen Vorschlag für das Nachbarfeld
+formuliert — übernommen worden wäre er trotzdem in `body.feld`. Jetzt steht das
+Feld ausdrücklich im Prompt.
+
+### 9.5 Der Modellvergleich — 2026-08-14
+
+Derselbe Fragensatz gegen `claude-sonnet-4-6` und `claude-sonnet-5`, je zwei
+Läufe, gleicher gehärteter Prompt.
+
+| | Sonnet 4.6 | Sonnet 5 |
+|---|---|---|
+| Vorschläge bei 9 Feldfragen | 5 | 8 |
+| Vorschläge ohne Feldbezug (soll 0) | 0 | 0 |
+| Erfundene Betriebsfakten | keine | keine |
+| Token je Gespräch (11 Nachrichten) | 22 224 ein / 2 002 aus | 27 625 ein / 3 580 aus |
+| Kosten je Gespräch zum Normalpreis | 0,097 | 0,137 |
+| Kosten je Gespräch bis 2026-08-31 | 0,097 | 0,091 |
+
+**Der Unterschied liegt nicht bei der Konvention, sondern bei der Brauchbarkeit
+unter der Faktensperre.** Beide halten `VORSCHLAG:` und beide erfinden nichts
+mehr. Aber wo 4.6 seit der Härtung nur noch zurückfragt, formuliert Sonnet 5
+weiter und setzt die fehlende Angabe als Lücke hinein — `Hausbesitzer
+[Altersspanne bitte ergänzen], Ein- oder Zweifamilienhaus, Anlass meist
+defekte Heizung`. Das ist genau das Verhalten, das die Härtung wollte: ehrlich
+und trotzdem ein Text zum Übernehmen. Beide merken, dass ein Betrieb mit Sitz
+Koblenz schlecht 30 km um Kassel fahren kann.
+
+**Was der Wechsel mitbringt:** Sonnet 5 denkt von sich aus mit, und der
+Antwortdeckel begrenzt Denken und Text gemeinsam. Mit den 800 Token aus der
+4.6-Zeit riss die Antwort mitten im Wort ab — und wurde trotzdem als
+übernehmbarer Vorschlag ausgeliefert (`Mehr Anrufe bei Heizungsausf`). Deshalb
+zwei Änderungen: der Deckel steht auf 2500, und ein am Deckel abgerissener
+Vorschlag bekommt keinen Übernehmen-Knopf mehr. Der zweite Punkt gilt
+modellunabhängig.
+
+Bis 2026-08-31 gilt für Sonnet 5 ein Einführungspreis, danach kostet ein
+Gespräch rund 41 % mehr als mit 4.6 — bei 0,014 € je Nachricht und der
+Tagesgrenze von 60 Anfragen bleibt das unter 1 € je Nutzer und Tag. Die
+Preiskonstanten im Kostenrahmen (3 $/15 $) stimmen für beide Modelle; während
+des Einführungspreises rechnet der Rahmen konservativ zu hoch.
+
+Die übrigen KI-Router (Sitemap, Content, Branddesign, Component-Library …)
+laufen weiter auf `claude-sonnet-4-6`. Sie sind nicht mitgeprüft — und wer sie
+umstellt, muss dort denselben Deckel prüfen, mehrere rufen mit
+`max_tokens=800` auf.
+
+### 9.6 Offen
+
+- Fachlich beurteilt hat die Antworten bisher nur der Entwickler, nicht David
+  und kein Handwerksbetrieb.
+- Ausgangswerte für Erfolgskriterium 4.3 (heutige Abschlussquote) sind nicht
+  gemessen — ohne sie lässt sich später kein Vorher/Nachher zeigen.
+- Ausbau 2 (Projektbegleitung, Phasenreife) ist unberührt.
+- Der eskalierte Verlauf landet im Team-Postfach (`Message`), nicht im
+  Nachrichten-Faden des Portals (`portal_messages`). Das sind zwei getrennte
+  Systeme; ob sie zusammengehören, ist offen.
+
 ---
 
 ## 8. Bestehender Unterbau (Rechercheergebnis)

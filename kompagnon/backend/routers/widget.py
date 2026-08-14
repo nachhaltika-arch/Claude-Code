@@ -210,8 +210,12 @@ async def start_widget_audit(
 
     from routers.audit import start_audit, AuditRequest
 
+    # Der Firmenname bleibt bewusst offen: `start_audit` liest ihn von der
+    # Seite und fällt selbst auf die Domain zurück. Wurde er hier fest auf die
+    # Domain gesetzt, kam der Scraper nie zum Zug — und der Bericht sprach den
+    # Empfänger mit „Analyse für gordonbeyer.de" statt „für Gordon Beyer" an.
     started = await start_audit(
-        AuditRequest(website_url=url, company_name=domain, lead_id=lead.id),
+        AuditRequest(website_url=url, lead_id=lead.id),
         background_tasks,
         db,
     )

@@ -334,6 +334,36 @@ def _angebot_block(token: str, cta_url: str = "") -> str:
     )
 
 
+def _einordnung(audit) -> str:
+    """Wogegen bewertet wurde — vor der Punktzahl, nicht danach.
+
+    Der Empfänger kennt uns nicht. Bevor er eine Zahl über seine Arbeit liest,
+    muss er sehen, dass sein Geschäft verstanden wurde; sonst liest er die Zahl
+    als Urteil eines Fremden. Genau daran ist der Bericht am 14.08. gescheitert,
+    der einen Kandidatenauftritt an Handwerksleistungen maß.
+    """
+    from services.audit_industry_map import KLASSEN
+
+    branche = (getattr(audit, "erkannte_branche", "") or "").strip()
+    klasse = KLASSEN.get(getattr(audit, "branchenklasse", "") or "")
+    if not branche and not klasse:
+        return ""
+
+    if klasse and klasse.schluessel == "K6":
+        text = (f"Eingeordnet als: {branche or klasse.bezeichnung}. Der "
+                f"Homepage Standard ist auf Betriebe zugeschnitten — die "
+                f"angebotsbezogenen Kriterien gelten hier nicht und zählen "
+                f"nicht mit.")
+    elif klasse:
+        text = (f"Bewertet als {branche or klasse.bezeichnung} — Maßstab: "
+                f"{klasse.bezeichnung}.")
+    else:
+        text = f"Bewertet als {branche}."
+
+    return (f'<div style="margin-top:14px;font-size:13px;line-height:1.6;'
+            f'opacity:.85;max-width:60ch">{_esc(text)}</div>')
+
+
 def render_report_page(audit, company: str = "", token: str = "",
                        cta_url: str = "") -> str:
     """Vollständiger Bericht als eigenständige HTML-Seite.
@@ -383,6 +413,7 @@ def render_report_page(audit, company: str = "", token: str = "",
     <h1 style="margin:16px 0 2px;font-size:26px;font-weight:900;
                line-height:1.15">{_esc(titel)}</h1>
     <div style="font-size:13px;opacity:.75">{_esc(audit.website_url)}</div>
+    {_einordnung(audit)}
 
     <div style="margin-top:26px;display:flex;align-items:baseline;gap:16px;
                 flex-wrap:wrap">

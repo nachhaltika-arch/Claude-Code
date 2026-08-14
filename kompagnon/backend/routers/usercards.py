@@ -26,9 +26,12 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import AuditResult, Project, UserCard, User, get_db, SessionLocal
-from routers.auth_router import optional_auth
+from routers.auth_router import optional_auth, require_any_auth
 
-router = APIRouter(prefix="/api/usercards", tags=["usercards"])
+# Vorgabe: geschlossen — siehe routers/leads.py. Diese Routen tragen
+# dieselben Kundendaten wie der Lead-Router und waren ebenso offen.
+router = APIRouter(prefix="/api/usercards", tags=["usercards"],
+                   dependencies=[Depends(require_any_auth)])
 
 
 # ── Pydantic schemas ──────────────────────────────────────────────────────────
@@ -433,8 +436,12 @@ def delete_usercard(card_id: int, db: Session = Depends(get_db)):
 
 # ── Alias routers (/api/leads and /api/customers → same handlers) ─────────────
 
-leads_alias_router    = APIRouter(prefix="/api/leads",     tags=["usercards"])
-customers_alias_router = APIRouter(prefix="/api/customers", tags=["usercards"])
+# Die Aliasse zeigen auf dieselben Funktionen. Ohne dieselbe Abhaengigkeit
+# waere die Absicherung des Hauptrouters nur ein Umweg entfernt.
+leads_alias_router    = APIRouter(prefix="/api/leads",     tags=["usercards"],
+                                  dependencies=[Depends(require_any_auth)])
+customers_alias_router = APIRouter(prefix="/api/customers", tags=["usercards"],
+                                   dependencies=[Depends(require_any_auth)])
 
 for _alias in (leads_alias_router, customers_alias_router):
     _alias.add_api_route("/",                    list_usercards,           methods=["GET"])

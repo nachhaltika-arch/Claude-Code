@@ -1,12 +1,60 @@
-# Audit-Anforderungskatalog — Überarbeitung
+# Audit-Anforderungskatalog
 
-**Stand:** 2026-08-11
-**Status:** Entwurf zur Überarbeitung durch David
-**Betrifft:** `kompagnon/backend/routers/audit.py`, `kompagnon/frontend/src/components/AuditReport.jsx`
+**Angelegt:** 2026-08-11 · **Zuletzt:** 2026-08-13
+**Status:** **umgesetzt und produktiv** — die acht Entscheidungen aus § 4 sind
+gefallen, der Soll-Katalog aus § 3 ist gebaut und seit dem 13.08. auf `main`.
+**Betrifft:** `services/audit_criteria.py` (Wahrheitsquelle), `audit_collectors.py`,
+`audit_pagespeed.py`, `audit_scoring.py`, `audit_ai.py`, `audit_runner.py`,
+`routers/audit.py`, `frontend/src/components/AuditReport.jsx`
 
 ---
 
-## 1. Befund: Was das Audit heute wirklich tut
+## 0. Stand in einem Absatz
+
+Der Katalog wurde am 11.08. als Entwurf geschrieben, weil das Audit 38 Kriterien
+anzeigte und dafür 12 Datenpunkte erhob — der Rest war geraten oder konstant.
+Das ist erledigt: Es gibt jetzt **eine** Kriterien-Datei, aus der Scoring, Prompt
+und API-Antwort abgeleitet werden, **27 der 38 Kriterien werden gemessen**,
+4 abgeleitet, 7 sind ausgewiesene KI-Einschätzungen. Nicht erhobene Kriterien
+fallen aus Zähler *und* Nenner — es wird nie eine fehlende Messung als „0 Punkte"
+verkauft. Was offen bleibt, steht in § 6.
+
+### Der gebaute Katalog
+
+| Kategorie | P | Kriterien |
+|---|---|---|
+| **Recht & Compliance** | 20 | Impressum (§ 5 DDG) (6), Datenschutzerklärung (DSGVO) (6), Cookie-Consent (TDDDG) (4), Barrierefreiheitserklärung (BFSG) (2), Formular DSGVO-konform (2) |
+| **Sicherheit & Datenschutz** | 10 | TLS-Zertifikat gültig (3), HTTP→HTTPS erzwungen (2), Security-Header (3), Drittanbieter ohne Einwilligung (2) |
+| **Performance & Core Web Vitals** | 15 | LCP (4), CLS (3), INP (2), Mobile-Performance (3), Bildoptimierung (3) |
+| **Barrierefreiheit (WCAG/BFSG)** | 10 | Lighthouse-A11y-Score (3), Farbkontraste (2), Alt-Texte (2), Semantik & Struktur (2), Tastaturbedienung (1) |
+| **SEO & Auffindbarkeit** | 15 | Title & Meta (3), Überschriften & Content-Tiefe (2), Indexierbarkeit (3), Strukturierte Daten (3), Lokale Signale (3), Keine defekten Links (1) |
+| **Design & Gestaltung** | 10 | Visuelle Aktualität (3), Typografie (2), Farbsystem (2), Bildqualität (2), Mobile Darstellung (1) |
+| **Conversion & Nutzerführung** | 15 | Klarheit above the fold (3), Primär-CTA (3), Kontaktwege (3), Vertrauenssignale (3), Angebots-Klarheit (3) |
+| **Inhalt & Substanz** | 5 | Eigene Leistungsseiten (2), Aktualität (1), Textqualität (2) |
+
+Summe exakt 100. K.-o.-Kriterien (Level-Deckel) sind scharf: fehlendes Impressum,
+fehlende Datenschutzerklärung und ungültiges TLS deckeln hart; Cookies und
+Tracking ohne Einwilligung deckeln eine Stufe.
+
+### Die acht Defekte von § 1.1 — alle behoben
+
+| | Befund vom 11.08. | Stand 13.08. |
+|---|---|---|
+| **D1** | Ohne PageSpeed-Key erfindet das Audit Zahlen | ✅ Ohne Key wird es als `nicht erhoben` ausgewiesen (`used_api_key`, `kontingent_ohne_api_key`) und fällt aus der Wertung |
+| **D2** | Barrierefreiheit zu 100 % geraten, A11y-Score verworfen | ✅ Lighthouse-Accessibility wird geparst und bewertet; Kategorie von 20 auf 10 P |
+| **D3** | SSL nicht geprüft, Seitenabruf mit `verify=False` | ✅ Echter TLS-Handshake, `SSLCertVerificationError` wird ausgewertet — und ist K.-o. |
+| **D4** | SEO komplett geraten, `qa_scanner` ungenutzt | ✅ `qa_scanner`, `hosting_scraper` und `link_checker` sind verdrahtet |
+| **D5** | 20 von 38 Kriterien sind Konstanten | ✅ 27 gemessen, 4 abgeleitet, 7 ausgewiesene KI-Einschätzung, 0 Konstanten |
+| **D6** | UX-Rechenfehler (6 Kriterien à 1 P, gedeckelt auf 5) | ✅ Kategorien summieren auf exakt 100 |
+| **D7** | Nur die Startseite wird geladen | ✅ Impressum- und Datenschutz-Unterseite werden gesucht, geladen und auf Pflichtinhalte geprüft |
+| **D8** | Kein Kriterium für Design/Gestaltung | ✅ Design 10 P und Conversion 15 P, mit Screenshot und festem Rubric |
+
+---
+
+## 1. Befund vom 11.08. — der Ausgangszustand *(historisch)*
+
+> Dieser Abschnitt beschreibt den Stand **vor** dem Umbau. Er bleibt stehen,
+> weil er begründet, warum der Katalog so aussieht, wie er aussieht.
 
 Der Report zeigt **38 Kriterien** an (33 mit Punkten + 5 Hosting-Kriterien ohne Punkte).
 Erhoben werden dafür **12 Datenpunkte**. Der Rest wird geschätzt oder ist eine fest
@@ -81,7 +129,7 @@ Der Umbau ist deshalb überwiegend **Verdrahtung vorhandener Teile**, nicht Neub
 
 ---
 
-## 2. Ist-Katalog — alle 38 Kriterien im Detail
+## 2. Der alte Katalog — alle 38 Kriterien *(historisch, ersetzt)*
 
 Legende Datenquelle: 🟢 gemessen · 🟡 schwach/abgeleitet · 🔴 Konstante oder KI-Rateschätzung
 
@@ -157,7 +205,7 @@ Legende Datenquelle: 🟢 gemessen · 🟡 schwach/abgeleitet · 🔴 Konstante 
 
 ---
 
-## 3. Soll-Katalog — Vorschlag zur Überarbeitung
+## 3. Soll-Katalog — **umgesetzt**
 
 Leitgedanken:
 
@@ -320,33 +368,141 @@ tatsächlich geprüften Kriterien normiert.
 
 ---
 
-## 4. Zu entscheiden
+## 4. Entschieden am 2026-08-11 — alle acht wie empfohlen
 
-| # | Frage | Meine Empfehlung |
+| # | Frage | Entscheidung und Stand |
 |---|---|---|
-| 1 | Gewichtung der 8 Kategorien wie in 3.1? | ja — sie folgt Messbarkeit und Verkaufsrelevanz |
-| 2 | Barrierefreiheit 20 → 10 Punkte? | ja — 20 P waren nie belegbar |
-| 3 | Conversion 5 → 15 und Design neu mit 10? | ja — das ist das, was verkauft wird |
-| 4 | Design/Conversion teils als KI-Einschätzung, klar gekennzeichnet? | ja — besser gekennzeichnet geschätzt als heimlich konstant |
-| 5 | Laufzeit von 90 s auf ~4 min anheben? | ja — ohne das ist kein Mehrseiten-Crawl möglich |
-| 6 | PageSpeed-Key beschaffen (auf Render prüfen)? | ja — sonst bleiben 15 P dauerhaft „nicht erhoben" |
-| 7 | K.-o.-Regel für Impressum/DSE/TLS? | ja — ein Report, der Rechtsverstöße mit „Silber" belohnt, ist ein Haftungsrisiko |
-| 8 | „Backup-Hinweise" streichen? | ja — von außen nicht prüfbar |
+| 1 | Gewichtung der 8 Kategorien wie in 3.1? | **ja**, gebaut — Summe exakt 100 |
+| 2 | Barrierefreiheit 20 → 10 Punkte? | **ja**, gebaut — dazu echter Lighthouse-Score |
+| 3 | Conversion 5 → 15 und Design neu mit 10? | **ja**, gebaut |
+| 4 | Design/Conversion als gekennzeichnete KI-Einschätzung? | **ja**, gebaut — 7 Kriterien tragen `einschaetzung`, Screenshot + festes Rubric |
+| 5 | Laufzeit von 90 s auf ~4 min anheben? | **ja** — Impressum und Datenschutz werden als Unterseiten geladen |
+| 6 | PageSpeed-Key beschaffen? | **ja**, im Code erledigt (Abfrage auch ohne Key, `PAGESPEED_API_KEY` als zweiter Name). **Ob er auf Render gesetzt ist, bleibt offen** — § 6 |
+| 7 | K.-o.-Regel für Impressum/DSE/TLS? | **ja**, gebaut — `BLOCKING_CRITICAL` (Impressum, DSE, TLS) und `BLOCKING_MAJOR` (Cookies, Tracking) |
+| 8 | Backup-Hinweise streichen? | **ja**, gestrichen |
 
 ---
 
-## 5. Umsetzung nach Freigabe
+## 5. Umsetzung — Stand der sieben Schritte
 
-1. Kriterienkatalog als eigenes Modul (`services/audit_criteria.py`) — eine Datei,
-   die Codes, Labels, Punkte, Kategorie und Erhebungsart hält. Backend und Frontend
-   lesen daraus, statt die Liste dreifach zu duplizieren (heute: Prompt, Mock, Frontend).
-2. `qa_scanner`, `hosting_scraper`, `link_checker` in die Audit-Pipeline verdrahten.
-3. Echte Erheber ergänzen: TLS-Handshake, Mehrseiten-Crawl, Bildanalyse, Consent-Test.
-4. KI-Bewertung auf das reduzieren, was sie kann: Design, Conversion, Textqualität —
-   mit Screenshot als Eingabe und festem Rubric.
-5. DB-Migration für die neuen Kriterien-Spalten.
-6. Tests je Kategorie gegen eine feste Referenz-Website.
-7. Report und PDF um Quellen-Kennzeichnung erweitern.
+| # | Schritt | Stand |
+|---|---|---|
+| 1 | Kriterienkatalog als eigenes Modul | ✅ `services/audit_criteria.py`, einzige Wahrheitsquelle für Scoring, Prompt und API |
+| 2 | `qa_scanner`, `hosting_scraper`, `link_checker` verdrahten | ✅ in `audit_runner.py` |
+| 3 | Echte Erheber: TLS, Unterseiten, Bildanalyse, Consent | ✅ `audit_collectors.py` — `check_tls`, `check_https_redirect`, `check_legal_pages`, `analyse_images`, `detect_consent`, `detect_third_parties` |
+| 4 | KI auf Design/Conversion/Text begrenzen, Screenshot + Rubric | ✅ `audit_ai.py` |
+| 5 | DB-Migration für die neuen Spalten | ✅ in `main.py::_run_migrations` — der einzigen Liste, die beim Start läuft |
+| 6 | Tests je Kategorie gegen eine feste Referenz-Website | ⬜ **offen** — 46 Tests prüfen Katalog und Rechenwege, aber gegen erfundene Eingaben |
+| 7 | Report und PDF um Quellen-Kennzeichnung erweitern | ⬜ **nicht verifiziert** — die Erhebungsart steht im Modell und in der API; ob sie beim Leser ankommt, wurde nicht geprüft |
 
-Reihenfolge ist so gewählt, dass nach Schritt 2 bereits sichtbar mehr echt gemessen
-wird — auch wenn der Rest noch offen ist.
+---
+
+## 6. Was an diesem Katalog offen bleibt
+
+1. **PageSpeed-Schlüssel auf Render.** Im Code ist beides gelöst: Abfrage auch
+   ohne Key, und `PAGESPEED_API_KEY` wird als zweiter Name akzeptiert. Ob
+   produktiv ein Schlüssel gesetzt ist, war von hier nicht prüfbar. Ohne ihn
+   bleiben die Core Web Vitals dauerhaft „nicht erhoben“ — ehrlich, aber
+   15 Punkte weniger Aussage.
+2. **Referenz-Website für die Tests** (Schritt 6). Ohne sie prüfen die Tests die
+   Rechenwege, nicht die Erhebung.
+3. **Quellen-Kennzeichnung im Report** (Schritt 7). Nachsehen, ob „gemessen /
+   abgeleitet / KI-Einschätzung / nicht erhoben“ beim Kunden sichtbar ist — das
+   ist die Stelle, an der der ganze Umbau für den Leser überhaupt erkennbar wird.
+4. **Der umgebaute Katalog ist nie gegen eine echte fremde Website gelaufen.**
+   Ein Lauf gegen zwei, drei reale SHK-Seiten würde zeigen, ob die Punktzahlen
+   plausibel sind. Das ist der wichtigste der vier Punkte.
+5. **Die Erkennung ist gebaut, die Branchen-Ausweitung nicht.** *(Stand
+   2026-08-14, siehe § 7)* Was unten als Befund steht, ist behoben: Das Audit
+   erkennt jetzt, was es vor sich hat, und lässt den fremden Maßstab weg. Offen
+   bleibt die Ausweitung auf weitere Gewerke und Branchen — die
+   Geschäftsentscheidung.
+
+   Der ursprüngliche Befund: **Das Audit unterstellte jeder Seite ein
+   Handwerksgewerk — auch wenn keins da war.** (David, 2026-08-14) Ein Bericht
+   aus dem Staging-Widget bewertete den
+   Auftritt eines politischen Kandidaten gegen den SHK-Maßstab: „Für
+   Hausbesitzer, die z. B. ein Dach, eine Wärmepumpe oder ein Bad suchen, gibt
+   es hier keinen Anknüpfungspunkt … es fehlen Leistungsbeschreibungen,
+   Einsatzgebiet, Preisrahmen." Fachlich richtig gerechnet, als Aussage
+   unbrauchbar — und der Empfänger liest, dass wir seine Seite nicht verstanden
+   haben. Das Widget ist ein Akquisekanal; der Bericht ist dort der erste
+   Eindruck.
+
+   Die Ursache steht fest verdrahtet in `services/audit_ai.py:35`: Der
+   Systemprompt setzt „Websites von Handwerksbetrieben (Heizung, Sanitär,
+   Elektrik)" und als Maßstab „Hausbesitzer, die eine Wärmepumpe, ein Bad oder
+   eine Wallbox suchen". Das erhobene Feld `trade` wird zwar als `gewerk`
+   mitgegeben (`audit_ai.py:113`), kann den festen Rahmen aber nicht
+   verschieben. Dieselbe Annahme steckt in `docs/conversion-spec-shk.md` und
+   damit in der QA und den Templates.
+
+   Darin stecken zwei Dinge, die getrennt gehören:
+
+   - **Die Erkennung.** Das Audit muss benennen können, was es vor sich hat —
+     einschließlich „kein Handwerksbetrieb". Die sieben KI-Kriterien müssten
+     dann entweder gegen den passenden Maßstab laufen oder wie eine nicht
+     erhobene Messung aus Zähler *und* Nenner fallen, statt gegen einen
+     fremden Maßstab gerechnet zu werden. Das ist ein Defekt und unabhängig
+     von jeder Strategiefrage.
+   - **Die Ausweitung** der Bewertung — und später der Ausführung von Online
+     fertig / WebSprint — auf weitere Gewerke und Branchen. Das ist eine
+     Geschäftsentscheidung und berührt die Nischenregel der Phase 1 (Heizung /
+     Sanitär / Elektrik, keine Erweiterung vor fünf produktiven Kunden). Der
+     Maßstab je Branche ist dabei die eigentliche Arbeit, nicht die Technik:
+     Conversion-Spec, Kriteriengewichte und Templates hängen daran.
+
+   Die Erkennung ist gebaut (§ 7), die Ausweitung nicht.
+
+---
+
+## 7. Die Erkennung — gebaut am 2026-08-14
+
+Das Audit erkennt jetzt, was es vor sich hat, bevor es bewertet. Der
+Systemprompt schrieb bis dahin „Websites von Handwerksbetrieben (Heizung,
+Sanitär, Elektrik)" und als Maßstab „Hausbesitzer, die eine Wärmepumpe, ein Bad
+oder eine Wallbox suchen" fest — beides ist raus. Der Maßstab leitet sich jetzt
+aus der erkannten Branche ab.
+
+**Zwei neue Felder in der KI-Antwort** (`services/audit_ai.py`, im Schema
+verlangt): `branche` — was die Seite konkret ist, vom Gewerk bis zu „politischer
+Kandidat", „Verein", „Blog" — und `betriebsseite` — steht dahinter ein Betrieb,
+der über diese Website Kunden für seine Leistungen gewinnen will?
+
+**Drei Kriterien setzen einen Betrieb voraus** und sind im Katalog als
+`assumes_business` markiert: `cv_klarheit`, `cv_angebot`, `ih_textqualitaet`.
+Ist `betriebsseite` false, fallen sie aus Zähler *und* Nenner — dieselbe
+Mechanik wie bei einer nicht erhobenen Messung. Die vier Gestaltungskriterien
+(`dg_*`) bleiben bewertet: Typografie, Farbkontrast, Bildqualität und
+Aktualität gelten für jede Seite, unabhängig davon, wer dahintersteht.
+
+**Wer entscheidet, ist der Code, nicht der Prompt.** Das Modell erkennt und
+meldet; verworfen wird in `audit_scoring._apply_ai()` anhand des
+Katalog-Merkmals. Fehlt die Angabe ganz — altes Ergebnis, Modell hat das Feld
+nicht gefüllt —, bleibt es beim vorherigen Verhalten: nichts wird verworfen,
+weil ein Feld leer blieb.
+
+**Der Leser erfährt den Grund.** `collection_notes()` trägt
+`angebotskriterien: keine_betriebsseite` mit der erkannten Art der Seite als
+Detail ein, der Report zeigt „kein Betrieb erkannt — Maßstab nicht anwendbar".
+Und die KI-Zusammenfassung sagt es im ersten Satz, weil der Prompt es verlangt —
+im Lauf gegen das echte Modell: „Diese Bewertung ist eigentlich für Handwerks-
+und Dienstleistungsbetriebe gemacht, deshalb passt sie auf Ihre Kandidatenseite
+nur teilweise." Das ist die Stelle, die im Widget zuerst gelesen wird.
+
+**Geprüft gegen das echte Modell**, drei Seiten:
+
+| Seite | erkannt als | `betriebsseite` | Angebotskriterien | Gestaltung |
+|---|---|---|---|---|
+| Kandidatenauftritt | politischer Kandidat (Stadtratswahl) | false | nicht erhoben | bewertet |
+| Dachdeckerei | Dachdecker (mit Zimmerei, Bauklempnerei) | true | bewertet | bewertet |
+| SHK-Betrieb | Heizung und Sanitär (SHK-Meisterbetrieb) | true | bewertet | bewertet |
+
+Der Dachdecker wird gegen seinen eigenen Maßstab bewertet, ohne dass Wärmepumpe
+oder Bad noch vorkommen — der SHK-Fall bleibt unverändert. Das ist ausdrücklich
+**keine** Branchen-Ausweitung: bewertet wird fair, verkauft wird weiter in der
+Nische der Phase 1.
+
+Offen bleibt: `trade` aus den Stammdaten und die erkannte `branche` können
+auseinanderlaufen. Die Erkennung korrigiert nur die Bewertung, sie schreibt den
+Stammdatensatz nicht zurück.

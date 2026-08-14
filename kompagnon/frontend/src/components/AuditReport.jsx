@@ -134,6 +134,10 @@ const COLLECTION_REASONS = {
   ausnahme:               'technischer Fehler',
   timeout:                'Zeitüberschreitung',
   handshake_fehlgeschlagen: 'Verbindung fehlgeschlagen',
+  // Hinter der Seite steht kein Betrieb — die angebotsbezogenen Kriterien
+  // gelten dann nicht und zählen nicht mit. Die erkannte Art der Seite steht
+  // im title-Attribut.
+  keine_betriebsseite:    'kein Betrieb erkannt — Maßstab nicht anwendbar',
 };
 
 // Quellen-Kennzeichnung: macht im Report sichtbar, worauf eine Bewertung fußt.
@@ -356,6 +360,26 @@ export default function AuditReport({ auditData, onClose }) {
           >
             {angebotLoading ? '⏳ Wird erstellt...' : '📄 Angebot erstellen'}
           </button>
+        </div>
+      )}
+
+      {/* EINORDNUNG — steht vor der Punktzahl. Wer eine Zahl über seine
+          eigene Arbeit liest, muss vorher sehen, dass sein Geschäft
+          verstanden wurde; sonst liest er sie als Urteil eines Fremden. */}
+      {(r.erkannte_branche || r.branchenklasse) && (
+        <div style={{
+          fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)',
+          background: 'var(--bg-hover)', border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-md)', padding: '10px 14px',
+        }}>
+          {r.branchenklasse === 'K6' ? (
+            <>Eingeordnet als <strong>{r.erkannte_branche || r.branchenklasse_bezeichnung}</strong>.
+              {' '}Der Homepage Standard ist auf Betriebe zugeschnitten — die
+              angebotsbezogenen Kriterien gelten hier nicht und zählen nicht mit.</>
+          ) : (
+            <>Bewertet als <strong>{r.erkannte_branche || r.branchenklasse_bezeichnung}</strong>
+              {r.branchenklasse_bezeichnung && <> — Maßstab: {r.branchenklasse_bezeichnung}</>}.</>
+          )}
         </div>
       )}
 

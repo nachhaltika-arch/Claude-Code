@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import API_BASE_URL from '../config';
 import { saveJson } from '../utils/apiRequest';
 import WZSearch from './WZSearch';
+import AssistentPanel from './AssistentPanel';
+import { textUebernehmen } from '../utils/assistentUebernahme';
 import { useScreenSize } from '../utils/responsive';
 import { useEscapeKey } from '../hooks/useKeyboardShortcuts';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +18,20 @@ const STEPS  = [
   'Seiten & Assets',
   'Zusammenfassung',
 ];
+
+// Das Feld, über das der Assistent im jeweiligen Schritt spricht. Die Namen
+// sind die des Regelwerks im Backend (services/assistant_rules.py), nicht die
+// des Formulars — deshalb steht daneben der Formularschlüssel, in den ein
+// übernommener Vorschlag geschrieben wird.
+const ASSISTENT_FELD = {
+  0: { regel: 'leistungen',      formular: 'leistungen' },
+  1: { regel: 'typischer_kunde', formular: 'typischerKunde' },
+  2: { regel: 'usp',             formular: 'usp' },
+  // Der Stil ist eine Auswahlliste — beraten ja, hineinschreiben nein.
+  3: { regel: 'stil',            formular: '' },
+  4: { regel: '',                formular: 'sonstige_hinweise' },
+  5: { regel: '',                formular: 'sonstige_hinweise' },
+};
 
 const GEWERK_OPTIONS = [
   'Sanitär', 'Heizung', 'Elektro', 'Maler', 'Schreiner',
@@ -619,6 +635,28 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
 
   const set = (key, val) => setData(d => ({ ...d, [key]: val }));
 
+  // ── Assistent ──────────────────────────────────────────────────────────────
+  // Er sieht immer nur das Feld des aktuellen Schritts. Ein übernommener
+  // Vorschlag hängt sich an vorhandenen Text an, statt ihn zu ersetzen —
+  // niemand soll durch einen Klick eigene Arbeit verlieren.
+  const assistentFeld = ASSISTENT_FELD[step] || { regel: '', formular: '' };
+  const uebernehmen = assistentFeld.formular
+    ? (text) => set(
+        assistentFeld.formular,
+        textUebernehmen(data[assistentFeld.formular], text),
+      )
+    : null;
+  const assistent = (
+    <AssistentPanel
+      leadId={leadId}
+      feld={assistentFeld.regel}
+      schritt={STEPS[step]}
+      wert={assistentFeld.regel ? (data[assistentFeld.formular] || '') : ''}
+      onUebernehmen={uebernehmen}
+      kompakt={isCompact}
+    />
+  );
+
   // Auto-Save Draft bei jeder Änderung (nur wenn echte Daten vorhanden)
   useEffect(() => {
     if (data.gewerk || data.leistungen || data.usp || data.farben || data.stil) {
@@ -826,10 +864,19 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
             )}
           </div>
         </div>
-        {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
-          {renderStep()}
+        {/* Body — auf breiten Schirmen steht der Assistent daneben, auf
+            schmalen als aufklappbares Widget über dem Formular. */}
+        <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+            {renderStep()}
+          </div>
+          {!isCompact && (
+            <div style={{ width: 300, flexShrink: 0, padding: '20px 20px 20px 0' }}>
+              {assistent}
+            </div>
+          )}
         </div>
+        {isCompact && assistent}
         {/* Footer */}
         <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <button onClick={handleBack} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-light)', background: 'var(--bg-app)', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
@@ -1046,16 +1093,23 @@ export default function BriefingWizard({ leadId, leadData, onClose, onComplete, 
         )}
 
         {/* ── Scrollbarer Formular-Bereich ── */}
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: isCompact ? '16px 20px' : '24px 28px',
-          background: 'var(--bg-app)',
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'var(--border-light) transparent',
-        }}>
-          {renderStep()}
+        <div style={{ flex: 1, display: 'flex', minHeight: 0, background: 'var(--bg-app)' }}>
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: isCompact ? '16px 20px' : '24px 28px',
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'var(--border-light) transparent',
+          }}>
+            {renderStep()}
+          </div>
+          {!isCompact && (
+            <div style={{ width: 320, flexShrink: 0, padding: '24px 28px 24px 0' }}>
+              {assistent}
+            </div>
+          )}
         </div>
+        {isCompact && assistent}
 
         {/* ── Footer / Navigation ── */}
         <div style={{

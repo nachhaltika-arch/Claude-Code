@@ -13,11 +13,18 @@ from services.audit_criteria import (
     ai_criteria,
     determine_level,
     find_criterion,
+    ist_anwendbar,
     score_all,
 )
+from services.audit_industry_map import klasse_fuer_branche
 
 Items = Dict[str, int]
 Sources = Dict[str, Source]
+
+# Die Fassung des Standards, gegen die bewertet wurde. Ohne Stempel lässt sich
+# ein Altbestand später nicht einordnen — und die Frage, ob Bestandsaudits neu
+# gerechnet werden, ist ausdrücklich offen.
+STANDARD_VERSION = "2026.2"
 
 MIN_CONTENT_WORDS = 300
 LEAN_FORM_FIELDS = 5
@@ -413,6 +420,41 @@ def detect_blockers(facts: dict) -> List[str]:
 # Einstiegspunkt
 # ═══════════════════════════════════════════════════════════════════
 
+def _klasse_aus_erkennung(ai: dict) -> tuple:
+    """Die Branchenklasse und woher sie stammt.
+
+    Bevorzugt wird, was `audit_ai` bereits zugeordnet hat. Ältere Ergebnisse
+    tragen nur `branche` und `betriebsseite` — für die wird hier nachgeholt,
+    damit ein Altbestand nicht plötzlich gegen den vollen Katalog läuft.
+    Fehlt jede Erkennung, wird nichts unterstellt: Ein fehlgeschlagener
+    KI-Aufruf darf keine Kriterien verschwinden lassen.
+    """
+    if not ai:
+        return "", ""
+    if ai.get("branchenklasse"):
+        return ai["branchenklasse"], ai.get("branchenklasse_quelle") or "map"
+    if "branche" in ai or "betriebsseite" in ai:
+        zuordnung = klasse_fuer_branche(
+            ai.get("branche"), bool(ai.get("betriebsseite", True)))
+        return zuordnung.klasse, zuordnung.quelle
+    return "", ""
+
+
+def _verwerfe_nicht_anwendbare(sheet: _Sheet, klasse: str) -> None:
+    """Was für diese Branchenklasse nicht gilt, zählt nicht mit.
+
+    Der Unterschied zu 'nicht erhoben' ist keine Feinheit: Das eine heißt, dass
+    unsere Prüfung ausfiel, das andere, dass der Maßstab nicht passt. Nur das
+    zweite darf man dem Betrieb erklären, ohne ihn zu beschämen.
+    """
+    if not klasse:
+        return
+    for key in list(sheet.sources):
+        if not ist_anwendbar(key, klasse):
+            sheet.items[key] = 0
+            sheet.sources[key] = Source.NOT_APPLICABLE
+
+
 def score_audit(facts: dict, ai: Optional[dict] = None) -> dict:
     """Bewertet alle Kriterien und liefert Punkte, Quellen, Score und Level."""
     sheet = _Sheet()
@@ -429,12 +471,25 @@ def score_audit(facts: dict, ai: Optional[dict] = None) -> dict:
     _apply_ai(sheet, ai)
     _score_infrastructure(sheet, facts)
 
-    summary = score_all(sheet.items, sheet.sources)
+    klasse, quelle = _klasse_aus_erkennung(ai)
+    _verwerfe_nicht_anwendbare(sheet, klasse)
+
+    summary = score_all(sheet.items, sheet.sources, klasse)
     blockers = detect_blockers(facts)
     level = determine_level(summary["total_score"], blockers)
 
     return {
         **summary,
+        "standard_version": STANDARD_VERSION,
+        "branche": ai.get("branche", ""),
+        "betriebsseite": ai.get("betriebsseite"),
+        "branchenklasse": klasse,
+        "branchenklasse_quelle": quelle,
+        # Der Name aus dem Ausgabeformat der Bewertungslogik (§ 7). Dieselbe
+        # Zahl wie `achieved_points`; beide stehen da, weil das Dokument den
+        # einen und der Bestandscode den anderen Namen benutzt.
+        "rohpunkte": summary["achieved_points"],
+        "anwendbares_maximum": summary["applicable_max"],
         "items": sheet.items,
         "sources": {k: v.value for k, v in sheet.sources.items()},
         "blockers": blockers,

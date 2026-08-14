@@ -26,6 +26,10 @@ class Source(str, Enum):
     DERIVED = "abgeleitet"       # aus gemessenen Werten über feste Regeln berechnet
     AI = "einschaetzung"         # KI-Bewertung auf Screenshot/Text nach festem Rubric
     NOT_COLLECTED = "nicht_erhoben"  # Prüfung nicht möglich — zählt nicht in den Score
+    # Gilt für diese Branchenklasse nicht. Zählt ebenfalls nicht, ist aber
+    # etwas anderes als ein Ausfall: „konnte nicht geprüft werden" liest sich
+    # wie ein Mangel unserer Prüfung, „gilt hier nicht" wie eine Einordnung.
+    NOT_APPLICABLE = "nicht_anwendbar"
 
 
 SOURCE_LABELS = {
@@ -33,6 +37,7 @@ SOURCE_LABELS = {
     Source.DERIVED: "abgeleitet",
     Source.AI: "KI-Einschätzung",
     Source.NOT_COLLECTED: "nicht erhoben",
+    Source.NOT_APPLICABLE: "gilt für diese Branche nicht",
 }
 
 
@@ -45,6 +50,20 @@ class Criterion:
     max_points: int
     source: Source          # geplante Erhebungsart im Bestfall
     hint: str = ""          # was konkret geprüft wird — erscheint im Report
+    # Zwei Voraussetzungen, an denen die Anwendbarkeit je Branchenklasse hängt
+    # (Bewertungslogik 2026.2, § 2.4). Sie stehen am Kriterium und nicht in
+    # einer Klassentabelle, weil es Eigenschaften des Kriteriums sind: Eine
+    # neue Klasse erbt die Regel dann von selbst.
+    #
+    # Setzt einen Betrieb voraus, der über die Website Kunden gewinnen will.
+    # Steht dahinter kein Betrieb — ein politischer Auftritt, ein Verein, ein
+    # privates Projekt —, dann gibt es kein Angebot und keine Leistungsseiten.
+    # Das ist kein Mangel der Seite, sondern ein Maßstab, der nicht passt.
+    assumes_business: bool = False
+    # Setzt ein Einzugsgebiet voraus. Ein bundesweit arbeitender Anbieter ohne
+    # Ortsbezug ist nicht schlechter auffindbar, sondern anders — ihm einen
+    # fehlenden Ortsbezug vorzuhalten misst am falschen Ziel.
+    assumes_local: bool = False
 
     @property
     def is_scored(self) -> bool:
@@ -150,7 +169,8 @@ CATALOGUE: Tuple[Category, ...] = (
             Criterion("se_schema", "Strukturierte Daten", 3, Source.MEASURED,
                       "JSON-LD, LocalBusiness, FAQ, Bewertungen"),
             Criterion("se_lokal", "Lokale Signale", 3, Source.MEASURED,
-                      "Ort in Title/H1, NAP-Angaben, Kartenverknüpfung"),
+                      "Ort in Title/H1, NAP-Angaben, Kartenverknüpfung",
+                      assumes_local=True),
             Criterion("se_links", "Keine defekten Links", 1, Source.MEASURED,
                       "Linkprüfung über die Startseite"),
         ),
@@ -176,15 +196,20 @@ CATALOGUE: Tuple[Category, ...] = (
         label="Conversion & Nutzerführung",
         criteria=(
             Criterion("cv_klarheit", "Klarheit above the fold", 3, Source.AI,
-                      "Was, für wen, in welchem Gebiet — in fünf Sekunden erfassbar"),
+                      "Was, für wen, in welchem Gebiet — in fünf Sekunden erfassbar",
+                      assumes_business=True),
             Criterion("cv_cta", "Primär-CTA", 3, Source.DERIVED,
-                      "vorhanden, ergebnisorientiert, im Verlauf wiederholt"),
+                      "vorhanden, ergebnisorientiert, im Verlauf wiederholt",
+                      assumes_business=True),
             Criterion("cv_kontakt", "Kontaktwege", 3, Source.MEASURED,
-                      "Telefon klickbar, Formular schlank, Reaktionszeit benannt"),
+                      "Telefon klickbar, Formular schlank, Reaktionszeit benannt",
+                      assumes_business=True),
             Criterion("cv_vertrauen", "Vertrauenssignale", 3, Source.DERIVED,
-                      "Bewertungen, Referenzen, Zertifikate, Meisterbetrieb"),
+                      "Bewertungen, Referenzen, Zertifikate, Meisterbetrieb",
+                      assumes_business=True),
             Criterion("cv_angebot", "Angebots-Klarheit", 3, Source.AI,
-                      "Leistungen konkret, Ablauf oder Preisrahmen, Risk Reversal"),
+                      "Leistungen konkret, Ablauf oder Preisrahmen, Risk Reversal",
+                      assumes_business=True),
         ),
     ),
     Category(
@@ -192,11 +217,13 @@ CATALOGUE: Tuple[Category, ...] = (
         label="Inhalt & Substanz",
         criteria=(
             Criterion("ih_leistungsseiten", "Eigene Leistungsseiten", 2, Source.MEASURED,
-                      "je Gewerk eine Seite statt einer Sammelseite"),
+                      "je Gewerk eine Seite statt einer Sammelseite",
+                      assumes_business=True),
             Criterion("ih_aktualitaet", "Aktualität", 1, Source.MEASURED,
                       "datierte Inhalte, kein veraltetes Copyright"),
             Criterion("ih_textqualitaet", "Textqualität", 2, Source.AI,
-                      "Kundennutzen statt Selbstbeschreibung, keine Worthülsen"),
+                      "Kundennutzen statt Selbstbeschreibung, keine Worthülsen",
+                      assumes_business=True),
         ),
     ),
 )
@@ -272,8 +299,48 @@ TOTAL_POINTS: int = sum(cat.max_points for cat in CATALOGUE)
 # Scoring
 # ═══════════════════════════════════════════════════════════════════
 
+# Klassen ohne Betrieb dahinter bzw. ohne Einzugsgebiet (§ 2.2 der
+# Bewertungslogik 2026.2). Was daraus folgt, steht am Kriterium selbst.
+KLASSE_OHNE_BETRIEB = frozenset({"K6"})
+KLASSE_OHNE_EINZUGSGEBIET = frozenset({"K4", "K6"})
+
+
+def ist_anwendbar(key: str, klasse: Optional[str]) -> bool:
+    """Gilt dieses Kriterium für diese Branchenklasse?
+
+    Ohne Klasse — und bei einer unbekannten — wird alles bewertet. Lieber
+    vollständig messen als stillschweigend Kriterien verschlucken, deren
+    Wegfall niemandem auffiele.
+    """
+    criterion = find_criterion(key)
+    if criterion is None or not klasse:
+        return True
+    if criterion.assumes_business and klasse in KLASSE_OHNE_BETRIEB:
+        return False
+    if criterion.assumes_local and klasse in KLASSE_OHNE_EINZUGSGEBIET:
+        return False
+    return True
+
+
+def anwendbares_maximum(klasse: Optional[str] = None) -> int:
+    """Die erreichbaren Punkte dieser Klasse — gerechnet, nicht notiert.
+
+    Die Bewertungslogik nennt in § 2.4 feste Maxima je Klasse. Die stimmen mit
+    ihren eigenen Einzelwerten nicht überein (79 gegen 78 bei K6). Deshalb wird
+    hier gezählt: Eine Zahl, die aus dem Katalog folgt, kann nicht veralten.
+    """
+    return sum(c.max_points for c in all_criteria() if ist_anwendbar(c.key, klasse))
+
+
 def _collected(key: str, sources: Dict[str, Source]) -> bool:
-    return sources.get(key, Source.NOT_COLLECTED) != Source.NOT_COLLECTED
+    """Zählt dieses Kriterium in Zähler und Nenner?
+
+    Nicht erhoben und nicht anwendbar fallen beide heraus — das eine, weil die
+    Prüfung ausfiel, das andere, weil der Maßstab nicht passt. Getrennt gehalten
+    werden sie nur in der Ausgabe, wo der Unterschied den Leser betrifft.
+    """
+    quelle = sources.get(key, Source.NOT_COLLECTED)
+    return quelle not in (Source.NOT_COLLECTED, Source.NOT_APPLICABLE)
 
 
 def _clamp(value, maximum: int) -> int:
@@ -315,25 +382,33 @@ def score_category(
 def score_all(
     items: Dict[str, int],
     sources: Dict[str, Source],
+    klasse: Optional[str] = None,
 ) -> dict:
     """Gesamtauswertung: Kategorien, normierter Gesamtscore, Abdeckung.
 
     Der Gesamtscore ist der Anteil erreichter an erreichbaren Punkten,
     normiert auf 0–100. Nicht erhobene Kriterien reduzieren den Nenner,
     statt als Null durchzuschlagen.
+
+    Die Abdeckung misst gegen das **anwendbare** Maximum der Branchenklasse,
+    nicht gegen die vollen 100 Punkte. Sonst läse sich bei einer Seite ohne
+    Betrieb eine Abdeckung von 78 %, als wäre ein Fünftel der Prüfung
+    misslungen — dabei gilt es dort schlicht nicht.
     """
     categories = [score_category(cat, items, sources) for cat in CATALOGUE]
 
     achieved = sum(c["score"] for c in categories)
     possible = sum(c["max"] for c in categories)
     total = round(achieved / possible * 100) if possible else 0
+    anwendbar = anwendbares_maximum(klasse)
 
     return {
         "categories": categories,
         "achieved_points": achieved,
         "possible_points": possible,
+        "applicable_max": anwendbar,
         "total_score": total,
-        "coverage": round(possible / TOTAL_POINTS * 100) if TOTAL_POINTS else 0,
+        "coverage": round(possible / anwendbar * 100) if anwendbar else 0,
     }
 
 

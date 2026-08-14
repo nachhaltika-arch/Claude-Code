@@ -111,6 +111,55 @@ def test_ohne_ki_bleiben_design_und_conversion_nicht_erhoben():
     assert result["total_score"] == 100
 
 
+# ── Keine Betriebsseite: der fremde Maßstab fällt weg ─────────────────
+
+def test_ohne_betriebsseite_fallen_die_angebotskriterien_heraus():
+    """Eine Seite ohne Betrieb hat kein Angebot — das ist kein Mangel.
+
+    Anlass: Das Audit bewertete den Auftritt eines politischen Kandidaten und
+    hielt ihm fehlende Leistungsbeschreibungen, ein fehlendes Einsatzgebiet und
+    einen fehlenden Preisrahmen vor. Richtig gerechnet, als Aussage unbrauchbar.
+    """
+    ki = {**_ki_voll(), "betriebsseite": False, "branche": "politischer Kandidat"}
+    result = score_audit(_fakten(), ki)
+
+    for key in ("cv_klarheit", "cv_angebot", "ih_textqualitaet"):
+        assert result["sources"][key] == Source.NOT_APPLICABLE.value, key
+    # Kein stiller Abzug: der Nenner wird kleiner, nicht der Zähler.
+    assert result["total_score"] == 100
+    # Die Abdeckung misst gegen das anwendbare Maximum: Es fiel nichts aus,
+    # es gilt nur weniger.
+    assert result["coverage"] == 100
+    assert result["anwendbares_maximum"] < 100
+
+
+def test_ohne_betriebsseite_bleibt_die_gestaltung_bewertet():
+    """Typografie, Farbkontrast und Bildqualität gelten für jede Seite."""
+    ki = {**_ki_voll(), "betriebsseite": False, "branche": "Verein"}
+    result = score_audit(_fakten(), ki)
+
+    for key in ("dg_aktualitaet", "dg_typografie", "dg_farbsystem", "dg_bildqualitaet"):
+        assert result["sources"][key] == Source.AI.value, key
+
+
+def test_eine_betriebsseite_wird_vollstaendig_bewertet():
+    ki = {**_ki_voll(), "betriebsseite": True, "branche": "Dachdecker"}
+    result = score_audit(_fakten(), ki)
+
+    for key in ("cv_klarheit", "cv_angebot", "ih_textqualitaet"):
+        assert result["sources"][key] == Source.AI.value, key
+    assert result["coverage"] == 100
+
+
+def test_ohne_aussage_zur_betriebsseite_bleibt_es_beim_alten_verhalten():
+    """Fehlt die Angabe, wird nichts verworfen — sonst verschwinden Kriterien,
+    weil das Modell ein Feld nicht gefüllt hat."""
+    result = score_audit(_fakten(), _ki_voll())
+
+    for key in ("cv_klarheit", "cv_angebot", "ih_textqualitaet"):
+        assert result["sources"][key] == Source.AI.value, key
+
+
 def test_ohne_formular_wird_formularkriterium_nicht_bewertet():
     facts = _fakten(forms={"collected": True, "total": 0})
     result = score_audit(facts, _ki_voll())
@@ -221,3 +270,74 @@ def test_leere_fakten_stuerzen_nicht_ab():
     result = score_audit({}, {})
     assert result["total_score"] == 0
     assert result["level"] == "Nicht konform"
+
+
+# ── Die Branchenklasse trägt die Bewertung (Bewertungslogik 2026.2) ───
+
+def test_der_ueberregionale_anbieter_verliert_die_lokalen_signale():
+    """K4 arbeitet bundesweit — ein Ortsbezug ist dort kein Qualitätsmerkmal."""
+    ki = {**_ki_voll(), "branche": "Unternehmensberatung", "betriebsseite": True,
+          "branchenklasse": "K4", "branchenklasse_quelle": "map"}
+    result = score_audit(_fakten(), ki)
+
+    assert result["sources"]["se_lokal"] == Source.NOT_APPLICABLE.value
+    # Kein Abzug: der Nenner wird kleiner, nicht der Zähler.
+    assert result["total_score"] == 100
+    assert result["anwendbares_maximum"] == 97
+    # Alles Anwendbare wurde erhoben.
+    assert result["coverage"] == 100
+
+
+def test_die_klasse_ohne_betrieb_verwirft_die_angebotskriterien():
+    ki = {**_ki_voll(), "branche": "politischer Kandidat", "betriebsseite": False,
+          "branchenklasse": "K6", "branchenklasse_quelle": "map"}
+    result = score_audit(_fakten(), ki)
+
+    for key in ("cv_klarheit", "cv_cta", "cv_kontakt", "cv_vertrauen",
+                "cv_angebot", "ih_leistungsseiten", "ih_textqualitaet",
+                "se_lokal"):
+        assert result["sources"][key] == Source.NOT_APPLICABLE.value, key
+    assert result["anwendbares_maximum"] == 78
+    assert result["total_score"] == 100
+
+
+def test_gestaltung_wird_auch_ohne_betrieb_bewertet():
+    ki = {**_ki_voll(), "branchenklasse": "K6", "betriebsseite": False}
+    result = score_audit(_fakten(), ki)
+
+    for key in ("dg_aktualitaet", "dg_typografie", "dg_farbsystem",
+                "dg_bildqualitaet"):
+        assert result["sources"][key] == Source.AI.value, key
+
+
+def test_ohne_klasse_im_ergebnis_wird_sie_aus_der_branche_abgeleitet():
+    """Ältere Ergebnisse tragen nur branche und betriebsseite."""
+    ki = {**_ki_voll(), "branche": "Dachdecker", "betriebsseite": True}
+    result = score_audit(_fakten(), ki)
+
+    assert result["branchenklasse"] == "K1"
+    assert result["branchenklasse_quelle"] == "map"
+
+
+def test_ohne_jede_erkennung_wird_der_ganze_katalog_bewertet():
+    """Ein fehlgeschlagener KI-Aufruf darf keine Kriterien verschwinden lassen."""
+    result = score_audit(_fakten(), ai={})
+
+    assert result["branchenklasse"] == ""
+    assert result["anwendbares_maximum"] == 100
+    assert result["sources"]["se_lokal"] != Source.NOT_APPLICABLE.value
+
+
+def test_das_ergebnis_traegt_die_fassung_des_standards():
+    """Ohne Versionsstempel lässt sich ein Altbestand später nicht einordnen."""
+    result = score_audit(_fakten(), _ki_voll())
+
+    assert result["standard_version"] == "2026.2"
+
+
+def test_rohpunkte_und_anwendbares_maximum_stehen_nebeneinander():
+    ki = {**_ki_voll(), "branchenklasse": "K6", "betriebsseite": False}
+    result = score_audit(_fakten(), ki)
+
+    assert result["rohpunkte"] == result["achieved_points"]
+    assert result["rohpunkte"] <= result["anwendbares_maximum"]

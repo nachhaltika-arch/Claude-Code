@@ -135,6 +135,12 @@ def _run_migrations():
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS blockers TEXT DEFAULT '[]'",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS coverage INTEGER DEFAULT 0",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS collection_notes TEXT DEFAULT '{}'",
+        # Branchenmodell des Homepage Standards 2026.2: Gegen welchen Maßstab
+        # bewertet wurde, gehört zum Ergebnis — ohne diese Angabe lässt sich
+        # ein Bericht später weder erklären noch mit einem neueren vergleichen.
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS erkannte_branche VARCHAR DEFAULT ''",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS branchenklasse VARCHAR DEFAULT ''",
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS standard_version VARCHAR DEFAULT ''",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS analysis_score INTEGER DEFAULT 0",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS geo_score INTEGER DEFAULT 0",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS website_screenshot TEXT DEFAULT ''",
@@ -1725,6 +1731,11 @@ app.add_middleware(
 # Include all routers — specific routers BEFORE alias/fallback routers
 app.include_router(usercards_router)
 app.include_router(leads_router)                      # real leads router first
+# Die ausdrücklich öffentlichen Lead-Routen: Formular der Landingpage und der
+# Kundenzugang über Einmal-Token. Alles andere hängt am `leads_router` und
+# verlangt eine Anmeldung.
+from routers.leads import public_router as leads_public_router
+app.include_router(leads_public_router)
 app.include_router(leads_alias_router)                # alias after
 app.include_router(usercards_customers_alias_router)
 app.include_router(customers_router)                  # real customers router first
@@ -1857,6 +1868,15 @@ app.include_router(geo_router)
 
 from routers.geo_payments import router as geo_payments_router
 app.include_router(geo_payments_router)
+
+# Projekt-Assistent (Ausbau 1: Begleitung durch das Briefing)
+from routers.assistant import router as assistant_router
+app.include_router(assistant_router)
+
+# Zustellungsstörungen von Brevo — ohne sie meldet der Versand Erfolg und
+# niemand erfährt, dass die Mail beim Empfänger abgewiesen wurde.
+from routers.mail_events import router as mail_events_router
+app.include_router(mail_events_router)
 
 
 # Global exception handler — catches unhandled errors

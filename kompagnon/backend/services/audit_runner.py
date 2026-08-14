@@ -11,6 +11,7 @@ qa_scanner (~45 echte Checks), hosting_scraper und link_checker.
 """
 import asyncio
 import logging
+from typing import Optional
 
 import httpx
 from bs4 import BeautifulSoup
@@ -242,7 +243,7 @@ def summarise_facts(facts: dict) -> dict:
     }
 
 
-def collection_notes(facts: dict) -> dict:
+def collection_notes(facts: dict, ai: Optional[dict] = None) -> dict:
     """Warum eine Prüfung ausfiel — damit 'nicht erhoben' begründet erscheint.
 
     Ohne diese Notiz sieht der Betrachter nur fehlende Punkte und kann nicht
@@ -262,4 +263,14 @@ def collection_notes(facts: dict) -> dict:
                 "reason": fact.get("reason", "unbekannt"),
                 "detail": str(fact.get("detail", ""))[:200],
             }
+
+    # Steht hinter der Seite kein Betrieb, fallen die angebotsbezogenen
+    # Kriterien heraus (siehe audit_scoring._apply_ai). Ohne diese Notiz sieht
+    # der Leser nur eine niedrigere Abdeckung und erfährt nicht, warum.
+    if ai and ai.get("betriebsseite") is False:
+        notes["angebotskriterien"] = {
+            "reason": "keine_betriebsseite",
+            "detail": str(ai.get("branche") or "")[:200],
+        }
+
     return notes

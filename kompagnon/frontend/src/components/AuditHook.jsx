@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import { stufeAnzeige } from '../utils/homepageStandard';
 
 const TEAL    = '#008eaa';
 const DARK1   = '#04293a';
@@ -16,13 +17,6 @@ const MSGS = [
   '🤖 KI-Analyse läuft...',
 ];
 
-const LEVEL = (s) =>
-  s >= 85 ? 'Homepage Standard Platin 💎'
-  : s >= 70 ? 'Homepage Standard Gold 🥇'
-  : s >= 50 ? 'Homepage Standard Silber 🥈'
-  : s >= 30 ? 'Homepage Standard Bronze 🥉'
-  : 'Nicht konform ⚠️';
-
 const scoreColor = (s) =>
   s >= 70 ? '#1d9e75' : s >= 50 ? '#e67e22' : '#c0392b';
 
@@ -34,6 +28,11 @@ export default function AuditHook() {
   const [auditData,setAuditData]= useState(null);
   const [error,    setError]    = useState('');
   const [progress, setProgress] = useState('');
+
+  // `GET /api/audit/{id}` liefert `total_score`, kein `score`. Hier stand
+  // `auditData.score || 0` — also für jedes fertige Audit eine 0 und die Stufe
+  // dazu. Auf der Landingpage, wo Fremde ihr Ergebnis lesen.
+  const punkte = Number(auditData?.total_score ?? auditData?.score ?? 0) || 0;
 
   const normalizeUrl = (raw) => {
     raw = raw.trim();
@@ -473,9 +472,9 @@ export default function AuditHook() {
             }}>
               <div style={{
                 fontSize: 48, fontWeight: 800, lineHeight: 1,
-                color: scoreColor(auditData.score || 0),
+                color: scoreColor(punkte),
               }}>
-                {auditData.score || 0}
+                {punkte}
               </div>
               <div>
                 <div style={{ fontSize: 11, color:'#5a7a80', marginBottom: 3 }}>
@@ -484,12 +483,12 @@ export default function AuditHook() {
                 <div style={{
                   display:'inline-flex', alignItems:'center', gap: 6,
                   padding:'4px 12px',
-                  background: scoreColor(auditData.score||0) + '18',
-                  border:`1px solid ${scoreColor(auditData.score||0)}40`,
+                  background: scoreColor(punkte) + '18',
+                  border:`1px solid ${scoreColor(punkte)}40`,
                   borderRadius: 20, fontSize: 12, fontWeight: 700,
-                  color: scoreColor(auditData.score||0),
+                  color: scoreColor(punkte),
                 }}>
-                  {LEVEL(auditData.score || 0)}
+                  {stufeAnzeige(punkte, auditData.level)}
                 </div>
               </div>
             </div>

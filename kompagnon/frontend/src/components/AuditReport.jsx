@@ -134,6 +134,10 @@ const COLLECTION_REASONS = {
   ausnahme:               'technischer Fehler',
   timeout:                'Zeitüberschreitung',
   handshake_fehlgeschlagen: 'Verbindung fehlgeschlagen',
+  // Hinter der Seite steht kein Betrieb — die angebotsbezogenen Kriterien
+  // gelten dann nicht und zählen nicht mit. Die erkannte Art der Seite steht
+  // im title-Attribut.
+  keine_betriebsseite:    'kein Betrieb erkannt — Maßstab nicht anwendbar',
 };
 
 // Quellen-Kennzeichnung: macht im Report sichtbar, worauf eine Bewertung fußt.

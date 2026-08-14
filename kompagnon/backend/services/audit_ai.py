@@ -32,15 +32,34 @@ MAX_TOKENS = 4000
 REQUEST_TIMEOUT = 90.0
 PAGE_TEXT_LIMIT = 6000
 
-SYSTEM_PROMPT = """Du bewertest Websites von Handwerksbetrieben (Heizung, Sanitär,
-Elektrik) für den KOMPAGNON Homepage Standard.
+SYSTEM_PROMPT = """Du bewertest Websites für den KOMPAGNON Homepage Standard.
+
+ERST ERKENNEN, DANN BEWERTEN. Zwei Felder gehören in jede Antwort:
+
+- 'branche': Was ist das für eine Seite? Nenne das Gewerk oder die Branche so
+  konkret wie erkennbar — „Dachdecker", „Heizung und Sanitär", „Steuerberatung",
+  „Restaurant" — oder, wenn dahinter kein Betrieb steckt, was es sonst ist:
+  „politischer Kandidat", „Verein", „Blog", „private Seite", „Baustellenseite".
+- 'betriebsseite': true, wenn dahinter ein Betrieb oder eine Organisation steht,
+  die über diese Website Kunden für ihre Leistungen gewinnen will. false sonst.
+
+Bei 'betriebsseite': false wirf der Seite NICHT vor, was ein Betrieb hätte:
+keine fehlenden Leistungsbeschreibungen, kein fehlendes Einsatzgebiet, kein
+fehlender Preisrahmen. Diese Kriterien werden dann verworfen und zählen nicht.
+Halte 'ai_summary', 'top_issues' und 'recommendations' in diesem Fall bei dem,
+was für DIESE Seite gilt — Gestaltung, Lesbarkeit, Kontrast, Aktualität — und
+sage im ersten Satz klar, dass der KOMPAGNON Homepage Standard auf Betriebe
+zugeschnitten ist und für diese Seite deshalb nur eingeschränkt aussagt.
 
 Du bewertest AUSSCHLIESSLICH die unten aufgeführten Kriterien. Alles andere —
 Recht, Sicherheit, Performance, SEO, Barrierefreiheit — wurde bereits technisch
 gemessen und ist nicht deine Aufgabe.
 
-Maßstab: Zielgruppe sind Hausbesitzer, die eine Wärmepumpe, ein Bad oder eine
-Wallbox suchen. Bewerte aus deren Sicht, nicht aus Sicht eines Designers.
+MASZSTAB: die Sicht der Kundschaft, die diese Seite gewinnen soll — bei einem
+Handwerksbetrieb also Hausbesitzer mit einem konkreten Vorhaben aus dessen
+Gewerk, bei anderen Branchen die dort passende Kundschaft. Leite den Maßstab aus
+der erkannten Branche ab, nicht aus einer festen Liste, und bewerte nicht aus
+Sicht eines Designers.
 
 Sei streng, aber begründet. Vergib die volle Punktzahl nur, wenn es dafür
 sichtbare Belege gibt. Wenn du etwas nicht beurteilen kannst, vergib 0 Punkte
@@ -81,6 +100,10 @@ def _schema() -> dict:
     """
     properties = {c.key: {"type": "integer"} for c in ai_criteria()}
     properties.update({
+        # Die Erkennung steht vor der Bewertung: `betriebsseite` entscheidet im
+        # Scoring, ob die angebotsbezogenen Kriterien überhaupt gelten.
+        "branche": {"type": "string"},
+        "betriebsseite": {"type": "boolean"},
         "begruendung": {"type": "string"},
         "ai_summary": {"type": "string"},
         "top_issues": {"type": "array", "items": {"type": "string"}},
@@ -132,7 +155,11 @@ def _user_content(facts: dict, summary: dict, screenshot_b64: Optional[str]) -> 
             f"KONTEXT:\n{json.dumps(context, indent=2, ensure_ascii=False)}\n\n"
             f"ZU BEWERTENDE KRITERIEN:\n{_rubric()}\n\n"
             f"SEITENTEXT DER STARTSEITE:\n{(facts.get('page_text') or '')[:PAGE_TEXT_LIMIT]}\n\n"
-            "Zusätzlich: 'begruendung' (2-3 Sätze zu deiner Design- und "
+            "Das Gewerk im Kontext stammt aus unseren Stammdaten und kann falsch "
+            "oder leer sein — richte dich nach der Seite selbst und korrigiere es "
+            "in 'branche', wenn es nicht passt.\n\n"
+            "Zusätzlich: 'branche' und 'betriebsseite' (siehe oben), "
+            "'begruendung' (2-3 Sätze zu deiner Design- und "
             "Conversion-Bewertung), 'ai_summary' (3-5 Sätze in einfacher Sprache "
             "für den Betriebsinhaber), 'top_issues' (die 3 größten konkreten "
             "Probleme), 'recommendations' (3-5 konkrete nächste Schritte)."

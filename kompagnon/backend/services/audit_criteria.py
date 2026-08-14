@@ -45,6 +45,12 @@ class Criterion:
     max_points: int
     source: Source          # geplante Erhebungsart im Bestfall
     hint: str = ""          # was konkret geprüft wird — erscheint im Report
+    # Setzt einen Betrieb voraus, der über die Website Kunden gewinnen will.
+    # Steht vor dem Audit eine Seite ohne Betrieb — ein politischer Auftritt,
+    # ein Verein, ein privates Projekt —, dann hat sie kein Angebot und keine
+    # Leistungsseiten. Das ist kein Mangel der Seite, sondern ein Maßstab, der
+    # nicht passt: solche Kriterien fallen aus Zähler UND Nenner.
+    assumes_business: bool = False
 
     @property
     def is_scored(self) -> bool:
@@ -176,7 +182,8 @@ CATALOGUE: Tuple[Category, ...] = (
         label="Conversion & Nutzerführung",
         criteria=(
             Criterion("cv_klarheit", "Klarheit above the fold", 3, Source.AI,
-                      "Was, für wen, in welchem Gebiet — in fünf Sekunden erfassbar"),
+                      "Was, für wen, in welchem Gebiet — in fünf Sekunden erfassbar",
+                      assumes_business=True),
             Criterion("cv_cta", "Primär-CTA", 3, Source.DERIVED,
                       "vorhanden, ergebnisorientiert, im Verlauf wiederholt"),
             Criterion("cv_kontakt", "Kontaktwege", 3, Source.MEASURED,
@@ -184,7 +191,8 @@ CATALOGUE: Tuple[Category, ...] = (
             Criterion("cv_vertrauen", "Vertrauenssignale", 3, Source.DERIVED,
                       "Bewertungen, Referenzen, Zertifikate, Meisterbetrieb"),
             Criterion("cv_angebot", "Angebots-Klarheit", 3, Source.AI,
-                      "Leistungen konkret, Ablauf oder Preisrahmen, Risk Reversal"),
+                      "Leistungen konkret, Ablauf oder Preisrahmen, Risk Reversal",
+                      assumes_business=True),
         ),
     ),
     Category(
@@ -196,7 +204,8 @@ CATALOGUE: Tuple[Category, ...] = (
             Criterion("ih_aktualitaet", "Aktualität", 1, Source.MEASURED,
                       "datierte Inhalte, kein veraltetes Copyright"),
             Criterion("ih_textqualitaet", "Textqualität", 2, Source.AI,
-                      "Kundennutzen statt Selbstbeschreibung, keine Worthülsen"),
+                      "Kundennutzen statt Selbstbeschreibung, keine Worthülsen",
+                      assumes_business=True),
         ),
     ),
 )

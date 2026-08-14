@@ -192,7 +192,7 @@ def _run_audit_background(audit_id: int):
         audit2.category_scores = json.dumps(result["categories"], ensure_ascii=False)
         audit2.blockers        = json.dumps(result["blockers"], ensure_ascii=False)
         audit2.coverage        = result["coverage"]
-        audit2.collection_notes = json.dumps(collection_notes(facts), ensure_ascii=False)
+        audit2.collection_notes = json.dumps(collection_notes(facts, ai), ensure_ascii=False)
 
         audit2.ssl_ok            = summary["ssl_ok"]
         audit2.impressum_ok      = summary["impressum_ok"]

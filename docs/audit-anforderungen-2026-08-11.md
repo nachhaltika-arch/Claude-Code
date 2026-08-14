@@ -412,8 +412,15 @@ tatsächlich geprüften Kriterien normiert.
 4. **Der umgebaute Katalog ist nie gegen eine echte fremde Website gelaufen.**
    Ein Lauf gegen zwei, drei reale SHK-Seiten würde zeigen, ob die Punktzahlen
    plausibel sind. Das ist der wichtigste der vier Punkte.
-5. **Das Audit unterstellt jeder Seite ein Handwerksgewerk — auch wenn keins da
-   ist.** (David, 2026-08-14) Ein Bericht aus dem Staging-Widget bewertete den
+5. **Die Erkennung ist gebaut, die Branchen-Ausweitung nicht.** *(Stand
+   2026-08-14, siehe § 7)* Was unten als Befund steht, ist behoben: Das Audit
+   erkennt jetzt, was es vor sich hat, und lässt den fremden Maßstab weg. Offen
+   bleibt die Ausweitung auf weitere Gewerke und Branchen — die
+   Geschäftsentscheidung.
+
+   Der ursprüngliche Befund: **Das Audit unterstellte jeder Seite ein
+   Handwerksgewerk — auch wenn keins da war.** (David, 2026-08-14) Ein Bericht
+   aus dem Staging-Widget bewertete den
    Auftritt eines politischen Kandidaten gegen den SHK-Maßstab: „Für
    Hausbesitzer, die z. B. ein Dach, eine Wärmepumpe oder ein Bad suchen, gibt
    es hier keinen Anknüpfungspunkt … es fehlen Leistungsbeschreibungen,
@@ -445,4 +452,57 @@ tatsächlich geprüften Kriterien normiert.
      Maßstab je Branche ist dabei die eigentliche Arbeit, nicht die Technik:
      Conversion-Spec, Kriteriengewichte und Templates hängen daran.
 
-   Beides ist bisher nur aufgeschrieben, nichts davon gebaut.
+   Die Erkennung ist gebaut (§ 7), die Ausweitung nicht.
+
+---
+
+## 7. Die Erkennung — gebaut am 2026-08-14
+
+Das Audit erkennt jetzt, was es vor sich hat, bevor es bewertet. Der
+Systemprompt schrieb bis dahin „Websites von Handwerksbetrieben (Heizung,
+Sanitär, Elektrik)" und als Maßstab „Hausbesitzer, die eine Wärmepumpe, ein Bad
+oder eine Wallbox suchen" fest — beides ist raus. Der Maßstab leitet sich jetzt
+aus der erkannten Branche ab.
+
+**Zwei neue Felder in der KI-Antwort** (`services/audit_ai.py`, im Schema
+verlangt): `branche` — was die Seite konkret ist, vom Gewerk bis zu „politischer
+Kandidat", „Verein", „Blog" — und `betriebsseite` — steht dahinter ein Betrieb,
+der über diese Website Kunden für seine Leistungen gewinnen will?
+
+**Drei Kriterien setzen einen Betrieb voraus** und sind im Katalog als
+`assumes_business` markiert: `cv_klarheit`, `cv_angebot`, `ih_textqualitaet`.
+Ist `betriebsseite` false, fallen sie aus Zähler *und* Nenner — dieselbe
+Mechanik wie bei einer nicht erhobenen Messung. Die vier Gestaltungskriterien
+(`dg_*`) bleiben bewertet: Typografie, Farbkontrast, Bildqualität und
+Aktualität gelten für jede Seite, unabhängig davon, wer dahintersteht.
+
+**Wer entscheidet, ist der Code, nicht der Prompt.** Das Modell erkennt und
+meldet; verworfen wird in `audit_scoring._apply_ai()` anhand des
+Katalog-Merkmals. Fehlt die Angabe ganz — altes Ergebnis, Modell hat das Feld
+nicht gefüllt —, bleibt es beim vorherigen Verhalten: nichts wird verworfen,
+weil ein Feld leer blieb.
+
+**Der Leser erfährt den Grund.** `collection_notes()` trägt
+`angebotskriterien: keine_betriebsseite` mit der erkannten Art der Seite als
+Detail ein, der Report zeigt „kein Betrieb erkannt — Maßstab nicht anwendbar".
+Und die KI-Zusammenfassung sagt es im ersten Satz, weil der Prompt es verlangt —
+im Lauf gegen das echte Modell: „Diese Bewertung ist eigentlich für Handwerks-
+und Dienstleistungsbetriebe gemacht, deshalb passt sie auf Ihre Kandidatenseite
+nur teilweise." Das ist die Stelle, die im Widget zuerst gelesen wird.
+
+**Geprüft gegen das echte Modell**, drei Seiten:
+
+| Seite | erkannt als | `betriebsseite` | Angebotskriterien | Gestaltung |
+|---|---|---|---|---|
+| Kandidatenauftritt | politischer Kandidat (Stadtratswahl) | false | nicht erhoben | bewertet |
+| Dachdeckerei | Dachdecker (mit Zimmerei, Bauklempnerei) | true | bewertet | bewertet |
+| SHK-Betrieb | Heizung und Sanitär (SHK-Meisterbetrieb) | true | bewertet | bewertet |
+
+Der Dachdecker wird gegen seinen eigenen Maßstab bewertet, ohne dass Wärmepumpe
+oder Bad noch vorkommen — der SHK-Fall bleibt unverändert. Das ist ausdrücklich
+**keine** Branchen-Ausweitung: bewertet wird fair, verkauft wird weiter in der
+Nische der Phase 1.
+
+Offen bleibt: `trade` aus den Stammdaten und die erkannte `branche` können
+auseinanderlaufen. Die Erkennung korrigiert nur die Bewertung, sie schreibt den
+Stammdatensatz nicht zurück.

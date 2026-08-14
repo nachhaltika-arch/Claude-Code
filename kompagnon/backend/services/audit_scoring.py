@@ -355,8 +355,20 @@ def _score_content(sheet: _Sheet, facts: dict) -> None:
 # ═══════════════════════════════════════════════════════════════════
 
 def _apply_ai(sheet: _Sheet, ai: dict) -> None:
-    """Trägt die KI-Bewertung ein — nur für Kriterien, die als KI markiert sind."""
+    """Trägt die KI-Bewertung ein — nur für Kriterien, die als KI markiert sind.
+
+    Hat die Erkennung ergeben, dass hinter der Seite kein Betrieb steht, fallen
+    die Kriterien heraus, die ein Angebot voraussetzen. Sie sind dann nicht
+    schlecht erfüllt, sondern nicht anwendbar — und ein Maßstab, der nicht
+    passt, darf keine Punkte kosten. Fehlt die Angabe ganz, bleibt es beim
+    alten Verhalten: nichts wird verworfen, weil ein Feld leer blieb.
+    """
+    ist_betrieb = ai.get("betriebsseite") if ai else None
+
     for criterion in ai_criteria():
+        if ist_betrieb is False and criterion.assumes_business:
+            sheet.skip(criterion.key)
+            continue
         value = ai.get(criterion.key) if ai else None
         if value is None:
             sheet.skip(criterion.key)

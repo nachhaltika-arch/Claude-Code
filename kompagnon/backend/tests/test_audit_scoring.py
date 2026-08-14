@@ -111,6 +111,52 @@ def test_ohne_ki_bleiben_design_und_conversion_nicht_erhoben():
     assert result["total_score"] == 100
 
 
+# ── Keine Betriebsseite: der fremde Maßstab fällt weg ─────────────────
+
+def test_ohne_betriebsseite_fallen_die_angebotskriterien_heraus():
+    """Eine Seite ohne Betrieb hat kein Angebot — das ist kein Mangel.
+
+    Anlass: Das Audit bewertete den Auftritt eines politischen Kandidaten und
+    hielt ihm fehlende Leistungsbeschreibungen, ein fehlendes Einsatzgebiet und
+    einen fehlenden Preisrahmen vor. Richtig gerechnet, als Aussage unbrauchbar.
+    """
+    ki = {**_ki_voll(), "betriebsseite": False, "branche": "politischer Kandidat"}
+    result = score_audit(_fakten(), ki)
+
+    for key in ("cv_klarheit", "cv_angebot", "ih_textqualitaet"):
+        assert result["sources"][key] == Source.NOT_COLLECTED.value, key
+    # Kein stiller Abzug: der Nenner wird kleiner, nicht der Zähler.
+    assert result["total_score"] == 100
+    assert result["coverage"] < 100
+
+
+def test_ohne_betriebsseite_bleibt_die_gestaltung_bewertet():
+    """Typografie, Farbkontrast und Bildqualität gelten für jede Seite."""
+    ki = {**_ki_voll(), "betriebsseite": False, "branche": "Verein"}
+    result = score_audit(_fakten(), ki)
+
+    for key in ("dg_aktualitaet", "dg_typografie", "dg_farbsystem", "dg_bildqualitaet"):
+        assert result["sources"][key] == Source.AI.value, key
+
+
+def test_eine_betriebsseite_wird_vollstaendig_bewertet():
+    ki = {**_ki_voll(), "betriebsseite": True, "branche": "Dachdecker"}
+    result = score_audit(_fakten(), ki)
+
+    for key in ("cv_klarheit", "cv_angebot", "ih_textqualitaet"):
+        assert result["sources"][key] == Source.AI.value, key
+    assert result["coverage"] == 100
+
+
+def test_ohne_aussage_zur_betriebsseite_bleibt_es_beim_alten_verhalten():
+    """Fehlt die Angabe, wird nichts verworfen — sonst verschwinden Kriterien,
+    weil das Modell ein Feld nicht gefüllt hat."""
+    result = score_audit(_fakten(), _ki_voll())
+
+    for key in ("cv_klarheit", "cv_angebot", "ih_textqualitaet"):
+        assert result["sources"][key] == Source.AI.value, key
+
+
 def test_ohne_formular_wird_formularkriterium_nicht_bewertet():
     facts = _fakten(forms={"collected": True, "total": 0})
     result = score_audit(facts, _ki_voll())

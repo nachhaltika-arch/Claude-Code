@@ -56,9 +56,20 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 
-# Chat ist Dialog, nicht Markup — das schnellere Modell reicht und hält die
-# Kosten je Frage niedrig. Blockerzeugung laeuft weiter auf Opus.
-ASSISTENT_MODELL = "claude-sonnet-4-6"
+# Chat ist Dialog, nicht Markup — das Sonnet-Modell reicht und haelt die Kosten
+# je Frage niedrig. Blockerzeugung laeuft weiter auf Opus.
+#
+# Sonnet 5 statt 4.6, gemessen am selben Fragensatz (docs, Abschnitt 9.6): es
+# haelt die Faktensperre ein und schlaegt trotzdem vor, wo 4.6 nur noch
+# zurueckfragt — 8 von 9 statt 5 von 9. Aus der Umgebung, damit der naechste
+# Wechsel wieder messbar ist statt geraten.
+ASSISTENT_MODELL = os.getenv("ASSISTENT_MODELL", "claude-sonnet-5")
+
+# Deckel fuer eine Antwort. Er begrenzt Denken UND Text gemeinsam, und Sonnet 5
+# denkt von sich aus mit — mit den 800 aus der 4.6-Zeit riss die Antwort mitten
+# im Wort ab („Mehr Anrufe bei Heizungsausf") und wurde trotzdem als Vorschlag
+# angeboten. Wer das Modell wechselt, muss diesen Wert mitziehen.
+ASSISTENT_MAX_TOKENS = int(os.getenv("ASSISTENT_MAX_TOKENS", "2500"))
 
 TONALITAET = (
     "Sprich den Nutzer mit Sie an. Kurze Saetze, keine Marketing- und keine "
@@ -177,7 +188,7 @@ def _frag_das_modell(*, systemprompt: str, verlauf: list, frage: str) -> dict:
     client = Anthropic(api_key=api_key)
     antwort = client.messages.create(
         model=ASSISTENT_MODELL,
-        max_tokens=800,
+        max_tokens=ASSISTENT_MAX_TOKENS,
         system=systemprompt,
         messages=verlauf + [{"role": "user", "content": frage}],
     )
@@ -188,6 +199,9 @@ def _frag_das_modell(*, systemprompt: str, verlauf: list, frage: str) -> dict:
         "text": text,
         "eingabe_tokens": getattr(nutzung, "input_tokens", 0) or 0,
         "ausgabe_tokens": getattr(nutzung, "output_tokens", 0) or 0,
+        # Am Deckel abgerissen. Der Text bleibt brauchbar, ein Vorschlag darin
+        # ist ein Fragment — siehe `chat()`.
+        "abgeschnitten": getattr(antwort, "stop_reason", None) == "max_tokens",
     }
 
 
@@ -267,6 +281,13 @@ def chat(body: ChatRequest, db: Session = Depends(get_db),
         verlauf=verlauf, frage=frage)
 
     text, vorschlag = trenne_vorschlag(ergebnis["text"])
+    if ergebnis.get("abgeschnitten"):
+        # Die Marke steht da, der Satz dahinter ist halb. Uebernehmen wuerde ein
+        # Fragment ins Briefing schreiben — lieber kein Knopf. Der Text selbst
+        # bleibt stehen, er ist bis zum Abriss brauchbar.
+        if vorschlag:
+            text = f"{text}\n{vorschlag}".strip()
+        vorschlag = ""
     kosten = kosten_fuer(ergebnis["eingabe_tokens"], ergebnis["ausgabe_tokens"])
     _speichern(db, gespraech, "assistent", text, body,
                eingabe=ergebnis["eingabe_tokens"], ausgabe=ergebnis["ausgabe_tokens"],

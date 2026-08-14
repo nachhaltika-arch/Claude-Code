@@ -307,7 +307,7 @@ Code nachgeprüft, nicht aus dem Plan abgeschrieben.
 | Regelwerk | `backend/services/assistant_rules.py` | Neun Briefing-Felder mit Frage, Begründung, Mindestlänge, gutem und schlechtem Beispiel. `pruefe_antwort()` urteilt ohne Modellaufruf. |
 | Kostenrahmen | `backend/services/assistant_budget.py` | 15 € je Projekt (`ASSISTENT_BUDGET_PROJEKT_EURO`), 60 Anfragen je Nutzer und Tag, Warnung ab 80 % (Entscheidung 4.1). |
 | Ablage | `AssistantConversation`, `AssistantMessage` in `database.py` | Eigener Verlauf mit Tokenzahlen und Kosten je Nachricht — projektbezogen von Anfang an, damit Ausbau 2 keine Migration erzwingt. |
-| Endpunkte | `backend/routers/assistant.py` | `POST /chat`, `GET /conversations/{id}`, `POST /field-check`, `POST /conversations/{id}/escalate`, `GET /limits`. Modell: `claude-sonnet-4-6`. |
+| Endpunkte | `backend/routers/assistant.py` | `POST /chat`, `GET /conversations/{id}`, `POST /field-check`, `POST /conversations/{id}/escalate`, `GET /limits`. Modell: `claude-sonnet-5` (`ASSISTENT_MODELL`), Antwortdeckel 2500 Token (`ASSISTENT_MAX_TOKENS`). |
 | Oberfläche | `frontend/src/components/AssistentPanel.jsx` | Eine Komponente, zwei Einbauorte (Entscheidung 3.1): Spalte neben den Briefing-Feldern, aufklappbares Widget auf schmalen Schirmen und im Kundenportal. |
 
 Tests: 77 im Backend (Kontext, Regelwerk, Budget, API), 11 im Frontend.
@@ -375,7 +375,49 @@ Regelwerk erraten und hat einmal einen Vorschlag für das Nachbarfeld
 formuliert — übernommen worden wäre er trotzdem in `body.feld`. Jetzt steht das
 Feld ausdrücklich im Prompt.
 
-### 9.5 Offen
+### 9.5 Der Modellvergleich — 2026-08-14
+
+Derselbe Fragensatz gegen `claude-sonnet-4-6` und `claude-sonnet-5`, je zwei
+Läufe, gleicher gehärteter Prompt.
+
+| | Sonnet 4.6 | Sonnet 5 |
+|---|---|---|
+| Vorschläge bei 9 Feldfragen | 5 | 8 |
+| Vorschläge ohne Feldbezug (soll 0) | 0 | 0 |
+| Erfundene Betriebsfakten | keine | keine |
+| Token je Gespräch (11 Nachrichten) | 22 224 ein / 2 002 aus | 27 625 ein / 3 580 aus |
+| Kosten je Gespräch zum Normalpreis | 0,097 | 0,137 |
+| Kosten je Gespräch bis 2026-08-31 | 0,097 | 0,091 |
+
+**Der Unterschied liegt nicht bei der Konvention, sondern bei der Brauchbarkeit
+unter der Faktensperre.** Beide halten `VORSCHLAG:` und beide erfinden nichts
+mehr. Aber wo 4.6 seit der Härtung nur noch zurückfragt, formuliert Sonnet 5
+weiter und setzt die fehlende Angabe als Lücke hinein — `Hausbesitzer
+[Altersspanne bitte ergänzen], Ein- oder Zweifamilienhaus, Anlass meist
+defekte Heizung`. Das ist genau das Verhalten, das die Härtung wollte: ehrlich
+und trotzdem ein Text zum Übernehmen. Beide merken, dass ein Betrieb mit Sitz
+Koblenz schlecht 30 km um Kassel fahren kann.
+
+**Was der Wechsel mitbringt:** Sonnet 5 denkt von sich aus mit, und der
+Antwortdeckel begrenzt Denken und Text gemeinsam. Mit den 800 Token aus der
+4.6-Zeit riss die Antwort mitten im Wort ab — und wurde trotzdem als
+übernehmbarer Vorschlag ausgeliefert (`Mehr Anrufe bei Heizungsausf`). Deshalb
+zwei Änderungen: der Deckel steht auf 2500, und ein am Deckel abgerissener
+Vorschlag bekommt keinen Übernehmen-Knopf mehr. Der zweite Punkt gilt
+modellunabhängig.
+
+Bis 2026-08-31 gilt für Sonnet 5 ein Einführungspreis, danach kostet ein
+Gespräch rund 41 % mehr als mit 4.6 — bei 0,014 € je Nachricht und der
+Tagesgrenze von 60 Anfragen bleibt das unter 1 € je Nutzer und Tag. Die
+Preiskonstanten im Kostenrahmen (3 $/15 $) stimmen für beide Modelle; während
+des Einführungspreises rechnet der Rahmen konservativ zu hoch.
+
+Die übrigen KI-Router (Sitemap, Content, Branddesign, Component-Library …)
+laufen weiter auf `claude-sonnet-4-6`. Sie sind nicht mitgeprüft — und wer sie
+umstellt, muss dort denselben Deckel prüfen, mehrere rufen mit
+`max_tokens=800` auf.
+
+### 9.6 Offen
 
 - Fachlich beurteilt hat die Antworten bisher nur der Entwickler, nicht David
   und kein Handwerksbetrieb.

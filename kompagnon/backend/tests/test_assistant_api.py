@@ -295,6 +295,49 @@ def test_ohne_vorschlag_gibt_es_keinen_knopf(client, auth_headers, lead_und_proj
     assert daten["vorschlag"] == ""
 
 
+def test_ein_abgeschnittener_vorschlag_wird_nicht_zum_uebernehmen_angeboten(
+        client, auth_headers, lead_und_projekt, monkeypatch):
+    """Reisst die Antwort am Token-Limit ab, ist der Vorschlag ein Fragment.
+
+    Im Vergleichslauf gegen claude-sonnet-5 kam „Mehr Anrufe bei Heizungsausf"
+    zurueck — mitten im Wort. Die Trennung findet die Marke trotzdem und haette
+    das Fragment mit Uebernehmen-Knopf ausgeliefert. Der Text bleibt sichtbar,
+    der Knopf nicht.
+    """
+    from routers import assistant as a
+
+    monkeypatch.setattr(a, "_frag_das_modell", lambda **kw: {
+        "text": "Das Ziel gehoert messbar formuliert.\n"
+                "VORSCHLAG: Mehr Anrufe bei Heizungsausf",
+        "eingabe_tokens": 100, "ausgabe_tokens": 800,
+        "abgeschnitten": True})
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "pytest")
+
+    daten = client.post("/api/assistant/chat", headers=auth_headers, json={
+        "lead_id": lead_und_projekt["lead"], "frage": FRAGE,
+        "feld": "hauptziel"}).json()
+
+    assert daten["vorschlag"] == ""
+    assert "Heizungsausf" in daten["antwort"]
+
+
+def test_ein_vollstaendiger_vorschlag_bleibt_uebernehmbar(
+        client, auth_headers, lead_und_projekt, monkeypatch):
+    from routers import assistant as a
+
+    monkeypatch.setattr(a, "_frag_das_modell", lambda **kw: {
+        "text": "Erklaerung.\nVORSCHLAG: Der fertige Satz",
+        "eingabe_tokens": 100, "ausgabe_tokens": 50,
+        "abgeschnitten": False})
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "pytest")
+
+    daten = client.post("/api/assistant/chat", headers=auth_headers, json={
+        "lead_id": lead_und_projekt["lead"], "frage": FRAGE,
+        "feld": "hauptziel"}).json()
+
+    assert daten["vorschlag"] == "Der fertige Satz"
+
+
 def test_der_gespeicherte_verlauf_zeigt_die_erklaerung_ohne_marke(
         client, auth_headers, lead_und_projekt, monkeypatch):
     from routers import assistant as a

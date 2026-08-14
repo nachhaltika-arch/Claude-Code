@@ -412,3 +412,37 @@ tatsächlich geprüften Kriterien normiert.
 4. **Der umgebaute Katalog ist nie gegen eine echte fremde Website gelaufen.**
    Ein Lauf gegen zwei, drei reale SHK-Seiten würde zeigen, ob die Punktzahlen
    plausibel sind. Das ist der wichtigste der vier Punkte.
+5. **Das Audit unterstellt jeder Seite ein Handwerksgewerk — auch wenn keins da
+   ist.** (David, 2026-08-14) Ein Bericht aus dem Staging-Widget bewertete den
+   Auftritt eines politischen Kandidaten gegen den SHK-Maßstab: „Für
+   Hausbesitzer, die z. B. ein Dach, eine Wärmepumpe oder ein Bad suchen, gibt
+   es hier keinen Anknüpfungspunkt … es fehlen Leistungsbeschreibungen,
+   Einsatzgebiet, Preisrahmen." Fachlich richtig gerechnet, als Aussage
+   unbrauchbar — und der Empfänger liest, dass wir seine Seite nicht verstanden
+   haben. Das Widget ist ein Akquisekanal; der Bericht ist dort der erste
+   Eindruck.
+
+   Die Ursache steht fest verdrahtet in `services/audit_ai.py:35`: Der
+   Systemprompt setzt „Websites von Handwerksbetrieben (Heizung, Sanitär,
+   Elektrik)" und als Maßstab „Hausbesitzer, die eine Wärmepumpe, ein Bad oder
+   eine Wallbox suchen". Das erhobene Feld `trade` wird zwar als `gewerk`
+   mitgegeben (`audit_ai.py:113`), kann den festen Rahmen aber nicht
+   verschieben. Dieselbe Annahme steckt in `docs/conversion-spec-shk.md` und
+   damit in der QA und den Templates.
+
+   Darin stecken zwei Dinge, die getrennt gehören:
+
+   - **Die Erkennung.** Das Audit muss benennen können, was es vor sich hat —
+     einschließlich „kein Handwerksbetrieb". Die sieben KI-Kriterien müssten
+     dann entweder gegen den passenden Maßstab laufen oder wie eine nicht
+     erhobene Messung aus Zähler *und* Nenner fallen, statt gegen einen
+     fremden Maßstab gerechnet zu werden. Das ist ein Defekt und unabhängig
+     von jeder Strategiefrage.
+   - **Die Ausweitung** der Bewertung — und später der Ausführung von Online
+     fertig / WebSprint — auf weitere Gewerke und Branchen. Das ist eine
+     Geschäftsentscheidung und berührt die Nischenregel der Phase 1 (Heizung /
+     Sanitär / Elektrik, keine Erweiterung vor fünf produktiven Kunden). Der
+     Maßstab je Branche ist dabei die eigentliche Arbeit, nicht die Technik:
+     Conversion-Spec, Kriteriengewichte und Templates hängen daran.
+
+   Beides ist bisher nur aufgeschrieben, nichts davon gebaut.

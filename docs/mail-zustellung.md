@@ -90,14 +90,50 @@ hat.
 Solange Schritt 1 fehlt, antwortet der Endpunkt auf jeden Aufruf mit 403. Das
 ist Absicht und kein Fehler.
 
-## 4. Offen
+## 4. Die Absenderdomains — geprüft am 2026-08-14
 
-- **Die Absenderdomain ist ungeklärt.** Der Standardabsender im Code ist
-  `noreply@kompagnon.group`, das Frontend nennt an 16 Stellen
-  `info@kompagnon.eu`, `config.py` hat als Vorgabe `info@kompagnon.de`. Ob die
-  tatsächlich versendende Domain in Brevo mit SPF und DKIM hinterlegt ist, war
-  von außen nicht prüfbar. Fehlt das, wird auch abgelehnt, wenn die IP wieder
-  sauber ist — und dann hilft kein Webhook.
+Geprüft im öffentlichen DNS, nicht im Brevo-Konto: SPF, DKIM, DMARC und der
+Verifizierungseintrag sind öffentlich, und Brevos Anzeige spiegelt nur, ob
+diese Einträge existieren.
+
+| | kompagnon.group | kompagnon.eu | kompagnon.de |
+|---|---|---|---|
+| bei Brevo verifiziert (`brevo-code`) | **ja** | nein | nein |
+| DKIM für Brevo (`brevo1`/`brevo2`) | **ja, auflösend** | nein | nein |
+| SPF | ohne Brevo (`~all`) | ohne Brevo (`-all`) | **keiner** |
+| DMARC | `p=none`, Berichte an Brevo | `p=none`, strikt ausgerichtet | **keiner** |
+
+**Der tatsächlich sendende Absender ist sauber eingerichtet.** Der
+Standardabsender des Codes ist `noreply@kompagnon.group`, und diese Domain ist
+bei Brevo verifiziert; die beiden DKIM-Verweise `brevo1._domainkey` und
+`brevo2._domainkey` lösen über `b1/b2.kompagnon-group.dkim.brevo.com` auf echte
+Schlüssel bei `brevo17`/`brevo18.dkim.brevo.com` auf. Damit ist die
+DKIM-Ausrichtung gegeben, und die trägt DMARC allein — ein SPF-Eintrag für
+Brevo wird nicht gebraucht, solange Brevo seinen eigenen Rückweg verwendet.
+
+**Der Bounce lag also nicht an der Domain**, sondern allein an der geteilten
+Versand-IP auf der SpamCop-Liste. Die ursprüngliche Vermutung war falsch.
+
+Zwei Funde daneben, beide ohne Eile:
+
+- **`kompagnon.eu` trägt einen DKIM-Schlüssel am Wurzeleintrag** — ein
+  `v=DKIM1; k=rsa; p=…` direkt auf `kompagnon.eu` statt unter
+  `<selektor>._domainkey.kompagnon.eu`. Dort liest ihn kein Prüfer; er tut
+  nichts. Rest einer früheren Einrichtung, gehört weg.
+- **`kompagnon.de` ist ungeschützt**: kein SPF, kein DMARC. In ihrem Namen kann
+  jeder fälschen. Wenn die Domain nie versendet, kostet ein `v=spf1 -all` plus
+  `p=reject` nichts und schließt das.
+
+Und der Punkt, der offen bleibt: **`kompagnon.eu` ist nicht bei Brevo
+authentifiziert und hat ein hartes `-all`.** Ginge je etwas über Brevo mit
+Absender `@kompagnon.eu` raus, gäbe es weder ausgerichtetes DKIM noch SPF —
+DMARC schlüge fehl, derzeit folgenlos, weil `p=none` gilt. Ob das passiert,
+hängt an `system_settings.smtp_sender_email` im Produktivsystem; dorthin
+reichte der Zugang nicht. Schnellster Weg zur Antwort: in einer Mail aus dem
+Werkzeug den Absender im Kopf nachsehen. Steht dort `@kompagnon.group`, ist
+alles in Ordnung.
+
+## 5. Offen
 - **Dauerhaft unzustellbare Adressen werden nicht gesperrt.** Der Hinweis
   erscheint, weitere Mails gehen trotzdem raus. Ob nach einem `hard_bounce`
   automatisch nichts mehr an diese Adresse versendet werden soll, ist eine

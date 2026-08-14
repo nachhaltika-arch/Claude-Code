@@ -9,14 +9,19 @@ Steuerkanzlei ohne Preisrahmen ist nicht schlechter als eine mit, sondern
 berufsrechtlich korrekt. Sie dafür abzuwerten macht den Bericht als
 Akquiseinstrument unbrauchbar.
 
-**Nur ein Teil davon erreicht das Modell.** `cv_klarheit`, `cv_angebot` und
+**Wer diesen Maßstab anwendet.** `cv_klarheit`, `cv_angebot` und
 `ih_textqualitaet` werden geschätzt — für sie wandert der Maßstab in den
-Prompt. `cv_cta`, `cv_kontakt`, `cv_vertrauen`, `se_meta`, `se_schema` und
-`ih_leistungsseiten` werden gemessen oder abgeleitet; ihr Maßstab **steht
-seit 2026-08-14 im Bericht** (`widget_report._hinweis`), **wirkt aber weiter
-nicht auf die Bewertung** — die Erhebung sucht in `audit_collectors` nach
-handwerklichen Stichworten. Das ist eine offene Lücke und keine Auslassung —
-siehe `docs/Audit/`.
+Prompt. `cv_cta`, `cv_vertrauen` und `ih_leistungsseiten` werden gemessen oder
+abgeleitet; sie rechnen seit dem 14.08.2026 klassenabhängig, die Stichworte
+dazu stehen in `audit_industry_signals`. Im Bericht steht der Maßstab je
+Kriterium als Hinweis (`widget_report._hinweis`).
+
+**Noch offen:** `se_meta` verlangt den Ort im Title auch dort, wo dieser Text
+ihn ausdrücklich nicht erwartet (K4, K5), und `se_schema` prüft gegen
+`LocalBusiness` statt gegen den hier genannten Haupttyp — dafür müsste der
+QA-Scanner die gefundenen Schema-Typen ausgeben. `cv_kontakt` misst in jeder
+Klasse dasselbe; Öffnungszeiten (K3) und Retourenweg (K5) werden nicht erhoben.
+Siehe `docs/Audit/`.
 """
 from typing import Dict
 

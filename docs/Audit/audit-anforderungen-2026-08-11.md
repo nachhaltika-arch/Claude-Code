@@ -538,13 +538,40 @@ trifft — „installation", „strom", „wasser", „bau".
 4. Nebenbefund: „Stadt: Boppard-". Das Ortsmuster ließ nach dem Bindestrich nur
    Kleinbuchstaben zu (`scraper.stadt_aus_text`).
 
-**Weiterhin offen — die Bewertung selbst rechnet handwerklich.**
-`audit_collectors.py` sucht Leistungsseiten über `wärmepumpe, wallbox, heizung,
-sanitär, bad, elektro, photovoltaik…` und Zertifikate über `meisterbetrieb,
-innung, handwerkskammer`. Ein Ingenieurbüro verliert dort Punkte für etwas, das
-es gar nicht haben kann. Der klassenabhängige Maßstab steht vollständig in
-`audit_industry_profiles.PROFILE`, wirkt aber nur auf die zwei KI-Kriterien in
-`KI_KRITERIEN_MIT_PROFIL`. Das ist der nächste Schritt.
+**Nachgezogen am selben Abend — die Bewertung rechnet klassenabhängig.**
+`audit_collectors.py` suchte Leistungsseiten über `wärmepumpe, wallbox,
+heizung, sanitär, bad, elektro, photovoltaik…` und Zertifikate über
+`meisterbetrieb, innung, handwerkskammer`. Ein Ingenieurbüro verlor dort
+Punkte für etwas, das es gar nicht haben kann.
+
+Die Stichworte je Klasse stehen jetzt in `services/audit_industry_signals.py`,
+der messbaren Entsprechung zu `PROFILE`. Die Aufteilung folgt der Reihenfolge
+im Ablauf: Die Klasse steht erst nach der KI-Erkennung fest, also **sucht die
+Erhebung den Verband aller Klassen und merkt sich je Fund die Begriffe; welcher
+Treffer zählt, entscheidet `audit_scoring`**. Betroffen sind drei Kriterien:
+
+| Kriterium | vorher | jetzt |
+|---|---|---|
+| `ih_leistungsseiten` | SHK-Begriffe für alle | Rechtsgebiet, Kategorie, Modul, Wärmepumpe — je Klasse |
+| `cv_vertrauen` | Meisterbetrieb, Innung, Handwerkskammer für alle | Kammer/Approbation (K2), ISO/Referenzkunden (K4), Trusted Shops (K5)… |
+| `cv_cta` | ein Satz Begriffe für alle | Warenkorb (K5), Reservierung (K3), Notdienst (K1)… |
+
+Ohne erkannte Klasse gilt weiter der Verband aller Begriffe: Wen die Erkennung
+nicht einordnen konnte, werten wir dafür nicht ab. Fakten aus der Zeit vor dem
+Branchenmodell behalten ihren Wert.
+
+**Was das an einem echten Fall ändert.** Für nachhaltika.de bleibt es bei
+1/2 Punkten für die Leistungsseiten — die Seite hat drei, davon erkennt K2
+zwei (`nachhaltigkeitsbericht`, `treibhausgasbilanz`), und die volle Punktzahl
+verlangt drei. Die Stichwortsuche hat also weiter einen Rand, an dem sie
+Seiten übersieht. Verschwunden ist der systematische Teil: Kein Betrieb wird
+mehr am Vokabular einer fremden Branche gemessen.
+
+**Weiterhin offen an derselben Stelle:** `se_meta` verlangt den Ort im Title
+auch bei K4 und K5, wo `PROFILE` ihn ausdrücklich nicht erwartet; `se_schema`
+prüft auf `LocalBusiness` statt auf den Haupttyp der Klasse — dafür müsste der
+QA-Scanner die gefundenen Schema-Typen ausgeben; `cv_kontakt` misst überall
+dasselbe, Öffnungszeiten (K3) und Retourenweg (K5) werden gar nicht erhoben.
 
 Ebenfalls offen: `lead_enrichment.py` füllt `lead.trade` weiter aus derselben
 Stichwortsuche. In einer Leadliste ist eine Arbeitshypothese vertretbar — sie

@@ -17,6 +17,7 @@ from services.audit_criteria import (
     score_all,
 )
 from services.audit_industry_map import klasse_fuer_branche
+from services.audit_industry_signals import zaehlt_in_klasse
 
 Items = Dict[str, int]
 Sources = Dict[str, Source]
@@ -305,13 +306,28 @@ def _score_design(sheet: _Sheet, facts: dict) -> None:
 # Conversion & Nutzerführung
 # ═══════════════════════════════════════════════════════════════════
 
-def _score_conversion(sheet: _Sheet, facts: dict) -> None:
+def _treffer_in_klasse(eintraege, gruppe: str, klasse: str, ersatz: int) -> int:
+    """Zählt die Einträge, deren Begriffe für diese Klasse einschlägig sind.
+
+    `eintraege` ist ``None`` bei Fakten aus der Zeit vor dem Branchenmodell —
+    dort bleibt der klassenunabhängige Wert, den die Erhebung mitgeliefert hat.
+    Ein Altbestand soll sich durch diese Änderung nicht rückwirkend
+    verschlechtern.
+    """
+    if eintraege is None:
+        return ersatz
+    return sum(1 for e in eintraege
+               if zaehlt_in_klasse(e.get("begriffe"), gruppe, klasse))
+
+
+def _score_conversion(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
     cta = facts.get("cta") or {}
     contact = facts.get("contact") or {}
     trust = facts.get("trust") or {}
 
     if _ok(cta):
-        count = cta.get("cta_count", 0)
+        count = _treffer_in_klasse(cta.get("elemente"), "cta", klasse,
+                                   cta.get("cta_count", 0))
         sheet.set("cv_cta", 3 if count >= 3 else (2 if count >= 1 else 0), Source.DERIVED)
     else:
         sheet.skip("cv_cta")
@@ -326,9 +342,9 @@ def _score_conversion(sheet: _Sheet, facts: dict) -> None:
         sheet.skip("cv_kontakt")
 
     if _ok(trust):
-        signals = trust.get("signal_count", 0)
-        sheet.set("cv_vertrauen", 3 if signals >= 4 else (2 if signals >= 2 else
-                  (1 if signals >= 1 else 0)), Source.DERIVED)
+        signale = _vertrauenssignale(trust, klasse)
+        sheet.set("cv_vertrauen", 3 if signale >= 4 else (2 if signale >= 2 else
+                  (1 if signale >= 1 else 0)), Source.DERIVED)
     else:
         sheet.skip("cv_vertrauen")
     # cv_klarheit, cv_angebot: KI (siehe _apply_ai)
@@ -338,12 +354,30 @@ def _score_conversion(sheet: _Sheet, facts: dict) -> None:
 # Inhalt & Substanz
 # ═══════════════════════════════════════════════════════════════════
 
-def _score_content(sheet: _Sheet, facts: dict) -> None:
+def _vertrauenssignale(trust: dict, klasse: str) -> int:
+    """Wie viele Vertrauenssignale in dieser Klasse zählen.
+
+    Vier der fünf Untergruppen sind branchenunabhängig. Nur der Nachweis der
+    Befähigung heißt überall anders — der Meisterbrief des Handwerkers zählt
+    beim Ingenieurbüro nicht und dessen Kammerzugehörigkeit nicht beim
+    Handwerker. Vorher zählte für alle dieselbe handwerkliche Liste.
+    """
+    if "zertifikat_begriffe" not in trust:
+        return trust.get("signal_count", 0)  # Fakten vor dem Branchenmodell
+
+    generisch = sum(1 for gruppe in ("bewertungen", "referenzen", "team", "garantie")
+                    if trust.get(gruppe))
+    passend = zaehlt_in_klasse(trust.get("zertifikat_begriffe"), "zertifikate", klasse)
+    return generisch + (1 if passend else 0)
+
+
+def _score_content(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
     services = facts.get("services") or {}
     freshness = facts.get("freshness") or {}
 
     if _ok(services):
-        count = services.get("service_page_count", 0)
+        count = _treffer_in_klasse(services.get("seiten"), "leistungsseiten", klasse,
+                                   services.get("service_page_count", 0))
         sheet.set("ih_leistungsseiten", 2 if count >= 3 else (1 if count >= 1 else 0),
                   Source.MEASURED)
     else:
@@ -460,18 +494,23 @@ def score_audit(facts: dict, ai: Optional[dict] = None) -> dict:
     sheet = _Sheet()
     ai = ai or {}
 
+    # Die Klasse steht vor der Bewertung fest, nicht danach: Zwei Kriterien
+    # zählen nur, was zur Branche passt (Leistungsseiten, Vertrauenssignale,
+    # Zielhandlung). Die Erhebung konnte das noch nicht wissen — sie lief, bevor
+    # das Modell die Seite gesehen hatte.
+    klasse, quelle = _klasse_aus_erkennung(ai)
+
     _score_legal(sheet, facts)
     _score_security(sheet, facts)
     _score_performance(sheet, facts)
     _score_accessibility(sheet, facts)
     _score_seo(sheet, facts)
     _score_design(sheet, facts)
-    _score_conversion(sheet, facts)
-    _score_content(sheet, facts)
+    _score_conversion(sheet, facts, klasse)
+    _score_content(sheet, facts, klasse)
     _apply_ai(sheet, ai)
     _score_infrastructure(sheet, facts)
 
-    klasse, quelle = _klasse_aus_erkennung(ai)
     _verwerfe_nicht_anwendbare(sheet, klasse)
 
     summary = score_all(sheet.items, sheet.sources, klasse)

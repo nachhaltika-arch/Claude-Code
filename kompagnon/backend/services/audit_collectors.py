@@ -20,9 +20,16 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from bs4 import BeautifulSoup
 
+from services import audit_industry_signals as signals
 from services.url_guard import assert_safe_url, is_same_host
 
 logger = logging.getLogger(__name__)
+
+# Obergrenzen für das, was mit Treffern weitergereicht wird. Navigationen sind
+# klein; die Deckel schützen nur davor, dass eine Sitemap-artige Seite die
+# Faktenstruktur aufbläht.
+MAX_SERVICE_PAGES = 40
+MAX_CTA_ELEMENTS = 30
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -420,22 +427,18 @@ RESPONSE_TIME_PATTERNS = (
     "24 stunden", "48 stunden", "werktag", "am selben tag", "sofort",
 )
 
+# Die vier klassenunabhängigen Untergruppen. „Zertifikate" fehlt hier
+# absichtlich: Der Nachweis der Befähigung heißt in jeder Branche anders und
+# steht deshalb in `audit_industry_signals` — ein Ingenieurbüro hat keinen
+# Meisterbrief und darf dafür nicht abgewertet werden.
 TRUST_PATTERNS = {
     "bewertungen": ("google bewertung", "sterne", "★", "rezension", "kundenstimmen",
                     "trustpilot", "provenexpert", "erfahrungen"),
     "referenzen": ("referenz", "projekte", "kundenprojekte", "unsere arbeiten",
                    "vorher", "nachher"),
-    "zertifikate": ("meisterbetrieb", "innung", "handwerkskammer", "zertifiziert",
-                    "tüv", "iso 9001", "fachbetrieb", "sachkundenachweis"),
     "team": ("unser team", "über uns", "mitarbeiter", "ansprechpartner", "geschäftsführer"),
     "garantie": ("garantie", "gewährleistung", "festpreis", "zufriedenheit"),
 }
-
-SERVICE_PAGE_PATTERNS = (
-    "leistung", "service", "angebot", "wärmepumpe", "waermepumpe", "wallbox",
-    "heizung", "sanitär", "sanitaer", "bad", "elektro", "photovoltaik",
-    "solar", "klima", "lüftung", "notdienst", "wartung",
-)
 
 CURRENT_YEAR_WINDOW = 2  # Copyright älter als zwei Jahre gilt als veraltet
 
@@ -462,16 +465,26 @@ def analyse_contact(soup: BeautifulSoup) -> dict:
 
 
 def analyse_trust(soup: BeautifulSoup) -> dict:
-    """Vertrauenssignale — Bewertungen, Referenzen, Zertifikate, Team, Garantie."""
+    """Vertrauenssignale — Bewertungen, Referenzen, Zertifikate, Team, Garantie.
+
+    Die gefundenen Zertifikatsbegriffe werden mitgegeben statt ausgewertet: Ob
+    ein Meisterbrief oder eine Kammerzugehörigkeit zählt, hängt an der Klasse,
+    und die steht erst nach der KI-Erkennung fest. `signal_count` ist deshalb
+    der klassenunabhängige Wert — `audit_scoring` rechnet ihn neu.
+    """
     text = soup.get_text(" ").lower()
     found = {
         name: any(p in text for p in patterns)
         for name, patterns in TRUST_PATTERNS.items()
     }
+    zertifikat_begriffe = signals.treffer(text, "zertifikate")
+
     return {
         "collected": True,
         **found,
-        "signal_count": sum(1 for v in found.values() if v),
+        "zertifikate": bool(zertifikat_begriffe),
+        "zertifikat_begriffe": list(zertifikat_begriffe),
+        "signal_count": sum(1 for v in found.values() if v) + bool(zertifikat_begriffe),
     }
 
 
@@ -479,26 +492,39 @@ def analyse_service_pages(soup: BeautifulSoup, base_url: str) -> dict:
     """Zählt eigenständige Leistungsseiten in der Navigation.
 
     Eine einzelne Sammelseite 'Leistungen' rankt deutlich schlechter als je
-    eine Seite pro Gewerk — deshalb wird die Anzahl separat bewertet.
+    eine Seite pro Hauptleistung — deshalb wird die Anzahl separat bewertet.
+
+    Was als Leistungsseite gilt, hängt an der Branchenklasse: ein Rechtsgebiet
+    beim Anwalt, eine Kategorie im Shop, die Wärmepumpe beim Handwerker.
+    Gesucht wird hier nach allen dreien, mitgegeben wird je Seite, welche
+    Begriffe getroffen haben — `audit_scoring` zählt daraus, was zur Klasse
+    passt.
     """
     host = urlparse(base_url).netloc
-    pages = set()
+    treffer_je_pfad = {}
 
     for a in soup.find_all("a", href=True):
         href = a["href"]
         absolute = urljoin(base_url, href)
         if urlparse(absolute).netloc != host:
             continue
-        haystack = f"{href} {a.get_text(' ')}".lower()
-        if any(p in haystack for p in SERVICE_PAGE_PATTERNS):
-            path = urlparse(absolute).path.rstrip("/").lower()
-            if path and path != "/":
-                pages.add(path)
+        gefunden = signals.treffer(f"{href} {a.get_text(' ')}", "leistungsseiten")
+        if not gefunden:
+            continue
+        path = urlparse(absolute).path.rstrip("/").lower()
+        if path and path != "/":
+            treffer_je_pfad.setdefault(path, set()).update(gefunden)
+
+    seiten = [
+        {"pfad": pfad, "begriffe": sorted(begriffe)}
+        for pfad, begriffe in sorted(treffer_je_pfad.items())
+    ]
 
     return {
         "collected": True,
-        "service_page_count": len(pages),
-        "pages": sorted(pages)[:12],
+        "service_page_count": len(seiten),
+        "seiten": seiten[:MAX_SERVICE_PAGES],
+        "pages": [s["pfad"] for s in seiten[:12]],
     }
 
 
@@ -518,25 +544,27 @@ def analyse_freshness(html: str, current_year: int) -> dict:
     }
 
 
-CTA_KEYWORDS = (
-    "termin", "angebot", "anfrage", "beratung", "kontakt", "rückruf",
-    "jetzt", "kostenlos", "unverbindlich", "anfordern", "vereinbaren",
-)
-
-
 def analyse_cta(soup: BeautifulSoup) -> dict:
-    """Sucht handlungsauffordernde Links und Buttons."""
-    candidates = soup.find_all(["a", "button"])
-    matches = [
-        el.get_text(" ").strip()[:80]
-        for el in candidates
-        if any(k in el.get_text(" ").lower() for k in CTA_KEYWORDS)
-    ]
+    """Sucht handlungsauffordernde Links und Buttons.
+
+    Die erwartete Zielhandlung hängt an der Branchenklasse — „In den Warenkorb"
+    im Shop, „Tisch reservieren" im Lokal, „Notdienst" beim Handwerker. Wie bei
+    den Leistungsseiten sammelt die Erhebung alle drei und merkt sich je
+    Element die Treffer; gezählt wird in `audit_scoring`.
+    """
+    elemente = []
+    for el in soup.find_all(["a", "button"]):
+        text = el.get_text(" ").strip()
+        gefunden = signals.treffer(text, "cta")
+        if gefunden:
+            elemente.append({"text": text[:80], "begriffe": list(gefunden)})
+
     return {
         "collected": True,
-        "cta_count": len(matches),
-        "examples": matches[:5],
-        "has_cta": bool(matches),
+        "cta_count": len(elemente),
+        "elemente": elemente[:MAX_CTA_ELEMENTS],
+        "examples": [e["text"] for e in elemente[:5]],
+        "has_cta": bool(elemente),
     }
 
 

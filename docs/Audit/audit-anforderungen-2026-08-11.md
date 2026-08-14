@@ -567,11 +567,32 @@ verlangt drei. Die Stichwortsuche hat also weiter einen Rand, an dem sie
 Seiten übersieht. Verschwunden ist der systematische Teil: Kein Betrieb wird
 mehr am Vokabular einer fremden Branche gemessen.
 
-**Weiterhin offen an derselben Stelle:** `se_meta` verlangt den Ort im Title
-auch bei K4 und K5, wo `PROFILE` ihn ausdrücklich nicht erwartet; `se_schema`
-prüft auf `LocalBusiness` statt auf den Haupttyp der Klasse — dafür müsste der
-QA-Scanner die gefundenen Schema-Typen ausgeben; `cv_kontakt` misst überall
-dasselbe, Öffnungszeiten (K3) und Retourenweg (K5) werden gar nicht erhoben.
+**Am selben Abend nachgezogen — die restlichen drei Kriterien.**
+
+| Kriterium | vorher | jetzt |
+|---|---|---|
+| `se_meta` | Ort im Title, in jeder Klasse | Ort bei K1/K2/K3/K6; bei K4/K5 trägt den Punkt das Angebot im Titel, wie `PROFILE` es verlangt |
+| `se_schema` | `LocalBusiness` + `FAQPage` für alle | Haupttyp und Zusatztyp je Klasse — `Organization`/`Product` im Shop, `MedicalBusiness`/`Person` in der Praxis |
+| `cv_kontakt` | Telefon + schlankes Formular + Reaktionszeit | drei Merkmale je Klasse: Sprechzeiten (K2), Öffnungszeiten und Anfahrt (K3), Ansprechperson (K4), Retourenweg (K5) |
+
+Dafür gibt der QA-Scanner jetzt die gefundenen `@type`-Werte einzeln aus
+(`schema_typen`), gelesen über den Rohtext statt über `json.loads` — ein
+einziges fehlerhaftes Snippet hätte sonst die ganze Erhebung verschluckt. Und
+`analyse_contact` erhebt Öffnungszeiten, Terminbuchung, Anfahrt,
+Ansprechperson, Retourenweg und Servicekontakt.
+
+**Eine Falle dabei:** Zusammengesetzte Merkmale („Formular **oder**
+Terminbuchung") standen zuerst in der Erhebung. Damit hätte jede Faktenlage von
+vorher sie nicht gehabt und wäre dafür abgewertet worden — dieselbe Falle wie
+bei den Spalten in `main.py`. Sie werden jetzt in der Bewertung aus den
+Einzelbeobachtungen gebildet. Zwei Tests halten fest, dass die Tabelle nichts
+verlangt, was niemand erhebt.
+
+**An der echten Seite gemessen** (nachhaltika.de, K2): `se_schema` steigt von
+1/3 auf 2/3 — die Seite führt `Organization` und `Person`, was unter dem
+K2-Maßstab als Zusatztyp zählt, während `LocalBusiness` weiter fehlt und
+zu Recht einen Punkt kostet. `cv_kontakt` bleibt bei 2/3, misst aber jetzt
+Sprechzeiten statt eines schlanken Formulars.
 
 Ebenfalls offen: `lead_enrichment.py` füllt `lead.trade` weiter aus derselben
 Stichwortsuche. In einer Leadliste ist eine Arbeitshypothese vertretbar — sie

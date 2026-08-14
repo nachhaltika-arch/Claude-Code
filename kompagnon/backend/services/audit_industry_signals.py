@@ -87,6 +87,77 @@ CTA: Dict[str, Tuple[str, ...]] = {
     "K5": ("warenkorb", "kaufen", "bestellen", "shoppen"),
 }
 
+# ── Title & Meta (E1) ──────────────────────────────────────────────────
+# `PROFILE["se_meta"]` erwartet den Ort nur in drei Klassen; bei K4 und K5
+# steht dort ausdrücklich „Ein Ort wird NICHT erwartet". Das ist enger gefasst
+# als `KLASSE_OHNE_EINZUGSGEBIET` im Katalog (nur K4 und K6): Ein Shop kann
+# durchaus lokal verwurzelt sein, im Seitentitel steht trotzdem das Sortiment.
+# K6 steht hier mit: Verein, Partei, Kandidatur und Gemeinde sind ortsgebunden,
+# auch wenn sie nichts verkaufen. Ihnen stattdessen ein Angebot im Titel
+# abzuverlangen wäre derselbe fremde Maßstab in der anderen Richtung.
+ORT_IM_TITEL_ERWARTET = frozenset({"K1", "K2", "K3", "K6"})
+
+# ── Strukturierte Daten (E4) ───────────────────────────────────────────
+# Der erwartete Haupttyp je Klasse, gegen `PROFILE["se_schema"]`. Geprüft wird
+# gegen die vom QA-Scanner gefundenen `@type`-Werte, alles kleingeschrieben.
+SCHEMA_HAUPTTYPEN: Dict[str, Tuple[str, ...]] = {
+    "K1": ("localbusiness", "homeandconstructionbusiness", "plumber",
+           "electrician", "roofingcontractor", "generalcontractor", "hvacbusiness"),
+    "K2": ("localbusiness", "medicalbusiness", "legalservice", "physician",
+           "dentist", "attorney", "accountingservice", "professionalservice"),
+    "K3": ("restaurant", "store", "lodgingbusiness", "hotel", "cafeorcoffeeshop",
+           "bakery", "hairsalon", "healthandbeautybusiness", "localbusiness"),
+    "K4": ("organization", "corporation", "professionalservice"),
+    "K5": ("onlinestore", "organization", "product", "offer"),
+    "K6": ("organization", "person", "ngo"),
+}
+
+# Was zusätzlich zum Haupttyp den dritten Punkt trägt.
+SCHEMA_ZUSATZTYPEN: Dict[str, Tuple[str, ...]] = {
+    "K1": ("service", "faqpage", "offercatalog"),
+    "K2": ("person", "faqpage", "medicalprocedure", "service"),
+    "K3": ("openinghoursspecification", "menu", "faqpage", "aggregaterating"),
+    "K4": ("service", "article", "faqpage", "casestudy"),
+    "K5": ("aggregaterating", "review", "offer", "product"),
+    "K6": ("article", "event", "faqpage"),
+}
+
+# ── Kontaktwege (C3) ───────────────────────────────────────────────────
+# Welche drei Beobachtungen aus `analyse_contact` in dieser Klasse zählen,
+# gegen `PROFILE["cv_kontakt"]`. Drei, weil das Kriterium drei Punkte hat.
+KONTAKT_MERKMALE: Dict[str, Tuple[str, str, str]] = {
+    "K1": ("tel_link", "form_is_lean", "response_time_stated"),
+    "K2": ("tel_link", "termin_oder_sprechzeiten", "form_is_lean"),
+    "K3": ("tel_link", "oeffnungszeiten", "anfahrt"),
+    "K4": ("form_oder_terminbuchung", "ansprechperson", "response_time_stated"),
+    "K5": ("kundenservice_kontakt", "retourenweg", "response_time_stated"),
+    "K6": ("tel_link", "form_is_lean", "response_time_stated"),
+}
+
+# Ohne erkannte Klasse gilt der bisherige Maßstab — er unterstellt am wenigsten.
+KONTAKT_OHNE_KLASSE: Tuple[str, str, str] = (
+    "tel_link", "form_is_lean", "response_time_stated")
+
+
+def kontakt_merkmale(klasse: str) -> Tuple[str, ...]:
+    """Die drei Beobachtungen, an denen der Kontakt dieser Klasse hängt."""
+    return KONTAKT_MERKMALE.get(klasse or "", KONTAKT_OHNE_KLASSE)
+
+
+def schema_passt(typen, klasse: str, zusatz: bool = False) -> bool:
+    """Trägt einer der gefundenen Schema-Typen den Maßstab dieser Klasse?
+
+    Ohne Klasse zählt jeder Typ aus jeder Tabelle: Eine fehlgeschlagene
+    Erkennung darf kein Markup entwerten, das tatsächlich dasteht.
+    """
+    tabelle = SCHEMA_ZUSATZTYPEN if zusatz else SCHEMA_HAUPTTYPEN
+    if klasse in tabelle:
+        erwartet = set(tabelle[klasse])
+    else:
+        erwartet = {t for werte in tabelle.values() for t in werte}
+    return any((t or "").lower() in erwartet for t in typen or ())
+
+
 _GRUPPEN: Dict[str, Tuple[Tuple[str, ...], Dict[str, Tuple[str, ...]]]] = {
     "leistungsseiten": (BASIS_LEISTUNGSSEITEN, LEISTUNGSSEITEN),
     "zertifikate": (BASIS_ZERTIFIKATE, ZERTIFIKATE),

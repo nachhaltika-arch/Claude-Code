@@ -112,6 +112,15 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
     schema_text = " ".join(t.get_text() for t in schema_tags).lower()
     results["schema_localbusiness"] = "localbusiness" in schema_text
     results["schema_faq"] = "faqpage" in schema_text
+    # Die gefundenen @type-Werte einzeln: Welcher Typ der richtige ist, hängt
+    # an der Branchenklasse — ein Shop wird nicht an `LocalBusiness` gemessen.
+    # Über den Rohtext gelesen und nicht über `json.loads`, weil ein einziges
+    # fehlerhaftes Snippet sonst die ganze Erhebung verschluckt.
+    results["schema_typen"] = sorted({
+        typ.strip().split("/")[-1]
+        for typ in re.findall(r'"@type"\s*:\s*"([^"]+)"', schema_text)
+        if typ.strip()
+    })
 
     # Viewport (Mobile)
     viewport = soup.find("meta", attrs={"name": "viewport"})

@@ -427,6 +427,38 @@ RESPONSE_TIME_PATTERNS = (
     "24 stunden", "48 stunden", "werktag", "am selben tag", "sofort",
 )
 
+# Was `PROFILE["cv_kontakt"]` je Klasse zusätzlich erwartet.
+OPENING_HOURS_PATTERNS = (
+    "öffnungszeiten", "oeffnungszeiten", "sprechzeiten", "sprechstunde",
+    "geöffnet", "geoeffnet", "openinghours",
+)
+
+BOOKING_PATTERNS = (
+    "termin buchen", "termin vereinbaren", "online-termin", "online termin",
+    "terminbuchung", "calendly", "doctolib", "jameda", "terminland",
+)
+
+DIRECTIONS_PATTERNS = (
+    "anfahrt", "lageplan", "so finden sie uns", "google.com/maps",
+    "routenplaner", "wegbeschreibung",
+)
+
+CONTACT_PERSON_PATTERNS = (
+    "ansprechpartner", "ansprechperson", "ihr kontakt", "ihre ansprech",
+    "kundenbetreuer", "berater für",
+)
+
+RETURNS_PATTERNS = (
+    "widerruf", "rückgabe", "ruecknahme", "rücknahme", "retoure", "retouren",
+    "umtausch",
+)
+
+# Im Shop ist der Kundenservice oft eine eigene Seite und keine Telefonnummer.
+SERVICE_CONTACT_PATTERNS = (
+    "kundenservice", "kundendienst", "hilfe-center", "hilfecenter", "support",
+    "kontaktformular",
+)
+
 # Die vier klassenunabhängigen Untergruppen. „Zertifikate" fehlt hier
 # absichtlich: Der Nachweis der Befähigung heißt in jeder Branche anders und
 # steht deshalb in `audit_industry_signals` — ein Ingenieurbüro hat keinen
@@ -444,7 +476,13 @@ CURRENT_YEAR_WINDOW = 2  # Copyright älter als zwei Jahre gilt als veraltet
 
 
 def analyse_contact(soup: BeautifulSoup) -> dict:
-    """Kontaktwege und Hürden im Kontaktformular."""
+    """Kontaktwege und Hürden im Kontaktformular.
+
+    Über das Telefon hinaus wird erhoben, was `PROFILE["cv_kontakt"]` je Klasse
+    erwartet: Sprechzeiten und Terminbuchung in der Praxis, Öffnungszeiten und
+    Anfahrt im Publikumsbetrieb, Ansprechperson beim überregionalen Anbieter,
+    Retourenweg im Shop. Welche drei davon zählen, entscheidet `audit_scoring`.
+    """
     forms = soup.find_all("form")
     field_counts = [
         len(f.find_all(["input", "textarea", "select"]))
@@ -452,15 +490,29 @@ def analyse_contact(soup: BeautifulSoup) -> dict:
     ]
     smallest_form = min(field_counts) if field_counts else None
     text = soup.get_text(" ").lower()
+    hrefs = " ".join(a.get("href", "") for a in soup.find_all("a", href=True)).lower()
+    haystack = f"{text} {hrefs}"
+
+    tel_link = bool(soup.find("a", href=lambda h: h and h.startswith("tel:")))
+    mailto_link = bool(soup.find("a", href=lambda h: h and h.startswith("mailto:")))
+    form_is_lean = smallest_form is not None and smallest_form <= 5
+    oeffnungszeiten = any(p in haystack for p in OPENING_HOURS_PATTERNS)
+    terminbuchung = any(p in haystack for p in BOOKING_PATTERNS)
 
     return {
         "collected": True,
-        "tel_link": bool(soup.find("a", href=lambda h: h and h.startswith("tel:"))),
-        "mailto_link": bool(soup.find("a", href=lambda h: h and h.startswith("mailto:"))),
+        "tel_link": tel_link,
+        "mailto_link": mailto_link,
         "form": bool(forms),
         "form_field_count": smallest_form,
-        "form_is_lean": smallest_form is not None and smallest_form <= 5,
+        "form_is_lean": form_is_lean,
         "response_time_stated": any(p in text for p in RESPONSE_TIME_PATTERNS),
+        "oeffnungszeiten": oeffnungszeiten,
+        "terminbuchung": terminbuchung,
+        "anfahrt": any(p in haystack for p in DIRECTIONS_PATTERNS),
+        "ansprechperson": any(p in text for p in CONTACT_PERSON_PATTERNS),
+        "retourenweg": any(p in haystack for p in RETURNS_PATTERNS),
+        "servicekontakt": any(p in haystack for p in SERVICE_CONTACT_PATTERNS),
     }
 
 

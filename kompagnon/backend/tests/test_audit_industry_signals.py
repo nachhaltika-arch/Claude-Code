@@ -109,3 +109,52 @@ def test_jede_bewertbare_klasse_hat_einen_eigenen_massstab(gruppe):
         if klasse == "K6":
             continue
         assert je_klasse.get(klasse), f"{klasse} fehlt in {gruppe}"
+
+
+# ── Der Maßstab darf nichts verlangen, was niemand erhebt ─────────────
+
+def test_jedes_kontaktmerkmal_wird_auch_beobachtet():
+    """Ein Tippfehler in der Tabelle würde ein Kriterium stumm auf 0 setzen."""
+    from bs4 import BeautifulSoup
+
+    from services.audit_collectors import analyse_contact
+    from services.audit_industry_signals import KONTAKT_MERKMALE, KONTAKT_OHNE_KLASSE
+    from services.audit_scoring import KONTAKT_ABLEITUNGEN
+
+    erhoben = set(analyse_contact(BeautifulSoup("<p>x</p>", "html.parser")))
+    verfuegbar = erhoben | set(KONTAKT_ABLEITUNGEN)
+
+    verlangt = set(KONTAKT_OHNE_KLASSE)
+    for merkmale in KONTAKT_MERKMALE.values():
+        verlangt.update(merkmale)
+
+    assert verlangt <= verfuegbar, sorted(verlangt - verfuegbar)
+
+
+def test_jede_ableitung_stuetzt_sich_auf_beobachtetes():
+    from bs4 import BeautifulSoup
+
+    from services.audit_collectors import analyse_contact
+    from services.audit_scoring import KONTAKT_ABLEITUNGEN
+
+    erhoben = set(analyse_contact(BeautifulSoup("<p>x</p>", "html.parser")))
+    for merkmal, teile in KONTAKT_ABLEITUNGEN.items():
+        assert set(teile) <= erhoben, f"{merkmal}: {sorted(set(teile) - erhoben)}"
+
+
+def test_jede_klasse_hat_genau_drei_kontaktmerkmale():
+    """Das Kriterium hat drei Punkte — zwei Merkmale deckelten es stillschweigend."""
+    from services.audit_industry_map import KLASSEN
+    from services.audit_industry_signals import KONTAKT_MERKMALE
+
+    for klasse in KLASSEN:
+        assert len(KONTAKT_MERKMALE[klasse]) == 3, klasse
+
+
+def test_jede_klasse_kennt_einen_schema_haupttyp():
+    from services.audit_industry_map import KLASSEN
+    from services.audit_industry_signals import SCHEMA_HAUPTTYPEN, SCHEMA_ZUSATZTYPEN
+
+    for klasse in KLASSEN:
+        assert SCHEMA_HAUPTTYPEN.get(klasse), klasse
+        assert SCHEMA_ZUSATZTYPEN.get(klasse), klasse

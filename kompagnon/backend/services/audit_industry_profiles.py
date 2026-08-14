@@ -11,17 +11,17 @@ Akquiseinstrument unbrauchbar.
 
 **Wer diesen Maßstab anwendet.** `cv_klarheit`, `cv_angebot` und
 `ih_textqualitaet` werden geschätzt — für sie wandert der Maßstab in den
-Prompt. `cv_cta`, `cv_vertrauen` und `ih_leistungsseiten` werden gemessen oder
-abgeleitet; sie rechnen seit dem 14.08.2026 klassenabhängig, die Stichworte
-dazu stehen in `audit_industry_signals`. Im Bericht steht der Maßstab je
-Kriterium als Hinweis (`widget_report._hinweis`).
+Prompt. Die sechs gemessenen und abgeleiteten Kriterien — `cv_cta`,
+`cv_kontakt`, `cv_vertrauen`, `se_meta`, `se_schema`, `ih_leistungsseiten` —
+rechnen seit dem 14.08.2026 klassenabhängig; die Stichworte, Schema-Typen und
+Kontaktmerkmale dazu stehen in `audit_industry_signals` als messbare
+Entsprechung dieser Prosa. Im Bericht steht der Maßstab je Kriterium als
+Hinweis (`widget_report._hinweis`).
 
-**Noch offen:** `se_meta` verlangt den Ort im Title auch dort, wo dieser Text
-ihn ausdrücklich nicht erwartet (K4, K5), und `se_schema` prüft gegen
-`LocalBusiness` statt gegen den hier genannten Haupttyp — dafür müsste der
-QA-Scanner die gefundenen Schema-Typen ausgeben. `cv_kontakt` misst in jeder
-Klasse dasselbe; Öffnungszeiten (K3) und Retourenweg (K5) werden nicht erhoben.
-Siehe `docs/Audit/`.
+Damit ist dieser Text nicht länger nur Nachschlagewerk: Was hier steht, wirkt
+auf die Punktzahl. Wer eine Zeile ändert, ändert eine Bewertung — die Tests in
+`test_audit_klassen_bewertung.py` und `test_audit_klassen_seo_kontakt.py`
+halten fest, welche.
 """
 from typing import Dict
 

@@ -12,9 +12,11 @@ Akquiseinstrument unbrauchbar.
 **Nur ein Teil davon erreicht das Modell.** `cv_klarheit`, `cv_angebot` und
 `ih_textqualitaet` werden geschätzt — für sie wandert der Maßstab in den
 Prompt. `cv_cta`, `cv_kontakt`, `cv_vertrauen`, `se_meta`, `se_schema` und
-`ih_leistungsseiten` werden gemessen oder abgeleitet; ihr Maßstab steht hier
-vollständig, wirkt aber noch nicht auf die Bewertung. Das ist eine offene
-Lücke und keine Auslassung — siehe `docs/Audit/`.
+`ih_leistungsseiten` werden gemessen oder abgeleitet; ihr Maßstab **steht
+seit 2026-08-14 im Bericht** (`widget_report._hinweis`), **wirkt aber weiter
+nicht auf die Bewertung** — die Erhebung sucht in `audit_collectors` nach
+handwerklichen Stichworten. Das ist eine offene Lücke und keine Auslassung —
+siehe `docs/Audit/`.
 """
 from typing import Dict
 

@@ -18,8 +18,10 @@ from services.audit_criteria import (
     BLOCKER_LABELS,
     CATALOGUE,
     SOURCE_LABELS,
+    Criterion,
     Source,
 )
+from services.audit_industry_profiles import massstab_fuer
 
 # Herkunft eines Werts. Die Farben folgen der CI-Statuspalette statt der
 # früheren freien Töne — gemessen ist Erfolg, abgeleitet und Einschätzung
@@ -217,7 +219,19 @@ def _kategorie_uebersicht(kategorien: list) -> str:
             f'{"".join(zeilen)}</section>')
 
 
-def _criteria_rows(kategorien: list, items: dict, sources: dict) -> str:
+def _hinweis(crit: Criterion, klasse: str) -> str:
+    """Was neben dem Kriterium steht — der Maßstab der Klasse, sonst der Katalog.
+
+    Der Katalog-Hinweis beschreibt, was allgemein geprüft wird; der Maßstab aus
+    `audit_industry_profiles` sagt, woran diese Branche gemessen wird. Wo es
+    beides gibt, gewinnt der genauere: Ein Ingenieurbüro führt Seiten je
+    Fachgebiet, nicht je Gewerk.
+    """
+    return massstab_fuer(crit.key, klasse or "") or crit.hint
+
+
+def _criteria_rows(kategorien: list, items: dict, sources: dict,
+                   klasse: str = "") -> str:
     """Jedes Kriterium einzeln, gruppiert nach Kategorie."""
     blocks = []
     for eintrag in kategorien:
@@ -235,7 +249,7 @@ def _criteria_rows(kategorien: list, items: dict, sources: dict) -> str:
                 f'<td style="padding:10px 8px">'
                 f'<div style="font-weight:700;color:{brand.TEXT}">{_esc(crit.label)}</div>'
                 f'<div style="font-size:12px;color:{brand.TEXT_60};margin-top:2px">'
-                f'{_esc(crit.hint)}</div></td>'
+                f'{_esc(_hinweis(crit, klasse))}</div></td>'
                 f'<td style="padding:10px 8px;text-align:right;white-space:nowrap;'
                 f'font-family:{brand.FONT_MONO};font-size:13px;color:{brand.TEXT}">'
                 f'{value}</td>'
@@ -379,6 +393,7 @@ def render_report_page(audit, company: str = "", token: str = "",
     recommendations = _json_field(getattr(audit, "recommendations", None), [])
 
     kategorien = _kategorien(items, sources)
+    branchenklasse = getattr(audit, "branchenklasse", "") or ""
     score = int(getattr(audit, "total_score", 0) or 0)
     coverage = int(getattr(audit, "coverage", 0) or 0)
     titel = company or audit.website_url
@@ -446,7 +461,7 @@ def render_report_page(audit, company: str = "", token: str = "",
     <span style="color:{brand.DARK}">◇</span> KI-Einschätzung &nbsp;
     <span style="color:{brand.TEXT_30}">○</span> nicht erhoben
     (zählt nicht in die Bewertung)</p>
-  {_criteria_rows(kategorien, items, sources)}
+  {_criteria_rows(kategorien, items, sources, branchenklasse)}
 
   <footer style="margin-top:44px;padding-top:20px;
                  border-top:1px solid {brand.BORDER};

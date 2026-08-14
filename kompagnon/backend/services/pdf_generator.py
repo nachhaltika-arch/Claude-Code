@@ -25,6 +25,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 
 
 from services.audit_criteria import BLOCKER_LABELS, CATALOGUE, SOURCE_LABELS, Source
+from services.audit_industry_map import KLASSEN
 
 logger = logging.getLogger(__name__)
 
@@ -627,6 +628,31 @@ def build_scorecard(items: dict, sources: dict, styles: dict) -> tuple:
     return header, rows
 
 
+def branche_fuer_protokoll(audit_data: dict) -> str:
+    """Die Branchenzeile des Auditprotokolls — Befund vor Vermutung.
+
+    Reihenfolge: was das Modell an der Seite erkannt hat, dahinter der Maßstab
+    der Klasse; dann die Klasse allein; dann `trade` als Altbestand. `trade`
+    stammt bei Widget-Analysen aus einer Stichwortsuche (`scraper.py`) und hat
+    einem Ingenieurbüro „Schreiner" ins Protokoll geschrieben, weil „holz" im
+    Text stand. Im Protokoll gelesen ist eine Vermutung ein Befund — deshalb
+    steht sie hier zuletzt und wird notfalls durch „k.A." ersetzt.
+    """
+    branche = _clean_text(audit_data.get("erkannte_branche", "") or "").strip()
+    klasse = KLASSEN.get(audit_data.get("branchenklasse", "") or "")
+
+    if branche and klasse:
+        return f"{branche} ({klasse.bezeichnung})"
+    if branche:
+        return branche
+    if klasse:
+        return klasse.bezeichnung
+
+    # `_safe` ersetzt nur None, nicht den leeren Text — hier ist beides gleich
+    # unbekannt, und eine leere Protokollzeile sieht aus wie ein Druckfehler.
+    return _clean_text(audit_data.get("trade", "") or "").strip() or "k.A."
+
+
 def generate_audit_report(audit_data: dict) -> bytes:
     """Generate a professional PDF audit report. Returns PDF bytes."""
     buffer = BytesIO()
@@ -855,7 +881,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
     proto_data = [
         ["Website-URL", url],
         ["Auftraggeber / Unternehmen", company],
-        ["Branche / Gewerk", _safe(trade, "k.A.")],
+        ["Branche", branche_fuer_protokoll(audit_data)],
         ["Stadt", _safe(city, "k.A.")],
         ["Auditdatum", date_str],
         ["Auditor/in", "KOMPAGNON Communications"],

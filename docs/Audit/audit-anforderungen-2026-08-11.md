@@ -506,3 +506,46 @@ Nische der Phase 1.
 Offen bleibt: `trade` aus den Stammdaten und die erkannte `branche` können
 auseinanderlaufen. Die Erkennung korrigiert nur die Bewertung, sie schreibt den
 Stammdatensatz nicht zurück.
+
+---
+
+## 8. Befund vom 2026-08-14 (abends) — das PDF druckte die Vermutung
+
+**David an einem echten Staging-Bericht:** Im PDF eines Ingenieurbüros für
+nachhaltige Wirtschaft stand „Branche / Gewerk: **Schreiner**". Der
+HTML-Bericht daneben ordnete korrekt ein („Ingenieurbüro für nachhaltige
+Wirtschaft — Maßstab: Lokaler Beratungs- und Gesundheitsdienstleister"). Damit
+ist die im letzten Absatz von § 7 offengelassene Lücke eingetreten, und zwar
+an der sichtbarsten Stelle: im Protokollteil, der wie ein Befund gelesen wird.
+
+**Ursache.** `services/scraper.py` riet das Gewerk über Stichworte; für
+„Schreiner" genügte das Wort „holz" irgendwo im Seitentext. Bei Widget-Analysen
+gibt niemand ein Gewerk mit, also griff die Vermutung immer
+(`routers/audit.py`, `req.trade or scraped["trade"]`). Der geratene Wert ging
+doppelt weiter: als „Gewerk" in den KI-Prompt und als Protokollzeile ins PDF.
+Die Stichwortfamilien sind dabei so weit gefasst, dass fast jede deutsche Seite
+trifft — „installation", „strom", „wasser", „bau".
+
+**Behoben.**
+1. `pdf_generator.branche_fuer_protokoll` — Reihenfolge erkannte Branche →
+   Klasse → `trade` (Altbestand) → „k.A.". Die Zeile heißt jetzt „Branche" und
+   nennt den Maßstab mit.
+2. `routers/audit.py` speichert die Vermutung nicht mehr als `trade`. Was
+   niemand eingetragen hat, bleibt leer; die Branche erkennt das Modell.
+3. Der HTML-Bericht zeigt je Kriterium den Maßstab der Klasse statt des
+   allgemeinen Katalog-Hinweises — vorher las ein Ingenieurbüro „je Gewerk eine
+   Seite" und „Meisterbetrieb" (`widget_report._hinweis`).
+4. Nebenbefund: „Stadt: Boppard-". Das Ortsmuster ließ nach dem Bindestrich nur
+   Kleinbuchstaben zu (`scraper.stadt_aus_text`).
+
+**Weiterhin offen — die Bewertung selbst rechnet handwerklich.**
+`audit_collectors.py` sucht Leistungsseiten über `wärmepumpe, wallbox, heizung,
+sanitär, bad, elektro, photovoltaik…` und Zertifikate über `meisterbetrieb,
+innung, handwerkskammer`. Ein Ingenieurbüro verliert dort Punkte für etwas, das
+es gar nicht haben kann. Der klassenabhängige Maßstab steht vollständig in
+`audit_industry_profiles.PROFILE`, wirkt aber nur auf die zwei KI-Kriterien in
+`KI_KRITERIEN_MIT_PROFIL`. Das ist der nächste Schritt.
+
+Ebenfalls offen: `lead_enrichment.py` füllt `lead.trade` weiter aus derselben
+Stichwortsuche. In einer Leadliste ist eine Arbeitshypothese vertretbar — sie
+darf nur nirgends als Befund gedruckt werden.

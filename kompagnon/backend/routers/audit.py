@@ -427,7 +427,13 @@ async def start_audit(
     company_name = firmenname_fuer_audit(
         req.company_name, scraped.get("company_name", ""), url)
     city = req.city or scraped.get("city", "")
-    trade = req.trade or scraped.get("trade", "Sonstiges")
+    # Kein Rückfall auf `scraped["trade"]`: Der Scraper rät das Gewerk über
+    # Stichworte — „holz" im Text genügt für „Schreiner". Als Arbeitshypothese
+    # in einer Leadliste taugt das, im Audit nicht: Der Wert ging als „Gewerk"
+    # in den KI-Prompt und stand als Befund im PDF-Protokoll. Die Branche
+    # erkennt seit dem Branchenmodell 2026.2 das Modell selbst
+    # (`erkannte_branche`), und was niemand eingetragen hat, bleibt leer.
+    trade = req.trade or ""
 
     # Neue DB-Session nur zum Speichern
     db2 = SessionLocal()

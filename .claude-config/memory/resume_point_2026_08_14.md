@@ -1,54 +1,72 @@
 ---
 name: resume-point-2026-08-14
-description: "Stand 2026-08-14 — scharfer Lauf gefahren, Assistent auf claude-sonnet-5 umgestellt; nächster Schritt braucht Render-Zugang, der fehlt"
+description: "Stand 2026-08-14 — 23 Commits, PR #36 gemerged; Kundendaten waren ohne Login offen, Audit misst jetzt je Branchenklasse; 9 Commits auf staging ungetestet"
 metadata: 
   node_type: memory
   type: project
-  modified: 2026-08-14T07:43:13.696Z
-  originSessionId: 3d92565b-8fff-43d9-b150-99e01060374c
+  originSessionId: 2304b374-a627-442b-9197-998d31d1113e
+  modified: 2026-08-14T21:46:53.145Z
 ---
 
-**Der scharfe Lauf ist gefahren, der Assistent läuft auf `claude-sonnet-5`.**
-Zwei Commits auf `staging` (`5f7ee14`, `d3793b6`), CI vollständig grün. Was
-gefunden und geändert wurde, steht im Repo:
-`docs/projekt-assistent-anforderungen.md`, Abschnitte 9.4 (scharfer Lauf) und
-9.5 (Modellvergleich) — dort steht Gemessenes, nicht Erinnertes.
+**Vollständiger Tagesbericht im Repo: `docs/stand-2026-08-14.md`.** 23 Commits,
+vier Sitzungen. PR #36 ist um 22:48 nach `main` gemerged (Sicherheitsfix,
+Branchenmodell, Assistent, Widget, Zustellung).
 
-**Der Blocker für den nächsten Schritt: Render-MCP antwortet `unauthorized`.**
-Damit ist weder die Produktivdatenbank noch eine Umgebungsvariable erreichbar.
-Der nächste offene Punkt — Ausgangswerte der Briefing-Abschlussquote für
-Erfolgskriterium 4.3 — hängt genau daran. Ohne Zugang zuerst klären ist der
-Punkt nicht bearbeitbar. Ein Render-API-Schlüssel löst es.
+**Das Muster des Tages:** Dreimal war die Rechnung richtig und die Aussage
+trotzdem falsch, weil der Maßstab von woanders kam — der Assistent erfand
+Fakten über den Kundenbetrieb, das Audit maß einen Kandidatenauftritt am
+SHK-Maßstab, das PDF eines Ingenieurbüros druckte „Branche / Gewerk:
+Schreiner".
 
-**So läuft ein scharfer Lauf** (das Skript lag im Scratchpad und ist weg):
-Schlüssel aus `backend/.env.save` exportieren (die Zeile in `.env` ist leer,
-das ist nicht dasselbe), Backend mit `.venv-local` auf 8000 starten — **erst
-danach** seeden, siehe [[migration-trap-main-py]] —, `python -m tests.seed_e2e`,
-dann über `POST /api/auth/login` ein Token holen und gegen
-`POST /api/assistant/chat` fahren. Modell und Antwortdeckel kommen aus
-`ASSISTENT_MODELL` / `ASSISTENT_MAX_TOKENS`, ein Modellvergleich braucht also
-keinen Codeumbau mehr.
+**Der schwerste Befund hat damit nichts zu tun:** `GET /api/leads/` gab die
+volle Leadliste ohne Login aus — **produktiv**. Dazu DELETE, PATCH,
+CSV-Export und die kostenpflichtigen Läufe; 31 von 42 Lead-Routen, alle 7
+Kunden-Routen, 9 Usercards, plus Alias-Router. Ursache war die Richtung: Die
+Anmeldung hing an jeder Route statt am Router. Jetzt am Router, öffentliche
+Ausnahmen in einem eigenen Router mit eigener Prüfung. **Offen:** ob die
+Leadverwaltung nur Administratoren gehört — das Kundenportal ruft PATCH auf
+seinen eigenen Lead auf.
 
-**Falle für jeden künftigen Modellwechsel:** Der Antwortdeckel begrenzt bei
-denkenden Modellen Denken und Text gemeinsam. Die übrigen KI-Router (Sitemap,
-Content, Branddesign, Component-Library) stehen weiter auf `claude-sonnet-4-6`,
-mehrere rufen mit `max_tokens=800` auf — beim Umstellen reißt die Antwort sonst
-mitten im Wort ab.
+**Audit misst jetzt je Branchenklasse, nicht nur je Text.** Sechs gemessene
+Kriterien (`ih_leistungsseiten`, `cv_vertrauen`, `cv_cta`, `cv_kontakt`,
+`se_meta`, `se_schema`) rechnen gegen den Maßstab der erkannten Klasse. Die
+Stichworte stehen in `services/audit_industry_signals.py`, der messbaren
+Entsprechung zur Prosa in `audit_industry_profiles.py` — **wer dort eine Zeile
+ändert, ändert eine Bewertung.**
 
-**Von David an diesem Tag aufgeworfen, nur aufgeschrieben:** Das Audit
-unterstellt jeder Seite ein Handwerksgewerk und bewertete den Auftritt eines
-politischen Kandidaten gegen den SHK-Maßstab. Offener Punkt 5 in
-`docs/audit-anforderungen-2026-08-11.md`, § 6 — mit der Trennung von Erkennung
-(Defekt) und Branchen-Ausweitung (Geschäftsentscheidung, berührt
-[[niche-phase1]]). Nichts davon gebaut, keine Entscheidung gefallen.
+**Die tragende Entscheidung ist die Reihenfolge:** Die Klasse steht erst nach
+der KI-Erkennung fest, also *nach* der Erhebung. Deshalb sucht die Erhebung den
+Verband aller Klassen und merkt sich je Fund die Begriffe; welcher Treffer
+zählt, entscheidet `audit_scoring`. Wer hier etwas ergänzt: **zusammengesetzte
+Merkmale gehören in die Bewertung, nicht in die Erhebung** — sonst hätten alte
+Fakten sie nie und würden dafür abgewertet, siehe [[migration-trap-main-py]]
+für dieselbe Bauart.
 
-**Ebenfalls offen, ungeklärt:** drei abweichende Mailadressen im System
-(`hallo@kompagnon.eu` in `PricingSection.jsx`, `info@kompagnon.de` in
-`config.py`, `noreply@kompagnon.group` als Brevo-Absender). `sales@kompagnon.eu`
-kommt im Repo nirgends vor; ob sie im laufenden System steckt, war wegen des
-Render-Blockers nicht prüfbar.
+**Die Vermutung als Befund** — der Fehler, der zum Abend führte: `scraper.py`
+rät das Gewerk über Stichworte („holz" → Schreiner), und bei Widget-Analysen
+gibt niemand eines mit. Der geratene Wert ging in den KI-Prompt *und* ins
+PDF-Protokoll. `routers/audit.py` speichert die Vermutung nicht mehr; das PDF
+zeigt die erkannte Branche samt Maßstab. `lead_enrichment.py` rät weiter —
+offen, aber in einer Leadliste vertretbar.
 
-**Danach weiter offen:** echter Kunde durch Ausbau 1, dann Ausbau 2
-(Projektbegleitung); Qualitätsschleife Stufe C, siehe
-[[resume-point-2026-08-13]]; Widget-Restpunkte, siehe
-[[resume-point-2026-08-12]].
+**Nicht in `main`: neun Commits auf `staging`** — Doku-Umzug in Ordner plus die
+vier Audit-Commits des Abends. Sie sind noch nie auf dem Staging-Server
+gelaufen.
+
+**Nächster Schritt:** echte Widget-Analyse über Staging, PDF-Protokoll ansehen
+(erkannte Branche + vollständiger Ortsname), dann erst nach `main`. Danach: der
+Katalog ist nie gegen eine echte fremde Website gelaufen (§ 6.4, dort als
+wichtigster Punkt markiert).
+
+**Render bleibt blockiert** (`unauthorized`) — daran hängen PageSpeed-Schlüssel,
+Ausgangswerte der Briefing-Abschlussquote und die drei abweichenden
+Mailadressen. Ein API-Schlüssel löst alle drei.
+
+Der scharfe Lauf des Morgens und die Modell-Falle stehen in
+`docs/projekt-assistent-anforderungen.md` § 9.4/9.5: Der Antwortdeckel begrenzt
+bei denkenden Modellen Denken und Text gemeinsam, die übrigen KI-Router stehen
+weiter auf `claude-sonnet-4-6` mit `max_tokens=800`.
+
+Weiter offen: Qualitätsschleife Stufe C, siehe [[resume-point-2026-08-13]];
+Widget-Restpunkte bei David, siehe [[resume-point-2026-08-12]].
+Zum Release-Rhythmus [[feedback-pr-only-fridays]].

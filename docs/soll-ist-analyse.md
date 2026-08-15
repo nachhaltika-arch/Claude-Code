@@ -27,8 +27,8 @@ begründet sie, mehr nicht.
 
 | Bereich | Stand | Einschätzung | Geprüft |
 |---|---|---|---|
-| A — Betrieb & Release | 🟢 | `main` über Rulesets geschützt, CI mit vier Pflichtjobs, dual-branch etabliert, wöchentlicher Release | 08-15 |
-| B — Sicherheit & Compliance | 🟠 | Anmeldung hängt seit 08-14 am Router, teure Endpunkte seit 08-15 begrenzt. Offen: Rollenrechte ohne Wirkung, **Rotation der DB-Zugangsdaten** (waren bis 08-15 über `/info` abrufbar) | 08-15 |
+| A — Betrieb & Release | 🟡 | `main` geschützt, CI mit Pflichtjobs, dual-branch etabliert. **Aber:** produktiv liefen sieben von acht Startphasen nie (L-41, behoben 08-15), und das Backend steht in der falschen Region (L-34) | 08-15 |
+| B — Sicherheit & Compliance | 🟡 | Anmeldung am Router, teure Endpunkte begrenzt, Zugangsdaten rotiert, `/info` geschlossen, `ENVIRONMENT=production`, Demo-Konten deaktiviert. Offen: Rollenrechte ohne Wirkung (L-05/L-12), Produktiv-DB im offenen Internet (L-40, hängt an L-34) | 08-15 |
 | C — Vertrieb & Lead-Gewinnung | 🟡 | Widget produktiv, Double-Opt-in, Bericht und PDF tragen die Marke. Offen: Einbau in die Ziel-Landingpage, Brevo-Klick-Tracking | 08-15 |
 | D — Verkauf & Zahlung | 🟡 | Stripe funktioniert; Preise weiterhin an mehreren Stellen | 08-07 |
 | E — Projektabwicklung | 🟢 | 7 Phasen, Checkliste, Marge, Automationen laufen | 08-07 |
@@ -140,7 +140,9 @@ Aufwand: S ≤ 1 Tag · M ≤ 1 Woche · L ≤ 4 Wochen · XL darüber.
 | ~~L-02~~ | ~~Website-Check produktiv defekt~~ — **erledigt 2026-08-07**: Preflight liefert produktiv 200 mit allow-origin | — | — |
 | ~~L-03~~ | ~~Embed-Widget nie deployt~~ — **erledigt 2026-08-07**: produktiv 200, echtes Widget. Rest: Staging liefert wegen `npx serve` die React-App, mit `--no-clean-urls` angleichen | S | Produktiv-Test |
 | ~~L-04~~ | ~~Kein Rate-Limiting~~ — **erledigt 2026-08-15** (`82453bd`): Beim Beheben zeigte sich, dass der teurere Nachbar dasselbe Loch hatte und niemand ihn genannt hatte — `POST /api/audit/start` war ohne Anmeldung und ohne Grenze erreichbar, je Aufruf ein KI-Lauf plus PageSpeed, Screenshot und Crawl. Gezählt wird über Zeitpunkt und Zieladresse, ohne neue Spalte und ohne IP-Speicherung: 3 je Adresse und Tag, 40/Stunde und 200/Tag gesamt, 30 Leads/Stunde. Angemeldete bleiben frei; die Prüfung hängt als Abhängigkeit, damit die feineren Widget-Grenzen nicht gegeneinander arbeiten | — | — |
-| L-39 | **Datenbank-Zugangsdaten waren über `/info` ohne Anmeldung abrufbar** (produktiv und Staging), behoben am 2026-08-15 in `2f687b2`. **Offen: Rotation in Render** — der Fix macht die Preisgabe nicht ungeschehen, und ob jemand hingesehen hat, lässt sich nicht feststellen | S | `stand-2026-08-15.md` § 1 |
+| L-41 | **Sieben von acht Startphasen liefen produktiv nie** — behoben am 2026-08-15 (`347379b`), aber die Ursache bleibt: Alle Phasen teilten einen Worker, die 215 s lange Migration hielt ihn, der Rest lief in Timeouts ohne je zu starten. Produktiv gab es dadurch monatelang keinen Scheduler. **Offen bleibt die Wurzel: L-34** | — | `stand-2026-08-15.md` § 7 |
+| ~~L-42~~ | ~~`ENVIRONMENT` produktiv nie gesetzt~~ — **erledigt 2026-08-15**: Die Variable existierte nicht, der Code-Vorgabewert `development` griff. Dadurch wurden Demo-Konten produktiv *angelegt* und nie deaktiviert, und ein fehlender `SECRET_KEY` wäre stillschweigend durch einen flüchtigen ersetzt worden. Drei Demo-Konten waren aktiv und sind deaktiviert | — | — |
+| ~~L-39~~ | ~~Datenbank-Zugangsdaten über `/info` abrufbar~~ — **erledigt 2026-08-15**: Endpunkt geschlossen (`2f687b2`, produktiv verifiziert), Zugangsdaten in **beiden** Umgebungen rotiert und die alten gelöscht, ohne Ausfall. Dabei zeigte sich der Unterschied, der zählt: Staging blockt jeden externen Verkehr, die preisgegebenen Daten waren dort wertlos — die Produktiv-DB nimmt Verbindungen aus dem ganzen Internet an, dort war die Preisgabe verwertbar | — | — |
 | L-05 | `RolePermission` und Berechtigungs-UI ohne jede Wirkung — Rechte lassen sich scheinbar ändern. **Am 2026-08-15 nachgeprüft, unverändert**: gelesen nur in `database.py` und `admin_settings.py` | M | keine Lesestelle außerhalb `admin_settings.py` |
 
 ### P1 — Betrieb und Prozess
@@ -156,7 +158,7 @@ Aufwand: S ≤ 1 Tag · M ≤ 1 Woche · L ≤ 4 Wochen · XL darüber.
 | L-12 | `require_auditor` an keiner Route eingehängt — Auditor faktisch nicht abgegrenzt. **Am 2026-08-15 nachgeprüft: weiterhin null Treffer** | S | Suche nach `Depends(require_auditor)` ohne Treffer |
 | L-13 | `.claude/settings.json` getrackt trotz `.gitignore`-Ausschluss — **Hook-Pfad korrigiert 2026-08-08** (zeigte auf `/home/user/Claude-Code`, jeder Auto-Push scheiterte still); offen bleibt die widersprüchliche Verfolgung der Datei | S | `git status`, Diff |
 | L-40 | Qualitätsschleife nicht scharf geschaltet: `NETLIFY_VORSCHAU_SITE_ID` fehlt, deshalb ist der Durchstich Editor → Netlify → Audit → PDF nie am Stück gelaufen. Ohne die Variable antwortet der Endpunkt sauber mit 503 | S | `services/qualitaetsschleife.py` |
-| L-34 | **Produktiv-Backend läuft in Oregon (US West)**, Datenbank in Frankfurt — jede Abfrage überquert den Atlantik; widerspricht der eigenen Vorgabe in `render.yaml` („Region: frankfurt — DSGVO-relevant") | L | Render-Dashboard, Service-Settings; Health-Check 2,4 s produktiv vs. 0,2 s Staging |
+| L-34 | **Produktiv-Backend läuft in Oregon (US West)**, Datenbank in Frankfurt. **Am 2026-08-15 als Ursache zweier Folgeschäden bestätigt:** Die Startphasen kippten an der Latenz (L-41), und die Datenbank *muss* im offenen Internet stehen, weil ein Backend in Oregon die interne Adresse einer Frankfurter DB nicht erreicht (L-40). Nicht mehr nur Performance — der größte einzelne Hebel im System | L | Health-Check 0,9–2,2 s produktiv vs. 0,12–0,18 s Staging; DNS der externen DB-Adresse |
 | L-35 | Blueprints beschreiben nicht die Realität: Produktiv-Frontend ist Static Site statt Web-Service, DB heißt `Kompangnon-dB` auf Postgres 18 statt `kompagnon-db` auf 16, Produktiv-Services sind nicht blueprint-verwaltet | S | Render-Dashboard vs. `render.yaml` |
 | ~~L-36~~ | ~~Fehler werden im Frontend systematisch weggefangen~~ — **erledigt 2026-08-08**: 67 leere catch-Blöcke in 36 Dateien beseitigt, null verbleibend. Neuer Helfer `utils/apiRequest.js` (`loadJson`/`saveJson`/`apiRequest`) mit 15 jest-Tests, erstmals Frontend-Unit-Tests in der CI. Dabei gefunden: neun Speicher-Aktionen, die Erfolg meldeten, ohne den Status je zu prüfen — darunter Go-Live („Website ist live! 🎉" trotz gescheitertem PUT), Briefing-Autosave, QA-Checkliste und Bild-Uploads. Bewusst stille Stellen (Keepalive, Brotkrumen, Passwort-vergessen) tragen jetzt `quiet` mit Begründung | — | — |
 | ~~L-37~~ | ~~Newsletter komplett tot: `import brevo_python` scheitert immer, weil `brevo-python` das Modul `brevo` liefert~~ — **erledigt 2026-08-08**: Anbindung auf die REST-API v3 über httpx umgestellt, SDK aus den Requirements entfernt, 15 Tests ergänzt. Gleich mitgefunden: Statistik las `open_rate`/`click_rate`, die es bei Brevo nicht gibt (heißt `opensRate`, Klickrate gar nicht) → Analytics zeigte immer leere Werte; Massenimport zählte abgelehnte Kontakte als importiert | — | — |
@@ -215,8 +217,9 @@ Zur Fairness gegenüber den beiden Mai-Audits — diese Befunde sind erledigt:
 *Stand 2026-08-15. Die Reihenfolge vom 07.08. ist abgearbeitet — L-01 bis L-03,
 L-06, L-07 und L-36 sind erledigt, L-09 hat ein tragendes Fundament.*
 
-1. **L-39** — Datenbank-Zugangsdaten rotieren. Das ist das Einzige, was nicht
-   warten kann, und es hängt nicht am Code.
+1. **L-34** — Backend nach Frankfurt. Nach dem 15.08. der klare erste Platz:
+   Die Region hat die Startphasen gekippt (L-41) und zwingt die Datenbank ins
+   offene Internet (L-40). Ein Umzug löst beides.
 2. **L-05, L-12** — Rollenrechte entweder real durchsetzen oder das
    irreführende UI entfernen. Ein Berechtigungs-Dialog ohne Wirkung ist
    schlimmer als keiner.

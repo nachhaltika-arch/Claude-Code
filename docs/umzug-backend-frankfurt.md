@@ -1,0 +1,174 @@
+# Umzug: Produktiv-Backend von Oregon nach Frankfurt (L-34)
+
+> Plan, erstellt am 2026-08-15 für den Start am 2026-08-16.
+> Ausgangslage und Begründung stehen in `stand-2026-08-15.md` § 7.
+
+---
+
+## Warum
+
+Am 15.08. hat sich gezeigt, dass die Region kein Performance-Detail ist,
+sondern die Ursache unter zwei Folgeschäden:
+
+- **Die Startphasen kippten an der Latenz** (L-41). Jede Datenbankabfrage
+  kostet ~1 s statt ~0,1 s; die Migration brauchte 215 s und hielt den einzigen
+  Worker, während sieben Phasen in ihren Timeouts verliefen. Produktiv gab es
+  monatelang keinen Scheduler.
+- **Die Datenbank muss im offenen Internet stehen** (L-40). Render dokumentiert:
+  „services in *different* regions can't communicate directly over a private
+  network." Das Backend in Oregon *kann* die interne Adresse der Frankfurter
+  Datenbank nicht erreichen — deshalb `0.0.0.0/0` und eine externe Adresse,
+  während Staging jeden externen Verkehr blockt.
+
+Dazu: Die Datenbank liegt in Frankfurt, weil der Blueprint es so vorsieht
+(„Region: frankfurt — DSGVO-relevant"). Das Backend, das die Daten verarbeitet,
+steht in den USA.
+
+**Ein Umzug löst beides auf einmal** und macht nebenbei jede Abfrage zehnmal
+schneller.
+
+---
+
+## Was der Umzug technisch bedeutet
+
+Render kann die Region eines bestehenden Dienstes **nicht** ändern
+(dokumentiert). Es muss ein **neuer Dienst** in Frankfurt entstehen, und der
+bekommt eine **neue Adresse**.
+
+Das ist die eigentliche Arbeit. Nicht der Umzug — die Adresse.
+
+### Wer auf `claude-code-znq2.onrender.com` zeigt
+
+| Wo | Art | Umschaltbar |
+|---|---|---|
+| `frontend/src/config.js` | Rückfallwert, sonst `REACT_APP_API_URL` | ja, Variable |
+| `services/widget_report.py` | Rückfall; sonst `RENDER_EXTERNAL_URL` (setzt Render selbst) | ja |
+| `routers/files.py` | Rückfall für Datei-Adressen | ja, `API_BASE_URL` |
+| **Bereits versendete Berichts-Mails** | **fest in der Mail** | **nein** |
+| **Webhook bei Trackdesk** | bei einem Dritten registriert | nur dort |
+| **Webhook bei Netlify** | bei einem Dritten registriert | nur dort |
+| **Webhook bei Brevo** | bei einem Dritten registriert | nur dort |
+
+**Die versendeten Berichtslinks sind der Punkt, der weh tut.** Jeder Empfänger
+einer Widget-Analyse hat eine Mail mit
+`https://claude-code-znq2.onrender.com/api/widget/report/{token}`. Wird der alte
+Dienst abgeschaltet, sind diese Links tot — bei genau den Interessenten, die wir
+gewinnen wollten.
+
+---
+
+## Die Entscheidung vor dem Umzug: eigene Domain oder nicht
+
+### Weg A — erst eine eigene Domain, dann umziehen *(empfohlen)*
+
+1. `api.kompagnon.eu` (oder ähnlich) auf den **alten** Dienst legen
+2. Alles darauf umstellen: `REACT_APP_API_URL`, `API_BASE_URL`, die drei
+   Webhooks bei Trackdesk, Netlify und Brevo
+3. Ein paar Tage laufen lassen, bis nichts mehr die `onrender.com`-Adresse ruft
+4. Neuen Dienst in Frankfurt bauen, Domain umhängen, alten Dienst abschalten
+
+**Dauer:** zwei Sitzungen plus Wartezeit.
+**Vorteil:** Der Umzug selbst ist dann unsichtbar — und **jeder künftige**
+Umzug auch. Die versendeten Links zeigen ab Schritt 2 auf eine Adresse, die uns
+gehört.
+
+### Weg B — direkt umziehen, alten Dienst als Brücke behalten
+
+1. Neuen Dienst in Frankfurt bauen und testen
+2. Umschalten (Frontend-Variable, Webhooks)
+3. **Alten Dienst weiterlaufen lassen**, heruntergestuft, nur damit die alten
+   Berichtslinks funktionieren
+
+**Dauer:** eine Sitzung.
+**Nachteil:** Der alte Dienst bleibt auf unbestimmte Zeit als Altlast stehen und
+kostet weiter. Das Problem ist verschoben, nicht gelöst.
+
+**Empfehlung: Weg A.** Der Umzug ist ohnehin fällig; ohne eigene Domain
+wiederholt sich diese Fesselung beim nächsten Mal. Wenn morgen nur eine Sitzung
+Zeit ist, sind die Schritte 1–2 aus Weg A ein sinnvolles Tagesziel — sie sind
+für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
+
+---
+
+## Ablauf (Weg A, Schritte 1–2 für morgen)
+
+### Vorher
+
+- [ ] Prüfen, welche Domain verwendet werden soll und wo sie verwaltet wird
+- [ ] **Datenbank-Sicherung**: Render Recovery-Punkt notieren, damit es einen
+      Rückweg gibt
+- [ ] Aufschreiben, was gerade läuft: `/health` (`startup_complete`,
+      `scheduler_running`), `/info` (`environment`), Antwortzeit
+
+### Domain vor den alten Dienst
+
+- [ ] Render → `kompagnon-backend` → Settings → Custom Domain → Domain eintragen
+- [ ] DNS-Eintrag beim Anbieter setzen (Render nennt den Zielwert)
+- [ ] Warten, bis Render das Zertifikat ausgestellt hat
+- [ ] Prüfen: `https://<domain>/health` antwortet wie die alte Adresse
+
+### Alles auf die Domain umstellen
+
+- [ ] `REACT_APP_API_URL` beim Frontend → neue Domain (löst Frontend-Deploy aus)
+- [ ] `API_BASE_URL` beim Backend → neue Domain (damit Berichtslinks und
+      Datei-Adressen sie nutzen; sie hat Vorrang vor `RENDER_EXTERNAL_URL`)
+- [ ] Webhook-Adresse bei **Trackdesk** ändern
+- [ ] Webhook-Adresse bei **Netlify** ändern
+- [ ] Webhook-Adresse bei **Brevo** ändern
+- [ ] Im Code die drei Rückfallwerte auf die Domain ändern
+      (`config.js`, `widget_report.py`, `files.py`) — Commit, PR, Merge
+
+### Prüfen
+
+- [ ] Tool anmelden, Leadliste, ein Audit ansehen
+- [ ] Eine Widget-Analyse über die neue Domain laufen lassen, Mail und
+      Berichtslink prüfen
+- [ ] Alte Adresse muss weiter funktionieren (sie tut es, solange der Dienst
+      steht) — die alten Mails hängen daran
+
+---
+
+## Der eigentliche Umzug (danach, eigene Sitzung)
+
+- [ ] Neuen Web Service in **Frankfurt** anlegen: gleiches Repo, Branch `main`,
+      gleiche Build- und Start-Befehle, Plan „Standard"
+- [ ] **Alle** Umgebungsvariablen übertragen (Render kann exportieren);
+      `DATABASE_URL` dabei auf die **interne** Adresse umstellen — das ist der
+      Punkt, an dem die Datenbank aus dem Internet verschwinden kann
+- [ ] `ENVIRONMENT=production` nicht vergessen (war beim alten Dienst nie
+      gesetzt, siehe L-42)
+- [ ] Neuen Dienst testen, **ohne** Domain: `/health` muss
+      `startup_complete: true` und `scheduler_running: true` zeigen, und der
+      Start sollte deutlich unter 264 s liegen
+- [ ] Domain vom alten auf den neuen Dienst umhängen
+- [ ] Alten Dienst suspendieren (nicht löschen — Rückweg)
+- [ ] **Dann L-40**: Inbound-Regel der Datenbank von `0.0.0.0/0` auf „kein
+      externer Verkehr" wie bei Staging
+- [ ] Nach ein paar ruhigen Tagen: alten Dienst löschen
+
+### Gelegenheit beim Schopf
+
+Der neue Dienst sollte **über einen Blueprint** entstehen (`render.yaml` für
+Produktiv). Das schließt L-35 mit — heute ist produktiv nichts
+blueprint-verwaltet, weshalb `DATABASE_URL` dort von Hand gepflegt wird und die
+Rotation mehr Arbeit war als auf Staging.
+
+---
+
+## Rückweg
+
+Bis zum Umhängen der Domain ist jeder Schritt umkehrbar: Der alte Dienst läuft
+unverändert weiter, der neue ist bis dahin nur eine zweite Adresse ohne
+Verkehr. Geht nach dem Umhängen etwas schief, zeigt die Domain in wenigen
+Minuten wieder auf den alten Dienst.
+
+Der einzige Schritt ohne einfachen Rückweg ist das **Löschen** des alten
+Dienstes — deshalb steht es am Ende und mit Abstand.
+
+---
+
+## Was der Umzug **nicht** löst
+
+- Die Datenbank bleibt `Basic-256mb` mit 1 GB Speicher (18,7 % belegt)
+- „Kompangnon-dB" behält seinen Tippfehler im Namen (L-35)
+- Das Frontend ist eine Static Site auf „Global" — davon ist nichts betroffen

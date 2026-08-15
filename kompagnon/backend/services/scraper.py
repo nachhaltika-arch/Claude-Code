@@ -145,7 +145,12 @@ async def scrape_website(url: str) -> dict:
             result["meta_description"] = meta_desc.get("content", "")[:300]
 
         # 3. Telefonnummer
-        text = soup.get_text()
+        # Mit Trenner, sonst klebt der Text benachbarter Elemente aneinander:
+        # aus „Straße 12" und „22047 Hamburg" wird „Straße 1222047 Hamburg",
+        # und `\b\d{5}` findet darin keine Postleitzahl mehr — der Ort fehlte
+        # deshalb bei jeder Analyse über das Widget, wo ihn niemand eingibt.
+        # Dieselbe Ursache lieferte „69705880info@firma.de" als E-Mail.
+        text = soup.get_text(separator=" ")
         phone_patterns = [
             r'(?:Tel|Telefon|Phone|Fon|Ruf)[\s.:]*(\+?[\d\s\-\/\(\)]{8,20})',
             r'(\+49[\s\-\d]{8,20})',

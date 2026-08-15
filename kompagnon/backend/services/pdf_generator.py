@@ -632,6 +632,21 @@ def _matplotlib_schrift(plt) -> None:
         logger.warning(f"Diagrammschrift nicht gesetzt: {e}")
 
 
+def radar_beschriftung(label: str) -> str:
+    """Der Name einer Kategorie ohne ihren Zusatz — fuer die Achsen des Radars.
+
+    Gekuerzt wurde vorher mit ``split(" &")[0]``. Das traf sieben der acht
+    Kategorien; „Barrierefreiheit (WCAG/BFSG)" fuehrt kein „&" und stand als
+    einzige in voller Laenge am Rand der Grafik. Getrennt wird deshalb am
+    ersten Zusatz, gleich ob er mit „&", einer Klammer oder einem Schraegstrich
+    beginnt.
+    """
+    name = (label or "").strip()
+    for trenner in (" &", " (", " /", " –", " —"):
+        name = name.split(trenner)[0]
+    return name.strip()
+
+
 def generate_radar_chart(axes: list) -> bytes:
     """Netzdiagramm über die Kategorien des Katalogs.
 
@@ -663,9 +678,22 @@ def generate_radar_chart(axes: list) -> bytes:
     # Die Ringe trugen deshalb „2, 4, 6, 8, 10" ohne Einheit — eine Zahl, die
     # weder Punkte noch Prozent war. Beschriftet wird jetzt, was gemeint ist.
     ax.set_ylim(0, 10)
+    # Fuenf Ringe, aber nur jeder zweite beschriftet: Fuenf Prozentangaben
+    # uebereinander drängten sich auf engem Raum.
     ax.set_yticks([2, 4, 6, 8, 10])
-    ax.set_yticklabels(["20%", "40%", "60%", "80%", "100%"],
+    ax.set_yticklabels(["20%", "", "60%", "", "100%"],
                        fontsize=6, color=brand.TEXT_30)
+    # Die Beschriftung lag auf der ersten Achse und damit mitten in der
+    # gefuellten Flaeche. Sie wandert an die Achse mit dem kleinsten Wert —
+    # dort ist am meisten freier Raum — und bekommt einen hellen Grund.
+    # Gesucht ist nicht der kleinste Wert, sondern der schmalste Sektor: Die
+    # Beschriftung steht zwischen zwei Achsen, also zaehlt das niedrigste
+    # benachbarte Paar.
+    sektor = min(range(N), key=lambda i: values[i] + values[(i + 1) % N]) if values else 0
+    ax.set_rlabel_position(math.degrees(angles[sektor]) + 180.0 / N)
+    for beschriftung in ax.get_yticklabels():
+        beschriftung.set_bbox(dict(facecolor="white", edgecolor="none",
+                                   alpha=0.75, pad=0.8))
     ax.yaxis.grid(True, color=brand.BORDER, linewidth=0.7)
     ax.xaxis.grid(True, color=brand.BORDER, linewidth=0.7)
     ax.spines["polar"].set_color(brand.BORDER)
@@ -1090,7 +1118,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
     # ── CHARTS: Radar + Donut ───────────────────────────────
     try:
         radar_axes = [
-            (_clean_text(k.get("label", "")).split(" &")[0],
+            (radar_beschriftung(_clean_text(k.get("label", ""))),
              round((k.get("score", 0) / k["max"]) * 10, 1) if k.get("max") else 0)
             for k in categories
         ]

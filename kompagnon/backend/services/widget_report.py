@@ -14,6 +14,7 @@ import os
 from typing import Optional
 
 from services import brand
+from services.mail_layout import knopf, rahmen, wortmarke
 from services.audit_criteria import (
     BLOCKER_LABELS,
     CATALOGUE,
@@ -143,14 +144,8 @@ def _esc(value) -> str:
 
 
 def _wortmarke(farbe: str = brand.WHITE, gelb: str = brand.YELLOW) -> str:
-    """KOMPAGNON als Schriftzug — der Punkt in der Akzentfarbe.
-
-    Ein Bild wäre in der E-Mail eine Zumutung: die meisten Postfächer laden
-    externe Bilder erst auf Klick, und dann steht statt der Marke ein
-    kaputtes Symbol. Als Text steht sie immer da.
-    """
-    return (f'<span style="font-size:13px;font-weight:900;letter-spacing:.18em;'
-            f'color:{farbe}">KOMPAGNON<span style="color:{gelb}">.</span></span>')
+    """KOMPAGNON als Schriftzug — siehe ``mail_layout.wortmarke``."""
+    return wortmarke(farbe, gelb)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -477,48 +472,24 @@ def render_report_page(audit, company: str = "", token: str = "",
 # E-Mail-Texte
 # ═══════════════════════════════════════════════════════════════════
 
-def _shell(inner: str) -> str:
-    """Rahmen für jede Widget-Mail.
+FUSS_WIDGET = ("Sie erhalten diese E-Mail, weil für diese Adresse eine "
+               "Website-Analyse angefordert wurde. Es folgt nichts weiter, "
+               "wenn Sie nicht reagieren.")
 
-    Tabellen statt divs: Outlook auf Windows rendert mit der Word-Engine und
-    ignoriert ``max-width`` auf einem div — die Mail lief dort über die volle
-    Fensterbreite. ``role="presentation"`` hält die Tabelle aus dem
-    Screenreader heraus, sie ist reines Layout.
+
+def _shell(inner: str) -> str:
+    """Rahmen für jede Widget-Mail — gemeinsam mit den übrigen Mails.
+
+    Der Rahmen stand hier und nur hier; die Mail an einen Bestandskunden hatte
+    gar keinen. Er liegt jetzt in ``mail_layout`` und wird von beiden Wegen
+    genutzt. Widget-eigen bleibt der Fußtext.
     """
-    return f"""<!doctype html><html lang="de"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:{brand.SURFACE};
-             font-family:{brand.FONT_SANS};color:{brand.TEXT}">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-       style="background:{brand.SURFACE};padding:28px 12px">
-<tr><td align="center">
-  <table role="presentation" width="560" cellpadding="0" cellspacing="0"
-         style="width:100%;max-width:560px;background:{brand.WHITE};
-                border-radius:12px;overflow:hidden">
-    <tr><td style="background:{brand.DARK};padding:22px 28px">
-      {_wortmarke()}
-      <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-                  color:{brand.WHITE};opacity:.7;margin-top:4px">
-        Homepage Standard</div>
-    </td></tr>
-    <tr><td style="padding:28px">{inner}</td></tr>
-    <tr><td style="padding:18px 28px;border-top:1px solid {brand.BORDER};
-                   font-size:11px;line-height:1.6;color:{brand.TEXT_60}">
-      Sie erhalten diese E-Mail, weil für diese Adresse eine Website-Analyse
-      angefordert wurde. Es folgt nichts weiter, wenn Sie nicht reagieren.
-    </td></tr>
-  </table>
-</td></tr></table>
-</body></html>"""
+    return rahmen(inner, FUSS_WIDGET)
 
 
 def _mail_knopf(url: str, text: str) -> str:
     """Der eine gelbe Knopf der Mail."""
-    return (f'<table role="presentation" cellpadding="0" cellspacing="0" '
-            f'style="margin:24px 0"><tr><td style="background:{brand.YELLOW};'
-            f'border-radius:6px"><a href="{url}" style="display:inline-block;'
-            f'padding:14px 28px;font-size:15px;font-weight:900;'
-            f'color:{brand.DARK};text-decoration:none">{text}</a></td></tr></table>')
+    return knopf(url, text)
 
 
 def _katalog_umfang() -> str:

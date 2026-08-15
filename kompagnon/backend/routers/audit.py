@@ -21,7 +21,6 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from database import AuditResult, Lead, User, get_db, SessionLocal
-from email_service import send_audit_done_email
 from routers.auth_router import optional_auth
 from services.audit_criteria import CATALOGUE, BLOCKER_LABELS, SOURCE_LABELS, Source
 from services.url_guard import check_url
@@ -361,7 +360,14 @@ def _notify_customer(db, lead_id: Optional[int], audit_id: int) -> None:
         to_email = getattr(project, "customer_email", None) or ""
         if getattr(project, "email_notifications_enabled", True) and to_email:
             company = getattr(project, "company_name", "") or f"Lead #{lead_id}"
-            send_audit_done_email(to=to_email, company=company, report_url=None)
+            # Ohne Berichts-Token gibt es keine Adresse, die der Kunde ohne
+            # Anmeldung öffnen könnte. Die Vorlage sagt dann, dass wir uns
+            # melden, statt einen Bericht anzukündigen und keinen Weg zu nennen.
+            from services.email import send_email
+            from services.mail_vorlagen import audit_fertig_mail
+
+            betreff, html_body = audit_fertig_mail(company)
+            send_email(to_email=to_email, subject=betreff, html_body=html_body)
     except Exception as e:  # noqa: BLE001
         logger.warning(f"Audit-E-Mail fehlgeschlagen für Audit {audit_id}: {e}")
 

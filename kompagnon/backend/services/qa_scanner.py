@@ -12,6 +12,56 @@ logger = logging.getLogger(__name__)
 # und schrieb deren Leere als Messwert fort.
 BROWSER_HEADERS = {"User-Agent": USER_AGENT}
 
+# Crawler der KI-Systeme. Ob sie eingelassen werden, entscheidet die robots.txt
+# — und nur das ist eine Messung. Der Bericht verlangte bisher pauschal, „die
+# GPTBot-Blockierung zu entfernen", auch bei robots.txt, die niemanden sperren.
+KI_CRAWLER = ["GPTBot", "ChatGPT-User", "OAI-SearchBot", "ClaudeBot",
+              "Claude-Web", "PerplexityBot", "Google-Extended", "CCBot",
+              "Applebot-Extended", "Bytespider"]
+
+
+def gesperrte_ki_crawler(robots_text: str) -> list:
+    """Welche KI-Crawler die robots.txt von der ganzen Website aussperrt.
+
+    Gewertet wird nur ``Disallow: /`` — die Sperre der gesamten Seite. Ein
+    ausgenommenes Verzeichnis ist Alltag und kein Sichtbarkeitsproblem.
+    ``User-agent: *`` mit ``Disallow: /`` trifft alle und wird deshalb jedem
+    Crawler zugerechnet.
+    """
+    if not robots_text:
+        return []
+
+    # robots.txt in Bloecke zerlegen: Kennungen sammeln, bis Regeln folgen.
+    bloecke, kennungen, regeln, in_regeln = [], [], [], False
+    for zeile in robots_text.splitlines():
+        zeile = zeile.split("#")[0].strip()
+        if not zeile or ":" not in zeile:
+            continue
+        feld, _, wert = zeile.partition(":")
+        feld, wert = feld.strip().lower(), wert.strip()
+        if feld == "user-agent":
+            if in_regeln:
+                bloecke.append((kennungen, regeln))
+                kennungen, regeln, in_regeln = [], [], False
+            kennungen.append(wert)
+        elif feld == "disallow":
+            in_regeln = True
+            regeln.append(wert)
+    if kennungen:
+        bloecke.append((kennungen, regeln))
+
+    gesperrt = []
+    for kennungen, regeln in bloecke:
+        if "/" not in regeln:
+            continue
+        for kennung in kennungen:
+            if kennung == "*":
+                gesperrt.extend(KI_CRAWLER)
+            else:
+                treffer = [c for c in KI_CRAWLER if c.lower() == kennung.lower()]
+                gesperrt.extend(treffer)
+    return sorted(set(gesperrt))
+
 
 async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
     """
@@ -73,7 +123,11 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
             domain = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
             r3 = await c.get(f"{domain}/robots.txt")
             results["robots_txt"] = r3.status_code == 200
-            results["robots_txt_indexiert"] = "noindex" not in r3.text.lower()
+            robots_text = r3.text if r3.status_code == 200 else ""
+            results["robots_txt_indexiert"] = "noindex" not in robots_text.lower()
+            # Keine robots.txt sperrt niemanden — das ist KI-freundlich.
+            results["gesperrte_ki_crawler"] = gesperrte_ki_crawler(robots_text)
+            results["robots_ai_friendly"] = not results["gesperrte_ki_crawler"]
     except Exception:
         results["robots_txt"] = False
         results["robots_txt_indexiert"] = False
@@ -229,13 +283,21 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
 
     # ─── KATEGORIE 6: LLM-OPTIMIERUNG ───────────────────────────────
 
-    # llm.txt
+    # llms.txt — die Konvention heisst mit s, so steht sie auch im Bericht.
+    # Frueher wurde nur /llm.txt geprueft; wer die Datei nach der Konvention
+    # abgelegt hatte, galt trotzdem als ohne.
     try:
         async with httpx.AsyncClient(timeout=5.0, headers=BROWSER_HEADERS) as c:
             domain = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
-            r5 = await c.get(f"{domain}/llm.txt")
-            results["llm_txt"] = r5.status_code == 200
+            r5 = await c.get(f"{domain}/llms.txt")
+            gefunden = r5.status_code == 200
+            if not gefunden:
+                r5b = await c.get(f"{domain}/llm.txt")
+                gefunden = r5b.status_code == 200
+            results["llms_txt"] = gefunden
+            results["llm_txt"] = gefunden  # alter Name, im KI-Prompt genutzt
     except Exception:
+        results["llms_txt"] = False
         results["llm_txt"] = False
 
     # FAQ-Block (Akkordeon)

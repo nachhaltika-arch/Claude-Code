@@ -476,6 +476,104 @@ def rechtstabelle_zellen():
     return zeilen
 
 
+STATUS_ERFUELLT = "erfüllt"
+STATUS_OFFEN = "offen"
+STATUS_UNBEKANNT = "nicht erhoben"
+
+
+def _geo_status(wert):
+    """``None`` heisst unbekannt — und unbekannt ist nicht dasselbe wie fehlend."""
+    if wert is None:
+        return STATUS_UNBEKANNT
+    return STATUS_ERFUELLT if wert else STATUS_OFFEN
+
+
+def geo_pruefpunkte(audit_data: dict) -> list:
+    """Die Prüfpunkte der GEO-Seite — nur mit dem, was erhoben wurde.
+
+    Der Abschnitt las frueher Felder, die nie befuellt wurden (``llms_txt``,
+    ``robots_ai_friendly``, ``structured_data``, ``ai_mentions``), bekam
+    ueberall ``False`` und druckte fuer jeden Punkt eine Aufforderung — auch
+    „GPTBot nicht blockieren" an einen Betrieb, dessen robots.txt niemanden
+    sperrt. ``ai_overview`` war ausdruecklich aus einem nicht existierenden
+    Feld geraten.
+
+    Was hier ohne Messung steht, bekommt ``STATUS_UNBEKANNT`` und keine
+    Empfehlung. Die Statusworte folgen der Bewertungsmatrix; Haekchen kaeme
+    ohnehin niemand zu Gesicht, weil Helvetica ✓ und ✗ nicht kennt.
+    """
+    llms = audit_data.get("llms_txt")
+    robots_ai = audit_data.get("robots_ai_friendly")
+    strukturiert = audit_data.get("structured_data")
+    gesperrt = audit_data.get("gesperrte_ki_crawler") or []
+
+    def zeile(name, wert, aufforderung, erfuellt_text):
+        """Eine Zeile: Aufforderung nur bei gemessener Luecke, sonst ein Hinweis.
+
+        Die letzte Spalte bleibt nie leer — eine ueber alle Zeilen leere
+        Spalte liest sich als Fehler, und genau so sah der Abschnitt vorher
+        aus.
+        """
+        status = _geo_status(wert)
+        if status == STATUS_OFFEN:
+            return {"pruefpunkt": name, "status": status,
+                    "empfehlung": aufforderung, "hinweis": ""}
+        hinweis = (erfuellt_text if status == STATUS_ERFUELLT
+                   else "Nicht Teil dieser Analyse")
+        return {"pruefpunkt": name, "status": status,
+                "empfehlung": "", "hinweis": hinweis}
+
+    namen = ", ".join(gesperrt[:3]) if gesperrt else "KI-Crawler"
+
+    return [
+        zeile("llms.txt vorhanden", llms,
+              "Datei unter /llms.txt anlegen", "Vorhanden und abrufbar"),
+        zeile("robots.txt KI-freundlich", robots_ai,
+              f"Sperre für {namen} in der robots.txt aufheben",
+              "Kein KI-Crawler ausgesperrt"),
+        zeile("Strukturierte Daten", strukturiert,
+              "Schema.org-Auszeichnung ergänzen", "Schema.org vorhanden"),
+        # Fuer beide gibt es keine Erhebung. Sie bleiben im Bericht, weil der
+        # Leser wissen soll, dass es sie gibt — aber ohne Behauptung.
+        zeile("KI-Erwähnungen", None, "", ""),
+        zeile("Google AI Overview", None, "", ""),
+    ]
+
+
+def roadmap_massnahmen(audit_data: dict) -> dict:
+    """Die Maßnahmen der Roadmap — je Phase, nur was der Befund hergibt.
+
+    Die Liste war fest verdrahtet: „llms.txt anlegen", „Schema.org
+    LocalBusiness einbauen", „robots.txt: GPTBot-Blockierung entfernen"
+    standen in jedem Bericht.
+    """
+    punkte = {p["pruefpunkt"]: p for p in geo_pruefpunkte(audit_data)}
+    offen = lambda name: punkte[name]["status"] == STATUS_OFFEN  # noqa: E731
+
+    sofort = []
+    if offen("llms.txt vorhanden"):
+        sofort.append("llms.txt anlegen (ca. 1 Tag Aufwand)")
+    if offen("Strukturierte Daten"):
+        sofort.append("Schema.org-Auszeichnung einbauen")
+    if offen("robots.txt KI-freundlich"):
+        sofort.append(punkte["robots.txt KI-freundlich"]["empfehlung"])
+
+    mittelfristig = ["Regelmäßige Blog-Inhalte für SEO-Autorität aufbauen"]
+    if punkte["Strukturierte Daten"]["status"] == STATUS_ERFUELLT:
+        mittelfristig.append("Weitere Schema.org-Typen (FAQPage, Review) ergänzen")
+
+    return {
+        "sofort": sofort,
+        "mittelfristig": mittelfristig,
+        # Diese drei haengen an keiner Messung und gelten fuer jeden Betrieb.
+        "langfristig": [
+            "Backlink-Aufbau über lokale Verzeichnisse und Branchenportale",
+            "Google Business Profil optimieren und regelmäßig pflegen",
+            "KI-Sichtbarkeit: Erwähnungen in Fachartikeln & Podcasts aufbauen",
+        ],
+    }
+
+
 def _category_table_style(n_rows):
     style = list(BASE_TABLE_STYLE)
     for i in range(1, n_rows + 1):
@@ -1109,54 +1207,39 @@ def generate_audit_report(audit_data: dict) -> bytes:
     ))
     story.append(Spacer(1, 4*mm))
 
-    llms_txt_ok      = bool(audit_data.get("llms_txt", False))
-    robots_ai_ok     = bool(audit_data.get("robots_ai_friendly", False))
-    structured_ok    = bool(audit_data.get("structured_data", False))
-    ai_mentions_n    = int(audit_data.get("ai_mentions", 0) or 0)
-    # Google AI Overview: derive from se_score as proxy if no dedicated field
-    ai_overview_ok   = (audit_data.get("se_score", 0) or 0) >= 7
+    # Farben wie in der Bewertungsmatrix, damit derselbe Status gleich
+    # aussieht. Wortstatus statt Haekchen: Helvetica kennt ✓ und ✗ nicht,
+    # die Spalte blieb dadurch in jedem bisherigen Bericht leer.
+    STATUS_FARBEN = {
+        STATUS_ERFUELLT: "#27ae60",
+        STATUS_OFFEN: "#e74c3c",
+        STATUS_UNBEKANNT: KC_TEXT_60.hexval(),
+    }
 
-    def _geo_check(ok):
+    def _geo_status_zelle(status):
         return Paragraph(
-            f'<font color="{"#27ae60" if ok else "#e74c3c"}"><b>{"✓" if ok else "✗"}</b></font>',
-            ParagraphStyle("GeoCheck", fontName=FONT_BOLD, fontSize=12, alignment=TA_CENTER),
+            f'<font color="{STATUS_FARBEN[status]}"><b>{status}</b></font>',
+            ParagraphStyle("GeoStatus", fontName=FONT_BOLD, fontSize=9,
+                           leading=11, alignment=TA_CENTER),
         )
 
     geo_header = ["Prüfpunkt", "Status", "Empfehlung"]
     geo_rows = [
         [
-            "llms.txt vorhanden",
-            _geo_check(llms_txt_ok),
-            "Datei unter /llms.txt anlegen" if not llms_txt_ok else "Vorhanden ✓",
-        ],
-        [
-            "robots.txt KI-freundlich",
-            _geo_check(robots_ai_ok),
-            "GPTBot nicht blockieren" if not robots_ai_ok else "KI-Crawler erlaubt ✓",
-        ],
-        [
-            "Strukturierte Daten",
-            _geo_check(structured_ok),
-            "Schema.org LocalBusiness ergänzen" if not structured_ok else "Schema.org vorhanden ✓",
-        ],
-        [
-            "KI-Erwähnungen",
-            Paragraph(
-                f'<font color="{"#27ae60" if ai_mentions_n > 0 else "#e74c3c"}"><b>{ai_mentions_n} gefunden</b></font>',
-                ParagraphStyle("GeoMention", fontName=FONT_BOLD, fontSize=10, alignment=TA_CENTER),
-            ),
-            "Content-Authority aufbauen" if ai_mentions_n == 0 else "Weiter ausbauen",
-        ],
-        [
-            "Google AI Overview",
-            _geo_check(ai_overview_ok),
-            "Featured Snippets optimieren" if not ai_overview_ok else "Gut aufgestellt ✓",
-        ],
+            punkt["pruefpunkt"],
+            _geo_status_zelle(punkt["status"]),
+            Paragraph(_clean_text(punkt["empfehlung"]), styles["KCZelle"])
+            if punkt["empfehlung"]
+            else Paragraph(
+                f'<font color="{KC_TEXT_60.hexval()}">'
+                f'{_clean_text(punkt["hinweis"])}</font>', styles["KCZelle"]),
+        ]
+        for punkt in geo_pruefpunkte(audit_data)
     ]
 
     geo_table = Table(
         [geo_header] + geo_rows,
-        colWidths=[55*mm, 25*mm, 80*mm],
+        colWidths=[55*mm, 30*mm, 75*mm],
     )
     geo_style = list(BASE_TABLE_STYLE)
     for i in range(1, len(geo_rows) + 1):
@@ -1195,31 +1278,24 @@ def generate_audit_report(audit_data: dict) -> bytes:
     ))
     story.append(Spacer(1, 6*mm))
 
-    # Derive quick wins from audit data
-    quick_wins = []
-    if not llms_txt_ok:
-        quick_wins.append("llms.txt anlegen (ca. 1 Tag Aufwand)")
-    if not structured_ok:
-        quick_wins.append("Schema.org LocalBusiness einbauen")
-    mobile_ps = audit_data.get("mobile_score", 0) or 0
-    if mobile_ps < 50:
+    # Die Massnahmen kommen aus dem Befund statt aus einer festen Liste:
+    # `roadmap_massnahmen` nennt nur, was gemessen wurde und offen ist. Vorher
+    # stand "robots.txt: GPTBot-Blockierung entfernen" in jedem Bericht, auch
+    # fuer eine robots.txt, die niemanden sperrt.
+    massnahmen = roadmap_massnahmen(audit_data)
+
+    quick_wins = list(massnahmen["sofort"])
+    mobile_ps = audit_data.get("mobile_score") or 0
+    if mobile_ps and mobile_ps < 50:
         quick_wins.append("Bilder komprimieren \u0026 Lazy Load aktivieren")
-    if not robots_ai_ok:
-        quick_wins.append("robots.txt: GPTBot-Blockierung entfernen")
     if not quick_wins:
         quick_wins.append("Audit-Score weiter optimieren \u0026 Inhalte aktualisieren")
 
-    midterm = ["Regelmä\u00dfige Blog-Inhalte für SEO-Autorität aufbauen"]
+    midterm = list(massnahmen["mittelfristig"])
     if level == "Nicht konform":
-        midterm.append("SSL, Datenschutzerklärung und Impressum prüfen \u0026 korrigieren")
-    if not structured_ok:
-        midterm.append("Weitere Schema.org-Typen (FAQPage, Review) ergänzen")
+        midterm.append("SSL, Datenschutzerkl\u00e4rung und Impressum pr\u00fcfen \u0026 korrigieren")
 
-    longterm = [
-        "Backlink-Aufbau über lokale Verzeichnisse und Branchenportale",
-        "Google Business Profil optimieren und regelmäßig pflegen",
-        "KI-Sichtbarkeit: Erwähnungen in Fachartikeln \u0026 Podcasts aufbauen",
-    ]
+    longterm = list(massnahmen["langfristig"])
 
     def _roadmap_box(title, items, bg_color, border_color, phase_label):
         """Build a single phase box as a Table."""

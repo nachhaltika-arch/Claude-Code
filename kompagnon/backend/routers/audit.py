@@ -210,6 +210,13 @@ def _run_audit_background(audit_id: int):
         audit2.mobile_score      = summary["mobile_score"]
         audit2.performance_score = summary["performance_score"]
 
+        # Die GEO-Spalten gab es seit jeher, befüllt hat sie niemand. Das PDF
+        # las sie leer, wertete das als „nicht erfüllt" und verlangte etwa,
+        # eine GPTBot-Sperre zu entfernen, die es gar nicht gab.
+        audit2.llms_txt           = summary["llms_txt"]
+        audit2.robots_ai_friendly = summary["robots_ai_friendly"]
+        audit2.structured_data    = summary["structured_data"]
+
         audit2.ai_summary      = ai.get("ai_summary", "")
         audit2.top_issues      = json.dumps(ai.get("top_issues", []), ensure_ascii=False)
         audit2.recommendations = json.dumps(ai.get("recommendations", []), ensure_ascii=False)

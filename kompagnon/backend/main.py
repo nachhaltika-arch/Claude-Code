@@ -566,6 +566,10 @@ def _run_migrations():
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS robots_ai_friendly BOOLEAN DEFAULT false",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS structured_data BOOLEAN DEFAULT false",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ai_mentions INTEGER DEFAULT 0",
+        # Eigenprüfung: welche selbst gebaute Seite dieses Audit gemessen hat
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS sitemap_page_id INTEGER",
+        "CREATE INDEX IF NOT EXISTS idx_audit_results_sitemap_page "
+        "ON audit_results(sitemap_page_id)",
         # Diese vier Spalten hat bis zum 15.08.2026 niemand befuellt — der
         # Vorgabewert `false` sah im Bericht aus wie ein Messergebnis, und das
         # PDF verlangte daraufhin etwa, eine GPTBot-Sperre zu entfernen, die es

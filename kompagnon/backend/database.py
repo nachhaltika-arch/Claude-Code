@@ -389,6 +389,11 @@ class AuditResult(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True)
+    # Gesetzt, wenn dieses Audit eine Eigenprüfung ist: die Qualitätsschleife
+    # deployt eine selbst gebaute Seite als Vorschau und misst sie mit
+    # demselben Katalog, den wir Kunden vorhalten. `website_url` zeigt dann auf
+    # die Vorschau, nicht auf den Auftritt des Kunden.
+    sitemap_page_id = Column(Integer, nullable=True, index=True)
     website_url = Column(String(500), nullable=False)
     company_name = Column(String(255), nullable=False)
     contact_name = Column(String(255))

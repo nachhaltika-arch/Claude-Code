@@ -28,7 +28,7 @@ begründet sie, mehr nicht.
 | Bereich | Stand | Einschätzung | Geprüft |
 |---|---|---|---|
 | A — Betrieb & Release | 🟢 | `main` über Rulesets geschützt, CI mit vier Pflichtjobs, dual-branch etabliert, wöchentlicher Release | 08-15 |
-| B — Sicherheit & Compliance | 🟠 | Anmeldung hängt seit 08-14 am Router statt an jeder Route. Offen: Rate-Limiting, Rollenrechte ohne Wirkung, **DB-Zugangsdaten waren bis 08-15 über `/info` abrufbar** | 08-15 |
+| B — Sicherheit & Compliance | 🟠 | Anmeldung hängt seit 08-14 am Router, teure Endpunkte seit 08-15 begrenzt. Offen: Rollenrechte ohne Wirkung, **Rotation der DB-Zugangsdaten** (waren bis 08-15 über `/info` abrufbar) | 08-15 |
 | C — Vertrieb & Lead-Gewinnung | 🟡 | Widget produktiv, Double-Opt-in, Bericht und PDF tragen die Marke. Offen: Einbau in die Ziel-Landingpage, Brevo-Klick-Tracking | 08-15 |
 | D — Verkauf & Zahlung | 🟡 | Stripe funktioniert; Preise weiterhin an mehreren Stellen | 08-07 |
 | E — Projektabwicklung | 🟢 | 7 Phasen, Checkliste, Marge, Automationen laufen | 08-07 |
@@ -72,9 +72,14 @@ unverändert — Benutzer, Passwort und Host der Postgres-Instanz, ohne Anmeldun
 produktiv wie auf Staging. Der Endpunkt meldet jetzt nur noch, *dass* eine
 Datenbank eingerichtet ist. **Die Rotation der Zugangsdaten steht aus** (L-39).
 
-Weiterhin offen und unverändert: Rate-Limiting (L-04), Rollenrechte ohne
-Wirkung (L-05), `require_auditor` an keiner Route (L-12) — alle drei am
-15.08. nachgeprüft und bestätigt.
+**Ebenfalls am 15.08.:** `POST /api/audit/start` war ohne Anmeldung und ohne
+jede Grenze erreichbar — je Aufruf ein KI-Lauf, PageSpeed-Kontingent, ein
+Screenshot und ein Mehrseiten-Crawl. Das Widget hatte seit dem 11.08. eigene
+Grenzen, aber es ruft die Funktion intern auf; der HTTP-Weg ging daran vorbei.
+Behoben in `82453bd` (L-04).
+
+Weiterhin offen: Rollenrechte ohne Wirkung (L-05) und `require_auditor` an
+keiner Route (L-12) — beide am 15.08. nachgeprüft und bestätigt.
 
 ### F — KAS-Pipeline · unverändert 🟡, aber inhaltlich weiter
 
@@ -134,7 +139,7 @@ Aufwand: S ≤ 1 Tag · M ≤ 1 Woche · L ≤ 4 Wochen · XL darüber.
 | ~~L-01~~ | ~~`.env.save` unignoriert im Repo~~ — **erledigt 2026-08-07**: `kompagnon/backend/.gitignore` deckt `.env*` ab | — | — |
 | ~~L-02~~ | ~~Website-Check produktiv defekt~~ — **erledigt 2026-08-07**: Preflight liefert produktiv 200 mit allow-origin | — | — |
 | ~~L-03~~ | ~~Embed-Widget nie deployt~~ — **erledigt 2026-08-07**: produktiv 200, echtes Widget. Rest: Staging liefert wegen `npx serve` die React-App, mit `--no-clean-urls` angleichen | S | Produktiv-Test |
-| L-04 | Kein Rate-Limiting; `POST /api/leads/public` unauthentifiziert mit anschließendem Audit-Lauf — **am 2026-08-15 nachgeprüft, unverändert**. Der Widget-Endpunkt hat seit dem 11.08. eigene Grenzen (`_enforce_limits`), dieser nicht | M | `leads.py:728`, keine Limiter-Abhängigkeit |
+| ~~L-04~~ | ~~Kein Rate-Limiting~~ — **erledigt 2026-08-15** (`82453bd`): Beim Beheben zeigte sich, dass der teurere Nachbar dasselbe Loch hatte und niemand ihn genannt hatte — `POST /api/audit/start` war ohne Anmeldung und ohne Grenze erreichbar, je Aufruf ein KI-Lauf plus PageSpeed, Screenshot und Crawl. Gezählt wird über Zeitpunkt und Zieladresse, ohne neue Spalte und ohne IP-Speicherung: 3 je Adresse und Tag, 40/Stunde und 200/Tag gesamt, 30 Leads/Stunde. Angemeldete bleiben frei; die Prüfung hängt als Abhängigkeit, damit die feineren Widget-Grenzen nicht gegeneinander arbeiten | — | — |
 | L-39 | **Datenbank-Zugangsdaten waren über `/info` ohne Anmeldung abrufbar** (produktiv und Staging), behoben am 2026-08-15 in `2f687b2`. **Offen: Rotation in Render** — der Fix macht die Preisgabe nicht ungeschehen, und ob jemand hingesehen hat, lässt sich nicht feststellen | S | `stand-2026-08-15.md` § 1 |
 | L-05 | `RolePermission` und Berechtigungs-UI ohne jede Wirkung — Rechte lassen sich scheinbar ändern. **Am 2026-08-15 nachgeprüft, unverändert**: gelesen nur in `database.py` und `admin_settings.py` | M | keine Lesestelle außerhalb `admin_settings.py` |
 
@@ -212,18 +217,15 @@ L-06, L-07 und L-36 sind erledigt, L-09 hat ein tragendes Fundament.*
 
 1. **L-39** — Datenbank-Zugangsdaten rotieren. Das ist das Einzige, was nicht
    warten kann, und es hängt nicht am Code.
-2. **L-04** — Rate-Limiting auf `POST /api/leads/public`. Der Endpunkt ist
-   unauthentifiziert und stößt einen Audit-Lauf an, der Geld kostet. Das Widget
-   hat seit dem 11.08. eigene Grenzen; dieser Weg nicht.
-3. **L-05, L-12** — Rollenrechte entweder real durchsetzen oder das
+2. **L-05, L-12** — Rollenrechte entweder real durchsetzen oder das
    irreführende UI entfernen. Ein Berechtigungs-Dialog ohne Wirkung ist
    schlimmer als keiner.
-4. **L-10, L-11** — Monitoring und Backup-Dokumentation. Die beiden letzten
+3. **L-10, L-11** — Monitoring und Backup-Dokumentation. Die beiden letzten
    echten Betriebslücken.
-5. **L-40** — Vorschau-Site einrichten, damit die Qualitätsschleife läuft.
-6. **L-25, L-26** — Dateigrößen und Editor-Generationen. Die einzige Kennzahl,
+4. **L-40** — Vorschau-Site einrichten, damit die Qualitätsschleife läuft.
+5. **L-25, L-26** — Dateigrößen und Editor-Generationen. Die einzige Kennzahl,
    die sich verschlechtert, und die Ursache der meisten Reibung beim Arbeiten.
-7. Danach nach Geschäftswert: **L-14** (Assistent fachlich beurteilen lassen,
+6. Danach nach Geschäftswert: **L-14** (Assistent fachlich beurteilen lassen,
    dann Ausbau 2) oder **L-15/L-17** (Conversion und Barrierefreiheit).
 
 **L-08** (Dependabot) und **L-34/L-35** (Render-Region und Blueprints) hängen

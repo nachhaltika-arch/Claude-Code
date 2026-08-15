@@ -23,6 +23,7 @@ from pydantic import BaseModel
 from database import AuditResult, Lead, User, get_db, SessionLocal
 from routers.auth_router import optional_auth
 from services.audit_criteria import CATALOGUE, BLOCKER_LABELS, SOURCE_LABELS, Source
+from services.ratenbegrenzung import audit_grenzen
 from services.url_guard import check_url
 
 logger = logging.getLogger(__name__)
@@ -412,6 +413,7 @@ async def start_audit(
     req: AuditRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    _grenzen=Depends(audit_grenzen),
 ):
     """Create audit record, auto-scrape website, and run checks in background."""
     url = _normalise_url(req.website_url)

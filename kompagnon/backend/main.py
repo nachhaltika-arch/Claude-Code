@@ -2006,10 +2006,16 @@ async def global_exception_handler(request, exc):
 # Info endpoint for deployment
 @app.get("/info")
 def get_info():
-    """Get system information."""
+    """Auskunft darüber, was eingerichtet ist — nie darüber, womit.
+
+    Bis 2026-08-15 gab dieser Endpunkt `DATABASE_URL` unverändert aus, also
+    Benutzer, Passwort und Host der Postgres-Instanz, ohne Anmeldung, auf dem
+    Produktivserver ebenso wie auf Staging. Alle übrigen Felder waren schon
+    immer boolesch; die Datenbank war die Ausnahme.
+    """
     return {
         "environment": os.getenv("ENVIRONMENT", "development"),
-        "database": os.getenv("DATABASE_URL", "sqlite:///./kompagnon.db"),
+        "database_configured": bool(os.getenv("DATABASE_URL")),
         "api_key_configured": bool(os.getenv("ANTHROPIC_API_KEY")),
         "smtp_configured": bool(os.getenv("SMTP_HOST")),
         "debug": os.getenv("DEBUG", "false").lower() == "true",

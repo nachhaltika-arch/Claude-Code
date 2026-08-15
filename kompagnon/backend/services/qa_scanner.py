@@ -2,7 +2,15 @@ import re, httpx, asyncio, logging
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
+from services.audit_collectors import USER_AGENT
+
 logger = logging.getLogger(__name__)
+
+# Dieselbe Kennung wie in den übrigen Erhebungen. Ohne sie fragt httpx unter
+# eigenem Namen, und Server mit Bot-Abwehr antworten mit 403 — auf Startseite,
+# robots.txt und sitemap.xml gleichermaßen. Das Audit las dann eine Fehlerseite
+# und schrieb deren Leere als Messwert fort.
+BROWSER_HEADERS = {"User-Agent": USER_AGENT}
 
 
 async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
@@ -19,8 +27,18 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
     html = ""
     soup = None
     try:
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as c:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True,
+                                     headers=BROWSER_HEADERS) as c:
             r = await c.get(url)
+            # Eine abweisende Antwort ist kein Messergebnis. Ohne diese Prüfung
+            # zergliedert der Scanner die Fehlerseite, findet erwartungsgemäß
+            # weder Canonical noch Schema, und die Bewertung zählt die Nullen
+            # als „gemessen" — die Seite verliert Punkte für Mängel, die sie
+            # nicht hat. Leere Checks lassen die Bewertung stattdessen
+            # überspringen (siehe `_score_seo`: `if not qa`).
+            if r.status_code != 200:
+                logger.warning(f"QA: {url} antwortete mit HTTP {r.status_code}")
+                return {"error": f"HTTP {r.status_code}", "checks": {}}
             html = r.text
             soup = BeautifulSoup(html, "html.parser")
     except Exception as e:
@@ -36,7 +54,8 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
 
     # HTTPS-Redirect (http → https)
     try:
-        async with httpx.AsyncClient(timeout=5.0, follow_redirects=False) as c:
+        async with httpx.AsyncClient(timeout=5.0, follow_redirects=False,
+                                     headers=BROWSER_HEADERS) as c:
             http_url = url.replace("https://", "http://")
             r2 = await c.get(http_url)
             results["https_redirect"] = r2.status_code in (301, 302) and \
@@ -50,7 +69,7 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
 
     # robots.txt
     try:
-        async with httpx.AsyncClient(timeout=5.0) as c:
+        async with httpx.AsyncClient(timeout=5.0, headers=BROWSER_HEADERS) as c:
             domain = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
             r3 = await c.get(f"{domain}/robots.txt")
             results["robots_txt"] = r3.status_code == 200
@@ -61,7 +80,7 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
 
     # sitemap.xml
     try:
-        async with httpx.AsyncClient(timeout=5.0) as c:
+        async with httpx.AsyncClient(timeout=5.0, headers=BROWSER_HEADERS) as c:
             domain = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
             r4 = await c.get(f"{domain}/sitemap.xml")
             results["sitemap_xml"] = r4.status_code == 200 and \
@@ -195,7 +214,7 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
     # Hier: Header-Checks
 
     try:
-        async with httpx.AsyncClient(timeout=5.0) as c:
+        async with httpx.AsyncClient(timeout=5.0, headers=BROWSER_HEADERS) as c:
             rh = await c.head(url, follow_redirects=True)
             headers = {k.lower(): v for k, v in rh.headers.items()}
             results["hsts"] = "strict-transport-security" in headers
@@ -212,7 +231,7 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
 
     # llm.txt
     try:
-        async with httpx.AsyncClient(timeout=5.0) as c:
+        async with httpx.AsyncClient(timeout=5.0, headers=BROWSER_HEADERS) as c:
             domain = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
             r5 = await c.get(f"{domain}/llm.txt")
             results["llm_txt"] = r5.status_code == 200

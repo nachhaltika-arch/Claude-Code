@@ -392,12 +392,21 @@ tatsächlich geprüften Kriterien normiert.
 | 3 | Echte Erheber: TLS, Unterseiten, Bildanalyse, Consent | ✅ `audit_collectors.py` — `check_tls`, `check_https_redirect`, `check_legal_pages`, `analyse_images`, `detect_consent`, `detect_third_parties` |
 | 4 | KI auf Design/Conversion/Text begrenzen, Screenshot + Rubric | ✅ `audit_ai.py` |
 | 5 | DB-Migration für die neuen Spalten | ✅ in `main.py::_run_migrations` — der einzigen Liste, die beim Start läuft |
-| 6 | Tests je Kategorie gegen eine feste Referenz-Website | ⬜ **offen** — 46 Tests prüfen Katalog und Rechenwege, aber gegen erfundene Eingaben |
-| 7 | Report und PDF um Quellen-Kennzeichnung erweitern | ⬜ **nicht verifiziert** — die Erhebungsart steht im Modell und in der API; ob sie beim Leser ankommt, wurde nicht geprüft |
+| 6 | Tests je Kategorie gegen eine feste Referenz-Website | ✅ `tests/referenzseite.py` + `test_referenzseite.py` (2026-08-15) — eingefrorene Website, 15 Tests über Erhebung *und* Bewertung; Punktzahl und Kategorien festgeschrieben |
+| 7 | Report und PDF um Quellen-Kennzeichnung erweitern | ✅ am Bericht nachgesehen (2026-08-15) — eigene Spalte „Quelle“, Erklärsatz über der Matrix, Legende darunter |
 
 ---
 
 ## 6. Was an diesem Katalog offen bleibt
+
+> **Stand 2026-08-15:** Die Punkte 2, 3 und 4 sind erledigt — der Katalog ist
+> gegen eine echte fremde Website gelaufen (Punkt 4, dort als wichtigster
+> markiert), die Quellen-Kennzeichnung kommt beim Leser an (Punkt 3), und die
+> Referenz-Website steht (Punkt 2). Der erste Fremdlauf hat dabei fünf Fehler
+> freigelegt, alle in der Erhebung, alle behoben: eine Fehlerseite, die als
+> Messung zählte; ein Ort, der zwischen zwei Tags verschwand; `/llm.txt` statt
+> `/llms.txt`; GEO-Spalten, die niemand befüllte; eine Rechtsangabe, die über
+> die Nachbarspalte druckte. Offen bleiben Punkt 1 und Punkt 5.
 
 1. **PageSpeed-Schlüssel auf Render.** Im Code ist beides gelöst: Abfrage auch
    ohne Key, und `PAGESPEED_API_KEY` wird als zweiter Name akzeptiert. Ob

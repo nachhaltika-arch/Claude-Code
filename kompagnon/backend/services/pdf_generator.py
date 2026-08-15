@@ -230,6 +230,21 @@ def _get_styles():
         fontName=FONT_NORMAL, fontSize=10, leading=14,
         textColor=KC_DARK, alignment=TA_CENTER,
     ))
+    # Tabellenzellen, die umbrechen muessen. Groesse, Schrift und Farbe wie in
+    # BASE_TABLE_STYLE, damit eine umbrechende Zelle neben einer rohen nicht
+    # auffaellt. Die Farbe ist KC_TEXT (schwarz) und nicht KC_DARK: Der Stil
+    # setzt fuer den Tabellenkoerper keine Textfarbe, es gilt also Schwarz —
+    # mit KC_DARK stand die umbrochene Zelle sichtbar in Teal daneben.
+    styles.add(ParagraphStyle(
+        "KCZelle", parent=styles["Normal"],
+        fontName=FONT_NORMAL, fontSize=9, leading=11,
+        textColor=KC_TEXT,
+    ))
+    styles.add(ParagraphStyle(
+        "KCZelleKopf", parent=styles["Normal"],
+        fontName=FONT_BOLD, fontSize=9, leading=11,
+        textColor=KC_WHITE,
+    ))
     styles.add(ParagraphStyle(
         "KCBold", parent=styles["Normal"],
         fontName=FONT_BOLD, fontSize=10, leading=14,
@@ -407,6 +422,58 @@ def _stil_ohne_kopfzeile(zeilen: int) -> list:
         if i % 2 == 0:
             stil.append(("BACKGROUND", (0, i), (-1, i), KC_LIGHT))
     return stil
+
+
+LEGAL_HEADER = ["Rechtsgrundlage", "Pflicht seit", "Betrifft", "Risiko"]
+
+# Das TMG ist seit dem 14.05.2024 durch das Digitale-Dienste-Gesetz abgeloest.
+# Der Kriterienkatalog nennt laengst „§ 5 DDG"; das PDF widersprach ihm auf
+# derselben Seite.
+LEGAL_ROWS = [
+    ["DDG § 5 – Impressumspflicht", "seit 14.05.2024 (zuvor TMG § 5)",
+     "Alle komm. Websites", "Abmahnung bis 50.000 €"],
+    ["DSGVO – Datenschutz", "25.05.2018", "Websites mit EU-Besuchern", "Bußgeld bis 20 Mio €"],
+    ["TDDDG §25 – Cookie", "2021/2023", "Websites mit Tracking", "Bußgeld, Abmahnungen"],
+    ["BFSG – Barrierefreiheit", "28.06.2025", "Private Anbieter", "Marktaufsicht, Bußgeld"],
+    ["WCAG 2.1 Level AA", "laufend", "Technische Umsetzung", "Grundlage BFSG"],
+    ["Google Core Web Vitals", "Mai 2021", "Alle Websites", "Sichtbarkeitsverlust"],
+]
+
+# „Pflicht seit" war mit 25 mm die engste Spalte und traegt den laengsten
+# Wert. 32 mm halten die Zeilenhoehe niedrig und bleiben mit 167 mm noch
+# innerhalb der 170 mm Satzbreite (A4 minus je 20 mm Rand).
+LEGAL_COL_WIDTHS = [45*mm, 32*mm, 45*mm, 45*mm]
+
+
+def rechtstabelle_zellen():
+    """Die Zellen der Rechtstabelle — zu breite als umbrechender Absatz.
+
+    reportlab bricht eine rohe Zeichenkette in einer Tabellenzelle nicht um,
+    sie laeuft ueber die Spaltengrenze weiter. Im Bericht vom 15.08.2026 druckte
+    sich so „seit 14.05.2024 (zuvor TMG § 5)" ueber „Alle kommerziellen
+    Websites" in der Nachbarspalte; beide Angaben waren unlesbar.
+
+    Nur ein ``Paragraph`` bricht um. Er kostet etwas Hoehe, deshalb bekommt ihn
+    nur, wer ihn braucht — gemessen, nicht geraten, damit auch spaeter
+    ergaenzte Zeilen richtig gesetzt werden.
+    """
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    styles = _get_styles()
+    innenabstand = 12  # LEFTPADDING + RIGHTPADDING aus BASE_TABLE_STYLE
+
+    def zelle(text, breite, kopfzeile):
+        schrift = FONT_BOLD if kopfzeile else FONT_NORMAL
+        if stringWidth(text, schrift, 9) <= breite - innenabstand:
+            return text
+        stil = styles["KCZelleKopf"] if kopfzeile else styles["KCZelle"]
+        return Paragraph(_clean_text(text), stil)
+
+    zeilen = [[zelle(t, LEGAL_COL_WIDTHS[s], True)
+               for s, t in enumerate(LEGAL_HEADER)]]
+    zeilen += [[zelle(t, LEGAL_COL_WIDTHS[s], False) for s, t in enumerate(zeile)]
+               for zeile in LEGAL_ROWS]
+    return zeilen
 
 
 def _category_table_style(n_rows):
@@ -739,24 +806,11 @@ def generate_audit_report(audit_data: dict) -> bytes:
         styles["KCBody"],
     ))
 
-    legal_header = ["Rechtsgrundlage", "Pflicht seit", "Betrifft", "Risiko"]
-    legal_rows = [
-        # Das TMG ist seit dem 14.05.2024 durch das Digitale-Dienste-Gesetz
-        # abgeloest. Der Kriterienkatalog nennt laengst \u201e\u00a7 5 DDG"; das PDF
-        # widersprach ihm auf derselben Seite.
-        ["DDG \u00a7 5 \u2013 Impressumspflicht", "seit 14.05.2024 (zuvor TMG \u00a7 5)",
-         "Alle komm. Websites", "Abmahnung bis 50.000 \u20ac"],
-        ["DSGVO \u2013 Datenschutz", "25.05.2018", "Websites mit EU-Besuchern", "Bu\u00dfgeld bis 20 Mio \u20ac"],
-        ["TDDDG \u00a725 \u2013 Cookie", "2021/2023", "Websites mit Tracking", "Bu\u00dfgeld, Abmahnungen"],
-        ["BFSG \u2013 Barrierefreiheit", "28.06.2025", "Private Anbieter", "Marktaufsicht, Bu\u00dfgeld"],
-        ["WCAG 2.1 Level AA", "laufend", "Technische Umsetzung", "Grundlage BFSG"],
-        ["Google Core Web Vitals", "Mai 2021", "Alle Websites", "Sichtbarkeitsverlust"],
-    ]
     legal_table = Table(
-        [legal_header] + legal_rows,
-        colWidths=[45*mm, 25*mm, 45*mm, 45*mm],
+        rechtstabelle_zellen(),
+        colWidths=LEGAL_COL_WIDTHS,
     )
-    legal_table.setStyle(_category_table_style(len(legal_rows)))
+    legal_table.setStyle(_category_table_style(len(LEGAL_ROWS)))
     story.append(legal_table)
     story.append(Spacer(1, 8*mm))
 

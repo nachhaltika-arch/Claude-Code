@@ -392,12 +392,21 @@ tatsächlich geprüften Kriterien normiert.
 | 3 | Echte Erheber: TLS, Unterseiten, Bildanalyse, Consent | ✅ `audit_collectors.py` — `check_tls`, `check_https_redirect`, `check_legal_pages`, `analyse_images`, `detect_consent`, `detect_third_parties` |
 | 4 | KI auf Design/Conversion/Text begrenzen, Screenshot + Rubric | ✅ `audit_ai.py` |
 | 5 | DB-Migration für die neuen Spalten | ✅ in `main.py::_run_migrations` — der einzigen Liste, die beim Start läuft |
-| 6 | Tests je Kategorie gegen eine feste Referenz-Website | ⬜ **offen** — 46 Tests prüfen Katalog und Rechenwege, aber gegen erfundene Eingaben |
-| 7 | Report und PDF um Quellen-Kennzeichnung erweitern | ⬜ **nicht verifiziert** — die Erhebungsart steht im Modell und in der API; ob sie beim Leser ankommt, wurde nicht geprüft |
+| 6 | Tests je Kategorie gegen eine feste Referenz-Website | ✅ `tests/referenzseite.py` + `test_referenzseite.py` (2026-08-15) — eingefrorene Website, 15 Tests über Erhebung *und* Bewertung; Punktzahl und Kategorien festgeschrieben |
+| 7 | Report und PDF um Quellen-Kennzeichnung erweitern | ✅ am Bericht nachgesehen (2026-08-15) — eigene Spalte „Quelle“, Erklärsatz über der Matrix, Legende darunter |
 
 ---
 
 ## 6. Was an diesem Katalog offen bleibt
+
+> **Stand 2026-08-15:** Die Punkte 2, 3 und 4 sind erledigt — der Katalog ist
+> gegen eine echte fremde Website gelaufen (Punkt 4, dort als wichtigster
+> markiert), die Quellen-Kennzeichnung kommt beim Leser an (Punkt 3), und die
+> Referenz-Website steht (Punkt 2). Der erste Fremdlauf hat dabei fünf Fehler
+> freigelegt, alle in der Erhebung, alle behoben: eine Fehlerseite, die als
+> Messung zählte; ein Ort, der zwischen zwei Tags verschwand; `/llm.txt` statt
+> `/llms.txt`; GEO-Spalten, die niemand befüllte; eine Rechtsangabe, die über
+> die Nachbarspalte druckte. Offen bleiben Punkt 1 und Punkt 5.
 
 1. **PageSpeed-Schlüssel auf Render.** Im Code ist beides gelöst: Abfrage auch
    ohne Key, und `PAGESPEED_API_KEY` wird als zweiter Name akzeptiert. Ob
@@ -506,3 +515,94 @@ Nische der Phase 1.
 Offen bleibt: `trade` aus den Stammdaten und die erkannte `branche` können
 auseinanderlaufen. Die Erkennung korrigiert nur die Bewertung, sie schreibt den
 Stammdatensatz nicht zurück.
+
+---
+
+## 8. Befund vom 2026-08-14 (abends) — das PDF druckte die Vermutung
+
+**David an einem echten Staging-Bericht:** Im PDF eines Ingenieurbüros für
+nachhaltige Wirtschaft stand „Branche / Gewerk: **Schreiner**". Der
+HTML-Bericht daneben ordnete korrekt ein („Ingenieurbüro für nachhaltige
+Wirtschaft — Maßstab: Lokaler Beratungs- und Gesundheitsdienstleister"). Damit
+ist die im letzten Absatz von § 7 offengelassene Lücke eingetreten, und zwar
+an der sichtbarsten Stelle: im Protokollteil, der wie ein Befund gelesen wird.
+
+**Ursache.** `services/scraper.py` riet das Gewerk über Stichworte; für
+„Schreiner" genügte das Wort „holz" irgendwo im Seitentext. Bei Widget-Analysen
+gibt niemand ein Gewerk mit, also griff die Vermutung immer
+(`routers/audit.py`, `req.trade or scraped["trade"]`). Der geratene Wert ging
+doppelt weiter: als „Gewerk" in den KI-Prompt und als Protokollzeile ins PDF.
+Die Stichwortfamilien sind dabei so weit gefasst, dass fast jede deutsche Seite
+trifft — „installation", „strom", „wasser", „bau".
+
+**Behoben.**
+1. `pdf_generator.branche_fuer_protokoll` — Reihenfolge erkannte Branche →
+   Klasse → `trade` (Altbestand) → „k.A.". Die Zeile heißt jetzt „Branche" und
+   nennt den Maßstab mit.
+2. `routers/audit.py` speichert die Vermutung nicht mehr als `trade`. Was
+   niemand eingetragen hat, bleibt leer; die Branche erkennt das Modell.
+3. Der HTML-Bericht zeigt je Kriterium den Maßstab der Klasse statt des
+   allgemeinen Katalog-Hinweises — vorher las ein Ingenieurbüro „je Gewerk eine
+   Seite" und „Meisterbetrieb" (`widget_report._hinweis`).
+4. Nebenbefund: „Stadt: Boppard-". Das Ortsmuster ließ nach dem Bindestrich nur
+   Kleinbuchstaben zu (`scraper.stadt_aus_text`).
+
+**Nachgezogen am selben Abend — die Bewertung rechnet klassenabhängig.**
+`audit_collectors.py` suchte Leistungsseiten über `wärmepumpe, wallbox,
+heizung, sanitär, bad, elektro, photovoltaik…` und Zertifikate über
+`meisterbetrieb, innung, handwerkskammer`. Ein Ingenieurbüro verlor dort
+Punkte für etwas, das es gar nicht haben kann.
+
+Die Stichworte je Klasse stehen jetzt in `services/audit_industry_signals.py`,
+der messbaren Entsprechung zu `PROFILE`. Die Aufteilung folgt der Reihenfolge
+im Ablauf: Die Klasse steht erst nach der KI-Erkennung fest, also **sucht die
+Erhebung den Verband aller Klassen und merkt sich je Fund die Begriffe; welcher
+Treffer zählt, entscheidet `audit_scoring`**. Betroffen sind drei Kriterien:
+
+| Kriterium | vorher | jetzt |
+|---|---|---|
+| `ih_leistungsseiten` | SHK-Begriffe für alle | Rechtsgebiet, Kategorie, Modul, Wärmepumpe — je Klasse |
+| `cv_vertrauen` | Meisterbetrieb, Innung, Handwerkskammer für alle | Kammer/Approbation (K2), ISO/Referenzkunden (K4), Trusted Shops (K5)… |
+| `cv_cta` | ein Satz Begriffe für alle | Warenkorb (K5), Reservierung (K3), Notdienst (K1)… |
+
+Ohne erkannte Klasse gilt weiter der Verband aller Begriffe: Wen die Erkennung
+nicht einordnen konnte, werten wir dafür nicht ab. Fakten aus der Zeit vor dem
+Branchenmodell behalten ihren Wert.
+
+**Was das an einem echten Fall ändert.** Für nachhaltika.de bleibt es bei
+1/2 Punkten für die Leistungsseiten — die Seite hat drei, davon erkennt K2
+zwei (`nachhaltigkeitsbericht`, `treibhausgasbilanz`), und die volle Punktzahl
+verlangt drei. Die Stichwortsuche hat also weiter einen Rand, an dem sie
+Seiten übersieht. Verschwunden ist der systematische Teil: Kein Betrieb wird
+mehr am Vokabular einer fremden Branche gemessen.
+
+**Am selben Abend nachgezogen — die restlichen drei Kriterien.**
+
+| Kriterium | vorher | jetzt |
+|---|---|---|
+| `se_meta` | Ort im Title, in jeder Klasse | Ort bei K1/K2/K3/K6; bei K4/K5 trägt den Punkt das Angebot im Titel, wie `PROFILE` es verlangt |
+| `se_schema` | `LocalBusiness` + `FAQPage` für alle | Haupttyp und Zusatztyp je Klasse — `Organization`/`Product` im Shop, `MedicalBusiness`/`Person` in der Praxis |
+| `cv_kontakt` | Telefon + schlankes Formular + Reaktionszeit | drei Merkmale je Klasse: Sprechzeiten (K2), Öffnungszeiten und Anfahrt (K3), Ansprechperson (K4), Retourenweg (K5) |
+
+Dafür gibt der QA-Scanner jetzt die gefundenen `@type`-Werte einzeln aus
+(`schema_typen`), gelesen über den Rohtext statt über `json.loads` — ein
+einziges fehlerhaftes Snippet hätte sonst die ganze Erhebung verschluckt. Und
+`analyse_contact` erhebt Öffnungszeiten, Terminbuchung, Anfahrt,
+Ansprechperson, Retourenweg und Servicekontakt.
+
+**Eine Falle dabei:** Zusammengesetzte Merkmale („Formular **oder**
+Terminbuchung") standen zuerst in der Erhebung. Damit hätte jede Faktenlage von
+vorher sie nicht gehabt und wäre dafür abgewertet worden — dieselbe Falle wie
+bei den Spalten in `main.py`. Sie werden jetzt in der Bewertung aus den
+Einzelbeobachtungen gebildet. Zwei Tests halten fest, dass die Tabelle nichts
+verlangt, was niemand erhebt.
+
+**An der echten Seite gemessen** (nachhaltika.de, K2): `se_schema` steigt von
+1/3 auf 2/3 — die Seite führt `Organization` und `Person`, was unter dem
+K2-Maßstab als Zusatztyp zählt, während `LocalBusiness` weiter fehlt und
+zu Recht einen Punkt kostet. `cv_kontakt` bleibt bei 2/3, misst aber jetzt
+Sprechzeiten statt eines schlanken Formulars.
+
+Ebenfalls offen: `lead_enrichment.py` füllt `lead.trade` weiter aus derselben
+Stichwortsuche. In einer Leadliste ist eine Arbeitshypothese vertretbar — sie
+darf nur nirgends als Befund gedruckt werden.

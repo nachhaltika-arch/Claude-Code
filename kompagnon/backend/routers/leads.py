@@ -23,6 +23,8 @@ import json
 import logging
 import os
 import uuid
+from services.ratenbegrenzung import lead_grenzen
+
 
 logger = logging.getLogger(__name__)
 
@@ -725,7 +727,11 @@ async def enrich_all_leads(background_tasks: BackgroundTasks, db: Session = Depe
 # ── Public lead creation (no auth — used by landing page audit) ──
 
 @public_router.post("/public")
-async def create_public_lead(data: dict, db: Session = Depends(get_db)):
+async def create_public_lead(
+    data: dict,
+    db: Session = Depends(get_db),
+    _grenzen=Depends(lead_grenzen),
+):
     """Public endpoint for landing page audit — creates lead without login."""
     website_url = data.get('website_url', '').strip()
     email_addr = data.get('email', '').strip()

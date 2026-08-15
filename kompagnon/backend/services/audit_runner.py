@@ -216,6 +216,7 @@ def summarise_facts(facts: dict) -> dict:
     """Verdichtet die Rohfakten auf das, was Report und KI-Prompt brauchen."""
     psi = facts.get("psi_mobile") or {}
     tls = facts.get("tls") or {}
+    qa = facts.get("qa") or {}
     legal = facts.get("legal") or {}
     links = facts.get("links") or {}
     hosting = facts.get("hosting") or {}
@@ -240,6 +241,14 @@ def summarise_facts(facts: dict) -> dict:
         "hosting_provider": hosting.get("hosting_provider"),
         "detected_technologies": hosting.get("detected_technologies", []),
         "a11y_failures": [f["title"] for f in (psi.get("a11y_failures") or [])][:8],
+        # GEO-Prüfpunkte. Sie standen im Bericht, ohne je erhoben zu werden —
+        # die Spalten blieben leer, das PDF las die Leere als „nicht erfüllt"
+        # und druckte Handlungsaufforderungen. `None` heißt hier unbekannt und
+        # ist nicht dasselbe wie `False` („gemessen und nicht vorhanden").
+        "llms_txt": qa.get("llms_txt") if qa else None,
+        "robots_ai_friendly": qa.get("robots_ai_friendly") if qa else None,
+        "structured_data": qa.get("schema_markup") if qa else None,
+        "gesperrte_ki_crawler": (qa.get("gesperrte_ki_crawler") or []) if qa else [],
     }
 
 

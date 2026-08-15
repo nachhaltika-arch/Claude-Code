@@ -205,7 +205,8 @@ CATALOGUE: Tuple[Category, ...] = (
                       "Telefon klickbar, Formular schlank, Reaktionszeit benannt",
                       assumes_business=True),
             Criterion("cv_vertrauen", "Vertrauenssignale", 3, Source.DERIVED,
-                      "Bewertungen, Referenzen, Zertifikate, Meisterbetrieb",
+                      "Bewertungen, Referenzen, Qualifikations- und "
+                      "Zugehörigkeitsnachweise",
                       assumes_business=True),
             Criterion("cv_angebot", "Angebots-Klarheit", 3, Source.AI,
                       "Leistungen konkret, Ablauf oder Preisrahmen, Risk Reversal",
@@ -217,7 +218,7 @@ CATALOGUE: Tuple[Category, ...] = (
         label="Inhalt & Substanz",
         criteria=(
             Criterion("ih_leistungsseiten", "Eigene Leistungsseiten", 2, Source.MEASURED,
-                      "je Gewerk eine Seite statt einer Sammelseite",
+                      "je Hauptleistung eine Seite statt einer Sammelseite",
                       assumes_business=True),
             Criterion("ih_aktualitaet", "Aktualität", 1, Source.MEASURED,
                       "datierte Inhalte, kein veraltetes Copyright"),

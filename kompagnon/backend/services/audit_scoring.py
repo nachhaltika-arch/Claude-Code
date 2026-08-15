@@ -17,6 +17,13 @@ from services.audit_criteria import (
     score_all,
 )
 from services.audit_industry_map import klasse_fuer_branche
+from services.audit_industry_signals import (
+    ORT_IM_TITEL_ERWARTET,
+    kontakt_merkmale,
+    schema_passt,
+    treffer as signal_treffer,
+    zaehlt_in_klasse,
+)
 
 Items = Dict[str, int]
 Sources = Dict[str, Source]
@@ -240,7 +247,22 @@ def _score_accessibility(sheet: _Sheet, facts: dict) -> None:
 # SEO & Auffindbarkeit
 # ═══════════════════════════════════════════════════════════════════
 
-def _score_seo(sheet: _Sheet, facts: dict) -> None:
+def _titel_traegt_den_massstab(title: str, city: str, klasse: str) -> bool:
+    """Der dritte Punkt bei Title & Meta — je Klasse ein anderer.
+
+    Lokale Betriebe werden am Ort gemessen. Bei K4 und K5 sagt `PROFILE`
+    ausdrücklich, dass ein Ort NICHT erwartet wird; dort trägt den Punkt, was
+    stattdessen im Titel stehen soll — Leistung, Segment oder Sortiment. Vorher
+    verlor ein bundesweiter Anbieter diesen Punkt zwangsläufig.
+    """
+    if not klasse or klasse in ORT_IM_TITEL_ERWARTET:
+        return bool(city and city in title)
+    return bool(signal_treffer(title, "leistungsseiten")
+                and zaehlt_in_klasse(signal_treffer(title, "leistungsseiten"),
+                                     "leistungsseiten", klasse))
+
+
+def _score_seo(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
     qa = facts.get("qa") or {}
     if not qa:
         for key in ("se_meta", "se_struktur", "se_index", "se_schema", "se_lokal"):
@@ -253,7 +275,7 @@ def _score_seo(sheet: _Sheet, facts: dict) -> None:
         sheet.set("se_meta", sum([
             1 if qa.get("title_vorhanden") and qa.get("title_laenge_ok") else 0,
             1 if qa.get("meta_desc_vorhanden") and qa.get("meta_desc_laenge_ok") else 0,
-            1 if city and city in title else 0,
+            1 if _titel_traegt_den_massstab(title, city, klasse) else 0,
         ]), Source.MEASURED)
 
         words = facts.get("word_count") or 0
@@ -268,10 +290,21 @@ def _score_seo(sheet: _Sheet, facts: dict) -> None:
             1 if qa.get("canonical_vorhanden") else 0,
         ]), Source.MEASURED)
 
+        # Ohne `schema_typen` stammt die Erhebung von vor dem Branchenmodell —
+        # dann bleibt es bei LocalBusiness und FAQ, damit ein Altbestand nicht
+        # rückwirkend fällt.
+        typen = qa.get("schema_typen")
+        if typen is None:
+            haupttyp = bool(qa.get("schema_localbusiness"))
+            zusatz = bool(qa.get("schema_faq"))
+        else:
+            haupttyp = schema_passt(typen, klasse)
+            zusatz = schema_passt(typen, klasse, zusatz=True)
+
         sheet.set("se_schema", sum([
             1 if qa.get("schema_markup") else 0,
-            1 if qa.get("schema_localbusiness") else 0,
-            1 if qa.get("schema_faq") else 0,
+            1 if haupttyp else 0,
+            1 if zusatz else 0,
         ]), Source.MEASURED)
 
         contact = facts.get("contact") or {}
@@ -305,30 +338,66 @@ def _score_design(sheet: _Sheet, facts: dict) -> None:
 # Conversion & Nutzerführung
 # ═══════════════════════════════════════════════════════════════════
 
-def _score_conversion(sheet: _Sheet, facts: dict) -> None:
+# Merkmale, die aus mehreren Beobachtungen zusammenfallen. Sie werden hier
+# gebildet und nicht in der Erhebung: Fakten von vorher kennen die Einzelwerte,
+# ein zusammengesetztes Feld hätten sie nie — und wären dafür abgewertet worden.
+KONTAKT_ABLEITUNGEN = {
+    "termin_oder_sprechzeiten": ("terminbuchung", "oeffnungszeiten"),
+    "form_oder_terminbuchung": ("form", "terminbuchung"),
+    "kundenservice_kontakt": ("tel_link", "mailto_link", "form", "servicekontakt"),
+}
+
+
+def _kontaktmerkmal(contact: dict, merkmal: str) -> bool:
+    """Ein Kontaktmerkmal — einzeln beobachtet oder aus mehreren gebildet."""
+    teile = KONTAKT_ABLEITUNGEN.get(merkmal)
+    if teile:
+        return any(contact.get(t) for t in teile)
+    return bool(contact.get(merkmal))
+
+
+def _treffer_in_klasse(eintraege, gruppe: str, klasse: str, ersatz: int) -> int:
+    """Zählt die Einträge, deren Begriffe für diese Klasse einschlägig sind.
+
+    `eintraege` ist ``None`` bei Fakten aus der Zeit vor dem Branchenmodell —
+    dort bleibt der klassenunabhängige Wert, den die Erhebung mitgeliefert hat.
+    Ein Altbestand soll sich durch diese Änderung nicht rückwirkend
+    verschlechtern.
+    """
+    if eintraege is None:
+        return ersatz
+    return sum(1 for e in eintraege
+               if zaehlt_in_klasse(e.get("begriffe"), gruppe, klasse))
+
+
+def _score_conversion(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
     cta = facts.get("cta") or {}
     contact = facts.get("contact") or {}
     trust = facts.get("trust") or {}
 
     if _ok(cta):
-        count = cta.get("cta_count", 0)
+        count = _treffer_in_klasse(cta.get("elemente"), "cta", klasse,
+                                   cta.get("cta_count", 0))
         sheet.set("cv_cta", 3 if count >= 3 else (2 if count >= 1 else 0), Source.DERIVED)
     else:
         sheet.skip("cv_cta")
 
     if _ok(contact):
-        sheet.set("cv_kontakt", sum([
-            1 if contact.get("tel_link") else 0,
-            1 if contact.get("form_is_lean") else 0,
-            1 if contact.get("response_time_stated") else 0,
-        ]), Source.MEASURED)
+        # Drei Beobachtungen, welche entscheidet die Klasse: Sprechzeiten in
+        # der Praxis, Anfahrt im Publikumsbetrieb, Retourenweg im Shop. Vorher
+        # verlor jede Praxis den Punkt für die nicht genannte Reaktionszeit —
+        # ein Maßstab aus dem Handwerk.
+        sheet.set("cv_kontakt", sum(
+            1 for merkmal in kontakt_merkmale(klasse)
+            if _kontaktmerkmal(contact, merkmal)
+        ), Source.MEASURED)
     else:
         sheet.skip("cv_kontakt")
 
     if _ok(trust):
-        signals = trust.get("signal_count", 0)
-        sheet.set("cv_vertrauen", 3 if signals >= 4 else (2 if signals >= 2 else
-                  (1 if signals >= 1 else 0)), Source.DERIVED)
+        signale = _vertrauenssignale(trust, klasse)
+        sheet.set("cv_vertrauen", 3 if signale >= 4 else (2 if signale >= 2 else
+                  (1 if signale >= 1 else 0)), Source.DERIVED)
     else:
         sheet.skip("cv_vertrauen")
     # cv_klarheit, cv_angebot: KI (siehe _apply_ai)
@@ -338,12 +407,30 @@ def _score_conversion(sheet: _Sheet, facts: dict) -> None:
 # Inhalt & Substanz
 # ═══════════════════════════════════════════════════════════════════
 
-def _score_content(sheet: _Sheet, facts: dict) -> None:
+def _vertrauenssignale(trust: dict, klasse: str) -> int:
+    """Wie viele Vertrauenssignale in dieser Klasse zählen.
+
+    Vier der fünf Untergruppen sind branchenunabhängig. Nur der Nachweis der
+    Befähigung heißt überall anders — der Meisterbrief des Handwerkers zählt
+    beim Ingenieurbüro nicht und dessen Kammerzugehörigkeit nicht beim
+    Handwerker. Vorher zählte für alle dieselbe handwerkliche Liste.
+    """
+    if "zertifikat_begriffe" not in trust:
+        return trust.get("signal_count", 0)  # Fakten vor dem Branchenmodell
+
+    generisch = sum(1 for gruppe in ("bewertungen", "referenzen", "team", "garantie")
+                    if trust.get(gruppe))
+    passend = zaehlt_in_klasse(trust.get("zertifikat_begriffe"), "zertifikate", klasse)
+    return generisch + (1 if passend else 0)
+
+
+def _score_content(sheet: _Sheet, facts: dict, klasse: str = "") -> None:
     services = facts.get("services") or {}
     freshness = facts.get("freshness") or {}
 
     if _ok(services):
-        count = services.get("service_page_count", 0)
+        count = _treffer_in_klasse(services.get("seiten"), "leistungsseiten", klasse,
+                                   services.get("service_page_count", 0))
         sheet.set("ih_leistungsseiten", 2 if count >= 3 else (1 if count >= 1 else 0),
                   Source.MEASURED)
     else:
@@ -460,18 +547,23 @@ def score_audit(facts: dict, ai: Optional[dict] = None) -> dict:
     sheet = _Sheet()
     ai = ai or {}
 
+    # Die Klasse steht vor der Bewertung fest, nicht danach: Zwei Kriterien
+    # zählen nur, was zur Branche passt (Leistungsseiten, Vertrauenssignale,
+    # Zielhandlung). Die Erhebung konnte das noch nicht wissen — sie lief, bevor
+    # das Modell die Seite gesehen hatte.
+    klasse, quelle = _klasse_aus_erkennung(ai)
+
     _score_legal(sheet, facts)
     _score_security(sheet, facts)
     _score_performance(sheet, facts)
     _score_accessibility(sheet, facts)
-    _score_seo(sheet, facts)
+    _score_seo(sheet, facts, klasse)
     _score_design(sheet, facts)
-    _score_conversion(sheet, facts)
-    _score_content(sheet, facts)
+    _score_conversion(sheet, facts, klasse)
+    _score_content(sheet, facts, klasse)
     _apply_ai(sheet, ai)
     _score_infrastructure(sheet, facts)
 
-    klasse, quelle = _klasse_aus_erkennung(ai)
     _verwerfe_nicht_anwendbare(sheet, klasse)
 
     summary = score_all(sheet.items, sheet.sources, klasse)

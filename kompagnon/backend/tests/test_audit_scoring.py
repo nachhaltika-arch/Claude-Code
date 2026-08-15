@@ -41,7 +41,9 @@ def _fakten(**overrides) -> dict:
                    "lazy_share": 80, "dimension_share": 100, "oversized": 0},
         "qa": {
             "title_vorhanden": True, "title_laenge_ok": True,
-            "title_text": "Heizung Bochum — Muster GmbH",
+            # Ort **und** Leistung: Der Ort trägt den Punkt in den lokalen
+            # Klassen, die Leistung dort, wo ein Ort nicht erwartet wird.
+            "title_text": "Heizung Bochum — Leistungen der Muster GmbH",
             "meta_desc_vorhanden": True, "meta_desc_laenge_ok": True,
             "h1_genau_eins": True, "h2_vorhanden": True, "heading_struktur_ok": True,
             "h1_text": "Wärmepumpe in Bochum", "canonical_vorhanden": True,
@@ -49,8 +51,15 @@ def _fakten(**overrides) -> dict:
             "schema_markup": True, "schema_localbusiness": True, "schema_faq": True,
             "google_maps": True, "mobile_viewport": True, "alt_texte_quote": 100,
         },
+        # Tadellos heißt: tadellos in jeder Branchenklasse. Deshalb stehen hier
+        # auch die Beobachtungen, an denen Praxis, Publikumsbetrieb, Anbieter
+        # und Shop gemessen werden — sonst wäre die Seite nur für einen
+        # Handwerksbetrieb perfekt.
         "contact": {"collected": True, "tel_link": True, "mailto_link": True,
-                    "form": True, "form_is_lean": True, "response_time_stated": True},
+                    "form": True, "form_is_lean": True, "response_time_stated": True,
+                    "oeffnungszeiten": True, "terminbuchung": True, "anfahrt": True,
+                    "ansprechperson": True, "retourenweg": True,
+                    "servicekontakt": True},
         "cta": {"collected": True, "cta_count": 5, "has_cta": True},
         "trust": {"collected": True, "signal_count": 5},
         "services": {"collected": True, "service_page_count": 4},

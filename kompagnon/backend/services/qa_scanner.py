@@ -2,7 +2,65 @@ import re, httpx, asyncio, logging
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
+from services.audit_collectors import USER_AGENT
+
 logger = logging.getLogger(__name__)
+
+# Dieselbe Kennung wie in den übrigen Erhebungen. Ohne sie fragt httpx unter
+# eigenem Namen, und Server mit Bot-Abwehr antworten mit 403 — auf Startseite,
+# robots.txt und sitemap.xml gleichermaßen. Das Audit las dann eine Fehlerseite
+# und schrieb deren Leere als Messwert fort.
+BROWSER_HEADERS = {"User-Agent": USER_AGENT}
+
+# Crawler der KI-Systeme. Ob sie eingelassen werden, entscheidet die robots.txt
+# — und nur das ist eine Messung. Der Bericht verlangte bisher pauschal, „die
+# GPTBot-Blockierung zu entfernen", auch bei robots.txt, die niemanden sperren.
+KI_CRAWLER = ["GPTBot", "ChatGPT-User", "OAI-SearchBot", "ClaudeBot",
+              "Claude-Web", "PerplexityBot", "Google-Extended", "CCBot",
+              "Applebot-Extended", "Bytespider"]
+
+
+def gesperrte_ki_crawler(robots_text: str) -> list:
+    """Welche KI-Crawler die robots.txt von der ganzen Website aussperrt.
+
+    Gewertet wird nur ``Disallow: /`` — die Sperre der gesamten Seite. Ein
+    ausgenommenes Verzeichnis ist Alltag und kein Sichtbarkeitsproblem.
+    ``User-agent: *`` mit ``Disallow: /`` trifft alle und wird deshalb jedem
+    Crawler zugerechnet.
+    """
+    if not robots_text:
+        return []
+
+    # robots.txt in Bloecke zerlegen: Kennungen sammeln, bis Regeln folgen.
+    bloecke, kennungen, regeln, in_regeln = [], [], [], False
+    for zeile in robots_text.splitlines():
+        zeile = zeile.split("#")[0].strip()
+        if not zeile or ":" not in zeile:
+            continue
+        feld, _, wert = zeile.partition(":")
+        feld, wert = feld.strip().lower(), wert.strip()
+        if feld == "user-agent":
+            if in_regeln:
+                bloecke.append((kennungen, regeln))
+                kennungen, regeln, in_regeln = [], [], False
+            kennungen.append(wert)
+        elif feld == "disallow":
+            in_regeln = True
+            regeln.append(wert)
+    if kennungen:
+        bloecke.append((kennungen, regeln))
+
+    gesperrt = []
+    for kennungen, regeln in bloecke:
+        if "/" not in regeln:
+            continue
+        for kennung in kennungen:
+            if kennung == "*":
+                gesperrt.extend(KI_CRAWLER)
+            else:
+                treffer = [c for c in KI_CRAWLER if c.lower() == kennung.lower()]
+                gesperrt.extend(treffer)
+    return sorted(set(gesperrt))
 
 
 async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
@@ -19,8 +77,18 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
     html = ""
     soup = None
     try:
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as c:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True,
+                                     headers=BROWSER_HEADERS) as c:
             r = await c.get(url)
+            # Eine abweisende Antwort ist kein Messergebnis. Ohne diese Prüfung
+            # zergliedert der Scanner die Fehlerseite, findet erwartungsgemäß
+            # weder Canonical noch Schema, und die Bewertung zählt die Nullen
+            # als „gemessen" — die Seite verliert Punkte für Mängel, die sie
+            # nicht hat. Leere Checks lassen die Bewertung stattdessen
+            # überspringen (siehe `_score_seo`: `if not qa`).
+            if r.status_code != 200:
+                logger.warning(f"QA: {url} antwortete mit HTTP {r.status_code}")
+                return {"error": f"HTTP {r.status_code}", "checks": {}}
             html = r.text
             soup = BeautifulSoup(html, "html.parser")
     except Exception as e:
@@ -36,7 +104,8 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
 
     # HTTPS-Redirect (http → https)
     try:
-        async with httpx.AsyncClient(timeout=5.0, follow_redirects=False) as c:
+        async with httpx.AsyncClient(timeout=5.0, follow_redirects=False,
+                                     headers=BROWSER_HEADERS) as c:
             http_url = url.replace("https://", "http://")
             r2 = await c.get(http_url)
             results["https_redirect"] = r2.status_code in (301, 302) and \
@@ -50,18 +119,22 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
 
     # robots.txt
     try:
-        async with httpx.AsyncClient(timeout=5.0) as c:
+        async with httpx.AsyncClient(timeout=5.0, headers=BROWSER_HEADERS) as c:
             domain = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
             r3 = await c.get(f"{domain}/robots.txt")
             results["robots_txt"] = r3.status_code == 200
-            results["robots_txt_indexiert"] = "noindex" not in r3.text.lower()
+            robots_text = r3.text if r3.status_code == 200 else ""
+            results["robots_txt_indexiert"] = "noindex" not in robots_text.lower()
+            # Keine robots.txt sperrt niemanden — das ist KI-freundlich.
+            results["gesperrte_ki_crawler"] = gesperrte_ki_crawler(robots_text)
+            results["robots_ai_friendly"] = not results["gesperrte_ki_crawler"]
     except Exception:
         results["robots_txt"] = False
         results["robots_txt_indexiert"] = False
 
     # sitemap.xml
     try:
-        async with httpx.AsyncClient(timeout=5.0) as c:
+        async with httpx.AsyncClient(timeout=5.0, headers=BROWSER_HEADERS) as c:
             domain = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
             r4 = await c.get(f"{domain}/sitemap.xml")
             results["sitemap_xml"] = r4.status_code == 200 and \
@@ -112,6 +185,15 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
     schema_text = " ".join(t.get_text() for t in schema_tags).lower()
     results["schema_localbusiness"] = "localbusiness" in schema_text
     results["schema_faq"] = "faqpage" in schema_text
+    # Die gefundenen @type-Werte einzeln: Welcher Typ der richtige ist, hängt
+    # an der Branchenklasse — ein Shop wird nicht an `LocalBusiness` gemessen.
+    # Über den Rohtext gelesen und nicht über `json.loads`, weil ein einziges
+    # fehlerhaftes Snippet sonst die ganze Erhebung verschluckt.
+    results["schema_typen"] = sorted({
+        typ.strip().split("/")[-1]
+        for typ in re.findall(r'"@type"\s*:\s*"([^"]+)"', schema_text)
+        if typ.strip()
+    })
 
     # Viewport (Mobile)
     viewport = soup.find("meta", attrs={"name": "viewport"})
@@ -186,7 +268,7 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
     # Hier: Header-Checks
 
     try:
-        async with httpx.AsyncClient(timeout=5.0) as c:
+        async with httpx.AsyncClient(timeout=5.0, headers=BROWSER_HEADERS) as c:
             rh = await c.head(url, follow_redirects=True)
             headers = {k.lower(): v for k, v in rh.headers.items()}
             results["hsts"] = "strict-transport-security" in headers
@@ -201,13 +283,21 @@ async def run_full_qa(url: str, company: str = "", trade: str = "") -> dict:
 
     # ─── KATEGORIE 6: LLM-OPTIMIERUNG ───────────────────────────────
 
-    # llm.txt
+    # llms.txt — die Konvention heisst mit s, so steht sie auch im Bericht.
+    # Frueher wurde nur /llm.txt geprueft; wer die Datei nach der Konvention
+    # abgelegt hatte, galt trotzdem als ohne.
     try:
-        async with httpx.AsyncClient(timeout=5.0) as c:
+        async with httpx.AsyncClient(timeout=5.0, headers=BROWSER_HEADERS) as c:
             domain = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
-            r5 = await c.get(f"{domain}/llm.txt")
-            results["llm_txt"] = r5.status_code == 200
+            r5 = await c.get(f"{domain}/llms.txt")
+            gefunden = r5.status_code == 200
+            if not gefunden:
+                r5b = await c.get(f"{domain}/llm.txt")
+                gefunden = r5b.status_code == 200
+            results["llms_txt"] = gefunden
+            results["llm_txt"] = gefunden  # alter Name, im KI-Prompt genutzt
     except Exception:
+        results["llms_txt"] = False
         results["llm_txt"] = False
 
     # FAQ-Block (Akkordeon)

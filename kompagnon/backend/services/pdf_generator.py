@@ -25,6 +25,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 
 
 from services.audit_criteria import BLOCKER_LABELS, CATALOGUE, SOURCE_LABELS, Source
+from services.audit_industry_map import KLASSEN
 
 logger = logging.getLogger(__name__)
 
@@ -229,6 +230,21 @@ def _get_styles():
         fontName=FONT_NORMAL, fontSize=10, leading=14,
         textColor=KC_DARK, alignment=TA_CENTER,
     ))
+    # Tabellenzellen, die umbrechen muessen. Groesse, Schrift und Farbe wie in
+    # BASE_TABLE_STYLE, damit eine umbrechende Zelle neben einer rohen nicht
+    # auffaellt. Die Farbe ist KC_TEXT (schwarz) und nicht KC_DARK: Der Stil
+    # setzt fuer den Tabellenkoerper keine Textfarbe, es gilt also Schwarz —
+    # mit KC_DARK stand die umbrochene Zelle sichtbar in Teal daneben.
+    styles.add(ParagraphStyle(
+        "KCZelle", parent=styles["Normal"],
+        fontName=FONT_NORMAL, fontSize=9, leading=11,
+        textColor=KC_TEXT,
+    ))
+    styles.add(ParagraphStyle(
+        "KCZelleKopf", parent=styles["Normal"],
+        fontName=FONT_BOLD, fontSize=9, leading=11,
+        textColor=KC_WHITE,
+    ))
     styles.add(ParagraphStyle(
         "KCBold", parent=styles["Normal"],
         fontName=FONT_BOLD, fontSize=10, leading=14,
@@ -408,6 +424,156 @@ def _stil_ohne_kopfzeile(zeilen: int) -> list:
     return stil
 
 
+LEGAL_HEADER = ["Rechtsgrundlage", "Pflicht seit", "Betrifft", "Risiko"]
+
+# Das TMG ist seit dem 14.05.2024 durch das Digitale-Dienste-Gesetz abgeloest.
+# Der Kriterienkatalog nennt laengst „§ 5 DDG"; das PDF widersprach ihm auf
+# derselben Seite.
+LEGAL_ROWS = [
+    ["DDG § 5 – Impressumspflicht", "seit 14.05.2024 (zuvor TMG § 5)",
+     "Alle komm. Websites", "Abmahnung bis 50.000 €"],
+    ["DSGVO – Datenschutz", "25.05.2018", "Websites mit EU-Besuchern", "Bußgeld bis 20 Mio €"],
+    ["TDDDG §25 – Cookie", "2021/2023", "Websites mit Tracking", "Bußgeld, Abmahnungen"],
+    ["BFSG – Barrierefreiheit", "28.06.2025", "Private Anbieter", "Marktaufsicht, Bußgeld"],
+    ["WCAG 2.1 Level AA", "laufend", "Technische Umsetzung", "Grundlage BFSG"],
+    ["Google Core Web Vitals", "Mai 2021", "Alle Websites", "Sichtbarkeitsverlust"],
+]
+
+# „Pflicht seit" war mit 25 mm die engste Spalte und traegt den laengsten
+# Wert. 32 mm halten die Zeilenhoehe niedrig und bleiben mit 167 mm noch
+# innerhalb der 170 mm Satzbreite (A4 minus je 20 mm Rand).
+LEGAL_COL_WIDTHS = [45*mm, 32*mm, 45*mm, 45*mm]
+
+
+def rechtstabelle_zellen():
+    """Die Zellen der Rechtstabelle — zu breite als umbrechender Absatz.
+
+    reportlab bricht eine rohe Zeichenkette in einer Tabellenzelle nicht um,
+    sie laeuft ueber die Spaltengrenze weiter. Im Bericht vom 15.08.2026 druckte
+    sich so „seit 14.05.2024 (zuvor TMG § 5)" ueber „Alle kommerziellen
+    Websites" in der Nachbarspalte; beide Angaben waren unlesbar.
+
+    Nur ein ``Paragraph`` bricht um. Er kostet etwas Hoehe, deshalb bekommt ihn
+    nur, wer ihn braucht — gemessen, nicht geraten, damit auch spaeter
+    ergaenzte Zeilen richtig gesetzt werden.
+    """
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    styles = _get_styles()
+    innenabstand = 12  # LEFTPADDING + RIGHTPADDING aus BASE_TABLE_STYLE
+
+    def zelle(text, breite, kopfzeile):
+        schrift = FONT_BOLD if kopfzeile else FONT_NORMAL
+        if stringWidth(text, schrift, 9) <= breite - innenabstand:
+            return text
+        stil = styles["KCZelleKopf"] if kopfzeile else styles["KCZelle"]
+        return Paragraph(_clean_text(text), stil)
+
+    zeilen = [[zelle(t, LEGAL_COL_WIDTHS[s], True)
+               for s, t in enumerate(LEGAL_HEADER)]]
+    zeilen += [[zelle(t, LEGAL_COL_WIDTHS[s], False) for s, t in enumerate(zeile)]
+               for zeile in LEGAL_ROWS]
+    return zeilen
+
+
+STATUS_ERFUELLT = "erfüllt"
+STATUS_OFFEN = "offen"
+STATUS_UNBEKANNT = "nicht erhoben"
+
+
+def _geo_status(wert):
+    """``None`` heisst unbekannt — und unbekannt ist nicht dasselbe wie fehlend."""
+    if wert is None:
+        return STATUS_UNBEKANNT
+    return STATUS_ERFUELLT if wert else STATUS_OFFEN
+
+
+def geo_pruefpunkte(audit_data: dict) -> list:
+    """Die Prüfpunkte der GEO-Seite — nur mit dem, was erhoben wurde.
+
+    Der Abschnitt las frueher Felder, die nie befuellt wurden (``llms_txt``,
+    ``robots_ai_friendly``, ``structured_data``, ``ai_mentions``), bekam
+    ueberall ``False`` und druckte fuer jeden Punkt eine Aufforderung — auch
+    „GPTBot nicht blockieren" an einen Betrieb, dessen robots.txt niemanden
+    sperrt. ``ai_overview`` war ausdruecklich aus einem nicht existierenden
+    Feld geraten.
+
+    Was hier ohne Messung steht, bekommt ``STATUS_UNBEKANNT`` und keine
+    Empfehlung. Die Statusworte folgen der Bewertungsmatrix; Haekchen kaeme
+    ohnehin niemand zu Gesicht, weil Helvetica ✓ und ✗ nicht kennt.
+    """
+    llms = audit_data.get("llms_txt")
+    robots_ai = audit_data.get("robots_ai_friendly")
+    strukturiert = audit_data.get("structured_data")
+    gesperrt = audit_data.get("gesperrte_ki_crawler") or []
+
+    def zeile(name, wert, aufforderung, erfuellt_text):
+        """Eine Zeile: Aufforderung nur bei gemessener Luecke, sonst ein Hinweis.
+
+        Die letzte Spalte bleibt nie leer — eine ueber alle Zeilen leere
+        Spalte liest sich als Fehler, und genau so sah der Abschnitt vorher
+        aus.
+        """
+        status = _geo_status(wert)
+        if status == STATUS_OFFEN:
+            return {"pruefpunkt": name, "status": status,
+                    "empfehlung": aufforderung, "hinweis": ""}
+        hinweis = (erfuellt_text if status == STATUS_ERFUELLT
+                   else "Nicht Teil dieser Analyse")
+        return {"pruefpunkt": name, "status": status,
+                "empfehlung": "", "hinweis": hinweis}
+
+    namen = ", ".join(gesperrt[:3]) if gesperrt else "KI-Crawler"
+
+    return [
+        zeile("llms.txt vorhanden", llms,
+              "Datei unter /llms.txt anlegen", "Vorhanden und abrufbar"),
+        zeile("robots.txt KI-freundlich", robots_ai,
+              f"Sperre für {namen} in der robots.txt aufheben",
+              "Kein KI-Crawler ausgesperrt"),
+        zeile("Strukturierte Daten", strukturiert,
+              "Schema.org-Auszeichnung ergänzen", "Schema.org vorhanden"),
+        # Fuer beide gibt es keine Erhebung. Sie bleiben im Bericht, weil der
+        # Leser wissen soll, dass es sie gibt — aber ohne Behauptung.
+        zeile("KI-Erwähnungen", None, "", ""),
+        zeile("Google AI Overview", None, "", ""),
+    ]
+
+
+def roadmap_massnahmen(audit_data: dict) -> dict:
+    """Die Maßnahmen der Roadmap — je Phase, nur was der Befund hergibt.
+
+    Die Liste war fest verdrahtet: „llms.txt anlegen", „Schema.org
+    LocalBusiness einbauen", „robots.txt: GPTBot-Blockierung entfernen"
+    standen in jedem Bericht.
+    """
+    punkte = {p["pruefpunkt"]: p for p in geo_pruefpunkte(audit_data)}
+    offen = lambda name: punkte[name]["status"] == STATUS_OFFEN  # noqa: E731
+
+    sofort = []
+    if offen("llms.txt vorhanden"):
+        sofort.append("llms.txt anlegen (ca. 1 Tag Aufwand)")
+    if offen("Strukturierte Daten"):
+        sofort.append("Schema.org-Auszeichnung einbauen")
+    if offen("robots.txt KI-freundlich"):
+        sofort.append(punkte["robots.txt KI-freundlich"]["empfehlung"])
+
+    mittelfristig = ["Regelmäßige Blog-Inhalte für SEO-Autorität aufbauen"]
+    if punkte["Strukturierte Daten"]["status"] == STATUS_ERFUELLT:
+        mittelfristig.append("Weitere Schema.org-Typen (FAQPage, Review) ergänzen")
+
+    return {
+        "sofort": sofort,
+        "mittelfristig": mittelfristig,
+        # Diese drei haengen an keiner Messung und gelten fuer jeden Betrieb.
+        "langfristig": [
+            "Backlink-Aufbau über lokale Verzeichnisse und Branchenportale",
+            "Google Business Profil optimieren und regelmäßig pflegen",
+            "KI-Sichtbarkeit: Erwähnungen in Fachartikeln & Podcasts aufbauen",
+        ],
+    }
+
+
 def _category_table_style(n_rows):
     style = list(BASE_TABLE_STYLE)
     for i in range(1, n_rows + 1):
@@ -466,6 +632,21 @@ def _matplotlib_schrift(plt) -> None:
         logger.warning(f"Diagrammschrift nicht gesetzt: {e}")
 
 
+def radar_beschriftung(label: str) -> str:
+    """Der Name einer Kategorie ohne ihren Zusatz — fuer die Achsen des Radars.
+
+    Gekuerzt wurde vorher mit ``split(" &")[0]``. Das traf sieben der acht
+    Kategorien; „Barrierefreiheit (WCAG/BFSG)" fuehrt kein „&" und stand als
+    einzige in voller Laenge am Rand der Grafik. Getrennt wird deshalb am
+    ersten Zusatz, gleich ob er mit „&", einer Klammer oder einem Schraegstrich
+    beginnt.
+    """
+    name = (label or "").strip()
+    for trenner in (" &", " (", " /", " –", " —"):
+        name = name.split(trenner)[0]
+    return name.strip()
+
+
 def generate_radar_chart(axes: list) -> bytes:
     """Netzdiagramm über die Kategorien des Katalogs.
 
@@ -497,9 +678,22 @@ def generate_radar_chart(axes: list) -> bytes:
     # Die Ringe trugen deshalb „2, 4, 6, 8, 10" ohne Einheit — eine Zahl, die
     # weder Punkte noch Prozent war. Beschriftet wird jetzt, was gemeint ist.
     ax.set_ylim(0, 10)
+    # Fuenf Ringe, aber nur jeder zweite beschriftet: Fuenf Prozentangaben
+    # uebereinander drängten sich auf engem Raum.
     ax.set_yticks([2, 4, 6, 8, 10])
-    ax.set_yticklabels(["20%", "40%", "60%", "80%", "100%"],
+    ax.set_yticklabels(["20%", "", "60%", "", "100%"],
                        fontsize=6, color=brand.TEXT_30)
+    # Die Beschriftung lag auf der ersten Achse und damit mitten in der
+    # gefuellten Flaeche. Sie wandert an die Achse mit dem kleinsten Wert —
+    # dort ist am meisten freier Raum — und bekommt einen hellen Grund.
+    # Gesucht ist nicht der kleinste Wert, sondern der schmalste Sektor: Die
+    # Beschriftung steht zwischen zwei Achsen, also zaehlt das niedrigste
+    # benachbarte Paar.
+    sektor = min(range(N), key=lambda i: values[i] + values[(i + 1) % N]) if values else 0
+    ax.set_rlabel_position(math.degrees(angles[sektor]) + 180.0 / N)
+    for beschriftung in ax.get_yticklabels():
+        beschriftung.set_bbox(dict(facecolor="white", edgecolor="none",
+                                   alpha=0.75, pad=0.8))
     ax.yaxis.grid(True, color=brand.BORDER, linewidth=0.7)
     ax.xaxis.grid(True, color=brand.BORDER, linewidth=0.7)
     ax.spines["polar"].set_color(brand.BORDER)
@@ -627,6 +821,31 @@ def build_scorecard(items: dict, sources: dict, styles: dict) -> tuple:
     return header, rows
 
 
+def branche_fuer_protokoll(audit_data: dict) -> str:
+    """Die Branchenzeile des Auditprotokolls — Befund vor Vermutung.
+
+    Reihenfolge: was das Modell an der Seite erkannt hat, dahinter der Maßstab
+    der Klasse; dann die Klasse allein; dann `trade` als Altbestand. `trade`
+    stammt bei Widget-Analysen aus einer Stichwortsuche (`scraper.py`) und hat
+    einem Ingenieurbüro „Schreiner" ins Protokoll geschrieben, weil „holz" im
+    Text stand. Im Protokoll gelesen ist eine Vermutung ein Befund — deshalb
+    steht sie hier zuletzt und wird notfalls durch „k.A." ersetzt.
+    """
+    branche = _clean_text(audit_data.get("erkannte_branche", "") or "").strip()
+    klasse = KLASSEN.get(audit_data.get("branchenklasse", "") or "")
+
+    if branche and klasse:
+        return f"{branche} ({klasse.bezeichnung})"
+    if branche:
+        return branche
+    if klasse:
+        return klasse.bezeichnung
+
+    # `_safe` ersetzt nur None, nicht den leeren Text — hier ist beides gleich
+    # unbekannt, und eine leere Protokollzeile sieht aus wie ein Druckfehler.
+    return _clean_text(audit_data.get("trade", "") or "").strip() or "k.A."
+
+
 def generate_audit_report(audit_data: dict) -> bytes:
     """Generate a professional PDF audit report. Returns PDF bytes."""
     buffer = BytesIO()
@@ -713,24 +932,11 @@ def generate_audit_report(audit_data: dict) -> bytes:
         styles["KCBody"],
     ))
 
-    legal_header = ["Rechtsgrundlage", "Pflicht seit", "Betrifft", "Risiko"]
-    legal_rows = [
-        # Das TMG ist seit dem 14.05.2024 durch das Digitale-Dienste-Gesetz
-        # abgeloest. Der Kriterienkatalog nennt laengst \u201e\u00a7 5 DDG"; das PDF
-        # widersprach ihm auf derselben Seite.
-        ["DDG \u00a7 5 \u2013 Impressumspflicht", "seit 14.05.2024 (zuvor TMG \u00a7 5)",
-         "Alle komm. Websites", "Abmahnung bis 50.000 \u20ac"],
-        ["DSGVO \u2013 Datenschutz", "25.05.2018", "Websites mit EU-Besuchern", "Bu\u00dfgeld bis 20 Mio \u20ac"],
-        ["TDDDG \u00a725 \u2013 Cookie", "2021/2023", "Websites mit Tracking", "Bu\u00dfgeld, Abmahnungen"],
-        ["BFSG \u2013 Barrierefreiheit", "28.06.2025", "Private Anbieter", "Marktaufsicht, Bu\u00dfgeld"],
-        ["WCAG 2.1 Level AA", "laufend", "Technische Umsetzung", "Grundlage BFSG"],
-        ["Google Core Web Vitals", "Mai 2021", "Alle Websites", "Sichtbarkeitsverlust"],
-    ]
     legal_table = Table(
-        [legal_header] + legal_rows,
-        colWidths=[45*mm, 25*mm, 45*mm, 45*mm],
+        rechtstabelle_zellen(),
+        colWidths=LEGAL_COL_WIDTHS,
     )
-    legal_table.setStyle(_category_table_style(len(legal_rows)))
+    legal_table.setStyle(_category_table_style(len(LEGAL_ROWS)))
     story.append(legal_table)
     story.append(Spacer(1, 8*mm))
 
@@ -855,7 +1061,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
     proto_data = [
         ["Website-URL", url],
         ["Auftraggeber / Unternehmen", company],
-        ["Branche / Gewerk", _safe(trade, "k.A.")],
+        ["Branche", branche_fuer_protokoll(audit_data)],
         ["Stadt", _safe(city, "k.A.")],
         ["Auditdatum", date_str],
         ["Auditor/in", "KOMPAGNON Communications"],
@@ -912,7 +1118,7 @@ def generate_audit_report(audit_data: dict) -> bytes:
     # ── CHARTS: Radar + Donut ───────────────────────────────
     try:
         radar_axes = [
-            (_clean_text(k.get("label", "")).split(" &")[0],
+            (radar_beschriftung(_clean_text(k.get("label", ""))),
              round((k.get("score", 0) / k["max"]) * 10, 1) if k.get("max") else 0)
             for k in categories
         ]
@@ -1029,54 +1235,39 @@ def generate_audit_report(audit_data: dict) -> bytes:
     ))
     story.append(Spacer(1, 4*mm))
 
-    llms_txt_ok      = bool(audit_data.get("llms_txt", False))
-    robots_ai_ok     = bool(audit_data.get("robots_ai_friendly", False))
-    structured_ok    = bool(audit_data.get("structured_data", False))
-    ai_mentions_n    = int(audit_data.get("ai_mentions", 0) or 0)
-    # Google AI Overview: derive from se_score as proxy if no dedicated field
-    ai_overview_ok   = (audit_data.get("se_score", 0) or 0) >= 7
+    # Farben wie in der Bewertungsmatrix, damit derselbe Status gleich
+    # aussieht. Wortstatus statt Haekchen: Helvetica kennt ✓ und ✗ nicht,
+    # die Spalte blieb dadurch in jedem bisherigen Bericht leer.
+    STATUS_FARBEN = {
+        STATUS_ERFUELLT: "#27ae60",
+        STATUS_OFFEN: "#e74c3c",
+        STATUS_UNBEKANNT: KC_TEXT_60.hexval(),
+    }
 
-    def _geo_check(ok):
+    def _geo_status_zelle(status):
         return Paragraph(
-            f'<font color="{"#27ae60" if ok else "#e74c3c"}"><b>{"✓" if ok else "✗"}</b></font>',
-            ParagraphStyle("GeoCheck", fontName=FONT_BOLD, fontSize=12, alignment=TA_CENTER),
+            f'<font color="{STATUS_FARBEN[status]}"><b>{status}</b></font>',
+            ParagraphStyle("GeoStatus", fontName=FONT_BOLD, fontSize=9,
+                           leading=11, alignment=TA_CENTER),
         )
 
     geo_header = ["Prüfpunkt", "Status", "Empfehlung"]
     geo_rows = [
         [
-            "llms.txt vorhanden",
-            _geo_check(llms_txt_ok),
-            "Datei unter /llms.txt anlegen" if not llms_txt_ok else "Vorhanden ✓",
-        ],
-        [
-            "robots.txt KI-freundlich",
-            _geo_check(robots_ai_ok),
-            "GPTBot nicht blockieren" if not robots_ai_ok else "KI-Crawler erlaubt ✓",
-        ],
-        [
-            "Strukturierte Daten",
-            _geo_check(structured_ok),
-            "Schema.org LocalBusiness ergänzen" if not structured_ok else "Schema.org vorhanden ✓",
-        ],
-        [
-            "KI-Erwähnungen",
-            Paragraph(
-                f'<font color="{"#27ae60" if ai_mentions_n > 0 else "#e74c3c"}"><b>{ai_mentions_n} gefunden</b></font>',
-                ParagraphStyle("GeoMention", fontName=FONT_BOLD, fontSize=10, alignment=TA_CENTER),
-            ),
-            "Content-Authority aufbauen" if ai_mentions_n == 0 else "Weiter ausbauen",
-        ],
-        [
-            "Google AI Overview",
-            _geo_check(ai_overview_ok),
-            "Featured Snippets optimieren" if not ai_overview_ok else "Gut aufgestellt ✓",
-        ],
+            punkt["pruefpunkt"],
+            _geo_status_zelle(punkt["status"]),
+            Paragraph(_clean_text(punkt["empfehlung"]), styles["KCZelle"])
+            if punkt["empfehlung"]
+            else Paragraph(
+                f'<font color="{KC_TEXT_60.hexval()}">'
+                f'{_clean_text(punkt["hinweis"])}</font>', styles["KCZelle"]),
+        ]
+        for punkt in geo_pruefpunkte(audit_data)
     ]
 
     geo_table = Table(
         [geo_header] + geo_rows,
-        colWidths=[55*mm, 25*mm, 80*mm],
+        colWidths=[55*mm, 30*mm, 75*mm],
     )
     geo_style = list(BASE_TABLE_STYLE)
     for i in range(1, len(geo_rows) + 1):
@@ -1115,31 +1306,24 @@ def generate_audit_report(audit_data: dict) -> bytes:
     ))
     story.append(Spacer(1, 6*mm))
 
-    # Derive quick wins from audit data
-    quick_wins = []
-    if not llms_txt_ok:
-        quick_wins.append("llms.txt anlegen (ca. 1 Tag Aufwand)")
-    if not structured_ok:
-        quick_wins.append("Schema.org LocalBusiness einbauen")
-    mobile_ps = audit_data.get("mobile_score", 0) or 0
-    if mobile_ps < 50:
+    # Die Massnahmen kommen aus dem Befund statt aus einer festen Liste:
+    # `roadmap_massnahmen` nennt nur, was gemessen wurde und offen ist. Vorher
+    # stand "robots.txt: GPTBot-Blockierung entfernen" in jedem Bericht, auch
+    # fuer eine robots.txt, die niemanden sperrt.
+    massnahmen = roadmap_massnahmen(audit_data)
+
+    quick_wins = list(massnahmen["sofort"])
+    mobile_ps = audit_data.get("mobile_score") or 0
+    if mobile_ps and mobile_ps < 50:
         quick_wins.append("Bilder komprimieren \u0026 Lazy Load aktivieren")
-    if not robots_ai_ok:
-        quick_wins.append("robots.txt: GPTBot-Blockierung entfernen")
     if not quick_wins:
         quick_wins.append("Audit-Score weiter optimieren \u0026 Inhalte aktualisieren")
 
-    midterm = ["Regelmä\u00dfige Blog-Inhalte für SEO-Autorität aufbauen"]
+    midterm = list(massnahmen["mittelfristig"])
     if level == "Nicht konform":
-        midterm.append("SSL, Datenschutzerklärung und Impressum prüfen \u0026 korrigieren")
-    if not structured_ok:
-        midterm.append("Weitere Schema.org-Typen (FAQPage, Review) ergänzen")
+        midterm.append("SSL, Datenschutzerkl\u00e4rung und Impressum pr\u00fcfen \u0026 korrigieren")
 
-    longterm = [
-        "Backlink-Aufbau über lokale Verzeichnisse und Branchenportale",
-        "Google Business Profil optimieren und regelmäßig pflegen",
-        "KI-Sichtbarkeit: Erwähnungen in Fachartikeln \u0026 Podcasts aufbauen",
-    ]
+    longterm = list(massnahmen["langfristig"])
 
     def _roadmap_box(title, items, bg_color, border_color, phase_label):
         """Build a single phase box as a Table."""

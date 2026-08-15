@@ -60,6 +60,22 @@ def firmenname_fuer_audit(angegeben: str, gescrapt: str, url: str) -> str:
     return ohne_schema.split("/")[0].removeprefix("www.")
 
 
+# Postleitzahl, dann der Ortsname. Nach einem Bindestrich darf der zweite Teil
+# groß weitergehen — sonst endet „Boppard-Buchholz" als „Boppard-", und genau
+# das stand am 14.08.2026 im Auditprotokoll eines echten Berichts.
+STADT_MUSTER = re.compile(
+    r'\b\d{5}\s+([A-ZÄÖÜ][a-zäöüß]+'
+    r'(?:-[A-ZÄÖÜa-zäöüß][a-zäöüß]+)*'
+    r'(?:\s[A-ZÄÖÜ][a-zäöüß]+)?)'
+)
+
+
+def stadt_aus_text(text: str) -> str:
+    """Der Ortsname hinter der ersten Postleitzahl — leer, wenn keiner dasteht."""
+    match = STADT_MUSTER.search(text or "")
+    return match.group(1).strip().rstrip("-") if match else ""
+
+
 async def scrape_website(url: str) -> dict:
     """
     Scrapt eine Website und extrahiert automatisch:
@@ -129,7 +145,12 @@ async def scrape_website(url: str) -> dict:
             result["meta_description"] = meta_desc.get("content", "")[:300]
 
         # 3. Telefonnummer
-        text = soup.get_text()
+        # Mit Trenner, sonst klebt der Text benachbarter Elemente aneinander:
+        # aus „Straße 12" und „22047 Hamburg" wird „Straße 1222047 Hamburg",
+        # und `\b\d{5}` findet darin keine Postleitzahl mehr — der Ort fehlte
+        # deshalb bei jeder Analyse über das Widget, wo ihn niemand eingibt.
+        # Dieselbe Ursache lieferte „69705880info@firma.de" als E-Mail.
+        text = soup.get_text(separator=" ")
         phone_patterns = [
             r'(?:Tel|Telefon|Phone|Fon|Ruf)[\s.:]*(\+?[\d\s\-\/\(\)]{8,20})',
             r'(\+49[\s\-\d]{8,20})',
@@ -155,14 +176,7 @@ async def scrape_website(url: str) -> dict:
             result["email"] = preferred[0] if preferred else emails[0]
 
         # 5. Stadt aus Adresse (PLZ + Ortsname)
-        city_patterns = [
-            r'\b(\d{5})\s+([A-ZÄÖÜ][a-zäöüß\-]+(?:\s[A-ZÄÖÜ][a-zäöüß]+)?)',
-        ]
-        for pattern in city_patterns:
-            match = re.search(pattern, text)
-            if match:
-                result["city"] = match.group(2).strip()
-                break
+        result["city"] = stadt_aus_text(text)
 
         # 6. Gewerk / Branche erkennen
         trade_keywords = {

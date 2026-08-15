@@ -21,9 +21,9 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from database import AuditResult, Lead, User, get_db, SessionLocal
-from email_service import send_audit_done_email
 from routers.auth_router import optional_auth
 from services.audit_criteria import CATALOGUE, BLOCKER_LABELS, SOURCE_LABELS, Source
+from services.ratenbegrenzung import audit_grenzen
 from services.url_guard import check_url
 
 logger = logging.getLogger(__name__)
@@ -210,6 +210,13 @@ def _run_audit_background(audit_id: int):
         audit2.mobile_score      = summary["mobile_score"]
         audit2.performance_score = summary["performance_score"]
 
+        # Die GEO-Spalten gab es seit jeher, befüllt hat sie niemand. Das PDF
+        # las sie leer, wertete das als „nicht erfüllt" und verlangte etwa,
+        # eine GPTBot-Sperre zu entfernen, die es gar nicht gab.
+        audit2.llms_txt           = summary["llms_txt"]
+        audit2.robots_ai_friendly = summary["robots_ai_friendly"]
+        audit2.structured_data    = summary["structured_data"]
+
         audit2.ai_summary      = ai.get("ai_summary", "")
         audit2.top_issues      = json.dumps(ai.get("top_issues", []), ensure_ascii=False)
         audit2.recommendations = json.dumps(ai.get("recommendations", []), ensure_ascii=False)
@@ -354,7 +361,14 @@ def _notify_customer(db, lead_id: Optional[int], audit_id: int) -> None:
         to_email = getattr(project, "customer_email", None) or ""
         if getattr(project, "email_notifications_enabled", True) and to_email:
             company = getattr(project, "company_name", "") or f"Lead #{lead_id}"
-            send_audit_done_email(to=to_email, company=company, report_url=None)
+            # Ohne Berichts-Token gibt es keine Adresse, die der Kunde ohne
+            # Anmeldung öffnen könnte. Die Vorlage sagt dann, dass wir uns
+            # melden, statt einen Bericht anzukündigen und keinen Weg zu nennen.
+            from services.email import send_email
+            from services.mail_vorlagen import audit_fertig_mail
+
+            betreff, html_body = audit_fertig_mail(company)
+            send_email(to_email=to_email, subject=betreff, html_body=html_body)
     except Exception as e:  # noqa: BLE001
         logger.warning(f"Audit-E-Mail fehlgeschlagen für Audit {audit_id}: {e}")
 
@@ -399,6 +413,7 @@ async def start_audit(
     req: AuditRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    _grenzen=Depends(audit_grenzen),
 ):
     """Create audit record, auto-scrape website, and run checks in background."""
     url = _normalise_url(req.website_url)
@@ -427,7 +442,13 @@ async def start_audit(
     company_name = firmenname_fuer_audit(
         req.company_name, scraped.get("company_name", ""), url)
     city = req.city or scraped.get("city", "")
-    trade = req.trade or scraped.get("trade", "Sonstiges")
+    # Kein Rückfall auf `scraped["trade"]`: Der Scraper rät das Gewerk über
+    # Stichworte — „holz" im Text genügt für „Schreiner". Als Arbeitshypothese
+    # in einer Leadliste taugt das, im Audit nicht: Der Wert ging als „Gewerk"
+    # in den KI-Prompt und stand als Befund im PDF-Protokoll. Die Branche
+    # erkennt seit dem Branchenmodell 2026.2 das Modell selbst
+    # (`erkannte_branche`), und was niemand eingetragen hat, bleibt leer.
+    trade = req.trade or ""
 
     # Neue DB-Session nur zum Speichern
     db2 = SessionLocal()

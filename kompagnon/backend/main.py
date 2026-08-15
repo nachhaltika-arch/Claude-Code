@@ -566,6 +566,22 @@ def _run_migrations():
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS robots_ai_friendly BOOLEAN DEFAULT false",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS structured_data BOOLEAN DEFAULT false",
         "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS ai_mentions INTEGER DEFAULT 0",
+        # Eigenprüfung: welche selbst gebaute Seite dieses Audit gemessen hat
+        "ALTER TABLE audit_results ADD COLUMN IF NOT EXISTS sitemap_page_id INTEGER",
+        "CREATE INDEX IF NOT EXISTS idx_audit_results_sitemap_page "
+        "ON audit_results(sitemap_page_id)",
+        # Diese vier Spalten hat bis zum 15.08.2026 niemand befuellt — der
+        # Vorgabewert `false` sah im Bericht aus wie ein Messergebnis, und das
+        # PDF verlangte daraufhin etwa, eine GPTBot-Sperre zu entfernen, die es
+        # nicht gab. Ohne Vorgabewert bedeutet NULL jetzt „nicht erhoben".
+        "ALTER TABLE audit_results ALTER COLUMN llms_txt DROP DEFAULT",
+        "ALTER TABLE audit_results ALTER COLUMN robots_ai_friendly DROP DEFAULT",
+        "ALTER TABLE audit_results ALTER COLUMN structured_data DROP DEFAULT",
+        # Bestehende Zeilen tragen den Vorgabewert, nicht eine Messung. Die
+        # feste Datumsgrenze macht die Anweisung wiederholbar: Laeufe ab dem
+        # Umstellungstag bleiben unberuehrt, auch beim naechsten Start.
+        "UPDATE audit_results SET llms_txt = NULL, robots_ai_friendly = NULL, "
+        "structured_data = NULL WHERE created_at < '2026-08-15'",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS email_notifications_enabled BOOLEAN DEFAULT true",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS customer_email VARCHAR",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS favicon_url VARCHAR(500) DEFAULT ''",
@@ -2006,10 +2022,16 @@ async def global_exception_handler(request, exc):
 # Info endpoint for deployment
 @app.get("/info")
 def get_info():
-    """Get system information."""
+    """Auskunft darüber, was eingerichtet ist — nie darüber, womit.
+
+    Bis 2026-08-15 gab dieser Endpunkt `DATABASE_URL` unverändert aus, also
+    Benutzer, Passwort und Host der Postgres-Instanz, ohne Anmeldung, auf dem
+    Produktivserver ebenso wie auf Staging. Alle übrigen Felder waren schon
+    immer boolesch; die Datenbank war die Ausnahme.
+    """
     return {
         "environment": os.getenv("ENVIRONMENT", "development"),
-        "database": os.getenv("DATABASE_URL", "sqlite:///./kompagnon.db"),
+        "database_configured": bool(os.getenv("DATABASE_URL")),
         "api_key_configured": bool(os.getenv("ANTHROPIC_API_KEY")),
         "smtp_configured": bool(os.getenv("SMTP_HOST")),
         "debug": os.getenv("DEBUG", "false").lower() == "true",

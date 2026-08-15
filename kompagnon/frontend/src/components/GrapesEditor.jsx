@@ -9,7 +9,15 @@ import { parseTemplateFile, applyTemplateToEditor } from '../utils/studioTemplat
 // processClipboardImage now handled by useGrapesAssetManager hook
 import { useGrapesAssetManager } from '../hooks/useGrapesAssetManager';
 import API_BASE_URL from '../config';
+import {
+  fehlermeldung, istEndzustand, pruefungAbgeschlossen, zusammenfassung,
+} from '../utils/qualitaetspruefung';
 import toast from 'react-hot-toast';
+
+// Ein voller Audit braucht bis zu vier Minuten (Mehrseiten-Crawl, PageSpeed,
+// KI). Alle fuenf Sekunden nachfragen reicht und haelt den Server in Ruhe.
+const PRUEFUNG_ABSTAND_MS = 5000;
+const PRUEFUNG_MAX_ABFRAGEN = 60;
 
 export default function GrapesEditor({
   pageId, pageName, initialHtml, onClose, onSave, projectId, netlitySiteId, leadId,
@@ -23,6 +31,7 @@ export default function GrapesEditor({
   const fileInputRef = useRef(null);
   const plugins = useMemo(() => buildStudioPlugins(), []);
   const [netlifyDeploying, setNetlifyDeploying] = useState(false);
+  const [pruefung, setPruefung] = useState({ laeuft: false, ergebnis: null });
   const [importing, setImporting] = useState(false);
 
   // Scroll sperren solange Editor offen ist
@@ -151,6 +160,60 @@ export default function GrapesEditor({
     await handleSave({ project, editor });
   };
 
+  // ── Eigenprüfung: unser Katalog gegen unsere eigene Seite ──
+  //
+  // Geprüft wird der Stand in der Datenbank, nicht der im Browser. Deshalb
+  // wird erst gespeichert — sonst bezöge der Nutzer die Bewertung auf
+  // Änderungen, die den Server nie erreicht haben.
+  const handleQualitaetspruefung = async () => {
+    const editor = editorRef.current;
+    if (!editor) return toast.error('Editor noch nicht bereit');
+
+    setPruefung({ laeuft: true, ergebnis: null });
+    try {
+      await handleSave({ project: editor.getProjectData?.() || {}, editor });
+
+      const res = await fetch(
+        `${API_BASE_URL}${endpointBase}/${pageId}/qualitaetspruefung`,
+        { method: 'POST', headers },
+      );
+      if (!res.ok) {
+        let detail = '';
+        try { detail = (await res.json()).detail || ''; } catch { /* ohne Text */ }
+        toast.error(fehlermeldung(res.status, detail));
+        setPruefung({ laeuft: false, ergebnis: null });
+        return;
+      }
+
+      const { audit_id: auditId } = await res.json();
+      const ergebnis = await warteAufErgebnis(auditId);
+      setPruefung({ laeuft: false, ergebnis });
+
+      if (pruefungAbgeschlossen(ergebnis)) {
+        const s = zusammenfassung(ergebnis);
+        toast.success(`Eigenprüfung: ${s.punkte}/100 — ${s.stufe}`);
+      } else {
+        toast.error('Die Prüfung ist nicht durchgelaufen.');
+      }
+    } catch {
+      toast.error(fehlermeldung(0, ''));
+      setPruefung({ laeuft: false, ergebnis: null });
+    }
+  };
+
+  // Der Audit läuft im Hintergrund; hier wird gewartet, bis er ein Ende hat.
+  const warteAufErgebnis = async (auditId) => {
+    for (let versuch = 0; versuch < PRUEFUNG_MAX_ABFRAGEN; versuch += 1) {
+      await new Promise(r => setTimeout(r, PRUEFUNG_ABSTAND_MS));
+      const res = await fetch(`${API_BASE_URL}/api/audit/${auditId}`,
+                              { headers: authHeaders });
+      if (!res.ok) continue;
+      const daten = (await res.json()).data || {};
+      if (istEndzustand(daten.status)) return daten;
+    }
+    return { status: 'failed' };
+  };
+
   const handleImportFile = async (file) => {
     if (!file) return;
     setImporting(true);
@@ -225,6 +288,38 @@ export default function GrapesEditor({
             color: '#fff', padding: '6px 14px', borderRadius: 6,
             cursor: 'pointer', fontSize: 13, fontWeight: 600,
           }}>💾 Speichern</button>
+          <button
+            onClick={handleQualitaetspruefung}
+            disabled={pruefung.laeuft}
+            title="Speichert und misst diese Seite mit dem Katalog, den auch Kunden bekommen"
+            style={{
+              background: 'none', border: '1px solid rgba(255,255,255,0.3)',
+              color: '#fff', padding: '6px 14px', borderRadius: 6,
+              cursor: pruefung.laeuft ? 'not-allowed' : 'pointer',
+              fontSize: 13, opacity: pruefung.laeuft ? 0.6 : 1,
+            }}
+          >
+            {pruefung.laeuft ? '⏳ Wird geprüft…' : '🔍 Qualität prüfen'}
+          </button>
+          {pruefungAbgeschlossen(pruefung.ergebnis) && (() => {
+            const s = zusammenfassung(pruefung.ergebnis);
+            const farbe = { gut: '#16a34a', mittel: '#ca8a04', schwach: '#dc2626' }[s.ampel];
+            return (
+              <a
+                href={`${API_BASE_URL}/api/audit/${s.auditId}/pdf`}
+                target="_blank" rel="noopener noreferrer"
+                title={`${s.stufe} · ${s.abdeckung}% der Kriterien prüfbar — Bericht öffnen`}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: farbe, color: '#fff', padding: '6px 12px',
+                  borderRadius: 6, fontSize: 13, fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                {s.punkte}/100 <span style={{ fontWeight: 400, opacity: 0.9 }}>Bericht →</span>
+              </a>
+            );
+          })()}
           {projectId && netlitySiteId && (
             <button
               onClick={handleNetlifyDeploy}

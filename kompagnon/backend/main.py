@@ -21,6 +21,11 @@ from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
+# Was der Start geschafft hat. `/health` gibt es aus, damit ein unvollstaendiger
+# Start von aussen sichtbar ist — produktiv fielen sieben von acht Phasen aus,
+# und ohne Blick ins Log war das nirgends zu sehen.
+_STARTZUSTAND = {"vollstaendig": None, "ausgefallen": [], "fehler": ""}
+
 
 # Custom JSONResponse that does NOT escape Unicode (ä, ö, ü, ß, €)
 class UnicodeJSONResponse(JSONResponse):
@@ -1626,68 +1631,61 @@ async def lifespan(app: FastAPI):
             finally:
                 _db.close()
 
-        with ThreadPoolExecutor(max_workers=1) as pool:
+        async def _warte_auf_db() -> bool:
+            """Bis zu drei Versuche, die Datenbank zu erreichen."""
             loop = asyncio.get_event_loop()
-
-            async def _run(fn, timeout):
-                def _wrap():
+            with ThreadPoolExecutor(max_workers=1) as ping_pool:
+                for versuch in range(1, 4):
+                    schritt = time.time()
+                    logger.info(f"  DB-Verbindung Versuch {versuch}/3...")
                     try:
-                        fn()
-                        return None
-                    except Exception as ex:
-                        return ex
-                return await asyncio.wait_for(loop.run_in_executor(pool, _wrap), timeout=timeout)
+                        await asyncio.wait_for(
+                            loop.run_in_executor(ping_pool, _ping_db), timeout=45.0)
+                        logger.info(f"  \u2713 DB verbunden ({time.time() - schritt:.1f}s)")
+                        return True
+                    except asyncio.TimeoutError:
+                        logger.warning(f"  \u26a0 DB-Versuch {versuch} Timeout nach 45s")
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning(f"  \u26a0 DB-Versuch {versuch}: {e}")
+                    if versuch < 3:
+                        await asyncio.sleep(2)
+            return False
 
-            # PHASE 1: DB connection with retry
-            db_ready = False
-            for attempt in range(1, 4):
-                step_start = time.time()
-                logger.info(f"  DB-Verbindung Versuch {attempt}/3...")
-                try:
-                    result = await _run(_ping_db, 45.0)
-                    if result is None:
-                        db_ready = True
-                        logger.info(f"  ✓ DB verbunden ({time.time() - step_start:.1f}s)")
-                        break
-                    logger.warning(f"  ⚠ DB-Versuch {attempt}: {result}")
-                except asyncio.TimeoutError:
-                    logger.warning(f"  ⚠ DB-Versuch {attempt} Timeout nach 45s")
-                except Exception as e:
-                    logger.warning(f"  ⚠ DB-Versuch {attempt} Fehler: {e}")
-                if attempt < 3:
-                    await asyncio.sleep(2)
+        # Die Phasen laufen nacheinander mit einem gemeinsamen Zeitbudget.
+        # Vorher hatte jede ihr eigenes Timeout bei nur einem Worker im Pool —
+        # die lange Migration hielt ihn, und die folgenden sieben Phasen liefen
+        # in ihre Timeouts, ohne je gestartet worden zu sein. Produktiv fehlten
+        # dadurch Scheduler und Demokonten-Abschaltung, und im Log stand nur
+        # „übersprungen". Siehe services/startphasen.py.
+        from services.startphasen import Phase, fuehre_phasen_aus
 
-            if not db_ready:
-                logger.error(f"❌ DB-Verbindung fehlgeschlagen — Server läuft ohne DB (Scheduler übersprungen)")
-                return
+        db_bereit = await _warte_auf_db()
+        if not db_bereit:
+            logger.error("❌ DB-Verbindung fehlgeschlagen — Server läuft ohne DB")
+            _STARTZUSTAND["fehler"] = "Keine Datenbankverbindung"
+            return
 
-            # PHASE 2-5: Each step isolated
-            phases = [
-                ("Migrations",    _run_migrations,       60.0),
-                ("DB init",       init_db,               30.0),
-                ("Default admin", _create_default_admin, 10.0),
-                ("Disable demo accounts", _disable_demo_accounts_in_production, 10.0),
-                ("Academy seed",  _academy_seed,         10.0),
-                ("Deals migration", _deals_migration,    15.0),
-                ("Component library seed", _component_library_seed, 15.0),
-                ("Scheduler",     start_scheduler,       15.0),
-            ]
-            for name, fn, timeout in phases:
-                step_start = time.time()
-                try:
-                    result = await _run(fn, timeout)
-                    dt = time.time() - step_start
-                    if result is None:
-                        logger.info(f"  ✓ {name} ({dt:.1f}s)")
-                    else:
-                        logger.warning(f"  ⚠ {name} Fehler: {result}")
-                except asyncio.TimeoutError:
-                    logger.warning(f"  ⚠ {name} Timeout nach {timeout}s — übersprungen")
-                except Exception as e:
-                    logger.warning(f"  ⚠ {name} unerwarteter Fehler: {e}")
+        phasen = [
+            Phase("Migrations", _run_migrations),
+            Phase("DB init", init_db),
+            Phase("Default admin", _create_default_admin),
+            Phase("Disable demo accounts", _disable_demo_accounts_in_production),
+            Phase("Academy seed", _academy_seed),
+            Phase("Deals migration", _deals_migration),
+            Phase("Component library seed", _component_library_seed),
+            Phase("Scheduler", start_scheduler),
+        ]
+        ergebnis = await fuehre_phasen_aus(phasen)
 
-        total = time.time() - start
-        logger.info(f"✅ Hintergrund-Init abgeschlossen in {total:.1f}s")
+        _STARTZUSTAND["vollstaendig"] = ergebnis.vollstaendig
+        _STARTZUSTAND["ausgefallen"] = ergebnis.ausgefallen + ergebnis.gescheitert
+
+        if ergebnis.vollstaendig:
+            logger.info(f"✅ {ergebnis.bericht()}")
+        else:
+            # Fehler, nicht Warnung: Ein unvollständiger Start ist genau das,
+            # was hier monatelang unbemerkt blieb.
+            logger.error(f"❌ {ergebnis.bericht()}")
 
     try:
         task = asyncio.create_task(_background_init())
@@ -1938,6 +1936,10 @@ def health_check():
             "service": "KOMPAGNON Backend",
             "database": db_status,
             "scheduler_running": scheduler.scheduler.running,
+            # Ob der Start durchlief. Ohne diese Auskunft blieb produktiv
+            # monatelang unbemerkt, dass sieben von acht Startphasen ausfielen.
+            "startup_complete": _STARTZUSTAND["vollstaendig"],
+            "startup_missing": _STARTZUSTAND["ausgefallen"],
             "timestamp": os.popen("date").read().strip(),
         }
     except Exception as e:

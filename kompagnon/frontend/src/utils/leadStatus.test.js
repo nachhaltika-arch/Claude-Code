@@ -16,7 +16,7 @@ import {
 // ── Die Werte, die produktiv in der Datenbank stehen ──────────────────
 // Am 2026-08-16 in der Produktiv-DB gezählt.
 const ECHTE_STATUS = ['new', 'contacted', 'qualified', 'proposal_sent', 'won', 'lost'];
-const ECHTE_QUELLEN = ['domain_import', 'landing_audit', 'stripe_checkout'];
+const ECHTE_QUELLEN = ['domain_import', 'landing_audit', 'stripe_checkout', 'embed_audit'];
 
 describe('Status', () => {
   test('jeder produktiv vorkommende Status hat ein deutsches Wort', () => {
@@ -77,6 +77,12 @@ describe('Herkunft', () => {
     // Freitext ist hier normal — er wird beim Import vergeben.
     expect(leadSourceLabel('postkarte-koblenz-mai-2025'))
       .toBe('Postkarte koblenz mai 2025');
+  });
+
+  test('embed_audit heisst Analyse-Widget, nicht „Embed audit"', () => {
+    // Der Rückfall hatte den Wert nur lesbar gemacht — halb englisch. Er hat
+    // sich damit verraten, wie gebaut; nachgetragen gehörte er trotzdem.
+    expect(leadSourceLabel('embed_audit')).toBe('Analyse-Widget');
   });
 
   test('ohne Quelle wird nichts behauptet', () => {

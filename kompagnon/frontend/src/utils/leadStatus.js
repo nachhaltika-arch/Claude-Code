@@ -34,6 +34,11 @@ export const LEAD_SOURCE = {
   domain_import:   'Domain-Import',
   landing_audit:   'Landingpage',
   audit:           'Audit',
+  // Schreibt `routers/widget.py:182` — der Weg über das eingebettete Widget.
+  // Fehlte hier zunächst und erschien in der Liste als „Embed audit": Der
+  // Rückfall machte den Wert lesbar, aber halb englisch. Genau so soll er sich
+  // verraten — und genau deshalb gehört er dann nachgetragen.
+  embed_audit:     'Analyse-Widget',
   widget:          'Analyse-Widget',
   manual:          'Von Hand',
   hwk:             'Handwerkskammer',

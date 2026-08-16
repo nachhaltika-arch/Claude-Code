@@ -5,6 +5,11 @@
 > erledigt ist. Reihenfolge nach Wirkung, nicht nach Aufwand.
 >
 > Aufwand: **S** ≤ 1 Std · **M** ≤ ½ Tag · **L** ≥ 1 Tag
+>
+> **Stand 2026-08-16, Abend:** Paket 1 ist abgeschlossen (6 Punkte, davon 2
+> Nachträge aus der gemeinsamen Sichtprüfung). Alles liegt auf `staging` und
+> ist dort geprüft — **produktiv ist nichts davon**, das geht mit dem nächsten
+> Sammel-PR. Weiter geht es mit **Paket 2**.
 
 ---
 
@@ -20,7 +25,7 @@ belegt. Dazu ein neuer Fund beim Nachsehen: UX-29.
 
 ---
 
-## Paket 1 — Ein Wort pro Sache
+## Paket 1 — Ein Wort pro Sache · ✅ ABGESCHLOSSEN 2026-08-16
 
 *Der billigste Eingriff mit der größten Wirkung. Beendet den dauerhaften
 Übersetzungsaufwand im Kopf.*
@@ -64,18 +69,35 @@ belegt. Dazu ein neuer Fund beim Nachsehen: UX-29.
       „Projektpipeline" unter Projekte. Ein Wort, zwei Orte, zwei Bedeutungen.
       → `AppLayout.jsx:366`
 
-- [ ] **UX-01b** · **M** · Die Adresse `/app/leads` liefert die **Projekt**pipeline,
-      die Komponente heißt `LeadPipeline`. Das Menü stimmt; Adresse und Codename
-      nicht. Betrifft Lesezeichen, geteilte Links und jeden, der den Code liest.
-      → `App.jsx:192`, Komponente umbenennen; alte Adresse als Weiterleitung
-      stehen lassen
-      **Bewusst zurückgestellt (2026-08-16):** `/app/leads` ist an **zehn**
-      Stellen in `AppLayout.jsx` verdrahtet, teils mit Sonderlogik für die
-      Menü-Hervorhebung (Zeilen 251, 693, 977). Das braucht eine Sichtprüfung
-      am laufenden Bildschirm, und die war nicht möglich.
-      *Prüfung:* `/app/projekte/pipeline` (o. ä.) zeigt die Projektpipeline,
-      `/app/leads` leitet dorthin um — **und die Menü-Hervorhebung stimmt
-      weiterhin auf allen betroffenen Seiten.**
+- [x] **UX-01b** · **M** · ~~Adresse und Codename sagen „Leads", der Inhalt sind
+      Projekte~~ **erledigt 2026-08-16, zu zweit am Bildschirm geprüft.**
+      **Neu:** `/app/betriebe` (Liste), `/app/betriebe/:id` (Einzelansicht),
+      `/app/projektpipeline` (Pipeline). Alle drei alten Adressen leiten weiter;
+      die Detail-Weiterleitung nimmt die **Kennung mit** — sonst landet jeder
+      geteilte Link auf der Liste. Komponente `LeadPipeline` → `Projektpipeline`.
+      **Drei Sonderfälle ersatzlos entfallen**, weil sie nur die irreführende
+      Adresse ausglichen: der `isActive`-Sonderfall, die Mobilnav-Zeile (die
+      auf die Projektpipeline zeigte *und* für die Betriebsliste leuchtete) und
+      der Knopf **„+ Neuer Lead"** auf der Projektpipeline.
+      **Vorher am laufenden System geprüft**, dass alle drei sich genau so
+      verhalten, wie der Code sagt — deshalb war das Entfernen belegt, nicht
+      gehofft.
+
+- [x] **Nachtrag** · ~~Seitenleiste blieb nach einer Weiterleitung ganz
+      zugeklappt~~ **erledigt 2026-08-16.** Beim gemeinsamen Nachsehen
+      aufgefallen: Über `/app/leads` ankommend zeigte die Navigation **nicht,
+      wo man ist** — direkt aufgerufen schon. `getDefaultOpen` lief nur einmal
+      beim Aufbau und sah die Adresse *vor* der Weiterleitung.
+      **Kein neuer Fehler:** `/app/sales → /app/deals` hat das seit jeher; die
+      neue Weiterleitung hat es nur sichtbar gemacht. Die offene Gruppe folgt
+      jetzt der Adresse und **öffnet nur, schließt nie**.
+      *Der Punkt daran:* Tests grün, Build sauber, Code korrekt — und die
+      Navigation trotzdem blind. Das hätte kein Test gefunden.
+
+- [x] **Nachtrag** · ~~Quelle `embed_audit` erschien als „Embed audit"~~
+      **erledigt 2026-08-16.** Der Rückfall in `leadStatus.js` machte den Wert
+      lesbar, aber halb englisch — genau wie gebaut: Er verrät sich, statt zu
+      tarnen. Heißt jetzt **Analyse-Widget**. 109 Frontend-Tests grün.
 
 ---
 

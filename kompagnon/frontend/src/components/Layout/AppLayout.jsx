@@ -247,6 +247,28 @@ function SidebarNav({ badges }) {
   const [openSections, setOpenSections] = useState(getDefaultOpen);
   const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
 
+  /* Die offene Gruppe folgt der Adresse — auch wenn sie sich nach dem Aufbau
+     noch aendert.
+     `getDefaultOpen` lief nur einmal, beim ersten Rendern. Wer ueber eine
+     Weiterleitung ankam, brachte die ALTE Adresse mit, und die passte in keine
+     Gruppe: Die Seitenleiste blieb komplett zugeklappt, ohne Hinweis darauf,
+     wo man ist. Sichtbar geworden ist das am 16.08. mit /app/leads →
+     /app/projektpipeline; /app/sales → /app/deals hatte es schon vorher.
+     Hier wird nur GEOEFFNET, nie geschlossen — wer eine andere Gruppe von Hand
+     aufklappt, behaelt sie. */
+  useEffect(() => {
+    setOpenSections(prev => {
+      const soll = getDefaultOpen();
+      const naechste = { ...prev };
+      let geaendert = false;
+      Object.entries(soll).forEach(([key, offen]) => {
+        if (offen && !prev[key]) { naechste[key] = true; geaendert = true; }
+      });
+      return geaendert ? naechste : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
   const isActive = (path) => {
     if (path === '/app/projects') return location.pathname === '/app/projects' || location.pathname.startsWith('/app/projects/');
     return location.pathname === path || location.pathname.startsWith(path + '/');

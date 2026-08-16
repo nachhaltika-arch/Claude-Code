@@ -4,12 +4,12 @@
 Gehostet wird es auf dem KOMPAGNON-Frontend, eingebunden wird es per `<iframe>`.
 
 **Live-URL (nach Deploy):**
-`https://kompagnon-frontend.onrender.com/embed/audit-widget.html`
+`https://kas.kompagnon.group/embed/audit-widget.html`
 
 ## Warum iframe statt Code-Copy-Paste?
 
 Das Backend erlaubt API-Calls per CORS nur von erlaubten Origins
-(`kompagnon-frontend.onrender.com`, `*.netlify.app`, localhost).
+(`kas.kompagnon.group`, `*.netlify.app`, localhost).
 Im iframe stammen die Fetches vom **Widget-Origin** (= erlaubt) — nicht von der
 Kundendomain. So funktioniert das Widget auf **jeder** fremden Seite, ohne dass
 für jede Kundendomain etwas freigeschaltet werden muss.
@@ -18,7 +18,7 @@ für jede Kundendomain etwas freigeschaltet werden muss.
 
 ```html
 <iframe
-  src="https://kompagnon-frontend.onrender.com/embed/audit-widget.html"
+  src="https://kas.kompagnon.group/embed/audit-widget.html"
   style="width:100%;max-width:680px;height:760px;border:0;display:block;margin:0 auto;"
   title="KOMPAGNON Website-Analyse"
   loading="lazy"></iframe>
@@ -31,7 +31,7 @@ Leerraum entsteht (Eingabe → Laden → Ergebnis sind unterschiedlich hoch).
 
 ```html
 <iframe id="kpg-audit"
-  src="https://kompagnon-frontend.onrender.com/embed/audit-widget.html"
+  src="https://kas.kompagnon.group/embed/audit-widget.html"
   style="width:100%;max-width:680px;height:760px;border:0;display:block;margin:0 auto;"
   title="KOMPAGNON Website-Analyse"
   loading="lazy"></iframe>

@@ -324,14 +324,25 @@
      und das Formular endete in einem Fehler. */
   var IST_STAGING = location.hostname.indexOf('staging') !== -1;
 
+  /* Diese Datei liegt in public/ und geht NICHT durch den Build — hier gibt
+     es kein process.env, REACT_APP_API_URL erreicht sie nicht. Die Adressen
+     müssen deshalb hier stehen, und genau deshalb sind sie beim Umzug am
+     16.08. fast übersehen worden.
+
+     Das Widget ist zugleich die einzige Stelle, die auf FREMDEN Seiten
+     eingebettet ist: Ein Embed bei einem Kunden lädt diese Datei und ruft
+     die hier eingetragene Adresse. Stünde hier weiter die von Render
+     vergebene, bräche jedes Embed in dem Moment, in dem der alte Dienst
+     gelöscht wird — auf Seiten, die uns nicht gehören und die wir nicht
+     nachziehen können. */
   var API_BASE =
     document.body.getAttribute('data-api') ||
     new URLSearchParams(location.search).get('api') ||
     (IST_STAGING
       ? 'https://kompagnon-backend-staging.onrender.com'
-      : 'https://claude-code-znq2.onrender.com');
+      : 'https://api.kompagnon.group');
 
-  var CHECKOUT_STANDARD = 'https://kompagnon-frontend.onrender.com/checkout/kompagnon';
+  var CHECKOUT_STANDARD = 'https://kas.kompagnon.group/checkout/kompagnon';
   var CHECKOUT_URL =
     safeHref(document.body.getAttribute('data-checkout')) || CHECKOUT_STANDARD;
 

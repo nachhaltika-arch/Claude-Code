@@ -131,7 +131,7 @@ export default function Companies() {
       {/* ── Page header ────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Unternehmen</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Betriebe</h1>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0' }}>
             {loading ? 'Lädt…' : `${filtered.length} von ${rows.length} Einträgen`}
           </p>
@@ -183,7 +183,7 @@ export default function Companies() {
               whiteSpace: 'nowrap',
             }}
           >
-            + Neues Unternehmen
+            + Neuer Betrieb
           </button>
         </div>
       </div>
@@ -339,7 +339,7 @@ export default function Companies() {
   );
 }
 
-// ── Modal: Neues Unternehmen ──────────────────────────────────────────────────
+// ── Modal: Neuer Betrieb ──────────────────────────────────────────────────
 
 function NewCompanyModal({ token, onClose, onCreated }) {
   const [form, setForm] = useState({
@@ -443,7 +443,7 @@ function NewCompanyModal({ token, onClose, onCreated }) {
         }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
-              Neues Unternehmen anlegen
+              Neuen Betrieb anlegen
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
               Manueller Lead — kann später für Audit / Projekt genutzt werden
@@ -554,7 +554,7 @@ function NewCompanyModal({ token, onClose, onCreated }) {
               opacity: saving ? 0.6 : 1,
             }}
           >
-            {saving ? 'Anlegen…' : '✓ Unternehmen anlegen'}
+            {saving ? 'Anlegen…' : '✓ Betrieb anlegen'}
           </button>
         </div>
       </form>

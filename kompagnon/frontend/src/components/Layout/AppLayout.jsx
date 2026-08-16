@@ -112,7 +112,7 @@ const NAV_SECTIONS = [
     items: [
       { label: 'Deals',         path: '/app/deals',     icon: 'chart' },
       { label: 'Kampagnen',     path: '/app/campaigns', icon: 'chart', adminOnly: true },
-      { label: 'Unternehmen',   path: '/app/companies', icon: 'users', activePaths: ['/app/companies', '/app/leads/'] },
+      { label: 'Betriebe',      path: '/app/companies', icon: 'users', activePaths: ['/app/companies', '/app/leads/'] },
       { label: 'Domain Import', path: '/app/import',    icon: 'users' },
       { label: 'HWK Scraper',   path: '/app/scraper',   icon: 'docCheck', adminOnly: true },
       { label: 'Export',        path: '/app/export',    icon: 'docCheck' },
@@ -175,7 +175,7 @@ const PAGE_NAMES = {
   '/app/academy/admin': 'Kurse verwalten',
   '/app/settings': 'Einstellungen',
   '/app/projects': 'Kundenprojekte',
-  '/app/companies': 'Unternehmen',
+  '/app/companies': 'Betriebe',
   '/app/import': 'Domain Import',
   '/app/export': 'Export',
   '/app/tickets': 'Support Tickets',
@@ -205,7 +205,7 @@ function getMobileTabs(role, leadId) {
 }
 
 const MORE_ITEMS = [
-  { label: 'Unternehmen', path: '/app/companies', icon: '🏢' },
+  { label: 'Betriebe', path: '/app/companies', icon: '🏢' },
   { label: 'Newsletter', path: '/app/newsletter', icon: '📧' },
   { label: 'Tickets', path: '/app/tickets', icon: '🎫' },
   { label: 'Akademie', path: '/app/academy', icon: '🎓' },
@@ -357,14 +357,17 @@ function SidebarNav({ badges }) {
               },
               {
                 key: 'leads',
-                label: 'Leads',
+                // Hiess „Leads". „Lead" ist ein Zustand, kein Objekt — das
+                // Objekt heisst ueberall „Betrieb". Die Gruppe benennt jetzt,
+                // worum es hier geht, nicht in welchem Zustand etwas ist.
+                label: 'Vertrieb',
                 items: [
                   // Hiess bis 2026-08-16 „Pipeline". Zwei Gruende: Die Seite
                   // dahinter heisst „Deals", und „Pipeline" kam im Menue ein
                   // zweites Mal vor (Projekte → Projektpipeline). Ein Wort,
                   // zwei Orte, zwei Bedeutungen.
                   { label: 'Deals',                path: '/app/deals'      },
-                  { label: 'Unternehmen',          path: '/app/companies'  },
+                  { label: 'Betriebe',             path: '/app/companies'  },
                 ],
               },
               {
@@ -949,7 +952,7 @@ export default function AppLayout() {
     const leadMatch = path.match(/^\/app\/leads\/(\d+)/);
     if (leadMatch) {
       return [
-        { label: 'Unternehmen', path: '/app/companies' },
+        { label: 'Betriebe', path: '/app/companies' },
         { label: leadName || `Lead #${leadMatch[1]}` },
       ];
     }

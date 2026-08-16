@@ -25,15 +25,22 @@ belegt. Dazu ein neuer Fund beim Nachsehen: UX-29.
 *Der billigste Eingriff mit der größten Wirkung. Beendet den dauerhaften
 Übersetzungsaufwand im Kopf.*
 
-- [ ] **UX-04** · **M** · Ein Vokabular festlegen und durchziehen. Heute heißt
-      dasselbe Objekt *Lead* (Menügruppe), *Unternehmen* (Menüeintrag,
-      Listentitel), *Kunde* (`/app/customers`), *Kundenkartei* (Kopfzeile der
-      Einzelansicht).
-      **Vorschlag:** außen durchgängig **Betrieb** oder **Unternehmen**, der
-      Zustand („Lead", „Kunde") wird zum *Status*, nicht zum Objektnamen.
-      → `components/Layout/AppLayout.jsx:342 ff.`, `pages/Companies.jsx`,
-      `pages/Customers.jsx`, `pages/LeadProfile.jsx`
-      *Prüfung:* Ein Wort in Menü, Seitentitel und Brotkrume — überall dasselbe.
+- [x] **UX-04** · **M** · ~~Ein Vokabular festlegen und durchziehen~~
+      **erledigt 2026-08-16: „Betrieb".** Entschieden von David, gestützt auf
+      die kundenseitige Sprache — 2:1 im Mail- und Berichtscode, 5:0 im
+      Anforderungskatalog und in der Conversion-Spec. Innen und außen sprechen
+      jetzt dasselbe Wort.
+      **Geändert:** Menüeintrag *Unternehmen* → **Betriebe**, Brotkrume,
+      Seitentitel, Anlegen-Knopf und -Dialog, Kopfzeile der Einzelansicht
+      *Kundenkartei* → **Betrieb**, Abschnittsbeschriftungen und die
+      Spaltenüberschrift in „Kunden".
+      **Und die Menügruppe:** *Leads* → **Vertrieb**. „Lead" ist ein Zustand,
+      kein Objekt — die Gruppe benennt jetzt, worum es geht, nicht in welchem
+      Zustand etwas ist.
+      **Bewusst nicht geändert:** Der Seitentitel „Kunden" auf
+      `/app/customers`. Zwei Bildschirme namens „Betriebe" wären eine neue
+      Verwechslung; der Bildschirm verschwindet ohnehin mit UX-02.
+      Das Feldlabel „Firma" bleibt — es benennt ein Feld, nicht das Objekt.
 
 - [x] **UX-07** · **S** · ~~Statuswerte übersetzen~~ **erledigt 2026-08-16.** Statuswerte übersetzen statt roh anzeigen:
       `new`, `won`, `proposal_sent`, `domain_import`, `landing_audit`.

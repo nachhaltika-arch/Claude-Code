@@ -881,7 +881,7 @@ export default function LeadProfile() {
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
-              Kundenkartei
+              Betrieb
             </div>
 
             {editingName ? (
@@ -1621,7 +1621,7 @@ export default function LeadProfile() {
       {activeTab === 'contact' && (
         <Card padding="md">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>Kontakt & Unternehmen</h2>
+            <h2 style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>Kontakt & Betrieb</h2>
             {!editMode && (
               <Button variant="secondary" size="sm" onClick={() => setEditMode(true)}>✏️ Bearbeiten</Button>
             )}
@@ -1667,7 +1667,7 @@ export default function LeadProfile() {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
 
                 <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
-                  <div style={sectionLabel}>Unternehmen</div>
+                  <div style={sectionLabel}>Betrieb</div>
                 </div>
 
                 {[
@@ -1786,7 +1786,7 @@ export default function LeadProfile() {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? '1fr 1fr' : '1fr 1fr 1fr', gap: 24 }}>
               <div>
-                <div style={sectionLabel}>Unternehmen</div>
+                <div style={sectionLabel}>Betrieb</div>
                 {fieldRow('🏢', [lead.company_name, lead.legal_form].filter(Boolean).join(' '), 'Firma')}
                 {fieldRow('👔', [lead.ceo_first_name, lead.ceo_last_name].filter(Boolean).join(' '), 'Geschäftsführer')}
                 {fieldRow('🔧', lead.trade, 'Gewerk')}
@@ -1915,7 +1915,7 @@ export default function LeadProfile() {
             <div style={{ textAlign: 'center', padding: 48, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
               <div style={{ fontSize: 32, marginBottom: 10 }}>💼</div>
               <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
-                Noch keine Deals für dieses Unternehmen.
+                Noch keine Deals für diesen Betrieb.
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
                 Lege einen neuen Deal in der <a href="/app/deals" style={{ color: 'var(--brand-primary-mid)' }}>Deal-Pipeline</a> an.

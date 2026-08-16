@@ -189,8 +189,8 @@ export default function Customers() {
         <Card style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
           <EmptyState
             icon="🏢"
-            title={search ? `Keine Treffer für „${search}"` : 'Noch keine Unternehmen'}
-            description={search ? 'Andere Suchbegriffe ausprobieren oder Filter zurücksetzen.' : 'Importiere Leads aus einer CSV-Datei oder füge ein Unternehmen manuell hinzu.'}
+            title={search ? `Keine Treffer für „${search}"` : 'Noch keine Betriebe'}
+            description={search ? 'Andere Suchbegriffe ausprobieren oder Filter zurücksetzen.' : 'Importiere Leads aus einer CSV-Datei oder füge einen Betrieb manuell hinzu.'}
             action={!search ? { label: '+ Leads importieren', onClick: () => navigate('/app/import') } : undefined}
             secondaryAction={search ? { label: 'Suche zurücksetzen', onClick: () => setSearch('') } : undefined}
           />
@@ -204,7 +204,7 @@ export default function Customers() {
               gap: 16, padding: '10px 20px', borderBottom: '1px solid var(--border-light)',
               background: 'var(--bg-app)',
             }}>
-              {['Unternehmen', 'Ort', 'Status', 'Score', ''].map((h, i) => (
+              {['Betrieb', 'Ort', 'Status', 'Score', ''].map((h, i) => (
                 <span key={i} style={{
                   fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
                   letterSpacing: '0.04em', color: 'var(--text-tertiary)',

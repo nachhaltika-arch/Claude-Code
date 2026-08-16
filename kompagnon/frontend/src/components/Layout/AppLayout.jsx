@@ -359,7 +359,11 @@ function SidebarNav({ badges }) {
                 key: 'leads',
                 label: 'Leads',
                 items: [
-                  { label: 'Pipeline',             path: '/app/deals'      },
+                  // Hiess bis 2026-08-16 „Pipeline". Zwei Gruende: Die Seite
+                  // dahinter heisst „Deals", und „Pipeline" kam im Menue ein
+                  // zweites Mal vor (Projekte → Projektpipeline). Ein Wort,
+                  // zwei Orte, zwei Bedeutungen.
+                  { label: 'Deals',                path: '/app/deals'      },
                   { label: 'Unternehmen',          path: '/app/companies'  },
                 ],
               },

@@ -7,15 +7,9 @@ import { loadJson } from '../utils/apiRequest';
 import EmptyState from '../components/ui/EmptyState';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
+// Dieselbe Abbildung wie in Companies.jsx — sie lag hier und fehlte dort.
+import { LEAD_STATUS as STATUS, leadStatusLabel, leadStatusVariant } from '../utils/leadStatus';
 
-const STATUS = {
-  new:           { label: 'Neu',         variant: 'neutral' },
-  contacted:     { label: 'Kontaktiert', variant: 'info' },
-  qualified:     { label: 'Qualifiziert',variant: 'success' },
-  proposal_sent: { label: 'Angebot',     variant: 'warning' },
-  won:           { label: 'Gewonnen',    variant: 'success' },
-  lost:          { label: 'Verloren',    variant: 'danger' },
-};
 
 const CERT = (score) =>
   score >= 85 ? { label: 'Platin', short: 'Pt', bg: 'var(--brand-primary-light)', fg: 'var(--brand-primary)' }
@@ -221,7 +215,10 @@ export default function Customers() {
 
           {/* Rows */}
           {filtered.map((lead, idx) => {
-            const st = STATUS[lead.status] || STATUS.new;
+            // Vorher: `|| STATUS.new` — ein unbekannter Status wurde als
+            // „Neu" angezeigt. Jetzt wird er lesbar gemacht und bleibt neutral.
+            const st = STATUS[lead.status]
+              || { label: leadStatusLabel(lead.status), variant: leadStatusVariant(lead.status) };
             const score = lead.analysis_score || 0;
             const cert = score > 0 ? CERT(score) : null;
 

@@ -4,24 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import Badge from '../components/ui/Badge';
+import { leadStatusLabel, leadStatusVariant, leadSourceLabel } from '../utils/leadStatus';
 
 const TRADE_OPTIONS = [
   'Heizung', 'Sanitär', 'Elektriker', 'Klempner',
   'Dachdecker', 'Maler', 'Schreiner', 'Fliesenleger', 'Sonstiges',
 ];
 
-const STATUS_COLORS = {
-  new:      { bg: '#EAF4E0', text: '#3B6D11' },
-  contacted:{ bg: '#FEF3DC', text: '#BA7517' },
-  qualified:{ bg: '#E6F1FB', text: '#185FA5' },
-  won:      { bg: '#EAF4E0', text: '#1D9E75' },
-  lost:     { bg: '#FDEAEA', text: '#E24B4A' },
-  customer: { bg: '#F0E8FF', text: '#7c3aed' },
-};
-
-function statusColor(s) {
-  return STATUS_COLORS[(s || '').toLowerCase()] || { bg: 'var(--bg-muted)', text: 'var(--text-secondary)' };
-}
 
 function scoreBar(score) {
   const pct  = Math.min(100, Math.max(0, score || 0));
@@ -43,7 +33,7 @@ function sourceBadge(source) {
     'HWK-Muenchen':    { bg: '#EAF4E0', text: '#3B6D11', label: 'HWK München' },
     'HWK-Rheinhessen': { bg: '#E6F1FB', text: '#185FA5', label: 'HWK Rheinhessen' },
   };
-  const style = map[source] || { bg: 'var(--bg-muted)', text: 'var(--text-tertiary)', label: source || 'Manuell' };
+  const style = map[source] || { bg: 'var(--bg-muted)', text: 'var(--text-tertiary)', label: leadSourceLabel(source) };
   return (
     <span style={{
       padding: '2px 8px',
@@ -244,7 +234,6 @@ export default function Companies() {
                   </tr>
                 )}
                 {filtered.map((row, i) => {
-                  const sc = statusColor(row.status);
                   return (
                     <tr
                       key={row.id}
@@ -313,14 +302,9 @@ export default function Companies() {
                       </td>
                       {/* Status */}
                       <td style={{ padding: '12px 14px' }}>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center',
-                          padding: '2px 8px', borderRadius: 20,
-                          fontSize: 11, fontWeight: 600,
-                          background: sc.bg, color: sc.text,
-                        }}>
-                          {row.status || '–'}
-                        </span>
+                        <Badge variant={leadStatusVariant(row.status)}>
+                          {row.status ? leadStatusLabel(row.status) : '–'}
+                        </Badge>
                       </td>
                       {/* Quelle */}
                       <td style={{ padding: '12px 14px' }}>

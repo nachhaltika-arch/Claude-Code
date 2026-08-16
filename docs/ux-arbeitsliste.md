@@ -35,27 +35,40 @@ belegt. Dazu ein neuer Fund beim Nachsehen: UX-29.
       `pages/Customers.jsx`, `pages/LeadProfile.jsx`
       *Prüfung:* Ein Wort in Menü, Seitentitel und Brotkrume — überall dasselbe.
 
-- [ ] **UX-07** · **S** · Statuswerte übersetzen statt roh anzeigen:
+- [x] **UX-07** · **S** · ~~Statuswerte übersetzen~~ **erledigt 2026-08-16.** Statuswerte übersetzen statt roh anzeigen:
       `new`, `won`, `proposal_sent`, `domain_import`, `landing_audit`.
       Die Übersetzung **existiert bereits** in „Kunden" (Neu, Gewonnen,
       Angebot) — sie muss nur an einer Stelle liegen und überall gelten.
-      → `pages/Companies.jsx:22` (`statusColor`) als Ankerpunkt; eine gemeinsame
-      Abbildung `status → Label` anlegen
-      *Prüfung:* Kein englisches Wort und kein Unterstrich mehr in einer Spalte.
+      **Gemacht:** `utils/leadStatus.js` als einzige Quelle — Labels, Varianten
+      und Herkunft. `Companies.jsx` nutzt jetzt den `Badge`-Baustein statt
+      sechs fest eingetragener Hex-Farben, `Customers.jsx` importiert dieselbe
+      Abbildung statt einer eigenen.
+      **Dabei zwei stille Fehler gefunden:** `proposal_sent` fehlte in der
+      Farbabbildung von `Companies.jsx` — deshalb stand dieser Status ohne
+      Rahmen da. Und `Customers.jsx:224` zeigte jeden **unbekannten** Status als
+      „Neu" an (`STATUS[x] || STATUS.new`).
+      10 neue Tests, 108 Frontend-Tests grün.
 
-- [ ] **UX-01** · **S** · Nav-Eintrag *„Leads → Pipeline"* öffnet eine Seite mit
+- [x] **UX-01** · **S** · ~~Nav-Eintrag~~ **erledigt 2026-08-16.** Nav-Eintrag *„Leads → Pipeline"* öffnet eine Seite mit
       dem Titel **„💼 Deals"**. Entweder das Menü heißt „Deals" oder die Seite
       heißt „Pipeline" — nicht beides.
-      → `AppLayout.jsx:360` (Label) bzw. `pages/Deals.jsx:91` (Titel)
-      *Prüfung:* Menüwort und Seitenüberschrift sind identisch.
+      **Gemacht:** Menü heißt jetzt „Deals", wie die Seite. Zweiter Grund für
+      diese Richtung: „Pipeline" kam im Menü **zweimal** vor — hier und als
+      „Projektpipeline" unter Projekte. Ein Wort, zwei Orte, zwei Bedeutungen.
+      → `AppLayout.jsx:366`
 
 - [ ] **UX-01b** · **M** · Die Adresse `/app/leads` liefert die **Projekt**pipeline,
       die Komponente heißt `LeadPipeline`. Das Menü stimmt; Adresse und Codename
       nicht. Betrifft Lesezeichen, geteilte Links und jeden, der den Code liest.
       → `App.jsx:192`, Komponente umbenennen; alte Adresse als Weiterleitung
       stehen lassen
+      **Bewusst zurückgestellt (2026-08-16):** `/app/leads` ist an **zehn**
+      Stellen in `AppLayout.jsx` verdrahtet, teils mit Sonderlogik für die
+      Menü-Hervorhebung (Zeilen 251, 693, 977). Das braucht eine Sichtprüfung
+      am laufenden Bildschirm, und die war nicht möglich.
       *Prüfung:* `/app/projekte/pipeline` (o. ä.) zeigt die Projektpipeline,
-      `/app/leads` leitet dorthin um.
+      `/app/leads` leitet dorthin um — **und die Menü-Hervorhebung stimmt
+      weiterhin auf allen betroffenen Seiten.**
 
 ---
 
@@ -78,7 +91,7 @@ abzulösen.*
       *Prüfung:* Jeder erreichbare Bildschirm hat einen Weg im Menü — oder wird
       abgeschaltet.
 
-- [ ] **UX-29** · **S** · `components/Sidebar.jsx` ist eine **zweite, tote**
+- [ ] **UX-29** · **S** · *(offen)* `components/Sidebar.jsx` ist eine **zweite, tote**
       Navigationsdefinition — nirgends importiert, aber inhaltlich abweichend.
       Wer sie beim Aufräumen findet, ändert die falsche Datei.
       *Prüfung:* Datei gelöscht, Frontend baut, 98 Tests grün.

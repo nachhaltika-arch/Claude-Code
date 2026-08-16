@@ -10,14 +10,36 @@ from services.base_urls import self_base_url
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
 
-WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "")
-
-
 def _check_secret(request: Request):
-    if WEBHOOK_SECRET:
-        token = request.headers.get("X-Webhook-Secret", "")
-        if token != WEBHOOK_SECRET:
-            raise HTTPException(403, "Ungueltiger Webhook-Token")
+    """Ohne Geheimnis ist der Endpunkt zu — nicht offen.
+
+    Bis zum 16.08. stand hier ``if WEBHOOK_SECRET:``. Fehlte die Variable,
+    fand **gar keine Prüfung** statt: Die fünf Endpunkte darunter nahmen
+    unsignierte Fremdanfragen an und schrieben Leads in die Datenbank. Wer
+    die Adresse kannte, konnte die Leadliste füllen. Produktiv war
+    ``WEBHOOK_SECRET`` nie gesetzt.
+
+    Der Trugschluss dabei ist verbreitet genug, ihn aufzuschreiben: Eine
+    fehlende Konfiguration darf niemals „keine Prüfung" bedeuten, sondern nur
+    „keine Freigabe". Brevo und die beiden Stripe-Wege machen es seit jeher
+    richtig; diese hier nicht, und die Blueprint-Notiz behauptete das
+    Gegenteil.
+
+    Das Geheimnis wird bei **jedem Aufruf** aus der Umgebung gelesen, nicht
+    beim Import: Sonst hinge es an der Reihenfolge des Startvorgangs, und
+    genau diese Falle hat das Projekt schon zweimal getroffen.
+    """
+    secret = os.getenv("WEBHOOK_SECRET", "").strip()
+    if not secret:
+        logger.warning(
+            "Webhook abgewiesen: WEBHOOK_SECRET ist nicht gesetzt. "
+            "Der Endpunkt bleibt zu, bis die Variable gesetzt ist."
+        )
+        raise HTTPException(403, "Webhook nicht konfiguriert")
+
+    token = request.headers.get("X-Webhook-Secret", "")
+    if not hmac.compare_digest(token, secret):
+        raise HTTPException(403, "Ungueltiger Webhook-Token")
 
 
 def _upsert_lead(source: str, company: str, email: str,
@@ -152,10 +174,17 @@ def get_webhook_log(limit: int = 50):
 # ── Netlify Webhook-Endpunkte ─────────────────────────────────────────────────
 
 def _verify_netlify_signature(payload: bytes, signature: str) -> bool:
-    """Verifiziert Netlify-Webhook-Signatur (optional, falls NETLIFY_WEBHOOK_SECRET gesetzt)."""
-    secret = os.getenv("NETLIFY_WEBHOOK_SECRET", "")
+    """Verifiziert die Netlify-Signatur. Ohne Geheimnis: abgewiesen.
+
+    Stand bis zum 16.08. auf ``if not secret: return True`` — „optional"
+    hieß in der Praxis „für jeden offen". Siehe ``_check_secret``.
+    """
+    secret = os.getenv("NETLIFY_WEBHOOK_SECRET", "").strip()
     if not secret:
-        return True
+        logger.warning(
+            "Netlify-Webhook abgewiesen: NETLIFY_WEBHOOK_SECRET ist nicht gesetzt."
+        )
+        return False
     expected = "sha256=" + hmac.new(
         secret.encode(), payload, hashlib.sha256
     ).hexdigest()

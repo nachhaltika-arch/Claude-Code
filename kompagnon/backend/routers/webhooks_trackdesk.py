@@ -24,17 +24,24 @@ from routers.auth_router import get_current_user
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["webhooks-trackdesk"])
 
-TRACKDESK_SECRET = os.getenv("TRACKDESK_WEBHOOK_SECRET", "")
-
-
 def _verify_signature(body: bytes, signature: str) -> bool:
-    """Trackdesk Webhook-Signatur prüfen (falls konfiguriert)."""
-    if not TRACKDESK_SECRET:
-        return True  # kein Secret → offen (nicht empfohlen)
+    """Trackdesk-Signatur prüfen. Ohne Geheimnis: abgewiesen.
+
+    Hier stand bis zum 16.08. ``return True  # kein Secret → offen (nicht
+    empfohlen)``. Der Kommentar hat das Problem benannt und trotzdem
+    durchgelassen — produktiv war die Variable nie gesetzt. Siehe
+    ``routers/webhooks.py::_check_secret``.
+    """
+    secret = os.getenv("TRACKDESK_WEBHOOK_SECRET", "").strip()
+    if not secret:
+        logger.warning(
+            "Trackdesk-Webhook abgewiesen: TRACKDESK_WEBHOOK_SECRET ist nicht gesetzt."
+        )
+        return False
     if not signature:
         return False
     expected = hmac.new(
-        TRACKDESK_SECRET.encode(),
+        secret.encode(),
         body,
         hashlib.sha256,
     ).hexdigest()
@@ -67,8 +74,10 @@ async def trackdesk_webhook(request: Request, db: Session = Depends(get_db)):
     body = await request.body()
     signature = request.headers.get("X-Trackdesk-Signature", "")
 
-    # Signatur prüfen (nur wenn Secret gesetzt)
-    if TRACKDESK_SECRET and not _verify_signature(body, signature):
+    # Signatur prüfen — immer. Der Vorbehalt „nur wenn Secret gesetzt" stand
+    # hier und in `_verify_signature`; beide zusammen ergaben einen offenen
+    # Endpunkt, sobald die Variable fehlte. Sie fehlte produktiv.
+    if not _verify_signature(body, signature):
         logger.warning("Trackdesk: ungültige Webhook-Signatur")
         raise HTTPException(status_code=401, detail="Ungültige Signatur")
 

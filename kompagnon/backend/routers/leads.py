@@ -16,6 +16,7 @@ from routers.auth_router import require_any_auth, get_current_user
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 from services.base_urls import self_base_url
+from services.pdf_generator import branche_fuer_protokoll
 from services.audit_pagespeed import api_key as pagespeed_api_key
 import asyncio
 import csv
@@ -1963,7 +1964,8 @@ async def start_kaltakquise(
     audit = db.execute(
         text("""
             SELECT id, total_score, ai_summary, top_issues,
-                   company_name, website_url, city, trade, level
+                   company_name, website_url, city, trade, level,
+                   erkannte_branche, branchenklasse
             FROM audit_results
             WHERE lead_id = :lid AND status = 'completed'
             ORDER BY created_at DESC
@@ -1986,7 +1988,20 @@ async def start_kaltakquise(
     total_score = audit[1] or 0
     company     = audit[4] or lead.company_name or "Ihr Unternehmen"
     city        = audit[6] or lead.city or ""
-    trade       = audit[7] or lead.trade or "Handwerksbetrieb"
+    # Was in diesem Brief als Branche steht, liest der Empfänger als unsere
+    # Einschätzung seiner Firma. `trade` ist bei den meisten Leads geraten
+    # (Stichwortsuche über den Seitentext), und `or lead.trade` holte die
+    # Vermutung selbst dann noch, wenn der Audit sie bewusst leer gelassen
+    # hatte. Ein Ingenieurbüro wurde so als „Schreiner" angeschrieben — mit
+    # dem Auditprotokoll im Anhang, das korrekt „Ingenieurbüro" sagte.
+    # Hier gilt dieselbe Rangfolge wie im Protokoll: Befund vor Vermutung,
+    # und wo nichts erhoben ist, das neutrale Wort.
+    branche     = branche_fuer_protokoll({
+        "erkannte_branche": audit[9],
+        "branchenklasse":   audit[10],
+        "trade":            "",
+    })
+    trade       = "Handwerksbetrieb" if branche == "k.A." else branche
 
     top_issues = []
     try:

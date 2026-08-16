@@ -447,7 +447,14 @@ async def start_audit(
     # in einer Leadliste taugt das, im Audit nicht: Der Wert ging als „Gewerk"
     # in den KI-Prompt und stand als Befund im PDF-Protokoll. Die Branche
     # erkennt seit dem Branchenmodell 2026.2 das Modell selbst
-    # (`erkannte_branche`), und was niemand eingetragen hat, bleibt leer.
+    # (`erkannte_branche`).
+    #
+    # Dieser Satz stand hier ab dem 14.08. und war falsch: „was niemand
+    # eingetragen hat, bleibt leer". Das Frontend trug es ein — `useAudit`
+    # sendete `lead.trade` bei jedem aus einem Lead gestarteten Audit mit,
+    # also auf dem Hauptweg. Geschützt war nur der Widget-Weg. Seit dem 16.08.
+    # sendet das Frontend das Feld nicht mehr; hier bleibt es nur für Aufrufer,
+    # die einen Wert wirklich von Hand setzen.
     trade = req.trade or ""
 
     # Neue DB-Session nur zum Speichern

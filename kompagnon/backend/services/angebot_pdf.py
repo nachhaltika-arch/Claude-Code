@@ -17,6 +17,8 @@ from reportlab.platypus import (
 )
 from reportlab.platypus.flowables import HRFlowable
 from reportlab.pdfbase import pdfmetrics
+
+from services.pdf_generator import branche_fuer_protokoll
 from reportlab.pdfbase.ttfonts import TTFont
 
 # ── Fonts ─────────────────────────────────────────────────────────────────────
@@ -124,7 +126,13 @@ def generate_angebot_pdf(audit_data: dict) -> bytes:
     company    = _c(audit_data.get("company_name") or "Ihr Unternehmen")
     website    = _c(audit_data.get("website_url") or "")
     city       = _c(audit_data.get("city") or "")
-    trade      = _c(audit_data.get("trade") or "")
+    # Nicht `trade`: Das ist bei den meisten Leads eine Stichwortsuche
+    # („holz" im Text → Schreiner). Das Auditprotokoll ist am 14.08. darauf
+    # umgestellt worden, das Angebot nicht — und es lag derselben Mail bei.
+    # `branche_fuer_protokoll` nimmt den Befund vor der Vermutung und liefert
+    # „k.A.", wenn nichts erhoben ist; dann bleibt die Zeile ganz weg.
+    branche    = branche_fuer_protokoll(audit_data)
+    trade      = "" if branche == "k.A." else _c(branche)
     score      = int(audit_data.get("total_score") or 0)
     level      = _c(audit_data.get("level") or "Nicht konform")
     top_issues = audit_data.get("top_issues") or audit_data.get("top_problems") or []

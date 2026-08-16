@@ -265,7 +265,6 @@ export default function LeadProfile() {
     websiteUrl:  profile?.lead?.website_url,
     companyName: profile?.lead?.company_name || '',
     city:        profile?.lead?.city  || '',
-    trade:       profile?.lead?.trade || '',
     headers:     h,
     autoStart:   false,
   });

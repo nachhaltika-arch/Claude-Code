@@ -32,7 +32,6 @@ export function useAudit({
   websiteUrl,
   companyName    = '',
   city           = '',
-  trade          = '',
   headers        = {},
   autoStart      = false,   // true → startet sofort beim Mount wenn kein Ergebnis
   existingResult = null,    // bereits geladenes Audit-Ergebnis
@@ -94,7 +93,10 @@ export function useAudit({
           lead_id:      leadId      || undefined,
           company_name: companyName || '',
           city:         city        || '',
-          trade:        trade       || '',
+          // `trade` wird bewusst NICHT mitgesendet. Der Wert aus dem Lead
+          // ist meist geraten (Stichwortsuche über den Seitentext), und das
+          // Backend legt ihn als Befund im Auditdatensatz ab. Die Branche
+          // erkennt das Modell an der Seite selbst (`erkannte_branche`).
         }),
       });
 
@@ -150,7 +152,7 @@ export function useAudit({
       clearInterval(msgRef.current);
       if (!abortRef.current) setProgress('');
     }
-  }, [websiteUrl, leadId, companyName, city, trade]); // eslint-disable-line
+  }, [websiteUrl, leadId, companyName, city]); // eslint-disable-line
 
   // Auto-Start (nach start definition)
   useEffect(() => {

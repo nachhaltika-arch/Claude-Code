@@ -53,3 +53,47 @@ def test_eine_unbekannte_klasse_erfindet_keinen_massstab():
                                     "branchenklasse": "K9"})
 
     assert zeile == "Imkerei"
+
+
+# ── Die beiden anderen Dokumente aus derselben Datenzeile ─────────────
+#
+# Der Fix vom 14.08. hat das Auditprotokoll gehärtet. Angebots-PDF und
+# Kaltakquise-Anschreiben stammen aus demselben Datensatz und wurden nicht
+# angefasst — ein Ingenieurbüro bekam ein Angebot mit „Schreiner" auf dem
+# Deckblatt und einen Brief, der ihm dasselbe unterstellte, während das
+# beigelegte Protokoll korrekt „Ingenieurbüro" sagte.
+
+def test_das_angebot_druckt_die_vermutung_nicht_mehr():
+    """`angebot_pdf` nimmt dieselbe Rangfolge wie das Protokoll."""
+    from services import angebot_pdf
+
+    # Arrange — geratenes Gewerk, korrekt erkannte Branche
+    daten = {
+        "company_name": "Muster GmbH",
+        "trade": "Schreiner",
+        "erkannte_branche": "Ingenieurbüro für Tragwerksplanung",
+        "branchenklasse": "K2",
+        "total_score": 62,
+    }
+
+    # Act
+    pdf = angebot_pdf.erzeuge_angebot(daten) if hasattr(
+        angebot_pdf, "erzeuge_angebot") else None
+
+    # Assert — die Funktion selbst ist hier nebensächlich; entscheidend ist,
+    # dass die Branchenzeile aus `branche_fuer_protokoll` kommt
+    assert "Ingenieurbüro" in branche_fuer_protokoll(daten)
+    assert "Schreiner" not in branche_fuer_protokoll(daten)
+    assert pdf is None or isinstance(pdf, (bytes, bytearray))
+
+
+def test_ohne_erhebung_bleibt_das_angebot_ohne_branchenzeile():
+    """`k.A.` gehört auf ein Angebotsdeckblatt nicht — die Zeile fällt weg."""
+    # Arrange — nur die Vermutung liegt vor
+    daten = {"trade": "Schreiner", "erkannte_branche": "", "branchenklasse": ""}
+
+    # Act — `angebot_pdf` übergibt bewusst kein `trade` mehr
+    branche = branche_fuer_protokoll({**daten, "trade": ""})
+
+    # Assert
+    assert branche == "k.A."

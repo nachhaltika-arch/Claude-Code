@@ -22,9 +22,10 @@
 #
 # Ablauf und Rückweg stehen in `docs/umzug-backend-frankfurt.md`.
 #
-# ── Was produktiv tatsächlich gesetzt ist (16.08. im Dashboard gezählt) ──────
+# ── Was produktiv gesetzt war, bevor wir am 16.08. hineingesehen haben ──────
 #
-# Dreizehn Variablen, mehr nicht:
+# Dreizehn Variablen, mehr nicht (API_BASE_URL, CORS_ALLOWED_ORIGINS und die
+# neue FRONTEND_URL sind noch am selben Tag dazugekommen):
 #   ADMIN_EMAIL, ADMIN_PASSWORD, ANTHROPIC_API_KEY, BREVO_API_KEY,
 #   CREDENTIALS_KEY, DATABASE_URL, ENVIRONMENT, FRONTEND_URL,
 #   NETLIFY_API_TOKEN, PAGESPEED_API_KEY, SECRET_KEY,
@@ -47,8 +48,6 @@
 #   WEBHOOK_SECRET (diese Endpunkte antworten mit 403),
 #   CMS_ENCRYPTION_KEY (die CMS-Passwortfunktion wirft RuntimeError),
 #   GOOGLE_PLACES_API_KEY, NORTHDATA_API_KEY, NETLIFY_VORSCHAU_SITE_ID.
-# `CORS_ALLOWED_ORIGINS` fehlt ebenfalls, ist aber unkritisch: `main.py` trägt
-# die Produktiv-Frontend-Adresse als Vorgabe im Code.
 
 # ── Die Datenbank steht bewusst NICHT hier ───────────────────────────────────
 #
@@ -88,11 +87,18 @@ services:
     branch: main
     rootDir: kompagnon/backend
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 30
+    # Der laufende Dienst startet OHNE --timeout-keep-alive 30, obwohl beide
+    # alten Blueprints es behaupten. Hier steht, was er tut.
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     # Deploy wird von GitHub Actions ausgeloest (.github/workflows/ci.yml),
-    # erst nach gruener CI. Im Render-Dashboard muss Auto-Deploy ebenfalls
-    # auf 'Off' stehen — sonst deployt Render parallel am Gate vorbei.
+    # erst nach gruener CI. Das setzt voraus, dass Auto-Deploy im Dashboard
+    # aus ist — am 16.08. stand es auf beiden Produktiv-Diensten auf
+    # 'On Commit', der Torwaechter hat also nie gegriffen. Jetzt 'Off'.
+    # Folge im Alltag: Eine Variablenaenderung wirkt erst nach einem
+    # ausgeloesten Deploy; der Knopf heisst dann 'Save only'.
+    # Render kennt inzwischen auch 'After CI Checks Pass'. Nicht gewaehlt,
+    # weil der Deploy-Job in ci.yml selbst ausloest — es waeren zwei Deploys.
     autoDeploy: false
     envVars:
       # ── Laufzeit ─────────────────────────────────────────────────────────
@@ -123,12 +129,18 @@ services:
       # nächste Umzug bricht sie erneut.
       - key: API_BASE_URL
         value: https://api.kompagnon.group
+      # Die Adresse der Oberfläche. Steht in Stripe-Rückleitungen, im
+      # Kundenportal-Link, im QR-Code und in Mail-Links — alles, was ein Kunde
+      # zu sehen bekommt. FRONTEND_URL genügt; PUBLIC_BASE_URL hat nur Vorrang,
+      # falls beide je auseinanderlaufen sollen.
+      - key: FRONTEND_URL
+        value: https://kas.kompagnon.group
       - key: PUBLIC_BASE_URL
         sync: false
-      - key: FRONTEND_URL
-        sync: false
+      # Additiv: main.py hängt seine eingebauten Herkünfte immer an, die alte
+      # onrender.com-Adresse bleibt also gültig.
       - key: CORS_ALLOWED_ORIGINS
-        sync: false
+        value: https://kas.kompagnon.group
       # Nur setzen, wenn ein Proxy davorsteht. Leer heisst: der Kopf wird nicht
       # geglaubt — und das ist die sichere Vorgabe für die Ratenbegrenzung.
       - key: TRUSTED_PROXY_HEADER

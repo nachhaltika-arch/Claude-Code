@@ -5,6 +5,7 @@ import logging
 from fastapi import APIRouter, BackgroundTasks, Request, HTTPException
 from sqlalchemy import text
 from database import SessionLocal
+from services.base_urls import self_base_url
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
@@ -254,8 +255,7 @@ async def _start_audit_background(lead_id: int, website_url: str, company: str):
     """Startet Audit asynchron nach Netlify-Webhook."""
     import httpx
     try:
-        api_base = os.getenv("RENDER_INTERNAL_HOSTNAME", "")
-        base_url = f"http://{api_base}" if api_base else os.getenv("API_BASE_URL", "http://localhost:8000")
+        base_url = self_base_url()
         async with httpx.AsyncClient(timeout=10.0) as client:
             await client.post(
                 f"{base_url}/api/audit/start",

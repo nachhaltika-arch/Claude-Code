@@ -15,6 +15,7 @@ from database import Lead, Project, AuditResult, get_db, SessionLocal
 from routers.auth_router import require_any_auth, get_current_user
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
+from services.base_urls import self_base_url
 from services.audit_pagespeed import api_key as pagespeed_api_key
 import asyncio
 import csv
@@ -492,13 +493,9 @@ async def _process_single_domain(url: str, clean: str, _session_factory, job_id:
     try:
         import httpx
         async with httpx.AsyncClient(timeout=90) as client:
-            # Aufruf an den eigenen Server. Der Rückfall stand fest auf Port
-            # 8000 — den gibt es auf Render nicht, dort hört der Dienst auf
-            # $PORT. Ohne gesetztes API_BASE_URL lief dieser Aufruf also
-            # produktiv ins Leere, und zwar leise: Der Audit startete nicht,
-            # der Lead blieb ohne Bewertung stehen.
-            audit_base = os.getenv('API_BASE_URL') or \
-                f"http://127.0.0.1:{os.getenv('PORT', '8000')}"
+            # Aufruf an den eigenen Server — über die interne Adresse, nicht
+            # über das öffentliche Netz. Siehe services/base_urls.py.
+            audit_base = self_base_url()
             r = await client.post(f'{audit_base}/api/audit/start',
                 json={'website_url': url, 'lead_id': lead_id, 'company_name': clean})
             if r.status_code == 200:

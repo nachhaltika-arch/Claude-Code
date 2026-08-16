@@ -61,12 +61,39 @@ def api_base_url() -> str:
     setzen muss — und ein vergessener Eintrag zeigt nicht mehr stillschweigend
     ins falsche System.
 
-    **Nicht für Aufrufe dieses Servers an sich selbst.** Dafür ist
-    ``RENDER_INTERNAL_HOSTNAME`` der richtige Weg; der Umweg über das
-    öffentliche Netz kostet bei einem Backend in Oregon Sekunden (L-34).
+    **Nicht für Aufrufe dieses Servers an sich selbst.** Dafür gibt es
+    ``self_base_url()``.
     """
     return _erste_gesetzte(
         os.getenv("API_BASE_URL"),
         os.getenv("RENDER_EXTERNAL_URL"),
         FALLBACK_API_BASE_URL,
     )
+
+
+def self_base_url() -> str:
+    """Die Adresse, unter der dieser Server **sich selbst** erreicht.
+
+    Das ist nicht dieselbe wie ``api_base_url()``, und der Unterschied war an
+    beiden Aufrufstellen falsch — auf entgegengesetzte Weise:
+
+    - ``webhooks.py`` nahm ``RENDER_INTERNAL_HOSTNAME`` **ohne Port**. Render
+      zeigt die interne Adresse als ``claude-code-znq2:10000`` an; ohne Port
+      geht die Anfrage auf 80, wo niemand hört.
+    - ``leads.py`` fiel auf ``http://localhost:8000`` zurück — einen Port, den
+      es auf Render nicht gibt — und nahm sonst ``API_BASE_URL``, also den Weg
+      über das öffentliche Netz: aus Oregon durch Cloudflare und zurück, für
+      einen Aufruf an die eigene Maschine.
+
+    Beides scheitert leise. Der Audit startete nicht, der Lead blieb ohne
+    Bewertung stehen, und im Protokoll steht nur eine Warnung.
+
+    ``PORT`` setzt Render selbst; lokal ist 8000 die übliche Wahl.
+    ``API_BASE_URL`` steht hier bewusst **nicht** in der Kette: Läge sie lokal
+    in einer ``.env`` auf Produktiv, riefe der eigene Server das fremde System.
+    """
+    intern = os.getenv("RENDER_INTERNAL_HOSTNAME", "").strip()
+    port = os.getenv("PORT", "").strip() or "8000"
+    if intern:
+        return f"http://{intern}:{port}"
+    return f"http://127.0.0.1:{port}"

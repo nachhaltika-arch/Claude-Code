@@ -219,10 +219,19 @@ async def run_pagespeed(customer_id: int, db: Session = Depends(get_db)):
     api_key = pagespeed_api_key()
     base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
 
+    # Ohne Schlüssel muss der Parameter WEG, nicht leer mitgeschickt werden:
+    # `key=` beantwortet Google mit 400, während ein Aufruf ganz ohne `key`
+    # auf dem anonymen Kontingent funktioniert. Alle Nachbarstellen machen es
+    # so; diese eine nicht — und sie fiel nie auf, weil `_score` jede
+    # Fehlerantwort still zu `None` macht.
+    params = {"url": website_url}
+    if api_key:
+        params["key"] = api_key
+
     async with httpx.AsyncClient(timeout=60.0) as client:
         mobile_resp, desktop_resp = await asyncio.gather(
-            client.get(base, params={"url": website_url, "strategy": "mobile",  "key": api_key}),
-            client.get(base, params={"url": website_url, "strategy": "desktop", "key": api_key}),
+            client.get(base, params={**params, "strategy": "mobile"}),
+            client.get(base, params={**params, "strategy": "desktop"}),
         )
 
     def _score(resp) -> int | None:

@@ -5,7 +5,7 @@ GET  /api/affiliate-conversions — admin list for dashboard
 
 Einrichten in Trackdesk:
   Tools → Webhooks → Add new webhook
-  URL: https://claude-code-znq2.onrender.com/api/webhooks/trackdesk
+  URL: https://api.kompagnon.group/api/webhooks/trackdesk
   Events: conversion_created, conversion_status_changed, affiliate_created
 """
 import hashlib

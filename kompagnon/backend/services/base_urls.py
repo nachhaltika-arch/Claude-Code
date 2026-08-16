@@ -16,9 +16,16 @@ import os
 from typing import Optional
 
 # Rückfallwerte, wenn die Umgebung schweigt. Sie sind der letzte Ausweg, nicht
-# die Konfiguration — produktiv wie auf Staging sind API_BASE_URL bzw.
-# PUBLIC_BASE_URL gesetzt.
-FALLBACK_API_BASE_URL = "https://claude-code-znq2.onrender.com"
+# die Konfiguration.
+#
+# Die API-Adresse ist seit dem 16.08. eine Domain, die uns gehört. Vorher stand
+# hier `claude-code-znq2.onrender.com` — eine Adresse, die Render vergeben hat
+# und die beim Umzug nach Frankfurt verschwindet. Genau deshalb ist die Domain
+# der erste Schritt des Umzugs und nicht der letzte.
+#
+# Auf Render greift dieser Wert nie: Dort steht `API_BASE_URL` (produktiv seit
+# dem 16.08.) oder `RENDER_EXTERNAL_URL`, das Render je Dienst selbst setzt.
+FALLBACK_API_BASE_URL = "https://api.kompagnon.group"
 FALLBACK_PUBLIC_BASE_URL = "https://kompagnon-frontend.onrender.com"
 
 

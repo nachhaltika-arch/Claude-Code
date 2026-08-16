@@ -109,16 +109,24 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
 
 ### Domain vor den alten Dienst
 
-- [ ] Render → `kompagnon-backend` → Settings → Custom Domain → Domain eintragen
-- [ ] DNS-Eintrag beim Anbieter setzen (Render nennt den Zielwert)
-- [ ] Warten, bis Render das Zertifikat ausgestellt hat
-- [ ] Prüfen: `https://<domain>/health` antwortet wie die alte Adresse
+- [x] **Erledigt 16.08.** CNAME `api` → `claude-code-znq2.onrender.com` bei
+      IONOS, danach Custom Domain am Dienst. Zertifikat von Google Trust
+      Services, gültig 16.08. → 14.11.2026. `https://api.kompagnon.group/health`
+      antwortet identisch zur alten Adresse.
+      Reihenfolge-Fund: Vor dem Eintrag in Render antwortete `http://` bereits
+      mit 301, `https://` aber ohne Zertifikat — Renders Edge nimmt den Namen
+      also an, lange bevor er ihm gehört. Das sieht aus wie ein halber Erfolg
+      und ist keiner.
 
 ### Alles auf die Domain umstellen
 
-- [ ] `REACT_APP_API_URL` beim Frontend → neue Domain (löst Frontend-Deploy aus)
-- [ ] `API_BASE_URL` beim Backend → neue Domain (damit Berichtslinks und
-      Datei-Adressen sie nutzen; sie hat Vorrang vor `RENDER_EXTERNAL_URL`)
+- [x] **`API_BASE_URL` beim Backend gesetzt (16.08.).** Sie existierte vorher
+      **gar nicht** — der Umzug hat damit nebenbei zwei Rückfälle abgestellt,
+      die produktiv scharf waren (`files.py`, `leads.py`). Deploy ohne Ausfall,
+      `startup_complete` und `scheduler_running` grün.
+- [x] **`REACT_APP_API_URL` beim Frontend gesetzt (16.08.).** Im
+      ausgelieferten Bundle nachgeprüft, dazu Preflight und GET gegen die neue
+      Domain mit der Frontend-Herkunft: `access-control-allow-origin` stimmt.
 - [ ] Webhook-Adresse bei **Trackdesk** ändern
 - [ ] Webhook-Adresse bei **Netlify** ändern
 - [ ] Webhook-Adresse bei **Brevo** ändern

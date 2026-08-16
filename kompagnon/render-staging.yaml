@@ -76,7 +76,8 @@ services:
       # Adresse zurueck: Audit auf Staging, Token in der Staging-Datenbank,
       # Link zum Produktiv-Server — „Not Found" bei jeder Anfrage. Der Code
       # nimmt jetzt RENDER_EXTERNAL_URL, das Render je Dienst selbst setzt.
-      # Erst wenn eine eigene Domain davorsteht (api.kompagnon.eu), muss
+      # Erst wenn eine eigene Domain davorsteht (produktiv seit 16.08.:
+      # api.kompagnon.group), muss
       # API_BASE_URL hier gesetzt werden — RENDER_EXTERNAL_URL zeigt dann
       # weiterhin auf die onrender.com-Adresse.
 

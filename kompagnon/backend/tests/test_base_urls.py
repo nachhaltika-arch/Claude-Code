@@ -72,13 +72,27 @@ def test_die_bild_adressen_kommen_aus_derselben_quelle(monkeypatch):
     assert files.api_base_url() == "https://staging.example"
 
 
-def test_der_rueckfall_steht_nur_noch_an_einer_stelle():
-    """Keine zweite fest eingetragene Adresse im Quelltext der Helfer."""
+def test_der_api_rueckfall_ist_eine_domain_die_uns_gehoert():
+    """Eine von Render vergebene Adresse als Rückfall überlebt keinen Umzug.
+
+    Bis zum 16.08. stand hier `claude-code-znq2.onrender.com`. Diese Adresse
+    verschwindet mit dem Dienst — und der Dienst zieht nach Frankfurt (L-34).
+    Ein Rückfall, der das nicht überlebt, ist ein Rückfall auf nichts.
+    """
+    # Assert
+    assert base_urls.FALLBACK_API_BASE_URL == "https://api.kompagnon.group"
+    assert "onrender.com" not in base_urls.FALLBACK_API_BASE_URL
+
+
+def test_kein_zweiter_rueckfall_im_quelltext():
+    """Keine fest eingetragene Adresse außerhalb der benannten Konstanten."""
     # Arrange
     quelle = inspect.getsource(base_urls)
 
-    # Act
+    # Act — die Frontend-Konstante ist noch eine Render-Adresse; sie bekommt
+    # ihre eigene Domain, wenn das Frontend eine hat.
     treffer = quelle.count("onrender.com")
 
-    # Assert — genau die beiden benannten Konstanten, sonst nichts
+    # Assert — genau die eine Konstante plus der Satz, der erklärt, warum die
+    # API-Adresse keine mehr ist
     assert treffer == 2

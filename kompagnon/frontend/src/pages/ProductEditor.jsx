@@ -331,7 +331,7 @@ function TabAssets({ product }) {
   const urlRows = [
     { key: 'landing', label: 'Landing Page URL', url: `${FRONTEND_URL}/paket/${product.slug}` },
     { key: 'checkout', label: 'Checkout-URL (direkt)', url: `${FRONTEND_URL}/checkout?package=${product.slug}` },
-    { key: 'api', label: 'API Checkout (POST)', url: 'https://claude-code-znq2.onrender.com/api/payments/create-checkout' },
+    { key: 'api', label: 'API Checkout (POST)', url: 'https://api.kompagnon.group/api/payments/create-checkout' },
   ];
   const assetGrid = [
     { label: 'Landing Page', status: product.status === 'live' ? 'live' : 'ausstehend' },

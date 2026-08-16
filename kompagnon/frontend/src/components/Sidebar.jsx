@@ -17,12 +17,12 @@ const AREAS = {
     label: 'Akquise', icon: '🎯', color: 'var(--brand-primary)',
     items: [
       { label: 'Dashboard',           path: '/app/dashboard', icon: '🏠' },
-      { label: 'Lead-Inbox',          path: '/app/leads',     icon: '📥' },
+      { label: 'Lead-Inbox',          path: '/app/projektpipeline',     icon: '📥' },
       { label: 'Vertriebspipeline',   path: '/app/deals',     icon: '💼' },
       { label: 'Kampagnen',           path: '/app/campaigns', icon: '📊', adminOnly: true },
       { label: 'Website-Audit',       path: '/app/audit',     icon: '🔍' },
       { label: 'Analyse-Widget',      path: '/app/widget',    icon: '🧩', adminOnly: true },
-      { label: 'Unternehmen',         path: '/app/companies', icon: '🏢' },
+      { label: 'Unternehmen',         path: '/app/betriebe', icon: '🏢' },
       { label: 'Akademie',            path: '/app/academy',   icon: '🎓' },
     ],
   },
@@ -110,7 +110,7 @@ export default function Sidebar() {
   if (user?.role === 'kunde') {
     const kundeItems = [
       { label: 'Dashboard', path: '/app/dashboard', icon: '🏠' },
-      { label: 'Meine Kartei', path: user.lead_id ? `/app/leads/${user.lead_id}` : '/app/dashboard', icon: '📋' },
+      { label: 'Meine Kartei', path: user.lead_id ? `/app/betriebe/${user.lead_id}` : '/app/dashboard', icon: '📋' },
       { label: 'Akademie', path: '/app/academy', icon: '🎓' },
       { label: 'Einstellungen', path: '/app/settings', icon: '⚙️' },
     ];

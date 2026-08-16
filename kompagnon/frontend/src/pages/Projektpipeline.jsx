@@ -82,7 +82,7 @@ function buildCards(projArray, leadsArray) {
   return cards;
 }
 
-export default function LeadPipeline() {
+export default function Projektpipeline() {
   const navigate         = useNavigate();
   const { user, token }  = useAuth();
   const { isMobile }     = useScreenSize();
@@ -230,7 +230,7 @@ export default function LeadPipeline() {
             {getColCards(PHASES[activeTab].id).map(card => (
               <ProjectKanbanCard key={card.key} card={card} phase={PHASES[activeTab]}
                 onDragStart={() => {}}
-                onOpen={() => card.projectId ? navigate(`/app/projects/${card.projectId}`) : navigate(`/app/leads/${card.leadId}`)} />
+                onOpen={() => card.projectId ? navigate(`/app/projects/${card.projectId}`) : navigate(`/app/betriebe/${card.leadId}`)} />
             ))}
             {getColCards(PHASES[activeTab].id).length === 0 && <EmptyCol />}
           </div>
@@ -263,7 +263,7 @@ export default function LeadPipeline() {
                   {colCards.map(card => (
                     <ProjectKanbanCard key={card.key} card={card} phase={ph}
                       onDragStart={handleDragStart}
-                      onOpen={() => card.projectId ? navigate(`/app/projects/${card.projectId}`) : navigate(`/app/leads/${card.leadId}`)} />
+                      onOpen={() => card.projectId ? navigate(`/app/projects/${card.projectId}`) : navigate(`/app/betriebe/${card.leadId}`)} />
                   ))}
                   {cards.length === 0 && <EmptyCol />}
                 </div>

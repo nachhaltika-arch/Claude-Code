@@ -225,7 +225,7 @@ export default function Customers() {
             return (
               <div
                 key={lead.id}
-                onClick={() => navigate(`/app/leads/${lead.id}`)}
+                onClick={() => navigate(`/app/betriebe/${lead.id}`)}
                 style={{
                   display: isMobile ? 'flex' : 'grid',
                   gridTemplateColumns: isMobile ? undefined : '2fr 1fr 120px 120px 40px',

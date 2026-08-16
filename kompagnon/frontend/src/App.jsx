@@ -1,10 +1,12 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 import Dashboard from './pages/Dashboard';
-import LeadPipeline from './pages/LeadPipeline';
+// Hiess LeadPipeline und zeigte Projekte — der Name im Code war
+// derselbe Irrtum wie die Adresse.
+import Projektpipeline from './pages/Projektpipeline';
 import ProjectDetail from './pages/ProjectDetail';
 import OnlineFertigEditor from './components/OnlineFertigEditor';
 import Checklists from './pages/Checklists';
@@ -81,6 +83,16 @@ function PublicRoute({ children }) {
   if (loading) return null;
   if (user) return <Navigate to="/app/dashboard" replace />;
   return children;
+}
+
+/**
+ * Alte Einzelansicht-Adresse `/app/leads/:leadId` auf die neue umlenken —
+ * mitsamt Kennung. Ohne das würde ein geteilter Link auf die Liste fallen und
+ * der Empfänger müsste den Betrieb wieder suchen.
+ */
+function LeadRedirect() {
+  const { leadId } = useParams();
+  return <Navigate to={`/app/betriebe/${leadId}`} replace />;
 }
 
 function PrivateRoute({ children, roles }) {
@@ -187,10 +199,20 @@ function App() {
             <Route path="pages" element={<PrivateRoute roles={['admin']}><PageManager /></PrivateRoute>} />
             <Route path="pages/templates/:id/editor" element={<PrivateRoute roles={['admin']}><PageTemplateEditor /></PrivateRoute>} />
             <Route path="pages/:pageId/editor" element={<PrivateRoute roles={['admin']}><PublicPageEditor /></PrivateRoute>} />
-            <Route path="companies" element={<PrivateRoute roles={['admin', 'auditor']}><Companies /></PrivateRoute>} />
+            {/* Betriebe — das Objekt heisst seit 2026-08-16 ueberall so, auch
+              * in der Adresszeile. Die alten Adressen leiten weiter: Es gibt
+              * Lesezeichen, geteilte Links und Mails, die darauf zeigen. */}
+            <Route path="betriebe" element={<PrivateRoute roles={['admin', 'auditor']}><Companies /></PrivateRoute>} />
+            <Route path="betriebe/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
+            <Route path="companies" element={<Navigate to="/app/betriebe" replace />} />
             <Route path="widget" element={<PrivateRoute roles={['admin']}><AkquiseWidget /></PrivateRoute>} />
-            <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
-            <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
+            {/* Die Projektpipeline lag unter /app/leads und zeigte Projekte.
+              * Das Menue war richtig beschriftet, die Adresse nicht — was
+              * genuegte, um bei der Pruefung am 16.08. einen Fehlbefund zu
+              * erzeugen. Jetzt heisst die Adresse, was sie liefert. */}
+            <Route path="projektpipeline" element={<PrivateRoute roles={['admin', 'auditor']}><Projektpipeline /></PrivateRoute>} />
+            <Route path="leads" element={<Navigate to="/app/projektpipeline" replace />} />
+            <Route path="leads/:leadId" element={<LeadRedirect />} />
             <Route path="projects" element={<PrivateRoute roles={['admin', 'auditor']}><CustomerProjects /></PrivateRoute>} />
             {/* Legacy ProzessFlowV3 (das alte Vollbild mit 12 Schritten) —
               * der frühere Default ist auf /legacy umgezogen, weil

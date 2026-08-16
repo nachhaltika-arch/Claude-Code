@@ -307,7 +307,7 @@ export default function AuditTool() {
           {pdfLoading ? 'PDF wird erstellt...' : '✓ PDF herunterladen'}
         </button>
         {savedLeadId ? (
-          <button className="kc-btn-ghost" onClick={() => navigate('/app/leads')} style={{ color: 'var(--status-success-text)', ...(isMobile ? { width: '100%' } : {}) }}>
+          <button className="kc-btn-ghost" onClick={() => navigate('/app/projektpipeline')} style={{ color: 'var(--status-success-text)', ...(isMobile ? { width: '100%' } : {}) }}>
             → Lead ansehen
           </button>
         ) : (

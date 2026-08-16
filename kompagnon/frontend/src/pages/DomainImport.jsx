@@ -268,7 +268,7 @@ export default function DomainImport() {
                   <div style={{ background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', maxHeight: 220, overflowY: 'auto' }}>
                     {checkResult.results.filter(r => importFilter === 'all' || !r.exists).map((r, i, arr) => (
                       <div key={i}
-                        onClick={() => { if (r.exists && r.lead_id) window.open(`/app/leads/${r.lead_id}`, '_blank'); }}
+                        onClick={() => { if (r.exists && r.lead_id) window.open(`/app/betriebe/${r.lead_id}`, '_blank'); }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
                           borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none',
@@ -383,7 +383,7 @@ export default function DomainImport() {
                 Verarbeitete Domains
               </div>
               {jobStatus.results.map((r, i) => (
-                <div key={i} onClick={() => r.lead_id && navigate(`/app/leads/${r.lead_id}`)} style={{
+                <div key={i} onClick={() => r.lead_id && navigate(`/app/betriebe/${r.lead_id}`)} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '8px 6px',
                   borderBottom: i < jobStatus.results.length - 1 ? '1px solid var(--border-light)' : 'none',
                   cursor: r.lead_id ? 'pointer' : 'default', borderRadius: 'var(--radius-sm)', transition: 'background 0.1s',

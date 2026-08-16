@@ -237,7 +237,7 @@ export default function Companies() {
                   return (
                     <tr
                       key={row.id}
-                      onClick={() => navigate(`/app/leads/${row.id}`)}
+                      onClick={() => navigate(`/app/betriebe/${row.id}`)}
                       style={{
                         cursor: 'pointer',
                         background: i % 2 === 0 ? 'transparent' : 'var(--bg-app)',
@@ -331,7 +331,7 @@ export default function Companies() {
             setShowNewCompany(false);
             load();
             // Optional: direkt zur neuen Lead-Profile-Page
-            if (lead?.id) navigate(`/app/leads/${lead.id}`);
+            if (lead?.id) navigate(`/app/betriebe/${lead.id}`);
           }}
         />
       )}

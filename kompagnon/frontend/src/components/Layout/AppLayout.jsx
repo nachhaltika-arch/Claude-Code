@@ -112,7 +112,7 @@ const NAV_SECTIONS = [
     items: [
       { label: 'Deals',         path: '/app/deals',     icon: 'chart' },
       { label: 'Kampagnen',     path: '/app/campaigns', icon: 'chart', adminOnly: true },
-      { label: 'Betriebe',      path: '/app/companies', icon: 'users', activePaths: ['/app/companies', '/app/leads/'] },
+      { label: 'Betriebe',      path: '/app/betriebe', icon: 'users', activePaths: ['/app/betriebe', '/app/betriebe/'] },
       { label: 'Domain Import', path: '/app/import',    icon: 'users' },
       { label: 'HWK Scraper',   path: '/app/scraper',   icon: 'docCheck', adminOnly: true },
       { label: 'Export',        path: '/app/export',    icon: 'docCheck' },
@@ -123,7 +123,7 @@ const NAV_SECTIONS = [
   {
     title: 'Delivery',
     items: [
-      { label: 'Projektpipeline', path: '/app/leads', icon: 'chart', exactMatch: true },
+      { label: 'Projektpipeline', path: '/app/projektpipeline', icon: 'chart', exactMatch: true },
       { label: 'Kundenprojekte', path: '/app/projects', icon: 'users' },
     ],
   },
@@ -165,7 +165,7 @@ const PAGE_NAMES = {
   '/app/deals': 'Deals',
   '/app/campaigns': 'Kampagnen',
   '/app/sales': 'Vertriebspipeline',
-  '/app/leads': 'Projektpipeline',
+  '/app/projektpipeline': 'Projektpipeline',
   '/app/customers': 'Kunden',
   '/app/audit': 'Website Audit',
   '/app/akademie': 'Akademy',
@@ -175,7 +175,7 @@ const PAGE_NAMES = {
   '/app/academy/admin': 'Kurse verwalten',
   '/app/settings': 'Einstellungen',
   '/app/projects': 'Kundenprojekte',
-  '/app/companies': 'Betriebe',
+  '/app/betriebe': 'Betriebe',
   '/app/import': 'Domain Import',
   '/app/export': 'Export',
   '/app/tickets': 'Support Tickets',
@@ -198,14 +198,14 @@ function getMobileTabs(role, leadId) {
   return [
     { label: 'Dashboard', path: '/app/dashboard', icon: 'grid'  },
     { label: 'Vertrieb',  path: '/app/vertrieb',  icon: 'chart' },
-    { label: 'Leads',     path: '/app/leads',     icon: 'users', badge: true },
+    { label: 'Betriebe',  path: '/app/betriebe',            icon: 'users', badge: true },
     { label: 'Projekte',  path: '/app/projects',  icon: 'users' },
     { label: 'Mehr',      path: '__more__',        icon: 'menu'  },
   ];
 }
 
 const MORE_ITEMS = [
-  { label: 'Betriebe', path: '/app/companies', icon: '🏢' },
+  { label: 'Betriebe', path: '/app/betriebe', icon: '🏢' },
   { label: 'Newsletter', path: '/app/newsletter', icon: '📧' },
   { label: 'Tickets', path: '/app/tickets', icon: '🎫' },
   { label: 'Akademie', path: '/app/academy', icon: '🎓' },
@@ -235,9 +235,9 @@ function SidebarNav({ badges }) {
       // Akquise — Pre-Sales / Cold Outreach
       akquise:       inSection(['/app/scraper', '/app/import', '/app/audit', '/app/newsletter', '/app/campaigns', '/app/export', '/app/webhooks']),
       // Leads — Sales-Pipeline / Erstkontakt bis Vertragsabschluss
-      leads:         inSection(['/app/deals', '/app/companies']),
+      leads:         inSection(['/app/deals', '/app/betriebe']),
       // Projekte — Aktive Lieferung (17-Step-Workflow)
-      projekte:      inSection(['/app/projects', '/app/leads', '/app/checklists']),
+      projekte:      inSection(['/app/projects', '/app/projektpipeline', '/app/checklists']),
       // Kompagnon — Backoffice / interne Tools
       kompagnon:     inSection(['/app/tickets', '/app/pages', '/app/product-editor', '/app/products', '/app/product', '/app/qr-generator', '/app/retainer']),
       // Einstellungen — Account & System
@@ -248,7 +248,6 @@ function SidebarNav({ badges }) {
   const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
 
   const isActive = (path) => {
-    if (path === '/app/leads') return location.pathname === '/app/leads';
     if (path === '/app/projects') return location.pathname === '/app/projects' || location.pathname.startsWith('/app/projects/');
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
@@ -311,7 +310,7 @@ function SidebarNav({ badges }) {
           <div style={{ marginTop: 8 }}>
             {[
               { label: 'Dashboard',     path: '/app/dashboard' },
-              { label: 'Meine Kartei',  path: user.lead_id ? `/app/leads/${user.lead_id}` : '/app/dashboard' },
+              { label: 'Meine Kartei',  path: user.lead_id ? `/app/betriebe/${user.lead_id}` : '/app/dashboard' },
               { label: 'Freigaben',     path: '/app/freigaben' },
               { label: 'Support',       path: '/app/support' },
               { label: 'Rechnungen',    path: '/app/rechnungen' },
@@ -367,7 +366,7 @@ function SidebarNav({ badges }) {
                   // zweites Mal vor (Projekte → Projektpipeline). Ein Wort,
                   // zwei Orte, zwei Bedeutungen.
                   { label: 'Deals',                path: '/app/deals'      },
-                  { label: 'Betriebe',             path: '/app/companies'  },
+                  { label: 'Betriebe',             path: '/app/betriebe'  },
                 ],
               },
               {
@@ -375,7 +374,7 @@ function SidebarNav({ badges }) {
                 label: 'Projekte',
                 items: [
                   { label: 'Alle Projekte',        path: '/app/projects'   },
-                  { label: 'Projektpipeline',      path: '/app/leads'      },
+                  { label: 'Projektpipeline',      path: '/app/projektpipeline'      },
                   { label: 'Prozess-Ansicht',      path: '/app/checklists' },
                 ],
               },
@@ -693,10 +692,6 @@ function BottomNav() {
               '/app/newsletter', '/app/import', '/app/retainer', '/app/scraper']
         .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
     }
-    if (path === '/app/leads') {
-      return ['/app/leads', '/app/companies']
-        .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
-    }
     if (path === '/app/projects') {
       return ['/app/projects', '/app/tickets', '/app/checklists', '/app/settings/templates']
         .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
@@ -946,13 +941,13 @@ export default function AppLayout() {
       return [
         { label: 'Dashboard', path: '/app/dashboard' },
         { label: 'Projekte', path: '/app/projects' },
-        { label: projectName || `Projekt #${projectMatch[1]}`, path: projectLeadId ? `/app/leads/${projectLeadId}` : null },
+        { label: projectName || `Projekt #${projectMatch[1]}`, path: projectLeadId ? `/app/betriebe/${projectLeadId}` : null },
       ];
     }
     const leadMatch = path.match(/^\/app\/leads\/(\d+)/);
     if (leadMatch) {
       return [
-        { label: 'Betriebe', path: '/app/companies' },
+        { label: 'Betriebe', path: '/app/betriebe' },
         { label: leadName || `Lead #${leadMatch[1]}` },
       ];
     }
@@ -977,7 +972,9 @@ export default function AppLayout() {
 
   const ctaMap = {
     '/app/dashboard': null,
-    '/app/leads': { label: '+ Neuer Lead', action: () => navigate('/app/import') },
+    // Hiess „+ Neuer Lead" und fuehrte zum Domain-Import — auf der
+    // Projektpipeline. Der sichtbarste Teil der alten Verwechslung.
+    '/app/projektpipeline': null,
     '/app/audit': { label: '+ Neues Audit', action: () => {} },
     '/app/customers': null,
   };

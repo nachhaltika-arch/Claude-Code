@@ -563,7 +563,7 @@ export default function CustomerProjects() {
           icon="📋"
           title={search ? `Keine Projekte für „${search}"` : 'Noch keine Projekte'}
           description={search ? 'Passe den Suchbegriff an oder entferne den Filter.' : 'Wenn ein Lead als „Gewonnen" markiert wird, erscheint hier automatisch ein Projekt.'}
-          action={!search ? { label: '→ Zur Lead-Pipeline', onClick: () => navigate('/app/leads') } : undefined}
+          action={!search ? { label: '→ Zur Lead-Pipeline', onClick: () => navigate('/app/projektpipeline') } : undefined}
           secondaryAction={search ? { label: 'Filter zurücksetzen', onClick: () => setSearch('') } : undefined}
         />
       )}

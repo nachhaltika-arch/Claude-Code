@@ -1,0 +1,291 @@
+# KAS — Render Blueprint (PRODUKTIV, Frankfurt)
+#
+# Diese Datei beschreibt den **neuen** Produktiv-Dienst, der beim Umzug nach
+# Frankfurt entsteht (L-34) — nicht den heutigen Stand in Oregon. Der heutige
+# Stand steht in `render.yaml`, und diese Datei löst sie ab, sobald der Umzug
+# durch ist.
+#
+# Warum überhaupt ein Blueprint: Produktiv ist heute kein Dienst
+# blueprint-verwaltet (L-35). Deshalb wird jede Variable von Hand gepflegt,
+# deshalb war die Passwort-Rotation am 15.08. produktiv mehr Arbeit als auf
+# Staging, und deshalb behauptet `render.yaml` seit Monaten Dinge, die nicht
+# stimmen (Region frankfurt, Postgres 16, `ipAllowList: []`, Frontend als
+# Web-Service) — ohne dass es jemandem auffällt.
+#
+# Blueprint anwenden:
+#   1. Diese Datei nach `main` bringen
+#   2. Render Dashboard → New → Blueprint
+#   3. Repo `nachhaltika-arch/Claude-Code`, Branch `main`
+#   4. Blueprint-Pfad: kompagnon/render-produktiv.yaml
+#   5. Alle `sync: false`-Variablen im Dashboard befüllen — die Liste unten ist
+#      aus dem Quelltext erhoben, nicht abgeschrieben
+#
+# Ablauf und Rückweg stehen in `docs/umzug-backend-frankfurt.md`.
+#
+# ── Was produktiv gesetzt war, bevor wir am 16.08. hineingesehen haben ──────
+#
+# Dreizehn Variablen, mehr nicht (API_BASE_URL, CORS_ALLOWED_ORIGINS und die
+# neue FRONTEND_URL sind noch am selben Tag dazugekommen):
+#   ADMIN_EMAIL, ADMIN_PASSWORD, ANTHROPIC_API_KEY, BREVO_API_KEY,
+#   CREDENTIALS_KEY, DATABASE_URL, ENVIRONMENT, FRONTEND_URL,
+#   NETLIFY_API_TOKEN, PAGESPEED_API_KEY, SECRET_KEY,
+#   SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD
+#
+# Daraus drei Befunde, die keine Vermutung mehr sind:
+#
+#   - `API_BASE_URL` fehlte. Deshalb griff in `files.py` der fest eingetragene
+#     Rückfall, und in `leads.py` der auf `localhost:8000` — bei einem Dienst,
+#     dessen interne Adresse `claude-code-znq2:10000` lautet. Am 16.08. gesetzt.
+#   - Der PageSpeed-Schlüssel steht unter `PAGESPEED_API_KEY`. Sieben Aufrufer
+#     lasen `GOOGLE_PAGESPEED_API_KEY`, das es hier nicht gibt (L-43).
+#   - `SUPERADMIN_EMAIL` und `SUPERADMIN_PASSWORD` liest der Quelltext nirgends.
+#     Zwei Zugangsdaten liegen produktiv herum und tun nichts.
+#
+# Nicht gesetzt, obwohl der Code sie liest — jedes für sich eine eigene Frage,
+# keine davon Teil des Umzugs:
+#   STRIPE_SECRET_KEY (Zahlungen können nicht funktionieren),
+#   NETLIFY_WEBHOOK_SECRET, BREVO_WEBHOOK_SECRET, TRACKDESK_WEBHOOK_SECRET,
+#   WEBHOOK_SECRET (diese Endpunkte antworten mit 403),
+#   CMS_ENCRYPTION_KEY (die CMS-Passwortfunktion wirft RuntimeError),
+#   GOOGLE_PLACES_API_KEY, NORTHDATA_API_KEY, NETLIFY_VORSCHAU_SITE_ID.
+
+# ── Die Datenbank steht bewusst NICHT hier ───────────────────────────────────
+#
+# Die Produktiv-DB existiert und heißt `Kompangnon-dB` — mit Tippfehler, mit
+# Großbuchstaben. Ein `databases:`-Block trifft diesen Namen nur, wenn er
+# zeichengenau stimmt. Trifft er ihn nicht, legt Render eine **zweite, leere**
+# Datenbank an, der neue Dienst startet dagegen, `create_all` füllt sie mit
+# leeren Tabellen — und alles sieht gesund aus. Kein Fehler, keine Daten.
+#
+# Deshalb wird `DATABASE_URL` hier von Hand gesetzt (`sync: false`), mit der
+# **internen** Adresse der bestehenden DB. Erst wenn der Name im Dashboard
+# zeichengenau geprüft ist, lohnt der Wechsel auf `fromDatabase` — dann zieht
+# eine Rotation von selbst durch.
+
+services:
+  # ── Backend (FastAPI) ──────────────────────────────────────────────────────
+  # ACHTUNG: `kompagnon-backend` ist der Name des **laufenden** Oregon-Dienstes
+  # (URL-Kennung `claude-code-znq2`). Zwei Dienste können ihn nicht tragen.
+  # Vor dem Anlegen also den alten umbenennen — etwa auf
+  # `kompagnon-backend-oregon`; die URL-Kennung bleibt davon unberührt, es
+  # bricht nichts. Danach ist der gute Name für den neuen Dienst frei, und
+  # nach dem Löschen des alten bleibt kein Namensrest zurück.
+  - type: web
+    name: kompagnon-backend
+    runtime: python
+    # Der Grund für den ganzen Umzug. Die DB steht in Frankfurt, das Backend
+    # stand in Oregon: 2,1–2,6 s pro Health-Check statt 0,16 s, sieben von acht
+    # Startphasen liefen in Timeouts (L-41), und die DB *musste* im offenen
+    # Internet stehen, weil Render interne Adressen nicht über Regionen hinweg
+    # auflöst (L-44).
+    region: frankfurt
+    # Der alte Dienst läuft bereits auf Standard — am 16.08. im Dashboard
+    # nachgesehen. Die 264 s Startzeit lagen also nicht am Plan, sondern allein
+    # an der Latenz nach Frankfurt. Gleicher Plan, damit der Vergleich nach dem
+    # Umzug eine Aussage hat.
+    plan: standard
+    branch: main
+    rootDir: kompagnon/backend
+    buildCommand: pip install -r requirements.txt
+    # Der laufende Dienst startet OHNE --timeout-keep-alive 30, obwohl beide
+    # alten Blueprints es behaupten. Hier steht, was er tut.
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    # Deploy wird von GitHub Actions ausgeloest (.github/workflows/ci.yml),
+    # erst nach gruener CI. Das setzt voraus, dass Auto-Deploy im Dashboard
+    # aus ist — am 16.08. stand es auf beiden Produktiv-Diensten auf
+    # 'On Commit', der Torwaechter hat also nie gegriffen. Jetzt 'Off'.
+    # Folge im Alltag: Eine Variablenaenderung wirkt erst nach einem
+    # ausgeloesten Deploy; der Knopf heisst dann 'Save only'.
+    # Render kennt inzwischen auch 'After CI Checks Pass'. Nicht gewaehlt,
+    # weil der Deploy-Job in ci.yml selbst ausloest — es waeren zwei Deploys.
+    autoDeploy: false
+    envVars:
+      # ── Laufzeit ─────────────────────────────────────────────────────────
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      # War produktiv nie gesetzt. Der Vorgabewert ist `development`, und der
+      # legt die Demo-Konten an, statt sie zu deaktivieren — drei waren live
+      # (kunde@, nutzer@, auditor@kompagnon.de). Nicht weglassen.
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DEBUG
+        value: "false"
+
+      # ── Datenbank ────────────────────────────────────────────────────────
+      # Interne Adresse der bestehenden `Kompangnon-dB`. Genau hier
+      # verschwindet die Datenbank aus dem offenen Internet — danach L-44:
+      # Inbound-Regel von 0.0.0.0/0 auf „kein externer Verkehr".
+      - key: DATABASE_URL
+        sync: false
+
+      # ── Adressen nach aussen ─────────────────────────────────────────────
+      # Die eigene Domain, die beim Umzug vor den Dienst gezogen ist. Sie hat
+      # Vorrang vor RENDER_EXTERNAL_URL und steht in jedem Berichtslink, den
+      # ein Empfänger je bekommt. Fehlt sie, greift RENDER_EXTERNAL_URL — dann
+      # tragen alle neuen Links wieder die onrender.com-Adresse, und der
+      # nächste Umzug bricht sie erneut.
+      - key: API_BASE_URL
+        value: https://api.kompagnon.group
+      # Die Adresse der Oberfläche. Steht in Stripe-Rückleitungen, im
+      # Kundenportal-Link, im QR-Code und in Mail-Links — alles, was ein Kunde
+      # zu sehen bekommt. FRONTEND_URL genügt; PUBLIC_BASE_URL hat nur Vorrang,
+      # falls beide je auseinanderlaufen sollen.
+      - key: FRONTEND_URL
+        value: https://kas.kompagnon.group
+      - key: PUBLIC_BASE_URL
+        sync: false
+      # Additiv: main.py hängt seine eingebauten Herkünfte immer an, die alte
+      # onrender.com-Adresse bleibt also gültig.
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://kas.kompagnon.group
+      # Nur setzen, wenn ein Proxy davorsteht. Leer heisst: der Kopf wird nicht
+      # geglaubt — und das ist die sichere Vorgabe für die Ratenbegrenzung.
+      - key: TRUSTED_PROXY_HEADER
+        sync: false
+
+      # ── Schlüssel, die gespeicherte Daten aufschliessen ───────────────────
+      # Diese drei sind nicht austauschbar: Wer sie ändert, macht bereits
+      # verschlüsselte Zugangsdaten und Sitzungen unlesbar.
+      - key: SECRET_KEY
+        sync: false
+      - key: CREDENTIALS_KEY
+        sync: false
+      - key: CMS_ENCRYPTION_KEY
+        sync: false
+
+      # ── KI ───────────────────────────────────────────────────────────────
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: AUDIT_AI_MODEL
+        sync: false
+      - key: AUDIT_RECOGNITION_MODEL
+        sync: false
+      - key: ASSISTENT_MODELL
+        sync: false
+      - key: ASSISTENT_MAX_TOKENS
+        sync: false
+
+      # ── Erhebung fürs Audit ──────────────────────────────────────────────
+      # Der Name, unter dem der Schlüssel in Render tatsächlich steht. Der Code
+      # akzeptiert beide Schreibweisen, seit sieben Aufrufer den kurzen Namen
+      # monatelang nicht gesehen haben — aber genau einer gehört hierher.
+      - key: PAGESPEED_API_KEY
+        sync: false
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      - key: NORTHDATA_API_KEY
+        sync: false
+      - key: HWK_SCRAPER_ENABLED
+        sync: false
+
+      # ── E-Mail ───────────────────────────────────────────────────────────
+      # Versand läuft über die Brevo-API, nicht über SMTP — produktiv meldet
+      # /info deshalb `smtp_configured: false`, und das ist richtig so. Die
+      # SMTP-Variablen bleiben absichtlich weg; sie waren der Weg, den das
+      # Widget am 11.08. verloren hat.
+      - key: BREVO_API_KEY
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+
+      # ── Zahlungen ────────────────────────────────────────────────────────
+      - key: STRIPE_SECRET_KEY
+        sync: false
+
+      # ── Webhooks ─────────────────────────────────────────────────────────
+      # Alle fünf prüfen eine Signatur. Fehlt das Geheimnis, antwortet der
+      # jeweilige Endpunkt mit 403 — Absicht, kein Fehler. Und: Nach dem Umzug
+      # zeigen Trackdesk, Netlify und Brevo auf die Domain, nicht mehr auf die
+      # onrender.com-Adresse.
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET_GEO
+        sync: false
+      - key: NETLIFY_WEBHOOK_SECRET
+        sync: false
+      - key: BREVO_WEBHOOK_SECRET
+        sync: false
+      - key: TRACKDESK_WEBHOOK_SECRET
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false
+
+      # ── Kunden-Hosting ───────────────────────────────────────────────────
+      - key: NETLIFY_API_TOKEN
+        sync: false
+      # Die Qualitätsschleife deployt die eigene Seite als Vorschau und misst
+      # sie. Ohne diese eine Adresse passiert nichts (503) — genau so gebaut,
+      # damit keine Vorschau je eine Kundensite überschreibt. L-40.
+      - key: NETLIFY_VORSCHAU_SITE_ID
+        sync: false
+
+      # ── Angaben auf Rechnungen und im Impressum ──────────────────────────
+      - key: COMPANY_ADDRESS
+        sync: false
+      - key: CONTACT_EMAIL
+        sync: false
+      - key: CONTACT_PHONE
+        sync: false
+      - key: BANK_NAME
+        sync: false
+      - key: BANK_IBAN
+        sync: false
+      - key: BANK_BIC
+        sync: false
+
+      # ── Erstbefüllung ────────────────────────────────────────────────────
+      # Nur ADMIN_* gehört produktiv gesetzt. AUDITOR_*, KUNDE_* und NUTZER_*
+      # sind die Demo-Konten; mit ENVIRONMENT=production werden sie
+      # deaktiviert statt angelegt. Deaktivieren, nicht löschen — der Seed
+      # legt fehlende Konten sonst beim nächsten Start neu an.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+
+  # ── Frontend (React, Static Site) ──────────────────────────────────────────
+  # `render.yaml` führt das Frontend als Web-Service mit `npx serve`. Das ist
+  # es produktiv nicht und war es nie — es ist eine Static Site (L-35).
+  #
+  # ⚠️ Dieser Name gehört einem **laufenden** Dienst. Wendet man den Blueprint
+  # an, übernimmt Render ihn. Das Frontend zieht deshalb nicht mit dem Backend
+  # um — am Umzug ändert sich für es ohnehin nur `REACT_APP_API_URL`, und die
+  # ist am 16.08. bereits einzeln gesetzt worden.
+  - type: web
+    name: kompagnon-frontend
+    runtime: static
+    branch: main
+    rootDir: kompagnon/frontend
+    buildCommand: npm ci --legacy-peer-deps && npm run build
+    staticPublishPath: build
+    autoDeploy: false
+    # Am 16.08. aus dem Dashboard abgeschrieben und live nachgeprüft: Es ist
+    # genau diese eine Regel, ohne Ausnahme für /embed.
+    #
+    # Die Sorge war, sie könnte `/embed/audit-widget.html` verschlucken — eine
+    # echte Datei, die beim Web-Service an `public/serve.json` hing, das für
+    # eine Static Site nicht gilt. Sie tut es nicht: Render liefert vorhandene
+    # Dateien aus, *bevor* die Regel greift. Nachgemessen an der Produktivseite:
+    # `/embed/audit-widget.html` liefert das Widget, `/irgendein/pfad` die
+    # Anwendung.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    # Produktiv stehen hier tatsächlich nur zwei Variablen. `NODE_VERSION` und
+    # `CI`, die `render.yaml` behauptet, existieren nicht — der Build läuft seit
+    # jeher mit Renders Standard-Node und ohne `CI=false`. Beide werden deshalb
+    # bewusst nicht ergänzt: Sie einzutragen wäre keine Dokumentation, sondern
+    # eine Änderung am funktionierenden Build.
+    envVars:
+      # Wird in den Build eingebacken — eine Änderung wirkt erst nach einem
+      # neuen Deploy, nicht durch Speichern im Dashboard. Am 16.08. von
+      # `claude-code-znq2.onrender.com` auf die Domain umgestellt und im
+      # ausgelieferten Bundle nachgeprüft.
+      - key: REACT_APP_API_URL
+        value: https://api.kompagnon.group
+      - key: REACT_APP_GJS_LICENSE_KEY
+        sync: false

@@ -15,6 +15,7 @@ from database import Lead, Project, AuditResult, get_db, SessionLocal
 from routers.auth_router import require_any_auth, get_current_user
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
+from services.audit_pagespeed import api_key as pagespeed_api_key
 import asyncio
 import csv
 import httpx
@@ -491,7 +492,13 @@ async def _process_single_domain(url: str, clean: str, _session_factory, job_id:
     try:
         import httpx
         async with httpx.AsyncClient(timeout=90) as client:
-            audit_base = os.getenv('API_BASE_URL', 'http://localhost:8000')
+            # Aufruf an den eigenen Server. Der Rückfall stand fest auf Port
+            # 8000 — den gibt es auf Render nicht, dort hört der Dienst auf
+            # $PORT. Ohne gesetztes API_BASE_URL lief dieser Aufruf also
+            # produktiv ins Leere, und zwar leise: Der Audit startete nicht,
+            # der Lead blieb ohne Bewertung stehen.
+            audit_base = os.getenv('API_BASE_URL') or \
+                f"http://127.0.0.1:{os.getenv('PORT', '8000')}"
             r = await client.post(f'{audit_base}/api/audit/start',
                 json={'website_url': url, 'lead_id': lead_id, 'company_name': clean})
             if r.status_code == 200:
@@ -1654,7 +1661,7 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
     # Persistiert wird unten ueber eine frische SessionLocal().
     db.close()
 
-    api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+    api_key = pagespeed_api_key()
     base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
     params_base = {"url": website_url}
     if api_key:

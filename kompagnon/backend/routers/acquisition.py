@@ -18,6 +18,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from services.base_urls import public_base_url
 from sqlalchemy.orm import Session
 
 from database import User, WidgetRequest, get_db
@@ -44,7 +45,7 @@ REQUEST_HISTORY_LIMIT = 25
 
 
 def widget_embed_url() -> str:
-    base = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com").rstrip("/")
+    base = public_base_url()
     return f"{base}/embed/audit-widget.html"
 
 

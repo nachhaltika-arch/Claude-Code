@@ -121,7 +121,7 @@ jobs:
         working-directory: kompagnon/frontend
         env:
           CI: false
-          REACT_APP_API_URL: https://claude-code-znq2.onrender.com
+          REACT_APP_API_URL: https://api.kompagnon.group
         run: npm run build
       - name: Report bundle size
         working-directory: kompagnon/frontend

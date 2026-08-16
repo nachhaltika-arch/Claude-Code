@@ -5,6 +5,7 @@ Includes password reset and welcome email templates.
 import smtplib
 import os
 import logging
+from services.base_urls import public_base_url
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -169,7 +170,7 @@ def send_email_detailed(to_email: str, subject: str, html_body: str,
 
 
 def send_password_reset_email(to_email: str, reset_token: str, user_name: str = "") -> bool:
-    frontend_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
+    frontend_url = public_base_url()
     reset_url = f"{frontend_url}/reset-password?token={reset_token}"
     name = user_name or "Nutzer"
 
@@ -198,7 +199,7 @@ padding:16px 32px;text-align:center;"><p style="margin:0;font-size:12px;color:#9
 
 
 def send_welcome_email(to_email: str, user_name: str = "", temp_password: str = "") -> bool:
-    frontend_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
+    frontend_url = public_base_url()
     name = user_name or "Nutzer"
     pw_block = f"<p style='font-size:13px;color:#475569;'>Passwort: <strong>{temp_password}</strong></p>" if temp_password else ""
 

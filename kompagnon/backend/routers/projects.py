@@ -91,6 +91,8 @@ from datetime import datetime
 from pydantic import BaseModel
 from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, ProjectScrapeJob, get_db, SessionLocal
 from services.margin_calculator import MarginCalculator
+from services.base_urls import public_base_url
+from services.audit_pagespeed import api_key as pagespeed_api_key
 from routers.content_scraper_router import _run_content_scrape
 from routers.auth_router import require_admin, require_any_auth, get_current_user
 from automations.scheduler import (
@@ -701,10 +703,7 @@ def change_phase(
             from services.email import send_email
             from services.email_templates import PHASE_NAMES, render
             phase_name, phase_desc = PHASE_NAMES.get(phase_nr, (f"Phase {phase_nr}", ""))
-            portal = os.getenv(
-                "FRONTEND_URL",
-                "https://kompagnon-frontend.onrender.com"
-            ) + "/portal/login"
+            portal = public_base_url() + "/portal/login"
             rendered = render("phase_change", {
                 "firma":              project.lead.company_name or "dort",
                 "phase_nr":           phase_nr,
@@ -900,7 +899,7 @@ def request_approval(
     )
     db.commit()
 
-    frontend_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
+    frontend_url = public_base_url()
     approval_url = f"{frontend_url}/approve-content/{token}"
 
     try:
@@ -995,7 +994,7 @@ async def _golive_automation(project_id: int):
             # ── 3. NACHHER-PAGESPEED ─────────────────────────
             try:
                 import httpx
-                api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+                api_key = pagespeed_api_key()
 
                 async def _ps(strategy):
                     url = (
@@ -1054,10 +1053,7 @@ async def _golive_automation(project_id: int):
             if customer_email:
                 try:
                     from services.email import send_email
-                    portal_url = os.getenv(
-                        "FRONTEND_URL",
-                        "https://kompagnon-frontend.onrender.com"
-                    ) + "/portal/login"
+                    portal_url = public_base_url() + "/portal/login"
 
                     ps_mobile  = getattr(project, 'pagespeed_after_mobile', None)
                     ps_desktop = getattr(project, 'pagespeed_after_desktop', None)
@@ -3153,7 +3149,7 @@ def request_approval(
                   in Ihrem Kundenportal an, um die Freigabe zu erteilen.
                 </p>
                 <div style="text-align:center;margin:20px 0">
-                  <a href="{os.getenv('FRONTEND_URL', 'https://kompagnon-frontend.onrender.com')}/kundenportal"
+                  <a href="{public_base_url()}/kundenportal"
                      style="display:inline-block;padding:12px 28px;background:#008eaa;color:white;
                             text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px">
                     Zum Kundenportal &rarr;
@@ -3302,7 +3298,7 @@ async def go_live_pagespeed(
     # DB-Verbindung vor externen PageSpeed + Screenshot Calls freigeben
     db.close()
 
-    api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+    api_key = pagespeed_api_key()
     base    = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
     params  = {"url": url}
     if api_key:

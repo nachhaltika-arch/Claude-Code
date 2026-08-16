@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 from database import Customer, Project, get_db, SessionLocal
 from routers.auth_router import require_any_auth
+from services.audit_pagespeed import api_key as pagespeed_api_key
 
 # Vorgabe: geschlossen. Bis zum 14.08.2026 trug keine der sieben Routen eine
 # Anmeldung — der Kundenbestand war produktiv ohne Token abrufbar und änderbar.
@@ -215,7 +216,7 @@ async def run_pagespeed(customer_id: int, db: Session = Depends(get_db)):
     # DB-Verbindung vor externem PageSpeed-Call freigeben
     db.close()
 
-    api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+    api_key = pagespeed_api_key()
     base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
 
     async with httpx.AsyncClient(timeout=60.0) as client:

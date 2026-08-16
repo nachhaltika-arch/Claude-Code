@@ -15,6 +15,7 @@ from sqlalchemy import text
 
 from database import get_db
 from routers.auth_router import get_current_user, require_admin
+from services.base_urls import api_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +206,10 @@ def get_grapesjs_assets(
     import json as _json
     from urllib.parse import urlparse
 
-    base_url = os.getenv("API_BASE_URL", "https://claude-code-znq2.onrender.com")
+    # Die Bild-Adressen landen im gespeicherten Seiteninhalt. Stand hier die
+    # Produktiv-Adresse fest im Code, zeigten auf Staging gebaute Seiten auf
+    # Produktiv-Dateien — gültige Adressen, falsche Herkunft.
+    base_url = api_base_url()
     assets = []
 
     # 1. Hochgeladene Dateien (logo, foto)

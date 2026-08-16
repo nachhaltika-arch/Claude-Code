@@ -3,6 +3,7 @@ import base64
 import io
 import uuid
 import os
+from services.base_urls import public_base_url
 
 
 def generate_token() -> str:
@@ -30,5 +31,5 @@ def generate_qr_code(url: str) -> str:
 
 
 def get_portal_url(token: str) -> str:
-    frontend_url = os.getenv('FRONTEND_URL', 'https://kompagnon-frontend.onrender.com')
+    frontend_url = public_base_url()
     return f'{frontend_url}/portal/{token}'

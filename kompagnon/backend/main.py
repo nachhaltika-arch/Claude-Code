@@ -1725,7 +1725,12 @@ _default_origins = [
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:5173",
-    "https://kompagnon-frontend.onrender.com",
+    # Die eigene Domain der Oberfläche, seit 16.08. Sie steht bewusst *auch*
+    # hier und nicht nur in CORS_ALLOWED_ORIGINS: Geht die Variable verloren,
+    # lädt das Tool sonst und scheitert an jeder Anfrage — ohne dass irgendwo
+    # „CORS" stünde.
+    "https://kas.kompagnon.group",
+    "https://kompagnon-frontend.onrender.com",  # alte Adresse, bleibt gültig
     "https://websprint.kompagnon.eu",  # WebSprint-Landingpage (eingebetteter Website-Check)
 ]
 for _o in _default_origins:

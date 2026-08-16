@@ -6,6 +6,7 @@ import os
 import asyncio
 import logging
 import httpx
+from services.audit_pagespeed import api_key as pagespeed_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ async def enrich_lead(lead_id: int, db) -> dict:
     # 3. PageSpeed score
     pagespeed_score = 0
     try:
-        api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+        api_key = pagespeed_api_key()
         ps_url = (
             "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
             f"?url={url}&strategy=mobile"

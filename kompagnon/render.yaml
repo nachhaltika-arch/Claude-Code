@@ -1,10 +1,28 @@
-# KAS — Render Blueprint
+# KAS — Render Blueprint (PRODUKTIV, Ist-Zustand — VERALTET)
 #
-# Bestehende Services wurden manuell angelegt — dieses Blueprint dient
-# als Wahrheits-/Dokumentations-Datei und für künftige neue Services.
-# Bei Änderung im Render Dashboard: bitte hier nachziehen.
+# ⚠️ Diese Datei beschreibt den Produktivbetrieb NICHT korrekt. Sie nennt sich
+# „Wahrheits-Datei", ist aber an keinen Dienst gebunden: Produktiv ist nichts
+# blueprint-verwaltet (L-35). Was hier steht, ist deshalb nie geprüft worden,
+# und vier Angaben sind nachweislich falsch:
 #
-# Region: frankfurt (EU) — DSGVO-relevant, nicht ändern ohne Datenschutz-Prüfung.
+#   | hier                             | tatsächlich                        |
+#   |----------------------------------|------------------------------------|
+#   | Backend `region: frankfurt`      | **Oregon (US West)** — L-34        |
+#   | DB `kompagnon-db`, Postgres 16   | `Kompangnon-dB`, Postgres 18       |
+#   | DB `plan: starter`               | `basic-256mb`                      |
+#   | DB `ipAllowList: []`             | **0.0.0.0/0**, offenes Internet    |
+#   | Frontend als Web-Service         | **Static Site**                    |
+#
+# Dazu fehlen 32 Variablen, die der Quelltext liest und die kein Automatismus
+# setzt — darunter vier der sechs Webhook-Geheimnisse (Brevo, Netlify,
+# Trackdesk und das allgemeine) sowie `CREDENTIALS_KEY` und
+# `CMS_ENCRYPTION_KEY`, ohne die gespeicherte Zugangsdaten unlesbar bleiben.
+#
+# Der Nachfolger steht in `render-produktiv.yaml` und beschreibt den neuen
+# Dienst in Frankfurt (L-34). Diese Datei bleibt bis zum Umzug als Beleg des
+# Ist-Zustands stehen und wird danach gelöscht — nicht gepflegt.
+#
+# Erhoben am 2026-08-16, Belege in `docs/umzug-backend-frankfurt.md`.
 
 databases:
   - name: kompagnon-db

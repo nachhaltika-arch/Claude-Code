@@ -408,11 +408,19 @@ tatsächlich geprüften Kriterien normiert.
 > `/llms.txt`; GEO-Spalten, die niemand befüllte; eine Rechtsangabe, die über
 > die Nachbarspalte druckte. Offen bleiben Punkt 1 und Punkt 5.
 
-1. **PageSpeed-Schlüssel auf Render.** Im Code ist beides gelöst: Abfrage auch
-   ohne Key, und `PAGESPEED_API_KEY` wird als zweiter Name akzeptiert. Ob
-   produktiv ein Schlüssel gesetzt ist, war von hier nicht prüfbar. Ohne ihn
-   bleiben die Core Web Vitals dauerhaft „nicht erhoben“ — ehrlich, aber
-   15 Punkte weniger Aussage.
+1. ~~**PageSpeed-Schlüssel auf Render.**~~ **Geschlossen am 2026-08-16 — und
+   der Punkt war größer als hier beschrieben.** Im Dashboard nachgesehen: Der
+   Schlüssel steht produktiv als `PAGESPEED_API_KEY`. Genau das war das
+   Problem. `audit_pagespeed.py` akzeptiert beide Schreibweisen — **sieben
+   andere Aufrufer nicht**: Leadliste, Kundenkarte, Projektmessung,
+   Nutzerkarte, Anreicherung und der nächtliche Lauf lasen allein
+   `GOOGLE_PAGESPEED_API_KEY`, das produktiv nicht existiert. Sie liefen also
+   auf dem anonymen Kontingent, das unter Last aussetzt — und
+   `/api/diagnostics/config` meldete derweil „gesetzt (als
+   PAGESPEED_API_KEY)", weil dieser Endpunkt den Zweitnamen kennt und die
+   Aufrufer nicht. Alle sieben holen den Schlüssel jetzt an derselben Stelle
+   (`6100240`, L-43). **Der Stand vom 15.08., dieser Punkt sei geklärt, galt
+   nur für den Audit-Pfad.**
 2. **Referenz-Website für die Tests** (Schritt 6). Ohne sie prüfen die Tests die
    Rechenwege, nicht die Erhebung.
 3. **Quellen-Kennzeichnung im Report** (Schritt 7). Nachsehen, ob „gemessen /
@@ -512,9 +520,16 @@ oder Bad noch vorkommen — der SHK-Fall bleibt unverändert. Das ist ausdrückl
 **keine** Branchen-Ausweitung: bewertet wird fair, verkauft wird weiter in der
 Nische der Phase 1.
 
-Offen bleibt: `trade` aus den Stammdaten und die erkannte `branche` können
-auseinanderlaufen. Die Erkennung korrigiert nur die Bewertung, sie schreibt den
-Stammdatensatz nicht zurück.
+~~Offen bleibt: `trade` aus den Stammdaten und die erkannte `branche` können
+auseinanderlaufen.~~ **Am 2026-08-16 nachgegangen — und es war mehr als ein
+Auseinanderlaufen.** Die Vermutung wurde *aktiv* in den Auditdatensatz
+geschoben: `useAudit` sendete `lead.trade` bei jedem aus einem Lead gestarteten
+Audit mit, also auf dem Hauptweg. Der Kommentar in `routers/audit.py`
+behauptete „was niemand eingetragen hat, bleibt leer" — das Frontend trug es
+ein. Geschützt war nur der Widget-Weg. Seit dem 16.08. sendet das Frontend das
+Feld nicht mehr (L-49). Ein Rückschreiben von `erkannte_branche` in `lead.trade`
+ist bewusst **nicht** ergänzt worden: Das schöbe eine Modellvermutung in den
+Stammdatensatz und tauschte nur die Quelle des Ratens aus.
 
 ---
 
@@ -603,6 +618,13 @@ K2-Maßstab als Zusatztyp zählt, während `LocalBusiness` weiter fehlt und
 zu Recht einen Punkt kostet. `cv_kontakt` bleibt bei 2/3, misst aber jetzt
 Sprechzeiten statt eines schlanken Formulars.
 
-Ebenfalls offen: `lead_enrichment.py` füllt `lead.trade` weiter aus derselben
-Stichwortsuche. In einer Leadliste ist eine Arbeitshypothese vertretbar — sie
-darf nur nirgends als Befund gedruckt werden.
+~~Ebenfalls offen: `lead_enrichment.py` füllt `lead.trade` weiter aus derselben
+Stichwortsuche.~~ Das bleibt so und ist vertretbar — **aber sie wurde als
+Befund gedruckt**, an zwei Stellen, die der Fix vom 14.08. nicht angefasst
+hatte: dem Deckblatt des Angebots-PDF (`angebot_pdf.py`) und dem
+Kaltakquise-Anschreiben (`leads.py`, mit `or lead.trade` als doppeltem
+Rückfall). Ein Ingenieurbüro wurde damit als „Schreiner" angeschrieben — im
+selben Umschlag mit dem Auditprotokoll, das korrekt „Ingenieurbüro" sagte.
+Beide nehmen seit dem 2026-08-16 dieselbe Rangfolge wie das Protokoll:
+`branche_fuer_protokoll`, Befund vor Vermutung, und wo nichts erhoben ist, das
+neutrale Wort (L-49).

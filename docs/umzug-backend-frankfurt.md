@@ -148,10 +148,56 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
 
 ### Gelegenheit beim Schopf
 
-Der neue Dienst sollte **über einen Blueprint** entstehen (`render.yaml` für
-Produktiv). Das schließt L-35 mit — heute ist produktiv nichts
-blueprint-verwaltet, weshalb `DATABASE_URL` dort von Hand gepflegt wird und die
-Rotation mehr Arbeit war als auf Staging.
+Der neue Dienst sollte **über einen Blueprint** entstehen. Das schließt L-35
+mit — heute ist produktiv nichts blueprint-verwaltet, weshalb `DATABASE_URL`
+dort von Hand gepflegt wird und die Rotation mehr Arbeit war als auf Staging.
+
+**Der Blueprint liegt seit dem 16.08.: `kompagnon/render-produktiv.yaml`.** Er
+beschreibt den neuen Dienst, nicht den alten, und trägt alle Variablen, die der
+Quelltext liest — der alten `render.yaml` fehlen davon 32, darunter vier
+Webhook-Geheimnisse und die beiden Schlüssel, ohne die gespeicherte
+Zugangsdaten unlesbar bleiben. Zwei Dinge sind darin bewusst offen gelassen,
+weil ein geratener Wert dort teuer wäre:
+
+- **Die Datenbank steht nicht im Blueprint.** Ein `databases:`-Block trifft
+  `Kompangnon-dB` nur zeichengenau; trifft er daneben, legt Render eine
+  zweite, leere Datenbank an, `create_all` füllt sie, und alles sieht gesund
+  aus. `DATABASE_URL` wird deshalb von Hand gesetzt.
+- **Die Umschreibungsregeln der Static Site** stehen heute nur im Dashboard.
+  Eine falsche Regel verschluckt `/embed/audit-widget.html` lautlos — 200 statt
+  Datei. Vor dem Umzug abschreiben.
+
+---
+
+## L-40 vorbereitet: Wer erreicht die Datenbank heute von außen
+
+Die Inbound-Regel steht produktiv auf `0.0.0.0/0`. Bevor sie zugeht, muss
+feststehen, wer dadurch die Verbindung verliert. Geprüft am 2026-08-16:
+
+| Zugriff | Braucht offene Regel? | Nach dem Umzug |
+|---|---|---|
+| Produktiv-Backend (Oregon) | **ja** — interne Adressen lösen nicht über Regionen hinweg auf | entfällt, das ist der Umzug |
+| CI (GitHub Actions) | nein — vier Jobs, alle mit eigenem Postgres-Container bzw. SQLite | unverändert |
+| Staging-Backend | nein — eigene DB, `ipAllowList: []` | unverändert |
+| Netlify, Brevo, Trackdesk, Stripe | nein — sie sprechen mit dem Backend, nie mit der DB | unverändert |
+| Davids Rechner (DBeaver, `pg_dump`) | **ja** | siehe unten |
+
+Der letzte Punkt ist der einzige, der eine Entscheidung braucht — und dabei
+fällt ein Widerspruch auf: `docs/local-dev-with-render-db.md` beschreibt genau
+diesen Weg, sagt aber ausdrücklich **„Nur Staging-DB nutzen"**. Die Staging-DB
+blockt externen Verkehr seit jeher. Der dokumentierte Weg funktioniert also
+heute nur gegen die Produktiv-DB — gegen genau die, vor der die Anleitung
+warnt.
+
+Damit ist die Regel keine Einschränkung, sondern eine Korrektur: Für einen
+Blick in die Daten gibt es `psql` über die Render-Shell und
+`render psql <dienst>` über die CLI. Beides läuft innerhalb von Render und
+braucht die offene Regel nicht. `docs/local-dev-with-render-db.md` gehört
+danach entsprechend korrigiert.
+
+**Reihenfolge:** Die Regel geht zu, *nachdem* der neue Dienst in Frankfurt über
+die interne Adresse läuft — nicht vorher. Vorher nimmt sie dem alten Dienst in
+Oregon die Datenbank weg, und das ist ein Ausfall, kein Umzug.
 
 ---
 

@@ -44,6 +44,7 @@ Das ist die eigentliche Arbeit. Nicht der Umzug — die Adresse.
 | `frontend/src/config.js` | Rückfallwert, sonst `REACT_APP_API_URL` | ja, Variable |
 | `services/base_urls.py` | **seit 16.08. der einzige Rückfall im Backend**; davor `API_BASE_URL`, dann `RENDER_EXTERNAL_URL` (setzt Render selbst) | ja |
 | ~~`services/widget_report.py`~~, ~~`routers/files.py`~~ | hatten je eine eigene Zeile mit der Produktiv-Adresse — zusammengelegt (`22480d1`) | erledigt |
+| **Gespeicherte Seiteninhalte in der DB** | absolute Bild-Adressen, vom Editor hineingeschrieben | **erledigt 16.08.** |
 | **Bereits versendete Berichts-Mails** | **fest in der Mail** | **nein** |
 | **Webhook bei Trackdesk** | bei einem Dritten registriert | nur dort |
 | **Webhook bei Netlify** | bei einem Dritten registriert | nur dort |
@@ -186,6 +187,35 @@ weil ein geratener Wert dort teuer wäre:
 - **Die Umschreibungsregeln der Static Site** stehen heute nur im Dashboard.
   Eine falsche Regel verschluckt `/embed/audit-widget.html` lautlos — 200 statt
   Datei. Vor dem Umzug abschreiben.
+
+---
+
+## Die Datenbank zeigte selbst auf die alte Adresse — gezählt am 16.08.
+
+Der Editor schreibt **absolute** Bild-Adressen in den gespeicherten
+Seiteninhalt. Die brechen nicht beim Umzug, sondern erst beim **Löschen** des
+alten Dienstes — und dann still, denn im Code ist dann alles richtig.
+
+Gezählt über die Render-Shell, also ohne offene Inbound-Regel:
+
+| Tabelle | Bestand | betroffen |
+|---|---|---|
+| `sitemap_pages` (Kunden-Editorseiten) | 170 | **0** |
+| `projects.wireframe_data` | 19 | **0** |
+| `kas_gjs_data` (eigene KAS-Seiten) | 2 | **2** |
+| `project_files` (Uploads) | 1 | 1 |
+
+**Kundenseiten waren nicht betroffen.** Die zwei eigenen Seiten sind am selben
+Tag umgeschrieben worden, mit Vorher-Nachher-Prüfung: 2 Treffer je Zeile, die
+Länge sank um exakt 20 Zeichen (2 × die Differenz der beiden Adressen), `json`
+danach weiterhin gültig. Kein anderer Inhalt hat sich bewegt.
+
+**Was dabei nebenbei auffiel und offen bleibt:** `project_files` speichert
+lokale Dateipfade, und keiner der Blueprints enthält einen `disk:`-Block. Die
+Uploads liegen also auf einem flüchtigen Dateisystem. Die eine vorhandene Zeile
+zeigt bereits auf eine Datei, die es **nicht mehr gibt** — verloren bei einem
+früheren Deploy, lange vor diesem Umzug. Bei einer Datei ist das keine
+Umzugssperre; als Bauweise gehört es geklärt, bevor Kunden Bilder hochladen.
 
 ---
 

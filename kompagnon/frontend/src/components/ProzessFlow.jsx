@@ -1322,7 +1322,6 @@ function AuditEmbed({ project, lead, headers, latestAudit, onAuditComplete }) {
     websiteUrl,
     companyName: lead?.company_name || project?.company_name || '',
     city:        lead?.city  || '',
-    trade:       lead?.trade || '',
     headers,
     autoStart:      true,
     existingResult: latestAudit,

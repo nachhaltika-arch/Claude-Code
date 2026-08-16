@@ -70,6 +70,60 @@ def test_die_bild_adressen_kommen_aus_derselben_quelle(monkeypatch):
     assert files.api_base_url() == "https://staging.example"
 
 
+# ── Der Ruf an sich selbst ────────────────────────────────────────────
+
+def test_der_selbstaufruf_nimmt_die_interne_adresse_mit_port(monkeypatch):
+    """Render zeigt die interne Adresse als ``dienst:10000`` — mit Port.
+
+    ``webhooks.py`` baute sie ohne. Damit ging die Anfrage auf Port 80, wo
+    niemand hört, und der Audit nach einem Netlify-Webhook startete nie.
+    """
+    # Arrange — wie auf Render
+    monkeypatch.setenv("RENDER_INTERNAL_HOSTNAME", "claude-code-znq2")
+    monkeypatch.setenv("PORT", "10000")
+
+    # Act / Assert
+    assert base_urls.self_base_url() == "http://claude-code-znq2:10000"
+
+
+def test_ohne_render_bleibt_der_aufruf_auf_dem_eigenen_rechner(monkeypatch):
+    # Arrange
+    monkeypatch.delenv("RENDER_INTERNAL_HOSTNAME", raising=False)
+    monkeypatch.setenv("PORT", "8080")
+
+    # Act / Assert
+    assert base_urls.self_base_url() == "http://127.0.0.1:8080"
+
+
+def test_der_selbstaufruf_geht_nie_ueber_die_oeffentliche_adresse(monkeypatch):
+    """``API_BASE_URL`` gehört nicht in diese Kette.
+
+    ``leads.py`` nahm sie — und schickte damit einen Aufruf an die eigene
+    Maschine aus Oregon durch Cloudflare und zurück. Läge sie lokal in einer
+    ``.env`` auf Produktiv, riefe der eigene Server das fremde System.
+    """
+    # Arrange
+    monkeypatch.delenv("RENDER_INTERNAL_HOSTNAME", raising=False)
+    monkeypatch.delenv("PORT", raising=False)
+    monkeypatch.setenv("API_BASE_URL", "https://api.kompagnon.group")
+
+    # Act
+    adresse = base_urls.self_base_url()
+
+    # Assert — der eigene Rechner, nicht die Domain
+    assert adresse == "http://127.0.0.1:8000"
+    assert "kompagnon.group" not in adresse
+
+
+def test_beide_aufrufstellen_nutzen_denselben_helfer():
+    """Sonst driftet die Kette wieder auseinander — wie bis zum 16.08."""
+    from routers import leads, webhooks
+
+    # Assert
+    assert leads.self_base_url is base_urls.self_base_url
+    assert webhooks.self_base_url is base_urls.self_base_url
+
+
 def test_beide_rueckfaelle_sind_domains_die_uns_gehoeren():
     """Eine von Render vergebene Adresse als Rückfall überlebt keinen Umzug.
 

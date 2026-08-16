@@ -26,7 +26,7 @@ from typing import Optional
 # Auf Render greift dieser Wert nie: Dort steht `API_BASE_URL` (produktiv seit
 # dem 16.08.) oder `RENDER_EXTERNAL_URL`, das Render je Dienst selbst setzt.
 FALLBACK_API_BASE_URL = "https://api.kompagnon.group"
-FALLBACK_PUBLIC_BASE_URL = "https://kompagnon-frontend.onrender.com"
+FALLBACK_PUBLIC_BASE_URL = "https://kas.kompagnon.group"
 
 
 def _erste_gesetzte(*kandidaten: Optional[str]) -> str:

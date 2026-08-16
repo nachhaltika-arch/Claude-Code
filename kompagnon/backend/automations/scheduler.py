@@ -13,6 +13,7 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from database import SessionLocal, Project, Communication, DATABASE_URL
 from services.margin_calculator import MarginCalculator
+from services.base_urls import public_base_url
 from services.audit_pagespeed import api_key as pagespeed_api_key
 from services.email import send_email as _send_email_canonical
 from automations.email_templates import render_template
@@ -46,7 +47,7 @@ def _send_phase_email(project_id: int, template_key: str):
             return
 
         lead = project.lead
-        frontend_url = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
+        frontend_url = public_base_url()
         # Token-Direktlink wenn vorhanden, sonst Login-Fallback. Verwendet
         # in Briefing-Remindern (Bug #5) und überall wo das Portal verlinkt wird.
         briefing_link = (

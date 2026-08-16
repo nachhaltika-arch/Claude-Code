@@ -9,6 +9,7 @@ import threading
 from datetime import datetime
 
 import stripe
+from services.base_urls import public_base_url
 from fastapi import APIRouter, Request, HTTPException, Depends
 from sqlalchemy.orm import Session
 
@@ -23,7 +24,8 @@ logger = logging.getLogger(__name__)
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
+# Kein Modul-Konstantenwert mehr: der wird beim Import gelesen, und der
+# Startvorgang setzt Variablen nach. public_base_url() liest bei jedem Aufruf.
 
 
 def _check_stripe_config():
@@ -143,8 +145,8 @@ async def create_checkout(request: Request, db: Session = Depends(get_db)):
                 "website_url":      website_url,
                 "phone":            phone,
             },
-            success_url=f"{FRONTEND_URL}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{FRONTEND_URL}/checkout?cancelled=1",
+            success_url=f"{public_base_url()}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{public_base_url()}/checkout?cancelled=1",
             locale="de",
         )
         return {"checkout_url": session.url, "session_id": session.id}
@@ -363,10 +365,7 @@ def _handle_successful_payment(session: dict, db: Session):
             portal_url = (
                 get_portal_url(lead.customer_token)
                 if lead.customer_token
-                else os.getenv(
-                    "FRONTEND_URL",
-                    "https://kompagnon-frontend.onrender.com",
-                ) + "/portal/login"
+                else public_base_url() + "/portal/login"
             )
             paket_name = PACKAGE_NAMES.get(package_id, package_id)
 

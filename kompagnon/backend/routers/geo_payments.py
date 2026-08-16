@@ -17,6 +17,7 @@ import logging
 from datetime import datetime
 
 import stripe
+from services.base_urls import public_base_url
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET_GEO = os.getenv("STRIPE_WEBHOOK_SECRET_GEO", "")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://kompagnon-frontend.onrender.com")
+# siehe payments.py — die Adresse kommt aus services.base_urls
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 router = APIRouter(prefix="/api/geo-payments", tags=["geo-payments"])
@@ -91,8 +92,8 @@ async def create_geo_subscription(
                 "addon_type": "geo",
                 "company_name": company_name,
             },
-            success_url=f"{FRONTEND_URL}/kundenportal?geo_success=1",
-            cancel_url=f"{FRONTEND_URL}/kundenportal?geo_cancelled=1",
+            success_url=f"{public_base_url()}/kundenportal?geo_success=1",
+            cancel_url=f"{public_base_url()}/kundenportal?geo_cancelled=1",
             locale="de",
             subscription_data={
                 "metadata": {
@@ -370,7 +371,7 @@ def _send_geo_welcome_email(project_id: int):
             logger.warning("services.email nicht verfuegbar")
             return
 
-        portal_url = f"{FRONTEND_URL}/kundenportal"
+        portal_url = f"{public_base_url()}/kundenportal"
         html = f"""
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
   <div style="background:#008eaa;padding:24px;border-radius:12px 12px 0 0">

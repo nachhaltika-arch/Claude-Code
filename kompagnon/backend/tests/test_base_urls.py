@@ -5,8 +5,6 @@ eingetragene Produktiv-Adresse als Rückfall. Sie scheitert nie laut. Sie ist
 gültig, sie antwortet, nur bezieht sie sich auf ein anderes System als das,
 das gerade läuft. Auf Staging gebaute Seiten zeigten so auf Produktiv-Dateien.
 """
-import inspect
-
 from services import base_urls
 
 
@@ -72,27 +70,27 @@ def test_die_bild_adressen_kommen_aus_derselben_quelle(monkeypatch):
     assert files.api_base_url() == "https://staging.example"
 
 
-def test_der_api_rueckfall_ist_eine_domain_die_uns_gehoert():
+def test_beide_rueckfaelle_sind_domains_die_uns_gehoeren():
     """Eine von Render vergebene Adresse als Rückfall überlebt keinen Umzug.
 
-    Bis zum 16.08. stand hier `claude-code-znq2.onrender.com`. Diese Adresse
-    verschwindet mit dem Dienst — und der Dienst zieht nach Frankfurt (L-34).
-    Ein Rückfall, der das nicht überlebt, ist ein Rückfall auf nichts.
+    Bis zum 16.08. standen hier `claude-code-znq2.onrender.com` und
+    `kompagnon-frontend.onrender.com`. Beide verschwinden mit ihrem Dienst —
+    und das Backend zieht nach Frankfurt (L-34). Ein Rückfall, der das nicht
+    übersteht, ist ein Rückfall auf nichts.
     """
     # Assert
     assert base_urls.FALLBACK_API_BASE_URL == "https://api.kompagnon.group"
-    assert "onrender.com" not in base_urls.FALLBACK_API_BASE_URL
+    assert base_urls.FALLBACK_PUBLIC_BASE_URL == "https://kas.kompagnon.group"
 
 
-def test_kein_zweiter_rueckfall_im_quelltext():
-    """Keine fest eingetragene Adresse außerhalb der benannten Konstanten."""
-    # Arrange
-    quelle = inspect.getsource(base_urls)
+def test_keine_render_adresse_mehr_als_rueckfall():
+    """Auch keine versteckte zweite — der Fehler wiederholt sich sonst."""
+    # Arrange / Act
+    rueckfaelle = (
+        base_urls.FALLBACK_API_BASE_URL,
+        base_urls.FALLBACK_PUBLIC_BASE_URL,
+    )
 
-    # Act — die Frontend-Konstante ist noch eine Render-Adresse; sie bekommt
-    # ihre eigene Domain, wenn das Frontend eine hat.
-    treffer = quelle.count("onrender.com")
-
-    # Assert — genau die eine Konstante plus der Satz, der erklärt, warum die
-    # API-Adresse keine mehr ist
-    assert treffer == 2
+    # Assert
+    for wert in rueckfaelle:
+        assert "onrender.com" not in wert, wert

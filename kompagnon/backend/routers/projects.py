@@ -91,6 +91,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from database import Project, ProjectChecklist, TimeTracking, Lead, Customer, ProjectScrapeJob, get_db, SessionLocal
 from services.margin_calculator import MarginCalculator
+from services.audit_pagespeed import api_key as pagespeed_api_key
 from routers.content_scraper_router import _run_content_scrape
 from routers.auth_router import require_admin, require_any_auth, get_current_user
 from automations.scheduler import (
@@ -995,7 +996,7 @@ async def _golive_automation(project_id: int):
             # ── 3. NACHHER-PAGESPEED ─────────────────────────
             try:
                 import httpx
-                api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+                api_key = pagespeed_api_key()
 
                 async def _ps(strategy):
                     url = (
@@ -3302,7 +3303,7 @@ async def go_live_pagespeed(
     # DB-Verbindung vor externen PageSpeed + Screenshot Calls freigeben
     db.close()
 
-    api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+    api_key = pagespeed_api_key()
     base    = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
     params  = {"url": url}
     if api_key:

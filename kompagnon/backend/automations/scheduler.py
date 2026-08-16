@@ -13,6 +13,7 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from database import SessionLocal, Project, Communication, DATABASE_URL
 from services.margin_calculator import MarginCalculator
+from services.audit_pagespeed import api_key as pagespeed_api_key
 from services.email import send_email as _send_email_canonical
 from automations.email_templates import render_template
 import logging
@@ -849,7 +850,7 @@ def job_monthly_performance_report():
             report_count    = row[9] or 0
 
             try:
-                api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+                api_key = pagespeed_api_key()
                 new_mobile, new_desktop = current_mobile, current_desktop
 
                 if api_key and website_url:

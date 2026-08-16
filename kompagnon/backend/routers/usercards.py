@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 
 from database import AuditResult, Project, UserCard, User, get_db, SessionLocal
 from routers.auth_router import optional_auth, require_any_auth
+from services.audit_pagespeed import api_key as pagespeed_api_key
 
 # Vorgabe: geschlossen — siehe routers/leads.py. Diese Routen tragen
 # dieselben Kundendaten wie der Lead-Router und waren ebenso offen.
@@ -354,7 +355,7 @@ async def run_usercard_pagespeed(card_id: int, db: Session = Depends(get_db)):
     # DB-Verbindung vor externem PageSpeed-Call freigeben
     db.close()
 
-    api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+    api_key = pagespeed_api_key()
     base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
     params_base = {"url": website_url}
     if api_key:

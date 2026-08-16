@@ -15,6 +15,7 @@ from database import Lead, Project, AuditResult, get_db, SessionLocal
 from routers.auth_router import require_any_auth, get_current_user
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
+from services.audit_pagespeed import api_key as pagespeed_api_key
 import asyncio
 import csv
 import httpx
@@ -1660,7 +1661,7 @@ async def run_lead_pagespeed(lead_id: int, db: Session = Depends(get_db)):
     # Persistiert wird unten ueber eine frische SessionLocal().
     db.close()
 
-    api_key = os.getenv("GOOGLE_PAGESPEED_API_KEY", "")
+    api_key = pagespeed_api_key()
     base = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
     params_base = {"url": website_url}
     if api_key:

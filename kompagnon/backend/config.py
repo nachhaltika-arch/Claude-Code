@@ -13,7 +13,11 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./kompagnon.db")
 
 # API Keys
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-GOOGLE_PAGESPEED_API_KEY = os.getenv("GOOGLE_PAGESPEED_API_KEY")
+# Der PageSpeed-Schlüssel steht bewusst nicht mehr hier: In Render heißt die
+# Variable PAGESPEED_API_KEY, im Code hieß sie GOOGLE_PAGESPEED_API_KEY, und
+# diese Konstante las nur die zweite. Wer den Schlüssel braucht, holt ihn über
+# ``services.audit_pagespeed.api_key()`` — die eine Stelle, die beide
+# Schreibweisen kennt.
 
 # Email Configuration
 SMTP_HOST = os.getenv("SMTP_HOST", "localhost")

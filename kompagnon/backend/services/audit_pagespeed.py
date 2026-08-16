@@ -39,6 +39,12 @@ A11Y_AUDIT_GROUPS = {
 # Blueprints stand GOOGLE_PAGESPEED_API_KEY. Der Name allein hat gereicht,
 # damit PageSpeed in staging UND produktiv nie Daten geliefert hat.
 # Beide Schreibweisen werden akzeptiert, damit das nicht erneut passiert.
+#
+# Dies ist die einzige Stelle, die den Schlüssel liest. Der Fund vom 11.08.
+# war hier repariert, aber sieben andere Aufrufer lasen weiter allein
+# GOOGLE_PAGESPEED_API_KEY — Leadliste, Kundenkarte, Projektmessung,
+# Nutzerkarte, Anreicherung und der nächtliche Lauf. Sie holen den Schlüssel
+# seit dem 16.08. hier ab.
 API_KEY_ENV_VARS = ("GOOGLE_PAGESPEED_API_KEY", "PAGESPEED_API_KEY")
 
 

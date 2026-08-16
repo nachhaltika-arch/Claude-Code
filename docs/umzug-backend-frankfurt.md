@@ -14,7 +14,7 @@ sondern die Ursache unter zwei Folgeschäden:
   kostet ~1 s statt ~0,1 s; die Migration brauchte 215 s und hielt den einzigen
   Worker, während sieben Phasen in ihren Timeouts verliefen. Produktiv gab es
   monatelang keinen Scheduler.
-- **Die Datenbank muss im offenen Internet stehen** (L-40). Render dokumentiert:
+- **Die Datenbank muss im offenen Internet stehen** (L-44). Render dokumentiert:
   „services in *different* regions can't communicate directly over a private
   network." Das Backend in Oregon *kann* die interne Adresse der Frankfurter
   Datenbank nicht erreichen — deshalb `0.0.0.0/0` und eine externe Adresse,
@@ -42,8 +42,8 @@ Das ist die eigentliche Arbeit. Nicht der Umzug — die Adresse.
 | Wo | Art | Umschaltbar |
 |---|---|---|
 | `frontend/src/config.js` | Rückfallwert, sonst `REACT_APP_API_URL` | ja, Variable |
-| `services/widget_report.py` | Rückfall; sonst `RENDER_EXTERNAL_URL` (setzt Render selbst) | ja |
-| `routers/files.py` | Rückfall für Datei-Adressen | ja, `API_BASE_URL` |
+| `services/base_urls.py` | **seit 16.08. der einzige Rückfall im Backend**; davor `API_BASE_URL`, dann `RENDER_EXTERNAL_URL` (setzt Render selbst) | ja |
+| ~~`services/widget_report.py`~~, ~~`routers/files.py`~~ | hatten je eine eigene Zeile mit der Produktiv-Adresse — zusammengelegt (`22480d1`) | erledigt |
 | **Bereits versendete Berichts-Mails** | **fest in der Mail** | **nein** |
 | **Webhook bei Trackdesk** | bei einem Dritten registriert | nur dort |
 | **Webhook bei Netlify** | bei einem Dritten registriert | nur dort |
@@ -61,7 +61,7 @@ gewinnen wollten.
 
 ### Weg A — erst eine eigene Domain, dann umziehen *(empfohlen)*
 
-1. `api.kompagnon.eu` (oder ähnlich) auf den **alten** Dienst legen
+1. `api.kompagnon.group` auf den **alten** Dienst legen
 2. Alles darauf umstellen: `REACT_APP_API_URL`, `API_BASE_URL`, die drei
    Webhooks bei Trackdesk, Netlify und Brevo
 3. Ein paar Tage laufen lassen, bis nichts mehr die `onrender.com`-Adresse ruft
@@ -94,11 +94,18 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
 
 ### Vorher
 
-- [ ] Prüfen, welche Domain verwendet werden soll und wo sie verwaltet wird
+- [x] **Entschieden am 16.08.: `api.kompagnon.group`.** DNS liegt bei IONOS
+      (`ns*.ui-dns.*`), die Subdomain war frei, und die Domain ist bereits die
+      bei Brevo verifizierte Absenderdomain — Mail und API an einer Stelle.
+      `kompagnon.eu` (EuroDNS) und `kompagnon.de` (de-nserver) bleiben unberührt
 - [ ] **Datenbank-Sicherung**: Render Recovery-Punkt notieren, damit es einen
       Rückweg gibt
-- [ ] Aufschreiben, was gerade läuft: `/health` (`startup_complete`,
-      `scheduler_running`), `/info` (`environment`), Antwortzeit
+- [x] Aufschreiben, was gerade läuft — **gemessen 16.08., 12:41 UTC:**
+      produktiv `/health` 200, `startup_complete: true`, `scheduler_running:
+      true`, `startup_missing: []`, **2,10–2,63 s**; `/info`
+      `environment: production`, `database_configured: true` (keine
+      Zugangsdaten mehr). Staging zum Vergleich: **0,16–0,24 s**.
+      Der Faktor zwischen beiden ist die ganze Begründung dieses Umzugs
 
 ### Domain vor den alten Dienst
 
@@ -115,8 +122,13 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
 - [ ] Webhook-Adresse bei **Trackdesk** ändern
 - [ ] Webhook-Adresse bei **Netlify** ändern
 - [ ] Webhook-Adresse bei **Brevo** ändern
-- [ ] Im Code die drei Rückfallwerte auf die Domain ändern
-      (`config.js`, `widget_report.py`, `files.py`) — Commit, PR, Merge
+- [ ] Im Code die Rückfallwerte auf die Domain ändern — es sind seit dem
+      16.08. nur noch zwei Stellen: `services/base_urls.py`
+      (`FALLBACK_API_BASE_URL`) und `frontend/src/config.js`. Dazu die
+      Beispieladressen in `render-staging.yaml`, `ci.yml` und der
+      Trackdesk-Anleitung. **Erst wenn die Domain antwortet** — vorher zeigt
+      jeder Rückfall auf einen Namen, den es noch nicht gibt.
+      Commit auf `staging`, PR wie üblich freitags
 
 ### Prüfen
 
@@ -142,7 +154,7 @@ für sich genommen schon ein Gewinn und ohne Risiko für den Betrieb.
       Start sollte deutlich unter 264 s liegen
 - [ ] Domain vom alten auf den neuen Dienst umhängen
 - [ ] Alten Dienst suspendieren (nicht löschen — Rückweg)
-- [ ] **Dann L-40**: Inbound-Regel der Datenbank von `0.0.0.0/0` auf „kein
+- [ ] **Dann L-44**: Inbound-Regel der Datenbank von `0.0.0.0/0` auf „kein
       externer Verkehr" wie bei Staging
 - [ ] Nach ein paar ruhigen Tagen: alten Dienst löschen
 
@@ -169,7 +181,7 @@ weil ein geratener Wert dort teuer wäre:
 
 ---
 
-## L-40 vorbereitet: Wer erreicht die Datenbank heute von außen
+## L-44 vorbereitet: Wer erreicht die Datenbank heute von außen
 
 Die Inbound-Regel steht produktiv auf `0.0.0.0/0`. Bevor sie zugeht, muss
 feststehen, wer dadurch die Verbindung verliert. Geprüft am 2026-08-16:

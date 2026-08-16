@@ -44,7 +44,7 @@ services:
     # stand in Oregon: 2,1–2,6 s pro Health-Check statt 0,16 s, sieben von acht
     # Startphasen liefen in Timeouts (L-41), und die DB *musste* im offenen
     # Internet stehen, weil Render interne Adressen nicht über Regionen hinweg
-    # auflöst (L-40).
+    # auflöst (L-44).
     region: frankfurt
     # Starter hat den Start nicht getragen: ein Worker, die Migration hielt ihn
     # 215 s, der Rest lief in Timeouts. Nach dem Umzug prüfen, ob standard
@@ -75,7 +75,7 @@ services:
 
       # ── Datenbank ────────────────────────────────────────────────────────
       # Interne Adresse der bestehenden `Kompangnon-dB`. Genau hier
-      # verschwindet die Datenbank aus dem offenen Internet — danach L-40:
+      # verschwindet die Datenbank aus dem offenen Internet — danach L-44:
       # Inbound-Regel von 0.0.0.0/0 auf „kein externer Verkehr".
       - key: DATABASE_URL
         sync: false

@@ -14,6 +14,10 @@ import os
 from typing import Optional
 
 from services import brand
+# Die beiden Adressen liegen in ``services.base_urls`` — hier weiter
+# importiert, weil die Berichtslinks unten sie brauchen und Aufrufer sie
+# seit jeher über dieses Modul beziehen.
+from services.base_urls import _erste_gesetzte, api_base_url, public_base_url  # noqa: F401
 from services.mail_layout import knopf, rahmen, wortmarke
 from services.audit_criteria import (
     BLOCKER_LABELS,
@@ -33,43 +37,6 @@ SOURCE_MARKS = {
     Source.AI.value: ("◇", brand.DARK),
     Source.NOT_COLLECTED.value: ("○", brand.TEXT_30),
 }
-
-
-def _erste_gesetzte(*kandidaten: Optional[str]) -> str:
-    for wert in kandidaten:
-        if wert and wert.strip():
-            return wert.strip().rstrip("/")
-    return ""
-
-
-def public_base_url() -> str:
-    return _erste_gesetzte(
-        os.getenv("PUBLIC_BASE_URL"),
-        os.getenv("FRONTEND_URL"),
-        "https://kompagnon-frontend.onrender.com",
-    )
-
-
-def api_base_url() -> str:
-    """Die Adresse, unter der dieser Server von aussen erreichbar ist.
-
-    Sie steht im Berichtslink — dem einzigen Weg zum Bericht. Hier war als
-    Rückfall die Produktiv-Adresse fest eingetragen, und ``API_BASE_URL`` ist
-    im Staging-Blueprint nie deklariert worden. Also lief der Audit auf
-    Staging, das Token lag in der Staging-Datenbank, und die E-Mail schickte
-    den Empfänger zum Produktiv-Server, der das Token nicht kennt: „Not
-    Found", bei jeder einzelnen Anfrage.
-
-    Render setzt ``RENDER_EXTERNAL_URL`` für jeden Dienst selbst. Damit
-    stimmt die Adresse in jeder Umgebung, ohne dass jemand eine Variable
-    setzen muss — und ein vergessener Eintrag zeigt nicht mehr stillschweigend
-    ins falsche System.
-    """
-    return _erste_gesetzte(
-        os.getenv("API_BASE_URL"),
-        os.getenv("RENDER_EXTERNAL_URL"),
-        "https://claude-code-znq2.onrender.com",
-    )
 
 
 def report_url(token: str) -> str:

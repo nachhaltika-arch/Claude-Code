@@ -50,15 +50,26 @@ Prüfungen sind seine, die Belege sind aus dieser Oberfläche.
 
 ### 2.1 Ist es selbsterklärend? — **nein, an den entscheidenden Stellen nicht**
 
-Der härteste Fall steht gleich im Hauptmenü:
+> **Korrigiert am 2026-08-16, nach Prüfung am Code.** Hier stand zuerst, Menü
+> und Seitentitel widersprächen sich bei `/app/leads`. Das war falsch: Ich hatte
+> die Adresse von Hand aufgerufen. Die gerenderte Navigation
+> (`AppLayout.jsx:342`) führt *Projekte → Projektpipeline* korrekt dorthin. Was
+> stattdessen stimmt, steht unten — schmaler, aber belegt.
 
-> **Menü: „Leads → Pipeline"** · **Adresse: `/app/leads`** · **Seitentitel:
-> „Projektpipeline"** · **Inhalt: 19 aktive Projekte in sieben Phasen**
+Der Widerspruch existiert, nur an anderer Stelle:
 
-Drei Beschriftungen für einen Bildschirm, und keine davon stimmt mit den
-anderen überein. Wer Leads sucht, landet bei Projekten. Das ist kein
-Schönheitsfehler, sondern der Punkt, an dem ein Nutzer die Landkarte im Kopf
-verliert — und Krug beschreibt genau das als teuerste Sorte Verwirrung.
+> **Menü: „Leads → Pipeline"** · **Adresse: `/app/deals`** · **Seitentitel:
+> „💼 Deals"**
+
+Zwei Wörter für einen Bildschirm. Und ein zweiter, leiserer Fall daneben: Die
+Adresse **`/app/leads`** und die Komponente **`LeadPipeline`** liefern die
+**Projekt**pipeline. Das Menü stimmt; die Adresse und der Name im Code tun es
+nicht. Das trifft Lesezeichen, geteilte Links und jeden, der den Code liest —
+mich eingeschlossen, wie man oben sieht.
+
+Der teure Fehler nach Krug ist nicht der einzelne Widerspruch, sondern das
+Muster dahinter: Für denselben Gegenstand liegen mehrere Wörter im Umlauf, und
+keines gilt überall.
 
 Der zweite Fall ist ein Menüpunkt namens **„Kompagnon"** — der eigene
 Firmenname als Rubrik im eigenen Produkt. Darunter liegen sieben Einträge, die
@@ -110,6 +121,13 @@ Score: 40/100  Audit-Ergebnis: 37/100 Punkte - Nicht konform
 Das ist eine Protokollzeile, gerendert als Fließtext in der Kundenkartei. Sie
 enthält obendrein **zwei verschiedene Punktzahlen** (40 und 37) ohne ein Wort
 dazu, welche was ist. Direkt daneben steht als Datum: **„Invalid Date"**.
+
+**Und es ist schlimmer als ein Anzeigefehler.** Am Code nachgesehen:
+`services/lead_enrichment.py:125` schreibt diese Zeile in **`lead.notes`** —
+das Feld für die eigenen internen Notizen — und stellt sie dem voran, was ein
+Mensch dort geschrieben hat. `LeadProfile.jsx:1379` zeigt sie nur getreu an.
+Die Maschine schreibt also in ein Menschenfeld, dauerhaft, bei jeder
+Anreicherung.
 
 ### 2.3 Führt die visuelle Gewichtung? — **nein, sie führt in die Irre**
 
@@ -273,12 +291,15 @@ Aufruf Zeit · **P2** = Politur.
 
 | ID | Befund | Beleg |
 |---|---|---|
-| UX-01 | „Leads → Pipeline" öffnet die **Projektpipeline**. Menü, Adresse und Titel widersprechen sich | `/app/leads` |
+| UX-01 | Nav-Eintrag „Leads → Pipeline" öffnet eine Seite mit dem Titel **„💼 Deals"** — zwei Wörter für einen Bildschirm | `/app/deals`, `AppLayout.jsx:360` |
+| UX-01b | Adresse `/app/leads` und Komponente `LeadPipeline` liefern die **Projekt**pipeline. Menü korrekt, Adresse und Codename nicht | `App.jsx:192` |
 | UX-02 | **Zwei Listen** für dieselben Firmen: „Unternehmen" (61) und „Kunden" (50), verschiedene Sprache und Umfang | `/app/companies`, `/app/customers` |
 | UX-03 | Die besser gestaltete der beiden Listen hat **keinen Menüeintrag** | `/app/customers` |
 | UX-04 | **Vier Namen** für ein Objekt: Lead, Unternehmen, Kunde, Kundenkartei | durchgängig |
 | UX-05 | **„Invalid Date"** als sichtbarer Text | Kundenkartei, „Letzter Audit" |
-| UX-06 | **Protokollzeile als Oberfläche**, mit zwei unerklärten Punktzahlen (40 und 37) | Kundenkartei, Übersicht |
+| UX-06 | **Protokollzeile im Notizfeld des Nutzers.** Kein Anzeigefehler: `lead_enrichment.py:125` schreibt sie in `lead.notes` und stellt sie dem voran, was ein Mensch dort geschrieben hat | `services/lead_enrichment.py:125`, `LeadProfile.jsx:1379` |
+| UX-06b | Zwei Punktzahlen ohne Unterscheidung — 40 (Lead) und 37 (Audit) unbeschriftet nebeneinander | Kundenkartei, Übersicht |
+| UX-29 | `components/Sidebar.jsx` ist eine **zweite, tote** Navigationsdefinition — nirgends importiert, inhaltlich abweichend. Wer sie beim Aufräumen findet, ändert die falsche Datei | `components/Sidebar.jsx` |
 | UX-07 | Rohe Datenbankwerte als Status: `new`, `won`, `proposal_sent`, `domain_import` | `/app/companies` |
 | UX-08 | Widget meldet **Mailversand-Erfolg auch bei Fehlschlag** | Widget-Ergebnis |
 | UX-09 | Prozentspalte **ohne Überschrift** — korrekte Zahl, falscher Schluss | Dashboard, „Leads nach Herkunft" |
@@ -315,6 +336,9 @@ Aufruf Zeit · **P2** = Politur.
 ---
 
 ## 6. Empfehlung: die Reihenfolge
+
+> Als abzuarbeitende Liste mit Fundstellen und Prüfschritt:
+> **`docs/ux-arbeitsliste.md`**.
 
 Nicht nach Aufwand sortiert, sondern nach Wirkung pro Eingriff.
 

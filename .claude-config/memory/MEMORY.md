@@ -16,7 +16,8 @@
 - [Wiederaufnahme 2026-05-08](resume_point_2026_05_08.md) — Style-Guide-Redesign + Tool-CI P0-P5 fertig; --brand-primary Token-Switch Mid→Dark; Audit-Methode etabliert
 - [Immer Empfehlung statt offener Frage](feedback_always_recommend.md) — nie mit "soll ich X oder Y?" enden; Empfehlung + Begründung, dann handeln
 - [CI nach jedem Push prüfen](feedback_ci_pruefen_nach_push.md) — lokale Tests sind nicht CI; der Playwright-E2E-Job findet, was die Backend-Tests nicht finden können
-- [Wiederaufnahme 2026-08-17](resume_point_2026_08_17.md) - Mail-Vorfall (135 Fehl-Mails), PR #41 gemerged und produktiv; abends Zugriffsschutz, Löschfunktion, Kundenfreigabe, UX-Paket 3
+- [Wiederaufnahme 2026-08-17](resume_point_2026_08_17.md) - Mail-Vorfall, PR #41 produktiv; danach Zugriffsschutz, Löschfunktion, DSGVO-Nachweise, Impressum-Sucher und UX-Pakete 3-6; 23 Commits auf staging
+- [Am Gegenstand prüfen, nicht am Werkzeug](feedback_am_gegenstand_pruefen.md) — nie eine Zwischenausgabe für das Ergebnis nehmen; ein Paket ist fertig, wenn sein CI-Lauf grün ist, nicht wenn der Push durch ist
 - [Render deployt über die CI, nicht per Webhook](deploy_laeuft_ueber_ci.md) — der Deploy-Job hängt an allen sechs Prüfjobs; nach einem Push dauert es, bis Playwright durch ist
 - [Blockierte Ereignisschleife](blockierte_ereignisschleife.md) — synchroner KI-Aufruf in async def → Server steht → Render-Proxy gibt 503 → Oberfläche zeigt "Verbindungsfehler"; neun weitere Stellen ungeprüft
 - [Zwei Mail-Protokolle](mail_zwei_protokolle.md) - email_logs und communications kennen einander nicht; deshalb zweimal den falschen Sender beschuldigt — immer beide + Brevo prüfen

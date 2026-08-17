@@ -1,97 +1,99 @@
 ---
 name: resume-point-2026-08-17
-description: "Stand 2026-08-17 — UX-Paket 2, dann der Mail-Vorfall (135 Fehl-Mails), PR #41 gemerged und produktiv; abends vier weitere Commits: Zugriffsschutz, Löschfunktion, Kundenfreigabe, UX-Paket 3"
+description: "Stand 2026-08-17 — Mail-Vorfall, PR #41 produktiv, dann Zugriffsschutz, Löschfunktion, DSGVO-Nachweise und die UX-Pakete 3 bis 6; 23 Commits auf staging, CI grün"
 metadata: 
   node_type: memory
   type: project
-  modified: 2026-08-17T17:54:15.641Z
+  modified: 2026-08-17T21:39:48.616Z
   originSessionId: 458bef95-0615-4eb2-85b8-f2842368b8c2
 ---
 
-**Ein langer Tag in drei Teilen.** Vormittags UX-Paket 2 nach Plan. Nachmittags
-ein Vorfall, der alles verdrängt hat. Abends die Aufräumarbeit, die daraus
-folgte.
+**Ein sehr langer Tag.** Vormittags UX-Paket 2. Nachmittags ein Vorfall, der
+alles verdrängt hat. Abends und nachts die Aufräumarbeit daraus — und die
+UX-Pakete 3 bis 6.
 
-## Teil 1 — UX-Paket 2 (abgeschlossen)
-
-61 gegen 50 Einträge war **kein Filter**: Beide Seiten riefen dieselbe
-Schnittstelle auf, nur eine nannte eine Obergrenze. „Kunden" bekam die
-Voreinstellung des Servers — 50 (`routers/leads.py`). Elf Betriebe fehlten
-still, und die Kacheln rechneten über die abgeschnittene Liste. Übrig: ein
-Bildschirm `/app/betriebe`, Listenlogik in `utils/betriebeListe.js`.
-
-## Teil 2 — Der Vorfall
+## Der Vorfall
 
 `job_check_missing_materials` (`scheduler.py`), täglich 09:00, **ohne jede
 Idempotenz-Sperre**. **ENERGIEFABRIK bekam die Mail seit dem 04.04. jeden
-Morgen — rund 135 Stück.** Der Briefing-Job zwanzig Zeilen darunter hatte eine.
+Morgen — rund 135 Stück.** Gebaut: `automations/erinnerungen.py` (Fälligkeit
+als reine Funktion) und `services/versandsperre.py` (**Not-Aus, Standard AUS**).
+**PR #41 ist gemerged und produktiv** — geprüft am Ergebnis, nicht am Deploy-Log.
 
-**Ich habe zweimal danebengetippt**, weil ich das falsche Protokoll prüfte —
-siehe [[mail-zwei-protokolle]]. Gebaut: `automations/erinnerungen.py` (die
-Fälligkeitsentscheidung als reine Funktion) und `services/versandsperre.py`
-(**der Not-Aus, Standard AUS**).
+## Was danach entstand (23 Commits auf `staging`, alles **nicht** produktiv)
 
-## Teil 3 — Abends, nach dem Merge
+**Sicherheit.** Der Projekt-Router trug **gar keine** Anmeldung — 19 von 60
+Routen offen. Dazu zwei eigene Funde: `GET /{id}/credentials` gab
+**entschlüsselte CMS-Passwörter** an jeden Angemeldeten, und die Rumpfschlüssel
+von `PUT /{id}` wurden ungeprüft zu Spaltennamen im SQL. Wurzel beide Male:
+`require_any_auth` fragt nur, *ob* jemand angemeldet ist. Neu:
+`require_innendienst` + `kunden_router` mit Prüfung je Zeile.
+Wichtigster Test: `test_keine_einzige_route_haengt_frei`.
 
-**PR #41 ist gemerged** (`2d9882b`) und **produktiv deployt** — geprüft am
-Ergebnis: `/api/projects/debug` antwortet produktiv 401. Damit ist der Not-Aus
-live und steht auf „aus". Der 09:00-Job sendet nicht mehr.
+**Löschfunktion für Projekte** — es gab keine. Reihenfolge über die 15
+abhängigen Tabellen in `services/projekt_loeschen.py`; `email_logs` überlebt
+(nur der Verweis wird gelöst).
 
-Vier weitere Commits, alle auf `staging`, **noch nicht produktiv**:
+**Kundenfreigabe** funktionierte nie: `confirm-approval` verlangte
+`require_admin`, genau der Endpunkt der Kundenseite. Jede Freigabe kam 403
+zurück, unsichtbar, weil `res.ok` nicht geprüft wurde.
 
-1. **`679b32c` Zugriffsschutz.** Der Projekt-Router trug **gar keine**
-   Anmeldung — 19 von 60 Routen offen, darunter `PUT /{id}` (schreibt
-   beliebige Spalten per Roh-SQL) und `PATCH /{id}/phase`. Dazu zwei eigene
-   Funde: **`GET /{id}/credentials` gab entschlüsselte CMS-Passwörter an jeden
-   Angemeldeten**, und die Rumpfschlüssel des PUT wurden ungeprüft zu
-   Spaltennamen im SQL.
-   **Die Wurzel war zweimal dieselbe:** `require_any_auth` fragt nur, *ob*
-   jemand angemeldet ist, nicht *wer*. Ein Kunde ist angemeldet. Deshalb neu:
-   `require_innendienst`, und was ein Kunde braucht, hängt an einem
-   `kunden_router` mit Prüfung je Zeile.
-   Der wichtigste Test heißt `test_keine_einzige_route_haengt_frei`.
-2. **`dddd7af` Löschfunktion für Projekte** — es gab bis dahin **keinen**
-   Löschendpunkt. Reihenfolge über die 15 abhängigen Tabellen in
-   `services/projekt_loeschen.py`; `DELETE /api/leads/{id}` nutzt sie mit (es
-   wäre am Fremdschlüssel von `customers` gescheitert). Oberfläche unter
-   *Kundenprojekte*: Auswahl + Vorschau, die zeigt was geht **und was bleibt**.
-3. **`d7768f8` Kundenfreigabe.** `confirm-approval` verlangte `require_admin` —
-   genau der Endpunkt, den die Kundenseite aufruft. **Jede Kundenfreigabe kam
-   403 zurück**, unsichtbar, weil die Seite `res.ok` nicht prüfte.
-   `/abnahme/:projectId` entfernt: konnte nie funktionieren, niemand verlinkte
-   sie.
-4. **`0bde7e0` UX-Paket 3** (UX-05, 06, 06b, 08, 09). Kern: `[Auto-Enrichment]`
-   schrieb in `lead.notes`, und `pagespeed_score` wurde berechnet und
-   **nirgends** gespeichert — die Notizzeile war der einzige Ort, an dem er
-   überlebte. Neue Spalten, dann erst die Zeile weg.
+**Impressum-Sucher.** David fand: das Impressum von `alkozei.de` liegt unter
+`/now.using/nBito/impressum`, der Verweis auf der Startseite ist mit
+`onclick="return false"` **absichtlich tot**. Der schwerere Fehler war aber:
+Der Sucher nahm **die erste Seite über 100 Zeichen** und fragte nie, ob es ein
+Impressum ist. Jetzt Kandidaten aus drei Quellen + Prüfung auf Pflichtangaben
+nach § 5 DDG.
 
-Stand: **1088 Backend-, 201 Frontend-Tests.**
+**503 auf Staging aufgeklärt:** `client.messages.create()` — der **synchrone**
+Anthropic-Client — lief in einer `async def` und hielt die Ereignisschleife an.
+Siehe [[blockierte-ereignisschleife]]. Neun weitere Module haben dasselbe
+Muster, ungeprüft.
+
+**Firmennamen:** Der Domainimport setzt die Domain als Platzhalter, der
+Impressum-Schritt fand den echten Namen und **verwarf ihn**, weil das Feld als
+gefüllt galt. Drei Stellen. Auf Staging tragen jetzt **23 von 29** Betrieben
+echte Namen.
+
+**DSGVO:** Der Nachweis (`verified_user_agent`, `verified_ip`) wurde immer
+erhoben und **nirgends angezeigt**. Jetzt in der Liste, mit der Dauer zwischen
+Mailversand und Klick. Und die Bedienungshürde hatte ein Loch: Der Beleg stand
+im HTML, das er schützt — jetzt trägt er seinen Ausstellungszeitpunkt und gilt
+erst nach zwei Sekunden.
+**Produktiv gibt es nur vier Widget-Anfragen, alle von Davids eigenen
+Adressen** — der 16:12:09-Fall war fast sicher er selbst.
+
+**UX-Pakete 3, 4, 5, 6 abgeschlossen.** Drei Diagnosen der Analyse waren
+falsch und wurden erst beim Messen widerlegt (UX-12, UX-18, UX-Daten).
+Artefakt auf Stand:
+`https://claude.ai/code/artifact/946b018e-40f7-481f-826a-83fbf9d53d66`
+
+**Uploads:** Blueprints bekommen `disk:` (1 GB, `/var/data`) und `UPLOAD_ROOT`.
+Drei Schreibstellen folgten drei Regeln — jetzt `services/dateiablage.py`.
 
 ## Offen bei David
 
-1. **`scripts/notizen-bereinigen.sql`** — entfernt die `[Auto-Enrichment]`-Zeilen
-   aus den vorhandenen Notizen. Sicherungskopie, Vorher/Nachher-Ansicht,
-   `ROLLBACK` am Ende. Regex gegen echtes Postgres geprüft.
-2. **`scripts/projekte-entfernen.sql`** — jetzt **optional**: Projekte lassen
-   sich seit `dddd7af` in der Oberfläche löschen.
-3. **Nächster PR `staging → main`** mit vier Commits — Freitagsregel
-   [[feedback-pr-only-fridays]] gilt wieder.
-4. **`openapi.json` ist öffentlich** und listet alle 70 Projektpfade samt
-   Parametern. Kein Geheimnisleck, aber eine vollständige Landkarte.
-   Abschalten wäre ein Zweizeiler — **Davids Entscheidung, noch nicht gefallen**.
-5. **UX-Daten** (letzter offener Punkt in Paket 3) ist eine Datenfrage, keine
-   Programmierfrage: Dubletten, Domains als Firmenname, Testdatensatz
-   KOMPAGNON in der Produktivliste.
+1. **Sammel-PR `staging → main`** — 23 Commits. Freitag
+   ([[feedback-pr-only-fridays]])
+2. **Datenträger in Render anlegen** — braucht genau **eine** Instanz und
+   erzwingt einen **Neustart**. Bewusst seine Entscheidung
+3. **`scripts/wer-hat-bestaetigt.sql`** produktiv laufen lassen (DSGVO-Beleg)
+4. **`scripts/notizen-bereinigen.sql`** ist überholt — besser
+   `POST /api/leads/befunde-nachtragen`
+5. Datensätze: CDU-Ortsverband als „Dachdecker", `nachhaltika.denachhaltika.de`
+6. Produktiv fehlen `STRIPE_SECRET_KEY`, `CMS_ENCRYPTION_KEY`
+7. **Paket 7** (UX-19) ist das einzige offene UX-Thema — echte
+   Gestaltungsarbeit, **L**
 
-## Zwei Dinge, die ich falsch gesagt habe
+## Was der Tag über die Arbeitsweise sagt
 
-- Ich meldete einen „zurückgerollten Deploy" bei Render. Es war ein Fehler in
-  meiner Prüfschleife: `grep -c` gibt bei null Treffern `0` aus **und** endet
-  mit Fehlercode, mein `|| echo 0` hängte eine zweite `0` an.
-  **Render deployt hier nicht per Webhook, sondern als letzter CI-Job** —
-  `needs: [lint, import, tests, build, e2e, secrets]`. Ein Deploy nach dem Push
-  dauert, bis Playwright durch ist. Das ist kein Fehler, sondern das Gate.
-- Ich nannte UX-08 „durch den Not-Aus verschärft". Falsch: Die
-  Widget-Bestätigung ist von der Versandsperre **ausdrücklich ausgenommen**.
+**Dreimal habe ich eine Zwischenausgabe für das Ergebnis genommen** — siehe
+[[feedback-am-gegenstand-pruefen]]. Zwei rote CI-Läufe gehen darauf zurück,
+und David hat den ersten gefunden, nicht ich.
 
+**Der beste Fund kam wieder vom Hinsehen:** Das Impressum von alkozei.de,
+den Widerspruch „SSL nicht geprüft" neben „SSL: OK", die falschen
+Kontrastdiagnosen — nichts davon stand im Code zu lesen.
+
+Prüfstand: **1179 Backend-, 261 Frontend-Tests**, CI grün auf `ed557b1`.
 Voriger Stand [[resume-point-2026-08-16]]. Methode: [[ux-methode-krug]].

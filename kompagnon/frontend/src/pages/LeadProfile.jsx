@@ -25,6 +25,7 @@ import PageSpeedSection from '../components/PageSpeedSection';
 import API_BASE_URL from '../config';
 import NewsletterDesigner from '../components/NewsletterDesigner';
 import { useScreenSize } from '../utils/responsive';
+import { datumKurz, datumUndZeit } from '../utils/datum';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -62,7 +63,7 @@ const LEVEL_COLORS = {
 
 const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
   if (loading) return <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>⏳ Prüfe...</span>;
-  const date = checkedAt ? new Date(checkedAt).toLocaleDateString('de-DE') : null;
+  const date = checkedAt ? datumKurz(checkedAt, '') : '';
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
       <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: reachable === null ? 'var(--status-neutral-bg)' : reachable ? 'var(--status-success-bg)' : 'var(--status-danger-bg)', color: reachable === null ? 'var(--status-neutral-text)' : reachable ? 'var(--status-success-text)' : 'var(--status-danger-text)' }}>
@@ -854,7 +855,7 @@ export default function LeadProfile() {
             </div>
             <div style={{ opacity: 0.9 }}>
               {neueste.email}
-              {neueste.occurred_at && ` · ${new Date(neueste.occurred_at).toLocaleString('de-DE')}`}
+              {neueste.occurred_at && ` · ${datumUndZeit(neueste.occurred_at, '')}`}
             </div>
             {neueste.reason && (
               <div style={{ marginTop: 6, fontSize: 12, fontFamily: 'var(--font-mono, monospace)', opacity: 0.85, wordBreak: 'break-word' }}>
@@ -1513,7 +1514,7 @@ export default function LeadProfile() {
                   </div>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{current_level}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{new Date(latestAudit.created_at).toLocaleDateString('de-DE')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{datumKurz(latestAudit.created_at, 'Datum unbekannt')}</div>
                   </div>
                 </div>
                 {latestAudit.ai_summary && (

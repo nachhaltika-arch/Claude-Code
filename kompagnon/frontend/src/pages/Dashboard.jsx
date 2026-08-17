@@ -9,6 +9,7 @@ import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import API_BASE_URL from '../config';
 import OnboardingWizard from '../components/OnboardingWizard';
+import { datumKurz } from '../utils/datum';
 
 export default function Dashboard() {
   const { token, user } = useAuth();
@@ -412,7 +413,7 @@ export default function Dashboard() {
                       {audit.company_name || audit.website_url}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
-                      {new Date(audit.created_at).toLocaleDateString('de-DE')}
+                      {datumKurz(audit.created_at)}
                     </div>
                   </div>
 

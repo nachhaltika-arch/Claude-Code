@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
 import GeoAddonCard from '../components/GeoAddonCard';
 import AssistentPanel from '../components/AssistentPanel';
+import { datumKurz, datumUndZeit } from '../utils/datum';
 
 // ── Phase card ────────────────────────────────────────────────
 
@@ -385,7 +386,7 @@ export default function KundenPortal() {
               )}
               {m.text}
               <div style={{ fontSize: 10, opacity: 0.6, marginTop: 3, textAlign: 'right' }}>
-                {new Date(m.created_at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                {datumUndZeit(m.created_at, '')}
               </div>
             </div>
           ))}
@@ -433,7 +434,7 @@ export default function KundenPortal() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.filename}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                    {d.created_at ? new Date(d.created_at).toLocaleDateString('de-DE') : ''}
+                    {datumKurz(d.created_at, '')}
                   </div>
                 </div>
               </div>

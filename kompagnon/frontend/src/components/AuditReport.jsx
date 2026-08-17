@@ -11,6 +11,7 @@ import * as echarts from 'echarts';
 import { useScreenSize } from '../utils/responsive';
 import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config';
+import { datumKurz } from '../utils/datum';
 
 const LEVEL_STYLES = {
   'Homepage Standard Platin': { bg: '#e8eaf6', color: '#283593', icon: '\uD83C\uDFC6' },
@@ -415,7 +416,7 @@ export default function AuditReport({ auditData, onClose }) {
             <span> &middot; {[r.city, r.trade].filter(Boolean).join(', ')}</span>
           )}
           {r.created_at && (
-            <span> &middot; {new Date(r.created_at).toLocaleDateString('de-DE')}</span>
+            <span> &middot; {datumKurz(r.created_at)}</span>
           )}
         </p>
       </div>

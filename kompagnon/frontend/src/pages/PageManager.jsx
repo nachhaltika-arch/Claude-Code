@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useScreenSize } from '../utils/responsive';
 import toast from 'react-hot-toast';
 import API_BASE_URL from '../config';
+import { datumKurz } from '../utils/datum';
 
 const TYPE_LABELS = {
   landing:       { label: 'Landing',     color: 'var(--kc-mid)', bg: '#e0f4f8' },
@@ -297,7 +298,7 @@ export default function PageManager() {
                   </div>
                   {page.updated_at && (
                     <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                      {new Date(page.updated_at).toLocaleDateString('de-DE')}
+                      {datumKurz(page.updated_at)}
                     </div>
                   )}
                 </div>

@@ -8,6 +8,7 @@ import Button from '../components/ui/Button';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
 import { useScreenSize } from '../utils/responsive';
+import { datumKurz } from '../utils/datum';
 
 const COLUMNS = [
   { id: 'new', label: 'Neue Leads', icon: '🆕', color: 'var(--kc-mid)', desc: 'Frisch importiert oder auditiert' },
@@ -354,7 +355,7 @@ const CERT_STYLES = {
 
 function fmtDate(iso) {
   if (!iso) return null;
-  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  return datumKurz(iso);
 }
 
 // ── Sales Card ──

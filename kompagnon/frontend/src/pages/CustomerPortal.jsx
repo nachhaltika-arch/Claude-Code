@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
 import Logo from '../components/Logo';
+import { datumKurz, nurZeit } from '../utils/datum';
 
 const LEVEL_COLORS = {
   'Homepage Standard Platin': '#4a90d9',
@@ -290,7 +291,7 @@ function FileUploadSection({ token }) {
                       {f.original_filename}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
-                      {f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('de-DE') : '—'} · {formatSize(f.file_size)}
+                      {datumKurz(f.uploaded_at)} · {formatSize(f.file_size)}
                       {f.note && ` · ${f.note}`}
                     </div>
                   </div>
@@ -755,7 +756,7 @@ export default function CustomerPortal() {
                 </div>
                 {data.go_live_date && (
                   <div style={{ fontSize: 11, color: 'var(--brand-primary-mid)', fontWeight: 500, background: '#E1F5EE', padding: '3px 8px', borderRadius: 20 }}>
-                    Go-Live: {new Date(data.go_live_date).toLocaleDateString('de-DE')}
+                    Go-Live: {datumKurz(data.go_live_date, 'noch offen')}
                   </div>
                 )}
               </div>
@@ -887,7 +888,7 @@ export default function CustomerPortal() {
         {portalTab === 'nachrichten' && (() => {
           const fmtTime = (iso) => {
             if (!iso) return '';
-            return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+            return nurZeit(iso, '');
           };
           const fmtDay = (iso) => {
             if (!iso) return '';

@@ -1,0 +1,139 @@
+// Die Gruppen der Seitenleiste — einmal, und die Adressen kommen daraus.
+//
+// **Warum eigene Datei.** Die Zuordnung Adresse → Gruppe stand zweimal: in der
+// Menuedefinition und noch einmal als Pfadliste in `getDefaultOpen`. Wer einen
+// Eintrag verschob und die zweite Liste vergass, bekam eine Seitenleiste, die
+// nicht mehr zeigt, wo man ist — genau der Fehler vom 16.08.2026, nur an einer
+// anderen Stelle. Jetzt wird die Zuordnung aus den Eintraegen abgeleitet.
+//
+// **Was sich am 17.08.2026 geaendert hat** (UX-16, UX-17):
+//
+// Die Gruppe hiess **„Kompagnon"** und enthielt sieben unverwandte Eintraege —
+// Tickets, Templates, Produkt-Editor, Produkte, Produktentwicklung,
+// QR-Generator, Retainer. Der eigene Firmenname sagt nicht, was darin liegt;
+// er ist der Name fuer „alles Uebrige".
+//
+// Beim Nachsehen, was die Eintraege wirklich sind:
+//
+//   QR-Generator      erzeugt Codes fuer Kampagnen (Platzhalter
+//                     `postkarte-koblenz-mai-2025`) → gehoert zu Akquise
+//   Templates         verwaltet Verkaufsseiten fuer Pakete
+//                     (`/paket/mein-produkt`) → gehoert zum Angebot
+//   Produkte          der Katalog (`api/products/`)
+//   Produkt-Editor    bearbeitet **denselben** Katalog und ist von „Produkte"
+//                     aus erreichbar → kein eigener Menueeintrag
+//   Produktentwicklung  ein Ideen-Board (Idee → Geplant → In Entwicklung →
+//                     Testing → Fertig), also keine Produktpflege → „Roadmap"
+//   Tickets, Retainer   beides Betreuung nach dem Verkauf
+
+/** Die Gruppen in der Reihenfolge, in der sie stehen. */
+export const MENUE_GRUPPEN = [
+  {
+    key: 'akquise',
+    label: 'Akquise',
+    icon: '🎯',
+    eintraege: [
+      { label: 'Kaltakquise',     path: '/app/scraper',       adminOnly: true },
+      { label: 'Domain-Import',   path: '/app/import' },
+      { label: 'Audit-Tool',      path: '/app/audit' },
+      { label: 'Analyse-Widget',  path: '/app/widget',        adminOnly: true },
+      { label: 'Webhooks',        path: '/app/webhooks',      adminOnly: true },
+    ],
+  },
+  {
+    key: 'werbung',
+    label: 'Werbung',
+    icon: '📣',
+    eintraege: [
+      { label: 'Newsletter',      path: '/app/newsletter' },
+      { label: 'Kampagnen',       path: '/app/campaigns',     adminOnly: true },
+      { label: 'QR-Codes',        path: '/app/qr-generator',  adminOnly: true },
+    ],
+  },
+  {
+    key: 'vertrieb',
+    label: 'Vertrieb',
+    icon: '💼',
+    eintraege: [
+      { label: 'Deals',           path: '/app/deals' },
+      { label: 'Betriebe',        path: '/app/betriebe' },
+      { label: 'Export',          path: '/app/export' },
+    ],
+  },
+  {
+    key: 'projekte',
+    label: 'Projekte',
+    icon: '📁',
+    eintraege: [
+      { label: 'Alle Projekte',   path: '/app/projects' },
+      { label: 'Projektpipeline', path: '/app/projektpipeline' },
+      { label: 'Prozess-Ansicht', path: '/app/checklists' },
+    ],
+  },
+  {
+    key: 'angebot',
+    label: 'Angebot',
+    icon: '🏷️',
+    eintraege: [
+      { label: 'Pakete',          path: '/app/products',      adminOnly: true },
+      { label: 'Verkaufsseiten',  path: '/app/pages',         adminOnly: true },
+      { label: 'Roadmap',         path: '/app/product',       adminOnly: true },
+    ],
+  },
+  {
+    key: 'betreuung',
+    label: 'Betreuung',
+    icon: '🤝',
+    eintraege: [
+      { label: 'Tickets',         path: '/app/tickets' },
+      { label: 'Abrechnung',      path: '/app/retainer',      adminOnly: true },
+    ],
+  },
+  {
+    key: 'einstellungen',
+    label: 'Einstellungen',
+    icon: '⚙️',
+    eintraege: [
+      { label: 'Profil',            path: '/app/profile' },
+      { label: 'Sicherheit',        path: '/app/2fa-setup' },
+      { label: 'System',            path: '/app/settings' },
+    ],
+  },
+  {
+    key: 'verwaltung',
+    label: 'Verwaltung',
+    icon: '🔧',
+    eintraege: [
+      { label: 'Benutzer',          path: '/app/admin/users', adminOnly: true },
+      { label: 'Rollen',            path: '/app/admin/roles', adminOnly: true },
+      { label: 'Bausteine',         path: '/app/settings/component-library', adminOnly: true },
+    ],
+  },
+];
+
+/** Alle Einträge über alle Gruppen hinweg. */
+export function alleEintraege() {
+  return MENUE_GRUPPEN.flatMap(g => g.eintraege);
+}
+
+/** Zu welcher Gruppe gehört diese Adresse? `null`, wenn zu keiner. */
+export function gruppeVon(pfad = '') {
+  for (const gruppe of MENUE_GRUPPEN) {
+    const treffer = gruppe.eintraege.some(
+      e => pfad === e.path || pfad.startsWith(e.path + '/'),
+    );
+    if (treffer) return gruppe.key;
+  }
+  return null;
+}
+
+/**
+ * Welche Gruppen zu dieser Adresse offen stehen sollen.
+ *
+ * Abgeleitet aus den Einträgen — nicht aus einer zweiten Liste, die
+ * hinterherhinken kann.
+ */
+export function offeneGruppen(pfad = '') {
+  const offen = gruppeVon(pfad);
+  return Object.fromEntries(MENUE_GRUPPEN.map(g => [g.key, g.key === offen]));
+}

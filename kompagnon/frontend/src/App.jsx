@@ -247,7 +247,10 @@ function App() {
             <Route path="webhooks" element={<PrivateRoute roles={['admin']}><WebhookDashboard /></PrivateRoute>} />
             <Route path="retainer" element={<PrivateRoute roles={['admin']}><RetainerDashboard /></PrivateRoute>} />
             <Route path="products" element={<PrivateRoute roles={['admin']}><ProductManager /></PrivateRoute>} />
-            <Route path="products/editor" element={<PrivateRoute roles={['admin']}><ProductEditor /></PrivateRoute>} />
+            {/* `products/editor` war eine zweite Adresse für denselben
+              * Bildschirm wie `product-editor` — von nirgends verlinkt.
+              * Entfernt am 17.08.2026 (UX-17). Wer die Adresse kannte, kommt
+              * über Einstellungen → Produkteditor an dieselbe Seite. */}
             <Route path="newsletter" element={<PrivateRoute><Newsletter /></PrivateRoute>} />
             <Route path="newsletter/editor/:id" element={<PrivateRoute><NewsletterDesigner /></PrivateRoute>} />
             {/* Academy — neue Routen */}

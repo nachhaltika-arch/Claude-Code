@@ -428,19 +428,49 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
 
 ---
 
-## Paket 5 — Das Sammelbecken auflösen
+## Paket 5 — Das Sammelbecken auflösen · ✅ ABGESCHLOSSEN 2026-08-17
 
-- [ ] **UX-16** · **M** · Menügruppe **„Kompagnon"** enthält sieben unverwandte
-      Einträge (Tickets, Templates, Produkt-Editor, Produkte,
-      Produktentwicklung, QR-Generator, Retainer) unter dem eigenen
-      Firmennamen. Verteilen oder umbenennen — „Kompagnon" sagt nicht, was
-      darin liegt.
-      → `AppLayout.jsx:374 ff.`
-      *Prüfung:* Jede Gruppe im Menü ist mit einem Wort beschreibbar.
+- [x] **UX-16** · **M** · ✅ Die Gruppe **„Kompagnon"** hieß nach der eigenen
+      Firma und war damit der Name für „alles Übrige". Sieben unverwandte
+      Einträge.
 
-- [ ] **UX-17** · **S** · **Produkt-Editor**, **Produkte** und
-      **Produktentwicklung** stehen nebeneinander. Wer will was bearbeiten?
-      *Prüfung:* Aus den drei Namen allein ist ableitbar, welcher wofür ist.
+      **Erst nachgesehen, was sie wirklich sind** — das entschied die
+      Zuordnung, nicht mein Gefühl:
+
+      | Eintrag | Beleg | wohin |
+      |---|---|---|
+      | QR-Generator | Platzhalter `postkarte-koblenz-mai-2025` | **Werbung** |
+      | Templates | Platzhalter `/paket/mein-produkt` | **Angebot** (heißt jetzt *Verkaufsseiten*) |
+      | Produkte | `api/products/` — der Katalog | **Angebot** (*Pakete*) |
+      | Produktentwicklung | Ideen-Board Idee→Geplant→Fertig | **Angebot** (*Roadmap*) |
+      | Tickets, Retainer | Betreuung nach dem Verkauf | **Betreuung** |
+
+      Dabei fiel auf, dass „Einstellungen" mit acht Einträgen gerade das
+      nächste Sammelbecken wurde. Getrennt in **Einstellungen** (was eine
+      Person für sich einstellt) und **Verwaltung** (was für alle gilt).
+      *Webhooks* liefern Leads herein → Akquise. *Export* gibt Betriebe
+      heraus → Vertrieb.
+
+      **Der eigentliche Fund lag darunter:** Die Zuordnung Adresse → Gruppe
+      stand **zweimal** — in der Menüdefinition und noch einmal als Pfadliste
+      in `getDefaultOpen`. Wer einen Eintrag verschiebt und die zweite Liste
+      vergisst, bekommt eine Seitenleiste, die nicht mehr zeigt, wo man ist —
+      derselbe Fehler wie am 16.08., nur an anderer Stelle. Beides kommt jetzt
+      aus `utils/menue.js`.
+
+      *Nachgesehen:* 17 Tests, darunter „jede Gruppe lässt sich mit einem Wort
+      benennen" und „keine zwei Einträge heißen fast gleich".
+
+- [x] **UX-17** · **S** · ✅ **Produkt-Editor**, **Produkte** und
+      **Produktentwicklung** nebeneinander. Die Antwort war schärfer als die
+      Frage: **„Produkte" und „Produkt-Editor" sind dieselbe Sache** — Liste
+      und Editor desselben Bestands (`api/products/`), und der Editor war von
+      der Liste aus ohnehin erreichbar. Zwei Menüeinträge für ein Objekt sind
+      einer zu viel; der Editor ist aus dem Menü raus.
+      „Produktentwicklung" war überhaupt keine Produktpflege, sondern ein
+      Ideen-Board → heißt **Roadmap**.
+      **Dabei entfernt:** `/app/products/editor`, eine zweite Adresse für
+      denselben Bildschirm, von nirgends verlinkt.
 
 ---
 

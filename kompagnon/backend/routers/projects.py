@@ -94,7 +94,12 @@ from services.margin_calculator import MarginCalculator
 from services.base_urls import public_base_url
 from services.audit_pagespeed import api_key as pagespeed_api_key
 from routers.content_scraper_router import _run_content_scrape
-from routers.auth_router import require_admin, require_any_auth, get_current_user
+from routers.auth_router import (
+    require_admin,
+    require_any_auth,
+    require_innendienst,
+    get_current_user,
+)
 from automations.scheduler import (
     get_scheduler,
     job_tag_5_followup,
@@ -106,7 +111,24 @@ from automations.scheduler import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/projects", tags=["projects"])
+# Eine Erlaubnisliste je Route ist die falsche Richtung: Wer eine Route
+# hinzufügt und die Abhängigkeit vergisst, öffnet sie. Genau das war hier
+# passiert — 19 von 60 Routen hingen ohne Anmeldung, darunter das Schreiben
+# beliebiger Projektspalten und das Auslösen der Automatik. Deshalb hängt die
+# Anmeldung jetzt am Router, und was öffentlich sein muss, steht unten
+# ausdrücklich im `public_router`. Gleiche Bauart wie in `routers/leads.py`.
+router = APIRouter(prefix="/api/projects", tags=["projects"],
+                   dependencies=[Depends(require_innendienst)])
+
+# Ausdrücklich ohne Anmeldung — die Freigabe des Kunden über den Link aus der
+# E-Mail. Der Token IST der Nachweis; die Routen prüfen ihn selbst.
+public_router = APIRouter(prefix="/api/projects", tags=["projects-public"])
+
+# Was ein Kunde sehen darf: das eigene Projekt. Beide Routen hier grenzen
+# selbst auf `current_user.lead_id` ein. Alles Übrige ist Innendienst —
+# darunter `/{id}/credentials`, das entschlüsselte CMS-Passwörter herausgibt.
+kunden_router = APIRouter(prefix="/api/projects", tags=["projects-kunde"],
+                          dependencies=[Depends(require_any_auth)])
 
 
 class ProjectResponse(BaseModel):
@@ -368,7 +390,7 @@ def seed_projects(db: Session = Depends(get_db)):
     return {"seeded": len(seeded), "details": seeded}
 
 
-@router.get("/")
+@kunden_router.get("/")
 def list_projects(
     status: str = Query(None),
     skip: int = Query(0),
@@ -433,7 +455,7 @@ def list_projects(
     return result
 
 
-@router.get("/{project_id}")
+@kunden_router.get("/{project_id}")
 def get_project(project_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """Get project detail via raw SQL — bypasses ORM column mapping issues."""
     try:
@@ -608,6 +630,25 @@ BLOCKED_KEYS = {
     "created_at", "updated_at", "lead_id"
 }
 
+# Die tatsächlichen Spalten der Tabelle `projects`, einmal je Verbindung
+# erfragt. Das Modell taugt hier nicht als Maßstab: Die Tabelle hat Spalten,
+# die im ORM fehlen — genau deshalb schreibt diese Route mit Roh-SQL.
+_SPALTEN_JE_DATENBANK: dict = {}
+
+
+def spalten_der_projekttabelle(db: Session) -> frozenset:
+    """Gibt die Spaltennamen der Tabelle `projects` zurück."""
+    bind = db.get_bind()
+    kennung = str(bind.url)
+    bekannt = _SPALTEN_JE_DATENBANK.get(kennung)
+    if bekannt is not None:
+        return bekannt
+
+    from sqlalchemy import inspect as _inspect
+    spalten = frozenset(s["name"] for s in _inspect(bind).get_columns("projects"))
+    _SPALTEN_JE_DATENBANK[kennung] = spalten
+    return spalten
+
 
 @router.put("/{project_id}")
 def update_project(
@@ -615,8 +656,25 @@ def update_project(
     body: dict,
     db: Session = Depends(get_db),
 ):
-    """Update project fields via raw SQL — avoids ORM column-mapping issues."""
+    """Update project fields via raw SQL — avoids ORM column-mapping issues.
+
+    Die Schlüssel des Rumpfes werden zu Spaltennamen im SQL. Ungeprüft heißt
+    das: Der Aufrufer bestimmt, was im UPDATE steht. Deshalb muss jeder
+    Schlüssel eine echte Spalte der Tabelle sein — was das nicht ist, wird
+    abgewiesen statt still eingesetzt.
+    """
     from sqlalchemy import text as _text
+
+    erlaubte_spalten = spalten_der_projekttabelle(db)
+    unbekannt = sorted(
+        k for k in body
+        if k not in BLOCKED_KEYS and k not in erlaubte_spalten
+    )
+    if unbekannt:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unbekannte Felder: {', '.join(unbekannt)}",
+        )
 
     existing = db.execute(
         _text("SELECT id, status FROM projects WHERE id = :id"),
@@ -4619,7 +4677,7 @@ async def generate_design_json(
 
 # ── Öffentliche Freigabe-Endpoints (kein Login erforderlich) ─────────────────
 
-@router.get("/approve-content/{token}")
+@public_router.get("/approve-content/{token}")
 def get_approve_content(
     token: str,
     db: Session = Depends(get_db),
@@ -4641,7 +4699,7 @@ def get_approve_content(
     }
 
 
-@router.post("/approve-content/{token}")
+@public_router.post("/approve-content/{token}")
 def post_approve_content(
     token: str,
     db: Session = Depends(get_db),

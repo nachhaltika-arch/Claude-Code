@@ -1756,11 +1756,21 @@ app.include_router(leads_router)                      # real leads router first
 # verlangt eine Anmeldung.
 from routers.leads import public_router as leads_public_router
 app.include_router(leads_public_router)
+# Der eigene Betrieb im Kundenportal. Der Bestand bleibt Innendienst.
+from routers.leads import kunden_router as leads_kunden_router
+app.include_router(leads_kunden_router)
 app.include_router(leads_alias_router)                # alias after
 app.include_router(usercards_customers_alias_router)
 app.include_router(customers_router)                  # real customers router first
 app.include_router(customers_alias_router)            # alias after
 app.include_router(projects_router)
+# Freigabe des Kunden über den Link aus der E-Mail. Alles andere hängt am
+# `projects_router` und verlangt eine Anmeldung.
+from routers.projects import public_router as projects_public_router
+app.include_router(projects_public_router)
+# Das eigene Projekt im Kundenportal. Alles Übrige bleibt Innendienst.
+from routers.projects import kunden_router as projects_kunden_router
+app.include_router(projects_kunden_router)
 app.include_router(agents_router)
 app.include_router(automations_router)
 app.include_router(cms_connect_router)

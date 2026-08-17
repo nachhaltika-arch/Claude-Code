@@ -74,6 +74,24 @@ def require_any_auth(user: User = Depends(get_current_user)):
     return user
 
 
+def require_innendienst(user: User = Depends(get_current_user)):
+    """Alles ausser Kundenzugaengen.
+
+    `require_any_auth` fragt nur, *ob* jemand angemeldet ist — nicht *wer*.
+    Fuer den Betriebsbestand ist das zu wenig: Ein Kunde ist angemeldet und
+    bekam damit ueber `GET /api/leads/` die Liste aller Betriebe, und ueber
+    `GET /api/projects/{id}/credentials` entschluesselte CMS-Passwoerter.
+
+    Die Rechtematrix in `admin_settings.py` sagt es laengst: `view_leads` und
+    `view_projects` haben superadmin, admin und auditor. Was ein Kunde
+    braucht, haengt am `kunden_router` des jeweiligen Bereichs und prueft
+    dort einzeln, ob die Zeile ihm gehoert.
+    """
+    if user.role == "kunde":
+        raise HTTPException(403, "Nur fuer den Innendienst")
+    return user
+
+
 def require_kunde(user: User = Depends(get_current_user)):
     if user.role != "kunde":
         raise HTTPException(403, "Nur Kunden können Freigaben erteilen")

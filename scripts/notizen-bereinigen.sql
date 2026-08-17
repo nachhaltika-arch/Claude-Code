@@ -2,6 +2,18 @@
 -- =======================================================
 -- Angelegt 2026-08-17 zu UX-06.
 --
+-- ⚠ IN DER REGEL IST DER ENDPUNKT DER BESSERE WEG:
+--
+--     POST /api/leads/befunde-nachtragen   (Admin)
+--
+--   Er holt SSL, Impressum und PageSpeed aus der Notizzeile zuerst in die
+--   Spalten und entfernt sie danach. Dieses Skript hier loescht die Zeile
+--   nur — die Werte sind dann bis zum naechsten Anreicherungslauf weg, und
+--   die Oberflaeche sagt so lange „nicht geprueft".
+--
+--   Dieses Skript bleibt fuer den Fall, dass jemand ohne laufende Anwendung
+--   an die Daten muss.
+--
 -- WORUM ES GEHT
 --
 -- `services/lead_enrichment.py` schrieb nach jedem Lauf eine Zeile

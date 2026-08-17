@@ -42,8 +42,18 @@ export function befundZeilen(anreicherung) {
   ];
 }
 
-/** Ein Befund ohne Zeitpunkt ist nicht einzuordnen. */
+/**
+ * Ein Befund ohne Zeitpunkt ist schwer einzuordnen — aber „noch nicht
+ * geprueft" waere falsch, und ein erfundenes Datum waere schlimmer.
+ *
+ * Drei Zustaende: mit Zeitpunkt, mit Werten ohne Zeitpunkt (so kamen die
+ * Befunde aus der alten Notizzeile herueber, die keinen trug), und gar nichts.
+ */
 export function geprueftAmText(anreicherung) {
-  const zeitpunkt = anreicherung && anreicherung.geprueft_am;
-  return zeitpunkt ? `Geprüft am ${zeitpunkt}` : 'Noch nicht geprüft';
+  const a = anreicherung || {};
+  if (a.geprueft_am) return `Geprüft am ${a.geprueft_am}`;
+
+  const hatWerte = [a.has_ssl, a.has_impressum, a.pagespeed_mobile]
+    .some(wert => wert !== null && wert !== undefined);
+  return hatWerte ? 'Geprüft — Zeitpunkt unbekannt' : 'Noch nicht geprüft';
 }

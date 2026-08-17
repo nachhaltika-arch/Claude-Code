@@ -50,4 +50,21 @@ describe('geprueftAmText', () => {
   test('kommt ohne Block klar', () => {
     expect(geprueftAmText(undefined)).toBe('Noch nicht geprüft');
   });
+
+  test('Werte ohne Zeitpunkt sagen genau das', () => {
+    // Die alten Befunde stammen aus der Notizzeile, die keinen Zeitpunkt
+    // trug. „Noch nicht geprüft" wäre falsch, ein erfundenes Datum schlimmer.
+    expect(geprueftAmText({ geprueft_am: null, has_ssl: true }))
+      .toBe('Geprüft — Zeitpunkt unbekannt');
+  });
+
+  test('auch ein PageSpeed von 0 zählt als Wert', () => {
+    expect(geprueftAmText({ geprueft_am: null, pagespeed_mobile: 0 }))
+      .toBe('Geprüft — Zeitpunkt unbekannt');
+  });
+
+  test('ein has_ssl von false ist ebenfalls ein Wert', () => {
+    expect(geprueftAmText({ geprueft_am: null, has_ssl: false }))
+      .toBe('Geprüft — Zeitpunkt unbekannt');
+  });
 });

@@ -238,10 +238,22 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
       **`NULL` heißt „nicht geprüft" und wird auch so angezeigt** — nicht als
       „fehlt". Für den Altbestand ist das bis zur nächsten Anreicherung die
       ehrliche Auskunft.
-      **Altbestand:** `scripts/notizen-bereinigen.sql` entfernt die
-      Maschinenzeilen aus den vorhandenen Notizen — mit Sicherungskopie,
-      Vorher/Nachher-Ansicht und `ROLLBACK` am Ende. Der reguläre Ausdruck ist
-      gegen echtes Postgres geprüft (5 Fälle). **Läuft noch nicht — David.**
+      **Altbestand — am Bildschirm nachgesehen und dabei einen Widerspruch
+      gefunden, den ich selbst erzeugt hatte:** Der neue Block sagte „SSL:
+      nicht geprüft", zwei Zeilen darunter stand weiter die alte Notiz „SSL:
+      OK". Beides stimmte für sich. Die Werte waren also da, nur im falschen
+      Feld — sie zu löschen wäre der schlechtere Weg gewesen.
+      Deshalb **`POST /api/leads/befunde-nachtragen`** (Admin): liest SSL,
+      Impressum und PageSpeed aus der Notizzeile in die Spalten und entfernt
+      die Zeile danach. Übernommen wird nur, was noch leer ist.
+      **Ein Zeitpunkt wird nicht erfunden** — die Zeile trug keinen, also
+      bleibt `enriched_at` leer und die Oberfläche sagt „Geprüft — Zeitpunkt
+      unbekannt". Das ist ein dritter Zustand neben „geprüft am" und „noch
+      nicht geprüft", und er ist nötig, weil sonst eine der beiden Angaben
+      lügen müsste.
+      `scripts/notizen-bereinigen.sql` bleibt als Weg ohne laufende Anwendung,
+      ist aber der schlechtere: Es löscht nur.
+      **Beides muss David einmal auslösen.**
       *Nachgesehen:* nach einer Anreicherung steht in `lead.notes` nur, was ein
       Mensch geschrieben hat (4 Tests).
 

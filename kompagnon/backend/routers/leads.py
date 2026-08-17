@@ -1615,6 +1615,50 @@ async def namen_nachtragen(
     }
 
 
+@router.post("/befunde-nachtragen")
+def befunde_nachtragen(
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Holt SSL, Impressum und PageSpeed aus der alten Notizzeile in die Spalten.
+
+    Seit dem 17.08.2026 stehen diese Befunde in eigenen Spalten. Für den
+    Bestand hieß das: Spalten leer, Oberfläche sagt „nicht geprüft" — und
+    darunter behauptet die alte Notiz „SSL: OK". Beides stimmt für sich,
+    zusammen widersprechen sie sich auf einem Bildschirm.
+
+    Übernommen wird nur, was noch leer ist: Was die neue Anreicherung
+    geschrieben hat, ist jünger als die Notiz. Ein Zeitpunkt wird nicht
+    erfunden — die Zeile trug keinen.
+    """
+    from services import anreicherungsnotiz
+
+    betroffen = db.query(Lead).filter(
+        Lead.notes.ilike(f"%{anreicherungsnotiz.MARKE}%")).all()
+
+    bericht = []
+    for lead in betroffen:
+        befunde = anreicherungsnotiz.befunde_aus_notiz(lead.notes)
+        uebernommen = []
+        for feld, wert in befunde.items():
+            if getattr(lead, feld, None) is None:
+                setattr(lead, feld, wert)
+                uebernommen.append(feld)
+
+        lead.notes = anreicherungsnotiz.notiz_ohne_maschinenzeilen(lead.notes)
+        bericht.append({
+            "id": lead.id,
+            "betrieb": lead.company_name,
+            "uebernommen": uebernommen,
+            "notiz_bleibt": bool(lead.notes),
+        })
+
+    if bericht:
+        db.commit()
+
+    return {"betroffen": len(betroffen), "betriebe": bericht}
+
+
 @router.post("/{lead_id}/extract-impressum")
 async def extract_impressum(lead_id: int, db: Session = Depends(get_db)):
     """Extract contact data from a lead's website impressum using AI."""

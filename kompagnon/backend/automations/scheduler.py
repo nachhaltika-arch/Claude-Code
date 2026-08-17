@@ -16,7 +16,13 @@ from services.margin_calculator import MarginCalculator
 from services.base_urls import public_base_url
 from services.audit_pagespeed import api_key as pagespeed_api_key
 from services.email import send_email as _send_email_canonical
+from services import versandsperre
 from automations.email_templates import render_template
+from automations.erinnerungen import (
+    BRIEFING_STUFEN,
+    MATERIAL_STUFEN,
+    faellige_erinnerung,
+)
 import logging
 import os
 
@@ -31,9 +37,23 @@ _use_mock_email = os.getenv("USE_MOCK_EMAIL", "false").lower() == "true"
 # ===================================================================
 
 def _do_send_email(to_email: str, subject: str, html_body: str) -> bool:
+    """Der gemeinsame Versandweg aller Scheduler-Jobs.
+
+    Hier haengt seit dem 17.08.2026 die Versandsperre: Es ist die eine Stelle,
+    durch die jede Mail geht, die ohne menschlichen Anlass entsteht. Wer sein
+    Passwort zuruecksetzt oder im Widget etwas anfordert, kommt hier nicht
+    vorbei — diese Mails bleiben unberuehrt.
+    """
     if _use_mock_email:
         logger.info(f"[MOCK] E-Mail an {to_email}: {subject}")
         return True
+
+    if not versandsperre.in_eigener_sitzung_erlaubt():
+        logger.warning(
+            f"Versandsperre aktiv — nicht gesendet an {to_email}: {subject!r}"
+        )
+        return False
+
     return _send_email_canonical(to_email=to_email, subject=subject, html_body=html_body)
 
 
@@ -497,13 +517,15 @@ def _send_ssl_alert(project_id: int, lead_id: int, domain: str, db):
               </div>
             </div>
             """
-            from services.email import send_email
-            send_email(
+            # Ueber `_do_send_email`, nicht direkt: Dieser Aufruf ging bis zum
+            # 17.08.2026 am gemeinsamen Weg vorbei und damit an jeder Sperre.
+            # Eine Sperre, die ein Sender umgehen kann, ist keine.
+            if _do_send_email(
                 to_email=lead[0],
                 subject=f"Wichtig: SSL-Zertifikat für {domain} benötigt Erneuerung",
                 html_body=html_body,
-            )
-            logger.info(f"SSL-Alert E-Mail gesendet an {lead[0]}")
+            ):
+                logger.info(f"SSL-Alert E-Mail gesendet an {lead[0]}")
     except Exception as e:
         logger.warning(f"SSL-Alert E-Mail Fehler: {e}")
 
@@ -557,30 +579,50 @@ def job_check_overdue_phases():
         db.close()
 
 
+def _bereits_gesendet(db, project_id: int) -> set:
+    """Welche Vorlagen dieses Projekt schon bekommen hat."""
+    zeilen = (
+        db.query(Communication.template_key)
+        .filter(Communication.project_id == project_id,
+                Communication.template_key.isnot(None))
+        .all()
+    )
+    return {z[0] for z in zeilen}
+
+
 def job_check_missing_materials():
-    """Check projects waiting for materials > 5 days."""
+    """Erinnert einmal an fehlende Materialien — nicht jeden Morgen.
+
+    Bis zum 17.08.2026 stand hier `if days_since_start > 5: _send_phase_email(...)`
+    ohne jede Sperre. Der Job laeuft taeglich um 09:00, also ging die Mail an
+    jedes Projekt in `phase_2` **jeden Tag erneut** raus. Ein Betrieb hat sie
+    ueber 135 Tage bekommen. Die Staffelung liegt jetzt in
+    `automations/erinnerungen.py` und gilt fuer beide Erinnerungs-Jobs.
+    """
     db = SessionLocal()
     try:
         projects = db.query(Project).filter(Project.status == "phase_2").all()
 
         for project in projects:
-            if project.start_date:
-                days_since_start = (datetime.utcnow() - project.start_date).days
-                if days_since_start > 5:
-                    logger.info(f"📧 Sending material reminder for Project {project.id}")
-                    _send_phase_email(project.id, "material_reminder")
+            if not project.start_date:
+                continue
+            if not project.lead or not project.lead.email:
+                continue
+
+            tage = (datetime.utcnow() - project.start_date).days
+            vorlage = faellige_erinnerung(
+                tage, MATERIAL_STUFEN, _bereits_gesendet(db, project.id)
+            )
+            if not vorlage:
+                continue
+
+            logger.info(
+                f"📧 Material-Erinnerung ({vorlage}) für Projekt {project.id} "
+                f"(Tag {tage} ohne Materialien)"
+            )
+            _send_phase_email(project.id, vorlage)
     finally:
         db.close()
-
-
-# Eskalation: ab Tag 3 sanft, Tag 7 klar, Tag 14 letzte Erinnerung. Danach
-# kein weiterer Reminder — Project ist dann ohnehin fest stuck und braucht
-# manuelle Intervention (siehe job_check_overdue_phases).
-_BRIEFING_REMINDER_STAGES = (
-    (3,  "briefing_reminder_day_3"),
-    (7,  "briefing_reminder_day_7"),
-    (14, "briefing_reminder_day_14"),
-)
 
 
 def job_send_briefing_reminders():
@@ -609,21 +651,12 @@ def job_send_briefing_reminders():
                 continue
 
             days_since = (datetime.utcnow() - project.start_date).days
-            # _BRIEFING_REMINDER_STAGES ist absteigend zu durchlaufen, damit
-            # an Tag 14 das _day_14-Template gewählt wird (statt _day_3).
-            template_key = None
-            for threshold, tpl in reversed(_BRIEFING_REMINDER_STAGES):
-                if days_since >= threshold:
-                    template_key = tpl
-                    break
+            # Dieselbe Entscheidung wie beim Material-Job, seit 17.08.2026 an
+            # einer Stelle: hoechste erreichte Stufe, jede genau einmal.
+            template_key = faellige_erinnerung(
+                days_since, BRIEFING_STUFEN, _bereits_gesendet(db, project.id)
+            )
             if not template_key:
-                continue
-
-            already_sent = db.query(Communication).filter(
-                Communication.project_id == project.id,
-                Communication.template_key == template_key,
-            ).first()
-            if already_sent:
                 continue
 
             logger.info(

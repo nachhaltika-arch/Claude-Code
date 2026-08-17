@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth, apiCall } from '../context/AuthContext';
+import { useVersand } from '../context/VersandContext';
 import { reportApiError } from '../utils/apiRequest';
 import { useScreenSize } from '../utils/responsive';
 
@@ -178,6 +179,85 @@ function SystemTab() {
   );
 }
 
+// ── Not-Aus für automatischen Mailversand ──
+//
+// Am 17.08.2026 verschickte ein täglicher Job vier Monate lang Erinnerungen an
+// Firmen, die nie Kunde waren — und es gab keinen Weg, ihn anzuhalten außer
+// einem Eingriff in die Datenbank. Dieser Schalter ist das, was gefehlt hat.
+function VersandSchalter() {
+  const { erlaubt, laedt, umschalten } = useVersand();
+  const [schaltet, setSchaltet] = useState(false);
+
+  const klick = async () => {
+    if (schaltet || laedt) return;
+    const ziel = !erlaubt;
+    setSchaltet(true);
+    try {
+      const jetzt = await umschalten(ziel);
+      toast.success(jetzt
+        ? 'Automatischer Versand ist eingeschaltet'
+        : 'Automatischer Versand ist abgeschaltet');
+    } catch (fehler) {
+      toast.error(`Schalter nicht umgelegt: ${fehler.message}`);
+    } finally {
+      setSchaltet(false);
+    }
+  };
+
+  const an = erlaubt === true;
+  const unbekannt = erlaubt === null;
+
+  return (
+    <Card title="Automatischer E-Mail-Versand" icon="🛑">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '4px 0' }}>
+        <button
+          type="button" onClick={klick} disabled={laedt || schaltet || unbekannt}
+          role="switch" aria-checked={an}
+          aria-label="Automatischen E-Mail-Versand umschalten"
+          style={{
+            width: 52, height: 28, borderRadius: 14, flexShrink: 0,
+            border: '1px solid var(--border-medium)',
+            background: an ? 'var(--status-success-text)' : 'var(--bg-app)',
+            cursor: (laedt || schaltet || unbekannt) ? 'not-allowed' : 'pointer',
+            opacity: (laedt || schaltet) ? 0.6 : 1,
+            position: 'relative', transition: 'background 0.15s', padding: 0,
+          }}
+        >
+          <span style={{
+            position: 'absolute', top: 2, left: an ? 26 : 2,
+            width: 22, height: 22, borderRadius: '50%',
+            background: '#fff', boxShadow: 'var(--shadow-sm)',
+            transition: 'left 0.15s',
+          }} />
+        </button>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+            {laedt ? 'Wird geladen…'
+              : unbekannt ? 'Zustand unbekannt'
+              : an ? 'Eingeschaltet' : 'Abgeschaltet'}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+            {an
+              ? 'Erinnerungen, E-Mail-Strecken und Berichte gehen automatisch raus.'
+              : 'Kein Job verschickt von sich aus E-Mails. Wirkt sofort.'}
+          </div>
+        </div>
+      </div>
+
+      <div style={{
+        marginTop: 14, padding: '10px 12px', background: 'var(--bg-app)',
+        borderRadius: 'var(--radius-md)', fontSize: 12,
+        color: 'var(--text-secondary)', lineHeight: 1.6,
+      }}>
+        <strong style={{ color: 'var(--text-primary)' }}>Was der Schalter nicht sperrt:</strong>{' '}
+        Mails, die jemand selbst ausgelöst hat — Passwort zurücksetzen, Anmeldung,
+        die Bestätigung aus dem Analyse-Widget. Diese dürfen nie an einem Schalter
+        hängen, den jemand vergessen hat.
+      </div>
+    </Card>
+  );
+}
+
 // ── Notifications ──
 function NotificationsTab() {
   const { user, hasRole } = useAuth();
@@ -199,6 +279,7 @@ function NotificationsTab() {
 
   return (
     <>
+      {hasRole('admin') && <VersandSchalter />}
       <Card title="E-Mail Benachrichtigungen" icon="📧">
         {[
           ['new_lead', 'Neuer Lead eingegangen'],

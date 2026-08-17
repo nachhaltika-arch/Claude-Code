@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { VersandProvider } from './context/VersandContext';
 
 import Dashboard from './pages/Dashboard';
 // Hiess LeadPipeline und zeigte Projekte — der Name im Code war
@@ -147,6 +148,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
+       <VersandProvider>
         <Routes>
           {/* ── Auth-Seiten — kein Marketing mehr ── */}
           <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
@@ -335,6 +337,7 @@ function App() {
             },
           }}
         />
+       </VersandProvider>
       </AuthProvider>
     </Router>
   );

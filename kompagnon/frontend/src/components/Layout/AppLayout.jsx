@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useVersand } from '../../context/VersandContext';
 import { useScreenSize } from '../../utils/responsive';
 import { loadJson } from '../../utils/apiRequest';
 import { useTheme } from '../../context/ThemeContext';
@@ -165,6 +166,46 @@ const MORE_ITEMS_ADMIN = [
   { label: 'Domain Import', path: '/app/import', icon: '⬆️' },
 ];
 
+// ── Hinweis: automatischer Versand ist aus ─────────────────────
+//
+// Ein Not-Aus, den man nur in den Einstellungen sieht, ist ein Not-Aus, den
+// man vergisst. Nach dem Vorfall vom 17.08.2026 gilt: Der abgeschaltete
+// Zustand steht dort, wo man ohnehin hinsieht.
+//
+// Gezeigt wird nur, was von der Normallage abweicht — ist der Versand an,
+// steht hier nichts. Ein Dauerhinweis wird nach drei Tagen unsichtbar.
+function VersandHinweis({ onClick }) {
+  const { erlaubt, laedt } = useVersand();
+
+  if (laedt || erlaubt === true) return null;
+
+  const unbekannt = erlaubt === null;
+
+  return (
+    <button
+      type="button" onClick={onClick}
+      title={unbekannt
+        ? 'Der Zustand des automatischen Versands konnte nicht geladen werden.'
+        : 'Kein Job verschickt derzeit von sich aus E-Mails. Zum Umschalten klicken.'}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+        margin: '8px 0 0', padding: '8px 10px',
+        borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left',
+        border: `1px solid ${unbekannt ? 'var(--border-medium)' : 'var(--status-warning-text)'}`,
+        background: unbekannt ? 'transparent' : 'var(--status-warning-bg)',
+        color: unbekannt ? 'var(--text-tertiary)' : 'var(--status-warning-text)',
+        fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600,
+        lineHeight: 1.35,
+      }}
+    >
+      <span aria-hidden="true" style={{ fontSize: 13 }}>{unbekannt ? '?' : '🛑'}</span>
+      <span>
+        {unbekannt ? 'Versand-Zustand unbekannt' : 'Automatischer Versand aus'}
+      </span>
+    </button>
+  );
+}
+
 // ── Sidebar ────────────────────────────────────────────────────
 
 function SidebarNav({ badges }) {
@@ -296,6 +337,8 @@ function SidebarNav({ badges }) {
         ) : (
           /* ── All other roles: collapsible sections ── */
           <>
+            <VersandHinweis onClick={() => navigate('/app/settings/notifications')} />
+
             {/* Dashboard */}
             <button onClick={() => navigate('/app/dashboard')} style={{ ...navItemStyle(isActive('/app/dashboard')), marginTop: 8, display: 'flex', alignItems: 'center', gap: 9 }}>
               {icons.grid}

@@ -8,6 +8,8 @@ damit sie ohne Netzzugriff bleiben.
 """
 from datetime import datetime, timedelta
 
+import re
+
 import pytest
 
 from database import SessionLocal, WidgetRequest
@@ -521,10 +523,21 @@ def test_berichtsseite_haelt_den_klick_als_nachweis_fest(client, fremde_analyse,
 # ── Zwei Mails: erst bestätigen, dann der Bericht ─────────────────────
 
 def _beleg(token: str) -> str:
-    """Der Wert, den die Seite erst bei einer echten Geste mitschickt."""
+    """Der Wert, den die Seite erst bei einer echten Geste mitschickt.
+
+    Seit dem 17.08.2026 traegt er den Zeitpunkt seiner Ausgabe und gilt erst
+    nach einer Wartezeit — sonst genuegte es, die Seite zu lesen und den Wert
+    sofort zurueckzuschicken. Genau das tun Postfach-Scanner.
+
+    Die Tests stellen ihn deshalb rueckdatiert aus. Ohne diese Zeile wuerden
+    sie die neue Huerde messen statt das, was sie pruefen wollen.
+    """
+    import time
+
     from services import widget_report
 
-    return widget_report.gestenbeleg(token)
+    return widget_report.gestenbeleg(
+        token, zeitpunkt=time.time() - (widget_report.BELEG_MINDESTALTER_S + 1))
 
 
 @pytest.fixture
@@ -877,4 +890,11 @@ def test_die_seite_liefert_den_beleg_nicht_im_feld_aus(client, fremde_analyse,
 
     assert 'name="nachweis"' in r.text
     assert 'value=""' in r.text, "Das Feld wird vorbefüllt ausgeliefert"
-    assert _beleg("v-feld") in r.text, "Der Beleg fehlt im data-Attribut"
+    # Nicht gegen einen berechneten Wert prüfen: Der Beleg trägt seit dem
+    # 17.08.2026 den Zeitpunkt seiner Ausgabe und ist damit bei jedem Abruf
+    # ein anderer. Geprüft wird, was der Test meint — er steht im Attribut
+    # und nicht im Feld.
+    beleg = re.search(r'data-nachweis="(\d+\.[0-9a-f]+)"', r.text)
+    assert beleg, "Der Beleg fehlt im data-Attribut"
+    assert beleg.group(1) not in r.text.split('id="kpg-nachweis"')[1][:80], \
+        "Der Beleg steht im Feld statt nur im Attribut"

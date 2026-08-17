@@ -407,11 +407,14 @@ def _geste_fehlt(token: str, nachweis: str, request: Request, wofuer: str) -> bo
     den Knopf angefasst — dann wird protokolliert, wer es war, und sonst
     nichts getan.
     """
-    if nachweis and secrets.compare_digest(nachweis, widget_report.gestenbeleg(token)):
+    gueltig, grund = widget_report.beleg_gueltig(token, nachweis)
+    if gueltig:
         return False
 
+    # Der Grund steht im Protokoll, nicht auf der Seite: Wer zu schnell war,
+    # soll nicht lernen, wie lange er warten muss.
     logger.warning(
-        "%s ohne Bedienung abgewiesen — UA=%r IP=%s Feld=%r", wofuer,
+        "%s ohne Bedienung abgewiesen (%s) — UA=%r IP=%s Feld=%r", wofuer, grund,
         request.headers.get("user-agent", "")[:200], _client_ip(request),
         (nachweis or "")[:16])
     return True

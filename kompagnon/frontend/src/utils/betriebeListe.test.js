@@ -6,6 +6,7 @@ import {
   betriebeAufbereiten,
   betriebeStatistik,
   quellenAusBetrieben,
+  statusAusBetrieben,
   BETRIEB_SORTIERUNGEN,
 } from './betriebeListe';
 
@@ -235,6 +236,22 @@ describe('betriebeStatistik', () => {
     ]);
   });
 
+  test('die Statuszähler summieren sich auf die Gesamtzahl, auch bei unbekanntem Status', () => {
+    // Der Fund vom laufenden System: 27 Neu + 2 Gewonnen bei 30 Betrieben.
+    // Der dreissigste stand auf `opt_in` und fiel aus jeder Zaehlung.
+    const liste = [
+      ...Array.from({ length: 27 }, (_, i) => betrieb({ id: i, status: 'new' })),
+      betrieb({ id: 28, status: 'won' }),
+      betrieb({ id: 29, status: 'won' }),
+      betrieb({ id: 30, status: 'opt_in' }),
+    ];
+
+    const stat = betriebeStatistik(liste);
+    const summe = stat.statusZaehler.reduce((s, z) => s + z.anzahl, 0);
+
+    expect(summe).toBe(stat.gesamt);
+  });
+
   test('eine leere Liste ergibt Nullen statt eines Fehlers', () => {
     expect(betriebeStatistik([])).toEqual({
       gesamt: 0, mitScore: 0, durchschnittsScore: 0, statusZaehler: [],
@@ -249,6 +266,50 @@ describe('betriebeStatistik', () => {
 
     expect(betriebeStatistik(alle).gesamt).toBe(61);
     expect(betriebeStatistik(alle.slice(0, 50)).gesamt).toBe(50);
+  });
+});
+
+// ── Statuswerte ────────────────────────────────────────────────────────
+
+describe('statusAusBetrieben', () => {
+  test('führt nur Statuswerte auf, die vorkommen', () => {
+    const liste = [betrieb({ status: 'new' }), betrieb({ status: 'won' })];
+
+    expect(statusAusBetrieben(liste).map(s => s.key)).toEqual(['new', 'won']);
+  });
+
+  test('bietet auch einen unbekannten Status als Filter an', () => {
+    const liste = [betrieb({ status: 'new' }), betrieb({ status: 'opt_in' })];
+
+    expect(statusAusBetrieben(liste).map(s => s.key)).toContain('opt_in');
+  });
+
+  test('macht den unbekannten Status lesbar, statt ihn roh zu zeigen', () => {
+    const eintrag = statusAusBetrieben([betrieb({ status: 'opt_in' })])[0];
+
+    expect(eintrag.label).toBe('Opt in');
+  });
+
+  test('sortiert bekannte Werte nach dem Vertriebsweg, unbekannte dahinter', () => {
+    const liste = [
+      betrieb({ status: 'opt_in' }),
+      betrieb({ status: 'won' }),
+      betrieb({ status: 'new' }),
+    ];
+
+    expect(statusAusBetrieben(liste).map(s => s.key)).toEqual(['new', 'won', 'opt_in']);
+  });
+
+  test('zählt einen fehlenden Status als „new" — so liefert ihn der Server', () => {
+    const liste = [betrieb({ status: null }), betrieb({ status: 'new' })];
+
+    const neu = statusAusBetrieben(liste).find(s => s.key === 'new');
+
+    expect(neu.anzahl).toBe(2);
+  });
+
+  test('eine leere Liste ergibt keine Filter', () => {
+    expect(statusAusBetrieben([])).toEqual([]);
   });
 });
 

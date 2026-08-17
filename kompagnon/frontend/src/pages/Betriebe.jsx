@@ -24,7 +24,7 @@ import EmptyState from '../components/ui/EmptyState';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import BetriebAnlegenModal from '../components/BetriebAnlegenModal';
-import { leadStatusLabel, leadStatusVariant, LEAD_STATUS } from '../utils/leadStatus';
+import { leadStatusLabel, leadStatusVariant } from '../utils/leadStatus';
 import { stufeFuerScore } from '../utils/homepageStandard';
 import {
   betriebeAufbereiten,
@@ -228,17 +228,14 @@ export default function Betriebe() {
         </button>
       </div>
 
-      {/* Statusfilter */}
+      {/* Statusfilter — aus den Daten, damit auch ein unbekannter Status
+        * erreichbar ist und die Zahlen aufgehen */}
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {['alle', ...Object.keys(LEAD_STATUS)].map(key => {
-          const anzahl = key === 'alle'
-            ? betriebe.length
-            : betriebe.filter(b => b.status === key).length;
-          if (key !== 'alle' && anzahl === 0) return null;
-          const aktiv = status === key;
+        {[{ key: 'alle', label: 'Alle', anzahl: betriebe.length }, ...stat.statusZaehler].map(s => {
+          const aktiv = status === s.key;
           return (
             <button
-              key={key} type="button" onClick={() => setStatus(key)}
+              key={s.key} type="button" onClick={() => setStatus(s.key)}
               aria-pressed={aktiv}
               style={{
                 padding: '5px 10px', borderRadius: 'var(--radius-full)',
@@ -249,8 +246,8 @@ export default function Betriebe() {
                 fontFamily: 'var(--font-sans)', transition: 'all 0.1s', whiteSpace: 'nowrap',
               }}
             >
-              {key === 'alle' ? 'Alle' : LEAD_STATUS[key].label}
-              <span style={{ marginLeft: 4, opacity: 0.6 }}>{anzahl}</span>
+              {s.label}
+              <span style={{ marginLeft: 4, opacity: 0.6 }}>{s.anzahl}</span>
             </button>
           );
         })}

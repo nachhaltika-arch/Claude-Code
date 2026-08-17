@@ -6,7 +6,7 @@
 //
 // Alle Funktionen geben neue Listen zurueck und fassen die Eingabe nicht an.
 
-import { LEAD_STATUS, leadSourceLabel } from './leadStatus';
+import { LEAD_STATUS, leadSourceLabel, leadStatusLabel } from './leadStatus';
 
 /** Sortierungen der Liste. `key` steht im Auswahlfeld. */
 export const BETRIEB_SORTIERUNGEN = [
@@ -104,6 +104,36 @@ export function betriebeAufbereiten({ betriebe = [], suche = '', status = 'alle'
 }
 
 /**
+ * Die Statuswerte, die in den Daten **wirklich vorkommen**.
+ *
+ * Bekannte zuerst, in der Reihenfolge des Vertriebswegs (neu → gewonnen);
+ * unbekannte dahinter, lesbar gemacht.
+ *
+ * Warum aus den Daten und nicht aus `LEAD_STATUS`: Auf Staging steht ein
+ * Betrieb mit dem Status `opt_in`. Er kommt in `LEAD_STATUS` nicht vor, bekam
+ * darum keine Filterschaltflaeche — und die Kacheln zaehlten 27 Neu + 2
+ * Gewonnen bei 30 Betrieben. **Der dreissigste war weder zu sehen noch zu
+ * finden.** Ein unbekannter Wert soll sich zeigen, nicht verschwinden.
+ */
+export function statusAusBetrieben(betriebe = []) {
+  const zaehler = new Map();
+  for (const betrieb of betriebe) {
+    const key = betrieb.status || 'new';
+    zaehler.set(key, (zaehler.get(key) || 0) + 1);
+  }
+
+  const bekannt = Object.keys(LEAD_STATUS);
+  const rang = (key) => {
+    const platz = bekannt.indexOf(key);
+    return platz === -1 ? bekannt.length : platz;
+  };
+
+  return [...zaehler.entries()]
+    .sort((a, b) => rang(a[0]) - rang(b[0]) || a[0].localeCompare(b[0]))
+    .map(([key, anzahl]) => ({ key, label: leadStatusLabel(key), anzahl }));
+}
+
+/**
  * Kennzahlen ueber der Liste.
  *
  * Wichtig: Diese Zahlen gelten fuer die **uebergebene** Liste. Wer sie ueber
@@ -118,12 +148,6 @@ export function betriebeStatistik(betriebe = []) {
     gesamt: betriebe.length,
     mitScore: mitScore.length,
     durchschnittsScore: mitScore.length ? Math.round(summe / mitScore.length) : 0,
-    statusZaehler: Object.entries(LEAD_STATUS)
-      .map(([key, wert]) => ({
-        key,
-        label: wert.label,
-        anzahl: betriebe.filter((b) => b.status === key).length,
-      }))
-      .filter((s) => s.anzahl > 0),
+    statusZaehler: statusAusBetrieben(betriebe),
   };
 }

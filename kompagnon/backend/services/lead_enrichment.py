@@ -71,9 +71,15 @@ async def enrich_lead(lead_id: int, db) -> dict:
     except Exception:
         pass
 
-    if not lead.company_name or lead.company_name == "Unbekannt":
-        if scraped.get("company_name"):
-            enriched["company_name"] = scraped["company_name"]
+    # Auch die Domain zählt als Platzhalter — sonst bleibt der Name stehen,
+    # den der Domainimport gesetzt hat, und der echte kommt nie an.
+    from services.betriebsname import uebernehmen
+
+    echter_name = uebernehmen(
+        lead.company_name, scraped.get("company_name"), lead.website_url,
+    )
+    if echter_name:
+        enriched["company_name"] = echter_name
     if not lead.phone and scraped.get("phone"):
         enriched["phone"] = scraped["phone"]
     if not lead.email and scraped.get("email"):

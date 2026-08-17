@@ -12,7 +12,10 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db, SessionLocal
-from routers.auth_router import require_any_auth, require_innendienst, get_current_user
+from routers.auth_router import (
+    require_admin, require_any_auth, require_innendienst, get_current_user,
+)
+from services import betriebsname
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 from services.base_urls import self_base_url
@@ -549,7 +552,19 @@ async def _process_single_domain(url: str, clean: str, _session_factory, job_id:
                     result['impressum_status'] = 'failed'
                     return result
                 updated_fields = []
-                for field in ['company_name', 'legal_form', 'ceo_first_name', 'ceo_last_name',
+                # Der Firmenname zuerst und nach eigener Regel: Der Import hat
+                # ihn mit der Domain vorbelegt. Die Bedingung unten hielte das
+                # Feld deshalb für gefüllt und würde den echten Namen aus dem
+                # Impressum verwerfen — genau deshalb hieß am 17.08.2026 jeder
+                # Betrieb in der Liste wie seine Domain.
+                echter_name = betriebsname.uebernehmen(
+                    lead.company_name, data_imp.get('company_name'), lead.website_url,
+                )
+                if echter_name:
+                    lead.company_name = echter_name
+                    updated_fields.append('company_name')
+
+                for field in ['legal_form', 'ceo_first_name', 'ceo_last_name',
                               'street', 'house_number', 'postal_code', 'city', 'phone', 'email',
                               'vat_id', 'register_number', 'register_court', 'trade']:
                     if data_imp.get(field) and not getattr(lead, field, None):
@@ -1541,6 +1556,65 @@ def get_lead_audits(lead_id: int, db: Session = Depends(get_db)):
     return results
 
 
+#: Wie viele Betriebe ein Aufruf hoechstens anfasst. Jeder kostet einen
+#: Seitenabruf samt KI-Auswertung — das soll man dosieren koennen.
+NAMEN_JE_LAUF = 25
+
+
+@router.post("/namen-nachtragen")
+async def namen_nachtragen(
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Holt den echten Firmennamen für Betriebe, die wie ihre Domain heißen.
+
+    Der Domainimport legt Betriebe mit der Domain als Namen an. Bis zum
+    17.08.2026 verwarf der Impressum-Schritt den echten Namen wieder, weil das
+    Feld als „gefüllt" galt. Behoben ist das — aber nur für künftige Läufe.
+    Dieser Endpunkt holt nach, was in der Liste steht.
+
+    Angefasst wird ausschließlich, wessen Name ein Platzhalter ist. Ein von
+    Hand gepflegter Name bleibt, auch wenn das Impressum etwas anderes sagt.
+    """
+    from services.impressum_scraper import extract_contact_from_impressum
+
+    kandidaten = [
+        lead for lead in db.query(Lead).filter(Lead.website_url != "").all()
+        if betriebsname.ist_platzhalter(lead.company_name, lead.website_url)
+    ][:NAMEN_JE_LAUF]
+
+    geaendert, ohne_ergebnis = [], []
+    for lead in kandidaten:
+        try:
+            ergebnis = await extract_contact_from_impressum(lead.website_url)
+        except Exception as fehler:  # noqa: BLE001 — ein Betrieb darf den Lauf nicht kippen
+            logger.warning(f"Impressum für {lead.website_url} nicht lesbar: {fehler}")
+            ohne_ergebnis.append({"betrieb": lead.company_name, "grund": str(fehler)[:120]})
+            continue
+
+        gefunden = (ergebnis.get("data") or {}).get("company_name") if ergebnis.get("success") else None
+        echter_name = betriebsname.uebernehmen(lead.company_name, gefunden, lead.website_url)
+        if not echter_name:
+            ohne_ergebnis.append({
+                "betrieb": lead.company_name,
+                "grund": "kein brauchbarer Name im Impressum",
+            })
+            continue
+
+        geaendert.append({"id": lead.id, "vorher": lead.company_name, "nachher": echter_name})
+        lead.company_name = echter_name
+
+    if geaendert:
+        db.commit()
+
+    return {
+        "geprueft": len(kandidaten),
+        "geaendert": geaendert,
+        "ohne_ergebnis": ohne_ergebnis,
+        "grenze_erreicht": len(kandidaten) == NAMEN_JE_LAUF,
+    }
+
+
 @router.post("/{lead_id}/extract-impressum")
 async def extract_impressum(lead_id: int, db: Session = Depends(get_db)):
     """Extract contact data from a lead's website impressum using AI."""
@@ -1561,8 +1635,16 @@ async def extract_impressum(lead_id: int, db: Session = Depends(get_db)):
     data = result['data']
     updated = {}
 
+    # Der Firmenname nach eigener Regel — der Domainimport hat ihn mit der
+    # Domain vorbelegt, und `not existing` hielte das für einen Wert.
+    echter_name = betriebsname.uebernehmen(
+        lead.company_name, data.get('company_name'), lead.website_url,
+    )
+    if echter_name:
+        lead.company_name = echter_name
+        updated['company_name'] = echter_name
+
     field_map = {
-        'company_name': lead.company_name,
         'legal_form': lead.legal_form,
         'ceo_first_name': lead.ceo_first_name,
         'ceo_last_name': lead.ceo_last_name,

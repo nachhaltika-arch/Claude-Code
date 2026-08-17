@@ -281,12 +281,33 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
       „12 Leads". Nach UX-04 heißt das Objekt **Betrieb** — „Lead" ist ein
       Zustand. Ein Rest aus Paket 1, wie UX-32.
 
-- [ ] **UX-Daten** · **M** · Was die Listen über die Daten verraten, gehört
-      separat angefasst — es trifft die Glaubwürdigkeit vor Kunden:
-      Domains als Firmenname (`adrian-vidak.de`), eine Notiz als Firmenname
-      (`gibts nicht dachdeckerei-heinen.de`), Dublette **ECO-VOX**, Ort `News`
-      (vermutlich Neuss), Testdatensatz **KOMPAGNON** mit
-      `kompagnon-frontend.onrender.com` in der Produktivliste.
+- [~] **UX-Daten** · **M** · **Halb erledigt 2026-08-17 — und es war kein
+      Datenpflegeproblem.**
+      „Domains als Firmenname" sah nach fehlender Pflege aus. Es war eine Zeile
+      Code. Der Domainimport legt einen Betrieb mit der Domain als Namen an,
+      als Platzhalter. Der Impressum-Schritt liest kurz darauf den echten Namen
+      aus — und verwirft ihn:
+
+          if data_imp.get(field) and not getattr(lead, field, None):
+
+      `company_name` ist zu dem Zeitpunkt gefüllt. Mit dem Platzhalter. Also
+      galt das Feld als erledigt. **Das System hat den richtigen Namen jedes
+      Mal gelesen und weggeworfen** — an drei Stellen: im Domainimport, in
+      `enrich_lead` (prüfte nur auf leer und „Unbekannt") und im einzelnen
+      Impressum-Endpunkt.
+      **Gemacht:** `services/betriebsname.py` sagt an einer Stelle, was ein
+      Platzhalter ist — leer, „Unbekannt", die eigene Domain, alles in
+      Domainform. Das deckt auch `nachhaltika.denachhaltika.de` ab. Alle drei
+      Stellen nutzen sie. Ein von Hand gepflegter Name wird nie überschrieben.
+      **Für den Bestand:** `POST /api/leads/namen-nachtragen` (Admin) nimmt
+      genau die Betriebe mit Platzhalternamen und liest ihr Impressum erneut,
+      höchstens 25 je Aufruf. Der Bericht nennt jede Änderung einzeln und auch
+      jeden Betrieb, bei dem nichts zu holen war. **Muss David einmal
+      auslösen** — ein SQL-Skript kann es nicht, der richtige Name steht nicht
+      in der Datenbank.
+      **Offen und bei David** (keine Codefrage): Dublette **ECO-VOX**, Ort
+      `News` (vermutlich Neuss), die Testdatensätze **KOMPAGNON** und
+      **example.com** in der Produktivliste.
       *Prüfung:* Kein Datensatz in der Liste, den man einem Kunden nicht zeigen
       würde.
 

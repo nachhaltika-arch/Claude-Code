@@ -58,7 +58,6 @@ import Newsletter from './pages/Newsletter';
 import PortalLogin from './pages/PortalLogin';
 import WebhookDashboard from './pages/WebhookDashboard';
 import RetainerDashboard from './pages/RetainerDashboard';
-import Abnahme from './pages/Abnahme';
 import ProductManager from './pages/ProductManager';
 import SupportTickets from './pages/customer/SupportTickets';
 import Freigaben from './pages/customer/Freigaben';
@@ -160,8 +159,13 @@ function App() {
           <Route path="/kundenportal"  element={<PortalLogin />} />
           <Route path="/portal/:token" element={<CustomerPortal />} />
 
-          {/* ── Funktionale Seiten (Token-basiert — müssen auf Render bleiben) ── */}
-          <Route path="/abnahme/:projectId"        element={<Abnahme />} />
+          {/* ── Funktionale Seiten (Token-basiert — müssen auf Render bleiben) ──
+            * `/abnahme/:projectId` stand hier, war aber nicht token-basiert:
+            * Die Seite trug keinen Nachweis und rief zwei Endpunkte auf, die
+            * eine Anmeldung verlangen. Sie konnte nie funktionieren, und
+            * verlinkt hat sie niemand — weder eine Mail noch eine andere
+            * Seite. Entfernt am 17.08.2026. Die Abnahme wird im Innendienst
+            * unter Projekt → Abnahme eingetragen. */}
           <Route path="/approve-content/:token"    element={<ContentApprovalPage />} />
           <Route path="/academy/certificate/:code" element={<AcademyCertificate />} />
 

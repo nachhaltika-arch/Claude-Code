@@ -1,4 +1,5 @@
 from database import SessionLocal, Lead
+from services import versandsperre
 from services.email import send_email
 from services.email_templates import SEQUENZ_TEMPLATES, render
 from sqlalchemy import text
@@ -19,6 +20,13 @@ def run_email_sequences():
     """
     db = SessionLocal()
     try:
+        # Der Not-Aus. Steht er auf „aus", laeuft der Job leer durch — kein
+        # Schritt wird hochgezaehlt, kein Stand geht verloren, es wird beim
+        # naechsten Lauf einfach fortgesetzt.
+        if not versandsperre.automatischer_versand_erlaubt(db):
+            logger.info("E-Mail-Sequenz: Versandsperre aktiv — nichts gesendet")
+            return 0
+
         try:
             leads = db.query(Lead).filter(
                 Lead.sequence_active == True,

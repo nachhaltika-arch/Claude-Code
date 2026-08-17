@@ -17,6 +17,7 @@ import { apiCall } from '../context/AuthContext';
 import { parseApiError, parseResponseJson } from '../utils/apiError';
 import { useScreenSize } from '../utils/responsive';
 import { buildEmbedCode, embedOrigin, START_HEIGHT_PX } from '../utils/widgetEmbed';
+import { datumUndZeit } from '../utils/datum';
 
 async function anfrage(url, options = {}) {
   const response = await apiCall(url, options);
@@ -37,7 +38,7 @@ const VORSCHAU_MARKER = Date.now();
 
 function zeitpunkt(iso) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+  return datumUndZeit(iso);
 }
 
 // ── Bausteine ────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import API_BASE_URL from '../config';
 import { useAuth } from '../context/AuthContext';
+import { datumKurz, monatUndJahr } from '../utils/datum';
 
 const SCORE_COLOR = (score) => {
   if (score >= 75) return '#27ae60';
@@ -438,12 +439,12 @@ export default function GeoOptimizerStep({ projectId, isAdmin: isAdminProp, onCo
           ) : (
             <div>
               <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 12 }}>
-                Monatliche GEO-Score Entwicklung (letzter Check: {monitoring.last_monitored_at ? new Date(monitoring.last_monitored_at).toLocaleDateString('de-DE') : 'Nie'})
+                Monatliche GEO-Score Entwicklung (letzter Check: {datumKurz(monitoring.last_monitored_at, 'Nie')})
               </p>
               {monitoring.history.slice().reverse().map((entry, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
                   <span style={{ fontSize: 13, color: '#374151' }}>
-                    {new Date(entry.date).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}
+                    {monatUndJahr(entry.date)}
                   </span>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                     <span style={{ fontSize: 15, fontWeight: 700, color: SCORE_COLOR(entry.score) }}>{entry.score}/100</span>

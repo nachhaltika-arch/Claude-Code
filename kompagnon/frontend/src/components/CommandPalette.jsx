@@ -7,7 +7,7 @@ const COMMANDS = [
   { id: 'dashboard',   label: 'Dashboard',          icon: '🏠', path: '/app/dashboard',      keywords: ['home', 'start', 'übersicht'] },
   { id: 'projects',    label: 'Kundenprojekte',      icon: '📋', path: '/app/projects',       keywords: ['projekte', 'kunden'] },
   { id: 'deals',       label: 'Deals',               icon: '📊', path: '/app/deals',          keywords: ['leads', 'vertrieb', 'pipeline'] },
-  { id: 'companies',   label: 'Unternehmen',         icon: '🏢', path: '/app/companies',      keywords: ['firmen', 'unternehmen'] },
+  { id: 'companies',   label: 'Unternehmen',         icon: '🏢', path: '/app/betriebe',      keywords: ['firmen', 'unternehmen'] },
   { id: 'audit',       label: 'Website Audit',       icon: '🔍', path: '/app/audit',          keywords: ['audit', 'website', 'check'] },
   { id: 'newsletter',  label: 'Newsletter',          icon: '📧', path: '/app/newsletter',     keywords: ['mail', 'kampagne'] },
   { id: 'tickets',     label: 'Support Tickets',     icon: '🎫', path: '/app/tickets',        keywords: ['support', 'hilfe'] },

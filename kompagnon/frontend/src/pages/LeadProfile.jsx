@@ -25,6 +25,7 @@ import PageSpeedSection from '../components/PageSpeedSection';
 import API_BASE_URL from '../config';
 import NewsletterDesigner from '../components/NewsletterDesigner';
 import { useScreenSize } from '../utils/responsive';
+import { datumKurz, datumUndZeit } from '../utils/datum';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -62,7 +63,7 @@ const LEVEL_COLORS = {
 
 const DomainBadge = ({ reachable, checkedAt, loading, onCheck }) => {
   if (loading) return <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>⏳ Prüfe...</span>;
-  const date = checkedAt ? new Date(checkedAt).toLocaleDateString('de-DE') : null;
+  const date = checkedAt ? datumKurz(checkedAt, '') : '';
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
       <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: reachable === null ? 'var(--status-neutral-bg)' : reachable ? 'var(--status-success-bg)' : 'var(--status-danger-bg)', color: reachable === null ? 'var(--status-neutral-text)' : reachable ? 'var(--status-success-text)' : 'var(--status-danger-text)' }}>
@@ -854,7 +855,7 @@ export default function LeadProfile() {
             </div>
             <div style={{ opacity: 0.9 }}>
               {neueste.email}
-              {neueste.occurred_at && ` · ${new Date(neueste.occurred_at).toLocaleString('de-DE')}`}
+              {neueste.occurred_at && ` · ${datumUndZeit(neueste.occurred_at, '')}`}
             </div>
             {neueste.reason && (
               <div style={{ marginTop: 6, fontSize: 12, fontFamily: 'var(--font-mono, monospace)', opacity: 0.85, wordBreak: 'break-word' }}>
@@ -881,7 +882,7 @@ export default function LeadProfile() {
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
-              Kundenkartei
+              Betrieb
             </div>
 
             {editingName ? (
@@ -1513,7 +1514,7 @@ export default function LeadProfile() {
                   </div>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{current_level}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{new Date(latestAudit.created_at).toLocaleDateString('de-DE')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{datumKurz(latestAudit.created_at, 'Datum unbekannt')}</div>
                   </div>
                 </div>
                 {latestAudit.ai_summary && (
@@ -1621,7 +1622,7 @@ export default function LeadProfile() {
       {activeTab === 'contact' && (
         <Card padding="md">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>Kontakt & Unternehmen</h2>
+            <h2 style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>Kontakt & Betrieb</h2>
             {!editMode && (
               <Button variant="secondary" size="sm" onClick={() => setEditMode(true)}>✏️ Bearbeiten</Button>
             )}
@@ -1667,7 +1668,7 @@ export default function LeadProfile() {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
 
                 <div style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
-                  <div style={sectionLabel}>Unternehmen</div>
+                  <div style={sectionLabel}>Betrieb</div>
                 </div>
 
                 {[
@@ -1786,7 +1787,7 @@ export default function LeadProfile() {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? '1fr 1fr' : '1fr 1fr 1fr', gap: 24 }}>
               <div>
-                <div style={sectionLabel}>Unternehmen</div>
+                <div style={sectionLabel}>Betrieb</div>
                 {fieldRow('🏢', [lead.company_name, lead.legal_form].filter(Boolean).join(' '), 'Firma')}
                 {fieldRow('👔', [lead.ceo_first_name, lead.ceo_last_name].filter(Boolean).join(' '), 'Geschäftsführer')}
                 {fieldRow('🔧', lead.trade, 'Gewerk')}
@@ -1915,7 +1916,7 @@ export default function LeadProfile() {
             <div style={{ textAlign: 'center', padding: 48, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)' }}>
               <div style={{ fontSize: 32, marginBottom: 10 }}>💼</div>
               <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
-                Noch keine Deals für dieses Unternehmen.
+                Noch keine Deals für diesen Betrieb.
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
                 Lege einen neuen Deal in der <a href="/app/deals" style={{ color: 'var(--brand-primary-mid)' }}>Deal-Pipeline</a> an.

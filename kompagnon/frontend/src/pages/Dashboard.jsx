@@ -9,6 +9,7 @@ import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import API_BASE_URL from '../config';
 import OnboardingWizard from '../components/OnboardingWizard';
+import { datumKurz } from '../utils/datum';
 
 export default function Dashboard() {
   const { token, user } = useAuth();
@@ -147,7 +148,7 @@ export default function Dashboard() {
           </div>
         </div>
         <button
-          onClick={() => navigate('/app/leads')}
+          onClick={() => navigate('/app/projektpipeline')}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: 'var(--kc-yellow)', color: '#000', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           + Neuer Lead
@@ -315,7 +316,7 @@ export default function Dashboard() {
             leads.map((lead, i) => (
               <div
                 key={lead.id}
-                onClick={() => navigate(`/app/leads/${lead.id}`)}
+                onClick={() => navigate(`/app/betriebe/${lead.id}`)}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '10px 4px',
@@ -412,7 +413,7 @@ export default function Dashboard() {
                       {audit.company_name || audit.website_url}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
-                      {new Date(audit.created_at).toLocaleDateString('de-DE')}
+                      {datumKurz(audit.created_at)}
                     </div>
                   </div>
 

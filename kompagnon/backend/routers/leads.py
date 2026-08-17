@@ -12,7 +12,7 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 from database import Lead, Project, AuditResult, get_db, SessionLocal
-from routers.auth_router import require_any_auth, get_current_user
+from routers.auth_router import require_any_auth, require_innendienst, get_current_user
 from seed_checklists import create_project_checklists
 from agents.lead_analyst import LeadAnalystAgent
 from services.base_urls import self_base_url
@@ -41,13 +41,20 @@ logger = logging.getLogger(__name__)
 # hinzufügt und die Abhängigkeit vergisst, öffnet sie. Deshalb hängt die
 # Anmeldung jetzt am Router, und was öffentlich sein muss, steht unten
 # ausdrücklich im `public_router`.
+# Der Bestand ist Innendienst. Angemeldet zu sein reicht nicht — sonst
+# bekommt ein Kunde die Liste aller Betriebe (Befund vom 17.08.2026).
 router = APIRouter(prefix="/api/leads", tags=["leads"],
-                   dependencies=[Depends(require_any_auth)])
+                   dependencies=[Depends(require_innendienst)])
 
 # Ausdrücklich ohne Anmeldung — jede dieser Routen trägt ihre eigene Prüfung:
 # das Anlegen aus dem Formular der Landingpage und der Kundenzugang über einen
 # Einmal-Token aus der E-Mail.
 public_router = APIRouter(prefix="/api/leads", tags=["leads-public"])
+
+# Was ein Kunde braucht: den eigenen Betrieb, den das Kundenportal anzeigt
+# (`KundenPortal.jsx`). Jede Route hier prüft selbst, ob die Zeile ihm gehört.
+kunden_router = APIRouter(prefix="/api/leads", tags=["leads-kunde"],
+                          dependencies=[Depends(require_any_auth)])
 
 # In-memory job tracking for domain imports
 import_jobs = {}
@@ -960,9 +967,21 @@ def portal_auth_complete_onboarding(
 # ── Routes with {lead_id} parameter below ──────────────────────
 
 
-@router.get("/{lead_id}", response_model=LeadResponse)
-def get_lead(lead_id: int, db: Session = Depends(get_db)):
-    """Get a specific lead by ID."""
+@kunden_router.get("/{lead_id}", response_model=LeadResponse)
+def get_lead(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Get a specific lead by ID.
+
+    Die einzige Lead-Route, die auch ein Kunde aufrufen darf — für den
+    eigenen Betrieb. Die eigene Nummer hochzuzählen ist der naheliegendste
+    Angriff, deshalb steht die Prüfung hier und nicht in der Oberfläche.
+    """
+    if current_user.role == "kunde" and current_user.lead_id != lead_id:
+        raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Betrieb")
+
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")

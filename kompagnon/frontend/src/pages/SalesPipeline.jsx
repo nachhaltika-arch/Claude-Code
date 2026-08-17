@@ -8,6 +8,7 @@ import Button from '../components/ui/Button';
 import API_BASE_URL from '../config';
 import { loadJson } from '../utils/apiRequest';
 import { useScreenSize } from '../utils/responsive';
+import { datumKurz } from '../utils/datum';
 
 const COLUMNS = [
   { id: 'new', label: 'Neue Leads', icon: '🆕', color: 'var(--kc-mid)', desc: 'Frisch importiert oder auditiert' },
@@ -236,7 +237,7 @@ export default function SalesPipeline() {
                   columns={COLUMNS}
                   project={leadProjects[lead.id]}
                   onDragStart={() => {}}
-                  onOpen={() => navigate(`/app/leads/${lead.id}`)}
+                  onOpen={() => navigate(`/app/betriebe/${lead.id}`)}
                   onAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
                   onDelete={() => setDeleteConfirm(lead.id)}
                   onStatusChange={updateStatus}
@@ -275,7 +276,7 @@ export default function SalesPipeline() {
                 <div style={{ padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {colLeads.map(lead => (
                     <SalesCard key={lead.id} lead={lead} col={col} columns={COLUMNS} project={leadProjects[lead.id]} onDragStart={handleDragStart}
-                      onOpen={() => navigate(`/app/leads/${lead.id}`)}
+                      onOpen={() => navigate(`/app/betriebe/${lead.id}`)}
                       onAudit={() => navigate(`/app/audit?url=${encodeURIComponent(lead.website_url || '')}&lead_id=${lead.id}`)}
                       onDelete={() => setDeleteConfirm(lead.id)} onStatusChange={updateStatus} onProjectClick={(pid) => navigate(`/app/projects/${pid}`)} isAdmin={hasRole('admin')} />
                   ))}
@@ -354,7 +355,7 @@ const CERT_STYLES = {
 
 function fmtDate(iso) {
   if (!iso) return null;
-  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  return datumKurz(iso);
 }
 
 // ── Sales Card ──

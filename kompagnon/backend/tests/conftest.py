@@ -134,6 +134,81 @@ def auth_headers(client, admin_user):
     return {"Authorization": f"Bearer {token}"}
 
 
+KUNDE_EMAIL = "pytest-kunde@example.com"
+KUNDE_PASSWORD = "Pytest-Kunde-2026!"
+
+
+@pytest.fixture(scope="session")
+def kunde_user(app):
+    """Ein Kundenkonto samt eigenem Betrieb.
+
+    Gebraucht für die Rollentrennung: Ein Kunde ist angemeldet, darf aber
+    nur den eigenen Betrieb sehen — nicht den Bestand.
+    """
+    from auth import hash_password
+    from database import SessionLocal, User, Lead
+
+    db = SessionLocal()
+    try:
+        existing = db.query(User).filter(User.email == KUNDE_EMAIL).first()
+        if existing:
+            return existing
+
+        eigener_betrieb = Lead(company_name="Pytest Kundenbetrieb", email=KUNDE_EMAIL)
+        db.add(eigener_betrieb)
+        db.commit()
+        db.refresh(eigener_betrieb)
+
+        user = User(
+            email=KUNDE_EMAIL,
+            password_hash=hash_password(KUNDE_PASSWORD),
+            first_name="Pytest",
+            last_name="Kunde",
+            role="kunde",
+            lead_id=eigener_betrieb.id,
+            is_active=True,
+            is_verified=True,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+    finally:
+        db.close()
+
+
+@pytest.fixture(scope="session")
+def kunde_headers(client, kunde_user):
+    """Authorization-Header eines angemeldeten Kunden."""
+    response = client.post(
+        "/api/auth/login",
+        json={"email": KUNDE_EMAIL, "password": KUNDE_PASSWORD},
+    )
+    assert response.status_code == 200, f"Login fehlgeschlagen: {response.text}"
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(scope="session")
+def fremder_betrieb(app, kunde_user):
+    """Ein Betrieb, der dem Kunden nicht gehört."""
+    from database import SessionLocal, Lead
+
+    db = SessionLocal()
+    try:
+        vorhanden = (db.query(Lead)
+                       .filter(Lead.company_name == "Pytest Fremdbetrieb").first())
+        if vorhanden:
+            return vorhanden.id
+        lead = Lead(company_name="Pytest Fremdbetrieb", email="fremd@example.com")
+        db.add(lead)
+        db.commit()
+        db.refresh(lead)
+        return lead.id
+    finally:
+        db.close()
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Tabellen nach dem Lauf entfernen — die Datenbank selbst bleibt bestehen."""
     try:

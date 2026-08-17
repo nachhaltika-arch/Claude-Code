@@ -1,14 +1,16 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { VersandProvider } from './context/VersandContext';
 
 import Dashboard from './pages/Dashboard';
-import LeadPipeline from './pages/LeadPipeline';
+// Hiess LeadPipeline und zeigte Projekte — der Name im Code war
+// derselbe Irrtum wie die Adresse.
+import Projektpipeline from './pages/Projektpipeline';
 import ProjectDetail from './pages/ProjectDetail';
 import OnlineFertigEditor from './components/OnlineFertigEditor';
 import Checklists from './pages/Checklists';
-import Customers from './pages/Customers';
 import ContactImport from './pages/ContactImport';
 import MassExport from './pages/MassExport';
 import Tickets from './pages/Tickets';
@@ -38,7 +40,7 @@ import AcademyAdminLesson from './pages/AcademyAdminLesson';
 import AcademyEdit from './pages/AcademyEdit';
 import AcademyModuleEdit from './pages/AcademyModuleEdit';
 import AcademyCertificate from './pages/AcademyCertificate';
-import Companies from './pages/Companies';
+import Betriebe from './pages/Betriebe';
 import CustomerDashboard from './pages/CustomerDashboard';
 import Courses from './pages/Courses';
 import DomainImport from './pages/DomainImport';
@@ -81,6 +83,16 @@ function PublicRoute({ children }) {
   if (loading) return null;
   if (user) return <Navigate to="/app/dashboard" replace />;
   return children;
+}
+
+/**
+ * Alte Einzelansicht-Adresse `/app/leads/:leadId` auf die neue umlenken —
+ * mitsamt Kennung. Ohne das würde ein geteilter Link auf die Liste fallen und
+ * der Empfänger müsste den Betrieb wieder suchen.
+ */
+function LeadRedirect() {
+  const { leadId } = useParams();
+  return <Navigate to={`/app/betriebe/${leadId}`} replace />;
 }
 
 function PrivateRoute({ children, roles }) {
@@ -136,6 +148,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
+       <VersandProvider>
         <Routes>
           {/* ── Auth-Seiten — kein Marketing mehr ── */}
           <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
@@ -187,10 +200,20 @@ function App() {
             <Route path="pages" element={<PrivateRoute roles={['admin']}><PageManager /></PrivateRoute>} />
             <Route path="pages/templates/:id/editor" element={<PrivateRoute roles={['admin']}><PageTemplateEditor /></PrivateRoute>} />
             <Route path="pages/:pageId/editor" element={<PrivateRoute roles={['admin']}><PublicPageEditor /></PrivateRoute>} />
-            <Route path="companies" element={<PrivateRoute roles={['admin', 'auditor']}><Companies /></PrivateRoute>} />
+            {/* Betriebe — das Objekt heisst seit 2026-08-16 ueberall so, auch
+              * in der Adresszeile. Die alten Adressen leiten weiter: Es gibt
+              * Lesezeichen, geteilte Links und Mails, die darauf zeigen. */}
+            <Route path="betriebe" element={<PrivateRoute roles={['admin', 'auditor']}><Betriebe /></PrivateRoute>} />
+            <Route path="betriebe/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
+            <Route path="companies" element={<Navigate to="/app/betriebe" replace />} />
             <Route path="widget" element={<PrivateRoute roles={['admin']}><AkquiseWidget /></PrivateRoute>} />
-            <Route path="leads" element={<PrivateRoute roles={['admin', 'auditor']}><LeadPipeline /></PrivateRoute>} />
-            <Route path="leads/:leadId" element={<PrivateRoute roles={['admin', 'auditor']}><LeadProfile /></PrivateRoute>} />
+            {/* Die Projektpipeline lag unter /app/leads und zeigte Projekte.
+              * Das Menue war richtig beschriftet, die Adresse nicht — was
+              * genuegte, um bei der Pruefung am 16.08. einen Fehlbefund zu
+              * erzeugen. Jetzt heisst die Adresse, was sie liefert. */}
+            <Route path="projektpipeline" element={<PrivateRoute roles={['admin', 'auditor']}><Projektpipeline /></PrivateRoute>} />
+            <Route path="leads" element={<Navigate to="/app/projektpipeline" replace />} />
+            <Route path="leads/:leadId" element={<LeadRedirect />} />
             <Route path="projects" element={<PrivateRoute roles={['admin', 'auditor']}><CustomerProjects /></PrivateRoute>} />
             {/* Legacy ProzessFlowV3 (das alte Vollbild mit 12 Schritten) —
               * der frühere Default ist auf /legacy umgezogen, weil
@@ -198,7 +221,13 @@ function App() {
             <Route path="projects/:id/legacy" element={<PrivateRoute roles={['admin', 'auditor']}><ProjectDetail /></PrivateRoute>} />
             <Route path="checklists" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
             <Route path="checklists/:projectId" element={<PrivateRoute roles={['admin', 'auditor']}><Checklists /></PrivateRoute>} />
-            <Route path="customers" element={<PrivateRoute><Customers /></PrivateRoute>} />
+            {/* „Kunden" war der zweite Bildschirm mit denselben Firmen — bessere
+              * Gestaltung, aber ohne Menueeintrag und mit nur 50 der 61
+              * Betriebe, weil das `limit` fehlte. Zusammengelegt am 2026-08-17;
+              * die Adresse leitet weiter, es gibt Lesezeichen darauf.
+              * Die Einzelansicht `customers/:id` bleibt — sie zeigt etwas
+              * anderes als die Liste. */}
+            <Route path="customers" element={<Navigate to="/app/betriebe" replace />} />
             <Route path="customers/:customerId" element={<PrivateRoute roles={['admin']}><CustomerDetail /></PrivateRoute>} />
             <Route path="import" element={<PrivateRoute roles={['admin', 'auditor']}><DomainImport /></PrivateRoute>} />
             <Route path="scraper" element={<PrivateRoute roles={['admin']}><ScraperControl /></PrivateRoute>} />
@@ -308,6 +337,7 @@ function App() {
             },
           }}
         />
+       </VersandProvider>
       </AuthProvider>
     </Router>
   );

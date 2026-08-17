@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useVersand } from '../../context/VersandContext';
 import { useScreenSize } from '../../utils/responsive';
 import { loadJson } from '../../utils/apiRequest';
 import { useTheme } from '../../context/ThemeContext';
@@ -99,65 +100,12 @@ const icons = {
 };
 
 // ── Nav structure ──────────────────────────────────────────────
-
-const NAV_SECTIONS = [
-  {
-    title: 'Übersicht',
-    items: [
-      { label: 'Dashboard', path: '/app/dashboard', icon: 'grid' },
-    ],
-  },
-  {
-    title: 'Sales',
-    items: [
-      { label: 'Deals',         path: '/app/deals',     icon: 'chart' },
-      { label: 'Kampagnen',     path: '/app/campaigns', icon: 'chart', adminOnly: true },
-      { label: 'Unternehmen',   path: '/app/companies', icon: 'users', activePaths: ['/app/companies', '/app/leads/'] },
-      { label: 'Domain Import', path: '/app/import',    icon: 'users' },
-      { label: 'HWK Scraper',   path: '/app/scraper',   icon: 'docCheck', adminOnly: true },
-      { label: 'Export',        path: '/app/export',    icon: 'docCheck' },
-      { label: 'Website Audit', path: '/app/audit',     icon: 'docCheck' },
-      { label: 'Newsletter',    path: '/app/newsletter', icon: 'newspaper' },
-    ],
-  },
-  {
-    title: 'Delivery',
-    items: [
-      { label: 'Projektpipeline', path: '/app/leads', icon: 'chart', exactMatch: true },
-      { label: 'Kundenprojekte', path: '/app/projects', icon: 'users' },
-    ],
-  },
-  {
-    title: 'Qualität',
-    items: [
-      { label: 'Support Tickets', path: '/app/tickets', icon: 'docCheck' },
-      { label: 'Produktentwicklung', path: '/app/product',        icon: 'gear', adminOnly: true },
-      { label: 'Produkteditor',      path: '/app/product-editor', icon: 'gear', adminOnly: true },
-      { label: 'QR-Generator',       path: '/app/qr-generator',  icon: 'qr',   adminOnly: true },
-    ],
-  },
-  {
-    title: 'Website',
-    items: [
-      { label: 'Seiten-Manager', path: '/app/pages', icon: 'newspaper', adminOnly: true },
-    ],
-  },
-  // Inhalte / Akademie — ausgeblendet, wird später aktiviert
-  // {
-  //   title: 'Inhalte',
-  //   items: [
-  //     { label: 'Kurse', path: '/app/courses', icon: 'book' },
-  //     { label: 'Akademy', path: '/app/academy', icon: 'gradCap' },
-  //     { label: 'Kurse verwalten', path: '/app/akademie/admin', icon: 'gear', adminOnly: true },
-  //   ],
-  // },
-  {
-    title: 'Einstellungen',
-    items: [
-      { label: 'Einstellungen', path: '/app/settings', icon: 'gear' },
-    ],
-  },
-];
+//
+// Hier stand bis 2026-08-17 ein `NAV_SECTIONS` mit sieben Gruppen — nie
+// importiert, nie gerendert. Die gerenderte Navigation steht weiter unten
+// in `SidebarNav` und wich inhaltlich ab. Entfernt zusammen mit
+// `components/Sidebar.jsx`, der dritten toten Definition: Wer beim
+// Aufraeumen die falsche findet, aendert die falsche Datei.
 
 const PAGE_NAMES = {
   '/app/dashboard': 'Dashboard',
@@ -165,8 +113,7 @@ const PAGE_NAMES = {
   '/app/deals': 'Deals',
   '/app/campaigns': 'Kampagnen',
   '/app/sales': 'Vertriebspipeline',
-  '/app/leads': 'Projektpipeline',
-  '/app/customers': 'Kunden',
+  '/app/projektpipeline': 'Projektpipeline',
   '/app/audit': 'Website Audit',
   '/app/akademie': 'Akademy',
   '/app/courses': 'Kurse',
@@ -175,7 +122,7 @@ const PAGE_NAMES = {
   '/app/academy/admin': 'Kurse verwalten',
   '/app/settings': 'Einstellungen',
   '/app/projects': 'Kundenprojekte',
-  '/app/companies': 'Unternehmen',
+  '/app/betriebe': 'Betriebe',
   '/app/import': 'Domain Import',
   '/app/export': 'Export',
   '/app/tickets': 'Support Tickets',
@@ -198,14 +145,14 @@ function getMobileTabs(role, leadId) {
   return [
     { label: 'Dashboard', path: '/app/dashboard', icon: 'grid'  },
     { label: 'Vertrieb',  path: '/app/vertrieb',  icon: 'chart' },
-    { label: 'Leads',     path: '/app/leads',     icon: 'users', badge: true },
+    { label: 'Betriebe',  path: '/app/betriebe',            icon: 'users', badge: true },
     { label: 'Projekte',  path: '/app/projects',  icon: 'users' },
     { label: 'Mehr',      path: '__more__',        icon: 'menu'  },
   ];
 }
 
 const MORE_ITEMS = [
-  { label: 'Unternehmen', path: '/app/companies', icon: '🏢' },
+  { label: 'Betriebe', path: '/app/betriebe', icon: '🏢' },
   { label: 'Newsletter', path: '/app/newsletter', icon: '📧' },
   { label: 'Tickets', path: '/app/tickets', icon: '🎫' },
   { label: 'Akademie', path: '/app/academy', icon: '🎓' },
@@ -218,6 +165,46 @@ const MORE_ITEMS_ADMIN = [
   { label: 'Produkteditor', path: '/app/product-editor', icon: '🛒' },
   { label: 'Domain Import', path: '/app/import', icon: '⬆️' },
 ];
+
+// ── Hinweis: automatischer Versand ist aus ─────────────────────
+//
+// Ein Not-Aus, den man nur in den Einstellungen sieht, ist ein Not-Aus, den
+// man vergisst. Nach dem Vorfall vom 17.08.2026 gilt: Der abgeschaltete
+// Zustand steht dort, wo man ohnehin hinsieht.
+//
+// Gezeigt wird nur, was von der Normallage abweicht — ist der Versand an,
+// steht hier nichts. Ein Dauerhinweis wird nach drei Tagen unsichtbar.
+function VersandHinweis({ onClick }) {
+  const { erlaubt, laedt } = useVersand();
+
+  if (laedt || erlaubt === true) return null;
+
+  const unbekannt = erlaubt === null;
+
+  return (
+    <button
+      type="button" onClick={onClick}
+      title={unbekannt
+        ? 'Der Zustand des automatischen Versands konnte nicht geladen werden.'
+        : 'Kein Job verschickt derzeit von sich aus E-Mails. Zum Umschalten klicken.'}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+        margin: '8px 0 0', padding: '8px 10px',
+        borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left',
+        border: `1px solid ${unbekannt ? 'var(--border-medium)' : 'var(--status-warning-text)'}`,
+        background: unbekannt ? 'transparent' : 'var(--status-warning-bg)',
+        color: unbekannt ? 'var(--text-tertiary)' : 'var(--status-warning-text)',
+        fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600,
+        lineHeight: 1.35,
+      }}
+    >
+      <span aria-hidden="true" style={{ fontSize: 13 }}>{unbekannt ? '?' : '🛑'}</span>
+      <span>
+        {unbekannt ? 'Versand-Zustand unbekannt' : 'Automatischer Versand aus'}
+      </span>
+    </button>
+  );
+}
 
 // ── Sidebar ────────────────────────────────────────────────────
 
@@ -235,9 +222,9 @@ function SidebarNav({ badges }) {
       // Akquise — Pre-Sales / Cold Outreach
       akquise:       inSection(['/app/scraper', '/app/import', '/app/audit', '/app/newsletter', '/app/campaigns', '/app/export', '/app/webhooks']),
       // Leads — Sales-Pipeline / Erstkontakt bis Vertragsabschluss
-      leads:         inSection(['/app/deals', '/app/companies']),
+      leads:         inSection(['/app/deals', '/app/betriebe']),
       // Projekte — Aktive Lieferung (17-Step-Workflow)
-      projekte:      inSection(['/app/projects', '/app/leads', '/app/checklists']),
+      projekte:      inSection(['/app/projects', '/app/projektpipeline', '/app/checklists']),
       // Kompagnon — Backoffice / interne Tools
       kompagnon:     inSection(['/app/tickets', '/app/pages', '/app/product-editor', '/app/products', '/app/product', '/app/qr-generator', '/app/retainer']),
       // Einstellungen — Account & System
@@ -247,8 +234,29 @@ function SidebarNav({ badges }) {
   const [openSections, setOpenSections] = useState(getDefaultOpen);
   const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
 
+  /* Die offene Gruppe folgt der Adresse — auch wenn sie sich nach dem Aufbau
+     noch aendert.
+     `getDefaultOpen` lief nur einmal, beim ersten Rendern. Wer ueber eine
+     Weiterleitung ankam, brachte die ALTE Adresse mit, und die passte in keine
+     Gruppe: Die Seitenleiste blieb komplett zugeklappt, ohne Hinweis darauf,
+     wo man ist. Sichtbar geworden ist das am 16.08. mit /app/leads →
+     /app/projektpipeline; /app/sales → /app/deals hatte es schon vorher.
+     Hier wird nur GEOEFFNET, nie geschlossen — wer eine andere Gruppe von Hand
+     aufklappt, behaelt sie. */
+  useEffect(() => {
+    setOpenSections(prev => {
+      const soll = getDefaultOpen();
+      const naechste = { ...prev };
+      let geaendert = false;
+      Object.entries(soll).forEach(([key, offen]) => {
+        if (offen && !prev[key]) { naechste[key] = true; geaendert = true; }
+      });
+      return geaendert ? naechste : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
   const isActive = (path) => {
-    if (path === '/app/leads') return location.pathname === '/app/leads';
     if (path === '/app/projects') return location.pathname === '/app/projects' || location.pathname.startsWith('/app/projects/');
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
@@ -311,7 +319,7 @@ function SidebarNav({ badges }) {
           <div style={{ marginTop: 8 }}>
             {[
               { label: 'Dashboard',     path: '/app/dashboard' },
-              { label: 'Meine Kartei',  path: user.lead_id ? `/app/leads/${user.lead_id}` : '/app/dashboard' },
+              { label: 'Meine Kartei',  path: user.lead_id ? `/app/betriebe/${user.lead_id}` : '/app/dashboard' },
               { label: 'Freigaben',     path: '/app/freigaben' },
               { label: 'Support',       path: '/app/support' },
               { label: 'Rechnungen',    path: '/app/rechnungen' },
@@ -329,6 +337,8 @@ function SidebarNav({ badges }) {
         ) : (
           /* ── All other roles: collapsible sections ── */
           <>
+            <VersandHinweis onClick={() => navigate('/app/settings/notifications')} />
+
             {/* Dashboard */}
             <button onClick={() => navigate('/app/dashboard')} style={{ ...navItemStyle(isActive('/app/dashboard')), marginTop: 8, display: 'flex', alignItems: 'center', gap: 9 }}>
               {icons.grid}
@@ -357,10 +367,17 @@ function SidebarNav({ badges }) {
               },
               {
                 key: 'leads',
-                label: 'Leads',
+                // Hiess „Leads". „Lead" ist ein Zustand, kein Objekt — das
+                // Objekt heisst ueberall „Betrieb". Die Gruppe benennt jetzt,
+                // worum es hier geht, nicht in welchem Zustand etwas ist.
+                label: 'Vertrieb',
                 items: [
-                  { label: 'Pipeline',             path: '/app/deals'      },
-                  { label: 'Unternehmen',          path: '/app/companies'  },
+                  // Hiess bis 2026-08-16 „Pipeline". Zwei Gruende: Die Seite
+                  // dahinter heisst „Deals", und „Pipeline" kam im Menue ein
+                  // zweites Mal vor (Projekte → Projektpipeline). Ein Wort,
+                  // zwei Orte, zwei Bedeutungen.
+                  { label: 'Deals',                path: '/app/deals'      },
+                  { label: 'Betriebe',             path: '/app/betriebe'  },
                 ],
               },
               {
@@ -368,7 +385,7 @@ function SidebarNav({ badges }) {
                 label: 'Projekte',
                 items: [
                   { label: 'Alle Projekte',        path: '/app/projects'   },
-                  { label: 'Projektpipeline',      path: '/app/leads'      },
+                  { label: 'Projektpipeline',      path: '/app/projektpipeline'      },
                   { label: 'Prozess-Ansicht',      path: '/app/checklists' },
                 ],
               },
@@ -686,10 +703,6 @@ function BottomNav() {
               '/app/newsletter', '/app/import', '/app/retainer', '/app/scraper']
         .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
     }
-    if (path === '/app/leads') {
-      return ['/app/leads', '/app/companies']
-        .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
-    }
     if (path === '/app/projects') {
       return ['/app/projects', '/app/tickets', '/app/checklists', '/app/settings/templates']
         .some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
@@ -905,7 +918,12 @@ export default function AppLayout() {
 
   useEffect(() => {
     const projectMatch = location.pathname.match(/^\/app\/projects\/(\d+)/);
-    const leadMatch = location.pathname.match(/^\/app\/leads\/(\d+)/);
+    // Hiess `/app/leads/(\d+)` und traf damit seit der Umbenennung am 16.08.
+    // nichts mehr: Die Einzelansicht liegt unter `/app/betriebe/:id`, die alte
+    // Adresse leitet nur noch weiter. Folge war kein Fehler, sondern eine
+    // Auslassung — in der Brotkrumenleiste stand „Betriebe" ohne den Namen
+    // des Betriebs, auf dessen Seite man gerade war.
+    const leadMatch = location.pathname.match(/^\/app\/betriebe\/(\d+)/);
     if (projectMatch) {
       setProjectName(null);
       setProjectLeadId(null);
@@ -939,14 +957,14 @@ export default function AppLayout() {
       return [
         { label: 'Dashboard', path: '/app/dashboard' },
         { label: 'Projekte', path: '/app/projects' },
-        { label: projectName || `Projekt #${projectMatch[1]}`, path: projectLeadId ? `/app/leads/${projectLeadId}` : null },
+        { label: projectName || `Projekt #${projectMatch[1]}`, path: projectLeadId ? `/app/betriebe/${projectLeadId}` : null },
       ];
     }
-    const leadMatch = path.match(/^\/app\/leads\/(\d+)/);
+    const leadMatch = path.match(/^\/app\/betriebe\/(\d+)/);
     if (leadMatch) {
       return [
-        { label: 'Unternehmen', path: '/app/companies' },
-        { label: leadName || `Lead #${leadMatch[1]}` },
+        { label: 'Betriebe', path: '/app/betriebe' },
+        { label: leadName || `Betrieb #${leadMatch[1]}` },
       ];
     }
     if (path.startsWith('/app/settings/')) {
@@ -970,9 +988,10 @@ export default function AppLayout() {
 
   const ctaMap = {
     '/app/dashboard': null,
-    '/app/leads': { label: '+ Neuer Lead', action: () => navigate('/app/import') },
+    // Hiess „+ Neuer Lead" und fuehrte zum Domain-Import — auf der
+    // Projektpipeline. Der sichtbarste Teil der alten Verwechslung.
+    '/app/projektpipeline': null,
     '/app/audit': { label: '+ Neues Audit', action: () => {} },
-    '/app/customers': null,
   };
   const cta = ctaMap[location.pathname];
 

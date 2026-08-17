@@ -190,6 +190,7 @@ async def _quick_geo_check(website_url: str) -> int:
 async def _send_monitoring_report(project_reports: list, summary: dict):
     """Sendet den monatlichen GEO-Report per E-Mail an den Admin."""
     try:
+        from services import versandsperre
         from services.email import send_email
     except ImportError:
         logger.warning("GEO Monitoring: services.email nicht verfuegbar")
@@ -249,6 +250,14 @@ async def _send_monitoring_report(project_reports: list, summary: dict):
     </p>
   </div>
 </div>"""
+
+    # Auch dieser Bericht geht ohne menschlichen Anlass raus. Er landet zwar
+    # intern und nicht bei einem Betrieb — aber ein Schalter mit stillen
+    # Ausnahmen ist genau das, was den Vorfall vom 17.08.2026 erst moeglich
+    # gemacht hat. „Automatischer Versand aus" heisst hier: aus.
+    if not versandsperre.in_eigener_sitzung_erlaubt():
+        logger.warning("GEO Monitoring: Versandsperre aktiv — Report nicht versandt")
+        return
 
     ok = send_email(
         to_email=admin_email,

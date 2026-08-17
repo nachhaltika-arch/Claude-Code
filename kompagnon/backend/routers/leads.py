@@ -1594,12 +1594,38 @@ async def namen_nachtragen(
             ohne_ergebnis.append({"betrieb": lead.company_name, "grund": str(fehler)[:120]})
             continue
 
-        gefunden = (ergebnis.get("data") or {}).get("company_name") if ergebnis.get("success") else None
+        # Der Abruf hat Sekunden gedauert. In der Zeit kann jemand über die
+        # Oberfläche denselben Betrieb bearbeitet haben — genau das geschah am
+        # 17.08.2026 bei „Frowein Haustechnik". Ohne dieses Nachlesen
+        # entscheidet der Lauf auf dem Stand von vor dem Abruf.
+        db.refresh(lead)
+
+        # Drei Lagen, die vorher alle „kein brauchbarer Name im Impressum"
+        # hießen — und damit dasselbe behaupteten wie ein echter Fehlschlag.
+        # Deshalb stand ein Betrieb im Bericht als gescheitert, der längst
+        # einen richtigen Namen trug.
+        if not betriebsname.ist_platzhalter(lead.company_name, lead.website_url):
+            ohne_ergebnis.append({
+                "betrieb": lead.company_name,
+                "grund": "hatte inzwischen schon einen richtigen Namen",
+            })
+            continue
+
+        if not ergebnis.get("success"):
+            ohne_ergebnis.append({
+                "betrieb": lead.company_name,
+                "grund": f"Impressum nicht lesbar: {ergebnis.get('error') or 'unbekannt'}"[:120],
+            })
+            continue
+
+        gefunden = (ergebnis.get("data") or {}).get("company_name")
         echter_name = betriebsname.uebernehmen(lead.company_name, gefunden, lead.website_url)
         if not echter_name:
             ohne_ergebnis.append({
                 "betrieb": lead.company_name,
-                "grund": "kein brauchbarer Name im Impressum",
+                "grund": ("Impressum gelesen, aber kein Firmenname darin"
+                          if not (gefunden or "").strip()
+                          else f"gefundener Name taugt nicht: {gefunden[:60]!r}"),
             })
             continue
 

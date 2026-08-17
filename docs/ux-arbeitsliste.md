@@ -7,9 +7,10 @@
 > Aufwand: **S** ≤ 1 Std · **M** ≤ ½ Tag · **L** ≥ 1 Tag
 >
 > **Stand 2026-08-17:** Paket 1 und **Paket 2** sind abgeschlossen. Paket 2
-> brachte drei ungesuchte Funde mit (UX-30 bis UX-32), alle erledigt. Alles
-> liegt auf `staging` — **produktiv ist nichts davon**, das geht mit dem
-> nächsten Sammel-PR. Weiter geht es mit **Paket 3**.
+> brachte vier ungesuchte Funde mit (UX-30 bis UX-33), alle erledigt. Alles
+> liegt auf `staging`, dort deployt und am Bildschirm nachgesehen —
+> **produktiv ist nichts davon**, das geht mit dem nächsten Sammel-PR.
+> Weiter geht es mit **Paket 3**.
 
 ---
 
@@ -151,9 +152,10 @@ abzulösen.*
       Navigationsdefinition~~ **erledigt 2026-08-17.** Gelöscht.
       **Beim Nachsehen fand sich eine dritte** — siehe UX-30.
 
-### Drei Funde, die beim Zusammenlegen mit herausfielen
+### Vier Funde, die beim Zusammenlegen mit herausfielen
 
-*Nicht gesucht, sondern beim Hinsehen aufgefallen. Alle drei sind erledigt.*
+*Nicht gesucht, sondern beim Hinsehen aufgefallen. Alle vier sind erledigt.
+Drei kamen aus dem Code, einer (UX-33) erst vom laufenden System.*
 
 - [x] **UX-30** · **Eine dritte tote Navigation, in der echten Datei.**
       `NAV_SECTIONS` stand in `AppLayout.jsx` oben, sieben Gruppen lang, nie
@@ -177,6 +179,22 @@ abzulösen.*
       Stufe, nur den Score (`routers/leads.py:263 ff.`) — die K.-o.-Regeln
       (kein Impressum, kein TLS) kann sie deshalb nicht kennen. Das steht als
       Kommentar an der Stelle.
+
+- [x] **UX-33** · **Der einzige Fund, der nicht aus dem Code kam.** Nach dem
+      Deploy stand auf Staging: 30 Betriebe, darüber „27 Neu" und „2 Gewonnen".
+      **27 + 2 = 29.** Der dreißigste steht auf `opt_in` — ein Status, den
+      `LEAD_STATUS` nicht kennt. In der Zeile war er richtig: `leadStatusLabel`
+      machte „Opt in" daraus, genau wie vorgesehen. Aber die Filterschaltflächen
+      und die Kacheln wurden aus den *Schlüsseln* von `LEAD_STATUS` gebaut — er
+      bekam keine. **Sichtbar in der Liste, unerreichbar über jeden Filter**,
+      und die Zahlen gingen sichtbar nicht auf.
+      **Gemacht:** `statusAusBetrieben` leitet die Filter aus den Daten ab, wie
+      zuvor schon die Quellen. Bekannte Werte behalten die Reihenfolge des
+      Vertriebswegs, unbekannte folgen dahinter. Die Zähler summieren sich
+      bauartbedingt auf die Gesamtzahl — dafür gibt es einen Test.
+      *Der Punkt daran:* Die Regel „ein unbekannter Wert wird nie roh gezeigt"
+      war eingehalten. Die Lücke lag eine Ebene daneben — im **Filter**, nicht
+      in der Anzeige. Gefunden hat sie nur der Blick auf den Bildschirm.
 
 - [x] **UX-32** · **Ein Rest aus Paket 1.** Die Brotkrumenleiste suchte weiter
       `/app/leads/:id`. Seit der Umbenennung traf das nichts mehr, also stand

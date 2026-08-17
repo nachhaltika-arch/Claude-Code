@@ -303,6 +303,7 @@ Aufruf Zeit · **P2** = Politur.
 | UX-30 | *(2026-08-17, beim Zusammenlegen gefunden)* Und eine **dritte** tote Navigation: `NAV_SECTIONS` stand in derselben Datei wie die echte, war nie importiert und wich inhaltlich ab | `AppLayout.jsx:103` |
 | UX-31 | *(2026-08-17)* Die Liste „Kunden" führte eine **eigene Auszeichnungsskala** 85/70/50/30 und zeigte sie als Kürzel Pt/Go/Si/Br. Genau diese Staffelung war zugunsten der Backend-Skala 95/85/70/50 zurückgezogen worden — sie hatte hier überlebt. Ein Betrieb mit 86 Punkten trug in der Liste „Pt", während sein Bericht „Homepage Standard Gold" sagt | `Customers.jsx:14`, gegen `utils/homepageStandard.js:15` |
 | UX-32 | *(2026-08-17)* Nach der Umbenennung suchte die Brotkrumenleiste weiter `/app/leads/:id`. Auf der Seite eines Betriebs stand darum nur „Betriebe" — **ohne den Namen des Betriebs**, auf dem man war | `AppLayout.jsx:932, 969` |
+| UX-33 | *(2026-08-17, am laufenden System nach dem Deploy)* Ein Betrieb mit dem Status `opt_in` war in der Liste **sichtbar, aber über keinen Filter erreichbar**: Filterschaltflächen und Kacheln wurden aus den Schlüsseln von `LEAD_STATUS` gebaut. Die Zahlen gingen sichtbar nicht auf — 27 Neu + 2 Gewonnen bei 30 Betrieben | Staging, `/app/betriebe` |
 | UX-07 | Rohe Datenbankwerte als Status: `new`, `won`, `proposal_sent`, `domain_import` | `/app/companies` |
 | UX-08 | Widget meldet **Mailversand-Erfolg auch bei Fehlschlag** | Widget-Ergebnis |
 | UX-09 | Prozentspalte **ohne Überschrift** — korrekte Zahl, falscher Schluss | Dashboard, „Leads nach Herkunft" |

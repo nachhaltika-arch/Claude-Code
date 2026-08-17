@@ -1,3 +1,4 @@
+import asyncio
 import httpx
 import re
 import json
@@ -255,11 +256,21 @@ Felder die nicht gefunden wurden als leeren String "" lassen.
 Gib NUR das JSON zurück."""
 
         try:
-            response = client.messages.create(
-                model='claude-sonnet-4-6',
-                max_tokens=1000,
-                messages=[{'role': 'user', 'content': prompt}],
-                timeout=20.0,
+            # `Anthropic` ist der SYNCHRONE Client. Direkt in einer `async def`
+            # aufgerufen hält er die Ereignisschleife an — bis zu zwanzig
+            # Sekunden, in denen der Server auf nichts mehr antwortet, auch
+            # nicht auf die Gesundheitsprüfung von Render. Deren Proxy kappte
+            # daraufhin die laufende Anfrage: 503, im Browser „Failed to
+            # fetch", in der Oberfläche „Verbindungsfehler". Der Fehler sah aus
+            # wie ein Netzproblem und war ein Nebenläufigkeitsproblem
+            # (17.08.2026, mit David am Bildschirm gefunden).
+            response = await asyncio.to_thread(
+                lambda: client.messages.create(
+                    model='claude-sonnet-4-6',
+                    max_tokens=1000,
+                    messages=[{'role': 'user', 'content': prompt}],
+                    timeout=20.0,
+                )
             )
         except anthropic.APIStatusError as api_err:
             if api_err.status_code == 529:

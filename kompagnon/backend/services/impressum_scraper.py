@@ -289,13 +289,35 @@ Gib NUR das JSON zurück."""
 
         data = json.loads(match.group())
 
-        cleaned = {k: v for k, v in data.items() if v and v.strip()}
+        # `v.strip()` auf einer Zahl wäre ein AttributeError — und der landete
+        # im äußeren `except`, das jeden Fehler zu „Extraktion fehlgeschlagen"
+        # macht. Eine Postleitzahl als Zahl darf die Auswertung nicht kippen.
+        cleaned = {}
+        for schluessel, wert in data.items():
+            text = str(wert).strip() if wert is not None else ''
+            if text:
+                cleaned[schluessel] = text
 
-        return {
+        antwort = {
             'success': True,
             'data': cleaned,
             'impressum_url': website_url,
         }
+
+        # Nichts gefunden, obwohl Text da war — dann muss die Antwort sagen,
+        # woran es lag. Bei `gleichstrom.de` stand am 17.08.2026 alles im
+        # Impressum und die Auswertung gab trotzdem nichts zurück; ohne diese
+        # Angaben war nicht feststellbar, ob das Modell, der Text oder das
+        # Auslesen schuld war (kein lokaler Schlüssel, keine Logs von hier).
+        if not cleaned:
+            logger.warning(
+                f"Impressum ausgelesen, aber nichts extrahiert für {website_url} "
+                f"({len(impressum_text)} Zeichen Text) — Modellantwort: {raw[:200]}"
+            )
+            antwort['roh_antwort'] = raw[:300]
+            antwort['text_laenge'] = len(impressum_text)
+
+        return antwort
 
     except Exception as e:
         logger.error(f'Impressum-Extraktion Fehler: {e}')

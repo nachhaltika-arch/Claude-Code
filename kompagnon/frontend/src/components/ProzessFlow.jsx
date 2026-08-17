@@ -341,7 +341,7 @@ export default function ProzessFlow({
         <div style={{ flex: 1, height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${gesamtPct}%`, background: 'var(--kc-mid)', borderRadius: 3, transition: 'width .5s ease' }} />
         </div>
-        <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-30)', flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-sans)' }}>
+        <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--text-tertiary)', flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-sans)' }}>
           {fertigCount} von {ALLE_SCHRITTE.length}
         </span>
       </div>
@@ -434,7 +434,7 @@ export default function ProzessFlow({
                   {aktivObj.phase.label} · Schritt {aktivObj.nr}/{ALLE_SCHRITTE.length}
                 </span>
                 {aktivObj.optional && (
-                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-30)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Optional</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Optional</span>
                 )}
                 {!aktivObj.istFertig(prozessDaten) && (
                   <span style={{ padding: '2px 8px', background: 'var(--kc-yellow)', color: '#000', borderRadius: 'var(--r-sm)', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-sans)' }}>

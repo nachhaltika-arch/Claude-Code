@@ -730,7 +730,7 @@ button[aria-pressed]:focus-visible {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-30);
+  color: var(--text-tertiary);
   margin-top: 4px;
 }
 
@@ -739,7 +739,7 @@ button[aria-pressed]:focus-visible {
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-30);
+  color: var(--text-tertiary);
   margin-bottom: 10px;
 }
 
@@ -830,7 +830,7 @@ button[aria-pressed]:focus-visible {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-30);
+  color: var(--text-tertiary);
   margin-top: 4px;
 }
 .kc-kpi-delta {

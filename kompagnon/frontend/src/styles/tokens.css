@@ -23,8 +23,17 @@
   --border:  #D5E0E2;
 
   /* ── Primitive Text Colors ──────────────────────────────────── */
-  --text:    #000000;
-  --text-60: #4A5A5C;
+  /* Die Zahl ist der Anteil, nicht die Deckkraft — je kleiner, desto
+     leiser. Gemessen am 17.08.2026 gegen beide Flaechen (WCAG 2.1 AA,
+     Schwelle 4.5 fuer Text). `src/utils/kontrast.test.js` haelt das fest. */
+  --text:    #000000;  /* 20.4 auf --surface */
+  --text-60: #4A5A5C;  /*  6.5 auf --surface */
+  /* Der leiseste Ton, der noch Text sein darf: 4.63 auf --surface.
+     Er ersetzt --text-30 ueberall dort, wo Woerter stehen. */
+  --text-45: #647071;
+  /* Bleibt hell und ist damit KEIN Textton: 2.13 auf --surface. Fuer
+     Trennlinien und Zierrat. Wer ihn fuer Text nimmt, macht Text unlesbar —
+     genau das war er bis zum 17.08.2026 app-weit, ueber --text-tertiary. */
   --text-30: #9AACAE;
 
   /* ── Primitive Semantic Colors ──────────────────────────────── */
@@ -48,7 +57,12 @@
   /* ── Text ───────────────────────────────────────────────────── */
   --text-primary:     var(--text);
   --text-secondary:   var(--text-60);
-  --text-tertiary:    var(--text-30);
+  /* Zeigte bis zum 17.08.2026 auf --text-30 und war damit die Farbe von 911
+     Beschriftungen im Frontend — bei 2.13 Kontrast auf der App-Flaeche.
+     Deshalb las sich die Kachelreihe des Dashboards wie Dekoration: Nicht
+     die Zahlen waren zu schwach, sondern die Woerter, die sagen, was die
+     Zahl bedeutet. */
+  --text-tertiary:    var(--text-45);
   --text-placeholder: #8fa8b0;
   --text-inverse:     #ffffff;
   --text-brand:       var(--kc-mid);
@@ -168,6 +182,7 @@
     --border:  rgba(64,196,223,0.15);
     --text:    #f0f4f5;
     --text-60: #a8c0c8;
+    --text-45: #8aabb5;  /* dunkel: 6.76 auf --surface, bleibt wie gehabt */
     --text-30: #8aabb5;
     --kc-dark:   #003840;
     --kc-mid:    #40c4df;
@@ -214,6 +229,7 @@
   --border:  rgba(64,196,223,0.15);
   --text:    #f0f4f5;
   --text-60: #a8c0c8;
+  --text-45: #8aabb5;  /* dunkel: 6.76 auf --surface, bleibt wie gehabt */
   --text-30: #8aabb5;
   --kc-dark:   #003840;
   --kc-mid:    #40c4df;
@@ -259,6 +275,7 @@
   --border:  #D5E0E2;
   --text:    #000000;
   --text-60: #4A5A5C;
+  --text-45: #647071;
   --text-30: #9AACAE;
   --kc-dark:   #004F59;
   --kc-mid:    #008EAA;

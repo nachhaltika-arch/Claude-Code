@@ -305,20 +305,40 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
       oder zusammenlegen.
       *Prüfung:* Aus den Beschriftungen allein ist der Unterschied erkennbar.
 
-- [ ] **UX-11** · **M** · Auf dem Dashboard sind die Kennzahlen, die etwas
-      sagen (61 Leads, 2 Audits, Ø 53/100, 6 gewonnen), kontrastarm und
-      dekorativ gesetzt — während drei Kacheln mit `0,00 €` den Bildschirm
-      beherrschen. Gewichtung umdrehen.
-      *Prüfung:* Zwei Sekunden Hinsehen genügen für die wichtigste Zahl.
+- [x] **UX-11** · **M** · ✅ **2026-08-17** · Gewichtung umgedreht: Die
+      Kennzahlenreihe steht jetzt **über** den Geldkacheln.
+      **Und `0,00 €` steht nicht mehr in Erfolgsgrün** — Grün behauptet ein
+      Ergebnis, eine Null ist keines. Farbe bekommt der Betrag erst, wenn es
+      etwas zu färben gibt. Das war derselbe Fehler wie in Paket 3, nur in
+      Farbe statt in Worten.
+      **Mitgenommen:** „Leads gesamt" → **Betriebe gesamt**, „Gewonnene Leads"
+      → **Gewonnene Betriebe**, „+ Neuer Lead" → **+ Neuer Betrieb**,
+      „Aktuelle Leads" → **Aktuelle Betriebe** (UX-04).
 
-- [ ] **UX-12** · **S** · Abschnittsüberschriften („AKTUELLE LEADS", „LETZTE
-      AUDITS") sind beim Überfliegen unsichtbar. Kontrast anheben.
-      *Prüfung:* Die Struktur ist ohne Lesen erkennbar.
+- [x] **UX-12** · **S** · ✅ **2026-08-17** · **Diagnose war falsch — gemessen
+      statt geschätzt.** Die Abschnittsüberschriften „AKTUELLE LEADS" und
+      „LETZTE AUDITS" haben **8.89** Kontrast. Sie bestehen WCAG AA deutlich
+      und waren nie das Problem.
+      Unsichtbar waren die **Beschriftungen unter den Zahlen**: `--text-30`
+      auf der App-Fläche = **2.13**, Schwelle für Text ist 4.5. Und dieser Ton
+      hing an `--text-tertiary` — **911 Verwendungen im Frontend**. Nicht die
+      Zahlen waren zu schwach, sondern die Wörter, die sagen, was die Zahl
+      bedeutet. Deshalb las sich die Reihe wie Dekoration; das ist zugleich die
+      halbe Ursache von UX-11.
+      **Gemacht:** neuer Ton `--text-45: #647071` (4.63 auf der Fläche, 4.91
+      auf Karten), `--text-tertiary` zeigt darauf. `--text-30` bleibt hell und
+      ist damit ausdrücklich **kein** Textton mehr — für Trennlinien und
+      Zierrat. Die 15 direkten Textverwendungen sind umgestellt.
+      Der Dunkelmodus war schon in Ordnung (7.10) und bleibt unverändert.
+      **Damit es nicht zurückrutscht:** `utils/kontrast.test.js` liest
+      `tokens.css` und rechnet die Verhältnisse nach. Wer einen Textton
+      aufhellt, bricht den Test.
+      *Nachgemessen:* im Browser auf der Staging-Oberfläche, nicht geschätzt.
 
-- [ ] **UX-10** · **S** · Kein Ladezustand: leere Kacheln lesen sich wie „null",
-      bis die Werte nachkommen. Bei 0,9–2,6 s Antwortzeit ist das jedes Mal
-      sichtbar.
-      *Prüfung:* Während des Ladens steht dort ein Platzhalter, keine Leere.
+- [x] **UX-10** · **S** · ✅ **2026-08-17** · Kennzahlen, Betriebsliste und
+      Auditliste hatten den Platzhalter bereits (`Skeleton`). Offen war nur die
+      Geldreihe: Sie stand während des Ladens gar nicht da und schob beim
+      Eintreffen alles darunter nach unten. Jetzt drei Platzhalterkacheln.
 
 - [ ] **UX-18** · **S** · Knopf „Vollständigen Bericht anzeigen" wirkt
       deaktiviert (dunkel auf dunkel). Er ist es nicht.

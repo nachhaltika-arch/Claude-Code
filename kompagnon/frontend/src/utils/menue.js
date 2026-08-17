@@ -106,7 +106,12 @@ export const MENUE_GRUPPEN = [
     eintraege: [
       { label: 'Benutzer',          path: '/app/admin/users', adminOnly: true },
       { label: 'Rollen',            path: '/app/admin/roles', adminOnly: true },
-      { label: 'Bausteine',         path: '/app/settings/component-library', adminOnly: true },
+      // Heisst wie die Seite, zu der er fuehrt. Hier stand kurz „Bausteine" —
+      // kuerzer und besseres Deutsch, aber die Seite traegt weiter die
+      // Ueberschrift „Komponenten-Bibliothek". Menue und Titel auseinander
+      // laufen zu lassen ist genau UX-01, der erste Befund dieser Pruefung.
+      // Wer umbenennen will, benennt beides um.
+      { label: 'Komponenten-Bibliothek', path: '/app/settings/component-library', adminOnly: true },
     ],
   },
 ];

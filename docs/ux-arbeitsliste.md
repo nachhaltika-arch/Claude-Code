@@ -10,7 +10,10 @@
 > **produktiv** seit dem Merge von PR #41. Paket 2 brachte vier ungesuchte
 > Funde mit (UX-30 bis UX-33), alle erledigt.
 >
-> **Paket 3 ist begonnen:** UX-05 und UX-08 sind erledigt. Dazwischen kam der
+> **Paket 3 ist bis auf einen Punkt zu:** UX-05, UX-06, UX-06b, UX-08 und
+> UX-09 sind erledigt. Offen bleibt **UX-Daten** — das ist keine Programmier-,
+> sondern eine Datenfrage und braucht dich (Dubletten, Domains als
+> Firmenname, der Testdatensatz KOMPAGNON). Dazwischen kam der
 > Vorfall vom Nachmittag (135 Fehl-Mails an einen Betrieb) und zwei
 > Sicherheitsbefunde, die alles andere verdrängt haben — nachzulesen in den
 > Commits `679b32c`, `dddd7af` und `d7768f8`.
@@ -219,20 +222,39 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
       Angabe entgegen. `LeadProfile.jsx:1517` zeigt jetzt *„Datum unbekannt"*.
       Commit `f2d61c4`.
 
-- [ ] **UX-06** · **M** · Die `[Auto-Enrichment]`-Zeile ist **kein
-      Anzeigefehler**. `services/lead_enrichment.py:125` schreibt sie in
-      `lead.notes` — das Feld für *deine* Notizen — und stellt sie dem voran,
-      was du dort geschrieben hast. `LeadProfile.jsx:1379` zeigt sie nur getreu.
-      **Zu tun:** Maschinenbefunde in eigene Felder, nicht in ein Menschenfeld.
-      Die Werte (SSL, Impressum, PageSpeed, Score) liegen ohnehin schon als
-      Spalten vor.
-      *Prüfung:* `lead.notes` enthält nach einer Anreicherung nur, was ein
-      Mensch geschrieben hat.
+- [x] **UX-06** · **M** · ✅ **2026-08-17** · Die `[Auto-Enrichment]`-Zeile war
+      kein Anzeigefehler — `lead_enrichment.py` schrieb sie in `lead.notes`,
+      das Feld für *deine* Notizen, und stellte sie bei **jedem** Lauf erneut
+      dem voran, was du geschrieben hattest.
+      **Die Annahme in dieser Zeile war falsch:** Die Werte lagen *nicht*
+      schon als Spalten vor. SSL und Impressum hatten keine, und
+      `pagespeed_score` wurde berechnet und **nirgends** gespeichert — die
+      Notizzeile war der einzige Ort, an dem er einen Lauf überlebte. Ersatzlos
+      streichen hätte die Befunde vernichtet.
+      **Gemacht:** Spalten `has_ssl`, `has_impressum`, `enriched_at` neu,
+      `pagespeed_mobile_score` wird endlich beschrieben. Die Notizzeile ist
+      weg. In der Betriebsansicht steht ein Block *Technische Prüfung* mit
+      Zeitpunkt; `utils/anreicherung.js` hält die Anzeigelogik prüfbar.
+      **`NULL` heißt „nicht geprüft" und wird auch so angezeigt** — nicht als
+      „fehlt". Für den Altbestand ist das bis zur nächsten Anreicherung die
+      ehrliche Auskunft.
+      **Altbestand:** `scripts/notizen-bereinigen.sql` entfernt die
+      Maschinenzeilen aus den vorhandenen Notizen — mit Sicherungskopie,
+      Vorher/Nachher-Ansicht und `ROLLBACK` am Ende. Der reguläre Ausdruck ist
+      gegen echtes Postgres geprüft (5 Fälle). **Läuft noch nicht — David.**
+      *Nachgesehen:* nach einer Anreicherung steht in `lead.notes` nur, was ein
+      Mensch geschrieben hat (4 Tests).
 
-- [ ] **UX-06b** · **S** · Zwei Punktzahlen ohne Unterscheidung: `Score: 40/100`
-      (Lead) und `Audit-Ergebnis: 37/100` (Audit) stehen unbeschriftet
-      nebeneinander. Beide brauchen ein Wort davor.
-      *Prüfung:* Aus dem Bildschirm allein ist erkennbar, was 40 und was 37 ist.
+- [x] **UX-06b** · **S** · ✅ **2026-08-17** · Zwei Punktzahlen ohne
+      Unterscheidung. **Die Ursache war nicht die fehlende Beschriftung,
+      sondern eine eingefrorene Zahl:** `AuditTool.jsx` belegte das Notizfeld
+      beim Anlegen mit `Audit-Ergebnis: 40/100 Punkte – …` vor — obwohl das
+      Modal die Punktzahl zwei Zeilen darüber ohnehin als Kachel zeigt. Der
+      Text blieb stehen, das Audit lief weiter, und später stand die alte Zahl
+      als Notiz neben der neuen als Ergebnis. Das sind die 40 gegen 37.
+      Ein Wort davor hätte den falschen Zustand nur beschriftet.
+      **Gemacht:** Notizfeld startet leer. Die Punktzahl steht in der
+      Betriebsansicht unter „Letzter Audit" — und zwar die aktuelle.
 
 - [x] **UX-08** · **S** · ✅ **2026-08-17** · Das Widget meldete
       „Bestätigungs-Mail geschickt", auch wenn der Versand scheiterte.
@@ -250,10 +272,14 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
       *Nachgesehen:* mit `send_email → False` erscheint keine Erfolgsmeldung
       (7 Tests).
 
-- [ ] **UX-09** · **S** · Prozentspalte ohne Überschrift auf dem Dashboard. Die
-      Zahl ist **richtig** (Gewinnquote, 6 von 60) — sie sieht nur wie ein
-      Anteil aus.
-      *Prüfung:* Über der Spalte steht „Gewinnquote".
+- [x] **UX-09** · **S** · ✅ **2026-08-17** · Prozentspalte ohne Überschrift auf
+      dem Dashboard. Die Zahl war **richtig** (Gewinnquote) — sie sah nur aus
+      wie ein Anteil an allem. Jetzt steht über den beiden rechten Spalten
+      „Betriebe" und „Gewinnquote". Das `✓` hinter der Zahl ist weg: Es stand
+      für die fehlende Überschrift ein, und die gibt es jetzt.
+      **Dabei mitgenommen:** Die Karte hieß „Leads nach Herkunft" und zählte
+      „12 Leads". Nach UX-04 heißt das Objekt **Betrieb** — „Lead" ist ein
+      Zustand. Ein Rest aus Paket 1, wie UX-32.
 
 - [ ] **UX-Daten** · **M** · Was die Listen über die Daten verraten, gehört
       separat angefasst — es trifft die Glaubwürdigkeit vor Kunden:

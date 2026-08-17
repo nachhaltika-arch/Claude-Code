@@ -26,6 +26,7 @@ import API_BASE_URL from '../config';
 import NewsletterDesigner from '../components/NewsletterDesigner';
 import { useScreenSize } from '../utils/responsive';
 import { datumKurz, datumUndZeit } from '../utils/datum';
+import { befundZeilen, geprueftAmText } from '../utils/anreicherung';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -1377,6 +1378,34 @@ export default function LeadProfile() {
                 </div>
                 {fieldRow('📍', [lead.street && `${lead.street} ${lead.house_number || ''}`.trim(), [lead.postal_code, lead.city].filter(Boolean).join(' ')].filter(Boolean).join(', '), 'Adresse')}
               </div>
+              {/* Die technische Prüfung stand bis zum 17.08.2026 als Zeile
+                * „[Auto-Enrichment] SSL: OK | …" in den Notizen — im Feld für
+                * das, was ein Mensch schreibt, und bei jedem Lauf erneut
+                * davorgesetzt. Sie hat jetzt einen eigenen Platz (UX-06).
+                * „nicht geprüft" steht ausdrücklich da: Es ist nicht dasselbe
+                * wie „fehlt". */}
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 6 }}>
+                  Technische Prüfung
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {befundZeilen(profile.anreicherung).map(({ schluessel, beschriftung, wert, art }) => (
+                    <span key={schluessel} style={{
+                      fontSize: 11, padding: '3px 8px', borderRadius: 'var(--radius-sm)',
+                      background: art === 'gut' ? 'var(--status-success-bg)'
+                        : art === 'fehlt' ? 'var(--status-danger-bg)' : 'var(--bg-app)',
+                      color: art === 'gut' ? 'var(--status-success-text)'
+                        : art === 'fehlt' ? 'var(--status-danger-text)' : 'var(--text-tertiary)',
+                    }}>
+                      {beschriftung}: {wert}
+                    </span>
+                  ))}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 5 }}>
+                  {geprueftAmText(profile.anreicherung)}
+                </div>
+              </div>
+
               {lead.notes && (
                 <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--bg-app)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, fontStyle: 'italic' }}>
                   {lead.notes}

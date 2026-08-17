@@ -289,6 +289,11 @@ def _run_migrations():
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_academy_customer_access ON academy_customer_access(customer_id, course_id)",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS mobile VARCHAR(20)",
         # PageSpeed columns on leads table
+        # Befunde der Anreicherung, bis 17.08.2026 nur als Textzeile in `notes`
+        # (UX-06). NULL heisst „noch nicht geprueft", nicht „nicht vorhanden".
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS has_ssl BOOLEAN",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS has_impressum BOOLEAN",
+        "ALTER TABLE leads ADD COLUMN IF NOT EXISTS enriched_at TIMESTAMP",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_mobile_score INTEGER",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_desktop_score INTEGER",
         "ALTER TABLE leads ADD COLUMN IF NOT EXISTS pagespeed_lcp_mobile FLOAT",

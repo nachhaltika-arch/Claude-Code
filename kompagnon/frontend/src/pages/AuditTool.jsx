@@ -356,7 +356,13 @@ function SaveLeadModal({ audit, auditId, onClose, onSaved }) {
     website_url: audit.website_url || '',
     city: audit.city || '',
     trade: audit.trade || '',
-    notes: `Audit-Ergebnis: ${audit.total_score}/100 Punkte - ${audit.level}`,
+    // Leer, nicht vorbelegt. Hier stand „Audit-Ergebnis: 40/100 Punkte - …",
+    // obwohl das Modal die Punktzahl zwei Zeilen darüber ohnehin anzeigt. Der
+    // Text fror sie beim Anlegen ein: Nach dem nächsten Audit stand die alte
+    // Zahl als Notiz neben der neuen als Ergebnis, ohne dass etwas dabeistand,
+    // welche welche ist (UX-06b). Das Audit hängt am Betrieb, die Punktzahl
+    // steht in der Betriebsansicht unter „Letzter Audit" — und zwar aktuell.
+    notes: '',
     lead_source: 'Audit',
   });
 

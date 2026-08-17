@@ -240,8 +240,24 @@ export default function Dashboard() {
             width: '100%', boxSizing: 'border-box',
           }}>
             <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14, color: 'var(--text-primary)' }}>
-              📊 Leads nach Herkunft
+              📊 Betriebe nach Herkunft
             </div>
+
+            {/* Die rechte Zahl stand ohne Überschrift da und sah dadurch aus
+              * wie ein Anteil an allem. Sie ist die Gewinnquote dieser
+              * Herkunft — richtig gerechnet, nur unbenannt (UX-09). */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <span style={{ width: 24, flexShrink: 0 }} />
+              <span style={{ width: 100, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 50 }} />
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', minWidth: 70, textAlign: 'right', flexShrink: 0 }}>
+                Betriebe
+              </span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', minWidth: 64, textAlign: 'right', flexShrink: 0 }}>
+                Gewinnquote
+              </span>
+            </div>
+
             {campaignStats.map(stat => {
               const cfg = SRC[stat.source] || { icon: stat.source_icon || '📌', label: stat.source_label || stat.source };
               const cnt = stat.lead_count || 0;
@@ -262,14 +278,16 @@ export default function Dashboard() {
                     }} />
                   </div>
                   <span style={{ fontSize: 12, color: 'var(--text-tertiary)', minWidth: 70, textAlign: 'right', flexShrink: 0 }}>
-                    {cnt} Lead{cnt !== 1 ? 's' : ''}
+                    {cnt}
                   </span>
+                  {/* Das Häkchen stand für die fehlende Überschrift ein. Jetzt
+                    * gibt es die Überschrift, also kann es weg. */}
                   <span style={{
                     fontSize: 11,
                     color: pct > 30 ? 'var(--status-success-text)' : 'var(--text-tertiary)',
-                    minWidth: 42, textAlign: 'right', flexShrink: 0, fontWeight: 600,
+                    minWidth: 64, textAlign: 'right', flexShrink: 0, fontWeight: 600,
                   }}>
-                    {pct}% ✓
+                    {pct}%
                   </span>
                 </div>
               );

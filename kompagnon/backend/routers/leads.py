@@ -1481,6 +1481,15 @@ def get_lead_profile(lead_id: int, db: Session = Depends(get_db)):
             "geschaeftsfuehrer": getattr(lead, 'geschaeftsfuehrer', '') or '',
             "display_name": getattr(lead, 'display_name', '') or '',
         },
+        # Befunde der Anreicherung. Bewusst ohne `or False`: `None` heißt
+        # „noch nicht geprüft" und darf nicht als „fehlt" durchgehen (UX-06).
+        "anreicherung": {
+            "has_ssl": getattr(lead, 'has_ssl', None),
+            "has_impressum": getattr(lead, 'has_impressum', None),
+            "pagespeed_mobile": getattr(lead, 'pagespeed_mobile_score', None),
+            "geprueft_am": (lead.enriched_at.strftime("%d.%m.%Y")
+                            if getattr(lead, 'enriched_at', None) else None),
+        },
         "current_score": latest_audit.total_score if latest_audit else None,
         "current_level": latest_audit.level if latest_audit else None,
         "score_history": score_history,

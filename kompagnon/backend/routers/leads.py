@@ -1016,24 +1016,22 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     if not lead:
         raise HTTPException(status_code=404, detail="Lead nicht gefunden")
 
-    # 2. Verknüpfte Projekte finden
-    projects = db.execute(
+    # 2. Projekte samt Anhang — die Reihenfolge über die fünfzehn abhängigen
+    #    Tabellen steht in `services/projekt_loeschen.py` und gilt hier
+    #    genauso. Vorher stand hier eine eigene Liste mit vier Tabellen; sie
+    #    wäre am NOT-NULL-Fremdschlüssel von `customers` gescheitert, sobald
+    #    ein Projekt einen Kunden hatte, und hätte bei den übrigen elf Zeilen
+    #    zurückgelassen, deren `project_id` ins Leere zeigt.
+    from services.projekt_loeschen import entfernen, tabelle_vorhanden
+
+    projekte = db.execute(
         text("SELECT id FROM projects WHERE lead_id = :id"), {"id": lead_id}
     ).fetchall()
-    project_ids = [p[0] for p in projects]
+    entfernen(db, [zeile[0] for zeile in projekte])
 
-    # 3. Abhängige Daten der Projekte löschen (Reihenfolge wichtig)
-    for pid in project_ids:
-        db.execute(text("DELETE FROM project_checklists WHERE project_id = :id"), {"id": pid})
-        db.execute(text("DELETE FROM time_tracking WHERE project_id = :id"), {"id": pid})
-        db.execute(text("DELETE FROM briefings WHERE project_id = :id"), {"id": pid})
+    # 3. Weitere Lead-abhängige Daten löschen
+    if tabelle_vorhanden(db, "project_files"):
         db.execute(text("DELETE FROM project_files WHERE lead_id = :id"), {"id": lead_id})
-
-    # 4. Projekte selbst löschen
-    if project_ids:
-        db.execute(text("DELETE FROM projects WHERE lead_id = :id"), {"id": lead_id})
-
-    # 5. Weitere Lead-abhängige Daten löschen
     db.execute(text("DELETE FROM briefings WHERE lead_id = :id"), {"id": lead_id})
     db.execute(text("DELETE FROM audit_results WHERE lead_id = :id"), {"id": lead_id})
     db.execute(text("DELETE FROM email_logs WHERE lead_id = :id"), {"id": lead_id})

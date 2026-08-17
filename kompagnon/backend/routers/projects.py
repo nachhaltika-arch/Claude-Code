@@ -625,6 +625,90 @@ def create_leistungsseite(
     }
 
 
+# ── Projekte entfernen ────────────────────────────────────────────────
+# Bis zum 17.08.2026 gab es dafür keinen Endpunkt. Wer ein Projekt loswerden
+# wollte, musste SQL von Hand fahren — und das stand an dem Tag an, weil ein
+# Projekt 135 Tage lang jeden Morgen dieselbe Mail ausgelöst hatte.
+# Die Reihenfolge über die fünfzehn abhängigen Tabellen steht in
+# `services/projekt_loeschen.py`, damit sie nur einmal existiert.
+
+
+class ProjekteLoeschenRequest(BaseModel):
+    ids: list[int]
+
+
+def _ids_aus_abfrage(ids: str) -> list:
+    """"1,2,3" → [1, 2, 3]. Was keine Zahl ist, fliegt raus."""
+    return [int(teil) for teil in ids.split(",") if teil.strip().isdigit()]
+
+
+@router.get("/loeschvorschau")
+def loeschvorschau(
+    ids: str = Query(..., description="Projektnummern, mit Komma getrennt"),
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Was ein Löschen anfassen würde — ohne etwas anzufassen.
+
+    In `customers` stecken wiederkehrender Umsatz und CMS-Zugangsdaten. Die
+    Zeilen können nicht bleiben (NOT-NULL-Fremdschlüssel), also soll wenigstens
+    vorher jemand gesehen haben, wie viele es sind.
+    """
+    from services.projekt_loeschen import zaehlen
+
+    projekt_ids = _ids_aus_abfrage(ids)
+    if not projekt_ids:
+        raise HTTPException(400, "Keine gültigen Projektnummern angegeben")
+
+    return zaehlen(db, projekt_ids)
+
+
+@router.delete("/{project_id}")
+def delete_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Entfernt ein Projekt samt allem, was ohne es keinen Inhalt hat.
+
+    Das Versandprotokoll bleibt erhalten — nur sein Verweis wird gelöst.
+    Der Betrieb (`leads`) bleibt unberührt: Gelöscht wird das Projekt, nicht
+    der Kunde.
+    """
+    from services.projekt_loeschen import entfernen
+
+    vorhanden = db.execute(
+        text("SELECT id FROM projects WHERE id = :id"), {"id": project_id}
+    ).fetchone()
+    if not vorhanden:
+        raise HTTPException(404, "Projekt nicht gefunden")
+
+    bericht = entfernen(db, [project_id])
+    db.commit()
+    return bericht
+
+
+@router.post("/loeschen")
+def projekte_loeschen(
+    anfrage: ProjekteLoeschenRequest,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_admin),
+):
+    """Mehrere auf einmal.
+
+    Eine leere Liste wird abgewiesen statt als „alle" gelesen zu werden — ein
+    versehentlich leerer Rumpf darf nicht den ganzen Bestand kosten.
+    """
+    from services.projekt_loeschen import entfernen
+
+    if not anfrage.ids:
+        raise HTTPException(400, "Keine Projektnummern angegeben")
+
+    bericht = entfernen(db, anfrage.ids)
+    db.commit()
+    return bericht
+
+
 BLOCKED_KEYS = {
     "id", "pid", "project_id", "projects_id",
     "created_at", "updated_at", "lead_id"

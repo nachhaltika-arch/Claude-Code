@@ -6,6 +6,8 @@ import { useScreenSize } from '../utils/responsive';
 import API_BASE_URL from '../config';
 import EmptyState from '../components/ui/EmptyState';
 import NewProjectModal from '../components/NewProjectModal';
+import ProjekteLoeschenModal from '../components/ProjekteLoeschenModal';
+import { alleGewaehlt, alleUmschalten, umschalten } from '../utils/projektAuswahl';
 import toast from 'react-hot-toast';
 
 const PHASES = [
@@ -49,7 +51,7 @@ function phaseNum(status) {
 }
 
 // ── Project list card ─────────────────────────────────────────────────────────
-function ProjectListCard({ project, lead, onClick }) {
+function ProjectListCard({ project, lead, onClick, gewaehlt, onWaehlen }) {
   const ph      = phaseInfo(project.status);
   const pNum    = phaseNum(project.status);
   const domain  = getDomain(lead?.website_url || project.website_url);
@@ -67,6 +69,20 @@ function ProjectListCard({ project, lead, onClick }) {
         borderLeft: ph ? `4px solid ${ph.color}` : undefined,
       }}
     >
+      {/* Auswahl zum Löschen — nur für Admins sichtbar.
+        * Der Haken liegt in der Karte, fängt seinen Klick aber selbst ab:
+        * Sonst öffnet jedes Auswählen das Projekt. */}
+      {onWaehlen && (
+        <input
+          type="checkbox"
+          checked={gewaehlt}
+          onClick={e => e.stopPropagation()}
+          onChange={() => onWaehlen(project.id)}
+          aria-label={`${lead?.company_name || project.company_name || 'Projekt'} auswählen`}
+          style={{ width: 16, height: 16, flexShrink: 0, cursor: 'pointer', accentColor: 'var(--kc-dark)' }}
+        />
+      )}
+
       {/* Avatar */}
       <div style={{
         width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
@@ -440,6 +456,10 @@ export default function CustomerProjects() {
   const [showOnlineFertig, setShowOnlineFertig] = useState(false);
   const [showImpuls, setShowImpuls] = useState(false);
   const [showNewProject, setShowNewProject] = useState(false);
+  const [auswahl, setAuswahl] = useState([]);
+  const [zeigeLoeschen, setZeigeLoeschen] = useState(false);
+
+  const darfLoeschen = hasRole('admin');
 
   useEffect(() => {
     (async () => {
@@ -477,6 +497,18 @@ export default function CustomerProjects() {
     if (phaseFilter && p.status !== phaseFilter) return false;
     return true;
   }).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+  const sichtbareIds = filtered.map(p => p.id);
+  const nameVon = p => leadsMap[p.lead_id]?.company_name || p.company_name || `Projekt #${p.id}`;
+  const gewaehlteNamen = projects.filter(p => auswahl.includes(p.id)).map(nameVon);
+
+  const nachDemLoeschen = (geloeschteIds, bericht) => {
+    setProjects(bisher => bisher.filter(p => !geloeschteIds.includes(p.id)));
+    setAuswahl([]);
+    setZeigeLoeschen(false);
+    const anzahl = bericht?.projekte ?? geloeschteIds.length;
+    toast.success(anzahl === 1 ? 'Projekt gelöscht' : `${anzahl} Projekte gelöscht`);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -568,6 +600,42 @@ export default function CustomerProjects() {
         />
       )}
 
+      {/* Auswahlleiste — erscheint erst, wenn etwas gewählt ist. Ein
+        * Löschknopf, der dauerhaft dasteht, wird irgendwann versehentlich
+        * getroffen. */}
+      {darfLoeschen && !loading && filtered.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+            <input
+              type="checkbox"
+              checked={alleGewaehlt(auswahl, sichtbareIds)}
+              onChange={() => setAuswahl(alleUmschalten(auswahl, sichtbareIds))}
+              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--kc-dark)' }}
+            />
+            Alle {filtered.length} auswählen
+          </label>
+          {auswahl.length > 0 && (
+            <>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-sans)' }}>
+                {auswahl.length} ausgewählt
+              </span>
+              <button
+                onClick={() => setZeigeLoeschen(true)}
+                style={{ padding: '7px 14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                Löschen
+              </button>
+              <button
+                onClick={() => setAuswahl([])}
+                style={{ padding: '7px 12px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                Auswahl aufheben
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* List */}
       {!loading && filtered.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -577,9 +645,22 @@ export default function CustomerProjects() {
               project={p}
               lead={leadsMap[p.lead_id]}
               onClick={() => navigate(`/app/projects/${p.id}`)}
+              gewaehlt={auswahl.includes(p.id)}
+              onWaehlen={darfLoeschen ? (id => setAuswahl(umschalten(auswahl, id))) : undefined}
             />
           ))}
         </div>
+      )}
+
+      {/* Löschen — mit Vorschau, bevor etwas passiert */}
+      {zeigeLoeschen && (
+        <ProjekteLoeschenModal
+          ids={auswahl}
+          namen={gewaehlteNamen}
+          token={token}
+          onClose={() => setZeigeLoeschen(false)}
+          onGeloescht={nachDemLoeschen}
+        />
       )}
 
       {/* Neues Projekt Modal */}

@@ -6,11 +6,14 @@
 >
 > Aufwand: **S** ≤ 1 Std · **M** ≤ ½ Tag · **L** ≥ 1 Tag
 >
-> **Stand 2026-08-17:** Paket 1 und **Paket 2** sind abgeschlossen. Paket 2
-> brachte vier ungesuchte Funde mit (UX-30 bis UX-33), alle erledigt. Alles
-> liegt auf `staging`, dort deployt und am Bildschirm nachgesehen —
-> **produktiv ist nichts davon**, das geht mit dem nächsten Sammel-PR.
-> Weiter geht es mit **Paket 3**.
+> **Stand 2026-08-17 (abends):** Paket 1 und **Paket 2** sind abgeschlossen,
+> **produktiv** seit dem Merge von PR #41. Paket 2 brachte vier ungesuchte
+> Funde mit (UX-30 bis UX-33), alle erledigt.
+>
+> **Paket 3 ist begonnen:** UX-05 und UX-08 sind erledigt. Dazwischen kam der
+> Vorfall vom Nachmittag (135 Fehl-Mails an einen Betrieb) und zwei
+> Sicherheitsbefunde, die alles andere verdrängt haben — nachzulesen in den
+> Commits `679b32c`, `dddd7af` und `d7768f8`.
 
 ---
 
@@ -210,13 +213,11 @@ Drei kamen aus dem Code, einer (UX-33) erst vom laufenden System.*
 *Vier kleine Eingriffe, eine Ursache: Die Oberfläche sagt etwas anderes, als das
 System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
 
-- [ ] **UX-05** · **S** · `Invalid Date` als sichtbarer Text. Ursache: das Datum
-      wird ungeprüft formatiert.
-      → `pages/LeadProfile.jsx:1516` —
-      `new Date(latestAudit.created_at).toLocaleDateString('de-DE')` ohne Schutz
-      **Regel dabei:** Fehlt das Datum, gehört dort *„Datum unbekannt"* hin —
-      kein leeres Feld und keine erfundene Zeit.
-      *Prüfung:* Ein Audit ohne `created_at` zeigt den Ersatztext.
+- [x] **UX-05** · **S** · ✅ **2026-08-17** · `Invalid Date` als sichtbarer Text.
+      Es war kein Einzelfall, deshalb `utils/datum.js` statt einer Reparatur an
+      der Fundstelle: `datumKurz`/`datumUndZeit` nehmen den Ersatztext als
+      Angabe entgegen. `LeadProfile.jsx:1517` zeigt jetzt *„Datum unbekannt"*.
+      Commit `f2d61c4`.
 
 - [ ] **UX-06** · **M** · Die `[Auto-Enrichment]`-Zeile ist **kein
       Anzeigefehler**. `services/lead_enrichment.py:125` schreibt sie in
@@ -233,14 +234,21 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
       nebeneinander. Beide brauchen ein Wort davor.
       *Prüfung:* Aus dem Bildschirm allein ist erkennbar, was 40 und was 37 ist.
 
-- [ ] **UX-08** · **S** · Das Widget meldet „Bestätigungs-Mail geschickt", auch
-      wenn der Versand scheitert. Der Server weiß es (`routers/audit.py`
-      protokolliert „Widget-Bestätigung nicht versendet"), sagt es aber nicht
-      weiter.
-      **Zu tun:** Versandergebnis in die Antwort aufnehmen, das Widget zeigt bei
-      Fehlschlag einen ehrlichen Satz plus Wiederholmöglichkeit.
-      → `kompagnon/frontend/public/embed/audit-widget.html`
-      *Prüfung:* Mit abgeschaltetem Versand erscheint keine Erfolgsmeldung.
+- [x] **UX-08** · **S** · ✅ **2026-08-17** · Das Widget meldete
+      „Bestätigungs-Mail geschickt", auch wenn der Versand scheiterte.
+      Der Teaser trägt den Zustand jetzt mit (`bestaetigung_versandt`), und das
+      Widget kennt drei Zustände statt einer Behauptung: *wird verschickt* →
+      *geschickt* → *ging nicht raus, nochmal senden*.
+      **Der Zwischenzustand war nötig:** Der Versand läuft im Hintergrund an,
+      wenn die Analyse fertig ist — beim Anzeigen des Ergebnisses ist er es
+      meist noch nicht. Ein sofortiges „ging nicht raus" wäre die zweite
+      Unwahrheit gewesen. Sechs Nachfragen im Abstand von drei Sekunden,
+      dann erst das Urteil.
+      Der zweite Versuch hängt an `POST /api/widget/bestaetigung/{token}` und
+      ist auf fünf Versuche begrenzt: Die Empfängeradresse steht fest, wer den
+      Knopf drückt bestimmt sie nicht.
+      *Nachgesehen:* mit `send_email → False` erscheint keine Erfolgsmeldung
+      (7 Tests).
 
 - [ ] **UX-09** · **S** · Prozentspalte ohne Überschrift auf dem Dashboard. Die
       Zahl ist **richtig** (Gewinnquote, 6 von 60) — sie sieht nur wie ein

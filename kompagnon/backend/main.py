@@ -1185,6 +1185,9 @@ def _run_migrations():
         # die Bestaetigungslinks von selbst ausloest.
         "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verified_user_agent VARCHAR(400)",
         "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verified_ip VARCHAR(64)",
+        # Zaehlt die Versandversuche der Bestaetigung — begrenzt den zweiten
+        # Versuch aus dem Widget (UX-08, 17.08.2026).
+        "ALTER TABLE widget_requests ADD COLUMN IF NOT EXISTS verify_attempts INTEGER DEFAULT 0",
         # ── Entwurfs-Status fuer erzeugte Bloecke 2026-08-13 ────────────────
         # Bestehende Bloecke sind freigegeben; nur neu erzeugte starten als
         # Entwurf. Default deshalb 'approved'.

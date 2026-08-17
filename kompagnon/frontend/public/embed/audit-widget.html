@@ -543,7 +543,7 @@
         .then(function (d) {
           if (d.status === 'completed') {
             clearInterval(poll); clearInterval(msgTimer);
-            renderResult(d, cleanUrl, email);
+            renderResult(d, cleanUrl, email, pollToken);
           } else if (d.status === 'failed') {
             clearInterval(poll); clearInterval(msgTimer);
             /* Nicht der URL die Schuld geben: meistens war die Seite nur
@@ -582,10 +582,102 @@
     postHeight();
   }
 
+  /* ── Der Hinweis auf die Bestätigungs-Mail ──
+     Hier stand bis zum 17.08.2026 in jedem Fall „Wir haben eine kurze
+     Bestätigungs-Mail geschickt" — auch wenn der Versand gescheitert war.
+     Der Besucher wartete dann auf eine Mail, die nie kam, hielt sein Postfach
+     für das Problem, und ohne Bestätigung ging auch der Bericht nie raus.
+     Drei Zustände statt einer Behauptung. */
+  var BESTAETIGUNG_MAX_VERSUCHE = 6;
+  var BESTAETIGUNG_INTERVALL_MS = 3000;
+
+  function mailnoteHtml(zustand, email) {
+    var adresse = esc(email || 'Ihre Adresse');
+    var umfang = CRITERIA_COUNT
+      ? 'alle ' + esc(CRITERIA_COUNT) + ' Kriterien'
+      : 'jedes Kriterium';
+
+    if (zustand === 'laeuft') {
+      return '<strong>Bestätigungs-Mail wird verschickt…</strong><br>' +
+             'Sie geht gerade an ' + adresse + '. Einen Moment bitte.';
+    }
+    if (zustand === 'fehlgeschlagen') {
+      return '<strong>Die Bestätigungs-Mail ging nicht raus</strong><br>' +
+             'An ' + adresse + ' konnten wir gerade nichts zustellen — ' +
+             'das liegt nicht an Ihnen. Ihre Analyse ist gespeichert.' +
+             '<br><button class="kpg-btn kpg-btn-secondary" id="kpg-mail-retry" ' +
+             'style="max-width:260px;margin:12px 0 0;">Nochmal senden</button>';
+    }
+    return '<strong>Noch ein Schritt: bitte Postfach prüfen</strong><br>' +
+           'Wir haben eine kurze Bestätigungs-Mail an ' + adresse + ' geschickt. ' +
+           'Ein Klick darin, und der vollständige Bericht kommt — ' + umfang +
+           ' mit Bewertung, Empfehlungen und PDF.';
+  }
+
+  function zeigeMailnote(zustand, email, pollToken) {
+    var feld = document.getElementById('kpg-mailnote');
+    if (!feld) return;
+    feld.innerHTML = mailnoteHtml(zustand, email);
+    var knopf = document.getElementById('kpg-mail-retry');
+    if (knopf) {
+      knopf.addEventListener('click', function () {
+        knopf.disabled = true;
+        knopf.textContent = 'Wird gesendet…';
+        fetch(API_BASE + '/api/widget/bestaetigung/' + encodeURIComponent(pollToken),
+              { method: 'POST' })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            if (res.ok && res.d.versandt) {
+              zeigeMailnote('gesendet', email, pollToken);
+            } else {
+              /* Auch der zweite Fehlschlag wird gesagt — sonst ist der Knopf
+                 nur eine neue Form derselben Behauptung. */
+              zeigeMailnote('fehlgeschlagen', email, pollToken);
+              var neu = document.getElementById('kpg-mail-retry');
+              if (neu && !res.ok) {
+                neu.disabled = true;
+                neu.textContent = 'Bitte melden Sie sich kurz bei uns';
+              }
+            }
+          })
+          .catch(function () { zeigeMailnote('fehlgeschlagen', email, pollToken); })
+          .then(postHeight);
+      });
+    }
+    postHeight();
+  }
+
+  /* Der Versand läuft im Hintergrund an, wenn die Analyse fertig ist — beim
+     Anzeigen des Ergebnisses ist er es meist noch nicht. Deshalb ein paar
+     Sekunden nachsehen, bevor etwas behauptet wird. */
+  function beobachteBestaetigung(pollToken, email) {
+    var versuche = 0;
+    var timer = setInterval(function () {
+      versuche++;
+      fetch(API_BASE + '/api/widget/teaser/' + encodeURIComponent(pollToken))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.bestaetigung_versandt) {
+            clearInterval(timer);
+            zeigeMailnote('gesendet', email, pollToken);
+          } else if (versuche >= BESTAETIGUNG_MAX_VERSUCHE) {
+            clearInterval(timer);
+            zeigeMailnote('fehlgeschlagen', email, pollToken);
+          }
+        })
+        .catch(function () {
+          if (versuche >= BESTAETIGUNG_MAX_VERSUCHE) {
+            clearInterval(timer);
+            zeigeMailnote('fehlgeschlagen', email, pollToken);
+          }
+        });
+    }, BESTAETIGUNG_INTERVALL_MS);
+  }
+
   /* ── Render: Teaser ──
      Bewusst nur Score, Level und die drei größten Punkte. Der vollständige
      Bericht kommt per E-Mail — das ist der Anlass, ins Postfach zu schauen. */
-  function renderResult(data, cleanUrl, email) {
+  function renderResult(data, cleanUrl, email, pollToken) {
     var score = data.total_score || 0;
     var col = scoreColor(score);
     var host = cleanUrl.replace(/^https?:\/\//, '').replace(/^www\./, '');
@@ -635,13 +727,8 @@
            seinen Klick nie kommt — und der Klick ist genau der Punkt: eine
            fremd eingetragene Adresse bekommt so nie eine fertige Bewertung
            zugestellt. */
-        '<div class="kpg-mailnote">' +
-          '<strong>Noch ein Schritt: bitte Postfach prüfen</strong><br>' +
-          'Wir haben eine kurze Bestätigungs-Mail an ' +
-          esc(email || 'Ihre Adresse') + ' geschickt. ' +
-          'Ein Klick darin, und der vollständige Bericht kommt — ' +
-          (CRITERIA_COUNT ? 'alle ' + esc(CRITERIA_COUNT) + ' Kriterien' : 'jedes Kriterium') +
-          ' mit Bewertung, Empfehlungen und PDF.' +
+        '<div class="kpg-mailnote" id="kpg-mailnote">' +
+          mailnoteHtml(data.bestaetigung_versandt ? 'gesendet' : 'laeuft', email) +
         '</div>' +
         /* Führt in den Terminkalender, nicht auf die Startseite. Wer gerade
            seine Punktzahl gesehen hat, soll ein Gespräch buchen können —
@@ -650,6 +737,7 @@
         '<a class="kpg-link" id="kpg-restart">Neue Analyse starten</a>' +
       '</div>';
     document.getElementById('kpg-restart').addEventListener('click', resetWidget);
+    if (!data.bestaetigung_versandt) beobachteBestaetigung(pollToken, email);
     postHeight();
   }
 

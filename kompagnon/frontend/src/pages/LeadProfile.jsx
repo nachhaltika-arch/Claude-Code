@@ -28,6 +28,7 @@ import { useScreenSize } from '../utils/responsive';
 import { datumKurz, datumUndZeit } from '../utils/datum';
 import { befundZeilen, geprueftAmText } from '../utils/anreicherung';
 import { naechsterSchritt } from '../utils/naechsterSchritt';
+import { aufteilung } from '../utils/betriebReiter';
 
 const scoreColor = (s) =>
   s >= 70 ? 'var(--status-success-text)'
@@ -192,6 +193,7 @@ export default function LeadProfile() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [mehrOffen, setMehrOffen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
   const [editingName, setEditingName] = useState(false);
@@ -1099,10 +1101,29 @@ export default function LeadProfile() {
         </div>
       )}
 
-      {/* TABS */}
-      <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        {TABS.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ flex: isMobile ? '0 0 auto' : 1, flexShrink: 0, padding: isMobile ? '7px 14px' : '8px 12px', borderRadius: 'var(--radius-md)', border: 'none', background: activeTab === tab.id ? 'var(--bg-active)' : 'transparent', color: activeTab === tab.id ? 'var(--brand-primary)' : 'var(--text-tertiary)', fontSize: 12, fontWeight: activeTab === tab.id ? 500 : 400, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
+      {/* TABS — sechs oben, vier hinter „Mehr" (UX-15, entschieden 17.08.2026).
+        * Zehn gleichrangige Reiter waren zehn Entscheidungen bei jedem Aufruf.
+        * Nichts ist weg, es ist nur nicht mehr alles gleich laut. Welche wohin
+        * gehören, steht in `utils/betriebReiter.js`. */}
+      {(() => {
+        const { haupt, mehr, mehrIstAktiv } = aufteilung(TABS, activeTab);
+        const reiterKnopf = (tab, imMenue = false) => (
+          <button
+            key={tab.id}
+            onClick={() => { setActiveTab(tab.id); setMehrOffen(false); }}
+            style={{
+              flex: imMenue ? undefined : (isMobile ? '0 0 auto' : 1),
+              flexShrink: 0, width: imMenue ? '100%' : undefined,
+              padding: isMobile && !imMenue ? '7px 14px' : '8px 12px',
+              borderRadius: 'var(--radius-md)', border: 'none',
+              background: activeTab === tab.id ? 'var(--bg-active)' : 'transparent',
+              color: activeTab === tab.id ? 'var(--brand-primary)' : 'var(--text-tertiary)',
+              fontSize: 12, fontWeight: activeTab === tab.id ? 500 : 400,
+              cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex',
+              alignItems: 'center', justifyContent: imMenue ? 'flex-start' : 'center',
+              gap: 6, whiteSpace: 'nowrap', transition: 'all 0.15s',
+            }}
+          >
             <span>{tab.icon}</span>{tab.label}
             {tab.id === 'messages' && (lead.unread_messages || 0) > 0 && (
               <span style={{ background: '#ef4444', color: '#fff', borderRadius: 9999, fontSize: 10, fontWeight: 700, padding: '1px 6px', lineHeight: 1.4 }}>
@@ -1110,8 +1131,48 @@ export default function LeadProfile() {
               </span>
             )}
           </button>
-        ))}
-      </div>
+        );
+
+        return (
+          <div className="kc-tab-nav" style={{ display: 'flex', gap: 4, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {haupt.map(tab => reiterKnopf(tab))}
+
+            <div style={{ position: 'relative', flex: isMobile ? '0 0 auto' : 1, flexShrink: 0 }}>
+              <button
+                onClick={() => setMehrOffen(o => !o)}
+                aria-expanded={mehrOffen}
+                style={{
+                  width: '100%', padding: isMobile ? '7px 14px' : '8px 12px',
+                  borderRadius: 'var(--radius-md)', border: 'none',
+                  // Ist einer der untergeordneten Reiter offen, muss man das
+                  // oben sehen — sonst sucht man ihn zwischen den sechs.
+                  background: mehrIstAktiv ? 'var(--bg-active)' : 'transparent',
+                  color: mehrIstAktiv ? 'var(--brand-primary)' : 'var(--text-tertiary)',
+                  fontSize: 12, fontWeight: mehrIstAktiv ? 500 : 400,
+                  cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap',
+                }}
+              >
+                Mehr {mehrOffen ? '▴' : '▾'}
+              </button>
+
+              {mehrOffen && (
+                <>
+                  {/* Ein Klick daneben schließt. Ohne das bleibt das Menü
+                    * offen und verdeckt, was man als Nächstes anklicken will. */}
+                  <div
+                    onClick={() => setMehrOffen(false)}
+                    style={{ position: 'fixed', inset: 0, zIndex: 19 }}
+                  />
+                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 20, minWidth: 180, background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)', padding: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {mehr.map(tab => reiterKnopf(tab, true))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* NACHRICHTEN TAB */}
       {activeTab === 'messages' && (() => {

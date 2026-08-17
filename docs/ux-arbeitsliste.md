@@ -385,17 +385,26 @@ System weiß. Dieselbe Bauart wie die stillen Fehler der Vortage.*
       Jetzt `--brand-primary` (8.16), halbfett und mit sichtbarem Rand. Die
       Paarung steht in `utils/kontrast.test.js` und ist damit festgehalten.
 
-- [ ] **UX-15** · **M** · Zehn Reiter in der Betriebsansicht. **Analyse liegt
-      vor, die Entscheidung braucht David** — welche Reiter du wirklich
-      benutzt, steht in keinem Code.
+- [x] **UX-15** · **M** · ✅ **2026-08-17, von David entschieden.** Zehn
+      gleichrangige Reiter waren zehn Entscheidungen bei jedem Aufruf.
 
-      Die zehn: *Übersicht · Deals · Nachrichten · Kontakt · Audits · Dateien ·
-      Akademie · Angebot · Zugang · E-Mails*
+      **Oben bleiben sechs:** Übersicht · Kontakt · Audits · Angebot ·
+      Nachrichten · Dateien.
+      *Nachrichten* bleibt oben, weil dort der Ungelesen-Zähler hängt — ein
+      Zähler hinter einem Menü zählt für niemanden.
 
-      **Vorschlag, sechs zu behalten:**
+      **Hinter „Mehr":** Deals (steht auch unter Vertrieb → Deals), Akademie
+      (kundenseitig, nicht Innendienst), Zugang (QR-Code, einmal je Betrieb),
+      E-Mails.
 
-      | bleibt | warum |
-      |---|---|
+      Ist einer der untergeordneten Reiter offen, ist **„Mehr" hervorgehoben** —
+      sonst sucht man ihn zwischen den sechs. Ein Klick daneben schließt das
+      Menü. Die Aufteilung liegt in `utils/betriebReiter.js` (13 Tests), nicht
+      verteilt im Markup.
+
+      **Nichts ist weg**, es ist nur nicht mehr alles gleich laut.
+
+---|---|
       | Übersicht | der Einstieg |
       | Kontakt | Stammdaten, wird beim Bearbeiten angesteuert |
       | Audits | der Kern des Angebots |

@@ -20,6 +20,17 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 
+
+def ablage_verzeichnis():
+    """Wohin die Auftragsbestätigungen geschrieben werden.
+
+    Lag fest verdrahtet unter `uploads/auftragsbestaetigungen` und folgte
+    damit nicht dem eingehängten Datenträger — die PDFs waren nach jedem
+    Deploy weg.
+    """
+    from services.dateiablage import upload_wurzel
+    return upload_wurzel() / "auftragsbestaetigungen"
+
 def _register_fonts():
     try:
         import reportlab
@@ -364,7 +375,7 @@ def save_auftragsbestaetigung(
         datum          = datum,
     )
 
-    upload_dir = Path("uploads") / "auftragsbestaetigungen"
+    upload_dir = ablage_verzeichnis()
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     filename  = f"AB-{datum.replace('.', '')}-{session_id[:8]}.pdf"

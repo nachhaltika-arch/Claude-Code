@@ -50,10 +50,27 @@ services:
     # erst nach gruener CI. Im Render-Dashboard muss Auto-Deploy ebenfalls
     # auf 'Off' stehen — sonst deployt Render parallel am Gate vorbei.
     autoDeploy: false
+    # ── Datentraeger fuer hochgeladene Dateien ──────────────────────────
+    # Ohne diesen Block liegen Uploads im Container und sind bei JEDEM Deploy
+    # weg. Am 16.08.2026 festgestellt: Die eine vorhandene Datei war bereits
+    # verloren. Betroffen sind Kundendateien (routers/files.py), Bilder
+    # (routers/assets.py) und die Auftragsbestaetigungs-PDFs.
+    #
+    # ACHTUNG beim Anwenden: Render haengt einen Datentraeger nur an Dienste
+    # mit genau EINER Instanz, und das Anlegen erzwingt einen Neustart.
+    # 1 GB ist der kleinste Schritt und reicht um Groessenordnungen.
+    disk:
+      name: uploads
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       # Runtime
       - key: PYTHON_VERSION
         value: "3.11.0"
+      # Zeigt auf den eingehaengten Datentraeger. Ohne die Variable schreibt
+      # der Code weiter relativ nach `uploads` — also in den Container.
+      - key: UPLOAD_ROOT
+        value: /var/data/uploads
       - key: ENVIRONMENT
         value: staging
 

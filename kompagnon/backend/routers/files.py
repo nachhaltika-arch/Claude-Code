@@ -39,7 +39,13 @@ ALLOWED_EXTENSIONS = {
     "doc", "docx", "txt", "zip", "svg", "ai", "eps",
 }
 
-UPLOADS_BASE = Path("uploads")
+# Eine Wurzel für alle Schreibstellen — siehe services/dateiablage.py.
+# Vorher stand hier ein festes "uploads", während assets.py bereits
+# UPLOAD_ROOT las. Ein Datenträger, der nur ein Drittel auffängt, ist
+# schlimmer als keiner.
+from services.dateiablage import upload_wurzel
+
+UPLOADS_BASE = upload_wurzel()
 
 
 def _ext(filename: str) -> str:

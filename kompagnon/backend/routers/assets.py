@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/assets", tags=["assets"])
 
-_UPLOAD_ROOT = Path(os.getenv("UPLOAD_ROOT", "uploads"))
+from services.dateiablage import upload_wurzel
+
+_UPLOAD_ROOT = upload_wurzel()
 _ALLOWED_IMG_EXT = {"jpg", "jpeg", "png", "gif", "svg", "webp"}
 _MAX_SIZE = 20 * 1024 * 1024  # 20 MB
 
